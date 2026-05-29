@@ -80,47 +80,47 @@ impl CertifiedFintechReadSummary {
             .unwrap_or(false)
     }
 
-    pub(super) fn to_harness_payload(&self) -> Value {
-        let mut payload = Map::new();
-        payload.insert("snapshot_id".to_string(), u64_value(self.snapshot_id));
-        payload.insert("entity_count".to_string(), usize_value(self.entity_count));
-        payload.insert(
+    pub(super) fn to_harness_json_artifact(&self) -> Value {
+        let mut fields = Map::new();
+        fields.insert("snapshot_id".to_string(), u64_value(self.snapshot_id));
+        fields.insert("entity_count".to_string(), usize_value(self.entity_count));
+        fields.insert(
             "relation_count".to_string(),
             usize_value(self.relation_count),
         );
-        payload.insert(
+        fields.insert(
             "corrected_trade_count".to_string(),
             usize_value(self.corrected_trade_count),
         );
-        payload.insert(
+        fields.insert(
             "repaired_settlement_count".to_string(),
             usize_value(self.repaired_settlement_count),
         );
-        payload.insert(
+        fields.insert(
             "open_breach_count".to_string(),
             usize_value(self.open_breach_count),
         );
-        payload.insert(
+        fields.insert(
             "audit_record_count".to_string(),
             usize_value(self.audit_record_count),
         );
         if let Some(case_role) = self.case_role {
-            payload.insert(
+            fields.insert(
                 "case_role".to_string(),
                 Value::String(format!("{case_role:?}")),
             );
         }
-        Value::Object(payload)
+        Value::Object(fields)
     }
 }
 
-pub(super) fn read_summary_payloads(
+pub(super) fn read_summary_json_artifacts(
     summaries: &BTreeMap<String, CertifiedFintechReadSummary>,
 ) -> Value {
     Value::Object(
         summaries
             .iter()
-            .map(|(alias, summary)| (alias.clone(), summary.to_harness_payload()))
+            .map(|(alias, summary)| (alias.clone(), summary.to_harness_json_artifact()))
             .collect(),
     )
 }

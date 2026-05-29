@@ -8,11 +8,11 @@ use serde_json::Value;
 use crate::facade::replay::RelationalReplayOutcome;
 
 use super::super::complexity::workflow_budgets;
-use super::harness_payload::{
+use super::harness_json_artifact_fields::{
     bool_field, harness_object, optional_string_field, optional_u64_field, optional_usize_field,
     string_array_field, string_field, usize_field, value_field,
 };
-use super::read_summaries::read_summary_payloads;
+use super::read_summaries::read_summary_json_artifacts;
 use super::session::CertifiedRelationalFintechSession;
 
 fn replay_summary(replay: &RelationalReplayOutcome) -> Value {
@@ -255,7 +255,7 @@ pub(super) fn capture_artifacts(
                 surface: ArtifactSurface::SnapshotVisibleTruth,
                 name: "snapshot-visible-truth".to_string(),
                 boundary: request.boundary,
-                payload: read_summary_payloads(&session.named_reads),
+                payload: read_summary_json_artifacts(&session.named_reads),
                 attachments: Vec::new(),
                 metadata: BTreeMap::new(),
             }),

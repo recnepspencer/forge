@@ -5,7 +5,7 @@
 
 mod adapter;
 mod artifacts;
-mod harness_payload;
+mod harness_json_artifact_fields;
 mod invariants;
 mod plans;
 mod read_summaries;

@@ -625,11 +625,11 @@ impl<'observation, 'runtime> StrategyVisibilityReadView<'observation, 'runtime> 
     fn projection_failure(
         &self,
         operation: &'static str,
-        payload: Box<dyn std::any::Any + Send>,
+        unwind_value: Box<dyn std::any::Any + Send>,
     ) -> StrategyExecutorFailure {
-        let detail = if let Some(message) = payload.downcast_ref::<&'static str>() {
+        let detail = if let Some(message) = unwind_value.downcast_ref::<&'static str>() {
             (*message).to_string()
-        } else if let Some(message) = payload.downcast_ref::<String>() {
+        } else if let Some(message) = unwind_value.downcast_ref::<String>() {
             message.clone()
         } else {
             format!("{operation} violated the projection contract")
@@ -646,7 +646,7 @@ impl<'observation, 'runtime> StrategyVisibilityReadView<'observation, 'runtime> 
         run: impl FnOnce() -> T,
     ) -> Result<T, StrategyExecutorFailure> {
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(run))
-            .map_err(|payload| self.projection_failure(operation, payload))
+            .map_err(|unwind_value| self.projection_failure(operation, unwind_value))
     }
 }
 

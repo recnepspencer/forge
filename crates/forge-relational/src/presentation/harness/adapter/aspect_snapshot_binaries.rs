@@ -22,7 +22,7 @@ const ASPECT_VALUE_STRUCT: u8 = 2;
 pub(super) fn entity_aspect_snapshot_binary(
     record: &EntityReadRecord,
 ) -> Result<SnapshotPayload, RelationalHarnessError> {
-    let mut encoder = AspectSnapshotPayloadEncoder::new(RECORD_KIND_ENTITY);
+    let mut encoder = AspectSnapshotBinaryEncoder::new(RECORD_KIND_ENTITY);
     encoder.entity_identity(record.entity_id);
     encoder.u64(u64::from(record.kind.kind_id.0));
     encoder.lifecycle(record.lifecycle);
@@ -30,13 +30,13 @@ pub(super) fn entity_aspect_snapshot_binary(
     encoder.optional_u64(record.retired_at_version.map(|version| version.0));
     encoder.authoritative_aspect_state(record.authoritative_aspect_state.as_ref())?;
     encoder.comparison_keys(&record.authoritative_field_key_comparison_keys);
-    Ok(snapshot_binary_payload(encoder.finish()))
+    Ok(harness_snapshot_binary(encoder.finish()))
 }
 
 pub(super) fn relation_aspect_snapshot_binary(
     record: &RelationReadRecord,
 ) -> Result<SnapshotPayload, RelationalHarnessError> {
-    let mut encoder = AspectSnapshotPayloadEncoder::new(RECORD_KIND_RELATION);
+    let mut encoder = AspectSnapshotBinaryEncoder::new(RECORD_KIND_RELATION);
     encoder.relation_identity(record.relation_id);
     encoder.u64(u64::from(record.kind.kind_id.0));
     encoder.entity_identity(record.source);
@@ -46,10 +46,10 @@ pub(super) fn relation_aspect_snapshot_binary(
     encoder.optional_u64(record.retired_at_version.map(|version| version.0));
     encoder.authoritative_aspect_state(record.authoritative_aspect_state.as_ref())?;
     encoder.comparison_keys(&record.authoritative_field_key_comparison_keys);
-    Ok(snapshot_binary_payload(encoder.finish()))
+    Ok(harness_snapshot_binary(encoder.finish()))
 }
 
-fn snapshot_binary_payload(bytes: Vec<u8>) -> SnapshotPayload {
+fn harness_snapshot_binary(bytes: Vec<u8>) -> SnapshotPayload {
     SnapshotPayload::Binary(BinaryValue {
         media_type: SNAPSHOT_MEDIA_TYPE.to_string(),
         content_hash: Some(sha256_hex(&bytes)),
@@ -58,11 +58,11 @@ fn snapshot_binary_payload(bytes: Vec<u8>) -> SnapshotPayload {
     })
 }
 
-struct AspectSnapshotPayloadEncoder {
+struct AspectSnapshotBinaryEncoder {
     bytes: Vec<u8>,
 }
 
-impl AspectSnapshotPayloadEncoder {
+impl AspectSnapshotBinaryEncoder {
     fn new(record_kind_tag: u8) -> Self {
         let mut encoder = Self { bytes: Vec::new() };
         encoder.raw_bytes(SNAPSHOT_MAGIC);

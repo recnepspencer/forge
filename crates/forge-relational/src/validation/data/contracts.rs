@@ -110,7 +110,7 @@ mod tests {
     };
 
     #[test]
-    fn contract_marks_entity_create_as_entity_payload_and_uniqueness_sensitive() {
+    fn contract_marks_entity_create_as_aspect_patch_and_uniqueness_sensitive() {
         let plan = MergedCommitPlan {
             transaction_id: TransactionId(1),
             merged_intents: vec![MutationIntent::Create(CreateIntent::BulkEntities(
@@ -131,7 +131,7 @@ mod tests {
     }
 
     #[test]
-    fn contract_marks_entity_delete_without_payload_or_uniqueness_surface() {
+    fn contract_marks_entity_delete_without_field_patch_or_uniqueness_surface() {
         let plan = MergedCommitPlan {
             transaction_id: TransactionId(2),
             merged_intents: vec![MutationIntent::Entity(EntityMutationIntent::Delete(

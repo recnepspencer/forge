@@ -198,7 +198,7 @@ fn entity_field_delta_requires_authoritative_state() {
 }
 
 #[test]
-fn entity_field_delta_materializes_authoritative_patch_not_payload() {
+fn entity_field_delta_materializes_authoritative_aspect_patch() {
     let config = mutation_config();
     let mut state = WorkingState::new(BTreeMap::new(), config.adjacency_policy.clone());
     let mut symbols = StringInterner::default();
@@ -254,7 +254,7 @@ fn entity_field_delta_materializes_authoritative_patch_not_payload() {
 }
 
 #[test]
-fn relation_field_delta_materializes_authoritative_patch_not_payload() {
+fn relation_field_delta_materializes_authoritative_aspect_patch() {
     let config = mutation_config();
     let mut state = WorkingState::new(BTreeMap::new(), config.adjacency_policy.clone());
     let mut symbols = StringInterner::default();

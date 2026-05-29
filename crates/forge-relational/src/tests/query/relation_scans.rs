@@ -139,7 +139,7 @@ fn all_relation_records_use_canonical_relation_order_not_creation_order() {
 }
 
 #[test]
-fn relation_aspects_at_version_follow_declared_contract_not_payload_shape() {
+fn relation_aspects_at_version_follow_declared_contract_shape() {
     let mut runtime =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let left = create_entity(&mut runtime, "left");

@@ -127,7 +127,7 @@ fn native_field_patch_decode_returns_error_for_malformed_canonical_patch() {
 }
 
 #[test]
-fn malformed_temporal_and_rational_payloads_return_codec_errors() {
+fn malformed_temporal_and_rational_bodies_return_codec_errors() {
     let mut invalid_time = vec![19];
     invalid_time.extend_from_slice(&CanonicalTime::NANOS_PER_DAY.to_le_bytes());
     let invalid_rational = [15, 1, 0, 0, 0, b'1', 1, 0, 0, 0, b'0'];
@@ -143,7 +143,7 @@ fn malformed_temporal_and_rational_payloads_return_codec_errors() {
 }
 
 #[test]
-fn truncated_reference_payload_returns_codec_error() {
+fn truncated_reference_body_returns_codec_error() {
     let truncated_entity_reference = [22, 1, 0, 0, 0, 2, 0, 0, 0];
 
     assert!(decode_aspect_value(&truncated_entity_reference)

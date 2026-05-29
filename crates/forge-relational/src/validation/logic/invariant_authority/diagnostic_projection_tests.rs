@@ -44,7 +44,7 @@ fn proof_boundary_trace_projection_is_publication_only_diagnostic_fields() {
 }
 
 #[test]
-fn failure_projection_preserves_typed_invariant_artifact_payload() {
+fn failure_projection_preserves_typed_invariant_artifact_fields() {
     let violation = none_violation();
     let result = execution_result_with_proof_boundary(vec![check_result_for_violation(
         violation.clone(),
@@ -78,7 +78,7 @@ fn failure_projection_preserves_typed_invariant_artifact_payload() {
 }
 
 #[test]
-fn failure_projection_emits_aspect_field_diagnostic_payload() {
+fn failure_projection_emits_aspect_field_diagnostic_fields() {
     let aspect_key = AspectKey::new("profile.email").expect("valid aspect key");
     let field = FieldKey::new("email").expect("valid field key");
     let violation = InvariantViolation {
@@ -133,7 +133,7 @@ fn failure_projection_emits_aspect_field_diagnostic_payload() {
 }
 
 #[test]
-fn failure_projection_preserves_custom_provenance_as_typed_diagnostic_payload() {
+fn failure_projection_preserves_custom_provenance_as_typed_diagnostic_fields() {
     let visible_entity_id = EntityId::new(PartitionId::new(7), 11, 2);
     let visible_relation_id = RelationId::new(PartitionId::new(9), 13, 4);
     let provenance = custom_provenance_with_visible_records(visible_entity_id, visible_relation_id);

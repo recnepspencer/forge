@@ -121,7 +121,7 @@ fn workflow_certification_runner_proves_relational_fintech_intraday_risk() {
             && artifact
                 .payload
                 .get("analysis_intraday_replay")
-                .and_then(|payload| payload.get("lineage_authority_digest_mode"))
+                .and_then(|artifact_json| artifact_json.get("lineage_authority_digest_mode"))
                 .is_some()
     }));
 }
@@ -149,7 +149,7 @@ fn workflow_certification_runner_proves_relational_fintech_settlement_repair() {
             && artifact
                 .payload
                 .get("analysis_repair_replay")
-                .and_then(|payload| payload.get("lineage_authority_basis_kind"))
+                .and_then(|artifact_json| artifact_json.get("lineage_authority_basis_kind"))
                 .is_some()
     }));
 }

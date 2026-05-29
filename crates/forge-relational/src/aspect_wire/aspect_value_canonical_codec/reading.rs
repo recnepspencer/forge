@@ -9,7 +9,7 @@ use super::{tags, AspectValueCanonicalCodecError};
 pub(crate) fn decode_aspect_value(
     bytes: &[u8],
 ) -> Result<AspectValue, AspectValueCanonicalCodecError> {
-    let mut reader = AspectValuePayloadReader::new(bytes);
+    let mut reader = AspectValueBodyReader::new(bytes);
     let value = reader.read_aspect_value_body()?;
     reader.finish()?;
     Ok(value)
@@ -63,12 +63,12 @@ impl<'a> LengthPrefixedAspectValueReader<'a> {
     }
 }
 
-struct AspectValuePayloadReader<'a> {
+struct AspectValueBodyReader<'a> {
     bytes: &'a [u8],
     cursor: usize,
 }
 
-impl<'a> AspectValuePayloadReader<'a> {
+impl<'a> AspectValueBodyReader<'a> {
     fn new(bytes: &'a [u8]) -> Self {
         Self { bytes, cursor: 0 }
     }

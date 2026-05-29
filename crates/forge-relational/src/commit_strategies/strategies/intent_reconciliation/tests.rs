@@ -24,7 +24,7 @@ fn strategy_registry() -> crate::schema::data::RelationalSchemaRegistry {
 }
 
 #[test]
-fn intent_reconciliation_strategy_emits_update_when_payload_differs() {
+fn intent_reconciliation_strategy_emits_update_when_aspect_fields_differ() {
     let descriptor = IntentReconciliationStrategy::descriptor(
         crate::commit_strategies::data::CommitStrategyId(501),
     );
@@ -72,7 +72,7 @@ fn intent_reconciliation_strategy_emits_update_when_payload_differs() {
 }
 
 #[test]
-fn intent_reconciliation_strategy_emits_noop_when_payload_matches() {
+fn intent_reconciliation_strategy_emits_noop_when_aspect_fields_match() {
     let descriptor = IntentReconciliationStrategy::descriptor(
         crate::commit_strategies::data::CommitStrategyId(502),
     );
@@ -162,7 +162,7 @@ fn intent_reconciliation_strategy_preserves_untouched_declared_fields() {
         .execute(&request, &snapshot)
         .expect("strategy execution");
     let intent = &execution.mutation_program().worker_batches()[0].intents[0];
-    let updated_payload = match intent {
+    let updated_aspect_value = match intent {
         crate::transactions::data::MutationIntent::Entity(
             crate::transactions::data::EntityMutationIntent::UpdateFields(intent),
         ) => intent.fields.get_single_field(
@@ -172,5 +172,5 @@ fn intent_reconciliation_strategy_preserves_untouched_declared_fields() {
         other => panic!("expected update entity fields intent, got {other:?}"),
     };
 
-    assert_eq!(updated_payload, Some(&AspectValue::UInt64(3)));
+    assert_eq!(updated_aspect_value, Some(&AspectValue::UInt64(3)));
 }

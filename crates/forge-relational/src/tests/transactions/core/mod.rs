@@ -124,7 +124,7 @@ fn transaction_intent_is_the_shared_mutation_intent_type() {
 }
 
 #[test]
-fn update_entity_fields_rejects_undeclared_payload_keys() {
+fn update_entity_fields_rejects_undeclared_aspect_targets() {
     let mut runtime =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let entity = create_entity(&mut runtime, "field-guard");
@@ -995,7 +995,7 @@ fn staged_parallel_patch_preparation_matches_serial_patch_surface() {
 }
 
 #[test]
-fn entity_patch_aspects_follow_declared_semantics_not_payload_keys() {
+fn entity_patch_aspects_follow_declared_contract_targets() {
     let mut runtime =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
 
@@ -1131,7 +1131,7 @@ fn entity_patch_aspects_follow_declared_semantics_not_payload_keys() {
 }
 
 #[test]
-fn retained_relation_patch_only_emits_declared_lifecycle_delta_when_endpoints_and_payload_stay_same(
+fn retained_relation_patch_only_emits_declared_lifecycle_delta_when_endpoints_and_aspects_stay_same(
 ) {
     let mut runtime =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
@@ -1481,7 +1481,7 @@ fn snapshot_reads_are_immutable_after_later_mutation() {
 }
 
 #[test]
-fn snapshots_resolve_historical_entity_payloads_by_version() {
+fn snapshots_resolve_historical_entity_aspects_by_version() {
     let mut runtime = runtime_with_test_schema();
     let create_outcome = create_entity_outcome(&mut runtime, "before");
     let entity = changed_entities(&create_outcome)[0];
@@ -1510,7 +1510,7 @@ fn snapshots_resolve_historical_entity_payloads_by_version() {
 }
 
 #[test]
-fn historical_reads_preserve_generation_and_payload_after_slot_reuse() {
+fn historical_reads_preserve_generation_and_aspects_after_slot_reuse() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
     let created = create_entity_outcome(&mut runtime, "before");
     let original = changed_entities(&created)[0];

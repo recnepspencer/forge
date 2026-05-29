@@ -321,44 +321,44 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
     ) -> Result<ReproductionMetadata, Self::Error> {
         Ok(ReproductionMetadata {
             format: "json".to_string(),
-            payload: reproduction_payload(session, failure).to_string(),
+            payload: reproduction_json(session, failure).to_string(),
         })
     }
 }
 
-fn reproduction_payload(
+fn reproduction_json(
     session: &CertifiedRelationalFintechSession,
     failure: &WorkflowFailureContext,
 ) -> Value {
-    let mut payload = Map::new();
-    payload.insert(
+    let mut fields = Map::new();
+    fields.insert(
         "state".to_string(),
         Value::String(format!("{:?}", failure.state)),
     );
-    payload.insert(
+    fields.insert(
         "step_index".to_string(),
         failure
             .step_index
             .map(|step_index| Value::Number(Number::from(step_index as u64)))
             .unwrap_or(Value::Null),
     );
-    payload.insert(
+    fields.insert(
         "known_branches".to_string(),
         string_array(session.named_branches.keys().cloned()),
     );
-    payload.insert(
+    fields.insert(
         "known_snapshots".to_string(),
         string_array(session.named_snapshots.keys().cloned()),
     );
-    payload.insert(
+    fields.insert(
         "known_reads".to_string(),
         string_array(session.named_reads.keys().cloned()),
     );
-    payload.insert(
+    fields.insert(
         "known_replays".to_string(),
         string_array(session.named_replays.keys().cloned()),
     );
-    Value::Object(payload)
+    Value::Object(fields)
 }
 
 fn string_array(values: impl IntoIterator<Item = String>) -> Value {

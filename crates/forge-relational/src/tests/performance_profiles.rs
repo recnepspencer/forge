@@ -1248,7 +1248,7 @@ fn perf_harness_measurement_matrix() {
             let started_at = Instant::now();
             measurement_from(started_at, || {
                 let metrics_started_at = Instant::now();
-                let payload = (0..20_000u64)
+                let metric_workload = (0..20_000u64)
                     .map(|index| {
                         perf_metrics!({
                             "id": index,
@@ -1260,7 +1260,7 @@ fn perf_harness_measurement_matrix() {
                 let payload_build_micros = metrics_started_at.elapsed().as_micros();
                 perf_metrics!({
                     "payload_build_micros": payload_build_micros,
-                    "payload_item_count": payload.len(),
+                    "payload_item_count": metric_workload.len(),
                 })
             })
         },
@@ -1279,7 +1279,7 @@ fn perf_harness_measurement_matrix() {
             metric_u64(&sample.metrics, "payload_build_micros") as u128
                 > sample.elapsed_micros.saturating_mul(5)
         }),
-        "measurement payload construction should remain outside reported elapsed time"
+        "measurement workload construction should remain outside reported elapsed time"
     );
 }
 
