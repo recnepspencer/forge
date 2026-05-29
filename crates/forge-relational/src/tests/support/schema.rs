@@ -14,35 +14,38 @@ pub(crate) fn field_key(name: &str) -> FieldKey {
     FieldKey::new(name).expect("test field names must be foundational field keys")
 }
 
-pub(crate) fn entity_field_aspect(name: AspectKey, field: FieldKey) -> DeclaredAspect {
+pub(crate) fn entity_field_aspect(aspect_key: AspectKey, field: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
         binding: AspectBinding::EntityField { field },
-        contract: scalar_string_contract(name),
+        contract: scalar_string_contract(aspect_key),
     }
 }
 
-pub(crate) fn entity_u64_field_aspect(name: AspectKey, field: FieldKey) -> DeclaredAspect {
+pub(crate) fn entity_u64_field_aspect(aspect_key: AspectKey, field: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
         binding: AspectBinding::EntityField { field },
-        contract: scalar_u64_contract(name),
+        contract: scalar_u64_contract(aspect_key),
     }
 }
 
-pub(crate) fn entity_i64_field_aspect(name: AspectKey, field: FieldKey) -> DeclaredAspect {
+pub(crate) fn entity_i64_field_aspect(aspect_key: AspectKey, field: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
         binding: AspectBinding::EntityField { field },
-        contract: scalar_i64_contract(name),
+        contract: scalar_i64_contract(aspect_key),
     }
 }
 
-pub(crate) fn entity_bool_field_aspect(name: AspectKey, field: FieldKey) -> DeclaredAspect {
+pub(crate) fn entity_bool_field_aspect(aspect_key: AspectKey, field: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
         binding: AspectBinding::EntityField { field },
-        contract: scalar_bool_contract(name),
+        contract: scalar_bool_contract(aspect_key),
     }
 }
 
-pub(crate) fn entity_summary_struct_aspect(name: AspectKey, field: FieldKey) -> DeclaredAspect {
+pub(crate) fn entity_summary_struct_aspect(
+    aspect_key: AspectKey,
+    field: FieldKey,
+) -> DeclaredAspect {
     let shape = aspects()
         .struct_fields()
         .required("title", ScalarAspectType::String)
@@ -53,17 +56,17 @@ pub(crate) fn entity_summary_struct_aspect(name: AspectKey, field: FieldKey) -> 
         binding: AspectBinding::EntityField { field },
         contract: aspects()
             .contract()
-            .for_key(name.clone())
-            .identified_by(AspectIdentity(test_contract_identity(name.as_str())))
+            .for_key(aspect_key.clone())
+            .identified_by(AspectIdentity(test_contract_identity(&aspect_key)))
             .at_revision(aspects().vocabulary().revision(1))
             .struct_aspect(shape),
     }
 }
 
-pub(crate) fn relation_field_aspect(name: AspectKey, field: FieldKey) -> DeclaredAspect {
+pub(crate) fn relation_field_aspect(aspect_key: AspectKey, field: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
         binding: AspectBinding::RelationField { field },
-        contract: scalar_string_contract(name),
+        contract: scalar_string_contract(aspect_key),
     }
 }
 
@@ -77,70 +80,65 @@ pub(crate) fn lifecycle_aspect() -> DeclaredAspect {
 pub(crate) fn relation_source_aspect() -> DeclaredAspect {
     DeclaredAspect {
         binding: AspectBinding::RelationSourceEndpoint,
-        contract: entity_reference_contract("source"),
+        contract: entity_reference_contract(aspect_key("source")),
     }
 }
 
 pub(crate) fn relation_target_aspect() -> DeclaredAspect {
     DeclaredAspect {
         binding: AspectBinding::RelationTargetEndpoint,
-        contract: entity_reference_contract("target"),
+        contract: entity_reference_contract(aspect_key("target")),
     }
 }
 
-fn scalar_string_contract(name: AspectKey) -> forge_foundational::AspectContract {
+fn scalar_string_contract(aspect_key: AspectKey) -> forge_foundational::AspectContract {
     aspects()
         .contract()
-        .for_key(name.clone())
-        .identified_by(AspectIdentity(test_contract_identity(name.as_str())))
+        .for_key(aspect_key.clone())
+        .identified_by(AspectIdentity(test_contract_identity(&aspect_key)))
         .at_revision(aspects().vocabulary().revision(1))
         .scalar(ScalarAspectType::String)
 }
 
-fn scalar_bool_contract(name: AspectKey) -> forge_foundational::AspectContract {
+fn scalar_bool_contract(aspect_key: AspectKey) -> forge_foundational::AspectContract {
     aspects()
         .contract()
-        .for_key(name.clone())
-        .identified_by(AspectIdentity(test_contract_identity(name.as_str())))
+        .for_key(aspect_key.clone())
+        .identified_by(AspectIdentity(test_contract_identity(&aspect_key)))
         .at_revision(aspects().vocabulary().revision(1))
         .scalar(ScalarAspectType::Bool)
 }
 
-fn scalar_u64_contract(name: AspectKey) -> forge_foundational::AspectContract {
+fn scalar_u64_contract(aspect_key: AspectKey) -> forge_foundational::AspectContract {
     aspects()
         .contract()
-        .for_key(name.clone())
-        .identified_by(AspectIdentity(test_contract_identity(name.as_str())))
+        .for_key(aspect_key.clone())
+        .identified_by(AspectIdentity(test_contract_identity(&aspect_key)))
         .at_revision(aspects().vocabulary().revision(1))
         .scalar(ScalarAspectType::UInt64)
 }
 
-fn scalar_i64_contract(name: AspectKey) -> forge_foundational::AspectContract {
+fn scalar_i64_contract(aspect_key: AspectKey) -> forge_foundational::AspectContract {
     aspects()
         .contract()
-        .for_key(name.clone())
-        .identified_by(AspectIdentity(test_contract_identity(name.as_str())))
+        .for_key(aspect_key.clone())
+        .identified_by(AspectIdentity(test_contract_identity(&aspect_key)))
         .at_revision(aspects().vocabulary().revision(1))
         .scalar(ScalarAspectType::Int64)
 }
 
-fn entity_reference_contract(name: &str) -> forge_foundational::AspectContract {
+fn entity_reference_contract(aspect_key: AspectKey) -> forge_foundational::AspectContract {
     aspects()
         .contract()
-        .for_key(
-            aspects()
-                .vocabulary()
-                .key(name)
-                .expect("valid foundational aspect key"),
-        )
-        .identified_by(AspectIdentity(test_contract_identity(name)))
+        .for_key(aspect_key.clone())
+        .identified_by(AspectIdentity(test_contract_identity(&aspect_key)))
         .at_revision(aspects().vocabulary().revision(1))
         .reference_entity()
 }
 
-fn test_contract_identity(name: &str) -> u64 {
+fn test_contract_identity(aspect_key: &AspectKey) -> u64 {
     let mut hash = 14695981039346656037_u64;
-    for byte in name.as_bytes() {
+    for byte in aspect_key.as_str().as_bytes() {
         hash ^= *byte as u64;
         hash = hash.wrapping_mul(1099511628211_u64);
     }
