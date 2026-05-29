@@ -1257,10 +1257,10 @@ fn perf_harness_measurement_matrix() {
                         })
                     })
                     .collect::<Vec<_>>();
-                let payload_build_micros = metrics_started_at.elapsed().as_micros();
+                let measurement_build_micros = metrics_started_at.elapsed().as_micros();
                 perf_metrics!({
-                    "payload_build_micros": payload_build_micros,
-                    "payload_item_count": metric_workload.len(),
+                    "measurement_build_micros": measurement_build_micros,
+                    "measurement_item_count": metric_workload.len(),
                 })
             })
         },
@@ -1270,13 +1270,13 @@ fn perf_harness_measurement_matrix() {
         "post_measurement_metrics_do_not_pollute_elapsed",
         &samples,
         &[
-            ("payload_build_micros", &["payload_build_micros"]),
-            ("payload_item_count", &["payload_item_count"]),
+            ("measurement_build_micros", &["measurement_build_micros"]),
+            ("measurement_item_count", &["measurement_item_count"]),
         ],
     );
     assert!(
         samples.iter().all(|sample| {
-            metric_u64(&sample.metrics, "payload_build_micros") as u128
+            metric_u64(&sample.metrics, "measurement_build_micros") as u128
                 > sample.elapsed_micros.saturating_mul(5)
         }),
         "measurement workload construction should remain outside reported elapsed time"
