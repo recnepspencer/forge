@@ -1,3 +1,4 @@
+use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::facade::config::{MvccConfig, RetentionBackend, SnapshotReleasePolicy};
 use crate::tests::support::*;
 
@@ -145,12 +146,8 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
         .any(|entry| entry.code == DiagnosticCode::VisibilityCacheTransientRead));
     assert!(read_path.entries.iter().any(|entry| {
         entry.code == DiagnosticCode::SnapshotReadPathInspected
-            && entry
-                .fields
-                .root_value()
-                .get("recent_candidate")
-                .and_then(|value| value.as_bool())
-                == Some(false)
+            && diagnostic_field(entry, "recent_candidate")
+                == &RelationalDiagnosticValue::Bool(false)
     }));
 
     let read = runtime.read_truth().read_snapshot(&snapshot).unwrap();
@@ -230,12 +227,8 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
         .any(|entry| entry.code == DiagnosticCode::VisibilityCacheMissReconstructed));
     assert!(first_read_path.entries.iter().any(|entry| {
         entry.code == DiagnosticCode::VisibilityCacheRecentAdmissionCandidate
-            && entry
-                .fields
-                .root_value()
-                .get("recent_admission_candidate")
-                .and_then(|value| value.as_bool())
-                == Some(true)
+            && diagnostic_field(entry, "recent_admission_candidate")
+                == &RelationalDiagnosticValue::Bool(true)
     }));
 
     runtime.performance_access().reset_counters();
@@ -265,18 +258,9 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
         .unwrap();
     assert!(evicted_first_read_path.entries.iter().any(|entry| {
         entry.code == DiagnosticCode::SnapshotReadPathInspected
-            && entry
-                .fields
-                .root_value()
-                .get("cached_visibility_state")
-                .and_then(|value| value.as_bool())
-                == Some(false)
-            && entry
-                .fields
-                .root_value()
-                .get("recent_resident")
-                .and_then(|value| value.as_bool())
-                == Some(false)
+            && diagnostic_field(entry, "cached_visibility_state")
+                == &RelationalDiagnosticValue::Bool(false)
+            && diagnostic_field(entry, "recent_resident") == &RelationalDiagnosticValue::Bool(false)
     }));
     assert_eq!(
         third.version_id,
