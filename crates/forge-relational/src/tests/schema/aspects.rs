@@ -1,4 +1,4 @@
-use forge_foundational::{AspectShape, ReferenceAspectType, ScalarAspectType};
+use forge_foundational::{AspectShape, FieldKey, ReferenceAspectType, ScalarAspectType};
 
 use crate::capabilities::AspectPlanSource;
 use crate::facade::merge::{
@@ -15,7 +15,7 @@ use crate::tests::support::*;
 #[test]
 fn schema_aspect_declarations_are_canonicalized_before_revision_is_derived() {
     let first = KindAspectDeclarations::new(vec![
-        lifecycle_aspect_named("zeta"),
+        lifecycle_aspect_named(crate::tests::support::aspect_key("zeta")),
         entity_field_aspect(
             crate::tests::support::aspect_key("alpha"),
             crate::tests::support::field_key("name"),
@@ -26,7 +26,7 @@ fn schema_aspect_declarations_are_canonicalized_before_revision_is_derived() {
             crate::tests::support::aspect_key("alpha"),
             crate::tests::support::field_key("name"),
         ),
-        lifecycle_aspect_named("zeta"),
+        lifecycle_aspect_named(crate::tests::support::aspect_key("zeta")),
     ]);
 
     let first_registry = RelationalSchemaRegistry::new()
@@ -83,7 +83,7 @@ fn duplicate_aspect_keys_are_rejected() {
                     crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                 ),
-                lifecycle_aspect_named("name"),
+                lifecycle_aspect_named(crate::tests::support::aspect_key("name")),
             ]),
         })
         .unwrap_err();
@@ -558,7 +558,10 @@ fn relation_field_aspects_are_governed_by_foundational_contract_shape() {
             cross_context_policy: CrossContextPolicy::AllowExplicit,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
             aspect_declarations: KindAspectDeclarations::new(vec![
-                relation_field_with_entity_reference_contract("target_as_field", "label"),
+                relation_field_with_entity_reference_contract(
+                    crate::tests::support::aspect_key("target_as_field"),
+                    crate::tests::support::field_key("label"),
+                ),
             ]),
             relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
         })
@@ -768,40 +771,31 @@ fn aspect_schema_fixture_builds_runtime_with_lowered_plans_for_customized_aspect
     );
 }
 
-fn lifecycle_aspect_named(name: &str) -> DeclaredAspect {
+fn lifecycle_aspect_named(aspect_key: AspectKey) -> DeclaredAspect {
     DeclaredAspect {
         binding: AspectBinding::LifecycleTransition,
-        contract: test_scalar_contract(name),
+        contract: test_scalar_contract(aspect_key),
     }
 }
 
-fn test_scalar_contract(name: &str) -> forge_foundational::AspectContract {
+fn test_scalar_contract(aspect_key: AspectKey) -> forge_foundational::AspectContract {
     forge_foundational::aspects()
         .contract()
-        .for_key(
-            forge_foundational::aspects()
-                .vocabulary()
-                .key(name)
-                .expect("valid foundational aspect key"),
-        )
+        .for_key(aspect_key)
         .identified_by(forge_foundational::AspectIdentity(41))
         .at_revision(forge_foundational::aspects().vocabulary().revision(1))
         .scalar(forge_foundational::ScalarAspectType::String)
 }
 
-fn relation_field_with_entity_reference_contract(name: &str, field: &str) -> DeclaredAspect {
+fn relation_field_with_entity_reference_contract(
+    aspect_key: AspectKey,
+    field: FieldKey,
+) -> DeclaredAspect {
     DeclaredAspect {
-        binding: AspectBinding::RelationField {
-            field: forge_foundational::FieldKey::new(field).expect("valid field key"),
-        },
+        binding: AspectBinding::RelationField { field },
         contract: forge_foundational::aspects()
             .contract()
-            .for_key(
-                forge_foundational::aspects()
-                    .vocabulary()
-                    .key(name)
-                    .expect("valid foundational aspect key"),
-            )
+            .for_key(aspect_key)
             .identified_by(forge_foundational::AspectIdentity(42))
             .at_revision(forge_foundational::aspects().vocabulary().revision(1))
             .reference_entity(),
