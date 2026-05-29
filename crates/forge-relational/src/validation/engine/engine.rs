@@ -148,6 +148,7 @@ mod tests {
         RelationIntegrityDeclarations,
     };
     use crate::symbols::data::ClientKey;
+    use crate::tests::support::{aspect_key, field_key};
     use crate::transactions::data::{
         EntitySpec, RelationSpec, TransactionOptions, WorkerIntentBatch,
     };
@@ -549,8 +550,7 @@ mod tests {
     fn engine_skips_rules_when_request_groups_do_not_intersect() {
         let runtime = runtime_with_invariants(InvariantCatalog {
             registrations: vec![InvariantRegistration::commit_boundary_blocking(
-                InvariantRule::unique_entity_aspect_field("name", "name")
-                    .expect("valid unique aspect field target"),
+                InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
             )],
             ..InvariantCatalog::default()
         });
@@ -582,8 +582,7 @@ mod tests {
     fn engine_marks_unrelated_commit_boundary_rules_not_applicable() {
         let runtime = runtime_with_invariants(InvariantCatalog {
             registrations: vec![InvariantRegistration::commit_boundary_blocking(
-                InvariantRule::unique_entity_aspect_field("name", "name")
-                    .expect("valid unique aspect field target"),
+                InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
             )],
             ..InvariantCatalog::default()
         });

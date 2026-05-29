@@ -12,6 +12,7 @@ use crate::facade::runtime::{
 use crate::identity::data::KindId;
 use crate::schema::data::SymmetryMode;
 use crate::symbols::data::ClientKey;
+use crate::tests::support::{aspect_key, field_key};
 use crate::transactions::data::{
     BulkRelationCreateIntent, CreateIntent, DeleteRelationIntent, EntitySpec, MergedCommitPlan,
     MutationIntent, RelationMutationIntent, TransactionId,
@@ -24,8 +25,7 @@ fn commit_boundary_short_circuits_when_plan_contract_cannot_touch_profile_groups
     let runtime = runtime_with_invariants(
         InvariantCatalog {
             registrations: vec![InvariantRegistration::commit_boundary_blocking(
-                InvariantRule::unique_entity_aspect_field("name", "name")
-                    .expect("valid unique aspect field target"),
+                InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
             )],
             ..InvariantCatalog::default()
         },
@@ -50,8 +50,7 @@ fn staged_parallel_commit_boundary_matches_serial_reference_results() {
     let invariant_catalog = InvariantCatalog {
         registrations: vec![
             InvariantRegistration::commit_boundary_blocking(
-                InvariantRule::unique_entity_aspect_field("name", "name")
-                    .expect("valid unique aspect field target"),
+                InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
             ),
             InvariantRegistration::commit_boundary_blocking(InvariantRule::MaxMergedIntents(0)),
         ],

@@ -34,7 +34,7 @@ fn sparse_speculative_overlay_reads_untouched_entity_truth_from_base_partition()
         adjacency: Vec::new(),
         reverse_adjacency: Vec::new(),
     };
-    let name_contract = scalar_string_contract("name", 1);
+    let name_contract = scalar_string_contract(AspectKey::new("name").unwrap(), 1);
     let _ = base_partition.entity_arena.push_slot(SlotInit {
         partition_id,
         kind_id: KindId(1),
@@ -92,7 +92,8 @@ fn sparse_speculative_overlay_reads_untouched_relation_truth_from_base_partition
         adjacency: Vec::new(),
         reverse_adjacency: Vec::new(),
     };
-    let relation_kind_contract = scalar_string_contract("relation.kind", 2);
+    let relation_kind_contract =
+        scalar_string_contract(AspectKey::new("relation.kind").unwrap(), 2);
     let (left_slot, left_generation, _) = base_partition.entity_arena.push_slot(SlotInit {
         partition_id,
         kind_id: KindId(1),
@@ -155,10 +156,10 @@ fn sparse_speculative_overlay_reads_untouched_relation_truth_from_base_partition
     assert_eq!(metadata.target, right);
 }
 
-fn scalar_string_contract(key: &str, identity: u64) -> AspectContract {
+fn scalar_string_contract(aspect_key: AspectKey, identity: u64) -> AspectContract {
     aspects()
         .contract()
-        .for_key(AspectKey::new(key).expect("valid aspect key"))
+        .for_key(aspect_key)
         .identified_by(AspectIdentity(identity))
         .at_revision(AspectContractRevision(1))
         .scalar(ScalarAspectType::String)

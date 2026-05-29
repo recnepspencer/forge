@@ -1149,8 +1149,7 @@ fn profitable_commit_boundary_adapter() -> InvariantHarnessAdapter {
         registrations: vec![
             InvariantRegistration::commit_boundary_blocking(InvariantRule::MaxMergedIntents(16)),
             InvariantRegistration::commit_boundary_blocking(
-                InvariantRule::unique_entity_aspect_field("name", "name")
-                    .expect("valid unique aspect field target"),
+                InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
             ),
         ],
         ..InvariantCatalog::default()
@@ -2145,8 +2144,7 @@ fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
 fn harness_heavy_invariants_are_opt_in() {
     let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::harness_audit_only(
-            InvariantRule::unique_entity_aspect_field("name", "name")
-                .expect("valid unique aspect field target"),
+            InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
         )],
         ..InvariantCatalog::default()
     });

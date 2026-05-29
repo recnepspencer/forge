@@ -203,7 +203,7 @@ fn entity_field_delta_materializes_authoritative_aspect_patch() {
     let mut state = WorkingState::new(BTreeMap::new(), config.adjacency_policy.clone());
     let mut symbols = StringInterner::default();
     let schema = RelationalSchemaRegistry::new();
-    let contract = scalar_string_contract("name", 1, 7);
+    let contract = scalar_string_contract(FoundationalAspectKey::new("name").unwrap(), 1, 7);
     let authoritative_patch = authoritative_string_patch(&contract, "native-authority");
     let mut catalog = AspectPlanCatalog::empty();
     catalog.entity_plans.insert(
@@ -259,7 +259,8 @@ fn relation_field_delta_materializes_authoritative_aspect_patch() {
     let mut state = WorkingState::new(BTreeMap::new(), config.adjacency_policy.clone());
     let mut symbols = StringInterner::default();
     let schema = RelationalSchemaRegistry::new();
-    let contract = scalar_string_contract("relation.label", 11, 3);
+    let contract =
+        scalar_string_contract(FoundationalAspectKey::new("relation.label").unwrap(), 11, 3);
     let mut catalog = AspectPlanCatalog::empty();
     catalog.relation_plans.insert(
         KindId(2),
@@ -327,10 +328,14 @@ fn assert_authoritative_whole_aspect_locator(
     );
 }
 
-fn scalar_string_contract(key: &str, identity: u64, revision: u64) -> AspectContract {
+fn scalar_string_contract(
+    aspect_key: FoundationalAspectKey,
+    identity: u64,
+    revision: u64,
+) -> AspectContract {
     aspects()
         .contract()
-        .for_key(FoundationalAspectKey::new(key).expect("foundational key"))
+        .for_key(aspect_key)
         .identified_by(AspectIdentity(identity))
         .at_revision(AspectContractRevision(revision))
         .scalar(ScalarAspectType::String)

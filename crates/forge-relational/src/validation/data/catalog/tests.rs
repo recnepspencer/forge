@@ -6,10 +6,11 @@ use crate::validation::data::{InvariantExecutionPoint, InvariantFailureEffect, I
 
 #[test]
 fn canonical_catalog_digest_is_order_and_duplicate_independent_without_json_identity() {
-    let unique_name = InvariantRegistration::commit_boundary_blocking(
-        InvariantRule::unique_entity_aspect_field("profile.name", "value")
-            .expect("valid unique field rule"),
-    );
+    let unique_name =
+        InvariantRegistration::commit_boundary_blocking(InvariantRule::unique_entity_aspect_field(
+            crate::tests::support::aspect_key("profile.name"),
+            crate::tests::support::field_key("value"),
+        ));
     let max_merged = InvariantRegistration::harness_audit_only(InvariantRule::MaxMergedIntents(2));
 
     let left = InvariantCatalog {

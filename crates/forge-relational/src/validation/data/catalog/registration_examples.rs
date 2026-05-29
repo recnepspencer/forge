@@ -1,6 +1,6 @@
 use forge_foundational::facade::{AspectKey, FieldKey};
 
-use crate::validation::data::{InvariantRule, UniqueEntityAspectField};
+use crate::validation::data::InvariantRule;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum InvariantRegistrationContract {
@@ -16,11 +16,11 @@ impl InvariantRule {
             Self::MaxMergedIntents(1),
             Self::RelationIntegrityScopeBudget(1),
             Self::MaxSnapshotEntities(1),
-            Self::UniqueEntityAspectField(UniqueEntityAspectField::single(
+            Self::unique_entity_aspect_field(
                 AspectKey::new("__registration_probe__")
                     .expect("valid registration probe aspect key"),
                 FieldKey::new("__registration_probe__").expect("valid registration probe field"),
-            )),
+            ),
             Self::EndpointKindContract(crate::schema::data::LoweredEndpointKindContract {
                 contract_id: "__registration_probe__".into(),
                 relation_kind_id: crate::identity::data::KindId(999),

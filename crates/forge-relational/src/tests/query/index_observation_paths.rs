@@ -10,8 +10,7 @@ use crate::validation::data::{InvariantCatalog, InvariantRegistration, Invariant
 fn unique_field_index_refresh_rewrites_name_membership_after_entity_update() {
     let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::mutation_sensitive_blocking(
-            InvariantRule::unique_entity_aspect_field("name", "name")
-                .expect("valid unique aspect field target"),
+            InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
         )],
         ..InvariantCatalog::default()
     });

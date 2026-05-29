@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use forge_foundational::facade::FieldKey;
+use forge_foundational::facade::{AspectKey, FieldKey};
 
 use crate::schema::data::{
     LoweredAcyclicityContract, LoweredCardinalityMaximumContract,
@@ -49,16 +49,8 @@ pub(crate) struct InvariantRuleMetadata {
 }
 
 impl InvariantRule {
-    pub fn unique_entity_aspect_field(
-        aspect_key: impl AsRef<str>,
-        field: impl AsRef<str>,
-    ) -> Option<Self> {
-        Some(Self::UniqueEntityAspectField(
-            UniqueEntityAspectField::single(
-                forge_foundational::facade::AspectKey::new(aspect_key.as_ref())?,
-                FieldKey::new(field.as_ref())?,
-            ),
-        ))
+    pub fn unique_entity_aspect_field(aspect_key: AspectKey, field: FieldKey) -> Self {
+        Self::UniqueEntityAspectField(UniqueEntityAspectField::single(aspect_key, field))
     }
 
     pub fn rule_id(&self) -> InvariantRuleId {

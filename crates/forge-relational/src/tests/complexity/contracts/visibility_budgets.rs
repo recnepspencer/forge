@@ -139,8 +139,7 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
 fn complexity_contract_invariant_materialization_is_declared_and_measured() {
     let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::commit_boundary_blocking(
-            InvariantRule::unique_entity_aspect_field("name", "name")
-                .expect("valid unique aspect field target"),
+            InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
         )],
         ..InvariantCatalog::default()
     });

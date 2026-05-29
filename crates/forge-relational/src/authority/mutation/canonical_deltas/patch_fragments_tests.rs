@@ -1,10 +1,7 @@
 use forge_foundational::facade::{
     AspectValue as FoundationalAspectValue, InternedString as FoundationalInternedString,
 };
-use forge_foundational::{
-    aspects, AspectContractRevision, AspectIdentity, AspectKey as FoundationalAspectKey,
-    ScalarAspectType,
-};
+use forge_foundational::{aspects, AspectContractRevision, AspectIdentity, ScalarAspectType};
 
 use crate::identity::data::{EntityId, KindId, PartitionId};
 use crate::publication::patch::data::{
@@ -21,7 +18,8 @@ use super::data::{
 
 #[test]
 fn scalar_changed_binding_materializes_foundational_whole_aspect_set() {
-    let fragment = scalar_delta("name", "alice")
+    let name_key = AspectKey::new("name").unwrap();
+    let fragment = scalar_delta(name_key.clone(), "alice")
         .into_foundational_patch_fragment(PatchDetail::DenseBitset(Vec::new()))
         .expect("foundational scalar patch fragment");
 
@@ -30,45 +28,44 @@ fn scalar_changed_binding_materializes_foundational_whole_aspect_set() {
     let published_record = fragment.published_record();
     assert_eq!(
         published_record.authoritative_changed_aspects(),
-        crate::publication::patch::data::CanonicalAspectSet::new([AspectKey::new("name").unwrap()])
+        crate::publication::patch::data::CanonicalAspectSet::new([name_key.clone()])
     );
     assert!(matches!(
         published_record.authoritative_patch.operations.as_slice(),
         [PublishedAuthoritativePatchOperation::WholeAspectSet {
             aspect_key,
             value: PublishedAuthoritativePatchValue::Scalar(value),
-        }] if aspect_key == &AspectKey::new("name").unwrap()
+        }] if aspect_key == &name_key
             && value == &FoundationalAspectValue::String(
                 FoundationalInternedString::from("alice")
             )
     ));
 }
 
-fn scalar_delta(key: &str, value: &str) -> CanonicalRecordAspectDelta {
+fn scalar_delta(aspect_key: AspectKey, value: &str) -> CanonicalRecordAspectDelta {
+    let target_key = AspectKey::new("target").unwrap();
+    let lifecycle_key = AspectKey::new("lifecycle").unwrap();
     CanonicalRecordAspectDelta {
         target: RecordRef::Entity(EntityId::new(PartitionId(1), 0, 1)),
         kind_id: KindId(7),
         plan_revision: AspectPlanRevision(1),
         structural_change: RecordStructuralChange::Updated,
         changed_aspects: crate::publication::patch::data::CanonicalAspectSet::new([
-            AspectKey::new(key).unwrap(),
+            aspect_key.clone()
         ]),
         evaluated_bindings: smallvec::smallvec![
             EvaluatedAspectBinding {
-                aspect_key: AspectKey::new(key).unwrap(),
+                aspect_key: aspect_key.clone(),
                 contract: aspects()
                     .contract()
-                    .for_key(
-                        FoundationalAspectKey::new(key)
-                            .expect("foundational key for scalar binding"),
-                    )
+                    .for_key(aspect_key.clone())
                     .identified_by(AspectIdentity(9))
                     .at_revision(AspectContractRevision(1))
                     .scalar(ScalarAspectType::String),
                 changed: true,
                 aspect_shape: forge_foundational::AspectShape::Scalar(ScalarAspectType::String),
                 evidence: CanonicalAspectDeltaEvidence::ScalarAspectValueTransition {
-                    locator: authoritative_value_locator(&AspectKey::new(key).unwrap()),
+                    locator: authoritative_value_locator(&aspect_key),
                     old_present: true,
                     new_present: true,
                     old_value: Some(FoundationalAspectValue::String(
@@ -80,13 +77,10 @@ fn scalar_delta(key: &str, value: &str) -> CanonicalRecordAspectDelta {
                 },
             },
             EvaluatedAspectBinding {
-                aspect_key: AspectKey::new("target").unwrap(),
+                aspect_key: target_key.clone(),
                 contract: aspects()
                     .contract()
-                    .for_key(
-                        FoundationalAspectKey::new("target")
-                            .expect("foundational key for endpoint binding"),
-                    )
+                    .for_key(target_key.clone())
                     .identified_by(AspectIdentity(10))
                     .at_revision(AspectContractRevision(1))
                     .reference_entity(),
@@ -95,26 +89,23 @@ fn scalar_delta(key: &str, value: &str) -> CanonicalRecordAspectDelta {
                     forge_foundational::ReferenceAspectType::Entity,
                 ),
                 evidence: CanonicalAspectDeltaEvidence::EndpointIdentity {
-                    locator: authoritative_value_locator(&AspectKey::new("target").unwrap()),
+                    locator: authoritative_value_locator(&target_key),
                     old: None,
                     new: None,
                 },
             },
             EvaluatedAspectBinding {
-                aspect_key: AspectKey::new("lifecycle").unwrap(),
+                aspect_key: lifecycle_key.clone(),
                 contract: aspects()
                     .contract()
-                    .for_key(
-                        FoundationalAspectKey::new("lifecycle")
-                            .expect("foundational key for lifecycle binding"),
-                    )
+                    .for_key(lifecycle_key.clone())
                     .identified_by(AspectIdentity(11))
                     .at_revision(AspectContractRevision(1))
                     .scalar(ScalarAspectType::String),
                 changed: false,
                 aspect_shape: forge_foundational::AspectShape::Scalar(ScalarAspectType::String),
                 evidence: CanonicalAspectDeltaEvidence::Lifecycle {
-                    locator: authoritative_value_locator(&AspectKey::new("lifecycle").unwrap()),
+                    locator: authoritative_value_locator(&lifecycle_key),
                     transition: LifecycleTransitionClass::NoTransition,
                 },
             }
