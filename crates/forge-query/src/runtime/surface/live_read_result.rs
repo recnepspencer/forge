@@ -5,13 +5,13 @@ use super::ForgeQueryLiveReadReceipt;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryLiveReadResult {
-    payload: Vec<crate::memory_workspace::ForgeQueryEntity>,
+    rows: Vec<crate::memory_workspace::ForgeQueryEntity>,
     receipt: ForgeQueryLiveReadReceipt,
 }
 
 impl ForgeQueryLiveReadResult {
     pub fn rows(&self) -> &[crate::memory_workspace::ForgeQueryEntity] {
-        &self.payload
+        &self.rows
     }
 
     pub fn receipt(&self) -> &ForgeQueryLiveReadReceipt {
@@ -19,10 +19,10 @@ impl ForgeQueryLiveReadResult {
     }
 
     pub(in crate::runtime) fn new(
-        payload: Vec<crate::memory_workspace::ForgeQueryEntity>,
+        rows: Vec<crate::memory_workspace::ForgeQueryEntity>,
         receipt: ForgeQueryLiveReadReceipt,
     ) -> Self {
-        Self { payload, receipt }
+        Self { rows, receipt }
     }
 
     pub(in crate::runtime) fn attach_intent_admission_evidence(

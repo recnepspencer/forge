@@ -56,7 +56,7 @@ fn compose_read_executes_local_ordered_traversal_collection() {
         })
         .expect("ordered local collection read should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_collection_receipt(&result, ForgeQueryReadScopeClass::LocalNeighborhood);
     assert!(result.receipt().built_in_operator_coverage().is_empty());
     assert_descriptor_admitted_synthetic_runtime_relationship_proof(
@@ -112,7 +112,7 @@ fn compose_read_executes_operator_owned_direct_edge_collection() {
         })
         .expect("operator-owned direct-edge collection should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_collection_receipt(&result, ForgeQueryReadScopeClass::LocalNeighborhood);
     assert_eq!(
         result.receipt().built_in_operator_coverage(),
@@ -167,7 +167,7 @@ fn compose_read_executes_operator_owned_bounded_ancestor_collection() {
         })
         .expect("operator-owned bounded-ancestor collection should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_collection_receipt(&result, ForgeQueryReadScopeClass::AnchoredExpansion);
     assert_eq!(
         result.receipt().built_in_operator_coverage(),
@@ -224,7 +224,7 @@ fn compose_read_executes_anchored_ordered_collection() {
         })
         .expect("ordered anchored collection read should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_collection_receipt(&result, ForgeQueryReadScopeClass::AnchoredExpansion);
     assert!(result.receipt().built_in_operator_coverage().is_empty());
     assert_descriptor_admitted_synthetic_runtime_relationship_proof(
@@ -287,7 +287,7 @@ fn compose_read_executes_explicit_broad_search_ordered_collection() {
         })
         .expect("ordered broad-search collection read should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_collection_receipt(&result, ForgeQueryReadScopeClass::ExplicitBroadSearch);
     assert!(result.receipt().built_in_operator_coverage().is_empty());
     assert_relationship_proof_not_required(&result);
@@ -338,7 +338,7 @@ fn compose_read_executes_unordered_traversal_collection_with_default_identity_or
         })
         .expect("unordered traversal collections should default to canonical identity ordering");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_collection_receipt(&result, ForgeQueryReadScopeClass::LocalNeighborhood);
     assert!(result.receipt().built_in_operator_coverage().is_empty());
     assert_descriptor_admitted_synthetic_runtime_relationship_proof(

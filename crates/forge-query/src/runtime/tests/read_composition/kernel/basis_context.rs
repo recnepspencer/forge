@@ -39,7 +39,7 @@ fn execute_read_family_in_basis_context_preserves_current_context_receipt() {
         result.receipt().read_graph_digest(),
         family.read_graph().digest()
     );
-    assert_runtime_materialized_rows(result.payload());
+    assert_runtime_materialized_rows(result.rows());
 }
 
 #[test]
@@ -61,7 +61,7 @@ fn execute_read_family_in_basis_context_preserves_branch_context_receipt() {
         result.receipt().execution_engine(),
         &ForgeQueryReadExecutionEngine::QueryRuntimeBranch
     );
-    assert_context_materialized_rows(result.payload(), &context);
+    assert_context_materialized_rows(result.rows(), &context);
 }
 
 #[test]
@@ -83,7 +83,7 @@ fn execute_read_family_in_basis_context_preserves_unbound_historical_context_rec
         result.receipt().execution_engine(),
         &ForgeQueryReadExecutionEngine::QueryRuntimeHistorical
     );
-    assert_context_materialized_rows(result.payload(), &context);
+    assert_context_materialized_rows(result.rows(), &context);
 }
 
 #[test]
@@ -106,7 +106,7 @@ fn execute_read_family_in_basis_context_materializes_runtime_rows_for_bound_hist
         result.receipt().execution_engine(),
         &ForgeQueryReadExecutionEngine::QueryRuntimeHistorical
     );
-    assert_runtime_materialized_rows(result.payload());
+    assert_runtime_materialized_rows(result.rows());
 }
 
 #[test]
@@ -131,7 +131,7 @@ fn execute_read_family_in_basis_context_preserves_preview_derived_context_receip
         result.receipt().execution_engine(),
         &ForgeQueryReadExecutionEngine::QueryRuntimePreviewDerived
     );
-    assert_context_materialized_rows(result.payload(), &context);
+    assert_context_materialized_rows(result.rows(), &context);
 }
 
 #[test]

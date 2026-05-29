@@ -59,7 +59,7 @@ fn compose_read_executes_operator_owned_frontier_search_detail() {
         })
         .expect("operator-owned frontier search detail should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_eq!(
         result.receipt().scope_class(),
         &ForgeQueryReadScopeClass::ExplicitBroadSearch
@@ -130,7 +130,7 @@ fn compose_read_executes_operator_owned_frontier_search_collection() {
         })
         .expect("operator-owned frontier search collection should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_collection_receipt(&result, ForgeQueryReadScopeClass::ExplicitBroadSearch);
     assert_eq!(
         result.receipt().built_in_operator_coverage(),

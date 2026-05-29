@@ -86,7 +86,7 @@ fn compose_read_successor_walk_detail_matches_open_coded_anchored_detail_query_s
         })
         .expect("open-coded anchored detail should execute");
 
-    assert_eq!(operator_owned.payload(), open_coded.payload());
+    assert_eq!(operator_owned.rows(), open_coded.rows());
     assert_eq!(
         operator_owned.receipt().scope_class(),
         &ForgeQueryReadScopeClass::LocalNeighborhood
@@ -204,7 +204,7 @@ fn compose_read_successor_walk_collection_matches_open_coded_anchored_collection
         })
         .expect("open-coded anchored collection should execute");
 
-    assert_eq!(operator_owned.payload(), open_coded.payload());
+    assert_eq!(operator_owned.rows(), open_coded.rows());
     assert_collection_receipt(&operator_owned, ForgeQueryReadScopeClass::LocalNeighborhood);
     assert_eq!(
         open_coded.receipt().scope_class(),

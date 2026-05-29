@@ -48,7 +48,7 @@ fn compose_read_with_invariant_pack_executes_when_pack_admits_read_graph() {
         )
         .expect("admitted invariant packs should allow read execution");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_eq!(
         result.receipt().scope_class(),
         &ForgeQueryReadScopeClass::LocalNeighborhood
