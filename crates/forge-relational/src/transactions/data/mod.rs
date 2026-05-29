@@ -33,17 +33,17 @@ pub(crate) use outcomes::merge_commit_mutation_plan_token;
 pub(crate) use outcomes::EntityUpdateMissingState;
 pub use outcomes::{
     AspectDeltaFailureFields, AspectDeltaPatchConstructionDenial, AspectDeltaPatchValueDenial,
-    AspectDeltaRecordClass, AuthoritativeApplyPlan, BulkImportRowDomain, BulkImportStage,
-    BulkMutationAdmissionDenial, CommitConflict, CommitExecution, CommitOutcome, CommitPhaseTiming,
-    CommitPublication, CommitResult, CommitSchemaSummary, CommitStructuralSummary,
-    CommitValidation, CommitValidationSummary, ConflictClass, EntityAuthoritativeAspectStateDenial,
-    EntityCascadeDeleteMissingState, EntityFieldAspectPatchDenial,
-    EntityFieldIntentValidationMissingState, EntityFieldUpdateMissingState, LoweredCommitPlan,
-    MergeCommitMutationPlan, MergeExecutionOutcome, MergeExecutionStructuralSummary,
-    MergeExecutionSummary, MergedCommitPlan, MutationStateInconsistencyEvidence,
-    PublishedMergeExecutionAuthority, RelationAuthoritativeAspectStateDenial,
-    RelationEndpointUpdateMissingState, RollbackEffect, RollbackOutcome, RollbackSummary,
-    TransactionCommitError, UndoRecord,
+    AspectDeltaRecordClass, AspectFieldTargetRejectionReason, AuthoritativeApplyPlan,
+    BulkImportRowDomain, BulkImportStage, BulkMutationAdmissionDenial, CommitConflict,
+    CommitExecution, CommitOutcome, CommitPhaseTiming, CommitPublication, CommitResult,
+    CommitSchemaSummary, CommitStructuralSummary, CommitValidation, CommitValidationSummary,
+    ConflictClass, EntityAuthoritativeAspectStateDenial, EntityCascadeDeleteMissingState,
+    EntityFieldAspectPatchDenial, EntityFieldIntentValidationMissingState,
+    EntityFieldUpdateMissingState, LoweredCommitPlan, MergeCommitMutationPlan,
+    MergeExecutionOutcome, MergeExecutionStructuralSummary, MergeExecutionSummary,
+    MergedCommitPlan, MutationStateInconsistencyEvidence, PublishedMergeExecutionAuthority,
+    RelationAuthoritativeAspectStateDenial, RelationEndpointUpdateMissingState, RollbackEffect,
+    RollbackOutcome, RollbackSummary, TransactionCommitError, UndoRecord,
 };
 pub(crate) use primitives::{
     lineage_safe_bulk_mutation_batch, naming_stable_bulk_mutation_batch,

@@ -5,6 +5,8 @@ use forge_foundational::facade::{
 use serde::{Deserialize, Serialize};
 
 use super::authoritative_aspect_source_locator::authoritative_aspect_field_source_locator;
+use super::AspectFieldTargetRejectionReason;
+use crate::transactions::data::AspectFieldPatchTarget;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RelationAuthoritativeAspectStateDenial {
@@ -22,19 +24,13 @@ pub enum RelationAuthoritativeAspectStateDenial {
     PatchApplicationDenied {
         denial: AuthoritativePatchApplicationDenial,
     },
-    UnsupportedAspectValue {
-        #[serde(with = "crate::aspect_wire::serde_canonical_boundary_source_locator")]
-        source_locator: BoundarySourceLocator,
-        value_family: String,
+    UnsupportedAspectFieldTarget {
+        target: AspectFieldPatchTarget,
+        reason: AspectFieldTargetRejectionReason,
     },
     StructValueConstructionDenied {
         #[serde(with = "crate::aspect_wire::serde_canonical_boundary_source_locator")]
         source_locator: BoundarySourceLocator,
-    },
-    StructBindingShapeMismatch {
-        #[serde(with = "crate::aspect_wire::serde_canonical_boundary_source_locator")]
-        source_locator: BoundarySourceLocator,
-        shape: String,
     },
     StructContractValidationDenied {
         #[serde(with = "crate::aspect_wire::serde_canonical_boundary_source_locator")]

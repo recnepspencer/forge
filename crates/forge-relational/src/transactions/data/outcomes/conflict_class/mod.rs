@@ -4,6 +4,7 @@ use crate::transactions::data::{AspectDeltaFailureFields, ExistingRecordTarget, 
 use crate::validation::data::InvariantViolationFields;
 use serde::{Deserialize, Serialize};
 
+mod aspect_field_target_rejection;
 mod authoritative_aspect_source_locator;
 mod entity_authoritative_aspect_state_denial;
 mod entity_authoritative_aspect_state_presentation;
@@ -12,6 +13,7 @@ mod entity_field_aspect_patch_presentation;
 mod mutation_state_inconsistency;
 mod relation_authoritative_aspect_state_denial;
 mod relation_authoritative_aspect_state_presentation;
+pub use aspect_field_target_rejection::AspectFieldTargetRejectionReason;
 pub use entity_authoritative_aspect_state_denial::EntityAuthoritativeAspectStateDenial;
 pub use entity_field_aspect_patch_denial::EntityFieldAspectPatchDenial;
 pub use mutation_state_inconsistency::{

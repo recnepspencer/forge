@@ -1,7 +1,7 @@
 use forge_foundational::facade::BoundarySourceLocator;
 
 use super::authoritative_aspect_source_locator::{
-    source_locator_aspect_label, source_locator_field_label,
+    aspect_field_patch_target_field_label, source_locator_aspect_label, source_locator_field_label,
 };
 use super::RelationAuthoritativeAspectStateDenial;
 
@@ -30,15 +30,14 @@ pub(super) fn relation_authoritative_aspect_state_denial_detail(
             "relation endpoint aspect update could not apply foundational patch: {:?}",
             denial
         ),
-        RelationAuthoritativeAspectStateDenial::UnsupportedAspectValue {
-            source_locator,
-            value_family,
-        } => format!(
-            "relation field '{}' / {} cannot admit value family {} as an aspect value",
-            source_field_label(source_locator),
-            source_locator_aspect_label(source_locator),
-            value_family
-        ),
+        RelationAuthoritativeAspectStateDenial::UnsupportedAspectFieldTarget { target, reason } => {
+            format!(
+                "relation field '{}' / {} is not a supported relation aspect target: {}",
+                aspect_field_patch_target_field_label(target),
+                target.aspect_key().as_str(),
+                reason.label()
+            )
+        }
         RelationAuthoritativeAspectStateDenial::StructValueConstructionDenied {
             source_locator,
         } => format!(
@@ -46,16 +45,6 @@ pub(super) fn relation_authoritative_aspect_state_denial_detail(
             source_locator_aspect_label(source_locator),
             source_field_label(source_locator)
         ),
-        RelationAuthoritativeAspectStateDenial::StructBindingShapeMismatch {
-            source_locator,
-            shape,
-        } => {
-            format!(
-                "relation binding for {} does not match declared struct aspect shape: {}",
-                source_locator_aspect_label(source_locator),
-                shape
-            )
-        }
         RelationAuthoritativeAspectStateDenial::StructContractValidationDenied {
             source_locator,
             denial,

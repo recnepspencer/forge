@@ -1,7 +1,7 @@
 use forge_foundational::facade::BoundarySourceLocator;
 
 use super::authoritative_aspect_source_locator::{
-    source_locator_aspect_label, source_locator_field_label,
+    aspect_field_patch_target_field_label, source_locator_aspect_label, source_locator_field_label,
 };
 use super::EntityAuthoritativeAspectStateDenial;
 
@@ -28,15 +28,14 @@ pub(super) fn entity_authoritative_aspect_state_denial_detail(
             "authoritative aspect admission could not construct foundational patch: {:?}",
             denial
         ),
-        EntityAuthoritativeAspectStateDenial::UnsupportedAspectValue {
-            source_locator,
-            value_family,
-        } => format!(
-            "declared field '{}' / {} cannot admit value family {} as an aspect value",
-            source_field_label(source_locator),
-            source_locator_aspect_label(source_locator),
-            value_family
-        ),
+        EntityAuthoritativeAspectStateDenial::UnsupportedAspectFieldTarget { target, reason } => {
+            format!(
+                "declared field '{}' / {} is not a supported entity aspect target: {}",
+                aspect_field_patch_target_field_label(target),
+                target.aspect_key().as_str(),
+                reason.label()
+            )
+        }
         EntityAuthoritativeAspectStateDenial::StructValueConstructionDenied { source_locator } => {
             format!(
                 "field declarations for {} at '{}' cannot construct the declared struct aspect value",
@@ -44,14 +43,6 @@ pub(super) fn entity_authoritative_aspect_state_denial_detail(
                 source_field_label(source_locator)
             )
         }
-        EntityAuthoritativeAspectStateDenial::StructBindingShapeMismatch {
-            source_locator,
-            shape,
-        } => format!(
-            "aspect binding for {} does not match declared struct aspect shape: {}",
-            source_locator_aspect_label(source_locator),
-            shape
-        ),
         EntityAuthoritativeAspectStateDenial::StructContractValidationDenied {
             source_locator,
             denial,

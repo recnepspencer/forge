@@ -3,7 +3,10 @@ use forge_foundational::facade::{
 };
 
 use crate::schema::data::{LoweredAspectBinding, LoweredAspectPlan};
-use crate::transactions::data::{AspectFieldPatchTarget, RelationAuthoritativeAspectStateDenial};
+use crate::transactions::data::{
+    AspectFieldPatchTarget, AspectFieldTargetRejectionReason,
+    RelationAuthoritativeAspectStateDenial,
+};
 
 pub(super) enum RelationCreationFieldTarget<'a> {
     Scalar(&'a LoweredAspectBinding),
@@ -18,7 +21,10 @@ pub(super) fn resolve_creation_field_target<'a>(
     target: &AspectFieldPatchTarget,
 ) -> Result<RelationCreationFieldTarget<'a>, RelationAuthoritativeAspectStateDenial> {
     let Some(field) = single_creation_field(target) else {
-        return Err(unsupported_target(target, "nested field paths"));
+        return Err(unsupported_target(
+            target,
+            AspectFieldTargetRejectionReason::NestedFieldPath,
+        ));
     };
     let Some((binding_index, binding)) = lowered_plan
         .executable_bindings
@@ -26,7 +32,10 @@ pub(super) fn resolve_creation_field_target<'a>(
         .enumerate()
         .find(|(_, binding)| binding.contract.key() == target.aspect_key())
     else {
-        return Err(unsupported_target(target, "undeclared relation aspect"));
+        return Err(unsupported_target(
+            target,
+            AspectFieldTargetRejectionReason::UndeclaredAspect,
+        ));
     };
 
     if binding.targets_relation_scalar_field(field) {
@@ -40,7 +49,7 @@ pub(super) fn resolve_creation_field_target<'a>(
     }
     Err(unsupported_target(
         target,
-        "field path not admitted by relation aspect binding",
+        AspectFieldTargetRejectionReason::FieldPathNotAdmittedByAspectBinding,
     ))
 }
 
@@ -66,11 +75,11 @@ fn single_creation_field(target: &AspectFieldPatchTarget) -> Option<&FieldKey> {
 
 fn unsupported_target(
     target: &AspectFieldPatchTarget,
-    value_family: impl Into<String>,
+    reason: AspectFieldTargetRejectionReason,
 ) -> RelationAuthoritativeAspectStateDenial {
-    RelationAuthoritativeAspectStateDenial::UnsupportedAspectValue {
-        source_locator: source_locator_for_target(target),
-        value_family: value_family.into(),
+    RelationAuthoritativeAspectStateDenial::UnsupportedAspectFieldTarget {
+        target: target.clone(),
+        reason,
     }
 }
 

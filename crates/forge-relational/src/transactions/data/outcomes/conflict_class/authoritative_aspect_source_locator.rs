@@ -3,6 +3,8 @@ use forge_foundational::facade::{
     LocatorAuthority,
 };
 
+use crate::transactions::data::AspectFieldPatchTarget;
+
 pub(super) fn authoritative_aspect_field_source_locator(
     aspect_key: AspectKey,
     field: FieldKey,
@@ -31,6 +33,10 @@ pub(super) fn source_locator_field_label(locator: &BoundarySourceLocator) -> Opt
         }
         BoundarySourceLocator::Aspect(_) | BoundarySourceLocator::BoundaryArtifact(_) => None,
     }
+}
+
+pub(super) fn aspect_field_patch_target_field_label(target: &AspectFieldPatchTarget) -> String {
+    field_path_presentation_label(target.field_path())
 }
 
 fn field_path_presentation_label(path: &CanonicalFieldPath) -> String {

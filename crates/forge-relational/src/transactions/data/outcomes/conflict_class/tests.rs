@@ -1,14 +1,15 @@
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId};
 use crate::schema::data::{DescriptorSemanticsVersion, SchemaId, SchemaVersionId};
 use crate::transactions::data::{
-    BulkImportRowDomain, BulkImportStage, ConflictClass, EntityAuthoritativeAspectStateDenial,
-    EntityFieldAspectPatchDenial, EntityUpdateMissingState, RelationAuthoritativeAspectStateDenial,
+    AspectFieldPatchTarget, AspectFieldTargetRejectionReason, BulkImportRowDomain, BulkImportStage,
+    ConflictClass, EntityAuthoritativeAspectStateDenial, EntityFieldAspectPatchDenial,
+    EntityUpdateMissingState, RelationAuthoritativeAspectStateDenial,
     RelationEndpointUpdateMissingState,
 };
 use forge_foundational::facade::{
     AspectFieldLocator, AspectKey, AuthoritativePatchApplicationDenial,
-    AuthoritativePatchConstructionDenial, BoundarySourceLocator, CanonicalFieldPath, FieldKey,
-    LocatorAuthority, ScalarAspectType,
+    AuthoritativePatchConstructionDenial, CanonicalFieldPath, FieldKey, LocatorAuthority,
+    ScalarAspectType,
 };
 
 #[test]
@@ -137,32 +138,26 @@ fn entity_field_patch_application_denial_carries_contract_field_locator() {
 }
 
 #[test]
-fn authoritative_aspect_state_conflicts_carry_boundary_source_locators() {
-    let entity_denial = EntityAuthoritativeAspectStateDenial::UnsupportedAspectValue {
-        source_locator: authoritative_field_source_locator(
-            crate::tests::support::aspect_key("profile.summary"),
-            crate::tests::support::field_key("summary"),
-        ),
-        value_family: "non-scalar-compatibility-input".to_string(),
+fn authoritative_aspect_state_conflicts_carry_typed_target_rejections() {
+    let entity_target = AspectFieldPatchTarget::single(
+        crate::tests::support::aspect_key("profile.summary"),
+        crate::tests::support::field_key("summary"),
+    );
+    let relation_target = AspectFieldPatchTarget::single(
+        crate::tests::support::aspect_key("edge.label"),
+        crate::tests::support::field_key("label"),
+    );
+    let entity_denial = EntityAuthoritativeAspectStateDenial::UnsupportedAspectFieldTarget {
+        target: entity_target.clone(),
+        reason: AspectFieldTargetRejectionReason::UndeclaredAspect,
     };
-    let relation_denial = RelationAuthoritativeAspectStateDenial::UnsupportedAspectValue {
-        source_locator: authoritative_field_source_locator(
-            crate::tests::support::aspect_key("edge.label"),
-            crate::tests::support::field_key("label"),
-        ),
-        value_family: "non-scalar-compatibility-input".to_string(),
+    let relation_denial = RelationAuthoritativeAspectStateDenial::UnsupportedAspectFieldTarget {
+        target: relation_target.clone(),
+        reason: AspectFieldTargetRejectionReason::FieldPathNotAdmittedByAspectBinding,
     };
 
-    assert_authoritative_field_source_locator(
-        entity_denial_source_locator(&entity_denial),
-        "profile.summary",
-        "summary",
-    );
-    assert_authoritative_field_source_locator(
-        relation_denial_source_locator(&relation_denial),
-        "edge.label",
-        "label",
-    );
+    assert_eq!(entity_denial_target(&entity_denial), &entity_target);
+    assert_eq!(relation_denial_target(&relation_denial), &relation_target);
 
     let entity_conflict = ConflictClass::EntityAuthoritativeAspectStateDenied {
         kind_id: KindId(1),
@@ -175,60 +170,30 @@ fn authoritative_aspect_state_conflicts_carry_boundary_source_locators() {
 
     assert!(entity_conflict.detail().contains("profile.summary"));
     assert!(entity_conflict.detail().contains("summary"));
+    assert!(entity_conflict.detail().contains("undeclared aspect"));
     assert!(relation_conflict.detail().contains("edge.label"));
     assert!(relation_conflict.detail().contains("label"));
+    assert!(relation_conflict
+        .detail()
+        .contains("field path not admitted by aspect binding"));
 }
 
-fn authoritative_field_source_locator(
-    aspect_key: AspectKey,
-    field_key: FieldKey,
-) -> BoundarySourceLocator {
-    BoundarySourceLocator::aspect_field(AspectFieldLocator::new(
-        LocatorAuthority::SupportOnly,
-        aspect_key,
-        CanonicalFieldPath::single(field_key),
-    ))
-}
-
-fn entity_denial_source_locator(
-    denial: &EntityAuthoritativeAspectStateDenial,
-) -> &forge_foundational::facade::BoundarySourceLocator {
+fn entity_denial_target(denial: &EntityAuthoritativeAspectStateDenial) -> &AspectFieldPatchTarget {
     match denial {
-        EntityAuthoritativeAspectStateDenial::UnsupportedAspectValue { source_locator, .. } => {
-            source_locator
-        }
+        EntityAuthoritativeAspectStateDenial::UnsupportedAspectFieldTarget { target, .. } => target,
         other => panic!("expected unsupported entity authoritative aspect denial, got {other:?}"),
     }
 }
 
-fn relation_denial_source_locator(
+fn relation_denial_target(
     denial: &RelationAuthoritativeAspectStateDenial,
-) -> &forge_foundational::facade::BoundarySourceLocator {
+) -> &AspectFieldPatchTarget {
     match denial {
-        RelationAuthoritativeAspectStateDenial::UnsupportedAspectValue {
-            source_locator, ..
-        } => source_locator,
+        RelationAuthoritativeAspectStateDenial::UnsupportedAspectFieldTarget { target, .. } => {
+            target
+        }
         other => panic!("expected unsupported relation authoritative aspect denial, got {other:?}"),
     }
-}
-
-fn assert_authoritative_field_source_locator(
-    locator: &forge_foundational::facade::BoundarySourceLocator,
-    expected_aspect_key: &str,
-    expected_field: &str,
-) {
-    let forge_foundational::facade::BoundarySourceLocator::AspectField(field_locator) = locator
-    else {
-        panic!("expected aspect field source locator, got {locator:?}");
-    };
-    assert_eq!(
-        field_locator.aspect().aspect_key().as_str(),
-        expected_aspect_key
-    );
-    assert_eq!(
-        field_locator.field_path().fields(),
-        &[crate::tests::support::field_key(expected_field)]
-    );
 }
 
 #[test]

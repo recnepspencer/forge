@@ -19,11 +19,12 @@ pub use commit_validation::{CommitValidation, CommitValidationSummary};
 #[cfg(test)]
 pub(crate) use conflict_class::EntityUpdateMissingState;
 pub use conflict_class::{
-    BulkImportRowDomain, BulkImportStage, BulkMutationAdmissionDenial, ConflictClass,
-    EntityAuthoritativeAspectStateDenial, EntityCascadeDeleteMissingState,
-    EntityFieldAspectPatchDenial, EntityFieldIntentValidationMissingState,
-    EntityFieldUpdateMissingState, MutationStateInconsistencyEvidence,
-    RelationAuthoritativeAspectStateDenial, RelationEndpointUpdateMissingState,
+    AspectFieldTargetRejectionReason, BulkImportRowDomain, BulkImportStage,
+    BulkMutationAdmissionDenial, ConflictClass, EntityAuthoritativeAspectStateDenial,
+    EntityCascadeDeleteMissingState, EntityFieldAspectPatchDenial,
+    EntityFieldIntentValidationMissingState, EntityFieldUpdateMissingState,
+    MutationStateInconsistencyEvidence, RelationAuthoritativeAspectStateDenial,
+    RelationEndpointUpdateMissingState,
 };
 pub(crate) use plan_artifacts::merge_commit_mutation_plan_token;
 pub use plan_artifacts::{
