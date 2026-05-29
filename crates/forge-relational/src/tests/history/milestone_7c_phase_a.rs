@@ -17,8 +17,8 @@ use crate::merge::data::{
 };
 use crate::tests::support::{
     create_branch_from_main, create_entity, create_entity_outcome_on_branch, entity_field_aspect,
-    persisted_runtime_with_test_schema, read_entity_field, update_entity, update_entity_on_branch,
-    CascadeDeletePolicy, CrossContextPolicy,
+    field_key, persisted_runtime_with_test_schema, read_entity_field, update_entity,
+    update_entity_on_branch, CascadeDeletePolicy, CrossContextPolicy,
 };
 
 #[test]
@@ -498,7 +498,7 @@ fn prepare_merge_execution_compiles_source_addition_record_plan() {
         BoundExecutableMergeRecordPlan::AdoptSource(plan) => match &plan.source_visible_snapshot {
             crate::merge::data::VisibleMergeRecordSnapshot::Entity(entity) => {
                 assert_eq!(
-                    read_entity_field(entity, "name"),
+                    read_entity_field(entity, field_key("name")),
                     Some("feature-only".into())
                 );
             }

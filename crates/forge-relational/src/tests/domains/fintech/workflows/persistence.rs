@@ -1,7 +1,7 @@
 use super::*;
 use crate::facade::query::PlannedQueryPacket;
 use crate::tests::domains::fintech::fixture::FintechCaseRole;
-use crate::tests::support::read_entity_field;
+use crate::tests::support::{field_key, read_entity_field};
 
 #[test]
 fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portfolio_state() {
@@ -351,7 +351,7 @@ fn fintech_recovery_falls_back_from_corrupt_latest_checkpoint_and_keeps_truth() 
     assert!(result
         .entities
         .iter()
-        .any(|entity| read_entity_field(entity, "corrected") == Some("true".into())));
+        .any(|entity| read_entity_field(entity, field_key("corrected")) == Some("true".into())));
 }
 use crate::facade::diagnostics::DiagnosticCode;
 use crate::facade::replay::ReplayFailureClass;

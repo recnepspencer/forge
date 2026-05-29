@@ -18,7 +18,7 @@ use crate::facade::transactions::{
 use crate::schema::data::RelationIntegrityDeclarations;
 use crate::tests::support::{
     capture_aspect_truth_bundle, checkpoint_and_recover_with, create_branch_from_main,
-    create_entity, create_entity_outcome_on_branch, entity_field_aspect,
+    create_entity, create_entity_outcome_on_branch, entity_field_aspect, field_key,
     persisted_runtime_with_test_schema, read_entity_field, read_entity_name,
     unique_test_store_path, update_entity, update_entity_on_branch, CascadeDeletePolicy,
     CrossContextPolicy, DurabilityMode, DurableStoreLayout, RelationalRuntimeProfile,
@@ -260,7 +260,7 @@ fn certify_prefer_richer_merge_execution() -> MergeExecutionCertificationArtifac
         .expect("merged target entity remains visible");
     assert_eq!(read_entity_name(current_record), Some("shared-name".into()));
     assert_eq!(
-        read_entity_field(current_record, "status"),
+        read_entity_field(current_record, field_key("status")),
         Some("active".into())
     );
 

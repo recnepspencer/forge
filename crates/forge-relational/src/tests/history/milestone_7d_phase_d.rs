@@ -23,7 +23,7 @@ use crate::tests::support::{
     capture_aspect_truth_bundle, changed_entities, checkpoint_and_recover_with,
     create_branch_from_main, create_entity, create_relation_in_partition_on_branch, delete_entity,
     delete_entity_on_branch, delete_relation_on_branch, diagnostic_field,
-    diagnostic_field_optional, entity_field_aspect, entity_i64_field_aspect,
+    diagnostic_field_optional, entity_field_aspect, entity_i64_field_aspect, field_key,
     persisted_runtime_with_test_schema, read_entity_field, u64_aspect_value,
     unique_test_store_path, update_entity,
 };
@@ -1533,6 +1533,6 @@ fn read_entity_aspect_field_display(
         .read_truth()
         .read_version(version_id)
         .get_entity(entity_id)
-        .and_then(|entity| read_entity_field(entity, field))
+        .and_then(|entity| read_entity_field(entity, field_key(field)))
         .expect("aspect field display value")
 }

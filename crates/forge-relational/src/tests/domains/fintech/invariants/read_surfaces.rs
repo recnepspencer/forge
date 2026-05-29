@@ -1,5 +1,5 @@
 use crate::facade::runtime::RelationalReadView;
-use crate::tests::support::read_entity_field;
+use crate::tests::support::{field_key, read_entity_field};
 
 use super::super::fixture::{LEDGER_PARTITION, MARKET_PARTITION, RISK_PARTITION};
 
@@ -17,7 +17,7 @@ pub(crate) fn assert_partitioned_aspect_state(read: &RelationalReadView) {
             RISK_PARTITION => saw_risk = true,
             _ => {}
         }
-        if let Some(entity_type) = read_entity_field(entity, "entity_type") {
+        if let Some(entity_type) = read_entity_field(entity, field_key("entity_type")) {
             match entity_type.as_ref() {
                 "instrument" => saw_instrument = true,
                 "settlement" => saw_settlement = true,

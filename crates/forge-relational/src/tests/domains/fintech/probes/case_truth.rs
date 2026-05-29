@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::facade::identity::VersionId;
 use crate::facade::runtime::EntityReadRecord;
 use crate::facade::snapshots::SnapshotHandle;
-use crate::tests::support::read_entity_field;
+use crate::tests::support::{field_key, read_entity_field};
 use forge_foundational::facade::{
     AspectContractRevision, AspectKey, AuthoritativeRecordAspectState,
     ContractValidatedAspectValueView, FieldKey,
@@ -206,5 +206,5 @@ fn encode_aspect_value(value: &forge_foundational::facade::AspectValue) -> Vec<u
 }
 
 fn field_is(entity: &EntityReadRecord, field: &str, expected: &str) -> bool {
-    read_entity_field(entity, field) == Some(expected.to_string())
+    read_entity_field(entity, field_key(field)) == Some(expected.to_string())
 }

@@ -83,7 +83,7 @@ fn relation_aspect_history_remains_available_for_historical_reads_after_reclaim(
         .find(|record| record.relation_id == relation)
         .expect("retained relation aspect record");
     assert_eq!(
-        read_relation_field(relation_record, "label"),
+        read_relation_field(relation_record, field_key("label")),
         Some("r1".into())
     );
 }
@@ -155,7 +155,7 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
     let stats = runtime.storage_access().storage_stats();
 
     assert_eq!(
-        read_entity_field(read.get_entity(entity).unwrap(), "name"),
+        read_entity_field(read.get_entity(entity).unwrap(), field_key("name")),
         Some("first".into())
     );
     assert_eq!(inspection.pinned_entity_count, 1);

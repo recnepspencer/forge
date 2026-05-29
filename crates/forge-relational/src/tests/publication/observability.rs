@@ -565,7 +565,7 @@ fn publication_snapshot_reads_use_authoritative_published_binding_version() {
     assert_eq!(inspection.version_id, updated.snapshot.version_id);
     assert_eq!(read.entities.len(), 1);
     assert_eq!(
-        read_entity_field(&read.entities[0], "name"),
+        read_entity_field(&read.entities[0], field_key("name")),
         Some("second".into())
     );
 }

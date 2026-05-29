@@ -1086,14 +1086,14 @@ fn rebuild_pseudorealistic_entity_order(
         if record.kind.kind_id != KindId(1) {
             continue;
         }
-        let Some(section) = read_entity_field(record, "section") else {
+        let Some(section) = read_entity_field(record, field_key("section")) else {
             continue;
         };
-        let Some(subsystem) = read_entity_field(record, "subsystem") else {
+        let Some(subsystem) = read_entity_field(record, field_key("subsystem")) else {
             continue;
         };
-        let Some(ordinal) =
-            read_entity_field(record, "ordinal").and_then(|value| value.parse::<usize>().ok())
+        let Some(ordinal) = read_entity_field(record, field_key("ordinal"))
+            .and_then(|value| value.parse::<usize>().ok())
         else {
             continue;
         };

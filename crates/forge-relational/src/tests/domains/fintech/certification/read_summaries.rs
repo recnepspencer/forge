@@ -8,7 +8,7 @@ use super::certification_artifact_value::{
 };
 use super::session::CertifiedRelationalFintechSession;
 use crate::facade::snapshots::SnapshotHandle;
-use crate::tests::support::read_entity_field;
+use crate::tests::support::{field_key, read_entity_field};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct CertifiedFintechReadSummary {
@@ -123,22 +123,22 @@ pub(super) fn read_summary(
     let corrected_trades = read
         .entities()
         .iter()
-        .filter(|entity| read_entity_field(entity, "corrected") == Some("true".into()))
+        .filter(|entity| read_entity_field(entity, field_key("corrected")) == Some("true".into()))
         .count();
     let repaired_settlements = read
         .entities()
         .iter()
         .filter(|entity| {
-            read_entity_field(entity, "entity_type") == Some("settlement".into())
-                && read_entity_field(entity, "status") == Some("repaired".into())
+            read_entity_field(entity, field_key("entity_type")) == Some("settlement".into())
+                && read_entity_field(entity, field_key("status")) == Some("repaired".into())
         })
         .count();
     let open_breaches = read
         .entities()
         .iter()
         .filter(|entity| {
-            read_entity_field(entity, "entity_type") == Some("limit_breach".into())
-                && read_entity_field(entity, "status") == Some("open".into())
+            read_entity_field(entity, field_key("entity_type")) == Some("limit_breach".into())
+                && read_entity_field(entity, field_key("status")) == Some("open".into())
         })
         .count();
     Ok(CertifiedFintechReadSummary::snapshot_read(

@@ -3,11 +3,10 @@ use super::*;
 use forge_foundational::facade::{AspectValue, FieldKey, InternedString};
 
 pub(crate) fn read_entity_name(record: &EntityReadRecord) -> Option<String> {
-    read_entity_field(record, "name")
+    read_entity_field(record, field_key("name"))
 }
 
-pub(crate) fn read_entity_field(record: &EntityReadRecord, field_name: &str) -> Option<String> {
-    let field_key = FieldKey::new(field_name).expect("valid field key");
+pub(crate) fn read_entity_field(record: &EntityReadRecord, field_key: FieldKey) -> Option<String> {
     record
         .authoritative_field_comparison_key(&field_key)
         .and_then(|key| crate::aspect_wire::decode_aspect_value(key.canonical_value_bytes()).ok())
@@ -16,9 +15,8 @@ pub(crate) fn read_entity_field(record: &EntityReadRecord, field_name: &str) -> 
 
 pub(crate) fn read_relation_field(
     record: &crate::facade::runtime::RelationReadRecord,
-    field_name: &str,
+    field_key: FieldKey,
 ) -> Option<String> {
-    let field_key = FieldKey::new(field_name).expect("valid field key");
     record
         .authoritative_field_comparison_key(&field_key)
         .and_then(|key| crate::aspect_wire::decode_aspect_value(key.canonical_value_bytes()).ok())
