@@ -99,8 +99,8 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
         recovered_truth.entity_history_digests
     );
     assert_eq!(
-        certification_digest(&live_envelope.diagnostics_summary),
-        certification_digest(&recovered_envelope.diagnostics_summary)
+        live_envelope.diagnostics_summary,
+        recovered_envelope.diagnostics_summary
     );
 
     let summary_entry = live_envelope
@@ -334,8 +334,8 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
         .expect("recovered merge envelope");
 
     assert_eq!(
-        certification_digest(&live_envelope.diagnostics_summary),
-        certification_digest(&recovered_envelope.diagnostics_summary)
+        live_envelope.diagnostics_summary,
+        recovered_envelope.diagnostics_summary
     );
     assert_eq!(
         read_entity_json_field(&recovered, &BranchId("main".to_string()), entity, "value"),
@@ -474,8 +474,8 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         serde_json::json!(18)
     );
     assert_eq!(
-        certification_digest(&live_envelope.diagnostics_summary),
-        certification_digest(&recovered_envelope.diagnostics_summary)
+        live_envelope.diagnostics_summary,
+        recovered_envelope.diagnostics_summary
     );
     let summary_entry = live_envelope
         .diagnostics_summary
