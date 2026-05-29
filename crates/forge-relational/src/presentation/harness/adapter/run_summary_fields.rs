@@ -1,33 +1,34 @@
 use crate::publication::data::{PublicationArtifactSnapshot, PublicationObservationSnapshot};
 use crate::snapshots::data::SnapshotHandle;
 
-use super::harness_summary_projection_value::{
-    harness_summary_bool, harness_summary_object, harness_summary_u64, harness_summary_usize,
-    optional_harness_summary_string, optional_harness_summary_u64, optional_harness_summary_usize,
-    HarnessSummaryProjectionValue,
+use super::external_harness_summary_json::{
+    external_harness_summary_bool, external_harness_summary_object, external_harness_summary_u64,
+    external_harness_summary_usize, optional_external_harness_summary_string,
+    optional_external_harness_summary_u64, optional_external_harness_summary_usize,
+    ExternalHarnessSummaryJson,
 };
 
 pub(super) fn run_summary(
     snapshot: &SnapshotHandle,
     entity_hits: usize,
     relation_hits: usize,
-) -> HarnessSummaryProjectionValue {
+) -> ExternalHarnessSummaryJson {
     RunSummary::from_snapshot_read(snapshot, entity_hits, relation_hits)
-        .into_harness_summary_projection_value()
+        .into_external_harness_summary_json()
 }
 
 pub(super) fn publication_artifacts_extension(
     publication_artifacts: PublicationArtifactSnapshot,
-) -> HarnessSummaryProjectionValue {
+) -> ExternalHarnessSummaryJson {
     PublicationArtifactsExtension::from_snapshot(publication_artifacts)
-        .into_harness_summary_projection_value()
+        .into_external_harness_summary_json()
 }
 
 pub(super) fn publication_observation_fields(
     observation: &PublicationObservationSnapshot,
-) -> HarnessSummaryProjectionValue {
+) -> ExternalHarnessSummaryJson {
     PublicationObservationSummary::from_observation(observation)
-        .into_harness_summary_projection_value()
+        .into_external_harness_summary_json()
 }
 
 struct RunSummary {
@@ -49,11 +50,20 @@ impl RunSummary {
         }
     }
 
-    fn into_harness_summary_projection_value(self) -> HarnessSummaryProjectionValue {
-        harness_summary_object([
-            ("snapshot_id", harness_summary_u64(self.snapshot_id)),
-            ("entity_hits", harness_summary_usize(self.entity_hits)),
-            ("relation_hits", harness_summary_usize(self.relation_hits)),
+    fn into_external_harness_summary_json(self) -> ExternalHarnessSummaryJson {
+        external_harness_summary_object([
+            (
+                "snapshot_id",
+                external_harness_summary_u64(self.snapshot_id),
+            ),
+            (
+                "entity_hits",
+                external_harness_summary_usize(self.entity_hits),
+            ),
+            (
+                "relation_hits",
+                external_harness_summary_usize(self.relation_hits),
+            ),
         ])
     }
 }
@@ -79,19 +89,19 @@ impl PublicationArtifactsExtension {
         }
     }
 
-    fn into_harness_summary_projection_value(self) -> HarnessSummaryProjectionValue {
-        harness_summary_object([
+    fn into_external_harness_summary_json(self) -> ExternalHarnessSummaryJson {
+        external_harness_summary_object([
             (
                 "observation",
-                self.observation.into_harness_summary_projection_value(),
+                self.observation.into_external_harness_summary_json(),
             ),
             (
                 "latest_patch_record_count",
-                harness_summary_usize(self.latest_patch_record_count),
+                external_harness_summary_usize(self.latest_patch_record_count),
             ),
             (
                 "latest_replay_present",
-                harness_summary_bool(self.latest_replay_present),
+                external_harness_summary_bool(self.latest_replay_present),
             ),
         ])
     }
@@ -131,43 +141,43 @@ impl PublicationObservationSummary {
         }
     }
 
-    fn into_harness_summary_projection_value(self) -> HarnessSummaryProjectionValue {
-        harness_summary_object([
+    fn into_external_harness_summary_json(self) -> ExternalHarnessSummaryJson {
+        external_harness_summary_object([
             (
                 "latest_commit_id",
-                optional_harness_summary_u64(self.latest_commit_id),
+                optional_external_harness_summary_u64(self.latest_commit_id),
             ),
             (
                 "publication_snapshot_id",
-                optional_harness_summary_u64(self.publication_snapshot_id),
+                optional_external_harness_summary_u64(self.publication_snapshot_id),
             ),
             (
                 "publication_status",
-                optional_harness_summary_string(self.publication_status),
+                optional_external_harness_summary_string(self.publication_status),
             ),
             (
                 "latest_patch_position",
-                optional_harness_summary_u64(self.latest_patch_position),
+                optional_external_harness_summary_u64(self.latest_patch_position),
             ),
             (
                 "latest_patch_record_count",
-                optional_harness_summary_usize(self.latest_patch_record_count),
+                optional_external_harness_summary_usize(self.latest_patch_record_count),
             ),
             (
                 "latest_replay_commit_id",
-                optional_harness_summary_u64(self.latest_replay_commit_id),
+                optional_external_harness_summary_u64(self.latest_replay_commit_id),
             ),
             (
                 "latest_patch_present",
-                harness_summary_bool(self.latest_patch_present),
+                external_harness_summary_bool(self.latest_patch_present),
             ),
             (
                 "latest_replay_present",
-                harness_summary_bool(self.latest_replay_present),
+                external_harness_summary_bool(self.latest_replay_present),
             ),
             (
                 "diagnostics_artifact_count",
-                harness_summary_usize(self.diagnostics_artifact_count),
+                external_harness_summary_usize(self.diagnostics_artifact_count),
             ),
         ])
     }

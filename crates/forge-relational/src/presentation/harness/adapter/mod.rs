@@ -19,7 +19,7 @@ mod aspect_snapshot_binaries;
 mod diagnostics_capture;
 mod diagnostics_summary_fields;
 mod execution;
-mod harness_summary_projection_value;
+mod external_harness_summary_json;
 mod replay_capture;
 mod replay_summary_fields;
 mod run_summary_fields;
