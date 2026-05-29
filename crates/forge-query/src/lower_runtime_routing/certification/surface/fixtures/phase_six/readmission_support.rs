@@ -342,7 +342,10 @@ fn committed_patch(
         TruthSnapshotIdentity::new(snapshot),
         TruthBranchIdentity::new(branch),
         vec![forge_runtime_bridge::facade::BridgeCommittedPatchItem::new(
-            "user", "profile", surface,
+            "user",
+            forge_foundational::facade::AspectKey::new("profile")
+                .expect("valid bridge patch aspect key"),
+            surface,
         )],
     )
 }

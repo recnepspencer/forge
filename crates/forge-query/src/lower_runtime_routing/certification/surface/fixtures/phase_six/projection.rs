@@ -53,10 +53,26 @@ pub(crate) fn representative_projection_query_receipts_row() -> RepresentativeAr
 
 pub(crate) fn representative_projection_relational_row() -> RepresentativeArtifacts {
     let packet = SnapshotReadPacket::new(vec![
-        SnapshotReadRequest::for_coarse("entity-1", "identity.id"),
-        SnapshotReadRequest::for_coarse("entity-1", "status.lane"),
-        SnapshotReadRequest::for_coarse("entity-2", "identity.id"),
-        SnapshotReadRequest::for_coarse("entity-2", "status.lane"),
+        SnapshotReadRequest::for_coarse(
+            "entity-1",
+            forge_foundational::facade::AspectKey::new("identity.id")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            "entity-1",
+            forge_foundational::facade::AspectKey::new("status.lane")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            "entity-2",
+            forge_foundational::facade::AspectKey::new("identity.id")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            "entity-2",
+            forge_foundational::facade::AspectKey::new("status.lane")
+                .expect("valid snapshot aspect key"),
+        ),
     ]);
     let result = SnapshotReadPacketResult::new(
         TruthSnapshotIdentity::new("relational-snapshot-a"),
@@ -121,10 +137,26 @@ pub(crate) fn representative_projection_bridge_row() -> RepresentativeArtifacts 
         .contract_for_declaration(&declaration)
         .expect("bridge source contract should exist");
     let packet = SnapshotReadPacket::new(vec![
-        SnapshotReadRequest::for_coarse("entity-1", "identity.id"),
-        SnapshotReadRequest::for_coarse("entity-1", "status"),
-        SnapshotReadRequest::for_coarse("entity-2", "identity.id"),
-        SnapshotReadRequest::for_coarse("entity-2", "status"),
+        SnapshotReadRequest::for_coarse(
+            "entity-1",
+            forge_foundational::facade::AspectKey::new("identity.id")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            "entity-1",
+            forge_foundational::facade::AspectKey::new("status")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            "entity-2",
+            forge_foundational::facade::AspectKey::new("identity.id")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            "entity-2",
+            forge_foundational::facade::AspectKey::new("status")
+                .expect("valid snapshot aspect key"),
+        ),
     ]);
     let materialized = bridge
         .materialize_source_packet_batch(contract, vec![packet])

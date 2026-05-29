@@ -262,8 +262,18 @@ fn bridge_replay_detects_route_drift_after_restart_shaped_truth_change() {
                 "patch-a",
                 "snapshot-a",
                 vec![
-                    crate::facade::BridgeCommittedPatchItem::new("user", "profile", "avatar"),
-                    crate::facade::BridgeCommittedPatchItem::new("user", "profile", "name"),
+                    crate::facade::BridgeCommittedPatchItem::new(
+                        "user",
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid bridge patch aspect key"),
+                        "avatar",
+                    ),
+                    crate::facade::BridgeCommittedPatchItem::new(
+                        "user",
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid bridge patch aspect key"),
+                        "name",
+                    ),
                 ],
             ))
             .with_snapshot(snapshot("snapshot-a", "alice")),

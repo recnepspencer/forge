@@ -63,7 +63,7 @@ fn bridge_patch_items(records: &[PatchRecord]) -> Vec<BridgeCommittedPatchItem> 
         if changed_aspects.is_empty() {
             items.push(BridgeCommittedPatchItem::new(
                 entity_identity.clone(),
-                structural_change_label(record),
+                lifecycle_aspect_key(),
                 "structural",
             ));
             continue;
@@ -72,7 +72,7 @@ fn bridge_patch_items(records: &[PatchRecord]) -> Vec<BridgeCommittedPatchItem> 
         for aspect in changed_aspects.iter() {
             items.push(BridgeCommittedPatchItem::new(
                 entity_identity.clone(),
-                aspect_key_label(aspect),
+                aspect.clone(),
                 structural_change_label(record),
             ));
         }
@@ -80,8 +80,8 @@ fn bridge_patch_items(records: &[PatchRecord]) -> Vec<BridgeCommittedPatchItem> 
     items
 }
 
-fn aspect_key_label(aspect: &AspectKey) -> String {
-    aspect.as_str().to_string()
+fn lifecycle_aspect_key() -> AspectKey {
+    AspectKey::new("lifecycle").expect("lifecycle is a valid bridge aspect key")
 }
 
 fn structural_change_label(record: &PatchRecord) -> &'static str {

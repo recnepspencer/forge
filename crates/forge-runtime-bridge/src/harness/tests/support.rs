@@ -61,7 +61,10 @@ pub(super) fn committed_patch_on_branch(
         TruthSnapshotIdentity::new(snapshot),
         TruthBranchIdentity::new(branch),
         vec![crate::facade::BridgeCommittedPatchItem::new(
-            "user", "profile", surface,
+            "user",
+            forge_foundational::facade::AspectKey::new("profile")
+                .expect("valid bridge patch aspect key"),
+            surface,
         )],
     )
 }

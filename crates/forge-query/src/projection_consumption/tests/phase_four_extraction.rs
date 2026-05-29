@@ -103,8 +103,16 @@ fn extraction_rejects_missing_field_evidence_and_family_mismatch() {
 
     let missing_identity_row_set = materialize_relational_authoritative_row_set(
         &SnapshotReadPacket::new(vec![
-            SnapshotReadRequest::for_coarse("entity-1", "profile.display_name"),
-            SnapshotReadRequest::for_coarse("entity-2", "profile.display_name"),
+            SnapshotReadRequest::for_coarse(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile.display_name")
+                    .expect("valid snapshot aspect key"),
+            ),
+            SnapshotReadRequest::for_coarse(
+                "entity-2",
+                forge_foundational::facade::AspectKey::new("profile.display_name")
+                    .expect("valid snapshot aspect key"),
+            ),
         ]),
         &SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),

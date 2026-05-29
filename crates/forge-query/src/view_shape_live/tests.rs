@@ -353,9 +353,21 @@ fn grouped_rows_packet(rows: &[GroupedRowFixture]) -> SnapshotReadPacket {
             .flat_map(|(member_key, _, _)| {
                 let entity = format!("result:{member_key}");
                 [
-                    SnapshotReadRequest::for_coarse(entity.clone(), "identity.id"),
-                    SnapshotReadRequest::for_coarse(entity.clone(), "profile.display_name"),
-                    SnapshotReadRequest::for_coarse(entity, "status.lane"),
+                    SnapshotReadRequest::for_coarse(
+                        entity.clone(),
+                        forge_foundational::facade::AspectKey::new("identity.id")
+                            .expect("valid snapshot aspect key"),
+                    ),
+                    SnapshotReadRequest::for_coarse(
+                        entity.clone(),
+                        forge_foundational::facade::AspectKey::new("profile.display_name")
+                            .expect("valid snapshot aspect key"),
+                    ),
+                    SnapshotReadRequest::for_coarse(
+                        entity,
+                        forge_foundational::facade::AspectKey::new("status.lane")
+                            .expect("valid snapshot aspect key"),
+                    ),
                 ]
             })
             .collect(),

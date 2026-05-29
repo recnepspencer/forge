@@ -9,7 +9,7 @@ use crate::projection_consumption::{
     ProjectionConsumptionBindingContext, ProjectionConsumptionDeclaration,
     ProjectionConsumptionEligibility, ProjectionConsumptionSource,
 };
-use forge_foundational::facade::AspectValue;
+use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
     project_relational_grouped_truth, RelationalAuthoritativeRowSetArtifact,
@@ -287,19 +287,19 @@ pub fn certification_row_set(row_count: usize) -> RelationalAuthoritativeRowSetA
         let name = format!("Task {}", index + 1);
         reads.push(SnapshotReadRequest::for_coarse(
             entity.as_str(),
-            "identity.id",
+            snapshot_aspect_key("identity.id"),
         ));
         reads.push(SnapshotReadRequest::for_coarse(
             entity.as_str(),
-            "status.lane",
+            snapshot_aspect_key("status.lane"),
         ));
         reads.push(SnapshotReadRequest::for_coarse(
             entity.as_str(),
-            "profile.display_name",
+            snapshot_aspect_key("profile.display_name"),
         ));
         reads.push(SnapshotReadRequest::for_coarse(
             entity.as_str(),
-            "metrics.priority",
+            snapshot_aspect_key("metrics.priority"),
         ));
         records.push(SnapshotReadRecord::new(
             format!("{entity}:identity.id"),
@@ -326,6 +326,10 @@ pub fn certification_row_set(row_count: usize) -> RelationalAuthoritativeRowSetA
         ),
     )
     .expect("row set certification fixture")
+}
+
+fn snapshot_aspect_key(value: &str) -> AspectKey {
+    AspectKey::new(value).expect("valid certification snapshot aspect key")
 }
 
 fn aspect_bytes(value: AspectValue) -> Vec<u8> {

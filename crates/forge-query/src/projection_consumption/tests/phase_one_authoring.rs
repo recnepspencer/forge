@@ -55,10 +55,26 @@ fn projection_artifacts() -> (CanonicalResultShapeArtifact, AuthorizedProjection
 fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
     materialize_relational_authoritative_row_set(
         &SnapshotReadPacket::new(vec![
-            SnapshotReadRequest::for_coarse("entity-1", "identity.id"),
-            SnapshotReadRequest::for_coarse("entity-1", "status.lane"),
-            SnapshotReadRequest::for_coarse("entity-2", "identity.id"),
-            SnapshotReadRequest::for_coarse("entity-2", "status.lane"),
+            SnapshotReadRequest::for_coarse(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("identity.id")
+                    .expect("valid snapshot aspect key"),
+            ),
+            SnapshotReadRequest::for_coarse(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("status.lane")
+                    .expect("valid snapshot aspect key"),
+            ),
+            SnapshotReadRequest::for_coarse(
+                "entity-2",
+                forge_foundational::facade::AspectKey::new("identity.id")
+                    .expect("valid snapshot aspect key"),
+            ),
+            SnapshotReadRequest::for_coarse(
+                "entity-2",
+                forge_foundational::facade::AspectKey::new("status.lane")
+                    .expect("valid snapshot aspect key"),
+            ),
         ]),
         &SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),

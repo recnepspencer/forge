@@ -180,7 +180,12 @@ impl CommittedPatchSource for TestBridgeSource {
             TruthPatchIdentity::new(format!("patch:{}", request.commit_identity())),
             TruthSnapshotIdentity::new("external-snapshot"),
             TruthBranchIdentity::new("main"),
-            vec![BridgeCommittedPatchItem::new("entity", "aspect", "field")],
+            vec![BridgeCommittedPatchItem::new(
+                "entity",
+                forge_foundational::facade::AspectKey::new("aspect")
+                    .expect("valid bridge patch aspect key"),
+                "field",
+            )],
         ))
     }
 }

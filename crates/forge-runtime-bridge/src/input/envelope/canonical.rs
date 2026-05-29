@@ -3,19 +3,19 @@ use super::*;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeCommittedPatchItem {
     entity_identity: Arc<str>,
-    aspect_label: Arc<str>,
+    aspect_key: AspectKey,
     surface_label: Arc<str>,
 }
 
 impl BridgeCommittedPatchItem {
     pub fn new(
         entity_identity: impl Into<Arc<str>>,
-        aspect_label: impl Into<Arc<str>>,
+        aspect_key: AspectKey,
         surface_label: impl Into<Arc<str>>,
     ) -> Self {
         Self {
             entity_identity: entity_identity.into(),
-            aspect_label: aspect_label.into(),
+            aspect_key,
             surface_label: surface_label.into(),
         }
     }
@@ -24,8 +24,12 @@ impl BridgeCommittedPatchItem {
         self.entity_identity.as_ref()
     }
 
+    pub fn aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
+    }
+
     pub fn aspect_label(&self) -> &str {
-        self.aspect_label.as_ref()
+        self.aspect_key.as_str()
     }
 
     pub fn surface_label(&self) -> &str {

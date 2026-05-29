@@ -2,6 +2,8 @@
 
 use std::sync::Arc;
 
+use forge_foundational::facade::AspectKey;
+
 use crate::clone_budget::CheapClone;
 use crate::identity::{
     BridgeIdentity, CommittedPatchDigestTag, TruthBranchTag, TruthCommitTag, TruthPatchTag,

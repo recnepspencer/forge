@@ -253,7 +253,8 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for TranscriptBridgeSour
             TruthBranchIdentity::new("main"),
             vec![BridgeCommittedPatchItem::new(
                 "transcript-entity",
-                "transcript-aspect",
+                forge_foundational::facade::AspectKey::new("transcript-aspect")
+                    .expect("valid bridge patch aspect key"),
                 "value",
             )],
         ))

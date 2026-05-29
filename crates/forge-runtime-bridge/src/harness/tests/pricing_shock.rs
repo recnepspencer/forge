@@ -397,7 +397,8 @@ fn pricing_patch(
         TruthBranchIdentity::new(branch),
         vec![BridgeCommittedPatchItem::new(
             format!("component:{component}"),
-            "cost",
+            forge_foundational::facade::AspectKey::new("cost")
+                .expect("valid bridge patch aspect key"),
             "usd",
         )],
     )
@@ -975,7 +976,8 @@ fn pricing_reference_source_with_conflicting_commit_identity_for_route(
         "patch:steel-main-conflicting-meaning",
         vec![BridgeCommittedPatchItem::new(
             "component:rubber",
-            "cost",
+            forge_foundational::facade::AspectKey::new("cost")
+                .expect("valid bridge patch aspect key"),
             "usd",
         )],
     )
@@ -1525,8 +1527,18 @@ fn capture_pricing_restart_failure_bundle() -> PricingRestartFailureBundle {
         "patch:steel-main",
         "snapshot:pricing-main",
         vec![
-            BridgeCommittedPatchItem::new("component:steel", "cost", "usd"),
-            BridgeCommittedPatchItem::new("component:steel", "tariff", "usd"),
+            BridgeCommittedPatchItem::new(
+                "component:steel",
+                forge_foundational::facade::AspectKey::new("cost")
+                    .expect("valid bridge patch aspect key"),
+                "usd",
+            ),
+            BridgeCommittedPatchItem::new(
+                "component:steel",
+                forge_foundational::facade::AspectKey::new("tariff")
+                    .expect("valid bridge patch aspect key"),
+                "usd",
+            ),
         ],
     ));
     drifted_source.insert_committed_patch(pricing_patch(
@@ -3460,7 +3472,8 @@ fn pricing_shock_duplicate_conflicting_commit_identity_permutation_sweep_is_dete
                 "patch:steel-main-conflicting-rubber",
                 vec![BridgeCommittedPatchItem::new(
                     "component:rubber",
-                    "cost",
+                    forge_foundational::facade::AspectKey::new("cost")
+                        .expect("valid bridge patch aspect key"),
                     "usd",
                 )],
             ),
@@ -3475,7 +3488,8 @@ fn pricing_shock_duplicate_conflicting_commit_identity_permutation_sweep_is_dete
                 "patch:rubber-main-conflicting-steel",
                 vec![BridgeCommittedPatchItem::new(
                     "component:steel",
-                    "cost",
+                    forge_foundational::facade::AspectKey::new("cost")
+                        .expect("valid bridge patch aspect key"),
                     "usd",
                 )],
             ),
@@ -3489,8 +3503,18 @@ fn pricing_shock_duplicate_conflicting_commit_identity_permutation_sweep_is_dete
                 "commit:steel-main",
                 "patch:steel-main-conflicting-combined",
                 vec![
-                    BridgeCommittedPatchItem::new("component:steel", "cost", "usd"),
-                    BridgeCommittedPatchItem::new("component:rubber", "cost", "usd"),
+                    BridgeCommittedPatchItem::new(
+                        "component:steel",
+                        forge_foundational::facade::AspectKey::new("cost")
+                            .expect("valid bridge patch aspect key"),
+                        "usd",
+                    ),
+                    BridgeCommittedPatchItem::new(
+                        "component:rubber",
+                        forge_foundational::facade::AspectKey::new("cost")
+                            .expect("valid bridge patch aspect key"),
+                        "usd",
+                    ),
                 ],
             ),
             "commit:steel-main",
@@ -3581,7 +3605,8 @@ fn pricing_shock_non_commuting_route_history_permutation_sweep_fails_closed() {
                 "patch:steel-main-conflicting-rubber",
                 vec![BridgeCommittedPatchItem::new(
                     "component:rubber",
-                    "cost",
+                    forge_foundational::facade::AspectKey::new("cost")
+                        .expect("valid bridge patch aspect key"),
                     "usd",
                 )],
             ),
@@ -3594,7 +3619,8 @@ fn pricing_shock_non_commuting_route_history_permutation_sweep_fails_closed() {
                 "patch:rubber-main-conflicting-steel",
                 vec![BridgeCommittedPatchItem::new(
                     "component:steel",
-                    "cost",
+                    forge_foundational::facade::AspectKey::new("cost")
+                        .expect("valid bridge patch aspect key"),
                     "usd",
                 )],
             ),
@@ -3606,8 +3632,18 @@ fn pricing_shock_non_commuting_route_history_permutation_sweep_fails_closed() {
                 "commit:steel-main",
                 "patch:steel-main-conflicting-combined",
                 vec![
-                    BridgeCommittedPatchItem::new("component:steel", "cost", "usd"),
-                    BridgeCommittedPatchItem::new("component:rubber", "cost", "usd"),
+                    BridgeCommittedPatchItem::new(
+                        "component:steel",
+                        forge_foundational::facade::AspectKey::new("cost")
+                            .expect("valid bridge patch aspect key"),
+                        "usd",
+                    ),
+                    BridgeCommittedPatchItem::new(
+                        "component:rubber",
+                        forge_foundational::facade::AspectKey::new("cost")
+                            .expect("valid bridge patch aspect key"),
+                        "usd",
+                    ),
                 ],
             ),
         ),

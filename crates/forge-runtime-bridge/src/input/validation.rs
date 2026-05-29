@@ -60,17 +60,6 @@ pub(crate) fn validate_normalized_envelope(
             )))
         })?;
         validate_identity(
-            &format!("patch item #{index} aspect label"),
-            item.aspect_label(),
-        )
-        .map_err(|error| {
-            error.with_context(BridgeErrorContext::patch(BridgePatchCoordinate::new(
-                item.entity_identity(),
-                item.aspect_label(),
-                item.surface_label(),
-            )))
-        })?;
-        validate_identity(
             &format!("patch item #{index} surface label"),
             item.surface_label(),
         )
@@ -145,6 +134,8 @@ fn validate_producer_metadata(metadata: &BridgeProducerMetadata) -> Result<(), B
 
 #[cfg(test)]
 mod tests {
+    use forge_foundational::facade::AspectKey;
+
     use crate::error::BridgeRouteErrorKind;
     use crate::input::envelope::{
         BridgeCommittedPatchBody, BridgeCommittedPatchDigest, BridgeCommittedPatchItem,
@@ -166,7 +157,9 @@ mod tests {
             TruthBranchIdentity::new("main"),
             BridgeCommittedPatchSummary::new(1, 1),
             BridgeCommittedPatchBody::new(vec![BridgeCommittedPatchItem::new(
-                "entity-1", "profile", "name",
+                "entity-1",
+                aspect_key("profile"),
+                "name",
             )]),
             BridgeCommittedPatchDigest::new("digest-a"),
         );
@@ -182,7 +175,7 @@ mod tests {
     }
 
     #[test]
-    fn validation_rejects_empty_patch_item_labels() {
+    fn validation_rejects_empty_patch_item_surface_labels() {
         let parts = NormalizedBridgePatchEnvelope::new(
             BridgeProducerMetadata::bridge_harness_fixture(),
             TruthCommitIdentity::new("commit-a"),
@@ -191,19 +184,21 @@ mod tests {
             TruthBranchIdentity::new("main"),
             BridgeCommittedPatchSummary::new(1, 1),
             BridgeCommittedPatchBody::new(vec![BridgeCommittedPatchItem::new(
-                "entity-1", "", "name",
+                "entity-1",
+                aspect_key("profile"),
+                "",
             )]),
             BridgeCommittedPatchDigest::new("digest-a"),
         );
 
         let error = validate_normalized_envelope(parts)
-            .expect_err("empty canonical patch item labels must be rejected");
+            .expect_err("empty canonical patch item surface labels must be rejected");
 
         assert_eq!(
             error.kind(),
             BridgeRouteErrorKind::UnsupportedTruthPatchScope
         );
-        assert!(error.to_string().contains("patch item #0 aspect label"));
+        assert!(error.to_string().contains("patch item #0 surface label"));
     }
 
     #[test]
@@ -219,7 +214,9 @@ mod tests {
             TruthBranchIdentity::new("main"),
             BridgeCommittedPatchSummary::new(1, 1),
             BridgeCommittedPatchBody::new(vec![BridgeCommittedPatchItem::new(
-                "entity-1", "profile", "name",
+                "entity-1",
+                aspect_key("profile"),
+                "name",
             )]),
             BridgeCommittedPatchDigest::new("digest-a"),
         );
@@ -244,7 +241,9 @@ mod tests {
             TruthBranchIdentity::new("main"),
             BridgeCommittedPatchSummary::new(1, 1),
             BridgeCommittedPatchBody::new(vec![BridgeCommittedPatchItem::new(
-                "entity-1", "profile", "name",
+                "entity-1",
+                aspect_key("profile"),
+                "name",
             )]),
             BridgeCommittedPatchDigest::new("digest-a"),
         );
@@ -256,5 +255,9 @@ mod tests {
             error.kind(),
             BridgeRouteErrorKind::UnsupportedTruthPatchScope
         );
+    }
+
+    fn aspect_key(value: &str) -> AspectKey {
+        AspectKey::new(value).expect("valid bridge patch aspect key")
     }
 }

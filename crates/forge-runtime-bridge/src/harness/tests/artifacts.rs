@@ -13,9 +13,24 @@ fn bridge_artifact_identities_are_bounded_and_stable_for_identical_patchsets() {
         "patch-a",
         "snapshot-a",
         vec![
-            crate::facade::BridgeCommittedPatchItem::new("user", "profile", "name"),
-            crate::facade::BridgeCommittedPatchItem::new("user", "profile", "avatar"),
-            crate::facade::BridgeCommittedPatchItem::new("user", "profile", "name"),
+            crate::facade::BridgeCommittedPatchItem::new(
+                "user",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid bridge patch aspect key"),
+                "name",
+            ),
+            crate::facade::BridgeCommittedPatchItem::new(
+                "user",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid bridge patch aspect key"),
+                "avatar",
+            ),
+            crate::facade::BridgeCommittedPatchItem::new(
+                "user",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid bridge patch aspect key"),
+                "name",
+            ),
         ],
     ));
     left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
@@ -31,8 +46,18 @@ fn bridge_artifact_identities_are_bounded_and_stable_for_identical_patchsets() {
         "patch-a",
         "snapshot-a",
         vec![
-            crate::facade::BridgeCommittedPatchItem::new("user", "profile", "avatar"),
-            crate::facade::BridgeCommittedPatchItem::new("user", "profile", "name"),
+            crate::facade::BridgeCommittedPatchItem::new(
+                "user",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid bridge patch aspect key"),
+                "avatar",
+            ),
+            crate::facade::BridgeCommittedPatchItem::new(
+                "user",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid bridge patch aspect key"),
+                "name",
+            ),
         ],
     ));
     right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
