@@ -35,6 +35,7 @@ use crate::facade::query::{
 use crate::facade::replay::{RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode};
 use crate::facade::runtime::{CompiledArtifactCompatibility, EntityRecordProjection};
 use crate::facade::symbols::Symbol;
+use crate::replay::data::digest_diagnostics_surface;
 use crate::tests::support::*;
 use crate::validation::data::{
     CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
@@ -10181,8 +10182,8 @@ fn perf_artifact_recoverability_matrix() {
                         DiagnosticCode::CommitPublished,
                     ),
                     "recovered_summary_entry_count": recovered_envelope.diagnostics_summary.entries.len(),
-                    "summary_digest_match": certification_digest(&hot_bundle.diagnostics_summary)
-                        == certification_digest(&recovered_envelope.diagnostics_summary),
+                    "summary_digest_match": digest_diagnostics_surface(&hot_bundle.diagnostics_summary)
+                        == digest_diagnostics_surface(&recovered_envelope.diagnostics_summary),
                     "replay_compared_diagnostics_surface": replay
                         .compared_surfaces
                         .contains(&crate::facade::replay::ReplayObservableSurface::Diagnostics),
@@ -11569,8 +11570,10 @@ fn perf_game_engine_matrix() {
 fn perf_recoverability_policy_matrix() {
     let suite = "recoverability_policy_matrix";
 
-    let geometry_policy_samples =
-        capture_perf_samples(suite, "geometry_hot_truth_vs_deferred_trace_policy", || {
+    let geometry_policy_samples = capture_perf_samples(
+        suite,
+        "geometry_hot_truth_vs_deferred_trace_policy",
+        || {
             let mut runtime = persisted_runtime_with_test_schema_profile(
                 RelationalRuntimeProfile::GeometryKernel,
             );
@@ -11635,8 +11638,8 @@ fn perf_recoverability_policy_matrix() {
                         .filter(|artifact| artifact.kind == DiagnosticsArtifactKind::DetailedTrace)
                         .map(|artifact| artifact.entries.len())
                         .sum::<usize>(),
-                    "summary_reconstructed": certification_digest(&hot_bundle.diagnostics_summary)
-                        == certification_digest(&recovered_envelope.diagnostics_summary),
+                    "summary_reconstructed": digest_diagnostics_surface(&hot_bundle.diagnostics_summary)
+                        == digest_diagnostics_surface(&recovered_envelope.diagnostics_summary),
                     "replay_mismatch_count": replay.mismatches.len(),
                     "replay_failure": replay.failure.as_ref().map(|failure| format!("{failure:?}")),
                     "phase_timing": {
@@ -11645,7 +11648,8 @@ fn perf_recoverability_policy_matrix() {
                     },
                 }),
             }
-        });
+        },
+    );
     emit_metric_summaries(
         suite,
         "geometry_hot_truth_vs_deferred_trace_policy",
