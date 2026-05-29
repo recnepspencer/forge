@@ -1,3 +1,4 @@
+use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::facade::diagnostics::{DiagnosticCode, DiagnosticsScope};
 use crate::facade::durability::{
     DurabilityMode, DurableStore, DurableStoreLayout, RecoveryAuthorityParity,
@@ -25,7 +26,6 @@ use crate::facade::schema::{
 };
 use crate::facade::transactions::{TransactionCommitError, TransactionOptions};
 use crate::tests::support::*;
-use serde_json::json;
 
 // CONTRACT: durability
 // LANES: success, failure, recovery
@@ -564,12 +564,12 @@ fn durability_recovery_emits_compatibility_diagnostic_before_execution() {
         .find(|entry| entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated)
         .expect("recovery compatibility diagnostic");
     assert_eq!(
-        compatibility_entry.fields.root_value()["verification_rejected"],
-        json!(false)
+        diagnostic_field(compatibility_entry, "verification_rejected"),
+        &RelationalDiagnosticValue::Bool(false)
     );
     assert_eq!(
-        compatibility_entry.fields.root_value()["verification_layer"],
-        json!("DigestParity")
+        diagnostic_field(compatibility_entry, "verification_layer"),
+        &RelationalDiagnosticValue::string("DigestParity")
     );
 }
 
@@ -593,30 +593,24 @@ fn durability_certification_recovery_compatibility_is_explained_and_counted() {
         .find(|entry| entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated)
         .expect("recovery certification diagnostic");
     assert_eq!(
-        compatibility_entry.fields.root_value()["verification_mode"],
-        json!("NormalRecoveryVerification")
+        diagnostic_field(compatibility_entry, "verification_mode"),
+        &RelationalDiagnosticValue::string("NormalRecoveryVerification")
     );
     assert_eq!(
-        compatibility_entry.fields.root_value()["verification_rejected"],
-        json!(false)
+        diagnostic_field(compatibility_entry, "verification_rejected"),
+        &RelationalDiagnosticValue::Bool(false)
     );
     assert_eq!(
-        compatibility_entry.fields.root_value()["verification_layer"],
-        json!("DigestParity")
+        diagnostic_field(compatibility_entry, "verification_layer"),
+        &RelationalDiagnosticValue::string("DigestParity")
     );
     assert_eq!(
-        compatibility_entry.fields.root_value()["descriptor_version_parity"],
-        json!({
-            "parity": "VerifiedAtLayer",
-            "verification_layer": "DigestParity"
-        })
+        diagnostic_field(compatibility_entry, "descriptor_version_parity"),
+        &verified_at_digest_parity_value()
     );
     assert_eq!(
-        compatibility_entry.fields.root_value()["schema_transition_parity"],
-        json!({
-            "parity": "VerifiedAtLayer",
-            "verification_layer": "DigestParity"
-        })
+        diagnostic_field(compatibility_entry, "schema_transition_parity"),
+        &verified_at_digest_parity_value()
     );
     let counters = runtime.performance_access().counters();
     assert!(counters.replay_digest_parity_checks >= 1);
@@ -712,7 +706,8 @@ fn durable_recovery_and_schema_mismatch_test() {
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| {
             entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated
-                && entry.fields.root_value()["verification_layer"] == json!("DigestParity")
+                && diagnostic_field_optional(entry, "verification_layer")
+                    == Some(&RelationalDiagnosticValue::string("DigestParity"))
         }));
     let recovered_counters = recovered.performance_access().counters();
     assert!(recovered_counters.replay_digest_parity_checks >= 1);
@@ -744,8 +739,8 @@ fn durable_recovery_and_schema_mismatch_test() {
         })
     ));
     assert_eq!(
-        recovery_compatibility_diagnostic.fields.root_value()["verification_layer"],
-        json!("DigestParity")
+        diagnostic_field(recovery_compatibility_diagnostic, "verification_layer"),
+        &RelationalDiagnosticValue::string("DigestParity")
     );
     assert!(!error.detail.is_empty());
 }
@@ -1663,4 +1658,17 @@ fn durability_contract_persisted_commit_fails_closed_when_store_path_is_not_dire
 
     assert!(matches!(error, TransactionCommitError::Publication { .. }));
     assert!(runtime.history().latest_commit().is_none());
+}
+
+fn verified_at_digest_parity_value() -> RelationalDiagnosticValue {
+    RelationalDiagnosticValue::object([
+        (
+            "parity",
+            RelationalDiagnosticValue::string("VerifiedAtLayer"),
+        ),
+        (
+            "verification_layer",
+            RelationalDiagnosticValue::string("DigestParity"),
+        ),
+    ])
 }
