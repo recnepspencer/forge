@@ -52,6 +52,30 @@ fn struct_aspect_value_diagnostic_fields_keep_typed_fields_and_canonical_bytes()
     );
 }
 
+#[test]
+fn diagnostic_json_is_projection_not_stored_authority() {
+    let live_fields =
+        RelationalDiagnosticFields::from_diagnostic_value(RelationalDiagnosticValue::object([(
+            "typed_aspect",
+            RelationalDiagnosticValue::AspectValue(AspectValue::UInt64(7)),
+        )]));
+
+    let projected = serde_json::to_value(&live_fields).expect("project diagnostic JSON");
+    let recovered: RelationalDiagnosticFields =
+        serde_json::from_value(projected).expect("recover projected diagnostic JSON");
+
+    assert_ne!(live_fields.root(), recovered.root());
+    assert_eq!(live_fields, recovered);
+    assert!(matches!(
+        live_fields.root(),
+        RelationalDiagnosticValue::Object(fields)
+            if matches!(
+                fields.get("typed_aspect"),
+                Some(RelationalDiagnosticValue::AspectValue(AspectValue::UInt64(7)))
+            )
+    ));
+}
+
 fn diagnostic_aspect_value(value: &RelationalDiagnosticValue) -> Option<&AspectValue> {
     match value {
         RelationalDiagnosticValue::AspectValue(value) => Some(value),

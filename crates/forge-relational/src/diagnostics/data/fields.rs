@@ -32,29 +32,17 @@ use projected_json_recovery::{
 #[derive(Debug, Clone)]
 pub struct RelationalDiagnosticFields {
     root: RelationalDiagnosticValue,
-    projected_root: Value,
 }
 
 impl RelationalDiagnosticFields {
     fn from_projected_json(root: Value) -> Self {
-        let projected_root = canonicalize_diagnostic_value(&root);
-        let root = diagnostic_value_from_projected_json(&projected_root);
-        Self {
-            root,
-            projected_root,
-        }
+        let canonical_projected_json = canonicalize_diagnostic_value(&root);
+        let root = diagnostic_value_from_projected_json(&canonical_projected_json);
+        Self { root }
     }
 
     pub fn from_diagnostic_value(root: RelationalDiagnosticValue) -> Self {
-        let projected_root = diagnostic_value_to_json(&root);
-        Self {
-            root,
-            projected_root,
-        }
-    }
-
-    pub fn root_value(&self) -> &Value {
-        &self.projected_root
+        Self { root }
     }
 
     pub fn root(&self) -> &RelationalDiagnosticValue {
@@ -62,7 +50,7 @@ impl RelationalDiagnosticFields {
     }
 
     pub fn into_projected_json(self) -> Value {
-        self.projected_root
+        diagnostic_value_to_json(&self.root)
     }
 }
 
@@ -140,7 +128,7 @@ impl Serialize for RelationalDiagnosticFields {
     where
         S: serde::Serializer,
     {
-        self.projected_root.serialize(serializer)
+        diagnostic_value_to_json(&self.root).serialize(serializer)
     }
 }
 
@@ -161,7 +149,7 @@ impl From<RelationalDiagnosticValue> for RelationalDiagnosticFields {
 
 impl PartialEq for RelationalDiagnosticFields {
     fn eq(&self, other: &Self) -> bool {
-        self.projected_root == other.projected_root
+        diagnostic_value_to_json(&self.root) == diagnostic_value_to_json(&other.root)
     }
 }
 
