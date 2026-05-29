@@ -1,20 +1,6 @@
-use forge_foundational::facade::{
-    AspectFieldLocator, AspectKey, BoundarySourceLocator, CanonicalFieldPath, FieldKey,
-    LocatorAuthority,
-};
+use forge_foundational::facade::{BoundarySourceLocator, CanonicalFieldPath, FieldKey};
 
 use crate::transactions::data::AspectFieldPatchTarget;
-
-pub(super) fn authoritative_aspect_field_source_locator(
-    aspect_key: AspectKey,
-    field: FieldKey,
-) -> BoundarySourceLocator {
-    BoundarySourceLocator::aspect_field(AspectFieldLocator::new(
-        LocatorAuthority::SupportOnly,
-        aspect_key,
-        CanonicalFieldPath::single(field),
-    ))
-}
 
 pub(super) fn source_locator_aspect_label(locator: &BoundarySourceLocator) -> String {
     match locator {

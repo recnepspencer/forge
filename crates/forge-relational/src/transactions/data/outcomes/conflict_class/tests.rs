@@ -7,9 +7,9 @@ use crate::transactions::data::{
     RelationEndpointUpdateMissingState,
 };
 use forge_foundational::facade::{
-    AspectFieldLocator, AspectKey, AuthoritativePatchApplicationDenial,
-    AuthoritativePatchConstructionDenial, CanonicalFieldPath, FieldKey, LocatorAuthority,
-    ScalarAspectType,
+    AspectFieldLocator, AspectKey, AspectLocator, AuthoritativePatchApplicationDenial,
+    AuthoritativePatchConstructionDenial, BoundarySourceLocator, CanonicalFieldPath,
+    ContractValidationDenial, FieldKey, LocatorAuthority, ScalarAspectType,
 };
 
 #[test]
@@ -176,6 +176,41 @@ fn authoritative_aspect_state_conflicts_carry_typed_target_rejections() {
     assert!(relation_conflict
         .detail()
         .contains("field path not admitted by aspect binding"));
+}
+
+#[test]
+fn relation_endpoint_contract_denial_carries_whole_aspect_locator() {
+    let aspect_key = crate::tests::support::aspect_key("edge.source");
+    let source_locator =
+        BoundarySourceLocator::aspect(AspectLocator::new(LocatorAuthority::Planned, aspect_key));
+    let denial = RelationAuthoritativeAspectStateDenial::ContractValidationDenied {
+        source_locator: source_locator.clone(),
+        denial: ContractValidationDenial::ScalarTypeMismatch {
+            expected: ScalarAspectType::String,
+            found: ScalarAspectType::Bool,
+        },
+    };
+    let conflict = ConflictClass::RelationAuthoritativeAspectStateDenied {
+        kind_id: KindId(4),
+        denial,
+    };
+
+    let ConflictClass::RelationAuthoritativeAspectStateDenied {
+        denial:
+            RelationAuthoritativeAspectStateDenial::ContractValidationDenied {
+                source_locator: actual_source_locator,
+                ..
+            },
+        ..
+    } = conflict.clone()
+    else {
+        panic!("expected relation authoritative aspect contract denial");
+    };
+
+    assert_eq!(actual_source_locator, source_locator);
+    assert!(conflict.detail().contains("edge.source"));
+    assert!(conflict.detail().contains("whole_aspect"));
+    assert!(!conflict.detail().contains("source_endpoint"));
 }
 
 fn entity_denial_target(denial: &EntityAuthoritativeAspectStateDenial) -> &AspectFieldPatchTarget {

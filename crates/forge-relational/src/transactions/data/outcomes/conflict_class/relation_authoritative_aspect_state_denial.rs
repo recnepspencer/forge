@@ -1,10 +1,9 @@
 use forge_foundational::facade::{
-    AspectKey, AuthoritativePatchApplicationDenial, AuthoritativePatchConstructionDenial,
-    AuthoritativeStateAdmissionDenial, BoundarySourceLocator, ContractValidationDenial, FieldKey,
+    AuthoritativePatchApplicationDenial, AuthoritativePatchConstructionDenial,
+    AuthoritativeStateAdmissionDenial, BoundarySourceLocator, ContractValidationDenial,
 };
 use serde::{Deserialize, Serialize};
 
-use super::authoritative_aspect_source_locator::authoritative_aspect_field_source_locator;
 use super::AspectFieldTargetRejectionReason;
 use crate::transactions::data::AspectFieldPatchTarget;
 
@@ -40,17 +39,4 @@ pub enum RelationAuthoritativeAspectStateDenial {
     StateAdmissionDenied {
         denial: AuthoritativeStateAdmissionDenial,
     },
-}
-
-impl RelationAuthoritativeAspectStateDenial {
-    pub(crate) fn contract_validation_denied(
-        aspect_key: AspectKey,
-        field: FieldKey,
-        denial: ContractValidationDenial,
-    ) -> Self {
-        Self::ContractValidationDenied {
-            source_locator: authoritative_aspect_field_source_locator(aspect_key, field),
-            denial,
-        }
-    }
 }

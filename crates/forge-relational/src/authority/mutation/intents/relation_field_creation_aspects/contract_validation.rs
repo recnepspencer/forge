@@ -113,18 +113,10 @@ pub(super) fn validate_endpoint_identity_aspects(
     for binding in &lowered_plan.executable_bindings {
         match &binding.target {
             LoweredAspectTarget::RelationSourceEndpoint => {
-                endpoint_artifacts.push(validate_endpoint_identity(
-                    binding,
-                    RelationEndpointAspectRole::Source,
-                    source,
-                )?);
+                endpoint_artifacts.push(validate_endpoint_identity(binding, source)?);
             }
             LoweredAspectTarget::RelationTargetEndpoint => {
-                endpoint_artifacts.push(validate_endpoint_identity(
-                    binding,
-                    RelationEndpointAspectRole::Target,
-                    target,
-                )?);
+                endpoint_artifacts.push(validate_endpoint_identity(binding, target)?);
             }
             _ => {}
         }
@@ -132,39 +124,18 @@ pub(super) fn validate_endpoint_identity_aspects(
     Ok(endpoint_artifacts)
 }
 
-#[derive(Debug, Clone, Copy)]
-enum RelationEndpointAspectRole {
-    Source,
-    Target,
-}
-
-impl RelationEndpointAspectRole {
-    fn diagnostic_field_key(self) -> FieldKey {
-        match self {
-            Self::Source => {
-                FieldKey::new("source_endpoint").expect("static source endpoint key is valid")
-            }
-            Self::Target => {
-                FieldKey::new("target_endpoint").expect("static target endpoint key is valid")
-            }
-        }
-    }
-}
-
 fn validate_endpoint_identity(
     binding: &LoweredAspectBinding,
-    role: RelationEndpointAspectRole,
     endpoint: EntityId,
 ) -> Result<ContractValidatedAspectArtifact, RelationAuthoritativeAspectStateDenial> {
     let value = AspectValue::EntityRef(foundational_entity_id(endpoint));
     match validate_aspect_value(&binding.contract, ContractValidationInput::Scalar(value)) {
         TransitionOutcome::Success(artifact) => Ok(artifact),
         TransitionOutcome::Denied(denial) => Err(
-            RelationAuthoritativeAspectStateDenial::contract_validation_denied(
-                binding.aspect_key.clone(),
-                role.diagnostic_field_key(),
+            RelationAuthoritativeAspectStateDenial::ContractValidationDenied {
+                source_locator: source_locator_for_aspect_binding(binding),
                 denial,
-            ),
+            },
         ),
     }
 }
