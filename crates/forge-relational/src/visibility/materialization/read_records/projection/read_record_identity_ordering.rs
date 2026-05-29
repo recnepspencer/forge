@@ -1,12 +1,18 @@
-use crate::storage::data::RelationReadRecord;
+use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 
-pub(super) fn relation_records_are_canonical(records: &[RelationReadRecord]) -> bool {
+pub(super) fn entity_records_are_identity_ordered(records: &[EntityReadRecord]) -> bool {
     records
         .windows(2)
-        .all(|window| canonical_relation_key(&window[0]) <= canonical_relation_key(&window[1]))
+        .all(|window| window[0].entity_id <= window[1].entity_id)
 }
 
-pub(super) fn canonical_relation_key(
+pub(super) fn relation_records_are_identity_ordered(records: &[RelationReadRecord]) -> bool {
+    records.windows(2).all(|window| {
+        relation_identity_order_key(&window[0]) <= relation_identity_order_key(&window[1])
+    })
+}
+
+pub(super) fn relation_identity_order_key(
     record: &RelationReadRecord,
 ) -> (u32, u64, u32, u64, u32, u64) {
     (
@@ -21,14 +27,14 @@ pub(super) fn canonical_relation_key(
 
 #[cfg(test)]
 mod tests {
-    use super::canonical_relation_key;
+    use super::relation_identity_order_key;
     use crate::identity::data::{EntityId, PartitionId, RelationId};
     use crate::identity::data::{KindId, VersionId};
     use crate::schema::data::{KindResolution, SchemaId, SchemaVersionId};
     use crate::storage::data::{RecordLifecycleState, RelationReadRecord};
 
     #[test]
-    fn canonical_relation_key_uses_named_record_identity_accessors() {
+    fn relation_identity_order_key_uses_named_record_identity_accessors() {
         let record = RelationReadRecord {
             relation_id: RelationId::new(PartitionId::new(9), 5, 2),
             kind: KindResolution {
@@ -45,6 +51,6 @@ mod tests {
             authoritative_aspect_state: None,
         };
 
-        assert_eq!(canonical_relation_key(&record), (3, 11, 4, 12, 9, 5));
+        assert_eq!(relation_identity_order_key(&record), (3, 11, 4, 12, 9, 5));
     }
 }

@@ -10,7 +10,9 @@ use forge_foundational::facade::{
 };
 
 use super::contracts::assert_declared_projection_aspects;
-use super::relation_canonicalization::relation_records_are_canonical;
+use super::read_record_identity_ordering::{
+    entity_records_are_identity_ordered, relation_records_are_identity_ordered,
+};
 use crate::visibility::snapshot_states::resolve_snapshot_handle;
 
 use super::super::reader::VisibilityReadContext;
@@ -191,7 +193,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
 
     pub fn all_entity_records(&self) -> Vec<EntityReadRecord> {
         let records = self.reader().all_entity_records_at_version(self.version_id);
-        debug_assert!(entity_records_are_canonical(&records));
+        debug_assert!(entity_records_are_identity_ordered(&records));
         records
     }
 
@@ -218,7 +220,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
         let records = self
             .reader()
             .all_relation_records_at_version(self.version_id);
-        debug_assert!(relation_records_are_canonical(&records));
+        debug_assert!(relation_records_are_identity_ordered(&records));
         records
     }
 
@@ -254,12 +256,6 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
             T::KIND,
         );
     }
-}
-
-fn entity_records_are_canonical(records: &[EntityReadRecord]) -> bool {
-    records
-        .windows(2)
-        .all(|window| window[0].entity_id <= window[1].entity_id)
 }
 
 impl<'runtime> VisibilityReadContext<'runtime> {

@@ -1,5 +1,5 @@
 mod contracts;
-mod relation_canonicalization;
+mod read_record_identity_ordering;
 mod view;
 
 pub use view::{
