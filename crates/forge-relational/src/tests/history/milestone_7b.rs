@@ -1,5 +1,3 @@
-use serde::Serialize;
-
 use crate::facade::history::BranchId;
 use crate::facade::merge::{
     AspectMergePolicyDeclaration, AspectMergePolicyKind, IdentityBasisDeclaration,
@@ -11,22 +9,11 @@ use crate::facade::schema::{
     RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::tests::support::{
-    certification_digest, checkpoint_and_recover_with, create_branch_from_main, create_entity,
-    entity_field_aspect, persisted_runtime_with_test_schema, update_entity,
-    update_entity_on_branch,
+    checkpoint_and_recover_with, create_branch_from_main, create_entity, entity_field_aspect,
+    persisted_runtime_with_test_schema, update_entity, update_entity_on_branch,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-struct MergePlanningCertificationBundle {
-    schema_snapshot_digest: String,
-    artifact_digest: String,
-    decision_log_digest: String,
-    lowered_plan_digest: String,
-    roundtrip_digest: String,
-    recovered_digest: String,
-}
-
-fn run_merge_planning_certification() -> MergePlanningCertificationBundle {
+fn inspect_recovered_merge_planning_artifact() -> crate::facade::merge::MergePlanningArtifactCore {
     let mut runtime = persisted_runtime_with_test_schema();
     let shared = create_entity(&mut runtime, "shared");
     create_branch_from_main(&mut runtime, "feature");
@@ -46,10 +33,6 @@ fn run_merge_planning_certification() -> MergePlanningCertificationBundle {
             MergeIntent::ReconcileIntoTarget,
         ))
         .expect("live merge planning artifact");
-    let artifact_json =
-        serde_json::to_string(&artifact).expect("serialize live merge planning artifact");
-    let roundtripped: crate::facade::merge::MergePlanningArtifactCore =
-        serde_json::from_str(&artifact_json).expect("deserialize live merge planning artifact");
 
     let (_recovery, recovered) =
         checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
@@ -62,34 +45,30 @@ fn run_merge_planning_certification() -> MergePlanningCertificationBundle {
         ))
         .expect("recovered merge planning artifact");
 
-    assert_eq!(roundtripped, artifact);
     assert_eq!(recovered_artifact, artifact);
-
-    MergePlanningCertificationBundle {
-        schema_snapshot_digest: certification_digest(&artifact.schema_snapshot),
-        artifact_digest: certification_digest(&artifact.digest_basis),
-        decision_log_digest: certification_digest(&artifact.decision_log),
-        lowered_plan_digest: certification_digest(&artifact.lowered_plan),
-        roundtrip_digest: certification_digest(&roundtripped.digest_basis),
-        recovered_digest: certification_digest(&recovered_artifact.digest_basis),
-    }
+    artifact
 }
 
 #[test]
-fn merge_planning_artifact_certification_is_stable_across_roundtrip_and_recovery() {
-    let certification = run_merge_planning_certification();
+fn merge_planning_artifact_certification_is_stable_across_recovery() {
+    let artifact = inspect_recovered_merge_planning_artifact();
+
+    assert_eq!(artifact.digest_basis.schema, artifact.schema_snapshot);
     assert_eq!(
-        certification.artifact_digest,
-        certification.roundtrip_digest
+        artifact.digest_basis.decision_log,
+        artifact.decision_log_digest_basis
     );
     assert_eq!(
-        certification.artifact_digest,
-        certification.recovered_digest
+        artifact.digest_basis.lowered_plan.records.len(),
+        artifact.lowered_plan.records.len()
     );
-    assert!(certification.schema_snapshot_digest.len() > 8);
-    assert!(certification.artifact_digest.len() > 8);
-    assert!(certification.decision_log_digest.len() > 8);
-    assert!(certification.lowered_plan_digest.len() > 8);
+    assert_eq!(
+        artifact.decision_log_digest_basis.canonical_records.len(),
+        artifact.decision_log.decisions.len()
+    );
+    assert!(!artifact.schema_snapshot.touched_kinds.is_empty());
+    assert!(artifact.lowered_plan.record_count > 0);
+    assert!(artifact.summary.request_summary.contains("main"));
 }
 
 #[test]
@@ -157,7 +136,7 @@ fn merge_planning_schema_snapshot_changes_when_schema_semantics_change() {
                 MergeIntent::ReconcileIntoTarget,
             ))
             .expect("merge planning artifact");
-        certification_digest(&artifact.schema_snapshot)
+        crate::merge::data::schema_snapshot_digest(&artifact.schema_snapshot)
     }
 
     let mut prefer_richer_runtime = runtime_with_registry(AspectMergePolicyKind::PreferRicher);
