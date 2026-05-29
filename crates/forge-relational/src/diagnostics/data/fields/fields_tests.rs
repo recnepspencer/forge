@@ -1,60 +1,67 @@
 use forge_foundational::facade::{AspectValue, FieldKey, InternedString, StructAspectValue};
-use serde_json::Value;
 
 use super::{RelationalDiagnosticFields, RelationalDiagnosticValue};
 
 #[test]
-fn aspect_value_projection_uses_canonical_bytes_not_serde_tags() {
+fn aspect_value_diagnostic_fields_keep_typed_value_and_canonical_bytes() {
     let value = AspectValue::String(InternedString::Raw("diagnostic".to_string()));
     let fields = RelationalDiagnosticFields::from_diagnostic_value(
         RelationalDiagnosticValue::AspectValue(value.clone()),
     );
 
     assert_eq!(
-        fields.root_value()["value_family"],
-        Value::String("String".to_string())
+        fields.root(),
+        &RelationalDiagnosticValue::AspectValue(value.clone())
     );
     assert_eq!(
-        fields.root_value()["canonical_value_bytes"],
-        byte_array(crate::aspect_wire::encode_aspect_value(&value).expect("canonical bytes"))
+        crate::aspect_wire::encode_aspect_value(&value).expect("canonical bytes"),
+        crate::aspect_wire::encode_aspect_value(
+            diagnostic_aspect_value(fields.root()).expect("typed aspect value")
+        )
+        .expect("diagnostic canonical bytes")
     );
-    assert!(fields.root_value().get("String").is_none());
 }
 
 #[test]
-fn struct_aspect_value_projection_keeps_field_canonical_bytes() {
+fn struct_aspect_value_diagnostic_fields_keep_typed_fields_and_canonical_bytes() {
     let field = FieldKey::new("replicas").expect("valid field key");
     let value = AspectValue::UInt64(3);
     let struct_value = StructAspectValue::new([(field.clone(), value.clone())])
         .expect("valid struct aspect value");
     let fields = RelationalDiagnosticFields::from_diagnostic_value(
-        RelationalDiagnosticValue::StructAspectValue(struct_value),
+        RelationalDiagnosticValue::StructAspectValue(struct_value.clone()),
     );
-    let projected_field = &fields.root_value()["fields"][0];
 
     assert_eq!(
-        fields.root_value()["value_family"],
-        Value::String("Struct".to_string())
+        fields.root(),
+        &RelationalDiagnosticValue::StructAspectValue(struct_value)
     );
+    let diagnostic_struct =
+        diagnostic_struct_value(fields.root()).expect("typed struct aspect value");
+    let diagnostic_field_value = diagnostic_struct
+        .fields()
+        .find_map(|(candidate_field, candidate_value)| {
+            (candidate_field == &field).then_some(candidate_value)
+        })
+        .expect("diagnostic struct field value");
+    assert_eq!(diagnostic_field_value, &value);
     assert_eq!(
-        projected_field["field"],
-        Value::String(field.as_str().to_string())
-    );
-    assert_eq!(
-        projected_field["value"]["value_family"],
-        Value::String("UInt64".to_string())
-    );
-    assert_eq!(
-        projected_field["value"]["canonical_value_bytes"],
-        byte_array(crate::aspect_wire::encode_aspect_value(&value).expect("canonical bytes"))
+        crate::aspect_wire::encode_aspect_value(&value).expect("canonical bytes"),
+        crate::aspect_wire::encode_aspect_value(diagnostic_field_value)
+            .expect("diagnostic field canonical bytes")
     );
 }
 
-fn byte_array(bytes: Vec<u8>) -> Value {
-    Value::Array(
-        bytes
-            .into_iter()
-            .map(|byte| Value::from(byte as u64))
-            .collect(),
-    )
+fn diagnostic_aspect_value(value: &RelationalDiagnosticValue) -> Option<&AspectValue> {
+    match value {
+        RelationalDiagnosticValue::AspectValue(value) => Some(value),
+        _ => None,
+    }
+}
+
+fn diagnostic_struct_value(value: &RelationalDiagnosticValue) -> Option<&StructAspectValue> {
+    match value {
+        RelationalDiagnosticValue::StructAspectValue(value) => Some(value),
+        _ => None,
+    }
 }
