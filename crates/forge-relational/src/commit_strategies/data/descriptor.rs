@@ -155,11 +155,6 @@ impl CommitStrategyVersion {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum StrategyRequestCanonicalization {
-    NativeCanonicalBytesV1,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StrategyReadScopeClass {
     ExplicitTargetsOnly,
@@ -215,7 +210,6 @@ pub struct CommitStrategyDescriptor {
     input_schema_name: StrategyInputSchemaName,
     input_schema_version: StrategyInputSchemaVersion,
     output_schema_name: StrategyOutputSchemaName,
-    request_canonicalization: StrategyRequestCanonicalization,
     read_contract: StrategyReadContract,
     artifact_name: PersistentArtifactName,
     digest: CommitStrategyDescriptorDigest,
@@ -231,7 +225,6 @@ impl CommitStrategyDescriptor {
         input_schema_name: StrategyInputSchemaName,
         input_schema_version: StrategyInputSchemaVersion,
         output_schema_name: StrategyOutputSchemaName,
-        request_canonicalization: StrategyRequestCanonicalization,
         read_contract: StrategyReadContract,
         artifact_name: PersistentArtifactName,
     ) -> Self {
@@ -244,7 +237,6 @@ impl CommitStrategyDescriptor {
             &input_schema_name,
             input_schema_version,
             &output_schema_name,
-            request_canonicalization,
             &read_contract,
             &artifact_name,
         );
@@ -257,7 +249,6 @@ impl CommitStrategyDescriptor {
             input_schema_name,
             input_schema_version,
             output_schema_name,
-            request_canonicalization,
             read_contract,
             artifact_name,
             digest,
@@ -296,10 +287,6 @@ impl CommitStrategyDescriptor {
         &self.output_schema_name
     }
 
-    pub fn request_canonicalization(&self) -> StrategyRequestCanonicalization {
-        self.request_canonicalization
-    }
-
     pub fn read_contract(&self) -> &StrategyReadContract {
         &self.read_contract
     }
@@ -328,7 +315,6 @@ impl<'de> Deserialize<'de> for CommitStrategyDescriptor {
             input_schema_name: StrategyInputSchemaName,
             input_schema_version: StrategyInputSchemaVersion,
             output_schema_name: StrategyOutputSchemaName,
-            request_canonicalization: StrategyRequestCanonicalization,
             read_contract: StrategyReadContract,
             artifact_name: PersistentArtifactName,
             digest: CommitStrategyDescriptorDigest,
@@ -344,7 +330,6 @@ impl<'de> Deserialize<'de> for CommitStrategyDescriptor {
             &raw.input_schema_name,
             raw.input_schema_version,
             &raw.output_schema_name,
-            raw.request_canonicalization,
             &raw.read_contract,
             &raw.artifact_name,
         );
@@ -362,7 +347,6 @@ impl<'de> Deserialize<'de> for CommitStrategyDescriptor {
             input_schema_name: raw.input_schema_name,
             input_schema_version: raw.input_schema_version,
             output_schema_name: raw.output_schema_name,
-            request_canonicalization: raw.request_canonicalization,
             read_contract: raw.read_contract,
             artifact_name: raw.artifact_name,
             digest: raw.digest,
@@ -392,7 +376,7 @@ mod tests {
         StrategyInputSchemaName, StrategyInputSchemaVersion, StrategyIntentName,
         StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract,
         StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
-        StrategyRequestCanonicalization, StrategyTraversalBasis,
+        StrategyTraversalBasis,
     };
 
     fn descriptor() -> CommitStrategyDescriptor {
@@ -405,7 +389,6 @@ mod tests {
             StrategyInputSchemaName::new("intent.input.v1"),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new("intent.output.v1"),
-            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -429,16 +412,11 @@ mod tests {
             descriptor.input_schema_name().clone(),
             descriptor.input_schema_version(),
             descriptor.output_schema_name().clone(),
-            descriptor.request_canonicalization(),
             descriptor.read_contract().clone(),
             descriptor.artifact_name().clone(),
         );
 
         assert_eq!(descriptor.digest(), recomputed.digest());
-        assert_eq!(
-            descriptor.request_canonicalization(),
-            StrategyRequestCanonicalization::NativeCanonicalBytesV1
-        );
     }
 
     #[test]
@@ -455,7 +433,6 @@ mod tests {
             forged.input_schema_name().clone(),
             forged.input_schema_version(),
             forged.output_schema_name().clone(),
-            forged.request_canonicalization(),
             forged.read_contract().clone(),
             forged.artifact_name().clone(),
         );

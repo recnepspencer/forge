@@ -7,7 +7,7 @@ use crate::commit_strategies::data::{
     PersistentArtifactName, StrategyInputSchemaName, StrategyInputSchemaVersion,
     StrategyIntentName, StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract,
     StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
-    StrategyRequestCanonicalization, StrategyTraversalBasis,
+    StrategyTraversalBasis,
 };
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
 use crate::durability::data::DurabilityMode;
@@ -97,7 +97,6 @@ fn builder_attaches_frozen_commit_strategy_registry() {
         StrategyInputSchemaName::new("intent.reconcile.input.v1"),
         StrategyInputSchemaVersion(1),
         StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-        StrategyRequestCanonicalization::NativeCanonicalBytesV1,
         StrategyReadContract {
             scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
             locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -179,7 +178,6 @@ fn runtime_commit_strategy_facade_canonicalizes_requests_against_frozen_registry
         StrategyInputSchemaName::new("intent.reconcile.input.v1"),
         StrategyInputSchemaVersion(1),
         StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-        StrategyRequestCanonicalization::NativeCanonicalBytesV1,
         StrategyReadContract {
             scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
             locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -214,10 +212,6 @@ fn runtime_commit_strategy_facade_canonicalizes_requests_against_frozen_registry
     assert_eq!(
         canonical.canonical_input().canonical_bytes(),
         b"native-request"
-    );
-    assert_eq!(
-        canonical.canonical_input().canonicalization(),
-        StrategyRequestCanonicalization::NativeCanonicalBytesV1
     );
 }
 

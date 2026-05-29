@@ -43,8 +43,8 @@ pub mod commit_strategies {
         StrategyMutationProgramDigest, StrategyObservationContext, StrategyOutputSchemaName,
         StrategyPacketContract, StrategyReadContract, StrategyReadCostClass,
         StrategyReadLocalityClass, StrategyReadScopeClass, StrategyReplayDescriptor,
-        StrategyRequestCanonicalization, StrategyRequestOrigin, StrategyTraversalBasis,
-        StrategyVisibilityReadView, ValidatedStrategyCommitPlan,
+        StrategyRequestOrigin, StrategyTraversalBasis, StrategyVisibilityReadView,
+        ValidatedStrategyCommitPlan,
     };
     pub use crate::commit_strategies::facade::{
         CommitStrategiesAuthorityFacade, CommitStrategiesFacade,

@@ -22,8 +22,7 @@ pub use descriptor::{
     CommitStrategySemanticName, CommitStrategyVersion, PersistentArtifactName,
     StrategyInputSchemaName, StrategyInputSchemaVersion, StrategyIntentName,
     StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract, StrategyReadCostClass,
-    StrategyReadLocalityClass, StrategyReadScopeClass, StrategyRequestCanonicalization,
-    StrategyTraversalBasis,
+    StrategyReadLocalityClass, StrategyReadScopeClass, StrategyTraversalBasis,
 };
 pub use execution::{
     CanonicalStrategyOutputArtifact, CanonicalStrategyOutputDigest,

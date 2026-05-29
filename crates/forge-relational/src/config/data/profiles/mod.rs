@@ -45,7 +45,7 @@ mod tests {
         PersistentArtifactName, StrategyInputSchemaName, StrategyInputSchemaVersion,
         StrategyIntentName, StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract,
         StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
-        StrategyRequestCanonicalization, StrategyTraversalBasis,
+        StrategyTraversalBasis,
     };
     use crate::diagnostics::data::RelationalDiagnosticsProfile;
 
@@ -150,7 +150,6 @@ mod tests {
             StrategyInputSchemaName::new("config.input.v1"),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new("config.output.v1"),
-            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,

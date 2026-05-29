@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use sha2::{Digest, Sha256};
 
 use crate::commit_strategies::data::{
     CanonicalStrategyCommitRequest, CanonicalStrategyInputArtifact, CanonicalStrategyInputDigest,
-    NativeStrategyCommitRequest, StrategyCommitRequestError, StrategyRequestCanonicalization,
+    NativeStrategyCommitRequest, StrategyCommitRequestError,
 };
 
 use super::FrozenCommitStrategyRegistry;
@@ -19,17 +17,11 @@ pub(crate) fn canonicalize_request(
             strategy_name: request.strategy_name().clone(),
         })?;
     let descriptor = registration.descriptor();
-    let canonical_bytes =
-        canonicalize_request_bytes(request.input_bytes(), descriptor.request_canonicalization())
-            .map_err(|detail| StrategyCommitRequestError::InvalidCanonicalInput {
-                strategy_name: request.strategy_name().clone(),
-                detail,
-            })?;
+    let canonical_bytes = native_canonical_request_bytes(request.input_bytes());
     let digest = digest_bytes(&canonical_bytes);
     let input_artifact = CanonicalStrategyInputArtifact::new(
         descriptor.input_schema_name().clone(),
         descriptor.input_schema_version(),
-        descriptor.request_canonicalization(),
         canonical_bytes,
         digest,
         descriptor.artifact_name().clone(),
@@ -42,13 +34,8 @@ pub(crate) fn canonicalize_request(
     ))
 }
 
-fn canonicalize_request_bytes(
-    bytes: &[u8],
-    canonicalization: StrategyRequestCanonicalization,
-) -> Result<Arc<[u8]>, Arc<str>> {
-    match canonicalization {
-        StrategyRequestCanonicalization::NativeCanonicalBytesV1 => Ok(bytes.to_vec().into()),
-    }
+fn native_canonical_request_bytes(bytes: &[u8]) -> std::sync::Arc<[u8]> {
+    bytes.to_vec().into()
 }
 
 fn digest_bytes(bytes: &[u8]) -> CanonicalStrategyInputDigest {
@@ -66,7 +53,7 @@ mod tests {
         StrategyCallerProvenance, StrategyInputSchemaName, StrategyInputSchemaVersion,
         StrategyIntentName, StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract,
         StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
-        StrategyRequestCanonicalization, StrategyRequestOrigin, StrategyTraversalBasis,
+        StrategyRequestOrigin, StrategyTraversalBasis,
     };
     use crate::commit_strategies::FrozenCommitStrategyRegistry;
     use sha2::Digest;
@@ -82,7 +69,6 @@ mod tests {
                 StrategyInputSchemaName::new("intent.reconcile.input.v1"),
                 StrategyInputSchemaVersion(1),
                 StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-                StrategyRequestCanonicalization::NativeCanonicalBytesV1,
                 StrategyReadContract {
                     scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                     locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -131,10 +117,6 @@ mod tests {
         assert_eq!(
             left.canonical_input().schema_version(),
             StrategyInputSchemaVersion(1)
-        );
-        assert_eq!(
-            left.canonical_input().canonicalization(),
-            StrategyRequestCanonicalization::NativeCanonicalBytesV1
         );
         let digest = CanonicalStrategyInputDigest(sha2::Sha256::digest(b"native-left").into());
         assert_eq!(left.canonical_input().digest(), digest);

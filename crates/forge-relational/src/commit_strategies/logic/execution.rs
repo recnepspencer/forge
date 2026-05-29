@@ -304,7 +304,7 @@ mod tests {
         StrategyInputSchemaName, StrategyInputSchemaVersion, StrategyIntentName,
         StrategyMutationProgram, StrategyOutputSchemaName, StrategyPacketContract,
         StrategyReadContract, StrategyReadCostClass, StrategyReadLocalityClass,
-        StrategyReadScopeClass, StrategyRequestCanonicalization, StrategyTraversalBasis,
+        StrategyReadScopeClass, StrategyTraversalBasis,
     };
     use crate::commit_strategies::FrozenCommitStrategyRegistry;
     use crate::identity::data::{EntityId, KindId, PartitionId};
@@ -434,7 +434,6 @@ mod tests {
             StrategyInputSchemaName::new("intent.reconcile.input.v1"),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::PartitionBoundedScan,
                 locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -454,7 +453,6 @@ mod tests {
             CanonicalStrategyInputArtifact::new(
                 descriptor.input_schema_name().clone(),
                 descriptor.input_schema_version(),
-                descriptor.request_canonicalization(),
                 br#"{"a":1}"#.to_vec().into(),
                 CanonicalStrategyInputDigest([7; 32]),
                 descriptor.artifact_name().clone(),
@@ -477,7 +475,6 @@ mod tests {
             StrategyInputSchemaName::new("intent.reconcile.input.v1"),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::KindBoundedScan,
                 locality_class: StrategyReadLocalityClass::CrossPartitionBounded,
@@ -498,7 +495,6 @@ mod tests {
             CanonicalStrategyInputArtifact::new(
                 descriptor.input_schema_name().clone(),
                 descriptor.input_schema_version(),
-                descriptor.request_canonicalization(),
                 br#"{"a":1}"#.to_vec().into(),
                 CanonicalStrategyInputDigest([7; 32]),
                 descriptor.artifact_name().clone(),

@@ -116,7 +116,7 @@ mod tests {
         PersistentArtifactName, StrategyInputSchemaName, StrategyInputSchemaVersion,
         StrategyIntentName, StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract,
         StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
-        StrategyRequestCanonicalization, StrategyTraversalBasis,
+        StrategyTraversalBasis,
     };
 
     fn registration(
@@ -134,7 +134,6 @@ mod tests {
             StrategyInputSchemaName::new("replica.input.v1"),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new("replica.output.v1"),
-            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,

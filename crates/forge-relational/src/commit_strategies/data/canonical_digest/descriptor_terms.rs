@@ -4,8 +4,7 @@ use crate::commit_strategies::data::{
     CommitStrategyId, CommitStrategySemanticName, CommitStrategyVersion, PersistentArtifactName,
     StrategyInputSchemaName, StrategyInputSchemaVersion, StrategyIntentName,
     StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract, StrategyReadCostClass,
-    StrategyReadLocalityClass, StrategyReadScopeClass, StrategyRequestCanonicalization,
-    StrategyTraversalBasis,
+    StrategyReadLocalityClass, StrategyReadScopeClass, StrategyTraversalBasis,
 };
 
 pub(crate) fn commit_strategy_descriptor_digest(
@@ -17,7 +16,6 @@ pub(crate) fn commit_strategy_descriptor_digest(
     input_schema_name: &StrategyInputSchemaName,
     input_schema_version: StrategyInputSchemaVersion,
     output_schema_name: &StrategyOutputSchemaName,
-    request_canonicalization: StrategyRequestCanonicalization,
     read_contract: &StrategyReadContract,
     artifact_name: &PersistentArtifactName,
 ) -> CommitStrategyDescriptorDigest {
@@ -33,7 +31,7 @@ pub(crate) fn commit_strategy_descriptor_digest(
             bytes.string(input_schema_name.as_str());
             bytes.u16(input_schema_version.0);
             bytes.string(output_schema_name.as_str());
-            write_request_canonicalization(bytes, request_canonicalization);
+            write_native_strategy_input_wire_tag(bytes);
             write_read_contract(bytes, read_contract);
             bytes.string(artifact_name.as_str());
         },
@@ -61,13 +59,8 @@ pub(crate) fn commit_strategy_registry_digest(descriptors: &[CommitStrategyDescr
     })
 }
 
-fn write_request_canonicalization(
-    bytes: &mut StrategyDigestBytes,
-    canonicalization: StrategyRequestCanonicalization,
-) {
-    match canonicalization {
-        StrategyRequestCanonicalization::NativeCanonicalBytesV1 => bytes.tag(1),
-    }
+fn write_native_strategy_input_wire_tag(bytes: &mut StrategyDigestBytes) {
+    bytes.tag(1);
 }
 
 fn write_read_contract(bytes: &mut StrategyDigestBytes, contract: &StrategyReadContract) {

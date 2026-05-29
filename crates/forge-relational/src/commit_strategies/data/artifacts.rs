@@ -25,7 +25,7 @@ use super::{
     LoweredStrategyCommitPlan, StrategyCallerProvenance, StrategyInputSchemaName,
     StrategyInputSchemaVersion, StrategyIntentName, StrategyLoweringProvenance,
     StrategyLoweringSummary, StrategyMutationProgramDigest, StrategyOutputSchemaName,
-    StrategyPreviewValidationCostSummary, StrategyRequestCanonicalization, StrategyRequestOrigin,
+    StrategyPreviewValidationCostSummary, StrategyRequestOrigin,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -165,7 +165,6 @@ pub struct StrategyReplayDescriptor {
     mutation_program_digest: StrategyMutationProgramDigest,
     input_schema_name: StrategyInputSchemaName,
     input_schema_version: StrategyInputSchemaVersion,
-    input_canonicalization: StrategyRequestCanonicalization,
     output_schema_name: StrategyOutputSchemaName,
     lowering_summary_digest: [u8; 32],
     preview_validation_summary_digest: Option<[u8; 32]>,
@@ -188,7 +187,6 @@ impl StrategyReplayDescriptor {
             mutation_program_digest: lowered.lowering_provenance().mutation_program_digest(),
             input_schema_name: lowered.request().canonical_input().schema_name().clone(),
             input_schema_version: lowered.request().canonical_input().schema_version(),
-            input_canonicalization: lowered.request().canonical_input().canonicalization(),
             output_schema_name: lowered.execution().output().schema_name().clone(),
             lowering_summary_digest: lowering_summary_digest(lowered.lowering_summary()),
             preview_validation_summary_digest: None,
@@ -243,10 +241,6 @@ impl StrategyReplayDescriptor {
 
     pub fn input_schema_version(&self) -> StrategyInputSchemaVersion {
         self.input_schema_version
-    }
-
-    pub fn input_canonicalization(&self) -> StrategyRequestCanonicalization {
-        self.input_canonicalization
     }
 
     pub fn output_schema_name(&self) -> &StrategyOutputSchemaName {
@@ -352,7 +346,6 @@ impl<'de> Deserialize<'de> for StrategyReplayDescriptor {
             mutation_program_digest: StrategyMutationProgramDigest,
             input_schema_name: StrategyInputSchemaName,
             input_schema_version: StrategyInputSchemaVersion,
-            input_canonicalization: StrategyRequestCanonicalization,
             output_schema_name: StrategyOutputSchemaName,
             lowering_summary_digest: [u8; 32],
             preview_validation_summary_digest: Option<[u8; 32]>,
@@ -371,7 +364,6 @@ impl<'de> Deserialize<'de> for StrategyReplayDescriptor {
             mutation_program_digest: raw.mutation_program_digest,
             input_schema_name: raw.input_schema_name,
             input_schema_version: raw.input_schema_version,
-            input_canonicalization: raw.input_canonicalization,
             output_schema_name: raw.output_schema_name,
             lowering_summary_digest: raw.lowering_summary_digest,
             preview_validation_summary_digest: raw.preview_validation_summary_digest,
@@ -529,13 +521,6 @@ impl StrategyCommitArtifactBundle {
         if self.canonical_input.schema_version() != self.replay_descriptor.input_schema_version() {
             return Err(
                 "strategy canonical input schema version does not match strategy replay descriptor",
-            );
-        }
-        if self.canonical_input.canonicalization()
-            != self.replay_descriptor.input_canonicalization()
-        {
-            return Err(
-                "strategy canonical input canonicalization does not match strategy replay descriptor",
             );
         }
         if lowering_summary_digest(&self.lowering_summary)
@@ -723,7 +708,7 @@ mod tests {
         StrategyLoweringSummary, StrategyMutationProgram, StrategyOutputSchemaName,
         StrategyPacketContract, StrategyPreviewValidationCostSummary, StrategyReadContract,
         StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
-        StrategyRequestCanonicalization, StrategyRequestOrigin, StrategyTraversalBasis,
+        StrategyRequestOrigin, StrategyTraversalBasis,
     };
     use crate::facade::transactions::{
         CreateIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
@@ -747,7 +732,6 @@ mod tests {
             StrategyInputSchemaName::new("intent.reconcile.input.v1"),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -767,7 +751,6 @@ mod tests {
             CanonicalStrategyInputArtifact::new(
                 StrategyInputSchemaName::new("intent.reconcile.input.v1"),
                 StrategyInputSchemaVersion(1),
-                StrategyRequestCanonicalization::NativeCanonicalBytesV1,
                 b"replicas=3".to_vec().into(),
                 CanonicalStrategyInputDigest([9; 32]),
                 PersistentArtifactName::new("strategy.intent.reconcile.input"),

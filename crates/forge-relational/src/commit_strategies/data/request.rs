@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use super::{
     CommitStrategyDescriptorDigest, CommitStrategyId, CommitStrategySemanticName,
     PersistentArtifactName, StrategyInputSchemaName, StrategyInputSchemaVersion,
-    StrategyRequestCanonicalization,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -63,7 +62,6 @@ pub struct CanonicalStrategyInputDigest(pub [u8; 32]);
 pub struct CanonicalStrategyInputArtifact {
     schema_name: StrategyInputSchemaName,
     schema_version: StrategyInputSchemaVersion,
-    canonicalization: StrategyRequestCanonicalization,
     canonical_bytes: Arc<[u8]>,
     digest: CanonicalStrategyInputDigest,
     artifact_name: PersistentArtifactName,
@@ -73,7 +71,6 @@ impl CanonicalStrategyInputArtifact {
     pub(crate) fn new(
         schema_name: StrategyInputSchemaName,
         schema_version: StrategyInputSchemaVersion,
-        canonicalization: StrategyRequestCanonicalization,
         canonical_bytes: Arc<[u8]>,
         digest: CanonicalStrategyInputDigest,
         artifact_name: PersistentArtifactName,
@@ -81,7 +78,6 @@ impl CanonicalStrategyInputArtifact {
         Self {
             schema_name,
             schema_version,
-            canonicalization,
             canonical_bytes,
             digest,
             artifact_name,
@@ -94,10 +90,6 @@ impl CanonicalStrategyInputArtifact {
 
     pub fn schema_version(&self) -> StrategyInputSchemaVersion {
         self.schema_version
-    }
-
-    pub fn canonicalization(&self) -> StrategyRequestCanonicalization {
-        self.canonicalization
     }
 
     pub fn canonical_bytes(&self) -> &[u8] {
@@ -157,9 +149,5 @@ impl CanonicalStrategyCommitRequest {
 pub enum StrategyCommitRequestError {
     UnknownStrategyName {
         strategy_name: CommitStrategySemanticName,
-    },
-    InvalidCanonicalInput {
-        strategy_name: CommitStrategySemanticName,
-        detail: Arc<str>,
     },
 }

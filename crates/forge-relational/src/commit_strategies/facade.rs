@@ -101,8 +101,8 @@ mod tests {
         StrategyExecutorFailure, StrategyInputSchemaName, StrategyInputSchemaVersion,
         StrategyIntentName, StrategyMutationProgram, StrategyOutputSchemaName,
         StrategyPacketContract, StrategyReadContract, StrategyReadCostClass,
-        StrategyReadLocalityClass, StrategyReadScopeClass, StrategyRequestCanonicalization,
-        StrategyRequestOrigin, StrategyTraversalBasis,
+        StrategyReadLocalityClass, StrategyReadScopeClass, StrategyRequestOrigin,
+        StrategyTraversalBasis,
     };
     use crate::commit_strategies::strategies::{
         AspectFieldReconciliationInput, AspectFieldReconciliationStrategy,
@@ -206,7 +206,6 @@ mod tests {
             StrategyInputSchemaName::new("intent.reconcile.input.v1"),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -348,7 +347,6 @@ mod tests {
             CanonicalStrategyInputArtifact::new(
                 StrategyInputSchemaName::new("intent.reconcile.input.v1"),
                 StrategyInputSchemaVersion(1),
-                StrategyRequestCanonicalization::NativeCanonicalBytesV1,
                 b"fixture-input".to_vec().into(),
                 CanonicalStrategyInputDigest([9; 32]),
                 PersistentArtifactName::new("strategy.intent.reconcile.input"),

@@ -111,8 +111,7 @@ mod tests {
         CommitStrategyDescriptorDigest, CommitStrategyId, PersistentArtifactName,
         StrategyCallerProvenance, StrategyExecutionDraft, StrategyExecutionResult,
         StrategyExecutionSummary, StrategyInputSchemaName, StrategyInputSchemaVersion,
-        StrategyMutationProgram, StrategyOutputSchemaName, StrategyRequestCanonicalization,
-        StrategyRequestOrigin,
+        StrategyMutationProgram, StrategyOutputSchemaName, StrategyRequestOrigin,
     };
     use crate::facade::transactions::{
         CreateIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
@@ -130,7 +129,6 @@ mod tests {
             CanonicalStrategyInputArtifact::new(
                 StrategyInputSchemaName::new("intent.reconcile.input.v1"),
                 StrategyInputSchemaVersion(1),
-                StrategyRequestCanonicalization::NativeCanonicalBytesV1,
                 br#"{"replicas":3}"#.to_vec().into(),
                 CanonicalStrategyInputDigest([9; 32]),
                 PersistentArtifactName::new("strategy.intent.reconcile.input"),

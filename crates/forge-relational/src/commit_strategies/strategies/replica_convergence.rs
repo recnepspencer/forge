@@ -13,8 +13,7 @@ use crate::commit_strategies::data::{
     StrategyExecutorFailureClass, StrategyInputSchemaName, StrategyInputSchemaVersion,
     StrategyIntentName, StrategyMutationProgram, StrategyObservationContext,
     StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract, StrategyReadCostClass,
-    StrategyReadLocalityClass, StrategyReadScopeClass, StrategyRequestCanonicalization,
-    StrategyTraversalBasis,
+    StrategyReadLocalityClass, StrategyReadScopeClass, StrategyTraversalBasis,
 };
 use crate::identity::data::EntityId;
 use crate::storage::data::{
@@ -119,7 +118,6 @@ impl ReplicaConvergenceStrategy {
             StrategyInputSchemaName::new(Self::DEFAULT_INPUT_SCHEMA_NAME),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new(Self::DEFAULT_OUTPUT_SCHEMA_NAME),
-            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,

@@ -12,7 +12,7 @@ use crate::commit_strategies::data::{
     StrategyInputSchemaName, StrategyInputSchemaVersion, StrategyIntentName,
     StrategyMutationProgram, StrategyObservationContext, StrategyOutputSchemaName,
     StrategyPacketContract, StrategyReadContract, StrategyReadCostClass, StrategyReadLocalityClass,
-    StrategyReadScopeClass, StrategyRequestCanonicalization, StrategyTraversalBasis,
+    StrategyReadScopeClass, StrategyTraversalBasis,
 };
 use crate::storage::data::{
     authoritative_aspect_value_field_comparison_key,
@@ -105,7 +105,6 @@ impl AspectFieldReconciliationStrategy {
             StrategyInputSchemaName::new(Self::DEFAULT_INPUT_SCHEMA_NAME),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new(Self::DEFAULT_OUTPUT_SCHEMA_NAME),
-            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,
