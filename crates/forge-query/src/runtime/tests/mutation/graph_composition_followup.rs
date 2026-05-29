@@ -126,7 +126,7 @@ fn compose_graph_supports_symbolic_relation_followup_mutation() {
     assert_eq!(receipt.graph_composition_resolution_map().len(), 2);
     assert_eq!(edge_rows.len(), 1);
     assert_eq!(
-        edge_rows[0].payload["edge"]["kind"].as_str(),
+        edge_rows[0].external_row()["edge"]["kind"].as_str(),
         Some("blocks")
     );
 

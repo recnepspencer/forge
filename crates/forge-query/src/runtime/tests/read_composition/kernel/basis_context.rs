@@ -344,14 +344,14 @@ fn assert_context_materialized_rows(
     assert!(!rows.is_empty());
     assert!(rows
         .iter()
-        .all(|row| row.payload.get("query_context").is_some()));
+        .all(|row| row.external_row().get("query_context").is_some()));
     assert!(rows.iter().all(|row| {
-        row.payload["query_context"]["basis_digest"]
+        row.external_row()["query_context"]["basis_digest"]
             .as_str()
             .is_some_and(|digest| digest == context.basis_digest())
     }));
     assert!(rows.iter().all(|row| {
-        row.payload["query_context"]["query_digest"]
+        row.external_row()["query_context"]["query_digest"]
             .as_str()
             .is_some_and(|digest| digest == context.query_digest())
     }));
@@ -364,8 +364,10 @@ fn assert_runtime_materialized_rows(rows: &[crate::facade::ForgeQueryEntity]) {
     assert!(!rows.is_empty());
     assert!(rows
         .iter()
-        .all(|row| row.payload.get("query_context").is_none()));
-    assert!(rows.iter().any(|row| row.payload.get("read").is_some()));
+        .all(|row| row.external_row().get("query_context").is_none()));
+    assert!(rows
+        .iter()
+        .any(|row| row.external_row().get("read").is_some()));
     assert!(rows
         .iter()
         .all(|row| !row.identity.starts_with("query-context:")));

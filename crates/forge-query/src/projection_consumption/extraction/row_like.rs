@@ -124,13 +124,13 @@ fn extract_json_rows(
 ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError> {
     let materialized_rows = rows
         .iter()
-        .map(|row| (row.identity.as_str(), &row.payload))
+        .map(|row| (row.identity(), row.external_row()))
         .collect::<Vec<_>>();
     extract_materialized_rows(
         contract,
         &materialized_rows,
-        |row_identity, payload, field_key, fact_kind| {
-            json_path_value(payload, field_key).ok_or_else(|| {
+        |row_identity, external_row, field_key, fact_kind| {
+            external_row_path_value(external_row, field_key).ok_or_else(|| {
                 ProjectionFactExtractionError::MissingDeclaredFieldEvidence {
                     source_family: contract.source_family(),
                     source_identity: format!("{}::{row_identity}", contract.source_identity()),
@@ -290,11 +290,11 @@ where
     ))
 }
 
-fn json_path_value<'a>(
-    payload: &'a serde_json::Value,
+fn external_row_path_value<'a>(
+    external_row: &'a serde_json::Value,
     field_key: &str,
 ) -> Option<&'a serde_json::Value> {
-    let mut current = payload;
+    let mut current = external_row;
     for segment in field_key.split('.') {
         current = current.get(segment)?;
     }

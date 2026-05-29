@@ -38,6 +38,28 @@ pub struct ForgeQueryEntity {
     pub payload: Value,
 }
 
+impl ForgeQueryEntity {
+    pub fn identity(&self) -> &str {
+        &self.identity
+    }
+
+    pub fn external_row(&self) -> &Value {
+        &self.payload
+    }
+
+    pub fn into_external_row(self) -> Value {
+        self.payload
+    }
+
+    pub fn external_row_path(&self, dotted_path: &str) -> Option<&Value> {
+        let mut current = self.external_row();
+        for segment in dotted_path.split('.') {
+            current = current.get(segment)?;
+        }
+        Some(current)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ForgeQueryMutationKind {
     Created,

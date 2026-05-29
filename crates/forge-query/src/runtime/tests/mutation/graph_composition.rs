@@ -140,11 +140,11 @@ fn compose_graph_preserves_symbolic_resolution_and_mixed_edge_meaning() {
     );
     assert_eq!(edge_rows.len(), 1);
     assert_eq!(
-        edge_rows[0].payload["edge"]["source_identity"].as_str(),
+        edge_rows[0].external_row()["edge"]["source_identity"].as_str(),
         Some(draft_identity.as_str())
     );
     assert_eq!(
-        edge_rows[0].payload["edge"]["target_identity"].as_str(),
+        edge_rows[0].external_row()["edge"]["target_identity"].as_str(),
         Some("task-existing")
     );
 

@@ -228,7 +228,7 @@ fn identity_anchor(request: &DeclarativeLiveQueryRequest) -> Option<&str> {
 }
 
 fn relation_target<'a>(row: &'a ForgeQueryEntity, relation: &str) -> Option<&'a str> {
-    row.payload.get("relations")?.get(relation)?.as_str()
+    row.external_row_path("relations")?.get(relation)?.as_str()
 }
 
 fn row_index(rows: &[ForgeQueryEntity]) -> BTreeMap<String, ForgeQueryEntity> {

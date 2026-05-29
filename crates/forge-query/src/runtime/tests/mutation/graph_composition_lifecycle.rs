@@ -134,7 +134,7 @@ fn compose_graph_supports_symbolic_entity_followup_and_relation_retirement() {
     assert_eq!(task_rows.len(), 1);
     assert_eq!(edge_rows.len(), 0);
     assert_eq!(
-        task_rows[0].payload["title"]["value"].as_str(),
+        task_rows[0].external_row()["title"]["value"].as_str(),
         Some("Published task")
     );
 
