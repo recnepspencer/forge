@@ -478,7 +478,7 @@ fn assert_metric_against_baseline(
 pub(super) fn emit_performance_projection_record(value: impl Serialize) {
     println!(
         "{}",
-        serde_json::to_string(&value).expect("performance JSON serialization")
+        serde_json::to_string(&value).expect("performance projection record serialization")
     );
 }
 
