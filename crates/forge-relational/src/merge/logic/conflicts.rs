@@ -957,7 +957,7 @@ fn base_record_visibility_evidence(
                     base_version_id,
                 );
             }
-            fallback_view_visibility_evidence(
+            last_resort_base_view_visibility_evidence(
                 record.record_ref.clone(),
                 base_view,
                 &record.record_ref,
@@ -977,7 +977,7 @@ fn base_record_visibility_evidence(
                     base_version_id,
                 );
             }
-            fallback_view_visibility_evidence(
+            last_resort_base_view_visibility_evidence(
                 record.record_ref.clone(),
                 base_view,
                 &record.record_ref,
@@ -1035,7 +1035,7 @@ fn historical_window_visibility_evidence(
     }
 }
 
-fn fallback_view_visibility_evidence(
+fn last_resort_base_view_visibility_evidence(
     observed_record: RecordRef,
     view: &RelationalReadView,
     record_ref: &RecordRef,
@@ -1047,7 +1047,7 @@ fn fallback_view_visibility_evidence(
     };
     MergeVisibilityEvidence {
         observed_record,
-        kind: MergeVisibilityEvidenceKind::BaseViewFallback,
+        kind: MergeVisibilityEvidenceKind::BaseLastResortViewLookup,
         state,
         embedded_surface_state: None,
         lifecycle: None,

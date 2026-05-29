@@ -249,7 +249,7 @@ fn resolved_target_record_ref(
 fn record_policy_base_commit_id(
     history: &crate::history::logic::HistoryAccess,
     annotation: &crate::merge::data::MergeRecordCausalAnnotation,
-    fallback_merge_base_commit_id: crate::history::data::CommitId,
+    default_merge_base_commit_id: crate::history::data::CommitId,
 ) -> crate::history::data::CommitId {
     match (
         annotation
@@ -263,7 +263,7 @@ fn record_policy_base_commit_id(
     ) {
         (Some(source_commit_id), Some(target_commit_id)) => history
             .max_commit_id_common_ancestor(source_commit_id, target_commit_id)
-            .unwrap_or(fallback_merge_base_commit_id),
-        _ => fallback_merge_base_commit_id,
+            .unwrap_or(default_merge_base_commit_id),
+        _ => default_merge_base_commit_id,
     }
 }

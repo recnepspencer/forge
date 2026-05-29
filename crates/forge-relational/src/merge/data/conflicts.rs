@@ -97,7 +97,7 @@ pub enum MergeVisibilityEvidenceKind {
     TargetEmbeddedSurface,
     BaseResolvedViewLookup,
     BaseHistoricalWindow,
-    BaseViewFallback,
+    BaseLastResortViewLookup,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

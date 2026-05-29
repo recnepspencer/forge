@@ -243,7 +243,7 @@ fn discover_identity_candidate(
         }
     }
 
-    let fallback_basis = declared_bases
+    let unresolved_identity_basis = declared_bases
         .first()
         .map(|declaration| declaration.basis.clone())
         .unwrap_or(IdentityBasisKind::StorageIdentity);
@@ -255,7 +255,7 @@ fn discover_identity_candidate(
         target: None,
         match_class: IdentityMatchClass::MissingTarget,
         reason: IdentityResolutionReason::DeclaredBasisNoVisibleTargetMatch,
-        basis: fallback_basis,
+        basis: unresolved_identity_basis,
     }
 }
 
