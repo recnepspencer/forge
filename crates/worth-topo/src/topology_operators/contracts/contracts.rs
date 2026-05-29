@@ -167,7 +167,3 @@ impl TopologyEditContract {
         TopologyEditNamingReport { rows }
     }
 }
-
-
-
-

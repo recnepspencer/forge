@@ -134,7 +134,3 @@ fn contract_from_condition(
         (TopologyNoNPlusOneContractStatus::Blocked, blocked_reason)
     }
 }
-
-
-
-

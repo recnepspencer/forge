@@ -240,7 +240,3 @@ mod interpretation_tests {
         assert!(shell.non_manifold_edge_ids.is_empty());
     }
 }
-
-
-
-

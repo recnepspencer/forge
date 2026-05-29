@@ -121,7 +121,3 @@ fn encode_row<T: serde::Serialize>(
         TopologyQuerySurfaceError::new(format!("{label} failed to encode: {error}"))
     })
 }
-
-
-
-

@@ -12,7 +12,3 @@ pub(crate) fn certified_verified_commit(
 ) -> Result<MilestoneOneCertificationReport, MilestoneOneCertificationError> {
     MilestoneOneCertificationHarness::certify_verified_commit(runtime, verified)
 }
-
-
-
-

@@ -132,7 +132,3 @@ mod parity_tests {
             .is_some());
     }
 }
-
-
-
-

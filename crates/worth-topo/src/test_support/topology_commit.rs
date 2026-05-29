@@ -8,9 +8,9 @@ use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use forge_relational::facade::symbols::InternedString;
 use forge_relational::facade::transactions::{
     CommitResult, CreateIntent, CreatedEntityRef, DeleteEntityIntent, DeleteRelationIntent,
-    EntityMutationIntent, EntityReference as RelationalEntityReference, EntitySpec,
-    MutationIntent, RelationMutationIntent, RelationSpec, TransactionCommitError,
-    TransactionOptions, WorkerIntentBatch,
+    EntityMutationIntent, EntityReference as RelationalEntityReference, EntitySpec, MutationIntent,
+    RelationMutationIntent, RelationSpec, TransactionCommitError, TransactionOptions,
+    WorkerIntentBatch,
 };
 use schema::facade::platform::aspects::{
     Aspect, DiagnosticsAspect, GeometryAspect, NamingAspect, TopologyAspect,
@@ -126,7 +126,8 @@ pub(crate) fn commit_topology_intent_on_branch(
     let canonical_batch = CanonicalTopologyMutationBatch {
         batch: TopologyMutationBatch::from_raw_intent(intent, touched_aspects),
     };
-    let commits = execute_canonical_batch(runtime, read.as_ref(), &canonical_batch.batch, &branch_id)?;
+    let commits =
+        execute_canonical_batch(runtime, read.as_ref(), &canonical_batch.batch, &branch_id)?;
     if commits.is_empty() {
         return Ok(TopologyCommittedArtifact::empty_from_intent(
             snapshot,
@@ -190,10 +191,16 @@ fn lower_canonical_batch(
         match mutation {
             TopologyMutation::CreateEntity { create_key, kind } => {
                 if !seen.insert(create_key.clone()) {
-                    return Err(TopologyIntentCommitError::DuplicateCreateKey(create_key.clone()));
+                    return Err(TopologyIntentCommitError::DuplicateCreateKey(
+                        create_key.clone(),
+                    ));
                 }
-                if read.is_some_and(|snapshot| live_entity_label_exists(snapshot, create_key.as_str())) {
-                    return Err(TopologyIntentCommitError::DuplicateLiveEntityLabel(create_key.clone()));
+                if read
+                    .is_some_and(|snapshot| live_entity_label_exists(snapshot, create_key.as_str()))
+                {
+                    return Err(TopologyIntentCommitError::DuplicateLiveEntityLabel(
+                        create_key.clone(),
+                    ));
                 }
                 created_entities.insert(
                     create_key.clone(),
@@ -206,7 +213,9 @@ fn lower_canonical_batch(
             }
             TopologyMutation::CreateRelation { create_key, .. } => {
                 if !seen.insert(create_key.clone()) {
-                    return Err(TopologyIntentCommitError::DuplicateCreateKey(create_key.clone()));
+                    return Err(TopologyIntentCommitError::DuplicateCreateKey(
+                        create_key.clone(),
+                    ));
                 }
             }
             _ => {}
@@ -221,7 +230,10 @@ fn lower_canonical_batch(
                     partition_id: PartitionId::main(),
                     kind_id: kind.kind_id(),
                     client_key: InternedString::Raw(create_key.as_str().to_string()),
-                    payload: RecordPayload::StructuredJson(entity_create_payload(*kind, create_key.as_str())),
+                    payload: RecordPayload::StructuredJson(entity_create_payload(
+                        *kind,
+                        create_key.as_str(),
+                    )),
                 })));
             }
             TopologyMutation::CreateRelation {
@@ -230,14 +242,16 @@ fn lower_canonical_batch(
                 source,
                 target,
             } => {
-                lowered.push(MutationIntent::Create(CreateIntent::Relation(RelationSpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: kind.kind_id(),
-                    client_key: InternedString::Raw(create_key.as_str().to_string()),
-                    source: resolve_entity_reference(source, &created_entities)?,
-                    target: resolve_entity_reference(target, &created_entities)?,
-                    payload: None,
-                })));
+                lowered.push(MutationIntent::Create(CreateIntent::Relation(
+                    RelationSpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: kind.kind_id(),
+                        client_key: InternedString::Raw(create_key.as_str().to_string()),
+                        source: resolve_entity_reference(source, &created_entities)?,
+                        target: resolve_entity_reference(target, &created_entities)?,
+                        payload: None,
+                    },
+                )));
             }
             _ => {
                 let read = read.ok_or_else(|| {
@@ -264,7 +278,9 @@ fn lower_existing_mutation(
         }
         TopologyMutation::UpsertEntity { entity_id, kind } => {
             let Some(existing) = read.get_entity(*entity_id) else {
-                return Err(TopologyIntentCommitError::UnsupportedIdentityEntityMutation(*entity_id));
+                return Err(
+                    TopologyIntentCommitError::UnsupportedIdentityEntityMutation(*entity_id),
+                );
             };
             let found = EntityKind::from_kind_id(existing.kind.kind_id).ok_or_else(|| {
                 TopologyIntentCommitError::ReadSnapshot(format!(
@@ -287,14 +303,17 @@ fn lower_existing_mutation(
             target,
         } => {
             let Some(existing) = read.get_relation(*relation_id) else {
-                return Err(TopologyIntentCommitError::UnsupportedIdentityRelationMutation(*relation_id));
+                return Err(
+                    TopologyIntentCommitError::UnsupportedIdentityRelationMutation(*relation_id),
+                );
             };
-            let found_kind = RelationKind::from_kind_id(existing.kind.kind_id).ok_or_else(|| {
-                TopologyIntentCommitError::ReadSnapshot(format!(
-                    "unknown relation kind id `{}` for relation `{:?}`",
-                    existing.kind.kind_id.0, relation_id
-                ))
-            })?;
+            let found_kind =
+                RelationKind::from_kind_id(existing.kind.kind_id).ok_or_else(|| {
+                    TopologyIntentCommitError::ReadSnapshot(format!(
+                        "unknown relation kind id `{}` for relation `{:?}`",
+                        existing.kind.kind_id.0, relation_id
+                    ))
+                })?;
             if found_kind != *kind || existing.source != *source || existing.target != *target {
                 return Err(TopologyIntentCommitError::RelationShapeMismatch {
                     relation_id: *relation_id,
@@ -311,9 +330,11 @@ fn lower_existing_mutation(
             if read.get_entity(*entity_id).is_none() {
                 return Err(TopologyIntentCommitError::MissingEntity(*entity_id));
             }
-            lowered.push(MutationIntent::Entity(EntityMutationIntent::Delete(DeleteEntityIntent {
-                entity_id: *entity_id,
-            })));
+            lowered.push(MutationIntent::Entity(EntityMutationIntent::Delete(
+                DeleteEntityIntent {
+                    entity_id: *entity_id,
+                },
+            )));
         }
         TopologyMutation::RemoveRelation { relation_id } => {
             if read.get_relation(*relation_id).is_none() {
@@ -361,7 +382,8 @@ fn touched_aspects_for_intent(
     let mut aspects = BTreeSet::new();
     for mutation in &intent.mutations {
         match mutation {
-            TopologyMutation::CreateEntity { kind, .. } | TopologyMutation::UpsertEntity { kind, .. } => {
+            TopologyMutation::CreateEntity { kind, .. }
+            | TopologyMutation::UpsertEntity { kind, .. } => {
                 aspects.extend(entity_aspects(*kind));
             }
             TopologyMutation::CreateRelation { kind, .. }

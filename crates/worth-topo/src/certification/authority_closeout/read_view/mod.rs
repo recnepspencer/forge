@@ -10,9 +10,7 @@ use schema::facade::platform::aspects::Aspect;
 use schema::facade::platform::authority::{
     FallbackDisposition, MutationOrigin, TopologyMutationBatch,
 };
-use schema::facade::platform::authority::{
-    ShellInterpretationClass, WireInterpretationClass,
-};
+use schema::facade::platform::authority::{ShellInterpretationClass, WireInterpretationClass};
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::error::MilestoneOneCertificationError;
@@ -23,8 +21,8 @@ use crate::certification::support::reporting::{
     TopologyLocalizationEntityRow, TopologyLocalizationRelationRow, TopologyLocalizationReport,
 };
 use crate::certification::{
-    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure,
-    DecisionTrace, DerivedTraceAnchor, DerivedTraceEvidence, IntegrityMarkers, NamedCounter,
+    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure, DecisionTrace,
+    DerivedTraceAnchor, DerivedTraceEvidence, IntegrityMarkers, NamedCounter,
     PerformanceAccounting,
 };
 use crate::facade::{
@@ -58,7 +56,3 @@ mod query_evidence;
 mod read_basis_trace;
 
 pub(crate) use query_evidence::certification_integrity_markers;
-
-
-
-

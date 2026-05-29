@@ -110,7 +110,3 @@ pub(super) struct ContiguousSpanCandidate {
     pub(super) end_half_edge_id: EntityId,
     pub(super) span_half_edge_ids: Vec<EntityId>,
 }
-
-
-
-

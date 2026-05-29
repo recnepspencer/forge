@@ -271,7 +271,3 @@ fn relation_identity(relation: forge_relational::facade::identity::RelationId) -
         relation.partition_id.0, relation.local_slot.0, relation.generation.0
     )
 }
-
-
-
-

@@ -124,7 +124,3 @@ impl CustomInvariantRule for LoopWiringRule {
         Ok(CustomInvariantVerdict::Pass)
     }
 }
-
-
-
-

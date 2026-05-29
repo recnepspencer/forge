@@ -39,7 +39,3 @@ fn milestone_three_derived_work_breadth_exposes_actual_rebuild_scope() {
             && !row.locality_claimed()
     }));
 }
-
-
-
-

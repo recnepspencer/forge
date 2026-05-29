@@ -96,7 +96,3 @@ pub(super) fn successor_span_relocation_batch(
     ])
     .expect("non-empty successor span relocation batch")
 }
-
-
-
-

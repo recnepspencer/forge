@@ -353,7 +353,3 @@ impl TopologyRuntimeWriteAuthority {
         })
     }
 }
-
-
-
-

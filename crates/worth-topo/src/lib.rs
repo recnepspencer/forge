@@ -19,7 +19,3 @@ mod topology_operators;
 mod validation;
 
 pub mod facade;
-
-
-
-

@@ -15,7 +15,3 @@ fn query_assembly_mod_does_not_inline_snapshot_row_fallback_logic() {
         "query assembly entry surface should not own naming attachment row decoding",
     );
 }
-
-
-
-

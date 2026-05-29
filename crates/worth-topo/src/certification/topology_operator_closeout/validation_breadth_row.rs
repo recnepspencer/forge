@@ -17,7 +17,3 @@ pub struct MilestoneThreeValidationBreadthRow {
     pub(crate) replay_checked: bool,
     pub(crate) row_digest: String,
 }
-
-
-
-

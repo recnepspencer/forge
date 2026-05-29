@@ -1,7 +1,7 @@
 use forge_query::facade::ForgeQueryWorkspace;
 use forge_relational::facade::runtime::RelationalRuntime;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use serde_json::Value;
 
 use super::super::report::{
@@ -238,7 +238,3 @@ fn build_bowtie_adjacent_witness(
         shared_vertex_identity,
     })
 }
-
-
-
-

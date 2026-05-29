@@ -383,7 +383,3 @@ fn primitive_closure_families_from_report(
     families.sort();
     families
 }
-
-
-
-

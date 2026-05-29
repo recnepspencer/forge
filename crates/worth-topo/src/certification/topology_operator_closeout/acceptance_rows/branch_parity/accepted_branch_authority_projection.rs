@@ -1,13 +1,9 @@
 use forge_relational::facade::identity::{EntityId, RelationId};
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
-use schema::facade::topology_authoring::{created_ref, DerivedTopologyReadBasis};
-use schema::facade::platform::authority::{
-    CreateKey, EntityReference, TopologyMutation,
-};
+use schema::facade::platform::authority::{CreateKey, EntityReference, TopologyMutation};
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
-use schema::facade::platform::relations::{
-    RelationKind, TopologyRelationKind,
-};
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use schema::facade::topology_authoring::{created_ref, DerivedTopologyReadBasis};
 
 use crate::certification::error::TopologyCertificationError;
 use crate::topology_operators::{
@@ -254,7 +250,3 @@ pub(super) fn read_snapshot(
         .read_snapshot(read_basis.snapshot())
         .ok_or_else(|| TopologyCertificationError::Query("topology snapshot missing".into()))
 }
-
-
-
-

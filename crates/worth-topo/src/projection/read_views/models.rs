@@ -62,7 +62,3 @@ pub struct TopologyLocalRewireNeighborhoodView {
     pub(crate) cycle_identities: Vec<String>,
     pub(crate) cycle_half_edges: Vec<TopologyLoopNeighborEvidence>,
 }
-
-
-
-

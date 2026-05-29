@@ -139,7 +139,3 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
     );
     assert!(!closeout_report.phase_three_ready);
 }
-
-
-
-

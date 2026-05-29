@@ -322,7 +322,3 @@ fn runtime_entity_ref_survives(
         RuntimeEntityRef::Planned(_) => true,
     }
 }
-
-
-
-

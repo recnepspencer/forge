@@ -180,15 +180,8 @@ fn runtime_invariants_block_disconnected_wire_creation_at_commit_boundary() {
         MutationOrigin::LocalEdit,
     );
 
-    let error =
-        commit_raw_intent(&mut runtime, intent).expect_err("disconnected wire graph must block commit");
+    let error = commit_raw_intent(&mut runtime, intent)
+        .expect_err("disconnected wire graph must block commit");
 
-    assert!(matches!(
-        error,
-        TransactionCommitError::Conflict { .. }
-    ));
+    assert!(matches!(error, TransactionCommitError::Conflict { .. }));
 }
-
-
-
-

@@ -1,8 +1,8 @@
 use forge_relational::facade::history::BranchId;
+use schema::facade::platform::authority::MutationOrigin;
 use schema::facade::topology_authoring::{
     seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch, MilestoneOnePrimitiveCase,
 };
-use schema::facade::platform::authority::MutationOrigin;
 
 use crate::projection::read_views::domain::parity::{
     TopologyDomainQueryParityKind, TopologyDomainQueryViewParityArtifact,
@@ -160,7 +160,3 @@ fn branch_local_loop_cycle_parity_artifacts(
     );
     (left_artifact, right_artifact)
 }
-
-
-
-

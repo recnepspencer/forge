@@ -159,7 +159,3 @@ impl TopologyLocalRewireNeighborhoodView {
         self.cycle_half_edges.as_slice()
     }
 }
-
-
-
-

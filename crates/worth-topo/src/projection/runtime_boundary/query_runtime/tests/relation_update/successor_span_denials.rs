@@ -128,7 +128,3 @@ fn current_head_runtime_denies_three_half_edge_span_relocation_before_internal_m
             if families.iter().all(|family| *family == TopologyEditFamily::RewireLoopSuccessor)
     ));
 }
-
-
-
-

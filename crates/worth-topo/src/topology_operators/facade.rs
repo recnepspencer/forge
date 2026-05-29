@@ -72,7 +72,3 @@ fn mutation_origin_for_mode(mode: &TopologyEditApplicationMode) -> MutationOrigi
         TopologyEditApplicationMode::BranchLocal(_) => MutationOrigin::BranchLocalApplication,
     }
 }
-
-
-
-

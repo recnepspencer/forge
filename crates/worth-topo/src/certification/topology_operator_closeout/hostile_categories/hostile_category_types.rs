@@ -56,7 +56,3 @@ pub struct MilestoneThreeHostileCertificationCategoryRow {
     pub(crate) gap_labels: Vec<String>,
     pub(crate) row_digest: String,
 }
-
-
-
-

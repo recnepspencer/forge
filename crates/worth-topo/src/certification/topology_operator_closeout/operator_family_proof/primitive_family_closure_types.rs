@@ -16,7 +16,3 @@ pub struct MilestoneThreePrimitiveFamilyClosureRow {
     pub(crate) derived_validation_row_count: usize,
     pub(crate) row_digest: String,
 }
-
-
-
-

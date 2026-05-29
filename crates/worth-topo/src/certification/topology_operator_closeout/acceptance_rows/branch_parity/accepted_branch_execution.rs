@@ -3,8 +3,8 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent, TopologyMutation};
 
 use super::super::super::super::error::TopologyCertificationError;
-use crate::committed_artifact::TopologyCommittedArtifact;
 use crate::certification::shared::digest_rows;
+use crate::committed_artifact::TopologyCommittedArtifact;
 use crate::test_support::topology_commit::commit_topology_intent_on_branch;
 use crate::topology_operators::{
     TopologyEditApplicationMode, TopologyEditBatch, TopologyEditDigest,
@@ -115,7 +115,3 @@ pub(super) fn edit_digest_shape_matches(
         && left.fallback_policy_count == right.fallback_policy_count
         && left.fallback_rejection_policy_count == right.fallback_rejection_policy_count
 }
-
-
-
-

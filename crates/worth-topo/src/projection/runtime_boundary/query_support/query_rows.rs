@@ -59,7 +59,3 @@ pub(crate) fn query_entity_id_from_row(
         TopologyQueryRowError::new(format!("query entity provenance should decode: {error}"))
     })
 }
-
-
-
-

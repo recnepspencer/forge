@@ -31,11 +31,13 @@ pub use runtime_posture::{
     TopologyRuntimePostureCapability, TopologyRuntimePostureRow, TopologyRuntimePostureStatus,
 };
 
-pub use self::adapters::{build_runtime_bridge, TopologyRuntimeBinding, TopologyRuntimeSchemaAdapter};
 pub use self::adapters::write_authority::TopologyRuntimeWriteAuthority;
+pub use self::adapters::{
+    build_runtime_bridge, TopologyRuntimeBinding, TopologyRuntimeSchemaAdapter,
+};
 use self::adapters::{
-    TopologyExistingTruthVerificationAdapter, TopologyInspectorEvidence, TopologyRuntimeSourceAdapter,
-    TopologyStaticSignalSink, TopologySubscriptionActivation,
+    TopologyExistingTruthVerificationAdapter, TopologyInspectorEvidence,
+    TopologyRuntimeSourceAdapter, TopologyStaticSignalSink, TopologySubscriptionActivation,
 };
 
 pub fn topology_runtime(
@@ -49,9 +51,9 @@ pub fn topology_runtime(
         .runtime_bridge(self::adapters::build_runtime_bridge(binding.clone())?)
         .schema_adapter(self::adapters::TopologyRuntimeSchemaAdapter)
         .source_adapter(TopologyRuntimeSourceAdapter::new(binding.clone()))
-        .write_authority(self::adapters::write_authority::TopologyRuntimeWriteAuthority::new(
-            write_binding,
-        ))
+        .write_authority(
+            self::adapters::write_authority::TopologyRuntimeWriteAuthority::new(write_binding),
+        )
         .signal_sink(TopologyStaticSignalSink)
         .subscription_activation(TopologySubscriptionActivation::new(
             adapters.support().subscription_activation_evidence(),
@@ -73,7 +75,3 @@ pub fn topology_runtime(
     let runtime = builder.build_backend_from_parts().build()?;
     runtime.workspace(name).map_err(Into::into)
 }
-
-
-
-

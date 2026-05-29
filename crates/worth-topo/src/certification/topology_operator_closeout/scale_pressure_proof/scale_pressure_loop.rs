@@ -90,7 +90,3 @@ fn relation_target_identity(row: &ForgeQueryEntity) -> Option<String> {
 fn scale_pressure_loop_error(reason: &str) -> TopologyCertificationError {
     TopologyCertificationError::Query(format!("milestone three scale loop failed: {reason}"))
 }
-
-
-
-

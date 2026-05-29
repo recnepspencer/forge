@@ -58,7 +58,3 @@ pub fn certify_topology_view(
         view.interpretations().clone(),
     )
 }
-
-
-
-

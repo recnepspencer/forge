@@ -127,7 +127,3 @@ fn ambiguous_tie_break_evidence_row(
         ),
     }
 }
-
-
-
-

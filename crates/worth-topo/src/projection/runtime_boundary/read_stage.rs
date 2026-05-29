@@ -86,7 +86,3 @@ pub(crate) fn stage_topology_read_from_view(
         validation,
     })
 }
-
-
-
-

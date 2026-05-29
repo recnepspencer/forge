@@ -143,7 +143,3 @@ pub(super) fn current_head_edit_family_support_row(
 
     TopologyRuntimeEditFamilySupportRow::new(family, status, admitted_lanes, reason)
 }
-
-
-
-

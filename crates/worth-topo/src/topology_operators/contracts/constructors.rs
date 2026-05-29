@@ -1,14 +1,10 @@
 use std::collections::BTreeSet;
 
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::platform::aspects::{
-    Aspect, DiagnosticsAspect, NamingAspect, TopologyAspect,
-};
+use schema::facade::platform::aspects::{Aspect, DiagnosticsAspect, NamingAspect, TopologyAspect};
 use schema::facade::platform::authority::{CreateKey, EntityReference, TopologyMutation};
 use schema::facade::platform::entities::TopologyEntityKind;
-use schema::facade::platform::relations::{
-    RelationKind, TopologyRelationKind,
-};
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 
 use super::{
     BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, ShellOrWireMembershipKind,
@@ -398,8 +394,3 @@ impl TopologyEditContract {
         }
     }
 }
-
-
-
-
-

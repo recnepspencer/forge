@@ -1,6 +1,7 @@
 pub type WireInterpretation = schema::facade::platform::authority::WireInterpretationRecord;
 pub type ShellInterpretation = schema::facade::platform::authority::ShellInterpretationRecord;
-pub type TopologyInterpretationSet = schema::facade::platform::authority::TopologyInterpretationRecordSet;
+pub type TopologyInterpretationSet =
+    schema::facade::platform::authority::TopologyInterpretationRecordSet;
 
 use forge_relational::facade::identity::EntityId;
 use serde::{Deserialize, Serialize};
@@ -76,7 +77,3 @@ impl InterpretedTopologyView {
         &self.report
     }
 }
-
-
-
-

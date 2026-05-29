@@ -3,14 +3,23 @@
 The topology crate owns the topology-facing read facade on top of the generic
 `forge-query` read-composition kernel.
 
-The public executed-read boundary is `TopologyDomainQuery`. External
-callers can:
+The public executed-read boundary is the admitted-handle read session built
+from:
 
-- build a fresh request-only domain-query facade with `TopologyDomainQuery::load()`
-- issue topology-neighborhood reads through the typed family methods
+- `topology_query_domain_entry(&query)`
+- `topology_current_head_authoritative_context()`
+- `topology_snapshot_read_only_context()`
+- `TopologyCurrentHeadReadHandleExt::topology_reads(...)`
+- `TopologySnapshotReadOnlyReadHandleExt::topology_reads(...)`
+
+External callers can:
+
+- admit a typed topology configured handle through Query domain entry
+- open a handle-bound read session against a `ForgeQueryWorkspace`
+- issue topology-neighborhood reads through the typed session methods
 - inspect per-request execution reports from the returned views
-- inspect aggregate, proof, and closeout posture through
-  `aggregate_report()`, `proof_report()`, and `closeout_report()`
+- inspect aggregate, proof, and closeout posture through the session
+  `aggregate_report()`, `proof_report()`, and `closeout_report()` surfaces
 
 The public closeout report now exposes:
 
@@ -104,9 +113,11 @@ Those request reports should expose:
 - executed snapshot token: the read-only runtime snapshot token
 - fallback count: `0`
 
-`TopologyDomainQuery::load()` is now request-only. It does not preload
-whole-view topology state, and the active topology families no longer depend on
-a hidden bootstrap authority before they can decode their final views.
+The underlying `TopologyDomainQuery` kernel remains request-only and does not
+preload whole-view topology state, but its workspace-taking neighborhood
+methods are now an internal adapter seam rather than the public executed-read
+entry. The active topology families no longer depend on a hidden bootstrap
+authority before they can decode their final views.
 
 For the two local half-edge adjacency families:
 

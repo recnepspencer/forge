@@ -378,7 +378,3 @@ impl MilestoneOneCertificationHarness {
             .with_performance_accounting(performance_accounting))
     }
 }
-
-
-
-

@@ -1,12 +1,8 @@
 use forge_query::facade::{
     ForgeQueryLiveViewBuilder, ForgeQueryRuntimeError, QuerySchemaView, RelationName,
 };
-use schema::facade::{
-    QueryCollection, QueryLiveField, QuerySchemaBasis,
-};
-use schema::facade::platform::relations::{
-    RelationKind, TopologyRelationKind,
-};
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use schema::facade::{QueryCollection, QueryLiveField, QuerySchemaBasis};
 
 pub(crate) const TOPOLOGY_DOMAIN_QUERY_MAX_CYCLE_DEPTH: u8 = 64;
 
@@ -77,7 +73,3 @@ pub(crate) fn topology_domain_query_schema_view() -> Result<QuerySchemaView, For
         .build()
         .map(|declaration| declaration.schema_view().clone())
 }
-
-
-
-

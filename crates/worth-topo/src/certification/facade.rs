@@ -1,8 +1,8 @@
+use crate::committed_artifact::TopologyCommittedArtifact;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{
     DerivedTopologyReadBasis, MilestoneOnePrimitiveCase, MilestoneOnePrimitiveScenario,
 };
-use crate::committed_artifact::TopologyCommittedArtifact;
 
 use crate::certification::authority_closeout::certify_milestone_one_closeout_impl;
 use crate::certification::authority_closeout::read_view::{
@@ -223,7 +223,3 @@ where
         scenarios,
     )
 }
-
-
-
-

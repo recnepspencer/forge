@@ -12,12 +12,12 @@ mod wire_connectivity;
 
 use std::fmt;
 
+#[cfg(test)]
+use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::runtime::{
     CustomInvariantRegistration, CustomInvariantRegistrationError, RelationalRuntimeApi,
     RelationalRuntimeBuilder,
 };
-#[cfg(test)]
-use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::schema::SchemaRegistryError;
 use schema::facade::bootstrap_schema_registry;
 
@@ -83,7 +83,3 @@ pub(crate) fn build_milestone_one_runtime(
 ) -> Result<RelationalRuntime, MilestoneOneRuntimeSetupError> {
     Ok(milestone_one_runtime_builder()?.build())
 }
-
-
-
-

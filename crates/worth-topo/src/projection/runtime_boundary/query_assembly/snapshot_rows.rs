@@ -44,7 +44,3 @@ impl TopologyQuerySnapshotRows {
         historical_rows::historical_snapshot_rows(assembly, workspace, read_basis)
     }
 }
-
-
-
-

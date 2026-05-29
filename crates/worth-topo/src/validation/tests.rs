@@ -285,7 +285,3 @@ mod validator_tests {
         assert_eq!(error.validator(), "shell_closure.closed_shell_manifold");
     }
 }
-
-
-
-

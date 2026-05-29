@@ -1,5 +1,5 @@
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
 use super::super::query_runtime_support::QueryRuntimeSupport;
 use crate::projection::read_views::domain::report::TopologyDomainQueryRequestFamily;
@@ -115,7 +115,3 @@ fn relation_update_query_support_reports_topology_operator_radial_breadth_aggreg
             && row.whole_view_fallback_count == 0
     }));
 }
-
-
-
-

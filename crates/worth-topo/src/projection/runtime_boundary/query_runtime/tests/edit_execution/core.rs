@@ -1,10 +1,10 @@
 use forge_relational::facade::identity::RelationId;
-use schema::facade::topology_authoring::{
-    created_ref, seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
-};
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use schema::facade::topology_authoring::{
+    created_ref, seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
+};
 
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
@@ -330,7 +330,3 @@ fn seeded_relation_id(
         .map(|record| record.relation_id)
         .expect("seeded topology should contain requested relation kind")
 }
-
-
-
-

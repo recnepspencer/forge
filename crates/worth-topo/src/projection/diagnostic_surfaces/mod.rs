@@ -273,18 +273,16 @@ mod tests {
             .invalidation_report
             .rows
             .iter()
-            .any(
-                |row| row.target == schema::facade::platform::authority::DerivedInvalidationTarget::TopologyStructure
-                    && row.triggered
-            ));
+            .any(|row| row.target
+                == schema::facade::platform::authority::DerivedInvalidationTarget::TopologyStructure
+                && row.triggered));
         assert!(diagnostics
             .invalidation_report
             .rows
             .iter()
-            .any(
-                |row| row.target == schema::facade::platform::authority::DerivedInvalidationTarget::TopologyBoundary
-                    && row.triggered
-            ));
+            .any(|row| row.target
+                == schema::facade::platform::authority::DerivedInvalidationTarget::TopologyBoundary
+                && row.triggered));
         assert!(diagnostics.rebuild_report.whole_view_rebuild);
         assert_eq!(
             diagnostics.rebuild_report.validation_row_count,
@@ -306,7 +304,3 @@ mod tests {
         );
     }
 }
-
-
-
-

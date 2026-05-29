@@ -122,7 +122,3 @@ impl CustomInvariantRule for VertexBranchingRule {
         Ok(CustomInvariantVerdict::Pass)
     }
 }
-
-
-
-

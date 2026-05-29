@@ -135,7 +135,3 @@ fn authored_relation_endpoint(
         ),
     }
 }
-
-
-
-

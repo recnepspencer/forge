@@ -8,7 +8,3 @@ pub struct TopologyLump {
     pub body_id: Option<EntityId>,
     pub region_ids: Vec<EntityId>,
 }
-
-
-
-

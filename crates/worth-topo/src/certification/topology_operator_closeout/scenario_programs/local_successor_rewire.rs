@@ -77,7 +77,3 @@ fn loop_neighbor_evidence<'a>(
             ))
         })
 }
-
-
-
-

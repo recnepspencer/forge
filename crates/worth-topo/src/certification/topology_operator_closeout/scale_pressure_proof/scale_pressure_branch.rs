@@ -1,9 +1,7 @@
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
-use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
-};
 use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
 use super::super::shared::aggregate_topology_edit_digest;
 use super::scale_pressure_types::{
@@ -125,7 +123,3 @@ fn branch_history_row_digest(replay_verified: bool) -> String {
         large_branch_history_step_count()
     )
 }
-
-
-
-

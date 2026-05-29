@@ -306,7 +306,3 @@ fn connected_by_incident_vertices(
     }
     visited.len() == half_edge_ids.len()
 }
-
-
-
-

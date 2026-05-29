@@ -337,8 +337,3 @@ fn incident_vertices(
 
     Ok(vertices)
 }
-
-
-
-
-

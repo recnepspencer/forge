@@ -171,7 +171,3 @@ pub(crate) fn query_relation_binding(
 ) -> Result<Option<QueryRelationBinding>, TopologyOperatorExecutionError> {
     bindings.relation_binding_lookup(relation_id)
 }
-
-
-
-

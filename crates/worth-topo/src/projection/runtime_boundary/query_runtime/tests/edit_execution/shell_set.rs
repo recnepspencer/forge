@@ -4,11 +4,11 @@ use forge_query::facade::{
     ForgeQueryContinuityOutcomeClass, ForgeQueryExistingTruthAssertionMode,
     ForgeQueryGraphCompositionProgramStepKind,
 };
+use schema::facade::platform::authority::CreateKey;
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::topology_authoring::{
     created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
 };
-use schema::facade::platform::authority::CreateKey;
-use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
@@ -237,7 +237,3 @@ fn seeded_patch_region_shell_and_faces(
         face_ids,
     )
 }
-
-
-
-

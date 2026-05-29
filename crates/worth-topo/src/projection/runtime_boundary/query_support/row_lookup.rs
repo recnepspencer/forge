@@ -195,7 +195,3 @@ impl<'a> TopologyQueryRowLookup<'a> {
         ])
     }
 }
-
-
-
-

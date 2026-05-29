@@ -172,7 +172,3 @@ fn verified_commit_certification_runs_relational_replay_when_commit_exists() {
         .replay_failure
         .is_none());
 }
-
-
-
-

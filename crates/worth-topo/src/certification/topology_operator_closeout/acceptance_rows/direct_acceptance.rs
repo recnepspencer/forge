@@ -376,7 +376,3 @@ fn closeout_requirement_error(reason: &str) -> TopologyCertificationError {
         "milestone three closeout requirement failed: {reason}"
     ))
 }
-
-
-
-

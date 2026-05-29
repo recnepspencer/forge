@@ -16,7 +16,3 @@ pub fn interpret_boundaries(
         })
         .collect()
 }
-
-
-
-

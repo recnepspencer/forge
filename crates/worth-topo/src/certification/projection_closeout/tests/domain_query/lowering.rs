@@ -12,9 +12,9 @@ use crate::projection::runtime_boundary::read_lowering::{
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::PlannedExecutionRoute;
+use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use schema::facade::QuerySchemaBasis;
-use schema::facade::platform::relations::TopologyRelationKind;
 
 #[test]
 fn topology_domain_query_schema_admits_only_declared_traversal_relations() {
@@ -201,7 +201,3 @@ fn topology_domain_views_expose_canonical_lowering_and_explicit_debt_rows() {
     assert_eq!(aggregate.debt_rows.len(), 0);
     assert!(aggregate.debt_rows.iter().all(|row| row.request_count == 1));
 }
-
-
-
-

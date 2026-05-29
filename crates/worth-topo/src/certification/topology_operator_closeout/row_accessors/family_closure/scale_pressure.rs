@@ -62,7 +62,3 @@ impl MilestoneThreeScalePressureRow {
         self.row_digest.as_str()
     }
 }
-
-
-
-

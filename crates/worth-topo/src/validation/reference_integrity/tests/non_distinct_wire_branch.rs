@@ -233,12 +233,5 @@ fn runtime_invariants_block_illegal_wire_branch_with_non_distinct_edges() {
     let error = commit_raw_intent(&mut runtime, intent)
         .expect_err("branch vertex with reused edge identities must block commit");
 
-    assert!(matches!(
-        error,
-        TransactionCommitError::Conflict { .. }
-    ));
+    assert!(matches!(error, TransactionCommitError::Conflict { .. }));
 }
-
-
-
-

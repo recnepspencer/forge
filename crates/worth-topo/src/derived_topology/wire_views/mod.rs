@@ -34,7 +34,3 @@ pub fn interpret_wires(view: &MaterializedTopologyView) -> Vec<WireInterpretatio
         })
         .collect()
 }
-
-
-
-

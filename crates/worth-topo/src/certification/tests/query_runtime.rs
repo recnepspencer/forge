@@ -179,7 +179,3 @@ fn default_primitive_corpus_earns_direct_milestone_two_derived_corpus_report() {
     assert!(report.bridge_historical_evaluation_digest.row_count > 0);
     assert!(report.milestone_2_counter_report.derived_read_count > 0);
 }
-
-
-
-

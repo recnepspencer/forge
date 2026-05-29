@@ -144,7 +144,3 @@ impl TopologyDomainQueryRequest {
         }
     }
 }
-
-
-
-

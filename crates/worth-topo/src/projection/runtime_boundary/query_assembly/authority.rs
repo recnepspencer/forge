@@ -339,7 +339,3 @@ fn resolve_entity_reference(
             }),
     }
 }
-
-
-
-

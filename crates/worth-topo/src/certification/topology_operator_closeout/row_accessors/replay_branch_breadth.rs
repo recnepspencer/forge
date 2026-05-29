@@ -53,7 +53,3 @@ impl MilestoneThreeReplayBranchBreadthRow {
         self.row_digest.as_str()
     }
 }
-
-
-
-

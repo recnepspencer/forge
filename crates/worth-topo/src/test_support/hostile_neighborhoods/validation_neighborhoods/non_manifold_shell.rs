@@ -160,7 +160,3 @@ pub(crate) fn open_shell_nmt_fan_view(fan_size: usize) -> TopologyView {
         ..TopologyView::default()
     }
 }
-
-
-
-

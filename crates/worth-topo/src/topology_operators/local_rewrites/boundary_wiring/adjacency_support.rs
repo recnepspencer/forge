@@ -48,7 +48,3 @@ pub(crate) fn single_incoming_relation_source_identity(
     }
     Ok(identities[0].clone())
 }
-
-
-
-

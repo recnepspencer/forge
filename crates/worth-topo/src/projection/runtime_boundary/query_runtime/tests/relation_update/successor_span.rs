@@ -266,7 +266,3 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
         .expect("old predecessor should remain present");
     assert_eq!(old_predecessor.next_half_edge_id, Some(old_successor_id));
 }
-
-
-
-

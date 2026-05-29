@@ -124,7 +124,3 @@ impl CustomInvariantRule for ShellClosureRule {
         Ok(CustomInvariantVerdict::Pass)
     }
 }
-
-
-
-

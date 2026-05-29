@@ -52,7 +52,3 @@ where
         bridge_proof_report,
     })
 }
-
-
-
-

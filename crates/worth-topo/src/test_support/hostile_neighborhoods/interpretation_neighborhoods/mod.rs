@@ -9,7 +9,3 @@ pub(crate) use wire_cycles::{
     closed_wire_cycle_of_size, closed_wire_cycle_view, connected_wire_branch_view,
     open_wire_chain_view,
 };
-
-
-
-

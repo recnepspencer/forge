@@ -9,15 +9,17 @@ use forge_relational::facade::transactions::{
     CreateIntent, CreatedEntityRef, EntityReference as RelationalEntityReference, EntitySpec,
     MutationIntent, RelationSpec, TransactionOptions, WorkerIntentBatch,
 };
-use serde_json::json;
-pub(super) use schema::facade::topology_authoring::seed_minimal_topology;
 pub(super) use schema::facade::platform::authority::{
     CreateKey, EntityReference, MutationOrigin, RawTopologyIntent, TopologyMutation,
 };
-pub(super) use schema::facade::platform::entities::{EntityKind, NamingEntityKind, TopologyEntityKind};
+pub(super) use schema::facade::platform::entities::{
+    EntityKind, NamingEntityKind, TopologyEntityKind,
+};
 pub(super) use schema::facade::platform::relations::{
     NamingRelationKind, RelationKind, TopologyRelationKind,
 };
+pub(super) use schema::facade::topology_authoring::seed_minimal_topology;
+use serde_json::json;
 
 pub(super) use crate::validation::reference_integrity::{
     milestone_one_invariant_registrations, milestone_one_runtime_builder,
@@ -108,7 +110,10 @@ fn commit_raw_intent(
                     partition_id: PartitionId::main(),
                     kind_id: kind.kind_id(),
                     client_key: InternedString::Raw(create_key.as_str().to_string()),
-                    payload: RecordPayload::StructuredJson(entity_payload(kind, create_key.as_str())),
+                    payload: RecordPayload::StructuredJson(entity_payload(
+                        kind,
+                        create_key.as_str(),
+                    )),
                 }))
             }
             TopologyMutation::CreateRelation {
@@ -148,7 +153,9 @@ fn lower_entity_reference(
             created_entities
                 .get(create_key)
                 .cloned()
-                .unwrap_or_else(|| panic!("missing created entity reference `{}`", create_key.as_str())),
+                .unwrap_or_else(|| {
+                    panic!("missing created entity reference `{}`", create_key.as_str())
+                }),
         ),
     }
 }
@@ -165,10 +172,8 @@ fn entity_payload(kind: EntityKind, create_key: &str) -> serde_json::Value {
             "persistent_name": create_key,
             "naming": { "persistent_name": create_key }
         }),
-        other => panic!("reference-integrity test helper does not support `{other:?}` entity payloads"),
+        other => {
+            panic!("reference-integrity test helper does not support `{other:?}` entity payloads")
+        }
     }
 }
-
-
-
-

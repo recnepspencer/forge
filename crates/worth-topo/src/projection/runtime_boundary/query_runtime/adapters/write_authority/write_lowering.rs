@@ -229,7 +229,3 @@ pub(super) fn kind_name_for_relation_kind_id(
         .expect("topology runtime only lowers admitted relation kinds")
         .kind_name()
 }
-
-
-
-

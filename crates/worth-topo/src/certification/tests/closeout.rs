@@ -198,7 +198,3 @@ fn fixtures_provide_named_phase_inputs_for_milestone_one_closeout() {
         scenario.expected_outcome == MilestoneOnePrimitiveExpectedOutcome::Admit
     }));
 }
-
-
-
-

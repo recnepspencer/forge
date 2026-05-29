@@ -295,7 +295,3 @@ pub(super) fn certification_performance_accounting(
     ];
     PerformanceAccounting::new(counters)
 }
-
-
-
-

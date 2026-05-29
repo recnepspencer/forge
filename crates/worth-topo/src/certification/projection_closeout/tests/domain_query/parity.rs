@@ -1,8 +1,8 @@
 use forge_relational::facade::history::BranchId;
+use schema::facade::platform::authority::MutationOrigin;
 use schema::facade::topology_authoring::{
     seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch, MilestoneOnePrimitiveCase,
 };
-use schema::facade::platform::authority::MutationOrigin;
 
 use crate::projection::read_views::domain::parity::{
     compare_domain_query_view_parity, TopologyDomainQueryParityAggregateReport,
@@ -231,7 +231,3 @@ fn domain_query_parity_aggregate_reports_replay_and_branch_local_coverage() {
             && row.verified_count == 1
     }));
 }
-
-
-
-

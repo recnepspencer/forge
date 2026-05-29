@@ -136,7 +136,3 @@ fn incident_vertices(
     }
     vertices
 }
-
-
-
-

@@ -1,9 +1,9 @@
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use schema::facade::platform::authority::{
     CreateKey, EntityReference, MutationOrigin, RawTopologyIntent, TopologyMutation,
 };
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
 use super::*;
 use crate::facade::certify_milestone_one_read_basis_traced;
@@ -327,7 +327,3 @@ fn query_native_assembly_applies_topology_relation_delete_through_existing_bindi
             == Some(relation_id)
     }));
 }
-
-
-
-

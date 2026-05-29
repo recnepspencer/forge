@@ -106,7 +106,3 @@ impl CustomInvariantRule for WireConnectivityRule {
         Ok(CustomInvariantVerdict::Pass)
     }
 }
-
-
-
-

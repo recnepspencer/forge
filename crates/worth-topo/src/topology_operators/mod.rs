@@ -21,7 +21,3 @@ pub use rejection_locality::{
     RejectedEditScopeReport, RejectedEditScopeRow, TopologyEditRejectionClass,
 };
 pub use replay::{TopologyEditDigest, TopologyOperatorDigest};
-
-
-
-

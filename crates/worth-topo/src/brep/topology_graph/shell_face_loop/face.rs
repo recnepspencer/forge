@@ -10,7 +10,3 @@ pub struct TopologyFace {
     pub inner_loop_ids: Vec<EntityId>,
     pub boundary_half_edge_ids: Vec<EntityId>,
 }
-
-
-
-

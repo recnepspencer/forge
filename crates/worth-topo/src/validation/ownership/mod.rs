@@ -179,7 +179,3 @@ fn validate_optional_ref(
     }
     Ok(())
 }
-
-
-
-

@@ -378,7 +378,3 @@ pub(super) fn assert_milestone_one_closeout_bridge_and_corpus(report: &Milestone
             .any(|row| &row.family == family));
     }
 }
-
-
-
-

@@ -317,7 +317,3 @@ fn digest_rows(rows: impl IntoIterator<Item = String>) -> TopologyOperatorDigest
         row_count: count,
     }
 }
-
-
-
-

@@ -10,10 +10,8 @@ use forge_query::facade::{
     ForgeQueryEntity, ForgeQueryLiveView, ForgeQueryLiveViewBuilder, ForgeQueryRuntimeError,
     ForgeQueryWorkspace, ForgeQueryWorkspaceLiveViewDeclaration,
 };
-use schema::facade::{
-    QueryAspectPath, QueryCollection, QueryLiveField, QuerySchemaBasis,
-};
 use schema::facade::platform::entities::{EntityKind, NamingEntityKind, TopologyEntityKind};
+use schema::facade::{QueryAspectPath, QueryCollection, QueryLiveField, QuerySchemaBasis};
 
 use crate::facade::{NamingAttachmentReport, NamingAttachmentRow};
 use crate::projection::{parse_entity_identity, required_text};
@@ -222,7 +220,3 @@ mod tests {
             .contains("targets unknown topology identity"));
     }
 }
-
-
-
-

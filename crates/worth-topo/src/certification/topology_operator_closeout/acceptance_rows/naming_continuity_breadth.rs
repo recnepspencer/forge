@@ -73,7 +73,3 @@ fn naming_breadth_error(reason: &str) -> TopologyCertificationError {
         "milestone three naming continuity breadth failed: {reason}"
     ))
 }
-
-
-
-

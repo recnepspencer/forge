@@ -164,7 +164,3 @@ fn row_matches_source_kind(
 fn scale_pressure_span_error(reason: &str) -> TopologyCertificationError {
     TopologyCertificationError::Query(format!("milestone three scale span failed: {reason}"))
 }
-
-
-
-

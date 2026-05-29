@@ -1,8 +1,8 @@
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use schema::facade::platform::entities::EntityKind;
 use schema::facade::platform::relations::RelationKind;
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
 use super::*;
 use crate::committed_artifact::TopologyCommittedArtifact;
@@ -119,7 +119,3 @@ pub(super) fn decode_relation_endpoints(
     );
     (source_id, target_id)
 }
-
-
-
-

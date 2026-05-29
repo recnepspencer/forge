@@ -124,7 +124,3 @@ fn scenario_names(scenarios: &[HostileScenario]) -> Vec<String> {
         .map(|scenario| scenario.as_str().to_string())
         .collect()
 }
-
-
-
-

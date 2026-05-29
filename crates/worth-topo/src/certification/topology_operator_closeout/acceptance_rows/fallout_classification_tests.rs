@@ -100,7 +100,3 @@ fn empty_edit_digest() -> TopologyEditDigest {
         fallback_rejection_policy_count: 0,
     }
 }
-
-
-
-

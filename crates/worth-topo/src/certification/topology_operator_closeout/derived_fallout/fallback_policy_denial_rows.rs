@@ -14,7 +14,3 @@ pub struct MilestoneThreeDerivedFallbackPolicyDenialRow {
     pub(crate) policy_exceeded: bool,
     pub(crate) row_digest: String,
 }
-
-
-
-

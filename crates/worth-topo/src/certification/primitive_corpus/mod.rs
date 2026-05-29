@@ -2,11 +2,11 @@ use std::collections::BTreeMap;
 
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
+use schema::facade::platform::authority::MutationOrigin;
 use schema::facade::topology_authoring::{
     MilestoneOnePrimitiveCase, MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
     MilestoneOnePrimitiveScenario,
 };
-use schema::facade::platform::authority::MutationOrigin;
 
 use crate::certification::error::MilestoneOneCertificationError;
 use crate::certification::rejections::summarize_primitive_rejection;
@@ -365,7 +365,3 @@ pub(crate) fn build_primitive_corpus_coverage_matrix(
         entries: rows.into_values().collect(),
     }
 }
-
-
-
-

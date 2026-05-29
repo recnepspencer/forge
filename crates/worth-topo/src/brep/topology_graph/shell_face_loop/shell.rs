@@ -8,7 +8,3 @@ pub struct TopologyShell {
     pub region_id: Option<EntityId>,
     pub face_ids: Vec<EntityId>,
 }
-
-
-
-

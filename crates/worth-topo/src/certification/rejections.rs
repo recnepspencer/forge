@@ -2,15 +2,15 @@ use forge_relational::facade::diagnostics::DiagnosticCode;
 use forge_relational::facade::errors::ErrorContext;
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{RecordRef, TransactionCommitError};
-use schema::facade::topology_authoring::{
-    build_milestone_one_primitive_intent, MilestoneOnePrimitiveAuthoringError,
-    MilestoneOnePrimitiveCase,
-};
 use schema::facade::platform::authority::{
     CreateKey, EntityReference, MutationOrigin, RawTopologyIntent, TopologyMutation,
 };
 use schema::facade::platform::entities::EntityKind;
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use schema::facade::topology_authoring::{
+    build_milestone_one_primitive_intent, MilestoneOnePrimitiveAuthoringError,
+    MilestoneOnePrimitiveCase,
+};
 
 use crate::certification::error::MilestoneOneCertificationError;
 use crate::certification::shared::digest_rows;
@@ -261,11 +261,15 @@ fn missing_persistent_names_intent(stem: &str) -> RawTopologyIntent {
         vec![
             TopologyMutation::CreateEntity {
                 create_key: CreateKey::new(format!("{stem}.model")),
-                kind: EntityKind::Topology(schema::facade::platform::entities::TopologyEntityKind::Model),
+                kind: EntityKind::Topology(
+                    schema::facade::platform::entities::TopologyEntityKind::Model,
+                ),
             },
             TopologyMutation::CreateEntity {
                 create_key: CreateKey::new(format!("{stem}.body")),
-                kind: EntityKind::Topology(schema::facade::platform::entities::TopologyEntityKind::Body),
+                kind: EntityKind::Topology(
+                    schema::facade::platform::entities::TopologyEntityKind::Body,
+                ),
             },
             TopologyMutation::CreateRelation {
                 create_key: CreateKey::new(format!("{stem}.owns_body")),
@@ -415,7 +419,3 @@ fn topology_relation(
         target: EntityReference::Created(CreateKey::new(format!("{stem}.{target}"))),
     }
 }
-
-
-
-

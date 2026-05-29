@@ -184,7 +184,3 @@ pub fn declare_topology_materialized_surface<T, E, R>(
         TopologyMaterializedMaintainer::new(entity_view.name(), relation_view.name()),
     )
 }
-
-
-
-

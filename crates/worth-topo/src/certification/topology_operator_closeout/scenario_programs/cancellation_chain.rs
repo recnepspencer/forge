@@ -1,9 +1,9 @@
 use forge_relational::facade::runtime::RelationalRuntime;
+use schema::facade::platform::authority::CreateKey;
+use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::topology_authoring::{
     created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
 };
-use schema::facade::platform::authority::CreateKey;
-use schema::facade::platform::entities::TopologyEntityKind;
 
 use super::super::report::{
     MilestoneThreeEditReplayStepRow, MilestoneThreeHostileOutcomeClass,
@@ -106,7 +106,10 @@ where
         .iter()
         .find(|record| {
             record.kind.kind_id
-                == schema::facade::platform::entities::EntityKind::Topology(TopologyEntityKind::Face).kind_id()
+                == schema::facade::platform::entities::EntityKind::Topology(
+                    TopologyEntityKind::Face,
+                )
+                .kind_id()
         })
         .map(|record| record.entity_id)
         .ok_or_else(|| {
@@ -219,7 +222,3 @@ fn created_relation_id(
                 .map_err(|error| TopologyCertificationError::Query(error.to_string()))
         })
 }
-
-
-
-

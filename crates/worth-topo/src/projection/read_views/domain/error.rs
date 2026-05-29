@@ -53,7 +53,3 @@ impl std::fmt::Display for TopologyDomainQueryError {
 }
 
 impl std::error::Error for TopologyDomainQueryError {}
-
-
-
-

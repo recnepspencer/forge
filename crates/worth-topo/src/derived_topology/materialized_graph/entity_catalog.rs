@@ -13,7 +13,3 @@ pub fn collect_entity_kinds(
         .map(|record| (record.entity_id, record.kind))
         .collect()
 }
-
-
-
-

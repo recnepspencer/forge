@@ -20,10 +20,7 @@ impl TopologyRuntimeBinding {
         Self::CurrentHead(Arc::new(RwLock::new(runtime)))
     }
 
-    pub fn snapshot_read_only(
-        read_view: RelationalReadView,
-        snapshot: SnapshotHandle,
-    ) -> Self {
+    pub fn snapshot_read_only(read_view: RelationalReadView, snapshot: SnapshotHandle) -> Self {
         Self::SnapshotReadOnly {
             read_view: Arc::new(read_view),
             snapshot,
@@ -107,7 +104,3 @@ impl TopologyRuntimeBinding {
         }
     }
 }
-
-
-
-

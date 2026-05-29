@@ -285,7 +285,3 @@ fn successor_relocation_batch(
     ])
     .expect("non-empty successor relocation batch")
 }
-
-
-
-

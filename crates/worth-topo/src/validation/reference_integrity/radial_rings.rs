@@ -88,7 +88,3 @@ impl CustomInvariantRule for RadialSurfaceRule {
         Ok(CustomInvariantVerdict::Pass)
     }
 }
-
-
-
-

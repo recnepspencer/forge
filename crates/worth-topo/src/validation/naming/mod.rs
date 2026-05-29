@@ -104,7 +104,3 @@ pub fn validate_named_topology_truth(
 
     Ok(())
 }
-
-
-
-

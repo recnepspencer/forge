@@ -115,7 +115,3 @@ pub fn has_topology_content(view: &TopologyView) -> bool {
         || !view.edges.is_empty()
         || !view.vertices.is_empty()
 }
-
-
-
-

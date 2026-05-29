@@ -10,7 +10,7 @@ use crate::projection::runtime_boundary::read_execution::{
 use forge_query::facade::ForgeQueryWorkspace;
 
 impl TopologyDomainQuery {
-    pub fn local_rewire_neighborhood(
+    pub(crate) fn local_rewire_neighborhood(
         &self,
         workspace: &mut ForgeQueryWorkspace,
         moved_identity: &str,
@@ -45,7 +45,3 @@ impl TopologyDomainQuery {
         })
     }
 }
-
-
-
-

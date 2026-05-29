@@ -158,7 +158,3 @@ where
     ensure_required_output_closure(&closeout, &requirements)?;
     Ok(closeout)
 }
-
-
-
-

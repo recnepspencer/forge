@@ -325,7 +325,3 @@ fn digest_parts(parts: &[String]) -> String {
     }
     format!("{state:016x}")
 }
-
-
-
-

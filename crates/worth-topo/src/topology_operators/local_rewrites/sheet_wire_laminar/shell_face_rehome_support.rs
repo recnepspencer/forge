@@ -253,7 +253,3 @@ pub(super) fn resolve_single_face_two_face_shell_split_program(
     program.retained_shell_id = Some(retained_shell_id);
     Some(program)
 }
-
-
-
-

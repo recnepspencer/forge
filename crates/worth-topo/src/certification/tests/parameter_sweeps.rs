@@ -162,7 +162,3 @@ fn branch_local_parameter_sweeps_preserve_branch_and_replay_truth() {
         );
     }
 }
-
-
-
-

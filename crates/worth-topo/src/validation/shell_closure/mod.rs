@@ -376,7 +376,3 @@ fn walk_radial_ring(
 
     Ok(ring)
 }
-
-
-
-

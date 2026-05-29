@@ -260,7 +260,3 @@ impl InvalidationSink for TopologyStaticBridgeSink {
         ))
     }
 }
-
-
-
-

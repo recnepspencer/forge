@@ -10,7 +10,7 @@ use crate::projection::runtime_boundary::read_execution::{
 
 impl TopologyDomainQuery {
     #[allow(dead_code)]
-    pub fn loop_cycle(
+    pub(crate) fn loop_cycle(
         &self,
         workspace: &mut ForgeQueryWorkspace,
         start_identity: &str,
@@ -48,7 +48,3 @@ impl TopologyDomainQuery {
         execute_loop_cycle_read(workspace, request, start_identity, count)
     }
 }
-
-
-
-

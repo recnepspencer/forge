@@ -240,7 +240,3 @@ fn branch_local_default_primitive_corpus_preserves_branch_local_reports_for_admi
             && entry.parity_closure_complete
     }));
 }
-
-
-
-

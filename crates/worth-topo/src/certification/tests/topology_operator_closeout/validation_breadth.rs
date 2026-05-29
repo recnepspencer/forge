@@ -57,7 +57,3 @@ fn certify_closeout_report(stem: &str) -> MilestoneThreeHostileSuiteReport {
     )
     .expect("milestone three closeout should certify")
 }
-
-
-
-

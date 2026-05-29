@@ -64,7 +64,7 @@ pub(super) fn planned_created_entity_kinds(
 mod tests {
     use forge_relational::facade::identity::{EntityId, PartitionId};
     use schema::facade::platform::authority::{CreateKey, EntityReference};
-use schema::facade::platform::entities::TopologyEntityKind;
+    use schema::facade::platform::entities::TopologyEntityKind;
 
     use super::*;
 
@@ -139,7 +139,3 @@ use schema::facade::platform::entities::TopologyEntityKind;
         );
     }
 }
-
-
-
-

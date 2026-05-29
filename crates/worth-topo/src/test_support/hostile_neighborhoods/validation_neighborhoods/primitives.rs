@@ -70,7 +70,3 @@ pub(crate) fn half_edge_with_links(
         face_id,
     }
 }
-
-
-
-

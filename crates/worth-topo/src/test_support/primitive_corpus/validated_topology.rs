@@ -1,15 +1,14 @@
-use forge_relational::facade::history::BranchId;
-use forge_relational::facade::runtime::RelationalRuntime;
-use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch,
-    seed_minimal_topology,
-    MilestoneOnePrimitiveAuthoringError, MilestoneOnePrimitiveCase, MinimalTopologySeed,
-};
-use schema::facade::platform::authority::MutationOrigin;
 use crate::committed_artifact::TopologyCommittedArtifact;
 #[cfg(test)]
 use crate::validation::reference_integrity::{
     milestone_one_runtime_builder, MilestoneOneRuntimeSetupError,
+};
+use forge_relational::facade::history::BranchId;
+use forge_relational::facade::runtime::RelationalRuntime;
+use schema::facade::platform::authority::MutationOrigin;
+use schema::facade::topology_authoring::{
+    seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch, seed_minimal_topology,
+    MilestoneOnePrimitiveAuthoringError, MilestoneOnePrimitiveCase, MinimalTopologySeed,
 };
 
 #[cfg(test)]

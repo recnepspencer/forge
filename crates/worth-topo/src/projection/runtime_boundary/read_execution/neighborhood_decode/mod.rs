@@ -10,7 +10,3 @@ pub(crate) use shared_vertex::decode_shared_vertex_neighborhood;
 
 #[cfg(test)]
 mod tests;
-
-
-
-

@@ -143,7 +143,3 @@ fn hostile_suite_derived_and_scale_rows_are_breadth_honest() {
                 .contains(&crate::topology_operators::TopologyEditFamily::DetachRadialAdjacency)
     }));
 }
-
-
-
-

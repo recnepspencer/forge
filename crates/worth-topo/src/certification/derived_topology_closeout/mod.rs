@@ -8,9 +8,9 @@ use forge_relational::facade::transactions::CommitResult;
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::{
-    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure,
-    DecisionTrace, DerivedTraceAnchor, DerivedTraceEvidence, NamedCounter,
-    PerformanceAccounting, TraceAvailability,
+    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure, DecisionTrace,
+    DerivedTraceAnchor, DerivedTraceEvidence, NamedCounter, PerformanceAccounting,
+    TraceAvailability,
 };
 
 use crate::certification::authority_closeout::read_view::certification_integrity_markers;
@@ -68,7 +68,3 @@ pub(crate) use read_basis::{
     certify_milestone_two_read_basis_runtime_traced_impl,
     certify_milestone_two_verified_commit_traced_impl,
 };
-
-
-
-

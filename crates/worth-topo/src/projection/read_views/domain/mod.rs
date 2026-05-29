@@ -1,4 +1,5 @@
 pub(crate) mod error;
+mod handle_reads;
 pub(crate) mod request;
 mod topology;
 mod views;
@@ -25,6 +26,11 @@ pub use crate::projection::runtime_boundary::read_lowering::{
     TopologyDomainQueryLoweringPosture, TopologyDomainQueryRelationshipProofPosture,
 };
 pub use error::{TopologyDomainQueryError, TopologyDomainQueryErrorKind};
+pub use handle_reads::{
+    TopologyConfiguredDomainReadSession, TopologyCurrentHeadReadHandleExt,
+    TopologyCurrentHeadReadSession, TopologySnapshotReadOnlyReadHandleExt,
+    TopologySnapshotReadOnlyReadSession,
+};
 pub use topology::TopologyDomainQuery;
 #[allow(unused_imports)]
 pub use views::{
@@ -32,7 +38,3 @@ pub use views::{
     TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,
     TopologyLoopCycleView, TopologyLoopNeighborEvidence, TopologyRadialCandidateEvidence,
 };
-
-
-
-

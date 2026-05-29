@@ -192,7 +192,3 @@ pub(crate) fn build_counter_report(
         replay_interpretation_rerun_count: usize::from(touched_topology_aspect_count > 0),
     }
 }
-
-
-
-

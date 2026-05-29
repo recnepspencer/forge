@@ -263,7 +263,3 @@ fn matches_admitted_contiguous_span_relocation_program(
         candidate.end_half_edge_id,
     )
 }
-
-
-
-

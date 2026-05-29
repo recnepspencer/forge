@@ -13,7 +13,7 @@ use crate::projection::runtime_boundary::read_execution::{
 };
 
 impl TopologyDomainQuery {
-    pub fn shared_vertex_half_edge_neighborhood(
+    pub(crate) fn shared_vertex_half_edge_neighborhood(
         &self,
         workspace: &mut ForgeQueryWorkspace,
         source_identity: &str,
@@ -46,7 +46,7 @@ impl TopologyDomainQuery {
         })
     }
 
-    pub fn radial_half_edge_neighborhood(
+    pub(crate) fn radial_half_edge_neighborhood(
         &self,
         workspace: &mut ForgeQueryWorkspace,
         source_identity: &str,
@@ -111,7 +111,3 @@ impl TopologyDomainQuery {
         )
     }
 }
-
-
-
-

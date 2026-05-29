@@ -59,7 +59,3 @@ impl TopologyEditBatch {
         }
     }
 }
-
-
-
-

@@ -26,7 +26,3 @@ fn record_label(payload: &RecordPayload) -> Option<String> {
         })
         .map(str::to_string)
 }
-
-
-
-

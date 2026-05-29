@@ -117,7 +117,3 @@ fn count_boundary_components(
 
     components
 }
-
-
-
-

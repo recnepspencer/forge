@@ -171,7 +171,3 @@ fn certification_read_view_matches_traced_reader_diagnostics_on_same_basis() {
         traced_equivalence.truth_basis_digest_hex
     );
 }
-
-
-
-

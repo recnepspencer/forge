@@ -66,7 +66,3 @@ pub(super) fn delete_existing_entity_from_graph(
     )?;
     Ok(())
 }
-
-
-
-

@@ -79,11 +79,6 @@ pub use support::reporting::{
     TopologyLocalizationAggregateRelationRow, TopologyLocalizationAggregateReport,
     TopologyLocalizationEntityRow, TopologyLocalizationRelationRow, TopologyLocalizationReport,
 };
-pub use tracing::{
-    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure,
-    BridgeTraceAnchor, DecisionTrace, DerivedTraceAnchor, DerivedTraceEvidence,
-    IntegrityMarkers, NamedCounter, PerformanceAccounting, TraceAvailability, TraceWarning,
-};
 pub use topology_operator_closeout::{
     MilestoneThreeAmbiguousLocalRewireWitness, MilestoneThreeBowtieAdjacentWitness,
     MilestoneThreeBrokenRadialWitness, MilestoneThreeChangedScopeCoverageRow,
@@ -111,7 +106,8 @@ pub use topology_operator_closeout::{
     MilestoneThreeValidationBreadthRow, MilestoneThreeValidatorFamily,
     MilestoneThreeValidatorFamilyCoverageRow,
 };
-
-
-
-
+pub use tracing::{
+    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure,
+    BridgeTraceAnchor, DecisionTrace, DerivedTraceAnchor, DerivedTraceEvidence, IntegrityMarkers,
+    NamedCounter, PerformanceAccounting, TraceAvailability, TraceWarning,
+};

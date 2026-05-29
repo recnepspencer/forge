@@ -47,7 +47,3 @@ fn runtime_invariants_accept_seeded_topology_on_the_actual_authority_path() {
     assert!(read.get_entity(seeded.model).is_some());
     assert!(read.get_entity(seeded.shell).is_some());
 }
-
-
-
-

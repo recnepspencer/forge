@@ -1,0 +1,61 @@
+error[E0624]: method `shared_vertex_half_edge_neighborhood` is private
+ --> src/certification/public_facade_contracts/compile_fail/public_domain_query_workspace_methods_not_exported.rs:4:34
+  |
+4 |       let _ = TopologyDomainQuery::shared_vertex_half_edge_neighborhood;
+  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/projection/read_views/domain/views/adjacency.rs
+  |
+  | /     pub(crate) fn shared_vertex_half_edge_neighborhood(
+  | |         &self,
+  | |         workspace: &mut ForgeQueryWorkspace,
+  | |         source_identity: &str,
+  | |     ) -> Result<TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyDomainQueryError> {
+  | |_______________________________________________________________________________________- private method defined here
+
+error[E0624]: method `radial_half_edge_neighborhood` is private
+ --> src/certification/public_facade_contracts/compile_fail/public_domain_query_workspace_methods_not_exported.rs:5:34
+  |
+5 |       let _ = TopologyDomainQuery::radial_half_edge_neighborhood;
+  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/projection/read_views/domain/views/adjacency.rs
+  |
+  | /     pub(crate) fn radial_half_edge_neighborhood(
+  | |         &self,
+  | |         workspace: &mut ForgeQueryWorkspace,
+  | |         source_identity: &str,
+  | |     ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyDomainQueryError> {
+  | |_________________________________________________________________________________- private method defined here
+
+error[E0624]: method `loop_cycle` is private
+ --> src/certification/public_facade_contracts/compile_fail/public_domain_query_workspace_methods_not_exported.rs:6:34
+  |
+6 |       let _ = TopologyDomainQuery::loop_cycle;
+  |                                    ^^^^^^^^^^ private method
+  |
+ ::: src/projection/read_views/domain/views/loop_cycle.rs
+  |
+  | /     pub(crate) fn loop_cycle(
+  | |         &self,
+  | |         workspace: &mut ForgeQueryWorkspace,
+  | |         start_identity: &str,
+  | |         count: usize,
+  | |     ) -> Result<TopologyLoopCycleView, TopologyDomainQueryError> {
+  | |________________________________________________________________- private method defined here
+
+error[E0624]: method `local_rewire_neighborhood` is private
+ --> src/certification/public_facade_contracts/compile_fail/public_domain_query_workspace_methods_not_exported.rs:7:34
+  |
+7 |       let _ = TopologyDomainQuery::local_rewire_neighborhood;
+  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/projection/read_views/domain/views/local_rewire.rs
+  |
+  | /     pub(crate) fn local_rewire_neighborhood(
+  | |         &self,
+  | |         workspace: &mut ForgeQueryWorkspace,
+  | |         moved_identity: &str,
+  | |         cycle_count: usize,
+  | |     ) -> Result<TopologyLocalRewireNeighborhoodView, TopologyDomainQueryError> {
+  | |______________________________________________________________________________- private method defined here

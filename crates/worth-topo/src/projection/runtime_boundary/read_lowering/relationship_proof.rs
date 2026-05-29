@@ -118,7 +118,3 @@ fn relationship_proof_descriptor_set(
         RelationshipProofBudget::bounded(descriptors.len(), topology_width),
     )
 }
-
-
-
-

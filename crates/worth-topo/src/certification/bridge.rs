@@ -6,7 +6,6 @@ use forge_runtime_bridge::facade::{
     InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity,
 };
 
-use crate::certification::BridgeTraceAnchor;
 use crate::certification::error::MilestoneOneCertificationError;
 use crate::certification::shared::{
     canonical_milestone_one_primitive_families, digest_rows, primitive_family_name,
@@ -14,6 +13,7 @@ use crate::certification::shared::{
 use crate::certification::support::reporting::{
     BridgeFamilyCoverageReport, BridgeFamilyCoverageRow, BridgeProofReport,
 };
+use crate::certification::BridgeTraceAnchor;
 use crate::facade::build_milestone_one_bridge;
 use crate::test_support::primitive_corpus::bridge_cases::milestone_one_bridge_proof_cases;
 use crate::test_support::primitive_corpus::validated_topology::verified_primitive;
@@ -190,7 +190,3 @@ pub(crate) fn certify_milestone_one_bridge_proof(
         source_snapshot: source_snapshot.unwrap_or_default(),
     })
 }
-
-
-
-

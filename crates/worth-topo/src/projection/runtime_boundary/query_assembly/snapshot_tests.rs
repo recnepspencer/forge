@@ -1,14 +1,14 @@
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use serde_json::json;
 
 use super::*;
-use crate::validation::reference_integrity::milestone_one_runtime_builder;
 use crate::projection::equivalence_contract_from_diagnostics_rows;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::projection::runtime_boundary::read_stage::open_topology_read_view;
+use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
 fn current_head_workspace(
     runtime: forge_relational::facade::runtime::RelationalRuntime,
@@ -52,9 +52,12 @@ fn snapshot_read_only_assembly_synthesizes_complete_query_shaped_derived_rows() 
         .materialize(assembly.equivalence_contract())
         .is_empty());
 
-    let rows =
-        historical_rows::historical_snapshot_rows(&assembly, &mut workspace, &verified.read_basis())
-            .expect("historical rows should synthesize from query-native surfaces");
+    let rows = historical_rows::historical_snapshot_rows(
+        &assembly,
+        &mut workspace,
+        &verified.read_basis(),
+    )
+    .expect("historical rows should synthesize from query-native surfaces");
     let snapshot = assembly
         .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
         .expect("historical snapshot should decode");
@@ -129,7 +132,3 @@ fn current_head_snapshot_decoder_rejects_malformed_retained_validation_rows() {
 
     assert!(error.to_string().contains("topology validation"));
 }
-
-
-
-

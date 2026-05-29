@@ -79,7 +79,3 @@ fn current_head_runtime_executes_four_half_edge_span_relocation_on_larger_loop()
         .expect("moved end halfedge should remain present");
     assert_eq!(moved_end.next_half_edge_id, Some(new_successor_id));
 }
-
-
-
-

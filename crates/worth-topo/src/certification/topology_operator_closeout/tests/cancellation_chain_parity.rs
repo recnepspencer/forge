@@ -103,7 +103,3 @@ fn milestone_three_cancellation_chain_report_is_deterministic_for_same_seeded_hi
         right.edit_replay_parity_report
     );
 }
-
-
-
-

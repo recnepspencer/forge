@@ -310,7 +310,3 @@ fn derived_query_inspection<T>(
         ))),
     }
 }
-
-
-
-

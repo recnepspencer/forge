@@ -1,6 +1,6 @@
 use forge_relational::facade::runtime::RelationalRuntime;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use serde_json::Value;
 
 use super::super::report::{
@@ -239,7 +239,3 @@ fn build_broken_radial_witness(
         illegal_target_edge_identity,
     })
 }
-
-
-
-

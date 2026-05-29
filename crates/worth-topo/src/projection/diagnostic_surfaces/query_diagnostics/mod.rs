@@ -4,10 +4,10 @@ use forge_query::facade::{
     ForgeQueryDerivedViewMaterialization, ForgeQueryRetainedMutationContext,
     ForgeQueryRetainedUpstreamInputs, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
-use schema::facade::{query_aspect_paths_from_set, QueryAspectPath};
 use schema::facade::platform::aspects::Aspect;
 use schema::facade::platform::authority::MutationOrigin;
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
+use schema::facade::{query_aspect_paths_from_set, QueryAspectPath};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -373,7 +373,3 @@ pub fn equivalence_contract_from_diagnostics_rows(
         decode_single_computed_row(diagnostics_rows, "derived read diagnostics")?;
     Ok(diagnostics.equivalence_contract_report)
 }
-
-
-
-

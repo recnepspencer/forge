@@ -1,13 +1,11 @@
 use forge_query::facade::ForgeQueryWorkspace;
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
-use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch,
-    DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
-};
 use schema::facade::platform::authority::MutationOrigin;
-use schema::facade::platform::relations::{
-    RelationKind, TopologyRelationKind,
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use schema::facade::topology_authoring::{
+    seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch, DerivedTopologyReadBasis,
+    MilestoneOnePrimitiveCase,
 };
 
 use super::side_quest_types::{
@@ -268,7 +266,3 @@ fn first_source_identity_for_snapshot_relation(
             ))
         })
 }
-
-
-
-

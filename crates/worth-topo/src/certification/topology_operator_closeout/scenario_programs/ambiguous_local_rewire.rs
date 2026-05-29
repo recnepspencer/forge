@@ -1,6 +1,6 @@
 use forge_relational::facade::runtime::RelationalRuntime;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use serde_json::Value;
 
 use super::super::report::{
@@ -178,7 +178,3 @@ where
 fn cycle_query_error(detail: &str) -> TopologyCertificationError {
     TopologyCertificationError::Query(detail.to_string())
 }
-
-
-
-

@@ -296,7 +296,3 @@ where
 fn validation_surface_error(error: TopologyValidationError) -> TopologyQuerySurfaceError {
     TopologyQuerySurfaceError::new(format!("query-derived validation refresh failed: {error}"))
 }
-
-
-
-

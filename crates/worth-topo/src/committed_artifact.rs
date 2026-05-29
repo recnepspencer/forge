@@ -4,7 +4,9 @@ use forge_relational::facade::history::BranchId;
 use forge_relational::facade::snapshots::SnapshotHandle;
 use forge_relational::facade::transactions::CommitResult;
 use schema::facade::platform::aspects::Aspect;
-use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent, TopologyMutationBatch};
+use schema::facade::platform::authority::{
+    MutationOrigin, RawTopologyIntent, TopologyMutationBatch,
+};
 use schema::facade::topology_authoring::{
     CanonicalTopologyMutationBatch, DerivedTopologyReadBasis, PersistedTopologyTruthBatch,
     SeededTopologyCommit,

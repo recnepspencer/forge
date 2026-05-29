@@ -29,7 +29,3 @@ pub struct DerivedParityComparisonReport {
     pub derived_validation_digest_match: bool,
     pub equivalent_derived_meaning: bool,
 }
-
-
-
-

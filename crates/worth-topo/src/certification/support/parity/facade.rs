@@ -141,7 +141,3 @@ fn digest_rows(rows: impl IntoIterator<Item = String>) -> DeterministicDigest {
         row_count,
     }
 }
-
-
-
-

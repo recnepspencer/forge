@@ -215,7 +215,3 @@ fn missing_authoritative_scope_reports_scope_localization_unavailable() {
         "a missing live authority binding means the edit runner cannot localize the requested scope, not that a specific invariant was proven false"
     );
 }
-
-
-
-

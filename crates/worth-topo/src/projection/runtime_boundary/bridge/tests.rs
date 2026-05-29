@@ -5,10 +5,10 @@ use forge_runtime_bridge::facade::{
     BridgeDeliveryReceipt, BridgeSignalInvalidationDelivery, BridgeTruthViewEvaluationRequest,
     InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity,
 };
-use schema::facade::topology_authoring::seed_minimal_topology;
 use schema::facade::platform::authority::{
     milestone_two_invalidation_declarations, DerivedInvalidationTarget, DerivedTruthSurfaceKind,
 };
+use schema::facade::topology_authoring::seed_minimal_topology;
 
 use crate::certification::BridgeTraceAnchor;
 use crate::projection::runtime_boundary::bridge::{
@@ -190,7 +190,3 @@ fn bridge_trace_anchor_tracks_real_runtime_diagnostics() {
     assert_eq!(anchor.historical_record_identities.len(), 1);
     assert!(!anchor.snapshot_identities.is_empty());
 }
-
-
-
-

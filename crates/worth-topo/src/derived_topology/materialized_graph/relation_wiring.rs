@@ -335,7 +335,3 @@ pub fn finalize_topology_membership(
 
     Ok(())
 }
-
-
-
-

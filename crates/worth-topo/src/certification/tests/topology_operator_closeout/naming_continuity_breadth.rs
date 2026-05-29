@@ -36,7 +36,3 @@ fn milestone_three_closeout_requires_naming_continuity_breadth_rows() {
             && row.rejected_count() > 0
     }));
 }
-
-
-
-

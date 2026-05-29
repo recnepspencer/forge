@@ -86,7 +86,3 @@ mod materializer_tests {
         assert_eq!(topology.half_edges[0].face_id, Some(seeded.face));
     }
 }
-
-
-
-

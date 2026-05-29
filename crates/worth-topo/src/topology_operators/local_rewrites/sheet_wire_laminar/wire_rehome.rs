@@ -40,7 +40,8 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             return Err(
                 TopologyOperatorExecutionError::ExistingEntityOutgoingRelationCountMismatch {
                     entity_id: program.retired_wire_id,
-                    relation_kind: schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
+                    relation_kind:
+                        schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
                     expected: program.half_edge_ids.len(),
                     actual: outgoing_relation_ids.len(),
                 },
@@ -95,16 +96,18 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             return Err(
                 TopologyOperatorExecutionError::ExistingEntityOutgoingRelationCountMismatch {
                     entity_id: program.retired_wire_id,
-                    relation_kind: schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
+                    relation_kind:
+                        schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
                     expected: program.half_edge_ids.len(),
                     actual: 0,
                 },
             );
         }
-        let dependency_path =
-            topology_relation_dependency_path(schema::facade::platform::relations::RelationKind::Topology(
+        let dependency_path = topology_relation_dependency_path(
+            schema::facade::platform::relations::RelationKind::Topology(
                 schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
-            ));
+            ),
+        );
         let retired_wire_identity = retired_wire_binding.query_identity.clone();
         let created_wire_key = program.create_key.clone();
         let mut builder = ForgeQueryMutationBatchBuilder::new().insert_symbolic(
@@ -257,16 +260,18 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             return Err(
                 TopologyOperatorExecutionError::ExistingEntityOutgoingRelationCountMismatch {
                     entity_id: retained_wire_id,
-                    relation_kind: schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
+                    relation_kind:
+                        schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
                     expected: program.half_edge_ids.len(),
                     actual: relation_bindings_by_target.len(),
                 },
             );
         }
-        let dependency_path =
-            topology_relation_dependency_path(schema::facade::platform::relations::RelationKind::Topology(
+        let dependency_path = topology_relation_dependency_path(
+            schema::facade::platform::relations::RelationKind::Topology(
                 schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
-            ));
+            ),
+        );
         let retained_wire_identity = retained_wire_binding.query_identity.clone();
         let created_wire_key = program.create_key.clone();
         let mut builder = ForgeQueryMutationBatchBuilder::new().insert_symbolic(
@@ -343,7 +348,3 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         Ok(builder)
     }
 }
-
-
-
-

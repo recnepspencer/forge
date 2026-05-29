@@ -143,7 +143,3 @@ impl ShellOrWireMembershipKind {
         }
     }
 }
-
-
-
-

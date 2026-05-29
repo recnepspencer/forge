@@ -263,7 +263,3 @@ pub(crate) fn decode_relation_endpoint(
             ))
         })
 }
-
-
-
-
