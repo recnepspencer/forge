@@ -20,9 +20,15 @@ use crate::schema::data::{
 };
 use crate::snapshots::data::SnapshotId;
 
-mod aspect_value_projection;
+mod aspect_value_diagnostic_terms;
+mod projected_json_recovery;
 
-use aspect_value_projection::{aspect_value_json_value, struct_aspect_value_json_value};
+use aspect_value_diagnostic_terms::{
+    aspect_value_diagnostic_value, struct_aspect_value_diagnostic_value,
+};
+use projected_json_recovery::{
+    canonicalize_diagnostic_value, diagnostic_value_from_projected_json,
+};
 
 #[derive(Debug, Clone)]
 pub struct RelationalDiagnosticFields {
@@ -152,9 +158,11 @@ impl RelationalDiagnosticValue {
                     .map(|field| Value::String(field.as_str().to_string()))
                     .collect(),
             ),
-            Self::AspectValue(value) => aspect_value_json_value(value),
+            Self::AspectValue(value) => aspect_value_diagnostic_value(value).to_json_value(),
             Self::AspectValueLocator(locator) => aspect_value_locator_json_value(locator),
-            Self::StructAspectValue(value) => struct_aspect_value_json_value(value),
+            Self::StructAspectValue(value) => {
+                struct_aspect_value_diagnostic_value(value).to_json_value()
+            }
             Self::DiagnosticMask(mask) => diagnostic_mask_json_value(mask),
             Self::PartitionId(value) => Value::from(value.as_u64()),
             Self::KindId(value) => Value::from(value.as_u64()),
@@ -342,57 +350,6 @@ fn record_id_json_value(
         ("local_slot".to_string(), Value::from(local_slot)),
         ("generation".to_string(), Value::from(generation as u64)),
     ]))
-}
-
-fn diagnostic_value_from_projected_json(value: &Value) -> RelationalDiagnosticValue {
-    match value {
-        Value::Null => RelationalDiagnosticValue::Null,
-        Value::Bool(boolean) => RelationalDiagnosticValue::Bool(*boolean),
-        Value::Number(number) => diagnostic_number_value(number),
-        Value::String(text) => RelationalDiagnosticValue::String(text.clone()),
-        Value::Array(values) => RelationalDiagnosticValue::array(
-            values.iter().map(diagnostic_value_from_projected_json),
-        ),
-        Value::Object(entries) => RelationalDiagnosticValue::object(
-            entries
-                .iter()
-                .map(|(key, value)| (key.clone(), diagnostic_value_from_projected_json(value))),
-        ),
-    }
-}
-
-fn diagnostic_number_value(number: &serde_json::Number) -> RelationalDiagnosticValue {
-    if let Some(value) = number.as_u64() {
-        return RelationalDiagnosticValue::Unsigned(value);
-    }
-    if let Some(value) = number.as_i64() {
-        return RelationalDiagnosticValue::Signed(value);
-    }
-    RelationalDiagnosticValue::String(number.to_string())
-}
-
-fn canonicalize_diagnostic_value(value: &Value) -> Value {
-    match value {
-        Value::Null => Value::Null,
-        Value::Bool(boolean) => Value::Bool(*boolean),
-        Value::Number(number) => Value::Number(number.clone()),
-        Value::String(text) => Value::String(text.clone()),
-        Value::Array(values) => {
-            Value::Array(values.iter().map(canonicalize_diagnostic_value).collect())
-        }
-        Value::Object(entries) => {
-            let mut ordered = Map::new();
-            let mut keys = entries.keys().cloned().collect::<Vec<_>>();
-            keys.sort();
-            for key in keys {
-                let value = entries
-                    .get(&key)
-                    .expect("object key collected from map must exist");
-                ordered.insert(key, canonicalize_diagnostic_value(value));
-            }
-            Value::Object(ordered)
-        }
-    }
 }
 
 #[cfg(test)]
