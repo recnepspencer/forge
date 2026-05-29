@@ -9,6 +9,7 @@ pub(super) enum HarnessSummaryProjectionValue {
     Null,
     Bool(bool),
     Unsigned(u64),
+    Signed(i64),
     String(String),
     Array(Vec<HarnessSummaryProjectionValue>),
     Object(BTreeMap<String, HarnessSummaryProjectionValue>),
@@ -21,6 +22,7 @@ impl HarnessSummaryProjectionValue {
             Self::Null => ExternalHarnessJson::Null,
             Self::Bool(value) => ExternalHarnessJson::Bool(value),
             Self::Unsigned(value) => ExternalHarnessJson::from(value),
+            Self::Signed(value) => ExternalHarnessJson::from(value),
             Self::String(value) => ExternalHarnessJson::String(value),
             Self::Array(values) => ExternalHarnessJson::Array(
                 values
@@ -36,10 +38,49 @@ impl HarnessSummaryProjectionValue {
                 ))
             }
             Self::DiagnosticFields(value) => {
-                serde_json::to_value(RelationalDiagnosticFields::from_diagnostic_value(value))
-                    .expect("diagnostic fields must project into external harness JSON")
+                diagnostic_fields_projection(value).into_external_harness_json()
             }
         }
+    }
+}
+
+fn diagnostic_fields_projection(value: RelationalDiagnosticValue) -> HarnessSummaryProjectionValue {
+    let projected =
+        RelationalDiagnosticFields::from_diagnostic_value(value).to_external_projection_value();
+    harness_projection_value_from_diagnostic_projection(projected)
+}
+
+fn harness_projection_value_from_diagnostic_projection(
+    value: RelationalDiagnosticValue,
+) -> HarnessSummaryProjectionValue {
+    match value {
+        RelationalDiagnosticValue::Null => HarnessSummaryProjectionValue::Null,
+        RelationalDiagnosticValue::Bool(value) => HarnessSummaryProjectionValue::Bool(value),
+        RelationalDiagnosticValue::Unsigned(value) => {
+            HarnessSummaryProjectionValue::Unsigned(value)
+        }
+        RelationalDiagnosticValue::Signed(value) => HarnessSummaryProjectionValue::Signed(value),
+        RelationalDiagnosticValue::String(value) => HarnessSummaryProjectionValue::String(value),
+        RelationalDiagnosticValue::Array(values) => HarnessSummaryProjectionValue::Array(
+            values
+                .into_iter()
+                .map(harness_projection_value_from_diagnostic_projection)
+                .collect(),
+        ),
+        RelationalDiagnosticValue::Object(fields) => HarnessSummaryProjectionValue::Object(
+            fields
+                .into_iter()
+                .map(|(field, value)| {
+                    (
+                        field,
+                        harness_projection_value_from_diagnostic_projection(value),
+                    )
+                })
+                .collect(),
+        ),
+        other => harness_projection_value_from_diagnostic_projection(
+            RelationalDiagnosticFields::from_diagnostic_value(other).to_external_projection_value(),
+        ),
     }
 }
 

@@ -50,6 +50,12 @@ pub(super) fn diagnostic_projection_equal(
     project_diagnostic_value(left) == project_diagnostic_value(right)
 }
 
+pub(super) fn typed_external_projection_value(
+    value: &RelationalDiagnosticValue,
+) -> RelationalDiagnosticValue {
+    recover_projected_diagnostic_value(project_diagnostic_value(value))
+}
+
 fn recover_projected_diagnostic_fields(
     projection: ExternalDiagnosticProjectionValue,
 ) -> RelationalDiagnosticFields {

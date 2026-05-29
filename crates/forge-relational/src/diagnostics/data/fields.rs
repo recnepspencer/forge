@@ -24,6 +24,7 @@ mod external_serde_projection;
 
 use external_serde_projection::{
     deserialize_diagnostic_fields, diagnostic_projection_equal, serialize_diagnostic_fields,
+    typed_external_projection_value,
 };
 
 #[derive(Debug, Clone)]
@@ -38,6 +39,10 @@ impl RelationalDiagnosticFields {
 
     pub fn root(&self) -> &RelationalDiagnosticValue {
         &self.root
+    }
+
+    pub fn to_external_projection_value(&self) -> RelationalDiagnosticValue {
+        typed_external_projection_value(self.root())
     }
 }
 
