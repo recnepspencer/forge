@@ -24,8 +24,7 @@ use crate::tests::support::{
     create_branch_from_main, create_entity, create_relation_in_partition_on_branch, delete_entity,
     delete_entity_on_branch, delete_relation_on_branch, diagnostic_field,
     diagnostic_field_optional, entity_field_aspect, entity_i64_field_aspect, field_key,
-    persisted_runtime_with_test_schema, read_entity_field, u64_aspect_value,
-    unique_test_store_path, update_entity,
+    persisted_runtime_with_test_schema, read_entity_field, unique_test_store_path, update_entity,
 };
 
 #[test]
@@ -167,8 +166,11 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
 
 #[test]
 fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
-    let mut runtime =
-        runtime_with_aspect_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins);
+    let mut runtime = runtime_with_aspect_field_merge_policy(
+        AspectKey::new("value").unwrap(),
+        field_key("value"),
+        AspectMergePolicyKind::LastWriterWins,
+    );
     let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "shared",
@@ -229,7 +231,11 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
     ));
 
     let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
-        runtime_with_aspect_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins)
+        runtime_with_aspect_field_merge_policy(
+            AspectKey::new("value").unwrap(),
+            field_key("value"),
+            AspectMergePolicyKind::LastWriterWins,
+        )
     });
     let recovered_artifact = recovered
         .merge()
@@ -255,8 +261,11 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
 
 #[test]
 fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
-    let mut runtime =
-        runtime_with_aspect_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins);
+    let mut runtime = runtime_with_aspect_field_merge_policy(
+        AspectKey::new("value").unwrap(),
+        field_key("value"),
+        AspectMergePolicyKind::LastWriterWins,
+    );
     let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "shared",
@@ -334,7 +343,11 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
         .cloned()
         .expect("live merge envelope");
     let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
-        runtime_with_aspect_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins)
+        runtime_with_aspect_field_merge_policy(
+            AspectKey::new("value").unwrap(),
+            field_key("value"),
+            AspectMergePolicyKind::LastWriterWins,
+        )
     });
     let recovered_envelope = recovered
         .replay()
@@ -359,27 +372,39 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
 
 #[test]
 fn auto_resolved_merge_reads_pinned_visible_value_through_declared_aspect_binding() {
-    let mut runtime = runtime_with_aspect_field_merge_policy_for_aspect(
-        "display_name",
-        "display",
+    let mut runtime = runtime_with_aspect_field_merge_policy(
+        AspectKey::new("display_name").unwrap(),
+        field_key("display"),
         AspectMergePolicyKind::PreferRicher,
     );
     let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "identity",
-        crate::tests::support::single_string_aspect_field_patch("display", "base"),
+        string_aspect_field_patch_for_target(
+            AspectKey::new("display_name").unwrap(),
+            field_key("display"),
+            "base",
+        ),
     );
     create_branch_from_main(&mut runtime, "feature");
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        crate::tests::support::single_string_aspect_field_patch("display", "main-change"),
+        string_aspect_field_patch_for_target(
+            AspectKey::new("display_name").unwrap(),
+            field_key("display"),
+            "main-change",
+        ),
         BranchId("main".to_string()),
     );
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        crate::tests::support::single_string_aspect_field_patch("display", "feature-change"),
+        string_aspect_field_patch_for_target(
+            AspectKey::new("display_name").unwrap(),
+            field_key("display"),
+            "feature-change",
+        ),
         BranchId("feature".to_string()),
     );
 
@@ -407,30 +432,33 @@ fn auto_resolved_merge_reads_pinned_visible_value_through_declared_aspect_bindin
 
 #[test]
 fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recovery_parity() {
-    let mut runtime =
-        runtime_with_aspect_field_merge_policy("value", AspectMergePolicyKind::MonotonicCounter);
+    let mut runtime = runtime_with_aspect_field_merge_policy(
+        AspectKey::new("value").unwrap(),
+        field_key("value"),
+        AspectMergePolicyKind::MonotonicCounter,
+    );
     let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "counter",
-        crate::tests::support::aspect_field_patch_from_values([("value", u64_aspect_value(0))]),
+        crate::tests::support::aspect_field_patch_from_values([("value", i64_counter_value(0))]),
     );
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        crate::tests::support::aspect_field_patch_from_values([("value", u64_aspect_value(10))]),
+        crate::tests::support::aspect_field_patch_from_values([("value", i64_counter_value(10))]),
         BranchId("main".to_string()),
     );
     create_branch_from_main(&mut runtime, "feature");
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        crate::tests::support::aspect_field_patch_from_values([("value", u64_aspect_value(15))]),
+        crate::tests::support::aspect_field_patch_from_values([("value", i64_counter_value(15))]),
         BranchId("main".to_string()),
     );
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        crate::tests::support::aspect_field_patch_from_values([("value", u64_aspect_value(13))]),
+        crate::tests::support::aspect_field_patch_from_values([("value", i64_counter_value(13))]),
         BranchId("feature".to_string()),
     );
 
@@ -481,7 +509,11 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         .expect("live merge envelope");
 
     let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
-        runtime_with_aspect_field_merge_policy("value", AspectMergePolicyKind::MonotonicCounter)
+        runtime_with_aspect_field_merge_policy(
+            AspectKey::new("value").unwrap(),
+            field_key("value"),
+            AspectMergePolicyKind::MonotonicCounter,
+        )
     });
     let recovered_envelope = recovered
         .replay()
@@ -525,7 +557,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
 #[test]
 fn built_in_additive_set_merge_policy_is_rejected_without_native_foundational_set_contract() {
     let error = register_aspect_field_merge_policy(
-        "value",
+        AspectKey::new("value").unwrap(),
         entity_field_aspect("value", "value"),
         AspectMergePolicyKind::AdditiveSet,
     )
@@ -1372,30 +1404,17 @@ use crate::{
 };
 
 fn runtime_with_aspect_field_merge_policy(
-    field_name: &str,
+    aspect_key: AspectKey,
+    field_key: forge_foundational::facade::FieldKey,
     merge_policy: AspectMergePolicyKind,
 ) -> crate::facade::runtime::RelationalRuntime {
     let value_aspect = match merge_policy {
-        AspectMergePolicyKind::MonotonicCounter => entity_i64_field_aspect(field_name, field_name),
-        _ => entity_field_aspect(field_name, field_name),
+        AspectMergePolicyKind::MonotonicCounter => {
+            entity_i64_field_aspect(aspect_key.as_str(), field_key.as_str())
+        }
+        _ => entity_field_aspect(aspect_key.as_str(), field_key.as_str()),
     };
-    let registry = register_aspect_field_merge_policy(field_name, value_aspect, merge_policy)
-        .expect("schema registry");
-    RelationalRuntimeApi::builder()
-        .schema_registry(registry)
-        .build()
-}
-
-fn runtime_with_aspect_field_merge_policy_for_aspect(
-    aspect_name: &str,
-    field_name: &str,
-    merge_policy: AspectMergePolicyKind,
-) -> crate::facade::runtime::RelationalRuntime {
-    let value_aspect = match merge_policy {
-        AspectMergePolicyKind::MonotonicCounter => entity_i64_field_aspect(aspect_name, field_name),
-        _ => entity_field_aspect(aspect_name, field_name),
-    };
-    let registry = register_aspect_field_merge_policy(aspect_name, value_aspect, merge_policy)
+    let registry = register_aspect_field_merge_policy(aspect_key, value_aspect, merge_policy)
         .expect("schema registry");
     RelationalRuntimeApi::builder()
         .schema_registry(registry)
@@ -1403,12 +1422,11 @@ fn runtime_with_aspect_field_merge_policy_for_aspect(
 }
 
 fn register_aspect_field_merge_policy(
-    aspect_name: &str,
+    aspect_key: AspectKey,
     value_aspect: crate::schema::data::DeclaredAspect,
     merge_policy: AspectMergePolicyKind,
 ) -> Result<RelationalSchemaRegistry, SchemaRegistryError> {
     let name_key = AspectKey::new("name").unwrap();
-    let aspect_key = AspectKey::new(aspect_name).unwrap();
     RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(1),
@@ -1440,6 +1458,21 @@ fn register_aspect_field_merge_policy(
                 relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
             })
         })
+}
+
+fn i64_counter_value(value: i64) -> forge_foundational::facade::AspectValue {
+    forge_foundational::facade::AspectValue::Int64(value)
+}
+
+fn string_aspect_field_patch_for_target(
+    aspect_key: AspectKey,
+    field_key: forge_foundational::facade::FieldKey,
+    value: &str,
+) -> crate::transactions::data::AspectFieldPatch {
+    crate::transactions::data::AspectFieldPatch::from(std::collections::BTreeMap::from([(
+        crate::transactions::data::AspectFieldPatchTarget::single(aspect_key, field_key),
+        crate::tests::support::string_aspect_value(value),
+    )]))
 }
 
 fn create_entity_with_aspect_fields(
