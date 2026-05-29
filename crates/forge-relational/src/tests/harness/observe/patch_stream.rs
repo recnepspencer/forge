@@ -1,7 +1,6 @@
 use crate::facade::publication::{PatchStreamPosition, PatchStreamRequest, RelationalPatchRecord};
 use crate::facade::runtime::RelationalRuntime;
 
-#[allow(dead_code)]
 pub(crate) fn collect_patch_stream_from_head(
     runtime: &RelationalRuntime,
     window_size: usize,
@@ -9,7 +8,6 @@ pub(crate) fn collect_patch_stream_from_head(
     collect_patch_stream_after(runtime, None, window_size)
 }
 
-#[allow(dead_code)]
 pub(crate) fn collect_patch_stream_after(
     runtime: &RelationalRuntime,
     after_position: Option<PatchStreamPosition>,
