@@ -1,4 +1,3 @@
-use crate::capabilities::AspectPlanSource;
 use crate::identity::data::KindId;
 use crate::logic::runtime::RelationalRuntime;
 use crate::transactions::data::MergedCommitPlan;
@@ -58,13 +57,6 @@ impl<'runtime> InvariantExecutionContext<'runtime> {
         self.relation_integrity_scopes
             .as_ref()
             .and_then(|scopes| scopes.scope_for(relation_kind_id))
-    }
-
-    pub(crate) fn entity_aspect_plan(
-        &self,
-        kind_id: KindId,
-    ) -> Option<&crate::schema::data::LoweredAspectPlan> {
-        self.runtime.entity_aspect_plan(kind_id)
     }
 
     pub(crate) fn visible_entity_record(

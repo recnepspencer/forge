@@ -24,7 +24,7 @@ impl WorkingState {
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn from_touched_partitions(
         base_partitions: &BTreeMap<PartitionId, PartitionState>,
         touched_partitions: impl IntoIterator<Item = PartitionId>,
@@ -40,6 +40,7 @@ impl WorkingState {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_touched_partitions_with_layout(
         base_partitions: &BTreeMap<PartitionId, PartitionState>,
         touched_partitions: impl IntoIterator<Item = PartitionId>,

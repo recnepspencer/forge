@@ -93,16 +93,6 @@ pub(crate) enum CustomInvariantFailureKind {
     Panic,
 }
 
-impl CustomInvariantFailureKind {
-    pub(crate) const fn diagnostic_label(self) -> &'static str {
-        match self {
-            Self::PreparationError => "preparation_error",
-            Self::ExecutionError => "execution_error",
-            Self::Panic => "panic",
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CustomInvariantFailure {
     pub(crate) identity: CustomInvariantSemanticIdentity,
