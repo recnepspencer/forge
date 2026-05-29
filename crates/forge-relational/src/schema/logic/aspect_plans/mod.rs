@@ -109,9 +109,15 @@ fn lower_kind_plan(
 }
 
 fn derive_kind_plan_revision(
+    kind_id: crate::identity::data::KindId,
     aspects: &[crate::schema::data::DeclaredAspect],
     identity_declarations: &[crate::merge::data::IdentityBasisDeclaration],
     merge_policy_declarations: &[crate::merge::data::AspectMergePolicyDeclaration],
-) -> crate::schema::data::AspectPlanRevision {
-    derive_plan_revision(aspects, identity_declarations, merge_policy_declarations)
+) -> Result<crate::schema::data::AspectPlanRevision, SchemaRegistryError> {
+    derive_plan_revision(
+        kind_id,
+        aspects,
+        identity_declarations,
+        merge_policy_declarations,
+    )
 }

@@ -44,8 +44,12 @@ pub(super) fn canonicalize_kind_aspect_declarations(
         validate_declared_aspect(kind_id, aspect, &domain)?;
     }
     identity_declarations.sort();
-    let plan_revision =
-        derive_kind_plan_revision(&aspects, &identity_declarations, &merge_policy_declarations);
+    let plan_revision = derive_kind_plan_revision(
+        kind_id,
+        &aspects,
+        &identity_declarations,
+        &merge_policy_declarations,
+    )?;
     Ok(KindAspectDeclarations {
         plan_revision,
         aspects,
