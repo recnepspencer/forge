@@ -394,12 +394,12 @@ mod tests {
         };
 
         let first = PlannedQueryPacket::explicit_targets(
-            "legacy",
+            "explicit-target",
             context.clone(),
             vec![RecordRef::Entity(EntityId::new(PartitionId(7), 3, 1))],
         );
         let second = PlannedQueryPacket::explicit_targets(
-            "legacy",
+            "explicit-target",
             context,
             vec![RecordRef::Entity(EntityId::new(PartitionId(7), 3, 1))],
         );

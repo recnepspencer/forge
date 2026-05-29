@@ -70,7 +70,7 @@ fn schema_diff_atom_requires_structured_detail_and_strata() {
         HistoricalInterpretationSensitivity::SensitiveToPublicationMeaning,
         SchemaDiffDetail::TypeChanged {
             field: field_key("timing_domain"),
-            from_type: Arc::<str>::from("enum<legacy>"),
+            from_type: Arc::<str>::from("enum<previous>"),
             to_type: Arc::<str>::from("enum<expanded>"),
         },
     );
@@ -609,7 +609,7 @@ fn type_incompatible_schema_transition_is_rejected_not_continued() {
             HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
             SchemaDiffDetail::TypeChanged {
                 field: field_key("timing_domain"),
-                from_type: Arc::<str>::from("enum<legacy>"),
+                from_type: Arc::<str>::from("enum<previous>"),
                 to_type: Arc::<str>::from("enum<expanded>"),
             },
         )],

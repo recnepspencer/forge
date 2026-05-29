@@ -262,7 +262,7 @@ fn schema_reconciliation_classification_test() {
                 HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
                 SchemaDiffDetail::TypeChanged {
                     field: field_key("timing_domain"),
-                    from_type: "enum<legacy>".into(),
+                    from_type: "enum<previous>".into(),
                     to_type: "enum<expanded>".into(),
                 },
             )],

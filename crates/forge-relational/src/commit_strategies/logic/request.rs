@@ -98,7 +98,7 @@ mod tests {
     }
 
     #[test]
-    fn canonical_request_binds_registered_strategy_and_stabilizes_json_order() {
+    fn canonical_request_binds_registered_strategy_and_preserves_native_bytes() {
         let registry = registry();
         let left = RawStrategyCommitRequest::from_canonical_bytes(
             CommitStrategySemanticName::new("strategy.intent.reconcile"),

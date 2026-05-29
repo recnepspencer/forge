@@ -140,11 +140,11 @@ fn entity_field_patch_application_denial_carries_contract_field_locator() {
 fn authoritative_aspect_state_conflicts_carry_boundary_source_locators() {
     let entity_denial = EntityAuthoritativeAspectStateDenial::UnsupportedAspectValue {
         source_locator: authoritative_field_source_locator("profile.summary", "summary"),
-        value_family: "non-scalar-json".to_string(),
+        value_family: "non-scalar-compatibility-input".to_string(),
     };
     let relation_denial = RelationAuthoritativeAspectStateDenial::UnsupportedAspectValue {
         source_locator: authoritative_field_source_locator("edge.label", "label"),
-        value_family: "non-scalar-json".to_string(),
+        value_family: "non-scalar-compatibility-input".to_string(),
     };
 
     assert_authoritative_field_source_locator(
