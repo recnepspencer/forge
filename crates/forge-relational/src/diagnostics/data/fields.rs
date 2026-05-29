@@ -21,13 +21,11 @@ use crate::schema::data::{
 use crate::snapshots::data::SnapshotId;
 
 mod aspect_value_diagnostic_terms;
-mod json_projection;
-mod projected_json_recovery;
+mod serde_projection;
+mod serde_recovery;
 
-use json_projection::diagnostic_value_to_json;
-use projected_json_recovery::{
-    canonicalize_diagnostic_value, diagnostic_value_from_projected_json,
-};
+use serde_projection::diagnostic_value_to_serde_value;
+use serde_recovery::{canonicalize_serde_value, diagnostic_value_from_serde_value};
 
 #[derive(Debug, Clone)]
 pub struct RelationalDiagnosticFields {
@@ -35,9 +33,9 @@ pub struct RelationalDiagnosticFields {
 }
 
 impl RelationalDiagnosticFields {
-    fn from_projected_json(root: Value) -> Self {
-        let canonical_projected_json = canonicalize_diagnostic_value(&root);
-        let root = diagnostic_value_from_projected_json(&canonical_projected_json);
+    fn from_serde_projection(root: Value) -> Self {
+        let canonical_serde_projection = canonicalize_serde_value(&root);
+        let root = diagnostic_value_from_serde_value(&canonical_serde_projection);
         Self { root }
     }
 
@@ -49,8 +47,8 @@ impl RelationalDiagnosticFields {
         &self.root
     }
 
-    pub fn into_projected_json(self) -> Value {
-        diagnostic_value_to_json(&self.root)
+    pub fn into_serde_projection(self) -> Value {
+        diagnostic_value_to_serde_value(&self.root)
     }
 }
 
@@ -128,7 +126,7 @@ impl Serialize for RelationalDiagnosticFields {
     where
         S: serde::Serializer,
     {
-        diagnostic_value_to_json(&self.root).serialize(serializer)
+        diagnostic_value_to_serde_value(&self.root).serialize(serializer)
     }
 }
 
@@ -137,7 +135,7 @@ impl<'de> Deserialize<'de> for RelationalDiagnosticFields {
     where
         D: serde::Deserializer<'de>,
     {
-        Value::deserialize(deserializer).map(Self::from_projected_json)
+        Value::deserialize(deserializer).map(Self::from_serde_projection)
     }
 }
 
@@ -149,7 +147,7 @@ impl From<RelationalDiagnosticValue> for RelationalDiagnosticFields {
 
 impl PartialEq for RelationalDiagnosticFields {
     fn eq(&self, other: &Self) -> bool {
-        diagnostic_value_to_json(&self.root) == diagnostic_value_to_json(&other.root)
+        diagnostic_value_to_serde_value(&self.root) == diagnostic_value_to_serde_value(&other.root)
     }
 }
 

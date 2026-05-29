@@ -7,7 +7,7 @@ use super::aspect_value_diagnostic_terms::{
 use super::RelationalDiagnosticValue;
 use crate::identity::data::{EntityId, PartitionId, RelationId};
 
-pub(super) fn diagnostic_value_to_json(value: &RelationalDiagnosticValue) -> Value {
+pub(super) fn diagnostic_value_to_serde_value(value: &RelationalDiagnosticValue) -> Value {
     match value {
         RelationalDiagnosticValue::Null => Value::Null,
         RelationalDiagnosticValue::Bool(value) => Value::Bool(*value),
@@ -15,12 +15,12 @@ pub(super) fn diagnostic_value_to_json(value: &RelationalDiagnosticValue) -> Val
         RelationalDiagnosticValue::Signed(value) => Value::from(*value),
         RelationalDiagnosticValue::String(value) => Value::String(value.clone()),
         RelationalDiagnosticValue::Array(values) => {
-            Value::Array(values.iter().map(diagnostic_value_to_json).collect())
+            Value::Array(values.iter().map(diagnostic_value_to_serde_value).collect())
         }
         RelationalDiagnosticValue::Object(fields) => Value::Object(
             fields
                 .iter()
-                .map(|(key, value)| (key.clone(), diagnostic_value_to_json(value)))
+                .map(|(key, value)| (key.clone(), diagnostic_value_to_serde_value(value)))
                 .collect(),
         ),
         RelationalDiagnosticValue::AspectKey(value) => Value::String(value.as_str().to_string()),
@@ -32,15 +32,15 @@ pub(super) fn diagnostic_value_to_json(value: &RelationalDiagnosticValue) -> Val
                 .collect(),
         ),
         RelationalDiagnosticValue::AspectValue(value) => {
-            diagnostic_value_to_json(&aspect_value_diagnostic_value(value))
+            diagnostic_value_to_serde_value(&aspect_value_diagnostic_value(value))
         }
         RelationalDiagnosticValue::AspectValueLocator(locator) => {
-            aspect_value_locator_json_value(locator)
+            aspect_value_locator_serde_value(locator)
         }
         RelationalDiagnosticValue::StructAspectValue(value) => {
-            diagnostic_value_to_json(&struct_aspect_value_diagnostic_value(value))
+            diagnostic_value_to_serde_value(&struct_aspect_value_diagnostic_value(value))
         }
-        RelationalDiagnosticValue::DiagnosticMask(mask) => diagnostic_mask_json_value(mask),
+        RelationalDiagnosticValue::DiagnosticMask(mask) => diagnostic_mask_serde_value(mask),
         RelationalDiagnosticValue::PartitionId(value) => Value::from(value.as_u64()),
         RelationalDiagnosticValue::KindId(value) => Value::from(value.as_u64()),
         RelationalDiagnosticValue::VersionId(value) => Value::from(value.as_u64()),
@@ -63,12 +63,12 @@ pub(super) fn diagnostic_value_to_json(value: &RelationalDiagnosticValue) -> Val
         }
         RelationalDiagnosticValue::DescriptorSemanticsVersion(value) => Value::from(value.0),
         RelationalDiagnosticValue::DescriptorCanonicalizationVersion(value) => Value::from(value.0),
-        RelationalDiagnosticValue::EntityId(value) => entity_id_json_value(*value),
-        RelationalDiagnosticValue::RelationId(value) => relation_id_json_value(*value),
+        RelationalDiagnosticValue::EntityId(value) => entity_id_serde_value(*value),
+        RelationalDiagnosticValue::RelationId(value) => relation_id_serde_value(*value),
     }
 }
 
-fn aspect_value_locator_json_value(locator: &AspectValueLocator) -> Value {
+fn aspect_value_locator_serde_value(locator: &AspectValueLocator) -> Value {
     match locator {
         AspectValueLocator::WholeAspect(aspect) => Value::Object(Map::from_iter([
             (
@@ -112,7 +112,7 @@ fn aspect_value_locator_json_value(locator: &AspectValueLocator) -> Value {
     }
 }
 
-fn diagnostic_mask_json_value(mask: &AspectMask<DiagnosticMask>) -> Value {
+fn diagnostic_mask_serde_value(mask: &AspectMask<DiagnosticMask>) -> Value {
     if mask.is_whole_aspect() {
         return Value::Object(Map::from_iter([(
             "mask_kind".to_string(),
@@ -142,8 +142,8 @@ fn diagnostic_mask_json_value(mask: &AspectMask<DiagnosticMask>) -> Value {
     ]))
 }
 
-fn entity_id_json_value(entity_id: EntityId) -> Value {
-    record_id_json_value(
+fn entity_id_serde_value(entity_id: EntityId) -> Value {
+    record_id_serde_value(
         "entity",
         entity_id.partition_id,
         entity_id.local_slot_value(),
@@ -151,8 +151,8 @@ fn entity_id_json_value(entity_id: EntityId) -> Value {
     )
 }
 
-fn relation_id_json_value(relation_id: RelationId) -> Value {
-    record_id_json_value(
+fn relation_id_serde_value(relation_id: RelationId) -> Value {
+    record_id_serde_value(
         "relation",
         relation_id.partition_id,
         relation_id.local_slot_value(),
@@ -160,7 +160,7 @@ fn relation_id_json_value(relation_id: RelationId) -> Value {
     )
 }
 
-fn record_id_json_value(
+fn record_id_serde_value(
     record_kind: &'static str,
     partition_id: PartitionId,
     local_slot: u64,

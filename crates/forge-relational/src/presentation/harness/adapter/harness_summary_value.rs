@@ -34,7 +34,7 @@ impl HarnessSummaryValue {
                     .map(|(field, value)| (field, value.into_json())),
             )),
             Self::DiagnosticFields(value) => {
-                RelationalDiagnosticFields::from_diagnostic_value(value).into_projected_json()
+                RelationalDiagnosticFields::from_diagnostic_value(value).into_serde_projection()
             }
         }
     }
