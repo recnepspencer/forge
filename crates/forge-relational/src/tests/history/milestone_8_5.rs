@@ -53,11 +53,11 @@ struct StrategyCertificationBundle {
     visible_truth: StrategyVisibleTruthEvidence,
 }
 
-fn strategy_field_locator(aspect_key: &str, field_key: &str) -> AspectFieldLocator {
+fn strategy_field_locator(aspect_key: AspectKey, field_key: FieldKey) -> AspectFieldLocator {
     AspectFieldLocator::new(
         LocatorAuthority::Planned,
-        AspectKey::new(aspect_key).expect("valid strategy aspect key"),
-        CanonicalFieldPath::single(FieldKey::new(field_key).expect("valid strategy field key")),
+        aspect_key,
+        CanonicalFieldPath::single(field_key),
     )
 }
 
@@ -448,7 +448,10 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         &mut runtime,
         AspectFieldReconciliationInput {
             entity_id: aspect_overlap_entity,
-            field_locator: strategy_field_locator("name", "name"),
+            field_locator: strategy_field_locator(
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
+            ),
             desired_value: forge_foundational::facade::AspectValue::String("aspect-main".into()),
         }
         .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
@@ -463,7 +466,10 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         &mut runtime,
         AspectFieldReconciliationInput {
             entity_id: aspect_overlap_entity,
-            field_locator: strategy_field_locator("name", "name"),
+            field_locator: strategy_field_locator(
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
+            ),
             desired_value: forge_foundational::facade::AspectValue::String("aspect-feature".into()),
         }
         .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
@@ -501,7 +507,10 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         &mut runtime,
         AspectFieldReconciliationInput {
             entity_id: aspect_disjoint_entity,
-            field_locator: strategy_field_locator("name", "name"),
+            field_locator: strategy_field_locator(
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
+            ),
             desired_value: forge_foundational::facade::AspectValue::String("disjoint-main".into()),
         }
         .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {

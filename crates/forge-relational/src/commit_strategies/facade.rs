@@ -174,11 +174,11 @@ mod tests {
         ]))
     }
 
-    fn strategy_field_locator(aspect_key: &str, field_key: &str) -> AspectFieldLocator {
+    fn strategy_field_locator(aspect_key: AspectKey, field_key: FieldKey) -> AspectFieldLocator {
         AspectFieldLocator::new(
             LocatorAuthority::Planned,
-            AspectKey::new(aspect_key).expect("valid strategy aspect key"),
-            CanonicalFieldPath::single(FieldKey::new(field_key).expect("valid strategy field key")),
+            aspect_key,
+            CanonicalFieldPath::single(field_key),
         )
     }
 
@@ -958,7 +958,10 @@ mod tests {
                 .canonicalize_request(
                     &AspectFieldReconciliationInput {
                         entity_id: entity,
-                        field_locator: strategy_field_locator("name", "name"),
+                        field_locator: strategy_field_locator(
+                            crate::tests::support::aspect_key("name"),
+                            crate::tests::support::field_key("name"),
+                        ),
                         desired_value: forge_foundational::facade::AspectValue::String(
                             "feature-strategy".into(),
                         ),
@@ -1213,7 +1216,10 @@ mod tests {
                 .canonicalize_request(
                     &AspectFieldReconciliationInput {
                         entity_id: entity,
-                        field_locator: strategy_field_locator("name", "name"),
+                        field_locator: strategy_field_locator(
+                            crate::tests::support::aspect_key("name"),
+                            crate::tests::support::field_key("name"),
+                        ),
                         desired_value: forge_foundational::facade::AspectValue::String(
                             "main-name".into(),
                         ),
@@ -1353,7 +1359,10 @@ mod tests {
                 .canonicalize_request(
                     &AspectFieldReconciliationInput {
                         entity_id: entity,
-                        field_locator: strategy_field_locator("name", "name"),
+                        field_locator: strategy_field_locator(
+                            crate::tests::support::aspect_key("name"),
+                            crate::tests::support::field_key("name"),
+                        ),
                         desired_value: forge_foundational::facade::AspectValue::String(
                             desired_value.into(),
                         ),

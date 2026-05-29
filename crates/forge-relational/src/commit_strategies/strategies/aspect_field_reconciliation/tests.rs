@@ -50,11 +50,11 @@ fn registry_with_replicas_field() -> crate::schema::data::RelationalSchemaRegist
     .build_registry()
 }
 
-fn field_locator(aspect_key: &str, field_key: &str) -> AspectFieldLocator {
+fn field_locator(aspect_key: AspectKey, field_key: FieldKey) -> AspectFieldLocator {
     AspectFieldLocator::new(
         LocatorAuthority::Planned,
-        AspectKey::new(aspect_key).expect("valid test aspect key"),
-        CanonicalFieldPath::single(FieldKey::new(field_key).expect("valid test field key")),
+        aspect_key,
+        CanonicalFieldPath::single(field_key),
     )
 }
 
@@ -71,7 +71,10 @@ fn aspect_field_reconciliation_strategy_updates_only_declared_field_aspect() {
         .canonicalize_request(
             &AspectFieldReconciliationInput {
                 entity_id: entity,
-                field_locator: field_locator("replicas", "replicas"),
+                field_locator: field_locator(
+                    crate::tests::support::aspect_key("replicas"),
+                    crate::tests::support::field_key("replicas"),
+                ),
                 desired_value: forge_foundational::facade::AspectValue::UInt64(5),
             }
             .into_raw_request(StrategyCallerProvenance {
@@ -100,7 +103,13 @@ fn aspect_field_reconciliation_strategy_updates_only_declared_field_aspect() {
     };
 
     assert!(output.updated);
-    assert_eq!(output.field_locator, field_locator("replicas", "replicas"));
+    assert_eq!(
+        output.field_locator,
+        field_locator(
+            crate::tests::support::aspect_key("replicas"),
+            crate::tests::support::field_key("replicas")
+        )
+    );
     assert_eq!(
         updated_replicas,
         Some(&forge_foundational::facade::AspectValue::UInt64(5))
@@ -119,7 +128,10 @@ fn aspect_field_reconciliation_strategy_noops_when_authoritative_field_matches()
         .canonicalize_request(
             &AspectFieldReconciliationInput {
                 entity_id: entity,
-                field_locator: field_locator("name", "name"),
+                field_locator: field_locator(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
                 desired_value: forge_foundational::facade::AspectValue::String(
                     forge_foundational::facade::InternedString::Raw("stable".to_string()),
                 ),
@@ -168,7 +180,10 @@ fn aspect_field_reconciliation_strategy_rejects_undeclared_field() {
         .canonicalize_request(
             &AspectFieldReconciliationInput {
                 entity_id: entity,
-                field_locator: field_locator("replicas", "replicas"),
+                field_locator: field_locator(
+                    crate::tests::support::aspect_key("replicas"),
+                    crate::tests::support::field_key("replicas"),
+                ),
                 desired_value: forge_foundational::facade::AspectValue::UInt64(5),
             }
             .into_raw_request(StrategyCallerProvenance {
