@@ -3,7 +3,7 @@ use forge_foundational::facade::{
     StructAspectValue,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::Value;
 use std::collections::BTreeMap;
 
 use crate::durability::data::{DurableCheckpointId, DurableSegmentId};
@@ -21,11 +21,10 @@ use crate::schema::data::{
 use crate::snapshots::data::SnapshotId;
 
 mod aspect_value_diagnostic_terms;
+mod json_projection;
 mod projected_json_recovery;
 
-use aspect_value_diagnostic_terms::{
-    aspect_value_diagnostic_value, struct_aspect_value_diagnostic_value,
-};
+use json_projection::diagnostic_value_to_json;
 use projected_json_recovery::{
     canonicalize_diagnostic_value, diagnostic_value_from_projected_json,
 };
@@ -47,7 +46,7 @@ impl RelationalDiagnosticFields {
     }
 
     pub fn from_diagnostic_value(root: RelationalDiagnosticValue) -> Self {
-        let projected_root = root.to_json_value();
+        let projected_root = diagnostic_value_to_json(&root);
         Self {
             root,
             projected_root,
@@ -130,108 +129,6 @@ impl RelationalDiagnosticValue {
     pub fn optional(value: Option<RelationalDiagnosticValue>) -> Self {
         value.unwrap_or(Self::Null)
     }
-
-    fn to_json_value(&self) -> Value {
-        match self {
-            Self::Null => Value::Null,
-            Self::Bool(value) => Value::Bool(*value),
-            Self::Unsigned(value) => Value::from(*value),
-            Self::Signed(value) => Value::from(*value),
-            Self::String(value) => Value::String(value.clone()),
-            Self::Array(values) => Value::Array(
-                values
-                    .iter()
-                    .map(RelationalDiagnosticValue::to_json_value)
-                    .collect(),
-            ),
-            Self::Object(fields) => Value::Object(
-                fields
-                    .iter()
-                    .map(|(key, value)| (key.clone(), value.to_json_value()))
-                    .collect(),
-            ),
-            Self::AspectKey(value) => Value::String(value.as_str().to_string()),
-            Self::FieldKey(value) => Value::String(value.as_str().to_string()),
-            Self::FieldPath(fields) => Value::Array(
-                fields
-                    .iter()
-                    .map(|field| Value::String(field.as_str().to_string()))
-                    .collect(),
-            ),
-            Self::AspectValue(value) => aspect_value_diagnostic_value(value).to_json_value(),
-            Self::AspectValueLocator(locator) => aspect_value_locator_json_value(locator),
-            Self::StructAspectValue(value) => {
-                struct_aspect_value_diagnostic_value(value).to_json_value()
-            }
-            Self::DiagnosticMask(mask) => diagnostic_mask_json_value(mask),
-            Self::PartitionId(value) => Value::from(value.as_u64()),
-            Self::KindId(value) => Value::from(value.as_u64()),
-            Self::VersionId(value) => Value::from(value.as_u64()),
-            Self::LineageId(value) => Value::from(value.as_u64()),
-            Self::CommitId(value) => Value::from(value.0),
-            Self::BranchId(value) => Value::String(value.0.clone()),
-            Self::SnapshotId(value) => Value::from(value.0),
-            Self::DurableCheckpointId(value) => Value::from(value.0),
-            Self::DurableSegmentId(value) => Value::from(value.0),
-            Self::DerivedIndexId(value) => Value::from(value.0),
-            Self::DerivedIndexGenerationId(value) => Value::from(value.0),
-            Self::CorrespondenceCandidateId(value) => Value::from(value.0),
-            Self::PatchStreamPosition(value) => Value::from(value.0),
-            Self::ReplaySchemaVersion(value) => Value::from(value.0),
-            Self::SchemaId(value) => Value::String(value.0.clone()),
-            Self::SchemaVersionId(value) => Value::from(value.0),
-            Self::ContractId(value) => Value::String(value.as_str().to_string()),
-            Self::SchemaBoundaryFingerprint(value) => Value::String(format!("{value:?}")),
-            Self::DescriptorSemanticsVersion(value) => Value::from(value.0),
-            Self::DescriptorCanonicalizationVersion(value) => Value::from(value.0),
-            Self::EntityId(value) => entity_id_json_value(*value),
-            Self::RelationId(value) => relation_id_json_value(*value),
-        }
-    }
-}
-
-fn aspect_value_locator_json_value(locator: &AspectValueLocator) -> Value {
-    match locator {
-        AspectValueLocator::WholeAspect(aspect) => Value::Object(Map::from_iter([
-            (
-                "locator_kind".to_string(),
-                Value::String("whole_aspect".to_string()),
-            ),
-            (
-                "authority".to_string(),
-                Value::String(format!("{:?}", aspect.authority())),
-            ),
-            (
-                "aspect_key".to_string(),
-                Value::String(aspect.aspect_key().as_str().to_string()),
-            ),
-        ])),
-        AspectValueLocator::StructField(field) => Value::Object(Map::from_iter([
-            (
-                "locator_kind".to_string(),
-                Value::String("struct_field".to_string()),
-            ),
-            (
-                "authority".to_string(),
-                Value::String(format!("{:?}", field.aspect().authority())),
-            ),
-            (
-                "aspect_key".to_string(),
-                Value::String(field.aspect().aspect_key().as_str().to_string()),
-            ),
-            (
-                "field_path".to_string(),
-                Value::Array(
-                    field
-                        .field_path()
-                        .fields()
-                        .iter()
-                        .map(|field| Value::String(field.as_str().to_string()))
-                        .collect(),
-                ),
-            ),
-        ])),
-    }
 }
 
 impl Serialize for RelationalDiagnosticFields {
@@ -282,74 +179,6 @@ impl PartialEq<RelationalDiagnosticFields> for Value {
     fn eq(&self, other: &RelationalDiagnosticFields) -> bool {
         self == &other.projected_root
     }
-}
-
-fn diagnostic_mask_json_value(mask: &AspectMask<DiagnosticMask>) -> Value {
-    if mask.is_whole_aspect() {
-        return Value::Object(Map::from_iter([(
-            "mask_kind".to_string(),
-            Value::String("whole_aspect".to_string()),
-        )]));
-    }
-
-    Value::Object(Map::from_iter([
-        ("mask_kind".to_string(), Value::String("fields".to_string())),
-        (
-            "field_paths".to_string(),
-            Value::Array(
-                mask.paths()
-                    .iter()
-                    .map(|field_path| {
-                        Value::Array(
-                            field_path
-                                .fields()
-                                .iter()
-                                .map(|field| Value::String(field.as_str().to_string()))
-                                .collect(),
-                        )
-                    })
-                    .collect(),
-            ),
-        ),
-    ]))
-}
-
-fn entity_id_json_value(entity_id: EntityId) -> Value {
-    record_id_json_value(
-        "entity",
-        entity_id.partition_id,
-        entity_id.local_slot_value(),
-        entity_id.generation_value(),
-    )
-}
-
-fn relation_id_json_value(relation_id: RelationId) -> Value {
-    record_id_json_value(
-        "relation",
-        relation_id.partition_id,
-        relation_id.local_slot_value(),
-        relation_id.generation_value(),
-    )
-}
-
-fn record_id_json_value(
-    record_kind: &'static str,
-    partition_id: PartitionId,
-    local_slot: u64,
-    generation: u32,
-) -> Value {
-    Value::Object(Map::from_iter([
-        (
-            "record_kind".to_string(),
-            Value::String(record_kind.to_string()),
-        ),
-        (
-            "partition_id".to_string(),
-            Value::from(partition_id.as_u64()),
-        ),
-        ("local_slot".to_string(), Value::from(local_slot)),
-        ("generation".to_string(), Value::from(generation as u64)),
-    ]))
 }
 
 #[cfg(test)]
