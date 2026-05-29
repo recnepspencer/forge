@@ -1,5 +1,3 @@
-#![allow(unused_imports)]
-
 mod aspect_field_target;
 mod catalog;
 mod contracts;
@@ -27,8 +25,7 @@ pub use custom_rule::{
 };
 pub(crate) use custom_rule::{
     CustomInvariantFailure, CustomInvariantFailureKind, CustomInvariantRuntimePhase,
-    ErasedCustomInvariantRule, PreparedCustomInvariantExecution,
-    PreparedCustomInvariantExecutionOutcome,
+    PreparedCustomInvariantExecution, PreparedCustomInvariantExecutionOutcome,
 };
 pub use descriptor::{
     CustomInvariantDescriptor, CustomInvariantOperationalMetadata, InvariantRuleDescriptor,
@@ -42,7 +39,7 @@ pub use execution::{
 pub use groups::{InvariantCostClass, InvariantGroup, InvariantGroupSet};
 pub use results::{
     CustomInvariantFailureIdentity, CustomInvariantFailureKind as ResultCustomInvariantFailureKind,
-    CustomInvariantFailurePhase, InvariantAdvisory, InvariantViolation, InvariantViolationFields,
+    CustomInvariantFailurePhase, InvariantViolation, InvariantViolationFields,
     RelationCardinalityBoundary, RelationEndpointBoundary, StorageInconsistencyFailure,
     StorageInconsistencyLookup, StorageInconsistencyScan,
 };

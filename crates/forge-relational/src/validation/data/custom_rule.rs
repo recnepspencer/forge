@@ -32,4 +32,4 @@ pub(crate) use errors::{
     CustomInvariantFailure, CustomInvariantFailureKind, CustomInvariantRuntimePhase,
     PreparedCustomInvariantExecutionOutcome,
 };
-pub(crate) use registration::{ErasedCustomInvariantRule, PreparedCustomInvariantExecution};
+pub(crate) use registration::PreparedCustomInvariantExecution;
