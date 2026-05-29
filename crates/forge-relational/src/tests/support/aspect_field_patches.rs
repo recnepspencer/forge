@@ -1,12 +1,13 @@
 use super::{AspectFieldPatch, AspectKey};
+use forge_foundational::facade::FieldKey;
 use std::collections::BTreeMap;
 
-pub(crate) fn single_string_aspect_field_patch(field: &str, value: &str) -> AspectFieldPatch {
+pub(crate) fn single_string_aspect_field_patch(field: FieldKey, value: &str) -> AspectFieldPatch {
     aspect_field_patch_from_values([(field, string_aspect_value(value))])
 }
 
 pub(crate) fn string_aspect_field_patch<'a>(
-    fields: impl IntoIterator<Item = (&'a str, &'a str)>,
+    fields: impl IntoIterator<Item = (FieldKey, &'a str)>,
 ) -> AspectFieldPatch {
     aspect_field_patch_from_values(
         fields
@@ -15,8 +16,8 @@ pub(crate) fn string_aspect_field_patch<'a>(
     )
 }
 
-pub(crate) fn aspect_field_patch_from_values<'a>(
-    fields: impl IntoIterator<Item = (&'a str, forge_foundational::facade::AspectValue)>,
+pub(crate) fn aspect_field_patch_from_values(
+    fields: impl IntoIterator<Item = (FieldKey, forge_foundational::facade::AspectValue)>,
 ) -> AspectFieldPatch {
     let fields = fields
         .into_iter()
@@ -25,11 +26,10 @@ pub(crate) fn aspect_field_patch_from_values<'a>(
     AspectFieldPatch::from(fields)
 }
 
-fn single_field_patch_target(field: &str) -> crate::transactions::data::AspectFieldPatchTarget {
-    let field_key = forge_foundational::facade::FieldKey::new(field.to_string())
-        .expect("test field key must be valid");
-    let aspect_key = AspectKey::new(field.to_string()).expect("test aspect key must be valid");
-    crate::transactions::data::AspectFieldPatchTarget::single(aspect_key, field_key)
+fn single_field_patch_target(field: FieldKey) -> crate::transactions::data::AspectFieldPatchTarget {
+    let aspect_key =
+        AspectKey::new(field.as_str().to_string()).expect("test aspect key must be valid");
+    crate::transactions::data::AspectFieldPatchTarget::single(aspect_key, field)
 }
 
 pub(crate) fn string_aspect_value(value: &str) -> forge_foundational::facade::AspectValue {

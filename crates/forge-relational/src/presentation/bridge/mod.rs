@@ -1,4 +1,6 @@
 #[cfg(test)]
+mod bridge_snapshot_reader_tests;
+#[cfg(test)]
 mod bridge_source_tests;
 mod identities;
 mod patch_envelopes;

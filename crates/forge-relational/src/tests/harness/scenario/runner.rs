@@ -409,7 +409,7 @@ fn apply_operation(
                                 "replace-{seed}-{step}-{name_counter}"
                             )),
                             fields: crate::tests::support::aspect_field_patch_from_values([(
-                                "name",
+                                crate::tests::support::field_key("name"),
                                 crate::tests::support::string_aspect_value(&name),
                             )]),
                         },

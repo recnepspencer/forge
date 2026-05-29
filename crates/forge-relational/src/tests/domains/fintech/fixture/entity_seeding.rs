@@ -7,7 +7,7 @@ use crate::facade::transactions::{
     RecordRef, TransactionOptions, WorkerIntentBatch,
 };
 use crate::tests::support::{
-    aspect_field_patch_from_values, bool_aspect_value, fixture_i64_number_aspect_value,
+    aspect_field_patch_from_values, bool_aspect_value, field_key, fixture_i64_number_aspect_value,
     string_aspect_value, u64_aspect_value, usize_aspect_value,
 };
 
@@ -49,9 +49,9 @@ pub(super) fn seed_entities(
             (
                 format!("desk-{name}"),
                 aspect_field_patch_from_values([
-                    ("entity_type", string_aspect_value("desk")),
-                    ("desk_name", string_aspect_value(name)),
-                    ("desk_index", usize_aspect_value(idx)),
+                    (field_key("entity_type"), string_aspect_value("desk")),
+                    (field_key("desk_name"), string_aspect_value(name)),
+                    (field_key("desk_index"), usize_aspect_value(idx)),
                 ]),
             )
         }),
@@ -64,10 +64,10 @@ pub(super) fn seed_entities(
             (
                 format!("book-{name}"),
                 aspect_field_patch_from_values([
-                    ("entity_type", string_aspect_value("book")),
-                    ("book_name", string_aspect_value(name)),
+                    (field_key("entity_type"), string_aspect_value("book")),
+                    (field_key("book_name"), string_aspect_value(name)),
                     (
-                        "desk_name",
+                        field_key("desk_name"),
                         string_aspect_value(
                             case_seeds
                                 .iter()
@@ -76,7 +76,7 @@ pub(super) fn seed_entities(
                                 .unwrap_or("macro-flow"),
                         ),
                     ),
-                    ("book_index", usize_aspect_value(idx)),
+                    (field_key("book_index"), usize_aspect_value(idx)),
                 ]),
             )
         }),
@@ -89,11 +89,11 @@ pub(super) fn seed_entities(
             (
                 format!("account-{}", seed.slug),
                 aspect_field_patch_from_values([
-                    ("entity_type", string_aspect_value("account")),
-                    ("case", string_aspect_value(seed.slug)),
-                    ("book_name", string_aspect_value(seed.book_name)),
+                    (field_key("entity_type"), string_aspect_value("account")),
+                    (field_key("case"), string_aspect_value(seed.slug)),
+                    (field_key("book_name"), string_aspect_value(seed.book_name)),
                     (
-                        "balance_cents",
+                        field_key("balance_cents"),
                         fixture_i64_number_aspect_value(seed.balance_cents),
                     ),
                 ]),
@@ -108,10 +108,19 @@ pub(super) fn seed_entities(
             (
                 format!("counterparty-{}", seed.slug),
                 aspect_field_patch_from_values([
-                    ("entity_type", string_aspect_value("counterparty")),
-                    ("name", string_aspect_value(seed.counterparty_name)),
-                    ("rating", string_aspect_value(seed.counterparty_rating)),
-                    ("case", string_aspect_value(seed.slug)),
+                    (
+                        field_key("entity_type"),
+                        string_aspect_value("counterparty"),
+                    ),
+                    (
+                        field_key("name"),
+                        string_aspect_value(seed.counterparty_name),
+                    ),
+                    (
+                        field_key("rating"),
+                        string_aspect_value(seed.counterparty_rating),
+                    ),
+                    (field_key("case"), string_aspect_value(seed.slug)),
                 ]),
             )
         }),
@@ -124,14 +133,17 @@ pub(super) fn seed_entities(
             (
                 format!("trade-{}", seed.slug),
                 aspect_field_patch_from_values([
-                    ("entity_type", string_aspect_value("trade")),
-                    ("case", string_aspect_value(seed.slug)),
-                    ("desk", string_aspect_value(seed.desk_name)),
-                    ("book", string_aspect_value(seed.book_name)),
-                    ("notional", fixture_i64_number_aspect_value(seed.notional)),
-                    ("ccy", string_aspect_value(seed.ccy)),
+                    (field_key("entity_type"), string_aspect_value("trade")),
+                    (field_key("case"), string_aspect_value(seed.slug)),
+                    (field_key("desk"), string_aspect_value(seed.desk_name)),
+                    (field_key("book"), string_aspect_value(seed.book_name)),
                     (
-                        "correction_candidate",
+                        field_key("notional"),
+                        fixture_i64_number_aspect_value(seed.notional),
+                    ),
+                    (field_key("ccy"), string_aspect_value(seed.ccy)),
+                    (
+                        field_key("correction_candidate"),
                         bool_aspect_value(matches!(
                             seed.role,
                             FintechCaseRole::LateTradeCorrection
@@ -149,9 +161,12 @@ pub(super) fn seed_entities(
             (
                 format!("settlement-{}", seed.slug),
                 aspect_field_patch_from_values([
-                    ("entity_type", string_aspect_value("settlement")),
-                    ("case", string_aspect_value(seed.slug)),
-                    ("status", string_aspect_value(seed.settlement_status)),
+                    (field_key("entity_type"), string_aspect_value("settlement")),
+                    (field_key("case"), string_aspect_value(seed.slug)),
+                    (
+                        field_key("status"),
+                        string_aspect_value(seed.settlement_status),
+                    ),
                 ]),
             )
         }),
@@ -164,9 +179,9 @@ pub(super) fn seed_entities(
             (
                 format!("cash-event-{}", seed.slug),
                 aspect_field_patch_from_values([
-                    ("entity_type", string_aspect_value("cash_event")),
-                    ("case", string_aspect_value(seed.slug)),
-                    ("kind", string_aspect_value(seed.cash_event_kind)),
+                    (field_key("entity_type"), string_aspect_value("cash_event")),
+                    (field_key("case"), string_aspect_value(seed.slug)),
+                    (field_key("kind"), string_aspect_value(seed.cash_event_kind)),
                 ]),
             )
         }),
@@ -179,9 +194,12 @@ pub(super) fn seed_entities(
             (
                 format!("audit-{}", seed.slug),
                 aspect_field_patch_from_values([
-                    ("entity_type", string_aspect_value("audit_record")),
-                    ("case", string_aspect_value(seed.slug)),
-                    ("event", string_aspect_value(seed.audit_event)),
+                    (
+                        field_key("entity_type"),
+                        string_aspect_value("audit_record"),
+                    ),
+                    (field_key("case"), string_aspect_value(seed.slug)),
+                    (field_key("event"), string_aspect_value(seed.audit_event)),
                 ]),
             )
         }),
@@ -194,10 +212,13 @@ pub(super) fn seed_entities(
             (
                 format!("instrument-{}", seed.slug),
                 aspect_field_patch_from_values([
-                    ("entity_type", string_aspect_value("instrument")),
-                    ("case", string_aspect_value(seed.slug)),
-                    ("symbol", string_aspect_value(seed.symbol)),
-                    ("asset_class", string_aspect_value(seed.asset_class)),
+                    (field_key("entity_type"), string_aspect_value("instrument")),
+                    (field_key("case"), string_aspect_value(seed.slug)),
+                    (field_key("symbol"), string_aspect_value(seed.symbol)),
+                    (
+                        field_key("asset_class"),
+                        string_aspect_value(seed.asset_class),
+                    ),
                 ]),
             )
         }),
@@ -210,10 +231,16 @@ pub(super) fn seed_entities(
             (
                 format!("curve-{}", seed.slug),
                 aspect_field_patch_from_values([
-                    ("entity_type", string_aspect_value("market_point")),
-                    ("case", string_aspect_value(seed.slug)),
-                    ("curve_bucket", usize_aspect_value(idx)),
-                    ("mid", fixture_i64_number_aspect_value(seed.market_mid)),
+                    (
+                        field_key("entity_type"),
+                        string_aspect_value("market_point"),
+                    ),
+                    (field_key("case"), string_aspect_value(seed.slug)),
+                    (field_key("curve_bucket"), usize_aspect_value(idx)),
+                    (
+                        field_key("mid"),
+                        fixture_i64_number_aspect_value(seed.market_mid),
+                    ),
                 ]),
             )
         }),
@@ -226,9 +253,12 @@ pub(super) fn seed_entities(
             (
                 format!("risk-{}", seed.slug),
                 aspect_field_patch_from_values([
-                    ("entity_type", string_aspect_value("risk_view")),
-                    ("case", string_aspect_value(seed.slug)),
-                    ("scenario", string_aspect_value(seed.risk_scenario)),
+                    (field_key("entity_type"), string_aspect_value("risk_view")),
+                    (field_key("case"), string_aspect_value(seed.slug)),
+                    (
+                        field_key("scenario"),
+                        string_aspect_value(seed.risk_scenario),
+                    ),
                 ]),
             )
         }),
@@ -241,10 +271,10 @@ pub(super) fn seed_entities(
             (
                 format!("limit-{}", seed.slug),
                 aspect_field_patch_from_values([
-                    ("entity_type", string_aspect_value("limit")),
-                    ("case", string_aspect_value(seed.slug)),
+                    (field_key("entity_type"), string_aspect_value("limit")),
+                    (field_key("case"), string_aspect_value(seed.slug)),
                     (
-                        "threshold_bps",
+                        field_key("threshold_bps"),
                         u64_aspect_value(seed.limit_threshold_bps as u64),
                     ),
                 ]),
@@ -259,9 +289,12 @@ pub(super) fn seed_entities(
             (
                 format!("breach-{}", seed.slug),
                 aspect_field_patch_from_values([
-                    ("entity_type", string_aspect_value("limit_breach")),
-                    ("case", string_aspect_value(seed.slug)),
-                    ("status", string_aspect_value(seed.breach_status)),
+                    (
+                        field_key("entity_type"),
+                        string_aspect_value("limit_breach"),
+                    ),
+                    (field_key("case"), string_aspect_value(seed.slug)),
+                    (field_key("status"), string_aspect_value(seed.breach_status)),
                 ]),
             )
         }),

@@ -23,28 +23,37 @@ pub(crate) fn rollback_case_trade_after_savepoint(
                     entity_id: case.trade,
                     fields: crate::tests::support::aspect_field_patch_from_values([
                         (
-                            "entity_type",
+                            crate::tests::support::field_key("entity_type"),
                             crate::tests::support::string_aspect_value("trade"),
                         ),
                         (
-                            "case",
+                            crate::tests::support::field_key("case"),
                             crate::tests::support::string_aspect_value("LateTradeCorrection"),
                         ),
                         (
-                            "desk",
+                            crate::tests::support::field_key("desk"),
                             crate::tests::support::string_aspect_value("analysis-risk"),
                         ),
                         (
-                            "book",
+                            crate::tests::support::field_key("book"),
                             crate::tests::support::string_aspect_value("temporary-correction"),
                         ),
                         (
-                            "notional",
+                            crate::tests::support::field_key("notional"),
                             crate::tests::support::u64_aspect_value(1_999_999),
                         ),
-                        ("ccy", crate::tests::support::string_aspect_value("USD")),
-                        ("corrected", crate::tests::support::bool_aspect_value(true)),
-                        ("transient", crate::tests::support::bool_aspect_value(true)),
+                        (
+                            crate::tests::support::field_key("ccy"),
+                            crate::tests::support::string_aspect_value("USD"),
+                        ),
+                        (
+                            crate::tests::support::field_key("corrected"),
+                            crate::tests::support::bool_aspect_value(true),
+                        ),
+                        (
+                            crate::tests::support::field_key("transient"),
+                            crate::tests::support::bool_aspect_value(true),
+                        ),
                     ]),
                 },
             )))
@@ -70,29 +79,35 @@ pub(crate) fn commit_case_trade_after_savepoint(
                     entity_id: case.trade,
                     fields: crate::tests::support::aspect_field_patch_from_values([
                         (
-                            "entity_type",
+                            crate::tests::support::field_key("entity_type"),
                             crate::tests::support::string_aspect_value("trade"),
                         ),
                         (
-                            "case",
+                            crate::tests::support::field_key("case"),
                             crate::tests::support::string_aspect_value("LateTradeCorrection"),
                         ),
                         (
-                            "desk",
+                            crate::tests::support::field_key("desk"),
                             crate::tests::support::string_aspect_value("analysis-risk"),
                         ),
                         (
-                            "book",
+                            crate::tests::support::field_key("book"),
                             crate::tests::support::string_aspect_value("saved-correction"),
                         ),
                         (
-                            "notional",
+                            crate::tests::support::field_key("notional"),
                             crate::tests::support::u64_aspect_value(1_800_000),
                         ),
-                        ("ccy", crate::tests::support::string_aspect_value("USD")),
-                        ("corrected", crate::tests::support::bool_aspect_value(true)),
                         (
-                            "savepoint_applied",
+                            crate::tests::support::field_key("ccy"),
+                            crate::tests::support::string_aspect_value("USD"),
+                        ),
+                        (
+                            crate::tests::support::field_key("corrected"),
+                            crate::tests::support::bool_aspect_value(true),
+                        ),
+                        (
+                            crate::tests::support::field_key("savepoint_applied"),
                             crate::tests::support::bool_aspect_value(true),
                         ),
                     ]),

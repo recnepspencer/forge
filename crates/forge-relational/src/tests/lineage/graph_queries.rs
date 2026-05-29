@@ -51,7 +51,7 @@ fn lineage_graph_replace_emits_replace_edge() {
                     kind_id: KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("replacement"),
                     fields: crate::tests::support::single_string_aspect_field_patch(
-                        "name",
+                        crate::tests::support::field_key("name"),
                         "replacement",
                     ),
                 },
@@ -95,7 +95,7 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
                         kind_id: KindId(1),
                         client_key: crate::symbols::data::ClientKey::raw("replacement-left"),
                         fields: crate::tests::support::single_string_aspect_field_patch(
-                            "name",
+                            crate::tests::support::field_key("name"),
                             "replacement",
                         ),
                     },
@@ -109,7 +109,7 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
                         kind_id: KindId(1),
                         client_key: crate::symbols::data::ClientKey::raw("replacement-right"),
                         fields: crate::tests::support::single_string_aspect_field_patch(
-                            "name",
+                            crate::tests::support::field_key("name"),
                             "replacement",
                         ),
                     },
@@ -176,7 +176,7 @@ fn lineage_graph_replace_commit_publishes_replace_decision_log_entry() {
                     kind_id: KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("replacement"),
                     fields: crate::tests::support::single_string_aspect_field_patch(
-                        "name",
+                        crate::tests::support::field_key("name"),
                         "replacement",
                     ),
                 },

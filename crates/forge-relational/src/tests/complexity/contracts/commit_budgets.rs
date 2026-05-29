@@ -266,9 +266,18 @@ fn complexity_budget_bulk_create_reserves_partition_local_capacity() {
                     crate::symbols::data::ClientKey::raw("c"),
                 ],
                 field_patches: vec![
-                    crate::tests::support::single_string_aspect_field_patch("name", "a"),
-                    crate::tests::support::single_string_aspect_field_patch("name", "b"),
-                    crate::tests::support::single_string_aspect_field_patch("name", "c"),
+                    crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::field_key("name"),
+                        "a",
+                    ),
+                    crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::field_key("name"),
+                        "b",
+                    ),
+                    crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::field_key("name"),
+                        "c",
+                    ),
                 ],
             }),
         )),
@@ -373,7 +382,10 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
         WorkerIntentBatch::new("duplicate-name").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: target,
-                fields: crate::tests::support::single_string_aspect_field_patch("name", "other"),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::field_key("name"),
+                    "other",
+                ),
             }),
         )),
     );
@@ -408,7 +420,10 @@ fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() 
         WorkerIntentBatch::new("duplicate-name").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: target,
-                fields: crate::tests::support::single_string_aspect_field_patch("name", "other"),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::field_key("name"),
+                    "other",
+                ),
             }),
         )),
     );
@@ -462,7 +477,7 @@ fn complexity_budget_preparation_packetization_is_chunked_for_broad_deltas() {
                 field_patches: (0..65)
                     .map(|index| {
                         crate::tests::support::aspect_field_patch_from_values([(
-                            "name",
+                            crate::tests::support::field_key("name"),
                             crate::tests::support::string_aspect_value(&format!("e{index}")),
                         )])
                     })
@@ -901,8 +916,14 @@ fn complexity_budget_bulk_mutation_planning_reports_identity_scope_and_batch_evi
                     crate::symbols::data::ClientKey::raw("beta"),
                 ],
                 field_patches: vec![
-                    crate::tests::support::single_string_aspect_field_patch("name", "alpha"),
-                    crate::tests::support::single_string_aspect_field_patch("name", "beta"),
+                    crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::field_key("name"),
+                        "alpha",
+                    ),
+                    crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::field_key("name"),
+                        "beta",
+                    ),
                 ],
             }),
         )),

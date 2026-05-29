@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use forge_foundational::facade::AspectValue;
-
 use crate::config::data::CascadeDeletePolicy;
 use crate::facade::identity::PartitionId;
 use crate::facade::transactions::{
@@ -9,7 +7,8 @@ use crate::facade::transactions::{
     WorkerIntentBatch,
 };
 use crate::tests::support::{
-    changed_entities, create_entity_outcome, runtime_with_declared_aspect_schema,
+    changed_entities, create_entity_outcome, field_key, runtime_with_declared_aspect_schema,
+    single_string_aspect_field_patch,
 };
 use forge_runtime_bridge::facade::{
     BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeDeliveryReceipt, BridgeMappingId,
@@ -22,10 +21,7 @@ use forge_runtime_bridge::facade::{
     CommittedPatchSource, ContinuityLineageSource, SnapshotReadSource,
 };
 
-use super::{
-    bridge_snapshot_identity_for_commit, bridge_snapshot_identity_for_handle,
-    RuntimeBridgeRelationalSource,
-};
+use super::{bridge_snapshot_identity_for_commit, RuntimeBridgeRelationalSource};
 
 struct TestSink;
 
@@ -93,10 +89,7 @@ fn runtime_bridge_lineage_source_resolves_real_relational_history() {
                     partition_id: PartitionId::main(),
                     kind_id: crate::facade::identity::KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("replacement"),
-                    fields: crate::tests::support::single_string_aspect_field_patch(
-                        "name",
-                        "replacement",
-                    ),
+                    fields: single_string_aspect_field_patch(field_key("name"), "replacement"),
                 },
             }),
         )),
@@ -288,7 +281,7 @@ fn runtime_bridge_replays_historical_commit_after_newer_publication_arrives() {
                     partition_id: PartitionId::main(),
                     kind_id: crate::facade::identity::KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("bob"),
-                    fields: crate::tests::support::single_string_aspect_field_patch("name", "bob"),
+                    fields: single_string_aspect_field_patch(field_key("name"), "bob"),
                 },
             ),
         )),
@@ -368,64 +361,6 @@ fn runtime_bridge_replays_historical_commit_after_newer_publication_arrives() {
     assert_eq!(replay.source_snapshot(), &expected_snapshot_identity);
 }
 
-#[test]
-fn runtime_bridge_snapshot_reader_prefers_active_snapshot_binding_over_later_commit_id_collision() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "alice");
-    let active_snapshot = runtime.visibility_authority().snapshot();
-    let active_snapshot_identity = bridge_snapshot_identity_for_handle(&active_snapshot);
-    let active_entity_identity = format!(
-        "entity:{}:{}:{}",
-        changed_entities(&created)[0].partition_id.0,
-        changed_entities(&created)[0].local_slot.0,
-        changed_entities(&created)[0].generation.0
-    );
-
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(
-        WorkerIntentBatch::new("update").push(MutationIntent::Entity(
-            EntityMutationIntent::Replace(ReplaceEntityIntent {
-                entity_id: changed_entities(&created)[0],
-                replacement: crate::transactions::data::EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: crate::facade::identity::KindId(1),
-                    client_key: crate::symbols::data::ClientKey::raw("alice"),
-                    fields: crate::tests::support::single_string_aspect_field_patch(
-                        "name",
-                        "alice-updated",
-                    ),
-                },
-            }),
-        )),
-    );
-    txn.commit().expect("second commit should publish");
-
-    let source = RuntimeBridgeRelationalSource::new(Arc::new(runtime));
-    let reader = source
-        .open_snapshot(&active_snapshot_identity)
-        .expect("active snapshot should remain bridge-readable after later commit id collision");
-    let packet = forge_runtime_bridge::facade::SnapshotReadPacket::new(vec![
-        forge_runtime_bridge::facade::SnapshotReadRequest::for_coarse(
-            active_entity_identity,
-            "name",
-        ),
-    ]);
-    let result = reader
-        .read_packet(&packet)
-        .expect("bridge snapshot packet should read from active binding");
-
-    assert_eq!(result.snapshot_identity(), &active_snapshot_identity);
-    assert_eq!(result.records().len(), 1);
-    assert_eq!(
-        decode_snapshot_aspect_bytes(result.records()[0].aspect_bytes()),
-        AspectValue::String("alice".into())
-    );
-}
-
 fn runtime_with_test_schema() -> crate::facade::runtime::RelationalRuntime {
     runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations)
-}
-
-fn decode_snapshot_aspect_bytes(aspect_bytes: &[u8]) -> AspectValue {
-    crate::aspect_wire::decode_aspect_value(aspect_bytes).expect("snapshot aspect bytes")
 }

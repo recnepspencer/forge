@@ -23,27 +23,33 @@ pub(crate) fn diverge_case_trade_on_branch(
                 entity_id: case.trade,
                 fields: crate::tests::support::aspect_field_patch_from_values([
                     (
-                        "entity_type",
+                        crate::tests::support::field_key("entity_type"),
                         crate::tests::support::string_aspect_value("trade"),
                     ),
                     (
-                        "case",
+                        crate::tests::support::field_key("case"),
                         crate::tests::support::string_aspect_value(&format!("{:?}", case.role)),
                     ),
                     (
-                        "desk",
+                        crate::tests::support::field_key("desk"),
                         crate::tests::support::string_aspect_value("analysis-branch"),
                     ),
                     (
-                        "book",
+                        crate::tests::support::field_key("book"),
                         crate::tests::support::string_aspect_value("branch-divergence"),
                     ),
                     (
-                        "notional",
+                        crate::tests::support::field_key("notional"),
                         crate::tests::support::fixture_i64_number_aspect_value(notional),
                     ),
-                    ("ccy", crate::tests::support::string_aspect_value("USD")),
-                    ("diverged", crate::tests::support::bool_aspect_value(true)),
+                    (
+                        crate::tests::support::field_key("ccy"),
+                        crate::tests::support::string_aspect_value("USD"),
+                    ),
+                    (
+                        crate::tests::support::field_key("diverged"),
+                        crate::tests::support::bool_aspect_value(true),
+                    ),
                 ]),
             }),
         )),

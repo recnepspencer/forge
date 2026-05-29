@@ -174,19 +174,28 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
     let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "shared",
-        crate::tests::support::single_string_aspect_field_patch("value", "base"),
+        crate::tests::support::single_string_aspect_field_patch(
+            crate::tests::support::field_key("value"),
+            "base",
+        ),
     );
     create_branch_from_main(&mut runtime, "feature");
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        crate::tests::support::single_string_aspect_field_patch("value", "main-change"),
+        crate::tests::support::single_string_aspect_field_patch(
+            crate::tests::support::field_key("value"),
+            "main-change",
+        ),
         BranchId("main".to_string()),
     );
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        crate::tests::support::single_string_aspect_field_patch("value", "feature-change"),
+        crate::tests::support::single_string_aspect_field_patch(
+            crate::tests::support::field_key("value"),
+            "feature-change",
+        ),
         BranchId("feature".to_string()),
     );
 
@@ -269,19 +278,28 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
     let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "shared",
-        crate::tests::support::single_string_aspect_field_patch("value", "base"),
+        crate::tests::support::single_string_aspect_field_patch(
+            crate::tests::support::field_key("value"),
+            "base",
+        ),
     );
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        crate::tests::support::single_string_aspect_field_patch("value", "main-change"),
+        crate::tests::support::single_string_aspect_field_patch(
+            crate::tests::support::field_key("value"),
+            "main-change",
+        ),
         BranchId("main".to_string()),
     );
     create_branch_from_main(&mut runtime, "feature");
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        crate::tests::support::single_string_aspect_field_patch("value", "feature-change"),
+        crate::tests::support::single_string_aspect_field_patch(
+            crate::tests::support::field_key("value"),
+            "feature-change",
+        ),
         BranchId("feature".to_string()),
     );
 
@@ -440,25 +458,37 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
     let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "counter",
-        crate::tests::support::aspect_field_patch_from_values([("value", i64_counter_value(0))]),
+        crate::tests::support::aspect_field_patch_from_values([(
+            crate::tests::support::field_key("value"),
+            i64_counter_value(0),
+        )]),
     );
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        crate::tests::support::aspect_field_patch_from_values([("value", i64_counter_value(10))]),
+        crate::tests::support::aspect_field_patch_from_values([(
+            crate::tests::support::field_key("value"),
+            i64_counter_value(10),
+        )]),
         BranchId("main".to_string()),
     );
     create_branch_from_main(&mut runtime, "feature");
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        crate::tests::support::aspect_field_patch_from_values([("value", i64_counter_value(15))]),
+        crate::tests::support::aspect_field_patch_from_values([(
+            crate::tests::support::field_key("value"),
+            i64_counter_value(15),
+        )]),
         BranchId("main".to_string()),
     );
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        crate::tests::support::aspect_field_patch_from_values([("value", i64_counter_value(13))]),
+        crate::tests::support::aspect_field_patch_from_values([(
+            crate::tests::support::field_key("value"),
+            i64_counter_value(13),
+        )]),
         BranchId("feature".to_string()),
     );
 

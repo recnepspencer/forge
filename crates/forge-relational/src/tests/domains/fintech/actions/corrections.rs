@@ -23,23 +23,29 @@ pub(crate) fn correct_trade_with_replacement(
                     entity_id: trade_id,
                     fields: crate::tests::support::aspect_field_patch_from_values([
                         (
-                            "entity_type",
+                            crate::tests::support::field_key("entity_type"),
                             crate::tests::support::string_aspect_value("trade"),
                         ),
                         (
-                            "desk",
+                            crate::tests::support::field_key("desk"),
                             crate::tests::support::string_aspect_value("macro-flow"),
                         ),
                         (
-                            "book",
+                            crate::tests::support::field_key("book"),
                             crate::tests::support::string_aspect_value("analysis-risk"),
                         ),
                         (
-                            "notional",
+                            crate::tests::support::field_key("notional"),
                             crate::tests::support::u64_aspect_value(1_750_000),
                         ),
-                        ("ccy", crate::tests::support::string_aspect_value("USD")),
-                        ("corrected", crate::tests::support::bool_aspect_value(true)),
+                        (
+                            crate::tests::support::field_key("ccy"),
+                            crate::tests::support::string_aspect_value("USD"),
+                        ),
+                        (
+                            crate::tests::support::field_key("corrected"),
+                            crate::tests::support::bool_aspect_value(true),
+                        ),
                     ]),
                 },
             )))

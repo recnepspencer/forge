@@ -230,8 +230,8 @@ fn certify_prefer_richer_merge_execution() -> MergeExecutionCertificationArtifac
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("feature-shared"),
                 fields: crate::tests::support::string_aspect_field_patch([
-                    ("name", "shared-name"),
-                    ("status", "active"),
+                    (crate::tests::support::field_key("name"), "shared-name"),
+                    (crate::tests::support::field_key("status"), "active"),
                 ]),
             },
         ))),

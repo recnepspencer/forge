@@ -39,19 +39,19 @@ pub(crate) fn repair_settlement_with_aspect_field_patches(
                     entity_id: settlement_id,
                     fields: crate::tests::support::aspect_field_patch_from_values([
                         (
-                            "entity_type",
+                            crate::tests::support::field_key("entity_type"),
                             crate::tests::support::string_aspect_value("settlement"),
                         ),
                         (
-                            "case",
+                            crate::tests::support::field_key("case"),
                             crate::tests::support::string_aspect_value("failed-settlement-repair"),
                         ),
                         (
-                            "status",
+                            crate::tests::support::field_key("status"),
                             crate::tests::support::string_aspect_value("repaired"),
                         ),
                         (
-                            "repair_completed",
+                            crate::tests::support::field_key("repair_completed"),
                             crate::tests::support::bool_aspect_value(true),
                         ),
                     ]),
@@ -65,10 +65,16 @@ pub(crate) fn repair_settlement_with_aspect_field_patches(
                 UpdateEntityFieldsIntent {
                     entity_id: cash_event_id,
                     fields: crate::tests::support::string_aspect_field_patch([
-                        ("entity_type", "cash_event"),
-                        ("case", "failed-settlement-repair"),
-                        ("kind", "repair-funding"),
-                        ("status", "applied"),
+                        (
+                            crate::tests::support::field_key("entity_type"),
+                            "cash_event",
+                        ),
+                        (
+                            crate::tests::support::field_key("case"),
+                            "failed-settlement-repair",
+                        ),
+                        (crate::tests::support::field_key("kind"), "repair-funding"),
+                        (crate::tests::support::field_key("status"), "applied"),
                     ]),
                 },
             )))
@@ -80,9 +86,18 @@ pub(crate) fn repair_settlement_with_aspect_field_patches(
                 UpdateEntityFieldsIntent {
                     entity_id: audit_record_id,
                     fields: crate::tests::support::string_aspect_field_patch([
-                        ("entity_type", "audit_record"),
-                        ("case", "failed-settlement-repair"),
-                        ("event", "settlement-repaired"),
+                        (
+                            crate::tests::support::field_key("entity_type"),
+                            "audit_record",
+                        ),
+                        (
+                            crate::tests::support::field_key("case"),
+                            "failed-settlement-repair",
+                        ),
+                        (
+                            crate::tests::support::field_key("event"),
+                            "settlement-repaired",
+                        ),
                     ]),
                 },
             )))

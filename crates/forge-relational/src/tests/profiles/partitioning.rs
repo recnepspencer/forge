@@ -16,8 +16,8 @@ fn bulk_create_entities_match_equivalent_singular_creates() {
                 crate::symbols::data::ClientKey::raw("b"),
             ],
             field_patches: vec![
-                single_string_aspect_field_patch("name", "a"),
-                single_string_aspect_field_patch("name", "b"),
+                single_string_aspect_field_patch(crate::tests::support::field_key("name"), "a"),
+                single_string_aspect_field_patch(crate::tests::support::field_key("name"), "b"),
             ],
         }),
     )));
@@ -75,9 +75,9 @@ fn staged_parallel_bulk_entity_import_matches_serial_reference() {
                     crate::symbols::data::ClientKey::raw("c"),
                 ],
                 field_patches: vec![
-                    single_string_aspect_field_patch("name", "a"),
-                    single_string_aspect_field_patch("name", "b"),
-                    single_string_aspect_field_patch("name", "c"),
+                    single_string_aspect_field_patch(crate::tests::support::field_key("name"), "a"),
+                    single_string_aspect_field_patch(crate::tests::support::field_key("name"), "b"),
+                    single_string_aspect_field_patch(crate::tests::support::field_key("name"), "c"),
                 ],
             }),
         )));
