@@ -12,9 +12,7 @@ pub enum RelationAuthoritativeAspectStateDenial {
         kind_id: crate::identity::data::KindId,
     },
     ContractValidationDenied {
-        #[serde(
-            with = "super::authoritative_aspect_source_locator::serde_boundary_source_locator"
-        )]
+        #[serde(with = "crate::aspect_wire::serde_canonical_boundary_source_locator")]
         source_locator: BoundarySourceLocator,
         denial: ContractValidationDenial,
     },
@@ -25,29 +23,21 @@ pub enum RelationAuthoritativeAspectStateDenial {
         denial: AuthoritativePatchApplicationDenial,
     },
     UnsupportedAspectValue {
-        #[serde(
-            with = "super::authoritative_aspect_source_locator::serde_boundary_source_locator"
-        )]
+        #[serde(with = "crate::aspect_wire::serde_canonical_boundary_source_locator")]
         source_locator: BoundarySourceLocator,
         value_family: String,
     },
     StructValueConstructionDenied {
-        #[serde(
-            with = "super::authoritative_aspect_source_locator::serde_boundary_source_locator"
-        )]
+        #[serde(with = "crate::aspect_wire::serde_canonical_boundary_source_locator")]
         source_locator: BoundarySourceLocator,
     },
     StructBindingShapeMismatch {
-        #[serde(
-            with = "super::authoritative_aspect_source_locator::serde_boundary_source_locator"
-        )]
+        #[serde(with = "crate::aspect_wire::serde_canonical_boundary_source_locator")]
         source_locator: BoundarySourceLocator,
         shape: String,
     },
     StructContractValidationDenied {
-        #[serde(
-            with = "super::authoritative_aspect_source_locator::serde_boundary_source_locator"
-        )]
+        #[serde(with = "crate::aspect_wire::serde_canonical_boundary_source_locator")]
         source_locator: BoundarySourceLocator,
         denial: ContractValidationDenial,
     },

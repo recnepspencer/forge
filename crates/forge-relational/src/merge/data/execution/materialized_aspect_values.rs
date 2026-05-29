@@ -81,21 +81,30 @@ mod tests {
 
     #[test]
     fn pinned_visible_aspect_materialization_roundtrips_locator_as_canonical_bytes() {
+        let locator = AspectFieldLocator::new(
+            LocatorAuthority::Authoritative,
+            AspectKey::new("deploy.config").expect("valid aspect key"),
+            CanonicalFieldPath::new(vec![FieldKey::new("replicas").expect("valid field key")])
+                .expect("valid field path"),
+        );
         let value = MaterializedAspectValueEvidence::PinnedVisibleAspect {
             side: MergeValueSourceSide::Source,
             record: RecordRef::Entity(EntityId::new(PartitionId::main(), 7, 0)),
-            locator: AspectValueLocator::struct_field(AspectFieldLocator::new(
-                LocatorAuthority::Authoritative,
-                AspectKey::new("deploy.config").expect("valid aspect key"),
-                CanonicalFieldPath::new(vec![FieldKey::new("replicas").expect("valid field key")])
-                    .expect("valid field path"),
-            )),
+            locator: AspectValueLocator::struct_field(locator.clone()),
         };
 
-        let encoded = rmp_serde::to_vec(&value).expect("encode materialized evidence");
-        let decoded: MaterializedAspectValueEvidence =
-            rmp_serde::from_slice(&encoded).expect("decode materialized evidence");
+        let MaterializedAspectValueEvidence::PinnedVisibleAspect {
+            locator: materialized_locator,
+            ..
+        } = value
+        else {
+            panic!("expected pinned visible aspect evidence");
+        };
 
-        assert_eq!(decoded, value);
+        let encoded = crate::aspect_wire::encode_aspect_value_locator(&materialized_locator);
+        let decoded =
+            crate::aspect_wire::decode_aspect_value_locator(&encoded).expect("decode locator");
+
+        assert_eq!(decoded, AspectValueLocator::struct_field(locator));
     }
 }

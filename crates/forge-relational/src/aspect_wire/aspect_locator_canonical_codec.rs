@@ -1,6 +1,6 @@
 use forge_foundational::facade::{
-    AspectFieldLocator, AspectKey, AspectLocator, AspectValueLocator, CanonicalFieldPath, FieldKey,
-    LocatorAuthority,
+    AspectFieldLocator, AspectKey, AspectLocator, AspectValueLocator, BoundarySourceLocator,
+    CanonicalFieldPath, FieldKey, LocatorAuthority,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -83,6 +83,48 @@ pub(crate) fn decode_aspect_value_locator(
     Ok(locator)
 }
 
+pub(crate) fn encode_aspect_field_locator(locator: &AspectFieldLocator) -> Vec<u8> {
+    encode_aspect_value_locator(&AspectValueLocator::struct_field(locator.clone()))
+}
+
+pub(crate) fn decode_aspect_field_locator(
+    bytes: &[u8],
+) -> Result<AspectFieldLocator, AspectValueLocatorCanonicalCodecError> {
+    match decode_aspect_value_locator(bytes)? {
+        AspectValueLocator::StructField(locator) => Ok(locator),
+        AspectValueLocator::WholeAspect(_) => Err(AspectValueLocatorCanonicalCodecError::new(
+            "expected aspect field locator bytes, found whole-aspect locator",
+        )),
+    }
+}
+
+pub(crate) fn encode_boundary_source_locator(
+    locator: &BoundarySourceLocator,
+) -> Result<Vec<u8>, AspectValueLocatorCanonicalCodecError> {
+    match locator {
+        BoundarySourceLocator::Aspect(aspect) => Ok(encode_aspect_value_locator(
+            &AspectValueLocator::whole_aspect(aspect.clone()),
+        )),
+        BoundarySourceLocator::AspectField(field) => Ok(encode_aspect_value_locator(
+            &AspectValueLocator::struct_field(field.clone()),
+        )),
+        BoundarySourceLocator::BoundaryArtifact(_) => {
+            Err(AspectValueLocatorCanonicalCodecError::new(
+                "canonical aspect source locator bytes do not encode boundary artifact locators",
+            ))
+        }
+    }
+}
+
+pub(crate) fn decode_boundary_source_locator(
+    bytes: &[u8],
+) -> Result<BoundarySourceLocator, AspectValueLocatorCanonicalCodecError> {
+    match decode_aspect_value_locator(bytes)? {
+        AspectValueLocator::WholeAspect(aspect) => Ok(BoundarySourceLocator::aspect(aspect)),
+        AspectValueLocator::StructField(field) => Ok(BoundarySourceLocator::aspect_field(field)),
+    }
+}
+
 pub(crate) mod serde_canonical_aspect_value_locator {
     use super::*;
     use serde::de::Error;
@@ -103,6 +145,86 @@ pub(crate) mod serde_canonical_aspect_value_locator {
     {
         let bytes = Vec::<u8>::deserialize(deserializer)?;
         decode_aspect_value_locator(&bytes).map_err(D::Error::custom)
+    }
+}
+
+pub(crate) mod serde_canonical_aspect_field_locator {
+    use super::*;
+    use serde::de::Error;
+
+    pub(crate) fn serialize<S>(
+        locator: &AspectFieldLocator,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        encode_aspect_field_locator(locator).serialize(serializer)
+    }
+
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<AspectFieldLocator, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let bytes = Vec::<u8>::deserialize(deserializer)?;
+        decode_aspect_field_locator(&bytes).map_err(D::Error::custom)
+    }
+}
+
+pub(crate) mod serde_optional_canonical_aspect_field_locator {
+    use super::*;
+    use serde::de::Error;
+
+    pub(crate) fn serialize<S>(
+        locator: &Option<AspectFieldLocator>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        locator
+            .as_ref()
+            .map(encode_aspect_field_locator)
+            .serialize(serializer)
+    }
+
+    pub(crate) fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<Option<AspectFieldLocator>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let bytes = Option::<Vec<u8>>::deserialize(deserializer)?;
+        bytes
+            .as_deref()
+            .map(decode_aspect_field_locator)
+            .transpose()
+            .map_err(D::Error::custom)
+    }
+}
+
+pub(crate) mod serde_canonical_boundary_source_locator {
+    use super::*;
+    use serde::de::Error;
+
+    pub(crate) fn serialize<S>(
+        locator: &BoundarySourceLocator,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        encode_boundary_source_locator(locator)
+            .map_err(serde::ser::Error::custom)?
+            .serialize(serializer)
+    }
+
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<BoundarySourceLocator, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let bytes = Vec::<u8>::deserialize(deserializer)?;
+        decode_boundary_source_locator(&bytes).map_err(D::Error::custom)
     }
 }
 

@@ -36,7 +36,7 @@ pub enum InvariantViolationFields {
         limit: usize,
     },
     UniqueEntityField {
-        #[serde(with = "super::aspect_field_target::aspect_field_locator_serde")]
+        #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator")]
         field_locator: AspectFieldLocator,
         value: AspectValue,
     },
