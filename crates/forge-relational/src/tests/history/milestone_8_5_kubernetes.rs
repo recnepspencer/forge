@@ -499,12 +499,12 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
             entity_id: entity,
             desired_fields: strategy_name_and_replicas_patch("svc-v1", 3),
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         None,
     );
     let first_converge_commit = execute_strategy_commit(
@@ -513,12 +513,12 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
             entity_id: entity,
             desired_replicas: 7,
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         Some(controller_branch.clone()),
     );
     let overlap_planning = planning_for(&runtime, controller_branch.clone(), main_branch.clone());
@@ -555,12 +555,12 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
                 ),
             ),
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         None,
     );
     let idempotent_converge_commit = execute_strategy_commit(
@@ -569,12 +569,12 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
             entity_id: entity,
             desired_replicas: 7,
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         Some(controller_branch.clone()),
     );
     assert_eq!(
@@ -612,12 +612,12 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
             entity_id: entity,
             desired_fields: strategy_name_and_replicas_patch("svc-v2", 9),
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         None,
     );
     let rebroadened_planning =
@@ -671,12 +671,12 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
             entity_id: entity,
             desired_replicas: 9,
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         Some(controller_branch.clone()),
     );
     assert_eq!(

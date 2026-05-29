@@ -315,12 +315,12 @@ mod tests {
                         ),
                     ),
                 }
-                .into_raw_request(StrategyCallerProvenance {
+                .into_native_canonical_request(StrategyCallerProvenance {
                     request_origin: StrategyRequestOrigin::Test,
                     actor_identity: None,
                     correlation_id: None,
                 })
-                .expect("raw strategy request"),
+                .expect("native canonical strategy request"),
             )
             .expect("canonical request");
         let snapshot = runtime.visibility_authority().snapshot();
@@ -698,12 +698,12 @@ mod tests {
                         ),
                     ),
                 }
-                .into_raw_request(StrategyCallerProvenance {
+                .into_native_canonical_request(StrategyCallerProvenance {
                     request_origin: StrategyRequestOrigin::Test,
                     actor_identity: None,
                     correlation_id: None,
                 })
-                .expect("raw strategy request"),
+                .expect("native canonical strategy request"),
             )
             .expect("canonical request");
         let snapshot: SnapshotHandle = runtime.visibility_authority().snapshot();
@@ -792,12 +792,12 @@ mod tests {
                     replacement_client_key: "service-replacement".to_string(),
                     desired_fields: strategy_name_and_replicas_patch("before", 3),
                 }
-                .into_raw_request(StrategyCallerProvenance {
+                .into_native_canonical_request(StrategyCallerProvenance {
                     request_origin: StrategyRequestOrigin::Test,
                     actor_identity: None,
                     correlation_id: None,
                 })
-                .expect("raw strategy request"),
+                .expect("native canonical strategy request"),
             )
             .expect("canonical replacement request");
         let snapshot: SnapshotHandle = runtime.visibility_authority().snapshot();
@@ -937,7 +937,7 @@ mod tests {
                             forge_foundational::facade::AspectValue::String("main-strategy".into()),
                         ),
                     }
-                    .into_raw_request(StrategyCallerProvenance {
+                    .into_native_canonical_request(StrategyCallerProvenance {
                         request_origin: StrategyRequestOrigin::Test,
                         actor_identity: None,
                         correlation_id: None,
@@ -972,7 +972,7 @@ mod tests {
                             "feature-strategy".into(),
                         ),
                     }
-                    .into_raw_request(StrategyCallerProvenance {
+                    .into_native_canonical_request(StrategyCallerProvenance {
                         request_origin: StrategyRequestOrigin::Test,
                         actor_identity: None,
                         correlation_id: None,
@@ -1073,12 +1073,12 @@ mod tests {
                         entity_id: entity,
                         desired_fields: strategy_name_and_replicas_patch("main-intent", 1),
                     }
-                    .into_raw_request(StrategyCallerProvenance {
+                    .into_native_canonical_request(StrategyCallerProvenance {
                         request_origin: StrategyRequestOrigin::Test,
                         actor_identity: None,
                         correlation_id: None,
                     })
-                    .expect("raw strategy request"),
+                    .expect("native canonical strategy request"),
                 )
                 .expect("intent canonical request");
             let snapshot = runtime.visibility_authority().snapshot();
@@ -1106,12 +1106,12 @@ mod tests {
                         entity_id: entity,
                         desired_replicas: 7,
                     }
-                    .into_raw_request(StrategyCallerProvenance {
+                    .into_native_canonical_request(StrategyCallerProvenance {
                         request_origin: StrategyRequestOrigin::Test,
                         actor_identity: None,
                         correlation_id: None,
                     })
-                    .expect("raw strategy request"),
+                    .expect("native canonical strategy request"),
                 )
                 .expect("replica canonical request");
             let snapshot = runtime.visibility_authority().snapshot();
@@ -1230,12 +1230,12 @@ mod tests {
                             "main-name".into(),
                         ),
                     }
-                    .into_raw_request(StrategyCallerProvenance {
+                    .into_native_canonical_request(StrategyCallerProvenance {
                         request_origin: StrategyRequestOrigin::Test,
                         actor_identity: None,
                         correlation_id: None,
                     })
-                    .expect("raw strategy request"),
+                    .expect("native canonical strategy request"),
                 )
                 .expect("aspect canonical request");
             let snapshot = runtime.visibility_authority().snapshot();
@@ -1263,12 +1263,12 @@ mod tests {
                         entity_id: entity,
                         desired_replicas: 7,
                     }
-                    .into_raw_request(StrategyCallerProvenance {
+                    .into_native_canonical_request(StrategyCallerProvenance {
                         request_origin: StrategyRequestOrigin::Test,
                         actor_identity: None,
                         correlation_id: None,
                     })
-                    .expect("raw strategy request"),
+                    .expect("native canonical strategy request"),
                 )
                 .expect("replica canonical request");
             let snapshot = runtime.visibility_authority().snapshot();
@@ -1373,12 +1373,12 @@ mod tests {
                             desired_value.into(),
                         ),
                     }
-                    .into_raw_request(StrategyCallerProvenance {
+                    .into_native_canonical_request(StrategyCallerProvenance {
                         request_origin: StrategyRequestOrigin::Test,
                         actor_identity: None,
                         correlation_id: None,
                     })
-                    .expect("raw strategy request"),
+                    .expect("native canonical strategy request"),
                 )
                 .expect("aspect canonical request");
             let snapshot = runtime.visibility_authority().snapshot();

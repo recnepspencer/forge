@@ -77,12 +77,12 @@ fn aspect_field_reconciliation_strategy_updates_only_declared_field_aspect() {
                 ),
                 desired_value: forge_foundational::facade::AspectValue::UInt64(5),
             }
-            .into_raw_request(StrategyCallerProvenance {
+            .into_native_canonical_request(StrategyCallerProvenance {
                 request_origin: StrategyRequestOrigin::Test,
                 actor_identity: None,
                 correlation_id: None,
             })
-            .expect("raw strategy request"),
+            .expect("native canonical strategy request"),
         )
         .expect("canonical request");
     let snapshot = runtime.visibility_authority().snapshot();
@@ -136,12 +136,12 @@ fn aspect_field_reconciliation_strategy_noops_when_authoritative_field_matches()
                     forge_foundational::facade::InternedString::Raw("stable".to_string()),
                 ),
             }
-            .into_raw_request(StrategyCallerProvenance {
+            .into_native_canonical_request(StrategyCallerProvenance {
                 request_origin: StrategyRequestOrigin::Test,
                 actor_identity: None,
                 correlation_id: None,
             })
-            .expect("raw strategy request"),
+            .expect("native canonical strategy request"),
         )
         .expect("canonical request");
     let snapshot = runtime.visibility_authority().snapshot();
@@ -186,12 +186,12 @@ fn aspect_field_reconciliation_strategy_rejects_undeclared_field() {
                 ),
                 desired_value: forge_foundational::facade::AspectValue::UInt64(5),
             }
-            .into_raw_request(StrategyCallerProvenance {
+            .into_native_canonical_request(StrategyCallerProvenance {
                 request_origin: StrategyRequestOrigin::Test,
                 actor_identity: None,
                 correlation_id: None,
             })
-            .expect("raw strategy request"),
+            .expect("native canonical strategy request"),
         )
         .expect("canonical request");
     let snapshot = runtime.visibility_authority().snapshot();

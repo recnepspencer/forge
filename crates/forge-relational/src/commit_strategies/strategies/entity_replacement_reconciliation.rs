@@ -35,7 +35,7 @@ pub struct EntityReplacementReconciliationInput {
 }
 
 impl EntityReplacementReconciliationInput {
-    pub fn into_raw_request(
+    pub fn into_native_canonical_request(
         self,
         caller_provenance: StrategyCallerProvenance,
     ) -> Result<RawStrategyCommitRequest, NativeCodecError> {

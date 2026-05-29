@@ -64,12 +64,12 @@ fn entity_replacement_reconciliation_strategy_replaces_with_normalized_client_ke
                     AspectValue::UInt64(3),
                 ),
             }
-            .into_raw_request(StrategyCallerProvenance {
+            .into_native_canonical_request(StrategyCallerProvenance {
                 request_origin: StrategyRequestOrigin::Test,
                 actor_identity: None,
                 correlation_id: None,
             })
-            .expect("raw strategy request"),
+            .expect("native canonical strategy request"),
         )
         .expect("canonical request");
     let snapshot = runtime.visibility_authority().snapshot();
@@ -131,12 +131,12 @@ fn entity_replacement_reconciliation_strategy_replacement_declaration_applies_to
                     AspectValue::UInt64(7),
                 ),
             }
-            .into_raw_request(StrategyCallerProvenance {
+            .into_native_canonical_request(StrategyCallerProvenance {
                 request_origin: StrategyRequestOrigin::Test,
                 actor_identity: None,
                 correlation_id: None,
             })
-            .expect("raw strategy request"),
+            .expect("native canonical strategy request"),
         )
         .expect("canonical request");
     let snapshot = runtime.visibility_authority().snapshot();
@@ -225,12 +225,12 @@ fn entity_replacement_reconciliation_strategy_rejects_undeclared_fields() {
                     AspectValue::UInt64(3),
                 ),
             }
-            .into_raw_request(StrategyCallerProvenance {
+            .into_native_canonical_request(StrategyCallerProvenance {
                 request_origin: StrategyRequestOrigin::Test,
                 actor_identity: None,
                 correlation_id: None,
             })
-            .expect("raw strategy request"),
+            .expect("native canonical strategy request"),
         )
         .expect("canonical request");
     let snapshot = runtime.visibility_authority().snapshot();
@@ -279,12 +279,12 @@ fn entity_replacement_reconciliation_strategy_replaces_when_only_client_key_chan
                     AspectValue::String(InternedString::Raw("service".to_string())),
                 ),
             }
-            .into_raw_request(StrategyCallerProvenance {
+            .into_native_canonical_request(StrategyCallerProvenance {
                 request_origin: StrategyRequestOrigin::Test,
                 actor_identity: None,
                 correlation_id: None,
             })
-            .expect("raw strategy request"),
+            .expect("native canonical strategy request"),
         )
         .expect("canonical request");
     let snapshot = runtime.visibility_authority().snapshot();
@@ -331,12 +331,12 @@ fn entity_replacement_reconciliation_strategy_noops_when_authoritative_fields_ma
                     AspectValue::String(InternedString::Raw("service".to_string())),
                 ),
             }
-            .into_raw_request(StrategyCallerProvenance {
+            .into_native_canonical_request(StrategyCallerProvenance {
                 request_origin: StrategyRequestOrigin::Test,
                 actor_identity: None,
                 correlation_id: None,
             })
-            .expect("raw strategy request"),
+            .expect("native canonical strategy request"),
         )
         .expect("canonical request");
     let snapshot = runtime.visibility_authority().snapshot();

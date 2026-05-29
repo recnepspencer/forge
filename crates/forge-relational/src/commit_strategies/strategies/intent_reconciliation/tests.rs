@@ -57,12 +57,12 @@ fn intent_reconciliation_strategy_emits_update_when_aspect_fields_differ() {
                     AspectValue::String(InternedString::Raw("after".to_string())),
                 ),
             }
-            .into_raw_request(StrategyCallerProvenance {
+            .into_native_canonical_request(StrategyCallerProvenance {
                 request_origin: StrategyRequestOrigin::Test,
                 actor_identity: None,
                 correlation_id: None,
             })
-            .expect("raw strategy request"),
+            .expect("native canonical strategy request"),
         )
         .expect("canonical request");
     let snapshot = runtime.visibility_authority().snapshot();
@@ -106,12 +106,12 @@ fn intent_reconciliation_strategy_emits_noop_when_aspect_fields_match() {
                     AspectValue::String(InternedString::Raw("stable".to_string())),
                 ),
             }
-            .into_raw_request(StrategyCallerProvenance {
+            .into_native_canonical_request(StrategyCallerProvenance {
                 request_origin: StrategyRequestOrigin::Test,
                 actor_identity: None,
                 correlation_id: None,
             })
-            .expect("raw strategy request"),
+            .expect("native canonical strategy request"),
         )
         .expect("canonical request");
     let snapshot = runtime.visibility_authority().snapshot();
@@ -154,12 +154,12 @@ fn intent_reconciliation_strategy_preserves_untouched_declared_fields() {
                     AspectValue::UInt64(3),
                 ),
             }
-            .into_raw_request(StrategyCallerProvenance {
+            .into_native_canonical_request(StrategyCallerProvenance {
                 request_origin: StrategyRequestOrigin::Test,
                 actor_identity: None,
                 correlation_id: None,
             })
-            .expect("raw strategy request"),
+            .expect("native canonical strategy request"),
         )
         .expect("canonical request");
     let snapshot = runtime.visibility_authority().snapshot();

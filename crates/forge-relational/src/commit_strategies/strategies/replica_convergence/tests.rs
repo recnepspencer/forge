@@ -51,12 +51,12 @@ fn replica_convergence_strategy_updates_replicas_and_preserves_other_fields() {
                 entity_id: entity,
                 desired_replicas: 5,
             }
-            .into_raw_request(StrategyCallerProvenance {
+            .into_native_canonical_request(StrategyCallerProvenance {
                 request_origin: StrategyRequestOrigin::Test,
                 actor_identity: None,
                 correlation_id: None,
             })
-            .expect("raw strategy request"),
+            .expect("native canonical strategy request"),
         )
         .expect("canonical request");
     let snapshot = runtime.visibility_authority().snapshot();
@@ -124,12 +124,12 @@ fn replica_convergence_strategy_noops_when_authoritative_replicas_match() {
                 entity_id: entity,
                 desired_replicas: 5,
             }
-            .into_raw_request(StrategyCallerProvenance {
+            .into_native_canonical_request(StrategyCallerProvenance {
                 request_origin: StrategyRequestOrigin::Test,
                 actor_identity: None,
                 correlation_id: None,
             })
-            .expect("raw strategy request"),
+            .expect("native canonical strategy request"),
         )
         .expect("canonical request");
     let snapshot = runtime.visibility_authority().snapshot();

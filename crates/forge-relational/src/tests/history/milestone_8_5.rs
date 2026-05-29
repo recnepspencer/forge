@@ -388,12 +388,12 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
             entity_id: entity,
             desired_fields: strategy_name_and_replicas_patch("service-main", 1),
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         None,
     );
     let feature_commit = execute_strategy_commit(
@@ -402,12 +402,12 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
             entity_id: entity,
             desired_replicas: 7,
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         Some(feature_branch.clone()),
     );
     let planning = runtime
@@ -454,12 +454,12 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
             ),
             desired_value: forge_foundational::facade::AspectValue::String("aspect-main".into()),
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         None,
     );
     let _aspect_overlap_feature_commit = execute_strategy_commit(
@@ -472,12 +472,12 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
             ),
             desired_value: forge_foundational::facade::AspectValue::String("aspect-feature".into()),
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         Some(aspect_overlap_branch.clone()),
     );
     let aspect_overlap_planning = runtime
@@ -513,12 +513,12 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
             ),
             desired_value: forge_foundational::facade::AspectValue::String("disjoint-main".into()),
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         None,
     );
     let _aspect_disjoint_feature_commit = execute_strategy_commit(
@@ -527,12 +527,12 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
             entity_id: aspect_disjoint_entity,
             desired_replicas: 9,
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         Some(aspect_disjoint_branch.clone()),
     );
     let aspect_disjoint_planning = runtime
@@ -570,12 +570,12 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
             entity_id: controller_sequence_entity,
             desired_fields: strategy_name_and_replicas_patch("controller-main", 2),
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         None,
     );
     let _controller_feature_converge = execute_strategy_commit(
@@ -584,12 +584,12 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
             entity_id: controller_sequence_entity,
             desired_replicas: 7,
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         Some(controller_sequence_branch.clone()),
     );
     let _controller_narrowed_intent = execute_strategy_commit(
@@ -606,12 +606,12 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
                 ),
             ),
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         None,
     );
     let controller_feature_idempotent_commit = execute_strategy_commit(
@@ -620,12 +620,12 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
             entity_id: controller_sequence_entity,
             desired_replicas: 7,
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         Some(controller_sequence_branch.clone()),
     );
     assert_eq!(
@@ -1036,12 +1036,12 @@ fn run_replacement_strategy_certification() -> ReplacementCertificationBundle {
             replacement_client_key: "replace-target-v2".to_string(),
             desired_fields: strategy_name_and_replicas_patch("replace-main", 2),
         }
-        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+        .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
             actor_identity: None,
             correlation_id: None,
         })
-        .expect("raw strategy request"),
+        .expect("native canonical strategy request"),
         None,
     );
     let current = runtime
