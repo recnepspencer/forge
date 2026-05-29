@@ -351,7 +351,7 @@ mod tests {
         WorkingState,
     };
     use crate::storage::substrate::{EntityRecordKind, RecordKind, SlotInit};
-    use crate::transactions::facade::EntityReference;
+    use crate::transactions::data::EntityReference;
 
     use super::existing_relation_targets_for_source;
 

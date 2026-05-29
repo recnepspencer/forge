@@ -8,11 +8,11 @@ use crate::facade::{
 };
 use crate::identity::data::{KindId, PartitionId};
 use crate::schema::data::{EndpointKindContractDeclaration, RelationIntegrityDeclarations};
+use crate::transactions::data::EntityReference;
 use crate::transactions::data::{
     CreateIntent, EntitySpec, MergedCommitPlan, MutationIntent, RelationSpec, TransactionOptions,
     WorkerIntentBatch,
 };
-use crate::transactions::facade::EntityReference;
 use crate::validation::data::InvariantPlanContract;
 use crate::validation::engine::{
     InvariantExecutionRequest, InvariantObservation, InvariantRequestProfile,

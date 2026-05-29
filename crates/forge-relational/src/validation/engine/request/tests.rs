@@ -4,11 +4,11 @@ use super::test_support::{
 };
 use crate::identity::data::KindId;
 use crate::identity::data::PartitionId;
+use crate::transactions::data::EntityReference;
 use crate::transactions::data::{
     CreateIntent, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, EntitySpec,
     MergedCommitPlan, MutationIntent, RelationMutationIntent, ReplaceEntityIntent, TransactionId,
 };
-use crate::transactions::facade::EntityReference;
 
 #[test]
 fn request_excludes_unrelated_relation_kind_registrations_for_relation_create() {
