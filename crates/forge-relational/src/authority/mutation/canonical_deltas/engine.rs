@@ -9,7 +9,7 @@ use super::data::{
     BindingEvaluationContext, CanonicalDeltaError, CanonicalRecordAspectDelta,
     EvaluatedAspectBinding,
 };
-use super::materialized_state::evaluate_materialized_binding;
+use super::materialized_state::evaluate_authoritative_binding_delta;
 use super::patch_authority::{
     authoritative_patch_binding_evidence, evaluate_authoritative_patch_delta,
 };
@@ -395,7 +395,7 @@ fn evaluate_bindings(
 ) -> Result<SmallVec<[EvaluatedAspectBinding; 4]>, CanonicalDeltaError> {
     let mut evaluated = SmallVec::new();
     for binding in &plan.executable_bindings {
-        let (evidence, changed) = evaluate_materialized_binding(binding, context)?;
+        let (evidence, changed) = evaluate_authoritative_binding_delta(binding, context)?;
         evaluated.push(EvaluatedAspectBinding {
             aspect_key: binding.aspect_key.clone(),
             contract: binding.contract.clone(),

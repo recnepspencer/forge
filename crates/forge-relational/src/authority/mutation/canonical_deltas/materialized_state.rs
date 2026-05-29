@@ -20,7 +20,7 @@ pub(super) enum MaterializedAspectState {
     LifecycleTransition(LifecycleTransitionClass),
 }
 
-pub(super) fn evaluate_materialized_binding(
+pub(super) fn evaluate_authoritative_binding_delta(
     binding: &LoweredAspectBinding,
     context: BindingEvaluationContext<'_>,
 ) -> Result<(CanonicalAspectDeltaEvidence, bool), CanonicalDeltaError> {
