@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 mod current_snapshots;
 mod materialized_value_resolution;
 mod merge_client_keys;

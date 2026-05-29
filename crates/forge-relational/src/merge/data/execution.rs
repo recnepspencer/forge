@@ -266,12 +266,10 @@ impl PreparedMergeExecution {
         &self.artifact
     }
 
-    #[allow(dead_code)]
     pub(crate) fn execution_ready_plan(&self) -> &ExecutionReadyLoweredMergePlan {
         &self.execution_ready_plan
     }
 
-    #[allow(dead_code)]
     pub(crate) fn bound_executable_plan(&self) -> &BoundExecutableMergePlan {
         &self.bound_executable_plan
     }
