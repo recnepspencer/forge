@@ -1552,8 +1552,8 @@ fn durability_contract_recovery_preserves_inspection_truth_bundle() {
             WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({"name":"feature"}),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        "name", "feature",
                     ),
                 }),
             )),

@@ -225,12 +225,10 @@ fn certify_prefer_richer_merge_execution() -> MergeExecutionCertificationArtifac
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("feature-shared"),
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    serde_json::json!({
-                        "name": "shared-name",
-                        "status": "active"
-                    }),
-                ),
+                fields: crate::tests::support::string_aspect_field_patch([
+                    ("name", "shared-name"),
+                    ("status", "active"),
+                ]),
             },
         ))),
     );

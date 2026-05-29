@@ -58,9 +58,10 @@ fn compatibility_field_patches_canonicalize_into_patch_output() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("entity"),
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"b": "second", "a": "first"}),
-                ),
+                fields: crate::tests::support::string_aspect_field_patch([
+                    ("b", "second"),
+                    ("a", "first"),
+                ]),
             }),
         )),
     );
@@ -73,9 +74,10 @@ fn compatibility_field_patches_canonicalize_into_patch_output() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("entity"),
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"a": "first", "b": "second"}),
-                ),
+                fields: crate::tests::support::string_aspect_field_patch([
+                    ("a", "first"),
+                    ("b", "second"),
+                ]),
             }),
         )),
     );

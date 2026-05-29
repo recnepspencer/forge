@@ -131,14 +131,12 @@ pub(crate) fn stress_seeded_intraday_risk(
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
                     entity_id: case.breach,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({
-                            "entity_type": "limit_breach",
-                            "case": "intraday-risk",
-                            "status": "open",
-                            "severity": "critical",
-                        }),
-                    ),
+                    fields: crate::tests::support::string_aspect_field_patch([
+                        ("entity_type", "limit_breach"),
+                        ("case", "intraday-risk"),
+                        ("status", "open"),
+                        ("severity", "critical"),
+                    ]),
                 },
             )))
             .into(),

@@ -5,7 +5,6 @@ pub(super) use forge_harness::facade::{
 use serde::Serialize;
 pub(super) use serde_json::json;
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -58,60 +57,6 @@ pub(super) use crate::publication::patch::data::{
 pub(super) use crate::symbols::data::ClientKeySymbolPolicy;
 use crate::tests::harness::model::truth_model::VisibleTruthSummary;
 
-pub(crate) fn aspect_field_patch_from_compatibility_json(
-    value: serde_json::Value,
-) -> AspectFieldPatch {
-    let fields = value
-        .as_object()
-        .expect("test aspect field patch fixture must be a JSON object")
-        .iter()
-        .map(|(field, value)| {
-            let field_key = forge_foundational::facade::FieldKey::new(field.clone())
-                .expect("test field key must be valid");
-            let aspect_key = AspectKey::new(field.clone()).expect("test aspect key must be valid");
-            (
-                crate::transactions::data::AspectFieldPatchTarget::single(aspect_key, field_key),
-                aspect_value_from_fixture_json(value),
-            )
-        })
-        .collect::<BTreeMap<_, _>>();
-    AspectFieldPatch::from(fields)
-}
-
-pub(super) fn string_aspect_value(value: &str) -> forge_foundational::facade::AspectValue {
-    forge_foundational::facade::AspectValue::String(
-        forge_foundational::facade::InternedString::Raw(value.to_string()),
-    )
-}
-
-fn aspect_value_from_fixture_json(
-    value: &serde_json::Value,
-) -> forge_foundational::facade::AspectValue {
-    match value {
-        serde_json::Value::Null => forge_foundational::facade::AspectValue::Null,
-        serde_json::Value::Bool(value) => forge_foundational::facade::AspectValue::Bool(*value),
-        serde_json::Value::Number(value) => {
-            if let Some(value) = value.as_u64() {
-                forge_foundational::facade::AspectValue::UInt64(value)
-            } else if let Some(value) = value.as_i64() {
-                forge_foundational::facade::AspectValue::Int64(value)
-            } else {
-                forge_foundational::facade::AspectValue::Float64(
-                    forge_foundational::facade::CanonicalF64::from_f64(
-                        value
-                            .as_f64()
-                            .expect("test numeric aspect fixture must fit f64"),
-                    ),
-                )
-            }
-        }
-        serde_json::Value::String(value) => string_aspect_value(value),
-        serde_json::Value::Array(_) | serde_json::Value::Object(_) => {
-            panic!("test aspect field patch fixture does not support nested JSON values")
-        }
-    }
-}
-
 // Test helper index:
 // - `schema`: baseline schema builders plus declared-aspect fixtures
 // - `runtime`: runtime builders, persisted-runtime builders, and store paths
@@ -124,6 +69,8 @@ fn aspect_value_from_fixture_json(
 // - `lineage`: generic lineage-specific helpers and candidate builders
 //
 // Prefer reusing these helpers before introducing new ad hoc setup in test files.
+#[path = "support/aspect_field_patches.rs"]
+mod aspect_field_patches;
 #[path = "support/durability.rs"]
 mod durability;
 #[path = "support/history.rs"]
@@ -143,6 +90,7 @@ mod savepoint;
 #[path = "support/schema.rs"]
 mod schema;
 
+pub(crate) use aspect_field_patches::*;
 pub(crate) use durability::*;
 pub(crate) use history::*;
 pub(crate) use inspection::*;

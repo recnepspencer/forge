@@ -75,9 +75,7 @@ fn relational_error_wraps_authority_failures_with_context() {
         WorkerIntentBatch::new("stale-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"stale"}),
-                ),
+                fields: crate::tests::support::single_string_aspect_field_patch("name", "stale"),
             }),
         )),
     );
@@ -117,9 +115,7 @@ fn transaction_intent_is_the_shared_mutation_intent_type() {
             partition_id: PartitionId::main(),
             kind_id: KindId(1),
             client_key: crate::symbols::data::ClientKey::raw("alias"),
-            fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                json!({"name":"alias"}),
-            ),
+            fields: crate::tests::support::single_string_aspect_field_patch("name", "alias"),
         },
     ));
     let transaction_intent: MutationIntent = create.clone();
@@ -883,10 +879,10 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("row"),
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
-                    "name": "before",
-                    "status": "stable"
-                })),
+                fields: crate::tests::support::string_aspect_field_patch([
+                    ("name", "before"),
+                    ("status", "stable"),
+                ]),
             },
         ))),
     );
@@ -898,10 +894,10 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
         WorkerIntentBatch::new("update-name-only").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
-                    "name": "after",
-                    "status": "stable"
-                })),
+                fields: crate::tests::support::string_aspect_field_patch([
+                    ("name", "after"),
+                    ("status", "stable"),
+                ]),
             }),
         )),
     );
@@ -1010,10 +1006,10 @@ fn entity_patch_aspects_follow_declared_semantics_not_payload_keys() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("aspect-entity"),
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
-                    "name": "before",
-                    "ignored": "not-an-aspect"
-                })),
+                fields: crate::tests::support::string_aspect_field_patch([
+                    ("name", "before"),
+                    ("ignored", "not-an-aspect"),
+                ]),
             },
         ))),
     );
@@ -1045,12 +1041,10 @@ fn entity_patch_aspects_follow_declared_semantics_not_payload_keys() {
             WorkerIntentBatch::new("update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({
-                            "name": "after",
-                            "ignored": "still-not-an-aspect"
-                        }),
-                    ),
+                    fields: crate::tests::support::string_aspect_field_patch([
+                        ("name", "after"),
+                        ("ignored", "still-not-an-aspect"),
+                    ]),
                 }),
             )),
         );
@@ -1098,12 +1092,10 @@ fn entity_patch_aspects_follow_declared_semantics_not_payload_keys() {
             WorkerIntentBatch::new("ignored-only-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({
-                            "name": "after",
-                            "ignored": "ignored-only-change"
-                        }),
-                    ),
+                    fields: crate::tests::support::string_aspect_field_patch([
+                        ("name", "after"),
+                        ("ignored", "ignored-only-change"),
+                    ]),
                 }),
             )),
         );
@@ -1203,9 +1195,7 @@ fn failed_commit_carries_attempt_log() {
         WorkerIntentBatch::new("stale-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"stale"}),
-                ),
+                fields: crate::tests::support::single_string_aspect_field_patch("name", "stale"),
             }),
         )),
     );
@@ -1294,9 +1284,7 @@ fn stale_entity_ids_are_rejected() {
         WorkerIntentBatch::new("update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"stale"}),
-                ),
+                fields: crate::tests::support::single_string_aspect_field_patch("name", "stale"),
             }),
         )),
     );
@@ -1318,9 +1306,7 @@ fn unknown_entity_kind_fails_explicitly() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(999),
                 client_key: crate::symbols::data::ClientKey::raw("bad"),
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"bad"}),
-                ),
+                fields: crate::tests::support::single_string_aspect_field_patch("name", "bad"),
             },
         ))),
     );
@@ -1643,12 +1629,8 @@ fn bulk_mutation_plan_normalizes_client_keys_and_tracks_locality() {
                         crate::symbols::data::ClientKey::raw("bulk-b"),
                     ],
                     field_patches: vec![
-                        crate::tests::support::aspect_field_patch_from_compatibility_json(
-                            json!({"name":"bulk-a"}),
-                        ),
-                        crate::tests::support::aspect_field_patch_from_compatibility_json(
-                            json!({"name":"bulk-b"}),
-                        ),
+                        crate::tests::support::single_string_aspect_field_patch("name", "bulk-a"),
+                        crate::tests::support::single_string_aspect_field_patch("name", "bulk-b"),
                     ],
                 },
             )))
@@ -1718,8 +1700,9 @@ fn bulk_mutation_plan_captures_lineage_and_provenance_for_topology_rewrite() {
                         partition_id: PartitionId(9),
                         kind_id: KindId(1),
                         client_key: crate::symbols::data::ClientKey::raw("replacement"),
-                        fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                            json!({"name":"replacement"}),
+                        fields: crate::tests::support::single_string_aspect_field_patch(
+                            "name",
+                            "replacement",
                         ),
                     },
                 },
@@ -1844,16 +1827,18 @@ fn same_commit_graph_creation_allows_relation_to_target_created_entities() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: source_key.clone(),
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"same-commit-source"}),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    "name",
+                    "same-commit-source",
                 ),
             })))
             .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: target_key.clone(),
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"same-commit-target"}),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    "name",
+                    "same-commit-target",
                 ),
             })))
             .push(MutationIntent::Create(CreateIntent::Relation(
@@ -1905,11 +1890,13 @@ fn bulk_relation_create_can_target_same_commit_created_entities() {
                     kind_id: KindId(1),
                     client_keys: vec![source_key.clone(), target_key.clone()],
                     field_patches: vec![
-                        crate::tests::support::aspect_field_patch_from_compatibility_json(
-                            json!({"name":"bulk-created-source"}),
+                        crate::tests::support::single_string_aspect_field_patch(
+                            "name",
+                            "bulk-created-source",
                         ),
-                        crate::tests::support::aspect_field_patch_from_compatibility_json(
-                            json!({"name":"bulk-created-target"}),
+                        crate::tests::support::single_string_aspect_field_patch(
+                            "name",
+                            "bulk-created-target",
                         ),
                     ],
                 },

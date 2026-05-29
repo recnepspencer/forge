@@ -56,14 +56,12 @@ pub(crate) fn repair_settlement_with_aspect_field_patches(
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
                     entity_id: cash_event_id,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({
-                            "entity_type": "cash_event",
-                            "case": "failed-settlement-repair",
-                            "kind": "repair-funding",
-                            "status": "applied",
-                        }),
-                    ),
+                    fields: crate::tests::support::string_aspect_field_patch([
+                        ("entity_type", "cash_event"),
+                        ("case", "failed-settlement-repair"),
+                        ("kind", "repair-funding"),
+                        ("status", "applied"),
+                    ]),
                 },
             )))
             .into(),
@@ -73,13 +71,11 @@ pub(crate) fn repair_settlement_with_aspect_field_patches(
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
                     entity_id: audit_record_id,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({
-                            "entity_type": "audit_record",
-                            "case": "failed-settlement-repair",
-                            "event": "settlement-repaired",
-                        }),
-                    ),
+                    fields: crate::tests::support::string_aspect_field_patch([
+                        ("entity_type", "audit_record"),
+                        ("case", "failed-settlement-repair"),
+                        ("event", "settlement-repaired"),
+                    ]),
                 },
             )))
             .into(),

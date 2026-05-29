@@ -8153,10 +8153,8 @@ fn perf_mixed_load_matrix() {
 fn perf_workflow_matrix() {
     let suite = "workflow_matrix";
 
-    let trade_correction_samples = capture_perf_samples(
-        suite,
-        "trade_correction_analysis_round_trip",
-        || {
+    let trade_correction_samples =
+        capture_perf_samples(suite, "trade_correction_analysis_round_trip", || {
             let mut runtime = persisted_runtime_with_test_schema();
             let account =
                 create_entity_in_partition(&mut runtime, "portfolio-account", PartitionId(10));
@@ -8178,12 +8176,12 @@ fn perf_workflow_matrix() {
                                 client_key: crate::symbols::data::ClientKey::raw(
                                     "analysis-trade-correction".to_string(),
                                 ),
-                                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
-                                    "entity_type": "trade",
-                                    "case": "trade-correction",
-                                    "status": "corrected",
-                                    "account": "portfolio-account",
-                                })),
+                                fields: crate::tests::support::string_aspect_field_patch([
+                                    ("entity_type", "trade"),
+                                    ("case", "trade-correction"),
+                                    ("status", "corrected"),
+                                    ("account", "portfolio-account"),
+                                ]),
                             },
                         ))
                         .into(),
@@ -8198,12 +8196,12 @@ fn perf_workflow_matrix() {
                                 client_key: crate::symbols::data::ClientKey::raw(
                                     "analysis-risk-refresh".to_string(),
                                 ),
-                                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
-                                    "entity_type": "risk_view",
-                                    "case": "trade-correction",
-                                    "status": "refreshed",
-                                    "severity": "medium",
-                                })),
+                                fields: crate::tests::support::string_aspect_field_patch([
+                                    ("entity_type", "risk_view"),
+                                    ("case", "trade-correction"),
+                                    ("status", "refreshed"),
+                                    ("severity", "medium"),
+                                ]),
                             },
                         ))
                         .into(),
@@ -8218,11 +8216,11 @@ fn perf_workflow_matrix() {
                                 client_key: crate::symbols::data::ClientKey::raw(
                                     "analysis-audit-record".to_string(),
                                 ),
-                                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
-                                    "entity_type": "audit_record",
-                                    "case": "trade-correction",
-                                    "event": "analysis-reviewed",
-                                })),
+                                fields: crate::tests::support::string_aspect_field_patch([
+                                    ("entity_type", "audit_record"),
+                                    ("case", "trade-correction"),
+                                    ("event", "analysis-reviewed"),
+                                ]),
                             },
                         )))
                         .into(),
@@ -8294,8 +8292,7 @@ fn perf_workflow_matrix() {
                     "counters": counters,
                 })
             })
-        },
-    );
+        });
     emit_metric_summaries(
         suite,
         "trade_correction_analysis_round_trip",
@@ -11856,12 +11853,10 @@ fn perf_merge_lineage_matrix() {
                             partition_id: PartitionId::main(),
                             kind_id: KindId(1),
                             client_key: crate::symbols::data::ClientKey::raw("feature-only"),
-                            fields:
-                                crate::tests::support::aspect_field_patch_from_compatibility_json(
-                                    json!({
-                                        "name": "feature-only"
-                                    }),
-                                ),
+                            fields: crate::tests::support::single_string_aspect_field_patch(
+                                "name",
+                                "feature-only",
+                            ),
                         },
                     ))
                     .into(),
@@ -11935,12 +11930,10 @@ fn perf_merge_lineage_matrix() {
                             partition_id: PartitionId::main(),
                             kind_id: KindId(1),
                             client_key: crate::symbols::data::ClientKey::raw("feature-only"),
-                            fields:
-                                crate::tests::support::aspect_field_patch_from_compatibility_json(
-                                    json!({
-                                        "name": "feature-only"
-                                    }),
-                                ),
+                            fields: crate::tests::support::single_string_aspect_field_patch(
+                                "name",
+                                "feature-only",
+                            ),
                         },
                     ))
                     .into(),
@@ -12025,12 +12018,10 @@ fn perf_merge_lineage_matrix() {
                             partition_id: PartitionId::main(),
                             kind_id: KindId(1),
                             client_key: crate::symbols::data::ClientKey::raw("feature-only"),
-                            fields:
-                                crate::tests::support::aspect_field_patch_from_compatibility_json(
-                                    json!({
-                                        "name": "feature-only"
-                                    }),
-                                ),
+                            fields: crate::tests::support::single_string_aspect_field_patch(
+                                "name",
+                                "feature-only",
+                            ),
                         },
                     ))
                     .into(),
@@ -12108,12 +12099,10 @@ fn perf_merge_lineage_matrix() {
                             partition_id: PartitionId::main(),
                             kind_id: KindId(1),
                             client_key: crate::symbols::data::ClientKey::raw("feature-only"),
-                            fields:
-                                crate::tests::support::aspect_field_patch_from_compatibility_json(
-                                    json!({
-                                        "name": "feature-only"
-                                    }),
-                                ),
+                            fields: crate::tests::support::single_string_aspect_field_patch(
+                                "name",
+                                "feature-only",
+                            ),
                         },
                     ))
                     .into(),
@@ -12205,12 +12194,10 @@ fn perf_merge_lineage_matrix() {
                             partition_id: PartitionId::main(),
                             kind_id: KindId(1),
                             client_key: crate::symbols::data::ClientKey::raw("feature-only"),
-                            fields:
-                                crate::tests::support::aspect_field_patch_from_compatibility_json(
-                                    json!({
-                                        "name": "feature-only"
-                                    }),
-                                ),
+                            fields: crate::tests::support::single_string_aspect_field_patch(
+                                "name",
+                                "feature-only",
+                            ),
                         },
                     ))
                     .into(),
@@ -12302,12 +12289,10 @@ fn perf_merge_lineage_matrix() {
                             partition_id: PartitionId::main(),
                             kind_id: KindId(1),
                             client_key: crate::symbols::data::ClientKey::raw("feature-only"),
-                            fields:
-                                crate::tests::support::aspect_field_patch_from_compatibility_json(
-                                    json!({
-                                        "name": "feature-only"
-                                    }),
-                                ),
+                            fields: crate::tests::support::single_string_aspect_field_patch(
+                                "name",
+                                "feature-only",
+                            ),
                         },
                     ))
                     .into(),

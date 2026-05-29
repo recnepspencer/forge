@@ -173,10 +173,9 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
                     partition_id: crate::facade::identity::PartitionId::main(),
                     kind_id: KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("main-shared"),
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        serde_json::json!({
-                            "name": "shared-name"
-                        }),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        "name",
+                        "shared-name",
                     ),
                 },
             )),
@@ -197,12 +196,10 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
                     partition_id: crate::facade::identity::PartitionId::main(),
                     kind_id: KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("feature-shared"),
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        serde_json::json!({
-                            "name": "shared-name",
-                            "status": "active"
-                        }),
-                    ),
+                    fields: crate::tests::support::string_aspect_field_patch([
+                        ("name", "shared-name"),
+                        ("status", "active"),
+                    ]),
                 },
             )),
         ),

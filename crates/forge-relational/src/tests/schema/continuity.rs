@@ -670,9 +670,7 @@ fn commit_rejects_undeclared_schema_drift_against_branch_head() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("b"),
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    serde_json::json!({ "name": "b" }),
-                ),
+                fields: crate::tests::support::single_string_aspect_field_patch("name", "b"),
             },
         ))),
     );
@@ -781,9 +779,7 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("b"),
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    serde_json::json!({ "name": "b" }),
-                ),
+                fields: crate::tests::support::single_string_aspect_field_patch("name", "b"),
             }),
         )),
     );
@@ -910,9 +906,7 @@ fn schema_certification_transition_is_explained_and_counted() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("b"),
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    serde_json::json!({ "name": "b" }),
-                ),
+                fields: crate::tests::support::single_string_aspect_field_patch("name", "b"),
             },
         )),
     ));

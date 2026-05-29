@@ -730,9 +730,7 @@ fn merge_commit_inspection_stays_envelope_projected() {
         WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    serde_json::json!({"name":"feature"}),
-                ),
+                fields: crate::tests::support::single_string_aspect_field_patch("name", "feature"),
             }),
         )),
     );
@@ -1114,8 +1112,9 @@ fn transaction_inspection_savepoint_rollback_scrubs_abandoned_work_and_commit_tr
         WorkerIntentBatch::new("abandoned-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: existing,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    serde_json::json!({"name":"abandoned"}),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    "name",
+                    "abandoned",
                 ),
             }),
         )),
@@ -1184,8 +1183,9 @@ fn transaction_inspection_marks_lineage_affecting_intents_without_previewing_com
                     partition_id: crate::facade::identity::PartitionId::main(),
                     kind_id: crate::facade::identity::KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("replacement"),
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        serde_json::json!({"name":"replacement"}),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        "name",
+                        "replacement",
                     ),
                 },
             }),
@@ -1257,9 +1257,7 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
             WorkerIntentBatch::new("main-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        serde_json::json!({"name":"main"}),
-                    ),
+                    fields: crate::tests::support::single_string_aspect_field_patch("name", "main"),
                 }),
             )),
         );
@@ -1274,8 +1272,8 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
             WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        serde_json::json!({"name":"feature"}),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        "name", "feature",
                     ),
                 }),
             )),
@@ -1366,9 +1364,7 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
             WorkerIntentBatch::new("main-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        serde_json::json!({"name":"main"}),
-                    ),
+                    fields: crate::tests::support::single_string_aspect_field_patch("name", "main"),
                 }),
             )),
         );
@@ -1383,8 +1379,8 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
             WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        serde_json::json!({"name":"feature"}),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        "name", "feature",
                     ),
                 }),
             )),

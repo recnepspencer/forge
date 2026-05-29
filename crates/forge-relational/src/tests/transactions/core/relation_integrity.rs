@@ -872,8 +872,9 @@ fn relation_integrity_commit_boundary_rejects_replace_when_retained_relation_kee
                     partition_id: PartitionId::main(),
                     kind_id: KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("source-replacement"),
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({"name":"source-replacement"}),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        "name",
+                        "source-replacement",
                     ),
                 },
             }),

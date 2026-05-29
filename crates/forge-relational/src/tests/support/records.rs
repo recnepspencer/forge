@@ -7,9 +7,7 @@ pub(crate) fn batch_create(name: &str) -> WorkerIntentBatch {
             partition_id: PartitionId::main(),
             kind_id: KindId(1),
             client_key: crate::symbols::data::ClientKey::raw(name),
-            fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                json!({ "name": name }),
-            ),
+            fields: crate::tests::support::single_string_aspect_field_patch("name", name),
         }),
     ))
 }
@@ -97,7 +95,7 @@ fn entity_fields_for_runtime(runtime: &RelationalRuntime, name: &str) -> AspectF
         })
     });
     if declares_name {
-        crate::tests::support::aspect_field_patch_from_compatibility_json(json!({ "name": name }))
+        crate::tests::support::single_string_aspect_field_patch("name", name)
     } else {
         AspectFieldPatch::default()
     }
@@ -179,7 +177,7 @@ pub(crate) fn create_relation(
     target: crate::facade::identity::EntityId,
     client_key: &str,
 ) -> RelationId {
-    create_relation_with_payload_label(
+    create_relation_with_aspect_label(
         runtime,
         source,
         target,
@@ -196,7 +194,7 @@ pub(crate) fn create_relation_in_partition(
     client_key: &str,
     partition_id: PartitionId,
 ) -> RelationId {
-    create_relation_with_payload_label(
+    create_relation_with_aspect_label(
         runtime,
         source,
         target,
@@ -206,7 +204,7 @@ pub(crate) fn create_relation_in_partition(
     )
 }
 
-pub(crate) fn create_relation_with_payload_label(
+pub(crate) fn create_relation_with_aspect_label(
     runtime: &mut RelationalRuntime,
     source: crate::facade::identity::EntityId,
     target: crate::facade::identity::EntityId,

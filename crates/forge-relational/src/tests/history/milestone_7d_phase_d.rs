@@ -157,20 +157,20 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
 #[test]
 fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
     let mut runtime =
-        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins);
-    let entity = create_entity_with_payload(
+        runtime_with_aspect_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins);
+    let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "shared",
         serde_json::json!({ "value": "base" }),
     );
     create_branch_from_main(&mut runtime, "feature");
-    update_entity_payload_on_branch(
+    update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
         serde_json::json!({ "value": "main-change" }),
         BranchId("main".to_string()),
     );
-    update_entity_payload_on_branch(
+    update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
         serde_json::json!({ "value": "feature-change" }),
@@ -218,7 +218,7 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
     ));
 
     let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
-        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins)
+        runtime_with_aspect_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins)
     });
     let recovered_artifact = recovered
         .merge()
@@ -245,20 +245,20 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
 #[test]
 fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
     let mut runtime =
-        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins);
-    let entity = create_entity_with_payload(
+        runtime_with_aspect_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins);
+    let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "shared",
         serde_json::json!({ "value": "base" }),
     );
-    update_entity_payload_on_branch(
+    update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
         serde_json::json!({ "value": "main-change" }),
         BranchId("main".to_string()),
     );
     create_branch_from_main(&mut runtime, "feature");
-    update_entity_payload_on_branch(
+    update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
         serde_json::json!({ "value": "feature-change" }),
@@ -323,7 +323,7 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
         .cloned()
         .expect("live merge envelope");
     let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
-        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins)
+        runtime_with_aspect_field_merge_policy("value", AspectMergePolicyKind::LastWriterWins)
     });
     let recovered_envelope = recovered
         .replay()
@@ -343,24 +343,24 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
 
 #[test]
 fn auto_resolved_merge_reads_pinned_visible_value_through_declared_aspect_binding() {
-    let mut runtime = runtime_with_payload_field_merge_policy_for_aspect(
+    let mut runtime = runtime_with_aspect_field_merge_policy_for_aspect(
         "display_name",
         "display",
         AspectMergePolicyKind::PreferRicher,
     );
-    let entity = create_entity_with_payload(
+    let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "identity",
         serde_json::json!({ "display": "base" }),
     );
     create_branch_from_main(&mut runtime, "feature");
-    update_entity_payload_on_branch(
+    update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
         serde_json::json!({ "display": "main-change" }),
         BranchId("main".to_string()),
     );
-    update_entity_payload_on_branch(
+    update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
         serde_json::json!({ "display": "feature-change" }),
@@ -387,23 +387,26 @@ fn auto_resolved_merge_reads_pinned_visible_value_through_declared_aspect_bindin
 #[test]
 fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recovery_parity() {
     let mut runtime =
-        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::MonotonicCounter);
-    let entity =
-        create_entity_with_payload(&mut runtime, "counter", serde_json::json!({ "value": 0 }));
-    update_entity_payload_on_branch(
+        runtime_with_aspect_field_merge_policy("value", AspectMergePolicyKind::MonotonicCounter);
+    let entity = create_entity_with_aspect_fields(
+        &mut runtime,
+        "counter",
+        serde_json::json!({ "value": 0 }),
+    );
+    update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
         serde_json::json!({ "value": 10 }),
         BranchId("main".to_string()),
     );
     create_branch_from_main(&mut runtime, "feature");
-    update_entity_payload_on_branch(
+    update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
         serde_json::json!({ "value": 15 }),
         BranchId("main".to_string()),
     );
-    update_entity_payload_on_branch(
+    update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
         serde_json::json!({ "value": 13 }),
@@ -457,7 +460,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         .expect("live merge envelope");
 
     let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
-        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::MonotonicCounter)
+        runtime_with_aspect_field_merge_policy("value", AspectMergePolicyKind::MonotonicCounter)
     });
     let recovered_envelope = recovered
         .replay()
@@ -495,7 +498,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
 
 #[test]
 fn built_in_additive_set_merge_policy_is_rejected_without_native_foundational_set_contract() {
-    let error = register_payload_field_merge_policy(
+    let error = register_aspect_field_merge_policy(
         "value",
         entity_field_aspect("value", "value"),
         AspectMergePolicyKind::AdditiveSet,
@@ -1340,7 +1343,7 @@ use crate::{
     schema::data::{RelationalSchemaRegistry, SchemaRegistryError},
 };
 
-fn runtime_with_payload_field_merge_policy(
+fn runtime_with_aspect_field_merge_policy(
     field_name: &str,
     merge_policy: AspectMergePolicyKind,
 ) -> crate::facade::runtime::RelationalRuntime {
@@ -1348,14 +1351,14 @@ fn runtime_with_payload_field_merge_policy(
         AspectMergePolicyKind::MonotonicCounter => entity_i64_field_aspect(field_name, field_name),
         _ => entity_field_aspect(field_name, field_name),
     };
-    let registry = register_payload_field_merge_policy(field_name, value_aspect, merge_policy)
+    let registry = register_aspect_field_merge_policy(field_name, value_aspect, merge_policy)
         .expect("schema registry");
     RelationalRuntimeApi::builder()
         .schema_registry(registry)
         .build()
 }
 
-fn runtime_with_payload_field_merge_policy_for_aspect(
+fn runtime_with_aspect_field_merge_policy_for_aspect(
     aspect_name: &str,
     field_name: &str,
     merge_policy: AspectMergePolicyKind,
@@ -1364,14 +1367,14 @@ fn runtime_with_payload_field_merge_policy_for_aspect(
         AspectMergePolicyKind::MonotonicCounter => entity_i64_field_aspect(aspect_name, field_name),
         _ => entity_field_aspect(aspect_name, field_name),
     };
-    let registry = register_payload_field_merge_policy(aspect_name, value_aspect, merge_policy)
+    let registry = register_aspect_field_merge_policy(aspect_name, value_aspect, merge_policy)
         .expect("schema registry");
     RelationalRuntimeApi::builder()
         .schema_registry(registry)
         .build()
 }
 
-fn register_payload_field_merge_policy(
+fn register_aspect_field_merge_policy(
     aspect_name: &str,
     value_aspect: crate::schema::data::DeclaredAspect,
     merge_policy: AspectMergePolicyKind,
@@ -1411,15 +1414,20 @@ fn register_payload_field_merge_policy(
         })
 }
 
-fn create_entity_with_payload(
+fn create_entity_with_aspect_fields(
     runtime: &mut crate::facade::runtime::RelationalRuntime,
     client_key: &str,
     payload: serde_json::Value,
 ) -> crate::facade::identity::EntityId {
-    create_entity_with_payload_on_branch(runtime, client_key, payload, BranchId("main".to_string()))
+    create_entity_with_aspect_fields_on_branch(
+        runtime,
+        client_key,
+        payload,
+        BranchId("main".to_string()),
+    )
 }
 
-fn create_entity_with_payload_on_branch(
+fn create_entity_with_aspect_fields_on_branch(
     runtime: &mut crate::facade::runtime::RelationalRuntime,
     client_key: &str,
     payload: serde_json::Value,
@@ -1436,7 +1444,7 @@ fn create_entity_with_payload_on_branch(
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw(client_key),
                 fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    payload_with_identity_name(client_key, payload),
+                    aspect_fields_with_identity_name(client_key, payload),
                 ),
             },
         )),
@@ -1444,7 +1452,7 @@ fn create_entity_with_payload_on_branch(
     changed_entities(&txn.commit().unwrap())[0]
 }
 
-fn update_entity_payload_on_branch(
+fn update_entity_aspect_fields_on_branch(
     runtime: &mut crate::facade::runtime::RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
     payload: serde_json::Value,
@@ -1459,11 +1467,11 @@ fn update_entity_payload_on_branch(
         ..TransactionOptions::default()
     });
     txn.push_batch(
-        WorkerIntentBatch::new("update-payload").push(MutationIntent::Entity(
+        WorkerIntentBatch::new("update-aspect-fields").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
                 fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    payload_with_identity_name(&stable_name, payload),
+                    aspect_fields_with_identity_name(&stable_name, payload),
                 ),
             }),
         )),
@@ -1471,7 +1479,10 @@ fn update_entity_payload_on_branch(
     txn.commit().unwrap();
 }
 
-fn payload_with_identity_name(client_key: &str, payload: serde_json::Value) -> serde_json::Value {
+fn aspect_fields_with_identity_name(
+    client_key: &str,
+    payload: serde_json::Value,
+) -> serde_json::Value {
     let mut object = match payload {
         serde_json::Value::Object(object) => object,
         other => panic!("expected object payload, got {other:?}"),

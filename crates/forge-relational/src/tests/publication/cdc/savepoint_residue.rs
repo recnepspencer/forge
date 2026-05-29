@@ -17,8 +17,9 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
         WorkerIntentBatch::new("abandoned-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor_entity,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"abandoned-anchor"}),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    "name",
+                    "abandoned-anchor",
                 ),
             }),
         )),
@@ -28,8 +29,9 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
         WorkerIntentBatch::new("survived-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor_entity,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"survived-anchor"}),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    "name",
+                    "survived-anchor",
                 ),
             }),
         )),
@@ -80,8 +82,9 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
         WorkerIntentBatch::new("surviving-a-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"surviving-a-anchor"}),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    "name",
+                    "surviving-a-anchor",
                 ),
             }),
         )),
@@ -109,8 +112,9 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
                     partition_id: PartitionId::main(),
                     kind_id: KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("abandoned-replacement"),
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({"name":"abandoned-replacement"}),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        "name",
+                        "abandoned-replacement",
                     ),
                 },
             }),
@@ -123,8 +127,9 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
         WorkerIntentBatch::new("surviving-b-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"surviving-b-anchor"}),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    "name",
+                    "surviving-b-anchor",
                 ),
             }),
         )),
@@ -136,8 +141,9 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
         WorkerIntentBatch::new("surviving-final-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"surviving-final-anchor"}),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    "name",
+                    "surviving-final-anchor",
                 ),
             }),
         )),
@@ -368,8 +374,9 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
         WorkerIntentBatch::new("surviving-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: target,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"target-survived"}),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    "name",
+                    "target-survived",
                 ),
             }),
         )),

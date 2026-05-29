@@ -256,8 +256,9 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
         WorkerIntentBatch::new("abandoned-left").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: left_entity,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"abandoned-left"}),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    "name",
+                    "abandoned-left",
                 ),
             }),
         )),
@@ -266,8 +267,9 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
         WorkerIntentBatch::new("abandoned-right").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: right_entity,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"abandoned-right"}),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    "name",
+                    "abandoned-right",
                 ),
             }),
         )),
@@ -277,8 +279,9 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
         WorkerIntentBatch::new("survived-left").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: left_entity,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"survived-left"}),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    "name",
+                    "survived-left",
                 ),
             }),
         )),
@@ -287,8 +290,9 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
         WorkerIntentBatch::new("survived-right").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: right_entity,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"survived-right"}),
+                fields: crate::tests::support::single_string_aspect_field_patch(
+                    "name",
+                    "survived-right",
                 ),
             }),
         )),

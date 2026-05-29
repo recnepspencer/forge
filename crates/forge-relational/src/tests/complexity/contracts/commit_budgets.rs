@@ -266,15 +266,9 @@ fn complexity_budget_bulk_create_reserves_partition_local_capacity() {
                     crate::symbols::data::ClientKey::raw("c"),
                 ],
                 field_patches: vec![
-                    crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({"name":"a"}),
-                    ),
-                    crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({"name":"b"}),
-                    ),
-                    crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({"name":"c"}),
-                    ),
+                    crate::tests::support::single_string_aspect_field_patch("name", "a"),
+                    crate::tests::support::single_string_aspect_field_patch("name", "b"),
+                    crate::tests::support::single_string_aspect_field_patch("name", "c"),
                 ],
             }),
         )),
@@ -379,9 +373,7 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
         WorkerIntentBatch::new("duplicate-name").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: target,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"other"}),
-                ),
+                fields: crate::tests::support::single_string_aspect_field_patch("name", "other"),
             }),
         )),
     );
@@ -416,9 +408,7 @@ fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() 
         WorkerIntentBatch::new("duplicate-name").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: target,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    json!({"name":"other"}),
-                ),
+                fields: crate::tests::support::single_string_aspect_field_patch("name", "other"),
             }),
         )),
     );
@@ -910,12 +900,8 @@ fn complexity_budget_bulk_mutation_planning_reports_identity_scope_and_batch_evi
                     crate::symbols::data::ClientKey::raw("beta"),
                 ],
                 field_patches: vec![
-                    crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({"name":"alpha"}),
-                    ),
-                    crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({"name":"beta"}),
-                    ),
+                    crate::tests::support::single_string_aspect_field_patch("name", "alpha"),
+                    crate::tests::support::single_string_aspect_field_patch("name", "beta"),
                 ],
             }),
         )),

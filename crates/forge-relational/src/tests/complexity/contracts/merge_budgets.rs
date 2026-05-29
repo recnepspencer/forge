@@ -88,10 +88,9 @@ fn complexity_budget_merge_execution_reports_admitted_records_and_emitted_mutati
                     partition_id: crate::facade::identity::PartitionId::main(),
                     kind_id: crate::facade::identity::KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("feature-only"),
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        serde_json::json!({
-                            "name": "feature-only"
-                        }),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        "name",
+                        "feature-only",
                     ),
                 },
             )))
