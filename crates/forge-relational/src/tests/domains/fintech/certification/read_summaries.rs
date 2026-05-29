@@ -2,9 +2,9 @@ use std::collections::BTreeMap;
 
 use super::super::fixture::FintechCaseRole;
 use super::super::probes::{capture_case_truth_probe, CaseTruthProbe, ProbeStage};
-use super::certification_artifact_value::{
+use super::artifact_projection_value::{
     artifact_object, dynamic_artifact_object, string_field, u64_field, usize_field,
-    CertificationArtifactValue,
+    CertificationArtifactProjectionValue,
 };
 use super::session::CertifiedRelationalFintechSession;
 use crate::facade::snapshots::SnapshotHandle;
@@ -82,7 +82,7 @@ impl CertifiedFintechReadSummary {
             .unwrap_or(false)
     }
 
-    pub(super) fn to_artifact_value(&self) -> CertificationArtifactValue {
+    pub(super) fn to_artifact_value(&self) -> CertificationArtifactProjectionValue {
         let mut fields = vec![
             u64_field("snapshot_id", self.snapshot_id),
             usize_field("entity_count", self.entity_count),
@@ -101,7 +101,7 @@ impl CertifiedFintechReadSummary {
 
 pub(super) fn read_summary_artifacts(
     summaries: &BTreeMap<String, CertifiedFintechReadSummary>,
-) -> CertificationArtifactValue {
+) -> CertificationArtifactProjectionValue {
     dynamic_artifact_object(
         summaries
             .iter()

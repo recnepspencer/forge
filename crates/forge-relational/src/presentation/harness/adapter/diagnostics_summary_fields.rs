@@ -2,9 +2,9 @@ use crate::logic::planning::RelationalExecutionModel;
 use crate::performance::data::RuntimeComplexityCounters;
 use crate::publication::data::PublicationDiagnosticsSnapshot;
 
-use super::harness_summary_value::{
+use super::harness_summary_projection_value::{
     harness_summary_array, harness_summary_diagnostic_fields, harness_summary_object,
-    harness_summary_string, harness_summary_usize, HarnessSummaryValue,
+    harness_summary_string, harness_summary_usize, HarnessSummaryProjectionValue,
 };
 use super::run_summary_fields::publication_observation_fields;
 
@@ -13,14 +13,14 @@ pub(super) fn diagnostics_summary(
     runtime_execution_model: RelationalExecutionModel,
     performance_counters: RuntimeComplexityCounters,
     publication_diagnostics: PublicationDiagnosticsSnapshot,
-) -> HarnessSummaryValue {
+) -> HarnessSummaryProjectionValue {
     DiagnosticsSummary::new(
         execution_mode,
         runtime_execution_model,
         performance_counters,
         publication_diagnostics,
     )
-    .into_harness_summary_value()
+    .into_harness_summary_projection_value()
 }
 
 struct DiagnosticsSummary {
@@ -47,7 +47,7 @@ impl DiagnosticsSummary {
         }
     }
 
-    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+    fn into_harness_summary_projection_value(self) -> HarnessSummaryProjectionValue {
         harness_summary_object([
             (
                 "execution_mode",
@@ -59,11 +59,13 @@ impl DiagnosticsSummary {
             ),
             (
                 "performance_counters",
-                self.performance_counters.into_harness_summary_value(),
+                self.performance_counters
+                    .into_harness_summary_projection_value(),
             ),
             (
                 "publication_diagnostics",
-                self.publication_diagnostics.into_harness_summary_value(),
+                self.publication_diagnostics
+                    .into_harness_summary_projection_value(),
             ),
         ])
     }
@@ -107,7 +109,7 @@ impl PerformanceCounterSummary {
         }
     }
 
-    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+    fn into_harness_summary_projection_value(self) -> HarnessSummaryProjectionValue {
         harness_summary_object([
             (
                 "query_packet_count",
@@ -197,7 +199,7 @@ impl PublicationDiagnosticSummary {
         }
     }
 
-    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+    fn into_harness_summary_projection_value(self) -> HarnessSummaryProjectionValue {
         harness_summary_object([
             (
                 "observation",
@@ -208,7 +210,7 @@ impl PublicationDiagnosticSummary {
                 harness_summary_array(
                     self.diagnostic_artifacts
                         .into_iter()
-                        .map(DiagnosticArtifactSummary::into_harness_summary_value),
+                        .map(DiagnosticArtifactSummary::into_harness_summary_projection_value),
                 ),
             ),
             (
@@ -248,7 +250,7 @@ impl DiagnosticArtifactSummary {
         self.entries.len()
     }
 
-    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+    fn into_harness_summary_projection_value(self) -> HarnessSummaryProjectionValue {
         harness_summary_object([
             ("scope", harness_summary_string(self.scope)),
             ("kind", harness_summary_string(self.kind)),
@@ -258,7 +260,7 @@ impl DiagnosticArtifactSummary {
                 harness_summary_array(
                     self.entries
                         .into_iter()
-                        .map(DiagnosticEntrySummary::into_harness_summary_value),
+                        .map(DiagnosticEntrySummary::into_harness_summary_projection_value),
                 ),
             ),
         ])
@@ -280,7 +282,7 @@ impl DiagnosticEntrySummary {
         }
     }
 
-    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+    fn into_harness_summary_projection_value(self) -> HarnessSummaryProjectionValue {
         harness_summary_object([
             ("code", harness_summary_string(self.code)),
             ("message", harness_summary_string(self.message)),

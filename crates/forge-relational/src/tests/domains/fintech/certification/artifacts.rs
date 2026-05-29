@@ -7,15 +7,15 @@ use forge_harness::facade::{
 use crate::facade::replay::RelationalReplayOutcome;
 
 use super::super::complexity::workflow_budgets;
-use super::certification_artifact_value::{
+use super::artifact_projection_value::{
     artifact_field, artifact_object, bool_field, dynamic_artifact_object, optional_string_field,
     optional_u64_field, optional_usize_field, string_array_field, string_field, usize_field,
-    CertificationArtifactValue,
+    CertificationArtifactProjectionValue,
 };
 use super::read_summaries::read_summary_artifacts;
 use super::session::CertifiedRelationalFintechSession;
 
-fn replay_summary(replay: &RelationalReplayOutcome) -> CertificationArtifactValue {
+fn replay_summary(replay: &RelationalReplayOutcome) -> CertificationArtifactProjectionValue {
     artifact_object([
         optional_u64_field(
             "commit_id",
@@ -71,7 +71,9 @@ fn replay_summary(replay: &RelationalReplayOutcome) -> CertificationArtifactValu
     ])
 }
 
-fn branch_summary(session: &CertifiedRelationalFintechSession) -> CertificationArtifactValue {
+fn branch_summary(
+    session: &CertifiedRelationalFintechSession,
+) -> CertificationArtifactProjectionValue {
     let latest_commit = session
         .world
         .runtime
@@ -105,7 +107,9 @@ fn branch_summary(session: &CertifiedRelationalFintechSession) -> CertificationA
     ])
 }
 
-fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> CertificationArtifactValue {
+fn diagnostics_summary(
+    session: &CertifiedRelationalFintechSession,
+) -> CertificationArtifactProjectionValue {
     let recovery = session.world.runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -139,7 +143,9 @@ fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> Certifica
     ])
 }
 
-fn patch_summary(session: &CertifiedRelationalFintechSession) -> CertificationArtifactValue {
+fn patch_summary(
+    session: &CertifiedRelationalFintechSession,
+) -> CertificationArtifactProjectionValue {
     let publication = session.world.runtime.publication();
     let artifacts = publication.artifact_snapshot();
     let observation = &artifacts.observation;
@@ -193,7 +199,9 @@ fn patch_summary(session: &CertifiedRelationalFintechSession) -> CertificationAr
     ])
 }
 
-fn complexity_summary(session: &CertifiedRelationalFintechSession) -> CertificationArtifactValue {
+fn complexity_summary(
+    session: &CertifiedRelationalFintechSession,
+) -> CertificationArtifactProjectionValue {
     let counters = session.world.runtime.performance_access().counters();
     artifact_object([
         usize_field("full_state_clones", counters.full_state_clones),
@@ -220,7 +228,9 @@ fn complexity_summary(session: &CertifiedRelationalFintechSession) -> Certificat
     ])
 }
 
-fn budget_summary(session: &CertifiedRelationalFintechSession) -> CertificationArtifactValue {
+fn budget_summary(
+    session: &CertifiedRelationalFintechSession,
+) -> CertificationArtifactProjectionValue {
     let counters = session.world.runtime.performance_access().counters();
     let mut all_passed = true;
     let checks = workflow_budgets()
@@ -239,7 +249,10 @@ fn budget_summary(session: &CertifiedRelationalFintechSession) -> CertificationA
         .collect::<Vec<_>>();
     artifact_object([
         bool_field("all_passed", all_passed),
-        artifact_field("checks", CertificationArtifactValue::Array(checks)),
+        artifact_field(
+            "checks",
+            CertificationArtifactProjectionValue::Array(checks),
+        ),
     ])
 }
 
@@ -250,108 +263,105 @@ pub(super) fn capture_artifacts(
     let mut artifacts = Vec::new();
     for surface in &request.requested_surfaces {
         match surface {
-            ArtifactSurface::SnapshotVisibleTruth => artifacts.push(ArtifactBundle {
-                artifact_class: ArtifactClass::Truth,
-                surface: ArtifactSurface::SnapshotVisibleTruth,
-                name: "snapshot-visible-truth".to_string(),
-                boundary: request.boundary,
-                payload: read_summary_artifacts(&session.named_reads).into_harness_projection(),
-                attachments: Vec::new(),
-                metadata: BTreeMap::new(),
-            }),
-            ArtifactSurface::BranchHeadState => artifacts.push(ArtifactBundle {
-                artifact_class: ArtifactClass::Truth,
-                surface: ArtifactSurface::BranchHeadState,
-                name: "branch-head-state".to_string(),
-                boundary: request.boundary,
-                payload: branch_summary(session).into_harness_projection(),
-                attachments: Vec::new(),
-                metadata: BTreeMap::new(),
-            }),
-            ArtifactSurface::ReplayRecoveryTruthState => artifacts.push(ArtifactBundle {
-                artifact_class: ArtifactClass::Truth,
-                surface: ArtifactSurface::ReplayRecoveryTruthState,
-                name: "replay-recovery-truth".to_string(),
-                boundary: request.boundary,
-                payload: dynamic_artifact_object(
+            ArtifactSurface::SnapshotVisibleTruth => artifacts.push(captured_artifact_bundle(
+                ArtifactClass::Truth,
+                ArtifactSurface::SnapshotVisibleTruth,
+                "snapshot-visible-truth",
+                request,
+                read_summary_artifacts(&session.named_reads),
+            )),
+            ArtifactSurface::BranchHeadState => artifacts.push(captured_artifact_bundle(
+                ArtifactClass::Truth,
+                ArtifactSurface::BranchHeadState,
+                "branch-head-state",
+                request,
+                branch_summary(session),
+            )),
+            ArtifactSurface::ReplayRecoveryTruthState => artifacts.push(captured_artifact_bundle(
+                ArtifactClass::Truth,
+                ArtifactSurface::ReplayRecoveryTruthState,
+                "replay-recovery-truth",
+                request,
+                dynamic_artifact_object(
                     session
                         .named_replays
                         .iter()
                         .map(|(alias, replay)| (alias.clone(), replay_summary(replay)))
                         .collect::<Vec<_>>(),
-                )
-                .into_harness_projection(),
-                attachments: Vec::new(),
-                metadata: BTreeMap::new(),
-            }),
-            ArtifactSurface::Diagnostics => artifacts.push(ArtifactBundle {
-                artifact_class: ArtifactClass::Observability,
-                surface: ArtifactSurface::Diagnostics,
-                name: "diagnostics".to_string(),
-                boundary: request.boundary,
-                payload: diagnostics_summary(session).into_harness_projection(),
-                attachments: Vec::new(),
-                metadata: BTreeMap::new(),
-            }),
-            ArtifactSurface::PatchChangeSurface => artifacts.push(ArtifactBundle {
-                artifact_class: ArtifactClass::Observability,
-                surface: ArtifactSurface::PatchChangeSurface,
-                name: "patch-change-surface".to_string(),
-                boundary: request.boundary,
-                payload: patch_summary(session).into_harness_projection(),
-                attachments: Vec::new(),
-                metadata: BTreeMap::new(),
-            }),
-            ArtifactSurface::StepTrace => artifacts.push(ArtifactBundle {
-                artifact_class: ArtifactClass::Forensic,
-                surface: ArtifactSurface::StepTrace,
-                name: "step-trace".to_string(),
-                boundary: request.boundary,
-                payload: CertificationArtifactValue::Array(
+                ),
+            )),
+            ArtifactSurface::Diagnostics => artifacts.push(captured_artifact_bundle(
+                ArtifactClass::Observability,
+                ArtifactSurface::Diagnostics,
+                "diagnostics",
+                request,
+                diagnostics_summary(session),
+            )),
+            ArtifactSurface::PatchChangeSurface => artifacts.push(captured_artifact_bundle(
+                ArtifactClass::Observability,
+                ArtifactSurface::PatchChangeSurface,
+                "patch-change-surface",
+                request,
+                patch_summary(session),
+            )),
+            ArtifactSurface::StepTrace => artifacts.push(captured_artifact_bundle(
+                ArtifactClass::Forensic,
+                ArtifactSurface::StepTrace,
+                "step-trace",
+                request,
+                CertificationArtifactProjectionValue::Array(
                     session
                         .executed_steps
                         .iter()
                         .cloned()
-                        .map(CertificationArtifactValue::String)
+                        .map(CertificationArtifactProjectionValue::String)
                         .collect(),
-                )
-                .into_harness_projection(),
-                attachments: Vec::new(),
-                metadata: BTreeMap::new(),
-            }),
-            ArtifactSurface::CheckpointTrace => artifacts.push(ArtifactBundle {
-                artifact_class: ArtifactClass::Forensic,
-                surface: ArtifactSurface::CheckpointTrace,
-                name: "checkpoint-trace".to_string(),
-                boundary: request.boundary,
-                payload: artifact_object([
+                ),
+            )),
+            ArtifactSurface::CheckpointTrace => artifacts.push(captured_artifact_bundle(
+                ArtifactClass::Forensic,
+                ArtifactSurface::CheckpointTrace,
+                "checkpoint-trace",
+                request,
+                artifact_object([
                     string_array_field("checkpoints", session.checkpoints.iter().cloned()),
                     string_array_field("snapshots", session.named_snapshots.keys().cloned()),
-                ])
-                .into_harness_projection(),
-                attachments: Vec::new(),
-                metadata: BTreeMap::new(),
-            }),
-            ArtifactSurface::ComplexityCounters => artifacts.push(ArtifactBundle {
-                artifact_class: ArtifactClass::Performance,
-                surface: ArtifactSurface::ComplexityCounters,
-                name: "complexity-counters".to_string(),
-                boundary: request.boundary,
-                payload: complexity_summary(session).into_harness_projection(),
-                attachments: Vec::new(),
-                metadata: BTreeMap::new(),
-            }),
-            ArtifactSurface::BudgetOutcome => artifacts.push(ArtifactBundle {
-                artifact_class: ArtifactClass::Performance,
-                surface: ArtifactSurface::BudgetOutcome,
-                name: "budget-outcome".to_string(),
-                boundary: request.boundary,
-                payload: budget_summary(session).into_harness_projection(),
-                attachments: Vec::new(),
-                metadata: BTreeMap::new(),
-            }),
+                ]),
+            )),
+            ArtifactSurface::ComplexityCounters => artifacts.push(captured_artifact_bundle(
+                ArtifactClass::Performance,
+                ArtifactSurface::ComplexityCounters,
+                "complexity-counters",
+                request,
+                complexity_summary(session),
+            )),
+            ArtifactSurface::BudgetOutcome => artifacts.push(captured_artifact_bundle(
+                ArtifactClass::Performance,
+                ArtifactSurface::BudgetOutcome,
+                "budget-outcome",
+                request,
+                budget_summary(session),
+            )),
             _ => {}
         }
     }
     artifacts
+}
+
+fn captured_artifact_bundle(
+    artifact_class: ArtifactClass,
+    surface: ArtifactSurface,
+    name: &'static str,
+    request: &WorkflowCaptureRequest,
+    projection: CertificationArtifactProjectionValue,
+) -> ArtifactBundle {
+    ArtifactBundle {
+        artifact_class,
+        surface,
+        name: name.to_string(),
+        boundary: request.boundary,
+        payload: projection.into_external_harness_json(),
+        attachments: Vec::new(),
+        metadata: BTreeMap::new(),
+    }
 }

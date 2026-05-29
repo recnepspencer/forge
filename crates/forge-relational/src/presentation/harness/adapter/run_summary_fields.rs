@@ -1,31 +1,33 @@
 use crate::publication::data::{PublicationArtifactSnapshot, PublicationObservationSnapshot};
 use crate::snapshots::data::SnapshotHandle;
 
-use super::harness_summary_value::{
+use super::harness_summary_projection_value::{
     harness_summary_bool, harness_summary_object, harness_summary_u64, harness_summary_usize,
     optional_harness_summary_string, optional_harness_summary_u64, optional_harness_summary_usize,
-    HarnessSummaryValue,
+    HarnessSummaryProjectionValue,
 };
 
 pub(super) fn run_summary(
     snapshot: &SnapshotHandle,
     entity_hits: usize,
     relation_hits: usize,
-) -> HarnessSummaryValue {
+) -> HarnessSummaryProjectionValue {
     RunSummary::from_snapshot_read(snapshot, entity_hits, relation_hits)
-        .into_harness_summary_value()
+        .into_harness_summary_projection_value()
 }
 
 pub(super) fn publication_artifacts_extension(
     publication_artifacts: PublicationArtifactSnapshot,
-) -> HarnessSummaryValue {
-    PublicationArtifactsExtension::from_snapshot(publication_artifacts).into_harness_summary_value()
+) -> HarnessSummaryProjectionValue {
+    PublicationArtifactsExtension::from_snapshot(publication_artifacts)
+        .into_harness_summary_projection_value()
 }
 
 pub(super) fn publication_observation_fields(
     observation: &PublicationObservationSnapshot,
-) -> HarnessSummaryValue {
-    PublicationObservationSummary::from_observation(observation).into_harness_summary_value()
+) -> HarnessSummaryProjectionValue {
+    PublicationObservationSummary::from_observation(observation)
+        .into_harness_summary_projection_value()
 }
 
 struct RunSummary {
@@ -47,7 +49,7 @@ impl RunSummary {
         }
     }
 
-    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+    fn into_harness_summary_projection_value(self) -> HarnessSummaryProjectionValue {
         harness_summary_object([
             ("snapshot_id", harness_summary_u64(self.snapshot_id)),
             ("entity_hits", harness_summary_usize(self.entity_hits)),
@@ -77,9 +79,12 @@ impl PublicationArtifactsExtension {
         }
     }
 
-    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+    fn into_harness_summary_projection_value(self) -> HarnessSummaryProjectionValue {
         harness_summary_object([
-            ("observation", self.observation.into_harness_summary_value()),
+            (
+                "observation",
+                self.observation.into_harness_summary_projection_value(),
+            ),
             (
                 "latest_patch_record_count",
                 harness_summary_usize(self.latest_patch_record_count),
@@ -126,7 +131,7 @@ impl PublicationObservationSummary {
         }
     }
 
-    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+    fn into_harness_summary_projection_value(self) -> HarnessSummaryProjectionValue {
         harness_summary_object([
             (
                 "latest_commit_id",

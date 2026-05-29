@@ -1,12 +1,12 @@
 use crate::replay::data::RelationalReplayRecord;
 
-use super::harness_summary_value::{
+use super::harness_summary_projection_value::{
     harness_summary_object, harness_summary_string, harness_summary_u64, harness_summary_usize,
-    HarnessSummaryValue,
+    HarnessSummaryProjectionValue,
 };
 
-pub(super) fn replay_summary(replay: RelationalReplayRecord) -> HarnessSummaryValue {
-    ReplaySummary::from_replay_record(replay).into_harness_summary_value()
+pub(super) fn replay_summary(replay: RelationalReplayRecord) -> HarnessSummaryProjectionValue {
+    ReplaySummary::from_replay_record(replay).into_harness_summary_projection_value()
 }
 
 struct ReplaySummary {
@@ -34,7 +34,7 @@ impl ReplaySummary {
         }
     }
 
-    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+    fn into_harness_summary_projection_value(self) -> HarnessSummaryProjectionValue {
         harness_summary_object([
             ("schema_version", harness_summary_u64(self.schema_version)),
             ("commit_id", harness_summary_u64(self.commit_id)),

@@ -19,11 +19,11 @@ use super::super::actions::{
 };
 use super::super::fixture::FintechWorkflowCase;
 use super::super::scenarios::{setup_world_for, FintechScenario};
-use super::artifacts::capture_artifacts;
-use super::certification_artifact_value::{
+use super::artifact_projection_value::{
     artifact_object, optional_usize_field, string_array_field, string_field,
-    CertificationArtifactValue,
+    CertificationArtifactProjectionValue,
 };
+use super::artifacts::capture_artifacts;
 use super::invariants::run_checks;
 use super::read_summaries::{case_read_summary, read_summary};
 use super::session::CertifiedRelationalFintechSession;
@@ -325,7 +325,7 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
         Ok(ReproductionMetadata {
             format: "json".to_string(),
             payload: reproduction_artifact_value(session, failure)
-                .into_harness_projection()
+                .into_external_harness_json()
                 .to_string(),
         })
     }
@@ -334,7 +334,7 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
 fn reproduction_artifact_value(
     session: &CertifiedRelationalFintechSession,
     failure: &WorkflowFailureContext,
-) -> CertificationArtifactValue {
+) -> CertificationArtifactProjectionValue {
     artifact_object([
         string_field("state", format!("{:?}", failure.state)),
         optional_usize_field("step_index", failure.step_index),

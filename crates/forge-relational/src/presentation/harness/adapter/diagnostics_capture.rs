@@ -31,7 +31,7 @@ pub(super) fn capture_diagnostics(
             runtime.performance_access().counters(),
             publication_diagnostics,
         )
-        .into_harness_projection(),
+        .into_external_harness_json(),
         extensions: BTreeMap::new(),
     })
 }
