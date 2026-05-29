@@ -6,7 +6,6 @@ use crate::schema::data::{
     SymmetryContractDeclaration, SymmetryMode,
 };
 use crate::tests::support::*;
-use serde_json::json;
 
 #[derive(Clone)]
 struct InvariantHarnessAdapter {
@@ -1138,8 +1137,31 @@ fn harness_diagnostic_entries<'a>(
         .into_iter()
         .flatten()
         .flat_map(|artifact| artifact["entries"].as_array().into_iter().flatten())
-        .filter(|entry| entry["code"] == json!(code))
+        .filter(|entry| harness_diagnostic_code_matches(entry, code))
         .collect()
+}
+
+fn harness_diagnostic_code_matches(entry: &serde_json::Value, code: &str) -> bool {
+    entry["code"].as_str() == Some(code)
+}
+
+fn harness_diagnostic_field_matches(
+    entry: &serde_json::Value,
+    field: &str,
+    expected: &str,
+) -> bool {
+    entry["fields"][field].as_str() == Some(expected)
+}
+
+fn harness_summary_field<'summary>(
+    summary: &'summary serde_json::Value,
+    field: &str,
+) -> Option<&'summary str> {
+    summary[field].as_str()
+}
+
+fn harness_summary_counter(summary: &serde_json::Value, counter: &str) -> Option<u64> {
+    summary["performance_counters"][counter].as_u64()
 }
 
 fn certification_case<'a>(
@@ -1263,9 +1285,13 @@ fn harness_phase8_fault_injection_soak_does_not_corrupt_following_certification_
             "PreparationFailure"
         )
         .iter()
-        .any(
-            |entry| entry["fields"]["failure_class"] == json!("fragment_canonicalization_failure")
-        ));
+        .any(|entry| {
+            harness_diagnostic_field_matches(
+                entry,
+                "failure_class",
+                "fragment_canonicalization_failure",
+            )
+        }));
 
         let (fixture, batch, request) = harness_phase8_fixture_batch_request();
         let overlap = crate::authority::commit::with_test_diff_preparation_fault(
@@ -1291,7 +1317,11 @@ fn harness_phase8_fault_injection_soak_does_not_corrupt_following_certification_
             "PreparationFailure"
         )
         .iter()
-        .any(|entry| entry["fields"]["failure_class"] == json!("packet_overlap_detected")));
+        .any(|entry| harness_diagnostic_field_matches(
+            entry,
+            "failure_class",
+            "packet_overlap_detected"
+        )));
 
         let (fixture, batch, request) = harness_phase8_fixture_batch_request();
         let clean = forge_harness::facade::parity_suite(
@@ -1337,19 +1367,28 @@ fn harness_phase8_certification_matrix_reports_parallel_lane_diagnostics() {
     assert!(report.matched);
     assert_eq!(report.baseline_profile, "serial");
     assert_eq!(
-        report.baseline_diagnostics_summary.as_ref().unwrap()["runtime_execution_model"],
-        json!("SerialAuthority")
+        harness_summary_field(
+            report.baseline_diagnostics_summary.as_ref().unwrap(),
+            "runtime_execution_model"
+        ),
+        Some("SerialAuthority")
     );
     assert_eq!(report.cases.len(), 2);
     assert_eq!(report.cases[0].candidate_profile, "staged");
     assert_eq!(report.cases[1].candidate_profile, "post-commit");
     assert_eq!(
-        report.cases[0].diagnostics_summary.as_ref().unwrap()["runtime_execution_model"],
-        json!("StagedParallelPreparation")
+        harness_summary_field(
+            report.cases[0].diagnostics_summary.as_ref().unwrap(),
+            "runtime_execution_model"
+        ),
+        Some("StagedParallelPreparation")
     );
     assert_eq!(
-        report.cases[1].diagnostics_summary.as_ref().unwrap()["runtime_execution_model"],
-        json!("ParallelPostCommitConsumption")
+        harness_summary_field(
+            report.cases[1].diagnostics_summary.as_ref().unwrap(),
+            "runtime_execution_model"
+        ),
+        Some("ParallelPostCommitConsumption")
     );
     assert!(report
         .cases
@@ -1378,12 +1417,18 @@ fn harness_phase8_certification_matrix_closes_out_supported_runtime_lanes() {
     assert!(report.matched);
     assert_eq!(report.baseline_profile, "serial");
     assert_eq!(
-        report.baseline_diagnostics_summary.as_ref().unwrap()["execution_mode"],
-        json!("Serial")
+        harness_summary_field(
+            report.baseline_diagnostics_summary.as_ref().unwrap(),
+            "execution_mode"
+        ),
+        Some("Serial")
     );
     assert_eq!(
-        report.baseline_diagnostics_summary.as_ref().unwrap()["runtime_execution_model"],
-        json!("SerialAuthority")
+        harness_summary_field(
+            report.baseline_diagnostics_summary.as_ref().unwrap(),
+            "runtime_execution_model"
+        ),
+        Some("SerialAuthority")
     );
 
     let staged = certification_case(&report, "staged");
@@ -1392,12 +1437,18 @@ fn harness_phase8_certification_matrix_closes_out_supported_runtime_lanes() {
     assert!(staged.comparison.matched);
     assert!(post_commit.comparison.matched);
     assert_eq!(
-        staged.diagnostics_summary.as_ref().unwrap()["runtime_execution_model"],
-        json!("StagedParallelPreparation")
+        harness_summary_field(
+            staged.diagnostics_summary.as_ref().unwrap(),
+            "runtime_execution_model"
+        ),
+        Some("StagedParallelPreparation")
     );
     assert_eq!(
-        post_commit.diagnostics_summary.as_ref().unwrap()["runtime_execution_model"],
-        json!("ParallelPostCommitConsumption")
+        harness_summary_field(
+            post_commit.diagnostics_summary.as_ref().unwrap(),
+            "runtime_execution_model"
+        ),
+        Some("ParallelPostCommitConsumption")
     );
     assert!(
         staged.diagnostics_summary.as_ref().unwrap()["performance_counters"]
@@ -1441,55 +1492,43 @@ fn harness_phase8_observed_matrix_exposes_mode_specific_metadata() {
     let staged_summary = &staged.diagnostics.as_ref().unwrap().summary;
     let post_commit_summary = &post_commit.diagnostics.as_ref().unwrap().summary;
 
-    assert_eq!(serial_summary["execution_mode"], json!("Serial"));
     assert_eq!(
-        serial_summary["runtime_execution_model"],
-        json!("SerialAuthority")
+        harness_summary_field(serial_summary, "execution_mode"),
+        Some("Serial")
     );
-    assert_eq!(staged_summary["execution_mode"], json!("StagedParallel"));
     assert_eq!(
-        staged_summary["runtime_execution_model"],
-        json!("StagedParallelPreparation")
+        harness_summary_field(serial_summary, "runtime_execution_model"),
+        Some("SerialAuthority")
     );
-    assert_eq!(post_commit_summary["execution_mode"], json!("FullParallel"));
     assert_eq!(
-        post_commit_summary["runtime_execution_model"],
-        json!("ParallelPostCommitConsumption")
+        harness_summary_field(staged_summary, "execution_mode"),
+        Some("StagedParallel")
+    );
+    assert_eq!(
+        harness_summary_field(staged_summary, "runtime_execution_model"),
+        Some("StagedParallelPreparation")
+    );
+    assert_eq!(
+        harness_summary_field(post_commit_summary, "execution_mode"),
+        Some("FullParallel")
+    );
+    assert_eq!(
+        harness_summary_field(post_commit_summary, "runtime_execution_model"),
+        Some("ParallelPostCommitConsumption")
     );
 
+    assert!(harness_summary_counter(serial_summary, "preparation_packet_count").is_some());
+    assert!(harness_summary_counter(serial_summary, "preparation_packet_item_count").is_some());
+    assert!(harness_summary_counter(serial_summary, "preparation_scope_unit_count").is_some());
+    assert!(harness_summary_counter(staged_summary, "preparation_packet_count").is_some());
     assert!(
-        serial_summary["performance_counters"]["preparation_packet_count"]
-            .as_u64()
-            .is_some()
+        harness_summary_counter(staged_summary, "preparation_packet_peak_width_total").is_some()
     );
     assert!(
-        serial_summary["performance_counters"]["preparation_packet_item_count"]
-            .as_u64()
-            .is_some()
+        harness_summary_counter(post_commit_summary, "post_commit_consumer_packet_count").is_some()
     );
     assert!(
-        serial_summary["performance_counters"]["preparation_scope_unit_count"]
-            .as_u64()
-            .is_some()
-    );
-    assert!(
-        staged_summary["performance_counters"]["preparation_packet_count"]
-            .as_u64()
-            .is_some()
-    );
-    assert!(
-        staged_summary["performance_counters"]["preparation_packet_peak_width_total"]
-            .as_u64()
-            .is_some()
-    );
-    assert!(
-        post_commit_summary["performance_counters"]["post_commit_consumer_packet_count"]
-            .as_u64()
-            .is_some()
-    );
-    assert!(
-        post_commit_summary["performance_counters"]["post_commit_consumer_peak_width_total"]
-            .as_u64()
+        harness_summary_counter(post_commit_summary, "post_commit_consumer_peak_width_total")
             .is_some()
     );
 }
@@ -1511,29 +1550,18 @@ fn harness_diagnostics_expose_execution_mode_and_performance_counters() {
         .unwrap();
 
     let summary = diagnostics.summary;
-    assert_eq!(summary["execution_mode"], json!("StagedParallel"));
     assert_eq!(
-        summary["runtime_execution_model"],
-        json!("StagedParallelPreparation")
+        harness_summary_field(&summary, "execution_mode"),
+        Some("StagedParallel")
     );
-    assert!(summary["performance_counters"]["preparation_packet_count"]
-        .as_u64()
-        .is_some());
-    assert!(
-        summary["performance_counters"]["preparation_packet_item_count"]
-            .as_u64()
-            .is_some()
+    assert_eq!(
+        harness_summary_field(&summary, "runtime_execution_model"),
+        Some("StagedParallelPreparation")
     );
-    assert!(
-        summary["performance_counters"]["preparation_packet_peak_width_total"]
-            .as_u64()
-            .is_some()
-    );
-    assert!(
-        summary["performance_counters"]["preparation_scope_unit_count"]
-            .as_u64()
-            .is_some()
-    );
+    assert!(harness_summary_counter(&summary, "preparation_packet_count").is_some());
+    assert!(harness_summary_counter(&summary, "preparation_packet_item_count").is_some());
+    assert!(harness_summary_counter(&summary, "preparation_packet_peak_width_total").is_some());
+    assert!(harness_summary_counter(&summary, "preparation_scope_unit_count").is_some());
 }
 
 #[test]
@@ -1578,25 +1606,27 @@ fn harness_phase8_fallbacks_are_harness_visible_and_still_parity_safe() {
     let fallback_entries = harness_diagnostic_entries(&summary, "PreparationFallback");
     let failure_entries = harness_diagnostic_entries(&summary, "PreparationFailure");
 
-    assert!(fallback_entries
-        .iter()
-        .any(|entry| { entry["fields"]["reason"] == json!("insufficient_packet_breadth") }));
-    assert!(failure_entries
-        .iter()
-        .any(|entry| { entry["fields"]["failure_class"] == json!("fallback_to_serial") }));
-    assert_eq!(summary["execution_mode"], json!("StagedParallel"));
+    assert!(fallback_entries.iter().any(|entry| {
+        harness_diagnostic_field_matches(entry, "reason", "insufficient_packet_breadth")
+    }));
+    assert!(failure_entries.iter().any(|entry| {
+        harness_diagnostic_field_matches(entry, "failure_class", "fallback_to_serial")
+    }));
     assert_eq!(
-        summary["runtime_execution_model"],
-        json!("StagedParallelPreparation")
+        harness_summary_field(&summary, "execution_mode"),
+        Some("StagedParallel")
+    );
+    assert_eq!(
+        harness_summary_field(&summary, "runtime_execution_model"),
+        Some("StagedParallelPreparation")
     );
     assert!(
-        summary["performance_counters"]["preparation_serial_strategy_count"]
-            .as_u64()
+        harness_summary_counter(&summary, "preparation_serial_strategy_count")
             .is_some_and(|count| count >= 1)
     );
     assert_eq!(
-        summary["performance_counters"]["preparation_staged_parallel_strategy_count"],
-        json!(0)
+        harness_summary_counter(&summary, "preparation_staged_parallel_strategy_count"),
+        Some(0)
     );
 }
 
@@ -1619,17 +1649,19 @@ fn harness_phase8_planning_proof_failures_are_harness_visible() {
 
     let failure_entries = harness_diagnostic_entries(&summary, "PreparationFailure");
 
-    assert!(failure_entries
-        .iter()
-        .any(|entry| { entry["fields"]["failure_class"] == json!("planning_proof_insufficient") }));
-    assert_eq!(summary["execution_mode"], json!("StagedParallel"));
+    assert!(failure_entries.iter().any(|entry| {
+        harness_diagnostic_field_matches(entry, "failure_class", "planning_proof_insufficient")
+    }));
     assert_eq!(
-        summary["runtime_execution_model"],
-        json!("StagedParallelPreparation")
+        harness_summary_field(&summary, "execution_mode"),
+        Some("StagedParallel")
+    );
+    assert_eq!(
+        harness_summary_field(&summary, "runtime_execution_model"),
+        Some("StagedParallelPreparation")
     );
     assert!(
-        summary["performance_counters"]["preparation_staged_parallel_strategy_count"]
-            .as_u64()
+        harness_summary_counter(&summary, "preparation_staged_parallel_strategy_count")
             .is_some_and(|count| count >= 1)
     );
 }
@@ -1654,16 +1686,18 @@ fn harness_phase8_publication_isolation_failures_are_harness_visible() {
     let failure_entries = harness_diagnostic_entries(&summary, "PreparationFailure");
 
     assert!(failure_entries.iter().any(|entry| {
-        entry["fields"]["failure_class"] == json!("publication_isolation_violation")
+        harness_diagnostic_field_matches(entry, "failure_class", "publication_isolation_violation")
     }));
-    assert_eq!(summary["execution_mode"], json!("StagedParallel"));
     assert_eq!(
-        summary["runtime_execution_model"],
-        json!("StagedParallelPreparation")
+        harness_summary_field(&summary, "execution_mode"),
+        Some("StagedParallel")
+    );
+    assert_eq!(
+        harness_summary_field(&summary, "runtime_execution_model"),
+        Some("StagedParallelPreparation")
     );
     assert!(
-        summary["performance_counters"]["preparation_staged_parallel_strategy_count"]
-            .as_u64()
+        harness_summary_counter(&summary, "preparation_staged_parallel_strategy_count")
             .is_some_and(|count| count >= 1)
     );
 }
@@ -1686,17 +1720,19 @@ fn harness_phase8_reducer_conflicts_are_harness_visible() {
     let summary = bundles[0].diagnostics.as_ref().unwrap().summary.clone();
     let failure_entries = harness_diagnostic_entries(&summary, "PreparationFailure");
 
-    assert!(failure_entries
-        .iter()
-        .any(|entry| { entry["fields"]["failure_class"] == json!("reduction_identity_conflict") }));
-    assert_eq!(summary["execution_mode"], json!("StagedParallel"));
+    assert!(failure_entries.iter().any(|entry| {
+        harness_diagnostic_field_matches(entry, "failure_class", "reduction_identity_conflict")
+    }));
     assert_eq!(
-        summary["runtime_execution_model"],
-        json!("StagedParallelPreparation")
+        harness_summary_field(&summary, "execution_mode"),
+        Some("StagedParallel")
+    );
+    assert_eq!(
+        harness_summary_field(&summary, "runtime_execution_model"),
+        Some("StagedParallelPreparation")
     );
     assert!(
-        summary["performance_counters"]["preparation_staged_parallel_strategy_count"]
-            .as_u64()
+        harness_summary_counter(&summary, "preparation_staged_parallel_strategy_count")
             .is_some_and(|count| count >= 1)
     );
 }
@@ -1719,17 +1755,19 @@ fn harness_phase8_worker_evaluation_failures_are_harness_visible() {
     let summary = bundles[0].diagnostics.as_ref().unwrap().summary.clone();
     let failure_entries = harness_diagnostic_entries(&summary, "PreparationFailure");
 
-    assert!(failure_entries
-        .iter()
-        .any(|entry| { entry["fields"]["failure_class"] == json!("worker_evaluation_failure") }));
-    assert_eq!(summary["execution_mode"], json!("StagedParallel"));
+    assert!(failure_entries.iter().any(|entry| {
+        harness_diagnostic_field_matches(entry, "failure_class", "worker_evaluation_failure")
+    }));
     assert_eq!(
-        summary["runtime_execution_model"],
-        json!("StagedParallelPreparation")
+        harness_summary_field(&summary, "execution_mode"),
+        Some("StagedParallel")
+    );
+    assert_eq!(
+        harness_summary_field(&summary, "runtime_execution_model"),
+        Some("StagedParallelPreparation")
     );
     assert!(
-        summary["performance_counters"]["preparation_staged_parallel_strategy_count"]
-            .as_u64()
+        harness_summary_counter(&summary, "preparation_staged_parallel_strategy_count")
             .is_some_and(|count| count >= 1)
     );
 }
@@ -1761,21 +1799,27 @@ fn harness_phase8_post_commit_consumer_failures_are_harness_visible() {
     assert!(harness_diagnostic_entries(summary, "PreparationFailure")
         .iter()
         .any(|entry| {
-            entry["fields"]["failure_class"] == json!("consumer_failure_non_authoritative")
+            harness_diagnostic_field_matches(
+                entry,
+                "failure_class",
+                "consumer_failure_non_authoritative",
+            )
         }));
-    assert_eq!(summary["execution_mode"], json!("FullParallel"));
     assert_eq!(
-        summary["runtime_execution_model"],
-        json!("ParallelPostCommitConsumption")
+        harness_summary_field(&summary, "execution_mode"),
+        Some("FullParallel")
+    );
+    assert_eq!(
+        harness_summary_field(&summary, "runtime_execution_model"),
+        Some("ParallelPostCommitConsumption")
     );
     assert!(
-        summary["performance_counters"]["post_commit_serial_strategy_count"]
-            .as_u64()
+        harness_summary_counter(&summary, "post_commit_serial_strategy_count")
             .is_some_and(|count| count >= 1)
     );
     assert_eq!(
-        summary["performance_counters"]["post_commit_parallel_strategy_count"],
-        json!(0)
+        harness_summary_counter(&summary, "post_commit_parallel_strategy_count"),
+        Some(0)
     );
 }
 
@@ -1806,12 +1850,19 @@ fn harness_phase8_fragment_canonicalization_failures_are_harness_visible() {
     assert!(harness_diagnostic_entries(summary, "PreparationFailure")
         .iter()
         .any(|entry| {
-            entry["fields"]["failure_class"] == json!("fragment_canonicalization_failure")
+            harness_diagnostic_field_matches(
+                entry,
+                "failure_class",
+                "fragment_canonicalization_failure",
+            )
         }));
-    assert_eq!(summary["execution_mode"], json!("StagedParallel"));
     assert_eq!(
-        summary["runtime_execution_model"],
-        json!("StagedParallelPreparation")
+        harness_summary_field(&summary, "execution_mode"),
+        Some("StagedParallel")
+    );
+    assert_eq!(
+        harness_summary_field(&summary, "runtime_execution_model"),
+        Some("StagedParallelPreparation")
     );
 }
 
@@ -1841,11 +1892,18 @@ fn harness_phase8_packet_overlap_failures_are_harness_visible() {
 
     assert!(harness_diagnostic_entries(summary, "PreparationFailure")
         .iter()
-        .any(|entry| entry["fields"]["failure_class"] == json!("packet_overlap_detected")));
-    assert_eq!(summary["execution_mode"], json!("StagedParallel"));
+        .any(|entry| harness_diagnostic_field_matches(
+            entry,
+            "failure_class",
+            "packet_overlap_detected"
+        )));
     assert_eq!(
-        summary["runtime_execution_model"],
-        json!("StagedParallelPreparation")
+        harness_summary_field(&summary, "execution_mode"),
+        Some("StagedParallel")
+    );
+    assert_eq!(
+        harness_summary_field(&summary, "runtime_execution_model"),
+        Some("StagedParallelPreparation")
     );
 }
 
@@ -1875,12 +1933,20 @@ fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
     assert!(
         harness_diagnostic_entries(fallback_summary, "PreparationFallback")
             .iter()
-            .any(|entry| entry["fields"]["reason"] == json!("insufficient_packet_breadth"))
+            .any(|entry| harness_diagnostic_field_matches(
+                entry,
+                "reason",
+                "insufficient_packet_breadth"
+            ))
     );
     assert!(
         harness_diagnostic_entries(fallback_summary, "PreparationFailure")
             .iter()
-            .any(|entry| entry["fields"]["failure_class"] == json!("fallback_to_serial"))
+            .any(|entry| harness_diagnostic_field_matches(
+                entry,
+                "failure_class",
+                "fallback_to_serial"
+            ))
     );
 
     let proof_report = crate::validation::execution::with_test_preparation_fault(
@@ -1907,7 +1973,13 @@ fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
     assert!(
         harness_diagnostic_entries(proof_summary, "PreparationFailure")
             .iter()
-            .any(|entry| entry["fields"]["failure_class"] == json!("planning_proof_insufficient"))
+            .any(|entry| {
+                harness_diagnostic_field_matches(
+                    entry,
+                    "failure_class",
+                    "planning_proof_insufficient",
+                )
+            })
     );
 
     let isolation_report = crate::validation::execution::with_test_preparation_fault(
@@ -1935,7 +2007,11 @@ fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
         harness_diagnostic_entries(isolation_summary, "PreparationFailure")
             .iter()
             .any(|entry| {
-                entry["fields"]["failure_class"] == json!("publication_isolation_violation")
+                harness_diagnostic_field_matches(
+                    entry,
+                    "failure_class",
+                    "publication_isolation_violation",
+                )
             })
     );
 
@@ -1964,7 +2040,11 @@ fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
         harness_diagnostic_entries(reducer_summary, "PreparationFailure")
             .iter()
             .any(|entry| {
-                entry["fields"]["failure_class"] == json!("reduction_identity_conflict")
+                harness_diagnostic_field_matches(
+                    entry,
+                    "failure_class",
+                    "reduction_identity_conflict",
+                )
             })
     );
 
@@ -1993,7 +2073,11 @@ fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
         harness_diagnostic_entries(worker_summary, "PreparationFailure")
             .iter()
             .any(|entry| {
-                entry["fields"]["failure_class"] == json!("worker_evaluation_failure")
+                harness_diagnostic_field_matches(
+                    entry,
+                    "failure_class",
+                    "worker_evaluation_failure",
+                )
             })
     );
 
@@ -2021,7 +2105,11 @@ fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
         harness_diagnostic_entries(consumer_summary, "PreparationFailure")
             .iter()
             .any(|entry| {
-                entry["fields"]["failure_class"] == json!("consumer_failure_non_authoritative")
+                harness_diagnostic_field_matches(
+                    entry,
+                    "failure_class",
+                    "consumer_failure_non_authoritative",
+                )
             })
     );
 
@@ -2049,7 +2137,11 @@ fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
         harness_diagnostic_entries(fragment_summary, "PreparationFailure")
             .iter()
             .any(|entry| {
-                entry["fields"]["failure_class"] == json!("fragment_canonicalization_failure")
+                harness_diagnostic_field_matches(
+                    entry,
+                    "failure_class",
+                    "fragment_canonicalization_failure",
+                )
             })
     );
 
@@ -2076,7 +2168,9 @@ fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
     assert!(
         harness_diagnostic_entries(overlap_summary, "PreparationFailure")
             .iter()
-            .any(|entry| entry["fields"]["failure_class"] == json!("packet_overlap_detected"))
+            .any(|entry| {
+                harness_diagnostic_field_matches(entry, "failure_class", "packet_overlap_detected")
+            })
     );
 }
 
