@@ -72,28 +72,28 @@ pub(crate) fn read_snapshot_probe(
         corrected_trade_count: result
             .entities
             .iter()
-            .filter(|entity| field_is(entity, "corrected", "true"))
+            .filter(|entity| field_is(entity, field_key("corrected"), "true"))
             .count(),
         repaired_settlement_count: result
             .entities
             .iter()
             .filter(|entity| {
-                field_is(entity, "entity_type", "settlement")
-                    && field_is(entity, "status", "repaired")
+                field_is(entity, field_key("entity_type"), "settlement")
+                    && field_is(entity, field_key("status"), "repaired")
             })
             .count(),
         open_breach_count: result
             .entities
             .iter()
             .filter(|entity| {
-                field_is(entity, "entity_type", "limit_breach")
-                    && field_is(entity, "status", "open")
+                field_is(entity, field_key("entity_type"), "limit_breach")
+                    && field_is(entity, field_key("status"), "open")
             })
             .count(),
         audit_record_count: result
             .entities
             .iter()
-            .filter(|entity| field_is(entity, "entity_type", "audit_record"))
+            .filter(|entity| field_is(entity, field_key("entity_type"), "audit_record"))
             .count(),
         aspect_state_fingerprints: result
             .entities
@@ -137,25 +137,25 @@ pub(crate) fn read_version_probe(
         relation_count: relations.len(),
         corrected_trade_count: entities
             .iter()
-            .filter(|entity| field_is(entity, "corrected", "true"))
+            .filter(|entity| field_is(entity, field_key("corrected"), "true"))
             .count(),
         repaired_settlement_count: entities
             .iter()
             .filter(|entity| {
-                field_is(entity, "entity_type", "settlement")
-                    && field_is(entity, "status", "repaired")
+                field_is(entity, field_key("entity_type"), "settlement")
+                    && field_is(entity, field_key("status"), "repaired")
             })
             .count(),
         open_breach_count: entities
             .iter()
             .filter(|entity| {
-                field_is(entity, "entity_type", "limit_breach")
-                    && field_is(entity, "status", "open")
+                field_is(entity, field_key("entity_type"), "limit_breach")
+                    && field_is(entity, field_key("status"), "open")
             })
             .count(),
         audit_record_count: entities
             .iter()
-            .filter(|entity| field_is(entity, "entity_type", "audit_record"))
+            .filter(|entity| field_is(entity, field_key("entity_type"), "audit_record"))
             .count(),
         aspect_state_fingerprints: entities
             .iter()
@@ -205,6 +205,6 @@ fn encode_aspect_value(value: &forge_foundational::facade::AspectValue) -> Vec<u
     crate::aspect_wire::encode_aspect_value(value).expect("case truth aspect value fingerprint")
 }
 
-fn field_is(entity: &EntityReadRecord, field: &str, expected: &str) -> bool {
-    read_entity_field(entity, field_key(field)) == Some(expected.to_string())
+fn field_is(entity: &EntityReadRecord, field: FieldKey, expected: &str) -> bool {
+    read_entity_field(entity, field) == Some(expected.to_string())
 }
