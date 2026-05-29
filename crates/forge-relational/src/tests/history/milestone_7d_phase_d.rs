@@ -1,3 +1,4 @@
+use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::facade::diagnostics::DiagnosticCode;
 use crate::facade::history::BranchId;
 use crate::facade::merge::{
@@ -21,9 +22,10 @@ use crate::schema::data::{
 use crate::tests::support::{
     capture_aspect_truth_bundle, changed_entities, checkpoint_and_recover_with,
     create_branch_from_main, create_entity, create_relation_in_partition_on_branch, delete_entity,
-    delete_entity_on_branch, delete_relation_on_branch, entity_field_aspect,
-    entity_i64_field_aspect, persisted_runtime_with_test_schema, read_entity_field,
-    u64_aspect_value, unique_test_store_path, update_entity,
+    delete_entity_on_branch, delete_relation_on_branch, diagnostic_field,
+    diagnostic_field_optional, entity_field_aspect, entity_i64_field_aspect,
+    persisted_runtime_with_test_schema, read_entity_field, u64_aspect_value,
+    unique_test_store_path, update_entity,
 };
 
 #[test]
@@ -109,20 +111,23 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
         .find(|entry| entry.code == DiagnosticCode::MergeExecutionPublished)
         .expect("merge execution summary entry");
     assert_eq!(
-        summary_entry.fields.root_value()["converged_deleted_on_both_sides_count"],
-        serde_json::json!(1)
+        diagnostic_field(summary_entry, "converged_deleted_on_both_sides_count"),
+        &RelationalDiagnosticValue::Unsigned(1)
     );
     assert_eq!(
-        summary_entry.fields.root_value()["deleted_on_both_sides_lineage_unchanged_count"],
-        serde_json::json!(1)
+        diagnostic_field(
+            summary_entry,
+            "deleted_on_both_sides_lineage_unchanged_count"
+        ),
+        &RelationalDiagnosticValue::Unsigned(1)
     );
     assert_eq!(
-        summary_entry.fields.root_value()["execution_digest"],
-        serde_json::json!(merge.execution_summary.execution_digest)
+        diagnostic_field(summary_entry, "execution_digest"),
+        &RelationalDiagnosticValue::String(merge.execution_summary.execution_digest.clone())
     );
     assert_eq!(
-        summary_entry.fields.root_value()["diagnostics_digest"],
-        serde_json::json!(merge.execution_summary.diagnostics_digest)
+        diagnostic_field(summary_entry, "diagnostics_digest"),
+        &RelationalDiagnosticValue::String(merge.execution_summary.diagnostics_digest.clone())
     );
 
     let live_execution_artifact = runtime
@@ -134,8 +139,8 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
             artifact.kind == crate::facade::diagnostics::DiagnosticsArtifactKind::DetailedTrace
                 && artifact.entries.iter().any(|entry| {
                     entry.code == DiagnosticCode::MergeExecutionPublished
-                        && entry.fields.root_value()["commit_id"]
-                            == serde_json::json!(merge.commit.commit.commit_id.0.clone())
+                        && diagnostic_field(entry, "commit_id")
+                            == &RelationalDiagnosticValue::CommitId(merge.commit.commit.commit_id)
                 })
         })
         .expect("live merge execution artifact")
@@ -144,15 +149,20 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
         .entries
         .iter()
         .find(|entry| {
-            entry.fields.root_value()["record_class"]
-                == serde_json::json!("converge_deleted_on_both_sides")
+            diagnostic_field_optional(entry, "record_class")
+                == Some(&RelationalDiagnosticValue::String(
+                    "converge_deleted_on_both_sides".to_string(),
+                ))
         })
         .expect("deleted-on-both-sides execution row");
     assert_eq!(
-        record_entry.fields.root_value()["lineage_continuity"],
-        serde_json::json!("Unchanged")
+        diagnostic_field(record_entry, "lineage_continuity"),
+        &RelationalDiagnosticValue::String("Unchanged".to_string())
     );
-    assert!(record_entry.fields.root_value()["equality_witness_digest"].is_string());
+    assert!(matches!(
+        diagnostic_field(record_entry, "equality_witness_digest"),
+        RelationalDiagnosticValue::String(_)
+    ));
 }
 
 #[test]
@@ -498,8 +508,8 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         .find(|entry| entry.code == DiagnosticCode::MergeExecutionPublished)
         .expect("merge execution summary entry");
     assert_eq!(
-        summary_entry.fields.root_value()["execution_digest"],
-        serde_json::json!(merge.execution_summary.execution_digest)
+        diagnostic_field(summary_entry, "execution_digest"),
+        &RelationalDiagnosticValue::String(merge.execution_summary.execution_digest.clone())
     );
     assert_eq!(merge.execution_summary.executed_record_count, 1);
     assert!(
@@ -568,8 +578,10 @@ fn deleted_on_both_sides_prepared_merge_rejects_target_head_drift() {
         .expect("failure artifact");
     assert!(failure_artifact.entries.iter().any(|entry| {
         entry.code == DiagnosticCode::DeterministicMergeViolation
-            && entry.fields.root_value()["target_branch"] == serde_json::json!("main")
-            && entry.fields.root_value()["source_branch"] == serde_json::json!("feature")
+            && diagnostic_field(entry, "target_branch")
+                == &RelationalDiagnosticValue::BranchId(BranchId("main".to_string()))
+            && diagnostic_field(entry, "source_branch")
+                == &RelationalDiagnosticValue::BranchId(BranchId("feature".to_string()))
     }));
 }
 

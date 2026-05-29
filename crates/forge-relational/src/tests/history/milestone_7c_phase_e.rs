@@ -1,10 +1,12 @@
+use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::facade::diagnostics::{DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::facade::history::BranchId;
 use crate::facade::merge::{MergeExecutionOutcome, MergeExecutionRequest, MergeIntent};
 use crate::facade::transactions::TransactionOptions;
 use crate::tests::support::{
     capture_aspect_truth_bundle, checkpoint_and_recover_with, create_branch_from_main,
-    create_entity_outcome, create_entity_outcome_on_branch, persisted_runtime_with_test_schema,
+    create_entity_outcome, create_entity_outcome_on_branch, diagnostic_field,
+    persisted_runtime_with_test_schema,
 };
 
 fn execute_feature_into_main_merge() -> (
@@ -125,16 +127,16 @@ fn execute_prepared_merge_survives_durability_append_and_recovery() {
         .find(|entry| entry.code == DiagnosticCode::MergeExecutionPublished)
         .expect("merge execution summary entry");
     assert_eq!(
-        merge_execution_entry.fields.root_value()["commit_id"],
-        serde_json::json!(merge.commit.commit.commit_id.0)
+        diagnostic_field(merge_execution_entry, "commit_id"),
+        &RelationalDiagnosticValue::CommitId(merge.commit.commit.commit_id)
     );
     assert_eq!(
-        merge_execution_entry.fields.root_value()["execution_digest"],
-        serde_json::json!(merge.execution_summary.execution_digest)
+        diagnostic_field(merge_execution_entry, "execution_digest"),
+        &RelationalDiagnosticValue::String(merge.execution_summary.execution_digest.clone())
     );
     assert_eq!(
-        merge_execution_entry.fields.root_value()["diagnostics_digest"],
-        serde_json::json!(merge.execution_summary.diagnostics_digest)
+        diagnostic_field(merge_execution_entry, "diagnostics_digest"),
+        &RelationalDiagnosticValue::String(merge.execution_summary.diagnostics_digest.clone())
     );
 }
 

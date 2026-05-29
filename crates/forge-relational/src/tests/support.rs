@@ -99,6 +99,25 @@ pub(crate) use runtime::*;
 pub(crate) use savepoint::*;
 pub(crate) use schema::*;
 
+pub(crate) fn diagnostic_field<'a>(
+    entry: &'a crate::facade::diagnostics::RelationalDiagnosticsEntry,
+    field: &str,
+) -> &'a crate::diagnostics::data::RelationalDiagnosticValue {
+    diagnostic_field_optional(entry, field)
+        .unwrap_or_else(|| panic!("diagnostic field '{field}' missing from {entry:?}"))
+}
+
+pub(crate) fn diagnostic_field_optional<'a>(
+    entry: &'a crate::facade::diagnostics::RelationalDiagnosticsEntry,
+    field: &str,
+) -> Option<&'a crate::diagnostics::data::RelationalDiagnosticValue> {
+    let crate::diagnostics::data::RelationalDiagnosticValue::Object(fields) = entry.fields.root()
+    else {
+        panic!("diagnostic entry fields are not an object: {entry:?}");
+    };
+    fields.get(field)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct AspectTruthBundle {
     pub visible_truth: VisibleTruthSummary,

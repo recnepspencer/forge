@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::diagnostics::data::DiagnosticsArtifactKind;
+use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::facade::diagnostics::DiagnosticCode;
 use crate::facade::history::BranchId;
 use crate::facade::merge::{
@@ -13,7 +14,8 @@ use crate::facade::transactions::{
 };
 use crate::tests::support::{
     create_branch_from_main, create_entity, create_entity_outcome_on_branch, delete_entity,
-    delete_entity_on_branch, persisted_runtime_with_test_schema,
+    delete_entity_on_branch, diagnostic_field, diagnostic_field_optional,
+    persisted_runtime_with_test_schema,
 };
 
 fn prepared_merge_promoted_to_deleted_on_both_sides(
@@ -168,12 +170,15 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
         .find(|entry| entry.code == DiagnosticCode::MergeExecutionPublished)
         .expect("merge execution summary entry");
     assert_eq!(
-        summary_entry.fields.root_value()["converged_deleted_on_both_sides_count"],
-        serde_json::json!(1)
+        diagnostic_field(summary_entry, "converged_deleted_on_both_sides_count"),
+        &RelationalDiagnosticValue::Unsigned(1)
     );
     assert_eq!(
-        summary_entry.fields.root_value()["deleted_on_both_sides_lineage_unchanged_count"],
-        serde_json::json!(1)
+        diagnostic_field(
+            summary_entry,
+            "deleted_on_both_sides_lineage_unchanged_count"
+        ),
+        &RelationalDiagnosticValue::Unsigned(1)
     );
 
     let diagnostics = runtime.publication().diagnostics();
@@ -184,8 +189,8 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
             artifact.kind == DiagnosticsArtifactKind::DetailedTrace
                 && artifact.entries.iter().any(|entry| {
                     entry.code == DiagnosticCode::MergeExecutionPublished
-                        && entry.fields.root_value()["commit_id"]
-                            == serde_json::json!(merge.commit.commit.commit_id.0.clone())
+                        && diagnostic_field(entry, "commit_id")
+                            == &RelationalDiagnosticValue::CommitId(merge.commit.commit.commit_id)
                 })
         })
         .expect("merge execution success artifact");
@@ -193,18 +198,23 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
         .entries
         .iter()
         .find(|entry| {
-            entry.fields.root_value()["record_class"]
-                == serde_json::json!("converge_deleted_on_both_sides")
+            diagnostic_field_optional(entry, "record_class")
+                == Some(&RelationalDiagnosticValue::String(
+                    "converge_deleted_on_both_sides".to_string(),
+                ))
         })
         .expect("deleted-on-both-sides record entry");
-    assert!(record_entry.fields.root_value()["equality_witness_digest"].is_string());
+    assert!(matches!(
+        diagnostic_field(record_entry, "equality_witness_digest"),
+        RelationalDiagnosticValue::String(_)
+    ));
     assert_eq!(
-        record_entry.fields.root_value()["deletion_semantics"],
-        serde_json::json!("AuthoritativeMutualDeletionConvergence")
+        diagnostic_field(record_entry, "deletion_semantics"),
+        &RelationalDiagnosticValue::String("AuthoritativeMutualDeletionConvergence".to_string())
     );
     assert_eq!(
-        record_entry.fields.root_value()["lineage_continuity"],
-        serde_json::json!("Unchanged")
+        diagnostic_field(record_entry, "lineage_continuity"),
+        &RelationalDiagnosticValue::String("Unchanged".to_string())
     );
 }
 
