@@ -112,6 +112,7 @@ pub(super) fn resolve_policy_scope(
                     .ok_or_else(|| MergePlanningError::MissingCausalAnnotation {
                         record: classification.record.clone(),
                     })?,
+                base_commit_id,
                 &source_view_context,
                 &target_view_context,
                 &record_base_view_context,
@@ -167,6 +168,7 @@ fn resolve_aspects_for_record(
     classification: &crate::merge::data::MergeConflictClassification,
     applied_policies: &[crate::merge::data::ResolvedAspectMergePolicy],
     causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
+    base_commit_id: crate::history::data::CommitId,
     source_view: &PolicyReadViewContext<'_>,
     target_view: &PolicyReadViewContext<'_>,
     base_view: &PolicyReadViewContext<'_>,
@@ -200,6 +202,7 @@ fn resolve_aspects_for_record(
                 applied_policy.as_ref(),
                 initial_decision_boundary,
                 causal_disposition,
+                base_commit_id,
                 source_view,
                 target_view,
                 base_view,

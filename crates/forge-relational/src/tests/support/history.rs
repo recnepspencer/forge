@@ -14,8 +14,19 @@ pub(crate) fn read_entity_name(record: &EntityReadRecord) -> Option<String> {
 }
 
 pub(crate) fn read_entity_field(record: &EntityReadRecord, field_key: FieldKey) -> Option<String> {
-    entity_authoritative_aspect_field_comparison_key(record, &test_aspect_field_locator(field_key))
-        .and_then(display_text_from_comparison_key)
+    read_entity_aspect_field(record, aspect_key(field_key.as_str()), field_key)
+}
+
+pub(crate) fn read_entity_aspect_field(
+    record: &EntityReadRecord,
+    aspect_key: forge_foundational::facade::AspectKey,
+    field_key: FieldKey,
+) -> Option<String> {
+    entity_authoritative_aspect_field_comparison_key(
+        record,
+        &test_aspect_field_locator(aspect_key, field_key),
+    )
+    .and_then(display_text_from_comparison_key)
 }
 
 pub(crate) fn read_relation_field(
@@ -24,15 +35,18 @@ pub(crate) fn read_relation_field(
 ) -> Option<String> {
     relation_authoritative_aspect_field_comparison_key(
         record,
-        &test_aspect_field_locator(field_key),
+        &test_aspect_field_locator(aspect_key(field_key.as_str()), field_key),
     )
     .and_then(display_text_from_comparison_key)
 }
 
-fn test_aspect_field_locator(field_key: FieldKey) -> AspectFieldLocator {
+fn test_aspect_field_locator(
+    aspect_key: forge_foundational::facade::AspectKey,
+    field_key: FieldKey,
+) -> AspectFieldLocator {
     AspectFieldLocator::new(
         LocatorAuthority::Planned,
-        aspect_key(field_key.as_str()),
+        aspect_key,
         CanonicalFieldPath::single(field_key),
     )
 }

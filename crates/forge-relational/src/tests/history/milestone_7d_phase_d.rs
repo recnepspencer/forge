@@ -23,7 +23,8 @@ use crate::tests::support::{
     create_branch_from_main, create_entity, create_relation_in_partition_on_branch, delete_entity,
     delete_entity_on_branch, delete_relation_on_branch, diagnostic_field,
     diagnostic_field_optional, entity_field_aspect, entity_i64_field_aspect, field_key,
-    persisted_runtime_with_test_schema, read_entity_field, unique_test_store_path, update_entity,
+    persisted_runtime_with_test_schema, read_entity_aspect_field, unique_test_store_path,
+    update_entity,
 };
 use forge_foundational::facade::AspectKey;
 
@@ -361,6 +362,7 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
             &runtime,
             &BranchId("main".to_string()),
             entity,
+            AspectKey::new("value").unwrap(),
             field_key("value")
         ),
         "feature-change"
@@ -393,6 +395,7 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
             &recovered,
             &BranchId("main".to_string()),
             entity,
+            AspectKey::new("value").unwrap(),
             field_key("value")
         ),
         "feature-change"
@@ -453,6 +456,7 @@ fn auto_resolved_merge_reads_pinned_visible_value_through_declared_aspect_bindin
             &runtime,
             &BranchId("main".to_string()),
             entity,
+            AspectKey::new("display_name").unwrap(),
             field_key("display")
         ),
         "feature-change"
@@ -548,6 +552,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
             &runtime,
             &BranchId("main".to_string()),
             entity,
+            AspectKey::new("value").unwrap(),
             field_key("value")
         ),
         "18"
@@ -575,6 +580,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
             &recovered,
             &BranchId("main".to_string()),
             entity,
+            AspectKey::new("value").unwrap(),
             field_key("value")
         ),
         "18"
@@ -1579,9 +1585,14 @@ fn update_entity_aspect_fields_on_branch(
     fields: crate::transactions::data::AspectFieldPatch,
     branch_id: BranchId,
 ) {
-    let stable_name =
-        read_entity_aspect_field_display(runtime, &branch_id, entity_id, field_key("name"))
-            .to_string();
+    let stable_name = read_entity_aspect_field_display(
+        runtime,
+        &branch_id,
+        entity_id,
+        AspectKey::new("name").unwrap(),
+        field_key("name"),
+    )
+    .to_string();
     let mut txn = runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
@@ -1618,6 +1629,7 @@ fn read_entity_aspect_field_display(
     runtime: &crate::facade::runtime::RelationalRuntime,
     branch: &BranchId,
     entity_id: crate::facade::identity::EntityId,
+    aspect_key: AspectKey,
     field: forge_foundational::facade::FieldKey,
 ) -> String {
     let version_id = runtime
@@ -1629,6 +1641,6 @@ fn read_entity_aspect_field_display(
         .read_truth()
         .read_version(version_id)
         .get_entity(entity_id)
-        .and_then(|entity| read_entity_field(entity, field))
+        .and_then(|entity| read_entity_aspect_field(entity, aspect_key, field))
         .expect("aspect field display value")
 }
