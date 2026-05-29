@@ -83,11 +83,12 @@ pub fn materialize_relational_authoritative_row_set(
         return Err(RelationalGroupedTruthError::PacketResultShapeMismatch);
     }
 
-    let mut rows: BTreeMap<String, BTreeMap<AspectKey, AspectValue>> = BTreeMap::new();
+    let mut rows: BTreeMap<RelationalRowIdentity, BTreeMap<AspectKey, AspectValue>> =
+        BTreeMap::new();
     for (read, record) in packet.reads().iter().zip(result.records().iter()) {
         let aspect_read = decode_snapshot_aspect_read_value(record)?;
         let aspect_key = parse_snapshot_request_aspect_key(read.aspect_label())?;
-        rows.entry(read.entity_identity().to_string())
+        rows.entry(RelationalRowIdentity::new(read.entity_identity()))
             .or_default()
             .insert(aspect_key, aspect_read.value().clone());
     }
@@ -96,7 +97,7 @@ pub fn materialize_relational_authoritative_row_set(
         .into_iter()
         .map(
             |(row_identity, aspect_values)| RelationalAuthoritativeRowArtifact {
-                row_identity: RelationalRowIdentity::new(row_identity),
+                row_identity,
                 aspect_values,
             },
         )

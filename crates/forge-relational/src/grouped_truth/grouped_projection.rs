@@ -161,11 +161,11 @@ pub enum RelationalGroupedTruthError {
         request_key: String,
     },
     MissingIdentityAspect {
-        row_identity: String,
+        row_identity: RelationalRowIdentity,
         aspect_key: AspectKey,
     },
     MissingGroupingAspect {
-        row_identity: String,
+        row_identity: RelationalRowIdentity,
         aspect_key: AspectKey,
     },
 }
@@ -181,13 +181,13 @@ pub fn project_relational_grouped_truth(
     for row in row_set.rows() {
         let Some(identity_value) = row.aspect_values().get(&identity_aspect).cloned() else {
             return Err(RelationalGroupedTruthError::MissingIdentityAspect {
-                row_identity: row.row_identity().as_str().to_string(),
+                row_identity: row.row_identity().clone(),
                 aspect_key: contract.identity_binding_aspect_key().clone(),
             });
         };
         let Some(grouping_value) = row.aspect_values().get(&grouping_aspect).cloned() else {
             return Err(RelationalGroupedTruthError::MissingGroupingAspect {
-                row_identity: row.row_identity().as_str().to_string(),
+                row_identity: row.row_identity().clone(),
                 aspect_key: contract.grouping_binding_aspect_key().clone(),
             });
         };
@@ -273,6 +273,43 @@ mod tests {
             grouped.members()[0].identity_value(),
             &AspectValue::String("task-1".into())
         );
+    }
+
+    #[test]
+    fn relational_grouped_projection_missing_identity_error_carries_typed_row_identity() {
+        let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
+            "entity-1",
+            "status.lane",
+        )]);
+        let result = SnapshotReadPacketResult::new(
+            TruthSnapshotIdentity::new("snapshot-a"),
+            vec![SnapshotReadRecord::new(
+                "entity-1:status.lane",
+                aspect_bytes(AspectValue::String("todo".into())),
+            )],
+        );
+        let row_set = materialize_relational_authoritative_row_set(&packet, &result).unwrap();
+
+        let error = project_relational_grouped_truth(
+            &row_set,
+            GroupedProjectionContract::new(
+                AspectKey::new("status").unwrap(),
+                AspectKey::new("identity.id").unwrap(),
+                AspectKey::new("status.lane").unwrap(),
+            ),
+        )
+        .expect_err("missing identity aspect should be denied");
+
+        match error {
+            super::RelationalGroupedTruthError::MissingIdentityAspect {
+                row_identity,
+                aspect_key,
+            } => {
+                assert_eq!(row_identity.as_str(), "entity-1");
+                assert_eq!(aspect_key, AspectKey::new("identity.id").unwrap());
+            }
+            other => panic!("expected missing identity aspect error, got {other:?}"),
+        }
     }
 
     fn aspect_bytes(value: AspectValue) -> Vec<u8> {
