@@ -7,8 +7,9 @@ mod surface_terms;
 
 #[cfg(test)]
 pub(crate) use certification_terms::{
+    digest_diagnostics_batch_surface, digest_patch_batch_surface,
     digest_schema_transition_decision, digest_subscriber_boundary_cdc_surface,
-    digest_subscriber_continuation_summary,
+    digest_subscriber_continuation_counter_pair, digest_subscriber_continuation_summary,
 };
 pub(crate) use descriptor_terms::{
     digest_schema_continuation_descriptor, digest_schema_continuation_summary,

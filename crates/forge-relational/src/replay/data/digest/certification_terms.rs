@@ -1,3 +1,4 @@
+use crate::diagnostics::data::RelationalDiagnosticArtifact;
 use crate::publication::cdc::data::{SubscriberContinuationSummary, SubscriberRecoveryDecision};
 use crate::publication::patch::data::RelationalPatchRecord;
 use crate::schema::data::{
@@ -7,7 +8,7 @@ use crate::schema::data::{
 
 use super::primitive_terms::ReplayDigestBuilder;
 use super::{
-    digest_patch_surface, digest_schema_continuation_descriptor,
+    digest_diagnostics_surface, digest_patch_surface, digest_schema_continuation_descriptor,
     digest_schema_reconciliation_descriptor,
 };
 
@@ -63,5 +64,36 @@ pub(crate) fn digest_subscriber_continuation_summary(
         .usize(summary.normalized_boundary_count)
         .descriptor_semantics_version(summary.descriptor_semantics_version)
         .bool(summary.contract_upgrade_applied)
+        .finish()
+}
+
+pub(crate) fn digest_patch_batch_surface(patches: &[RelationalPatchRecord]) -> [u8; 32] {
+    let mut builder = ReplayDigestBuilder::new("forge.relational.replay.surface.patch_batch.v1")
+        .usize(patches.len());
+    for patch in patches {
+        builder = builder.digest_bytes(&digest_patch_surface(patch));
+    }
+    builder.finish()
+}
+
+pub(crate) fn digest_diagnostics_batch_surface(
+    diagnostics: &[RelationalDiagnosticArtifact],
+) -> [u8; 32] {
+    let mut builder =
+        ReplayDigestBuilder::new("forge.relational.replay.surface.diagnostics_batch.v1")
+            .usize(diagnostics.len());
+    for diagnostic in diagnostics {
+        builder = builder.digest_bytes(&digest_diagnostics_surface(diagnostic));
+    }
+    builder.finish()
+}
+
+pub(crate) fn digest_subscriber_continuation_counter_pair(
+    visible_bridge_count: usize,
+    normalized_descriptor_compositions: usize,
+) -> [u8; 32] {
+    ReplayDigestBuilder::new("forge.relational.replay.summary.subscriber_continuation_counters.v1")
+        .usize(visible_bridge_count)
+        .usize(normalized_descriptor_compositions)
         .finish()
 }

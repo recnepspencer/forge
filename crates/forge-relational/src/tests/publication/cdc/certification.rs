@@ -10,6 +10,10 @@ use crate::facade::schema::{
     SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId, SchemaPublicationImpact,
     SchemaReconciliationPolicy, SchemaStratum, SchemaSubscriberImpact, SchemaVersionId,
 };
+use crate::replay::data::{
+    digest_diagnostics_batch_surface, digest_patch_batch_surface,
+    digest_subscriber_boundary_cdc_surface, digest_subscriber_continuation_counter_pair,
+};
 use crate::tests::harness::certify::assertions::{
     assert_multi_subscriber_converges, assert_visible_truth_matches, assert_window_matrix_matches,
 };
@@ -494,18 +498,18 @@ fn diff_cdc_truth_parity_test() {
         .unwrap();
     let live_counters = runtime.performance_access().counters();
 
-    let diff_digest = certification_digest(&live_patch_batch.patches);
-    let cdc_digest = certification_digest(&(
+    let diff_digest = digest_patch_batch_surface(&live_patch_batch.patches);
+    let cdc_digest = digest_subscriber_boundary_cdc_surface(
         &live_batch.patches,
         live_batch.continuation.crossed_boundaries(),
         live_batch.continuation.continuation_summary(),
         &live_batch.recovery_decision,
-    ));
-    let cdc_diagnostics_digest = certification_digest(&live_batch.diagnostics);
-    let continuation_counter_snapshot = certification_digest(&(
+    );
+    let cdc_diagnostics_digest = digest_diagnostics_batch_surface(&live_batch.diagnostics);
+    let continuation_counter_snapshot = digest_subscriber_continuation_counter_pair(
         live_counters.subscriber_continue_visible_bridge_count,
         live_counters.schema_normalized_descriptor_compositions,
-    ));
+    );
 
     let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
         let registry = AspectSchemaFixture {
@@ -542,27 +546,27 @@ fn diff_cdc_truth_parity_test() {
 
     assert_eq!(
         diff_digest,
-        certification_digest(&recovered_patch_batch.patches)
+        digest_patch_batch_surface(&recovered_patch_batch.patches)
     );
     assert_eq!(
         cdc_digest,
-        certification_digest(&(
+        digest_subscriber_boundary_cdc_surface(
             &recovered_batch.patches,
             recovered_batch.continuation.crossed_boundaries(),
             recovered_batch.continuation.continuation_summary(),
             &recovered_batch.recovery_decision,
-        ))
+        )
     );
     assert_eq!(
         cdc_diagnostics_digest,
-        certification_digest(&recovered_batch.diagnostics)
+        digest_diagnostics_batch_surface(&recovered_batch.diagnostics)
     );
     assert_eq!(
         continuation_counter_snapshot,
-        certification_digest(&(
+        digest_subscriber_continuation_counter_pair(
             recovered_counters.subscriber_continue_visible_bridge_count,
             recovered_counters.schema_normalized_descriptor_compositions,
-        ))
+        )
     );
     assert!(live_counters.replay_digest_parity_checks == 0);
     assert!(live_counters.subscriber_continue_visible_bridge_count >= 1);
