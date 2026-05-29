@@ -14,7 +14,7 @@ pub(super) fn latest_available_assessment(
     selected_envelopes: &[CanonicalCommitEnvelope],
     subscriber_contract: &SubscriberContractDeclaration,
     prior_proof: &NormalizedContinuationProof,
-    fallback_descriptor_semantics_version: DescriptorSemanticsVersion,
+    resume_basis_descriptor_semantics_version: DescriptorSemanticsVersion,
 ) -> Result<Option<SubscriberContinuationAssessment>, SubscriberStreamFailure> {
     if selected_envelopes.len() == available_envelopes.len() {
         return Ok(None);
@@ -25,7 +25,7 @@ pub(super) fn latest_available_assessment(
         available_envelopes,
         subscriber_contract,
         prior_proof,
-        fallback_descriptor_semantics_version,
+        resume_basis_descriptor_semantics_version,
     )
     .map(Some)
 }

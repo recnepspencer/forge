@@ -18,7 +18,7 @@ pub(crate) fn assess_subscriber_continuity(
     selected_envelopes: &[CanonicalCommitEnvelope],
     subscriber_contract: &SubscriberContractDeclaration,
     prior_proof: &NormalizedContinuationProof,
-    fallback_descriptor_semantics_version: DescriptorSemanticsVersion,
+    resume_basis_descriptor_semantics_version: DescriptorSemanticsVersion,
 ) -> Result<SubscriberContinuationAssessment, SubscriberStreamFailure> {
     let mut crossed_boundaries = Vec::new();
     let mut seen_boundaries = BTreeSet::new();
@@ -61,9 +61,9 @@ pub(crate) fn assess_subscriber_continuity(
                         prior_proof,
                         &crossed_boundaries,
                         &boundary_assessments,
-                        descriptor_semantics_version(
+                        assessed_descriptor_semantics_version(
                             selected_envelopes,
-                            fallback_descriptor_semantics_version,
+                            resume_basis_descriptor_semantics_version,
                         ),
                     ));
                 }
@@ -81,9 +81,9 @@ pub(crate) fn assess_subscriber_continuity(
                         prior_proof,
                         &crossed_boundaries,
                         &boundary_assessments,
-                        descriptor_semantics_version(
+                        assessed_descriptor_semantics_version(
                             selected_envelopes,
-                            fallback_descriptor_semantics_version,
+                            resume_basis_descriptor_semantics_version,
                         ),
                     ));
                 }
@@ -97,9 +97,9 @@ pub(crate) fn assess_subscriber_continuity(
                         prior_proof,
                         &crossed_boundaries,
                         &boundary_assessments,
-                        descriptor_semantics_version(
+                        assessed_descriptor_semantics_version(
                             selected_envelopes,
-                            fallback_descriptor_semantics_version,
+                            resume_basis_descriptor_semantics_version,
                         ),
                     ));
                 }
@@ -113,9 +113,9 @@ pub(crate) fn assess_subscriber_continuity(
                     prior_proof,
                     &crossed_boundaries,
                     &boundary_assessments,
-                    descriptor_semantics_version(
+                    assessed_descriptor_semantics_version(
                         selected_envelopes,
-                        fallback_descriptor_semantics_version,
+                        resume_basis_descriptor_semantics_version,
                     ),
                 ));
             }
@@ -127,9 +127,9 @@ pub(crate) fn assess_subscriber_continuity(
                     prior_proof,
                     &crossed_boundaries,
                     &boundary_assessments,
-                    descriptor_semantics_version(
+                    assessed_descriptor_semantics_version(
                         selected_envelopes,
-                        fallback_descriptor_semantics_version,
+                        resume_basis_descriptor_semantics_version,
                     ),
                 ));
             }
@@ -138,8 +138,10 @@ pub(crate) fn assess_subscriber_continuity(
         continuation_outcome = strongest_outcome(continuation_outcome, subscriber_specific_outcome);
     }
 
-    let descriptor_semantics_version =
-        descriptor_semantics_version(selected_envelopes, fallback_descriptor_semantics_version);
+    let descriptor_semantics_version = assessed_descriptor_semantics_version(
+        selected_envelopes,
+        resume_basis_descriptor_semantics_version,
+    );
     let normalized_continuation_proof = compose_normalized_proof(
         runtime,
         prior_proof,
@@ -170,12 +172,12 @@ pub(crate) fn assess_subscriber_continuity(
     ))
 }
 
-fn descriptor_semantics_version(
+fn assessed_descriptor_semantics_version(
     selected_envelopes: &[CanonicalCommitEnvelope],
-    fallback_descriptor_semantics_version: DescriptorSemanticsVersion,
+    resume_basis_descriptor_semantics_version: DescriptorSemanticsVersion,
 ) -> DescriptorSemanticsVersion {
     selected_envelopes
         .last()
         .map(|envelope| envelope.descriptor_semantics_version)
-        .unwrap_or(fallback_descriptor_semantics_version)
+        .unwrap_or(resume_basis_descriptor_semantics_version)
 }

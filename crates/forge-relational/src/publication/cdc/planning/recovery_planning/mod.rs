@@ -54,7 +54,7 @@ pub(crate) fn plan_subscriber_recovery(
         .checkpoint()
         .map(|checkpoint| checkpoint.normalized_continuation_proof().clone())
         .unwrap_or_default();
-    let fallback_descriptor_semantics_version = request
+    let resume_basis_descriptor_semantics_version = request
         .checkpoint()
         .map(|checkpoint| checkpoint.descriptor_semantics_version())
         .or_else(|| {
@@ -68,7 +68,7 @@ pub(crate) fn plan_subscriber_recovery(
         &selected_envelopes,
         request.subscriber_contract(),
         &prior_proof,
-        fallback_descriptor_semantics_version,
+        resume_basis_descriptor_semantics_version,
     )
     .map_err(|failure| {
         SubscriberStreamFailure::new(
@@ -84,7 +84,7 @@ pub(crate) fn plan_subscriber_recovery(
         &selected_envelopes,
         request.subscriber_contract(),
         &prior_proof,
-        fallback_descriptor_semantics_version,
+        resume_basis_descriptor_semantics_version,
     )?;
     let decision = SubscriberRecoveryDecision {
         disposition: disposition_for_assessment(
