@@ -5,7 +5,6 @@ use std::sync::OnceLock;
 use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value as BaselineJsonRow;
 
 pub(super) use super::performance_metrics::{perf_metrics, PerfMetricSet};
 
@@ -154,6 +153,13 @@ struct PerfBaselineMetricRow {
     median: u128,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum PerfBaselineRow {
+    Metric(PerfBaselineMetricRow),
+    Elapsed(PerfBaselineElapsedRow),
+}
+
 static PERF_BASELINE_ELAPSED_ROWS: OnceLock<BTreeMap<(String, String), PerfBaselineElapsedRow>> =
     OnceLock::new();
 static PERF_BASELINE_METRIC_ROWS: OnceLock<
@@ -181,7 +187,7 @@ fn perf_baseline_path() -> PathBuf {
         })
 }
 
-fn perf_baseline_rows() -> Vec<BaselineJsonRow> {
+fn perf_baseline_rows() -> Vec<PerfBaselineRow> {
     let path = perf_baseline_path();
     fs::read_to_string(&path)
         .unwrap_or_else(|error| {
@@ -193,7 +199,7 @@ fn perf_baseline_rows() -> Vec<BaselineJsonRow> {
         .lines()
         .filter(|line| !line.trim().is_empty())
         .map(|line| {
-            serde_json::from_str::<BaselineJsonRow>(line).unwrap_or_else(|error| {
+            serde_json::from_str::<PerfBaselineRow>(line).unwrap_or_else(|error| {
                 panic!(
                     "failed to deserialize relational perf baseline row from {}: {error}",
                     path.display()
@@ -207,11 +213,11 @@ fn perf_baseline_elapsed_rows() -> &'static BTreeMap<(String, String), PerfBasel
     PERF_BASELINE_ELAPSED_ROWS.get_or_init(|| {
         perf_baseline_rows()
             .into_iter()
-            .filter(|row| row.get("metric").is_none())
-            .map(|row| {
-                let parsed = serde_json::from_value::<PerfBaselineElapsedRow>(row)
-                    .expect("elapsed baseline row should deserialize");
-                ((parsed.suite.clone(), parsed.case.clone()), parsed)
+            .filter_map(|row| match row {
+                PerfBaselineRow::Elapsed(parsed) => {
+                    Some(((parsed.suite.clone(), parsed.case.clone()), parsed))
+                }
+                PerfBaselineRow::Metric(_) => None,
             })
             .collect()
     })
@@ -222,18 +228,16 @@ fn perf_baseline_metric_rows() -> &'static BTreeMap<(String, String, String), Pe
     PERF_BASELINE_METRIC_ROWS.get_or_init(|| {
         perf_baseline_rows()
             .into_iter()
-            .filter(|row| row.get("metric").is_some())
-            .map(|row| {
-                let parsed = serde_json::from_value::<PerfBaselineMetricRow>(row)
-                    .expect("metric baseline row should deserialize");
-                (
+            .filter_map(|row| match row {
+                PerfBaselineRow::Metric(parsed) => Some((
                     (
                         parsed.suite.clone(),
                         parsed.case.clone(),
                         parsed.metric.clone(),
                     ),
                     parsed,
-                )
+                )),
+                PerfBaselineRow::Elapsed(_) => None,
             })
             .collect()
     })
