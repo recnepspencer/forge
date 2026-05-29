@@ -1,9 +1,7 @@
-use serde::Serialize;
-
 use crate::commit_strategies::data::{
     CommitStrategyExecutionRegistration, CommitStrategyExecutor, CommitStrategyRegistration,
-    StrategyExecutionResult, StrategyExecutorFailure, StrategyExecutorFailureClass,
-    StrategyObservationContext,
+    StrategyCommitArtifactBundle, StrategyExecutionResult, StrategyExecutorFailure,
+    StrategyExecutorFailureClass, StrategyObservationContext,
 };
 use crate::commit_strategies::strategies::{
     AspectFieldReconciliationInput, AspectFieldReconciliationStrategy,
@@ -14,18 +12,18 @@ use crate::commit_strategies::strategies::{
 use crate::facade::commit_strategies::RawStrategyCommitRequest;
 use crate::facade::config::RelationalRuntimeProfile;
 use crate::facade::durability::{DurabilityMode, DurableStoreLayout};
-use crate::facade::history::BranchId;
+use crate::facade::history::{BranchId, CommitReference};
 use crate::facade::merge::{MergeIntent, MergePlanningRequest};
 use crate::facade::replay::{
-    RelationalReplayRequest, ReplayExecutionMode, ReplayMismatchClass, ReplayObservableSurface,
-    ReplayVerificationMode,
+    RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode, ReplayMismatchClass,
+    ReplayObservableSurface, ReplayVerificationMode,
 };
 use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use crate::facade::transactions::TransactionOptions;
 use crate::tests::support::{
-    certification_digest, changed_entities, checkpoint_and_recover_with, create_branch_from_main,
-    create_entity, entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect,
-    read_entity_name, unique_test_store_path, AspectSchemaFixture,
+    changed_entities, checkpoint_and_recover_with, create_branch_from_main, create_entity,
+    entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect, read_entity_name,
+    unique_test_store_path, AspectSchemaFixture,
 };
 use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
 use forge_foundational::facade::{
@@ -33,28 +31,26 @@ use forge_foundational::facade::{
     LocatorAuthority,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct StrategyCertificationBundle {
-    main_commit_strategy_digest: String,
-    feature_commit_strategy_digest: String,
-    replacement_commit_strategy_digest: String,
-    merge_conflict_digest: String,
-    merge_lowered_plan_digest: String,
-    aspect_overlap_merge_conflict_digest: String,
-    aspect_overlap_merge_lowered_plan_digest: String,
-    aspect_disjoint_merge_conflict_digest: String,
-    aspect_disjoint_merge_lowered_plan_digest: String,
-    controller_sequence_merge_conflict_digest: String,
-    controller_sequence_merge_lowered_plan_digest: String,
-    main_replay_digest: String,
-    feature_replay_digest: String,
-    controller_sequence_noop_digest: String,
-    replacement_replay_digest: String,
-    replacement_lineage_digest: String,
-    missing_executor_replay_digest: String,
-    failing_executor_replay_digest: String,
-    branch_heads_digest: String,
-    visible_truth_digest: String,
+    main_commit_strategy_artifacts: StrategyCommitArtifactBundle,
+    feature_commit_strategy_artifacts: StrategyCommitArtifactBundle,
+    replacement: ReplacementCertificationBundle,
+    merge_conflict: crate::merge::data::MergeConflictDigestBasis,
+    merge_lowered_plan: crate::merge::data::MergeLoweredPlanDigestBasis,
+    aspect_overlap_merge_conflict: crate::merge::data::MergeConflictDigestBasis,
+    aspect_overlap_merge_lowered_plan: crate::merge::data::MergeLoweredPlanDigestBasis,
+    aspect_disjoint_merge_conflict: crate::merge::data::MergeConflictDigestBasis,
+    aspect_disjoint_merge_lowered_plan: crate::merge::data::MergeLoweredPlanDigestBasis,
+    controller_sequence_merge_conflict: crate::merge::data::MergeConflictDigestBasis,
+    controller_sequence_merge_lowered_plan: crate::merge::data::MergeLoweredPlanDigestBasis,
+    main_replay: RelationalReplayOutcome,
+    feature_replay: RelationalReplayOutcome,
+    controller_sequence_noop: ControllerSequenceNoopEvidence,
+    missing_executor_replay: StrategyReplayMismatchEvidence,
+    failing_executor_replay: StrategyReplayMismatchEvidence,
+    branch_heads: StrategyBranchHeadEvidence,
+    visible_truth: StrategyVisibleTruthEvidence,
 }
 
 fn strategy_field_locator(aspect_key: &str, field_key: &str) -> AspectFieldLocator {
@@ -65,11 +61,46 @@ fn strategy_field_locator(aspect_key: &str, field_key: &str) -> AspectFieldLocat
     )
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct ReplacementCertificationBundle {
-    replacement_commit_strategy_digest: String,
-    replacement_replay_digest: String,
-    replacement_lineage_digest: String,
+    replacement_commit_strategy_artifacts: StrategyCommitArtifactBundle,
+    replacement_replay: RelationalReplayOutcome,
+    replacement_lineage: ReplacementLineageEvidence,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ControllerSequenceNoopEvidence {
+    strategy_artifacts: StrategyCommitArtifactBundle,
+    changed_record_count: usize,
+    patch_record_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct StrategyReplayMismatchEvidence {
+    strategy_surface_mismatch_present: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct StrategyBranchHeadEvidence {
+    main: Option<CommitReference>,
+    feature: Option<CommitReference>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct StrategyVisibleTruthEvidence {
+    entity_name: Option<String>,
+    branch_heads: StrategyBranchHeadEvidence,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ReplacementLineageEvidence {
+    start_lineage: crate::facade::identity::LineageId,
+    end_lineage: crate::facade::identity::LineageId,
+    lineage_basis: crate::lineage::data::LineageDigestBasis,
+    event_batch_basis: crate::lineage::data::LineageEventBatchDigestBasis,
+    decision_log_basis: crate::lineage::data::LineageDecisionLogDigestBasis,
+    normalized_client_key_count: usize,
+    lineage_transition_count: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -334,17 +365,6 @@ fn execute_strategy_commit(
     authority
         .execute_validated_commit(validated)
         .expect("strategy commit")
-}
-
-fn full_replay_digest(replay: &crate::facade::replay::RelationalReplayOutcome) -> String {
-    certification_digest(&(
-        &replay.reconstructed_commit_closure,
-        &replay.snapshot_version,
-        &replay.lineage_authority_basis,
-        &replay.compared_surfaces,
-        &replay.mismatches,
-        &replay.failure,
-    ))
 }
 
 fn run_strategy_merge_certification() -> StrategyCertificationBundle {
@@ -682,84 +702,78 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
     let current = runtime
         .read_truth()
         .read_version(runtime.current_version_id());
-    let visible_truth_digest = certification_digest(&(
-        read_entity_name(current.get_entity(entity).expect("entity visible")),
-        runtime
+    let live_branch_heads = StrategyBranchHeadEvidence {
+        main: runtime
             .history()
             .branch_head(&BranchId("main".to_string()))
             .cloned(),
-        runtime.history().branch_head(&feature_branch).cloned(),
-    ));
+        feature: runtime.history().branch_head(&feature_branch).cloned(),
+    };
+    let live_visible_truth = StrategyVisibleTruthEvidence {
+        entity_name: read_entity_name(current.get_entity(entity).expect("entity visible")),
+        branch_heads: live_branch_heads.clone(),
+    };
 
     let mut live_bundle = StrategyCertificationBundle {
-        main_commit_strategy_digest: certification_digest(
-            main_commit
-                .publication
-                .strategy_artifacts
-                .as_ref()
-                .expect("main strategy artifacts"),
-        ),
-        feature_commit_strategy_digest: certification_digest(
-            feature_commit
-                .publication
-                .strategy_artifacts
-                .as_ref()
-                .expect("feature strategy artifacts"),
-        ),
-        replacement_commit_strategy_digest: replacement_certification
-            .replacement_commit_strategy_digest
+        main_commit_strategy_artifacts: main_commit
+            .publication
+            .strategy_artifacts
+            .as_ref()
+            .expect("main strategy artifacts")
             .clone(),
-        merge_conflict_digest: certification_digest(&planning.digest_basis.conflict),
-        merge_lowered_plan_digest: certification_digest(&planning.digest_basis.lowered_plan),
-        aspect_overlap_merge_conflict_digest: certification_digest(
-            &aspect_overlap_planning.digest_basis.conflict,
-        ),
-        aspect_overlap_merge_lowered_plan_digest: certification_digest(
-            &aspect_overlap_planning.digest_basis.lowered_plan,
-        ),
-        aspect_disjoint_merge_conflict_digest: certification_digest(
-            &aspect_disjoint_planning.digest_basis.conflict,
-        ),
-        aspect_disjoint_merge_lowered_plan_digest: certification_digest(
-            &aspect_disjoint_planning.digest_basis.lowered_plan,
-        ),
-        controller_sequence_merge_conflict_digest: certification_digest(
-            &controller_sequence_planning.digest_basis.conflict,
-        ),
-        controller_sequence_merge_lowered_plan_digest: certification_digest(
-            &controller_sequence_planning.digest_basis.lowered_plan,
-        ),
-        main_replay_digest: full_replay_digest(&main_replay),
-        feature_replay_digest: full_replay_digest(&feature_replay),
-        controller_sequence_noop_digest: certification_digest(&(
-            certification_digest(
-                controller_feature_idempotent_commit
-                    .publication
-                    .strategy_artifacts
-                    .as_ref()
-                    .expect("controller idempotent strategy artifacts"),
-            ),
-            controller_feature_idempotent_commit
+        feature_commit_strategy_artifacts: feature_commit
+            .publication
+            .strategy_artifacts
+            .as_ref()
+            .expect("feature strategy artifacts")
+            .clone(),
+        replacement: replacement_certification.clone(),
+        merge_conflict: planning.digest_basis.conflict.clone(),
+        merge_lowered_plan: planning.digest_basis.lowered_plan.clone(),
+        aspect_overlap_merge_conflict: aspect_overlap_planning.digest_basis.conflict.clone(),
+        aspect_overlap_merge_lowered_plan: aspect_overlap_planning
+            .digest_basis
+            .lowered_plan
+            .clone(),
+        aspect_disjoint_merge_conflict: aspect_disjoint_planning.digest_basis.conflict.clone(),
+        aspect_disjoint_merge_lowered_plan: aspect_disjoint_planning
+            .digest_basis
+            .lowered_plan
+            .clone(),
+        controller_sequence_merge_conflict: controller_sequence_planning
+            .digest_basis
+            .conflict
+            .clone(),
+        controller_sequence_merge_lowered_plan: controller_sequence_planning
+            .digest_basis
+            .lowered_plan
+            .clone(),
+        main_replay,
+        feature_replay,
+        controller_sequence_noop: ControllerSequenceNoopEvidence {
+            strategy_artifacts: controller_feature_idempotent_commit
+                .publication
+                .strategy_artifacts
+                .as_ref()
+                .expect("controller idempotent strategy artifacts")
+                .clone(),
+            changed_record_count: controller_feature_idempotent_commit
                 .change_summary()
                 .expect("controller idempotent change summary")
                 .changed_record_count,
-            controller_feature_idempotent_commit
+            patch_record_count: controller_feature_idempotent_commit
                 .publication_summary()
                 .expect("controller idempotent publication summary")
                 .patch_record_count,
-        )),
-        replacement_replay_digest: replacement_certification.replacement_replay_digest.clone(),
-        replacement_lineage_digest: replacement_certification.replacement_lineage_digest.clone(),
-        missing_executor_replay_digest: String::new(),
-        failing_executor_replay_digest: String::new(),
-        branch_heads_digest: certification_digest(&(
-            runtime
-                .history()
-                .branch_head(&BranchId("main".to_string()))
-                .cloned(),
-            runtime.history().branch_head(&feature_branch).cloned(),
-        )),
-        visible_truth_digest,
+        },
+        missing_executor_replay: StrategyReplayMismatchEvidence {
+            strategy_surface_mismatch_present: false,
+        },
+        failing_executor_replay: StrategyReplayMismatchEvidence {
+            strategy_surface_mismatch_present: false,
+        },
+        branch_heads: live_branch_heads,
+        visible_truth: live_visible_truth,
     };
 
     let recovery_plan = runtime.durability().recovery_plan(
@@ -787,6 +801,11 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         mismatch.class == ReplayMismatchClass::StrategyExecutorUnavailable
             && mismatch.surface == ReplayObservableSurface::Strategy
     }));
+    let missing_executor_mismatch_present =
+        missing_executor_replay.mismatches.iter().any(|mismatch| {
+            mismatch.class == ReplayMismatchClass::StrategyExecutorUnavailable
+                && mismatch.surface == ReplayObservableSurface::Strategy
+        });
 
     let mut failing_executor_runtime =
         persisted_strategy_runtime_with_failing_intent_executor(recovered_root.clone());
@@ -811,8 +830,17 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         mismatch.class == ReplayMismatchClass::StrategyExecutionFailure
             && mismatch.surface == ReplayObservableSurface::Strategy
     }));
-    live_bundle.missing_executor_replay_digest = full_replay_digest(&missing_executor_replay);
-    live_bundle.failing_executor_replay_digest = full_replay_digest(&failing_executor_replay);
+    let failing_executor_mismatch_present =
+        failing_executor_replay.mismatches.iter().any(|mismatch| {
+            mismatch.class == ReplayMismatchClass::StrategyExecutionFailure
+                && mismatch.surface == ReplayObservableSurface::Strategy
+        });
+    live_bundle.missing_executor_replay = StrategyReplayMismatchEvidence {
+        strategy_surface_mismatch_present: missing_executor_mismatch_present,
+    };
+    live_bundle.failing_executor_replay = StrategyReplayMismatchEvidence {
+        strategy_surface_mismatch_present: failing_executor_mismatch_present,
+    };
 
     let (_recovery, mut recovered) =
         checkpoint_and_recover_with(&mut runtime, || persisted_strategy_runtime(recovered_root));
@@ -894,98 +922,83 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
     let recovered_current = recovered
         .read_truth()
         .read_version(recovered.current_version_id());
+    let recovered_controller_noop_envelope = recovered
+        .replay()
+        .canonical_commit_envelope(controller_feature_idempotent_commit.commit.commit_id)
+        .cloned()
+        .expect("recovered controller noop envelope");
+    let recovered_branch_heads = StrategyBranchHeadEvidence {
+        main: recovered
+            .history()
+            .branch_head(&BranchId("main".to_string()))
+            .cloned(),
+        feature: recovered.history().branch_head(&feature_branch).cloned(),
+    };
+    let recovered_visible_truth = StrategyVisibleTruthEvidence {
+        entity_name: read_entity_name(
+            recovered_current
+                .get_entity(entity)
+                .expect("recovered entity visible"),
+        ),
+        branch_heads: recovered_branch_heads.clone(),
+    };
     let recovered_bundle = StrategyCertificationBundle {
-        main_commit_strategy_digest: certification_digest(
-            recovered_main_envelope
-                .strategy_artifacts
-                .as_ref()
-                .expect("recovered main strategy artifacts"),
-        ),
-        feature_commit_strategy_digest: certification_digest(
-            recovered_feature_envelope
-                .strategy_artifacts
-                .as_ref()
-                .expect("recovered feature strategy artifacts"),
-        ),
-        replacement_commit_strategy_digest: replacement_certification
-            .replacement_commit_strategy_digest
+        main_commit_strategy_artifacts: recovered_main_envelope
+            .strategy_artifacts
+            .as_ref()
+            .expect("recovered main strategy artifacts")
             .clone(),
-        merge_conflict_digest: certification_digest(&recovered_planning.digest_basis.conflict),
-        merge_lowered_plan_digest: certification_digest(
-            &recovered_planning.digest_basis.lowered_plan,
-        ),
-        aspect_overlap_merge_conflict_digest: certification_digest(
-            &recovered_aspect_overlap_planning.digest_basis.conflict,
-        ),
-        aspect_overlap_merge_lowered_plan_digest: certification_digest(
-            &recovered_aspect_overlap_planning.digest_basis.lowered_plan,
-        ),
-        aspect_disjoint_merge_conflict_digest: certification_digest(
-            &recovered_aspect_disjoint_planning.digest_basis.conflict,
-        ),
-        aspect_disjoint_merge_lowered_plan_digest: certification_digest(
-            &recovered_aspect_disjoint_planning.digest_basis.lowered_plan,
-        ),
-        controller_sequence_merge_conflict_digest: certification_digest(
-            &recovered_controller_sequence_planning.digest_basis.conflict,
-        ),
-        controller_sequence_merge_lowered_plan_digest: certification_digest(
-            &recovered_controller_sequence_planning
-                .digest_basis
-                .lowered_plan,
-        ),
-        main_replay_digest: full_replay_digest(&recovered_main_replay),
-        feature_replay_digest: full_replay_digest(&recovered_feature_replay),
-        controller_sequence_noop_digest: certification_digest(&(
-            certification_digest(
-                recovered
-                    .replay()
-                    .canonical_commit_envelope(
-                        controller_feature_idempotent_commit.commit.commit_id,
-                    )
-                    .expect("recovered controller noop envelope")
-                    .strategy_artifacts
-                    .as_ref()
-                    .expect("recovered controller noop strategy artifacts"),
-            ),
-            recovered
-                .replay()
-                .canonical_commit_envelope(controller_feature_idempotent_commit.commit.commit_id)
-                .expect("recovered controller noop envelope")
-                .patch
-                .records
-                .len(),
-            recovered
-                .replay()
-                .canonical_commit_envelope(controller_feature_idempotent_commit.commit.commit_id)
-                .expect("recovered controller noop envelope")
-                .patch
-                .records
-                .len(),
-        )),
-        replacement_replay_digest: replacement_certification.replacement_replay_digest.clone(),
-        replacement_lineage_digest: replacement_certification.replacement_lineage_digest.clone(),
-        missing_executor_replay_digest: full_replay_digest(&missing_executor_replay),
-        failing_executor_replay_digest: full_replay_digest(&failing_executor_replay),
-        branch_heads_digest: certification_digest(&(
-            recovered
-                .history()
-                .branch_head(&BranchId("main".to_string()))
-                .cloned(),
-            recovered.history().branch_head(&feature_branch).cloned(),
-        )),
-        visible_truth_digest: certification_digest(&(
-            read_entity_name(
-                recovered_current
-                    .get_entity(entity)
-                    .expect("recovered entity visible"),
-            ),
-            recovered
-                .history()
-                .branch_head(&BranchId("main".to_string()))
-                .cloned(),
-            recovered.history().branch_head(&feature_branch).cloned(),
-        )),
+        feature_commit_strategy_artifacts: recovered_feature_envelope
+            .strategy_artifacts
+            .as_ref()
+            .expect("recovered feature strategy artifacts")
+            .clone(),
+        replacement: replacement_certification,
+        merge_conflict: recovered_planning.digest_basis.conflict.clone(),
+        merge_lowered_plan: recovered_planning.digest_basis.lowered_plan.clone(),
+        aspect_overlap_merge_conflict: recovered_aspect_overlap_planning
+            .digest_basis
+            .conflict
+            .clone(),
+        aspect_overlap_merge_lowered_plan: recovered_aspect_overlap_planning
+            .digest_basis
+            .lowered_plan
+            .clone(),
+        aspect_disjoint_merge_conflict: recovered_aspect_disjoint_planning
+            .digest_basis
+            .conflict
+            .clone(),
+        aspect_disjoint_merge_lowered_plan: recovered_aspect_disjoint_planning
+            .digest_basis
+            .lowered_plan
+            .clone(),
+        controller_sequence_merge_conflict: recovered_controller_sequence_planning
+            .digest_basis
+            .conflict
+            .clone(),
+        controller_sequence_merge_lowered_plan: recovered_controller_sequence_planning
+            .digest_basis
+            .lowered_plan
+            .clone(),
+        main_replay: recovered_main_replay,
+        feature_replay: recovered_feature_replay,
+        controller_sequence_noop: ControllerSequenceNoopEvidence {
+            strategy_artifacts: recovered_controller_noop_envelope
+                .strategy_artifacts
+                .as_ref()
+                .expect("recovered controller noop strategy artifacts")
+                .clone(),
+            changed_record_count: recovered_controller_noop_envelope.patch.records.len(),
+            patch_record_count: recovered_controller_noop_envelope.patch.records.len(),
+        },
+        missing_executor_replay: StrategyReplayMismatchEvidence {
+            strategy_surface_mismatch_present: missing_executor_mismatch_present,
+        },
+        failing_executor_replay: StrategyReplayMismatchEvidence {
+            strategy_surface_mismatch_present: failing_executor_mismatch_present,
+        },
+        branch_heads: recovered_branch_heads,
+        visible_truth: recovered_visible_truth,
     };
     assert_eq!(recovered_bundle, live_bundle);
     live_bundle
@@ -1052,36 +1065,27 @@ fn run_replacement_strategy_certification() -> ReplacementCertificationBundle {
     assert!(replacement_replay
         .compared_surfaces
         .contains(&ReplayObservableSurface::Strategy));
+    let replacement_strategy_artifacts = replacement_commit
+        .publication
+        .strategy_artifacts
+        .as_ref()
+        .expect("replacement strategy artifacts");
     let live_bundle = ReplacementCertificationBundle {
-        replacement_commit_strategy_digest: certification_digest(
-            replacement_commit
-                .publication
-                .strategy_artifacts
-                .as_ref()
-                .expect("replacement strategy artifacts"),
-        ),
-        replacement_replay_digest: full_replay_digest(&replacement_replay),
-        replacement_lineage_digest: certification_digest(&(
-            replacement_start_lineage,
-            replacement_end_lineage,
-            replacement_envelope.lineage_digest_basis(),
-            replacement_envelope.event_batch_digest_basis(),
-            replacement_envelope.decision_log_digest_basis(),
-            replacement_commit
-                .publication
-                .strategy_artifacts
-                .as_ref()
-                .expect("replacement strategy artifacts")
+        replacement_commit_strategy_artifacts: replacement_strategy_artifacts.clone(),
+        replacement_replay,
+        replacement_lineage: ReplacementLineageEvidence {
+            start_lineage: replacement_start_lineage,
+            end_lineage: replacement_end_lineage,
+            lineage_basis: replacement_envelope.lineage_digest_basis().clone(),
+            event_batch_basis: replacement_envelope.event_batch_digest_basis().clone(),
+            decision_log_basis: replacement_envelope.decision_log_digest_basis().clone(),
+            normalized_client_key_count: replacement_strategy_artifacts
                 .lowering_summary()
                 .normalized_client_key_count(),
-            replacement_commit
-                .publication
-                .strategy_artifacts
-                .as_ref()
-                .expect("replacement strategy artifacts")
+            lineage_transition_count: replacement_strategy_artifacts
                 .lowering_summary()
                 .lineage_transition_count(),
-        )),
+        },
     };
     let (_recovery, mut recovered) = checkpoint_and_recover_with(&mut runtime, || {
         persisted_replacement_strategy_runtime(recovered_root)
@@ -1109,33 +1113,32 @@ fn run_replacement_strategy_certification() -> ReplacementCertificationBundle {
         .for_record(replacement_record)
         .expect("recovered replacement entity lineage")
         .lineage_id;
+    let recovered_replacement_strategy_artifacts = recovered_replacement_envelope
+        .strategy_artifacts
+        .as_ref()
+        .expect("recovered replacement strategy artifacts");
     let recovered_bundle = ReplacementCertificationBundle {
-        replacement_commit_strategy_digest: certification_digest(
-            recovered_replacement_envelope
-                .strategy_artifacts
-                .as_ref()
-                .expect("recovered replacement strategy artifacts"),
-        ),
-        replacement_replay_digest: full_replay_digest(&recovered_replacement_replay),
-        replacement_lineage_digest: certification_digest(&(
-            replacement_start_lineage,
-            recovered_replacement_lineage,
-            recovered_replacement_envelope.lineage_digest_basis(),
-            recovered_replacement_envelope.event_batch_digest_basis(),
-            recovered_replacement_envelope.decision_log_digest_basis(),
-            recovered_replacement_envelope
-                .strategy_artifacts
-                .as_ref()
-                .expect("recovered replacement strategy artifacts")
+        replacement_commit_strategy_artifacts: recovered_replacement_strategy_artifacts.clone(),
+        replacement_replay: recovered_replacement_replay,
+        replacement_lineage: ReplacementLineageEvidence {
+            start_lineage: replacement_start_lineage,
+            end_lineage: recovered_replacement_lineage,
+            lineage_basis: recovered_replacement_envelope
+                .lineage_digest_basis()
+                .clone(),
+            event_batch_basis: recovered_replacement_envelope
+                .event_batch_digest_basis()
+                .clone(),
+            decision_log_basis: recovered_replacement_envelope
+                .decision_log_digest_basis()
+                .clone(),
+            normalized_client_key_count: recovered_replacement_strategy_artifacts
                 .lowering_summary()
                 .normalized_client_key_count(),
-            recovered_replacement_envelope
-                .strategy_artifacts
-                .as_ref()
-                .expect("recovered replacement strategy artifacts")
+            lineage_transition_count: recovered_replacement_strategy_artifacts
                 .lowering_summary()
                 .lineage_transition_count(),
-        )),
+        },
     };
     assert_eq!(recovered_bundle, live_bundle);
     live_bundle
@@ -1144,39 +1147,100 @@ fn run_replacement_strategy_certification() -> ReplacementCertificationBundle {
 #[test]
 fn milestone_8_5_strategy_certification_preserves_merge_replay_and_recovery_truth() {
     let certification = run_strategy_merge_certification();
-    assert!(certification.main_commit_strategy_digest.len() > 8);
-    assert!(certification.feature_commit_strategy_digest.len() > 8);
-    assert!(certification.replacement_commit_strategy_digest.len() > 8);
-    assert!(certification.merge_conflict_digest.len() > 8);
-    assert!(certification.merge_lowered_plan_digest.len() > 8);
-    assert!(certification.aspect_overlap_merge_conflict_digest.len() > 8);
-    assert!(certification.aspect_overlap_merge_lowered_plan_digest.len() > 8);
-    assert!(certification.aspect_disjoint_merge_conflict_digest.len() > 8);
     assert!(
         certification
-            .aspect_disjoint_merge_lowered_plan_digest
-            .len()
-            > 8
+            .main_commit_strategy_artifacts
+            .lowering_summary()
+            .total_intent_count()
+            > 0
     );
     assert!(
         certification
-            .controller_sequence_merge_conflict_digest
-            .len()
-            > 8
+            .feature_commit_strategy_artifacts
+            .lowering_summary()
+            .total_intent_count()
+            > 0
     );
     assert!(
         certification
-            .controller_sequence_merge_lowered_plan_digest
-            .len()
-            > 8
+            .replacement
+            .replacement_commit_strategy_artifacts
+            .lowering_summary()
+            .lineage_transition_count()
+            > 0
     );
-    assert!(certification.main_replay_digest.len() > 8);
-    assert!(certification.feature_replay_digest.len() > 8);
-    assert!(certification.controller_sequence_noop_digest.len() > 8);
-    assert!(certification.replacement_replay_digest.len() > 8);
-    assert!(certification.replacement_lineage_digest.len() > 8);
-    assert!(certification.missing_executor_replay_digest.len() > 8);
-    assert!(certification.failing_executor_replay_digest.len() > 8);
-    assert!(certification.branch_heads_digest.len() > 8);
-    assert!(certification.visible_truth_digest.len() > 8);
+    assert!(!certification.merge_conflict.records.is_empty());
+    assert!(!certification.merge_lowered_plan.records.is_empty());
+    assert!(!certification
+        .aspect_overlap_merge_conflict
+        .records
+        .is_empty());
+    assert!(!certification
+        .aspect_overlap_merge_lowered_plan
+        .records
+        .is_empty());
+    assert!(!certification
+        .aspect_disjoint_merge_conflict
+        .records
+        .is_empty());
+    assert!(!certification
+        .aspect_disjoint_merge_lowered_plan
+        .records
+        .is_empty());
+    assert!(!certification
+        .controller_sequence_merge_conflict
+        .records
+        .is_empty());
+    assert!(!certification
+        .controller_sequence_merge_lowered_plan
+        .records
+        .is_empty());
+    assert!(certification.main_replay.failure.is_none());
+    assert!(certification.feature_replay.failure.is_none());
+    assert!(certification
+        .main_replay
+        .compared_surfaces
+        .contains(&ReplayObservableSurface::Strategy));
+    assert!(certification
+        .feature_replay
+        .compared_surfaces
+        .contains(&ReplayObservableSurface::Strategy));
+    assert_eq!(
+        certification.controller_sequence_noop.changed_record_count,
+        certification.controller_sequence_noop.patch_record_count
+    );
+    assert!(certification
+        .replacement
+        .replacement_replay
+        .failure
+        .is_none());
+    assert!(certification
+        .replacement
+        .replacement_replay
+        .compared_surfaces
+        .contains(&ReplayObservableSurface::Strategy));
+    assert_ne!(
+        certification.replacement.replacement_lineage.start_lineage,
+        certification.replacement.replacement_lineage.end_lineage
+    );
+    assert!(
+        certification
+            .missing_executor_replay
+            .strategy_surface_mismatch_present
+    );
+    assert!(
+        certification
+            .failing_executor_replay
+            .strategy_surface_mismatch_present
+    );
+    assert!(certification.branch_heads.main.is_some());
+    assert!(certification.branch_heads.feature.is_some());
+    assert_eq!(
+        certification.visible_truth.branch_heads,
+        certification.branch_heads
+    );
+    assert_eq!(
+        certification.visible_truth.entity_name.as_deref(),
+        Some("service-main")
+    );
 }
