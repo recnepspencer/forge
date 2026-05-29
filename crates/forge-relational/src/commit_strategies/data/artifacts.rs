@@ -4,7 +4,7 @@ use crate::config::data::RelationalRuntimeConfig;
 use crate::history::data::CommitId;
 use crate::identity::data::VersionId;
 use crate::schema::data::{
-    schema_authority_snapshot_digest_bytes, DescriptorCanonicalizationVersion,
+    schema_authority_snapshot_digest_bytes, DescriptorCanonicalBasisVersion,
     DescriptorSemanticsVersion,
 };
 use crate::transactions::data::{AspectFieldPatchTarget, CommitValidationSummary};
@@ -279,7 +279,7 @@ pub struct StrategyRuntimeDeterminismBasis {
     planning_contract_digest: [u8; 32],
     execution_model_digest: [u8; 32],
     descriptor_semantics_version: DescriptorSemanticsVersion,
-    descriptor_canonicalization_version: DescriptorCanonicalizationVersion,
+    descriptor_canonical_basis_version: DescriptorCanonicalBasisVersion,
 }
 
 impl StrategyRuntimeDeterminismBasis {
@@ -300,9 +300,9 @@ impl StrategyRuntimeDeterminismBasis {
                 .schema
                 .descriptor_semantics_policy
                 .current_write_version(),
-            descriptor_canonicalization_version: runtime_config
+            descriptor_canonical_basis_version: runtime_config
                 .schema
-                .descriptor_canonicalization_policy
+                .descriptor_canonical_basis_policy
                 .current_write_version(),
         }
     }
@@ -327,8 +327,8 @@ impl StrategyRuntimeDeterminismBasis {
         self.descriptor_semantics_version
     }
 
-    pub fn descriptor_canonicalization_version(&self) -> DescriptorCanonicalizationVersion {
-        self.descriptor_canonicalization_version
+    pub fn descriptor_canonical_basis_version(&self) -> DescriptorCanonicalBasisVersion {
+        self.descriptor_canonical_basis_version
     }
 }
 

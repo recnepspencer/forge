@@ -63,24 +63,24 @@ pub fn runtime_descriptor_semantics_policy() -> DescriptorSemanticsCompatibility
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct DescriptorCanonicalizationVersion(pub u32);
+pub struct DescriptorCanonicalBasisVersion(pub u32);
 
-impl Default for DescriptorCanonicalizationVersion {
+impl Default for DescriptorCanonicalBasisVersion {
     fn default() -> Self {
         Self(1)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DescriptorCanonicalizationCompatibilityPolicy {
-    current_write_version: DescriptorCanonicalizationVersion,
-    supported_historical_versions: BTreeSet<DescriptorCanonicalizationVersion>,
+pub struct DescriptorCanonicalBasisCompatibilityPolicy {
+    current_write_version: DescriptorCanonicalBasisVersion,
+    supported_historical_versions: BTreeSet<DescriptorCanonicalBasisVersion>,
 }
 
-impl DescriptorCanonicalizationCompatibilityPolicy {
+impl DescriptorCanonicalBasisCompatibilityPolicy {
     pub fn new(
-        current_write_version: DescriptorCanonicalizationVersion,
-        supported_historical_versions: impl IntoIterator<Item = DescriptorCanonicalizationVersion>,
+        current_write_version: DescriptorCanonicalBasisVersion,
+        supported_historical_versions: impl IntoIterator<Item = DescriptorCanonicalBasisVersion>,
     ) -> Self {
         let mut supported_historical_versions = supported_historical_versions
             .into_iter()
@@ -92,27 +92,26 @@ impl DescriptorCanonicalizationCompatibilityPolicy {
         }
     }
 
-    pub fn current_write_version(&self) -> DescriptorCanonicalizationVersion {
+    pub fn current_write_version(&self) -> DescriptorCanonicalBasisVersion {
         self.current_write_version
     }
 
-    pub fn supports(&self, version: DescriptorCanonicalizationVersion) -> bool {
+    pub fn supports(&self, version: DescriptorCanonicalBasisVersion) -> bool {
         self.supported_historical_versions.contains(&version)
     }
 }
 
-impl Default for DescriptorCanonicalizationCompatibilityPolicy {
+impl Default for DescriptorCanonicalBasisCompatibilityPolicy {
     fn default() -> Self {
         Self::new(
-            DescriptorCanonicalizationVersion::default(),
-            [DescriptorCanonicalizationVersion::default()],
+            DescriptorCanonicalBasisVersion::default(),
+            [DescriptorCanonicalBasisVersion::default()],
         )
     }
 }
 
-pub fn runtime_descriptor_canonicalization_policy() -> DescriptorCanonicalizationCompatibilityPolicy
-{
-    DescriptorCanonicalizationCompatibilityPolicy::default()
+pub fn runtime_descriptor_canonical_basis_policy() -> DescriptorCanonicalBasisCompatibilityPolicy {
+    DescriptorCanonicalBasisCompatibilityPolicy::default()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -424,7 +423,7 @@ pub struct ValidatedSchemaTransition {
 pub struct SchemaBridgeDescriptor {
     pub boundary_fingerprint: SchemaBoundaryFingerprint,
     pub semantics_version: DescriptorSemanticsVersion,
-    pub canonicalization_version: DescriptorCanonicalizationVersion,
+    pub canonical_basis_version: DescriptorCanonicalBasisVersion,
     pub continuation: SchemaContinuationClassification,
     pub bridgeability: SchemaBridgeabilityClassification,
     pub boundary_visibility: SubscriberBoundaryVisibility,
@@ -436,7 +435,7 @@ impl SchemaBridgeDescriptor {
     pub fn new(
         boundary_fingerprint: SchemaBoundaryFingerprint,
         semantics_version: DescriptorSemanticsVersion,
-        canonicalization_version: DescriptorCanonicalizationVersion,
+        canonical_basis_version: DescriptorCanonicalBasisVersion,
         continuation: SchemaContinuationClassification,
         bridgeability: SchemaBridgeabilityClassification,
         historical_interpretation: HistoricalInterpretationSensitivity,
@@ -445,7 +444,7 @@ impl SchemaBridgeDescriptor {
         Self::new_with_visibility(
             boundary_fingerprint,
             semantics_version,
-            canonicalization_version,
+            canonical_basis_version,
             continuation,
             bridgeability,
             default_boundary_visibility_for_continuation(continuation),
@@ -457,7 +456,7 @@ impl SchemaBridgeDescriptor {
     pub fn new_with_visibility(
         boundary_fingerprint: SchemaBoundaryFingerprint,
         semantics_version: DescriptorSemanticsVersion,
-        canonicalization_version: DescriptorCanonicalizationVersion,
+        canonical_basis_version: DescriptorCanonicalBasisVersion,
         continuation: SchemaContinuationClassification,
         bridgeability: SchemaBridgeabilityClassification,
         boundary_visibility: SubscriberBoundaryVisibility,
@@ -467,7 +466,7 @@ impl SchemaBridgeDescriptor {
         Self {
             boundary_fingerprint,
             semantics_version,
-            canonicalization_version,
+            canonical_basis_version,
             continuation,
             bridgeability,
             boundary_visibility,
@@ -534,7 +533,7 @@ impl SchemaLineageArtifact {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SchemaReconciliationDescriptor {
     pub semantics_version: DescriptorSemanticsVersion,
-    pub canonicalization_version: DescriptorCanonicalizationVersion,
+    pub canonical_basis_version: DescriptorCanonicalBasisVersion,
     pub classification: SchemaReconciliationClassification,
     pub policy: SchemaReconciliationPolicy,
     pub resulting_lineage: SchemaLineageArtifact,
@@ -543,14 +542,14 @@ pub struct SchemaReconciliationDescriptor {
 impl SchemaReconciliationDescriptor {
     pub fn new(
         semantics_version: DescriptorSemanticsVersion,
-        canonicalization_version: DescriptorCanonicalizationVersion,
+        canonical_basis_version: DescriptorCanonicalBasisVersion,
         classification: SchemaReconciliationClassification,
         policy: SchemaReconciliationPolicy,
         resulting_lineage: SchemaLineageArtifact,
     ) -> Self {
         Self {
             semantics_version,
-            canonicalization_version,
+            canonical_basis_version,
             classification,
             policy,
             resulting_lineage,

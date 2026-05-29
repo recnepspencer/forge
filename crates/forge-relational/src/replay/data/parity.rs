@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::schema::data::{DescriptorCanonicalizationVersion, DescriptorSemanticsVersion};
+use crate::schema::data::{DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion};
 
 use super::{ReplayMismatchClass, ReplayVerificationLayer};
 
@@ -29,7 +29,7 @@ pub struct VerifiedDescriptorDigest {
     pub kind: DescriptorAuthorityKind,
     pub digest: [u8; 32],
     pub descriptor_semantics_version: DescriptorSemanticsVersion,
-    pub canonicalization_version: Option<DescriptorCanonicalizationVersion>,
+    pub canonical_basis_version: Option<DescriptorCanonicalBasisVersion>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,14 +88,14 @@ impl VerifiedDescriptorDigest {
     pub fn from_digest(
         kind: DescriptorAuthorityKind,
         descriptor_semantics_version: DescriptorSemanticsVersion,
-        canonicalization_version: Option<DescriptorCanonicalizationVersion>,
+        canonical_basis_version: Option<DescriptorCanonicalBasisVersion>,
         digest: [u8; 32],
     ) -> Self {
         Self {
             kind,
             digest,
             descriptor_semantics_version,
-            canonicalization_version,
+            canonical_basis_version,
         }
     }
 }

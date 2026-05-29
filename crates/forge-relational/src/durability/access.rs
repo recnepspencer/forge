@@ -290,14 +290,14 @@ fn continuity_compatibility_for_envelopes(
         .schema
         .descriptor_semantics_policy
         .clone();
-    let canonicalization_policy = runtime
+    let canonical_basis_policy = runtime
         .runtime_config()
         .schema
-        .descriptor_canonicalization_policy
+        .descriptor_canonical_basis_policy
         .clone();
     let expected_descriptor_semantics_version = descriptor_policy.current_write_version();
-    let expected_descriptor_canonicalization_version =
-        canonicalization_policy.current_write_version();
+    let expected_descriptor_canonical_basis_version =
+        canonical_basis_policy.current_write_version();
     let mut compatibility =
         RecoveryCompatibilityCheck::verified_at(ReplayVerificationLayer::DigestParity);
 
@@ -323,8 +323,7 @@ fn continuity_compatibility_for_envelopes(
             continue;
         }
 
-        if let Some(found) =
-            unsupported_canonicalization_version(envelope, &canonicalization_policy)
+        if let Some(found) = unsupported_canonical_basis_version(envelope, &canonical_basis_policy)
         {
             runtime
                 .performance_access()
@@ -334,14 +333,14 @@ fn continuity_compatibility_for_envelopes(
                 .count_replay_verification_layer(ReplayVerificationLayer::DigestParity);
             compatibility.descriptor_version_parity = RecoveryAuthorityParity::drift();
             compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion {
-                    expected: expected_descriptor_canonicalization_version,
+                RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion {
+                    expected: expected_descriptor_canonical_basis_version,
                     found,
                 },
             );
             compatibility.verification_outcome = RecoveryVerificationOutcome::Rejected {
                 layer: ReplayVerificationLayer::DigestParity,
-                detail: "descriptor canonicalization version mismatch".to_string(),
+                detail: "descriptor canonical basis version mismatch".to_string(),
             };
             continue;
         }
@@ -365,18 +364,18 @@ fn continuity_compatibility_for_envelopes(
     compatibility
 }
 
-fn unsupported_canonicalization_version(
+fn unsupported_canonical_basis_version(
     envelope: &crate::replay::data::CanonicalCommitEnvelope,
-    policy: &crate::schema::data::DescriptorCanonicalizationCompatibilityPolicy,
-) -> Option<crate::schema::data::DescriptorCanonicalizationVersion> {
+    policy: &crate::schema::data::DescriptorCanonicalBasisCompatibilityPolicy,
+) -> Option<crate::schema::data::DescriptorCanonicalBasisVersion> {
     let continuation = envelope
         .schema_continuation_descriptor
         .as_ref()
-        .map(|descriptor| descriptor.bridge.canonicalization_version);
+        .map(|descriptor| descriptor.bridge.canonical_basis_version);
     let reconciliation = envelope
         .schema_reconciliation_descriptor
         .as_ref()
-        .map(|descriptor| descriptor.canonicalization_version);
+        .map(|descriptor| descriptor.canonical_basis_version);
     continuation
         .into_iter()
         .chain(reconciliation)
@@ -449,7 +448,7 @@ fn apply_continuity_issue(
                 RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { expected, found },
             );
         }
-        SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch {
+        SchemaContinuityBundleIssue::DescriptorCanonicalBasisVersionMismatch {
             expected,
             found,
         } => {
@@ -458,10 +457,7 @@ fn apply_continuity_issue(
                 .count_descriptor_version_mismatch();
             compatibility.descriptor_version_parity = RecoveryAuthorityParity::drift();
             compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion {
-                    expected,
-                    found,
-                },
+                RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion { expected, found },
             );
         }
         SchemaContinuityBundleIssue::VisibleBridgeProofMismatch => {

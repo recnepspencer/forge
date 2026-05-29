@@ -4,7 +4,7 @@ use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, Sug
 use crate::history::data::HistoryDriftClass;
 use crate::identity::data::KindId;
 use crate::schema::data::{
-    ContractId, DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+    ContractId, DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion,
     SchemaBoundaryFingerprint, SchemaVersionId,
 };
 
@@ -73,9 +73,9 @@ pub enum RecoveryCompatibilityMismatch {
         expected: DescriptorSemanticsVersion,
         found: DescriptorSemanticsVersion,
     },
-    DescriptorCanonicalizationVersion {
-        expected: DescriptorCanonicalizationVersion,
-        found: DescriptorCanonicalizationVersion,
+    DescriptorCanonicalBasisVersion {
+        expected: DescriptorCanonicalBasisVersion,
+        found: DescriptorCanonicalBasisVersion,
     },
     SchemaTransitionArtifact {
         commit_id: u64,
@@ -161,8 +161,8 @@ impl RecoveryCompatibilityMismatch {
                 "descriptor semantics version mismatch expected {} found {}",
                 expected.0, found.0
             ),
-            Self::DescriptorCanonicalizationVersion { expected, found } => format!(
-                "descriptor canonicalization version mismatch expected {} found {}",
+            Self::DescriptorCanonicalBasisVersion { expected, found } => format!(
+                "descriptor canonical basis version mismatch expected {} found {}",
                 expected.0, found.0
             ),
             Self::SchemaTransitionArtifact { commit_id, detail } => {

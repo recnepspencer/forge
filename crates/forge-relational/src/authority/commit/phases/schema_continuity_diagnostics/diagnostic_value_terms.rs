@@ -4,7 +4,7 @@ use crate::diagnostics::data::{RelationalDiagnosticFields, RelationalDiagnosticV
 use crate::history::data::BranchId;
 use crate::identity::data::KindId;
 use crate::schema::data::{
-    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion, SchemaBoundaryFingerprint,
+    DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion, SchemaBoundaryFingerprint,
     SchemaId, SchemaStratum, SchemaVersionId,
 };
 
@@ -56,10 +56,10 @@ pub(super) fn optional_descriptor_semantics_version(
     RelationalDiagnosticValue::optional(value.map(descriptor_semantics_version))
 }
 
-pub(super) fn descriptor_canonicalization_version(
-    value: DescriptorCanonicalizationVersion,
+pub(super) fn descriptor_canonical_basis_version(
+    value: DescriptorCanonicalBasisVersion,
 ) -> RelationalDiagnosticValue {
-    RelationalDiagnosticValue::DescriptorCanonicalizationVersion(value)
+    RelationalDiagnosticValue::DescriptorCanonicalBasisVersion(value)
 }
 
 pub(super) fn boundary_fingerprint(value: SchemaBoundaryFingerprint) -> RelationalDiagnosticValue {

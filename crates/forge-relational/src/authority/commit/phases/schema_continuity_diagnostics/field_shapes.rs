@@ -3,7 +3,7 @@ use crate::identity::data::KindId;
 use forge_foundational::FieldKey;
 
 use crate::schema::data::{
-    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion, FreeFormSchemaDiffIntent,
+    DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion, FreeFormSchemaDiffIntent,
     SchemaBoundaryFingerprint, SchemaDiffAtom, SchemaDiffDetail, SchemaId, SchemaStratum,
     SchemaVersionId,
 };
@@ -22,7 +22,7 @@ pub(super) struct SchemaTransitionSummaryFields {
     pub(super) bridgeability: String,
     pub(super) reconciliation: String,
     pub(super) descriptor_semantics_version: DescriptorSemanticsVersion,
-    pub(super) descriptor_canonicalization_version: DescriptorCanonicalizationVersion,
+    pub(super) descriptor_canonical_basis_version: DescriptorCanonicalBasisVersion,
     pub(super) normalized_boundary_count: usize,
 }
 
@@ -65,7 +65,7 @@ pub(super) struct SchemaBridgeDescriptorFields {
     pub(super) continuation: String,
     pub(super) bridgeability: String,
     pub(super) normalized_boundary_count: usize,
-    pub(super) descriptor_canonicalization_version: DescriptorCanonicalizationVersion,
+    pub(super) descriptor_canonical_basis_version: DescriptorCanonicalBasisVersion,
 }
 
 #[derive(Debug)]
@@ -86,8 +86,8 @@ pub(super) struct SchemaReconciliationFields {
 #[derive(Debug)]
 pub(super) struct SchemaDescriptorVersionFields {
     pub(super) descriptor_semantics_version: DescriptorSemanticsVersion,
-    pub(super) continuation_canonicalization_version: DescriptorCanonicalizationVersion,
-    pub(super) reconciliation_canonicalization_version: DescriptorCanonicalizationVersion,
+    pub(super) continuation_canonical_basis_version: DescriptorCanonicalBasisVersion,
+    pub(super) reconciliation_canonical_basis_version: DescriptorCanonicalBasisVersion,
 }
 
 #[derive(Debug)]

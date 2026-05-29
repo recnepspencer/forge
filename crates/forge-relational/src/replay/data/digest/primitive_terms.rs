@@ -11,7 +11,7 @@ use crate::publication::patch::data::{
     PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue, RecordStructuralChange,
 };
 use crate::schema::data::{
-    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion, SchemaBoundaryFingerprint,
+    DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion, SchemaBoundaryFingerprint,
     SchemaVersionId,
 };
 use crate::transactions::data::RecordRef;
@@ -102,9 +102,9 @@ impl ReplayDigestBuilder {
         self.u32(value.0)
     }
 
-    pub(super) fn descriptor_canonicalization_version(
+    pub(super) fn descriptor_canonical_basis_version(
         self,
-        value: DescriptorCanonicalizationVersion,
+        value: DescriptorCanonicalBasisVersion,
     ) -> Self {
         self.u32(value.0)
     }
@@ -338,8 +338,8 @@ impl ReplayDigestBuilder {
             RelationalDiagnosticValue::DescriptorSemanticsVersion(value) => {
                 self.tag(20).descriptor_semantics_version(*value)
             }
-            RelationalDiagnosticValue::DescriptorCanonicalizationVersion(value) => {
-                self.tag(21).descriptor_canonicalization_version(*value)
+            RelationalDiagnosticValue::DescriptorCanonicalBasisVersion(value) => {
+                self.tag(21).descriptor_canonical_basis_version(*value)
             }
             RelationalDiagnosticValue::EntityId(value) => self.tag(22).entity_id(*value),
             RelationalDiagnosticValue::RelationId(value) => self.tag(23).relation_id(*value),

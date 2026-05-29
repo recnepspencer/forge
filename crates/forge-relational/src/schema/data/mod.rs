@@ -23,9 +23,9 @@ pub use aspect_traces::{
     AspectDeclarationTrace, AspectDeclarationTraceRow, AspectLoweringTrace, AspectLoweringTraceRow,
 };
 pub use continuity::{
-    runtime_descriptor_canonicalization_policy, runtime_descriptor_semantics_policy,
-    CompatibilityObservation, DescriptorCanonicalizationCompatibilityPolicy,
-    DescriptorCanonicalizationVersion, DescriptorSemanticsCompatibilityPolicy,
+    runtime_descriptor_canonical_basis_policy, runtime_descriptor_semantics_policy,
+    CompatibilityObservation, DescriptorCanonicalBasisCompatibilityPolicy,
+    DescriptorCanonicalBasisVersion, DescriptorSemanticsCompatibilityPolicy,
     DescriptorSemanticsVersion, FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity,
     LoweredSchemaTransitionPlan, ProposedSchemaTransition, SchemaBoundaryFingerprint,
     SchemaBridgeDescriptor, SchemaBridgeabilityClassification, SchemaContinuationClassification,

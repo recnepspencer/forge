@@ -62,7 +62,7 @@ pub(super) fn diagnostic_value_to_serde_value(value: &RelationalDiagnosticValue)
             Value::String(format!("{value:?}"))
         }
         RelationalDiagnosticValue::DescriptorSemanticsVersion(value) => Value::from(value.0),
-        RelationalDiagnosticValue::DescriptorCanonicalizationVersion(value) => Value::from(value.0),
+        RelationalDiagnosticValue::DescriptorCanonicalBasisVersion(value) => Value::from(value.0),
         RelationalDiagnosticValue::EntityId(value) => entity_id_serde_value(*value),
         RelationalDiagnosticValue::RelationId(value) => relation_id_serde_value(*value),
     }

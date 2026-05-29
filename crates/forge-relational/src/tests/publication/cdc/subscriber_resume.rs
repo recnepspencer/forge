@@ -5,7 +5,7 @@ use crate::{
     },
     publication::cdc::execution::collect_crossed_boundaries,
     schema::data::{
-        DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+        DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion,
         HistoricalInterpretationSensitivity, ProposedSchemaTransition, SchemaBoundaryFingerprint,
         SchemaBridgeDescriptor, SchemaBridgeabilityClassification,
         SchemaContinuationClassification, SchemaContinuationDescriptor, SchemaDiffAtom,
@@ -842,7 +842,7 @@ fn crossed_boundary_collection_deduplicates_without_losing_first_seen_order() {
         SchemaBridgeDescriptor::new(
             fingerprint_a,
             DescriptorSemanticsVersion::default(),
-            DescriptorCanonicalizationVersion::default(),
+            DescriptorCanonicalBasisVersion::default(),
             SchemaContinuationClassification::ContinueWithVisibleBridge,
             SchemaBridgeabilityClassification::SubscriberVisible,
             HistoricalInterpretationSensitivity::NotSensitive,
@@ -861,7 +861,7 @@ fn crossed_boundary_collection_deduplicates_without_losing_first_seen_order() {
         SchemaBridgeDescriptor::new(
             fingerprint_b,
             DescriptorSemanticsVersion::default(),
-            DescriptorCanonicalizationVersion::default(),
+            DescriptorCanonicalBasisVersion::default(),
             SchemaContinuationClassification::ContinueWithVisibleBridge,
             SchemaBridgeabilityClassification::SubscriberVisible,
             HistoricalInterpretationSensitivity::NotSensitive,

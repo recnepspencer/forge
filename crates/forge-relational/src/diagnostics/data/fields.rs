@@ -15,7 +15,7 @@ use crate::lineage::data::CorrespondenceCandidateId;
 use crate::publication::patch::data::PatchStreamPosition;
 use crate::replay::data::ReplaySchemaVersion;
 use crate::schema::data::{
-    ContractId, DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+    ContractId, DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion,
     SchemaBoundaryFingerprint, SchemaId, SchemaVersionId,
 };
 use crate::snapshots::data::SnapshotId;
@@ -87,7 +87,7 @@ pub enum RelationalDiagnosticValue {
     ContractId(ContractId),
     SchemaBoundaryFingerprint(SchemaBoundaryFingerprint),
     DescriptorSemanticsVersion(DescriptorSemanticsVersion),
-    DescriptorCanonicalizationVersion(DescriptorCanonicalizationVersion),
+    DescriptorCanonicalBasisVersion(DescriptorCanonicalBasisVersion),
     EntityId(EntityId),
     RelationId(RelationId),
 }

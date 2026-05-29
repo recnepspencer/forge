@@ -6,7 +6,7 @@ use std::sync::Arc;
 use forge_foundational::FieldKey;
 
 use crate::schema::data::{
-    CompatibilityObservation, DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+    CompatibilityObservation, DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion,
     FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan,
     ProposedSchemaTransition, SchemaBoundaryFingerprint, SchemaBridgeDescriptor,
     SchemaBridgeabilityClassification, SchemaContinuationClassification,
@@ -37,9 +37,9 @@ pub enum SchemaContinuityBundleIssue {
         expected: DescriptorSemanticsVersion,
         found: DescriptorSemanticsVersion,
     },
-    DescriptorCanonicalizationVersionMismatch {
-        expected: DescriptorCanonicalizationVersion,
-        found: DescriptorCanonicalizationVersion,
+    DescriptorCanonicalBasisVersionMismatch {
+        expected: DescriptorCanonicalBasisVersion,
+        found: DescriptorCanonicalBasisVersion,
     },
     VisibleBridgeProofMismatch,
     TargetSchemaVersionMismatch,
@@ -96,8 +96,8 @@ impl SchemaContinuityBundleIssue {
             Self::DescriptorSemanticsVersionMismatch { .. } => {
                 "descriptor semantics version must agree across envelope, continuation descriptor, and reconciliation descriptor".to_string()
             }
-            Self::DescriptorCanonicalizationVersionMismatch { .. } => {
-                "descriptor canonicalization version must agree across continuation and reconciliation descriptors and remain supported by runtime policy".to_string()
+            Self::DescriptorCanonicalBasisVersionMismatch { .. } => {
+                "descriptor canonical basis version must agree across continuation and reconciliation descriptors and remain supported by runtime policy".to_string()
             }
             Self::VisibleBridgeProofMismatch => {
                 "visible bridge continuity requires explicit proof that surfaced boundary metadata is semantically ignorable".to_string()
@@ -271,14 +271,14 @@ pub fn lower_schema_transition(
     validated: ValidatedSchemaTransition,
     policy: Option<SchemaReconciliationPolicy>,
     semantics_version: DescriptorSemanticsVersion,
-    canonicalization_version: DescriptorCanonicalizationVersion,
+    canonical_basis_version: DescriptorCanonicalBasisVersion,
 ) -> LoweredSchemaTransitionPlan {
     let normalized_transition = normalize_transition(&validated.proposed.diff_atoms);
     let fingerprint = fingerprint_transition_from_normalized(&normalized_transition);
     let bridge = SchemaBridgeDescriptor::new_with_visibility(
         fingerprint,
         semantics_version,
-        canonicalization_version,
+        canonical_basis_version,
         validated.continuation,
         validated.bridgeability,
         strongest_boundary_visibility(&validated.proposed.diff_atoms),
@@ -289,7 +289,7 @@ pub fn lower_schema_transition(
         SchemaContinuationDescriptor::new(fingerprint, bridge, validated.proposed.diff_atoms.len());
     let reconciliation_descriptor = SchemaReconciliationDescriptor::new(
         semantics_version,
-        canonicalization_version,
+        canonical_basis_version,
         validated.reconciliation,
         policy.unwrap_or(SchemaReconciliationPolicy::RejectLossyNarrowing),
         SchemaLineageArtifact::new(
@@ -366,11 +366,11 @@ pub fn validate_schema_continuity_bundle(
             },
         );
     }
-    if continuation.bridge.canonicalization_version != reconciliation.canonicalization_version {
+    if continuation.bridge.canonical_basis_version != reconciliation.canonical_basis_version {
         return Err(
-            SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch {
-                expected: continuation.bridge.canonicalization_version,
-                found: reconciliation.canonicalization_version,
+            SchemaContinuityBundleIssue::DescriptorCanonicalBasisVersionMismatch {
+                expected: continuation.bridge.canonical_basis_version,
+                found: reconciliation.canonical_basis_version,
             },
         );
     }

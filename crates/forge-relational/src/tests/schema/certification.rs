@@ -1,5 +1,5 @@
 use crate::facade::schema::{
-    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion, FreeFormSchemaDiffIntent,
+    DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion, FreeFormSchemaDiffIntent,
     HistoricalInterpretationSensitivity, ProposedSchemaTransition, SchemaDiffAtom,
     SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId, SchemaPublicationImpact,
     SchemaReconciliationClassification, SchemaReconciliationPolicy, SchemaStratum,
@@ -198,7 +198,7 @@ fn schema_reconciliation_classification_test() {
         additive.clone(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
         DescriptorSemanticsVersion::default(),
-        DescriptorCanonicalizationVersion::default(),
+        DescriptorCanonicalBasisVersion::default(),
     );
 
     let narrowing = ProposedSchemaTransition {
@@ -236,7 +236,7 @@ fn schema_reconciliation_classification_test() {
         narrowing_validated.clone(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
         DescriptorSemanticsVersion::default(),
-        DescriptorCanonicalizationVersion::default(),
+        DescriptorCanonicalBasisVersion::default(),
     );
 
     let type_conflict = classify_schema_transition(
@@ -322,7 +322,7 @@ fn schema_reconciliation_classification_test() {
         additive,
         Some(SchemaReconciliationPolicy::PreserveInformation),
         DescriptorSemanticsVersion::default(),
-        DescriptorCanonicalizationVersion::default(),
+        DescriptorCanonicalBasisVersion::default(),
     )
     .reconciliation_descriptor;
     let descriptor_semantics_versions = [
@@ -330,7 +330,7 @@ fn schema_reconciliation_classification_test() {
             narrowing_validated.clone(),
             Some(SchemaReconciliationPolicy::PreserveInformation),
             DescriptorSemanticsVersion::default(),
-            DescriptorCanonicalizationVersion::default(),
+            DescriptorCanonicalBasisVersion::default(),
         )
         .continuation_descriptor
         .bridge

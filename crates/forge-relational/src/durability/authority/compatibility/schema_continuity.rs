@@ -16,13 +16,13 @@ pub(super) fn validate_schema_continuity_compatibility(
         .schema
         .descriptor_semantics_policy
         .clone();
-    let canonicalization_policy = runtime
+    let canonical_basis_policy = runtime
         .runtime_config()
         .schema
-        .descriptor_canonicalization_policy
+        .descriptor_canonical_basis_policy
         .clone();
     let runtime_descriptor_version = descriptor_policy.current_write_version();
-    let runtime_canonicalization_version = canonicalization_policy.current_write_version();
+    let runtime_canonical_basis_version = canonical_basis_policy.current_write_version();
     if !descriptor_policy.supports(plan.descriptor_semantics_version) {
         return Err(DurabilityError::new(
             RecoveryFailureClass::SchemaMismatch,
@@ -58,23 +58,23 @@ pub(super) fn validate_schema_continuity_compatibility(
         if let Some(found) = envelope
             .schema_continuation_descriptor
             .as_ref()
-            .map(|descriptor| descriptor.bridge.canonicalization_version)
+            .map(|descriptor| descriptor.bridge.canonical_basis_version)
             .into_iter()
             .chain(
                 envelope
                     .schema_reconciliation_descriptor
                     .as_ref()
-                    .map(|descriptor| descriptor.canonicalization_version),
+                    .map(|descriptor| descriptor.canonical_basis_version),
             )
-            .find(|version| !canonicalization_policy.supports(*version))
+            .find(|version| !canonical_basis_policy.supports(*version))
         {
             return Err(DurabilityError::new(
                 RecoveryFailureClass::SchemaMismatch,
-                "recovery envelope descriptor canonicalization version mismatch",
+                "recovery envelope descriptor canonical basis version mismatch",
             )
             .with_compatibility_mismatch(
-                RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion {
-                    expected: runtime_canonicalization_version,
+                RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion {
+                    expected: runtime_canonical_basis_version,
                     found,
                 },
             ));
@@ -116,10 +116,10 @@ fn schema_continuity_recovery_error(
         SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { expected, found } => {
             RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { expected, found }
         }
-        SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch {
+        SchemaContinuityBundleIssue::DescriptorCanonicalBasisVersionMismatch {
             expected,
             found,
-        } => RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion { expected, found },
+        } => RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion { expected, found },
         SchemaContinuityBundleIssue::VisibleBridgeProofMismatch => {
             RecoveryCompatibilityMismatch::ContinuationDescriptor {
                 commit_id: envelope.commit.commit_id.0,

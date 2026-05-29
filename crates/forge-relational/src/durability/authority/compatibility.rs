@@ -80,7 +80,7 @@ pub(super) fn record_recovery_verification_counters(
     if matches!(
         compatibility.first_mismatch,
         Some(RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { .. })
-            | Some(RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion { .. })
+            | Some(RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion { .. })
     ) {
         runtime
             .performance_access()

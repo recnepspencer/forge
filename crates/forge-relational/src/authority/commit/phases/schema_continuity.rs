@@ -42,10 +42,10 @@ pub(crate) fn resolve_schema_continuity(
 ) -> Result<SchemaContinuityPlan, TransactionCommitError> {
     let descriptor_policy = runtime.config.schema.descriptor_semantics_policy.clone();
     let current_descriptor_semantics_version = descriptor_policy.current_write_version();
-    let current_descriptor_canonicalization_version = runtime
+    let current_descriptor_canonical_basis_version = runtime
         .config
         .schema
-        .descriptor_canonicalization_policy
+        .descriptor_canonical_basis_policy
         .current_write_version();
     let current_schema_version = runtime.primary_schema_version_id();
     let current_schema_registry = runtime.schema_registry().clone();
@@ -74,7 +74,7 @@ pub(crate) fn resolve_schema_continuity(
                 proposed_transition.clone(),
                 options.schema_reconciliation_policy,
                 current_descriptor_semantics_version,
-                current_descriptor_canonicalization_version,
+                current_descriptor_canonical_basis_version,
                 branch_id,
                 None,
                 current_schema_basis,
@@ -120,7 +120,7 @@ pub(crate) fn resolve_schema_continuity(
             proposed_transition.clone(),
             options.schema_reconciliation_policy,
             current_descriptor_semantics_version,
-            current_descriptor_canonicalization_version,
+            current_descriptor_canonical_basis_version,
             branch_id,
             Some(previous_envelope),
             current_schema_basis,
@@ -150,7 +150,7 @@ fn materialize_declared_transition(
     proposed_transition: crate::schema::data::ProposedSchemaTransition,
     policy: Option<crate::schema::data::SchemaReconciliationPolicy>,
     descriptor_semantics_version: DescriptorSemanticsVersion,
-    descriptor_canonicalization_version: crate::schema::data::DescriptorCanonicalizationVersion,
+    descriptor_canonical_basis_version: crate::schema::data::DescriptorCanonicalBasisVersion,
     branch_id: &crate::history::data::BranchId,
     previous_envelope: Option<&crate::replay::data::CanonicalCommitEnvelope>,
     current_schema_basis: Option<(
@@ -266,7 +266,7 @@ fn materialize_declared_transition(
         validated,
         policy,
         descriptor_semantics_version,
-        descriptor_canonicalization_version,
+        descriptor_canonical_basis_version,
     );
     let atoms_inspected = proposed_transition.diff_atoms.len();
     // Milestone 5 does not yet reuse unchanged subtrees by fingerprint, so each

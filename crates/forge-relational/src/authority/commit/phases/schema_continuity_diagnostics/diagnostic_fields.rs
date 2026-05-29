@@ -2,7 +2,7 @@ use crate::diagnostics::data::{RelationalDiagnosticFields, RelationalDiagnosticV
 
 use super::diagnostic_value_terms::{
     boundary_fingerprint, branch_id, contract_field_path, count,
-    descriptor_canonicalization_version, descriptor_semantics_version, fields, label,
+    descriptor_canonical_basis_version, descriptor_semantics_version, fields, label,
     optional_branch_id, optional_descriptor_semantics_version, optional_kind_id,
     optional_schema_version_id, schema_id, schema_ids, schema_version_id, schema_version_ids,
     strata, string_array,
@@ -52,8 +52,8 @@ impl IntoSchemaContinuityDiagnosticFields for SchemaTransitionSummaryFields {
                 descriptor_semantics_version(self.descriptor_semantics_version),
             ),
             (
-                "descriptor_canonicalization_version",
-                descriptor_canonicalization_version(self.descriptor_canonicalization_version),
+                "descriptor_canonical_basis_version",
+                descriptor_canonical_basis_version(self.descriptor_canonical_basis_version),
             ),
             (
                 "normalized_boundary_count",
@@ -137,8 +137,8 @@ impl IntoSchemaContinuityDiagnosticFields for SchemaBridgeDescriptorFields {
                 count(self.normalized_boundary_count),
             ),
             (
-                "descriptor_canonicalization_version",
-                descriptor_canonicalization_version(self.descriptor_canonicalization_version),
+                "descriptor_canonical_basis_version",
+                descriptor_canonical_basis_version(self.descriptor_canonical_basis_version),
             ),
         ])
     }
@@ -182,12 +182,12 @@ impl IntoSchemaContinuityDiagnosticFields for SchemaDescriptorVersionFields {
                 descriptor_semantics_version(self.descriptor_semantics_version),
             ),
             (
-                "continuation_canonicalization_version",
-                descriptor_canonicalization_version(self.continuation_canonicalization_version),
+                "continuation_canonical_basis_version",
+                descriptor_canonical_basis_version(self.continuation_canonical_basis_version),
             ),
             (
-                "reconciliation_canonicalization_version",
-                descriptor_canonicalization_version(self.reconciliation_canonicalization_version),
+                "reconciliation_canonical_basis_version",
+                descriptor_canonical_basis_version(self.reconciliation_canonical_basis_version),
             ),
         ])
     }

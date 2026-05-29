@@ -17,7 +17,7 @@ use crate::facade::lineage::{
 use crate::facade::merge::{MergeExecutionRequest, MergeIntent};
 use crate::facade::replay::ReplayVerificationLayer;
 use crate::facade::runtime::RelationalRuntimeApi;
-use crate::facade::schema::{DescriptorCanonicalizationVersion, DescriptorSemanticsVersion};
+use crate::facade::schema::{DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion};
 use crate::facade::schema::{
     EntityKindRegistration, HistoricalInterpretationSensitivity, KindAspectDeclarations,
     ProposedSchemaTransition, RelationalSchemaRegistry, SchemaDiffAtom, SchemaDiffDetail,
@@ -479,7 +479,7 @@ fn durability_recovery_plan_reports_descriptor_version_mismatch_before_recovery(
 }
 
 #[test]
-fn durability_contract_failure_descriptor_canonicalization_version_mismatch_is_explicit() {
+fn durability_contract_failure_descriptor_canonical_basis_version_mismatch_is_explicit() {
     let mut runtime = persisted_runtime_with_test_schema();
     let _ = create_entity_outcome(&mut runtime, "main-a");
 
@@ -515,7 +515,7 @@ fn durability_contract_failure_descriptor_canonicalization_version_mismatch_is_e
     let mut file =
         crate::durability::log::native_file_codec::read_segment_file(&segment_path).unwrap();
     if let Some(descriptor) = file.entries[1].schema_continuation_descriptor.as_mut() {
-        descriptor.bridge.canonicalization_version = DescriptorCanonicalizationVersion(99);
+        descriptor.bridge.canonical_basis_version = DescriptorCanonicalBasisVersion(99);
     }
     crate::durability::log::native_file_codec::write_segment_file(&segment_path, &file).unwrap();
 
@@ -530,9 +530,9 @@ fn durability_contract_failure_descriptor_canonicalization_version_mismatch_is_e
     assert!(matches!(
         plan.compatibility.first_mismatch,
         Some(
-            RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion {
-                expected: DescriptorCanonicalizationVersion(1),
-                found: DescriptorCanonicalizationVersion(99),
+            RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion {
+                expected: DescriptorCanonicalBasisVersion(1),
+                found: DescriptorCanonicalBasisVersion(99),
             }
         )
     ));
@@ -540,7 +540,7 @@ fn durability_contract_failure_descriptor_canonicalization_version_mismatch_is_e
         plan.compatibility.verification_outcome,
         RecoveryVerificationOutcome::Rejected {
             layer: ReplayVerificationLayer::DigestParity,
-            detail: "descriptor canonicalization version mismatch".to_string(),
+            detail: "descriptor canonical basis version mismatch".to_string(),
         }
     );
 }

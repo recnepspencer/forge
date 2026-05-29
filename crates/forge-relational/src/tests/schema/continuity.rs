@@ -7,7 +7,7 @@ use crate::diagnostics::data::{DiagnosticsArtifactKind, RelationalDiagnosticValu
 use crate::facade::history::BranchId;
 use crate::facade::identity::KindId;
 use crate::facade::schema::{
-    CompatibilityObservation, DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+    CompatibilityObservation, DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion,
     FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan,
     ProposedSchemaTransition, SchemaBoundaryFingerprint, SchemaBridgeDescriptor,
     SchemaBridgeabilityClassification, SchemaContinuationClassification,
@@ -119,7 +119,7 @@ fn schema_descriptor_constructors_preserve_semantics_version_and_ordering_truth(
     let bridge = SchemaBridgeDescriptor::new(
         fingerprint,
         DescriptorSemanticsVersion(9),
-        DescriptorCanonicalizationVersion(2),
+        DescriptorCanonicalBasisVersion(2),
         SchemaContinuationClassification::ContinueWithTransparentBridge,
         SchemaBridgeabilityClassification::Transparent,
         HistoricalInterpretationSensitivity::NotSensitive,
@@ -140,7 +140,7 @@ fn schema_descriptor_constructors_preserve_semantics_version_and_ordering_truth(
     );
     let reconciliation = SchemaReconciliationDescriptor::new(
         DescriptorSemanticsVersion(9),
-        DescriptorCanonicalizationVersion(2),
+        DescriptorCanonicalBasisVersion(2),
         SchemaReconciliationClassification::Additive,
         SchemaReconciliationPolicy::PreserveInformation,
         lineage.clone(),
@@ -223,7 +223,7 @@ fn schema_transition_summary_derives_changed_strata_without_duplicate_noise() {
             SchemaBridgeDescriptor::new(
                 fingerprint,
                 DescriptorSemanticsVersion::default(),
-                DescriptorCanonicalizationVersion::default(),
+                DescriptorCanonicalBasisVersion::default(),
                 SchemaContinuationClassification::RequireRenegotiation,
                 SchemaBridgeabilityClassification::RenegotiationOnly,
                 HistoricalInterpretationSensitivity::SensitiveToPublicationMeaning,
@@ -236,7 +236,7 @@ fn schema_transition_summary_derives_changed_strata_without_duplicate_noise() {
         ),
         SchemaReconciliationDescriptor::new(
             DescriptorSemanticsVersion::default(),
-            DescriptorCanonicalizationVersion::default(),
+            DescriptorCanonicalBasisVersion::default(),
             SchemaReconciliationClassification::Narrowing,
             SchemaReconciliationPolicy::RejectLossyNarrowing,
             SchemaLineageArtifact::new(
@@ -401,7 +401,7 @@ fn schema_transition_classification_and_lowering_are_deterministic_for_visible_b
         validated.clone(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
         DescriptorSemanticsVersion::default(),
-        DescriptorCanonicalizationVersion::default(),
+        DescriptorCanonicalBasisVersion::default(),
     );
     let lowered_again = lower_schema_transition(
         validate_schema_transition(
@@ -411,7 +411,7 @@ fn schema_transition_classification_and_lowering_are_deterministic_for_visible_b
         .unwrap(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
         DescriptorSemanticsVersion::default(),
-        DescriptorCanonicalizationVersion::default(),
+        DescriptorCanonicalBasisVersion::default(),
     );
 
     assert_eq!(
@@ -560,7 +560,7 @@ fn schema_boundary_fingerprint_is_canonical_across_diff_atom_orderings() {
         .unwrap(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
         DescriptorSemanticsVersion::default(),
-        DescriptorCanonicalizationVersion::default(),
+        DescriptorCanonicalBasisVersion::default(),
     );
     let lowered_b = lower_schema_transition(
         validate_schema_transition(
@@ -576,7 +576,7 @@ fn schema_boundary_fingerprint_is_canonical_across_diff_atom_orderings() {
         .unwrap(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
         DescriptorSemanticsVersion::default(),
-        DescriptorCanonicalizationVersion::default(),
+        DescriptorCanonicalBasisVersion::default(),
     );
 
     assert_eq!(
@@ -1252,7 +1252,7 @@ fn schema_continuity_publication_rejects_incomplete_canonical_bundle() {
             SchemaBridgeDescriptor::new(
                 fingerprint,
                 DescriptorSemanticsVersion::default(),
-                DescriptorCanonicalizationVersion::default(),
+                DescriptorCanonicalBasisVersion::default(),
                 SchemaContinuationClassification::ContinueWithTransparentBridge,
                 SchemaBridgeabilityClassification::Transparent,
                 HistoricalInterpretationSensitivity::NotSensitive,
@@ -1262,7 +1262,7 @@ fn schema_continuity_publication_rejects_incomplete_canonical_bundle() {
         ),
         SchemaReconciliationDescriptor::new(
             DescriptorSemanticsVersion::default(),
-            DescriptorCanonicalizationVersion::default(),
+            DescriptorCanonicalBasisVersion::default(),
             SchemaReconciliationClassification::Additive,
             SchemaReconciliationPolicy::PreserveInformation,
             SchemaLineageArtifact::new(
@@ -1339,7 +1339,7 @@ fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
             SchemaBridgeDescriptor::new(
                 fingerprint,
                 DescriptorSemanticsVersion(99),
-                DescriptorCanonicalizationVersion::default(),
+                DescriptorCanonicalBasisVersion::default(),
                 SchemaContinuationClassification::ContinueWithVisibleBridge,
                 SchemaBridgeabilityClassification::SubscriberVisible,
                 HistoricalInterpretationSensitivity::NotSensitive,
@@ -1349,7 +1349,7 @@ fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
         ),
         SchemaReconciliationDescriptor::new(
             DescriptorSemanticsVersion(99),
-            DescriptorCanonicalizationVersion::default(),
+            DescriptorCanonicalBasisVersion::default(),
             SchemaReconciliationClassification::Additive,
             SchemaReconciliationPolicy::PreserveInformation,
             SchemaLineageArtifact::new(
@@ -1429,7 +1429,7 @@ fn shared_continuity_bundle_validator_reports_boundary_fingerprint_mismatch() {
             SchemaBridgeDescriptor::new(
                 bridge_fingerprint,
                 DescriptorSemanticsVersion::default(),
-                DescriptorCanonicalizationVersion::default(),
+                DescriptorCanonicalBasisVersion::default(),
                 SchemaContinuationClassification::ContinueWithVisibleBridge,
                 SchemaBridgeabilityClassification::SubscriberVisible,
                 HistoricalInterpretationSensitivity::NotSensitive,
@@ -1439,7 +1439,7 @@ fn shared_continuity_bundle_validator_reports_boundary_fingerprint_mismatch() {
         ),
         SchemaReconciliationDescriptor::new(
             DescriptorSemanticsVersion::default(),
-            DescriptorCanonicalizationVersion::default(),
+            DescriptorCanonicalBasisVersion::default(),
             SchemaReconciliationClassification::Additive,
             SchemaReconciliationPolicy::PreserveInformation,
             SchemaLineageArtifact::new(

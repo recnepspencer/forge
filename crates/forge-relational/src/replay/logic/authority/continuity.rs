@@ -20,27 +20,27 @@ pub(super) fn validated_replay_continuity_envelope<'a>(
 ) -> Result<ValidatedReplayContinuityEnvelope<'a>, ReplayMismatch> {
     let validated_bundle = validate_schema_continuity_bundle(envelope)
         .map_err(|issue| replay_mismatch_for_continuity_issue(issue, verification_plan))?;
-    let canonicalization_policy = runtime
+    let canonical_basis_policy = runtime
         .runtime_config()
         .schema
-        .descriptor_canonicalization_policy
+        .descriptor_canonical_basis_policy
         .clone();
     if let Some(found) = envelope
         .schema_continuation_descriptor
         .as_ref()
-        .map(|descriptor| descriptor.bridge.canonicalization_version)
+        .map(|descriptor| descriptor.bridge.canonical_basis_version)
         .into_iter()
         .chain(
             envelope
                 .schema_reconciliation_descriptor
                 .as_ref()
-                .map(|descriptor| descriptor.canonicalization_version),
+                .map(|descriptor| descriptor.canonical_basis_version),
         )
-        .find(|version| !canonicalization_policy.supports(*version))
+        .find(|version| !canonical_basis_policy.supports(*version))
     {
         return Err(replay_mismatch_for_continuity_issue(
-            SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch {
-                expected: canonicalization_policy.current_write_version(),
+            SchemaContinuityBundleIssue::DescriptorCanonicalBasisVersionMismatch {
+                expected: canonical_basis_policy.current_write_version(),
                 found,
             },
             verification_plan,
@@ -77,7 +77,7 @@ pub(super) fn replay_mismatch_for_continuity_issue(
             replay_issue_layer(verification_plan, ReplayVerificationLayer::DigestParity),
         ),
         SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { .. }
-        | SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch { .. } => (
+        | SchemaContinuityBundleIssue::DescriptorCanonicalBasisVersionMismatch { .. } => (
             ReplayMismatchClass::DescriptorVersionDrift,
             replay_issue_layer(verification_plan, ReplayVerificationLayer::DigestParity),
         ),
@@ -142,7 +142,7 @@ fn descriptor_basis_for_continuation(
         Some(VerifiedDescriptorDigest::from_digest(
             DescriptorAuthorityKind::SchemaContinuationDescriptor,
             envelope.descriptor_semantics_version,
-            Some(descriptor.bridge.canonicalization_version),
+            Some(descriptor.bridge.canonical_basis_version),
             digest_schema_continuation_descriptor(
                 descriptor,
                 envelope.descriptor_semantics_version,
@@ -161,7 +161,7 @@ fn descriptor_basis_for_reconciliation(
         Some(VerifiedDescriptorDigest::from_digest(
             DescriptorAuthorityKind::SchemaReconciliationDescriptor,
             envelope.descriptor_semantics_version,
-            Some(descriptor.canonicalization_version),
+            Some(descriptor.canonical_basis_version),
             digest_schema_reconciliation_descriptor(
                 descriptor,
                 envelope.descriptor_semantics_version,

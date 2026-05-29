@@ -115,19 +115,19 @@ pub(super) fn compatibility_mismatch_fields(
                 ),
             ])
         }
-        RecoveryCompatibilityMismatch::DescriptorCanonicalizationVersion { expected, found } => {
+        RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion { expected, found } => {
             RelationalDiagnosticValue::object([
                 (
                     "mismatch",
-                    RelationalDiagnosticValue::string("DescriptorCanonicalizationVersion"),
+                    RelationalDiagnosticValue::string("DescriptorCanonicalBasisVersion"),
                 ),
                 (
                     "expected",
-                    RelationalDiagnosticValue::DescriptorCanonicalizationVersion(*expected),
+                    RelationalDiagnosticValue::DescriptorCanonicalBasisVersion(*expected),
                 ),
                 (
                     "found",
-                    RelationalDiagnosticValue::DescriptorCanonicalizationVersion(*found),
+                    RelationalDiagnosticValue::DescriptorCanonicalBasisVersion(*found),
                 ),
             ])
         }

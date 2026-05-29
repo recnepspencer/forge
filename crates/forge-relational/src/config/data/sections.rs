@@ -4,7 +4,7 @@ use crate::history::data::{BranchId, HistoryRetentionClass, VersionGraphPolicy};
 use crate::logic::commit::CommitAuthorityContract;
 use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
 use crate::schema::data::{
-    DescriptorCanonicalizationCompatibilityPolicy, DescriptorSemanticsCompatibilityPolicy,
+    DescriptorCanonicalBasisCompatibilityPolicy, DescriptorSemanticsCompatibilityPolicy,
     RelationalSchemaRegistry,
 };
 use crate::symbols::data::{ClientKeySymbolPolicy, SymbolTableSnapshot};
@@ -51,7 +51,7 @@ pub struct SchemaConfig {
     pub registry: RelationalSchemaRegistry,
     pub invariant_catalog: InvariantCatalog,
     pub descriptor_semantics_policy: DescriptorSemanticsCompatibilityPolicy,
-    pub descriptor_canonicalization_policy: DescriptorCanonicalizationCompatibilityPolicy,
+    pub descriptor_canonical_basis_policy: DescriptorCanonicalBasisCompatibilityPolicy,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

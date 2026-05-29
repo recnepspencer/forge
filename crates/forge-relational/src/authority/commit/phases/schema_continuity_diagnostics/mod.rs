@@ -119,10 +119,10 @@ fn emit_schema_transition_summary(
                 bridgeability: format!("{:?}", transition_summary.bridgeability),
                 reconciliation: format!("{:?}", transition_summary.reconciliation),
                 descriptor_semantics_version: plan.descriptor_semantics_version,
-                descriptor_canonicalization_version: transition
+                descriptor_canonical_basis_version: transition
                     .continuation_descriptor
                     .bridge
-                    .canonicalization_version,
+                    .canonical_basis_version,
                 normalized_boundary_count: transition
                     .continuation_descriptor
                     .normalized_boundary_count,
@@ -135,7 +135,7 @@ fn descriptor_version_mismatch_issue(issue: &SchemaContinuityBundleIssue) -> boo
     matches!(
         issue,
         SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { .. }
-            | SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch { .. }
+            | SchemaContinuityBundleIssue::DescriptorCanonicalBasisVersionMismatch { .. }
     )
 }
 
@@ -149,7 +149,7 @@ fn schema_continuity_conflict_class(
         | SchemaContinuityBundleIssue::ContinuationDescriptorDrift { .. }
         | SchemaContinuityBundleIssue::ContinuationBoundaryFingerprintMismatch { .. }
         | SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { .. }
-        | SchemaContinuityBundleIssue::DescriptorCanonicalizationVersionMismatch { .. }
+        | SchemaContinuityBundleIssue::DescriptorCanonicalBasisVersionMismatch { .. }
         | SchemaContinuityBundleIssue::VisibleBridgeProofMismatch
         | SchemaContinuityBundleIssue::ReconciliationDescriptorDrift => {
             ConflictClass::UnsupportedBridgeDescriptor {

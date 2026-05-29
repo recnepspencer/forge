@@ -35,7 +35,7 @@ pub(crate) fn digest_schema_continuation_descriptor(
 ) -> [u8; 32] {
     ReplayDigestBuilder::new("forge.relational.replay.descriptor.schema_continuation.v1")
         .descriptor_semantics_version(semantics_version)
-        .descriptor_canonicalization_version(descriptor.bridge.canonicalization_version)
+        .descriptor_canonical_basis_version(descriptor.bridge.canonical_basis_version)
         .boundary_fingerprint(descriptor.boundary_fingerprint)
         .label(descriptor.bridge.continuation)
         .label(descriptor.bridge.bridgeability)
@@ -60,7 +60,7 @@ pub(crate) fn digest_schema_reconciliation_descriptor(
 ) -> [u8; 32] {
     ReplayDigestBuilder::new("forge.relational.replay.descriptor.schema_reconciliation.v1")
         .descriptor_semantics_version(semantics_version)
-        .descriptor_canonicalization_version(descriptor.canonicalization_version)
+        .descriptor_canonical_basis_version(descriptor.canonical_basis_version)
         .label(descriptor.classification)
         .schema_version_id(descriptor.resulting_lineage.resulting_schema_version_id)
         .label(descriptor.resulting_lineage.ordering_mode)

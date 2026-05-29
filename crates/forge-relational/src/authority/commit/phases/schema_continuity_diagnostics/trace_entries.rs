@@ -61,10 +61,10 @@ fn bridge_descriptor_entry(transition: &SchemaTransitionArtifact) -> RelationalD
                 transition.continuation_descriptor.bridge.bridgeability
             ),
             normalized_boundary_count: transition.continuation_descriptor.normalized_boundary_count,
-            descriptor_canonicalization_version: transition
+            descriptor_canonical_basis_version: transition
                 .continuation_descriptor
                 .bridge
-                .canonicalization_version,
+                .canonical_basis_version,
         }),
     )
 }
@@ -122,13 +122,13 @@ fn descriptor_version_entry(transition: &SchemaTransitionArtifact) -> Relational
                 .continuation_descriptor
                 .bridge
                 .semantics_version,
-            continuation_canonicalization_version: transition
+            continuation_canonical_basis_version: transition
                 .continuation_descriptor
                 .bridge
-                .canonicalization_version,
-            reconciliation_canonicalization_version: transition
+                .canonical_basis_version,
+            reconciliation_canonical_basis_version: transition
                 .reconciliation_descriptor
-                .canonicalization_version,
+                .canonical_basis_version,
         }),
     )
 }

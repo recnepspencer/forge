@@ -4,7 +4,7 @@ use crate::publication::cdc::data::{
 };
 use crate::publication::cdc::planning::assess_subscriber_continuity;
 use crate::schema::data::{
-    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+    DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion,
     HistoricalInterpretationSensitivity, SchemaBoundaryFingerprint, SchemaBridgeDescriptor,
     SchemaBridgeabilityClassification, SchemaContinuationClassification,
     SchemaContinuationDescriptor, SchemaStratum,
@@ -95,7 +95,7 @@ fn envelope_with_continuation(
         SchemaBridgeDescriptor::new(
             fingerprint,
             DescriptorSemanticsVersion::default(),
-            DescriptorCanonicalizationVersion::default(),
+            DescriptorCanonicalBasisVersion::default(),
             continuation,
             SchemaBridgeabilityClassification::SubscriberVisible,
             HistoricalInterpretationSensitivity::NotSensitive,
