@@ -53,7 +53,7 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
         index_id: DerivedIndexId(0),
         name: "entity.name".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: true,
     });
@@ -118,7 +118,7 @@ fn derived_index_contract_unscoped_generation_is_rejected_for_unsupported_scope(
         index_id: DerivedIndexId(0),
         name: "entity.name.global".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });
@@ -227,7 +227,7 @@ fn derived_index_contract_certification_mode_emits_stable_parity_digest() {
         index_id: DerivedIndexId(0),
         name: "entity.name.global".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });
@@ -282,7 +282,7 @@ fn derived_index_contract_entity_field_equals_executes_through_real_index_path_w
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });
@@ -304,7 +304,7 @@ fn derived_index_contract_entity_field_equals_executes_through_real_index_path_w
         label: "entity-name-equals".to_string(),
         context_id: context,
         scope: crate::facade::query::QueryScope::EntityFieldEquals {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             value: string_aspect_value("alpha"),
             partition_scope: None,
         },
@@ -356,7 +356,7 @@ fn derived_index_contract_relation_field_equals_executes_through_real_index_path
         index_id: DerivedIndexId(1),
         name: "relation.label.lookup".to_string(),
         kind: DerivedIndexKind::RelationField {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
         },
         branch_scoped: false,
     });
@@ -378,7 +378,7 @@ fn derived_index_contract_relation_field_equals_executes_through_real_index_path
         label: "relation-label-equals".to_string(),
         context_id: context,
         scope: crate::facade::query::QueryScope::RelationFieldEquals {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
             value: string_aspect_value("edge"),
             partition_scope: None,
         },
@@ -432,7 +432,7 @@ fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
         index_id: DerivedIndexId(1),
         name: "relation.label.lookup".to_string(),
         kind: DerivedIndexKind::RelationField {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
         },
         branch_scoped: false,
     });
@@ -462,7 +462,7 @@ fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
         label: "relation-label-equals".to_string(),
         context_id: context,
         scope: crate::facade::query::QueryScope::RelationFieldEquals {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
             value: string_aspect_value("edge"),
             partition_scope: None,
         },
@@ -508,7 +508,7 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
         index_id: DerivedIndexId(1),
         name: "relation.label.lookup".to_string(),
         kind: DerivedIndexKind::RelationField {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
         },
         branch_scoped: false,
     });
@@ -530,7 +530,7 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
         label: "relation-label-equals".to_string(),
         context_id: context,
         scope: crate::facade::query::QueryScope::RelationFieldEquals {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
             value: string_aspect_value("edge"),
             partition_scope: None,
         },
@@ -592,7 +592,7 @@ fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
         index_id: DerivedIndexId(9),
         name: "entity.name.sampled".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });
@@ -618,7 +618,7 @@ fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
         label: "entity-name-sampled".to_string(),
         context_id: context.clone(),
         scope: crate::facade::query::QueryScope::EntityFieldEquals {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             value: string_aspect_value("alpha"),
             partition_scope: None,
         },
@@ -700,7 +700,7 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
             index_id: DerivedIndexId(77),
             name: "entity.name.drop-release".to_string(),
             kind: DerivedIndexKind::EntityField {
-                field: field_key("name"),
+                field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             },
             branch_scoped: false,
         });
@@ -727,7 +727,7 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
             label: "entity-name-drop-release".to_string(),
             context_id: context,
             scope: crate::facade::query::QueryScope::EntityFieldEquals {
-                field: field_key("name"),
+                field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
                 value: string_aspect_value("alpha"),
                 partition_scope: None,
             },
@@ -779,7 +779,7 @@ fn derived_index_contract_entity_field_any_of_executes_through_real_index_path_w
         index_id: DerivedIndexId(10),
         name: "entity.name.any-of".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });
@@ -806,7 +806,7 @@ fn derived_index_contract_entity_field_any_of_executes_through_real_index_path_w
         label: "entity-name-any-of".to_string(),
         context_id: context,
         scope: crate::facade::query::QueryScope::EntityFieldAnyOf {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             values: Arc::from([string_aspect_value("beta"), string_aspect_value("alpha")]),
             partition_scope: None,
         },
@@ -879,7 +879,7 @@ fn derived_index_contract_relation_field_any_of_executes_through_real_index_path
         index_id: DerivedIndexId(11),
         name: "relation.label.any-of".to_string(),
         kind: DerivedIndexKind::RelationField {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
         },
         branch_scoped: false,
     });
@@ -906,7 +906,7 @@ fn derived_index_contract_relation_field_any_of_executes_through_real_index_path
         label: "relation-label-any-of".to_string(),
         context_id: context,
         scope: crate::facade::query::QueryScope::RelationFieldAnyOf {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
             values: Arc::from([string_aspect_value("arc"), string_aspect_value("edge")]),
             partition_scope: None,
         },
@@ -1004,7 +1004,7 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
         index_id: DerivedIndexId(1),
         name: "relation.label.branch".to_string(),
         kind: DerivedIndexKind::RelationField {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
         },
         branch_scoped: true,
     });
@@ -1025,7 +1025,7 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
         label: "relation-branch-mismatch".to_string(),
         context_id: context,
         scope: crate::facade::query::QueryScope::RelationFieldEquals {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
             value: string_aspect_value("edge"),
             partition_scope: None,
         },
@@ -1086,7 +1086,7 @@ fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_pa
         index_id: DerivedIndexId(1),
         name: "relation.label.partitioned".to_string(),
         kind: DerivedIndexKind::RelationField {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
         },
         branch_scoped: false,
     });
@@ -1108,7 +1108,7 @@ fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_pa
         label: "relation-label-left-only".to_string(),
         context_id: context,
         scope: crate::facade::query::QueryScope::RelationFieldEquals {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
             value: string_aspect_value("edge"),
             partition_scope: Some(std::sync::Arc::from([PartitionId(7)])),
         },
@@ -1166,7 +1166,7 @@ fn derived_index_contract_branch_scoped_generation_reports_incompatible_branch()
         index_id: DerivedIndexId(0),
         name: "entity.name.branch".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: true,
     });
@@ -1187,7 +1187,7 @@ fn derived_index_contract_branch_scoped_generation_reports_incompatible_branch()
         label: "branch-mismatch".to_string(),
         context_id: context,
         scope: crate::facade::query::QueryScope::EntityFieldEquals {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             value: string_aspect_value("main-a"),
             partition_scope: None,
         },
@@ -1224,7 +1224,7 @@ fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });
@@ -1247,7 +1247,7 @@ fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
         label: "entity-name-equals".to_string(),
         context_id: context.clone(),
         scope: crate::facade::query::QueryScope::EntityFieldEquals {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             value: string_aspect_value("alpha"),
             partition_scope: None,
         },
@@ -1311,7 +1311,7 @@ fn derived_index_contract_prefers_older_compatible_generation_over_newer_incompa
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: true,
     });
@@ -1352,7 +1352,7 @@ fn derived_index_contract_prefers_older_compatible_generation_over_newer_incompa
         label: "entity-name-equals-main".to_string(),
         context_id: context,
         scope: crate::facade::query::QueryScope::EntityFieldEquals {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             value: string_aspect_value("alpha"),
             partition_scope: None,
         },
@@ -1389,7 +1389,7 @@ fn derived_index_contract_matching_definition_without_generation_reports_missing
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });
@@ -1402,7 +1402,7 @@ fn derived_index_contract_matching_definition_without_generation_reports_missing
         label: "entity-name-equals".to_string(),
         context_id: context,
         scope: crate::facade::query::QueryScope::EntityFieldEquals {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             value: string_aspect_value("alpha"),
             partition_scope: None,
         },
@@ -1439,7 +1439,7 @@ fn derived_index_contract_explicit_corrupt_generation_reports_corrupt_entries() 
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });
@@ -1468,7 +1468,7 @@ fn derived_index_contract_explicit_corrupt_generation_reports_corrupt_entries() 
         label: "entity-name-equals".to_string(),
         context_id: context,
         scope: crate::facade::query::QueryScope::EntityFieldEquals {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             value: string_aspect_value("alpha"),
             partition_scope: None,
         },
@@ -1507,7 +1507,7 @@ fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parit
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });
@@ -1529,7 +1529,7 @@ fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parit
         label: "entity-name-equals".to_string(),
         context_id: context,
         scope: crate::facade::query::QueryScope::EntityFieldEquals {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             value: string_aspect_value("alpha"),
             partition_scope: None,
         },
@@ -1597,7 +1597,7 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
             index_id: DerivedIndexId(0),
             name: "entity.name.lookup".to_string(),
             kind: DerivedIndexKind::EntityField {
-                field: field_key("name"),
+                field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             },
             branch_scoped: false,
         });
@@ -1637,7 +1637,10 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
                         label: "entity-name-equals".to_string(),
                         context_id: serial_context,
                         scope: crate::facade::query::QueryScope::EntityFieldEquals {
-                            field: field_key("name"),
+                            field_locator: aspect_field_locator(
+                                aspect_key("name"),
+                                field_key("name"),
+                            ),
                             value: string_aspect_value("alpha"),
                             partition_scope: None,
                         },
@@ -1667,7 +1670,10 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
                         label: "entity-name-equals".to_string(),
                         context_id: staged_context,
                         scope: crate::facade::query::QueryScope::EntityFieldEquals {
-                            field: field_key("name"),
+                            field_locator: aspect_field_locator(
+                                aspect_key("name"),
+                                field_key("name"),
+                            ),
                             value: string_aspect_value("alpha"),
                             partition_scope: None,
                         },
@@ -1712,7 +1718,7 @@ fn derived_index_contract_staged_parallel_generation_matches_serial_reference() 
             index_id: DerivedIndexId(0),
             name: "entity.name".to_string(),
             kind: DerivedIndexKind::EntityField {
-                field: field_key("name"),
+                field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             },
             branch_scoped: false,
         });
@@ -1720,7 +1726,7 @@ fn derived_index_contract_staged_parallel_generation_matches_serial_reference() 
             index_id: DerivedIndexId(0),
             name: "entity.missing".to_string(),
             kind: DerivedIndexKind::EntityField {
-                field: field_key("missing"),
+                field_locator: aspect_field_locator(aspect_key("missing"), field_key("missing")),
             },
             branch_scoped: false,
         });

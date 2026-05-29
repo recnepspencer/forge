@@ -288,7 +288,7 @@ fn complexity_budget_index_entity_field_equals_avoids_snapshot_materialization()
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });
@@ -310,7 +310,7 @@ fn complexity_budget_index_entity_field_equals_avoids_snapshot_materialization()
         label: "entity-name-equals".to_string(),
         context_id: context,
         scope: QueryScope::EntityFieldEquals {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             value: string_aspect_value("alpha"),
             partition_scope: None,
         },
@@ -355,7 +355,7 @@ fn complexity_budget_index_relation_field_equals_avoids_snapshot_materialization
         index_id: DerivedIndexId(1),
         name: "relation.label.lookup".to_string(),
         kind: DerivedIndexKind::RelationField {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
         },
         branch_scoped: false,
     });
@@ -377,7 +377,7 @@ fn complexity_budget_index_relation_field_equals_avoids_snapshot_materialization
         label: "relation-label-equals".to_string(),
         context_id: context,
         scope: QueryScope::RelationFieldEquals {
-            field: field_key("label"),
+            field_locator: aspect_field_locator(aspect_key("label"), field_key("label")),
             value: string_aspect_value("edge"),
             partition_scope: None,
         },
@@ -418,7 +418,7 @@ fn complexity_budget_index_field_equals_reuses_warm_index_scratch_on_repeated_lo
         index_id: DerivedIndexId(2),
         name: "entity.name.reuse".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });
@@ -440,7 +440,7 @@ fn complexity_budget_index_field_equals_reuses_warm_index_scratch_on_repeated_lo
         label: "entity-name-reuse".to_string(),
         context_id: context,
         scope: QueryScope::EntityFieldEquals {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             value: string_aspect_value("alpha"),
             partition_scope: None,
         },
@@ -482,7 +482,7 @@ fn complexity_budget_index_field_equals_reports_actual_result_width() {
         index_id: DerivedIndexId(3),
         name: "entity.name.width".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });
@@ -509,7 +509,7 @@ fn complexity_budget_index_field_equals_reports_actual_result_width() {
         label: "entity-name-width".to_string(),
         context_id: context,
         scope: QueryScope::EntityFieldEquals {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             value: string_aspect_value("alpha"),
             partition_scope: None,
         },

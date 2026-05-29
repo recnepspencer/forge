@@ -17,22 +17,22 @@ pub(super) enum PacketizedQueryWork {
     },
     EntityFieldEquals {
         partition_id: crate::identity::data::PartitionId,
-        field: forge_foundational::facade::FieldKey,
+        field_locator: forge_foundational::facade::AspectFieldLocator,
         value: AuthoritativeFieldComparisonKey,
     },
     EntityFieldAnyOf {
         partition_id: crate::identity::data::PartitionId,
-        field: forge_foundational::facade::FieldKey,
+        field_locator: forge_foundational::facade::AspectFieldLocator,
         values: Vec<AuthoritativeFieldComparisonKey>,
     },
     RelationFieldEquals {
         partition_id: crate::identity::data::PartitionId,
-        field: forge_foundational::facade::FieldKey,
+        field_locator: forge_foundational::facade::AspectFieldLocator,
         value: AuthoritativeFieldComparisonKey,
     },
     RelationFieldAnyOf {
         partition_id: crate::identity::data::PartitionId,
-        field: forge_foundational::facade::FieldKey,
+        field_locator: forge_foundational::facade::AspectFieldLocator,
         values: Vec<AuthoritativeFieldComparisonKey>,
     },
     AspectFilteredEntities {
@@ -91,7 +91,7 @@ pub(super) fn packetized_query_work(
                 .collect(),
         ),
         QueryScope::EntityFieldEquals {
-            field,
+            field_locator,
             value,
             partition_scope,
         } => Some(
@@ -99,13 +99,13 @@ pub(super) fn packetized_query_work(
                 .into_iter()
                 .map(|partition_id| PacketizedQueryWork::EntityFieldEquals {
                     partition_id,
-                    field: field.clone(),
+                    field_locator: field_locator.clone(),
                     value: AuthoritativeFieldComparisonKey::from_aspect_value(value),
                 })
                 .collect(),
         ),
         QueryScope::EntityFieldAnyOf {
-            field,
+            field_locator,
             values,
             partition_scope,
         } => {
@@ -115,14 +115,14 @@ pub(super) fn packetized_query_work(
                     .into_iter()
                     .map(|partition_id| PacketizedQueryWork::EntityFieldAnyOf {
                         partition_id,
-                        field: field.clone(),
+                        field_locator: field_locator.clone(),
                         values: comparison_keys.clone(),
                     })
                     .collect(),
             )
         }
         QueryScope::RelationFieldEquals {
-            field,
+            field_locator,
             value,
             partition_scope,
         } => Some(
@@ -130,13 +130,13 @@ pub(super) fn packetized_query_work(
                 .into_iter()
                 .map(|partition_id| PacketizedQueryWork::RelationFieldEquals {
                     partition_id,
-                    field: field.clone(),
+                    field_locator: field_locator.clone(),
                     value: AuthoritativeFieldComparisonKey::from_aspect_value(value),
                 })
                 .collect(),
         ),
         QueryScope::RelationFieldAnyOf {
-            field,
+            field_locator,
             values,
             partition_scope,
         } => {
@@ -146,7 +146,7 @@ pub(super) fn packetized_query_work(
                     .into_iter()
                     .map(|partition_id| PacketizedQueryWork::RelationFieldAnyOf {
                         partition_id,
-                        field: field.clone(),
+                        field_locator: field_locator.clone(),
                         values: comparison_keys.clone(),
                     })
                     .collect(),

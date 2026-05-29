@@ -7,7 +7,9 @@ use crate::authority::commit::preparation::planning::strategy::{
 use crate::indexes::data::{DerivedIndexEntries, DerivedIndexId, DerivedIndexKind};
 use crate::logic::runtime::{RelationalRuntime, VisibilityProjectionView};
 
-use super::super::observed_field_indexes::{build_entity_field_index, build_relation_field_index};
+use super::super::observed_field_indexes::{
+    build_entity_aspect_field_index, build_relation_aspect_field_index,
+};
 
 #[derive(Debug, Clone)]
 pub(super) struct IndexPreparationResult {
@@ -68,11 +70,14 @@ pub(super) fn execute_index_packets(
             let records = projection.all_entity_records();
             entity_packets
                 .par_iter()
-                .map(|(reduction_key, index_id, field)| {
+                .map(|(reduction_key, index_id, field_locator)| {
                     singleton_result_stream(
                         reduction_key.clone(),
                         *index_id,
-                        DerivedIndexEntries::EntityField(build_entity_field_index(&records, field)),
+                        DerivedIndexEntries::EntityField(build_entity_aspect_field_index(
+                            &records,
+                            field_locator,
+                        )),
                     )
                 })
                 .collect::<Vec<_>>()
@@ -81,11 +86,14 @@ pub(super) fn execute_index_packets(
             let records = projection.all_entity_records();
             entity_packets
                 .iter()
-                .map(|(reduction_key, index_id, field)| {
+                .map(|(reduction_key, index_id, field_locator)| {
                     singleton_result_stream(
                         reduction_key.clone(),
                         *index_id,
-                        DerivedIndexEntries::EntityField(build_entity_field_index(&records, field)),
+                        DerivedIndexEntries::EntityField(build_entity_aspect_field_index(
+                            &records,
+                            field_locator,
+                        )),
                     )
                 })
                 .collect::<Vec<_>>()
@@ -97,12 +105,13 @@ pub(super) fn execute_index_packets(
             let records = projection.all_relation_records();
             relation_packets
                 .par_iter()
-                .map(|(reduction_key, index_id, field)| {
+                .map(|(reduction_key, index_id, field_locator)| {
                     singleton_result_stream(
                         reduction_key.clone(),
                         *index_id,
-                        DerivedIndexEntries::RelationField(build_relation_field_index(
-                            &records, field,
+                        DerivedIndexEntries::RelationField(build_relation_aspect_field_index(
+                            &records,
+                            field_locator,
                         )),
                     )
                 })
@@ -112,12 +121,13 @@ pub(super) fn execute_index_packets(
             let records = projection.all_relation_records();
             relation_packets
                 .iter()
-                .map(|(reduction_key, index_id, field)| {
+                .map(|(reduction_key, index_id, field_locator)| {
                     singleton_result_stream(
                         reduction_key.clone(),
                         *index_id,
-                        DerivedIndexEntries::RelationField(build_relation_field_index(
-                            &records, field,
+                        DerivedIndexEntries::RelationField(build_relation_aspect_field_index(
+                            &records,
+                            field_locator,
                         )),
                     )
                 })
@@ -141,13 +151,13 @@ fn entity_field_packet(
 ) -> Option<(
     crate::authority::commit::preparation::reduction::keys::IndexReductionKey,
     DerivedIndexId,
-    forge_foundational::facade::FieldKey,
+    forge_foundational::facade::AspectFieldLocator,
 )> {
     match &packet.definition.kind {
-        DerivedIndexKind::EntityField { field } => Some((
+        DerivedIndexKind::EntityField { field_locator } => Some((
             packet.header.reduction_key,
             packet.header.identity.index_id,
-            field.clone(),
+            field_locator.clone(),
         )),
         DerivedIndexKind::RelationField { .. } => None,
     }
@@ -158,14 +168,14 @@ fn relation_field_packet(
 ) -> Option<(
     crate::authority::commit::preparation::reduction::keys::IndexReductionKey,
     DerivedIndexId,
-    forge_foundational::facade::FieldKey,
+    forge_foundational::facade::AspectFieldLocator,
 )> {
     match &packet.definition.kind {
         DerivedIndexKind::EntityField { .. } => None,
-        DerivedIndexKind::RelationField { field } => Some((
+        DerivedIndexKind::RelationField { field_locator } => Some((
             packet.header.reduction_key,
             packet.header.identity.index_id,
-            field.clone(),
+            field_locator.clone(),
         )),
     }
 }

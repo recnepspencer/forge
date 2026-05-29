@@ -1042,7 +1042,7 @@ fn replay_contract_reports_derived_index_drift_at_digest_layer_when_artifacts_ar
         index_id: DerivedIndexId(0),
         name: "entity-name".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });

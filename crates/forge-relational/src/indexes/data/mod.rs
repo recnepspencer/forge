@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use forge_foundational::facade::FieldKey;
+use forge_foundational::facade::AspectFieldLocator;
 
 use crate::history::data::{BranchId, CommitId};
 use crate::identity::data::{EntityId, RelationId, VersionId};
@@ -17,8 +17,14 @@ pub struct DerivedIndexGenerationId(pub u64);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DerivedIndexKind {
-    EntityField { field: FieldKey },
-    RelationField { field: FieldKey },
+    EntityField {
+        #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator")]
+        field_locator: AspectFieldLocator,
+    },
+    RelationField {
+        #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator")]
+        field_locator: AspectFieldLocator,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

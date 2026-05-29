@@ -3,7 +3,8 @@
 use std::collections::BTreeMap;
 
 use forge_foundational::facade::{
-    aspects, AspectIdentity, AspectKey, AspectValue, FieldKey, ScalarAspectType,
+    aspects, AspectFieldLocator, AspectIdentity, AspectKey, AspectValue, CanonicalFieldPath,
+    FieldKey, LocatorAuthority, ScalarAspectType,
 };
 use forge_relational::facade::{
     config::{CascadeDeletePolicy, CrossContextPolicy},
@@ -177,6 +178,14 @@ pub fn changed_relation(
 
 pub fn field_key(label: &str) -> FieldKey {
     FieldKey::new(label).expect("example field key must be foundational")
+}
+
+pub fn aspect_field_locator(label: &str) -> AspectFieldLocator {
+    AspectFieldLocator::new(
+        LocatorAuthority::Planned,
+        aspect_key(label),
+        CanonicalFieldPath::single(field_key(label)),
+    )
 }
 
 fn string_field_patch(aspect_key: AspectKey, field_key: FieldKey, value: &str) -> AspectFieldPatch {

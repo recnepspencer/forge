@@ -16,7 +16,7 @@ fn main() {
         index_id: DerivedIndexId(0),
         name: "entity.name".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: support::field_key("name"),
+            field_locator: support::aspect_field_locator("name"),
         },
         branch_scoped: true,
     });

@@ -3,13 +3,37 @@ use forge_foundational::facade::{
     ContractValidatedAspectValueView, FieldKey,
 };
 
-use super::EntityReadRecord;
+use super::AuthoritativeFieldComparisonKey;
+use super::{EntityReadRecord, RelationReadRecord};
 
 pub fn entity_authoritative_aspect_field_value(
     record: &EntityReadRecord,
     field_locator: &AspectFieldLocator,
 ) -> Option<AspectValue> {
     authoritative_aspect_field_value(record.authoritative_aspect_state.as_ref(), field_locator)
+}
+
+pub fn relation_authoritative_aspect_field_value(
+    record: &RelationReadRecord,
+    field_locator: &AspectFieldLocator,
+) -> Option<AspectValue> {
+    authoritative_aspect_field_value(record.authoritative_aspect_state.as_ref(), field_locator)
+}
+
+pub fn entity_authoritative_aspect_field_comparison_key(
+    record: &EntityReadRecord,
+    field_locator: &AspectFieldLocator,
+) -> Option<AuthoritativeFieldComparisonKey> {
+    entity_authoritative_aspect_field_value(record, field_locator)
+        .map(|value| AuthoritativeFieldComparisonKey::from_aspect_value(&value))
+}
+
+pub fn relation_authoritative_aspect_field_comparison_key(
+    record: &RelationReadRecord,
+    field_locator: &AspectFieldLocator,
+) -> Option<AuthoritativeFieldComparisonKey> {
+    relation_authoritative_aspect_field_value(record, field_locator)
+        .map(|value| AuthoritativeFieldComparisonKey::from_aspect_value(&value))
 }
 
 fn authoritative_aspect_field_value(

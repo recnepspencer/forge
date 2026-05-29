@@ -293,7 +293,7 @@ fn concurrent_relation_index_certification_parity_stays_stable_under_scheduler_p
         index_id: DerivedIndexId(0),
         name: "relation.name".to_string(),
         kind: DerivedIndexKind::RelationField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });
@@ -314,7 +314,7 @@ fn concurrent_relation_index_certification_parity_stays_stable_under_scheduler_p
         label: "relation-index-certification".to_string(),
         context_id: context,
         scope: QueryScope::RelationFieldEquals {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
             value: string_aspect_value("fast"),
             partition_scope: None,
         },

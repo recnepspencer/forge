@@ -128,33 +128,33 @@ fn index_rejection_for_packet(
         runtime.indexes.definitions.get(&generation.index_id),
     ) {
         (
-            QueryScope::EntityFieldEquals { field, .. },
+            QueryScope::EntityFieldEquals { field_locator, .. },
             DerivedIndexEntries::EntityField(_),
             Some(definition),
         )
         | (
-            QueryScope::EntityFieldAnyOf { field, .. },
+            QueryScope::EntityFieldAnyOf { field_locator, .. },
             DerivedIndexEntries::EntityField(_),
             Some(definition),
         ) => match &definition.kind {
             DerivedIndexKind::EntityField {
-                field: indexed_field,
-            } if indexed_field == field => None,
+                field_locator: indexed_field_locator,
+            } if indexed_field_locator == field_locator => None,
             _ => Some(IndexQueryRejectionClass::UnsupportedScope),
         },
         (
-            QueryScope::RelationFieldEquals { field, .. },
+            QueryScope::RelationFieldEquals { field_locator, .. },
             DerivedIndexEntries::RelationField(_),
             Some(definition),
         )
         | (
-            QueryScope::RelationFieldAnyOf { field, .. },
+            QueryScope::RelationFieldAnyOf { field_locator, .. },
             DerivedIndexEntries::RelationField(_),
             Some(definition),
         ) => match &definition.kind {
             DerivedIndexKind::RelationField {
-                field: indexed_field,
-            } if indexed_field == field => None,
+                field_locator: indexed_field_locator,
+            } if indexed_field_locator == field_locator => None,
             _ => Some(IndexQueryRejectionClass::UnsupportedScope),
         },
         _ => Some(IndexQueryRejectionClass::UnsupportedScope),
@@ -167,16 +167,16 @@ fn candidate_generation_for_packet<'a>(
     branch_id: &BranchId,
 ) -> Option<&'a DerivedIndexGeneration> {
     match &packet.scope {
-        QueryScope::EntityFieldEquals { field, .. }
-        | QueryScope::EntityFieldAnyOf { field, .. } => runtime
+        QueryScope::EntityFieldEquals { field_locator, .. }
+        | QueryScope::EntityFieldAnyOf { field_locator, .. } => runtime
             .indexes
             .definitions
             .values()
             .filter(|definition| {
                 matches!(
                     &definition.kind,
-                    DerivedIndexKind::EntityField { field: indexed_field }
-                        if indexed_field == field
+                    DerivedIndexKind::EntityField { field_locator: indexed_field_locator }
+                        if indexed_field_locator == field_locator
                 )
             })
             .flat_map(|definition| {
@@ -192,16 +192,16 @@ fn candidate_generation_for_packet<'a>(
                     .cmp(&generation_preference(runtime, right, packet, branch_id))
                     .then_with(|| left.generation_id.cmp(&right.generation_id))
             }),
-        QueryScope::RelationFieldEquals { field, .. }
-        | QueryScope::RelationFieldAnyOf { field, .. } => runtime
+        QueryScope::RelationFieldEquals { field_locator, .. }
+        | QueryScope::RelationFieldAnyOf { field_locator, .. } => runtime
             .indexes
             .definitions
             .values()
             .filter(|definition| {
                 matches!(
                     &definition.kind,
-                    DerivedIndexKind::RelationField { field: indexed_field }
-                        if indexed_field == field
+                    DerivedIndexKind::RelationField { field_locator: indexed_field_locator }
+                        if indexed_field_locator == field_locator
                 )
             })
             .flat_map(|definition| {
@@ -226,23 +226,23 @@ fn matching_index_definition_exists(
     packet: &PlannedQueryPacket,
 ) -> bool {
     match &packet.scope {
-        QueryScope::EntityFieldEquals { field, .. }
-        | QueryScope::EntityFieldAnyOf { field, .. } => {
+        QueryScope::EntityFieldEquals { field_locator, .. }
+        | QueryScope::EntityFieldAnyOf { field_locator, .. } => {
             runtime.indexes.definitions.values().any(|definition| {
                 matches!(
                     &definition.kind,
-                    DerivedIndexKind::EntityField { field: indexed_field }
-                        if indexed_field == field
+                    DerivedIndexKind::EntityField { field_locator: indexed_field_locator }
+                        if indexed_field_locator == field_locator
                 )
             })
         }
-        QueryScope::RelationFieldEquals { field, .. }
-        | QueryScope::RelationFieldAnyOf { field, .. } => {
+        QueryScope::RelationFieldEquals { field_locator, .. }
+        | QueryScope::RelationFieldAnyOf { field_locator, .. } => {
             runtime.indexes.definitions.values().any(|definition| {
                 matches!(
                     &definition.kind,
-                    DerivedIndexKind::RelationField { field: indexed_field }
-                        if indexed_field == field
+                    DerivedIndexKind::RelationField { field_locator: indexed_field_locator }
+                        if indexed_field_locator == field_locator
                 )
             })
         }

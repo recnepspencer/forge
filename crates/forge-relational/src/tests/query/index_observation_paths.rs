@@ -166,7 +166,7 @@ fn derived_index_build_materializes_latest_visible_entity_field_values() {
         index_id: DerivedIndexId(0),
         name: "entity.name".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: true,
     });

@@ -1,33 +1,24 @@
-use forge_foundational::facade::FieldKey;
+use forge_foundational::facade::AspectFieldLocator;
 
-use crate::storage::data::AuthoritativeFieldComparisonKey;
+use crate::storage::data::{
+    entity_authoritative_aspect_field_comparison_key,
+    relation_authoritative_aspect_field_comparison_key, AuthoritativeFieldComparisonKey,
+};
 
 pub(super) fn entity_field_matches(
     record: &crate::storage::data::EntityReadRecord,
-    field: &FieldKey,
+    field_locator: &AspectFieldLocator,
     expected: &AuthoritativeFieldComparisonKey,
 ) -> bool {
-    entity_field_value(record, field) == Some(expected)
+    entity_authoritative_aspect_field_comparison_key(record, field_locator).as_ref()
+        == Some(expected)
 }
 
 pub(super) fn relation_field_matches(
     record: &crate::storage::data::RelationReadRecord,
-    field: &FieldKey,
+    field_locator: &AspectFieldLocator,
     expected: &AuthoritativeFieldComparisonKey,
 ) -> bool {
-    relation_field_value(record, field) == Some(expected)
-}
-
-pub(super) fn entity_field_value<'record>(
-    record: &'record crate::storage::data::EntityReadRecord,
-    field: &FieldKey,
-) -> Option<&'record AuthoritativeFieldComparisonKey> {
-    record.authoritative_field_comparison_key(field)
-}
-
-pub(super) fn relation_field_value<'record>(
-    record: &'record crate::storage::data::RelationReadRecord,
-    field: &FieldKey,
-) -> Option<&'record AuthoritativeFieldComparisonKey> {
-    record.authoritative_field_comparison_key(field)
+    relation_authoritative_aspect_field_comparison_key(record, field_locator).as_ref()
+        == Some(expected)
 }

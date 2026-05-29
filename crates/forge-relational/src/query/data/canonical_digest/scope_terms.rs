@@ -8,10 +8,10 @@ use crate::query::data::{
 use crate::transactions::data::RecordRef;
 
 use super::primitive_terms::{
-    encode_descriptor_semantics_version, encode_entity_id, encode_entity_ids, encode_field_key,
-    encode_kind_id, encode_length_prefixed_aspect_value, encode_optional_kind_id,
-    encode_optional_u32, encode_partition_id, encode_partition_ids, encode_schema_version_id,
-    encode_string, encode_u64, encode_usize, encode_version_id,
+    encode_descriptor_semantics_version, encode_entity_id, encode_entity_ids, encode_kind_id,
+    encode_length_prefixed_aspect_field_locator, encode_length_prefixed_aspect_value,
+    encode_optional_kind_id, encode_optional_u32, encode_partition_id, encode_partition_ids,
+    encode_schema_version_id, encode_string, encode_u64, encode_usize, encode_version_id,
 };
 
 pub(super) fn encode_query_plan_context_id(bytes: &mut Vec<u8>, context_id: &QueryPlanContextId) {
@@ -41,25 +41,25 @@ pub(super) fn encode_query_scope(bytes: &mut Vec<u8>, scope: &QueryScope) {
             partition_scope,
         } => encode_kind_scan(bytes, 2, *kind_id, partition_scope.as_deref()),
         QueryScope::EntityFieldEquals {
-            field,
+            field_locator,
             value,
             partition_scope,
-        } => encode_field_equals(bytes, 3, field, value, partition_scope.as_deref()),
+        } => encode_field_equals(bytes, 3, field_locator, value, partition_scope.as_deref()),
         QueryScope::EntityFieldAnyOf {
-            field,
+            field_locator,
             values,
             partition_scope,
-        } => encode_field_any_of(bytes, 4, field, values, partition_scope.as_deref()),
+        } => encode_field_any_of(bytes, 4, field_locator, values, partition_scope.as_deref()),
         QueryScope::RelationFieldEquals {
-            field,
+            field_locator,
             value,
             partition_scope,
-        } => encode_field_equals(bytes, 5, field, value, partition_scope.as_deref()),
+        } => encode_field_equals(bytes, 5, field_locator, value, partition_scope.as_deref()),
         QueryScope::RelationFieldAnyOf {
-            field,
+            field_locator,
             values,
             partition_scope,
-        } => encode_field_any_of(bytes, 6, field, values, partition_scope.as_deref()),
+        } => encode_field_any_of(bytes, 6, field_locator, values, partition_scope.as_deref()),
         QueryScope::AspectFilteredEntities {
             kind_id,
             aspect_filter,
@@ -163,12 +163,12 @@ fn encode_kind_scan(
 fn encode_field_equals(
     bytes: &mut Vec<u8>,
     tag: u8,
-    field: &forge_foundational::facade::FieldKey,
+    field_locator: &forge_foundational::facade::AspectFieldLocator,
     value: &forge_foundational::facade::AspectValue,
     partition_scope: Option<&[crate::identity::data::PartitionId]>,
 ) {
     bytes.push(tag);
-    encode_field_key(bytes, field);
+    encode_length_prefixed_aspect_field_locator(bytes, field_locator);
     encode_length_prefixed_aspect_value(bytes, value);
     encode_partition_scope(bytes, partition_scope);
 }
@@ -176,12 +176,12 @@ fn encode_field_equals(
 fn encode_field_any_of(
     bytes: &mut Vec<u8>,
     tag: u8,
-    field: &forge_foundational::facade::FieldKey,
+    field_locator: &forge_foundational::facade::AspectFieldLocator,
     values: &[forge_foundational::facade::AspectValue],
     partition_scope: Option<&[crate::identity::data::PartitionId]>,
 ) {
     bytes.push(tag);
-    encode_field_key(bytes, field);
+    encode_length_prefixed_aspect_field_locator(bytes, field_locator);
     encode_usize(bytes, values.len());
     for value in values {
         encode_length_prefixed_aspect_value(bytes, value);

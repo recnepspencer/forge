@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use forge_foundational::facade::FieldKey;
+use forge_foundational::facade::AspectFieldLocator;
 
 use crate::indexes::data::{DerivedIndexEntries, DerivedIndexGenerationId};
 use crate::logic::runtime::RelationalRuntime;
@@ -8,7 +8,10 @@ use crate::query::data::{
     reduce_query_fragments, QueryExecutionOutcome, QueryFragmentCounters, QueryScope,
     QueryWorkerFragment, SnapshotPinnedQueryPlan,
 };
-use crate::storage::data::AuthoritativeFieldComparisonKey;
+use crate::storage::data::{
+    entity_authoritative_aspect_field_comparison_key,
+    relation_authoritative_aspect_field_comparison_key, AuthoritativeFieldComparisonKey,
+};
 
 use super::scratch::{index_query_scratch_for_runtime, retain_index_query_scratch};
 
@@ -27,7 +30,7 @@ pub(crate) fn execute_index_backed_query_from_generation(
     match (&plan.packet.scope, &generation.entries) {
         (
             QueryScope::EntityFieldEquals {
-                field,
+                field_locator,
                 value,
                 partition_scope,
             },
@@ -38,7 +41,7 @@ pub(crate) fn execute_index_backed_query_from_generation(
                 runtime,
                 plan,
                 &state,
-                field,
+                field_locator,
                 partition_scope.as_ref().map(|scope| &**scope),
                 entries
                     .get(&expected)
@@ -47,12 +50,15 @@ pub(crate) fn execute_index_backed_query_from_generation(
                     .copied()
                     .collect(),
                 1,
-                |record| entity_field_value(record, field) == Some(&expected),
+                |record| {
+                    entity_authoritative_aspect_field_comparison_key(record, field_locator)
+                        == Some(expected.clone())
+                },
             )
         }
         (
             QueryScope::EntityFieldAnyOf {
-                field,
+                field_locator,
                 values,
                 partition_scope,
             },
@@ -77,18 +83,19 @@ pub(crate) fn execute_index_backed_query_from_generation(
                 runtime,
                 plan,
                 &state,
-                field,
+                field_locator,
                 partition_scope.as_ref().map(|scope| &**scope),
                 candidate_ids,
                 values.len(),
                 |record| {
-                    entity_field_value(record, field).is_some_and(|value| selected.contains(value))
+                    entity_authoritative_aspect_field_comparison_key(record, field_locator)
+                        .is_some_and(|value| selected.contains(&value))
                 },
             )
         }
         (
             QueryScope::RelationFieldEquals {
-                field,
+                field_locator,
                 value,
                 partition_scope,
             },
@@ -99,7 +106,7 @@ pub(crate) fn execute_index_backed_query_from_generation(
                 runtime,
                 plan,
                 &state,
-                field,
+                field_locator,
                 partition_scope.as_ref().map(|scope| &**scope),
                 entries
                     .get(&expected)
@@ -108,12 +115,15 @@ pub(crate) fn execute_index_backed_query_from_generation(
                     .copied()
                     .collect(),
                 1,
-                |record| relation_field_value(record, field) == Some(&expected),
+                |record| {
+                    relation_authoritative_aspect_field_comparison_key(record, field_locator)
+                        == Some(expected.clone())
+                },
             )
         }
         (
             QueryScope::RelationFieldAnyOf {
-                field,
+                field_locator,
                 values,
                 partition_scope,
             },
@@ -138,13 +148,13 @@ pub(crate) fn execute_index_backed_query_from_generation(
                 runtime,
                 plan,
                 &state,
-                field,
+                field_locator,
                 partition_scope.as_ref().map(|scope| &**scope),
                 candidate_ids,
                 values.len(),
                 |record| {
-                    relation_field_value(record, field)
-                        .is_some_and(|value| selected.contains(value))
+                    relation_authoritative_aspect_field_comparison_key(record, field_locator)
+                        .is_some_and(|value| selected.contains(&value))
                 },
             )
         }
@@ -158,25 +168,11 @@ fn query_value_comparison_key(
     AuthoritativeFieldComparisonKey::from_aspect_value(value)
 }
 
-fn entity_field_value<'record>(
-    record: &'record crate::storage::data::EntityReadRecord,
-    field: &FieldKey,
-) -> Option<&'record AuthoritativeFieldComparisonKey> {
-    record.authoritative_field_comparison_key(field)
-}
-
-fn relation_field_value<'record>(
-    record: &'record crate::storage::data::RelationReadRecord,
-    field: &FieldKey,
-) -> Option<&'record AuthoritativeFieldComparisonKey> {
-    record.authoritative_field_comparison_key(field)
-}
-
 fn execute_entity_index_lookup(
     runtime: &RelationalRuntime,
     plan: &SnapshotPinnedQueryPlan,
     state: &impl crate::logic::runtime::PartitionAccess,
-    _field: &FieldKey,
+    _field_locator: &AspectFieldLocator,
     partition_scope: Option<&[crate::identity::data::PartitionId]>,
     candidate_ids: BTreeSet<crate::identity::data::EntityId>,
     target_count: usize,
@@ -226,7 +222,7 @@ fn execute_relation_index_lookup(
     runtime: &RelationalRuntime,
     plan: &SnapshotPinnedQueryPlan,
     state: &impl crate::logic::runtime::PartitionAccess,
-    _field: &FieldKey,
+    _field_locator: &AspectFieldLocator,
     partition_scope: Option<&[crate::identity::data::PartitionId]>,
     candidate_ids: BTreeSet<crate::identity::data::RelationId>,
     target_count: usize,

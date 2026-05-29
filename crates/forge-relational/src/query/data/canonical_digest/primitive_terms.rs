@@ -1,7 +1,7 @@
 use crate::aspect_wire;
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
 use crate::schema::data::{DescriptorSemanticsVersion, SchemaId, SchemaVersionId};
-use forge_foundational::facade::{AspectValue, FieldKey};
+use forge_foundational::facade::{AspectFieldLocator, AspectValue, FieldKey};
 
 pub(super) fn encode_string(bytes: &mut Vec<u8>, value: &str) {
     aspect_wire::encode_string(bytes, value);
@@ -69,6 +69,15 @@ pub(super) fn encode_length_prefixed_aspect_value(bytes: &mut Vec<u8>, value: &A
         aspect_wire::encode_aspect_value(value).expect("authoritative query aspect value encoding");
     encode_usize(bytes, value_bytes.len());
     bytes.extend_from_slice(&value_bytes);
+}
+
+pub(super) fn encode_length_prefixed_aspect_field_locator(
+    bytes: &mut Vec<u8>,
+    field_locator: &AspectFieldLocator,
+) {
+    let locator_bytes = aspect_wire::encode_aspect_field_locator(field_locator);
+    encode_usize(bytes, locator_bytes.len());
+    bytes.extend_from_slice(&locator_bytes);
 }
 
 pub(super) fn encode_optional_kind_id(bytes: &mut Vec<u8>, kind_id: Option<KindId>) {

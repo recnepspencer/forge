@@ -1285,7 +1285,7 @@ fn durability_contract_checkpoint_recovers_index_metadata() {
         index_id: DerivedIndexId(0),
         name: "entity-name".to_string(),
         kind: DerivedIndexKind::EntityField {
-            field: field_key("name"),
+            field_locator: aspect_field_locator(aspect_key("name"), field_key("name")),
         },
         branch_scoped: false,
     });

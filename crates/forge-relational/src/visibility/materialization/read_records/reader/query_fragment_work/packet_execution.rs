@@ -5,10 +5,12 @@ use super::super::query_traversal::{
     aspect_filter_matches_entity, aspect_filter_matches_relation, traversal_fragment, TraversalMode,
 };
 use super::super::*;
-use super::field_query_matching::{
-    entity_field_matches, entity_field_value, relation_field_matches, relation_field_value,
-};
+use super::field_query_matching::{entity_field_matches, relation_field_matches};
 use super::fragment_builders::{entity_fragment, relation_fragment};
+use crate::storage::data::{
+    entity_authoritative_aspect_field_comparison_key,
+    relation_authoritative_aspect_field_comparison_key,
+};
 
 pub(crate) fn execute_query_fragment(
     runtime: &RelationalRuntime,
@@ -55,7 +57,7 @@ pub(crate) fn execute_query_fragment(
         )),
         PacketizedQueryWork::EntityFieldEquals {
             partition_id,
-            field,
+            field_locator,
             value,
         } => Some(entity_fragment(
             read_view,
@@ -66,12 +68,12 @@ pub(crate) fn execute_query_fragment(
             scratch,
             |record| {
                 record.entity_id.partition_id == *partition_id
-                    && entity_field_matches(record, field, value)
+                    && entity_field_matches(record, field_locator, value)
             },
         )),
         PacketizedQueryWork::EntityFieldAnyOf {
             partition_id,
-            field,
+            field_locator,
             values,
         } => {
             let values = values.iter().cloned().collect::<BTreeSet<_>>();
@@ -84,14 +86,14 @@ pub(crate) fn execute_query_fragment(
                 scratch,
                 |record| {
                     record.entity_id.partition_id == *partition_id
-                        && entity_field_value(record, field)
-                            .is_some_and(|value| values.contains(value))
+                        && entity_authoritative_aspect_field_comparison_key(record, field_locator)
+                            .is_some_and(|value| values.contains(&value))
                 },
             ))
         }
         PacketizedQueryWork::RelationFieldEquals {
             partition_id,
-            field,
+            field_locator,
             value,
         } => Some(relation_fragment(
             read_view,
@@ -102,12 +104,12 @@ pub(crate) fn execute_query_fragment(
             scratch,
             |record| {
                 record.relation_id.partition_id == *partition_id
-                    && relation_field_matches(record, field, value)
+                    && relation_field_matches(record, field_locator, value)
             },
         )),
         PacketizedQueryWork::RelationFieldAnyOf {
             partition_id,
-            field,
+            field_locator,
             values,
         } => {
             let values = values.iter().cloned().collect::<BTreeSet<_>>();
@@ -120,8 +122,8 @@ pub(crate) fn execute_query_fragment(
                 scratch,
                 |record| {
                     record.relation_id.partition_id == *partition_id
-                        && relation_field_value(record, field)
-                            .is_some_and(|value| values.contains(value))
+                        && relation_authoritative_aspect_field_comparison_key(record, field_locator)
+                            .is_some_and(|value| values.contains(&value))
                 },
             ))
         }
