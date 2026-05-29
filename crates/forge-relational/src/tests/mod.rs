@@ -5,6 +5,7 @@ mod harness;
 mod history;
 mod inspection;
 mod lineage;
+mod performance_metrics;
 mod performance_profiles;
 mod performance_support;
 mod profiles;

@@ -2,8 +2,6 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 use std::time::Instant;
 
-use serde_json::json;
-
 use super::domains::fintech::{
     perf_capture_baseline_observability, perf_capture_intraday_risk_probe,
     perf_capture_post_mutation_observability, perf_capture_trade_correction_probe,
@@ -224,9 +222,9 @@ fn diagnostics_boundary_code(profile: RelationalRuntimeProfile) -> u64 {
 fn profile_boundary_metrics(
     runtime: &crate::logic::runtime::RelationalRuntime,
     profile: RelationalRuntimeProfile,
-) -> serde_json::Value {
+) -> PerfMetricSet {
     let boundary = runtime.config.boundary_policy();
-    json!({
+    perf_metrics!({
         "execution_lane_code": runtime_execution_lane_code(profile),
         "diagnostics_boundary_code": diagnostics_boundary_code(profile),
         "prefers_checkpoint_compaction": u64::from(boundary.prefers_checkpoint_compaction),
@@ -1216,7 +1214,7 @@ fn commit_measurement(
     let phase_timing = outcome.execution.phase_timing.clone();
 
     measurement_from(started_at, || {
-        json!({
+        perf_metrics!({
             "changed_records": outcome.changed_records.len(),
             "commit_topology": format!("{:?}", outcome.structural_summary().commit_topology),
             "touched_partitions": outcome.structural_summary().touched_partitions.len(),
@@ -1252,7 +1250,7 @@ fn perf_harness_measurement_matrix() {
                 let metrics_started_at = Instant::now();
                 let payload = (0..20_000u64)
                     .map(|index| {
-                        json!({
+                        perf_metrics!({
                             "id": index,
                             "label": format!("measurement-audit-{index}"),
                             "value": index % 97,
@@ -1260,7 +1258,7 @@ fn perf_harness_measurement_matrix() {
                     })
                     .collect::<Vec<_>>();
                 let payload_build_micros = metrics_started_at.elapsed().as_micros();
-                json!({
+                perf_metrics!({
                     "payload_build_micros": payload_build_micros,
                     "payload_item_count": payload.len(),
                 })
@@ -1455,7 +1453,7 @@ fn perf_durability_append_matrix() {
                 .expect("segment manifest after append");
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "segment_count": store.segments.len(),
                     "latest_segment_commit_count": latest_segment.commit_count,
                     "durable_log_len": runtime.durable_log().len(),
@@ -1506,7 +1504,7 @@ fn perf_durability_append_matrix() {
                 .expect("segment manifest after append");
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "segment_count": store.segments.len(),
                     "latest_segment_commit_count": latest_segment.commit_count,
                     "durable_log_len": runtime.durable_log().len(),
@@ -1574,7 +1572,7 @@ fn perf_query_packet_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "result_entities": outcome.result.entities.len(),
                     "result_relations": outcome.result.relations.len(),
                     "phase_timing": {
@@ -1682,7 +1680,7 @@ fn perf_query_packet_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "result_entities": outcome.result.entities.len(),
                     "phase_timing": {
                         "planning_micros": 0,
@@ -1793,7 +1791,7 @@ fn perf_query_packet_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "result_entities": outcome.result.entities.len(),
                     "result_relations": outcome.result.relations.len(),
                     "phase_timing": {
@@ -1865,7 +1863,7 @@ fn perf_snapshot_materialization_matrix() {
 
         PerfMeasurement {
             elapsed_micros,
-            metrics: json!({
+            metrics: perf_metrics!({
                 "entities": read.entities().len(),
                 "relations": read.relations().len(),
                 "counters": counters,
@@ -1916,7 +1914,7 @@ fn perf_snapshot_materialization_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "entities": read.entities().len(),
                     "relations": read.relations().len(),
                     "counters": counters,
@@ -1961,7 +1959,7 @@ fn perf_snapshot_materialization_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "projected_entities": projected.len(),
                     "counters": counters,
                 }),
@@ -2015,7 +2013,7 @@ fn perf_retention_reclaim_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "active_snapshot_count": plan.active_snapshot_count,
                     "reclaimable_entities": plan.reclaimable_entities,
                     "entity_reclaimable": pass.entity_reclaimable,
@@ -2101,7 +2099,7 @@ fn perf_retention_reclaim_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "pinned_replay_relations": pinned.replay_pinned_relations,
                     "pinned_reclaimable_relations": pinned.reclaimable_relations,
                     "released_branch_pinned_relations": released.branch_pinned_relations,
@@ -2206,7 +2204,7 @@ fn perf_replay_recovery_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: replay_commit_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "failure": outcome.failure.as_ref().map(|failure| format!("{failure:?}")),
                     "mismatch_count": outcome.mismatches.len(),
                     "compared_surface_count": outcome.compared_surfaces.len(),
@@ -2305,7 +2303,7 @@ fn perf_replay_recovery_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "recovered_commits": outcome.recovered_commits,
                     "checkpoint_commits": outcome.coverage.checkpoint_commits,
                     "replayed_tail_commits": outcome.coverage.replayed_tail_commits,
@@ -2392,7 +2390,7 @@ fn perf_invariant_materialization_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "changed_records": outcome.changed_records.len(),
                     "phase_timing": {
                         "invariant_pre_check_micros": phase_timing.invariant_pre_check_micros,
@@ -2529,7 +2527,7 @@ fn perf_geometry_kernel_matrix() {
                     + checkpoint_micros
                     + recover_micros
                     + recovered_lineage_resolution_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "update_commit_micros": update_commit_micros,
                     "lineage_resolution_micros": lineage_resolution_micros,
                     "checkpoint_micros": checkpoint_micros,
@@ -2648,7 +2646,7 @@ fn perf_geometry_kernel_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: bridge_commit_micros + connectivity_summary_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "bridge_commit_micros": bridge_commit_micros,
                     "connectivity_summary_micros": connectivity_summary_micros,
                     "bridge_changed_records": bridge_outcome.changed_records.len(),
@@ -2770,7 +2768,7 @@ fn perf_geometry_kernel_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: bridge_commit_micros + connectivity_summary_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "bridge_commit_micros": bridge_commit_micros,
                     "connectivity_summary_micros": connectivity_summary_micros,
                     "bridge_changed_records": bridge_outcome.changed_records.len(),
@@ -2899,7 +2897,7 @@ fn perf_geometry_kernel_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: bridge_commit_micros + connectivity_summary_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "bridge_commit_micros": bridge_commit_micros,
                     "connectivity_summary_micros": connectivity_summary_micros,
                     "bridge_changed_records": bridge_outcome.changed_records.len(),
@@ -3078,7 +3076,7 @@ fn perf_cad_topology_matrix() {
                 elapsed_micros: bridge_commit_micros
                     + explicit_query_micros
                     + connectivity_summary_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "bridge_commit_micros": bridge_commit_micros,
                     "explicit_query_micros": explicit_query_micros,
                     "connectivity_summary_micros": connectivity_summary_micros,
@@ -3208,7 +3206,7 @@ fn perf_chip_simulator_matrix() {
 
         PerfMeasurement {
             elapsed_micros: commit_micros + compile_micros + adjacency_micros,
-            metrics: json!({
+            metrics: perf_metrics!({
                 "commit_micros": commit_micros,
                 "compile_micros": compile_micros,
                 "adjacency_micros": adjacency_micros,
@@ -3374,7 +3372,7 @@ fn perf_chip_simulator_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: commit_micros + compile_micros + adjacency_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "commit_micros": commit_micros,
                     "compile_micros": compile_micros,
                     "adjacency_micros": adjacency_micros,
@@ -3535,7 +3533,7 @@ fn perf_chip_simulator_matrix() {
                     + recover_micros
                     + compile_micros
                     + adjacency_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "checkpoint_micros": checkpoint_micros,
                     "recover_micros": recover_micros,
                     "compile_micros": compile_micros,
@@ -3722,7 +3720,7 @@ fn perf_chip_simulator_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: rollback_micros + commit_micros + compile_micros + adjacency_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "rollback_micros": rollback_micros,
                     "commit_micros": commit_micros,
                     "compile_micros": compile_micros,
@@ -3888,7 +3886,7 @@ fn perf_chip_simulator_matrix() {
             measurement_with_elapsed(
                 update_micros + compile_micros + explicit_query_micros,
                 || {
-                    json!({
+                    perf_metrics!({
                         "batch_target_count": 32,
                         "batch_partition_count": partition_targets.len(),
                         "update_micros": update_micros,
@@ -4057,7 +4055,7 @@ fn perf_chip_simulator_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: total_update_micros + total_compile_micros + total_adjacency_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "iterations": ITERATIONS,
                     "average_update_micros": total_update_micros / ITERATIONS as u128,
                     "average_compile_micros": total_compile_micros / ITERATIONS as u128,
@@ -4190,7 +4188,7 @@ fn perf_chip_simulator_matrix() {
                 fresh_diagnostics_metrics(&runtime, diagnostics_start);
             PerfMeasurement {
                 elapsed_micros: total_update_micros + total_compile_micros + total_adjacency_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "iterations": ITERATIONS,
                     "average_update_micros": total_update_micros / ITERATIONS as u128,
                     "average_compile_micros": total_compile_micros / ITERATIONS as u128,
@@ -4307,7 +4305,7 @@ fn perf_rocketship_scale_matrix() {
                 + hot_query_planning_micros
                 + hot_query_execution_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "resident_node_count": seeded.entities.len(),
                     "resident_relation_count": seeded.relation_count,
                     "bootstrap_entity_commit_micros": seeded.entity_commit_micros,
@@ -4525,7 +4523,7 @@ fn perf_rocketship_scale_matrix() {
                 + hot_query_planning_micros
                 + hot_query_execution_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "resident_node_count": seeded.entities.len(),
                     "resident_relation_count": seeded.relation_count,
                     "bootstrap_entity_commit_micros": seeded.entity_commit_micros,
@@ -4755,7 +4753,7 @@ fn perf_rocketship_scale_matrix() {
                 + traversal_planning_micros
                 + traversal_execution_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "resident_node_count": seeded.entities.len(),
                     "resident_relation_count": seeded.relation_count,
                     "subsystem_count": seeded.subsystem_count,
@@ -4993,7 +4991,7 @@ fn perf_rocketship_scale_matrix() {
                 + propagation_execution_micros
                 + explicit_query_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "resident_node_count": seeded.entities.len(),
                     "resident_relation_count": seeded.relation_count,
                     "subsystem_count": seeded.subsystem_count,
@@ -5246,7 +5244,7 @@ fn perf_rocketship_scale_matrix() {
                 fresh_diagnostics_metrics(&runtime, diagnostics_start);
 
             measurement_with_elapsed(update_micros + explicit_query_micros, || {
-                json!({
+                perf_metrics!({
                     "resident_node_count": seeded.entities.len(),
                     "resident_relation_count": seeded.relation_count,
                     "subsystem_count": seeded.subsystem_count,
@@ -5514,7 +5512,7 @@ fn perf_rocketship_scale_matrix() {
                 fresh_diagnostics_metrics(&runtime, diagnostics_start);
 
             measurement_with_elapsed(update_micros + explicit_query_micros, || {
-                json!({
+                perf_metrics!({
                     "resident_node_count": seeded.entities.len(),
                     "resident_relation_count": seeded.relation_count,
                     "subsystem_count": seeded.subsystem_count,
@@ -5747,7 +5745,7 @@ fn perf_rocketship_scale_matrix() {
                 fresh_diagnostics_metrics(&runtime, diagnostics_start);
 
             measurement_with_elapsed(update_micros + explicit_query_micros, || {
-                json!({
+                perf_metrics!({
                     "resident_node_count": seeded.entities.len(),
                     "resident_relation_count": seeded.relation_count,
                     "subsystem_count": seeded.subsystem_count,
@@ -6014,7 +6012,7 @@ fn perf_rocketship_scale_matrix() {
                 fresh_diagnostics_metrics(&runtime, diagnostics_start);
 
             measurement_with_elapsed(update_micros + explicit_query_micros, || {
-                json!({
+                perf_metrics!({
                     "resident_node_count": seeded.entities.len(),
                     "resident_relation_count": seeded.relation_count,
                     "subsystem_count": seeded.subsystem_count,
@@ -6241,7 +6239,7 @@ fn perf_rocketship_scale_matrix() {
                 + propagation_execution_micros
                 + explicit_query_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "resident_node_count": seeded.entities.len(),
                     "resident_relation_count": seeded.relation_count,
                     "subsystem_count": seeded.subsystem_count,
@@ -6420,7 +6418,7 @@ fn perf_sustained_load_matrix() {
 
             let elapsed_micros = total_commit_micros + total_query_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "iterations": ITERATIONS,
                     "average_commit_micros": total_commit_micros / ITERATIONS as u128,
                     "average_query_micros": total_query_micros / ITERATIONS as u128,
@@ -6513,7 +6511,7 @@ fn perf_sustained_load_matrix() {
             }
 
             measurement_with_elapsed(total_replay_micros, || {
-                json!({
+                perf_metrics!({
                     "history_depth": HISTORY_DEPTH,
                     "replay_window": REPLAY_WINDOW,
                     "average_replay_micros": total_replay_micros / REPLAY_WINDOW as u128,
@@ -6600,7 +6598,7 @@ fn perf_sustained_load_matrix() {
             let trailing_plan = runtime.retention().inspect_plan();
             let elapsed_micros = total_inspect_micros + total_run_pass_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "iterations": ITERATIONS,
                     "average_inspect_micros": total_inspect_micros / ITERATIONS as u128,
                     "average_run_pass_micros": total_run_pass_micros / ITERATIONS as u128,
@@ -6769,7 +6767,7 @@ fn perf_sustained_load_matrix() {
             let elapsed_micros =
                 total_update_micros + total_explicit_query_micros + total_traversal_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "iterations": ITERATIONS,
                     "average_update_micros": total_update_micros / ITERATIONS as u128,
                     "average_explicit_query_micros": total_explicit_query_micros / ITERATIONS as u128,
@@ -6900,7 +6898,7 @@ fn perf_sustained_load_matrix() {
                 .sum::<u128>()
                 / WINDOW as u128;
             measurement_with_elapsed(total_update_micros, || {
-                json!({
+                perf_metrics!({
                     "iterations": ITERATIONS,
                     "resident_node_count": seeded.entities.len(),
                     "resident_relation_count": seeded.relation_count,
@@ -7100,7 +7098,7 @@ fn perf_sustained_load_matrix() {
             let elapsed_micros =
                 total_update_micros + total_propagation_micros + total_explicit_query_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "iterations": ITERATIONS,
                     "resident_node_count": seeded.entities.len(),
                     "resident_relation_count": seeded.relation_count,
@@ -7307,7 +7305,7 @@ fn perf_sustained_load_matrix() {
             let elapsed_micros =
                 total_update_micros + total_compile_micros + total_adjacency_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "iterations": ITERATIONS,
                     "driver_count": drivers.len(),
                     "sink_count": sinks.len(),
@@ -7415,7 +7413,7 @@ fn perf_inspection_budget_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: graph_micros + kind_micros + connectivity_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "graph_micros": graph_micros,
                     "kind_micros": kind_micros,
                     "connectivity_micros": connectivity_micros,
@@ -7517,7 +7515,7 @@ fn perf_inspection_budget_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: direct_micros + query_micros + historical_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "direct_micros": direct_micros,
                     "query_micros": query_micros,
                     "historical_micros": historical_micros,
@@ -7600,7 +7598,7 @@ fn perf_inspection_budget_matrix() {
 
         PerfMeasurement {
             elapsed_micros: retention_micros + commit_micros + recent_micros,
-            metrics: json!({
+            metrics: perf_metrics!({
                 "retention_micros": retention_micros,
                 "commit_micros": commit_micros,
                 "recent_micros": recent_micros,
@@ -7696,7 +7694,7 @@ fn perf_index_parity_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: build_micros + query_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "build_micros": build_micros,
                     "query_micros": query_micros,
                     "entity_result_count": outcome.execution.result.entities.len(),
@@ -7792,7 +7790,7 @@ fn perf_index_parity_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: query_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "query_micros": query_micros,
                     "entity_result_count": outcome.execution.result.entities.len(),
                     "access_path": format!("{:?}", outcome.access_path),
@@ -7903,7 +7901,7 @@ fn perf_index_parity_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: recover_micros + query_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "recover_micros": recover_micros,
                     "query_micros": query_micros,
                     "entity_result_count": recovered_outcome.execution.result.entities.len(),
@@ -8039,7 +8037,7 @@ fn perf_mixed_load_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "reader_count": 8,
                     "snapshot_name_len": serial_snapshot_name.len(),
                     "version_name_len": serial_version_name.len(),
@@ -8180,7 +8178,7 @@ fn perf_mixed_load_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "reader_count": 8,
                     "matched_relation_count": expected.execution.result.relations.len(),
                     "access_path": format!("{:?}", expected.access_path),
@@ -8345,7 +8343,7 @@ fn perf_workflow_matrix() {
             let counters = runtime.performance_access().counters();
 
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "analysis_changed_records": analysis_commit.changed_records.len(),
                     "merged_changed_records": merge_outcome.commit.changed_records.len(),
                     "query_entities": query_outcome.result.entities.len(),
@@ -8434,7 +8432,7 @@ fn perf_workflow_matrix() {
             let post_observability = perf_capture_post_mutation_observability(&world);
 
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "changed_records": stress_commit.changed_records.len(),
                     "query_entities": probe.entity_count,
                     "query_relations": probe.relation_count,
@@ -8535,7 +8533,7 @@ fn perf_workflow_matrix() {
             let post_observability = perf_capture_post_mutation_observability(&world);
 
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "correction_records": correction_commit.changed_records.len(),
                     "audit_records": audit_commit.changed_records.len(),
                     "query_entities": probe.entity_count,
@@ -8712,7 +8710,7 @@ fn perf_workflow_matrix() {
             let counters = recovered.performance_access().counters();
 
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "checkpoint_commit_count": recovery_outcome.coverage.checkpoint_commits,
                     "tail_commit_count": recovery_outcome.coverage.replayed_tail_commits,
                     "recovered_commits": recovery_outcome.recovered_commits,
@@ -8844,7 +8842,7 @@ fn perf_workflow_matrix() {
             let counters = runtime.performance_access().counters();
 
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "deleted_commit_records": deleted_commit.changed_records.len(),
                     "active_snapshot_count": inspect_plan.active_snapshot_count,
                     "reclaimable_entities": inspect_plan.reclaimable_entities,
@@ -8973,7 +8971,7 @@ fn perf_profile_matrix() {
                 .sum::<usize>();
 
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "result_entities": outcome.result.entities.len(),
                     "result_relations": outcome.result.relations.len(),
                     "diagnostic_artifact_count": fresh_artifacts.len(),
@@ -9091,7 +9089,7 @@ fn perf_profile_matrix() {
                 .sum::<usize>();
 
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "result_entities": outcome.result.entities.len(),
                     "result_relations": outcome.result.relations.len(),
                     "diagnostic_artifact_count": fresh_artifacts.len(),
@@ -9211,7 +9209,7 @@ fn perf_profile_matrix() {
                 .sum::<usize>();
 
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "result_entities": outcome.result.entities.len(),
                     "result_relations": outcome.result.relations.len(),
                     "diagnostic_artifact_count": fresh_artifacts.len(),
@@ -9404,7 +9402,7 @@ fn perf_hot_cold_path_matrix() {
                 + replay_commit_micros
                 + cold_query_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "hot_changed_records": hot_commit.changed_records.len(),
                     "hot_result_entities": hot_query.result.entities.len(),
                     "cold_result_entities": cold_query.result.entities.len(),
@@ -9578,7 +9576,7 @@ fn perf_hot_cold_path_matrix() {
                 + replay_commit_micros
                 + cold_compile_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "hot_changed_records": hot_commit.changed_records.len(),
                     "replay_mismatch_count": replay.mismatches.len(),
                     "replay_failure": replay.failure.as_ref().map(|failure| format!("{failure:?}")),
@@ -9771,7 +9769,7 @@ fn perf_hot_cold_path_matrix() {
                 + replay_commit_micros
                 + cold_query_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "hot_changed_records": hot_commit.changed_records.len(),
                     "hot_result_entities": hot_query.result.entities.len(),
                     "cold_result_entities": cold_query.result.entities.len(),
@@ -9985,7 +9983,7 @@ fn perf_hot_cold_path_matrix() {
                 + replay_commit_micros
                 + cold_compile_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "hot_changed_records": hot_commit.changed_records.len(),
                     "hot_diagnostic_artifact_count": hot_diagnostic_artifact_count,
                     "hot_detailed_trace_entries": hot_detailed_trace_entries,
@@ -10156,7 +10154,7 @@ fn perf_artifact_recoverability_matrix() {
                     + checkpoint_micros
                     + recover_micros
                     + replay_commit_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "hot_summary_entry_count": hot_bundle.diagnostics_summary.entries.len(),
                     "hot_total_artifacts": hot_artifacts.len(),
                     "hot_total_entries": diagnostic_entry_count(&hot_artifacts),
@@ -10359,7 +10357,7 @@ fn perf_artifact_recoverability_matrix() {
                     + recover_micros
                     + replay_commit_micros
                     + cold_compile_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "hot_compiled_record_count": hot_artifact.compiled_record_count,
                     "cold_compiled_record_count": cold_artifact.compiled_record_count,
                     "hot_partition_count": hot_artifact.partition_ids.len(),
@@ -10501,7 +10499,7 @@ fn perf_geometry_artifact_decomposition_matrix() {
                     + seeded.relation_commit_micros
                     + hot_update_micros
                     + explicit_query_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "resident_node_count": seeded.entities.len(),
                     "resident_relation_count": seeded.relation_count,
                     "subsystem_count": seeded.subsystem_count,
@@ -10697,7 +10695,7 @@ fn perf_runtime_bridge_mock_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: relational_commit_micros + relational_query_micros + bridge_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "relational_changed_records": update.changed_records.len(),
                     "relational_result_entities": traversal.result.entities.len(),
                     "affected_bridge_sources": affected_sources,
@@ -10837,7 +10835,7 @@ fn perf_runtime_bridge_mock_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: relational_commit_micros + relational_query_micros + bridge_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "resident_entities": entities.len(),
                     "relational_changed_records": update.changed_records.len(),
                     "relational_result_entities": traversal.result.entities.len(),
@@ -10986,7 +10984,7 @@ fn perf_runtime_bridge_mock_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: relational_commit_micros + relational_query_micros + bridge_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "resident_entities": entities.len(),
                     "relational_changed_records": update.changed_records.len(),
                     "traversal_result_entities": traversal.result.entities.len(),
@@ -11145,7 +11143,7 @@ fn perf_game_engine_matrix() {
             measurement_with_elapsed(
                 update_micros + propagation_micros + explicit_micros + bridge_micros,
                 || {
-                    json!({
+                    perf_metrics!({
                         "region_count": seeded.region_count,
                         "resident_entities": seeded.entities.len(),
                         "resident_relations": seeded.relation_count,
@@ -11295,7 +11293,7 @@ fn perf_game_engine_matrix() {
             assert!(runtime.visibility_authority().release_snapshot(&snapshot));
 
             measurement_with_elapsed(update_micros + explicit_micros, || {
-                json!({
+                perf_metrics!({
                     "region_count": seeded.region_count,
                     "resident_entities": seeded.entities.len(),
                     "resident_relations": seeded.relation_count,
@@ -11488,7 +11486,7 @@ fn perf_game_engine_matrix() {
                 + total_explicit_query_micros
                 + total_bridge_micros;
             measurement_with_elapsed(elapsed_micros, || {
-                json!({
+                perf_metrics!({
                     "iterations": ITERATIONS,
                     "region_count": seeded.region_count,
                     "resident_entities": seeded.entities.len(),
@@ -11630,7 +11628,7 @@ fn perf_recoverability_policy_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: hot_commit_micros + replay_commit_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "must_be_hot_changed_records": hot_commit.changed_records.len(),
                     "reconstructable_summary_entries": hot_bundle.diagnostics_summary.entries.len(),
                     "deferred_trace_entries": hot_artifacts
@@ -11791,7 +11789,7 @@ fn perf_recoverability_policy_matrix() {
                     + hot_compile_micros
                     + replay_commit_micros
                     + cold_compile_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "must_be_hot_changed_records": hot_commit.changed_records.len(),
                     "reconstructable_compiled_record_count": cold_artifact.compiled_record_count,
                     "hot_compiled_record_count": hot_artifact.compiled_record_count,
@@ -11892,7 +11890,7 @@ fn perf_merge_lineage_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "candidate_count": artifact.identity_discovery.candidate_count,
                     "classified_records": artifact.conflict_classification.classified_record_count,
                     "resolved_records": artifact.policy_resolution.resolved_record_count,
@@ -11965,7 +11963,7 @@ fn perf_merge_lineage_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "executed_record_count": outcome.structural_summary.executed_record_count,
                     "emitted_mutation_intent_count": outcome.structural_summary.emitted_mutation_intent_count,
                     "adopted_source_record_count": outcome.structural_summary.adopted_source_record_count,
@@ -12042,7 +12040,7 @@ fn perf_merge_lineage_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "executed_record_count": outcome.structural_summary.executed_record_count,
                     "emitted_mutation_intent_count": outcome.structural_summary.emitted_mutation_intent_count,
                     "adopted_source_record_count": outcome.structural_summary.adopted_source_record_count,
@@ -12133,7 +12131,7 @@ fn perf_merge_lineage_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: prepare_elapsed_micros + execute_elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "prepare_elapsed_micros": prepare_elapsed_micros,
                     "execute_elapsed_micros": execute_elapsed_micros,
                     "executed_record_count": outcome.structural_summary.executed_record_count,
@@ -12222,7 +12220,7 @@ fn perf_merge_lineage_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: merge_elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "merge_elapsed_micros": merge_elapsed_micros,
                     "control_commit_elapsed_micros": control_elapsed_micros,
                     "merge_over_control_delta_micros": merge_elapsed_micros as i128 - control_elapsed_micros as i128,
@@ -12315,7 +12313,7 @@ fn perf_merge_lineage_matrix() {
 
             PerfMeasurement {
                 elapsed_micros: verify_elapsed_micros + execute_elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "verify_elapsed_micros": verify_elapsed_micros,
                     "execute_elapsed_micros": execute_elapsed_micros,
                     "executed_record_count": outcome.structural_summary.executed_record_count,
@@ -12402,7 +12400,7 @@ fn perf_merge_lineage_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "executed_record_count": outcome.structural_summary.executed_record_count,
                     "changed_entities": changed_entities(&outcome.commit).len(),
                     "phase_timing": {
@@ -12520,7 +12518,7 @@ fn perf_merge_lineage_matrix() {
 
             PerfMeasurement {
                 elapsed_micros,
-                metrics: json!({
+                metrics: perf_metrics!({
                     "left_event_count": divergence.metrics.left_event_count,
                     "right_event_count": divergence.metrics.right_event_count,
                     "left_node_count": divergence.metrics.left_node_count,

@@ -5,12 +5,14 @@ use std::sync::OnceLock;
 use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::Value as BaselineJsonRow;
+
+pub(super) use super::performance_metrics::{perf_metrics, PerfMetricSet};
 
 #[derive(Debug, Clone)]
 pub(super) struct PerfMeasurement {
     pub(super) elapsed_micros: u128,
-    pub(super) metrics: Value,
+    pub(super) metrics: PerfMetricSet,
 }
 
 #[derive(Debug, Serialize)]
@@ -19,7 +21,7 @@ pub(super) struct PerfSampleRecord<'a> {
     pub(super) case: &'a str,
     pub(super) sample: usize,
     pub(super) elapsed_micros: u128,
-    pub(super) metrics: &'a Value,
+    pub(super) metrics: &'a PerfMetricSet,
 }
 
 #[derive(Debug, Serialize)]
@@ -179,7 +181,7 @@ fn perf_baseline_path() -> PathBuf {
         })
 }
 
-fn perf_baseline_rows() -> Vec<Value> {
+fn perf_baseline_rows() -> Vec<BaselineJsonRow> {
     let path = perf_baseline_path();
     fs::read_to_string(&path)
         .unwrap_or_else(|error| {
@@ -191,7 +193,7 @@ fn perf_baseline_rows() -> Vec<Value> {
         .lines()
         .filter(|line| !line.trim().is_empty())
         .map(|line| {
-            serde_json::from_str::<Value>(line).unwrap_or_else(|error| {
+            serde_json::from_str::<BaselineJsonRow>(line).unwrap_or_else(|error| {
                 panic!(
                     "failed to deserialize relational perf baseline row from {}: {error}",
                     path.display()
@@ -481,24 +483,19 @@ pub(super) fn median(mut values: Vec<u128>) -> u128 {
     values[values.len() / 2]
 }
 
-pub(super) fn metric_u64(metrics: &Value, key: &str) -> u64 {
-    metrics[key]
-        .as_u64()
+pub(super) fn metric_u64(metrics: &PerfMetricSet, key: &str) -> u64 {
+    metrics
+        .metric_u64(key)
         .unwrap_or_else(|| panic!("missing numeric metric `{key}`"))
 }
 
-pub(super) fn metric_path_u128(metrics: &Value, path: &[&str]) -> u128 {
-    let mut current = metrics;
-    for key in path {
-        current = &current[*key];
-    }
-    current
-        .as_u64()
-        .map(u128::from)
+pub(super) fn metric_path_u128(metrics: &PerfMetricSet, path: &[&str]) -> u128 {
+    metrics
+        .metric_path_u128(path)
         .unwrap_or_else(|| panic!("missing numeric metric path `{}`", path.join(".")))
 }
 
-pub(super) fn counter_u64(metrics: &Value, key: &str) -> u64 {
+pub(super) fn counter_u64(metrics: &PerfMetricSet, key: &str) -> u64 {
     metrics["counters"][key]
         .as_u64()
         .unwrap_or_else(|| panic!("missing counter metric `{key}`"))
@@ -507,7 +504,7 @@ pub(super) fn counter_u64(metrics: &Value, key: &str) -> u64 {
 pub(super) fn assert_budget(
     samples: &[PerfMeasurement],
     description: &str,
-    predicate: impl Fn(&Value) -> bool,
+    predicate: impl Fn(&PerfMetricSet) -> bool,
 ) {
     assert!(
         samples.iter().all(|sample| predicate(&sample.metrics)),
@@ -517,7 +514,7 @@ pub(super) fn assert_budget(
 
 pub(super) fn measurement_from(
     started_at: Instant,
-    build_metrics: impl FnOnce() -> Value,
+    build_metrics: impl FnOnce() -> PerfMetricSet,
 ) -> PerfMeasurement {
     let elapsed_micros = started_at.elapsed().as_micros();
     measurement_with_elapsed(elapsed_micros, build_metrics)
@@ -525,7 +522,7 @@ pub(super) fn measurement_from(
 
 pub(super) fn measurement_with_elapsed(
     elapsed_micros: u128,
-    build_metrics: impl FnOnce() -> Value,
+    build_metrics: impl FnOnce() -> PerfMetricSet,
 ) -> PerfMeasurement {
     PerfMeasurement {
         elapsed_micros,
