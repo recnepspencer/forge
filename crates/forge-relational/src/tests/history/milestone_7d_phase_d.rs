@@ -23,7 +23,8 @@ use crate::tests::support::{
     checkpoint_and_recover_with, create_branch_from_main, create_entity,
     create_relation_in_partition_on_branch, delete_entity, delete_entity_on_branch,
     delete_relation_on_branch, entity_field_aspect, entity_i64_field_aspect,
-    persisted_runtime_with_test_schema, read_entity_field, unique_test_store_path, update_entity,
+    persisted_runtime_with_test_schema, read_entity_field, u64_aspect_value,
+    unique_test_store_path, update_entity,
 };
 
 #[test]
@@ -162,19 +163,19 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
     let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "shared",
-        serde_json::json!({ "value": "base" }),
+        crate::tests::support::single_string_aspect_field_patch("value", "base"),
     );
     create_branch_from_main(&mut runtime, "feature");
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        serde_json::json!({ "value": "main-change" }),
+        crate::tests::support::single_string_aspect_field_patch("value", "main-change"),
         BranchId("main".to_string()),
     );
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        serde_json::json!({ "value": "feature-change" }),
+        crate::tests::support::single_string_aspect_field_patch("value", "feature-change"),
         BranchId("feature".to_string()),
     );
 
@@ -250,19 +251,19 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
     let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "shared",
-        serde_json::json!({ "value": "base" }),
+        crate::tests::support::single_string_aspect_field_patch("value", "base"),
     );
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        serde_json::json!({ "value": "main-change" }),
+        crate::tests::support::single_string_aspect_field_patch("value", "main-change"),
         BranchId("main".to_string()),
     );
     create_branch_from_main(&mut runtime, "feature");
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        serde_json::json!({ "value": "feature-change" }),
+        crate::tests::support::single_string_aspect_field_patch("value", "feature-change"),
         BranchId("feature".to_string()),
     );
 
@@ -352,19 +353,19 @@ fn auto_resolved_merge_reads_pinned_visible_value_through_declared_aspect_bindin
     let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "identity",
-        serde_json::json!({ "display": "base" }),
+        crate::tests::support::single_string_aspect_field_patch("display", "base"),
     );
     create_branch_from_main(&mut runtime, "feature");
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        serde_json::json!({ "display": "main-change" }),
+        crate::tests::support::single_string_aspect_field_patch("display", "main-change"),
         BranchId("main".to_string()),
     );
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        serde_json::json!({ "display": "feature-change" }),
+        crate::tests::support::single_string_aspect_field_patch("display", "feature-change"),
         BranchId("feature".to_string()),
     );
 
@@ -392,25 +393,25 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
     let entity = create_entity_with_aspect_fields(
         &mut runtime,
         "counter",
-        serde_json::json!({ "value": 0 }),
+        crate::tests::support::aspect_field_patch_from_values([("value", u64_aspect_value(0))]),
     );
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        serde_json::json!({ "value": 10 }),
+        crate::tests::support::aspect_field_patch_from_values([("value", u64_aspect_value(10))]),
         BranchId("main".to_string()),
     );
     create_branch_from_main(&mut runtime, "feature");
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        serde_json::json!({ "value": 15 }),
+        crate::tests::support::aspect_field_patch_from_values([("value", u64_aspect_value(15))]),
         BranchId("main".to_string()),
     );
     update_entity_aspect_fields_on_branch(
         &mut runtime,
         entity,
-        serde_json::json!({ "value": 13 }),
+        crate::tests::support::aspect_field_patch_from_values([("value", u64_aspect_value(13))]),
         BranchId("feature".to_string()),
     );
 
@@ -1418,12 +1419,12 @@ fn register_aspect_field_merge_policy(
 fn create_entity_with_aspect_fields(
     runtime: &mut crate::facade::runtime::RelationalRuntime,
     client_key: &str,
-    payload: serde_json::Value,
+    fields: crate::transactions::data::AspectFieldPatch,
 ) -> crate::facade::identity::EntityId {
     create_entity_with_aspect_fields_on_branch(
         runtime,
         client_key,
-        payload,
+        fields,
         BranchId("main".to_string()),
     )
 }
@@ -1431,7 +1432,7 @@ fn create_entity_with_aspect_fields(
 fn create_entity_with_aspect_fields_on_branch(
     runtime: &mut crate::facade::runtime::RelationalRuntime,
     client_key: &str,
-    payload: serde_json::Value,
+    fields: crate::transactions::data::AspectFieldPatch,
     branch_id: BranchId,
 ) -> crate::facade::identity::EntityId {
     let mut txn = runtime.begin_transaction(TransactionOptions {
@@ -1444,9 +1445,7 @@ fn create_entity_with_aspect_fields_on_branch(
                 partition_id: crate::facade::identity::PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw(client_key),
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    aspect_fields_with_identity_name(client_key, payload),
-                ),
+                fields: aspect_fields_with_identity_name(client_key, fields),
             },
         )),
     ));
@@ -1456,7 +1455,7 @@ fn create_entity_with_aspect_fields_on_branch(
 fn update_entity_aspect_fields_on_branch(
     runtime: &mut crate::facade::runtime::RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
-    payload: serde_json::Value,
+    fields: crate::transactions::data::AspectFieldPatch,
     branch_id: BranchId,
 ) {
     let stable_name = read_entity_json_field(runtime, &branch_id, entity_id, "name")
@@ -1471,9 +1470,7 @@ fn update_entity_aspect_fields_on_branch(
         WorkerIntentBatch::new("update-aspect-fields").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                    aspect_fields_with_identity_name(&stable_name, payload),
-                ),
+                fields: aspect_fields_with_identity_name(&stable_name, fields),
             }),
         )),
     );
@@ -1482,16 +1479,19 @@ fn update_entity_aspect_fields_on_branch(
 
 fn aspect_fields_with_identity_name(
     client_key: &str,
-    payload: serde_json::Value,
-) -> serde_json::Value {
-    let mut object = match payload {
-        serde_json::Value::Object(object) => object,
-        other => panic!("expected object payload, got {other:?}"),
-    };
-    object
-        .entry("name".to_string())
-        .or_insert_with(|| serde_json::Value::String(client_key.to_string()));
-    serde_json::Value::Object(object)
+    fields: crate::transactions::data::AspectFieldPatch,
+) -> crate::transactions::data::AspectFieldPatch {
+    let mut targets = fields
+        .iter()
+        .map(|(target, value)| (target.clone(), value.clone()))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    targets
+        .entry(crate::transactions::data::AspectFieldPatchTarget::single(
+            AspectKey::new("name").expect("valid identity aspect key"),
+            forge_foundational::facade::FieldKey::new("name").expect("valid identity field key"),
+        ))
+        .or_insert_with(|| crate::tests::support::string_aspect_value(client_key));
+    crate::transactions::data::AspectFieldPatch::new(targets)
 }
 
 fn read_entity_json_field(

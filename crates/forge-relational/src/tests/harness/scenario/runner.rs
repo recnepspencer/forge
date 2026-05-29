@@ -408,10 +408,10 @@ fn apply_operation(
                             client_key: crate::symbols::data::ClientKey::raw(format!(
                                 "replace-{seed}-{step}-{name_counter}"
                             )),
-                            fields:
-                                crate::tests::support::aspect_field_patch_from_compatibility_json(
-                                    serde_json::json!({ "name": name }),
-                                ),
+                            fields: crate::tests::support::aspect_field_patch_from_values([(
+                                "name",
+                                crate::tests::support::string_aspect_value(&name),
+                            )]),
                         },
                     }),
                 )),

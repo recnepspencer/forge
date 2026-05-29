@@ -17,7 +17,11 @@ use self::entity_seeding::seed_entities;
 use self::relation_seeding::seed_relations;
 use self::seed_catalog::seeded_trade_cases;
 use super::scales::FintechScale;
-use crate::tests::support::{test_schema_registry, unique_test_store_path};
+use crate::tests::support::{
+    entity_bool_field_aspect, entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect,
+    relation_field_aspect, relation_source_aspect, relation_target_aspect, unique_test_store_path,
+    AspectSchemaFixture,
+};
 
 pub(super) const LEDGER_PARTITION: PartitionId = PartitionId(10);
 pub(super) const MARKET_PARTITION: PartitionId = PartitionId(20);
@@ -265,7 +269,7 @@ impl FintechWorld {
     fn build(scale: FintechScale, persisted: bool) -> Self {
         let mut builder = RelationalRuntimeApi::builder()
             .profile(RelationalRuntimeProfile::AiWorkflow)
-            .schema_registry(test_schema_registry());
+            .schema_registry(fintech_schema_registry());
         if persisted {
             builder = builder
                 .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
@@ -306,6 +310,80 @@ impl FintechWorld {
             relations,
         }
     }
+}
+
+fn fintech_schema_registry() -> crate::facade::schema::RelationalSchemaRegistry {
+    AspectSchemaFixture {
+        entity_aspects: fintech_entity_aspects(),
+        relation_aspects: vec![
+            relation_field_aspect("role", "role"),
+            lifecycle_aspect(),
+            relation_source_aspect(),
+            relation_target_aspect(),
+        ],
+        ..AspectSchemaFixture::default()
+    }
+    .build_registry()
+}
+
+fn fintech_entity_aspects() -> Vec<crate::facade::schema::DeclaredAspect> {
+    let string_fields = [
+        "name",
+        "entity_type",
+        "desk_name",
+        "book_name",
+        "case",
+        "rating",
+        "desk",
+        "book",
+        "ccy",
+        "status",
+        "kind",
+        "event",
+        "symbol",
+        "asset_class",
+        "scenario",
+        "breach_state",
+        "stress_regime",
+        "limit_status",
+        "severity",
+        "recorded_by",
+    ];
+    let unsigned_fields = [
+        "desk_index",
+        "book_index",
+        "balance_cents",
+        "notional",
+        "curve_bucket",
+        "mid",
+        "threshold_bps",
+        "trade_index",
+    ];
+    let bool_fields = [
+        "correction_candidate",
+        "corrected",
+        "diverged",
+        "transient",
+        "savepoint_applied",
+        "refreshed",
+        "repair_completed",
+    ];
+
+    string_fields
+        .into_iter()
+        .map(|field| entity_field_aspect(field, field))
+        .chain(
+            unsigned_fields
+                .into_iter()
+                .map(|field| entity_u64_field_aspect(field, field)),
+        )
+        .chain(
+            bool_fields
+                .into_iter()
+                .map(|field| entity_bool_field_aspect(field, field)),
+        )
+        .chain(std::iter::once(lifecycle_aspect()))
+        .collect()
 }
 
 pub(super) fn create_analysis_branch(runtime: &mut RelationalRuntime) -> BranchId {

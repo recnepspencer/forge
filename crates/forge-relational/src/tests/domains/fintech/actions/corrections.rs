@@ -1,5 +1,3 @@
-use serde_json::json;
-
 use crate::facade::history::BranchId;
 use crate::facade::identity::EntityId;
 use crate::facade::transactions::{
@@ -23,16 +21,26 @@ pub(crate) fn correct_trade_with_replacement(
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
                     entity_id: trade_id,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({
-                            "entity_type": "trade",
-                            "desk": "macro-flow",
-                            "book": "analysis-risk",
-                            "notional": 1_750_000,
-                            "ccy": "USD",
-                            "corrected": true,
-                        }),
-                    ),
+                    fields: crate::tests::support::aspect_field_patch_from_values([
+                        (
+                            "entity_type",
+                            crate::tests::support::string_aspect_value("trade"),
+                        ),
+                        (
+                            "desk",
+                            crate::tests::support::string_aspect_value("macro-flow"),
+                        ),
+                        (
+                            "book",
+                            crate::tests::support::string_aspect_value("analysis-risk"),
+                        ),
+                        (
+                            "notional",
+                            crate::tests::support::u64_aspect_value(1_750_000),
+                        ),
+                        ("ccy", crate::tests::support::string_aspect_value("USD")),
+                        ("corrected", crate::tests::support::bool_aspect_value(true)),
+                    ]),
                 },
             )))
             .into(),

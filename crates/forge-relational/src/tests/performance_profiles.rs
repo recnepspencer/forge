@@ -663,10 +663,18 @@ fn seed_rocketship_world(
                 partition_id,
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw(format!("rocket-node-{index}")),
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
-                    "name": format!("rocket-node-{index}"),
-                    "zone": index % ROCKETSHIP_PARTITION_WIDTH,
-                })),
+                fields: crate::tests::support::aspect_field_patch_from_values([
+                    (
+                        "name",
+                        crate::tests::support::string_aspect_value(&format!("rocket-node-{index}")),
+                    ),
+                    (
+                        "zone",
+                        crate::tests::support::usize_aspect_value(
+                            index % ROCKETSHIP_PARTITION_WIDTH,
+                        ),
+                    ),
+                ]),
             });
         }
         for intent in bulk_entity_create_intents(&entity_specs) {
@@ -826,14 +834,21 @@ fn seed_pseudorealistic_rocketship_world(
                         "rocket.{}.{}.{}",
                         layout.section, layout.subsystem, local_index
                     )),
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({
-                            "section": layout.section,
-                            "subsystem": layout.subsystem,
-                            "aspect": aspect,
-                            "ordinal": local_index,
-                        }),
-                    ),
+                    fields: crate::tests::support::aspect_field_patch_from_values([
+                        (
+                            "section",
+                            crate::tests::support::string_aspect_value(layout.section),
+                        ),
+                        (
+                            "subsystem",
+                            crate::tests::support::string_aspect_value(layout.subsystem),
+                        ),
+                        ("aspect", crate::tests::support::string_aspect_value(aspect)),
+                        (
+                            "ordinal",
+                            crate::tests::support::usize_aspect_value(local_index),
+                        ),
+                    ]),
                 });
             }
         }
@@ -3654,14 +3669,17 @@ fn perf_chip_simulator_matrix() {
                     MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                         UpdateEntityFieldsIntent {
                             entity_id: source,
-                            fields:
-                                crate::tests::support::aspect_field_patch_from_compatibility_json(
-                                    json!({
-                                        "name": "rollback-driver",
-                                        "step": 1,
-                                        "branch": "feature"
-                                    }),
+                            fields: crate::tests::support::aspect_field_patch_from_values([
+                                (
+                                    "name",
+                                    crate::tests::support::string_aspect_value("rollback-driver"),
                                 ),
+                                ("step", crate::tests::support::u64_aspect_value(1)),
+                                (
+                                    "branch",
+                                    crate::tests::support::string_aspect_value("feature"),
+                                ),
+                            ]),
                         },
                     ))
                     .into(),
@@ -3799,16 +3817,24 @@ fn perf_chip_simulator_matrix() {
                 let mut batch = WorkerIntentBatch::new("chip-flat-entity-step-batch");
                 for (partition_id, targets) in &partition_targets {
                     for (index, entity) in targets.iter().enumerate().take(4) {
-                        batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-                            UpdateEntityFieldsIntent {
+                        batch = batch.push(MutationIntent::Entity(
+                            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                                 entity_id: *entity,
-                                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
-                                    "partition": partition_id.0,
-                                    "lane": "global-step",
-                                    "step": index,
-                                })),
-                            },
-                        )));
+                                fields: crate::tests::support::aspect_field_patch_from_values([
+                                    (
+                                        "partition",
+                                        crate::tests::support::u64_aspect_value(
+                                            partition_id.0 as u64,
+                                        ),
+                                    ),
+                                    (
+                                        "lane",
+                                        crate::tests::support::string_aspect_value("global-step"),
+                                    ),
+                                    ("step", crate::tests::support::usize_aspect_value(index)),
+                                ]),
+                            }),
+                        ));
                     }
                 }
                 txn.push_batch(batch);
@@ -5160,14 +5186,24 @@ fn perf_rocketship_scale_matrix() {
                     batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                         UpdateEntityFieldsIntent {
                             entity_id: *entity,
-                            fields:
-                                crate::tests::support::aspect_field_patch_from_compatibility_json(
-                                    json!({
-                                        "section": "batch-wave",
-                                        "tag": format!("rocket.batch.{index}"),
-                                        "partition": entity.partition_id.0,
-                                    }),
+                            fields: crate::tests::support::aspect_field_patch_from_values([
+                                (
+                                    "section",
+                                    crate::tests::support::string_aspect_value("batch-wave"),
                                 ),
+                                (
+                                    "tag",
+                                    crate::tests::support::string_aspect_value(&format!(
+                                        "rocket.batch.{index}"
+                                    )),
+                                ),
+                                (
+                                    "partition",
+                                    crate::tests::support::u64_aspect_value(
+                                        entity.partition_id.0 as u64,
+                                    ),
+                                ),
+                            ]),
                         },
                     )));
                 }
@@ -5417,14 +5453,24 @@ fn perf_rocketship_scale_matrix() {
                     batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                         UpdateEntityFieldsIntent {
                             entity_id: *entity,
-                            fields:
-                                crate::tests::support::aspect_field_patch_from_compatibility_json(
-                                    json!({
-                                        "section": "varied-batch-wave",
-                                        "tag": format!("rocket.varied.{index}"),
-                                        "partition": entity.partition_id.0,
-                                    }),
+                            fields: crate::tests::support::aspect_field_patch_from_values([
+                                (
+                                    "section",
+                                    crate::tests::support::string_aspect_value("varied-batch-wave"),
                                 ),
+                                (
+                                    "tag",
+                                    crate::tests::support::string_aspect_value(&format!(
+                                        "rocket.varied.{index}"
+                                    )),
+                                ),
+                                (
+                                    "partition",
+                                    crate::tests::support::u64_aspect_value(
+                                        entity.partition_id.0 as u64,
+                                    ),
+                                ),
+                            ]),
                         },
                     )));
                 }
@@ -5640,14 +5686,24 @@ fn perf_rocketship_scale_matrix() {
                     batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                         UpdateEntityFieldsIntent {
                             entity_id: *entity,
-                            fields:
-                                crate::tests::support::aspect_field_patch_from_compatibility_json(
-                                    json!({
-                                        "section": "large-batch-wave",
-                                        "tag": format!("rocket.large_batch.{index}"),
-                                        "partition": entity.partition_id.0,
-                                    }),
+                            fields: crate::tests::support::aspect_field_patch_from_values([
+                                (
+                                    "section",
+                                    crate::tests::support::string_aspect_value("large-batch-wave"),
                                 ),
+                                (
+                                    "tag",
+                                    crate::tests::support::string_aspect_value(&format!(
+                                        "rocket.large_batch.{index}"
+                                    )),
+                                ),
+                                (
+                                    "partition",
+                                    crate::tests::support::u64_aspect_value(
+                                        entity.partition_id.0 as u64,
+                                    ),
+                                ),
+                            ]),
                         },
                     )));
                 }
@@ -5894,14 +5950,24 @@ fn perf_rocketship_scale_matrix() {
                     batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                         UpdateEntityFieldsIntent {
                             entity_id: *entity,
-                            fields:
-                                crate::tests::support::aspect_field_patch_from_compatibility_json(
-                                    json!({
-                                        "section": "mixed-batch-wave",
-                                        "tag": format!("rocket.mixed_batch.{index}"),
-                                        "partition": entity.partition_id.0,
-                                    }),
+                            fields: crate::tests::support::aspect_field_patch_from_values([
+                                (
+                                    "section",
+                                    crate::tests::support::string_aspect_value("mixed-batch-wave"),
                                 ),
+                                (
+                                    "tag",
+                                    crate::tests::support::string_aspect_value(&format!(
+                                        "rocket.mixed_batch.{index}"
+                                    )),
+                                ),
+                                (
+                                    "partition",
+                                    crate::tests::support::u64_aspect_value(
+                                        entity.partition_id.0 as u64,
+                                    ),
+                                ),
+                            ]),
                         },
                     )));
                 }
@@ -11176,14 +11242,24 @@ fn perf_game_engine_matrix() {
                     batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                         UpdateEntityFieldsIntent {
                             entity_id: *entity,
-                            fields:
-                                crate::tests::support::aspect_field_patch_from_compatibility_json(
-                                    json!({
-                                        "name": format!("scene-batch-updated-{index}"),
-                                        "phase": "batch-wave",
-                                        "partition": entity.partition_id.0,
-                                    }),
+                            fields: crate::tests::support::aspect_field_patch_from_values([
+                                (
+                                    "name",
+                                    crate::tests::support::string_aspect_value(&format!(
+                                        "scene-batch-updated-{index}"
+                                    )),
                                 ),
+                                (
+                                    "phase",
+                                    crate::tests::support::string_aspect_value("batch-wave"),
+                                ),
+                                (
+                                    "partition",
+                                    crate::tests::support::u64_aspect_value(
+                                        entity.partition_id.0 as u64,
+                                    ),
+                                ),
+                            ]),
                         },
                     )));
                 }

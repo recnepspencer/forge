@@ -93,8 +93,9 @@ fn runtime_bridge_lineage_source_resolves_real_relational_history() {
                     partition_id: PartitionId::main(),
                     kind_id: crate::facade::identity::KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("replacement"),
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        serde_json::json!({"name":"replacement"}),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        "name",
+                        "replacement",
                     ),
                 },
             }),
@@ -287,9 +288,7 @@ fn runtime_bridge_replays_historical_commit_after_newer_publication_arrives() {
                     partition_id: PartitionId::main(),
                     kind_id: crate::facade::identity::KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("bob"),
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        serde_json::json!({"name":"bob"}),
-                    ),
+                    fields: crate::tests::support::single_string_aspect_field_patch("name", "bob"),
                 },
             ),
         )),
@@ -391,8 +390,9 @@ fn runtime_bridge_snapshot_reader_prefers_active_snapshot_binding_over_later_com
                     partition_id: PartitionId::main(),
                     kind_id: crate::facade::identity::KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("alice"),
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        serde_json::json!({"name":"alice-updated"}),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        "name",
+                        "alice-updated",
                     ),
                 },
             }),

@@ -15,7 +15,7 @@ use super::batches::{entity_fixture_batch, relation_fixture_batch};
 use super::data::{RelationalFixture, RelationalHarnessAdapter};
 use super::targets::{commit_error_to_harness_error, default_harness_schema_registry};
 
-mod aspect_snapshot_payloads;
+mod aspect_snapshot_binaries;
 mod diagnostics_capture;
 mod diagnostics_summary_fields;
 mod execution;

@@ -18,7 +18,6 @@ use crate::transactions::data::{
 };
 use crate::validation::data::{InvariantFailureEffect, InvariantVerdict};
 use crate::validation::engine::InvariantPlanScopeClass;
-use serde_json::json;
 
 #[test]
 fn commit_boundary_short_circuits_when_plan_contract_cannot_touch_profile_groups() {
@@ -72,9 +71,7 @@ fn staged_parallel_commit_boundary_matches_serial_reference_results() {
             partition_id: PartitionId::main(),
             kind_id: KindId(1),
             client_key: ClientKey::raw("dup"),
-            fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                json!({"name":"dup"}),
-            ),
+            fields: crate::tests::support::single_string_aspect_field_patch("name", "dup"),
         }))],
     };
 

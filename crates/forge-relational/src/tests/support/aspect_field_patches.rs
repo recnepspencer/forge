@@ -1,23 +1,6 @@
 use super::{AspectFieldPatch, AspectKey};
 use std::collections::BTreeMap;
 
-pub(crate) fn aspect_field_patch_from_compatibility_json(
-    value: serde_json::Value,
-) -> AspectFieldPatch {
-    let fields = value
-        .as_object()
-        .expect("test aspect field patch fixture must be a JSON object")
-        .iter()
-        .map(|(field, value)| {
-            (
-                single_field_patch_target(field),
-                aspect_value_from_fixture_json(value),
-            )
-        })
-        .collect::<BTreeMap<_, _>>();
-    AspectFieldPatch::from(fields)
-}
-
 pub(crate) fn single_string_aspect_field_patch(field: &str, value: &str) -> AspectFieldPatch {
     aspect_field_patch_from_values([(field, string_aspect_value(value))])
 }
@@ -55,30 +38,22 @@ pub(crate) fn string_aspect_value(value: &str) -> forge_foundational::facade::As
     )
 }
 
-fn aspect_value_from_fixture_json(
-    value: &serde_json::Value,
+pub(crate) fn bool_aspect_value(value: bool) -> forge_foundational::facade::AspectValue {
+    forge_foundational::facade::AspectValue::Bool(value)
+}
+
+pub(crate) fn u64_aspect_value(value: u64) -> forge_foundational::facade::AspectValue {
+    forge_foundational::facade::AspectValue::UInt64(value)
+}
+
+pub(crate) fn usize_aspect_value(value: usize) -> forge_foundational::facade::AspectValue {
+    u64_aspect_value(value as u64)
+}
+
+pub(crate) fn fixture_i64_number_aspect_value(
+    value: i64,
 ) -> forge_foundational::facade::AspectValue {
-    match value {
-        serde_json::Value::Null => forge_foundational::facade::AspectValue::Null,
-        serde_json::Value::Bool(value) => forge_foundational::facade::AspectValue::Bool(*value),
-        serde_json::Value::Number(value) => {
-            if let Some(value) = value.as_u64() {
-                forge_foundational::facade::AspectValue::UInt64(value)
-            } else if let Some(value) = value.as_i64() {
-                forge_foundational::facade::AspectValue::Int64(value)
-            } else {
-                forge_foundational::facade::AspectValue::Float64(
-                    forge_foundational::facade::CanonicalF64::from_f64(
-                        value
-                            .as_f64()
-                            .expect("test numeric aspect fixture must fit f64"),
-                    ),
-                )
-            }
-        }
-        serde_json::Value::String(value) => string_aspect_value(value),
-        serde_json::Value::Array(_) | serde_json::Value::Object(_) => {
-            panic!("test aspect field patch fixture does not support nested JSON values")
-        }
-    }
+    u64::try_from(value)
+        .map(forge_foundational::facade::AspectValue::UInt64)
+        .unwrap_or(forge_foundational::facade::AspectValue::Int64(value))
 }

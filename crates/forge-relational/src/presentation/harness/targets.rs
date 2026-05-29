@@ -114,19 +114,19 @@ fn default_harness_relation_aspects() -> Vec<DeclaredAspect> {
     vec![scalar_relation_field_aspect("label", "label")]
 }
 
-fn scalar_entity_field_aspect(aspect_name: &str, field_name: &str) -> DeclaredAspect {
+fn scalar_entity_field_aspect(aspect_name: &str, field_key_text: &str) -> DeclaredAspect {
     DeclaredAspect {
         binding: AspectBinding::EntityField {
-            field: field_key(field_name),
+            field: field_key(field_key_text),
         },
         contract: scalar_string_contract(aspect_name),
     }
 }
 
-fn scalar_relation_field_aspect(aspect_name: &str, field_name: &str) -> DeclaredAspect {
+fn scalar_relation_field_aspect(aspect_name: &str, field_key_text: &str) -> DeclaredAspect {
     DeclaredAspect {
         binding: AspectBinding::RelationField {
-            field: field_key(field_name),
+            field: field_key(field_key_text),
         },
         contract: scalar_string_contract(aspect_name),
     }
@@ -146,8 +146,8 @@ fn scalar_string_contract(aspect_name: &str) -> forge_foundational::AspectContra
         .scalar(ScalarAspectType::String)
 }
 
-fn field_key(field_name: &str) -> FieldKey {
-    FieldKey::new(field_name).expect("default harness field name must be foundational")
+fn field_key(field_key_text: &str) -> FieldKey {
+    FieldKey::new(field_key_text).expect("default harness field key must be foundational")
 }
 
 fn stable_harness_aspect_identity(aspect_name: &str) -> u64 {

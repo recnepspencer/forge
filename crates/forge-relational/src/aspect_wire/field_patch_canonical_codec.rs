@@ -120,8 +120,8 @@ impl<'a> AspectFieldPatchReader<'a> {
         let field_count = self.read_u32()? as usize;
         let mut fields = Vec::with_capacity(field_count);
         for _ in 0..field_count {
-            let field_name = self.read_string()?;
-            let field = FieldKey::new(field_name).ok_or_else(|| {
+            let encoded_field_key = self.read_string()?;
+            let field = FieldKey::new(encoded_field_key).ok_or_else(|| {
                 AspectFieldPatchCodecError::new(
                     "aspect field patch target is not a valid field key",
                 )

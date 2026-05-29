@@ -1,5 +1,3 @@
-use serde_json::json;
-
 use crate::facade::history::BranchId;
 use crate::facade::transactions::{
     CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions,
@@ -24,14 +22,21 @@ pub(crate) fn emit_case_audit_record(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
                     entity_id: case.audit_record,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({
-                            "entity_type": "audit_record",
-                            "case": format!("{:?}", case.role),
-                            "event": event,
-                            "recorded_by": "fintech-domain-workflow",
-                        }),
-                    ),
+                    fields: crate::tests::support::aspect_field_patch_from_values([
+                        (
+                            "entity_type",
+                            crate::tests::support::string_aspect_value("audit_record"),
+                        ),
+                        (
+                            "case",
+                            crate::tests::support::string_aspect_value(&format!("{:?}", case.role)),
+                        ),
+                        ("event", crate::tests::support::string_aspect_value(event)),
+                        (
+                            "recorded_by",
+                            crate::tests::support::string_aspect_value("fintech-domain-workflow"),
+                        ),
+                    ]),
                 },
             )),
         ),

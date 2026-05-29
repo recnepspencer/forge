@@ -461,9 +461,10 @@ fn complexity_budget_preparation_packetization_is_chunked_for_broad_deltas() {
                     .collect(),
                 field_patches: (0..65)
                     .map(|index| {
-                        crate::tests::support::aspect_field_patch_from_compatibility_json(
-                            json!({"name": format!("e{index}")}),
-                        )
+                        crate::tests::support::aspect_field_patch_from_values([(
+                            "name",
+                            crate::tests::support::string_aspect_value(&format!("e{index}")),
+                        )])
                     })
                     .collect(),
             }),

@@ -41,6 +41,15 @@ pub(crate) fn entity_i64_field_aspect(name: &str, field: &str) -> DeclaredAspect
     }
 }
 
+pub(crate) fn entity_bool_field_aspect(name: &str, field: &str) -> DeclaredAspect {
+    DeclaredAspect {
+        binding: AspectBinding::EntityField {
+            field: test_field_key(field),
+        },
+        contract: scalar_bool_contract(name),
+    }
+}
+
 pub(crate) fn entity_summary_struct_aspect(name: &str, field: &str) -> DeclaredAspect {
     let shape = aspects()
         .struct_fields()
@@ -112,6 +121,20 @@ fn scalar_string_contract(name: &str) -> forge_foundational::AspectContract {
         .identified_by(AspectIdentity(test_contract_identity(name)))
         .at_revision(aspects().vocabulary().revision(1))
         .scalar(ScalarAspectType::String)
+}
+
+fn scalar_bool_contract(name: &str) -> forge_foundational::AspectContract {
+    aspects()
+        .contract()
+        .for_key(
+            aspects()
+                .vocabulary()
+                .key(name)
+                .expect("valid foundational aspect key"),
+        )
+        .identified_by(AspectIdentity(test_contract_identity(name)))
+        .at_revision(aspects().vocabulary().revision(1))
+        .scalar(ScalarAspectType::Bool)
 }
 
 fn scalar_u64_contract(name: &str) -> forge_foundational::AspectContract {

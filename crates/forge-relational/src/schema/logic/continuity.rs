@@ -569,7 +569,7 @@ fn compare_detail_canonically(
 ) -> Ordering {
     detail_sort_key(left)
         .cmp(&detail_sort_key(right))
-        .then_with(|| detail_cmp_payload(left, right))
+        .then_with(|| compare_detail_terms(left, right))
 }
 
 fn detail_sort_key(detail: &CanonicalSchemaDiffDetail<'_>) -> u8 {
@@ -585,7 +585,7 @@ fn detail_sort_key(detail: &CanonicalSchemaDiffDetail<'_>) -> u8 {
     }
 }
 
-fn detail_cmp_payload(
+fn compare_detail_terms(
     left: &CanonicalSchemaDiffDetail<'_>,
     right: &CanonicalSchemaDiffDetail<'_>,
 ) -> Ordering {

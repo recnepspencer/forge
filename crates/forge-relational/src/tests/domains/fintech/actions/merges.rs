@@ -1,5 +1,3 @@
-use serde_json::json;
-
 use crate::facade::history::BranchId;
 use crate::facade::transactions::{
     CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions,
@@ -23,15 +21,30 @@ pub(crate) fn diverge_case_trade_on_branch(
         WorkerIntentBatch::new("diverge-case-trade").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: case.trade,
-                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
-                    "entity_type": "trade",
-                    "case": format!("{:?}", case.role),
-                    "desk": "analysis-branch",
-                    "book": "branch-divergence",
-                    "notional": notional,
-                    "ccy": "USD",
-                    "diverged": true,
-                })),
+                fields: crate::tests::support::aspect_field_patch_from_values([
+                    (
+                        "entity_type",
+                        crate::tests::support::string_aspect_value("trade"),
+                    ),
+                    (
+                        "case",
+                        crate::tests::support::string_aspect_value(&format!("{:?}", case.role)),
+                    ),
+                    (
+                        "desk",
+                        crate::tests::support::string_aspect_value("analysis-branch"),
+                    ),
+                    (
+                        "book",
+                        crate::tests::support::string_aspect_value("branch-divergence"),
+                    ),
+                    (
+                        "notional",
+                        crate::tests::support::fixture_i64_number_aspect_value(notional),
+                    ),
+                    ("ccy", crate::tests::support::string_aspect_value("USD")),
+                    ("diverged", crate::tests::support::bool_aspect_value(true)),
+                ]),
             }),
         )),
     );

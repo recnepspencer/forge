@@ -1,5 +1,3 @@
-use serde_json::json;
-
 use crate::facade::history::BranchId;
 use crate::facade::transactions::{
     CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions,
@@ -21,14 +19,26 @@ pub(crate) fn shock_market_on_branch(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
                     entity_id: *market_point,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({
-                            "entity_type": "market_point",
-                            "curve_bucket": idx,
-                        "mid": 102_00 + (idx as i64 * 40),
-                            "stress_regime": "intraday-shock",
-                        }),
-                    ),
+                    fields: crate::tests::support::aspect_field_patch_from_values([
+                        (
+                            "entity_type",
+                            crate::tests::support::string_aspect_value("market_point"),
+                        ),
+                        (
+                            "curve_bucket",
+                            crate::tests::support::usize_aspect_value(idx),
+                        ),
+                        (
+                            "mid",
+                            crate::tests::support::fixture_i64_number_aspect_value(
+                                102_00 + (idx as i64 * 40),
+                            ),
+                        ),
+                        (
+                            "stress_regime",
+                            crate::tests::support::string_aspect_value("intraday-shock"),
+                        ),
+                    ]),
                 },
             )),
         ));
@@ -47,14 +57,21 @@ pub(crate) fn refresh_risk_views(world: &mut FintechWorld, branch_id: BranchId) 
                 MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                     UpdateEntityFieldsIntent {
                         entity_id: *risk_view,
-                        fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                            json!({
-                                "entity_type": "risk_view",
-                                "scenario": "intraday-shock",
-                                "trade_index": idx,
-                                "refreshed": true,
-                            }),
-                        ),
+                        fields: crate::tests::support::aspect_field_patch_from_values([
+                            (
+                                "entity_type",
+                                crate::tests::support::string_aspect_value("risk_view"),
+                            ),
+                            (
+                                "scenario",
+                                crate::tests::support::string_aspect_value("intraday-shock"),
+                            ),
+                            (
+                                "trade_index",
+                                crate::tests::support::usize_aspect_value(idx),
+                            ),
+                            ("refreshed", crate::tests::support::bool_aspect_value(true)),
+                        ]),
                     },
                 ))
                 .into(),
@@ -78,15 +95,22 @@ pub(crate) fn stress_seeded_intraday_risk(
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
                     entity_id: case.market_point,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({
-                            "entity_type": "market_point",
-                            "case": "intraday-risk",
-                            "curve_bucket": 2,
-                            "mid": 103_75,
-                            "stress_regime": "intraday-shock",
-                        }),
-                    ),
+                    fields: crate::tests::support::aspect_field_patch_from_values([
+                        (
+                            "entity_type",
+                            crate::tests::support::string_aspect_value("market_point"),
+                        ),
+                        (
+                            "case",
+                            crate::tests::support::string_aspect_value("intraday-risk"),
+                        ),
+                        ("curve_bucket", crate::tests::support::u64_aspect_value(2)),
+                        ("mid", crate::tests::support::u64_aspect_value(103_75)),
+                        (
+                            "stress_regime",
+                            crate::tests::support::string_aspect_value("intraday-shock"),
+                        ),
+                    ]),
                 },
             )))
             .into(),
@@ -96,15 +120,25 @@ pub(crate) fn stress_seeded_intraday_risk(
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
                     entity_id: case.risk_view,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({
-                            "entity_type": "risk_view",
-                            "case": "intraday-risk",
-                            "scenario": "intraday-shock",
-                            "limit_status": "breached",
-                            "refreshed": true,
-                        }),
-                    ),
+                    fields: crate::tests::support::aspect_field_patch_from_values([
+                        (
+                            "entity_type",
+                            crate::tests::support::string_aspect_value("risk_view"),
+                        ),
+                        (
+                            "case",
+                            crate::tests::support::string_aspect_value("intraday-risk"),
+                        ),
+                        (
+                            "scenario",
+                            crate::tests::support::string_aspect_value("intraday-shock"),
+                        ),
+                        (
+                            "limit_status",
+                            crate::tests::support::string_aspect_value("breached"),
+                        ),
+                        ("refreshed", crate::tests::support::bool_aspect_value(true)),
+                    ]),
                 },
             )))
             .into(),
@@ -114,14 +148,24 @@ pub(crate) fn stress_seeded_intraday_risk(
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
                     entity_id: case.limit,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({
-                            "entity_type": "limit",
-                            "case": "intraday-risk",
-                            "threshold_bps": 140,
-                            "breach_state": "open",
-                        }),
-                    ),
+                    fields: crate::tests::support::aspect_field_patch_from_values([
+                        (
+                            "entity_type",
+                            crate::tests::support::string_aspect_value("limit"),
+                        ),
+                        (
+                            "case",
+                            crate::tests::support::string_aspect_value("intraday-risk"),
+                        ),
+                        (
+                            "threshold_bps",
+                            crate::tests::support::u64_aspect_value(140),
+                        ),
+                        (
+                            "breach_state",
+                            crate::tests::support::string_aspect_value("open"),
+                        ),
+                    ]),
                 },
             )))
             .into(),

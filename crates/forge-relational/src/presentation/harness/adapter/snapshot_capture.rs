@@ -12,7 +12,9 @@ use crate::transactions::data::RecordRef;
 
 use super::super::data::{RelationalFixture, RelationalHarnessAdapter};
 use super::super::targets::{parse_target, resolve_targets};
-use super::aspect_snapshot_payloads::{entity_snapshot_payload, relation_snapshot_payload};
+use super::aspect_snapshot_binaries::{
+    entity_aspect_snapshot_binary, relation_aspect_snapshot_binary,
+};
 
 pub(super) fn capture_snapshot(
     _adapter: &RelationalHarnessAdapter,
@@ -56,11 +58,11 @@ fn capture_target_snapshot(
     let snapshot_value = match parse_target(&target)? {
         RecordRef::Entity(entity_id) => read_view
             .get_entity(entity_id)
-            .map(entity_snapshot_payload)
+            .map(entity_aspect_snapshot_binary)
             .transpose()?,
         RecordRef::Relation(relation_id) => read_view
             .get_relation(relation_id)
-            .map(relation_snapshot_payload)
+            .map(relation_aspect_snapshot_binary)
             .transpose()?,
     };
     let (status, detail) = match snapshot_value {

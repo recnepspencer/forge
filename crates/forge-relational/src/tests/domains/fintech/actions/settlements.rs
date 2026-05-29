@@ -1,5 +1,3 @@
-use serde_json::json;
-
 use crate::facade::history::BranchId;
 use crate::facade::identity::EntityId;
 use crate::facade::transactions::{
@@ -39,14 +37,24 @@ pub(crate) fn repair_settlement_with_aspect_field_patches(
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
                     entity_id: settlement_id,
-                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
-                        json!({
-                            "entity_type": "settlement",
-                            "case": "failed-settlement-repair",
-                            "status": "repaired",
-                            "repair_completed": true,
-                        }),
-                    ),
+                    fields: crate::tests::support::aspect_field_patch_from_values([
+                        (
+                            "entity_type",
+                            crate::tests::support::string_aspect_value("settlement"),
+                        ),
+                        (
+                            "case",
+                            crate::tests::support::string_aspect_value("failed-settlement-repair"),
+                        ),
+                        (
+                            "status",
+                            crate::tests::support::string_aspect_value("repaired"),
+                        ),
+                        (
+                            "repair_completed",
+                            crate::tests::support::bool_aspect_value(true),
+                        ),
+                    ]),
                 },
             )))
             .into(),

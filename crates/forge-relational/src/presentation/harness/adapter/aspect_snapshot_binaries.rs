@@ -19,7 +19,7 @@ const RECORD_KIND_RELATION: u8 = 2;
 const ASPECT_VALUE_SCALAR: u8 = 1;
 const ASPECT_VALUE_STRUCT: u8 = 2;
 
-pub(super) fn entity_snapshot_payload(
+pub(super) fn entity_aspect_snapshot_binary(
     record: &EntityReadRecord,
 ) -> Result<SnapshotPayload, RelationalHarnessError> {
     let mut encoder = AspectSnapshotPayloadEncoder::new(RECORD_KIND_ENTITY);
@@ -30,10 +30,10 @@ pub(super) fn entity_snapshot_payload(
     encoder.optional_u64(record.retired_at_version.map(|version| version.0));
     encoder.authoritative_aspect_state(record.authoritative_aspect_state.as_ref())?;
     encoder.comparison_keys(&record.authoritative_field_key_comparison_keys);
-    Ok(binary_snapshot_payload(encoder.finish()))
+    Ok(snapshot_binary_payload(encoder.finish()))
 }
 
-pub(super) fn relation_snapshot_payload(
+pub(super) fn relation_aspect_snapshot_binary(
     record: &RelationReadRecord,
 ) -> Result<SnapshotPayload, RelationalHarnessError> {
     let mut encoder = AspectSnapshotPayloadEncoder::new(RECORD_KIND_RELATION);
@@ -46,10 +46,10 @@ pub(super) fn relation_snapshot_payload(
     encoder.optional_u64(record.retired_at_version.map(|version| version.0));
     encoder.authoritative_aspect_state(record.authoritative_aspect_state.as_ref())?;
     encoder.comparison_keys(&record.authoritative_field_key_comparison_keys);
-    Ok(binary_snapshot_payload(encoder.finish()))
+    Ok(snapshot_binary_payload(encoder.finish()))
 }
 
-fn binary_snapshot_payload(bytes: Vec<u8>) -> SnapshotPayload {
+fn snapshot_binary_payload(bytes: Vec<u8>) -> SnapshotPayload {
     SnapshotPayload::Binary(BinaryValue {
         media_type: SNAPSHOT_MEDIA_TYPE.to_string(),
         content_hash: Some(sha256_hex(&bytes)),

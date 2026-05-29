@@ -17,7 +17,7 @@ pub(super) fn resolve_entity_field_patch_target<'a>(
     lowered_plan: &'a LoweredAspectPlan,
     target: &AspectFieldPatchTarget,
 ) -> Result<EntityFieldPatchTarget<'a>, EntityFieldAspectPatchDenial> {
-    let field_name = single_field_path_key(target.field_path())?;
+    let field_key = single_field_path_key(target.field_path())?;
     let Some((binding_index, binding)) = lowered_plan
         .executable_bindings
         .iter()
@@ -30,15 +30,15 @@ pub(super) fn resolve_entity_field_patch_target<'a>(
     };
 
     match &binding.binding_kind {
-        LoweredExecutableAspectBindingKind::EntityFieldScalar { field } if field == field_name => {
+        LoweredExecutableAspectBindingKind::EntityFieldScalar { field } if field == field_key => {
             Ok(EntityFieldPatchTarget::Scalar(binding))
         }
         LoweredExecutableAspectBindingKind::EntityFieldStruct { .. }
-            if entity_struct_contract_declares_field(binding, field_name) =>
+            if entity_struct_contract_declares_field(binding, field_key) =>
         {
             Ok(EntityFieldPatchTarget::StructField {
                 binding_index,
-                field: field_name.clone(),
+                field: field_key.clone(),
             })
         }
         _ => Err(
@@ -64,7 +64,7 @@ fn single_field_path_key(
 
 fn entity_struct_contract_declares_field(
     binding: &LoweredAspectBinding,
-    field_name: &FieldKey,
+    field_key: &FieldKey,
 ) -> bool {
     if !matches!(
         &binding.binding_kind,
@@ -75,5 +75,5 @@ fn entity_struct_contract_declares_field(
     let AspectShape::Struct(shape) = binding.contract.shape() else {
         return false;
     };
-    shape.field(field_name).is_some()
+    shape.field(field_key).is_some()
 }
