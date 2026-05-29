@@ -1,112 +1,169 @@
-use serde_json::{Map, Value};
-
 use crate::publication::data::{PublicationArtifactSnapshot, PublicationObservationSnapshot};
 use crate::snapshots::data::SnapshotHandle;
+
+use super::harness_summary_value::{
+    harness_summary_bool, harness_summary_object, harness_summary_u64, harness_summary_usize,
+    optional_harness_summary_string, optional_harness_summary_u64, optional_harness_summary_usize,
+    HarnessSummaryValue,
+};
 
 pub(super) fn run_summary(
     snapshot: &SnapshotHandle,
     entity_hits: usize,
     relation_hits: usize,
-) -> Value {
-    Value::Object(Map::from_iter([
-        (
-            "snapshot_id".to_string(),
-            Value::from(snapshot.snapshot_id.0),
-        ),
-        ("entity_hits".to_string(), Value::from(entity_hits as u64)),
-        (
-            "relation_hits".to_string(),
-            Value::from(relation_hits as u64),
-        ),
-    ]))
+) -> HarnessSummaryValue {
+    RunSummary::from_snapshot_read(snapshot, entity_hits, relation_hits)
+        .into_harness_summary_value()
 }
 
 pub(super) fn publication_artifacts_extension(
     publication_artifacts: PublicationArtifactSnapshot,
-) -> Value {
-    Value::Object(Map::from_iter([
-        (
-            "observation".to_string(),
-            publication_observation_fields(&publication_artifacts.observation),
-        ),
-        (
-            "latest_patch_record_count".to_string(),
-            Value::from(
-                publication_artifacts
-                    .latest_patch
-                    .as_ref()
-                    .map(|patch| patch.records.len())
-                    .unwrap_or_default() as u64,
-            ),
-        ),
-        (
-            "latest_replay_present".to_string(),
-            Value::Bool(publication_artifacts.latest_replay.is_some()),
-        ),
-    ]))
+) -> HarnessSummaryValue {
+    PublicationArtifactsExtension::from_snapshot(publication_artifacts).into_harness_summary_value()
 }
 
 pub(super) fn publication_observation_fields(
     observation: &PublicationObservationSnapshot,
-) -> Value {
-    Value::Object(Map::from_iter([
-        (
-            "latest_commit_id".to_string(),
-            observation
-                .latest_commit_id
-                .map(|commit_id| Value::from(commit_id.0))
-                .unwrap_or(Value::Null),
-        ),
-        (
-            "publication_snapshot_id".to_string(),
-            observation
-                .publication_snapshot_id
-                .map(|snapshot_id| Value::from(snapshot_id.0))
-                .unwrap_or(Value::Null),
-        ),
-        (
-            "publication_status".to_string(),
-            observation
-                .publication_status
-                .as_ref()
-                .map(|status| Value::String(format!("{status:?}")))
-                .unwrap_or(Value::Null),
-        ),
-        (
-            "latest_patch_position".to_string(),
-            observation
-                .latest_patch_position
-                .map(|position| Value::from(position.0))
-                .unwrap_or(Value::Null),
-        ),
-        (
-            "latest_patch_record_count".to_string(),
-            optional_usize(observation.latest_patch_record_count),
-        ),
-        (
-            "latest_replay_commit_id".to_string(),
-            observation
-                .latest_replay_commit_id
-                .map(|commit_id| Value::from(commit_id.0))
-                .unwrap_or(Value::Null),
-        ),
-        (
-            "latest_patch_present".to_string(),
-            Value::Bool(observation.latest_patch_present),
-        ),
-        (
-            "latest_replay_present".to_string(),
-            Value::Bool(observation.latest_replay_present),
-        ),
-        (
-            "diagnostics_artifact_count".to_string(),
-            Value::from(observation.diagnostics_artifact_count as u64),
-        ),
-    ]))
+) -> HarnessSummaryValue {
+    PublicationObservationSummary::from_observation(observation).into_harness_summary_value()
 }
 
-fn optional_usize(value: Option<usize>) -> Value {
-    value
-        .map(|count| Value::from(count as u64))
-        .unwrap_or(Value::Null)
+struct RunSummary {
+    snapshot_id: u64,
+    entity_hits: usize,
+    relation_hits: usize,
+}
+
+impl RunSummary {
+    fn from_snapshot_read(
+        snapshot: &SnapshotHandle,
+        entity_hits: usize,
+        relation_hits: usize,
+    ) -> Self {
+        Self {
+            snapshot_id: snapshot.snapshot_id.0,
+            entity_hits,
+            relation_hits,
+        }
+    }
+
+    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+        harness_summary_object([
+            ("snapshot_id", harness_summary_u64(self.snapshot_id)),
+            ("entity_hits", harness_summary_usize(self.entity_hits)),
+            ("relation_hits", harness_summary_usize(self.relation_hits)),
+        ])
+    }
+}
+
+struct PublicationArtifactsExtension {
+    observation: PublicationObservationSummary,
+    latest_patch_record_count: usize,
+    latest_replay_present: bool,
+}
+
+impl PublicationArtifactsExtension {
+    fn from_snapshot(publication_artifacts: PublicationArtifactSnapshot) -> Self {
+        Self {
+            observation: PublicationObservationSummary::from_observation(
+                &publication_artifacts.observation,
+            ),
+            latest_patch_record_count: publication_artifacts
+                .latest_patch
+                .as_ref()
+                .map(|patch| patch.records.len())
+                .unwrap_or_default(),
+            latest_replay_present: publication_artifacts.latest_replay.is_some(),
+        }
+    }
+
+    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+        harness_summary_object([
+            ("observation", self.observation.into_harness_summary_value()),
+            (
+                "latest_patch_record_count",
+                harness_summary_usize(self.latest_patch_record_count),
+            ),
+            (
+                "latest_replay_present",
+                harness_summary_bool(self.latest_replay_present),
+            ),
+        ])
+    }
+}
+
+struct PublicationObservationSummary {
+    latest_commit_id: Option<u64>,
+    publication_snapshot_id: Option<u64>,
+    publication_status: Option<String>,
+    latest_patch_position: Option<u64>,
+    latest_patch_record_count: Option<usize>,
+    latest_replay_commit_id: Option<u64>,
+    latest_patch_present: bool,
+    latest_replay_present: bool,
+    diagnostics_artifact_count: usize,
+}
+
+impl PublicationObservationSummary {
+    fn from_observation(observation: &PublicationObservationSnapshot) -> Self {
+        Self {
+            latest_commit_id: observation.latest_commit_id.map(|commit_id| commit_id.0),
+            publication_snapshot_id: observation
+                .publication_snapshot_id
+                .map(|snapshot_id| snapshot_id.0),
+            publication_status: observation
+                .publication_status
+                .as_ref()
+                .map(|status| format!("{status:?}")),
+            latest_patch_position: observation.latest_patch_position.map(|position| position.0),
+            latest_patch_record_count: observation.latest_patch_record_count,
+            latest_replay_commit_id: observation
+                .latest_replay_commit_id
+                .map(|commit_id| commit_id.0),
+            latest_patch_present: observation.latest_patch_present,
+            latest_replay_present: observation.latest_replay_present,
+            diagnostics_artifact_count: observation.diagnostics_artifact_count,
+        }
+    }
+
+    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+        harness_summary_object([
+            (
+                "latest_commit_id",
+                optional_harness_summary_u64(self.latest_commit_id),
+            ),
+            (
+                "publication_snapshot_id",
+                optional_harness_summary_u64(self.publication_snapshot_id),
+            ),
+            (
+                "publication_status",
+                optional_harness_summary_string(self.publication_status),
+            ),
+            (
+                "latest_patch_position",
+                optional_harness_summary_u64(self.latest_patch_position),
+            ),
+            (
+                "latest_patch_record_count",
+                optional_harness_summary_usize(self.latest_patch_record_count),
+            ),
+            (
+                "latest_replay_commit_id",
+                optional_harness_summary_u64(self.latest_replay_commit_id),
+            ),
+            (
+                "latest_patch_present",
+                harness_summary_bool(self.latest_patch_present),
+            ),
+            (
+                "latest_replay_present",
+                harness_summary_bool(self.latest_replay_present),
+            ),
+            (
+                "diagnostics_artifact_count",
+                harness_summary_usize(self.diagnostics_artifact_count),
+            ),
+        ])
+    }
 }

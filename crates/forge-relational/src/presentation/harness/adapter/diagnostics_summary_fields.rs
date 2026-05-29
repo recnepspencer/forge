@@ -1,9 +1,11 @@
-use serde_json::{Map, Value};
-
 use crate::logic::planning::RelationalExecutionModel;
 use crate::performance::data::RuntimeComplexityCounters;
 use crate::publication::data::PublicationDiagnosticsSnapshot;
 
+use super::harness_summary_value::{
+    harness_summary_array, harness_summary_object, harness_summary_projected_value,
+    harness_summary_string, harness_summary_usize, HarnessSummaryValue,
+};
 use super::run_summary_fields::publication_observation_fields;
 
 pub(super) fn diagnostics_summary(
@@ -11,75 +13,278 @@ pub(super) fn diagnostics_summary(
     runtime_execution_model: RelationalExecutionModel,
     performance_counters: RuntimeComplexityCounters,
     publication_diagnostics: PublicationDiagnosticsSnapshot,
-) -> Value {
-    Value::Object(Map::from_iter([
-        (
-            "execution_mode".to_string(),
-            Value::String(format!("{execution_mode:?}")),
-        ),
-        (
-            "runtime_execution_model".to_string(),
-            Value::String(format!("{runtime_execution_model:?}")),
-        ),
-        (
-            "performance_counters".to_string(),
-            performance_counter_summary(performance_counters),
-        ),
-        (
-            "publication_diagnostics".to_string(),
-            publication_diagnostic_summary(publication_diagnostics),
-        ),
-    ]))
+) -> HarnessSummaryValue {
+    DiagnosticsSummary::new(
+        execution_mode,
+        runtime_execution_model,
+        performance_counters,
+        publication_diagnostics,
+    )
+    .into_harness_summary_value()
 }
 
-fn performance_counter_summary(counters: RuntimeComplexityCounters) -> Value {
-    Value::Object(Map::from_iter([
-        (
-            "query_packet_count".to_string(),
-            Value::from(counters.query_packet_count as u64),
-        ),
-        (
-            "query_packet_item_count".to_string(),
-            Value::from(counters.query_packet_item_count as u64),
-        ),
-        (
-            "preparation_packet_count".to_string(),
-            Value::from(counters.preparation_packet_count as u64),
-        ),
-        (
-            "post_commit_consumer_packet_count".to_string(),
-            Value::from(counters.post_commit_consumer_packet_count as u64),
-        ),
-        (
-            "replay_digest_parity_checks".to_string(),
-            Value::from(counters.replay_digest_parity_checks as u64),
-        ),
-        (
-            "replay_summary_parity_checks".to_string(),
-            Value::from(counters.replay_summary_parity_checks as u64),
-        ),
-    ]))
+struct DiagnosticsSummary {
+    execution_mode: forge_harness::facade::ExecutionMode,
+    runtime_execution_model: RelationalExecutionModel,
+    performance_counters: PerformanceCounterSummary,
+    publication_diagnostics: PublicationDiagnosticSummary,
 }
 
-fn publication_diagnostic_summary(diagnostics: PublicationDiagnosticsSnapshot) -> Value {
-    Value::Object(Map::from_iter([
-        (
-            "observation".to_string(),
-            publication_observation_fields(&diagnostics.observation),
-        ),
-        (
-            "diagnostic_artifact_count".to_string(),
-            Value::from(diagnostics.diagnostics.len() as u64),
-        ),
-        (
-            "diagnostic_entry_count".to_string(),
-            Value::from(
-                diagnostics
-                    .diagnostics
-                    .iter()
-                    .map(|artifact| artifact.entries.len())
-                    .sum::<usize>() as u64,
+impl DiagnosticsSummary {
+    fn new(
+        execution_mode: forge_harness::facade::ExecutionMode,
+        runtime_execution_model: RelationalExecutionModel,
+        performance_counters: RuntimeComplexityCounters,
+        publication_diagnostics: PublicationDiagnosticsSnapshot,
+    ) -> Self {
+        Self {
+            execution_mode,
+            runtime_execution_model,
+            performance_counters: PerformanceCounterSummary::from_counters(performance_counters),
+            publication_diagnostics: PublicationDiagnosticSummary::from_snapshot(
+                publication_diagnostics,
             ),
-        ),
-    ]))
+        }
+    }
+
+    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+        harness_summary_object([
+            (
+                "execution_mode",
+                harness_summary_string(format!("{:?}", self.execution_mode)),
+            ),
+            (
+                "runtime_execution_model",
+                harness_summary_string(format!("{:?}", self.runtime_execution_model)),
+            ),
+            (
+                "performance_counters",
+                self.performance_counters.into_harness_summary_value(),
+            ),
+            (
+                "publication_diagnostics",
+                self.publication_diagnostics.into_harness_summary_value(),
+            ),
+        ])
+    }
+}
+
+struct PerformanceCounterSummary {
+    query_packet_count: usize,
+    query_packet_item_count: usize,
+    preparation_packet_count: usize,
+    preparation_packet_item_count: usize,
+    preparation_packet_peak_width_total: usize,
+    preparation_scope_unit_count: usize,
+    preparation_serial_strategy_count: usize,
+    preparation_staged_parallel_strategy_count: usize,
+    post_commit_consumer_packet_count: usize,
+    post_commit_consumer_peak_width_total: usize,
+    post_commit_serial_strategy_count: usize,
+    post_commit_parallel_strategy_count: usize,
+    replay_digest_parity_checks: usize,
+    replay_summary_parity_checks: usize,
+}
+
+impl PerformanceCounterSummary {
+    fn from_counters(counters: RuntimeComplexityCounters) -> Self {
+        Self {
+            query_packet_count: counters.query_packet_count,
+            query_packet_item_count: counters.query_packet_item_count,
+            preparation_packet_count: counters.preparation_packet_count,
+            preparation_packet_item_count: counters.preparation_packet_item_count,
+            preparation_packet_peak_width_total: counters.preparation_packet_peak_width_total,
+            preparation_scope_unit_count: counters.preparation_scope_unit_count,
+            preparation_serial_strategy_count: counters.preparation_serial_strategy_count,
+            preparation_staged_parallel_strategy_count: counters
+                .preparation_staged_parallel_strategy_count,
+            post_commit_consumer_packet_count: counters.post_commit_consumer_packet_count,
+            post_commit_consumer_peak_width_total: counters.post_commit_consumer_peak_width_total,
+            post_commit_serial_strategy_count: counters.post_commit_serial_strategy_count,
+            post_commit_parallel_strategy_count: counters.post_commit_parallel_strategy_count,
+            replay_digest_parity_checks: counters.replay_digest_parity_checks,
+            replay_summary_parity_checks: counters.replay_summary_parity_checks,
+        }
+    }
+
+    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+        harness_summary_object([
+            (
+                "query_packet_count",
+                harness_summary_usize(self.query_packet_count),
+            ),
+            (
+                "query_packet_item_count",
+                harness_summary_usize(self.query_packet_item_count),
+            ),
+            (
+                "preparation_packet_count",
+                harness_summary_usize(self.preparation_packet_count),
+            ),
+            (
+                "preparation_packet_item_count",
+                harness_summary_usize(self.preparation_packet_item_count),
+            ),
+            (
+                "preparation_packet_peak_width_total",
+                harness_summary_usize(self.preparation_packet_peak_width_total),
+            ),
+            (
+                "preparation_scope_unit_count",
+                harness_summary_usize(self.preparation_scope_unit_count),
+            ),
+            (
+                "preparation_serial_strategy_count",
+                harness_summary_usize(self.preparation_serial_strategy_count),
+            ),
+            (
+                "preparation_staged_parallel_strategy_count",
+                harness_summary_usize(self.preparation_staged_parallel_strategy_count),
+            ),
+            (
+                "post_commit_consumer_packet_count",
+                harness_summary_usize(self.post_commit_consumer_packet_count),
+            ),
+            (
+                "post_commit_consumer_peak_width_total",
+                harness_summary_usize(self.post_commit_consumer_peak_width_total),
+            ),
+            (
+                "post_commit_serial_strategy_count",
+                harness_summary_usize(self.post_commit_serial_strategy_count),
+            ),
+            (
+                "post_commit_parallel_strategy_count",
+                harness_summary_usize(self.post_commit_parallel_strategy_count),
+            ),
+            (
+                "replay_digest_parity_checks",
+                harness_summary_usize(self.replay_digest_parity_checks),
+            ),
+            (
+                "replay_summary_parity_checks",
+                harness_summary_usize(self.replay_summary_parity_checks),
+            ),
+        ])
+    }
+}
+
+struct PublicationDiagnosticSummary {
+    observation: crate::publication::data::PublicationObservationSnapshot,
+    diagnostic_artifacts: Vec<DiagnosticArtifactSummary>,
+    diagnostic_artifact_count: usize,
+    diagnostic_entry_count: usize,
+}
+
+impl PublicationDiagnosticSummary {
+    fn from_snapshot(diagnostics: PublicationDiagnosticsSnapshot) -> Self {
+        let observation = diagnostics.observation;
+        let diagnostic_artifacts = diagnostics
+            .diagnostics
+            .into_iter()
+            .map(DiagnosticArtifactSummary::from_artifact)
+            .collect::<Vec<_>>();
+        let diagnostic_artifact_count = diagnostic_artifacts.len();
+        let diagnostic_entry_count = diagnostic_artifacts
+            .iter()
+            .map(|artifact| artifact.entry_count())
+            .sum();
+        Self {
+            observation,
+            diagnostic_artifacts,
+            diagnostic_artifact_count,
+            diagnostic_entry_count,
+        }
+    }
+
+    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+        harness_summary_object([
+            (
+                "observation",
+                publication_observation_fields(&self.observation),
+            ),
+            (
+                "diagnostics",
+                harness_summary_array(
+                    self.diagnostic_artifacts
+                        .into_iter()
+                        .map(DiagnosticArtifactSummary::into_harness_summary_value),
+                ),
+            ),
+            (
+                "diagnostic_artifact_count",
+                harness_summary_usize(self.diagnostic_artifact_count),
+            ),
+            (
+                "diagnostic_entry_count",
+                harness_summary_usize(self.diagnostic_entry_count),
+            ),
+        ])
+    }
+}
+
+struct DiagnosticArtifactSummary {
+    scope: String,
+    kind: String,
+    determinism: String,
+    entries: Vec<DiagnosticEntrySummary>,
+}
+
+impl DiagnosticArtifactSummary {
+    fn from_artifact(artifact: crate::diagnostics::data::RelationalDiagnosticArtifact) -> Self {
+        Self {
+            scope: format!("{:?}", artifact.scope),
+            kind: format!("{:?}", artifact.kind),
+            determinism: format!("{:?}", artifact.determinism),
+            entries: artifact
+                .entries
+                .into_iter()
+                .map(DiagnosticEntrySummary::from_entry)
+                .collect(),
+        }
+    }
+
+    fn entry_count(&self) -> usize {
+        self.entries.len()
+    }
+
+    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+        harness_summary_object([
+            ("scope", harness_summary_string(self.scope)),
+            ("kind", harness_summary_string(self.kind)),
+            ("determinism", harness_summary_string(self.determinism)),
+            (
+                "entries",
+                harness_summary_array(
+                    self.entries
+                        .into_iter()
+                        .map(DiagnosticEntrySummary::into_harness_summary_value),
+                ),
+            ),
+        ])
+    }
+}
+
+struct DiagnosticEntrySummary {
+    code: String,
+    message: String,
+    fields: HarnessSummaryValue,
+}
+
+impl DiagnosticEntrySummary {
+    fn from_entry(entry: crate::diagnostics::data::RelationalDiagnosticsEntry) -> Self {
+        Self {
+            code: format!("{:?}", entry.code),
+            message: entry.message,
+            fields: entry.fields.root_value().clone(),
+        }
+    }
+
+    fn into_harness_summary_value(self) -> HarnessSummaryValue {
+        harness_summary_object([
+            ("code", harness_summary_string(self.code)),
+            ("message", harness_summary_string(self.message)),
+            ("fields", harness_summary_projected_value(self.fields)),
+        ])
+    }
 }

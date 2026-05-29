@@ -1128,40 +1128,79 @@ fn harness_phase8_fixture_batch_request() -> (
     (fixture, batch, request)
 }
 
-fn harness_diagnostic_entries<'a>(
-    summary: &'a serde_json::Value,
-    code: &str,
-) -> Vec<&'a serde_json::Value> {
-    summary["publication_diagnostics"]["diagnostics"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .flat_map(|artifact| artifact["entries"].as_array().into_iter().flatten())
-        .filter(|entry| harness_diagnostic_code_matches(entry, code))
-        .collect()
+type HarnessSummaryJson = serde_json::Value;
+
+struct HarnessDiagnosticsSummaryView<'summary> {
+    root: &'summary HarnessSummaryJson,
 }
 
-fn harness_diagnostic_code_matches(entry: &serde_json::Value, code: &str) -> bool {
-    entry["code"].as_str() == Some(code)
+impl<'summary> HarnessDiagnosticsSummaryView<'summary> {
+    fn new(root: &'summary HarnessSummaryJson) -> Self {
+        Self { root }
+    }
+
+    fn diagnostic_entries(&self, code: &str) -> Vec<HarnessDiagnosticEntryView<'summary>> {
+        self.root["publication_diagnostics"]["diagnostics"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .flat_map(|artifact| artifact["entries"].as_array().into_iter().flatten())
+            .map(HarnessDiagnosticEntryView::new)
+            .filter(|entry| entry.code_matches(code))
+            .collect()
+    }
+
+    fn field(&self, field: &str) -> Option<&'summary str> {
+        self.root[field].as_str()
+    }
+
+    fn counter(&self, counter: &str) -> Option<u64> {
+        self.root["performance_counters"][counter].as_u64()
+    }
+}
+
+struct HarnessDiagnosticEntryView<'summary> {
+    root: &'summary HarnessSummaryJson,
+}
+
+impl<'summary> HarnessDiagnosticEntryView<'summary> {
+    fn new(root: &'summary HarnessSummaryJson) -> Self {
+        Self { root }
+    }
+
+    fn code_matches(&self, code: &str) -> bool {
+        self.root["code"].as_str() == Some(code)
+    }
+
+    fn field_matches(&self, field: &str, expected: &str) -> bool {
+        self.root["fields"][field].as_str() == Some(expected)
+    }
+}
+
+fn harness_diagnostic_entries<'summary>(
+    summary: &'summary HarnessSummaryJson,
+    code: &str,
+) -> Vec<HarnessDiagnosticEntryView<'summary>> {
+    HarnessDiagnosticsSummaryView::new(summary).diagnostic_entries(code)
 }
 
 fn harness_diagnostic_field_matches(
-    entry: &serde_json::Value,
+    entry: &HarnessDiagnosticEntryView<'_>,
     field: &str,
     expected: &str,
 ) -> bool {
-    entry["fields"][field].as_str() == Some(expected)
+    entry.field_matches(field, expected)
 }
 
 fn harness_summary_field<'summary>(
-    summary: &'summary serde_json::Value,
+    summary: &'summary HarnessSummaryJson,
     field: &str,
 ) -> Option<&'summary str> {
-    summary[field].as_str()
+    HarnessDiagnosticsSummaryView::new(summary).field(field)
 }
 
-fn harness_summary_counter(summary: &serde_json::Value, counter: &str) -> Option<u64> {
-    summary["performance_counters"][counter].as_u64()
+fn harness_summary_counter(summary: &HarnessSummaryJson, counter: &str) -> Option<u64> {
+    HarnessDiagnosticsSummaryView::new(summary).counter(counter)
 }
 
 fn certification_case<'a>(
