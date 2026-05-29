@@ -3,7 +3,6 @@ use forge_foundational::facade::{
     StructAspectValue,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::collections::BTreeMap;
 
 use crate::durability::data::{DurableCheckpointId, DurableSegmentId};
@@ -21,11 +20,11 @@ use crate::schema::data::{
 use crate::snapshots::data::SnapshotId;
 
 mod aspect_value_diagnostic_terms;
-mod serde_projection;
-mod serde_recovery;
+mod external_serde_projection;
 
-use serde_projection::diagnostic_value_to_serde_value;
-use serde_recovery::{canonicalize_serde_value, diagnostic_value_from_serde_value};
+use external_serde_projection::{
+    deserialize_diagnostic_fields, diagnostic_projection_equal, serialize_diagnostic_fields,
+};
 
 #[derive(Debug, Clone)]
 pub struct RelationalDiagnosticFields {
@@ -33,22 +32,12 @@ pub struct RelationalDiagnosticFields {
 }
 
 impl RelationalDiagnosticFields {
-    fn from_serde_projection(root: Value) -> Self {
-        let canonical_serde_projection = canonicalize_serde_value(&root);
-        let root = diagnostic_value_from_serde_value(&canonical_serde_projection);
-        Self { root }
-    }
-
     pub fn from_diagnostic_value(root: RelationalDiagnosticValue) -> Self {
         Self { root }
     }
 
     pub fn root(&self) -> &RelationalDiagnosticValue {
         &self.root
-    }
-
-    pub fn into_serde_projection(self) -> Value {
-        diagnostic_value_to_serde_value(&self.root)
     }
 }
 
@@ -126,7 +115,7 @@ impl Serialize for RelationalDiagnosticFields {
     where
         S: serde::Serializer,
     {
-        diagnostic_value_to_serde_value(&self.root).serialize(serializer)
+        serialize_diagnostic_fields(self, serializer)
     }
 }
 
@@ -135,7 +124,7 @@ impl<'de> Deserialize<'de> for RelationalDiagnosticFields {
     where
         D: serde::Deserializer<'de>,
     {
-        Value::deserialize(deserializer).map(Self::from_serde_projection)
+        deserialize_diagnostic_fields(deserializer)
     }
 }
 
@@ -147,7 +136,7 @@ impl From<RelationalDiagnosticValue> for RelationalDiagnosticFields {
 
 impl PartialEq for RelationalDiagnosticFields {
     fn eq(&self, other: &Self) -> bool {
-        diagnostic_value_to_serde_value(&self.root) == diagnostic_value_to_serde_value(&other.root)
+        diagnostic_projection_equal(&self.root, &other.root)
     }
 }
 
