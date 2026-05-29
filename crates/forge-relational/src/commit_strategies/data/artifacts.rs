@@ -720,10 +720,10 @@ mod tests {
         CommitStrategyVersion, PersistentArtifactName, StrategyCallerProvenance,
         StrategyExecutionDraft, StrategyExecutionResult, StrategyExecutionSummary,
         StrategyInputSchemaName, StrategyInputSchemaVersion, StrategyIntentName,
-        StrategyMutationProgram, StrategyOutputSchemaName, StrategyPacketContract,
-        StrategyReadContract, StrategyReadCostClass, StrategyReadLocalityClass,
-        StrategyReadScopeClass, StrategyRequestCanonicalization, StrategyRequestOrigin,
-        StrategyTraversalBasis,
+        StrategyLoweringSummary, StrategyMutationProgram, StrategyOutputSchemaName,
+        StrategyPacketContract, StrategyPreviewValidationCostSummary, StrategyReadContract,
+        StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
+        StrategyRequestCanonicalization, StrategyRequestOrigin, StrategyTraversalBasis,
     };
     use crate::facade::transactions::{
         CreateIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
@@ -768,7 +768,7 @@ mod tests {
                 StrategyInputSchemaName::new("intent.reconcile.input.v1"),
                 StrategyInputSchemaVersion(1),
                 StrategyRequestCanonicalization::NativeCanonicalBytesV1,
-                br#"{"replicas":3}"#.to_vec().into(),
+                b"replicas=3".to_vec().into(),
                 CanonicalStrategyInputDigest([9; 32]),
                 PersistentArtifactName::new("strategy.intent.reconcile.input"),
             ),
@@ -799,7 +799,7 @@ mod tests {
             StrategyExecutionResult::new(
                 CanonicalStrategyOutputArtifact::new(
                     StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-                    br#"{"status":"planned"}"#.to_vec(),
+                    b"status=planned".to_vec(),
                     PersistentArtifactName::new("strategy.intent.reconcile.output"),
                 ),
                 StrategyMutationProgram::new(vec![batch]),
@@ -809,7 +809,7 @@ mod tests {
     }
 
     #[test]
-    fn strategy_commit_artifact_bundle_roundtrip_preserves_verified_consistency() {
+    fn strategy_commit_artifact_bundle_carries_consistent_typed_artifacts() {
         let mut runtime = RelationalRuntimeBuilder::new()
             .schema_registry(crate::tests::support::test_schema_registry())
             .build();
@@ -825,24 +825,17 @@ mod tests {
             runtime.runtime_config(),
         );
 
-        let bytes = serde_json::to_vec(&bundle).expect("serialize strategy bundle");
-        let roundtripped: StrategyCommitArtifactBundle =
-            serde_json::from_slice(&bytes).expect("deserialize strategy bundle");
-
-        assert_eq!(roundtripped, bundle);
+        bundle.validate_consistency().expect("consistent bundle");
         assert_eq!(
-            roundtripped.merge_descriptor().semantic_name().as_str(),
+            bundle.merge_descriptor().semantic_name().as_str(),
             "strategy.intent.reconcile"
         );
         assert_eq!(
-            roundtripped
-                .replay_request()
-                .canonical_input()
-                .canonical_bytes(),
+            bundle.replay_request().canonical_input().canonical_bytes(),
             request.canonical_input().canonical_bytes()
         );
         assert_eq!(
-            roundtripped
+            bundle
                 .replay_descriptor()
                 .runtime_determinism_basis()
                 .schema_registry_digest(),
@@ -866,13 +859,25 @@ mod tests {
             &descriptor(),
             runtime.runtime_config(),
         );
-        let mut value = serde_json::to_value(&bundle).expect("bundle value");
-        value["lowering_summary"]["worker_batch_count"] = serde_json::json!(99);
+        let mut drifted_bundle = bundle.clone();
+        let summary = bundle.lowering_summary();
+        drifted_bundle.lowering_summary = StrategyLoweringSummary::new(
+            99,
+            summary.total_intent_count(),
+            summary.touched_partition_count(),
+            summary.cross_partition_relation_count(),
+            summary.normalized_client_key_count(),
+            summary.lineage_transition_count(),
+            summary.entity_record_reads(),
+            summary.relation_record_reads(),
+            summary.projected_partition_reads(),
+        );
 
-        let error = serde_json::from_value::<StrategyCommitArtifactBundle>(value).unwrap_err();
-        assert!(error.to_string().contains(
+        let error = drifted_bundle.validate_consistency().unwrap_err();
+        assert_eq!(
+            error,
             "strategy lowering summary does not match strategy replay descriptor digest"
-        ));
+        );
     }
 
     #[test]
@@ -907,13 +912,21 @@ mod tests {
             None,
             crate::identity::data::VersionId(0),
         );
-        let mut value = serde_json::to_value(&bundle).expect("bundle value");
-        value["preview_validation_cost"]["post_mutation_preview_pass_count"] = serde_json::json!(3);
-
-        let error = serde_json::from_value::<StrategyCommitArtifactBundle>(value).unwrap_err();
-        assert!(error.to_string().contains(
-            "strategy preview validation cost does not match strategy replay descriptor digest"
+        let mut drifted_bundle = bundle.clone();
+        drifted_bundle.preview_validation_cost = Some(StrategyPreviewValidationCostSummary::new(
+            crate::identity::data::VersionId(1),
+            1,
+            1,
+            1,
+            0,
+            3,
         ));
+
+        let error = drifted_bundle.validate_consistency().unwrap_err();
+        assert_eq!(
+            error,
+            "strategy preview validation cost does not match strategy replay descriptor digest"
+        );
     }
 
     #[test]
@@ -942,7 +955,7 @@ mod tests {
     }
 
     #[test]
-    fn strategy_merge_descriptor_roundtrips_typed_intent_scope_targets() {
+    fn strategy_merge_descriptor_carries_typed_intent_scope_targets() {
         let field = FieldKey::new("replicas").expect("valid field");
         let target = AspectFieldPatchTarget::single(
             AspectKey::new("deployment.desired").expect("valid aspect"),
@@ -965,10 +978,6 @@ mod tests {
             lowering_summary_digest: [9; 32],
         };
 
-        let bytes = serde_json::to_vec(&descriptor).expect("serialize merge descriptor");
-        let roundtripped: StrategyMergeDescriptor =
-            serde_json::from_slice(&bytes).expect("deserialize merge descriptor");
-
-        assert_eq!(roundtripped.intent_scope_targets(), &[target]);
+        assert_eq!(descriptor.intent_scope_targets(), &[target]);
     }
 }

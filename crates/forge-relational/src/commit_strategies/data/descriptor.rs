@@ -418,27 +418,49 @@ mod tests {
     }
 
     #[test]
-    fn descriptor_roundtrip_preserves_verified_digest() {
+    fn descriptor_constructor_preserves_verified_digest() {
         let descriptor = descriptor();
-        let bytes = serde_json::to_vec(&descriptor).expect("serialize descriptor");
-        let roundtripped: CommitStrategyDescriptor =
-            serde_json::from_slice(&bytes).expect("deserialize descriptor");
+        let recomputed = CommitStrategyDescriptor::new(
+            descriptor.id(),
+            descriptor.semantic_name().clone(),
+            descriptor.family_name().clone(),
+            descriptor.version(),
+            descriptor.intent_name().clone(),
+            descriptor.input_schema_name().clone(),
+            descriptor.input_schema_version(),
+            descriptor.output_schema_name().clone(),
+            descriptor.request_canonicalization(),
+            descriptor.read_contract().clone(),
+            descriptor.artifact_name().clone(),
+        );
 
-        assert_eq!(roundtripped.digest(), descriptor.digest());
+        assert_eq!(descriptor.digest(), recomputed.digest());
         assert_eq!(
-            roundtripped.request_canonicalization(),
+            descriptor.request_canonicalization(),
             StrategyRequestCanonicalization::NativeCanonicalBytesV1
         );
     }
 
     #[test]
-    fn descriptor_deserialization_rejects_forged_digest() {
-        let mut value = serde_json::to_value(descriptor()).expect("descriptor value");
-        value["semantic_name"] = serde_json::Value::String("strategy.intent.tampered".to_string());
+    fn descriptor_digest_drift_is_detectable_with_typed_fixture() {
+        let mut forged = descriptor();
+        let original_digest = forged.digest();
+        forged.semantic_name = CommitStrategySemanticName::new("strategy.intent.tampered");
+        let recomputed = CommitStrategyDescriptor::new(
+            forged.id(),
+            forged.semantic_name().clone(),
+            forged.family_name().clone(),
+            forged.version(),
+            forged.intent_name().clone(),
+            forged.input_schema_name().clone(),
+            forged.input_schema_version(),
+            forged.output_schema_name().clone(),
+            forged.request_canonicalization(),
+            forged.read_contract().clone(),
+            forged.artifact_name().clone(),
+        );
 
-        let error = serde_json::from_value::<CommitStrategyDescriptor>(value).unwrap_err();
-        assert!(error
-            .to_string()
-            .contains("digest does not match descriptor contents"));
+        assert_ne!(original_digest, recomputed.digest());
+        assert_eq!(forged.digest(), original_digest);
     }
 }

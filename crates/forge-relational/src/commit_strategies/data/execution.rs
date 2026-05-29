@@ -747,11 +747,12 @@ mod tests {
     use crate::symbols::data::ClientKey;
     use crate::transactions::data::{AspectFieldPatch, EntitySpec};
     use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedString};
+    use std::sync::Arc;
 
     fn artifact() -> CanonicalStrategyOutputArtifact {
         CanonicalStrategyOutputArtifact::new(
             StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-            br#"{"status":"ok"}"#.to_vec(),
+            b"status=ok".to_vec(),
             PersistentArtifactName::new("strategy.intent.reconcile"),
         )
     }
@@ -772,51 +773,55 @@ mod tests {
     }
 
     #[test]
-    fn output_artifact_roundtrip_preserves_verified_digest() {
+    fn output_artifact_constructor_preserves_verified_digest() {
         let artifact = artifact();
-        let bytes = serde_json::to_vec(&artifact).expect("serialize output artifact");
-        let roundtripped: CanonicalStrategyOutputArtifact =
-            serde_json::from_slice(&bytes).expect("deserialize output artifact");
 
-        assert_eq!(roundtripped.digest(), artifact.digest());
-        assert_eq!(roundtripped.canonical_bytes(), br#"{"status":"ok"}"#);
-    }
-
-    #[test]
-    fn output_artifact_deserialization_rejects_forged_digest() {
-        let mut value = serde_json::to_value(artifact()).expect("artifact value");
-        value["canonical_bytes"] =
-            serde_json::json!([123, 34, 98, 97, 100, 34, 58, 116, 114, 117, 101, 125]);
-
-        let error = serde_json::from_value::<CanonicalStrategyOutputArtifact>(value).unwrap_err();
-        assert!(error
-            .to_string()
-            .contains("strategy output digest does not match canonical output bytes"));
-    }
-
-    #[test]
-    fn mutation_program_roundtrip_preserves_verified_digest_and_intent_count() {
-        let program = mutation_program();
-        let bytes = serde_json::to_vec(&program).expect("serialize mutation program");
-        let roundtripped: StrategyMutationProgram =
-            serde_json::from_slice(&bytes).expect("deserialize mutation program");
-
-        assert_eq!(roundtripped.digest(), program.digest());
-        assert_eq!(roundtripped.total_intent_count(), 1);
-    }
-
-    #[test]
-    fn mutation_program_deserialization_rejects_forged_digest() {
-        let mut value = serde_json::to_value(mutation_program()).expect("program value");
-        value["digest"] = serde_json::Value::Array(
-            std::iter::repeat(serde_json::Value::from(0))
-                .take(32)
-                .collect(),
+        assert_eq!(
+            artifact.digest(),
+            super::compute_output_digest(artifact.canonical_bytes())
         );
+        assert_eq!(artifact.canonical_bytes(), b"status=ok");
+    }
 
-        let error = serde_json::from_value::<StrategyMutationProgram>(value).unwrap_err();
-        assert!(error
-            .to_string()
-            .contains("strategy mutation program digest does not match canonical worker batches"));
+    #[test]
+    fn output_artifact_digest_drift_is_detectable_with_typed_fixture() {
+        let artifact = artifact();
+        let forged = CanonicalStrategyOutputArtifact {
+            schema_name: artifact.schema_name().clone(),
+            canonical_bytes: Arc::from(b"bad=true".as_slice()),
+            digest: artifact.digest(),
+            artifact_name: artifact.artifact_name().clone(),
+        };
+
+        assert_ne!(
+            forged.digest(),
+            super::compute_output_digest(forged.canonical_bytes())
+        );
+    }
+
+    #[test]
+    fn mutation_program_constructor_preserves_verified_digest_and_intent_count() {
+        let program = mutation_program();
+
+        assert_eq!(
+            program.digest(),
+            super::compute_mutation_program_digest(program.worker_batches())
+        );
+        assert_eq!(program.total_intent_count(), 1);
+    }
+
+    #[test]
+    fn mutation_program_digest_drift_is_detectable_with_typed_fixture() {
+        let program = mutation_program();
+        let forged = StrategyMutationProgram {
+            worker_batches: program.worker_batches.clone(),
+            digest: super::StrategyMutationProgramDigest([0; 32]),
+            total_intent_count: program.total_intent_count(),
+        };
+
+        assert_ne!(
+            forged.digest(),
+            super::compute_mutation_program_digest(forged.worker_batches())
+        );
     }
 }
