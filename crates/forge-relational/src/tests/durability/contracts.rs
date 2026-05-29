@@ -1555,6 +1555,7 @@ fn durability_contract_recovery_preserves_inspection_truth_bundle() {
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
                     fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
                         crate::tests::support::field_key("name"),
                         "feature",
                     ),

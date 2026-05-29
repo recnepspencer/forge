@@ -24,18 +24,22 @@ pub(crate) fn emit_case_audit_record(
                     entity_id: case.audit_record,
                     fields: crate::tests::support::aspect_field_patch_from_values([
                         (
+                            crate::tests::support::aspect_key("entity_type"),
                             crate::tests::support::field_key("entity_type"),
                             crate::tests::support::string_aspect_value("audit_record"),
                         ),
                         (
+                            crate::tests::support::aspect_key("case"),
                             crate::tests::support::field_key("case"),
                             crate::tests::support::string_aspect_value(&format!("{:?}", case.role)),
                         ),
                         (
+                            crate::tests::support::aspect_key("event"),
                             crate::tests::support::field_key("event"),
                             crate::tests::support::string_aspect_value(event),
                         ),
                         (
+                            crate::tests::support::aspect_key("recorded_by"),
                             crate::tests::support::field_key("recorded_by"),
                             crate::tests::support::string_aspect_value("fintech-domain-workflow"),
                         ),

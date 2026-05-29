@@ -261,6 +261,7 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: left_entity,
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "abandoned-left",
                 ),
@@ -272,6 +273,7 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: right_entity,
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "abandoned-right",
                 ),
@@ -284,6 +286,7 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: left_entity,
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "survived-left",
                 ),
@@ -295,6 +298,7 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: right_entity,
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "survived-right",
                 ),

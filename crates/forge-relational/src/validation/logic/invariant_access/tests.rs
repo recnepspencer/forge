@@ -72,6 +72,7 @@ fn staged_parallel_commit_boundary_matches_serial_reference_results() {
             kind_id: KindId(1),
             client_key: ClientKey::raw("dup"),
             fields: crate::tests::support::single_string_aspect_field_patch(
+                crate::tests::support::aspect_key("name"),
                 crate::tests::support::field_key("name"),
                 "dup",
             ),

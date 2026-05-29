@@ -686,6 +686,7 @@ fn commit_rejects_undeclared_schema_drift_against_branch_head() {
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("b"),
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "b",
                 ),
@@ -799,6 +800,7 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("b"),
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "b",
                 ),
@@ -930,6 +932,7 @@ fn schema_certification_transition_is_explained_and_counted() {
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("b"),
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "b",
                 ),

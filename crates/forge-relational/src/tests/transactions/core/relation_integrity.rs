@@ -873,6 +873,7 @@ fn relation_integrity_commit_boundary_rejects_replace_when_retained_relation_kee
                     kind_id: KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("source-replacement"),
                     fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
                         crate::tests::support::field_key("name"),
                         "source-replacement",
                     ),

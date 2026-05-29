@@ -664,10 +664,12 @@ fn seed_rocketship_world(
                 client_key: crate::symbols::data::ClientKey::raw(format!("rocket-node-{index}")),
                 fields: crate::tests::support::aspect_field_patch_from_values([
                     (
+                        crate::tests::support::aspect_key("name"),
                         crate::tests::support::field_key("name"),
                         crate::tests::support::string_aspect_value(&format!("rocket-node-{index}")),
                     ),
                     (
+                        crate::tests::support::aspect_key("zone"),
                         crate::tests::support::field_key("zone"),
                         crate::tests::support::usize_aspect_value(
                             index % ROCKETSHIP_PARTITION_WIDTH,
@@ -835,18 +837,22 @@ fn seed_pseudorealistic_rocketship_world(
                     )),
                     fields: crate::tests::support::aspect_field_patch_from_values([
                         (
+                            crate::tests::support::aspect_key("section"),
                             crate::tests::support::field_key("section"),
                             crate::tests::support::string_aspect_value(layout.section),
                         ),
                         (
+                            crate::tests::support::aspect_key("subsystem"),
                             crate::tests::support::field_key("subsystem"),
                             crate::tests::support::string_aspect_value(layout.subsystem),
                         ),
                         (
+                            crate::tests::support::aspect_key("aspect"),
                             crate::tests::support::field_key("aspect"),
                             crate::tests::support::string_aspect_value(aspect),
                         ),
                         (
+                            crate::tests::support::aspect_key("ordinal"),
                             crate::tests::support::field_key("ordinal"),
                             crate::tests::support::usize_aspect_value(local_index),
                         ),
@@ -3673,14 +3679,17 @@ fn perf_chip_simulator_matrix() {
                             entity_id: source,
                             fields: crate::tests::support::aspect_field_patch_from_values([
                                 (
+                                    crate::tests::support::aspect_key("name"),
                                     crate::tests::support::field_key("name"),
                                     crate::tests::support::string_aspect_value("rollback-driver"),
                                 ),
                                 (
+                                    crate::tests::support::aspect_key("step"),
                                     crate::tests::support::field_key("step"),
                                     crate::tests::support::u64_aspect_value(1),
                                 ),
                                 (
+                                    crate::tests::support::aspect_key("branch"),
                                     crate::tests::support::field_key("branch"),
                                     crate::tests::support::string_aspect_value("feature"),
                                 ),
@@ -3827,16 +3836,19 @@ fn perf_chip_simulator_matrix() {
                                 entity_id: *entity,
                                 fields: crate::tests::support::aspect_field_patch_from_values([
                                     (
+                                        crate::tests::support::aspect_key("partition"),
                                         crate::tests::support::field_key("partition"),
                                         crate::tests::support::u64_aspect_value(
                                             partition_id.0 as u64,
                                         ),
                                     ),
                                     (
+                                        crate::tests::support::aspect_key("lane"),
                                         crate::tests::support::field_key("lane"),
                                         crate::tests::support::string_aspect_value("global-step"),
                                     ),
                                     (
+                                        crate::tests::support::aspect_key("step"),
                                         crate::tests::support::field_key("step"),
                                         crate::tests::support::usize_aspect_value(index),
                                     ),
@@ -5196,16 +5208,19 @@ fn perf_rocketship_scale_matrix() {
                             entity_id: *entity,
                             fields: crate::tests::support::aspect_field_patch_from_values([
                                 (
+                                    crate::tests::support::aspect_key("section"),
                                     crate::tests::support::field_key("section"),
                                     crate::tests::support::string_aspect_value("batch-wave"),
                                 ),
                                 (
+                                    crate::tests::support::aspect_key("tag"),
                                     crate::tests::support::field_key("tag"),
                                     crate::tests::support::string_aspect_value(&format!(
                                         "rocket.batch.{index}"
                                     )),
                                 ),
                                 (
+                                    crate::tests::support::aspect_key("partition"),
                                     crate::tests::support::field_key("partition"),
                                     crate::tests::support::u64_aspect_value(
                                         entity.partition_id.0 as u64,
@@ -5463,16 +5478,19 @@ fn perf_rocketship_scale_matrix() {
                             entity_id: *entity,
                             fields: crate::tests::support::aspect_field_patch_from_values([
                                 (
+                                    crate::tests::support::aspect_key("section"),
                                     crate::tests::support::field_key("section"),
                                     crate::tests::support::string_aspect_value("varied-batch-wave"),
                                 ),
                                 (
+                                    crate::tests::support::aspect_key("tag"),
                                     crate::tests::support::field_key("tag"),
                                     crate::tests::support::string_aspect_value(&format!(
                                         "rocket.varied.{index}"
                                     )),
                                 ),
                                 (
+                                    crate::tests::support::aspect_key("partition"),
                                     crate::tests::support::field_key("partition"),
                                     crate::tests::support::u64_aspect_value(
                                         entity.partition_id.0 as u64,
@@ -5696,16 +5714,19 @@ fn perf_rocketship_scale_matrix() {
                             entity_id: *entity,
                             fields: crate::tests::support::aspect_field_patch_from_values([
                                 (
+                                    crate::tests::support::aspect_key("section"),
                                     crate::tests::support::field_key("section"),
                                     crate::tests::support::string_aspect_value("large-batch-wave"),
                                 ),
                                 (
+                                    crate::tests::support::aspect_key("tag"),
                                     crate::tests::support::field_key("tag"),
                                     crate::tests::support::string_aspect_value(&format!(
                                         "rocket.large_batch.{index}"
                                     )),
                                 ),
                                 (
+                                    crate::tests::support::aspect_key("partition"),
                                     crate::tests::support::field_key("partition"),
                                     crate::tests::support::u64_aspect_value(
                                         entity.partition_id.0 as u64,
@@ -5960,16 +5981,19 @@ fn perf_rocketship_scale_matrix() {
                             entity_id: *entity,
                             fields: crate::tests::support::aspect_field_patch_from_values([
                                 (
+                                    crate::tests::support::aspect_key("section"),
                                     crate::tests::support::field_key("section"),
                                     crate::tests::support::string_aspect_value("mixed-batch-wave"),
                                 ),
                                 (
+                                    crate::tests::support::aspect_key("tag"),
                                     crate::tests::support::field_key("tag"),
                                     crate::tests::support::string_aspect_value(&format!(
                                         "rocket.mixed_batch.{index}"
                                     )),
                                 ),
                                 (
+                                    crate::tests::support::aspect_key("partition"),
                                     crate::tests::support::field_key("partition"),
                                     crate::tests::support::u64_aspect_value(
                                         entity.partition_id.0 as u64,
@@ -8254,10 +8278,23 @@ fn perf_workflow_matrix() {
                                     "analysis-trade-correction".to_string(),
                                 ),
                                 fields: crate::tests::support::string_aspect_field_patch([
-                                    (crate::tests::support::field_key("entity_type"), "trade"),
-                                    (crate::tests::support::field_key("case"), "trade-correction"),
-                                    (crate::tests::support::field_key("status"), "corrected"),
                                     (
+                                        crate::tests::support::aspect_key("entity_type"),
+                                        crate::tests::support::field_key("entity_type"),
+                                        "trade",
+                                    ),
+                                    (
+                                        crate::tests::support::aspect_key("case"),
+                                        crate::tests::support::field_key("case"),
+                                        "trade-correction",
+                                    ),
+                                    (
+                                        crate::tests::support::aspect_key("status"),
+                                        crate::tests::support::field_key("status"),
+                                        "corrected",
+                                    ),
+                                    (
+                                        crate::tests::support::aspect_key("account"),
                                         crate::tests::support::field_key("account"),
                                         "portfolio-account",
                                     ),
@@ -8277,10 +8314,26 @@ fn perf_workflow_matrix() {
                                     "analysis-risk-refresh".to_string(),
                                 ),
                                 fields: crate::tests::support::string_aspect_field_patch([
-                                    (crate::tests::support::field_key("entity_type"), "risk_view"),
-                                    (crate::tests::support::field_key("case"), "trade-correction"),
-                                    (crate::tests::support::field_key("status"), "refreshed"),
-                                    (crate::tests::support::field_key("severity"), "medium"),
+                                    (
+                                        crate::tests::support::aspect_key("entity_type"),
+                                        crate::tests::support::field_key("entity_type"),
+                                        "risk_view",
+                                    ),
+                                    (
+                                        crate::tests::support::aspect_key("case"),
+                                        crate::tests::support::field_key("case"),
+                                        "trade-correction",
+                                    ),
+                                    (
+                                        crate::tests::support::aspect_key("status"),
+                                        crate::tests::support::field_key("status"),
+                                        "refreshed",
+                                    ),
+                                    (
+                                        crate::tests::support::aspect_key("severity"),
+                                        crate::tests::support::field_key("severity"),
+                                        "medium",
+                                    ),
                                 ]),
                             },
                         ))
@@ -8298,11 +8351,17 @@ fn perf_workflow_matrix() {
                                 ),
                                 fields: crate::tests::support::string_aspect_field_patch([
                                     (
+                                        crate::tests::support::aspect_key("entity_type"),
                                         crate::tests::support::field_key("entity_type"),
                                         "audit_record",
                                     ),
-                                    (crate::tests::support::field_key("case"), "trade-correction"),
                                     (
+                                        crate::tests::support::aspect_key("case"),
+                                        crate::tests::support::field_key("case"),
+                                        "trade-correction",
+                                    ),
+                                    (
+                                        crate::tests::support::aspect_key("event"),
                                         crate::tests::support::field_key("event"),
                                         "analysis-reviewed",
                                     ),
@@ -11261,16 +11320,19 @@ fn perf_game_engine_matrix() {
                             entity_id: *entity,
                             fields: crate::tests::support::aspect_field_patch_from_values([
                                 (
+                                    crate::tests::support::aspect_key("name"),
                                     crate::tests::support::field_key("name"),
                                     crate::tests::support::string_aspect_value(&format!(
                                         "scene-batch-updated-{index}"
                                     )),
                                 ),
                                 (
+                                    crate::tests::support::aspect_key("phase"),
                                     crate::tests::support::field_key("phase"),
                                     crate::tests::support::string_aspect_value("batch-wave"),
                                 ),
                                 (
+                                    crate::tests::support::aspect_key("partition"),
                                     crate::tests::support::field_key("partition"),
                                     crate::tests::support::u64_aspect_value(
                                         entity.partition_id.0 as u64,
@@ -11953,6 +12015,7 @@ fn perf_merge_lineage_matrix() {
                             kind_id: KindId(1),
                             client_key: crate::symbols::data::ClientKey::raw("feature-only"),
                             fields: crate::tests::support::single_string_aspect_field_patch(
+                                crate::tests::support::aspect_key("name"),
                                 crate::tests::support::field_key("name"),
                                 "feature-only",
                             ),
@@ -12030,6 +12093,7 @@ fn perf_merge_lineage_matrix() {
                             kind_id: KindId(1),
                             client_key: crate::symbols::data::ClientKey::raw("feature-only"),
                             fields: crate::tests::support::single_string_aspect_field_patch(
+                                crate::tests::support::aspect_key("name"),
                                 crate::tests::support::field_key("name"),
                                 "feature-only",
                             ),
@@ -12118,6 +12182,7 @@ fn perf_merge_lineage_matrix() {
                             kind_id: KindId(1),
                             client_key: crate::symbols::data::ClientKey::raw("feature-only"),
                             fields: crate::tests::support::single_string_aspect_field_patch(
+                                crate::tests::support::aspect_key("name"),
                                 crate::tests::support::field_key("name"),
                                 "feature-only",
                             ),
@@ -12199,6 +12264,7 @@ fn perf_merge_lineage_matrix() {
                             kind_id: KindId(1),
                             client_key: crate::symbols::data::ClientKey::raw("feature-only"),
                             fields: crate::tests::support::single_string_aspect_field_patch(
+                                crate::tests::support::aspect_key("name"),
                                 crate::tests::support::field_key("name"),
                                 "feature-only",
                             ),
@@ -12294,6 +12360,7 @@ fn perf_merge_lineage_matrix() {
                             kind_id: KindId(1),
                             client_key: crate::symbols::data::ClientKey::raw("feature-only"),
                             fields: crate::tests::support::single_string_aspect_field_patch(
+                                crate::tests::support::aspect_key("name"),
                                 crate::tests::support::field_key("name"),
                                 "feature-only",
                             ),
@@ -12389,6 +12456,7 @@ fn perf_merge_lineage_matrix() {
                             kind_id: KindId(1),
                             client_key: crate::symbols::data::ClientKey::raw("feature-only"),
                             fields: crate::tests::support::single_string_aspect_field_patch(
+                                crate::tests::support::aspect_key("name"),
                                 crate::tests::support::field_key("name"),
                                 "feature-only",
                             ),

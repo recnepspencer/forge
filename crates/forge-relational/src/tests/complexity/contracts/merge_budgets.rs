@@ -89,6 +89,7 @@ fn complexity_budget_merge_execution_reports_admitted_records_and_emitted_mutati
                     kind_id: crate::facade::identity::KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("feature-only"),
                     fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
                         crate::tests::support::field_key("name"),
                         "feature-only",
                     ),

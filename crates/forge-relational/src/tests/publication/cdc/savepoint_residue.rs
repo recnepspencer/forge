@@ -17,7 +17,11 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
         WorkerIntentBatch::new("abandoned-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor_entity,
-                fields: single_string_aspect_field_patch(field_key("name"), "abandoned-anchor"),
+                fields: single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
+                    field_key("name"),
+                    "abandoned-anchor",
+                ),
             }),
         )),
     );
@@ -26,7 +30,11 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
         WorkerIntentBatch::new("survived-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor_entity,
-                fields: single_string_aspect_field_patch(field_key("name"), "survived-anchor"),
+                fields: single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
+                    field_key("name"),
+                    "survived-anchor",
+                ),
             }),
         )),
     );
@@ -76,7 +84,11 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
         WorkerIntentBatch::new("surviving-a-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor,
-                fields: single_string_aspect_field_patch(field_key("name"), "surviving-a-anchor"),
+                fields: single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
+                    field_key("name"),
+                    "surviving-a-anchor",
+                ),
             }),
         )),
     );
@@ -104,6 +116,7 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
                     kind_id: KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("abandoned-replacement"),
                     fields: single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
                         field_key("name"),
                         "abandoned-replacement",
                     ),
@@ -118,7 +131,11 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
         WorkerIntentBatch::new("surviving-b-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor,
-                fields: single_string_aspect_field_patch(field_key("name"), "surviving-b-anchor"),
+                fields: single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
+                    field_key("name"),
+                    "surviving-b-anchor",
+                ),
             }),
         )),
     );
@@ -130,6 +147,7 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor,
                 fields: single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     field_key("name"),
                     "surviving-final-anchor",
                 ),
@@ -362,7 +380,11 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
         WorkerIntentBatch::new("surviving-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: target,
-                fields: single_string_aspect_field_patch(field_key("name"), "target-survived"),
+                fields: single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
+                    field_key("name"),
+                    "target-survived",
+                ),
             }),
         )),
     );

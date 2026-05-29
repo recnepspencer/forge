@@ -69,7 +69,11 @@ fn replace_entity_after_snapshot(
                     partition_id: PartitionId::main(),
                     kind_id: crate::facade::identity::KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("alice"),
-                    fields: single_string_aspect_field_patch(field_key("name"), "alice-updated"),
+                    fields: single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        field_key("name"),
+                        "alice-updated",
+                    ),
                 },
             }),
         )),

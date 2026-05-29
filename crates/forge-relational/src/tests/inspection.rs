@@ -729,6 +729,7 @@ fn merge_commit_inspection_stays_envelope_projected() {
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "feature",
                 ),
@@ -1114,6 +1115,7 @@ fn transaction_inspection_savepoint_rollback_scrubs_abandoned_work_and_commit_tr
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: existing,
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "abandoned",
                 ),
@@ -1185,6 +1187,7 @@ fn transaction_inspection_marks_lineage_affecting_intents_without_previewing_com
                     kind_id: crate::facade::identity::KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("replacement"),
                     fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
                         crate::tests::support::field_key("name"),
                         "replacement",
                     ),
@@ -1259,6 +1262,7 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
                     fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
                         crate::tests::support::field_key("name"),
                         "main",
                     ),
@@ -1277,6 +1281,7 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
                     fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
                         crate::tests::support::field_key("name"),
                         "feature",
                     ),
@@ -1370,6 +1375,7 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
                     fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
                         crate::tests::support::field_key("name"),
                         "main",
                     ),
@@ -1388,6 +1394,7 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
                     fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
                         crate::tests::support::field_key("name"),
                         "feature",
                     ),

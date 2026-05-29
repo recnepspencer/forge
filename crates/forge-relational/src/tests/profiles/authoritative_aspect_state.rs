@@ -65,8 +65,16 @@ fn compatibility_field_patches_canonicalize_into_patch_output() {
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("entity"),
                 fields: crate::tests::support::string_aspect_field_patch([
-                    (crate::tests::support::field_key("b"), "second"),
-                    (crate::tests::support::field_key("a"), "first"),
+                    (
+                        crate::tests::support::aspect_key("b"),
+                        crate::tests::support::field_key("b"),
+                        "second",
+                    ),
+                    (
+                        crate::tests::support::aspect_key("a"),
+                        crate::tests::support::field_key("a"),
+                        "first",
+                    ),
                 ]),
             }),
         )),
@@ -81,8 +89,16 @@ fn compatibility_field_patches_canonicalize_into_patch_output() {
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("entity"),
                 fields: crate::tests::support::string_aspect_field_patch([
-                    (crate::tests::support::field_key("a"), "first"),
-                    (crate::tests::support::field_key("b"), "second"),
+                    (
+                        crate::tests::support::aspect_key("a"),
+                        crate::tests::support::field_key("a"),
+                        "first",
+                    ),
+                    (
+                        crate::tests::support::aspect_key("b"),
+                        crate::tests::support::field_key("b"),
+                        "second",
+                    ),
                 ]),
             }),
         )),

@@ -8,6 +8,7 @@ pub(crate) fn batch_create(name: &str) -> WorkerIntentBatch {
             kind_id: KindId(1),
             client_key: crate::symbols::data::ClientKey::raw(name),
             fields: crate::tests::support::single_string_aspect_field_patch(
+                crate::tests::support::aspect_key("name"),
                 crate::tests::support::field_key("name"),
                 name,
             ),
@@ -99,6 +100,7 @@ fn entity_fields_for_runtime(runtime: &RelationalRuntime, name: &str) -> AspectF
     });
     if declares_name {
         crate::tests::support::single_string_aspect_field_patch(
+            crate::tests::support::aspect_key("name"),
             crate::tests::support::field_key("name"),
             name,
         )

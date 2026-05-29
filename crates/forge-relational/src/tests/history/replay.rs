@@ -1113,6 +1113,7 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
                         kind_id: KindId(1),
                         client_key: crate::symbols::data::ClientKey::raw("anchor-replaced"),
                         fields: crate::tests::support::single_string_aspect_field_patch(
+                            crate::tests::support::aspect_key("name"),
                             crate::tests::support::field_key("name"),
                             "anchor-replaced",
                         ),

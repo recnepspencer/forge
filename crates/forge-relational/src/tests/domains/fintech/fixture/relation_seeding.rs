@@ -212,7 +212,11 @@ where
 }
 
 fn relation_role_patch(role: &str) -> AspectFieldPatch {
-    single_string_aspect_field_patch(crate::tests::support::field_key("role"), role)
+    single_string_aspect_field_patch(
+        crate::tests::support::aspect_key("role"),
+        crate::tests::support::field_key("role"),
+        role,
+    )
 }
 
 fn changed_relations(outcome: &CommitResult) -> Vec<RelationId> {

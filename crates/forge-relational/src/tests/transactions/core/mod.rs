@@ -76,6 +76,7 @@ fn relational_error_wraps_authority_failures_with_context() {
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "stale",
                 ),
@@ -119,6 +120,7 @@ fn transaction_intent_is_the_shared_mutation_intent_type() {
             kind_id: KindId(1),
             client_key: crate::symbols::data::ClientKey::raw("alias"),
             fields: crate::tests::support::single_string_aspect_field_patch(
+                crate::tests::support::aspect_key("name"),
                 crate::tests::support::field_key("name"),
                 "alias",
             ),
@@ -904,8 +906,16 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("row"),
                 fields: crate::tests::support::string_aspect_field_patch([
-                    (crate::tests::support::field_key("name"), "before"),
-                    (crate::tests::support::field_key("status"), "stable"),
+                    (
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "before",
+                    ),
+                    (
+                        crate::tests::support::aspect_key("status"),
+                        crate::tests::support::field_key("status"),
+                        "stable",
+                    ),
                 ]),
             },
         ))),
@@ -919,8 +929,16 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
                 fields: crate::tests::support::string_aspect_field_patch([
-                    (crate::tests::support::field_key("name"), "after"),
-                    (crate::tests::support::field_key("status"), "stable"),
+                    (
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "after",
+                    ),
+                    (
+                        crate::tests::support::aspect_key("status"),
+                        crate::tests::support::field_key("status"),
+                        "stable",
+                    ),
                 ]),
             }),
         )),
@@ -1031,8 +1049,16 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("aspect-entity"),
                 fields: crate::tests::support::string_aspect_field_patch([
-                    (crate::tests::support::field_key("name"), "before"),
-                    (crate::tests::support::field_key("ignored"), "not-an-aspect"),
+                    (
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "before",
+                    ),
+                    (
+                        crate::tests::support::aspect_key("ignored"),
+                        crate::tests::support::field_key("ignored"),
+                        "not-an-aspect",
+                    ),
                 ]),
             },
         ))),
@@ -1066,8 +1092,13 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
                     fields: crate::tests::support::string_aspect_field_patch([
-                        (crate::tests::support::field_key("name"), "after"),
                         (
+                            crate::tests::support::aspect_key("name"),
+                            crate::tests::support::field_key("name"),
+                            "after",
+                        ),
+                        (
+                            crate::tests::support::aspect_key("ignored"),
                             crate::tests::support::field_key("ignored"),
                             "still-not-an-aspect",
                         ),
@@ -1120,8 +1151,13 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
                     fields: crate::tests::support::string_aspect_field_patch([
-                        (crate::tests::support::field_key("name"), "after"),
                         (
+                            crate::tests::support::aspect_key("name"),
+                            crate::tests::support::field_key("name"),
+                            "after",
+                        ),
+                        (
+                            crate::tests::support::aspect_key("ignored"),
                             crate::tests::support::field_key("ignored"),
                             "ignored-only-change",
                         ),
@@ -1226,6 +1262,7 @@ fn failed_commit_carries_attempt_log() {
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "stale",
                 ),
@@ -1318,6 +1355,7 @@ fn stale_entity_ids_are_rejected() {
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "stale",
                 ),
@@ -1343,6 +1381,7 @@ fn unknown_entity_kind_fails_explicitly() {
                 kind_id: KindId(999),
                 client_key: crate::symbols::data::ClientKey::raw("bad"),
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "bad",
                 ),
@@ -1669,10 +1708,12 @@ fn bulk_mutation_plan_normalizes_client_keys_and_tracks_locality() {
                     ],
                     field_patches: vec![
                         crate::tests::support::single_string_aspect_field_patch(
+                            crate::tests::support::aspect_key("name"),
                             crate::tests::support::field_key("name"),
                             "bulk-a",
                         ),
                         crate::tests::support::single_string_aspect_field_patch(
+                            crate::tests::support::aspect_key("name"),
                             crate::tests::support::field_key("name"),
                             "bulk-b",
                         ),
@@ -1746,6 +1787,7 @@ fn bulk_mutation_plan_captures_lineage_and_provenance_for_topology_rewrite() {
                         kind_id: KindId(1),
                         client_key: crate::symbols::data::ClientKey::raw("replacement"),
                         fields: crate::tests::support::single_string_aspect_field_patch(
+                            crate::tests::support::aspect_key("name"),
                             crate::tests::support::field_key("name"),
                             "replacement",
                         ),
@@ -1873,6 +1915,7 @@ fn same_commit_graph_creation_allows_relation_to_target_created_entities() {
                 kind_id: KindId(1),
                 client_key: source_key.clone(),
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "same-commit-source",
                 ),
@@ -1882,6 +1925,7 @@ fn same_commit_graph_creation_allows_relation_to_target_created_entities() {
                 kind_id: KindId(1),
                 client_key: target_key.clone(),
                 fields: crate::tests::support::single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
                     "same-commit-target",
                 ),
@@ -1936,10 +1980,12 @@ fn bulk_relation_create_can_target_same_commit_created_entities() {
                     client_keys: vec![source_key.clone(), target_key.clone()],
                     field_patches: vec![
                         crate::tests::support::single_string_aspect_field_patch(
+                            crate::tests::support::aspect_key("name"),
                             crate::tests::support::field_key("name"),
                             "bulk-created-source",
                         ),
                         crate::tests::support::single_string_aspect_field_patch(
+                            crate::tests::support::aspect_key("name"),
                             crate::tests::support::field_key("name"),
                             "bulk-created-target",
                         ),

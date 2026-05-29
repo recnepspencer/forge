@@ -175,6 +175,7 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
         &mut runtime,
         "shared",
         crate::tests::support::single_string_aspect_field_patch(
+            crate::tests::support::aspect_key("value"),
             crate::tests::support::field_key("value"),
             "base",
         ),
@@ -184,6 +185,7 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
         &mut runtime,
         entity,
         crate::tests::support::single_string_aspect_field_patch(
+            crate::tests::support::aspect_key("value"),
             crate::tests::support::field_key("value"),
             "main-change",
         ),
@@ -193,6 +195,7 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
         &mut runtime,
         entity,
         crate::tests::support::single_string_aspect_field_patch(
+            crate::tests::support::aspect_key("value"),
             crate::tests::support::field_key("value"),
             "feature-change",
         ),
@@ -279,6 +282,7 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
         &mut runtime,
         "shared",
         crate::tests::support::single_string_aspect_field_patch(
+            crate::tests::support::aspect_key("value"),
             crate::tests::support::field_key("value"),
             "base",
         ),
@@ -287,6 +291,7 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
         &mut runtime,
         entity,
         crate::tests::support::single_string_aspect_field_patch(
+            crate::tests::support::aspect_key("value"),
             crate::tests::support::field_key("value"),
             "main-change",
         ),
@@ -297,6 +302,7 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
         &mut runtime,
         entity,
         crate::tests::support::single_string_aspect_field_patch(
+            crate::tests::support::aspect_key("value"),
             crate::tests::support::field_key("value"),
             "feature-change",
         ),
@@ -459,6 +465,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         &mut runtime,
         "counter",
         crate::tests::support::aspect_field_patch_from_values([(
+            crate::tests::support::aspect_key("value"),
             crate::tests::support::field_key("value"),
             i64_counter_value(0),
         )]),
@@ -467,6 +474,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         &mut runtime,
         entity,
         crate::tests::support::aspect_field_patch_from_values([(
+            crate::tests::support::aspect_key("value"),
             crate::tests::support::field_key("value"),
             i64_counter_value(10),
         )]),
@@ -477,6 +485,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         &mut runtime,
         entity,
         crate::tests::support::aspect_field_patch_from_values([(
+            crate::tests::support::aspect_key("value"),
             crate::tests::support::field_key("value"),
             i64_counter_value(15),
         )]),
@@ -486,6 +495,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         &mut runtime,
         entity,
         crate::tests::support::aspect_field_patch_from_values([(
+            crate::tests::support::aspect_key("value"),
             crate::tests::support::field_key("value"),
             i64_counter_value(13),
         )]),
