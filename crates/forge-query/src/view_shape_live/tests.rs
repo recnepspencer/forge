@@ -19,7 +19,7 @@ use crate::view_shape::{
     admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
     ViewShapeDescriptor,
 };
-use forge_foundational::facade::AspectValue;
+use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
     project_relational_grouped_truth,
@@ -474,14 +474,13 @@ fn grouped_truth_view_with_rows(
     };
     let relational_projection = project_relational_grouped_truth(
         &relational_row_set,
-        RelationalGroupedProjectionContract::new(
+        relational_grouped_projection_contract(
             plan.grouped_planning_artifact()
                 .expect("grouped plan should carry grouped planning")
                 .grouping_aspect(),
             identity_field,
             grouping_field_override.unwrap_or(grouping_field),
-        )
-        .expect("grouped projection contract should use valid aspect keys"),
+        ),
     )
     .expect("relational grouped projection");
 
@@ -491,6 +490,22 @@ fn grouped_truth_view_with_rows(
 
 fn aspect_bytes(value: AspectValue) -> Vec<u8> {
     encode_snapshot_aspect_read_value(&value).expect("test aspect value bytes")
+}
+
+fn relational_grouped_projection_contract(
+    grouping_aspect: &str,
+    identity_binding_aspect: &str,
+    grouping_binding_aspect: &str,
+) -> RelationalGroupedProjectionContract {
+    RelationalGroupedProjectionContract::new(
+        aspect_key(grouping_aspect),
+        aspect_key(identity_binding_aspect),
+        aspect_key(grouping_binding_aspect),
+    )
+}
+
+fn aspect_key(label: &str) -> AspectKey {
+    AspectKey::new(label).expect("test grouped projection aspect key must be foundational")
 }
 
 #[test]

@@ -24,7 +24,7 @@ pub(super) fn extract_relational_grouped_facts(
             (
                 member.row_identity().as_str(),
                 aspect_value_to_json(member.identity_value()),
-                aspect_value_to_json(member.grouping_value().value()),
+                aspect_value_to_json(member.grouping_value()),
             )
         }),
     )

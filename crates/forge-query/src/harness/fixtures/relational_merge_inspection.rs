@@ -1,3 +1,4 @@
+use forge_foundational::facade::AspectKey;
 use forge_relational::facade::config::{
     CascadeDeletePolicy, CrossContextPolicy, RelationalRuntimeProfile,
 };
@@ -9,9 +10,8 @@ use forge_relational::facade::merge::{
 };
 use forge_relational::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use forge_relational::facade::schema::{
-    AspectKey, DeclaredAspect, EntityKindRegistration, KindAspectDeclarations,
-    RelationIntegrityDeclarations, RelationKindRegistration, RelationalSchemaRegistry, SchemaId,
-    SchemaVersionId,
+    DeclaredAspect, EntityKindRegistration, KindAspectDeclarations, RelationIntegrityDeclarations,
+    RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use forge_relational::facade::symbols::ClientKey;
 use forge_relational::facade::transactions::{

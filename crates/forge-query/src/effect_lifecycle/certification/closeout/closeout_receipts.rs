@@ -145,7 +145,7 @@ pub(super) fn batch_receipt_surface() -> ReceiptSurfaceEvidence {
         basis_digest: hash_parts(&[format!("basis:{branch}")]),
         scope_digest: hash_parts(&["scope:batch_mutation".to_string()]),
         policy_digest: hash_parts(&["policy:receipt_first".to_string()]),
-        strategy_digest: hash_parts(&["strategy:raw_strategy_commit_request".to_string()]),
+        strategy_digest: hash_parts(&["strategy:native_strategy_commit_request".to_string()]),
         normalized_digest: hash_parts(&["batch-normalized".to_string()]),
         eligibility_digest: receipt
             .decision_trace()

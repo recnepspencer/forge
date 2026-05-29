@@ -8,7 +8,7 @@ use crate::lower_runtime_routing::{
 };
 use crate::projection_consumption::ProjectionConsumptionSource;
 use crate::runtime::{ForgeQueryAspectMutationBuilder, ForgeQueryWriteReceipt};
-use forge_foundational::facade::AspectValue;
+use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
     project_relational_grouped_truth, GroupedProjectionContract,
@@ -83,8 +83,7 @@ pub(crate) fn representative_projection_relational_row() -> RepresentativeArtifa
         .expect("relational projection fixture should materialize row set");
     let grouped = project_relational_grouped_truth(
         &row_set,
-        GroupedProjectionContract::new("status", "identity.id", "status.lane")
-            .expect("grouped projection contract should use valid aspect keys"),
+        grouped_projection_contract("status", "identity.id", "status.lane"),
     )
     .expect("relational projection fixture should group row set");
     let source = ProjectionConsumptionSource::from_relational_grouped_projection(&grouped);
@@ -280,4 +279,20 @@ impl GroupedProjectionSource for BridgeProjection {
 
 fn aspect_bytes(value: AspectValue) -> Vec<u8> {
     encode_snapshot_aspect_read_value(&value).expect("fixture aspect value bytes")
+}
+
+fn grouped_projection_contract(
+    grouping_aspect: &str,
+    identity_binding_aspect: &str,
+    grouping_binding_aspect: &str,
+) -> GroupedProjectionContract {
+    GroupedProjectionContract::new(
+        aspect_key(grouping_aspect),
+        aspect_key(identity_binding_aspect),
+        aspect_key(grouping_binding_aspect),
+    )
+}
+
+fn aspect_key(label: &str) -> AspectKey {
+    AspectKey::new(label).expect("fixture aspect key must be foundational")
 }

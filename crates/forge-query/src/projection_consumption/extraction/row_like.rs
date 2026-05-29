@@ -34,7 +34,7 @@ pub(super) fn extract_relational_row_set_facts(
                 row.row_identity().as_str(),
                 row.aspect_values()
                     .iter()
-                    .map(|(key, value)| (key.as_str(), aspect_value_to_json(value.value()))),
+                    .map(|(key, value)| (key.as_str(), aspect_value_to_json(value))),
             )
         }),
         RowIdentityExtractionMode::IdentityFieldBackedEntityIdentity,

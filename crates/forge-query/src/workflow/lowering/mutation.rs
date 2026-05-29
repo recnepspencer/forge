@@ -5,7 +5,7 @@ use crate::workflow::{
     WorkflowLoweringCounters,
 };
 use forge_relational::facade::commit_strategies::{
-    IntentReconciliationInput, RawStrategyCommitRequest, StrategyCallerProvenance,
+    IntentReconciliationInput, NativeStrategyCommitRequest, StrategyCallerProvenance,
     StrategyRequestOrigin,
 };
 
@@ -26,7 +26,7 @@ pub struct LoweredMutationIntentDeclaration {
     mutation_family: MutationIntentFamily,
     strategy_target: RelationalStrategyTarget,
     authority_binding: MutationAuthorityBinding,
-    strategy_request: RawStrategyCommitRequest,
+    strategy_request: NativeStrategyCommitRequest,
     freshness_binding: WorkflowFreshnessBinding,
     staleness_class: WorkflowStalenessClass,
     lowering_digest: String,
@@ -50,7 +50,7 @@ impl LoweredMutationIntentDeclaration {
         &self.authority_binding
     }
 
-    pub fn strategy_request(&self) -> &RawStrategyCommitRequest {
+    pub fn strategy_request(&self) -> &NativeStrategyCommitRequest {
         &self.strategy_request
     }
 
@@ -142,7 +142,7 @@ pub fn lower_mutation_intent_declaration(
 fn intent_reconciliation_strategy_request(
     declaration: &QueryWorkflowDeclaration,
     input: MutationLoweringInput,
-) -> Result<RawStrategyCommitRequest, WorkflowLoweringError> {
+) -> Result<NativeStrategyCommitRequest, WorkflowLoweringError> {
     let MutationLoweringInput::IntentReconciliation {
         entity_id,
         desired_fields_json,
@@ -151,7 +151,7 @@ fn intent_reconciliation_strategy_request(
         entity_id,
         desired_fields: intent_reconciliation_field_patch(desired_fields_json)?,
     }
-    .into_raw_request(StrategyCallerProvenance {
+    .into_native_canonical_request(StrategyCallerProvenance {
         request_origin: StrategyRequestOrigin::Api,
         actor_identity: Some("forge-query".to_string()),
         correlation_id: Some(declaration.report().declaration_digest().to_string()),
@@ -253,7 +253,7 @@ fn mutation_lowering_digest(
     strategy_target: &RelationalStrategyTarget,
     authority_binding_digest: &str,
     freshness_binding: &WorkflowFreshnessBinding,
-    request: &RawStrategyCommitRequest,
+    request: &NativeStrategyCommitRequest,
 ) -> String {
     hash_parts(&[
         format!("declaration:{}", declaration.report().declaration_digest()),

@@ -12,8 +12,8 @@ use crate::projection_consumption::{
 use forge_foundational::facade::AspectValue;
 use forge_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
-    project_relational_grouped_truth, GroupedProjectionContract,
-    RelationalAuthoritativeRowSetArtifact, RelationalGroupedProjectionArtifact,
+    project_relational_grouped_truth, RelationalAuthoritativeRowSetArtifact,
+    RelationalGroupedProjectionArtifact,
 };
 use forge_runtime_bridge::facade::{
     SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
@@ -27,6 +27,7 @@ use super::super::receipt::ProjectionConsumptionReceipt;
 use super::super::source::{
     ProjectionSourceCapabilityProfile, ProjectionSourceExecutionPosture, ProjectionSourceFamily,
 };
+use super::grouped_projection_contract::grouped_projection_contract;
 
 const QUERY_DIGEST: &str = "query:projection_consumption_certification";
 const RESULT_SHAPE_DIGEST: &str = "result-shape:projection_consumption_certification";
@@ -271,8 +272,7 @@ fn control_authorized_projection(visible_fields: &[&str]) -> AuthorizedProjectio
 pub fn certification_grouped_projection(row_count: usize) -> RelationalGroupedProjectionArtifact {
     project_relational_grouped_truth(
         &certification_row_set(row_count),
-        GroupedProjectionContract::new("status", "identity.id", "status.lane")
-            .expect("grouped projection contract should use valid aspect keys"),
+        grouped_projection_contract("status", "identity.id", "status.lane"),
     )
     .expect("grouped projection certification fixture")
 }

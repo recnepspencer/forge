@@ -36,7 +36,7 @@ fn admitted_mutation_scopes_into_one_authority_plan() {
     );
     assert_eq!(
         plan.strategy_identity_target(),
-        EffectStrategyIdentityTarget::RawStrategyCommitRequest
+        EffectStrategyIdentityTarget::NativeStrategyCommitRequest
     );
     assert_eq!(plan.counters().authority_scoped_plan_count(), 1);
     assert_eq!(

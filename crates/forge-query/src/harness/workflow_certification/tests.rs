@@ -135,7 +135,7 @@ fn workflow_certification_mutation_lowering_matches_direct_relational_control() 
         desired_fields: single_field_patch("name", "name", json!("after"))
             .expect("control field patch"),
     }
-    .into_raw_request(StrategyCallerProvenance {
+    .into_native_canonical_request(StrategyCallerProvenance {
         request_origin: StrategyRequestOrigin::Api,
         actor_identity: Some("forge-query".to_string()),
         correlation_id: Some(declaration.report().declaration_digest().to_string()),
