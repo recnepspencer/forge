@@ -8,7 +8,7 @@ use forge_harness::facade::{
     WorkflowCertificationCapabilities, WorkflowCheckpoint, WorkflowFailureContext, WorkflowPlan,
     WorkflowRuntimeProfile, WorkflowState, WorkflowStep, WorkflowStepOutcome,
 };
-use serde_json::json;
+use serde_json::{Map, Number, Value};
 
 use crate::facade::history::BranchId;
 use crate::facade::replay::{RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode};
@@ -20,8 +20,9 @@ use super::super::actions::{
 };
 use super::super::fixture::FintechWorkflowCase;
 use super::super::scenarios::{setup_world_for, FintechScenario};
-use super::artifacts::{capture_artifacts, case_read_summary, read_summary};
+use super::artifacts::capture_artifacts;
 use super::invariants::run_checks;
+use super::read_summaries::{case_read_summary, read_summary};
 use super::session::CertifiedRelationalFintechSession;
 use super::steps::{FintechCaseRef, FintechWorkflowStep};
 
@@ -320,15 +321,46 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
     ) -> Result<ReproductionMetadata, Self::Error> {
         Ok(ReproductionMetadata {
             format: "json".to_string(),
-            payload: json!({
-                "state": format!("{:?}", failure.state),
-                "step_index": failure.step_index,
-                "known_branches": session.named_branches.keys().collect::<Vec<_>>(),
-                "known_snapshots": session.named_snapshots.keys().collect::<Vec<_>>(),
-                "known_reads": session.named_reads.keys().collect::<Vec<_>>(),
-                "known_replays": session.named_replays.keys().collect::<Vec<_>>(),
-            })
-            .to_string(),
+            payload: reproduction_payload(session, failure).to_string(),
         })
     }
+}
+
+fn reproduction_payload(
+    session: &CertifiedRelationalFintechSession,
+    failure: &WorkflowFailureContext,
+) -> Value {
+    let mut payload = Map::new();
+    payload.insert(
+        "state".to_string(),
+        Value::String(format!("{:?}", failure.state)),
+    );
+    payload.insert(
+        "step_index".to_string(),
+        failure
+            .step_index
+            .map(|step_index| Value::Number(Number::from(step_index as u64)))
+            .unwrap_or(Value::Null),
+    );
+    payload.insert(
+        "known_branches".to_string(),
+        string_array(session.named_branches.keys().cloned()),
+    );
+    payload.insert(
+        "known_snapshots".to_string(),
+        string_array(session.named_snapshots.keys().cloned()),
+    );
+    payload.insert(
+        "known_reads".to_string(),
+        string_array(session.named_reads.keys().cloned()),
+    );
+    payload.insert(
+        "known_replays".to_string(),
+        string_array(session.named_replays.keys().cloned()),
+    );
+    Value::Object(payload)
+}
+
+fn string_array(values: impl IntoIterator<Item = String>) -> Value {
+    Value::Array(values.into_iter().map(Value::String).collect())
 }

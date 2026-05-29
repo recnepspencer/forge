@@ -5,8 +5,10 @@
 
 mod adapter;
 mod artifacts;
+mod harness_payload;
 mod invariants;
 mod plans;
+mod read_summaries;
 mod session;
 mod steps;
 mod tests;

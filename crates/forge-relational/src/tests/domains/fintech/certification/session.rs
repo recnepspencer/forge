@@ -1,20 +1,19 @@
 use std::collections::BTreeMap;
 
-use serde_json::Value;
-
 use crate::facade::history::BranchId;
 use crate::facade::lineage::LineageResolutionStatus;
 use crate::facade::replay::RelationalReplayOutcome;
 use crate::facade::snapshots::SnapshotHandle;
 
 use super::super::fixture::FintechWorld;
+use super::read_summaries::CertifiedFintechReadSummary;
 
 #[derive(Debug)]
 pub(super) struct CertifiedRelationalFintechSession {
     pub(super) world: FintechWorld,
     pub(super) named_branches: BTreeMap<String, BranchId>,
     pub(super) named_snapshots: BTreeMap<String, SnapshotHandle>,
-    pub(super) named_reads: BTreeMap<String, Value>,
+    pub(super) named_reads: BTreeMap<String, CertifiedFintechReadSummary>,
     pub(super) named_lineage_resolutions: BTreeMap<String, LineageResolutionStatus>,
     pub(super) named_replays: BTreeMap<String, RelationalReplayOutcome>,
     pub(super) executed_steps: Vec<String>,
