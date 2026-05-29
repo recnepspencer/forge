@@ -16,7 +16,7 @@ pub(super) enum HarnessSummaryValue {
 }
 
 impl HarnessSummaryValue {
-    pub(super) fn into_json(self) -> Value {
+    pub(super) fn into_harness_projection(self) -> Value {
         match self {
             Self::Null => Value::Null,
             Self::Bool(value) => Value::Bool(value),
@@ -25,13 +25,13 @@ impl HarnessSummaryValue {
             Self::Array(values) => Value::Array(
                 values
                     .into_iter()
-                    .map(HarnessSummaryValue::into_json)
+                    .map(HarnessSummaryValue::into_harness_projection)
                     .collect(),
             ),
             Self::Object(fields) => Value::Object(Map::from_iter(
                 fields
                     .into_iter()
-                    .map(|(field, value)| (field, value.into_json())),
+                    .map(|(field, value)| (field, value.into_harness_projection())),
             )),
             Self::DiagnosticFields(value) => {
                 RelationalDiagnosticFields::from_diagnostic_value(value).into_serde_projection()

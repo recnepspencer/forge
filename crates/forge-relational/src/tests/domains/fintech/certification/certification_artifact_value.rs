@@ -12,23 +12,28 @@ pub(super) enum CertificationArtifactValue {
 }
 
 impl CertificationArtifactValue {
-    pub(super) fn into_json(self) -> Value {
+    pub(super) fn into_harness_projection(self) -> Value {
         match self {
             Self::Null => Value::Null,
             Self::Bool(value) => Value::Bool(value),
             Self::Unsigned(value) => Value::Number(Number::from(value)),
             Self::String(value) => Value::String(value),
-            Self::Array(values) => Value::Array(values.into_iter().map(Self::into_json).collect()),
+            Self::Array(values) => Value::Array(
+                values
+                    .into_iter()
+                    .map(Self::into_harness_projection)
+                    .collect(),
+            ),
             Self::Object(fields) => Value::Object(
                 fields
                     .into_iter()
-                    .map(|(field, value)| (field.to_string(), value.into_json()))
+                    .map(|(field, value)| (field.to_string(), value.into_harness_projection()))
                     .collect(),
             ),
             Self::DynamicObject(fields) => Value::Object(
                 fields
                     .into_iter()
-                    .map(|(field, value)| (field, value.into_json()))
+                    .map(|(field, value)| (field, value.into_harness_projection()))
                     .collect(),
             ),
         }

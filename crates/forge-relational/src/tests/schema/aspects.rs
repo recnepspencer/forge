@@ -534,7 +534,7 @@ fn relation_field_aspects_are_governed_by_foundational_contract_shape() {
             cross_context_policy: CrossContextPolicy::AllowExplicit,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
             aspect_declarations: KindAspectDeclarations::new(vec![relation_field_aspect(
-                crate::tests::support::aspect_key("payload"),
+                crate::tests::support::aspect_key("relation_label"),
                 crate::tests::support::field_key("label"),
             )]),
             relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
@@ -546,7 +546,7 @@ fn relation_field_aspects_are_governed_by_foundational_contract_shape() {
         .expect("relation declaration trace");
     assert_eq!(
         relation_trace.declarations[0].aspect_key,
-        aspect_key("payload")
+        aspect_key("relation_label")
     );
 
     let error = RelationalSchemaRegistry::new()

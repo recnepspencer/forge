@@ -325,7 +325,7 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
         Ok(ReproductionMetadata {
             format: "json".to_string(),
             payload: reproduction_artifact_value(session, failure)
-                .into_json()
+                .into_harness_projection()
                 .to_string(),
         })
     }

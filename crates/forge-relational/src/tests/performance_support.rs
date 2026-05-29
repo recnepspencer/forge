@@ -475,7 +475,7 @@ fn assert_metric_against_baseline(
     );
 }
 
-pub(super) fn emit_json(value: impl Serialize) {
+pub(super) fn emit_performance_projection_record(value: impl Serialize) {
     println!(
         "{}",
         serde_json::to_string(&value).expect("performance JSON serialization")
@@ -542,7 +542,7 @@ pub(super) fn capture_perf_samples(
     let mut samples = Vec::with_capacity(perf_samples());
     for sample_index in 0..perf_samples() {
         let measurement = run();
-        emit_json(PerfSampleRecord {
+        emit_performance_projection_record(PerfSampleRecord {
             suite,
             case,
             sample: sample_index,
@@ -566,7 +566,7 @@ pub(super) fn capture_perf_samples(
         min_elapsed_micros: *elapsed_values.iter().min().expect("sample minimum"),
         max_elapsed_micros: *elapsed_values.iter().max().expect("sample maximum"),
     };
-    emit_json(&summary);
+    emit_performance_projection_record(&summary);
     assert_elapsed_against_baseline(suite, case, &summary);
 
     samples
@@ -594,7 +594,7 @@ pub(super) fn emit_metric_summaries(
             min: *values.iter().min().expect("metric minimum"),
             max: *values.iter().max().expect("metric maximum"),
         };
-        emit_json(&summary);
+        emit_performance_projection_record(&summary);
         assert_metric_against_baseline(suite, case, metric_name, &summary);
     }
 }
