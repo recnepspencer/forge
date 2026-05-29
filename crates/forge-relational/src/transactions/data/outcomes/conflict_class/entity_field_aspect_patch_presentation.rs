@@ -108,5 +108,11 @@ fn entity_field_patch_application_denial_detail(
 fn aspect_field_locator_path_label(
     field_locator: &forge_foundational::facade::AspectFieldLocator,
 ) -> String {
-    crate::transactions::data::canonical_field_path_label(field_locator.field_path())
+    field_locator
+        .field_path()
+        .fields()
+        .iter()
+        .map(forge_foundational::facade::FieldKey::as_str)
+        .collect::<Vec<_>>()
+        .join(".")
 }

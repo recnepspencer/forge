@@ -9,10 +9,10 @@ use crate::commit_strategies::data::{
     CommitStrategySemanticName, CommitStrategyVersion, NativeCodecError, NativeCodecReader,
     NativeStrategyCommitRequest, PersistentArtifactName, StrategyCallerProvenance,
     StrategyExecutionResult, StrategyExecutorFailure, StrategyExecutorFailureClass,
-    StrategyInputSchemaName, StrategyInputSchemaVersion, StrategyIntentName,
-    StrategyMutationProgram, StrategyObservationContext, StrategyOutputSchemaName,
-    StrategyPacketContract, StrategyReadContract, StrategyReadCostClass, StrategyReadLocalityClass,
-    StrategyReadScopeClass, StrategyTraversalBasis,
+    StrategyExecutorFailureEvidence, StrategyInputSchemaName, StrategyInputSchemaVersion,
+    StrategyIntentName, StrategyMutationProgram, StrategyObservationContext,
+    StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract, StrategyReadCostClass,
+    StrategyReadLocalityClass, StrategyReadScopeClass, StrategyTraversalBasis,
 };
 use crate::storage::data::{
     authoritative_aspect_value_field_comparison_key,
@@ -248,9 +248,12 @@ fn single_field_path(
 ) -> Result<FieldKey, StrategyExecutorFailure> {
     match field_locator.field_path().fields() {
         [field] => Ok(field.clone()),
-        _ => Err(StrategyExecutorFailure::new(
+        _ => Err(StrategyExecutorFailure::with_evidence(
             StrategyExecutorFailureClass::InvalidInput,
             "aspect field reconciliation target must be a single foundational field path",
+            StrategyExecutorFailureEvidence::AspectFieldLocator {
+                locator: field_locator.clone(),
+            },
         )),
     }
 }
@@ -259,20 +262,15 @@ fn undeclared_locator_failure(
     existing: &crate::storage::data::EntityReadRecord,
     field_locator: &AspectFieldLocator,
 ) -> StrategyExecutorFailure {
-    StrategyExecutorFailure::new(
+    StrategyExecutorFailure::with_evidence(
         StrategyExecutorFailureClass::DomainRejection,
         format!(
-            "aspect field locator '{}:{}' is not a lowered foundational scalar entity aspect on kind {}",
-            field_locator.aspect().aspect_key().as_str(),
-            field_locator
-                .field_path()
-                .fields()
-                .iter()
-                .map(|field| field.as_str())
-                .collect::<Vec<_>>()
-                .join("."),
+            "aspect field locator is not a lowered foundational scalar entity aspect on kind {}",
             existing.kind.kind_name
         ),
+        StrategyExecutorFailureEvidence::AspectFieldLocator {
+            locator: field_locator.clone(),
+        },
     )
 }
 

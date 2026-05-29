@@ -2,6 +2,7 @@ mod artifacts;
 mod canonical_digest;
 mod descriptor;
 mod execution;
+mod execution_failure;
 mod lowering;
 mod native_codec;
 mod native_strategy_intent_scope;
@@ -27,9 +28,11 @@ pub use descriptor::{
 pub use execution::{
     CanonicalStrategyOutputArtifact, CanonicalStrategyOutputDigest,
     CommitStrategyExecutionRegistration, CommitStrategyExecutor, StrategyExecutionDraft,
-    StrategyExecutionResult, StrategyExecutionSummary, StrategyExecutorFailure,
-    StrategyExecutorFailureClass, StrategyMutationProgram, StrategyMutationProgramDigest,
-    StrategyObservationContext, StrategyVisibilityReadView,
+    StrategyExecutionResult, StrategyExecutionSummary, StrategyMutationProgram,
+    StrategyMutationProgramDigest, StrategyObservationContext, StrategyVisibilityReadView,
+};
+pub use execution_failure::{
+    StrategyExecutorFailure, StrategyExecutorFailureClass, StrategyExecutorFailureEvidence,
 };
 pub use lowering::{
     LoweredStrategyCommitPlan, StrategyLoweringError, StrategyLoweringProvenance,

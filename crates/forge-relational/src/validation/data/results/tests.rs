@@ -67,10 +67,12 @@ fn unique_entity_field_violation_uses_foundational_field_and_value_carriers() {
         }
         fields => panic!("expected typed unique entity field violation, got {fields:?}"),
     }
-    assert!(violation
-        .witness_key()
-        .as_str()
-        .starts_with("unique_entity_aspect_field:profile.email:email:"));
+    let witness = violation.witness_key();
+    let witness_parts = witness.as_str().split(':').collect::<Vec<_>>();
+    assert_eq!(witness_parts.len(), 3);
+    assert_eq!(witness_parts[0], "unique_entity_aspect_field");
+    assert!(!witness.as_str().contains("profile.email"));
+    assert!(!witness.as_str().contains(":email:"));
     assert!(!violation
         .witness_key()
         .as_str()

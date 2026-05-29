@@ -17,7 +17,8 @@ use crate::visibility::materialization::read_records::{
 use super::{
     strategy_mutation_program_digest, CanonicalStrategyCommitRequest, CanonicalStrategyInputDigest,
     CommitStrategyDescriptor, CommitStrategyDescriptorDigest, CommitStrategyId,
-    PersistentArtifactName, StrategyOutputSchemaName, StrategyReadContract,
+    PersistentArtifactName, StrategyExecutorFailure, StrategyExecutorFailureClass,
+    StrategyOutputSchemaName, StrategyReadContract,
 };
 
 pub trait CommitStrategyExecutor: Send + Sync + 'static {
@@ -66,29 +67,6 @@ impl CommitStrategyExecutionRegistration {
 
     pub(crate) fn executor(&self) -> Arc<dyn CommitStrategyExecutor> {
         Arc::clone(&self.executor)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum StrategyExecutorFailureClass {
-    InvalidInput,
-    ReadContractViolation,
-    ProjectionContractViolation,
-    DomainRejection,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct StrategyExecutorFailure {
-    pub class: StrategyExecutorFailureClass,
-    pub detail: Arc<str>,
-}
-
-impl StrategyExecutorFailure {
-    pub fn new(class: StrategyExecutorFailureClass, detail: impl Into<Arc<str>>) -> Self {
-        Self {
-            class,
-            detail: detail.into(),
-        }
     }
 }
 

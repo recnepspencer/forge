@@ -94,10 +94,6 @@ impl AspectFieldPatch {
         self.targets.keys()
     }
 
-    pub fn path_labels(&self) -> impl Iterator<Item = String> + '_ {
-        self.targets.keys().map(aspect_field_patch_target_label)
-    }
-
     pub fn iter(&self) -> impl Iterator<Item = (&AspectFieldPatchTarget, &AspectValue)> {
         self.targets.iter()
     }
@@ -124,22 +120,6 @@ impl AspectFieldPatch {
     pub fn from_canonical_bytes(bytes: &[u8]) -> Result<Self, AspectFieldPatchCodecError> {
         decode_aspect_field_patch_canonical_bytes(bytes)
     }
-}
-
-pub fn aspect_field_patch_target_label(target: &AspectFieldPatchTarget) -> String {
-    format!(
-        "{}:{}",
-        target.aspect_key().as_str(),
-        canonical_field_path_label(target.field_path())
-    )
-}
-
-pub fn canonical_field_path_label(path: &CanonicalFieldPath) -> String {
-    path.fields()
-        .iter()
-        .map(FieldKey::as_str)
-        .collect::<Vec<_>>()
-        .join(".")
 }
 
 impl From<BTreeMap<AspectFieldPatchTarget, AspectValue>> for AspectFieldPatch {

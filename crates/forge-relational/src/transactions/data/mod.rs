@@ -8,10 +8,7 @@ mod mutation_planning;
 mod outcomes;
 mod primitives;
 
-pub use aspect_field_patch::{
-    aspect_field_patch_target_label, canonical_field_path_label, AspectFieldPatch,
-    AspectFieldPatchTarget,
-};
+pub use aspect_field_patch::{AspectFieldPatch, AspectFieldPatchTarget};
 pub use aspect_reports::{AspectTagAccuracyReport, PatchVsTruthDeltaReport};
 pub use aspect_traces::{
     AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow,

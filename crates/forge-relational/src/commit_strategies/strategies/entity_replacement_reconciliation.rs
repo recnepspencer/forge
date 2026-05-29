@@ -10,10 +10,11 @@ use crate::commit_strategies::data::{
     CommitStrategyRegistrationError, CommitStrategySemanticName, CommitStrategyVersion,
     NativeCodecError, NativeCodecReader, NativeStrategyCommitRequest, PersistentArtifactName,
     StrategyCallerProvenance, StrategyExecutionResult, StrategyExecutorFailure,
-    StrategyExecutorFailureClass, StrategyInputSchemaName, StrategyInputSchemaVersion,
-    StrategyIntentName, StrategyMutationProgram, StrategyObservationContext,
-    StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract, StrategyReadCostClass,
-    StrategyReadLocalityClass, StrategyReadScopeClass, StrategyTraversalBasis,
+    StrategyExecutorFailureClass, StrategyExecutorFailureEvidence, StrategyInputSchemaName,
+    StrategyInputSchemaVersion, StrategyIntentName, StrategyMutationProgram,
+    StrategyObservationContext, StrategyOutputSchemaName, StrategyPacketContract,
+    StrategyReadContract, StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
+    StrategyTraversalBasis,
 };
 use crate::identity::data::EntityId;
 use crate::storage::data::{
@@ -215,24 +216,24 @@ impl EntityReplacementReconciliationStrategy {
     ) -> Result<AspectFieldPatch, StrategyExecutorFailure> {
         for target in desired_fields.targets() {
             let [field] = target.field_path().fields() else {
-                return Err(StrategyExecutorFailure::new(
+                return Err(StrategyExecutorFailure::with_evidence(
                     StrategyExecutorFailureClass::DomainRejection,
-                    format!(
-                        "entity replacement reconciliation target field path '{}' is not a single foundational field path",
-                        crate::transactions::data::aspect_field_patch_target_label(target)
-                    ),
+                    "entity replacement reconciliation target field path is not a single foundational field path",
+                    StrategyExecutorFailureEvidence::AspectFieldPatchTarget {
+                        target: target.clone(),
+                    },
                 ));
             };
             let aspect_key =
                 Self::require_lowered_entity_scalar_field(observation, existing, field)?;
             if &aspect_key != target.aspect_key() {
-                return Err(StrategyExecutorFailure::new(
+                return Err(StrategyExecutorFailure::with_evidence(
                     StrategyExecutorFailureClass::DomainRejection,
-                    format!(
-                        "entity replacement reconciliation target '{}' does not match lowered scalar aspect {:?}",
-                        crate::transactions::data::aspect_field_patch_target_label(target),
-                        aspect_key
-                    ),
+                    "entity replacement reconciliation target does not match lowered scalar aspect",
+                    StrategyExecutorFailureEvidence::AspectFieldPatchTargetMismatch {
+                        target: target.clone(),
+                        expected_aspect_key: aspect_key,
+                    },
                 ));
             }
         }

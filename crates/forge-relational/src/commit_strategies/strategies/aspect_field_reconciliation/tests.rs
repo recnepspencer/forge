@@ -3,7 +3,8 @@ use super::{
     AspectFieldReconciliationStrategy,
 };
 use crate::commit_strategies::data::{
-    StrategyCallerProvenance, StrategyExecutorFailureClass, StrategyRequestOrigin,
+    StrategyCallerProvenance, StrategyExecutorFailureClass, StrategyExecutorFailureEvidence,
+    StrategyRequestOrigin,
 };
 use crate::config::data::CascadeDeletePolicy;
 use crate::logic::builder::RelationalRuntimeBuilder;
@@ -203,9 +204,18 @@ fn aspect_field_reconciliation_strategy_rejects_undeclared_field() {
     match error {
         crate::commit_strategies::StrategyExecutionError::ExecutorFailed { failure, .. } => {
             assert_eq!(failure.class, StrategyExecutorFailureClass::DomainRejection);
-            assert!(failure
-                .detail
-                .contains("aspect field locator 'replicas:replicas'"));
+            assert!(failure.detail.contains(
+                "aspect field locator is not a lowered foundational scalar entity aspect"
+            ));
+            assert_eq!(
+                failure.evidence,
+                Some(StrategyExecutorFailureEvidence::AspectFieldLocator {
+                    locator: field_locator(
+                        crate::tests::support::aspect_key("replicas"),
+                        crate::tests::support::field_key("replicas")
+                    )
+                })
+            );
         }
         other => panic!("expected executor failure, got {other:?}"),
     }

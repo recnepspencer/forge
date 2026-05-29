@@ -26,9 +26,17 @@ pub(super) fn source_locator_aspect_label(locator: &BoundarySourceLocator) -> St
 
 pub(super) fn source_locator_field_label(locator: &BoundarySourceLocator) -> Option<String> {
     match locator {
-        BoundarySourceLocator::AspectField(field) => Some(
-            crate::transactions::data::canonical_field_path_label(field.field_path()),
-        ),
+        BoundarySourceLocator::AspectField(field) => {
+            Some(field_path_presentation_label(field.field_path()))
+        }
         BoundarySourceLocator::Aspect(_) | BoundarySourceLocator::BoundaryArtifact(_) => None,
     }
+}
+
+fn field_path_presentation_label(path: &CanonicalFieldPath) -> String {
+    path.fields()
+        .iter()
+        .map(FieldKey::as_str)
+        .collect::<Vec<_>>()
+        .join(".")
 }

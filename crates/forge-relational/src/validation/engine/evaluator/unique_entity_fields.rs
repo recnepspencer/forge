@@ -3,7 +3,7 @@ mod planned_field_values;
 
 use std::collections::HashMap;
 
-use forge_foundational::facade::{AspectFieldLocator, AspectValue, FieldKey};
+use forge_foundational::facade::{AspectFieldLocator, AspectValue, CanonicalFieldPath, FieldKey};
 
 use crate::diagnostics::data::DiagnosticCode;
 use crate::storage::data::{
@@ -207,7 +207,7 @@ fn duplicate_field_violation(
         detail: format!(
             "entity aspect field '{}:{}' must be unique, duplicate {:?} value",
             field_locator.aspect().aspect_key().as_str(),
-            crate::transactions::data::canonical_field_path_label(field_locator.field_path()),
+            field_path_presentation_label(field_locator.field_path()),
             value.value_family()
         ),
         fields: InvariantViolationFields::UniqueEntityField {
@@ -215,4 +215,12 @@ fn duplicate_field_violation(
             value,
         },
     }
+}
+
+fn field_path_presentation_label(path: &CanonicalFieldPath) -> String {
+    path.fields()
+        .iter()
+        .map(FieldKey::as_str)
+        .collect::<Vec<_>>()
+        .join(".")
 }

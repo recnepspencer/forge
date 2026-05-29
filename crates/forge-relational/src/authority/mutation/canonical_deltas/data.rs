@@ -224,9 +224,8 @@ impl CanonicalDeltaError {
             Self::InvalidLoweredBindingForRecordClass { detail, .. } => detail.clone(),
             Self::AspectValueMaterialization { detail, .. } => detail.clone(),
             Self::EntityFieldBindingRequiresAuthoritativePatchEvidence { target } => format!(
-                "entity field '{}' for aspect {:?} requires authoritative patch evidence during canonical delta evaluation",
-                crate::transactions::data::canonical_field_path_label(target.field_path()),
-                target.aspect_key()
+                "entity aspect field target {} requires authoritative patch evidence during canonical delta evaluation",
+                hex_bytes(&target.to_canonical_bytes())
             ),
             Self::FoundationalPatchValueValidation {
                 target,
@@ -293,4 +292,13 @@ impl CanonicalDeltaError {
             }
         }
     }
+}
+
+fn hex_bytes(bytes: &[u8]) -> String {
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        use std::fmt::Write;
+        write!(&mut encoded, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    encoded
 }

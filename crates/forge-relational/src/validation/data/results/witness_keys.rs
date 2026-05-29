@@ -1,4 +1,4 @@
-use crate::aspect_wire::encode_length_prefixed_aspect_value;
+use crate::aspect_wire::{encode_aspect_field_locator, encode_length_prefixed_aspect_value};
 use crate::diagnostics::data::DiagnosticCode;
 use crate::schema::data::{EndpointDeletionIntegrityMode, SymmetryMode, UniquenessScope};
 use crate::validation::data::InvariantWitnessKey;
@@ -23,14 +23,11 @@ pub(super) fn invariant_violation_witness_key(
         InvariantViolationFields::UniqueEntityField {
             field_locator,
             value,
-        } => {
-            format!(
-                "unique_entity_aspect_field:{}:{}:{}",
-                field_locator.aspect().aspect_key().as_str(),
-                crate::transactions::data::canonical_field_path_label(field_locator.field_path()),
-                canonical_aspect_value_witness_fragment(value)
-            )
-        }
+        } => format!(
+            "unique_entity_aspect_field:{}:{}",
+            canonical_aspect_field_locator_witness_fragment(field_locator),
+            canonical_aspect_value_witness_fragment(value)
+        ),
         InvariantViolationFields::SidecarConsistency {
             partition_id,
             slot,
@@ -192,6 +189,12 @@ pub(super) fn invariant_violation_witness_key(
         ),
     };
     InvariantWitnessKey::new(key)
+}
+
+fn canonical_aspect_field_locator_witness_fragment(
+    locator: &forge_foundational::facade::AspectFieldLocator,
+) -> String {
+    hex_bytes(&encode_aspect_field_locator(locator))
 }
 
 fn canonical_aspect_value_witness_fragment(
