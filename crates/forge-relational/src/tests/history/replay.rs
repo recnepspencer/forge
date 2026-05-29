@@ -1,4 +1,5 @@
 use crate::capabilities::SchemaSource;
+use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::facade::diagnostics::{DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::facade::history::BranchId;
 use crate::facade::indexes::{
@@ -42,6 +43,26 @@ fn source_max_one_relation_integrity_runtime() -> RelationalRuntime {
         ..RelationIntegritySchemaFixture::default()
     }
     .build_runtime()
+}
+
+fn diagnostic_array_contains_string(
+    entry: &crate::facade::diagnostics::RelationalDiagnosticsEntry,
+    field: &str,
+    expected: &str,
+) -> bool {
+    match diagnostic_field(entry, field) {
+        RelationalDiagnosticValue::Array(values) => {
+            let contains_expected = values
+                .iter()
+                .any(|value| value == &RelationalDiagnosticValue::string(expected));
+            assert!(
+                contains_expected,
+                "diagnostic field '{field}' missing string '{expected}': {values:?}"
+            );
+            true
+        }
+        other => panic!("diagnostic field '{field}' is not an array: {other:?}"),
+    }
 }
 
 fn schema_transition_for_subscriber_impact(
@@ -492,25 +513,30 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
         .flat_map(|artifact| artifact.entries.iter())
         .find(|entry| {
             entry.code == DiagnosticCode::InvariantViolation
-                && entry.fields.root_value().get("verification_mode").is_some()
+                && diagnostic_field_optional(entry, "verification_mode")
+                    == Some(&RelationalDiagnosticValue::string(
+                        "AuditRecoveryVerification",
+                    ))
+                && diagnostic_field_optional(entry, "mismatch_count")
+                    == Some(&RelationalDiagnosticValue::Unsigned(
+                        replay.mismatches.len() as u64,
+                    ))
         })
         .expect("replay certification diagnostic");
     assert_eq!(
-        compatibility_entry.fields.root_value()["verification_mode"],
-        serde_json::json!("AuditRecoveryVerification")
+        diagnostic_field(compatibility_entry, "verification_mode"),
+        &RelationalDiagnosticValue::string("AuditRecoveryVerification")
     );
-    assert!(
-        compatibility_entry.fields.root_value()["mismatch_verification_layers"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|value| value == "DeepArtifactParity")
-    );
-    assert!(compatibility_entry.fields.root_value()["mismatch_classes"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|value| value == "SchemaContinuationDescriptorDrift"));
+    assert!(diagnostic_array_contains_string(
+        compatibility_entry,
+        "mismatch_verification_layers",
+        "DeepArtifactParity",
+    ));
+    assert!(diagnostic_array_contains_string(
+        compatibility_entry,
+        "mismatch_classes",
+        "SchemaContinuationDescriptorDrift",
+    ));
     let counters = runtime.performance_access().counters();
     assert!(counters.replay_deep_artifact_parity_checks >= 1);
     assert_eq!(counters.replay_summary_parity_checks, 0);
@@ -1120,8 +1146,10 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| {
             entry.code == DiagnosticCode::CommitPublished
-                && entry.fields.root_value()["verification_mode"]
-                    == serde_json::json!("NormalRecoveryVerification")
+                && diagnostic_field_optional(entry, "verification_mode")
+                    == Some(&RelationalDiagnosticValue::string(
+                        "NormalRecoveryVerification",
+                    ))
         }));
     let replay_counters = runtime.performance_access().counters();
     assert!(replay_counters.replay_digest_parity_checks > 0);
@@ -1292,8 +1320,10 @@ fn hostile_commit_replay_equivalence_test() {
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| {
             entry.code == DiagnosticCode::CommitPublished
-                && entry.fields.root_value()["verification_mode"]
-                    == serde_json::json!("NormalRecoveryVerification")
+                && diagnostic_field_optional(entry, "verification_mode")
+                    == Some(&RelationalDiagnosticValue::string(
+                        "NormalRecoveryVerification",
+                    ))
         }));
 
     assert_stable_aspect_truth_bundle_eq(&original_bundle, &recovered_bundle);

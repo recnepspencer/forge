@@ -83,6 +83,21 @@ impl<'runtime> ReplayAuthority<'runtime> {
             }
         };
 
+        let verification_plan = ReplayVerificationPlan::from_mode(request.verification_mode);
+        let validated_envelope =
+            match validated_replay_continuity_envelope(self.runtime, &envelope, &verification_plan)
+            {
+                Ok(validated) => validated,
+                Err(mismatch) => {
+                    return self.record_continuity_rejection(
+                        request,
+                        &envelope,
+                        &commit_closure,
+                        mismatch,
+                    )
+                }
+            };
+
         let replay_plan = replay_recovery_plan_for_chain(
             self.runtime,
             self.runtime.runtime_config(),
@@ -125,20 +140,6 @@ impl<'runtime> ReplayAuthority<'runtime> {
             );
         };
 
-        let verification_plan = ReplayVerificationPlan::from_mode(request.verification_mode);
-        let validated_envelope =
-            match validated_replay_continuity_envelope(self.runtime, &envelope, &verification_plan)
-            {
-                Ok(validated) => validated,
-                Err(mismatch) => {
-                    return self.record_continuity_rejection(
-                        request,
-                        &envelope,
-                        &commit_closure,
-                        mismatch,
-                    )
-                }
-            };
         let validated_replayed_envelope = match validated_replay_continuity_envelope(
             self.runtime,
             &replayed_envelope,
