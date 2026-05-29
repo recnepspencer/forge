@@ -1,7 +1,6 @@
-use forge_foundational::facade::{
-    AspectFieldLocator, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
-};
+use forge_foundational::facade::{AspectValue, FieldKey};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 use crate::commit_strategies::data::{
     decode_entity_id, encode_entity_id, encode_u64, CanonicalStrategyCommitRequest,
@@ -20,9 +19,9 @@ use crate::storage::data::{
     authoritative_aspect_value_field_comparison_key,
     entity_authoritative_aspect_field_comparison_key,
 };
-use crate::transactions::data::AspectFieldPatch;
 use crate::transactions::data::{
-    EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
+    AspectFieldPatch, AspectFieldPatchTarget, EntityMutationIntent, MutationIntent,
+    UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 #[cfg(test)]
@@ -72,6 +71,12 @@ pub struct ReplicaConvergenceOutput {
     pub entity_id: EntityId,
     pub action: ReplicaConvergenceAction,
     pub desired_replicas: u64,
+}
+
+struct PlannedReplicaFieldPatch {
+    target: AspectFieldPatchTarget,
+    desired_value: AspectValue,
+    fields: AspectFieldPatch,
 }
 
 impl ReplicaConvergenceOutput {
@@ -203,19 +208,24 @@ impl ReplicaConvergenceStrategy {
             })
     }
 
-    fn reconcile_fields(
+    fn plan_replica_field_patch(
         observation: &StrategyObservationContext<'_>,
         existing: &crate::storage::data::EntityReadRecord,
         desired_replicas: u64,
-    ) -> Result<AspectFieldPatch, StrategyExecutorFailure> {
+    ) -> Result<PlannedReplicaFieldPatch, StrategyExecutorFailure> {
         let replicas = FieldKey::new("replicas").expect("static field key must be valid");
         let aspect_key =
             Self::require_lowered_entity_scalar_field(observation, existing, &replicas)?;
-        Ok(AspectFieldPatch::single(
-            aspect_key,
-            replicas,
-            AspectValue::UInt64(desired_replicas),
-        ))
+        let target = AspectFieldPatchTarget::single(aspect_key, replicas);
+        let desired_value = AspectValue::UInt64(desired_replicas);
+        let fields =
+            AspectFieldPatch::new(BTreeMap::from([(target.clone(), desired_value.clone())]));
+
+        Ok(PlannedReplicaFieldPatch {
+            target,
+            desired_value,
+            fields,
+        })
     }
 }
 
@@ -238,46 +248,33 @@ impl CommitStrategyExecutor for ReplicaConvergenceStrategy {
                     ),
                 )
             })?;
-        let desired_fields =
-            Self::reconcile_fields(observation, &existing, input.desired_replicas)?;
-        let replicas = FieldKey::new("replicas").expect("static field key must be valid");
-        let replicas_aspect_key =
-            Self::require_lowered_entity_scalar_field(observation, &existing, &replicas)?;
-        let desired_replicas_value = desired_fields
-            .get_single_field(&replicas_aspect_key, &replicas)
-            .cloned()
-            .expect("replicas field");
+        let replica_field_patch =
+            Self::plan_replica_field_patch(observation, &existing, input.desired_replicas)?;
         let desired_replicas_comparison_key =
-            authoritative_aspect_value_field_comparison_key(&desired_replicas_value);
+            authoritative_aspect_value_field_comparison_key(&replica_field_patch.desired_value);
 
-        let replicas_field_locator = AspectFieldLocator::new(
-            LocatorAuthority::Planned,
-            replicas_aspect_key,
-            CanonicalFieldPath::single(replicas.clone()),
-        );
-
-        let (action, mutation_program) =
-            if entity_authoritative_aspect_field_comparison_key(&existing, &replicas_field_locator)
-                == Some(desired_replicas_comparison_key)
-            {
-                (
-                    ReplicaConvergenceAction::NoChange,
-                    StrategyMutationProgram::new(Vec::<WorkerIntentBatch>::new()),
-                )
-            } else {
-                let batch = WorkerIntentBatch::new("replica-convergence-update").push(
-                    MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-                        UpdateEntityFieldsIntent {
-                            entity_id: input.entity_id,
-                            fields: desired_fields,
-                        },
-                    )),
-                );
-                (
-                    ReplicaConvergenceAction::UpdateReplicas,
-                    StrategyMutationProgram::new(vec![batch]),
-                )
-            };
+        let (action, mutation_program) = if entity_authoritative_aspect_field_comparison_key(
+            &existing,
+            replica_field_patch.target.locator(),
+        ) == Some(desired_replicas_comparison_key)
+        {
+            (
+                ReplicaConvergenceAction::NoChange,
+                StrategyMutationProgram::new(Vec::<WorkerIntentBatch>::new()),
+            )
+        } else {
+            let batch =
+                WorkerIntentBatch::new("replica-convergence-update").push(MutationIntent::Entity(
+                    EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                        entity_id: input.entity_id,
+                        fields: replica_field_patch.fields,
+                    }),
+                ));
+            (
+                ReplicaConvergenceAction::UpdateReplicas,
+                StrategyMutationProgram::new(vec![batch]),
+            )
+        };
 
         let output = Self::output_artifact(&ReplicaConvergenceOutput {
             entity_id: input.entity_id,
