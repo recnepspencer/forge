@@ -1,8 +1,9 @@
+use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::facade::diagnostics::{DiagnosticsDeliveryClass, RelationalDiagnosticsProfile};
 use crate::facade::runtime::HarnessAuditMode;
 use crate::schema::data::{
-    EndpointKindContractDeclaration, RelationIntegrityDeclarations, SymmetryContractDeclaration,
-    SymmetryMode,
+    ContractId, EndpointKindContractDeclaration, RelationIntegrityDeclarations,
+    SymmetryContractDeclaration, SymmetryMode,
 };
 use crate::tests::support::*;
 use serde_json::json;
@@ -94,6 +95,30 @@ impl forge_harness::facade::DiagnosticsHarnessAdapter for InvariantHarnessAdapte
     ) -> Result<forge_harness::facade::DiagnosticsRecord, Self::Error> {
         RelationalHarnessAdapter.capture_diagnostics(runtime, fixture, profile)
     }
+}
+
+fn diagnostic_object_field<'a>(
+    value: &'a RelationalDiagnosticValue,
+    field: &str,
+) -> &'a RelationalDiagnosticValue {
+    let RelationalDiagnosticValue::Object(fields) = value else {
+        panic!("diagnostic value is not an object: {value:?}");
+    };
+    fields
+        .get(field)
+        .unwrap_or_else(|| panic!("diagnostic object field '{field}' missing from {value:?}"))
+}
+
+fn existing_entity_reference_diagnostic_value(
+    entity_id: crate::identity::data::EntityId,
+) -> RelationalDiagnosticValue {
+    RelationalDiagnosticValue::object([
+        (
+            "reference_kind",
+            RelationalDiagnosticValue::string("existing"),
+        ),
+        ("entity_id", RelationalDiagnosticValue::EntityId(entity_id)),
+    ])
 }
 
 #[test]
@@ -264,48 +289,47 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
         other => panic!("expected conflict, got {:?}", other),
     }
     assert_eq!(
-        entry.fields.root_value()["execution_point"],
-        json!("commit_boundary")
+        diagnostic_field(entry, "execution_point"),
+        &RelationalDiagnosticValue::string("commit_boundary")
     );
     assert_eq!(
-        entry.fields.root_value()["failure_effect"],
-        json!("block_commit")
+        diagnostic_field(entry, "failure_effect"),
+        &RelationalDiagnosticValue::string("block_commit")
     );
-    let violation = &entry.fields.root_value()["violation"];
-    assert_eq!(violation["violation_kind"], json!("relation_symmetry"));
-    assert_eq!(violation["contract_id"], json!("paired_twin"));
-    assert_eq!(violation["relation_kind_id"], json!(2));
+    let violation = diagnostic_field(entry, "violation");
     assert_eq!(
-        violation["source"],
-        typed_existing_entity_reference_json(source)
+        diagnostic_object_field(violation, "violation_kind"),
+        &RelationalDiagnosticValue::string("relation_symmetry")
     );
     assert_eq!(
-        violation["target"],
-        typed_existing_entity_reference_json(target)
-    );
-    assert_eq!(violation["mode"], json!("paired_twin_required"));
-    assert_eq!(
-        entry.fields.root_value()["proof_boundary"]["scope_class"],
-        json!("partition_scope")
+        diagnostic_object_field(violation, "contract_id"),
+        &RelationalDiagnosticValue::ContractId(ContractId::new("paired_twin"))
     );
     assert_eq!(
-        entry.fields.root_value()["proof_boundary"]["packet_count"],
-        json!(1)
+        diagnostic_object_field(violation, "relation_kind_id"),
+        &RelationalDiagnosticValue::KindId(KindId(2))
     );
-}
-
-fn typed_existing_entity_reference_json(
-    entity_id: crate::identity::data::EntityId,
-) -> serde_json::Value {
-    json!({
-        "reference_kind": "existing",
-        "entity_id": {
-            "record_kind": "entity",
-            "partition_id": entity_id.partition_id.0,
-            "local_slot": entity_id.local_slot.0,
-            "generation": entity_id.generation.0,
-        }
-    })
+    assert_eq!(
+        diagnostic_object_field(violation, "source"),
+        &existing_entity_reference_diagnostic_value(source)
+    );
+    assert_eq!(
+        diagnostic_object_field(violation, "target"),
+        &existing_entity_reference_diagnostic_value(target)
+    );
+    assert_eq!(
+        diagnostic_object_field(violation, "mode"),
+        &RelationalDiagnosticValue::string("paired_twin_required")
+    );
+    let proof_boundary = diagnostic_field(entry, "proof_boundary");
+    assert_eq!(
+        diagnostic_object_field(proof_boundary, "scope_class"),
+        &RelationalDiagnosticValue::string("partition_scope")
+    );
+    assert_eq!(
+        diagnostic_object_field(proof_boundary, "packet_count"),
+        &RelationalDiagnosticValue::Unsigned(1)
+    );
 }
 
 #[test]
@@ -361,26 +385,31 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
         .flat_map(|artifact| artifact.entries.iter())
         .find(|entry| {
             entry.code == DiagnosticCode::InvariantProofBoundaryObserved
-                && entry.fields.root_value()["execution_point"] == json!("commit_boundary")
-                && entry.fields.root_value()["proof_boundary"]["packet_count"] == json!(1)
+                && diagnostic_field_optional(entry, "execution_point")
+                    == Some(&RelationalDiagnosticValue::string("commit_boundary"))
+                && diagnostic_field_optional(entry, "proof_boundary").is_some_and(|value| {
+                    diagnostic_object_field(value, "packet_count")
+                        == &RelationalDiagnosticValue::Unsigned(1)
+                })
         })
         .expect("proof boundary trace entry");
 
     assert_eq!(
-        entry.fields.root_value()["execution_point"],
-        json!("commit_boundary")
+        diagnostic_field(entry, "execution_point"),
+        &RelationalDiagnosticValue::string("commit_boundary")
+    );
+    let proof_boundary = diagnostic_field(entry, "proof_boundary");
+    assert_eq!(
+        diagnostic_object_field(proof_boundary, "scope_class"),
+        &RelationalDiagnosticValue::string("partition_scope")
     );
     assert_eq!(
-        entry.fields.root_value()["proof_boundary"]["scope_class"],
-        json!("partition_scope")
+        diagnostic_object_field(proof_boundary, "packet_count"),
+        &RelationalDiagnosticValue::Unsigned(1)
     );
     assert_eq!(
-        entry.fields.root_value()["proof_boundary"]["packet_count"],
-        json!(1)
-    );
-    assert_eq!(
-        entry.fields.root_value()["proof_boundary"]["touched_partition_count"],
-        json!(1)
+        diagnostic_object_field(proof_boundary, "touched_partition_count"),
+        &RelationalDiagnosticValue::Unsigned(1)
     );
 }
 
