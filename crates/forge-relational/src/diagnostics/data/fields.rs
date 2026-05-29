@@ -60,6 +60,10 @@ impl RelationalDiagnosticFields {
     pub fn root(&self) -> &RelationalDiagnosticValue {
         &self.root
     }
+
+    pub fn into_projected_json(self) -> Value {
+        self.projected_root
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -155,12 +159,6 @@ impl From<RelationalDiagnosticValue> for RelationalDiagnosticFields {
     }
 }
 
-impl From<RelationalDiagnosticFields> for Value {
-    fn from(fields: RelationalDiagnosticFields) -> Self {
-        fields.projected_root
-    }
-}
-
 impl PartialEq for RelationalDiagnosticFields {
     fn eq(&self, other: &Self) -> bool {
         self.projected_root == other.projected_root
@@ -168,18 +166,6 @@ impl PartialEq for RelationalDiagnosticFields {
 }
 
 impl Eq for RelationalDiagnosticFields {}
-
-impl PartialEq<Value> for RelationalDiagnosticFields {
-    fn eq(&self, other: &Value) -> bool {
-        &self.projected_root == other
-    }
-}
-
-impl PartialEq<RelationalDiagnosticFields> for Value {
-    fn eq(&self, other: &RelationalDiagnosticFields) -> bool {
-        self == &other.projected_root
-    }
-}
 
 #[cfg(test)]
 #[path = "fields/fields_tests.rs"]
