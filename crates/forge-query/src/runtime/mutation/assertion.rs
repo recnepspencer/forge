@@ -54,8 +54,8 @@ pub struct ForgeQueryExistingTruthAssertionDenial {
     binding: crate::runtime::ForgeQueryExistingTruthTargetBinding,
     kind: ForgeQueryExistingTruthAssertionDenialKind,
     asserted_aspect_path: Option<String>,
-    expected_value_json: Option<String>,
-    found_value_json: Option<String>,
+    expected_external_value_json: Option<String>,
+    found_external_value_json: Option<String>,
     message: String,
     denial_digest: String,
 }
@@ -65,8 +65,8 @@ impl ForgeQueryExistingTruthAssertionDenial {
         binding: &crate::runtime::ForgeQueryExistingTruthTargetBinding,
         kind: ForgeQueryExistingTruthAssertionDenialKind,
         asserted_aspect_path: Option<String>,
-        expected_value_json: Option<String>,
-        found_value_json: Option<String>,
+        expected_external_value_json: Option<String>,
+        found_external_value_json: Option<String>,
         message: impl Into<String>,
     ) -> Self {
         let message = message.into();
@@ -83,17 +83,20 @@ impl ForgeQueryExistingTruthAssertionDenial {
             ),
             format!(
                 "expected:{}",
-                expected_value_json.as_deref().unwrap_or("none")
+                expected_external_value_json.as_deref().unwrap_or("none")
             ),
-            format!("found:{}", found_value_json.as_deref().unwrap_or("none")),
+            format!(
+                "found:{}",
+                found_external_value_json.as_deref().unwrap_or("none")
+            ),
             format!("message:{message}"),
         ]);
         Self {
             binding: binding.clone(),
             kind,
             asserted_aspect_path,
-            expected_value_json,
-            found_value_json,
+            expected_external_value_json,
+            found_external_value_json,
             message,
             denial_digest,
         }
@@ -111,12 +114,12 @@ impl ForgeQueryExistingTruthAssertionDenial {
         self.asserted_aspect_path.as_deref()
     }
 
-    pub fn expected_value_json(&self) -> Option<&str> {
-        self.expected_value_json.as_deref()
+    pub fn expected_external_value_json(&self) -> Option<&str> {
+        self.expected_external_value_json.as_deref()
     }
 
-    pub fn found_value_json(&self) -> Option<&str> {
-        self.found_value_json.as_deref()
+    pub fn found_external_value_json(&self) -> Option<&str> {
+        self.found_external_value_json.as_deref()
     }
 
     pub fn message(&self) -> &str {

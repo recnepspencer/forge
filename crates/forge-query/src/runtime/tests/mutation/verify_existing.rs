@@ -114,7 +114,7 @@ fn verify_existing_denies_missing_asserted_aspect_typed_and_early() {
                 ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect
             );
             assert_eq!(denial.asserted_aspect_path(), Some("status.value"));
-            assert_eq!(denial.expected_value_json(), Some("\"open\""));
+            assert_eq!(denial.expected_external_value_json(), Some("\"open\""));
         }
         other => panic!("expected typed assertion denial, got {other:?}"),
     }
@@ -164,8 +164,11 @@ fn verify_existing_denies_mismatched_value_typed_and_early() {
                 ForgeQueryExistingTruthAssertionDenialKind::AssertedValueMismatch
             );
             assert_eq!(denial.asserted_aspect_path(), Some("title.value"));
-            assert_eq!(denial.expected_value_json(), Some("\"Different title\""));
-            assert_eq!(denial.found_value_json(), Some("\"Seed title\""));
+            assert_eq!(
+                denial.expected_external_value_json(),
+                Some("\"Different title\"")
+            );
+            assert_eq!(denial.found_external_value_json(), Some("\"Seed title\""));
         }
         other => panic!("expected typed assertion denial, got {other:?}"),
     }
@@ -217,7 +220,7 @@ fn verify_existing_reports_the_actual_failing_aspect_in_multi_aspect_requests() 
                 ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect
             );
             assert_eq!(denial.asserted_aspect_path(), Some("status.value"));
-            assert_eq!(denial.expected_value_json(), Some("\"open\""));
+            assert_eq!(denial.expected_external_value_json(), Some("\"open\""));
         }
         other => panic!("expected typed assertion denial, got {other:?}"),
     }

@@ -146,8 +146,8 @@ fn delete_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
                 ForgeQueryExistingTruthAssertionDenialKind::AssertedValueMismatch
             );
             assert_eq!(denial.asserted_aspect_path(), Some("status.value"));
-            assert_eq!(denial.expected_value_json(), Some("\"closed\""));
-            assert_eq!(denial.found_value_json(), Some("\"open\""));
+            assert_eq!(denial.expected_external_value_json(), Some("\"closed\""));
+            assert_eq!(denial.found_external_value_json(), Some("\"open\""));
         }
         other => panic!("expected typed assertion denial, got {other:?}"),
     }
@@ -159,7 +159,7 @@ fn delete_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
         probe
             .field("status.value")
             .expect("status field should remain present")
-            .value_json(),
+            .external_value_json(),
         "\"open\""
     );
 }

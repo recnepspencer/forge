@@ -2,7 +2,7 @@ use forge_query::facade::ExecutionResultEnvelope;
 
 fn main() {
     let _ = ExecutionResultEnvelope {
-        payload: todo!(),
+        rows: todo!(),
         report: todo!(),
         counters: todo!(),
     };

@@ -33,7 +33,7 @@ pub(super) fn verify_existing_truth_assertion(
                 binding,
                 ForgeQueryExistingTruthAssertionDenialKind::MissingAssertedAspect,
                 Some(aspect.aspect_path().to_string()),
-                Some(value_json(aspect.value())),
+                Some(external_value_json(aspect.value())),
                 None,
                 "authoritative truth did not contain the asserted aspect",
             ));
@@ -43,8 +43,8 @@ pub(super) fn verify_existing_truth_assertion(
                 binding,
                 ForgeQueryExistingTruthAssertionDenialKind::AssertedValueMismatch,
                 Some(aspect.aspect_path().to_string()),
-                Some(value_json(aspect.value())),
-                Some(value_json(found)),
+                Some(external_value_json(aspect.value())),
+                Some(external_value_json(found)),
                 "authoritative truth did not match the asserted value",
             ));
         }
@@ -125,6 +125,6 @@ fn get_json_path<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
     Some(current)
 }
 
-fn value_json(value: &Value) -> String {
+fn external_value_json(value: &Value) -> String {
     serde_json::to_string(value).unwrap_or_else(|_| value.to_string())
 }
