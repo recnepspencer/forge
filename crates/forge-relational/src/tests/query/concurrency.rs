@@ -6,7 +6,6 @@ use crate::facade::indexes::{
 };
 use crate::facade::query::FallbackParityMode;
 use crate::tests::support::*;
-use serde_json::json;
 
 #[test]
 fn concurrent_snapshot_and_version_reads_match_serial_truth() {
@@ -156,8 +155,10 @@ fn published_snapshot_read_diagnostics_use_authoritative_binding_version() {
         .expect("published snapshot entry");
 
     assert_eq!(
-        publication_entry.fields.root_value()["version_id"],
-        json!(updated.snapshot.version_id.0)
+        diagnostic_field(publication_entry, "version_id"),
+        &crate::diagnostics::data::RelationalDiagnosticValue::VersionId(
+            updated.snapshot.version_id
+        )
     );
 }
 
