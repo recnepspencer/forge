@@ -207,3 +207,7 @@ fn posture_row_digest(
 ) -> String {
     format!("capability={capability:?};status={status:?};reason={reason}")
 }
+
+
+
+

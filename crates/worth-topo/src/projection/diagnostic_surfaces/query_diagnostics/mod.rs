@@ -1,13 +1,13 @@
 use forge_query::facade::{
-    ForgeQueryDerivedPatch, ForgeQueryDerivedView, ForgeQueryDerivedViewHandle,
-    ForgeQueryDerivedViewMaintainer, ForgeQueryDerivedViewMaterialization,
-    ForgeQueryRetainedMutationContext, ForgeQueryRetainedUpstreamInputs, ForgeQueryRuntimeError,
-    ForgeQueryWorkspace, ForgeQueryWorkspaceError,
+    ForgeQueryComputedBuilder, ForgeQueryDerivedPatch, ForgeQueryDerivedView,
+    ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
+    ForgeQueryDerivedViewMaterialization, ForgeQueryRetainedMutationContext,
+    ForgeQueryRetainedUpstreamInputs, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
-use schema::facade::{
-    query_aspect_paths_from_set, Aspect, DerivedTopologyReadBasis, MutationOrigin, QueryAspectPath,
-    QueryComputedDeclarationBuilder, QueryDeclarationError,
-};
+use schema::facade::{query_aspect_paths_from_set, QueryAspectPath};
+use schema::facade::platform::aspects::Aspect;
+use schema::facade::platform::authority::MutationOrigin;
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -255,16 +255,16 @@ impl ForgeQueryDerivedViewMaintainer for TopologyEquivalenceContractMaintainer {
 
 pub fn topology_diagnostics_computed_declaration(
     surface_name: impl Into<String>,
-) -> Result<ForgeQueryDerivedView, QueryDeclarationError> {
-    QueryComputedDeclarationBuilder::new(surface_name)
+) -> Result<ForgeQueryDerivedView, ForgeQueryRuntimeError> {
+    ForgeQueryComputedBuilder::surface(surface_name)
         .reads([
-            QueryAspectPath::TOPOLOGY_STRUCTURE,
-            QueryAspectPath::TOPOLOGY_OWNERSHIP,
-            QueryAspectPath::TOPOLOGY_BOUNDARY,
-            QueryAspectPath::TOPOLOGY_RADIAL,
-            QueryAspectPath::NAMING_PERSISTENT_NAME,
-            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS,
-            QueryAspectPath::DIAGNOSTICS_DECISIONS,
+            QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
+            QueryAspectPath::TOPOLOGY_OWNERSHIP.as_str(),
+            QueryAspectPath::TOPOLOGY_BOUNDARY.as_str(),
+            QueryAspectPath::TOPOLOGY_RADIAL.as_str(),
+            QueryAspectPath::NAMING_PERSISTENT_NAME.as_str(),
+            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS.as_str(),
+            QueryAspectPath::DIAGNOSTICS_DECISIONS.as_str(),
         ])
         .whole_refresh_fallback()
         .build()
@@ -272,11 +272,11 @@ pub fn topology_diagnostics_computed_declaration(
 
 pub fn topology_equivalence_contract_computed_declaration(
     surface_name: impl Into<String>,
-) -> Result<ForgeQueryDerivedView, QueryDeclarationError> {
-    QueryComputedDeclarationBuilder::new(surface_name)
+) -> Result<ForgeQueryDerivedView, ForgeQueryRuntimeError> {
+    ForgeQueryComputedBuilder::surface(surface_name)
         .reads([
-            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS,
-            QueryAspectPath::DIAGNOSTICS_DECISIONS,
+            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS.as_str(),
+            QueryAspectPath::DIAGNOSTICS_DECISIONS.as_str(),
         ])
         .whole_refresh_fallback()
         .build()
@@ -290,10 +290,7 @@ pub fn declare_topology_diagnostics_surface<T, M, I, V>(
     validation_view: &ForgeQueryDerivedViewHandle<V>,
 ) -> Result<ForgeQueryDerivedViewHandle<T>, ForgeQueryRuntimeError> {
     let surface_name = surface_name.into();
-    let view = topology_diagnostics_computed_declaration(surface_name)
-        .map_err(|error| {
-            ForgeQueryRuntimeError::Workspace(ForgeQueryWorkspaceError::new(error.to_string()))
-        })?
+    let view = topology_diagnostics_computed_declaration(surface_name)?
         .depends_on_derived_name(materialized_view.name())
         .depends_on_derived_name(interpreted_view.name())
         .depends_on_derived_name(validation_view.name());
@@ -313,10 +310,7 @@ pub fn declare_topology_equivalence_contract_surface<T, D>(
     diagnostics_view: &ForgeQueryDerivedViewHandle<D>,
 ) -> Result<ForgeQueryDerivedViewHandle<T>, ForgeQueryRuntimeError> {
     let surface_name = surface_name.into();
-    let view = topology_equivalence_contract_computed_declaration(surface_name)
-        .map_err(|error| {
-            ForgeQueryRuntimeError::Workspace(ForgeQueryWorkspaceError::new(error.to_string()))
-        })?
+    let view = topology_equivalence_contract_computed_declaration(surface_name)?
         .depends_on_derived_name(diagnostics_view.name());
     workspace.computed_view(
         view,
@@ -379,3 +373,7 @@ pub fn equivalence_contract_from_diagnostics_rows(
         decode_single_computed_row(diagnostics_rows, "derived read diagnostics")?;
     Ok(diagnostics.equivalence_contract_report)
 }
+
+
+
+

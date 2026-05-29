@@ -2,19 +2,19 @@ use std::collections::BTreeSet;
 
 use forge_relational::facade::history::{BranchId, CommitId};
 use forge_relational::facade::identity::VersionId;
-use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use forge_relational::facade::snapshots::SnapshotId;
 use forge_relational::facade::transactions::{CommitLog, CommitResult, TransactionId};
 use forge_signal::facade::{
-    diagnostics::{
-        DiagnosticsAvailability as SignalDiagnosticsAvailability, LineageArtifactId, ReplayCursor,
-    },
-    NodeId as SignalNodeId, SignalGraph,
+    diagnostics::{LineageArtifactId, ReplayCursor},
+    NodeId as SignalNodeId,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::data::aspects::Aspect;
-use crate::data::authority::{DerivedTopologyReadBasis, DerivedTruthBasisIdentity, MutationOrigin};
+use crate::data::authority::{DerivedTruthBasisIdentity, MutationOrigin};
+
+#[cfg(test)]
+use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TraceAvailability {
@@ -33,15 +33,6 @@ impl Default for TraceAvailability {
 pub struct TraceWarning {
     pub code: String,
     pub detail: String,
-}
-
-impl TraceWarning {
-    pub fn new(code: impl Into<String>, detail: impl Into<String>) -> Self {
-        Self {
-            code: code.into(),
-            detail: detail.into(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -214,22 +205,22 @@ impl AuthorityTraceAnchor {
         }
     }
 
-    pub fn latest_commit_id(&self) -> Option<CommitId> {
-        self.commit_ids.last().copied()
-    }
-
+    #[cfg(test)]
     pub fn latest_snapshot_id(&self) -> Option<SnapshotId> {
         self.snapshot_ids.last().copied()
     }
 
+    #[cfg(test)]
     pub fn latest_runtime_instance_id(&self) -> Option<u64> {
         self.runtime_instance_ids.last().copied()
     }
 
+    #[cfg(test)]
     pub fn latest_version_id(&self) -> Option<VersionId> {
         self.version_ids.last().copied()
     }
 
+    #[cfg(test)]
     pub fn open_latest_snapshot(&self, runtime: &RelationalRuntime) -> Option<RelationalReadView> {
         let snapshot_id = self.latest_snapshot_id()?;
         let version_id = self.latest_version_id()?;
@@ -277,22 +268,6 @@ pub struct BridgeTraceAnchor {
     pub historical_record_identities: Vec<String>,
 }
 
-impl BridgeTraceAnchor {
-    pub fn new(
-        route_identities: impl IntoIterator<Item = String>,
-        invalidation_identities: impl IntoIterator<Item = String>,
-        snapshot_identities: impl IntoIterator<Item = String>,
-        historical_record_identities: impl IntoIterator<Item = String>,
-    ) -> Self {
-        Self {
-            route_identities: route_identities.into_iter().collect(),
-            invalidation_identities: invalidation_identities.into_iter().collect(),
-            snapshot_identities: snapshot_identities.into_iter().collect(),
-            historical_record_identities: historical_record_identities.into_iter().collect(),
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DerivedTraceAnchor {
     pub branch_id: BranchId,
@@ -302,29 +277,6 @@ pub struct DerivedTraceAnchor {
     pub truth_basis_identity: DerivedTruthBasisIdentity,
 }
 
-impl DerivedTraceAnchor {
-    pub fn from_read_basis(basis: &DerivedTopologyReadBasis) -> Self {
-        Self {
-            branch_id: basis.branch_id().clone(),
-            runtime_instance_id: basis.snapshot().runtime_instance_id,
-            snapshot_id: basis.snapshot().snapshot_id,
-            version_id: basis.snapshot().version_id,
-            truth_basis_identity: basis.authority.truth_basis_identity.clone(),
-        }
-    }
-
-    pub fn open_snapshot(&self, runtime: &RelationalRuntime) -> Option<RelationalReadView> {
-        let handle = forge_relational::facade::snapshots::SnapshotHandle {
-            runtime_instance_id: self.runtime_instance_id,
-            snapshot_id: self.snapshot_id,
-            version_id: self.version_id,
-            read_policy:
-                forge_relational::facade::snapshots::SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
-        };
-        runtime.read_truth().read_snapshot(&handle)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignalTraceAnchor {
     pub node: SignalNodeId,
@@ -332,51 +284,6 @@ pub struct SignalTraceAnchor {
     pub execution_record_id: Option<u64>,
     pub semantic_segment_id: Option<u64>,
     pub lineage_artifact_id: Option<LineageArtifactId>,
-}
-
-impl SignalTraceAnchor {
-    pub fn from_graph(
-        graph: &SignalGraph,
-        node: SignalNodeId,
-    ) -> Result<Self, forge_signal::facade::SignalError> {
-        let observer = graph.observe();
-        let explanation = observer.explain(node)?;
-        let replay = observer.replay_for_node(node);
-        Ok(Self {
-            node,
-            replay_cursor: replay.last().map(|event| event.cursor),
-            execution_record_id: explanation.execution_record_id,
-            semantic_segment_id: explanation.semantic_segment_id,
-            lineage_artifact_id: observer.current_lineage_artifact(node),
-        })
-    }
-}
-
-impl SignalTraceEvidence {
-    pub fn from_graph(
-        graph: &SignalGraph,
-        node: SignalNodeId,
-    ) -> Result<Self, forge_signal::facade::SignalError> {
-        let observer = graph.observe();
-        let replay = observer.replay_for_node(node);
-        let forensic = forge_signal::facade::diagnostics_for_graph(graph).forensic();
-        let (_, explanation_availability) = forensic.materialize_explanation_artifact(node)?;
-        let (_, provenance_availability) = forensic.materialize_provenance_artifact(node)?;
-        Ok(Self {
-            availability: TraceAvailability::Present,
-            explanation_availability: Some(format_signal_diagnostics_availability(
-                explanation_availability,
-            )),
-            provenance_availability: Some(format_signal_diagnostics_availability(
-                provenance_availability,
-            )),
-            replay_event_count: replay.len(),
-        })
-    }
-}
-
-fn format_signal_diagnostics_availability(availability: SignalDiagnosticsAvailability) -> String {
-    format!("{availability:?}")
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -389,24 +296,6 @@ pub struct DecisionTrace {
     pub bridge: Option<BridgeTraceEvidence>,
     pub derived: Option<DerivedTraceEvidence>,
     pub signal: Option<SignalTraceEvidence>,
-}
-
-impl DecisionTrace {
-    pub fn authority_anchor(&self) -> Option<&AuthorityTraceAnchor> {
-        self.authority_anchor.as_ref()
-    }
-
-    pub fn bridge_anchor(&self) -> Option<&BridgeTraceAnchor> {
-        self.bridge_anchor.as_ref()
-    }
-
-    pub fn derived_anchor(&self) -> Option<&DerivedTraceAnchor> {
-        self.derived_anchor.as_ref()
-    }
-
-    pub fn signal_anchor(&self) -> Option<&SignalTraceAnchor> {
-        self.signal_anchor.as_ref()
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -435,6 +324,7 @@ impl<T> BoundaryEnvelope<T> {
         }
     }
 
+    #[cfg(test)]
     pub fn primary_result(&self) -> &T {
         &self.primary_result
     }
@@ -443,6 +333,7 @@ impl<T> BoundaryEnvelope<T> {
         self.primary_result
     }
 
+    #[cfg(test)]
     pub fn map_primary_result<U>(self, map: impl FnOnce(T) -> U) -> BoundaryEnvelope<U> {
         let (primary_result, warnings, decision_trace, integrity_markers, performance_accounting) =
             self.into_parts();
@@ -455,22 +346,27 @@ impl<T> BoundaryEnvelope<T> {
         )
     }
 
+    #[cfg(test)]
     pub fn warnings(&self) -> &[TraceWarning] {
         &self.warnings
     }
 
+    #[cfg(test)]
     pub fn decision_trace(&self) -> &DecisionTrace {
         &self.decision_trace
     }
 
+    #[cfg(test)]
     pub fn integrity_markers(&self) -> &IntegrityMarkers {
         &self.integrity_markers
     }
 
+    #[cfg(test)]
     pub fn performance_accounting(&self) -> &PerformanceAccounting {
         &self.performance_accounting
     }
 
+    #[cfg(test)]
     pub fn into_parts(
         self,
     ) -> (
@@ -489,42 +385,7 @@ impl<T> BoundaryEnvelope<T> {
         )
     }
 
-    pub fn with_decision_trace(self, decision_trace: DecisionTrace) -> Self {
-        let (primary_result, warnings, _, integrity_markers, performance_accounting) =
-            self.into_parts();
-        Self::success(
-            primary_result,
-            warnings,
-            decision_trace,
-            integrity_markers,
-            performance_accounting,
-        )
-    }
-
-    pub fn map_decision_trace(self, map: impl FnOnce(DecisionTrace) -> DecisionTrace) -> Self {
-        let (primary_result, warnings, decision_trace, integrity_markers, performance_accounting) =
-            self.into_parts();
-        Self::success(
-            primary_result,
-            warnings,
-            map(decision_trace),
-            integrity_markers,
-            performance_accounting,
-        )
-    }
-
-    pub fn with_integrity_markers(self, integrity_markers: IntegrityMarkers) -> Self {
-        let (primary_result, warnings, decision_trace, _, performance_accounting) =
-            self.into_parts();
-        Self::success(
-            primary_result,
-            warnings,
-            decision_trace,
-            integrity_markers,
-            performance_accounting,
-        )
-    }
-
+    #[cfg(test)]
     pub fn with_performance_accounting(
         self,
         performance_accounting: PerformanceAccounting,
@@ -566,6 +427,7 @@ impl<E> BoundaryFailure<E> {
         }
     }
 
+    #[cfg(test)]
     pub fn error(&self) -> &E {
         &self.error
     }
@@ -574,6 +436,7 @@ impl<E> BoundaryFailure<E> {
         self.error
     }
 
+    #[cfg(test)]
     pub fn map_error<F>(self, map: impl FnOnce(E) -> F) -> BoundaryFailure<F> {
         let (error, warnings, decision_trace, integrity_markers, performance_accounting) =
             self.into_parts();
@@ -586,22 +449,12 @@ impl<E> BoundaryFailure<E> {
         )
     }
 
+    #[cfg(test)]
     pub fn warnings(&self) -> &[TraceWarning] {
         &self.warnings
     }
 
-    pub fn decision_trace(&self) -> &DecisionTrace {
-        &self.decision_trace
-    }
-
-    pub fn integrity_markers(&self) -> &IntegrityMarkers {
-        &self.integrity_markers
-    }
-
-    pub fn performance_accounting(&self) -> &PerformanceAccounting {
-        &self.performance_accounting
-    }
-
+    #[cfg(test)]
     pub fn into_parts(
         self,
     ) -> (
@@ -617,54 +470,6 @@ impl<E> BoundaryFailure<E> {
             self.decision_trace,
             self.integrity_markers,
             self.performance_accounting,
-        )
-    }
-
-    pub fn with_decision_trace(self, decision_trace: DecisionTrace) -> Self {
-        let (error, warnings, _, integrity_markers, performance_accounting) = self.into_parts();
-        Self::failure(
-            error,
-            warnings,
-            decision_trace,
-            integrity_markers,
-            performance_accounting,
-        )
-    }
-
-    pub fn map_decision_trace(self, map: impl FnOnce(DecisionTrace) -> DecisionTrace) -> Self {
-        let (error, warnings, decision_trace, integrity_markers, performance_accounting) =
-            self.into_parts();
-        Self::failure(
-            error,
-            warnings,
-            map(decision_trace),
-            integrity_markers,
-            performance_accounting,
-        )
-    }
-
-    pub fn with_integrity_markers(self, integrity_markers: IntegrityMarkers) -> Self {
-        let (error, warnings, decision_trace, _, performance_accounting) = self.into_parts();
-        Self::failure(
-            error,
-            warnings,
-            decision_trace,
-            integrity_markers,
-            performance_accounting,
-        )
-    }
-
-    pub fn with_performance_accounting(
-        self,
-        performance_accounting: PerformanceAccounting,
-    ) -> Self {
-        let (error, warnings, decision_trace, integrity_markers, _) = self.into_parts();
-        Self::failure(
-            error,
-            warnings,
-            decision_trace,
-            integrity_markers,
-            performance_accounting,
         )
     }
 }

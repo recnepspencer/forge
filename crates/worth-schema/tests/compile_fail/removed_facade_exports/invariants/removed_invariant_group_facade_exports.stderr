@@ -1,0 +1,17 @@
+error[E0432]: unresolved imports `schema::facade::DiagnosticsInvariantGroup`, `schema::facade::GeometryInvariantGroup`, `schema::facade::InvariantGroup`, `schema::facade::LineageInvariantGroup`, `schema::facade::NamingInvariantGroup`, `schema::facade::TopologyInvariantGroup`
+ --> tests/compile_fail/removed_facade_exports/invariants/removed_invariant_group_facade_exports.rs:2:5
+  |
+2 |     DiagnosticsInvariantGroup, GeometryInvariantGroup, InvariantGroup, LineageInvariantGroup,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^ no `LineageInvariantGroup` in `facade`
+  |     |                          |                       |
+  |     |                          |                       no `InvariantGroup` in `facade`
+  |     |                          no `GeometryInvariantGroup` in `facade`
+  |     no `DiagnosticsInvariantGroup` in `facade`
+3 |     NamingInvariantGroup, TopologyInvariantGroup,
+  |     ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^ no `TopologyInvariantGroup` in `facade`
+  |     |
+  |     no `NamingInvariantGroup` in `facade`
+  |
+  = help: consider importing one of these enums instead:
+          forge_query::facade::InvariantGroup
+          forge_relational::facade::runtime::InvariantGroup

@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::identity::EntityId;
-use schema::facade::ShellInterpretationClass;
+use schema::facade::platform::authority::ShellInterpretationClass;
 
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
 use crate::validation::error::TopologyValidationError;
@@ -376,3 +376,7 @@ fn walk_radial_ring(
 
     Ok(ring)
 }
+
+
+
+

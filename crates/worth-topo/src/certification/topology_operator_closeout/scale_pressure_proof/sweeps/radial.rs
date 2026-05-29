@@ -1,7 +1,7 @@
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 use serde_json::Value;
 
 use super::super::super::shared::{
@@ -258,3 +258,7 @@ fn row_matches_source_kind(
 fn radial_splice_pressure_error(reason: &str) -> TopologyCertificationError {
     TopologyCertificationError::Query(format!("milestone three radial splice failed: {reason}"))
 }
+
+
+
+

@@ -1,9 +1,11 @@
 use std::collections::BTreeSet;
 
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::{
-    Aspect, CreateKey, EntityReference, MutationOrigin, TopologyEntityKind, TopologyMutation,
+use schema::facade::platform::aspects::Aspect;
+use schema::facade::platform::authority::{
+    CreateKey, EntityReference, MutationOrigin, TopologyMutation,
 };
+use schema::facade::platform::entities::TopologyEntityKind;
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -165,3 +167,7 @@ impl TopologyEditContract {
         TopologyEditNamingReport { rows }
     }
 }
+
+
+
+

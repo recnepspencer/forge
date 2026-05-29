@@ -8,6 +8,7 @@ use super::query_evidence::{
     traced_certification_envelope, traced_certification_failure,
 };
 use super::*;
+use crate::committed_artifact::TopologyCommittedArtifact;
 
 impl MilestoneOneCertificationHarness {
     pub(crate) fn certify_read_basis_with_runtime_traced(
@@ -262,7 +263,7 @@ impl MilestoneOneCertificationHarness {
 
     pub fn certify_verified_commit(
         runtime: &mut RelationalRuntime,
-        verified: &VerifiedTopologyCommit,
+        verified: &TopologyCommittedArtifact,
     ) -> Result<MilestoneOneCertificationReport, MilestoneOneCertificationError> {
         Self::certify_verified_commit_traced(runtime, verified)
             .map(BoundaryEnvelope::into_primary_result)
@@ -271,29 +272,29 @@ impl MilestoneOneCertificationHarness {
 
     pub fn certify_verified_commit_traced(
         runtime: &mut RelationalRuntime,
-        verified: &VerifiedTopologyCommit,
+        verified: &TopologyCommittedArtifact,
     ) -> Result<
         TracedMilestoneOneCertificationReport,
         BoundaryFailure<MilestoneOneCertificationError>,
     > {
         let traced = Self::certify_read_basis_with_runtime_traced(
             runtime,
-            verified.read_basis.clone(),
-            Some(&verified.canonical_batch.batch),
-            verified.commits.len(),
+            verified.read_basis().clone(),
+            Some(&verified.canonical_batch().batch),
+            verified.commits().len(),
         )?;
         let mut report = traced.primary_result().clone();
         let Some(replay_commit_id) = verified
-            .commits
+            .commits()
             .last()
             .map(|commit| commit.outcome.commit.commit_id.clone())
         else {
             let integrity_markers =
-                certification_integrity_markers(&verified.read_basis, Some(&verified.commits));
+                certification_integrity_markers(&verified.read_basis(), Some(verified.commits()));
             let performance_accounting = certification_performance_accounting(
                 &report,
-                Some(&verified.commits),
-                verified.commits.len(),
+                Some(verified.commits()),
+                verified.commits().len(),
                 query_evidence_from_accounting(traced.performance_accounting()),
             );
             return Ok(traced
@@ -301,12 +302,12 @@ impl MilestoneOneCertificationHarness {
                 .map_decision_trace(|mut decision_trace| {
                     decision_trace.authority_anchor =
                         Some(AuthorityTraceAnchor::from_commit_results(
-                            verified.branch_id.clone(),
-                            &verified.commits,
+                            verified.branch_id().clone(),
+                            verified.commits(),
                         ));
                     decision_trace.authority = Some(AuthorityTraceEvidence::from_commit_results(
-                        verified.branch_id.clone(),
-                        &verified.commits,
+                        verified.branch_id().clone(),
+                        verified.commits(),
                     ));
                     decision_trace
                 })
@@ -316,7 +317,7 @@ impl MilestoneOneCertificationHarness {
         let replay = runtime
             .replay_authority()
             .replay_commit(RelationalReplayRequest {
-                branch_id: verified.branch_id.clone(),
+                branch_id: verified.branch_id().clone(),
                 commit_id: replay_commit_id,
                 execution_mode: ReplayExecutionMode::SerialDeterministic,
                 verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
@@ -353,23 +354,23 @@ impl MilestoneOneCertificationHarness {
         }
 
         let integrity_markers =
-            certification_integrity_markers(&verified.read_basis, Some(&verified.commits));
+            certification_integrity_markers(&verified.read_basis(), Some(verified.commits()));
         let performance_accounting = certification_performance_accounting(
             &report,
-            Some(&verified.commits),
-            verified.commits.len(),
+            Some(verified.commits()),
+            verified.commits().len(),
             query_evidence_from_accounting(traced.performance_accounting()),
         );
         Ok(traced
             .map_primary_result(|_| report)
             .map_decision_trace(|mut decision_trace| {
                 decision_trace.authority_anchor = Some(AuthorityTraceAnchor::from_commit_results(
-                    verified.branch_id.clone(),
-                    &verified.commits,
+                    verified.branch_id().clone(),
+                    verified.commits(),
                 ));
                 decision_trace.authority = Some(AuthorityTraceEvidence::from_commit_results(
-                    verified.branch_id.clone(),
-                    &verified.commits,
+                    verified.branch_id().clone(),
+                    verified.commits(),
                 ));
                 decision_trace
             })
@@ -377,3 +378,7 @@ impl MilestoneOneCertificationHarness {
             .with_performance_accounting(performance_accounting))
     }
 }
+
+
+
+

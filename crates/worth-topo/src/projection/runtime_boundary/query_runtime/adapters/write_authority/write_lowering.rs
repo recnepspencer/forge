@@ -10,7 +10,8 @@ use forge_relational::facade::transactions::{
     CreateIntent, EntityReference, EntitySpec, MutationIntent, RelationSpec,
     UpdateRelationEndpointsIntent,
 };
-use schema::facade::{EntityKind, NamingEntityKind, NamingRelationKind, RelationKind};
+use schema::facade::platform::entities::{EntityKind, NamingEntityKind};
+use schema::facade::platform::relations::{NamingRelationKind, RelationKind};
 use serde_json::{json, Value};
 
 use super::super::write_support::{
@@ -228,3 +229,7 @@ pub(super) fn kind_name_for_relation_kind_id(
         .expect("topology runtime only lowers admitted relation kinds")
         .kind_name()
 }
+
+
+
+

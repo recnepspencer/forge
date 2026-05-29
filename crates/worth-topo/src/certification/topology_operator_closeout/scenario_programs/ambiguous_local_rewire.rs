@@ -1,6 +1,6 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 use serde_json::Value;
 
 use super::super::report::{
@@ -124,7 +124,7 @@ where
     let assembly = TopologyQueryAssembly::declare(&mut workspace)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_snapshot = assembly
-        .snapshot_for_read_basis(&mut workspace, &verified.read_basis)
+        .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
         digest_materialized_topology_view(&baseline_snapshot.materialized);
@@ -178,3 +178,7 @@ where
 fn cycle_query_error(detail: &str) -> TopologyCertificationError {
     TopologyCertificationError::Query(detail.to_string())
 }
+
+
+
+

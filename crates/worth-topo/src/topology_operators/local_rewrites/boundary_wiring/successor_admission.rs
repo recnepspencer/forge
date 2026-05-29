@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::identity::EntityId;
-use schema::facade::TopologyRelationKind::*;
+use schema::facade::platform::relations::TopologyRelationKind::*;
 
 use super::successor_support::{
     live_relation_for_source, matches_expected_rewire, same_loop, ContiguousSpanCandidate,
@@ -263,3 +263,7 @@ fn matches_admitted_contiguous_span_relocation_program(
         candidate.end_half_edge_id,
     )
 }
+
+
+
+

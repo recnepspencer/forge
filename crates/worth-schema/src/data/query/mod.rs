@@ -6,17 +6,6 @@ use crate::data::aspects::{
     Aspect, DiagnosticsAspect, GeometryAspect, LineageAspect, NamingAspect, TopologyAspect,
 };
 
-mod declarations;
-mod mutation_admission;
-
-pub use declarations::{
-    QueryComputedDeclarationBuilder, QueryDeclarationError, QueryLiveDeclarationBuilder,
-};
-pub use mutation_admission::{
-    admit_query_mutation_batch, query_mutation_support_contract, QueryMutationAdmission,
-    QueryMutationAdmissionBlocker, QueryMutationAdmissionReport, QueryMutationSupportContract,
-};
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum QueryLiveField {
     Aspect(QueryAspectPath),
@@ -345,8 +334,6 @@ pub fn query_aspect_paths_from_set(aspects: &BTreeSet<Aspect>) -> Vec<QueryAspec
     query_aspect_paths(aspects.iter().copied())
 }
 
-#[cfg(test)]
-mod mutation_admission_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]

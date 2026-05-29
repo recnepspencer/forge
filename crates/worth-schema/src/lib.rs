@@ -1,16 +1,18 @@
-//! # -schema
+//! # worth-schema
 //!
-//!  truth vocabulary built for the Forge runtime stack.
+//! Truth vocabulary built for the Forge runtime stack.
 //!
-//! This crate defines the domain names  uses at the truth boundary:
+//! This crate defines the domain names Worth uses at the truth boundary:
 //!
-//! - entity kinds
-//! - relation kinds
-//! - aspect vocabulary
-//! - invariant groups
+//! - platform aspect catalogs
+//! - platform entity catalogs
+//! - platform relation catalogs
+//! - platform authority vocabulary
+//! - query-facing schema vocabulary
 //!
-//! It does not execute mutations, own topology materialization, or schedule
-//! derived computation.
+//! It does not own the public runtime workflow for topology execution,
+//! inspection, or recovery. Query-backed runtime behavior belongs in
+//! `forge-query`.
 
 #![forbid(unsafe_code)]
 

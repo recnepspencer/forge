@@ -138,3 +138,7 @@ fn lookup_half_edge<'a>(
         .find(|record| record.entity_id == entity_id)
         .ok_or_else(|| err(validator, format!("missing half-edge {:?}", entity_id)))
 }
+
+
+
+

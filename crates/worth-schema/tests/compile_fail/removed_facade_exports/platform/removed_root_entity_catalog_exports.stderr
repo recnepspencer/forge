@@ -1,0 +1,14 @@
+error[E0432]: unresolved imports `schema::facade::EntityKind`, `schema::facade::TopologyEntityKind`
+ --> tests/compile_fail/removed_facade_exports/platform/removed_root_entity_catalog_exports.rs:1:22
+  |
+1 | use schema::facade::{EntityKind, TopologyEntityKind};
+  |                      ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^ no `TopologyEntityKind` in `facade`
+  |                      |
+  |                      no `EntityKind` in `facade`
+  |
+  = help: consider importing one of these items instead:
+          forge_relational::facade::merge::IdentityBasisScope::EntityKind
+          forge_relational::facade::schema::SchemaElementKind::EntityKind
+          schema::facade::platform::entities::EntityKind
+  = help: consider importing this enum instead:
+          schema::facade::platform::entities::TopologyEntityKind

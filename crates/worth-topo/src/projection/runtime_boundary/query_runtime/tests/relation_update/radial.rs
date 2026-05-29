@@ -1,6 +1,6 @@
 use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::super::query_runtime_support::{query_relation_id_from_row, QueryRuntimeSupport};
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
@@ -262,3 +262,7 @@ fn current_head_runtime_denies_splice_radial_adjacency_across_different_edges() 
             && target_half_edge_id == expected_target_half_edge_id
     ));
 }
+
+
+
+
