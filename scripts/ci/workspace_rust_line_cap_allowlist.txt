@@ -161,7 +161,6 @@ crates/forge-relational/src/tests/history/queries.rs
 crates/forge-relational/src/tests/history/replay.rs
 crates/forge-relational/src/tests/inspection.rs
 crates/forge-relational/src/tests/performance_profiles.rs
-crates/forge-relational/src/tests/performance_support.rs
 crates/forge-relational/src/tests/publication/cdc/certification.rs
 crates/forge-relational/src/tests/publication/cdc/subscriber_resume.rs
 crates/forge-relational/src/tests/publication/observability.rs
