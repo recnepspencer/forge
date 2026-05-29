@@ -48,7 +48,7 @@ fn external_harness_summary_diagnostic_projection(
     value: RelationalDiagnosticValue,
 ) -> ExternalHarnessSummaryJson {
     let external_serde_projection_json = RelationalDiagnosticFields::from_diagnostic_value(value)
-        .to_external_serde_projection_value();
+        .to_external_serde_projection_tree();
     external_harness_summary_json_from_diagnostic_projection(external_serde_projection_json)
 }
 
@@ -80,7 +80,7 @@ fn external_harness_summary_json_from_diagnostic_projection(
         ),
         other => external_harness_summary_json_from_diagnostic_projection(
             RelationalDiagnosticFields::from_diagnostic_value(other)
-                .to_external_serde_projection_value(),
+                .to_external_serde_projection_tree(),
         ),
     }
 }

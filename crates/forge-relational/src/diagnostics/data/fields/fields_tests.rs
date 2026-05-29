@@ -61,7 +61,7 @@ fn diagnostic_serde_projection_is_not_stored_authority() {
         )]));
 
     let external_serde_projection_json =
-        serde_json::to_value(&live_fields).expect("project diagnostic fields");
+        serde_json::to_value(&live_fields).expect("external serde diagnostic projection");
     let recovered: RelationalDiagnosticFields =
         serde_json::from_value(external_serde_projection_json)
             .expect("recover external serde diagnostic fields");

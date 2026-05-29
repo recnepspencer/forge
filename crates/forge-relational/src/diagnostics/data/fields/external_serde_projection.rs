@@ -40,7 +40,7 @@ pub(super) fn external_serde_projection_equal(
         == project_diagnostic_value_for_external_serde(right)
 }
 
-pub(super) fn typed_external_serde_projection_value(
+pub(super) fn typed_external_serde_projection_tree(
     value: &RelationalDiagnosticValue,
 ) -> RelationalDiagnosticValue {
     recover_external_serde_diagnostic_value(project_diagnostic_value_for_external_serde(value))
