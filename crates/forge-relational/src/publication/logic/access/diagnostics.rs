@@ -1,6 +1,6 @@
 use crate::capabilities::PublicationDiagnosticsSource;
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
-use crate::diagnostics::facade::RelationalDiagnosticsFacade;
+use crate::diagnostics::data::RelationalDiagnosticsFacade;
 
 use super::PublicationDiagnosticsAccess;
 

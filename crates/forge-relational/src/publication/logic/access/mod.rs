@@ -6,7 +6,7 @@ mod stream_reads;
 
 use crate::capabilities::PublicationDiagnosticsSource;
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
-use crate::diagnostics::facade::RelationalDiagnosticsFacade;
+use crate::diagnostics::data::RelationalDiagnosticsFacade;
 use crate::logic::runtime::RelationalReplayRecord;
 use crate::logic::runtime::RelationalRuntime;
 use crate::publication::bundle::PublicationBundle;

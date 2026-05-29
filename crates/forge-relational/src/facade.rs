@@ -66,12 +66,12 @@ pub mod bridge {
 }
 
 pub mod diagnostics {
+    pub use crate::diagnostics::data::RelationalDiagnosticsFacade;
     pub use crate::diagnostics::data::{
         DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsDeliveryClass,
         DiagnosticsScope, RelationalArtifactPolicy, RelationalDiagnosticArtifact,
         RelationalDiagnosticsEntry, RelationalDiagnosticsProfile,
     };
-    pub use crate::diagnostics::facade::RelationalDiagnosticsFacade;
 }
 
 pub mod durability {
