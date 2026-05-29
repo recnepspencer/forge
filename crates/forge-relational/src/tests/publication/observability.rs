@@ -7,6 +7,11 @@ use crate::schema::data::{
 };
 use crate::tests::support::*;
 
+use super::harness_summary_projection::{
+    harness_diagnostic_entries, harness_diagnostic_field_matches, harness_summary_counter,
+    harness_summary_field,
+};
+
 #[derive(Clone)]
 struct InvariantHarnessAdapter {
     invariant_catalog: InvariantCatalog,
@@ -1128,81 +1133,6 @@ fn harness_phase8_fixture_batch_request() -> (
     (fixture, batch, request)
 }
 
-type HarnessSummaryJson = serde_json::Value;
-
-struct HarnessDiagnosticsSummaryView<'summary> {
-    root: &'summary HarnessSummaryJson,
-}
-
-impl<'summary> HarnessDiagnosticsSummaryView<'summary> {
-    fn new(root: &'summary HarnessSummaryJson) -> Self {
-        Self { root }
-    }
-
-    fn diagnostic_entries(&self, code: &str) -> Vec<HarnessDiagnosticEntryView<'summary>> {
-        self.root["publication_diagnostics"]["diagnostics"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .flat_map(|artifact| artifact["entries"].as_array().into_iter().flatten())
-            .map(HarnessDiagnosticEntryView::new)
-            .filter(|entry| entry.code_matches(code))
-            .collect()
-    }
-
-    fn field(&self, field: &str) -> Option<&'summary str> {
-        self.root[field].as_str()
-    }
-
-    fn counter(&self, counter: &str) -> Option<u64> {
-        self.root["performance_counters"][counter].as_u64()
-    }
-}
-
-struct HarnessDiagnosticEntryView<'summary> {
-    root: &'summary HarnessSummaryJson,
-}
-
-impl<'summary> HarnessDiagnosticEntryView<'summary> {
-    fn new(root: &'summary HarnessSummaryJson) -> Self {
-        Self { root }
-    }
-
-    fn code_matches(&self, code: &str) -> bool {
-        self.root["code"].as_str() == Some(code)
-    }
-
-    fn field_matches(&self, field: &str, expected: &str) -> bool {
-        self.root["fields"][field].as_str() == Some(expected)
-    }
-}
-
-fn harness_diagnostic_entries<'summary>(
-    summary: &'summary HarnessSummaryJson,
-    code: &str,
-) -> Vec<HarnessDiagnosticEntryView<'summary>> {
-    HarnessDiagnosticsSummaryView::new(summary).diagnostic_entries(code)
-}
-
-fn harness_diagnostic_field_matches(
-    entry: &HarnessDiagnosticEntryView<'_>,
-    field: &str,
-    expected: &str,
-) -> bool {
-    entry.field_matches(field, expected)
-}
-
-fn harness_summary_field<'summary>(
-    summary: &'summary HarnessSummaryJson,
-    field: &str,
-) -> Option<&'summary str> {
-    HarnessDiagnosticsSummaryView::new(summary).field(field)
-}
-
-fn harness_summary_counter(summary: &HarnessSummaryJson, counter: &str) -> Option<u64> {
-    HarnessDiagnosticsSummaryView::new(summary).counter(counter)
-}
-
 fn certification_case<'a>(
     report: &'a forge_harness::facade::CertificationMatrixReport,
     candidate_profile: &str,
@@ -1489,18 +1419,16 @@ fn harness_phase8_certification_matrix_closes_out_supported_runtime_lanes() {
         ),
         Some("ParallelPostCommitConsumption")
     );
-    assert!(
-        staged.diagnostics_summary.as_ref().unwrap()["performance_counters"]
-            ["preparation_packet_count"]
-            .as_u64()
-            .is_some()
-    );
-    assert!(
-        post_commit.diagnostics_summary.as_ref().unwrap()["performance_counters"]
-            ["post_commit_consumer_packet_count"]
-            .as_u64()
-            .is_some()
-    );
+    assert!(harness_summary_counter(
+        staged.diagnostics_summary.as_ref().unwrap(),
+        "preparation_packet_count"
+    )
+    .is_some());
+    assert!(harness_summary_counter(
+        post_commit.diagnostics_summary.as_ref().unwrap(),
+        "post_commit_consumer_packet_count"
+    )
+    .is_some());
 }
 
 #[test]
