@@ -144,11 +144,6 @@ impl EntityReadRecord {
     ) -> Option<&AuthoritativeFieldComparisonKey> {
         self.authoritative_field_key_comparison_keys.get(field_key)
     }
-
-    pub fn authoritative_field_display_value(&self, field_key: &FieldKey) -> Option<&str> {
-        self.authoritative_field_comparison_key(field_key)
-            .map(AuthoritativeFieldComparisonKey::display_value)
-    }
 }
 
 impl RelationReadRecord {
@@ -157,11 +152,6 @@ impl RelationReadRecord {
         field_key: &FieldKey,
     ) -> Option<&AuthoritativeFieldComparisonKey> {
         self.authoritative_field_key_comparison_keys.get(field_key)
-    }
-
-    pub fn authoritative_field_display_value(&self, field_key: &FieldKey) -> Option<&str> {
-        self.authoritative_field_comparison_key(field_key)
-            .map(AuthoritativeFieldComparisonKey::display_value)
     }
 }
 

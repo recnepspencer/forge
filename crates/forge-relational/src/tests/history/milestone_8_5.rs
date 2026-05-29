@@ -683,7 +683,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         .read_truth()
         .read_version(runtime.current_version_id());
     let visible_truth_digest = certification_digest(&(
-        read_entity_name(current.get_entity(entity).expect("entity visible")).map(str::to_string),
+        read_entity_name(current.get_entity(entity).expect("entity visible")),
         runtime
             .history()
             .branch_head(&BranchId("main".to_string()))

@@ -1,23 +1,76 @@
 use super::*;
 
-pub(crate) fn read_entity_name(record: &EntityReadRecord) -> Option<&str> {
+use forge_foundational::facade::{AspectValue, FieldKey, InternedString};
+
+pub(crate) fn read_entity_name(record: &EntityReadRecord) -> Option<String> {
     read_entity_field(record, "name")
 }
 
-pub(crate) fn read_entity_field<'record>(
-    record: &'record EntityReadRecord,
-    field_name: &str,
-) -> Option<&'record str> {
-    let field_key = forge_foundational::facade::FieldKey::new(field_name).expect("valid field key");
-    record.authoritative_field_display_value(&field_key)
+pub(crate) fn read_entity_field(record: &EntityReadRecord, field_name: &str) -> Option<String> {
+    let field_key = FieldKey::new(field_name).expect("valid field key");
+    record
+        .authoritative_field_comparison_key(&field_key)
+        .and_then(|key| crate::aspect_wire::decode_aspect_value(key.canonical_value_bytes()).ok())
+        .map(display_text_for_test_aspect_value)
 }
 
-pub(crate) fn read_relation_field<'record>(
-    record: &'record crate::facade::runtime::RelationReadRecord,
+pub(crate) fn read_relation_field(
+    record: &crate::facade::runtime::RelationReadRecord,
     field_name: &str,
-) -> Option<&'record str> {
-    let field_key = forge_foundational::facade::FieldKey::new(field_name).expect("valid field key");
-    record.authoritative_field_display_value(&field_key)
+) -> Option<String> {
+    let field_key = FieldKey::new(field_name).expect("valid field key");
+    record
+        .authoritative_field_comparison_key(&field_key)
+        .and_then(|key| crate::aspect_wire::decode_aspect_value(key.canonical_value_bytes()).ok())
+        .map(display_text_for_test_aspect_value)
+}
+
+fn display_text_for_test_aspect_value(value: AspectValue) -> String {
+    match value {
+        AspectValue::Null => "null".to_string(),
+        AspectValue::Bool(value) => value.to_string(),
+        AspectValue::Int8(value) => value.to_string(),
+        AspectValue::Int16(value) => value.to_string(),
+        AspectValue::Int32(value) => value.to_string(),
+        AspectValue::Int64(value) => value.to_string(),
+        AspectValue::UInt8(value) => value.to_string(),
+        AspectValue::UInt16(value) => value.to_string(),
+        AspectValue::UInt32(value) => value.to_string(),
+        AspectValue::UInt64(value) => value.to_string(),
+        AspectValue::Float32(value) => format!("f32-bits:{}", value.bits()),
+        AspectValue::Float64(value) => format!("f64-bits:{}", value.bits()),
+        AspectValue::Decimal(value) => value.as_str().to_string(),
+        AspectValue::BigInt(value) => value.as_str().to_string(),
+        AspectValue::Rational(value) => {
+            format!(
+                "{}/{}",
+                value.numerator.as_str(),
+                value.denominator.as_str()
+            )
+        }
+        AspectValue::String(value) => display_text_for_test_interned_string(value),
+        AspectValue::Bytes(value) => format!("bytes-ref:{}", value.0),
+        AspectValue::Uuid(value) => value.iter().map(|byte| format!("{byte:02x}")).collect(),
+        AspectValue::Date(value) => value.days_from_unix_epoch.to_string(),
+        AspectValue::Time(value) => value.nanos_since_midnight.to_string(),
+        AspectValue::Timestamp(value) => value.micros_since_unix_epoch.to_string(),
+        AspectValue::TimestampTz(value) => format!(
+            "{}:{}",
+            value.utc_micros_since_unix_epoch, value.offset_minutes
+        ),
+        AspectValue::EntityRef(value) => format!(
+            "entity:{}:{}:{}",
+            value.partition_id.0, value.local_slot.0, value.generation.0
+        ),
+        AspectValue::ContentRef(value) => format!("content-ref:{}", value.0),
+    }
+}
+
+fn display_text_for_test_interned_string(value: InternedString) -> String {
+    match value {
+        InternedString::Raw(value) => value,
+        InternedString::Symbol(symbol) => format!("symbol:{}", symbol.0),
+    }
 }
 
 pub(crate) fn all_aspect_filter(names: impl IntoIterator<Item = &'static str>) -> AspectFilter {

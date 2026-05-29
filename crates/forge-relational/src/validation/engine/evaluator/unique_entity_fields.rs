@@ -202,10 +202,10 @@ fn duplicate_field_violation(
         class,
         code: DiagnosticCode::InvariantViolation,
         detail: format!(
-            "entity aspect field '{}:{}' must be unique, duplicate value '{}'",
+            "entity aspect field '{}:{}' must be unique, duplicate {:?} value",
             field_locator.aspect().aspect_key().as_str(),
             crate::transactions::data::canonical_field_path_label(field_locator.field_path()),
-            authoritative_aspect_value_field_comparison_key(&value).display_value()
+            value.value_family()
         ),
         fields: InvariantViolationFields::UniqueEntityField {
             field_locator: field_locator.clone(),

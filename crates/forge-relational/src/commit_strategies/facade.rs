@@ -831,11 +831,15 @@ mod tests {
 
         assert_ne!(original_lineage, replacement_lineage);
         assert_eq!(read_entity_name(&replacement_record), Some("before"));
+        let expected_replicas_key =
+            crate::storage::data::authoritative_aspect_value_field_comparison_key(
+                &AspectValue::UInt64(3),
+            );
         assert_eq!(
-            replacement_record.authoritative_field_display_value(
+            replacement_record.authoritative_field_comparison_key(
                 &FieldKey::new("replicas").expect("valid replicas field")
             ),
-            Some("3")
+            Some(&expected_replicas_key)
         );
         assert_eq!(
             strategy_artifacts

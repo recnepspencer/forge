@@ -89,7 +89,7 @@ fn staged_parallel_bulk_entity_import_matches_serial_reference() {
         let names = read
             .entities()
             .iter()
-            .map(|record| read_entity_name(record).map(str::to_string))
+            .map(read_entity_name)
             .collect::<Vec<_>>();
         (outcome, names)
     }

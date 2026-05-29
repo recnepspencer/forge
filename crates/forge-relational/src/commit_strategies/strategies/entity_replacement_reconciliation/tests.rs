@@ -158,11 +158,15 @@ fn entity_replacement_reconciliation_strategy_replacement_declaration_applies_to
         .get_entity(replacement_id)
         .expect("replacement record should be visible");
 
+    let expected_replicas_key =
+        crate::storage::data::authoritative_aspect_value_field_comparison_key(
+            &AspectValue::UInt64(7),
+        );
     assert_eq!(
-        replacement_record.authoritative_field_display_value(
+        replacement_record.authoritative_field_comparison_key(
             &FieldKey::new("replicas").expect("valid replicas field")
         ),
-        Some("7")
+        Some(&expected_replicas_key)
     );
 }
 

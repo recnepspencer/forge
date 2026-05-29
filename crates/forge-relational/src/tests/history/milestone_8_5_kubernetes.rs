@@ -669,11 +669,11 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
             current
                 .get_entity(entity)
                 .expect("entity visible")
-                .authoritative_field_display_value(
+                .authoritative_field_comparison_key(
                     &forge_foundational::facade::FieldKey::new("replicas")
                         .expect("valid replicas field"),
                 )
-                .map(str::to_string),
+                .map(|key| key.canonical_value_bytes().to_vec()),
         )),
     };
 
@@ -845,11 +845,11 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
             recovered_current
                 .get_entity(entity)
                 .expect("recovered entity visible")
-                .authoritative_field_display_value(
+                .authoritative_field_comparison_key(
                     &forge_foundational::facade::FieldKey::new("replicas")
                         .expect("valid replicas field"),
                 )
-                .map(str::to_string),
+                .map(|key| key.canonical_value_bytes().to_vec()),
         )),
         live_bundle.visible_truth_digest
     );
