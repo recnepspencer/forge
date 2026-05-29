@@ -126,9 +126,11 @@ fn set_external_row_path(
             Value::Object(object) => object
                 .entry(part.to_string())
                 .or_insert_with(|| Value::Object(serde_json::Map::new())),
-            _ => return Err(ForgeQueryWorkspaceError::new(format!(
+            _ => {
+                return Err(ForgeQueryWorkspaceError::new(format!(
                 "stateful bridge external row path `{dotted_path}` crossed a non-object boundary"
-            ))),
+            )))
+            }
         };
     }
     Ok(())

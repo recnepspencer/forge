@@ -21,7 +21,7 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::RuntimeBridge;
 use serde_json::Value;
 
-use super::payload::{apply_aspects_to_external_row, external_row_from_aspects};
+use super::external_row::{apply_aspects_to_external_row, external_row_from_aspects};
 use super::state::PublicBridgeRuntimeState;
 
 type SharedRuntimeState = Rc<RefCell<PublicBridgeRuntimeState>>;
