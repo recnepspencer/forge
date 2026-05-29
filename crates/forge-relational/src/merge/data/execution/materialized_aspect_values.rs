@@ -1,9 +1,9 @@
 use forge_foundational::facade::{
-    AspectFieldLocator, AspectKey, AspectLocator, AspectValue, AspectValueLocator,
-    CanonicalFieldPath, FieldKey, LocatorAuthority,
+    AspectKey, AspectLocator, AspectValue, AspectValueLocator, LocatorAuthority,
 };
 use serde::{Deserialize, Serialize};
 
+use crate::aspect_wire::serde_canonical_aspect_value_locator;
 use crate::transactions::data::RecordRef;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -33,7 +33,7 @@ pub enum MaterializedAspectValueEvidence {
     PinnedVisibleAspect {
         side: MergeValueSourceSide,
         record: RecordRef,
-        #[serde(with = "serde_aspect_value_locator")]
+        #[serde(with = "serde_canonical_aspect_value_locator")]
         locator: AspectValueLocator,
     },
     InlineAspectValue(
@@ -70,119 +70,32 @@ fn authoritative_whole_aspect_value_locator(aspect_key: AspectKey) -> AspectValu
     ))
 }
 
-mod serde_aspect_value_locator {
+#[cfg(test)]
+mod tests {
+    use forge_foundational::facade::{
+        AspectFieldLocator, CanonicalFieldPath, FieldKey, LocatorAuthority,
+    };
+
     use super::*;
-    use serde::de::Error;
+    use crate::identity::data::{EntityId, PartitionId};
 
-    pub fn serialize<S>(locator: &AspectValueLocator, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        SerializableAspectValueLocator::from(locator).serialize(serializer)
-    }
+    #[test]
+    fn pinned_visible_aspect_materialization_roundtrips_locator_as_canonical_bytes() {
+        let value = MaterializedAspectValueEvidence::PinnedVisibleAspect {
+            side: MergeValueSourceSide::Source,
+            record: RecordRef::Entity(EntityId::new(PartitionId::main(), 7, 0)),
+            locator: AspectValueLocator::struct_field(AspectFieldLocator::new(
+                LocatorAuthority::Authoritative,
+                AspectKey::new("deploy.config").expect("valid aspect key"),
+                CanonicalFieldPath::new(vec![FieldKey::new("replicas").expect("valid field key")])
+                    .expect("valid field path"),
+            )),
+        };
 
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<AspectValueLocator, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        SerializableAspectValueLocator::deserialize(deserializer)?
-            .try_into()
-            .map_err(D::Error::custom)
-    }
+        let encoded = rmp_serde::to_vec(&value).expect("encode materialized evidence");
+        let decoded: MaterializedAspectValueEvidence =
+            rmp_serde::from_slice(&encoded).expect("decode materialized evidence");
 
-    #[derive(Serialize, Deserialize)]
-    #[serde(tag = "kind", rename_all = "snake_case")]
-    enum SerializableAspectValueLocator {
-        WholeAspect {
-            authority: SerializableLocatorAuthority,
-            aspect_key: AspectKey,
-        },
-        StructField {
-            authority: SerializableLocatorAuthority,
-            aspect_key: AspectKey,
-            field_path: Vec<FieldKey>,
-        },
-    }
-
-    impl From<&AspectValueLocator> for SerializableAspectValueLocator {
-        fn from(locator: &AspectValueLocator) -> Self {
-            match locator {
-                AspectValueLocator::WholeAspect(aspect) => Self::WholeAspect {
-                    authority: SerializableLocatorAuthority::from(aspect.authority()),
-                    aspect_key: aspect.aspect_key().clone(),
-                },
-                AspectValueLocator::StructField(field) => Self::StructField {
-                    authority: SerializableLocatorAuthority::from(field.aspect().authority()),
-                    aspect_key: field.aspect().aspect_key().clone(),
-                    field_path: field.field_path().fields().to_vec(),
-                },
-            }
-        }
-    }
-
-    impl TryFrom<SerializableAspectValueLocator> for AspectValueLocator {
-        type Error = &'static str;
-
-        fn try_from(value: SerializableAspectValueLocator) -> Result<Self, Self::Error> {
-            match value {
-                SerializableAspectValueLocator::WholeAspect {
-                    authority,
-                    aspect_key,
-                } => Ok(AspectValueLocator::whole_aspect(AspectLocator::new(
-                    authority.into(),
-                    aspect_key,
-                ))),
-                SerializableAspectValueLocator::StructField {
-                    authority,
-                    aspect_key,
-                    field_path,
-                } => {
-                    let field_path =
-                        CanonicalFieldPath::new(field_path).ok_or("empty aspect field path")?;
-                    Ok(AspectValueLocator::struct_field(AspectFieldLocator::new(
-                        authority.into(),
-                        aspect_key,
-                        field_path,
-                    )))
-                }
-            }
-        }
-    }
-
-    #[derive(Serialize, Deserialize)]
-    #[serde(rename_all = "snake_case")]
-    enum SerializableLocatorAuthority {
-        Authoritative,
-        Derived,
-        Projected,
-        SupportOnly,
-        Planned,
-        ReceiptBearing,
-    }
-
-    impl From<LocatorAuthority> for SerializableLocatorAuthority {
-        fn from(value: LocatorAuthority) -> Self {
-            match value {
-                LocatorAuthority::Authoritative => Self::Authoritative,
-                LocatorAuthority::Derived => Self::Derived,
-                LocatorAuthority::Projected => Self::Projected,
-                LocatorAuthority::SupportOnly => Self::SupportOnly,
-                LocatorAuthority::Planned => Self::Planned,
-                LocatorAuthority::ReceiptBearing => Self::ReceiptBearing,
-            }
-        }
-    }
-
-    impl From<SerializableLocatorAuthority> for LocatorAuthority {
-        fn from(value: SerializableLocatorAuthority) -> Self {
-            match value {
-                SerializableLocatorAuthority::Authoritative => Self::Authoritative,
-                SerializableLocatorAuthority::Derived => Self::Derived,
-                SerializableLocatorAuthority::Projected => Self::Projected,
-                SerializableLocatorAuthority::SupportOnly => Self::SupportOnly,
-                SerializableLocatorAuthority::Planned => Self::Planned,
-                SerializableLocatorAuthority::ReceiptBearing => Self::ReceiptBearing,
-            }
-        }
+        assert_eq!(decoded, value);
     }
 }
