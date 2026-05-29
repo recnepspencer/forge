@@ -1,7 +1,10 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
+use forge_foundational::facade::AspectKey;
+
 use crate::diagnostics::BridgeRouteRecordEntry;
+use crate::error::{BridgeRouteError, BridgeRouteErrorKind};
 use crate::routing::canonicalization::{canonical_snapshot_request_order, canonical_target_order};
 use crate::routing::eligibility::EligibleRouteEntry;
 use crate::routing::lowering::BridgeSubscriptionSlice;
@@ -27,7 +30,7 @@ pub(super) fn canonical_invalidation_targets(
 pub(super) fn canonical_read_packet(
     subscription_slices: &[BridgeSubscriptionSlice],
     entries: &[EligibleRouteEntry],
-) -> SnapshotReadPacket {
+) -> Result<SnapshotReadPacket, BridgeRouteError> {
     if subscription_slices.is_empty() {
         return canonical_coarse_read_packet(entries);
     }
@@ -46,20 +49,22 @@ pub(super) fn canonical_read_packet(
         .into_iter()
         .map(
             |(entity_identity, aspect_label, surface_label, slice_kind)| {
-                SnapshotReadRequest::for_subscription_slice(
+                Ok(SnapshotReadRequest::for_subscription_slice(
                     entity_identity,
-                    aspect_label,
+                    read_request_aspect_key(&aspect_label)?,
                     surface_label,
                     slice_kind,
-                )
+                ))
             },
         )
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, BridgeRouteError>>()?;
     reads.sort_by(canonical_snapshot_request_order);
-    SnapshotReadPacket::new(reads)
+    Ok(SnapshotReadPacket::new(reads))
 }
 
-fn canonical_coarse_read_packet(entries: &[EligibleRouteEntry]) -> SnapshotReadPacket {
+fn canonical_coarse_read_packet(
+    entries: &[EligibleRouteEntry],
+) -> Result<SnapshotReadPacket, BridgeRouteError> {
     let mut deduped = BTreeSet::new();
     for entry in entries {
         deduped.insert((
@@ -71,11 +76,25 @@ fn canonical_coarse_read_packet(entries: &[EligibleRouteEntry]) -> SnapshotReadP
     let mut reads = deduped
         .into_iter()
         .map(|(entity_identity, aspect_label)| {
-            SnapshotReadRequest::for_coarse(entity_identity, aspect_label)
+            Ok(SnapshotReadRequest::for_coarse(
+                entity_identity,
+                read_request_aspect_key(&aspect_label)?,
+            ))
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, BridgeRouteError>>()?;
     reads.sort_by(canonical_snapshot_request_order);
-    SnapshotReadPacket::new(reads)
+    Ok(SnapshotReadPacket::new(reads))
+}
+
+fn read_request_aspect_key(aspect_label: &str) -> Result<AspectKey, BridgeRouteError> {
+    AspectKey::new(aspect_label).ok_or_else(|| {
+        BridgeRouteError::new(
+            BridgeRouteErrorKind::SliceReadPacketConstructionFailure,
+            format!(
+                "Snapshot read packet construction rejected invalid aspect key `{aspect_label}`."
+            ),
+        )
+    })
 }
 
 pub(super) fn canonical_subscription_slices(

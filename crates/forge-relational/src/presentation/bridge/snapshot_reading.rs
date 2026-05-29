@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use forge_foundational::facade::AspectKey;
-
 use crate::identity::data::VersionId;
 use crate::logic::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::{
@@ -49,7 +47,6 @@ impl TruthSnapshotReader for RuntimePublicationSnapshotReader {
         for read in request.reads() {
             let record_ref = parse_bridge_record_identity(read.entity_identity())
                 .map_err(|error| BridgeSnapshotReadError::new(error.to_string()))?;
-            let aspect_key = parse_bridge_aspect_key(read.aspect_label())?;
             let aspect_bytes = match record_ref {
                 crate::transactions::data::RecordRef::Entity(entity_id) => {
                     let record = read_truth
@@ -61,10 +58,10 @@ impl TruthSnapshotReader for RuntimePublicationSnapshotReader {
                             self.snapshot_identity.as_str()
                         ))
                     })?;
-                    export_entity_aspect_snapshot_bytes(&record, &aspect_key).ok_or_else(|| {
+                    export_entity_aspect_snapshot_bytes(&record, read.aspect_key()).ok_or_else(|| {
                         BridgeSnapshotReadError::new(format!(
                             "relational bridge snapshot reader could not resolve aspect `{}` on entity `{}` in authoritative snapshot `{}`",
-                            aspect_key.as_str(),
+                            read.aspect_key().as_str(),
                             read.entity_identity(),
                             self.snapshot_identity.as_str()
                         ))
@@ -80,10 +77,10 @@ impl TruthSnapshotReader for RuntimePublicationSnapshotReader {
                             self.snapshot_identity.as_str()
                         ))
                     })?;
-                    export_relation_aspect_snapshot_bytes(&record, &aspect_key).ok_or_else(|| {
+                    export_relation_aspect_snapshot_bytes(&record, read.aspect_key()).ok_or_else(|| {
                         BridgeSnapshotReadError::new(format!(
                             "relational bridge snapshot reader could not resolve aspect `{}` on relation `{}` in authoritative snapshot `{}`",
-                            aspect_key.as_str(),
+                            read.aspect_key().as_str(),
                             read.entity_identity(),
                             self.snapshot_identity.as_str()
                         ))
@@ -98,12 +95,4 @@ impl TruthSnapshotReader for RuntimePublicationSnapshotReader {
             records,
         ))
     }
-}
-
-fn parse_bridge_aspect_key(raw_aspect_label: &str) -> Result<AspectKey, BridgeSnapshotReadError> {
-    AspectKey::new(raw_aspect_label).ok_or_else(|| {
-        BridgeSnapshotReadError::new(format!(
-            "relational bridge snapshot reader rejected invalid aspect key `{raw_aspect_label}`"
-        ))
-    })
 }

@@ -151,9 +151,6 @@ impl GroupedProjectionSource for RelationalGroupedProjectionArtifact {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RelationalGroupedTruthError {
     PacketResultShapeMismatch,
-    InvalidAspectBindingKey {
-        aspect_key: String,
-    },
     AspectValueEncodeFailure {
         detail: String,
     },
@@ -229,10 +226,10 @@ mod tests {
     #[test]
     fn relational_grouped_projection_preserves_member_and_grouping_pairing() {
         let packet = SnapshotReadPacket::new(vec![
-            SnapshotReadRequest::for_coarse("entity-1", "identity.id"),
-            SnapshotReadRequest::for_coarse("entity-1", "status.lane"),
-            SnapshotReadRequest::for_coarse("entity-2", "identity.id"),
-            SnapshotReadRequest::for_coarse("entity-2", "status.lane"),
+            SnapshotReadRequest::for_coarse("entity-1", aspect_key("identity.id")),
+            SnapshotReadRequest::for_coarse("entity-1", aspect_key("status.lane")),
+            SnapshotReadRequest::for_coarse("entity-2", aspect_key("identity.id")),
+            SnapshotReadRequest::for_coarse("entity-2", aspect_key("status.lane")),
         ]);
         let result = SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
@@ -279,7 +276,7 @@ mod tests {
     fn relational_grouped_projection_missing_identity_error_carries_typed_row_identity() {
         let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
             "entity-1",
-            "status.lane",
+            aspect_key("status.lane"),
         )]);
         let result = SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
@@ -314,5 +311,9 @@ mod tests {
 
     fn aspect_bytes(value: AspectValue) -> Vec<u8> {
         crate::aspect_wire::encode_aspect_value(&value).expect("test aspect value bytes")
+    }
+
+    fn aspect_key(value: &str) -> AspectKey {
+        AspectKey::new(value).expect("valid test aspect key")
     }
 }

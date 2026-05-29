@@ -87,10 +87,9 @@ pub fn materialize_relational_authoritative_row_set(
         BTreeMap::new();
     for (read, record) in packet.reads().iter().zip(result.records().iter()) {
         let aspect_read = decode_snapshot_aspect_read_value(record)?;
-        let aspect_key = parse_snapshot_request_aspect_key(read.aspect_label())?;
         rows.entry(RelationalRowIdentity::new(read.entity_identity()))
             .or_default()
-            .insert(aspect_key, aspect_read.value().clone());
+            .insert(read.aspect_key().clone(), aspect_read.value().clone());
     }
 
     let rows = rows
@@ -112,14 +111,6 @@ pub fn materialize_relational_authoritative_row_set(
     })
 }
 
-fn parse_snapshot_request_aspect_key(
-    value: impl Into<String>,
-) -> Result<AspectKey, RelationalGroupedTruthError> {
-    let value = value.into();
-    AspectKey::new(value.clone())
-        .ok_or(RelationalGroupedTruthError::InvalidAspectBindingKey { aspect_key: value })
-}
-
 #[cfg(test)]
 mod tests {
     use forge_foundational::facade::{AspectKey, AspectValue, InternedString, Symbol};
@@ -133,10 +124,10 @@ mod tests {
     #[test]
     fn relational_row_set_preserves_row_identity_and_aspect_values() {
         let packet = SnapshotReadPacket::new(vec![
-            SnapshotReadRequest::for_coarse("entity-1", "identity.id"),
-            SnapshotReadRequest::for_coarse("entity-1", "status.lane"),
-            SnapshotReadRequest::for_coarse("entity-2", "identity.id"),
-            SnapshotReadRequest::for_coarse("entity-2", "status.lane"),
+            SnapshotReadRequest::for_coarse("entity-1", aspect_key("identity.id")),
+            SnapshotReadRequest::for_coarse("entity-1", aspect_key("status.lane")),
+            SnapshotReadRequest::for_coarse("entity-2", aspect_key("identity.id")),
+            SnapshotReadRequest::for_coarse("entity-2", aspect_key("status.lane")),
         ]);
         let result = SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
@@ -176,35 +167,10 @@ mod tests {
     }
 
     #[test]
-    fn relational_row_set_rejects_invalid_snapshot_request_aspect_label() {
-        let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
-            "entity-1",
-            "not a field key",
-        )]);
-        let result = SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
-            vec![SnapshotReadRecord::new(
-                "entity-1:not a field key",
-                aspect_bytes(AspectValue::String("task-1".into())),
-            )],
-        );
-
-        let error = materialize_relational_authoritative_row_set(&packet, &result)
-            .expect_err("invalid external snapshot aspect labels must be denied");
-
-        assert_eq!(
-            error,
-            super::RelationalGroupedTruthError::InvalidAspectBindingKey {
-                aspect_key: "not a field key".to_string()
-            }
-        );
-    }
-
-    #[test]
     fn relational_row_set_rejects_malformed_aspect_bytes_at_snapshot_boundary() {
         let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
             "entity-1",
-            "identity.id",
+            aspect_key("identity.id"),
         )]);
         let result = SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
@@ -241,7 +207,7 @@ mod tests {
     ) -> super::RelationalAuthoritativeRowSetArtifact {
         let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
             "entity-1",
-            "identity.id",
+            aspect_key("identity.id"),
         )]);
         let result = SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
@@ -255,5 +221,9 @@ mod tests {
 
     fn aspect_bytes(value: AspectValue) -> Vec<u8> {
         crate::aspect_wire::encode_aspect_value(&value).expect("test aspect value bytes")
+    }
+
+    fn aspect_key(value: &str) -> AspectKey {
+        AspectKey::new(value).expect("valid test aspect key")
     }
 }

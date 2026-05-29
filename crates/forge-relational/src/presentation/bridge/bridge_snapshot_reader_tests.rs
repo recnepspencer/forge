@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use forge_foundational::facade::AspectValue;
+use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_runtime_bridge::facade::SnapshotReadSource;
 
 use crate::config::data::CascadeDeletePolicy;
@@ -33,7 +33,7 @@ fn runtime_bridge_snapshot_reader_prefers_active_snapshot_binding_over_later_com
     let packet = forge_runtime_bridge::facade::SnapshotReadPacket::new(vec![
         forge_runtime_bridge::facade::SnapshotReadRequest::for_coarse(
             active_entity_identity,
-            "name",
+            aspect_key("name"),
         ),
     ]);
     let result = reader
@@ -87,4 +87,8 @@ fn runtime_with_test_schema() -> crate::facade::runtime::RelationalRuntime {
 
 fn decode_snapshot_aspect_bytes(aspect_bytes: &[u8]) -> AspectValue {
     crate::aspect_wire::decode_aspect_value(aspect_bytes).expect("snapshot aspect bytes")
+}
+
+fn aspect_key(value: &str) -> AspectKey {
+    AspectKey::new(value).expect("valid test aspect key")
 }

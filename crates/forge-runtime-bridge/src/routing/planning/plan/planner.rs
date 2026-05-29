@@ -38,7 +38,7 @@ pub(crate) fn plan_ingested_patch(
     let subscription_slices = canonical_subscription_slices(&entries);
     let invalidation_target_count = invalidation_targets.len();
     let subscription_slice_count = subscription_slices.len();
-    let read_packet = canonical_read_packet(&subscription_slices, &entries);
+    let read_packet = canonical_read_packet(&subscription_slices, &entries)?;
     let route_record_entries = canonical_route_record_entries(&entries);
     let read_packet_view = SnapshotReadRequestSetView::new(read_packet.reads());
     let planning_provenance_basis = planning_provenance_digest_basis(

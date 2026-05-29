@@ -227,10 +227,26 @@ mod tests {
                 TruthSnapshotIdentity::new("snapshot-a"),
             ),
             SnapshotReadPacket::new(vec![
-                SnapshotReadRequest::for_coarse("entity-1", "identity.id"),
-                SnapshotReadRequest::for_coarse("entity-1", "status"),
-                SnapshotReadRequest::for_coarse("entity-2", "identity.id"),
-                SnapshotReadRequest::for_coarse("entity-2", "status"),
+                SnapshotReadRequest::for_coarse(
+                    "entity-1",
+                    forge_foundational::facade::AspectKey::new("identity.id")
+                        .expect("valid snapshot aspect key"),
+                ),
+                SnapshotReadRequest::for_coarse(
+                    "entity-1",
+                    forge_foundational::facade::AspectKey::new("status")
+                        .expect("valid snapshot aspect key"),
+                ),
+                SnapshotReadRequest::for_coarse(
+                    "entity-2",
+                    forge_foundational::facade::AspectKey::new("identity.id")
+                        .expect("valid snapshot aspect key"),
+                ),
+                SnapshotReadRequest::for_coarse(
+                    "entity-2",
+                    forge_foundational::facade::AspectKey::new("status")
+                        .expect("valid snapshot aspect key"),
+                ),
             ]),
         );
         let snapshot =

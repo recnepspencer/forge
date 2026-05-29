@@ -526,10 +526,14 @@ fn runtime_rejects_source_packet_set_reordering_from_adapter() {
         &contract,
         vec![
             SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                "entity-1", "profile",
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid snapshot aspect key"),
             )]),
             SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                "entity-2", "profile",
+                "entity-2",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid snapshot aspect key"),
             )]),
         ],
     ) {
@@ -746,10 +750,14 @@ fn runtime_replays_multi_packet_source_materialization_record() {
             &contract,
             vec![
                 SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                    "entity-1", "profile",
+                    "entity-1",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid snapshot aspect key"),
                 )]),
                 SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                    "entity-2", "profile",
+                    "entity-2",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid snapshot aspect key"),
                 )]),
             ],
         )

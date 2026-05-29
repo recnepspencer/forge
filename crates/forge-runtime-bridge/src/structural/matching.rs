@@ -134,7 +134,11 @@ mod tests {
         let right = StructuralFingerprint::from_snapshot_read_packet(
             &contract,
             &crate::snapshot::SnapshotReadPacket::new(vec![
-                crate::snapshot::SnapshotReadRequest::for_coarse("entity-1", "profile"),
+                crate::snapshot::SnapshotReadRequest::for_coarse(
+                    "entity-1",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid snapshot aspect key"),
+                ),
             ]),
             "snapshot-a",
         );

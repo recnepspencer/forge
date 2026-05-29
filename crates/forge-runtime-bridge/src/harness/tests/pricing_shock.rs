@@ -679,7 +679,7 @@ fn pricing_writeback_causality_basis(
 fn pricing_component_read_packet(component: &str) -> SnapshotReadPacket {
     SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
         format!("component:{component}"),
-        "cost",
+        forge_foundational::facade::AspectKey::new("cost").expect("valid snapshot aspect key"),
     )])
 }
 
@@ -689,21 +689,40 @@ fn pricing_provenance_record_key(component: &str, field: &str) -> String {
 
 fn pricing_provenance_read_packet(component: &str) -> SnapshotReadPacket {
     SnapshotReadPacket::new(vec![
-        SnapshotReadRequest::for_coarse(format!("component:{component}"), "provenance:regime"),
         SnapshotReadRequest::for_coarse(
             format!("component:{component}"),
-            "provenance:external-factor",
+            forge_foundational::facade::AspectKey::new("provenance:regime")
+                .expect("valid snapshot aspect key"),
         ),
         SnapshotReadRequest::for_coarse(
             format!("component:{component}"),
-            "provenance:factor-delta",
+            forge_foundational::facade::AspectKey::new("provenance:external-factor")
+                .expect("valid snapshot aspect key"),
         ),
-        SnapshotReadRequest::for_coarse(format!("component:{component}"), "provenance:trend-delta"),
-        SnapshotReadRequest::for_coarse(format!("component:{component}"), "provenance:jump-delta"),
-        SnapshotReadRequest::for_coarse(format!("component:{component}"), "provenance:shock-delta"),
         SnapshotReadRequest::for_coarse(
             format!("component:{component}"),
-            "provenance:shock-multiplier",
+            forge_foundational::facade::AspectKey::new("provenance:factor-delta")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            format!("component:{component}"),
+            forge_foundational::facade::AspectKey::new("provenance:trend-delta")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            format!("component:{component}"),
+            forge_foundational::facade::AspectKey::new("provenance:jump-delta")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            format!("component:{component}"),
+            forge_foundational::facade::AspectKey::new("provenance:shock-delta")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            format!("component:{component}"),
+            forge_foundational::facade::AspectKey::new("provenance:shock-multiplier")
+                .expect("valid snapshot aspect key"),
         ),
     ])
 }
