@@ -1,14 +1,15 @@
 use std::collections::BTreeMap;
 
 use forge_foundational::facade::{
-    AspectKey, AspectValue, CanonicalBigInt, CanonicalDate, CanonicalDecimal, CanonicalF32,
-    CanonicalF64, CanonicalRational, CanonicalTime, CanonicalTimestamp, CanonicalTimestampTz,
-    ContentRefId, EntityId, FieldKey, InternedString, PartitionId,
+    AspectFieldLocator, AspectKey, AspectValue, CanonicalBigInt, CanonicalDate, CanonicalDecimal,
+    CanonicalF32, CanonicalF64, CanonicalRational, CanonicalTime, CanonicalTimestamp,
+    CanonicalTimestampTz, ContentRefId, EntityId, FieldKey, InternedString, LocatorAuthority,
+    PartitionId,
 };
 
 use super::{
-    decode_aspect_value, encode_aspect_value, encode_length_prefixed_aspect_value, encode_string,
-    encode_u32,
+    decode_aspect_value, encode_aspect_field_locator, encode_aspect_value,
+    encode_length_prefixed_aspect_value, encode_u32,
 };
 use crate::commit_strategies::data::{
     decode_aspect_field_patch as decode_native_aspect_field_patch,
@@ -65,14 +66,9 @@ fn aspect_field_patch_canonical_bytes_use_shared_aspect_value_bodies() {
 
     encode_u32(&mut expected_bytes, patch.len() as u32);
     for (target, value) in patch.iter() {
-        encode_string(&mut expected_bytes, target.aspect_key().as_str());
-        encode_u32(
-            &mut expected_bytes,
-            target.field_path().fields().len() as u32,
-        );
-        for field in target.field_path().fields() {
-            encode_string(&mut expected_bytes, field.as_str());
-        }
+        let target_bytes = encode_aspect_field_locator(target.locator());
+        encode_u32(&mut expected_bytes, target_bytes.len() as u32);
+        expected_bytes.extend_from_slice(&target_bytes);
         encode_length_prefixed_aspect_value(&mut expected_bytes, value).unwrap();
     }
 
@@ -81,6 +77,31 @@ fn aspect_field_patch_canonical_bytes_use_shared_aspect_value_bodies() {
         AspectFieldPatch::from_canonical_bytes(&expected_bytes).unwrap(),
         patch
     );
+}
+
+#[test]
+fn aspect_field_patch_target_bytes_are_canonical_planned_field_locator_bytes() {
+    let target = AspectFieldPatchTarget::single(
+        AspectKey::new("strategy.spec").expect("valid aspect key"),
+        FieldKey::new("replicas").expect("valid field key"),
+    );
+
+    assert_eq!(
+        target.to_canonical_bytes(),
+        encode_aspect_field_locator(target.locator())
+    );
+
+    let non_planned_locator = AspectFieldLocator::new(
+        LocatorAuthority::Derived,
+        target.aspect_key().clone(),
+        target.field_path().clone(),
+    );
+    let error = AspectFieldPatchTarget::from_canonical_bytes(&encode_aspect_field_locator(
+        &non_planned_locator,
+    ))
+    .unwrap_err();
+
+    assert!(error.detail().contains("planned authority"));
 }
 
 #[test]

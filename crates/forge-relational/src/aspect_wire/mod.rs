@@ -2,11 +2,12 @@ mod aspect_locator_canonical_codec;
 mod aspect_value_canonical_codec;
 mod field_patch_canonical_codec;
 
+pub(crate) use aspect_locator_canonical_codec::decode_aspect_field_locator;
 pub(crate) use aspect_locator_canonical_codec::encode_aspect_field_locator;
 #[cfg(test)]
 pub(crate) use aspect_locator_canonical_codec::{
-    decode_aspect_field_locator, decode_aspect_value_locator, decode_boundary_source_locator,
-    encode_aspect_value_locator, encode_boundary_source_locator,
+    decode_aspect_value_locator, decode_boundary_source_locator, encode_aspect_value_locator,
+    encode_boundary_source_locator,
 };
 pub(crate) use aspect_locator_canonical_codec::{
     serde_canonical_aspect_field_locator, serde_canonical_aspect_value_locator,

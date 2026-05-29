@@ -33,6 +33,17 @@ impl AspectFieldPatchTarget {
         Self::new(aspect_key, CanonicalFieldPath::single(field))
     }
 
+    pub(crate) fn from_locator(
+        locator: AspectFieldLocator,
+    ) -> Result<Self, AspectFieldPatchCodecError> {
+        if locator.aspect().authority() != LocatorAuthority::Planned {
+            return Err(AspectFieldPatchCodecError::new(
+                "aspect field patch target locator must use planned authority",
+            ));
+        }
+        Ok(Self { locator })
+    }
+
     pub fn aspect_key(&self) -> &AspectKey {
         self.locator.aspect().aspect_key()
     }
