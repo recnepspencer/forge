@@ -20,6 +20,9 @@ fn schema_public_boundary_is_curated() {
         "tests/compile_fail/removed_facade_exports/platform/removed_root_authority_vocab_exports.rs",
     );
     t.compile_fail(
+        "tests/compile_fail/removed_facade_exports/platform/removed_platform_authority_result_exports.rs",
+    );
+    t.compile_fail(
         "tests/compile_fail/removed_facade_exports/invariants/removed_runtime_invariant_facade_exports.rs",
     );
     t.compile_fail(

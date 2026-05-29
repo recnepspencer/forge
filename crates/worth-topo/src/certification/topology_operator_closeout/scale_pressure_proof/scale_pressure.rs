@@ -178,7 +178,7 @@ where
         if case.sweep == MilestoneThreeScalePressureSweep::HighFaceCountShells {
             Some(high_face_count_shell_rehome_batch(
                 &runtime,
-                &verified.read_basis,
+                &verified.read_basis(),
                 stem,
                 case.workload_size,
             )?)

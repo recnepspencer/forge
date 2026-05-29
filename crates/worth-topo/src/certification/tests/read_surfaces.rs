@@ -10,7 +10,7 @@ fn seeded_bootstrap_earns_milestone_one_certification_report() {
         .build();
 
     let seeded = seeded_bootstrap(&mut runtime, "cert-harness").expect("seed  topology");
-    let report = certify_milestone_one_read_basis_traced(&mut runtime, seeded.read_basis.clone())
+    let report = certify_milestone_one_read_basis_traced(&mut runtime, seeded.read_basis().clone())
         .expect("milestone one certification should succeed")
         .into_primary_result();
 
@@ -106,7 +106,7 @@ fn seeded_bootstrap_earns_direct_milestone_two_read_report() {
         .build();
 
     let seeded = seeded_bootstrap(&mut runtime, "cert-m2-read").expect("seed  topology");
-    let report = certify_milestone_two_read_basis_traced(&mut runtime, seeded.read_basis)
+    let report = certify_milestone_two_read_basis_traced(&mut runtime, seeded.read_basis().clone())
         .expect("milestone two read certification should succeed")
         .into_primary_result();
 
@@ -135,18 +135,18 @@ fn certification_read_view_matches_traced_reader_diagnostics_on_same_basis() {
         .read_snapshot(&seeded.snapshot)
         .expect(" snapshot read");
 
-    let report = certify_milestone_one_read_basis_traced(&mut runtime, seeded.read_basis.clone())
+    let report = certify_milestone_one_read_basis_traced(&mut runtime, seeded.read_basis().clone())
         .expect("milestone one certification should succeed")
         .into_primary_result();
     let staged = stage_topology_read_from_view(&read_view).expect("read stage should succeed");
     let traced_diagnostics = build_derived_read_diagnostics(
-        &seeded.read_basis,
+        &seeded.read_basis(),
         staged.materialized(),
         staged.interpreted(),
         staged.validation(),
     );
     let traced_equivalence = build_derived_equivalence_contract(
-        &seeded.read_basis,
+        &seeded.read_basis(),
         staged.materialized(),
         staged.interpreted(),
         staged.validation(),

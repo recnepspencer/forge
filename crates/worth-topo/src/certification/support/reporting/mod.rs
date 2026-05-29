@@ -9,11 +9,10 @@ use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::{EntityId, RelationId};
 use forge_relational::facade::replay::{ReplayFailureClass, ReplayObservableSurface};
 use schema::facade::topology_authoring::{
-    MilestoneOnePrimitiveCase, MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
+    CertifiedTopologyInterpretation, MilestoneOnePrimitiveCase,
+    MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole, TopologyReadArtifact,
 };
-use schema::facade::platform::authority::{
-    CertifiedTopologyInterpretation, MutationOrigin, TopologyReadArtifact,
-};
+use schema::facade::platform::authority::MutationOrigin;
 use crate::certification::BridgeTraceAnchor;
 use serde::{Deserialize, Serialize};
 

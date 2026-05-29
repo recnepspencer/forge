@@ -8,11 +8,12 @@ use forge_relational::facade::replay::{
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::aspects::Aspect;
 use schema::facade::platform::authority::{
-    DerivedTopologyReadBasis, FallbackDisposition, MutationOrigin, TopologyMutationBatch,
+    FallbackDisposition, MutationOrigin, TopologyMutationBatch,
 };
 use schema::facade::platform::authority::{
     ShellInterpretationClass, WireInterpretationClass,
 };
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::error::MilestoneOneCertificationError;
 use crate::certification::shared::{count_batch_mutations, coverage_entry, digest_rows};

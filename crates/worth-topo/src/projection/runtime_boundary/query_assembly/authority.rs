@@ -5,11 +5,10 @@ use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryWorkspace, ForgeQueryWorkspaceError,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::platform::authority::{
-    DerivedTopologyReadBasis, EntityReference, RawTopologyIntent, TopologyMutation,
-};
+use schema::facade::platform::authority::{EntityReference, RawTopologyIntent, TopologyMutation};
 use schema::facade::platform::entities::EntityKind;
 use schema::facade::platform::relations::RelationKind;
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::projection::TopologyQueryMutationEvidence;
 use crate::topology_operators::topology_relation_dependency_path;

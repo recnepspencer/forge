@@ -5,35 +5,42 @@
 //! surface; public consumers should reach it through
 //! `worth_schema::facade::platform::authority`.
 
-mod commit_flow;
-mod derived_invalidation;
-mod gateway;
-mod geometry_binding;
-mod interpretation;
-mod precision_fallback;
-mod topology_class;
+pub(crate) mod commit_flow;
+pub(crate) mod derived_invalidation;
+pub(crate) mod gateway;
+pub(crate) mod geometry_binding;
+pub(crate) mod interpretation;
+pub(crate) mod precision_fallback;
+pub(crate) mod topology_class;
 
-pub use commit_flow::{
+#[allow(unused_imports)]
+pub(crate) use commit_flow::{
     AuthoritativeTopologySnapshot, CanonicalTopologyMutationBatch, CertifiedTopologyInterpretation,
     CreateKey, DerivedTopologyReadBasis, DerivedTruthBasisIdentity, EntityReference,
     MutationOrigin, PersistedTopologyTruthBatch, RawTopologyIntent, TopologyMutation,
     TopologyMutationBatch, TopologyReadArtifact,
 };
+#[allow(unused_imports)]
 pub use derived_invalidation::{
     milestone_two_invalidation_declarations, DerivedInvalidationTarget, DerivedTruthSurfaceKind,
     TruthToDerivedInvalidationDeclaration,
 };
-pub use gateway::{TopologyAuthority, TopologyAuthorityError, VerifiedTopologyCommit};
+#[allow(unused_imports)]
+pub(crate) use gateway::{TopologyAuthority, TopologyAuthorityError, VerifiedTopologyCommit};
+#[allow(unused_imports)]
 pub use geometry_binding::{
     CoedgeCurveKind, CurveBindingKind, CurveProvenanceKind, SurfaceBindingKind,
     SurfaceRelationKind, VertexGeometryProvenanceKind, VertexToleranceRegime,
 };
+#[allow(unused_imports)]
 pub use interpretation::{
     ShellInterpretationClass, ShellInterpretationRecord, TopologyInterpretationRecordSet,
     WireInterpretationClass, WireInterpretationRecord,
 };
+#[allow(unused_imports)]
 pub use precision_fallback::{
     FallbackDisposition, FallbackProofClass, PrecisionBudgetFallbackRecord,
     PrecisionEscalationCause, PrecisionFallbackRecord, PrecisionRegime,
 };
+#[allow(unused_imports)]
 pub use topology_class::TopologyClass;

@@ -40,20 +40,27 @@ pub mod platform {
         //! Worth authority vocabulary used for platform descriptor assembly,
         //! write-side truth authoring, and related domain semantics.
 
-        pub use crate::data::authority::{
-            milestone_two_invalidation_declarations, AuthoritativeTopologySnapshot,
-            CanonicalTopologyMutationBatch, CertifiedTopologyInterpretation, CoedgeCurveKind,
-            CreateKey, CurveBindingKind, CurveProvenanceKind, DerivedInvalidationTarget,
-            DerivedTopologyReadBasis, DerivedTruthBasisIdentity, DerivedTruthSurfaceKind,
-            EntityReference, FallbackDisposition, FallbackProofClass, MutationOrigin,
-            PersistedTopologyTruthBatch, PrecisionBudgetFallbackRecord,
-            PrecisionEscalationCause, PrecisionFallbackRecord, PrecisionRegime, RawTopologyIntent,
-            ShellInterpretationClass, ShellInterpretationRecord, SurfaceBindingKind,
-            SurfaceRelationKind, TopologyClass, TopologyInterpretationRecordSet,
-            TopologyMutation, TopologyMutationBatch, TopologyReadArtifact,
-            TruthToDerivedInvalidationDeclaration, VertexGeometryProvenanceKind,
-            VertexToleranceRegime, WireInterpretationClass, WireInterpretationRecord,
+        pub use crate::data::authority::commit_flow::{
+            CreateKey, EntityReference, MutationOrigin, RawTopologyIntent, TopologyMutation,
+            TopologyMutationBatch,
         };
+        pub use crate::data::authority::derived_invalidation::{
+            milestone_two_invalidation_declarations, DerivedInvalidationTarget,
+            DerivedTruthSurfaceKind, TruthToDerivedInvalidationDeclaration,
+        };
+        pub use crate::data::authority::geometry_binding::{
+            CoedgeCurveKind, CurveBindingKind, CurveProvenanceKind, SurfaceBindingKind,
+            SurfaceRelationKind, VertexGeometryProvenanceKind, VertexToleranceRegime,
+        };
+        pub use crate::data::authority::interpretation::{
+            ShellInterpretationClass, ShellInterpretationRecord, TopologyInterpretationRecordSet,
+            WireInterpretationClass, WireInterpretationRecord,
+        };
+        pub use crate::data::authority::precision_fallback::{
+            FallbackDisposition, FallbackProofClass, PrecisionBudgetFallbackRecord,
+            PrecisionEscalationCause, PrecisionFallbackRecord, PrecisionRegime,
+        };
+        pub use crate::data::authority::topology_class::TopologyClass;
     }
 }
 
@@ -64,9 +71,15 @@ pub mod topology_authoring {
         milestone_one_admitted_range_sweep_scenarios, milestone_one_default_primitive_corpus,
         milestone_one_heavy_branch_local_sweep_scenarios, seed_milestone_one_primitive,
         seed_milestone_one_primitive_on_branch, seed_minimal_topology,
+        build_minimal_topology_intent, seed_minimal_topology_commit, SeededTopologyCommit,
         MilestoneOnePrimitiveAuthoringError, MilestoneOnePrimitiveCase,
         MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
         MilestoneOnePrimitiveScenario, MinimalTopologySeed, TopologyCreateBatchBuilder,
+    };
+    pub use crate::data::authority::commit_flow::{
+        AuthoritativeTopologySnapshot, CanonicalTopologyMutationBatch,
+        CertifiedTopologyInterpretation, DerivedTopologyReadBasis, DerivedTruthBasisIdentity,
+        PersistedTopologyTruthBatch, TopologyReadArtifact,
     };
 }
 

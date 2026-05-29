@@ -8,12 +8,12 @@ fn traced_certification_read_view_surfaces_schema_owned_trace() {
         .build();
 
     let seeded = seeded_bootstrap(&mut runtime, "cert-traced-surface").expect("seed  topology");
-    let traced = certify_milestone_one_read_basis_traced(&mut runtime, seeded.read_basis.clone())
+    let traced = certify_milestone_one_read_basis_traced(&mut runtime, seeded.read_basis().clone())
         .expect("traced milestone one certification");
 
     assert_eq!(
         traced.integrity_markers().truth_basis_identity,
-        Some(seeded.read_basis.authority.truth_basis_identity.clone())
+        Some(seeded.read_basis().authority.truth_basis_identity.clone())
     );
     assert_eq!(
         traced
@@ -69,7 +69,7 @@ fn traced_milestone_two_read_view_reuses_certification_trace_packet() {
         .build();
 
     let seeded = seeded_bootstrap(&mut runtime, "cert-m2-traced").expect("seed  topology");
-    let traced = certify_milestone_two_read_basis_traced(&mut runtime, seeded.read_basis)
+    let traced = certify_milestone_two_read_basis_traced(&mut runtime, seeded.read_basis().clone())
         .expect("traced milestone two read certification");
 
     assert!(traced.decision_trace().derived.is_some());

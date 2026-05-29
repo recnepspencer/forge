@@ -44,22 +44,22 @@ fn authority_trace_anchor_tracks_runtime_coordinates() {
     )
     .expect("seed  topology");
     let anchor =
-        AuthorityTraceAnchor::from_commit_results(verified.branch_id.clone(), &verified.commits);
+        AuthorityTraceAnchor::from_commit_results(verified.branch_id().clone(), verified.commits());
 
-    assert_eq!(anchor.branch_id, verified.branch_id);
-    assert_eq!(anchor.transaction_ids.len(), verified.commits.len());
-    assert_eq!(anchor.runtime_instance_ids.len(), verified.commits.len());
+    assert_eq!(anchor.branch_id, verified.branch_id().clone());
+    assert_eq!(anchor.transaction_ids.len(), verified.commits().len());
+    assert_eq!(anchor.runtime_instance_ids.len(), verified.commits().len());
     assert_eq!(
         anchor.commit_ids.last(),
         verified
-            .commits
+            .commits()
             .last()
             .map(|commit| &commit.commit.commit_id)
     );
     assert_eq!(
         anchor.snapshot_ids.last(),
         verified
-            .commits
+            .commits()
             .last()
             .map(|commit| &commit.snapshot.snapshot_id)
     );

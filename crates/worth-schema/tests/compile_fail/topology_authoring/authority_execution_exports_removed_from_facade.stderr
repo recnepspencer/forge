@@ -10,6 +10,6 @@ error[E0432]: unresolved imports `schema::facade::DerivedTopologyReadBasis`, `sc
   |     ^^^^^^^^^^^^^^^^^^^^^^ no `VerifiedTopologyCommit` in `facade`
   |
   = help: consider importing this struct instead:
-          schema::facade::platform::authority::DerivedTopologyReadBasis
+          schema::facade::topology_authoring::DerivedTopologyReadBasis
   = help: consider importing this struct instead:
-          schema::facade::platform::authority::DerivedTruthBasisIdentity
+          schema::facade::topology_authoring::DerivedTruthBasisIdentity

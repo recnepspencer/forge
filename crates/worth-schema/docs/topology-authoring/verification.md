@@ -2,7 +2,7 @@
 
 ## What This Feature Is
 
-This page explains a removal.
+This page explains a removal and the remaining curated authoring boundary.
 
 `worth-schema` no longer publishes topology verification as a normal consumer
 runtime lane.
@@ -102,6 +102,8 @@ split it into:
 
 - `worth-schema` does not provide a public verification lane for this work.
 - Query owns the runtime execution path.
+- `worth_schema::facade::topology_authoring` owns only authored truth inputs
+  and fixture-oriented support artifacts.
 
 ## Related Docs
 

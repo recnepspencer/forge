@@ -85,8 +85,8 @@ mod interpretation_tests {
         let topology = TopologyMaterializer::materialize_from_truth(&read_view)
             .expect(" topology materialization");
         let interpreted = interpret_topology_view(&topology);
-        let read_artifact = build_topology_read_artifact(&seeded.read_basis, &interpreted);
-        let certified = certify_topology_view(seeded.read_basis.clone(), &interpreted);
+        let read_artifact = build_topology_read_artifact(&seeded.read_basis(), &interpreted);
+        let certified = certify_topology_view(seeded.read_basis().clone(), &interpreted);
 
         assert_eq!(read_artifact.snapshot, seeded.snapshot);
         assert_eq!(read_artifact.interpretations.wires.len(), 1);

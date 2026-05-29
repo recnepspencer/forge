@@ -66,8 +66,8 @@ where
     let seeded_bootstrap =
         MilestoneOneCertificationHarness::certify_read_basis_with_runtime_traced(
             &mut baseline_runtime,
-            seeded.read_basis,
-            Some(&seeded.persisted_truth.batch),
+            seeded.read_basis().clone(),
+            Some(&seeded.persisted_truth().batch),
             1,
         )
         .map_err(BoundaryFailure::into_error)?

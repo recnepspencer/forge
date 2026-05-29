@@ -2,7 +2,7 @@ use forge_query::facade::{ForgeQueryComputedBuilder, ForgeQueryLiveViewBuilder};
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::snapshots::SnapshotHandle;
 use schema::facade::{QueryAspectPath, QueryCollection, QuerySchemaBasis};
-use schema::facade::platform::authority::DerivedTopologyReadBasis;
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use topology::facade::{
     BoundaryFailure,
 };
@@ -235,7 +235,7 @@ fn _topology_operator_surface_contracts() {
         &TopologyQueryAssembly,
         &mut forge_query::facade::ForgeQueryWorkspace,
         schema::facade::platform::authority::RawTopologyIntent,
-        &schema::facade::platform::authority::DerivedTopologyReadBasis,
+        &DerivedTopologyReadBasis,
     ) -> Result<TopologyQueryAppliedIntent, TopologyQueryApplyError> =
         TopologyQueryAssembly::apply_raw_intent;
     let _: fn(
@@ -329,7 +329,7 @@ fn _topology_operator_surface_contracts() {
         topology::facade::TopologyQuerySurfaceError,
     > = naming_attachment_report_from_query_input;
     let _: fn(
-        &schema::facade::platform::authority::DerivedTopologyReadBasis,
+        &DerivedTopologyReadBasis,
     ) -> topology::facade::TopologyQueryMutationEvidence =
         TopologyQueryMutationEvidence::from_read_basis;
     let _: fn() -> TopologyConstructionAuthority = topology_construction_authority;

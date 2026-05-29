@@ -1,5 +1,5 @@
 use forge_relational::facade::runtime::RelationalRuntime;
-use schema::facade::platform::authority::DerivedTopologyReadBasis;
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use schema::facade::platform::relations::TopologyRelationKind;
 
 use crate::projection::read_views::domain::parity::{

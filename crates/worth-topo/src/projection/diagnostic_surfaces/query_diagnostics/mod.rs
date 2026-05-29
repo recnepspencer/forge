@@ -6,9 +6,8 @@ use forge_query::facade::{
 };
 use schema::facade::{query_aspect_paths_from_set, QueryAspectPath};
 use schema::facade::platform::aspects::Aspect;
-use schema::facade::platform::authority::{
-    DerivedTopologyReadBasis, MutationOrigin,
-};
+use schema::facade::platform::authority::MutationOrigin;
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 

@@ -65,10 +65,10 @@ fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
     )
     .expect("verified primitive");
     let read_view =
-        open_topology_read_view(&runtime, &verified.read_basis).expect("read view should open");
+        open_topology_read_view(&runtime, &verified.read_basis()).expect("read view should open");
     let (mut workspace, assembly) = current_head_workspace(runtime, "topology-query-assembly");
     let snapshot = assembly
-        .snapshot_for_read_basis(&mut workspace, &verified.read_basis)
+        .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
         .expect("query snapshot should decode");
     let persistent_name_rows = workspace.read(assembly.persistent_names());
     let staged = stage_topology_read_from_view(&read_view).expect("read stage should succeed");
@@ -84,7 +84,7 @@ fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
     .expect("verified primitive");
     let certified_runtime_report = certify_milestone_one_read_basis_traced(
         &mut certification_runtime,
-        verified.read_basis.clone(),
+        verified.read_basis().clone(),
     )
     .expect("milestone one certification should succeed")
     .into_primary_result();
@@ -144,7 +144,7 @@ fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
     assert_eq!(
         snapshot.diagnostics.invalidation_report,
         crate::projection::diagnostic_surfaces::build_derived_invalidation_report(
-            &verified.read_basis
+            &verified.read_basis()
         )
     );
     assert_eq!(
@@ -158,37 +158,37 @@ fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
     assert_eq!(
         snapshot.diagnostics.fallback_report,
         crate::projection::diagnostic_surfaces::build_derived_fallback_report(
-            &verified.read_basis,
+            &verified.read_basis(),
             staged.materialized(),
         )
     );
     assert_eq!(
         snapshot.equivalence_contract.authority_snapshot_id,
-        verified.read_basis.snapshot().snapshot_id.0
+        verified.read_basis().snapshot().snapshot_id.0
     );
     assert_eq!(
         snapshot.equivalence_contract.authority_branch_id,
-        verified.read_basis.branch_id().0.as_str()
+        verified.read_basis().branch_id().0.as_str()
     );
     assert_eq!(
         snapshot.equivalence_contract.authoritative_mutation_origin,
-        verified.read_basis.authoritative_mutation_origin()
+        verified.read_basis().authoritative_mutation_origin()
     );
     assert_eq!(
         snapshot.equivalence_contract.derivation_origin,
-        verified.read_basis.derivation_origin()
+        verified.read_basis().derivation_origin()
     );
     assert_eq!(
         snapshot.equivalence_contract.truth_basis_digest_hex,
         verified
-            .read_basis
+            .read_basis()
             .authority
             .truth_basis_identity
             .mutation_batch_digest_hex
     );
     assert_eq!(
         snapshot.equivalence_contract.touched_aspect_count,
-        verified.read_basis.touched_aspects().len()
+        verified.read_basis().touched_aspects().len()
     );
     assert_eq!(
         snapshot.equivalence_contract.triggered_invalidation_targets,
@@ -203,13 +203,13 @@ fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
     );
     assert_eq!(
         snapshot.equivalence_contract.precision_fallback_count,
-        verified.read_basis.precision_fallbacks.len()
+        verified.read_basis().precision_fallbacks.len()
     );
     assert_eq!(
         snapshot
             .equivalence_contract
             .precision_budget_fallback_count,
-        verified.read_basis.precision_budget_fallbacks.len()
+        verified.read_basis().precision_budget_fallbacks.len()
     );
 }
 
@@ -253,7 +253,7 @@ fn query_native_assembly_denies_created_entity_refs_when_partial_subgraph_breaks
                 ],
                 MutationOrigin::LocalEdit,
             ),
-            &verified.read_basis,
+            &verified.read_basis(),
         )
         .expect_err("partial created-ref subgraph should fail closed on runtime invariants");
 
@@ -290,7 +290,7 @@ fn query_native_assembly_applies_topology_relation_delete_through_existing_bindi
     .expect("verified primitive");
     let relation_id = runtime
         .read_truth()
-        .read_snapshot(verified.read_basis.snapshot())
+        .read_snapshot(verified.read_basis().snapshot())
         .expect("read view should open")
         .relations()[0]
         .relation_id;
@@ -304,7 +304,7 @@ fn query_native_assembly_applies_topology_relation_delete_through_existing_bindi
                 vec![TopologyMutation::RemoveRelation { relation_id }],
                 MutationOrigin::LocalEdit,
             ),
-            &verified.read_basis,
+            &verified.read_basis(),
         )
         .expect("topology relation delete should lower through existing binding");
     let relation_rows = workspace.read(assembly.relations());

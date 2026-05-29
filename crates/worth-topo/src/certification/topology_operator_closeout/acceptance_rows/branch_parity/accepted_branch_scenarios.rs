@@ -38,7 +38,7 @@ where
     let seeded = seed_milestone_one_primitive(&mut runtime, stem, &primitive)?;
     let face_id = first_entity_id(
         &runtime,
-        &seeded.read_basis,
+        &seeded.read_basis(),
         TopologyEntityKind::Face,
         "cancellation-chain seeded face",
     )?;
@@ -96,8 +96,8 @@ where
     let seed_stem = format!("{stem}.split_collapse_churn");
     let mut runtime = runtime_factory();
     let seeded = seed_milestone_one_primitive(&mut runtime, &seed_stem, &primitive)?;
-    let (wire_id, half_edge_ids) = seeded_wire_and_half_edges(&runtime, &seeded.read_basis)?;
-    let seeded_read = read_snapshot(&runtime, &seeded.read_basis)?;
+    let (wire_id, half_edge_ids) = seeded_wire_and_half_edges(&runtime, &seeded.read_basis())?;
+    let seeded_read = read_snapshot(&runtime, &seeded.read_basis())?;
     let branch = create_branch(&mut runtime, stem, "accepted.split_collapse")?;
     let split_wire_key = CreateKey::new(format!("{stem}.split_collapse_churn.split_wire"));
     let split_batch = split_wire_batch(split_wire_key.as_str(), &half_edge_ids[2..])?;

@@ -190,7 +190,7 @@ fn current_head_runtime_executes_create_inner_loop_on_existing_face_program() {
     .expect("seed topology");
     let face_id = runtime
         .read_truth()
-        .read_snapshot(verified.read_basis.snapshot())
+        .read_snapshot(verified.read_basis().snapshot())
         .expect("seeded snapshot should remain readable")
         .entities()
         .iter()

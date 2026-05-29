@@ -22,13 +22,13 @@ pub(crate) fn certify_milestone_two_verified_commit_traced_impl(
     verified: &TopologyCommittedArtifact,
 ) -> Result<TracedMilestoneTwoDerivedReadReport, BoundaryFailure<MilestoneOneCertificationError>> {
     let mut certified =
-        certify_milestone_two_query_read_basis(runtime, verified.read_basis.clone()).map_err(
+        certify_milestone_two_query_read_basis(runtime, verified.read_basis().clone()).map_err(
             |error| {
                 traced_milestone_two_failure(
                     error,
-                    &verified.read_basis,
-                    Some(&verified.commits),
-                    verified.commits.len(),
+                    &verified.read_basis(),
+                    Some(verified.commits()),
+                    verified.commits().len(),
                 )
             },
         )?;
@@ -40,7 +40,7 @@ pub(crate) fn certify_milestone_two_verified_commit_traced_impl(
         let replay = runtime
             .replay_authority()
             .replay_commit(forge_relational::facade::replay::RelationalReplayRequest {
-                branch_id: verified.branch_id.clone(),
+                branch_id: verified.branch_id().clone(),
                 commit_id: replay_commit_id,
                 execution_mode:
                     forge_relational::facade::replay::ReplayExecutionMode::SerialDeterministic,
@@ -98,9 +98,9 @@ pub(crate) fn certify_milestone_two_verified_commit_traced_impl(
     Ok(traced_milestone_two_envelope(
         certified.report,
         certified.query_evidence,
-        &verified.read_basis,
-        Some(&verified.commits),
-        verified.commits.len(),
+        &verified.read_basis(),
+        Some(verified.commits()),
+        verified.commits().len(),
     ))
 }
 

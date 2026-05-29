@@ -54,7 +54,7 @@ fn verified_topology_commit_is_the_canonical_certification_input() {
     assert!(report.topology_validated);
     assert_eq!(
         report.read_artifact.snapshot,
-        verified.persisted_truth.snapshot
+        verified.persisted_truth().snapshot
     );
     assert_eq!(
         report.branch_local_topology_report.mutation_origin,
@@ -75,7 +75,7 @@ fn verified_topology_commit_is_the_canonical_certification_input() {
         report.milestone_1_replay_parity_report.parity_status,
         ReplayParityStatus::NotChecked
     );
-    assert!(verified.commits.is_empty());
+    assert!(verified.commits().is_empty());
 }
 
 #[test]
@@ -128,7 +128,7 @@ fn branch_local_verified_commit_certifies_against_the_feature_branch_truth_basis
         report.milestone_1_replay_parity_report.parity_status,
         ReplayParityStatus::NotChecked
     );
-    assert!(verified.commits.is_empty());
+    assert!(verified.commits().is_empty());
 }
 
 #[test]

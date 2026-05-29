@@ -28,11 +28,11 @@ pub(super) fn seeded_current_head_workspace(
     )
     .expect("verified primitive");
     let verified = TopologyCommittedArtifact::from_parts(
-        verified.canonical_batch,
-        verified.branch_id,
-        verified.commits,
-        verified.persisted_truth,
-        verified.read_basis,
+        verified.canonical_batch().clone(),
+        verified.branch_id().clone(),
+        verified.commits().to_vec(),
+        verified.persisted_truth().clone(),
+        verified.read_basis().clone(),
     );
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, stem).expect("query workspace should build");

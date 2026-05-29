@@ -1,8 +1,7 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{
-    MilestoneOnePrimitiveCase, MilestoneOnePrimitiveScenario,
+    DerivedTopologyReadBasis, MilestoneOnePrimitiveCase, MilestoneOnePrimitiveScenario,
 };
-use schema::facade::platform::authority::DerivedTopologyReadBasis;
 use crate::committed_artifact::TopologyCommittedArtifact;
 
 use crate::certification::authority_closeout::certify_milestone_one_closeout_impl;

@@ -1,8 +1,8 @@
 use forge_relational::facade::identity::{EntityId, RelationId};
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
-use schema::facade::topology_authoring::created_ref;
+use schema::facade::topology_authoring::{created_ref, DerivedTopologyReadBasis};
 use schema::facade::platform::authority::{
-    CreateKey, DerivedTopologyReadBasis, EntityReference, TopologyMutation,
+    CreateKey, EntityReference, TopologyMutation,
 };
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{

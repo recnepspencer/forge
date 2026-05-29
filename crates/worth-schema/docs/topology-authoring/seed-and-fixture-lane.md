@@ -109,22 +109,27 @@ If you find yourself depending on fields like `persisted_truth`, `read_basis`,
 or `certified_interpretation` from `MinimalTopologySeed`, treat that as
 leaving the fixture/support lane, not as the stable public runtime story.
 
+For primitive commits, the stable support result is now
+`SeededTopologyCommit`, not `VerifiedTopologyCommit`.
+
 ## Anti-Patterns
 
 - Do not teach this as the normal runtime entry story.
 - Do not use milestone corpus helpers as a substitute for stable app-facing
   runtime APIs.
 - Do not add new broad runtime policy to this namespace.
-- Do not build new consumer code around the authority-shaped fields returned by
-  seed helpers.
+- Do not build new consumer code around schema-owned verified-commit products.
+- Do not treat `platform::authority` as the place to import read-basis or
+  post-execution support artifacts.
 
 ## Current Limits
 
 - This lane is intentionally biased toward fixtures and support.
 - The helper names reflect milestone-one primitive corpus history because that
   historical shape is the supported corpus boundary.
-- `MinimalTopologySeed` exposes support artifacts for fixture and certification
-  work. It is not the public runtime result story.
+- `MinimalTopologySeed` and `SeededTopologyCommit` still expose fixture-oriented
+  support artifacts because certification and support code depend on them. They
+  are not the public runtime result story.
 
 ## Related Docs
 

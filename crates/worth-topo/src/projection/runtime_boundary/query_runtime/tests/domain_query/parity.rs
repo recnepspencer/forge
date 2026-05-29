@@ -26,7 +26,7 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )
     .expect("seed primitive");
-    let replay_basis = verified.read_basis.replay_of();
+    let replay_basis = verified.read_basis().replay_of();
     let replay_workspace = {
         let read_view = open_topology_read_view(&runtime, &replay_basis)
             .expect("snapshot read view should open");
@@ -56,7 +56,7 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
 
     let left = current_head_support.local_rewire_parity_artifact(
         &mut current_head_workspace,
-        &verified.read_basis,
+        &verified.read_basis(),
         &moved_identity,
         6,
     );

@@ -88,13 +88,13 @@ pub(crate) fn certify_milestone_one_bridge_proof(
             .build();
         let verified =
             verified_primitive(&mut runtime, &format!("{stem}.case.{index}"), primitive)?;
-        let commit = verified.commits.last().ok_or_else(|| {
+        let commit = verified.commits().last().ok_or_else(|| {
             MilestoneOneCertificationError::ReadView(
                 " milestone one bridge proof requires a committed topology mutation".to_string(),
             )
         })?;
         let family = primitive_family_name(primitive).to_string();
-        let branch_id = verified.branch_id.0.clone();
+        let branch_id = verified.branch_id().0.clone();
         let commit_id = commit.outcome.commit.commit_id.0.to_string();
         let bridge_runtime = Arc::new(runtime);
         let bridge =

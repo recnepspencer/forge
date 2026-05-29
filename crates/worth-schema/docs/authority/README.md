@@ -28,4 +28,6 @@ Good to know:
 
 - the stable consumer surface here is the write-side vocabulary
 - the published import lane is `worth_schema::facade::platform::authority`
+- read-basis and post-execution support artifacts live only under the curated
+  `worth_schema::facade::topology_authoring` support lane
 - runtime execution, inspection, and recovery belong to Query

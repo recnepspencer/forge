@@ -4,9 +4,10 @@ use forge_relational::facade::history::BranchId;
 use forge_relational::facade::snapshots::SnapshotHandle;
 use forge_relational::facade::transactions::CommitResult;
 use schema::facade::platform::aspects::Aspect;
-use schema::facade::platform::authority::{
-    CanonicalTopologyMutationBatch, DerivedTopologyReadBasis, MutationOrigin,
-    PersistedTopologyTruthBatch, RawTopologyIntent, TopologyMutationBatch,
+use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent, TopologyMutationBatch};
+use schema::facade::topology_authoring::{
+    CanonicalTopologyMutationBatch, DerivedTopologyReadBasis, PersistedTopologyTruthBatch,
+    SeededTopologyCommit,
 };
 
 #[derive(Debug, Clone)]
@@ -66,5 +67,37 @@ impl TopologyCommittedArtifact {
             BranchId("main".to_string()),
             RawTopologyIntent::new(Vec::new(), mutation_origin),
         )
+    }
+
+    pub fn from_seeded_commit(seed: SeededTopologyCommit) -> Self {
+        let (canonical_batch, branch_id, commits, _snapshot, persisted_truth, read_basis) =
+            seed.into_parts();
+        Self {
+            canonical_batch,
+            branch_id,
+            commits,
+            persisted_truth,
+            read_basis,
+        }
+    }
+
+    pub fn persisted_truth(&self) -> &PersistedTopologyTruthBatch {
+        &self.persisted_truth
+    }
+
+    pub fn read_basis(&self) -> &DerivedTopologyReadBasis {
+        &self.read_basis
+    }
+
+    pub fn canonical_batch(&self) -> &CanonicalTopologyMutationBatch {
+        &self.canonical_batch
+    }
+
+    pub fn branch_id(&self) -> &BranchId {
+        &self.branch_id
+    }
+
+    pub fn commits(&self) -> &[CommitResult] {
+        &self.commits
     }
 }

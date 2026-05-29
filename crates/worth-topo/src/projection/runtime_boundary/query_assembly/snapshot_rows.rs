@@ -1,5 +1,5 @@
 use forge_query::facade::ForgeQueryWorkspace;
-use schema::facade::platform::authority::DerivedTopologyReadBasis;
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use serde_json::Value;
 
 use super::{historical_rows, TopologyQueryAssembly, TopologyQuerySurfaceError};

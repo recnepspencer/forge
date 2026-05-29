@@ -24,7 +24,7 @@ mod parity_tests {
         .expect("verified primitive");
         let read_view = runtime
             .read_truth()
-            .read_snapshot(&verified.persisted_truth.snapshot)
+            .read_snapshot(&verified.persisted_truth().snapshot)
             .expect("snapshot read");
         let materialized =
             TopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
@@ -33,13 +33,13 @@ mod parity_tests {
             validate_interpreted_topology(&materialized, &interpreted).expect("validation");
 
         let first = build_derived_equivalence_contract(
-            &verified.read_basis,
+            &verified.read_basis(),
             &materialized,
             &interpreted,
             &validation,
         );
         let second = build_derived_equivalence_contract(
-            &verified.read_basis,
+            &verified.read_basis(),
             &materialized,
             &interpreted,
             &validation,
@@ -73,7 +73,7 @@ mod parity_tests {
         .expect("verified primitive");
         let read_view = runtime
             .read_truth()
-            .read_snapshot(&verified.persisted_truth.snapshot)
+            .read_snapshot(&verified.persisted_truth().snapshot)
             .expect("snapshot read");
         let materialized =
             TopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
@@ -82,12 +82,12 @@ mod parity_tests {
             validate_interpreted_topology(&materialized, &interpreted).expect("validation");
 
         let mainline = build_derived_equivalence_contract(
-            &verified.read_basis,
+            &verified.read_basis(),
             &materialized,
             &interpreted,
             &validation,
         );
-        let replay_basis = verified.read_basis.replay_of();
+        let replay_basis = verified.read_basis().replay_of();
         let replay = build_derived_equivalence_contract(
             &replay_basis,
             &materialized,

@@ -16,14 +16,16 @@ use schema::facade::platform::aspects::{
     Aspect, DiagnosticsAspect, GeometryAspect, NamingAspect, TopologyAspect,
 };
 use schema::facade::platform::authority::{
-    CanonicalTopologyMutationBatch, CreateKey, DerivedTopologyReadBasis, EntityReference,
-    MutationOrigin, PersistedTopologyTruthBatch, RawTopologyIntent, TopologyMutation,
+    CreateKey, EntityReference, MutationOrigin, RawTopologyIntent, TopologyMutation,
     TopologyMutationBatch,
 };
 use schema::facade::platform::entities::{DiagnosticsEntityKind, EntityKind};
 use schema::facade::platform::relations::{
     DiagnosticsRelationKind, GeometryRelationKind, NamingRelationKind, RelationKind,
     TopologyRelationKind,
+};
+use schema::facade::topology_authoring::{
+    CanonicalTopologyMutationBatch, DerivedTopologyReadBasis, PersistedTopologyTruthBatch,
 };
 use serde_json::json;
 

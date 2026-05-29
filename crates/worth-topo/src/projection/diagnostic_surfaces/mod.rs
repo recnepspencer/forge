@@ -7,8 +7,9 @@ const QUERY_SURFACE_FAILURE_ROW_KEY: &str = "query_surface_error";
 
 use schema::facade::platform::aspects::Aspect;
 use schema::facade::platform::authority::{
-    milestone_two_invalidation_declarations, DerivedInvalidationTarget, DerivedTopologyReadBasis,
+    milestone_two_invalidation_declarations, DerivedInvalidationTarget,
 };
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::support::parity::{
     build_derived_equivalence_contract, DerivedEquivalenceContractReport,
@@ -251,7 +252,7 @@ mod tests {
         .expect("verified primitive");
         let read_view = runtime
             .read_truth()
-            .read_snapshot(&verified.persisted_truth.snapshot)
+            .read_snapshot(&verified.persisted_truth().snapshot)
             .expect("snapshot read");
         let materialized =
             TopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
@@ -260,7 +261,7 @@ mod tests {
             validate_interpreted_topology(&materialized, &interpreted).expect("validation");
 
         let diagnostics = build_derived_read_diagnostics(
-            &verified.read_basis,
+            &verified.read_basis(),
             &materialized,
             &interpreted,
             &validation,

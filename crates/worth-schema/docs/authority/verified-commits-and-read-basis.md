@@ -4,9 +4,12 @@
 
 This page explains a boundary change.
 
-`VerifiedTopologyCommit`, `DerivedTopologyReadBasis`, and
-`DerivedTruthBasisIdentity` are no longer part of the broad public
-`worth-schema` facade.
+`VerifiedTopologyCommit` is no longer part of the public `worth-schema`
+boundary.
+
+`DerivedTopologyReadBasis`, `DerivedTruthBasisIdentity`, and related
+read-support artifacts are also no longer part of
+`worth_schema::facade::platform::authority`.
 
 ## Why You Use It
 
@@ -15,8 +18,16 @@ publish authority-shaped runtime result surfaces directly.
 
 ## Stable Entry Points
 
-There are no stable entrypoints for these result types on the broad
-`worth-schema` facade anymore.
+There are no stable entrypoints for verified-commit execution products on the
+broad `worth-schema` facade anymore.
+
+The remaining read-support artifacts now live only under the curated support
+lane:
+
+- `worth_schema::facade::topology_authoring::DerivedTopologyReadBasis`
+- `worth_schema::facade::topology_authoring::DerivedTruthBasisIdentity`
+- `worth_schema::facade::topology_authoring::TopologyReadArtifact`
+- `worth_schema::facade::topology_authoring::CertifiedTopologyInterpretation`
 
 ## Core Mental Model
 
@@ -62,6 +73,8 @@ let inspection = handle.inspect_declaration_entry(&outcome)?;
 
 - Use [Topology Mutations](./topology-mutations.md) when you need the
   schema-owned write vocabulary.
+- Use `worth_schema::facade::topology_authoring` only when you need seed or
+  fixture-oriented support artifacts.
 - Use [Verification](../topology-authoring/verification.md) for the migration
   note on the removed verification lane.
 - Use `forge-query` for the runtime lane.

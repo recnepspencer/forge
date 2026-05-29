@@ -1,4 +1,5 @@
-use schema::facade::platform::authority::{DerivedInvalidationTarget, DerivedTopologyReadBasis, MutationOrigin};
+use schema::facade::platform::authority::{DerivedInvalidationTarget, MutationOrigin};
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::support::parity::types::{
     DerivedEquivalenceContractReport, DerivedParityComparisonReport,

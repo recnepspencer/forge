@@ -4,11 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::authority::{
     MutationOrigin, RawTopologyIntent, TopologyAuthority, TopologyAuthorityError,
-    VerifiedTopologyCommit,
 };
 use crate::data::entities::{EntityKind, TopologyEntityKind};
 use crate::data::relations::{RelationKind, TopologyRelationKind};
-use crate::data::seed::{created_ref, TopologyCreateBatchBuilder};
+use crate::data::seed::{created_ref, SeededTopologyCommit, TopologyCreateBatchBuilder};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MilestoneOnePrimitiveCase {
@@ -162,12 +161,20 @@ pub fn seed_milestone_one_primitive(
     runtime: &mut RelationalRuntime,
     stem: &str,
     primitive: &MilestoneOnePrimitiveCase,
-) -> Result<VerifiedTopologyCommit, MilestoneOnePrimitiveAuthoringError> {
+) -> Result<SeededTopologyCommit, MilestoneOnePrimitiveAuthoringError> {
     let intent = build_milestone_one_primitive_intent(stem, primitive)?;
-    Ok(TopologyAuthority::new(runtime)
+    let verified = TopologyAuthority::new(runtime)
         .apply_topology_intent_traced(intent)
         .map(|traced| traced.into_primary_result())
-        .map_err(|failure| failure.into_error())?)
+        .map_err(|failure| failure.into_error())?;
+    Ok(SeededTopologyCommit::from_parts(
+        verified.canonical_batch,
+        verified.branch_id,
+        verified.commits,
+        verified.persisted_truth.snapshot.clone(),
+        verified.persisted_truth,
+        verified.read_basis,
+    ))
 }
 
 pub fn seed_milestone_one_primitive_on_branch(
@@ -176,13 +183,21 @@ pub fn seed_milestone_one_primitive_on_branch(
     primitive: &MilestoneOnePrimitiveCase,
     branch_id: BranchId,
     mutation_origin: MutationOrigin,
-) -> Result<VerifiedTopologyCommit, MilestoneOnePrimitiveAuthoringError> {
+) -> Result<SeededTopologyCommit, MilestoneOnePrimitiveAuthoringError> {
     let mut intent = build_milestone_one_primitive_intent(stem, primitive)?;
     intent.mutation_origin = mutation_origin;
-    Ok(TopologyAuthority::new(runtime)
+    let verified = TopologyAuthority::new(runtime)
         .apply_topology_intent_on_branch_traced(intent, branch_id)
         .map(|traced| traced.into_primary_result())
-        .map_err(|failure| failure.into_error())?)
+        .map_err(|failure| failure.into_error())?;
+    Ok(SeededTopologyCommit::from_parts(
+        verified.canonical_batch,
+        verified.branch_id,
+        verified.commits,
+        verified.persisted_truth.snapshot.clone(),
+        verified.persisted_truth,
+        verified.read_basis,
+    ))
 }
 
 pub fn milestone_one_default_primitive_corpus() -> Vec<MilestoneOnePrimitiveScenario> {

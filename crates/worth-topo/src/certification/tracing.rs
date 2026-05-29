@@ -5,7 +5,8 @@ use forge_relational::facade::identity::VersionId;
 use forge_relational::facade::snapshots::SnapshotId;
 use forge_relational::facade::transactions::{CommitLog, CommitResult, TransactionId};
 use schema::facade::platform::aspects::Aspect;
-use schema::facade::platform::authority::{DerivedTopologyReadBasis, DerivedTruthBasisIdentity, MutationOrigin};
+use schema::facade::platform::authority::MutationOrigin;
+use schema::facade::topology_authoring::{DerivedTopologyReadBasis, DerivedTruthBasisIdentity};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

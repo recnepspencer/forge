@@ -281,7 +281,7 @@ fn snapshot_domain_query_uses_historical_basis_context_receipt() {
     )
     .expect("seed primitive");
     let (mut workspace, assembly) =
-        snapshot_basis_workspace(&runtime, &format!("{stem}.snapshot"), &verified.read_basis);
+        snapshot_basis_workspace(&runtime, &format!("{stem}.snapshot"), &verified.read_basis());
     let domain_query = TopologyDomainQuery::load();
     let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
     let start_identity = lookup_rows

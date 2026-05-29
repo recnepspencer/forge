@@ -1,4 +1,4 @@
-use schema::facade::platform::authority::DerivedTopologyReadBasis;
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use super::fallback::TopologyDomainQueryFallbackPosture;
 use super::report::{

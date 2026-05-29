@@ -4,13 +4,12 @@ use forge_query::facade::{ForgeQueryEntity, ForgeQueryRuntimeError, ForgeQueryWo
 use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::query_aspect_path_strings;
 use schema::facade::platform::aspects::{Aspect, TopologyAspect};
-use schema::facade::platform::authority::{
-    DerivedTopologyReadBasis, MutationOrigin, RawTopologyIntent, TopologyMutation,
-};
+use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent, TopologyMutation};
 use schema::facade::platform::entities::EntityKind;
 use schema::facade::platform::relations::{
     RelationKind, TopologyRelationKind,
 };
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use serde_json::Value;
 
 use super::authority::{ImportedTopologyEntity, ImportedTopologyRelation, TopologyQueryApplyError};

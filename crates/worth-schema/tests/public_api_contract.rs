@@ -1,5 +1,8 @@
 use schema::facade::topology_authoring::{
-    milestone_one_default_primitive_corpus, MilestoneOnePrimitiveScenario,
+    milestone_one_default_primitive_corpus, CanonicalTopologyMutationBatch,
+    CertifiedTopologyInterpretation, DerivedTopologyReadBasis, DerivedTruthBasisIdentity,
+    MilestoneOnePrimitiveScenario, PersistedTopologyTruthBatch, SeededTopologyCommit,
+    TopologyReadArtifact,
 };
 use schema::facade::{
     bootstrap_schema_registry, QueryAspectFamily, QueryAspectPath, QueryCollection, QueryLiveField,
@@ -75,10 +78,33 @@ struct QueryLiveSurfaceContract {
     field: QueryLiveField,
 }
 
+fn _topology_authoring_support_contract(
+    seeded: SeededTopologyCommit,
+    canonical: CanonicalTopologyMutationBatch,
+    persisted: PersistedTopologyTruthBatch,
+    read_basis: DerivedTopologyReadBasis,
+    read_artifact: TopologyReadArtifact,
+    certified: CertifiedTopologyInterpretation,
+    truth_basis: DerivedTruthBasisIdentity,
+) {
+    let _ = (
+        seeded.snapshot(),
+        seeded.branch_id(),
+        seeded.commits(),
+        canonical,
+        persisted,
+        read_basis,
+        read_artifact,
+        certified,
+        truth_basis,
+    );
+}
+
 #[test]
 fn schema_public_surface_stays_vocabulary_first() {
     let _ = _query_vocab_contract;
     let _ = _truth_vocab_contract;
     let _ = _bootstrap_contract;
     let _ = _topology_authoring_contract;
+    let _ = _topology_authoring_support_contract;
 }
