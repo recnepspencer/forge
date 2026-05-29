@@ -60,9 +60,11 @@ fn diagnostic_serde_projection_is_not_stored_authority() {
             RelationalDiagnosticValue::AspectValue(AspectValue::UInt64(7)),
         )]));
 
-    let projected = serde_json::to_value(&live_fields).expect("project diagnostic fields");
+    let external_serde_projection_json =
+        serde_json::to_value(&live_fields).expect("project diagnostic fields");
     let recovered: RelationalDiagnosticFields =
-        serde_json::from_value(projected).expect("recover projected diagnostic fields");
+        serde_json::from_value(external_serde_projection_json)
+            .expect("recover external serde diagnostic fields");
 
     assert_ne!(live_fields.root(), recovered.root());
     assert_eq!(live_fields, recovered);

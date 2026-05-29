@@ -23,8 +23,8 @@ mod aspect_value_diagnostic_terms;
 mod external_serde_projection;
 
 use external_serde_projection::{
-    deserialize_diagnostic_fields, diagnostic_projection_equal, serialize_diagnostic_fields,
-    typed_external_projection_value,
+    deserialize_diagnostic_fields, external_serde_projection_equal, serialize_diagnostic_fields,
+    typed_external_serde_projection_value,
 };
 
 #[derive(Debug, Clone)]
@@ -41,8 +41,8 @@ impl RelationalDiagnosticFields {
         &self.root
     }
 
-    pub fn to_external_projection_value(&self) -> RelationalDiagnosticValue {
-        typed_external_projection_value(self.root())
+    pub fn to_external_serde_projection_value(&self) -> RelationalDiagnosticValue {
+        typed_external_serde_projection_value(self.root())
     }
 }
 
@@ -141,7 +141,7 @@ impl From<RelationalDiagnosticValue> for RelationalDiagnosticFields {
 
 impl PartialEq for RelationalDiagnosticFields {
     fn eq(&self, other: &Self) -> bool {
-        diagnostic_projection_equal(&self.root, &other.root)
+        external_serde_projection_equal(&self.root, &other.root)
     }
 }
 
