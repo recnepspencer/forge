@@ -1,5 +1,5 @@
 use forge_query::facade::{ForgeQueryEntity, ForgeQueryWorkspace};
-use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::TopologyRelationKind;
 
 use super::super::shared::{entity_id_from_query_identity, relation_id_from_query_identity};
 use super::scale_pressure_span::scaled_successor_span_batch;
@@ -90,7 +90,3 @@ fn relation_target_identity(row: &ForgeQueryEntity) -> Option<String> {
 fn scale_pressure_loop_error(reason: &str) -> TopologyCertificationError {
     TopologyCertificationError::Query(format!("milestone three scale loop failed: {reason}"))
 }
-
-
-
-

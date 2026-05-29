@@ -87,7 +87,3 @@ fn runtime_preflight_for_family(
         |error| TopologyDomainQueryError::read_family_execution_denied(format!("{error:?}")),
     )
 }
-
-
-
-

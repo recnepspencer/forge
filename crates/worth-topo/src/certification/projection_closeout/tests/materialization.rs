@@ -1,5 +1,5 @@
 use super::domain_query::support::seeded_sheet_disk_workspace;
-use crate::validation::reference_integrity::milestone_one_runtime_builder;
+use crate::facade::milestone_one_runtime_builder;
 use crate::projection::runtime_boundary::read_stage::{
     open_topology_read_view, stage_topology_read_from_view,
 };
@@ -17,7 +17,7 @@ fn query_materializer_rebuilds_minimal_topology_from_production_runtime_rows() {
     )
     .expect("verified primitive");
     let staged = stage_topology_read_from_view(
-        &open_topology_read_view(&runtime, &verified.read_basis()).expect("read view should open"),
+        &open_topology_read_view(&runtime, &verified.read_basis).expect("read view should open"),
     )
     .expect("read stage should succeed");
     let (mut workspace, assembly, read_basis) =
@@ -52,7 +52,3 @@ fn query_materializer_rebuilds_minimal_topology_from_production_runtime_rows() {
         staged.materialized().report().fallback_class
     );
 }
-
-
-
-

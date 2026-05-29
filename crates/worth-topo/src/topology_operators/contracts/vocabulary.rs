@@ -1,4 +1,4 @@
-use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::TopologyRelationKind;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -143,7 +143,3 @@ impl ShellOrWireMembershipKind {
         }
     }
 }
-
-
-
-

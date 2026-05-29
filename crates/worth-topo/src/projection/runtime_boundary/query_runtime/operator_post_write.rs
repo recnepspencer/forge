@@ -15,7 +15,3 @@ pub(crate) fn load_post_write_materialized_topology(
         ))
     })
 }
-
-
-
-

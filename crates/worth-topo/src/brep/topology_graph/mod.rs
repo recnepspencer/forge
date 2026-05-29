@@ -11,7 +11,3 @@ pub use half_edge::TopologyHalfEdge;
 pub use identity::TopologyView;
 pub use shell_face_loop::{TopologyFace, TopologyLoop, TopologyShell};
 pub use wire::TopologyWire;
-
-
-
-

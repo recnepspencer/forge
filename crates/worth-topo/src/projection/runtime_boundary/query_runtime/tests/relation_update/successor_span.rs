@@ -29,7 +29,7 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
     let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let moved_start_identity = support.first_source_identity_for_relation_kind(
-        schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
+        schema::facade::TopologyRelationKind::HalfEdgeNext,
     );
     let cycle = support.successor_cycle_identities(&mut workspace, &moved_start_identity, 6);
     let moved_end_identity = cycle[1].as_str();
@@ -151,7 +151,7 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
     let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let moved_start_identity = support.first_source_identity_for_relation_kind(
-        schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
+        schema::facade::TopologyRelationKind::HalfEdgeNext,
     );
     let cycle = support.successor_cycle_identities(&mut workspace, &moved_start_identity, 6);
     let moved_mid_identity = cycle[1].as_str();
@@ -266,7 +266,3 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
         .expect("old predecessor should remain present");
     assert_eq!(old_predecessor.next_half_edge_id, Some(old_successor_id));
 }
-
-
-
-

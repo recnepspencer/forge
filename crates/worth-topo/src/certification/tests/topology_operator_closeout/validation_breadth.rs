@@ -1,8 +1,7 @@
 use crate::facade::{
-    certify_milestone_three_closeout, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileSuiteReport,
+    certify_milestone_three_closeout, milestone_one_runtime_builder,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileSuiteReport,
 };
-use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
 #[test]
 fn closeout_exposes_validation_breadth_for_every_hostile_scenario() {
@@ -57,7 +56,3 @@ fn certify_closeout_report(stem: &str) -> MilestoneThreeHostileSuiteReport {
     )
     .expect("milestone three closeout should certify")
 }
-
-
-
-

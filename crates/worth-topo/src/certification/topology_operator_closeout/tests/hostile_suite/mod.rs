@@ -13,7 +13,3 @@ fn certify_hostile_suite_report(stem: &str) -> MilestoneThreeHostileSuiteReport 
     )
     .expect("milestone three hostile suite should certify")
 }
-
-
-
-

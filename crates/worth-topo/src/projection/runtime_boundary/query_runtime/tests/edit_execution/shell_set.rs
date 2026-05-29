@@ -7,8 +7,7 @@ use forge_query::facade::{
 use schema::facade::topology_authoring::{
     created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
 };
-use schema::facade::platform::authority::CreateKey;
-use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
+use schema::facade::{CreateKey, EntityKind, TopologyEntityKind};
 
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
@@ -30,7 +29,7 @@ fn current_head_runtime_executes_rehome_all_owned_faces_to_new_shell_program() {
     )
     .expect("seed topology");
     let (region, shell, face_ids) =
-        seeded_patch_region_shell_and_faces(&runtime, &verified.read_basis());
+        seeded_patch_region_shell_and_faces(&runtime, &verified.read_basis);
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-attach-shell-face-set")
@@ -162,7 +161,7 @@ fn current_head_runtime_denies_shell_face_set_rehome_with_duplicate_face_members
     )
     .expect("seed topology");
     let (region, shell, face_ids) =
-        seeded_patch_region_shell_and_faces(&runtime, &verified.read_basis());
+        seeded_patch_region_shell_and_faces(&runtime, &verified.read_basis);
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(
         adapters,
@@ -208,7 +207,7 @@ fn current_head_runtime_denies_shell_face_set_rehome_with_duplicate_face_members
 
 fn seeded_patch_region_shell_and_faces(
     runtime: &forge_relational::facade::runtime::RelationalRuntime,
-    read_basis: &schema::facade::topology_authoring::DerivedTopologyReadBasis,
+    read_basis: &schema::facade::DerivedTopologyReadBasis,
 ) -> (
     forge_relational::facade::identity::EntityId,
     forge_relational::facade::identity::EntityId,
@@ -237,7 +236,3 @@ fn seeded_patch_region_shell_and_faces(
         face_ids,
     )
 }
-
-
-
-

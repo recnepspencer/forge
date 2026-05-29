@@ -128,7 +128,6 @@ impl SpatialArbitrationRuntimeDeclaration {
                     .iter()
                     .any(|family| *family == row.capability_family())
             })
-            .cloned()
             .collect()
     }
 

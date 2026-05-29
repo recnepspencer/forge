@@ -7,10 +7,6 @@ what the public domain-capability seam claims to support, while the closeout
 bundle is the executable proof artifact that summarizes representative outputs,
 boundary digests, and width/slope evidence.
 
-This page describes the domain-capability certification seam. The
-platform-entry certification surface lives at
-[Platform Entry Closeout](../platform-entry-closeout.md).
-
 ## Why You Use It
 
 - you want one place to inspect the public domain-capability lanes
@@ -72,10 +68,6 @@ drifted apart.
 
 - [Goldens, Boundaries, And Hostile Certification](./goldens-boundaries-and-hostile-certification.md)
   explains the proof surfaces the certification bundle summarizes
-- [Platform Entry Closeout](../platform-entry-closeout.md) is the later
-  certification surface that consumes orchestration inventory, public-doc
-  coverage, compile-fail breadth, parity rows, and hostile rows for the
-  platform-entry public product
 - category docs in this tree explain the individual public lanes the surface
   inventories
 
@@ -104,5 +96,4 @@ drifted apart.
 ## Related Docs
 
 - [Goldens, Boundaries, And Hostile Certification](./goldens-boundaries-and-hostile-certification.md)
-- [Platform Entry Closeout](../platform-entry-closeout.md)
 - [Support Matrix And Admission](../../foundations/support-matrix-and-admission.md)

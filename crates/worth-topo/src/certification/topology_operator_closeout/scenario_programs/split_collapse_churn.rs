@@ -1,13 +1,11 @@
 use forge_relational::facade::identity::EntityId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{
-    created_ref, seed_milestone_one_primitive, DerivedTopologyReadBasis,
-    MilestoneOnePrimitiveCase,
+    created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
 };
-use schema::facade::platform::authority::CreateKey;
-use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
-use schema::facade::platform::relations::{
-    RelationKind, TopologyRelationKind,
+use schema::facade::{
+    CreateKey, DerivedTopologyReadBasis, EntityKind, RelationKind, TopologyEntityKind,
+    TopologyRelationKind,
 };
 
 use super::super::report::{
@@ -106,14 +104,14 @@ where
         &primitive,
     )?;
     let (original_wire_id, half_edge_ids) =
-        seeded_wire_and_half_edges(&runtime, &verified.read_basis())?;
+        seeded_wire_and_half_edges(&runtime, &verified.read_basis)?;
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, &format!("{stem}.split_collapse_churn.runtime"))
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let assembly = TopologyQueryAssembly::declare(&mut workspace)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_snapshot = assembly
-        .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
+        .snapshot_for_read_basis(&mut workspace, &verified.read_basis)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
         digest_materialized_topology_view(&baseline_snapshot.materialized);
@@ -327,7 +325,3 @@ fn half_edge_identities(
         })
         .collect()
 }
-
-
-
-

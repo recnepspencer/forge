@@ -29,7 +29,3 @@ fn application_operator_files_do_not_own_post_write_materialized_decode() {
         );
     }
 }
-
-
-
-

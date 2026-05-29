@@ -48,7 +48,3 @@ impl TopologyDomainQuery {
         execute_loop_cycle_read(workspace, request, start_identity, count)
     }
 }
-
-
-
-

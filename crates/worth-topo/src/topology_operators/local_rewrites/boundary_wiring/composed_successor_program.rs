@@ -124,7 +124,3 @@ fn add_verified_successor_retarget(
         },
     )
 }
-
-
-
-

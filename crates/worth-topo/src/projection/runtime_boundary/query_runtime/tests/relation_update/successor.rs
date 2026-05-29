@@ -31,7 +31,7 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
     let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let moved_identity = support.first_source_identity_for_relation_kind(
-        schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
+        schema::facade::TopologyRelationKind::HalfEdgeNext,
     );
     let moved_half_edge_id = support.find_entity_id_by_identity(&moved_identity);
     let old_successor_id = support.next_target_half_edge_id(&mut workspace, &moved_identity);
@@ -231,7 +231,7 @@ fn successor_relocation_batch(
         TopologyEditContract::rewire_loop_successor(
             support.relation_id_for_source_kind(
                 moved_identity,
-                schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
+                schema::facade::TopologyRelationKind::HalfEdgeNext,
             ),
             LoopSuccessorKind::Next,
             moved_half_edge_id,
@@ -240,7 +240,7 @@ fn successor_relocation_batch(
         TopologyEditContract::rewire_loop_successor(
             support.relation_id_for_source_kind(
                 moved_identity,
-                schema::facade::platform::relations::TopologyRelationKind::HalfEdgePrev,
+                schema::facade::TopologyRelationKind::HalfEdgePrev,
             ),
             LoopSuccessorKind::Prev,
             moved_half_edge_id,
@@ -249,7 +249,7 @@ fn successor_relocation_batch(
         TopologyEditContract::rewire_loop_successor(
             support.relation_id_for_source_kind(
                 &old_predecessor_identity,
-                schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
+                schema::facade::TopologyRelationKind::HalfEdgeNext,
             ),
             LoopSuccessorKind::Next,
             old_predecessor_id,
@@ -258,7 +258,7 @@ fn successor_relocation_batch(
         TopologyEditContract::rewire_loop_successor(
             support.relation_id_for_source_kind(
                 &old_successor_identity,
-                schema::facade::platform::relations::TopologyRelationKind::HalfEdgePrev,
+                schema::facade::TopologyRelationKind::HalfEdgePrev,
             ),
             LoopSuccessorKind::Prev,
             old_successor_id,
@@ -267,7 +267,7 @@ fn successor_relocation_batch(
         TopologyEditContract::rewire_loop_successor(
             support.relation_id_for_source_kind(
                 &new_predecessor_identity,
-                schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
+                schema::facade::TopologyRelationKind::HalfEdgeNext,
             ),
             LoopSuccessorKind::Next,
             new_predecessor_id,
@@ -276,7 +276,7 @@ fn successor_relocation_batch(
         TopologyEditContract::rewire_loop_successor(
             support.relation_id_for_source_kind(
                 new_successor_identity,
-                schema::facade::platform::relations::TopologyRelationKind::HalfEdgePrev,
+                schema::facade::TopologyRelationKind::HalfEdgePrev,
             ),
             LoopSuccessorKind::Prev,
             new_successor_id,
@@ -285,7 +285,3 @@ fn successor_relocation_batch(
     ])
     .expect("non-empty successor relocation batch")
 }
-
-
-
-

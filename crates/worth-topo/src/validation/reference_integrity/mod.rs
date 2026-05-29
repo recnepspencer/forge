@@ -10,19 +10,15 @@ mod tests;
 mod vertex_disks;
 mod wire_connectivity;
 
-use std::fmt;
-
 use forge_relational::facade::runtime::{
-    CustomInvariantRegistration, CustomInvariantRegistrationError, RelationalRuntimeApi,
-    RelationalRuntimeBuilder,
+    CustomInvariantRegistration, CustomInvariantRegistrationError, RelationalRuntime,
+    RelationalRuntimeApi, RelationalRuntimeBuilder,
 };
-#[cfg(test)]
-use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::schema::SchemaRegistryError;
-use schema::facade::bootstrap_schema_registry;
+use schema::facade::{bootstrap_runtime_invariant_plan, bootstrap_schema_registry};
 
 #[derive(Debug)]
-pub(crate) enum MilestoneOneRuntimeSetupError {
+pub enum MilestoneOneRuntimeSetupError {
     SchemaRegistry(SchemaRegistryError),
     CustomInvariantRegistration(CustomInvariantRegistrationError),
 }
@@ -39,17 +35,9 @@ impl From<CustomInvariantRegistrationError> for MilestoneOneRuntimeSetupError {
     }
 }
 
-impl fmt::Display for MilestoneOneRuntimeSetupError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::SchemaRegistry(error) => write!(f, "{error:?}"),
-            Self::CustomInvariantRegistration(error) => write!(f, "{error:?}"),
-        }
-    }
-}
-
-pub fn milestone_one_invariant_registrations(
+pub fn milestone_one_runtime_invariants(
 ) -> Result<Vec<CustomInvariantRegistration>, CustomInvariantRegistrationError> {
+    let _declared = bootstrap_runtime_invariant_plan();
     Ok(vec![
         ownership::registration()?,
         loop_wiring::registration()?,
@@ -61,11 +49,11 @@ pub fn milestone_one_invariant_registrations(
     ])
 }
 
-pub(crate) fn configure_milestone_one_runtime_builder(
+pub fn configure_milestone_one_runtime_builder(
     builder: RelationalRuntimeBuilder,
 ) -> Result<RelationalRuntimeBuilder, MilestoneOneRuntimeSetupError> {
     let builder = builder.schema_registry(bootstrap_schema_registry()?);
-    let registrations = milestone_one_invariant_registrations()?;
+    let registrations = milestone_one_runtime_invariants()?;
     Ok(registrations
         .into_iter()
         .fold(builder, |builder, registration| {
@@ -73,17 +61,11 @@ pub(crate) fn configure_milestone_one_runtime_builder(
         }))
 }
 
-pub(crate) fn milestone_one_runtime_builder(
+pub fn milestone_one_runtime_builder(
 ) -> Result<RelationalRuntimeBuilder, MilestoneOneRuntimeSetupError> {
     configure_milestone_one_runtime_builder(RelationalRuntimeApi::builder())
 }
 
-#[cfg(test)]
-pub(crate) fn build_milestone_one_runtime(
-) -> Result<RelationalRuntime, MilestoneOneRuntimeSetupError> {
+pub fn build_milestone_one_runtime() -> Result<RelationalRuntime, MilestoneOneRuntimeSetupError> {
     Ok(milestone_one_runtime_builder()?.build())
 }
-
-
-
-

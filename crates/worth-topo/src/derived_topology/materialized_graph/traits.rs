@@ -62,7 +62,3 @@ impl HasEntityId for TopologyWire {
         self.entity_id
     }
 }
-
-
-
-

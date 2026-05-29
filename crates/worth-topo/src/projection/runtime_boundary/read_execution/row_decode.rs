@@ -193,7 +193,3 @@ pub(crate) fn edge_identity_by_row(
         .relation_target_identity(edge_relation, label)
         .map(str::to_string)
 }
-
-
-
-

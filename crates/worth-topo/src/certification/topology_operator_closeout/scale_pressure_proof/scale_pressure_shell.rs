@@ -1,10 +1,8 @@
 use forge_relational::facade::identity::EntityId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::created_ref;
-use schema::facade::topology_authoring::DerivedTopologyReadBasis;
-use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
-use schema::facade::platform::relations::{
-    RelationKind, TopologyRelationKind,
+use schema::facade::{
+    DerivedTopologyReadBasis, EntityKind, RelationKind, TopologyEntityKind, TopologyRelationKind,
 };
 
 use crate::certification::error::TopologyCertificationError;
@@ -102,7 +100,3 @@ fn seeded_solid_shell_membership(
 fn scale_pressure_shell_error(reason: &str) -> TopologyCertificationError {
     TopologyCertificationError::Query(format!("milestone three scale shell failed: {reason}"))
 }
-
-
-
-

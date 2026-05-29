@@ -77,7 +77,3 @@ pub fn walk_radial_ring_len(
 
     count
 }
-
-
-
-

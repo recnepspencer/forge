@@ -1,502 +1,265 @@
 # Worth Forge Query Runtime Rewrite Gate: Detailed Phases
 
-This appendix refreshes the rewrite gate against the current `forge-query`
-foundation.
-
-The old version of this appendix still treated `worth-schema` as though it only
-needed a light vocabulary freeze before the rest of the runtime rewrite could
-continue. That is no longer honest.
-
-`forge-query` now owns much more of the public kernel than the earlier gate
-assumed. It is not only the declaration-lowering layer. It owns the public
-grammar for admitted operating worlds, binding, orchestration, grouped meaning,
-contributions, support/readiness, invariant registration, lower-runtime support
-and explanation, signal/continuation follow-ons, retained inspection, and typed
-recovery. Because of that, the first hard break in the Worth rewrite is not
-"teach `worth-schema` a few more query constants." The first hard break is to
-strip `worth-schema` back down to real schema authority and delete the
-schema-local pseudo-runtime surfaces that Query now supersedes.
-
-This appendix therefore starts with a schema-first purge. Later `worth-topo`
-and broader runtime phases are sequenced after that purge rather than in
-parallel with it.
-
-This appendix is intentionally aggressive about that purge.
-
-If deleting a public `worth-schema` type reveals that other crates were using it
-as shared runtime-facing vocabulary, that discovery does not justify keeping the
-type in `worth-schema`. It means the shared vocabulary boundary was placed in the
-wrong crate and must be refactored to the Query-owned side instead.
-
-## Goal
-
-Make `worth-schema` a true schema crate again before broader Worth runtime
-rewrite work continues.
-
-That means:
-
-- `worth-schema` keeps domain vocabulary, schema registration, and lower
-  authority substrate facts.
-- `worth-schema` stops exporting public runtime policy, public support/readiness
-  posture, public invariant rollout posture, public trace/explanation products,
-  public grouped/contribution/workflow-shaped runtime vocabulary, and public
-  pseudo-Query artifact systems that Query now owns.
-- later `worth-topo` and runtime rewrite phases build on that narrower and more
-  honest foundation.
-
-## Why This Rewrite Starts Here
-
-Today `worth-schema` mixes three very different responsibilities:
-
-1. real schema ownership
-2. transition-era Query adapter policy
-3. transition-era public runtime and explanation surfaces
-
-The real schema ownership is still correct:
-
-- platform entity and relation catalogs
-- platform aspect vocabulary
-- schema basis and collection vocabulary
-- schema registry/bootstrap
-- lower authority lowering contracts
-
-The transition-era surfaces are now architectural debt:
-
-- schema-owned query mutation gating
-- schema-owned support contracts about what Query can or cannot do
-- schema-owned runtime invariant rollout plans
-- schema-owned public boundary envelopes and failures
-- schema-owned public trace narration and runtime explanation helpers
-- schema-owned shared runtime-facing vocabulary that only exists because
-  downstream crates need names for Query-owned support, invariant, workflow,
-  boundary, or recovery concepts
-
-As long as these all remain public through the same facade, Worth still has two
-foundations:
-
-- Query as the public runtime kernel
-- `worth-schema` as a shadow runtime policy, vocabulary, and artifact layer
-
-That dual-foundation shape is exactly what this rewrite gate is supposed to
-eliminate.
-
-## Governing Document Summaries
-
-### `MENTALITY.md`
-
-Solve the reusable foundation problem first. Do not preserve a smaller local
-adapter layer just because deleting it is disruptive.
-
-### `arch_laws.md`
-
-Authority, derivation, and boundary artifacts must stay structurally separate.
-If Query owns the public runtime artifact family, `worth-schema` must not export
-competing public artifacts that claim the same semantic job.
-
-### `composition_laws.md`
-
-Vocabulary, policy, orchestration, support, explanation, and certification are
-different responsibilities and must not remain collapsed into the same crate
-surface.
-
-### `domain_structure_laws.md`
-
-The tree and facade must make it obvious which types are schema authority and
-which types are runtime products. If a reader cannot tell the difference from
-the export surface, the structure is lying.
-
-### `perf_laws.md`
-
-Runtime support, inspection, and explanation work must not be hidden inside
-cheap-looking schema helpers. The public surface should expose real runtime
-boundaries through Query rather than schema-local wrappers.
-
-### `VISION.md`
-
-Worth truth is canonical once; everything else is derived honestly. That means a
-schema crate should not also become a second runtime-facing derivation system.
-
-### `worth_roadmap.md`
-
-Worth runtime/query work must enter through Forge Query, and missing generic
-runtime capability belongs in Query rather than in a local Worth workaround.
-
-### `test-requirements.md`
-
-The proof bar is structural. The rewrite must leave machine-checkable evidence
-that public runtime surfaces were actually deleted or demoted rather than
-quietly preserved behind renamed APIs.
-
-### `forge-query` `9.3.7`
-
-Query now owns public domain capability contribution, support, invariant,
-workflow, explanation, and lower-runtime artifact materialization. Downstream
-domains should not keep exporting local pseudo-Query versions of those surfaces.
-
-### `forge-query` `9.3.8`
-
-Query is now the beginning platform entry. Domains should enter through Query,
-keep one admitted operating world, progress through one declaration pipeline,
-and use Query-owned inspection and recovery rather than rebuilding a second
-entry/runtime model locally.
-
-## Adversarial Constraint
-
-Equivalent Worth domain meaning must not require or permit two public runtime
-stories:
-
-- one through `forge-query`
-- one through `worth-schema`
-
-The schema-first rewrite fails if a downstream engineer can still reach for
-`worth-schema` to get a public answer about runtime support, runtime invariant
-posture, boundary artifact meaning, trace explanation, or next-step repair that
-should instead come from Query.
-
-The rewrite also fails if deleting those schema surfaces reveals that schema
-authority and runtime-facing Query vocabulary were collapsed together. In that
-case the work is to split them correctly, not to restore the collapsed surface.
-
-## Product Decision Lock
-
-- `worth-schema` owns Worth platform vocabulary, schema registration, and lower
-  authority substrate contracts only.
-- `forge-query` owns the public runtime/query artifact model.
-- `forge-query` also owns any shared public runtime-facing vocabulary that is
-  required precisely because Query owns that runtime/query model.
-- `forge-query` owns the ordinary public surfaces for:
-  - operating-world entry
-  - next-input binding
-  - declaration progression
-  - grouped meaning, grouped products, and grouped contributions
-  - declaration-scoped contributions
-  - support posture
-  - invariant registration
-  - capability gaps and invariant denials
-  - workflow posture
-  - lower-runtime support and lower-runtime explanation
-  - explanation posture
-  - inspection
-  - recovery
-- `worth-schema` keeps only narrowly-scoped internal substrate types that are
-  mechanically necessary for lower authority to talk to Query. Those types are
-  not allowed to remain broad public facade products.
-- if a public `worth-schema` enum, struct, or helper currently appears to be
-  "shared vocabulary" only because multiple crates need the same runtime-facing
-  Query concept, that surface must move to Query rather than being preserved in
-  schema for compatibility.
-- transition-era compile coverage that protects obsolete schema public surfaces
-  is not a preservation requirement. It is migration pressure and should be
-  deleted.
-
-## Schema Surface Classification Lock
-
-Every public `worth-schema` surface touched by this gate must land in exactly
-one of these buckets.
-
-### Keep In Schema
-
-These remain public schema-owned vocabulary:
-
-- platform aspect vocab
-- platform entity and relation catalogs
-- schema-basis and collection vocab
-- query aspect-path constants and string conversion helpers, but only if they
-  are truly schema/truth vocabulary rather than public names for Query-owned
-  runtime posture
-- schema registry/bootstrap
-- lower authority topology truth and mutation vocabulary that is not pretending
-  to be a Query-owned runtime product
-
-Important restriction:
-
-- a type belongs in this bucket only if its meaning is truly schema-owned
-- "multiple crates currently import it" is not enough
-- "it names a runtime-facing support / invariant / workflow / explanation /
-  recovery concept" is positive evidence that it belongs in Query instead
-
-### Demote To Internal Substrate
-
-These are allowed only as temporary internal migration residue and must not
-survive as broad public facade products:
-
-- raw authority evidence carriers
-- raw trace anchors or evidence helpers used immediately beside authority
-  lowering
-- authority-local boundary packets that only exist to feed Query integration
-  or lower tests
-
-### Delete Or Migrate Out
-
-These are not allowed to remain public `worth-schema` architecture:
-
-- query mutation gating and support contracts
-- runtime invariant rollout plans
-- invariant identity vocabulary when its real job is to serve as shared
-  runtime-facing Query registration, denial, or support terminology
-- declaration-builder vocabulary when its real job is to serve as public
-  runtime-facing Query declaration grammar rather than schema-owned naming
-- public schema-owned support posture artifacts
-- public schema-owned boundary envelope and failure artifacts
-- public schema-owned runtime trace narration
-- public schema-owned explanation helpers whose real job is now covered by
-  Query support, inspection, explanation, or recovery lanes
-- public schema-owned shared names for grouped, contribution, workflow,
-  boundary, inspection, support, or recovery posture that Query already owns
+This appendix holds the detailed phase definitions for the main rewrite plan:
+[forge-query-runtime-rewrite-plan.md](./forge-query-runtime-rewrite-plan.md).
 
 ## Phases
 
-### Phase 1: Freeze The Real `worth-schema` Nucleus
+### Phase 1: Freeze Query-Native Worth Vocabulary
 
-Phase 1 is now specified concretely in
-[worth-schema-phase-1-audit.md](C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-schema-phase-1-audit.md).
+Define the Worth query vocabulary in `worth-schema` without runtime behavior:
 
-Before deleting anything, freeze what truly belongs in `worth-schema` so later
-removal work does not accidentally cut through real authority.
+- collection names for topology entities, topology relations, persistent names,
+  topology diagnostics, materialized topology, interpreted topology, validation
+  reports, and equivalence contracts
+- aspect path constants for topology structure, ownership, boundary, radial,
+  naming, diagnostics, lineage, geometry-safe opaque binding identifiers, and
+  fallback evidence
+- schema-basis identifiers for authoritative topology truth and each derived
+  topology surface
+- conversion helpers from `WorthAspect` and topology edit touched-aspect sets
+  into Forge Query aspect path strings
+- proof that no query vocabulary type executes mutation, materialization, or
+  validation behavior
 
-This phase must produce one explicit keep-list covering:
+Phase 1 is complete only when query declarations can use Worth vocabulary
+without stringly scattered aspect names in `worth-topo`.
 
-- `data/aspects/*`
-- `data/entities/*`
-- `data/relations/*`
-- schema registry/bootstrap surfaces that define truth structure rather than
-  runtime posture
-- `data/query/mod.rs` vocabulary types such as:
-  - `QueryAspectPath`
-  - `QueryCollection`
-  - `QuerySchemaBasis`
-  - `QueryLiveField`
-- declaration-builder vocabulary in `data/query/declarations.rs`, followed by a
-  hard verdict on whether it is genuinely schema-owned naming or should move
-  into Query with the rest of the public runtime-facing declaration grammar
+### Phase 2: Harden Forge Query For Worth Runtime Gaps
 
-This phase must also produce one explicit challenge list for suspicious
-vocabulary that looks shared today but may actually belong in Query instead,
-including:
+Before Worth rewrites public runtime surfaces, identify and close the generic
+Forge Query gaps exposed by Worth's current code.
 
-- invariant enums
-- support and traceability identifiers
-- boundary and explanation identity types
-- declaration-builder wrappers and surface-name grammars
-- any runtime-facing family or posture names currently exported through schema
+Likely hardening candidates:
 
-Phase 1 is complete only when the spec states plainly which public exports are
-the non-negotiable schema nucleus and why.
+- public declaration-construction seams that let downstream crates author
+  live/computed declarations with domain-owned vocabulary without reaching into
+  runtime-private builder constructors or rebuilding Query declaration logic
+- aspect-native query/runtime mutation families that let domain code author
+  inserts, updates, deletes, clears, and ordered batches in terms of touched
+  aspects rather than generic payload blobs
+- receipt and inspection contracts that preserve authored mutation meaning,
+  touched aspects, and touched-surface fallout instead of forcing Worth to
+  rediscover meaning from lower-runtime payload lowering
+- write receipts that retain domain authority evidence and expose it through
+  `workspace.inspect(...)`
+- relational-runtime-backed live sources whose affected-live-view routing is
+  based on declared aspects and collections
+- computed maintainers that can rebuild from retained live snapshots when a
+  delta-only maintainer cannot honestly derive the surface
+- explicit whole-refresh fallback evidence on computed topology surfaces
+- support/admission rows for any new handle, receipt, state, or inspection
+  family introduced by domain-backed writes
 
-### Phase 2: Audit And Classify Every Public `worth-schema` Export
+Phase 2 must not add Worth-specific semantics to Forge Query. It should add
+generic runtime/query primitives that Worth then consumes as one downstream
+domain.
 
-Run a full export-by-export audit of the current public facade and assign every
-surface to one locked bucket:
+### Phase 3: Replace Worth Authority With Aspect-Native Query Authority
 
-- keep in schema
-- demote to internal substrate
-- delete or migrate out
+Remove the public direct authority path for topology commits and make
+aspect-native `workspace.insert(...)`, `workspace.update(...)`,
+`workspace.delete(...)`, and `workspace.batch(...)` the ordinary authoritative
+mutation entrypoints for Worth topology truth.
 
-This phase must classify the current public surface at least to the level
-captured in the standalone Phase 1 audit doc.
+Implementation shape:
 
-Phase 2 is complete only when there is no remaining "maybe this still belongs
-here" ambiguity for the public facade.
+- Worth edit contracts lower into aspect-native Forge Query mutation families
+  with explicit touched-aspect meaning preserved in the public write surface.
+- If lower-runtime adapters still need compatibility lowering internally, that
+  lowering stays below the Forge Query facade and must not become the Worth
+  authoring model.
+- The Forge Query write authority invokes the underlying relational authority
+  path and emits one canonical write receipt.
+- Worth trace envelopes become retained receipt/inspection evidence rather
+  than the public mutation API result.
+- Touched aspects, changed scopes, mutation origins, branch-local application
+  posture, and performance counters are carried in the receipt/inspection
+  contract.
 
-### Phase 3: Delete Public Query-Policy Surfaces From `worth-schema`
+Delete or privatize public use of:
 
-Remove the transition-era Query policy layer from the public schema boundary.
+- `WorthTopologyAuthority::apply_topology_intent_traced`
+- `WorthTopologyAuthority::apply_topology_intent_on_branch_traced`
+- public direct minting of `VerifiedTopologyCommit` outside the query write
+  authority
 
-This phase must cut or privatize public surfaces such as:
+Phase 3 is complete only when admitted topology truth mutation enters through
+aspect-native Forge Query mutation surfaces in tests and public examples, with
+`workspace.write(...)` treated only as a compatibility seam rather than the
+target Worth API.
 
-- `QueryMutationAdmissionBlocker`
-- `QueryMutationAdmissionReport`
-- `QueryMutationAdmission`
-- `QueryMutationSupportContract`
-- `query_mutation_support_contract(...)`
-- `admit_query_mutation_batch(...)`
+Current literal blocker families that must be eliminated rather than worked
+around:
 
-The important rule is architectural, not textual:
+- batch authoring needs admitted symbolic create-reference support for same-batch
+  topology graph construction
+- existing-truth edits need admitted authoritative identity binding between
+  Worth authority identities and Query entity identities
+- persistent-name truth still needs admitted projected naming writeback so Worth
+  does not reintroduce a shadow runtime just to pair naming entities with their
+  target edges
 
-- `worth-schema` is not allowed to remain the public place that answers whether
-  Query can support, deny, defer, widen, or classify a runtime-facing family
+These are now upstreamed explicitly into the Forge Query side quest in
+[_docs/forge-query/runtime-authoritative-mutation-evidence-plan.md](../forge-query/runtime-authoritative-mutation-evidence-plan.md),
+which now spans the Query public contract and the bridge carry-forward contract
+as one end-to-end authority-evidence hardening spec.
 
-That posture now belongs to Query support/readiness, contribution, grouped,
-inspection, and recovery surfaces.
+### Phase 4: Replace Worth Reads With Live Views And Materialization
 
-Phase 3 is complete only when ordinary downstream callers can no longer rely on
-schema-local query mutation gating as a public runtime product.
+Remove `WorthTopologyReader` as a public runtime read orchestrator and replace
+its public responsibilities with query handles:
 
-### Phase 4: Delete Public Runtime Invariant Rollout Surfaces
+- authoritative topology truth snapshots use `workspace.live_view(...)`
+- current truth reads use `workspace.read(...)`
+- incremental fallout uses `workspace.observe(...)`
+- derived topology products use `workspace.computed(...)`
+- derived rows use `workspace.materialize(...)`
+- readiness/posture uses `workspace.state(...)`
+- explanations use `workspace.inspect(...)`
 
-Remove the public API that treats `worth-schema` as the owner of runtime
-invariant rollout posture.
+Existing Worth algorithms remain domain algorithms, but they must no longer be
+public runtime orchestration surfaces.
 
-This phase must cut or privatize:
+Phase 4 is complete only when the public `worth-topo` facade no longer
+requires `WorthTopologyReader` as an external runtime entrypoint, and external
+read workflows are expressed through query assembly, certification helpers, or
+direct Forge Query handles instead.
 
-- `BootstrapInvariantPlan`
-- `bootstrap_invariant_plan()`
-- `BootstrapRuntimeInvariant`
-- `BootstrapRuntimeInvariantPlan`
-- `bootstrap_runtime_invariant_plan()`
+### Phase 5: Rebuild Derived Topology As Computed Surfaces
 
-Invariant identity enums are not protected just because they currently serve as
-shared names. Public runtime installation and runtime-facing denial posture must
-flow through Query's invariant registration and capability-denial model, and any
-vocabulary whose real job is to support that runtime-facing layer moves with it.
+Create retained Forge Query computed surfaces for the Milestone 2 derived
+pipeline:
 
-Phase 4 is complete only when `worth-schema` no longer teaches runtime
-invariant rollout as one of its public jobs.
+- `worth.topology.materialized`
+- `worth.topology.interpreted`
+- `worth.topology.validation`
+- `worth.topology.diagnostics`
+- `worth.topology.equivalence_contract`
 
-The downstream `worth-topo` closeout for this slice lives in:
+Each computed declaration must explicitly name upstream dependencies, read
+aspects, produced aspects, fallback posture, equivalence basis, and retained
+inspection evidence.
 
-- [worth-topo Phase 4 Runtime Invariant Closeout](C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-topo-phase-4-runtime-invariant-closeout.md)
+If Forge Query's computed maintainer contract cannot honestly express a Worth
+derived phase, Phase 5 pauses and Phase 2 expands Forge Query before Worth
+continues.
 
-This phase must force one of two outcomes:
+### Phase 6: Finish Query-Native Authoritative Write Execution
 
-- invariant names that are truly schema authority remain in schema
-- invariant names that are really Query-facing registration, denial, support,
-  or recovery vocabulary move into Query
+Complete the authority-side break so Worth topology truth mutation enters
+through Forge Query as the real ordinary path, not as migration scaffolding
+beside the old authority API.
 
-Leaving them in schema merely because other crates already import them is a
-spec violation.
+The detailed hard-break requirements for this phase family, including the ban
+on compatibility-mirror runtime assembly and row-to-record reconstruction,
+live in
+[forge-query-runtime-kernel-hard-break.md](./forge-query-runtime-kernel-hard-break.md).
 
-### Phase 5: Remove Public Boundary, Trace, And Explanation Products
+This phase is narrower than topology editing. It is about the canonical truth
+write path itself.
 
-Cut the broad public schema tracing/explanation facade.
+Implementation shape:
 
-This phase must remove from the ordinary public story:
+- topology truth inserts, updates, deletes, clears, and ordered write batches
+  lower into aspect-native Forge Query mutation authoring
+- Query-side authoritative mutation evidence must be admitted strongly enough
+  that existing-truth target binding, projected naming writeback, and later
+  continuity-sensitive mutation do not require Worth-local recovery glue
+- public Worth examples and proof lanes stop teaching direct authority-path
+  commit entrypoints as the ordinary path
+- if direct authority remains reachable during migration, it is not re-exported
+  through the main public facade and must be deleted before closeout
+- write receipts remain the canonical authority evidence surface
+- branch-local authoritative writes only use admitted Forge Query branch/basis
+  capability; unsupported branch families still fail closed
+- any remaining generic write-authority gap discovered here gets fixed in
+  `forge-query` before Worth continues
 
-- `BoundaryEnvelope`
-- `BoundaryFailure`
-- `DecisionTrace`
-- public trace-anchor and trace-evidence products as broad consumer-facing
-  runtime artifacts
-- `NarratedTrace`
-- `explain_*`
-- `narrate_*`
+Delete or privatize public use of:
 
-This phase requires the public facade to stop teaching those types as the
-ordinary runtime artifact family. Any lower substrate evidence that still exists
-afterward is migration residue on the path to a narrower internal boundary, not
-a second public story.
+- direct `WorthTopologyAuthority` commit entrypoints as the ordinary
+  application surface
+- public caller construction paths that mint verified topology commits outside
+  the query write authority
 
-After this phase:
+Phase 6 is complete only when:
 
-- Query receipts, envelopes, inspection artifacts, support artifacts,
-  explanation artifacts, grouped products, contribution-composed products, and
-  recovery briefs are the public runtime story
-- any remaining schema-local trace/evidence types are narrow internal substrate
-  tools only and should be treated as candidates for further collapse or rename
-  if they still masquerade as public-grade runtime artifacts
+- authoritative topology truth mutation is proven through aspect-native Forge
+  Query mutation surfaces
+- no new proof, example, or runtime path treats direct authority APIs as the
+  preferred public story
+- write receipts and inspection carry the authority evidence Worth needs
 
-Phase 5 is complete only when the public `worth-schema` facade no longer reads
-like a shadow runtime SDK.
+### Phase 7: Rewrite Topology Editing Onto Query Receipts
 
-### Phase 6: Rebind Authority-Lowering Code To The Narrower Boundary
+Rebuild Milestone 3 topology editing on the query-native substrate.
 
-Once the public surface is reduced, rework the internal authority-adjacent code
-to fit the new boundary honestly and aggressively.
+The public edit surface should be topology-domain authoring only:
 
-This phase must:
+- edit contracts
+- edit batches
+- changed-scope declarations
+- naming-preservation or naming-ambiguity conclusions
+- derived-region declarations
 
-- audit `data/authority/gateway.rs` against the narrowed ownership model
-- cut every raw authority evidence type that is not mechanically necessary after
-  the facade purge
-- stop naming internal substrate packets as though they are the ordinary public
-  boundary products
-- keep authority lowering separate from Query-owned inspection, support, and
-  explanation products
-- keep authority-lowering residue separate from Query-owned binding,
-  orchestration, grouped, contribution, and recovery products too
+Execution belongs to Forge Query:
 
-This phase is not about preserving the old trace model privately by default. It
-is about deleting that model until only mechanically necessary lower-authority
-substrate remains.
+- edits commit through aspect-native `workspace.insert(...)`,
+  `workspace.update(...)`, `workspace.delete(...)`, or `workspace.batch(...)`
+- affected live views come from write receipts
+- affected computed surfaces come from write receipts
+- local recompute evidence comes from computed inspection
+- branch/preview behavior uses admitted Forge Query branch/preview APIs only
 
-### Phase 7: Rewrite Public API Tests, Compile Boundaries, And Docs
+Phase 7 is complete only when at least one admitted topology edit family
+executes entirely through Query, fallout routing comes from Query receipts /
+retained computed evidence, and branch-local edit behavior uses admitted Query
+branch facilities or fails typed and early.
 
-After the deletion/demotion work, rewrite the public proof surface so tests
-protect the new boundary instead of the old one.
+### Phase 8: Cut Old Public Runtime Surfaces
 
-This phase must update:
+Once write authority and edit execution are query-native, remove the old
+public runtime story aggressively rather than preserving a coexistence period.
 
-- [crates/worth-schema/tests/public_api_contract.rs](C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2/crates/worth-schema/tests/public_api_contract.rs)
-- any compile-fail tests that still guard the old broad runtime products
-- crate docs and README-level stories that still present schema as a public
-  runtime/support/explanation layer
+Delete or privatize:
 
-The new public contract should prove:
+- `WorthTopologyReader` as a public runtime orchestrator
+- public read helpers that bypass Query live/computed/state/inspection handles
+- public direct `WorthTopologyAuthority` commit APIs that remain exposed after
+  Phase 6
+- public `WorthTopologyEditRunner` execution APIs in their old
+  authority/reader-owned form
 
-- schema vocabulary remains available
-- schema runtime-policy surfaces are gone
-- schema runtime-artifact surfaces are gone
-- schema runtime-facing shared vocabulary that truly belongs to Query is gone
-- callers are mechanically pushed toward Query for runtime-facing work
+### Phase 9: Rewrite Certification And Closeout Around Query-Native Proof
 
-### Phase 8: Re-sequence Later Worth Runtime Rewrite Work On Top Of The Narrower Schema
+Rewrite Milestone 1 and Milestone 2 certification, then Milestone 3 edit
+certification, so the query-native surface is the only certified surface.
 
-Only after the schema purge closes should broader Worth runtime rewrite work
-continue in `worth-topo`, `worth-spatial`, and the remaining gate phases.
+Certification must assert:
 
-That follow-on work should now assume:
+- topology truth writes enter through aspect-native mutation surfaces rather
+  than payload-first compatibility paths
+- topology live views wake only when their declared aspects are touched
+- derived topology computed surfaces wake only through declared dependencies
+- materialized/interpreted/validated topology digests match the old semantic
+  expectations, without retaining the old public API
+- write receipts expose affected live and derived surfaces
+- `workspace.inspect(...)` exposes Worth authority, derived, and diagnostic
+  evidence
+- unsupported Forge Query families fail typed and early
+- no Worth public compatibility entrypoint remains necessary for closeout
+- the query-native path has actually collapsed Worth-local orchestration
 
-- `worth-schema` is vocabulary-first
-- Query is the only public runtime spine
-- no new topo/spatial refactor may reintroduce schema-local public runtime
-  policy or artifact systems just because they are convenient
+### Phase 10: Update Docs, Roadmaps, And Public Examples
 
-## Must Ship
+Update the Worth roadmap and milestone specs so this rewrite gate is not an
+orphan:
 
-- one explicit keep/demote/delete classification for the public schema surface
-- a reduced public `worth-schema` facade aligned with that classification
-- removal or privatization of query-policy, invariant-rollout, and public
-  trace/explanation runtime surfaces
-- removal or migration of public schema vocabulary that was only "shared"
-  because other crates needed names for Query-owned runtime concepts
-- migration of any falsely "shared" runtime-facing vocabulary from
-  `worth-schema` into Query when the audit proves that Query is the real owner
-- updated public API tests proving the narrower boundary
-- updated rewrite-gate language that treats the schema purge as the first hard
-  break instead of as a small preliminary cleanup
-
-## Must Preserve
-
-- schema-owned truth vocabulary
-- schema-owned registry/bootstrap meaning
-- lower authority topology truth vocabulary and mutation meaning
-- explicit authority/derivation separation
-- the rule that missing generic runtime capability belongs in Query rather than
-  in a new local workaround
-
-This section is intentionally not preserving "existing shared vocabulary
-placement." Shared placement is preserved only when the ownership boundary is
-correct.
-
-## Acceptance Evidence
-
-- public API tests proving removed runtime-policy and runtime-artifact exports
-  are no longer part of the broad facade, and that Worth semantic catalogs now
-  enter through the sanctified `platform::*` boundary instead of the root
-  facade
-- compile-fail or visibility tests proving deleted surfaces are no longer
-  externally reachable
-- crate docs and rewrite-gate docs that now describe `worth-schema` as
-  vocabulary/schema authority rather than runtime facade
-- proof that any public shared runtime-facing vocabulary discovered during the
-  audit was either:
-  - deleted because it was obsolete, or
-  - moved into Query because Query is the real owner
-- proof that declaration-builder wrappers either remained as true
-  schema-owned naming helpers or moved out with the rest of the Query-facing
-  declaration grammar
-- grep-level proof that ordinary downstream examples no longer teach:
-  - `admit_query_mutation_batch(...)`
-  - `query_mutation_support_contract(...)`
-  - bootstrap runtime invariant plans
-  - schema-owned narrated runtime traces
-
-## Sequencing Notes
-
-- This schema-first purge belongs before further runtime rewrite widening
-  because every later crate depends on whether `worth-schema` is a narrow truth
-  vocabulary crate or a broad pseudo-runtime crate.
-- `worth-topo` and `worth-spatial` should not be allowed to migrate onto a
-  cleaner Query surface while still depending on a dirty schema public boundary.
-- If this phase feels large, that is evidence that it is foundational, not that
-  it should be postponed.
+- mark Milestone 3 as depending on this gate
+- replace old reader/authority/runner examples with query-native examples
+- update closeout expectations to name Forge Query receipts, state, and
+  inspection surfaces
+- update Forge Query docs/tests when Worth hardens a generic capability
+- remove compatibility language from Worth docs where it would preserve old
+  public runtime shapes

@@ -28,8 +28,6 @@ Executable closeout:
 
 - `certify_domain_capabilities()`
 - `domain_capabilities::certification_closeout_tests`
-- `certify_platform_entry_closeout()`
-- `forge_query_platform_entry_closeout_surface()`
 
 ## Core Mental Model
 
@@ -68,13 +66,6 @@ When you add a new domain-capability feature, the honest path is:
 
 - [Certification Surface And Closeout Bundle](./certification-surface-and-closeout-bundle.md)
   explains the public readout that summarizes these proofs
-- [Public Doc Coverage](../public-doc-coverage.md) owns the published registry
-  that maps public surfaces to their feature docs, README discovery
-  labels, and golden readouts
-- [Platform Entry Closeout](../platform-entry-closeout.md) is the later
-  platform-entry closeout ledger that consumes docs coverage, the
-  domain-handle UI proof suite, parity rows, and hostile rows as one machine-
-  checkable certification surface
 - every category doc in this tree should have a matching golden or boundary
   story through these surfaces
 
@@ -99,6 +90,4 @@ When you add a new domain-capability feature, the honest path is:
 ## Related Docs
 
 - [Certification Surface And Closeout Bundle](./certification-surface-and-closeout-bundle.md)
-- [Public Doc Coverage](../public-doc-coverage.md)
-- [Platform Entry Closeout](../platform-entry-closeout.md)
 - [Domain Capabilities](../README.md)

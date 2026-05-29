@@ -9,7 +9,7 @@
 use forge_query::facade::{
     ForgeQueryDerivedViewHandle, ForgeQueryLiveView, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
-use schema::facade::topology_authoring::DerivedTopologyReadBasis;
+use schema::facade::DerivedTopologyReadBasis;
 use serde_json::Value;
 
 use crate::facade::{
@@ -246,7 +246,3 @@ mod tests;
 mod upsert_assertion_support;
 #[cfg(test)]
 mod upsert_assertion_tests;
-
-
-
-

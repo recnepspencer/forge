@@ -7,10 +7,10 @@ use forge_query::facade::{
 use schema::facade::topology_authoring::{
     created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
 };
-use schema::facade::platform::authority::CreateKey;
-use schema::facade::topology_authoring::DerivedTopologyReadBasis;
-use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
-use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use schema::facade::{
+    CreateKey, DerivedTopologyReadBasis, EntityKind, RelationKind, TopologyEntityKind,
+    TopologyRelationKind,
+};
 
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
@@ -31,7 +31,7 @@ fn current_head_runtime_executes_connected_wire_split_program() {
         &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
     )
     .expect("seed topology");
-    let (wire, half_edge_ids) = seeded_wire_and_half_edges(&runtime, &verified.read_basis());
+    let (wire, half_edge_ids) = seeded_wire_and_half_edges(&runtime, &verified.read_basis);
     let moved_half_edge_ids = vec![half_edge_ids[2], half_edge_ids[3]];
     let retained_half_edge_ids = vec![half_edge_ids[0], half_edge_ids[1]];
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
@@ -169,7 +169,7 @@ fn current_head_runtime_denies_wire_split_when_moved_subset_is_disconnected() {
         &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
     )
     .expect("seed topology");
-    let (_wire, half_edge_ids) = seeded_wire_and_half_edges(&runtime, &verified.read_basis());
+    let (_wire, half_edge_ids) = seeded_wire_and_half_edges(&runtime, &verified.read_basis);
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit.split-wire-disconnected")
@@ -238,7 +238,3 @@ fn seeded_wire_and_half_edges(
         .collect::<Vec<_>>();
     (wire, half_edge_ids)
 }
-
-
-
-

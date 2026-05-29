@@ -486,14 +486,6 @@ impl BridgeSpeculativePromotionRequest {
             authoritative_artifact_digest: authoritative_artifact_digest.into(),
         }
     }
-
-    pub fn authoritative_commit_boundary_digest(&self) -> &str {
-        self.authoritative_commit_boundary_digest.as_ref()
-    }
-
-    pub fn authoritative_artifact_digest(&self) -> &str {
-        self.authoritative_artifact_digest.as_ref()
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

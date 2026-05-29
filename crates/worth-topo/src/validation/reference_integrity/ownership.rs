@@ -8,8 +8,7 @@ use forge_relational::facade::runtime::{
     InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
     InvariantGroupSet,
 };
-use schema::facade::platform::entities::TopologyEntityKind;
-use schema::facade::platform::relations::RelationKind;
+use schema::facade::{RelationKind, TopologyEntityKind};
 
 use super::shared::RuntimeTopologyGraph;
 use super::shared_queries::{kind_name, owner_relation_for_kind};
@@ -57,13 +56,13 @@ impl CustomInvariantRule for OwnershipSurfaceRule {
         scope: &Self::Scope,
     ) -> Result<CustomInvariantVerdict, CustomInvariantExecutionError> {
         for (entity_id, kind_id) in &scope.topology_entities {
-            if *kind_id == schema::facade::platform::entities::EntityKind::Topology(TopologyEntityKind::Model).kind_id()
+            if *kind_id == schema::facade::EntityKind::Topology(TopologyEntityKind::Model).kind_id()
                 || *kind_id
-                    == schema::facade::platform::entities::EntityKind::Topology(TopologyEntityKind::Wire).kind_id()
+                    == schema::facade::EntityKind::Topology(TopologyEntityKind::Wire).kind_id()
                 || *kind_id
-                    == schema::facade::platform::entities::EntityKind::Topology(TopologyEntityKind::Edge).kind_id()
+                    == schema::facade::EntityKind::Topology(TopologyEntityKind::Edge).kind_id()
                 || *kind_id
-                    == schema::facade::platform::entities::EntityKind::Topology(TopologyEntityKind::Vertex).kind_id()
+                    == schema::facade::EntityKind::Topology(TopologyEntityKind::Vertex).kind_id()
             {
                 continue;
             }
@@ -82,15 +81,15 @@ impl CustomInvariantRule for OwnershipSurfaceRule {
                 continue;
             }
 
-            if *kind_id == schema::facade::platform::entities::EntityKind::Topology(TopologyEntityKind::Loop).kind_id()
+            if *kind_id == schema::facade::EntityKind::Topology(TopologyEntityKind::Loop).kind_id()
             {
                 let face_outer = scope.incoming_kind(
                     entity_id,
-                    RelationKind::Topology(schema::facade::platform::relations::TopologyRelationKind::FaceOuterLoop),
+                    RelationKind::Topology(schema::facade::TopologyRelationKind::FaceOuterLoop),
                 );
                 let face_inner = scope.incoming_kind(
                     entity_id,
-                    RelationKind::Topology(schema::facade::platform::relations::TopologyRelationKind::FaceInnerLoop),
+                    RelationKind::Topology(schema::facade::TopologyRelationKind::FaceInnerLoop),
                 );
                 let owners = face_outer.len() + face_inner.len();
                 if owners != 1 {
@@ -103,15 +102,15 @@ impl CustomInvariantRule for OwnershipSurfaceRule {
             }
 
             if *kind_id
-                == schema::facade::platform::entities::EntityKind::Topology(TopologyEntityKind::HalfEdge).kind_id()
+                == schema::facade::EntityKind::Topology(TopologyEntityKind::HalfEdge).kind_id()
             {
                 let loop_owners = scope.incoming_kind(
                     entity_id,
-                    RelationKind::Topology(schema::facade::platform::relations::TopologyRelationKind::LoopOwnsHalfEdge),
+                    RelationKind::Topology(schema::facade::TopologyRelationKind::LoopOwnsHalfEdge),
                 );
                 let wire_owners = scope.incoming_kind(
                     entity_id,
-                    RelationKind::Topology(schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge),
+                    RelationKind::Topology(schema::facade::TopologyRelationKind::WireOwnsHalfEdge),
                 );
                 if loop_owners.len() != 1 || wire_owners.len() != 1 {
                     return Err(CustomInvariantExecutionError::new(format!(
@@ -127,7 +126,3 @@ impl CustomInvariantRule for OwnershipSurfaceRule {
         Ok(CustomInvariantVerdict::Pass)
     }
 }
-
-
-
-

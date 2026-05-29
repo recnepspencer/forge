@@ -1,55 +1,9 @@
 #[test]
-fn schema_public_boundary_is_curated() {
+fn schema_boundary_packets_are_not_forgeable() {
     let t = trybuild::TestCases::new();
-    t.compile_fail(
-        "tests/compile_fail/removed_facade_exports/query_policy/removed_query_mutation_facade_exports.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/removed_facade_exports/query_policy/removed_query_declaration_builder_facade_exports.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/removed_facade_exports/platform/removed_root_relation_catalog_exports.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/removed_facade_exports/platform/removed_root_entity_catalog_exports.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/removed_facade_exports/platform/removed_root_aspect_catalog_exports.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/removed_facade_exports/platform/removed_root_authority_vocab_exports.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/removed_facade_exports/platform/removed_platform_authority_result_exports.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/removed_facade_exports/invariants/removed_runtime_invariant_facade_exports.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/removed_facade_exports/invariants/removed_invariant_group_facade_exports.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/removed_facade_exports/tracing_and_explanation/removed_tracing_plan_facade_exports.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/removed_facade_exports/tracing_and_explanation/removed_boundary_tracing_facade_exports.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/removed_facade_exports/tracing_and_explanation/removed_explanation_facade_exports.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/topology_authoring/public_topology_authoring_namespace_is_curated.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/topology_authoring/public_seed_helpers_not_on_main_facade.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/topology_authoring/verification_helpers_removed_from_namespace.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/topology_authoring/authority_execution_exports_removed_from_facade.rs",
-    );
-    t.compile_fail(
-        "tests/compile_fail/topology_authoring/public_topology_authoring_root_module_missing.rs",
-    );
+    t.compile_fail("tests/compile_fail/mint_boundary_envelope.rs");
+    t.compile_fail("tests/compile_fail/mint_boundary_failure.rs");
+    t.compile_fail("tests/compile_fail/public_topology_authoring_namespace_is_curated.rs");
+    t.compile_fail("tests/compile_fail/public_seed_helpers_not_on_main_facade.rs");
+    t.compile_fail("tests/compile_fail/public_topology_authoring_root_module_missing.rs");
 }

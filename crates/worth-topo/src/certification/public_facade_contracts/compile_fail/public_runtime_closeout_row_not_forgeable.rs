@@ -11,7 +11,3 @@ fn main() {
         row_digest: String::new(),
     };
 }
-
-
-
-

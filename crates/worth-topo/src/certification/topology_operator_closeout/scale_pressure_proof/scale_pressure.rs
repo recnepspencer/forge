@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::TopologyRelationKind;
 use serde_json::Value;
 
 use super::super::report::MilestoneThreeHostileSuiteReport;
@@ -178,7 +178,7 @@ where
         if case.sweep == MilestoneThreeScalePressureSweep::HighFaceCountShells {
             Some(high_face_count_shell_rehome_batch(
                 &runtime,
-                &verified.read_basis(),
+                &verified.read_basis,
                 stem,
                 case.workload_size,
             )?)
@@ -321,7 +321,3 @@ fn scale_pressure_row_digest(
 fn scale_pressure_error(reason: &str) -> TopologyCertificationError {
     TopologyCertificationError::Query(format!("milestone three scale pressure failed: {reason}"))
 }
-
-
-
-

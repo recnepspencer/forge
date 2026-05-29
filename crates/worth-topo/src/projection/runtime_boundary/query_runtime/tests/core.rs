@@ -260,7 +260,3 @@ fn snapshot_read_only_runtime_reads_seeded_topology_and_denies_writes() {
         .to_string()
         .contains("snapshot certification runtime is read-only"));
 }
-
-
-
-

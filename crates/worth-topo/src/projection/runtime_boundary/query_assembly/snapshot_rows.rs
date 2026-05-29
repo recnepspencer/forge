@@ -1,5 +1,5 @@
 use forge_query::facade::ForgeQueryWorkspace;
-use schema::facade::topology_authoring::DerivedTopologyReadBasis;
+use schema::facade::DerivedTopologyReadBasis;
 use serde_json::Value;
 
 use super::{historical_rows, TopologyQueryAssembly, TopologyQuerySurfaceError};
@@ -44,7 +44,3 @@ impl TopologyQuerySnapshotRows {
         historical_rows::historical_snapshot_rows(assembly, workspace, read_basis)
     }
 }
-
-
-
-

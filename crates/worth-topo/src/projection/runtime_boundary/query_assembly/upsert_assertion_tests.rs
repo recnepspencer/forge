@@ -1,9 +1,8 @@
 use forge_query::facade::{ForgeQueryExistingTruthAssertionDenialKind, ForgeQueryRuntimeError};
-use schema::facade::platform::authority::{
-    MutationOrigin, RawTopologyIntent, TopologyMutation,
+use schema::facade::{
+    EntityKind, MutationOrigin, RawTopologyIntent, RelationKind, TopologyEntityKind,
+    TopologyMutation, TopologyRelationKind,
 };
-use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
-use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 
 use super::upsert_assertion_support::{
     decode_entity_id, decode_entity_kind, decode_relation_endpoints, decode_relation_id,
@@ -28,7 +27,7 @@ fn query_native_assembly_applies_topology_entity_upsert_with_backend_verified_as
                 }],
                 MutationOrigin::LocalEdit,
             ),
-            &verified.read_basis(),
+            &verified.read_basis,
         )
         .expect("entity upsert should execute through backend verification");
 
@@ -65,7 +64,7 @@ fn query_native_assembly_applies_topology_relation_upsert_with_backend_verified_
                 }],
                 MutationOrigin::LocalEdit,
             ),
-            &verified.read_basis(),
+            &verified.read_basis,
         )
         .expect("relation upsert should execute through backend verification");
 
@@ -103,7 +102,7 @@ fn query_native_assembly_rejects_topology_entity_upsert_when_live_kind_mismatche
                 }],
                 MutationOrigin::LocalEdit,
             ),
-            &verified.read_basis(),
+            &verified.read_basis,
         )
         .expect_err("mismatched entity kind should fail closed");
 
@@ -151,7 +150,7 @@ fn query_native_assembly_lowers_changed_topology_relation_kind_upserts_into_veri
                 }],
                 MutationOrigin::LocalEdit,
             ),
-            &verified.read_basis(),
+            &verified.read_basis,
         )
         .expect_err("changed relation kind should reach the verified update lane and then fail closed on the runtime's kind-preserving relation update substrate");
 
@@ -211,7 +210,7 @@ fn query_native_assembly_applies_changed_topology_relation_endpoint_upserts_thro
                 }],
                 MutationOrigin::LocalEdit,
             ),
-            &verified.read_basis(),
+            &verified.read_basis,
         )
         .expect("changed relation endpoints should now execute through the verified update lane");
 
@@ -262,7 +261,7 @@ fn query_native_assembly_retains_both_live_and_desired_relation_aspect_families_
     let desired_kind = RelationKind::Topology(TopologyRelationKind::HalfEdgeStartsAtVertex);
 
     let evidence = mutation_evidence_for_intent(
-        &verified.read_basis(),
+        &verified.read_basis,
         &RawTopologyIntent::new(
             vec![TopologyMutation::UpsertRelation {
                 relation_id,
@@ -292,7 +291,3 @@ fn query_native_assembly_retains_both_live_and_desired_relation_aspect_families_
         "expected touched aspect evidence to include the desired relation family"
     );
 }
-
-
-
-

@@ -162,7 +162,3 @@ pub(crate) fn closed_wire_cycle_of_size(length: usize) -> TopologyView {
         ..TopologyView::default()
     }
 }
-
-
-
-

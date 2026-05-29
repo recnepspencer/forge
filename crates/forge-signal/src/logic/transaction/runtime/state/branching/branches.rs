@@ -298,13 +298,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub fn into_parts(
-        self,
-    ) -> (
-        SignalBranchId,
-        SignalSnapshotId,
-        SnapshotBranchState<D, I, T>,
-    ) {
+    pub fn into_parts(self) -> (SignalBranchId, SignalSnapshotId, SnapshotBranchState<D, I, T>) {
         (self.branch_id, self.snapshot_id, self.state)
     }
 }

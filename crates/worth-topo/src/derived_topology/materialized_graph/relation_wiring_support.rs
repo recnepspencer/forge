@@ -1,6 +1,5 @@
 use forge_relational::facade::identity::EntityId;
-use schema::facade::platform::entities::EntityKind;
-use schema::facade::platform::relations::RelationKind;
+use schema::facade::{EntityKind, RelationKind};
 
 use super::errors::TopologyMaterializationError;
 use crate::derived_topology::materialized_graph::traits::HasEntityId;
@@ -76,7 +75,3 @@ where
             ))
         })
 }
-
-
-
-

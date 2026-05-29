@@ -1,5 +1,4 @@
 use super::*;
-use crate::certification::{TraceAvailability, TraceWarning};
 
 pub(super) fn ensure_query_surface_ready(
     surface_name: &str,
@@ -44,7 +43,7 @@ pub(super) fn traced_certification_envelope(
     read_basis: &DerivedTopologyReadBasis,
     commit_results: Option<&[forge_relational::facade::transactions::CommitResult]>,
     replay_history_length: usize,
-    warnings: Option<Vec<TraceWarning>>,
+    warnings: Option<Vec<schema::facade::TraceWarning>>,
     query_evidence: MilestoneOneQueryEvidence,
 ) -> TracedMilestoneOneCertificationReport {
     BoundaryEnvelope::success(
@@ -123,7 +122,7 @@ pub(crate) fn certification_derived_trace(
     report: &MilestoneOneCertificationReport,
 ) -> DerivedTraceEvidence {
     DerivedTraceEvidence {
-        availability: TraceAvailability::Present,
+        availability: schema::facade::TraceAvailability::Present,
         invalidation_target_count: report.derived_invalidation_report.triggered_target_count,
         fallback_classes: report
             .derived_fallback_report
@@ -295,7 +294,3 @@ pub(super) fn certification_performance_accounting(
     ];
     PerformanceAccounting::new(counters)
 }
-
-
-
-

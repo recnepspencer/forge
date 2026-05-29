@@ -45,7 +45,3 @@ pub fn loop_face_map(view: &TopologyView) -> BTreeMap<EntityId, EntityId> {
     }
     map
 }
-
-
-
-

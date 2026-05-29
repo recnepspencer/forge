@@ -1,7 +1,7 @@
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::TopologyRelationKind;
 use serde_json::Value;
 
 use super::super::shared::{aggregate_topology_edit_digest, relation_id_from_query_identity};
@@ -163,7 +163,3 @@ fn scale_pressure_row_digest(
 fn scale_pressure_detach_error(reason: &str) -> TopologyCertificationError {
     TopologyCertificationError::Query(format!("milestone three scale detach failed: {reason}"))
 }
-
-
-
-

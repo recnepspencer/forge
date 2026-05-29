@@ -249,7 +249,3 @@ pub(super) fn build_closeout_validator_coverage_report(
         rows: rows.into_values().collect(),
     }
 }
-
-
-
-

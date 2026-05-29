@@ -1,9 +1,3 @@
-//! Worth relation catalogs for platform bootstrap and descriptor assembly.
-//!
-//! This module is the authority for Worth-specific relation identity and lower
-//! relational contract data. It is not the ordinary Query lifecycle entry
-//! surface; downstream runtime work should enter through `forge-query`.
-
 mod diagnostics;
 mod geometry;
 mod naming;

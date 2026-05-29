@@ -230,15 +230,12 @@ fn runtime_invariants_block_illegal_wire_branch_with_non_distinct_edges() {
         MutationOrigin::LocalEdit,
     );
 
-    let error = commit_raw_intent(&mut runtime, intent)
-        .expect_err("branch vertex with reused edge identities must block commit");
+    let error = verify_topology_intent(&mut runtime, intent)
+        .expect_err("branch vertex with reused edge identities must block commit")
+        .into_error();
 
     assert!(matches!(
         error,
-        TransactionCommitError::Conflict { .. }
+        TopologyAuthorityError::Commit(TransactionCommitError::Conflict { .. })
     ));
 }
-
-
-
-

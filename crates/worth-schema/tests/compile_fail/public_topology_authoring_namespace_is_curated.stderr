@@ -1,0 +1,11 @@
+error[E0432]: unresolved import `schema::facade::topology_authoring::TopologyAuthorityError`
+ --> tests/compile_fail/public_topology_authoring_namespace_is_curated.rs:1:5
+  |
+1 | use schema::facade::topology_authoring::TopologyAuthorityError;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyAuthorityError` in `facade::topology_authoring`
+  |
+help: consider importing this enum instead
+  |
+1 - use schema::facade::topology_authoring::TopologyAuthorityError;
+1 + use schema::facade::TopologyAuthorityError;
+  |

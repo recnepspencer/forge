@@ -1,11 +1,11 @@
 use std::fmt;
 
 use forge_query::facade::{
-    ForgeQueryComputedBuilder, ForgeQueryDerivedPatch, ForgeQueryDerivedView,
-    ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
-    ForgeQueryDerivedViewMaterialization, ForgeQueryRuntimeError, ForgeQueryWorkspace,
+    ForgeQueryDerivedPatch, ForgeQueryDerivedView, ForgeQueryDerivedViewHandle,
+    ForgeQueryDerivedViewMaintainer, ForgeQueryDerivedViewMaterialization, ForgeQueryRuntimeError,
+    ForgeQueryWorkspace, ForgeQueryWorkspaceError,
 };
-use schema::facade::QueryAspectPath;
+use schema::facade::{QueryAspectPath, QueryComputedDeclarationBuilder, QueryDeclarationError};
 use serde::de::DeserializeOwned;
 use serde_json::{json, Value};
 
@@ -192,31 +192,31 @@ impl ForgeQueryDerivedViewMaintainer for TopologyValidationMaintainer {
 
 pub fn topology_interpreted_computed_declaration(
     surface_name: impl Into<String>,
-) -> Result<ForgeQueryDerivedView, ForgeQueryRuntimeError> {
-    ForgeQueryComputedBuilder::surface(surface_name)
+) -> Result<ForgeQueryDerivedView, QueryDeclarationError> {
+    QueryComputedDeclarationBuilder::new(surface_name)
         .reads([
-            QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
-            QueryAspectPath::TOPOLOGY_OWNERSHIP.as_str(),
-            QueryAspectPath::TOPOLOGY_BOUNDARY.as_str(),
-            QueryAspectPath::TOPOLOGY_RADIAL.as_str(),
+            QueryAspectPath::TOPOLOGY_STRUCTURE,
+            QueryAspectPath::TOPOLOGY_OWNERSHIP,
+            QueryAspectPath::TOPOLOGY_BOUNDARY,
+            QueryAspectPath::TOPOLOGY_RADIAL,
         ])
-        .produces([QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS.as_str()])
+        .produces([QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS])
         .whole_refresh_fallback()
         .build()
 }
 
 pub fn topology_validation_computed_declaration(
     surface_name: impl Into<String>,
-) -> Result<ForgeQueryDerivedView, ForgeQueryRuntimeError> {
-    ForgeQueryComputedBuilder::surface(surface_name)
+) -> Result<ForgeQueryDerivedView, QueryDeclarationError> {
+    QueryComputedDeclarationBuilder::new(surface_name)
         .reads([
-            QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
-            QueryAspectPath::TOPOLOGY_OWNERSHIP.as_str(),
-            QueryAspectPath::TOPOLOGY_BOUNDARY.as_str(),
-            QueryAspectPath::TOPOLOGY_RADIAL.as_str(),
-            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS.as_str(),
+            QueryAspectPath::TOPOLOGY_STRUCTURE,
+            QueryAspectPath::TOPOLOGY_OWNERSHIP,
+            QueryAspectPath::TOPOLOGY_BOUNDARY,
+            QueryAspectPath::TOPOLOGY_RADIAL,
+            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS,
         ])
-        .produces([QueryAspectPath::DIAGNOSTICS_DECISIONS.as_str()])
+        .produces([QueryAspectPath::DIAGNOSTICS_DECISIONS])
         .whole_refresh_fallback()
         .build()
 }
@@ -227,7 +227,10 @@ pub fn declare_topology_interpreted_surface<T, M>(
     materialized_view: &ForgeQueryDerivedViewHandle<M>,
 ) -> Result<ForgeQueryDerivedViewHandle<T>, ForgeQueryRuntimeError> {
     let surface_name = surface_name.into();
-    let view = topology_interpreted_computed_declaration(surface_name)?
+    let view = topology_interpreted_computed_declaration(surface_name)
+        .map_err(|error| {
+            ForgeQueryRuntimeError::Workspace(ForgeQueryWorkspaceError::new(error.to_string()))
+        })?
         .depends_on_derived_name(materialized_view.name());
     workspace.computed_view(
         view,
@@ -242,7 +245,10 @@ pub fn declare_topology_validation_surface<T, M, I>(
     interpreted_view: &ForgeQueryDerivedViewHandle<I>,
 ) -> Result<ForgeQueryDerivedViewHandle<T>, ForgeQueryRuntimeError> {
     let surface_name = surface_name.into();
-    let view = topology_validation_computed_declaration(surface_name)?
+    let view = topology_validation_computed_declaration(surface_name)
+        .map_err(|error| {
+            ForgeQueryRuntimeError::Workspace(ForgeQueryWorkspaceError::new(error.to_string()))
+        })?
         .depends_on_derived_name(materialized_view.name())
         .depends_on_derived_name(interpreted_view.name());
     workspace.computed_view(
@@ -296,7 +302,3 @@ where
 fn validation_surface_error(error: TopologyValidationError) -> TopologyQuerySurfaceError {
     TopologyQuerySurfaceError::new(format!("query-derived validation refresh failed: {error}"))
 }
-
-
-
-

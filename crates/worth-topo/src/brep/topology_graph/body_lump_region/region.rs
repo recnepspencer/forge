@@ -8,7 +8,3 @@ pub struct TopologyRegion {
     pub lump_id: Option<EntityId>,
     pub shell_ids: Vec<EntityId>,
 }
-
-
-
-

@@ -583,14 +583,6 @@ pub use crate::subscription::{
     SubscriptionLifecyclePreviewCertification, SubscriptionPerformanceReceipt,
     SupportLookupReceipt, SupportResolutionPosture,
 };
-pub use crate::target_binding::{
-    ForgeQueryAdmittedDeclarationProgressionBindingTarget,
-    ForgeQueryAdmittedIntentPlanBindingTarget, ForgeQueryBindingTarget,
-    ForgeQueryBindingTargetKind, ForgeQueryBindingTargetSemantics, ForgeQueryBindingTargetWitness,
-    ForgeQueryDeclarationEnvelopeBindingTarget, ForgeQueryDeclarationReceiptBindingTarget,
-    ForgeQueryDeclarationRoutePlanBindingTarget, ForgeQueryIntentDeclarationBindingTarget,
-    ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget,
-};
 pub use crate::tenant_basis::{
     SchemaVariantSnapshot, TenantBasisAdmissionError, TenantBasisAdmissionFailureClass,
     TenantBasisCounters, TenantBasisEpoch, TenantBindingSnapshot, TenantResolutionClass,

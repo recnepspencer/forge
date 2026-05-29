@@ -2,7 +2,7 @@ use forge_query::facade::{
     ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder,
     ForgeQuerySymbolicTargetReference,
 };
-use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::TopologyEntityKind;
 
 use super::shell_face_rehome_support::resolve_single_face_two_face_shell_split_program;
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
@@ -55,13 +55,13 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         let incoming_region_relation_ids = query_incoming_relation_ids(
             bindings,
             &retained_shell_binding.query_identity,
-            schema::facade::platform::relations::TopologyRelationKind::RegionOwnsShell,
+            schema::facade::TopologyRelationKind::RegionOwnsShell,
         )?;
         let [region_owns_shell_relation_id] = incoming_region_relation_ids.as_slice() else {
             return Err(
                 TopologyOperatorExecutionError::ExistingEntityIncomingRelationCountMismatch {
                     entity_id: retained_shell_id,
-                    relation_kind: schema::facade::platform::relations::TopologyRelationKind::RegionOwnsShell,
+                    relation_kind: schema::facade::TopologyRelationKind::RegionOwnsShell,
                     expected: 1,
                     actual: incoming_region_relation_ids.len(),
                 },
@@ -70,13 +70,13 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         let incoming_shell_face_relation_ids = query_incoming_relation_ids(
             bindings,
             &face_entity_binding.query_identity,
-            schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace,
+            schema::facade::TopologyRelationKind::ShellOwnsFace,
         )?;
         let [shell_owns_face_relation_id] = incoming_shell_face_relation_ids.as_slice() else {
             return Err(
                 TopologyOperatorExecutionError::ExistingEntityIncomingRelationCountMismatch {
                     entity_id: program.face_id,
-                    relation_kind: schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace,
+                    relation_kind: schema::facade::TopologyRelationKind::ShellOwnsFace,
                     expected: 1,
                     actual: incoming_shell_face_relation_ids.len(),
                 },
@@ -122,12 +122,12 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         }
 
         let region_dependency_path =
-            topology_relation_dependency_path(schema::facade::platform::relations::RelationKind::Topology(
-                schema::facade::platform::relations::TopologyRelationKind::RegionOwnsShell,
+            topology_relation_dependency_path(schema::facade::RelationKind::Topology(
+                schema::facade::TopologyRelationKind::RegionOwnsShell,
             ));
         let face_dependency_path =
-            topology_relation_dependency_path(schema::facade::platform::relations::RelationKind::Topology(
-                schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace,
+            topology_relation_dependency_path(schema::facade::RelationKind::Topology(
+                schema::facade::TopologyRelationKind::ShellOwnsFace,
             ));
         let region_relation_target = region_entity_binding.query_identity.clone();
         let retained_shell_identity = retained_shell_binding.query_identity.clone();
@@ -139,7 +139,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 let mutation = mutation
                     .aspect(
                         "topology.kind",
-                        schema::facade::platform::relations::TopologyRelationKind::RegionOwnsShell.kind_name(),
+                        schema::facade::TopologyRelationKind::RegionOwnsShell.kind_name(),
                     )
                     .aspect("topology.source_identity", region_relation_target.clone())
                     .symbolic_entity_identity(
@@ -150,7 +150,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 if let Some(path) = region_dependency_path {
                     mutation.aspect(
                         path,
-                        schema::facade::platform::relations::TopologyRelationKind::RegionOwnsShell.kind_name(),
+                        schema::facade::TopologyRelationKind::RegionOwnsShell.kind_name(),
                     )
                 } else {
                     mutation
@@ -181,14 +181,14 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 let verify = verify
                     .aspect(
                         "topology.kind",
-                        schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace.kind_name(),
+                        schema::facade::TopologyRelationKind::ShellOwnsFace.kind_name(),
                     )
                     .aspect("topology.source_identity", retained_shell_identity.clone())
                     .aspect("topology.target_identity", face_identity.clone());
                 if let Some(path) = face_dependency_path {
                     verify.aspect(
                         path,
-                        schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace.kind_name(),
+                        schema::facade::TopologyRelationKind::ShellOwnsFace.kind_name(),
                     )
                 } else {
                     verify
@@ -198,7 +198,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 let update = update
                     .aspect(
                         "topology.kind",
-                        schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace.kind_name(),
+                        schema::facade::TopologyRelationKind::ShellOwnsFace.kind_name(),
                     )
                     .symbolic_entity_identity(
                         "topology.source_identity",
@@ -209,7 +209,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 if let Some(path) = face_dependency_path {
                     update.aspect(
                         path,
-                        schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace.kind_name(),
+                        schema::facade::TopologyRelationKind::ShellOwnsFace.kind_name(),
                     )
                 } else {
                     update
@@ -218,7 +218,3 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         ))
     }
 }
-
-
-
-

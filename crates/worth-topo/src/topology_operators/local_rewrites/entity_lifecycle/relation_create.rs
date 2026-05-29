@@ -4,8 +4,7 @@ use forge_query::facade::{
     ForgeQueryAspectMutationBuilder, ForgeQueryMutationBatchBuilder,
     ForgeQuerySymbolicTargetReference,
 };
-use schema::facade::platform::authority::EntityReference;
-use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::{EntityReference, TopologyEntityKind};
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{query_entity_binding, QueryEntityBinding};
@@ -57,7 +56,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         builder: ForgeQueryMutationBatchBuilder,
         bindings: &TopologyQueryBindingIndex,
         created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
-        relation_kind: schema::facade::platform::relations::TopologyRelationKind,
+        relation_kind: schema::facade::TopologyRelationKind,
         source: &EntityReference,
         expected_source_kind: TopologyEntityKind,
         target: &EntityReference,
@@ -135,7 +134,3 @@ fn authored_relation_endpoint(
         ),
     }
 }
-
-
-
-

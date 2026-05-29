@@ -368,7 +368,3 @@ pub(crate) fn open_sheet_patch_view(face_count: usize) -> TopologyView {
         ..TopologyView::default()
     }
 }
-
-
-
-

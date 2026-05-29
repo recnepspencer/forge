@@ -32,7 +32,3 @@ pub(crate) use validator_family_coverage::milestone_three_validator_expectations
 pub(super) use validator_family_coverage::{
     build_validator_family_coverage_rows, ensure_validator_family_coverage_rows,
 };
-
-
-
-

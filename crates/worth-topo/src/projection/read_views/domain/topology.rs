@@ -62,7 +62,3 @@ impl TopologyDomainQuery {
         )
     }
 }
-
-
-
-

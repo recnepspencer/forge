@@ -3,8 +3,7 @@ use forge_query::facade::{
     ForgeQueryMutationBatchBuilder,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::platform::entities::TopologyEntityKind;
-use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 
@@ -89,7 +88,3 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         ))
     }
 }
-
-
-
-

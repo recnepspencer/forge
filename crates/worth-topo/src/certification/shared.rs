@@ -1,5 +1,5 @@
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
-use schema::facade::platform::authority::{TopologyMutation, TopologyMutationBatch};
+use schema::facade::{TopologyMutation, TopologyMutationBatch};
 
 use crate::certification::support::reporting::{
     DeterministicDigest, PrimitiveCorpusCaseReport, PrimitiveCorpusCoverageEntry,
@@ -163,13 +163,13 @@ pub(crate) fn count_batch_mutations(batch: &TopologyMutationBatch) -> (usize, us
         match mutation {
             TopologyMutation::CreateEntity { kind, .. }
             | TopologyMutation::UpsertEntity { kind, .. }
-                if matches!(kind, schema::facade::platform::entities::EntityKind::Topology(_)) =>
+                if matches!(kind, schema::facade::EntityKind::Topology(_)) =>
             {
                 entity_upserts += 1;
             }
             TopologyMutation::CreateRelation { kind, .. }
             | TopologyMutation::UpsertRelation { kind, .. }
-                if matches!(kind, schema::facade::platform::relations::RelationKind::Topology(_)) =>
+                if matches!(kind, schema::facade::RelationKind::Topology(_)) =>
             {
                 relation_upserts += 1;
             }
@@ -182,7 +182,3 @@ pub(crate) fn count_batch_mutations(batch: &TopologyMutationBatch) -> (usize, us
 
     (entity_upserts, relation_upserts, relation_removes)
 }
-
-
-
-

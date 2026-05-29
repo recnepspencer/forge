@@ -70,7 +70,3 @@ fn result_field(
         TopologyDomainQueryError::canonical_lowering_resolution(format!("{error:?}"))
     })
 }
-
-
-
-

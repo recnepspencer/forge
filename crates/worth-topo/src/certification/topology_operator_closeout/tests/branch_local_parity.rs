@@ -74,7 +74,3 @@ fn milestone_three_hostile_suite_exposes_branch_local_edit_parity_row() {
         assert!(rejected.row_digest().contains("outcome=rejected"));
     }
 }
-
-
-
-

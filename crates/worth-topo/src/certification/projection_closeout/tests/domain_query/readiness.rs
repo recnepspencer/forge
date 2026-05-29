@@ -2,7 +2,7 @@ use forge_relational::facade::history::BranchId;
 use schema::facade::topology_authoring::{
     seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch, MilestoneOnePrimitiveCase,
 };
-use schema::facade::platform::authority::MutationOrigin;
+use schema::facade::MutationOrigin;
 
 use crate::projection::read_views::domain::parity::{
     TopologyDomainQueryParityKind, TopologyDomainQueryViewParityArtifact,
@@ -105,12 +105,12 @@ fn replay_local_rewire_parity_artifacts(
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )
     .expect("seed replay primitive");
-    let replay_basis = verified.read_basis().replay_of();
+    let replay_basis = verified.read_basis.replay_of();
     let left_artifact = local_rewire_parity_artifact(
         query,
         &runtime,
         "query.domain-query-proof.ready.replay.left",
-        &verified.read_basis(),
+        &verified.read_basis,
     );
     let right_artifact = local_rewire_parity_artifact(
         query,
@@ -143,12 +143,12 @@ fn branch_local_loop_cycle_parity_artifacts(
         MutationOrigin::BranchLocalApplication,
     )
     .expect("seed branch-local primitive");
-    let replay_basis = verified.read_basis().replay_of();
+    let replay_basis = verified.read_basis.replay_of();
     let left_artifact = loop_cycle_parity_artifact(
         query,
         &runtime,
         "query.domain-query-proof.ready.branch.left",
-        &verified.read_basis(),
+        &verified.read_basis,
         5,
     );
     let right_artifact = loop_cycle_parity_artifact(
@@ -160,7 +160,3 @@ fn branch_local_loop_cycle_parity_artifacts(
     );
     (left_artifact, right_artifact)
 }
-
-
-
-

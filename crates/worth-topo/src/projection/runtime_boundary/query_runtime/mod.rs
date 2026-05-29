@@ -31,11 +31,11 @@ pub use runtime_posture::{
     TopologyRuntimePostureCapability, TopologyRuntimePostureRow, TopologyRuntimePostureStatus,
 };
 
-pub use self::adapters::{build_runtime_bridge, TopologyRuntimeBinding, TopologyRuntimeSchemaAdapter};
-pub use self::adapters::write_authority::TopologyRuntimeWriteAuthority;
+use self::adapters::write_authority::TopologyRuntimeWriteAuthority;
 use self::adapters::{
-    TopologyExistingTruthVerificationAdapter, TopologyInspectorEvidence, TopologyRuntimeSourceAdapter,
-    TopologyStaticSignalSink, TopologySubscriptionActivation,
+    build_runtime_bridge, TopologyExistingTruthVerificationAdapter, TopologyInspectorEvidence,
+    TopologyRuntimeSchemaAdapter, TopologyRuntimeSourceAdapter, TopologyStaticSignalSink,
+    TopologySubscriptionActivation,
 };
 
 pub fn topology_runtime(
@@ -46,12 +46,10 @@ pub fn topology_runtime(
     let binding = adapters.binding.clone();
     let write_binding = binding.clone();
     let mut builder = ForgeQueryRuntime::builder()
-        .runtime_bridge(self::adapters::build_runtime_bridge(binding.clone())?)
-        .schema_adapter(self::adapters::TopologyRuntimeSchemaAdapter)
+        .runtime_bridge(build_runtime_bridge(binding.clone())?)
+        .schema_adapter(TopologyRuntimeSchemaAdapter)
         .source_adapter(TopologyRuntimeSourceAdapter::new(binding.clone()))
-        .write_authority(self::adapters::write_authority::TopologyRuntimeWriteAuthority::new(
-            write_binding,
-        ))
+        .write_authority(TopologyRuntimeWriteAuthority::new(write_binding))
         .signal_sink(TopologyStaticSignalSink)
         .subscription_activation(TopologySubscriptionActivation::new(
             adapters.support().subscription_activation_evidence(),
@@ -73,7 +71,3 @@ pub fn topology_runtime(
     let runtime = builder.build_backend_from_parts().build()?;
     runtime.workspace(name).map_err(Into::into)
 }
-
-
-
-

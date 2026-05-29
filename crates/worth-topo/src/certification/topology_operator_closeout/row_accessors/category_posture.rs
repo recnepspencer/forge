@@ -40,7 +40,3 @@ impl MilestoneThreeHostileCertificationCategoryRow {
         self.row_digest.as_str()
     }
 }
-
-
-
-

@@ -62,7 +62,7 @@ fn admitted_family_parameter_sweeps_certify_across_ranges() {
     ];
 
     for (index, (primitive, family)) in cases.into_iter().enumerate() {
-        let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
+        let mut runtime = crate::facade::milestone_one_runtime_builder()
             .expect(" milestone one runtime builder")
             .build();
         let verified = verified_primitive(&mut runtime, &format!("sweep.case.{index}"), &primitive)
@@ -119,7 +119,7 @@ fn branch_local_parameter_sweeps_preserve_branch_and_replay_truth() {
     ];
 
     for (index, (primitive, family)) in cases.into_iter().enumerate() {
-        let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
+        let mut runtime = crate::facade::milestone_one_runtime_builder()
             .expect(" milestone one runtime builder")
             .build();
         runtime
@@ -162,7 +162,3 @@ fn branch_local_parameter_sweeps_preserve_branch_and_replay_truth() {
         );
     }
 }
-
-
-
-

@@ -3,11 +3,12 @@ mod materializer_tests {
     use schema::facade::topology_authoring::seed_minimal_topology;
 
     use crate::derived_topology::materialized_graph::TopologyMaterializer;
-    use crate::test_support::primitive_corpus::validated_topology::build_test_runtime;
 
     #[test]
     fn materialize_from_truth_reads_bootstrap_structure_from_relational_snapshot() {
-        let mut runtime = build_test_runtime().expect(" milestone one runtime builder");
+        let mut runtime = crate::facade::milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
+            .build();
 
         let seeded = seed_minimal_topology(&mut runtime, "topo").expect("seed  topology");
         let read_view = runtime
@@ -86,7 +87,3 @@ mod materializer_tests {
         assert_eq!(topology.half_edges[0].face_id, Some(seeded.face));
     }
 }
-
-
-
-

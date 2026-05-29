@@ -1,7 +1,7 @@
 use forge_query::facade::ForgeQueryWorkspace;
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::topology_authoring::DerivedTopologyReadBasis;
-use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::DerivedTopologyReadBasis;
+use schema::facade::TopologyRelationKind;
 use serde_json::Value;
 
 use crate::projection::diagnostic_surfaces::read_proof::TopologyDomainQueryProofReport;
@@ -243,7 +243,3 @@ impl QueryRuntimeSupport {
         TopologyQueryRowLookup::new(&self.entity_rows, &self.relation_rows)
     }
 }
-
-
-
-

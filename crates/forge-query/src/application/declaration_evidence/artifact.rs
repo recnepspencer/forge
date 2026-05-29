@@ -6,12 +6,7 @@ use forge_foundational::facade::{
     FoundationalMaterializedBoundaryEvidenceAttachmentBundle,
 };
 
-use crate::application::declaration_publication::foundational_publication_for_profile;
-use crate::application::{
-    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
-    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectPublication,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
-};
+use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
 
 use super::{
     bundle::build_bundle, class::ForgeQueryDeclarationFoundationalEvidenceClass,
@@ -40,10 +35,6 @@ pub struct ForgeQueryDeclarationFoundationalEvidence<
     attachment_bundle: FoundationalMaterializedBoundaryEvidenceAttachmentBundle,
     attachment_bundle_digest: CanonicalDerivedDigest,
     materialization_profile: FoundationalBoundaryEvidenceMaterializationProfile,
-    aspect_contract: ForgeQueryDeclarationAspectContract,
-    aspect_coverage: ForgeQueryDeclarationAspectCoverage,
-    aspect_coverage_basis: ForgeQueryDeclarationAspectCoverageBasis,
-    aspect_publication: ForgeQueryDeclarationAspectPublication,
 }
 
 impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
@@ -61,10 +52,6 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         attachment_bundle: FoundationalMaterializedBoundaryEvidenceAttachmentBundle,
         attachment_bundle_digest: CanonicalDerivedDigest,
         materialization_profile: FoundationalBoundaryEvidenceMaterializationProfile,
-        aspect_contract: ForgeQueryDeclarationAspectContract,
-        aspect_coverage: ForgeQueryDeclarationAspectCoverage,
-        aspect_coverage_basis: ForgeQueryDeclarationAspectCoverageBasis,
-        aspect_publication: ForgeQueryDeclarationAspectPublication,
     ) -> Self {
         let class = subject.class();
         let declaration_family_key = subject.declaration_family_key();
@@ -90,10 +77,6 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             attachment_bundle,
             attachment_bundle_digest,
             materialization_profile,
-            aspect_contract,
-            aspect_coverage,
-            aspect_coverage_basis,
-            aspect_publication,
         }
     }
 
@@ -167,22 +150,6 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         self.materialization_profile
     }
 
-    pub fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
-        &self.aspect_contract
-    }
-
-    pub fn aspect_coverage(&self) -> &ForgeQueryDeclarationAspectCoverage {
-        &self.aspect_coverage
-    }
-
-    pub fn aspect_coverage_basis(&self) -> ForgeQueryDeclarationAspectCoverageBasis {
-        self.aspect_coverage_basis
-    }
-
-    pub fn aspect_publication(&self) -> &ForgeQueryDeclarationAspectPublication {
-        &self.aspect_publication
-    }
-
     pub fn subject(&self) -> &ForgeQueryDeclarationFoundationalEvidenceInput<D, I> {
         &self.subject
     }
@@ -239,11 +206,6 @@ pub(crate) fn forge_query_declaration_foundational_evidence<
     )?;
     let retained_operating_context_identity_digest =
         subject.operating_context_identity_digest().to_string();
-    let aspect_contract = subject.aspect_contract().clone();
-    let aspect_coverage = subject.aspect_coverage();
-    let aspect_coverage_basis = subject.aspect_coverage_basis();
-    let aspect_publication =
-        foundational_publication_for_profile(&aspect_contract, &aspect_coverage, profile);
 
     Ok(ForgeQueryDeclarationFoundationalEvidence::new(
         subject,
@@ -256,9 +218,5 @@ pub(crate) fn forge_query_declaration_foundational_evidence<
         attachment_bundle,
         attachment_bundle_digest,
         profile,
-        aspect_contract,
-        aspect_coverage,
-        aspect_coverage_basis,
-        aspect_publication,
     ))
 }

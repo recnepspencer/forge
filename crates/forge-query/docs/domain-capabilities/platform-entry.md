@@ -4,7 +4,7 @@
 
 Platform entry is the public `forge-query` front door for downstream domains.
 It lets your domain enter Query through a typed marker instead of starting from
-raw strings, ad hoc setup glue, or a local wrapper around Query.
+raw strings, ad hoc setup glue, or a local pseudo-Query layer.
 
 `forge-query` stays generic here. It does not ship concrete domain types. Your
 crate defines the domain marker, and Query provides the entry capability,

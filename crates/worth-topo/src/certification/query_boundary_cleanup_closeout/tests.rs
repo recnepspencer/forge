@@ -37,7 +37,3 @@ fn query_boundary_cleanup_closeout_names_designated_survivors_for_every_area() {
         );
     }
 }
-
-
-
-

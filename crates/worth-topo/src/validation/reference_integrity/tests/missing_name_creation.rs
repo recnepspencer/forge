@@ -26,15 +26,12 @@ fn runtime_invariants_block_create_batches_missing_persistent_names() {
         MutationOrigin::LocalEdit,
     );
 
-    let error =
-        commit_raw_intent(&mut runtime, intent).expect_err("missing persistent-name coverage must block commit");
+    let error = verify_topology_intent(&mut runtime, intent)
+        .expect_err("missing persistent-name coverage must block commit")
+        .into_error();
 
     assert!(matches!(
         error,
-        TransactionCommitError::Conflict { .. }
+        TopologyAuthorityError::Commit(TransactionCommitError::Conflict { .. })
     ));
 }
-
-
-
-

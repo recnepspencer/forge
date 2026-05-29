@@ -1,21 +1,10 @@
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch,
-    seed_minimal_topology,
+    seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch, seed_minimal_topology,
     MilestoneOnePrimitiveAuthoringError, MilestoneOnePrimitiveCase, MinimalTopologySeed,
 };
-use schema::facade::platform::authority::MutationOrigin;
-use crate::committed_artifact::TopologyCommittedArtifact;
-#[cfg(test)]
-use crate::validation::reference_integrity::{
-    milestone_one_runtime_builder, MilestoneOneRuntimeSetupError,
-};
-
-#[cfg(test)]
-pub(crate) fn build_test_runtime() -> Result<RelationalRuntime, MilestoneOneRuntimeSetupError> {
-    Ok(milestone_one_runtime_builder()?.build())
-}
+use schema::facade::{MutationOrigin, VerifiedTopologyCommit};
 
 pub(crate) fn seeded_bootstrap(
     runtime: &mut RelationalRuntime,
@@ -28,9 +17,8 @@ pub(crate) fn verified_primitive(
     runtime: &mut RelationalRuntime,
     stem: &str,
     primitive: &MilestoneOnePrimitiveCase,
-) -> Result<TopologyCommittedArtifact, MilestoneOnePrimitiveAuthoringError> {
-    let seeded = seed_milestone_one_primitive(runtime, stem, primitive)?;
-    Ok(TopologyCommittedArtifact::from_seeded_commit(seeded))
+) -> Result<VerifiedTopologyCommit, MilestoneOnePrimitiveAuthoringError> {
+    seed_milestone_one_primitive(runtime, stem, primitive)
 }
 
 pub(crate) fn verified_primitive_on_branch(
@@ -39,13 +27,6 @@ pub(crate) fn verified_primitive_on_branch(
     primitive: &MilestoneOnePrimitiveCase,
     branch_id: BranchId,
     mutation_origin: MutationOrigin,
-) -> Result<TopologyCommittedArtifact, MilestoneOnePrimitiveAuthoringError> {
-    let seeded = seed_milestone_one_primitive_on_branch(
-        runtime,
-        stem,
-        primitive,
-        branch_id,
-        mutation_origin,
-    )?;
-    Ok(TopologyCommittedArtifact::from_seeded_commit(seeded))
+) -> Result<VerifiedTopologyCommit, MilestoneOnePrimitiveAuthoringError> {
+    seed_milestone_one_primitive_on_branch(runtime, stem, primitive, branch_id, mutation_origin)
 }

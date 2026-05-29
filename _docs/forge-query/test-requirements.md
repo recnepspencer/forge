@@ -29,7 +29,6 @@ This document defines the certification-grade query test requirements for:
 - Milestone 9.3.5
 - Milestone 9.3.6
 - Milestone 9.3.7
-- Milestone 9.3.8
 - Runtime API Public Stabilization Gate
 - Runtime Authoritative Mutation Evidence Gate
 - Milestone 9.4

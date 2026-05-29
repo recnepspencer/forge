@@ -109,7 +109,3 @@ fn milestone_three_bowtie_adjacent_rewire_report_is_deterministic_for_same_seede
         right.edit_replay_parity_report
     );
 }
-
-
-
-

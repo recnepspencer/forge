@@ -161,7 +161,3 @@ fn assert_failure_locality_row_exists(
             && !row.derived_regions.is_empty()
     }));
 }
-
-
-
-

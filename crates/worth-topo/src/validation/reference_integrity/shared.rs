@@ -3,8 +3,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use forge_relational::facade::identity::{EntityId, KindId, RelationId};
 use forge_relational::facade::runtime::CustomInvariantScopePlanner;
 use forge_relational::facade::transactions::{CreatedEntityRef, EntityReference};
-use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
-use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use schema::facade::{EntityKind, RelationKind, TopologyEntityKind, TopologyRelationKind};
 
 use super::shared_queries::naming_relation_kind;
 
@@ -322,7 +321,3 @@ fn runtime_entity_ref_survives(
         RuntimeEntityRef::Planned(_) => true,
     }
 }
-
-
-
-

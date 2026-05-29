@@ -6,11 +6,11 @@ use forge_runtime_bridge::facade::{
     InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity,
 };
 use schema::facade::topology_authoring::seed_minimal_topology;
-use schema::facade::platform::authority::{
-    milestone_two_invalidation_declarations, DerivedInvalidationTarget, DerivedTruthSurfaceKind,
+use schema::facade::{
+    explain_bridge_trace, milestone_two_invalidation_declarations, BridgeTraceAnchor,
+    DerivedInvalidationTarget, DerivedTruthSurfaceKind,
 };
 
-use crate::certification::BridgeTraceAnchor;
 use crate::projection::runtime_boundary::bridge::{
     build_milestone_one_bridge, milestone_one_bridge_aspect_registrations,
     milestone_one_bridge_mapping_registrations,
@@ -134,7 +134,7 @@ fn milestone_one_bridge_routes_and_evaluates_seeded_commit() {
 }
 
 #[test]
-fn bridge_trace_anchor_tracks_real_runtime_diagnostics() {
+fn bridge_trace_explanation_queries_real_runtime_diagnostics() {
     let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();
@@ -163,12 +163,10 @@ fn bridge_trace_anchor_tracks_real_runtime_diagnostics() {
     let anchor = BridgeTraceAnchor::new(
         route_records
             .iter()
-            .map(|record| record.route_identity().as_str().to_string())
-            .collect(),
+            .map(|record| record.route_identity().as_str().to_string()),
         route_records
             .iter()
-            .map(|record| record.invalidation_identity().as_str().to_string())
-            .collect(),
+            .map(|record| record.invalidation_identity().as_str().to_string()),
         route_records
             .iter()
             .map(|record| record.source_snapshot().as_str().to_string())
@@ -178,19 +176,22 @@ fn bridge_trace_anchor_tracks_real_runtime_diagnostics() {
                     .snapshot_identity()
                     .as_str()
                     .to_string()
-            }))
-            .collect(),
+            })),
         historical_records
             .iter()
-            .map(|record| record.record_identity().as_str().to_string())
-            .collect(),
+            .map(|record| record.record_identity().as_str().to_string()),
     );
-    assert_eq!(anchor.route_identities.len(), 1);
-    assert_eq!(anchor.invalidation_identities.len(), 1);
-    assert_eq!(anchor.historical_record_identities.len(), 1);
-    assert!(!anchor.snapshot_identities.is_empty());
+
+    let narrative = explain_bridge_trace(bridge.diagnostics().raw(), &anchor, None);
+
+    assert_eq!(narrative.route_count, 1);
+    assert_eq!(narrative.historical_record_count, 1);
+    assert!(narrative.headline.contains("Bridge retained"));
+    assert!(narrative.routes[0]
+        .summary
+        .contains("lowered one truth event"));
+    assert!(narrative.historical_records[0]
+        .summary
+        .contains("Historical evaluation"));
+    assert_eq!(narrative.query_hints.len(), 2);
 }
-
-
-
-

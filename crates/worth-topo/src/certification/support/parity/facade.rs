@@ -1,5 +1,4 @@
-use schema::facade::platform::authority::{DerivedInvalidationTarget, MutationOrigin};
-use schema::facade::topology_authoring::DerivedTopologyReadBasis;
+use schema::facade::{DerivedInvalidationTarget, DerivedTopologyReadBasis, MutationOrigin};
 
 use crate::certification::support::parity::types::{
     DerivedEquivalenceContractReport, DerivedParityComparisonReport,
@@ -141,7 +140,3 @@ fn digest_rows(rows: impl IntoIterator<Item = String>) -> DeterministicDigest {
         row_count,
     }
 }
-
-
-
-

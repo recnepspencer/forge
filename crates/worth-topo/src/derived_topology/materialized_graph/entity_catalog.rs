@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use forge_relational::facade::identity::EntityId;
-use schema::facade::platform::entities::EntityKind;
+use schema::facade::EntityKind;
 
 use crate::derived_topology::materialized_graph::input_rows::MaterializationEntityRow;
 
@@ -13,7 +13,3 @@ pub fn collect_entity_kinds(
         .map(|record| (record.entity_id, record.kind))
         .collect()
 }
-
-
-
-

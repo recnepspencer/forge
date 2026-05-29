@@ -1,6 +1,5 @@
 use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQuerySymbolicTargetReference};
-use schema::facade::platform::entities::TopologyEntityKind;
-use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 
 use super::shared::{
     bind_existing_entity_handle, bind_existing_relation_handle, delete_existing_entity_from_graph,
@@ -62,10 +61,10 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 TopologyOperatorExecutionError::MissingExistingRelationBinding(*region_relation_id),
             )?;
         let face_dependency_path = topology_relation_dependency_path(
-            schema::facade::platform::relations::RelationKind::Topology(TopologyRelationKind::ShellOwnsFace),
+            schema::facade::RelationKind::Topology(TopologyRelationKind::ShellOwnsFace),
         );
         let region_dependency_path = topology_relation_dependency_path(
-            schema::facade::platform::relations::RelationKind::Topology(TopologyRelationKind::RegionOwnsShell),
+            schema::facade::RelationKind::Topology(TopologyRelationKind::RegionOwnsShell),
         );
         let created_shell_key = program.create_key.clone();
         let retired_shell_identity = retired_shell_binding.query_identity.clone();
@@ -290,10 +289,10 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             )?;
         let created_shell_key = program.create_key.clone();
         let face_dependency_path = topology_relation_dependency_path(
-            schema::facade::platform::relations::RelationKind::Topology(TopologyRelationKind::ShellOwnsFace),
+            schema::facade::RelationKind::Topology(TopologyRelationKind::ShellOwnsFace),
         );
         let region_dependency_path = topology_relation_dependency_path(
-            schema::facade::platform::relations::RelationKind::Topology(TopologyRelationKind::RegionOwnsShell),
+            schema::facade::RelationKind::Topology(TopologyRelationKind::RegionOwnsShell),
         );
         let face_handle = bind_existing_relation_handle(
             self,
@@ -383,7 +382,3 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             .map_err(Into::into)
     }
 }
-
-
-
-

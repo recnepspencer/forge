@@ -6,7 +6,3 @@ pub struct TopologyEdge {
     pub entity_id: EntityId,
     pub label: String,
 }
-
-
-
-

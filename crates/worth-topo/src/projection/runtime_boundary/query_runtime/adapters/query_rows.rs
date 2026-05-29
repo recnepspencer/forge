@@ -3,8 +3,7 @@ use std::collections::BTreeMap;
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::EntityId;
 use forge_relational::facade::runtime::{EntityReadRecord, RelationReadRecord};
-use schema::facade::platform::entities::{EntityKind, NamingEntityKind};
-use schema::facade::platform::relations::{NamingRelationKind, RelationKind};
+use schema::facade::{EntityKind, NamingEntityKind, NamingRelationKind, RelationKind};
 use serde_json::Value;
 
 use crate::topology_operators::topology_relation_dependency_path;
@@ -271,7 +270,3 @@ fn relation_identity(relation: forge_relational::facade::identity::RelationId) -
         relation.partition_id.0, relation.local_slot.0, relation.generation.0
     )
 }
-
-
-
-

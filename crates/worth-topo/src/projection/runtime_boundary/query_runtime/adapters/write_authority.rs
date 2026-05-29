@@ -24,12 +24,12 @@ use super::write_support::{
 };
 use super::TopologyRuntimeBinding;
 
-pub struct TopologyRuntimeWriteAuthority {
+pub(crate) struct TopologyRuntimeWriteAuthority {
     binding: TopologyRuntimeBinding,
 }
 
 impl TopologyRuntimeWriteAuthority {
-    pub fn new(binding: TopologyRuntimeBinding) -> Self {
+    pub(crate) fn new(binding: TopologyRuntimeBinding) -> Self {
         Self { binding }
     }
 }
@@ -353,7 +353,3 @@ impl TopologyRuntimeWriteAuthority {
         })
     }
 }
-
-
-
-

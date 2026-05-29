@@ -9,8 +9,7 @@ use forge_relational::facade::runtime::{
     InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
     InvariantGroupSet,
 };
-use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
-use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use schema::facade::{EntityKind, RelationKind, TopologyEntityKind, TopologyRelationKind};
 
 use super::shared::{RuntimeEntityRef, RuntimeTopologyGraph};
 
@@ -124,7 +123,3 @@ impl CustomInvariantRule for ShellClosureRule {
         Ok(CustomInvariantVerdict::Pass)
     }
 }
-
-
-
-

@@ -1,13 +1,11 @@
 use forge_relational::facade::identity::EntityId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{
-    created_ref, seed_milestone_one_primitive, DerivedTopologyReadBasis,
-    MilestoneOnePrimitiveCase,
+    created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
 };
-use schema::facade::platform::authority::CreateKey;
-use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
-use schema::facade::platform::relations::{
-    RelationKind, TopologyRelationKind,
+use schema::facade::{
+    CreateKey, DerivedTopologyReadBasis, EntityKind, RelationKind, TopologyEntityKind,
+    TopologyRelationKind,
 };
 
 use super::super::shared::{
@@ -43,7 +41,7 @@ where
         &format!("{stem}.primitive_family_closure.{primitive_family}"),
         &primitive,
     )?;
-    let half_edge_ids = seeded_wire_half_edges(&runtime, &verified.read_basis())?;
+    let half_edge_ids = seeded_wire_half_edges(&runtime, &verified.read_basis)?;
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(
         adapters,
@@ -178,7 +176,3 @@ fn seeded_wire_half_edges(
     half_edge_ids.sort();
     Ok(half_edge_ids)
 }
-
-
-
-

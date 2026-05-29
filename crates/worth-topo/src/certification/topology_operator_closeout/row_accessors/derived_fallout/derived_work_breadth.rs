@@ -44,7 +44,3 @@ impl MilestoneThreeDerivedWorkBreadthRow {
         self.row_digest.as_str()
     }
 }
-
-
-
-

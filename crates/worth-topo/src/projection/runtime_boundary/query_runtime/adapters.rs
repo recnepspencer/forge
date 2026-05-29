@@ -21,12 +21,12 @@ mod query_rows;
 pub(super) mod write_authority;
 pub(super) mod write_support;
 
-pub use self::binding::TopologyRuntimeBinding;
+pub(crate) use self::binding::TopologyRuntimeBinding;
 use self::bridge_source::TopologyRuntimeBridgeSource;
 pub(crate) use self::existing_truth_verification::TopologyExistingTruthVerificationAdapter;
 use self::query_rows::{persistent_name_rows, topology_entity_rows, topology_relation_rows};
 
-pub fn build_runtime_bridge(
+pub(super) fn build_runtime_bridge(
     binding: TopologyRuntimeBinding,
 ) -> Result<RuntimeBridge, forge_runtime_bridge::facade::BridgeBuildError> {
     use forge_runtime_bridge::facade::RuntimeBridgeBuilder;
@@ -54,7 +54,7 @@ pub fn build_runtime_bridge(
     builder.build()
 }
 
-pub struct TopologyRuntimeSchemaAdapter;
+pub(super) struct TopologyRuntimeSchemaAdapter;
 
 impl ForgeQueryRuntimeSchemaAdapter for TopologyRuntimeSchemaAdapter {
     fn admit_live_view(
@@ -260,7 +260,3 @@ impl InvalidationSink for TopologyStaticBridgeSink {
         ))
     }
 }
-
-
-
-

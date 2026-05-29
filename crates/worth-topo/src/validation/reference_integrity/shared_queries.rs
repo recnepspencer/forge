@@ -1,11 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use forge_relational::facade::identity::KindId;
-use schema::facade::platform::entities::{
-    EntityKind, NamingEntityKind, TopologyEntityKind,
-};
-use schema::facade::platform::relations::{
-    NamingRelationKind, RelationKind, TopologyRelationKind,
+use schema::facade::{
+    EntityKind, NamingEntityKind, NamingRelationKind, RelationKind, TopologyEntityKind,
+    TopologyRelationKind,
 };
 
 use super::shared::RuntimeEntityRef;
@@ -88,7 +86,3 @@ pub fn owner_relation_for_kind(kind_id: KindId) -> Option<RelationKind> {
         None
     }
 }
-
-
-
-

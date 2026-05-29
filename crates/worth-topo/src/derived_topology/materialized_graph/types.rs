@@ -73,7 +73,3 @@ impl MaterializedTopologyView {
         &mut self.topology
     }
 }
-
-
-
-

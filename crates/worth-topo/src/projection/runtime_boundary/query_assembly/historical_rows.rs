@@ -1,5 +1,5 @@
 use forge_query::facade::ForgeQueryWorkspace;
-use schema::facade::topology_authoring::DerivedTopologyReadBasis;
+use schema::facade::DerivedTopologyReadBasis;
 use serde_json::Value;
 
 use super::snapshot_rows::TopologyQuerySnapshotRows;
@@ -121,7 +121,3 @@ fn encode_row<T: serde::Serialize>(
         TopologyQuerySurfaceError::new(format!("{label} failed to encode: {error}"))
     })
 }
-
-
-
-

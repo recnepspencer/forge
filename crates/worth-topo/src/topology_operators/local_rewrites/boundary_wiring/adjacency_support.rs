@@ -1,5 +1,5 @@
 use forge_relational::facade::identity::EntityId;
-use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::TopologyRelationKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{
@@ -48,7 +48,3 @@ pub(crate) fn single_incoming_relation_source_identity(
     }
     Ok(identities[0].clone())
 }
-
-
-
-

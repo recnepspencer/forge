@@ -1,4 +1,3 @@
-mod domain;
+mod helpers;
 mod mapping;
 mod parity;
-mod publication;

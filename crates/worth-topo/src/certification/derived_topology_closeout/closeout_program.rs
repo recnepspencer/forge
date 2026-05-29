@@ -75,7 +75,3 @@ where
 
     Ok(closeout)
 }
-
-
-
-

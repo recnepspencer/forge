@@ -313,7 +313,3 @@ fn payload_from_read_view(
         }
     }
 }
-
-
-
-

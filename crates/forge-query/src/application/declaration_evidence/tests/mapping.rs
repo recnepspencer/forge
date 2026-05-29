@@ -10,7 +10,7 @@ use crate::application::{
     ForgeQueryDeclarationFoundationalEvidenceClass, ForgeQueryDeclarationFoundationalEvidenceInput,
 };
 
-use super::domain::{
+use super::helpers::{
     admitted_handle, Declaration, DeferredFamily, FailedFamily, IllegalRoleFamily, LegalFamily,
     StaleFamily, WorldSensitiveFamily,
 };

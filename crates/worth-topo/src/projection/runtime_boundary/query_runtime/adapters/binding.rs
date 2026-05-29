@@ -7,7 +7,7 @@ use forge_relational::facade::runtime::{
 use forge_relational::facade::snapshots::SnapshotHandle;
 
 #[derive(Debug, Clone)]
-pub enum TopologyRuntimeBinding {
+pub(crate) enum TopologyRuntimeBinding {
     CurrentHead(Arc<RwLock<RelationalRuntime>>),
     SnapshotReadOnly {
         read_view: Arc<RelationalReadView>,
@@ -16,11 +16,11 @@ pub enum TopologyRuntimeBinding {
 }
 
 impl TopologyRuntimeBinding {
-    pub fn current_head(runtime: RelationalRuntime) -> Self {
+    pub(crate) fn current_head(runtime: RelationalRuntime) -> Self {
         Self::CurrentHead(Arc::new(RwLock::new(runtime)))
     }
 
-    pub fn snapshot_read_only(
+    pub(crate) fn snapshot_read_only(
         read_view: RelationalReadView,
         snapshot: SnapshotHandle,
     ) -> Self {
@@ -51,7 +51,7 @@ impl TopologyRuntimeBinding {
                     return Vec::new();
                 };
                 let projection = runtime.read_truth().project_version(version_id);
-                schema::facade::platform::entities::EntityKind::ALL
+                schema::facade::EntityKind::ALL
                     .into_iter()
                     .flat_map(|kind| projection.entity_records(kind.kind_id()))
                     .collect()
@@ -74,7 +74,7 @@ impl TopologyRuntimeBinding {
                     return Vec::new();
                 };
                 let projection = runtime.read_truth().project_version(version_id);
-                schema::facade::platform::relations::RelationKind::ALL
+                schema::facade::RelationKind::ALL
                     .into_iter()
                     .flat_map(|kind| projection.relation_records(kind.kind_id()))
                     .collect()
@@ -107,7 +107,3 @@ impl TopologyRuntimeBinding {
         }
     }
 }
-
-
-
-

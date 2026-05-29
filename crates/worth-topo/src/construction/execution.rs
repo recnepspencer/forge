@@ -117,7 +117,3 @@ mod tests {
         assert!(!execution.execution_digest().is_empty());
     }
 }
-
-
-
-

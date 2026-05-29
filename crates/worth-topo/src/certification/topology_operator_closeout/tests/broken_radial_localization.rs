@@ -117,7 +117,3 @@ fn milestone_three_broken_radial_localization_report_is_deterministic_for_same_s
         right.edit_replay_parity_report
     );
 }
-
-
-
-

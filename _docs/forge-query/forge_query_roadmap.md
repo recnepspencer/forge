@@ -2720,12 +2720,6 @@ fails closed.
 
 ## Milestone 9.3.8: Query-As-Beginning Platform Entry
 
-### Specification
-
-The governing milestone spec is
-[milestone-9.3.8.md](./milestone-9.3.8.md). The closeout record is
-[milestone-9.3.8-closeout.md](./milestone-9.3.8-closeout.md).
-
 ### Goal
 
 Make `forge-query` the true first-class platform entry for serious downstream

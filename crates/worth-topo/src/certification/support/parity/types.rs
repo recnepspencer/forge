@@ -1,4 +1,4 @@
-use schema::facade::platform::authority::{DerivedInvalidationTarget, MutationOrigin};
+use schema::facade::{DerivedInvalidationTarget, MutationOrigin};
 use serde::{Deserialize, Serialize};
 
 use crate::certification::DeterministicDigest;
@@ -29,7 +29,3 @@ pub struct DerivedParityComparisonReport {
     pub derived_validation_digest_match: bool,
     pub equivalent_derived_meaning: bool,
 }
-
-
-
-

@@ -103,12 +103,10 @@ where
         legality_contract,
         surface_disposition,
     );
-    let reviewed_aspect_coverage = support_report.aspect_coverage().clone();
     ForgeQueryDeclarationLegalityChecked::Legal(ForgeQueryDeclarationLegalityEvidence::new(
         declaration,
         support_report,
         legality_contract,
-        reviewed_aspect_coverage,
         operating_context_identity_digest,
         legality_contract.category(),
         legality_contract.role(),
@@ -132,7 +130,6 @@ where
         format!("declaration:{:?}", declaration.declaration_digest()),
         format!("family:{}", declaration.declaration_family_key()),
         format!("taxonomy:{:?}", declaration.declaration_taxonomy()),
-        format!("reviewed_aspects:{:?}", support_report.aspect_coverage()),
         format!("support:{}", support_report.support_digest()),
         format!("contract:{legality_contract:?}"),
         format!("surface:{surface_disposition:?}"),

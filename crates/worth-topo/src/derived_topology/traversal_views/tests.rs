@@ -14,7 +14,7 @@ mod interpretation_tests {
         open_sheet_patch_view, open_shell_nmt_fan_view, open_wire_chain_view,
         single_face_sheet_disk_view,
     };
-    use schema::facade::platform::authority::{ShellInterpretationClass, WireInterpretationClass};
+    use schema::facade::{ShellInterpretationClass, WireInterpretationClass};
 
     #[test]
     fn seeded_bootstrap_interprets_as_open_sheet_with_one_wire() {
@@ -85,8 +85,8 @@ mod interpretation_tests {
         let topology = TopologyMaterializer::materialize_from_truth(&read_view)
             .expect(" topology materialization");
         let interpreted = interpret_topology_view(&topology);
-        let read_artifact = build_topology_read_artifact(&seeded.read_basis(), &interpreted);
-        let certified = certify_topology_view(seeded.read_basis().clone(), &interpreted);
+        let read_artifact = build_topology_read_artifact(&seeded.read_basis, &interpreted);
+        let certified = certify_topology_view(seeded.read_basis.clone(), &interpreted);
 
         assert_eq!(read_artifact.snapshot, seeded.snapshot);
         assert_eq!(read_artifact.interpretations.wires.len(), 1);
@@ -240,7 +240,3 @@ mod interpretation_tests {
         assert!(shell.non_manifold_edge_ids.is_empty());
     }
 }
-
-
-
-

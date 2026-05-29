@@ -1,6 +1,5 @@
 use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQuerySymbolicTargetReference};
-use schema::facade::platform::entities::TopologyEntityKind;
-use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 
 use super::shared::{
     bind_existing_entity_handle, bind_existing_relation_handle, delete_existing_entity_from_graph,
@@ -28,7 +27,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 ),
             )?;
         let dependency_path = topology_relation_dependency_path(
-            schema::facade::platform::relations::RelationKind::Topology(TopologyRelationKind::WireOwnsHalfEdge),
+            schema::facade::RelationKind::Topology(TopologyRelationKind::WireOwnsHalfEdge),
         );
         let created_wire_key = program.create_key.clone();
         let retired_wire_identity = retired_wire_binding.query_identity.clone();
@@ -171,7 +170,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 TopologyOperatorExecutionError::MissingExistingEntityBinding(retained_wire_id),
             )?;
         let dependency_path = topology_relation_dependency_path(
-            schema::facade::platform::relations::RelationKind::Topology(TopologyRelationKind::WireOwnsHalfEdge),
+            schema::facade::RelationKind::Topology(TopologyRelationKind::WireOwnsHalfEdge),
         );
         let created_wire_key = program.create_key.clone();
         let retained_wire_identity = retained_wire_binding.query_identity.clone();
@@ -281,7 +280,3 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             .map_err(Into::into)
     }
 }
-
-
-
-

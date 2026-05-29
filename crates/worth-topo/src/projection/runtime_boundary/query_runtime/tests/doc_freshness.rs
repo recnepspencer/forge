@@ -50,7 +50,3 @@ fn topology_query_source_comments_do_not_keep_naming_purge_artifacts() {
         assert!(!source.contains("the -owned"));
     }
 }
-
-
-
-

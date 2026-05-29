@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::TopologyEntityKind;
 
 use crate::projection::runtime_boundary::query_runtime::{
     TopologyQueryBindingIndex, TopologyQueryEditFamilySupportStatus, TopologyRuntimeSupport,
@@ -63,8 +63,7 @@ pub(super) fn planned_created_entity_kinds(
 #[cfg(test)]
 mod tests {
     use forge_relational::facade::identity::{EntityId, PartitionId};
-    use schema::facade::platform::authority::{CreateKey, EntityReference};
-use schema::facade::platform::entities::TopologyEntityKind;
+    use schema::facade::{CreateKey, EntityReference, TopologyEntityKind};
 
     use super::*;
 
@@ -139,7 +138,3 @@ use schema::facade::platform::entities::TopologyEntityKind;
         );
     }
 }
-
-
-
-

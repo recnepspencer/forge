@@ -1,8 +1,7 @@
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::EntityId;
 use forge_relational::facade::runtime::{EntityReadRecord, RelationReadRecord};
-use schema::facade::platform::entities::EntityKind;
-use schema::facade::platform::relations::RelationKind;
+use schema::facade::{EntityKind, RelationKind};
 
 use crate::derived_topology::materialized_graph::query_input_decode::{
     parse_entity_identity, parse_entity_kind, parse_relation_kind, required_text,
@@ -85,7 +84,3 @@ impl MaterializationRelationRow {
         })
     }
 }
-
-
-
-

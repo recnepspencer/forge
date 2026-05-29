@@ -106,7 +106,3 @@ fn explicit_fallback_row(
         .find(|row| row.fallback_count > 0)
         .expect("hostile suite should include explicit fallback evidence")
 }
-
-
-
-

@@ -11,7 +11,3 @@ pub(crate) use broken_radial_localization::certify_milestone_three_broken_radial
 pub(crate) use cancellation_chain::certify_milestone_three_cancellation_chain_parity_impl;
 pub(in crate::certification::topology_operator_closeout) use local_successor_rewire::successor_relocation_batch;
 pub(crate) use split_collapse_churn::certify_milestone_three_split_collapse_churn_impl;
-
-
-
-

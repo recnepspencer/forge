@@ -9,7 +9,3 @@ pub use crate::projection::read_views::{
     TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,
     TopologyLoopCycleView, TopologyLoopNeighborEvidence, TopologyRadialCandidateEvidence,
 };
-
-
-
-

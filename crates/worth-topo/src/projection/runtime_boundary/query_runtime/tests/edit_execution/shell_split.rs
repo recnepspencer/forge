@@ -7,9 +7,7 @@ use forge_query::facade::{
 use schema::facade::topology_authoring::{
     created_ref, seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
 };
-use schema::facade::platform::authority::CreateKey;
-use schema::facade::topology_authoring::DerivedTopologyReadBasis;
-use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
+use schema::facade::{CreateKey, DerivedTopologyReadBasis, EntityKind, TopologyEntityKind};
 
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
@@ -31,7 +29,7 @@ fn current_head_runtime_executes_single_face_two_face_shell_split_program() {
     )
     .expect("seed topology");
     let (region, shell, face_ids) =
-        seeded_patch_region_shell_and_faces(&runtime, &verified.read_basis());
+        seeded_patch_region_shell_and_faces(&runtime, &verified.read_basis);
     let moved_face_id = face_ids[0];
     let retained_face_id = face_ids[1];
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
@@ -169,7 +167,7 @@ fn current_head_runtime_denies_shell_split_when_old_shell_owns_more_than_two_fac
     )
     .expect("seed topology");
     let (region, _shell, face_ids) =
-        seeded_patch_region_shell_and_faces(&runtime, &verified.read_basis());
+        seeded_patch_region_shell_and_faces(&runtime, &verified.read_basis);
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, ".current-head.query-edit.split-shell-large")
         .expect("workspace");
@@ -212,7 +210,7 @@ fn current_head_runtime_denies_shell_split_when_created_shell_keys_diverge() {
     )
     .expect("seed topology");
     let (region, _shell, face_ids) =
-        seeded_patch_region_shell_and_faces(&runtime, &verified.read_basis());
+        seeded_patch_region_shell_and_faces(&runtime, &verified.read_basis);
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(
         adapters,
@@ -265,7 +263,7 @@ fn current_head_runtime_denies_shell_split_when_region_does_not_own_source_shell
     )
     .expect("seed topology");
     let (_region, _shell, face_ids) =
-        seeded_patch_region_shell_and_faces(&runtime, &verified.read_basis());
+        seeded_patch_region_shell_and_faces(&runtime, &verified.read_basis);
     let wrong_region = seed_minimal_topology(
         &mut runtime,
         ".current-head.query-edit.split-shell-wrong-region.other",
@@ -340,7 +338,3 @@ fn seeded_patch_region_shell_and_faces(
         face_ids,
     )
 }
-
-
-
-

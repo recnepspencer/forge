@@ -9,8 +9,7 @@ use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 use forge_relational::facade::publication::{PatchRecord, RecordStructuralChange};
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{CommitResult, RecordRef};
-use schema::facade::platform::entities::{EntityKind, NamingEntityKind};
-use schema::facade::platform::relations::RelationKind;
+use schema::facade::{EntityKind, NamingEntityKind, RelationKind};
 use serde_json::Value;
 
 pub(super) fn mutation_deltas_from_commit(
@@ -291,7 +290,3 @@ pub(super) fn record_identity(target: &RecordRef) -> String {
         ),
     }
 }
-
-
-
-

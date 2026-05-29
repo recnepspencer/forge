@@ -184,14 +184,6 @@ then this milestone fails.
 - Domain contribution posture is declaration-scoped or admitted-family-scoped,
   not a mutation of global support matrices, certification inventories, or
   static capability tables.
-- The typed contribution target-binding family introduced here is the first
-  shipped slice of a broader Query-owned binding substrate. Later `9.3.8`
-  declaration-entry, orchestration, continuation, and ergonomic phases must
-  generalize this family rather than introducing a second public binding
-  vocabulary beside it.
-- The first such generalization is the immediate post-Phase-24 shared
-  retained target-binding extraction, so this seam must survive rebasing onto
-  that shared core without changing contribution semantics.
 
 ## Forge Proof And Foundational Integration Locked Now
 
@@ -1039,9 +1031,6 @@ Practical rule:
 What must be true before moving on:
 
 - the contribution lifecycle is real `forge-proof`, not local imitation
-- the typed target-binding family established here is suitable for later
-  promotion into the shared Query binding substrate rather than a one-off
-  contribution-only helper seam
 - category mismatch is already structurally uncallable
 - all categories can reach admitted form through the same proof-bearing
   lifecycle

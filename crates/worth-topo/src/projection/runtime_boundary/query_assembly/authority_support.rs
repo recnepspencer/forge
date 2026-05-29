@@ -2,14 +2,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use forge_query::facade::{ForgeQueryEntity, ForgeQueryRuntimeError, ForgeQueryWorkspaceError};
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::query_aspect_path_strings;
-use schema::facade::platform::aspects::{Aspect, TopologyAspect};
-use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent, TopologyMutation};
-use schema::facade::platform::entities::EntityKind;
-use schema::facade::platform::relations::{
-    RelationKind, TopologyRelationKind,
+use schema::facade::{
+    query_aspect_path_strings, Aspect, DerivedTopologyReadBasis, EntityKind, MutationOrigin,
+    RawTopologyIntent, RelationKind, TopologyAspect, TopologyMutation, TopologyRelationKind,
 };
-use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use serde_json::Value;
 
 use super::authority::{ImportedTopologyEntity, ImportedTopologyRelation, TopologyQueryApplyError};
@@ -178,13 +174,13 @@ fn entity_touched_aspects(kind: EntityKind) -> [Aspect; 2] {
     [
         match kind {
             EntityKind::Topology(_) => Aspect::Topology(TopologyAspect::Structure),
-            EntityKind::Geometry(_) => Aspect::Geometry(schema::facade::platform::aspects::GeometryAspect::Binding),
-            EntityKind::Naming(_) => Aspect::Naming(schema::facade::platform::aspects::NamingAspect::PersistentName),
+            EntityKind::Geometry(_) => Aspect::Geometry(schema::facade::GeometryAspect::Binding),
+            EntityKind::Naming(_) => Aspect::Naming(schema::facade::NamingAspect::PersistentName),
             EntityKind::Diagnostics(_) => {
-                Aspect::Diagnostics(schema::facade::platform::aspects::DiagnosticsAspect::Interpretations)
+                Aspect::Diagnostics(schema::facade::DiagnosticsAspect::Interpretations)
             }
         },
-        Aspect::Diagnostics(schema::facade::platform::aspects::DiagnosticsAspect::Decisions),
+        Aspect::Diagnostics(schema::facade::DiagnosticsAspect::Decisions),
     ]
 }
 
@@ -203,16 +199,12 @@ pub fn relation_touched_aspects(kind: RelationKind) -> [Aspect; 2] {
                 Aspect::Topology(TopologyAspect::Radial)
             }
             RelationKind::Topology(_) => Aspect::Topology(TopologyAspect::Boundary),
-            RelationKind::Geometry(_) => Aspect::Geometry(schema::facade::platform::aspects::GeometryAspect::Binding),
-            RelationKind::Naming(_) => Aspect::Naming(schema::facade::platform::aspects::NamingAspect::PersistentName),
+            RelationKind::Geometry(_) => Aspect::Geometry(schema::facade::GeometryAspect::Binding),
+            RelationKind::Naming(_) => Aspect::Naming(schema::facade::NamingAspect::PersistentName),
             RelationKind::Diagnostics(_) => {
-                Aspect::Diagnostics(schema::facade::platform::aspects::DiagnosticsAspect::Interpretations)
+                Aspect::Diagnostics(schema::facade::DiagnosticsAspect::Interpretations)
             }
         },
-        Aspect::Diagnostics(schema::facade::platform::aspects::DiagnosticsAspect::Decisions),
+        Aspect::Diagnostics(schema::facade::DiagnosticsAspect::Decisions),
     ]
 }
-
-
-
-

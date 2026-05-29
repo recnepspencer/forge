@@ -1,9 +1,9 @@
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
+    seed_milestone_one_primitive, verify_topology_intent_on_branch, MilestoneOnePrimitiveCase,
 };
-use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::TopologyEntityKind;
 
 use super::super::shared::aggregate_topology_edit_digest;
 use super::scale_pressure_types::{
@@ -11,7 +11,6 @@ use super::scale_pressure_types::{
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::{digest_rows, primitive_family_name};
-use crate::test_support::topology_commit::commit_topology_intent_on_branch;
 use crate::topology_operators::{
     TopologyEditApplicationMode, TopologyEditBatch, TopologyEditContract, TopologyEditDigest,
     TopologyEditFamily,
@@ -80,12 +79,14 @@ fn execute_branch_local_vertex_history(
     let mut truth_digest_rows = Vec::new();
     for step in 0..large_branch_history_step_count() {
         let batch = branch_local_vertex_creation_batch(stem, step)?;
-        let verified = commit_topology_intent_on_branch(
+        let verified = verify_topology_intent_on_branch(
             &mut runtime,
             batch.clone().into_raw_intent(&mode),
             branch_id.clone(),
         )
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+        .map_err(|failure| {
+            TopologyCertificationError::Query(format!("{:?}", failure.into_error()))
+        })?;
         truth_digest_rows.extend(
             verified
                 .canonical_batch
@@ -125,7 +126,3 @@ fn branch_history_row_digest(replay_verified: bool) -> String {
         large_branch_history_step_count()
     )
 }
-
-
-
-

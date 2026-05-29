@@ -1,5 +1,5 @@
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::platform::relations::{TopologyRelationKind, TopologyRelationKind::*};
+use schema::facade::{TopologyRelationKind, TopologyRelationKind::*};
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{
@@ -110,7 +110,3 @@ pub(super) struct ContiguousSpanCandidate {
     pub(super) end_half_edge_id: EntityId,
     pub(super) span_half_edge_ids: Vec<EntityId>,
 }
-
-
-
-

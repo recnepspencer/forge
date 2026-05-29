@@ -1,22 +1,20 @@
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::platform::entities::EntityKind;
-use schema::facade::platform::relations::RelationKind;
+use schema::facade::{EntityKind, RelationKind};
 
 use super::*;
-use crate::committed_artifact::TopologyCommittedArtifact;
+use crate::facade::milestone_one_runtime_builder;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
 pub(super) fn seeded_current_head_workspace(
     stem: &str,
 ) -> (
     forge_query::facade::ForgeQueryWorkspace,
     TopologyQueryAssembly,
-    TopologyCommittedArtifact,
+    schema::facade::VerifiedTopologyCommit,
 ) {
     let mut runtime = milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
@@ -27,13 +25,6 @@ pub(super) fn seeded_current_head_workspace(
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("verified primitive");
-    let verified = TopologyCommittedArtifact::from_parts(
-        verified.canonical_batch().clone(),
-        verified.branch_id().clone(),
-        verified.commits().to_vec(),
-        verified.persisted_truth().clone(),
-        verified.read_basis().clone(),
-    );
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, stem).expect("query workspace should build");
     let assembly =
@@ -119,7 +110,3 @@ pub(super) fn decode_relation_endpoints(
     );
     (source_id, target_id)
 }
-
-
-
-

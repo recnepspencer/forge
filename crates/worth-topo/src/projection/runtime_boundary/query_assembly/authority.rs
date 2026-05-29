@@ -5,10 +5,11 @@ use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryWorkspace, ForgeQueryWorkspaceError,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::platform::authority::{EntityReference, RawTopologyIntent, TopologyMutation};
-use schema::facade::platform::entities::EntityKind;
-use schema::facade::platform::relations::RelationKind;
-use schema::facade::topology_authoring::DerivedTopologyReadBasis;
+use schema::facade::{
+    admit_query_mutation_batch, DerivedTopologyReadBasis, EntityKind, EntityReference,
+    QueryMutationAdmission, QueryMutationAdmissionReport, RawTopologyIntent, RelationKind,
+    TopologyMutation,
+};
 
 use crate::projection::TopologyQueryMutationEvidence;
 use crate::topology_operators::topology_relation_dependency_path;
@@ -27,6 +28,7 @@ pub struct TopologyQueryAppliedIntent {
 
 #[derive(Debug)]
 pub enum TopologyQueryApplyError {
+    AdmissionBlocked(Vec<QueryMutationAdmissionReport>),
     MissingCreatedEntityReference(String),
     MissingExistingEntityBinding(EntityId),
     MissingExistingRelationBinding(RelationId),
@@ -39,6 +41,14 @@ pub enum TopologyQueryApplyError {
 impl std::fmt::Display for TopologyQueryApplyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::AdmissionBlocked(rows) => write!(
+                f,
+                " query apply is blocked for this raw intent: {}",
+                rows.iter()
+                    .map(|row| row.blocker.message())
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            ),
             Self::MissingCreatedEntityReference(key) => {
                 write!(
                     f,
@@ -104,6 +114,11 @@ impl TopologyQueryAssembly {
         intent: RawTopologyIntent,
         read_basis: &DerivedTopologyReadBasis,
     ) -> Result<TopologyQueryAppliedIntent, TopologyQueryApplyError> {
+        let admission = admit_query_mutation_batch(&intent);
+        if let QueryMutationAdmission::Blocked(rows) = admission {
+            return Err(TopologyQueryApplyError::AdmissionBlocked(rows));
+        }
+
         let entities = index_imported_entities(workspace.read(self.entities()))?;
         let relations = index_imported_relations(workspace.read(self.relations()))?;
         let mutation_evidence =
@@ -339,7 +354,3 @@ fn resolve_entity_reference(
             }),
     }
 }
-
-
-
-

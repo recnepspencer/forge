@@ -28,7 +28,7 @@ fn current_head_runtime_executes_four_half_edge_span_relocation_on_larger_loop()
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
     let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let moved_start_identity = support.first_source_identity_for_relation_kind(
-        schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
+        schema::facade::TopologyRelationKind::HalfEdgeNext,
     );
     let cycle = support.successor_cycle_identities(&mut workspace, &moved_start_identity, 7);
     let moved_end_id = support.find_entity_id_by_identity(cycle[3].as_str());
@@ -79,7 +79,3 @@ fn current_head_runtime_executes_four_half_edge_span_relocation_on_larger_loop()
         .expect("moved end halfedge should remain present");
     assert_eq!(moved_end.next_half_edge_id, Some(new_successor_id));
 }
-
-
-
-

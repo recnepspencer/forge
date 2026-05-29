@@ -26,7 +26,7 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )
     .expect("seed primitive");
-    let replay_basis = verified.read_basis().replay_of();
+    let replay_basis = verified.read_basis.replay_of();
     let replay_workspace = {
         let read_view = open_topology_read_view(&runtime, &replay_basis)
             .expect("snapshot read view should open");
@@ -51,12 +51,12 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
     let (mut snapshot_workspace, snapshot_assembly) = replay_workspace;
     let replay_support = QueryRuntimeSupport::load(&mut snapshot_workspace, &snapshot_assembly);
     let moved_identity = current_head_support.first_source_identity_for_relation_kind(
-        schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
+        schema::facade::TopologyRelationKind::HalfEdgeNext,
     );
 
     let left = current_head_support.local_rewire_parity_artifact(
         &mut current_head_workspace,
-        &verified.read_basis(),
+        &verified.read_basis,
         &moved_identity,
         6,
     );
@@ -139,7 +139,3 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
     );
     assert!(!closeout_report.phase_three_ready);
 }
-
-
-
-

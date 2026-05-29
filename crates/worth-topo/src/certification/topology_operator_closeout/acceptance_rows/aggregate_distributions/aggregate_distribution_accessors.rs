@@ -60,7 +60,3 @@ impl MilestoneThreeHostileNamingDistributionRow {
         self.row_digest.as_str()
     }
 }
-
-
-
-

@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::identity::EntityId;
-use schema::facade::platform::authority::ShellInterpretationClass;
+use schema::facade::ShellInterpretationClass;
 
 use crate::brep::topology_graph::{TopologyHalfEdge, TopologyView};
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
@@ -117,7 +117,3 @@ fn count_boundary_components(
 
     components
 }
-
-
-
-

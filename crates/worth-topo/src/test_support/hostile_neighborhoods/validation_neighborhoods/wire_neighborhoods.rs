@@ -98,7 +98,3 @@ pub(crate) fn connected_wire_branch_view(branch_count: usize) -> TopologyView {
         ..TopologyView::default()
     }
 }
-
-
-
-

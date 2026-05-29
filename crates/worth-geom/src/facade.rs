@@ -10,13 +10,13 @@ pub use super::primitives::implicit_vertex::{
     orient3d_symbolic, resolve_position, select_best_triple, PlaneRef, Vertex,
 };
 pub use super::primitives::parameter_space::ParameterSpacePoint;
-pub use super::primitives::plane::exact_eq as plane_exact_eq;
-pub use super::primitives::plane::signed_distance as plane_signed_distance;
 pub use super::primitives::plane::{
     are_parallel_exact, classify_point, classify_point_exact, coplanar_eq, exact_eq,
     intersect_edge_plane, intersect_three_planes_exact, normals_aligned_exact, signed_distance,
     to_plane_relation, Plane, PlaneRelation,
 };
+pub use super::primitives::plane::exact_eq as plane_exact_eq;
+pub use super::primitives::plane::signed_distance as plane_signed_distance;
 pub use super::primitives::point::is_same_point_within;
 pub use super::primitives::polygon::{
     compute_largest_triangle_centroid, compute_polygon_area, compute_polygon_centroid,
@@ -53,8 +53,8 @@ pub use super::surface::trim_ops::{TrimCurveOps, TrimOverlapResult};
 
 // Spatial
 pub use super::spatial::acceleration::bsp::{
-    build_convex_polyhedron, clip_cell_by_plane, convex_to_bsp, extract_boundary_cells, merge_bsp,
-    BspConfig, BspNode, BspOp, BspSolid, CellFace, CellVertex, ConvexCell, PlaneSet,
+    build_convex_polyhedron, clip_cell_by_plane, convex_to_bsp, extract_boundary_cells,
+    merge_bsp, BspConfig, BspNode, BspOp, BspSolid, CellFace, CellVertex, ConvexCell, PlaneSet,
 };
 pub use super::spatial::acceleration::bvh::{query_overlapping_pairs, BvhNode};
 pub use super::spatial::coordinate::bounds::compute_characteristic_scale;

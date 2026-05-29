@@ -69,8 +69,8 @@ mod validator_tests {
             WorkerIntentBatch::new("-missing-name-vertex").push(MutationIntent::Create(
                 CreateIntent::Entity(EntitySpec {
                     partition_id: PartitionId::main(),
-                    kind_id: schema::facade::platform::entities::EntityKind::Topology(
-                        schema::facade::platform::entities::TopologyEntityKind::Vertex,
+                    kind_id: schema::facade::EntityKind::Topology(
+                        schema::facade::TopologyEntityKind::Vertex,
                     )
                     .kind_id(),
                     client_key: InternedString::Raw("missing-name.vertex".to_string()),
@@ -285,7 +285,3 @@ mod validator_tests {
         assert_eq!(error.validator(), "shell_closure.closed_shell_manifold");
     }
 }
-
-
-
-

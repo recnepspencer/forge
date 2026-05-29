@@ -1,5 +1,5 @@
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::TopologyRelationKind;
 
 use crate::projection::read_views::domain::closeout::{
     TopologyDomainQueryCloseoutStatus, TopologyDomainQueryPhaseThreeBlocker,
@@ -109,11 +109,11 @@ fn domain_query_proof_report_aggregates_request_and_parity_evidence_on_the_bound
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )
     .expect("seed primitive");
-    let replay_basis = verified.read_basis().replay_of();
+    let replay_basis = verified.read_basis.replay_of();
     let (mut left_workspace, left_assembly) = snapshot_basis_workspace(
         &runtime,
         "query.domain-query-proof.replay.left",
-        &verified.read_basis(),
+        &verified.read_basis,
     );
     let (mut right_workspace, _right_assembly) = snapshot_basis_workspace(
         &runtime,
@@ -134,7 +134,7 @@ fn domain_query_proof_report_aggregates_request_and_parity_evidence_on_the_bound
         .local_rewire_neighborhood(&mut right_workspace, &moved_identity, 6)
         .expect("right local rewire neighborhood should load");
     let left_artifact = build_domain_query_view_parity_artifact(
-        &verified.read_basis(),
+        &verified.read_basis,
         TopologyDomainQueryViewRef::LocalRewire(&left_view),
     );
     let right_artifact = build_domain_query_view_parity_artifact(
@@ -287,7 +287,3 @@ fn domain_query_proof_report_aggregates_request_and_parity_evidence_on_the_bound
         .contains("exact scope-class breadth"));
     assert!(!closeout_report.phase_three_ready);
 }
-
-
-
-

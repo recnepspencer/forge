@@ -12,8 +12,7 @@ use forge_query::facade::{
     ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection, ForgeQueryInspection,
     ForgeQueryMutationBatchBuilder, ForgeQueryWorkspace,
 };
-use schema::facade::platform::entities::TopologyEntityKind;
-use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
@@ -253,7 +252,3 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         }
     }
 }
-
-
-
-

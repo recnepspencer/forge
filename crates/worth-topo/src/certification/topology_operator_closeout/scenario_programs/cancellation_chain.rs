@@ -2,8 +2,7 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{
     created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
 };
-use schema::facade::platform::authority::CreateKey;
-use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::{CreateKey, TopologyEntityKind};
 
 use super::super::report::{
     MilestoneThreeEditReplayStepRow, MilestoneThreeHostileOutcomeClass,
@@ -96,7 +95,7 @@ where
     let verified = seed_milestone_one_primitive(&mut runtime, stem, &primitive)?;
     let face_id = runtime
         .read_truth()
-        .read_snapshot(verified.read_basis().snapshot())
+        .read_snapshot(verified.read_basis.snapshot())
         .ok_or_else(|| {
             TopologyCertificationError::Query(
                 "seeded SheetDisk(n) snapshot should remain readable".to_string(),
@@ -106,7 +105,7 @@ where
         .iter()
         .find(|record| {
             record.kind.kind_id
-                == schema::facade::platform::entities::EntityKind::Topology(TopologyEntityKind::Face).kind_id()
+                == schema::facade::EntityKind::Topology(TopologyEntityKind::Face).kind_id()
         })
         .map(|record| record.entity_id)
         .ok_or_else(|| {
@@ -120,7 +119,7 @@ where
     let assembly = TopologyQueryAssembly::declare(&mut workspace)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_snapshot = assembly
-        .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
+        .snapshot_for_read_basis(&mut workspace, &verified.read_basis)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
         digest_materialized_topology_view(&baseline_snapshot.materialized);
@@ -219,7 +218,3 @@ fn created_relation_id(
                 .map_err(|error| TopologyCertificationError::Query(error.to_string()))
         })
 }
-
-
-
-

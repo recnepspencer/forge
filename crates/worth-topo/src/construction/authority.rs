@@ -63,7 +63,3 @@ mod tests {
         assert!(!authority.authority_digest().is_empty());
     }
 }
-
-
-
-
