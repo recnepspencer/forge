@@ -43,7 +43,6 @@ mod tests {
             source: EntityId::new(PartitionId::new(3), 11, 7),
             target: EntityId::new(PartitionId::new(4), 12, 8),
             authoritative_aspect_state: None,
-            authoritative_field_key_comparison_keys: std::collections::BTreeMap::new(),
         };
 
         assert_eq!(canonical_relation_key(&record), (3, 11, 4, 12, 9, 5));

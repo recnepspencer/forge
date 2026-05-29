@@ -5,8 +5,6 @@ use crate::storage::logic::state::{HistoricalMetadata, PartitionState};
 use super::super::visibility::{
     entity_visible_in_partition_at_version, historical_lifecycle, visible_metadata,
 };
-use super::authoritative_field_comparison_keys::authoritative_entity_field_comparison_keys;
-
 pub(in super::super) fn materialize_current_entity_record(
     runtime: &RelationalRuntime,
     partition: &PartitionState,
@@ -36,11 +34,6 @@ pub(in super::super) fn materialize_current_entity_record(
         created_at_version: partition.entity_arena.created_at[slot],
         retired_at_version: entity_slot.retired_at(),
         authoritative_aspect_state: entity_slot.extra().authoritative_aspect_state.clone(),
-        authoritative_field_key_comparison_keys: authoritative_entity_field_comparison_keys(
-            runtime,
-            kind_id,
-            entity_slot.extra().authoritative_aspect_state.as_ref(),
-        ),
     })
 }
 
@@ -76,10 +69,5 @@ pub(in super::super) fn materialize_entity_record_at_version(
         created_at_version: metadata.effective_at(),
         retired_at_version: metadata.retired_at(),
         authoritative_aspect_state: metadata.authoritative_aspect_state.clone(),
-        authoritative_field_key_comparison_keys: authoritative_entity_field_comparison_keys(
-            runtime,
-            metadata.kind_id,
-            metadata.authoritative_aspect_state.as_ref(),
-        ),
     })
 }

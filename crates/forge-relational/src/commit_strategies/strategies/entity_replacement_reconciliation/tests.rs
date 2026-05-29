@@ -11,7 +11,10 @@ use crate::tests::support::{
     AspectSchemaFixture,
 };
 use crate::transactions::data::AspectFieldPatch;
-use forge_foundational::facade::{AspectValue, FieldKey, InternedString};
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, InternedString,
+    LocatorAuthority,
+};
 
 fn strategy_registry() -> crate::schema::data::RelationalSchemaRegistry {
     AspectSchemaFixture {
@@ -168,11 +171,17 @@ fn entity_replacement_reconciliation_strategy_replacement_declaration_applies_to
         crate::storage::data::authoritative_aspect_value_field_comparison_key(
             &AspectValue::UInt64(7),
         );
+    let replicas_locator = AspectFieldLocator::new(
+        LocatorAuthority::Planned,
+        AspectKey::new("replicas").expect("valid replicas aspect"),
+        CanonicalFieldPath::single(FieldKey::new("replicas").expect("valid replicas field")),
+    );
     assert_eq!(
-        replacement_record.authoritative_field_comparison_key(
-            &FieldKey::new("replicas").expect("valid replicas field")
+        crate::storage::data::entity_authoritative_aspect_field_comparison_key(
+            replacement_record,
+            &replicas_locator
         ),
-        Some(&expected_replicas_key)
+        Some(expected_replicas_key)
     );
 }
 

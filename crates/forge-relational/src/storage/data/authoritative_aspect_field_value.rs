@@ -59,8 +59,6 @@ fn single_field_locator_key(field_locator: &AspectFieldLocator) -> Option<&Field
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
     use forge_foundational::facade::{
         admit_authoritative_record_aspect_state, validate_aspect_value, AspectContract,
         AspectContractRevision, AspectFieldLocator, AspectIdentity, AspectKey, AspectValue,
@@ -98,7 +96,6 @@ mod tests {
             created_at_version: VersionId::new(1),
             retired_at_version: None,
             authoritative_aspect_state: Some(authoritative_state),
-            authoritative_field_key_comparison_keys: BTreeMap::new(),
         };
         let locator = AspectFieldLocator::new(
             LocatorAuthority::Planned,

@@ -17,7 +17,10 @@ use crate::commit_strategies::data::{
     StrategyTraversalBasis,
 };
 use crate::identity::data::EntityId;
-use crate::storage::data::authoritative_aspect_value_field_comparison_key;
+use crate::storage::data::{
+    authoritative_aspect_value_field_comparison_key,
+    entity_authoritative_aspect_field_comparison_key,
+};
 use crate::symbols::data::ClientKey;
 use crate::transactions::data::AspectFieldPatch;
 use crate::transactions::data::{
@@ -243,11 +246,12 @@ impl EntityReplacementReconciliationStrategy {
         desired_fields: &AspectFieldPatch,
     ) -> bool {
         desired_fields.iter().all(|(target, value)| {
-            let [field] = target.field_path().fields() else {
+            let [_field] = target.field_path().fields() else {
                 return false;
             };
             let desired_comparison_key = authoritative_aspect_value_field_comparison_key(value);
-            existing.authoritative_field_comparison_key(field) == Some(&desired_comparison_key)
+            entity_authoritative_aspect_field_comparison_key(existing, target.locator())
+                == Some(desired_comparison_key)
         })
     }
 }

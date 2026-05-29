@@ -6,8 +6,6 @@ use super::super::visibility::{
     historical_lifecycle, lifecycle_storage_visible, relation_visible_in_partition_at_version,
     visible_metadata,
 };
-use super::authoritative_field_comparison_keys::authoritative_relation_field_comparison_keys;
-
 pub(in super::super) fn materialize_current_relation_record(
     runtime: &RelationalRuntime,
     partition: &PartitionState,
@@ -40,11 +38,6 @@ pub(in super::super) fn materialize_current_relation_record(
         source: endpoints.source,
         target: endpoints.target,
         authoritative_aspect_state: relation_slot.extra().authoritative_aspect_state.clone(),
-        authoritative_field_key_comparison_keys: authoritative_relation_field_comparison_keys(
-            runtime,
-            kind_id,
-            relation_slot.extra().authoritative_aspect_state.as_ref(),
-        ),
     })
 }
 
@@ -91,10 +84,5 @@ pub(in super::super) fn materialize_relation_record_at_version(
         source: metadata.endpoints.source,
         target: metadata.endpoints.target,
         authoritative_aspect_state: metadata.authoritative_aspect_state.clone(),
-        authoritative_field_key_comparison_keys: authoritative_relation_field_comparison_keys(
-            runtime,
-            metadata.kind_id,
-            metadata.authoritative_aspect_state.as_ref(),
-        ),
     })
 }

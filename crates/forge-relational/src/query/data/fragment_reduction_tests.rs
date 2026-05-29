@@ -21,7 +21,6 @@ fn test_entity_record(
         created_at_version: VersionId(1),
         retired_at_version: None,
         authoritative_aspect_state: None,
-        authoritative_field_key_comparison_keys: std::collections::BTreeMap::new(),
     }
 }
 
@@ -40,7 +39,6 @@ fn test_relation_record(
         source,
         target,
         authoritative_aspect_state: None,
-        authoritative_field_key_comparison_keys: std::collections::BTreeMap::new(),
     }
 }
 

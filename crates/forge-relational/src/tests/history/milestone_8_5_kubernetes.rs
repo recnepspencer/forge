@@ -24,7 +24,10 @@ use crate::tests::support::{
     AspectSchemaFixture,
 };
 use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
-use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedString};
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, InternedString,
+    LocatorAuthority,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct KubernetesIntentCertificationBundle {
@@ -80,6 +83,16 @@ struct KubernetesBranchHeadEvidence {
 struct KubernetesVisibleTruthEvidence {
     entity_name: Option<String>,
     replicas_canonical_bytes: Option<Vec<u8>>,
+}
+
+fn replicas_canonical_bytes(record: &crate::storage::data::EntityReadRecord) -> Option<Vec<u8>> {
+    let locator = AspectFieldLocator::new(
+        LocatorAuthority::Planned,
+        AspectKey::new("replicas").expect("valid replicas aspect"),
+        CanonicalFieldPath::single(FieldKey::new("replicas").expect("valid replicas field")),
+    );
+    crate::storage::data::entity_authoritative_aspect_field_comparison_key(record, &locator)
+        .map(|key| key.canonical_value_bytes().to_vec())
 }
 
 fn strategy_schema_registry() -> crate::schema::data::RelationalSchemaRegistry {
@@ -735,12 +748,7 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
         },
         visible_truth: KubernetesVisibleTruthEvidence {
             entity_name: read_entity_name(current_entity),
-            replicas_canonical_bytes: current_entity
-                .authoritative_field_comparison_key(
-                    &forge_foundational::facade::FieldKey::new("replicas")
-                        .expect("valid replicas field"),
-                )
-                .map(|key| key.canonical_value_bytes().to_vec()),
+            replicas_canonical_bytes: replicas_canonical_bytes(current_entity),
         },
     };
 
@@ -896,12 +904,7 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
     assert_eq!(
         KubernetesVisibleTruthEvidence {
             entity_name: read_entity_name(recovered_entity),
-            replicas_canonical_bytes: recovered_entity
-                .authoritative_field_comparison_key(
-                    &forge_foundational::facade::FieldKey::new("replicas")
-                        .expect("valid replicas field"),
-                )
-                .map(|key| key.canonical_value_bytes().to_vec()),
+            replicas_canonical_bytes: replicas_canonical_bytes(recovered_entity),
         },
         live_bundle.visible_truth
     );

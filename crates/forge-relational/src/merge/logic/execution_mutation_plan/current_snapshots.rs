@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 use crate::storage::overlay::PartitionAccess;
 
@@ -25,7 +23,6 @@ pub(super) fn current_entity_snapshot(
         created_at_version: partition.entity_arena.created_at[entity_id.local_slot.0 as usize],
         retired_at_version: slot.retired_at(),
         authoritative_aspect_state: slot.extra().authoritative_aspect_state.clone(),
-        authoritative_field_key_comparison_keys: BTreeMap::new(),
     })
 }
 
@@ -54,6 +51,5 @@ pub(super) fn current_relation_snapshot(
         source: endpoints.source,
         target: endpoints.target,
         authoritative_aspect_state: slot.extra().authoritative_aspect_state.clone(),
-        authoritative_field_key_comparison_keys: BTreeMap::new(),
     })
 }

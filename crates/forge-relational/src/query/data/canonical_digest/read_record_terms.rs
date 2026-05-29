@@ -1,10 +1,8 @@
 use crate::identity::data::{LineageId, VersionId};
 use crate::schema::data::KindResolution;
-use crate::storage::data::{
-    AuthoritativeFieldComparisonKey, EntityReadRecord, RecordLifecycleState, RelationReadRecord,
-};
+use crate::storage::data::{EntityReadRecord, RecordLifecycleState, RelationReadRecord};
 use forge_foundational::facade::{
-    AuthoritativeRecordAspectState, ContractValidatedAspectValueView, FieldKey, StructAspectValue,
+    AuthoritativeRecordAspectState, ContractValidatedAspectValueView, StructAspectValue,
 };
 
 use super::primitive_terms::{
@@ -35,7 +33,6 @@ pub(super) fn encode_entity_read_record(bytes: &mut Vec<u8>, record: &EntityRead
     encode_version_id(bytes, record.created_at_version);
     encode_optional_version_id(bytes, record.retired_at_version);
     encode_optional_authoritative_aspect_state(bytes, record.authoritative_aspect_state.as_ref());
-    encode_field_comparison_keys(bytes, &record.authoritative_field_key_comparison_keys);
 }
 
 pub(super) fn encode_relation_read_record(bytes: &mut Vec<u8>, record: &RelationReadRecord) {
@@ -47,7 +44,6 @@ pub(super) fn encode_relation_read_record(bytes: &mut Vec<u8>, record: &Relation
     encode_entity_id(bytes, record.source);
     encode_entity_id(bytes, record.target);
     encode_optional_authoritative_aspect_state(bytes, record.authoritative_aspect_state.as_ref());
-    encode_field_comparison_keys(bytes, &record.authoritative_field_key_comparison_keys);
 }
 
 fn encode_kind_resolution(bytes: &mut Vec<u8>, kind: &KindResolution) {
@@ -93,18 +89,6 @@ fn encode_struct_aspect_value(bytes: &mut Vec<u8>, value: &StructAspectValue) {
     for (field, field_value) in value.fields() {
         encode_field_key(bytes, field);
         encode_length_prefixed_aspect_value(bytes, field_value);
-    }
-}
-
-fn encode_field_comparison_keys(
-    bytes: &mut Vec<u8>,
-    fields: &std::collections::BTreeMap<FieldKey, AuthoritativeFieldComparisonKey>,
-) {
-    encode_usize(bytes, fields.len());
-    for (field, comparison_key) in fields {
-        encode_field_key(bytes, field);
-        encode_usize(bytes, comparison_key.canonical_value_bytes().len());
-        bytes.extend_from_slice(comparison_key.canonical_value_bytes());
     }
 }
 

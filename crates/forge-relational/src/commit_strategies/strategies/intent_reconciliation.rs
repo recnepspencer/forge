@@ -16,7 +16,10 @@ use crate::commit_strategies::data::{
     StrategyReadScopeClass, StrategyRequestCanonicalization, StrategyTraversalBasis,
 };
 use crate::identity::data::EntityId;
-use crate::storage::data::authoritative_aspect_value_field_comparison_key;
+use crate::storage::data::{
+    authoritative_aspect_value_field_comparison_key,
+    entity_authoritative_aspect_field_comparison_key,
+};
 use crate::transactions::data::AspectFieldPatch;
 use crate::transactions::data::{
     EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
@@ -224,11 +227,12 @@ impl IntentReconciliationStrategy {
 
     fn authoritative_field_matches(
         existing: &crate::storage::data::EntityReadRecord,
-        key: &FieldKey,
+        target: &crate::transactions::data::AspectFieldPatchTarget,
         desired_value: &forge_foundational::facade::AspectValue,
     ) -> bool {
         let desired_comparison_key = authoritative_aspect_value_field_comparison_key(desired_value);
-        existing.authoritative_field_comparison_key(key) == Some(&desired_comparison_key)
+        entity_authoritative_aspect_field_comparison_key(existing, target.locator())
+            == Some(desired_comparison_key)
     }
 }
 
@@ -253,10 +257,10 @@ impl CommitStrategyExecutor for IntentReconciliationStrategy {
             })?;
         let desired_fields = Self::reconcile_fields(observation, &existing, &input.desired_fields)?;
         let unchanged = desired_fields.iter().all(|(target, desired_value)| {
-            let [field] = target.field_path().fields() else {
+            let [_field] = target.field_path().fields() else {
                 return false;
             };
-            Self::authoritative_field_matches(&existing, field, desired_value)
+            Self::authoritative_field_matches(&existing, target, desired_value)
         });
 
         let (action, mutation_program) = if unchanged {

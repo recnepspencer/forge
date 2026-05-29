@@ -841,11 +841,17 @@ mod tests {
             crate::storage::data::authoritative_aspect_value_field_comparison_key(
                 &AspectValue::UInt64(3),
             );
+        let replicas_locator = AspectFieldLocator::new(
+            LocatorAuthority::Planned,
+            AspectKey::new("replicas").expect("valid replicas aspect"),
+            CanonicalFieldPath::single(FieldKey::new("replicas").expect("valid replicas field")),
+        );
         assert_eq!(
-            replacement_record.authoritative_field_comparison_key(
-                &FieldKey::new("replicas").expect("valid replicas field")
+            crate::storage::data::entity_authoritative_aspect_field_comparison_key(
+                &replacement_record,
+                &replicas_locator
             ),
-            Some(&expected_replicas_key)
+            Some(expected_replicas_key)
         );
         assert_eq!(
             strategy_artifacts

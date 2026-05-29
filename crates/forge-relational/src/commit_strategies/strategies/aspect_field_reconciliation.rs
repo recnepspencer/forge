@@ -14,7 +14,10 @@ use crate::commit_strategies::data::{
     StrategyPacketContract, StrategyReadContract, StrategyReadCostClass, StrategyReadLocalityClass,
     StrategyReadScopeClass, StrategyRequestCanonicalization, StrategyTraversalBasis,
 };
-use crate::storage::data::authoritative_aspect_value_field_comparison_key;
+use crate::storage::data::{
+    authoritative_aspect_value_field_comparison_key,
+    entity_authoritative_aspect_field_comparison_key,
+};
 use crate::transactions::data::AspectFieldPatch;
 use crate::transactions::data::{
     EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
@@ -211,8 +214,9 @@ impl CommitStrategyExecutor for AspectFieldReconciliationStrategy {
         )?;
         let desired_comparison_key =
             authoritative_aspect_value_field_comparison_key(&input.desired_value);
-        let updated = existing.authoritative_field_comparison_key(&field_key)
-            != Some(&desired_comparison_key);
+        let updated =
+            entity_authoritative_aspect_field_comparison_key(&existing, &input.field_locator)
+                != Some(desired_comparison_key);
         let mutation_program = if updated {
             let batch = WorkerIntentBatch::new("aspect-field-reconciliation-update").push(
                 MutationIntent::Entity(EntityMutationIntent::UpdateFields(

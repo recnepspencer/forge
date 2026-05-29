@@ -1,4 +1,6 @@
-use forge_foundational::facade::{AspectValue, FieldKey};
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::commit_strategies::data::{
@@ -15,7 +17,10 @@ use crate::commit_strategies::data::{
     StrategyTraversalBasis,
 };
 use crate::identity::data::EntityId;
-use crate::storage::data::authoritative_aspect_value_field_comparison_key;
+use crate::storage::data::{
+    authoritative_aspect_value_field_comparison_key,
+    entity_authoritative_aspect_field_comparison_key,
+};
 use crate::transactions::data::AspectFieldPatch;
 use crate::transactions::data::{
     EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
@@ -247,26 +252,34 @@ impl CommitStrategyExecutor for ReplicaConvergenceStrategy {
         let desired_replicas_comparison_key =
             authoritative_aspect_value_field_comparison_key(&desired_replicas_value);
 
-        let (action, mutation_program) = if existing.authoritative_field_comparison_key(&replicas)
-            == Some(&desired_replicas_comparison_key)
-        {
-            (
-                ReplicaConvergenceAction::NoChange,
-                StrategyMutationProgram::new(Vec::<WorkerIntentBatch>::new()),
-            )
-        } else {
-            let batch =
-                WorkerIntentBatch::new("replica-convergence-update").push(MutationIntent::Entity(
-                    EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
-                        entity_id: input.entity_id,
-                        fields: desired_fields,
-                    }),
-                ));
-            (
-                ReplicaConvergenceAction::UpdateReplicas,
-                StrategyMutationProgram::new(vec![batch]),
-            )
-        };
+        let replicas_field_locator = AspectFieldLocator::new(
+            LocatorAuthority::Planned,
+            replicas_aspect_key,
+            CanonicalFieldPath::single(replicas.clone()),
+        );
+
+        let (action, mutation_program) =
+            if entity_authoritative_aspect_field_comparison_key(&existing, &replicas_field_locator)
+                == Some(desired_replicas_comparison_key)
+            {
+                (
+                    ReplicaConvergenceAction::NoChange,
+                    StrategyMutationProgram::new(Vec::<WorkerIntentBatch>::new()),
+                )
+            } else {
+                let batch = WorkerIntentBatch::new("replica-convergence-update").push(
+                    MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                        UpdateEntityFieldsIntent {
+                            entity_id: input.entity_id,
+                            fields: desired_fields,
+                        },
+                    )),
+                );
+                (
+                    ReplicaConvergenceAction::UpdateReplicas,
+                    StrategyMutationProgram::new(vec![batch]),
+                )
+            };
 
         let output = Self::output_artifact(&ReplicaConvergenceOutput {
             entity_id: input.entity_id,

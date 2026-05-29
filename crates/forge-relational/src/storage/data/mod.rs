@@ -1,6 +1,4 @@
-use std::collections::BTreeMap;
-
-use forge_foundational::facade::{AuthoritativeRecordAspectState, FieldKey};
+use forge_foundational::facade::AuthoritativeRecordAspectState;
 use serde::{Deserialize, Serialize};
 
 use crate::identity::data::{EntityId, LineageId, RelationId, VersionId};
@@ -43,8 +41,6 @@ pub struct EntityReadRecord {
     pub created_at_version: VersionId,
     pub retired_at_version: Option<VersionId>,
     pub authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
-    pub authoritative_field_key_comparison_keys:
-        BTreeMap<FieldKey, AuthoritativeFieldComparisonKey>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,8 +53,6 @@ pub struct RelationReadRecord {
     pub source: EntityId,
     pub target: EntityId,
     pub authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
-    pub authoritative_field_key_comparison_keys:
-        BTreeMap<FieldKey, AuthoritativeFieldComparisonKey>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -139,24 +133,6 @@ impl RelationalReadView {
             .binary_search_by_key(&relation_id, |record| record.relation_id)
             .ok()
             .map(|index| &self.relations[index])
-    }
-}
-
-impl EntityReadRecord {
-    pub fn authoritative_field_comparison_key(
-        &self,
-        field_key: &FieldKey,
-    ) -> Option<&AuthoritativeFieldComparisonKey> {
-        self.authoritative_field_key_comparison_keys.get(field_key)
-    }
-}
-
-impl RelationReadRecord {
-    pub fn authoritative_field_comparison_key(
-        &self,
-        field_key: &FieldKey,
-    ) -> Option<&AuthoritativeFieldComparisonKey> {
-        self.authoritative_field_key_comparison_keys.get(field_key)
     }
 }
 

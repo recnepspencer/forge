@@ -7,9 +7,7 @@ use sha2::{Digest, Sha256};
 
 use crate::facade::harness::RelationalHarnessError;
 use crate::identity::data::{EntityId, RelationId};
-use crate::storage::data::{
-    AuthoritativeFieldComparisonKey, EntityReadRecord, RecordLifecycleState, RelationReadRecord,
-};
+use crate::storage::data::{EntityReadRecord, RecordLifecycleState, RelationReadRecord};
 
 const SNAPSHOT_MEDIA_TYPE: &str =
     "application/vnd.forge.relational.harness.aspect-snapshot.v1+octet-stream";
@@ -29,7 +27,6 @@ pub(super) fn entity_aspect_snapshot_binary(
     encoder.u64(record.created_at_version.0);
     encoder.optional_u64(record.retired_at_version.map(|version| version.0));
     encoder.authoritative_aspect_state(record.authoritative_aspect_state.as_ref())?;
-    encoder.comparison_keys(&record.authoritative_field_key_comparison_keys);
     Ok(harness_snapshot_binary(encoder.finish()))
 }
 
@@ -45,7 +42,6 @@ pub(super) fn relation_aspect_snapshot_binary(
     encoder.u64(record.created_at_version.0);
     encoder.optional_u64(record.retired_at_version.map(|version| version.0));
     encoder.authoritative_aspect_state(record.authoritative_aspect_state.as_ref())?;
-    encoder.comparison_keys(&record.authoritative_field_key_comparison_keys);
     Ok(harness_snapshot_binary(encoder.finish()))
 }
 
@@ -85,20 +81,6 @@ impl AspectSnapshotBinaryEncoder {
             self.validated_value(value.view())?;
         }
         Ok(())
-    }
-
-    fn comparison_keys(
-        &mut self,
-        keys: &std::collections::BTreeMap<
-            forge_foundational::facade::FieldKey,
-            AuthoritativeFieldComparisonKey,
-        >,
-    ) {
-        self.u32(keys.len() as u32);
-        for (field_key, comparison_key) in keys {
-            self.string(field_key.as_str());
-            self.bytes(comparison_key.canonical_value_bytes());
-        }
     }
 
     fn validated_value(

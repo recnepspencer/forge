@@ -1,25 +1,45 @@
 use super::*;
 
-use forge_foundational::facade::{AspectValue, FieldKey, InternedString};
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectValue, CanonicalFieldPath, FieldKey, InternedString, LocatorAuthority,
+};
+
+use crate::storage::data::{
+    entity_authoritative_aspect_field_comparison_key,
+    relation_authoritative_aspect_field_comparison_key, AuthoritativeFieldComparisonKey,
+};
 
 pub(crate) fn read_entity_name(record: &EntityReadRecord) -> Option<String> {
     read_entity_field(record, field_key("name"))
 }
 
 pub(crate) fn read_entity_field(record: &EntityReadRecord, field_key: FieldKey) -> Option<String> {
-    record
-        .authoritative_field_comparison_key(&field_key)
-        .and_then(|key| crate::aspect_wire::decode_aspect_value(key.canonical_value_bytes()).ok())
-        .map(display_text_for_test_aspect_value)
+    entity_authoritative_aspect_field_comparison_key(record, &test_aspect_field_locator(field_key))
+        .and_then(display_text_from_comparison_key)
 }
 
 pub(crate) fn read_relation_field(
     record: &crate::facade::runtime::RelationReadRecord,
     field_key: FieldKey,
 ) -> Option<String> {
-    record
-        .authoritative_field_comparison_key(&field_key)
-        .and_then(|key| crate::aspect_wire::decode_aspect_value(key.canonical_value_bytes()).ok())
+    relation_authoritative_aspect_field_comparison_key(
+        record,
+        &test_aspect_field_locator(field_key),
+    )
+    .and_then(display_text_from_comparison_key)
+}
+
+fn test_aspect_field_locator(field_key: FieldKey) -> AspectFieldLocator {
+    AspectFieldLocator::new(
+        LocatorAuthority::Planned,
+        aspect_key(field_key.as_str()),
+        CanonicalFieldPath::single(field_key),
+    )
+}
+
+fn display_text_from_comparison_key(key: AuthoritativeFieldComparisonKey) -> Option<String> {
+    crate::aspect_wire::decode_aspect_value(key.canonical_value_bytes())
+        .ok()
         .map(display_text_for_test_aspect_value)
 }
 
