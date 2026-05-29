@@ -28,7 +28,7 @@ pub(super) fn extract_query_context_facts(
         .fact_families()
         .iter()
         .any(|fact| fact.kind() == ProjectionFactKind::ViewLocalIdentity);
-    let extracts_payload_fields = contract.fact_families().iter().any(|fact| {
+    let extracts_row_value_fields = contract.fact_families().iter().any(|fact| {
         matches!(
             fact.kind(),
             ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField
@@ -44,9 +44,9 @@ pub(super) fn extract_query_context_facts(
     let mut display_fields = Vec::new();
     let mut derived_scalar_fields = Vec::new();
 
-    for (index, payload) in execution.payload().iter().enumerate() {
+    for (index, row) in execution.rows().iter().enumerate() {
         let row_identity = query_context_row_identity(execution, index);
-        let payload_value = Value::String(payload.clone());
+        let row_value = Value::String(row.clone());
         for fact_family in contract.fact_families() {
             match fact_family.kind() {
                 ProjectionFactKind::EntityIdentity => {
@@ -66,7 +66,7 @@ pub(super) fn extract_query_context_facts(
                     let fact = ConsumedFieldValueFact::new(
                         row_identity.clone(),
                         field_key,
-                        payload_value.clone(),
+                        row_value.clone(),
                     );
                     if fact_family.kind() == ProjectionFactKind::DisplayField {
                         display_fields.push(fact);
@@ -101,9 +101,9 @@ pub(super) fn extract_query_context_facts(
 
     let row_identity_surface_count =
         usize::from(extracts_entity_identity || extracts_view_local_identity);
-    let payload_surface_count = usize::from(extracts_payload_fields);
+    let row_value_surface_count = usize::from(extracts_row_value_fields);
     let source_row_width_consumed =
-        execution.payload().len() * (row_identity_surface_count + payload_surface_count);
+        execution.rows().len() * (row_identity_surface_count + row_value_surface_count);
     let source_evidence_lookup_width = source_references.len();
     let extracted_fact_count = entity_identities.len()
         + view_local_identities.len()

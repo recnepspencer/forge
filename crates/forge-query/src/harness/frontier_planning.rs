@@ -249,7 +249,7 @@ fn ordered_collection_lowers_into_parallel_route_with_typed_executor_entrypoint(
         execute_parallel_admission_route(&route).expect("parallel route entrypoint should execute");
     let baseline = execute_preflight_bundle(&preflight).expect("baseline execution should succeed");
 
-    assert_eq!(typed.payload(), baseline.payload());
+    assert_eq!(typed.rows(), baseline.rows());
     assert_eq!(
         typed.report().result_digest(),
         baseline.report().result_digest()
@@ -456,7 +456,7 @@ fn bounded_materialization_lowers_into_serial_fallback_route_with_typed_executor
         .expect("serial fallback route entrypoint should execute");
     let baseline = execute_preflight_bundle(&preflight).expect("baseline execution should succeed");
 
-    assert_eq!(typed.payload(), baseline.payload());
+    assert_eq!(typed.rows(), baseline.rows());
     assert_eq!(
         typed.report().result_digest(),
         baseline.report().result_digest()

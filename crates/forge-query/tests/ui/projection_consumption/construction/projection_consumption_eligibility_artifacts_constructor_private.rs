@@ -49,7 +49,7 @@ fn main() {
         failure_digest: String::new(),
     };
     let _ = ProjectionConsumptionWarnings {
-        warning_kinds: vec![ProjectionConsumptionWarningKind::QueryContextPayloadBound],
+        warning_kinds: vec![ProjectionConsumptionWarningKind::QueryContextRowBound],
         warning_digest: String::new(),
     };
 }

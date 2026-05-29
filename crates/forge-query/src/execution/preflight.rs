@@ -37,7 +37,7 @@ pub fn execute_preflight_bundle(
             )
             })
             .unwrap_or(false);
-    let payload: Vec<String> = (0..preflight.plan().result_shape().binding_count())
+    let rows: Vec<String> = (0..preflight.plan().result_shape().binding_count())
         .map(|index| {
             if is_cdc_collection {
                 format!(
@@ -80,7 +80,7 @@ pub fn execute_preflight_bundle(
 
     let counters = ExecutionCounters::from_preflight(preflight);
     let result_digest = ResultDigest::from_parts(
-        &payload
+        &rows
             .iter()
             .cloned()
             .chain(std::iter::once(format!(
@@ -118,7 +118,7 @@ pub fn execute_preflight_bundle(
             .collect::<Vec<_>>(),
     );
     let report = ExecutionReport::from_preflight(preflight, result_digest);
-    ExecutionResultEnvelope::new(payload, report, counters)
+    ExecutionResultEnvelope::new(rows, report, counters)
 }
 
 #[cfg(test)]

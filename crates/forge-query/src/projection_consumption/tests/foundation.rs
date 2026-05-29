@@ -275,7 +275,7 @@ fn query_context_support_and_admission_share_warning_posture() {
     assert!(matches!(
         row.posture(),
         ProjectionConsumptionSupportPosture::AdmittedWithWarnings(
-            ProjectionConsumptionWarningKind::QueryContextPayloadBound
+            ProjectionConsumptionWarningKind::QueryContextRowBound
         )
     ));
 
@@ -290,7 +290,7 @@ fn query_context_support_and_admission_share_warning_posture() {
         ProjectionConsumptionEligibility::AdmittedWithWarnings(_, warnings) => {
             assert_eq!(
                 warnings.warning_kinds(),
-                [ProjectionConsumptionWarningKind::QueryContextPayloadBound]
+                [ProjectionConsumptionWarningKind::QueryContextRowBound]
             );
         }
         other => panic!("unexpected eligibility posture: {other:?}"),

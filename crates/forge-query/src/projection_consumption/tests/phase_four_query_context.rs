@@ -10,7 +10,7 @@ use super::phase_four_support::{
 use crate::query_context::{QueryContextExecutionArtifact, QueryContextExecutionFamily};
 
 #[test]
-fn current_query_context_extracts_identity_and_payload_bound_field_facts() {
+fn current_query_context_extracts_identity_and_row_bound_field_facts() {
     let execution = query_context_execution_current();
     let contract = admitted(
         ProjectionConsumptionSource::from_query_context_execution(&execution),

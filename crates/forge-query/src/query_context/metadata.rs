@@ -325,7 +325,10 @@ pub fn build_query_basis_result_bundle(
             "execution_count:{}",
             execution.counters().context_execution_count()
         ),
-        format!("payload_rows:{}", execution.counters().payload_row_count()),
+        format!(
+            "materialized_rows:{}",
+            execution.counters().materialized_row_count()
+        ),
         format!(
             "result_shape_width:{}",
             execution.counters().result_shape_width()

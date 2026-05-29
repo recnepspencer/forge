@@ -107,7 +107,7 @@ fn aftermath_runtime_materializer_preserves_warning_bearing_eligibility() {
         ProjectionConsumptionEligibility::AdmittedWithWarnings(_, warnings) => {
             assert_eq!(
                 warnings.warning_kinds(),
-                [ProjectionConsumptionWarningKind::QueryContextPayloadBound]
+                [ProjectionConsumptionWarningKind::QueryContextRowBound]
             );
         }
         other => panic!("expected warning-bearing eligibility, got {other:?}"),

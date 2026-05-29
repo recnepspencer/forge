@@ -267,10 +267,7 @@ pub fn shape_query_diff_change_set(
         ));
     }
 
-    let width = left_result
-        .payload()
-        .len()
-        .max(right_result.payload().len());
+    let width = left_result.rows().len().max(right_result.rows().len());
 
     if width > context.prediction_report().comparison_row_width() {
         return Err(QueryContextAdmissionError::new(
@@ -282,8 +279,8 @@ pub fn shape_query_diff_change_set(
 
     let mut rows = Vec::with_capacity(width);
     for ordinal in 0..width {
-        let left_value = left_result.payload().get(ordinal).cloned();
-        let right_value = right_result.payload().get(ordinal).cloned();
+        let left_value = left_result.rows().get(ordinal).cloned();
+        let right_value = right_result.rows().get(ordinal).cloned();
         let family = match (&left_value, &right_value) {
             (Some(left), Some(right)) if left == right => QueryDiffChangeFamily::Unchanged,
             (Some(_), Some(_)) => QueryDiffChangeFamily::Modified,

@@ -3,7 +3,7 @@ use crate::collection::{
 };
 use crate::identity::ResultDigest;
 
-pub(super) fn synthetic_payload(
+pub(super) fn synthetic_rows(
     preflight: &crate::basis::ExecutionPreflightBundle,
     basis_digest: &str,
     requested_path_class: Option<&str>,
@@ -85,7 +85,7 @@ pub(super) fn synthetic_payload(
 pub(super) fn synthetic_result_digest(
     preflight: &crate::basis::ExecutionPreflightBundle,
     basis_digest: &str,
-    payload: &[String],
+    rows: &[String],
     requested_path_class: Option<&str>,
     materialization_identity: Option<&str>,
 ) -> ResultDigest {
@@ -123,7 +123,7 @@ pub(super) fn synthetic_result_digest(
         .unwrap_or(false);
 
     ResultDigest::from_parts(
-        &payload
+        &rows
             .iter()
             .cloned()
             .chain(std::iter::once(format!(

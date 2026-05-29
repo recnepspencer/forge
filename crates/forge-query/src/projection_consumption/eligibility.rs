@@ -19,14 +19,14 @@ pub enum DeferredProjectionConsumptionReason {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ProjectionConsumptionWarningKind {
-    QueryContextPayloadBound,
+    QueryContextRowBound,
     PreviewDerivedContext,
 }
 
 impl ProjectionConsumptionWarningKind {
     pub fn as_str(&self) -> &'static str {
         match self {
-            Self::QueryContextPayloadBound => "query_context_payload_bound",
+            Self::QueryContextRowBound => "query_context_row_bound",
             Self::PreviewDerivedContext => "preview_derived_context",
         }
     }

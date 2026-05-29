@@ -254,7 +254,7 @@ fn query_context_payload_warning(
         ProjectionSourceExecutionPosture::Current
         | ProjectionSourceExecutionPosture::Branch
         | ProjectionSourceExecutionPosture::Historical => {
-            ProjectionConsumptionWarningKind::QueryContextPayloadBound
+            ProjectionConsumptionWarningKind::QueryContextRowBound
         }
     }
 }

@@ -28,10 +28,10 @@ pub(in crate::runtime) fn materialize_query_context_rows(
     context_execution: &QueryContextExecutionArtifact,
 ) -> Vec<ForgeQueryEntity> {
     context_execution
-        .payload()
+        .rows()
         .iter()
         .enumerate()
-        .map(|(index, payload)| ForgeQueryEntity {
+        .map(|(index, row)| ForgeQueryEntity {
             identity: format!(
                 "query-context:{}:{}",
                 context_execution.family().as_str(),
@@ -41,7 +41,7 @@ pub(in crate::runtime) fn materialize_query_context_rows(
                 "query_context": {
                     "basis_digest": context_execution.basis_digest(),
                     "query_digest": context_execution.query_digest(),
-                    "payload": payload,
+                    "row": row,
                     "result_digest": context_execution.result_digest(),
                 },
                 "relations": {},
