@@ -175,14 +175,17 @@ impl<'runtime> IndexAccess<'runtime> {
     #[cfg(test)]
     pub(crate) fn entity_unique_field_entries(
         &self,
-        field: &forge_foundational::facade::FieldKey,
+        field_locator: &forge_foundational::facade::AspectFieldLocator,
     ) -> Option<
         &std::collections::BTreeMap<
             crate::storage::data::AuthoritativeFieldComparisonKey,
             std::collections::BTreeSet<crate::identity::data::EntityId>,
         >,
     > {
-        self.runtime.indexes.entity_unique_field_index.get(field)
+        self.runtime
+            .indexes
+            .entity_unique_aspect_field_index
+            .get(field_locator)
     }
 }
 

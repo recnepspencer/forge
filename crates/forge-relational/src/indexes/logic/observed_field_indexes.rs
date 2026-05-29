@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use forge_foundational::facade::FieldKey;
 
@@ -33,26 +33,4 @@ pub(super) fn build_relation_field_index(
             .push(relation.relation_id);
     }
     map
-}
-
-pub(super) fn collect_unique_entity_field_entries(
-    records: &[EntityReadRecord],
-    tracked_fields: &BTreeSet<FieldKey>,
-) -> Vec<(FieldKey, AuthoritativeFieldComparisonKey, EntityId)> {
-    let mut entries = Vec::new();
-    for entity in records {
-        entries.extend(unique_entity_field_entries(entity, tracked_fields));
-    }
-    entries
-}
-
-fn unique_entity_field_entries<'a>(
-    entity: &'a EntityReadRecord,
-    tracked_fields: &'a BTreeSet<FieldKey>,
-) -> impl Iterator<Item = (FieldKey, AuthoritativeFieldComparisonKey, EntityId)> + 'a {
-    tracked_fields.iter().filter_map(move |field| {
-        entity
-            .authoritative_field_comparison_key(field)
-            .map(|value| (field.clone(), value.clone(), entity.entity_id))
-    })
 }

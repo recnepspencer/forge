@@ -18,8 +18,9 @@ use self::diagnostics::{
 use self::packet_planning::{
     choose_index_preparation_strategy, plan_index_packets, planned_index_definitions,
 };
-use super::unique_field_index::{
-    rebuild_unique_field_indexes, refresh_unique_field_index_for_records,
+use super::unique_entity_aspect_field_index::{
+    rebuild_unique_entity_aspect_field_indexes,
+    refresh_unique_entity_aspect_field_index_for_records,
 };
 
 pub struct IndexAuthority<'runtime> {
@@ -114,16 +115,20 @@ impl<'runtime> IndexAuthority<'runtime> {
         }
     }
 
-    pub(crate) fn refresh_unique_field_index_for_records(
+    pub(crate) fn refresh_unique_entity_aspect_field_index_for_records(
         &mut self,
         changed_records: &[crate::transactions::data::RecordRef],
         version_id: crate::identity::data::VersionId,
     ) {
-        refresh_unique_field_index_for_records(self.runtime, changed_records, version_id);
+        refresh_unique_entity_aspect_field_index_for_records(
+            self.runtime,
+            changed_records,
+            version_id,
+        );
     }
 
-    pub(crate) fn rebuild_unique_field_indexes(&mut self) {
-        rebuild_unique_field_indexes(self.runtime);
+    pub(crate) fn rebuild_unique_entity_aspect_field_indexes(&mut self) {
+        rebuild_unique_entity_aspect_field_indexes(self.runtime);
     }
 
     fn source_commit_version_id(

@@ -16,9 +16,7 @@ use crate::validation::data::{
 
 use super::super::context::InvariantExecutionContext;
 use super::common::{storage_inconsistency_violation, StorageInconsistencyContext};
-use authoritative_field_values::{
-    record_authoritative_field_value, visible_entity_field_value_conflict,
-};
+use authoritative_field_values::visible_entity_field_value_conflict;
 use planned_field_values::{planned_entity_aspect_field_values, PlannedEntityAspectFieldValue};
 
 pub(super) fn evaluate_unique_entity_aspect_field(
@@ -97,7 +95,9 @@ fn touched_unique_entity_aspect_field_violation(
         let Some(record) = context.visible_entity_record(entity_id) else {
             continue;
         };
-        let Some(value) = record_authoritative_field_value(&record, field_locator) else {
+        let Some(value) =
+            crate::storage::data::entity_authoritative_aspect_field_value(&record, field_locator)
+        else {
             continue;
         };
         let comparison_key = authoritative_aspect_value_field_comparison_key(&value);
@@ -153,7 +153,10 @@ fn visible_unique_entity_aspect_field_violation(
             let Some(record) = context.visible_entity_record(metadata.entity_id) else {
                 continue;
             };
-            let Some(value) = record_authoritative_field_value(&record, field_locator) else {
+            let Some(value) = crate::storage::data::entity_authoritative_aspect_field_value(
+                &record,
+                field_locator,
+            ) else {
                 continue;
             };
             let comparison_key = authoritative_aspect_value_field_comparison_key(&value);

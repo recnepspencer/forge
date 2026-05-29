@@ -11,8 +11,10 @@ use crate::schema::data::KindResolution;
 use crate::snapshots::data::SnapshotHandle;
 use crate::transactions::data::RecordRef;
 
+mod authoritative_aspect_field_value;
 mod authoritative_field_comparison_key;
 
+pub use authoritative_aspect_field_value::entity_authoritative_aspect_field_value;
 pub use authoritative_field_comparison_key::{
     authoritative_aspect_value_field_comparison_key, AuthoritativeFieldComparisonKey,
 };

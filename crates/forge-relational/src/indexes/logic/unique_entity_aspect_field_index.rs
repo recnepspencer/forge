@@ -1,0 +1,155 @@
+use std::collections::BTreeSet;
+
+use forge_foundational::facade::AspectFieldLocator;
+
+use crate::logic::runtime::RelationalRuntime;
+use crate::storage::data::{
+    authoritative_aspect_value_field_comparison_key, entity_authoritative_aspect_field_value,
+    AuthoritativeFieldComparisonKey, EntityReadRecord,
+};
+
+pub(crate) fn refresh_unique_entity_aspect_field_index_for_records(
+    runtime: &mut RelationalRuntime,
+    changed_records: &[crate::transactions::data::RecordRef],
+    version_id: crate::identity::data::VersionId,
+) {
+    let tracked_fields = tracked_unique_entity_aspect_fields(runtime);
+    if tracked_fields.is_empty() {
+        return;
+    }
+    let projection = runtime.read_truth().project_version(version_id);
+    let refreshed_values = changed_entity_records(&projection, changed_records);
+    let refreshed_values =
+        collect_unique_entity_aspect_field_entries(&refreshed_values, &tracked_fields);
+    remove_changed_entities_from_unique_entity_aspect_field_index(
+        runtime,
+        changed_records,
+        &tracked_fields,
+    );
+    write_unique_entity_aspect_field_index_entries(runtime, refreshed_values);
+}
+
+pub(crate) fn rebuild_unique_entity_aspect_field_indexes(runtime: &mut RelationalRuntime) {
+    runtime.indexes.entity_unique_aspect_field_index.clear();
+    let tracked_fields = tracked_unique_entity_aspect_fields(runtime);
+    if tracked_fields.is_empty() {
+        return;
+    }
+    let projection = runtime
+        .read_truth()
+        .project_version(runtime.current_version_id());
+    let rebuilt_values = collect_unique_entity_aspect_field_entries(
+        &projection.all_entity_records(),
+        &tracked_fields,
+    );
+    write_unique_entity_aspect_field_index_entries(runtime, rebuilt_values);
+}
+
+fn remove_changed_entities_from_unique_entity_aspect_field_index(
+    runtime: &mut RelationalRuntime,
+    changed_records: &[crate::transactions::data::RecordRef],
+    tracked_fields: &BTreeSet<AspectFieldLocator>,
+) {
+    for record in changed_records {
+        let crate::transactions::data::RecordRef::Entity(entity_id) = record else {
+            continue;
+        };
+        for field_locator in tracked_fields {
+            if let Some(values) = runtime
+                .indexes
+                .entity_unique_aspect_field_index
+                .get_mut(field_locator)
+            {
+                values.retain(|_, entity_ids| {
+                    entity_ids.remove(entity_id);
+                    !entity_ids.is_empty()
+                });
+            }
+        }
+    }
+}
+
+fn write_unique_entity_aspect_field_index_entries(
+    runtime: &mut RelationalRuntime,
+    entries: Vec<(
+        AspectFieldLocator,
+        AuthoritativeFieldComparisonKey,
+        crate::identity::data::EntityId,
+    )>,
+) {
+    for (field_locator, value, entity_id) in entries {
+        runtime
+            .indexes
+            .entity_unique_aspect_field_index
+            .entry(field_locator)
+            .or_default()
+            .entry(value)
+            .or_default()
+            .insert(entity_id);
+    }
+}
+
+fn collect_unique_entity_aspect_field_entries(
+    records: &[EntityReadRecord],
+    tracked_fields: &BTreeSet<AspectFieldLocator>,
+) -> Vec<(
+    AspectFieldLocator,
+    AuthoritativeFieldComparisonKey,
+    crate::identity::data::EntityId,
+)> {
+    let mut entries = Vec::new();
+    for entity in records {
+        entries.extend(unique_entity_aspect_field_entries(entity, tracked_fields));
+    }
+    entries
+}
+
+fn unique_entity_aspect_field_entries<'a>(
+    entity: &'a EntityReadRecord,
+    tracked_fields: &'a BTreeSet<AspectFieldLocator>,
+) -> impl Iterator<
+    Item = (
+        AspectFieldLocator,
+        AuthoritativeFieldComparisonKey,
+        crate::identity::data::EntityId,
+    ),
+> + 'a {
+    tracked_fields.iter().filter_map(move |field_locator| {
+        entity_authoritative_aspect_field_value(entity, field_locator).map(|value| {
+            (
+                field_locator.clone(),
+                authoritative_aspect_value_field_comparison_key(&value),
+                entity.entity_id,
+            )
+        })
+    })
+}
+
+fn tracked_unique_entity_aspect_fields(
+    runtime: &RelationalRuntime,
+) -> BTreeSet<AspectFieldLocator> {
+    let mut fields = BTreeSet::new();
+    for registration in &runtime.config.schema.invariant_catalog.registrations {
+        if let crate::validation::data::InvariantRule::UniqueEntityAspectField(target) =
+            &registration.rule
+        {
+            fields.insert(target.field_locator().clone());
+        }
+    }
+    fields
+}
+
+fn changed_entity_records(
+    projection: &crate::logic::runtime::VisibilityProjectionView<'_>,
+    changed_records: &[crate::transactions::data::RecordRef],
+) -> Vec<crate::storage::data::EntityReadRecord> {
+    changed_records
+        .iter()
+        .filter_map(|record| match record {
+            crate::transactions::data::RecordRef::Entity(entity_id) => {
+                projection.entity_record(*entity_id)
+            }
+            crate::transactions::data::RecordRef::Relation(_) => None,
+        })
+        .collect()
+}

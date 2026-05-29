@@ -324,7 +324,7 @@ pub(super) fn finalize_published_commit(
     let phase_started = std::time::Instant::now();
     runtime
         .index_authority()
-        .refresh_unique_field_index_for_records(changed_records, version_id);
+        .refresh_unique_entity_aspect_field_index_for_records(changed_records, version_id);
     phase_timing.index_refresh_micros = phase_started.elapsed().as_micros() as u64;
 
     let phase_started = std::time::Instant::now();

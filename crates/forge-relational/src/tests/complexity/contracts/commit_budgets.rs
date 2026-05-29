@@ -376,7 +376,9 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
     });
     let target = create_entity(&mut runtime, "target");
     let _other = create_entity(&mut runtime, "other");
-    runtime.index_authority().rebuild_unique_field_indexes();
+    runtime
+        .index_authority()
+        .rebuild_unique_entity_aspect_field_indexes();
 
     runtime.performance_access().reset_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
@@ -414,7 +416,9 @@ fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() 
     });
     let target = create_entity(&mut runtime, "target");
     let _other = create_entity(&mut runtime, "other");
-    runtime.index_authority().rebuild_unique_field_indexes();
+    runtime
+        .index_authority()
+        .rebuild_unique_entity_aspect_field_indexes();
 
     runtime.performance_access().reset_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());

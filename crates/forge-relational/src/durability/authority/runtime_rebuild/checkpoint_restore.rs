@@ -142,7 +142,9 @@ pub(super) fn finalize_restored_runtime(
         .unwrap_or(0)
         + 1;
     restored.config.durability.policy.mode = original_durability_mode;
-    restored.index_authority().rebuild_unique_field_indexes();
+    restored
+        .index_authority()
+        .rebuild_unique_entity_aspect_field_indexes();
     restored.visibility_pins().rebuild_branch_pins_from_heads();
     restored.visibility.cache.clear();
     restored

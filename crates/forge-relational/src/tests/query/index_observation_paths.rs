@@ -7,7 +7,7 @@ use crate::tests::support::*;
 use crate::validation::data::{InvariantCatalog, InvariantRegistration, InvariantRule};
 
 #[test]
-fn unique_field_index_refresh_rewrites_name_membership_after_entity_update() {
+fn unique_entity_aspect_field_index_refresh_rewrites_name_membership_after_entity_update() {
     let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::mutation_sensitive_blocking(
             InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
@@ -17,11 +17,13 @@ fn unique_field_index_refresh_rewrites_name_membership_after_entity_update() {
     let alpha = create_entity(&mut runtime, "alpha");
     let beta = create_entity(&mut runtime, "beta");
 
-    runtime.index_authority().rebuild_unique_field_indexes();
+    runtime
+        .index_authority()
+        .rebuild_unique_entity_aspect_field_indexes();
     update_entity(&mut runtime, beta, "gamma");
 
     let index_access = runtime.index_access();
-    let name_field = forge_foundational::facade::FieldKey::new("name").expect("valid field key");
+    let name_field = aspect_field_locator(aspect_key("name"), field_key("name"));
     let entries = index_access
         .entity_unique_field_entries(&name_field)
         .expect("name entries");
@@ -45,6 +47,114 @@ fn unique_field_index_refresh_rewrites_name_membership_after_entity_update() {
             .collect::<Vec<_>>(),
         vec![beta]
     );
+}
+
+#[test]
+fn unique_entity_aspect_field_index_keeps_same_field_key_separate_by_aspect_locator() {
+    let name_field = field_key("name");
+    let legal_name = aspect_key("legal.name");
+    let display_name = aspect_key("display.name");
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(
+            AspectSchemaFixture {
+                entity_aspects: vec![
+                    entity_field_aspect(legal_name.clone(), name_field.clone()),
+                    entity_field_aspect(display_name.clone(), name_field.clone()),
+                    lifecycle_aspect(),
+                ],
+                relation_aspects: vec![
+                    relation_field_aspect(aspect_key("label"), field_key("label")),
+                    lifecycle_aspect(),
+                    relation_source_aspect(),
+                    relation_target_aspect(),
+                ],
+                ..AspectSchemaFixture::default()
+            }
+            .build_registry(),
+        )
+        .invariant_catalog(InvariantCatalog {
+            registrations: vec![
+                InvariantRegistration::mutation_sensitive_blocking(
+                    InvariantRule::unique_entity_aspect_field(
+                        legal_name.clone(),
+                        name_field.clone(),
+                    ),
+                ),
+                InvariantRegistration::mutation_sensitive_blocking(
+                    InvariantRule::unique_entity_aspect_field(
+                        display_name.clone(),
+                        name_field.clone(),
+                    ),
+                ),
+            ],
+            ..InvariantCatalog::default()
+        })
+        .build();
+
+    let alpha = create_entity_with_aspect_fields(
+        &mut runtime,
+        "alpha",
+        aspect_field_patch_from_values([
+            (
+                legal_name.clone(),
+                name_field.clone(),
+                string_aspect_value("alpha-legal"),
+            ),
+            (
+                display_name.clone(),
+                name_field.clone(),
+                string_aspect_value("alpha-display"),
+            ),
+        ]),
+    );
+    let beta = create_entity_with_aspect_fields(
+        &mut runtime,
+        "beta",
+        aspect_field_patch_from_values([
+            (
+                legal_name.clone(),
+                name_field.clone(),
+                string_aspect_value("beta-legal"),
+            ),
+            (
+                display_name.clone(),
+                name_field.clone(),
+                string_aspect_value("beta-display"),
+            ),
+        ]),
+    );
+
+    runtime
+        .index_authority()
+        .rebuild_unique_entity_aspect_field_indexes();
+    let index_access = runtime.index_access();
+    let legal_entries = index_access
+        .entity_unique_field_entries(&aspect_field_locator(legal_name, name_field.clone()))
+        .expect("legal name entries");
+    let display_entries = index_access
+        .entity_unique_field_entries(&aspect_field_locator(display_name, name_field))
+        .expect("display name entries");
+
+    assert_eq!(
+        legal_entries
+            .get(&field_comparison_key("alpha-legal"))
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .collect::<Vec<_>>(),
+        vec![alpha]
+    );
+    assert!(!legal_entries.contains_key(&field_comparison_key("alpha-display")));
+    assert_eq!(
+        display_entries
+            .get(&field_comparison_key("beta-display"))
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .collect::<Vec<_>>(),
+        vec![beta]
+    );
+    assert!(!display_entries.contains_key(&field_comparison_key("beta-legal")));
 }
 
 #[test]
@@ -91,4 +201,23 @@ fn derived_index_build_materializes_latest_visible_entity_field_values() {
 
 fn field_comparison_key(value: &str) -> AuthoritativeFieldComparisonKey {
     AuthoritativeFieldComparisonKey::from_aspect_value(&string_aspect_value(value))
+}
+
+fn create_entity_with_aspect_fields(
+    runtime: &mut RelationalRuntime,
+    client_key: &str,
+    fields: AspectFieldPatch,
+) -> crate::facade::identity::EntityId {
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(WorkerIntentBatch::new(format!("batch-{client_key}")).push(
+        MutationIntent::Create(CreateIntent::Entity(
+            crate::transactions::data::EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: crate::symbols::data::ClientKey::raw(client_key),
+                fields,
+            },
+        )),
+    ));
+    changed_entities(&txn.commit().expect("entity create succeeds"))[0]
 }

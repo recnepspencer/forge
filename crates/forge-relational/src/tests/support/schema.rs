@@ -1,4 +1,7 @@
-use forge_foundational::{aspects, AspectIdentity, FieldKey, ScalarAspectType};
+use forge_foundational::{
+    aspects, AspectFieldLocator, AspectIdentity, CanonicalFieldPath, FieldKey, LocatorAuthority,
+    ScalarAspectType,
+};
 
 use super::*;
 
@@ -12,6 +15,14 @@ pub(crate) fn aspect_key(name: &str) -> AspectKey {
 
 pub(crate) fn field_key(name: &str) -> FieldKey {
     FieldKey::new(name).expect("test field names must be foundational field keys")
+}
+
+pub(crate) fn aspect_field_locator(aspect_key: AspectKey, field: FieldKey) -> AspectFieldLocator {
+    AspectFieldLocator::new(
+        LocatorAuthority::Planned,
+        aspect_key,
+        CanonicalFieldPath::single(field),
+    )
 }
 
 pub(crate) fn entity_field_aspect(aspect_key: AspectKey, field: FieldKey) -> DeclaredAspect {
