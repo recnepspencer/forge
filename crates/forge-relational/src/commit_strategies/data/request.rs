@@ -31,7 +31,7 @@ pub struct NativeStrategyCommitRequest {
 }
 
 impl NativeStrategyCommitRequest {
-    pub fn from_canonical_bytes(
+    pub fn from_native_canonical_bytes(
         strategy_name: CommitStrategySemanticName,
         input_bytes: impl Into<Arc<[u8]>>,
         caller_provenance: StrategyCallerProvenance,

@@ -195,7 +195,7 @@ fn runtime_commit_strategy_facade_canonicalizes_requests_against_frozen_registry
         .build();
 
     let request =
-        crate::facade::commit_strategies::NativeStrategyCommitRequest::from_canonical_bytes(
+        crate::facade::commit_strategies::NativeStrategyCommitRequest::from_native_canonical_bytes(
             CommitStrategySemanticName::new("strategy.intent.reconcile"),
             b"native-request".to_vec(),
             crate::facade::commit_strategies::StrategyCallerProvenance {

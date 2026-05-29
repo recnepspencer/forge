@@ -39,7 +39,7 @@ impl AspectFieldReconciliationInput {
         encode_entity_id(&mut bytes, self.entity_id);
         encode_aspect_field_locator(&mut bytes, &self.field_locator);
         encode_aspect_value(&mut bytes, &self.desired_value)?;
-        Ok(NativeStrategyCommitRequest::from_canonical_bytes(
+        Ok(NativeStrategyCommitRequest::from_native_canonical_bytes(
             CommitStrategySemanticName::new(
                 AspectFieldReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
             ),

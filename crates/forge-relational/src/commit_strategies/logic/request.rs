@@ -100,7 +100,7 @@ mod tests {
     #[test]
     fn canonical_request_binds_registered_strategy_and_preserves_native_bytes() {
         let registry = registry();
-        let left = NativeStrategyCommitRequest::from_canonical_bytes(
+        let left = NativeStrategyCommitRequest::from_native_canonical_bytes(
             CommitStrategySemanticName::new("strategy.intent.reconcile"),
             b"native-left".to_vec(),
             StrategyCallerProvenance {
@@ -109,7 +109,7 @@ mod tests {
                 correlation_id: Some("corr-1".to_string()),
             },
         );
-        let right = NativeStrategyCommitRequest::from_canonical_bytes(
+        let right = NativeStrategyCommitRequest::from_native_canonical_bytes(
             CommitStrategySemanticName::new("strategy.intent.reconcile"),
             b"native-left".to_vec(),
             StrategyCallerProvenance {
@@ -143,7 +143,7 @@ mod tests {
     #[test]
     fn canonical_request_rejects_unknown_strategy_name() {
         let registry = registry();
-        let request = NativeStrategyCommitRequest::from_canonical_bytes(
+        let request = NativeStrategyCommitRequest::from_native_canonical_bytes(
             CommitStrategySemanticName::new("strategy.unknown"),
             b"unknown".to_vec(),
             StrategyCallerProvenance {

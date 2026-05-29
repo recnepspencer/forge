@@ -43,7 +43,7 @@ impl EntityReplacementReconciliationInput {
         encode_entity_id(&mut bytes, self.entity_id);
         encode_string(&mut bytes, &self.replacement_client_key);
         encode_aspect_field_patch(&mut bytes, &self.desired_fields)?;
-        Ok(NativeStrategyCommitRequest::from_canonical_bytes(
+        Ok(NativeStrategyCommitRequest::from_native_canonical_bytes(
             CommitStrategySemanticName::new(
                 EntityReplacementReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
             ),

@@ -39,7 +39,7 @@ impl IntentReconciliationInput {
         let mut bytes = Vec::new();
         encode_entity_id(&mut bytes, self.entity_id);
         encode_aspect_field_patch(&mut bytes, &self.desired_fields)?;
-        Ok(NativeStrategyCommitRequest::from_canonical_bytes(
+        Ok(NativeStrategyCommitRequest::from_native_canonical_bytes(
             CommitStrategySemanticName::new(IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME),
             bytes,
             caller_provenance,
