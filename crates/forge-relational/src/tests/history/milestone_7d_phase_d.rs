@@ -19,12 +19,11 @@ use crate::schema::data::{
     SchemaRegistryErrorClass, SchemaVersionId,
 };
 use crate::tests::support::{
-    capture_aspect_truth_bundle, certification_digest, changed_entities,
-    checkpoint_and_recover_with, create_branch_from_main, create_entity,
-    create_relation_in_partition_on_branch, delete_entity, delete_entity_on_branch,
-    delete_relation_on_branch, entity_field_aspect, entity_i64_field_aspect,
-    persisted_runtime_with_test_schema, read_entity_field, u64_aspect_value,
-    unique_test_store_path, update_entity,
+    capture_aspect_truth_bundle, changed_entities, checkpoint_and_recover_with,
+    create_branch_from_main, create_entity, create_relation_in_partition_on_branch, delete_entity,
+    delete_entity_on_branch, delete_relation_on_branch, entity_field_aspect,
+    entity_i64_field_aspect, persisted_runtime_with_test_schema, read_entity_field,
+    u64_aspect_value, unique_test_store_path, update_entity,
 };
 
 #[test]
@@ -235,12 +234,12 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
         .expect("recovered planning artifact");
 
     assert_eq!(
-        certification_digest(&live_artifact.digest_basis.policy),
-        certification_digest(&recovered_artifact.digest_basis.policy)
+        live_artifact.digest_basis.policy,
+        recovered_artifact.digest_basis.policy
     );
     assert_eq!(
-        certification_digest(&live_artifact.digest_basis.lowered_plan),
-        certification_digest(&recovered_artifact.digest_basis.lowered_plan)
+        live_artifact.digest_basis.lowered_plan,
+        recovered_artifact.digest_basis.lowered_plan
     );
 }
 
@@ -662,8 +661,8 @@ fn non_executable_deletion_denial_is_stable_across_recovery() {
         Some(LoweredRecordDenialKind::BlockedDeletedVsModified)
     );
     assert_eq!(
-        certification_digest(&live_artifact.digest_basis.lowered_plan),
-        certification_digest(&recovered_artifact.digest_basis.lowered_plan)
+        live_artifact.digest_basis.lowered_plan,
+        recovered_artifact.digest_basis.lowered_plan
     );
 }
 
@@ -825,8 +824,8 @@ fn topology_endpoint_divergence_denial_is_stable_across_recovery() {
         Some(LoweredRecordDenialKind::BlockedRelationEndpointRewiredEscalated)
     );
     assert_eq!(
-        certification_digest(&live_artifact.digest_basis.lowered_plan),
-        certification_digest(&recovered_artifact.digest_basis.lowered_plan)
+        live_artifact.digest_basis.lowered_plan,
+        recovered_artifact.digest_basis.lowered_plan
     );
 }
 
@@ -1046,12 +1045,12 @@ fn topology_region_conflict_denial_is_stable_across_recovery() {
         .expect("recovered topology-region planning artifact");
 
     assert_eq!(
-        certification_digest(&live_artifact.digest_basis.conflict),
-        certification_digest(&recovered_artifact.digest_basis.conflict)
+        live_artifact.digest_basis.conflict,
+        recovered_artifact.digest_basis.conflict
     );
     assert_eq!(
-        certification_digest(&live_artifact.digest_basis.lowered_plan),
-        certification_digest(&recovered_artifact.digest_basis.lowered_plan)
+        live_artifact.digest_basis.lowered_plan,
+        recovered_artifact.digest_basis.lowered_plan
     );
     assert_eq!(
         live_artifact.conflict_classification.classifications,
