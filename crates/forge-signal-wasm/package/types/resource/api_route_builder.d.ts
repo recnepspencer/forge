@@ -17,14 +17,18 @@ import type {
 } from "./api_route_transfer_kinds.js";
 import type { ResourceRequestMethod } from "./resource_postures.js";
 import type {
+  ApiRouteCommandMutationDeclarationForState,
+  ApiRouteCommandSemantics,
   ApiRouteCollectionDeclarationForState,
   ApiRouteCreateDeclarationForState,
   ApiRouteDetailDeclarationForState,
+  ApiRouteMutationSemantics,
   ApiRouteOwnedEffectsDeclaration,
   ApiRouteOwnedHeadersDeclaration,
   ApiRoutePagedDeclarationForState,
   ApiRouteReconcile,
   ApiRouteResolvedDownloadValue,
+  ApiRouteSemanticMutationDeclarationForState,
   ApiRouteSettledTransferValue,
 } from "./api_route_builder_declarations.js";
 import type { ResourceDetailReconcile } from "./resource_reconciliation.js";
@@ -239,7 +243,61 @@ interface ApiRouteBuilderStandardFinalizers<
       TUploadKind
     >,
     undefined,
-    TReconcile
+      TReconcile
+  >;
+  mutation<
+    TValue,
+    TWriteBody,
+    TSemantics extends ApiRouteMutationSemantics,
+  >(
+    declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
+      ApiRouteSemanticMutationDeclarationForState<
+        TRoute,
+        ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+        TWriteBody,
+        TRequestParams,
+        TProcessingKind,
+        TUploadKind,
+        TDownloadsOwned
+      > & { readonly semantics: TSemantics },
+      THeadersOwned
+    >, TEffectsOwned>,
+  ): ApiDetailResourceFamily<
+    TRoute,
+    TRequestParams,
+    ApiRouteSettledTransferValue<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+      TProcessingKind,
+      TUploadKind
+    >,
+    TWriteBody
+  >;
+  command<
+    TValue,
+    TWriteBody,
+    TSemantics extends ApiRouteCommandSemantics,
+  >(
+    declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
+      ApiRouteCommandMutationDeclarationForState<
+        TRoute,
+        ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+        TWriteBody,
+        TRequestParams,
+        TProcessingKind,
+        TUploadKind,
+        TDownloadsOwned
+      > & { readonly semantics: TSemantics },
+      THeadersOwned
+    >, TEffectsOwned>,
+  ): ApiDetailResourceFamily<
+    TRoute,
+    TRequestParams,
+    ApiRouteSettledTransferValue<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+      TProcessingKind,
+      TUploadKind
+    >,
+    TWriteBody
   >;
 }
 

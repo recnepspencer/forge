@@ -65,6 +65,69 @@ Admitted-handle declaration evidence entry points:
 - `describe_foundational_checked(subject) -> ForgeQueryDeclarationFoundationalEvidenceChecked<D, I>`
 - `describe_foundational_with_profile(subject, profile) -> Result<ForgeQueryDeclarationFoundationalEvidence<D, I>, ForgeQueryDeclarationFoundationalEvidenceDenial<D, I>>`
 
+Admitted-handle route-planning entry points:
+
+- `plan_routes(subject) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
+- `plan_routes_checked(subject) -> ForgeQueryDeclarationRoutePlanChecked<D, I>`
+- `plan_routes_from_progressed(progressed) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
+- `plan_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
+- `declare_review_progress_describe_and_plan(input) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationEntryRoutePlanError<D, I>>`
+
+Admitted-handle receipt entry points:
+
+- `receipt_routes(subject) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
+- `receipt_routes_checked(subject) -> ForgeQueryDeclarationReceiptChecked<D, I>`
+- `receipt_routes_from_progressed(progressed) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
+- `receipt_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
+- `declare_review_progress_describe_plan_and_receipt(input) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationEntryReceiptError<D, I>>`
+
+Admitted-handle envelope entry points:
+
+- `envelope_routes(subject) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `envelope_routes_checked(subject) -> ForgeQueryDeclarationEnvelopeChecked<D, I>`
+- `envelope_routes_from_progressed(progressed) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `envelope_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `declare_review_progress_describe_plan_receipt_and_envelope(input) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEntryEnvelopeError<D, I>>`
+
+Admitted-handle relational-routing entry points:
+
+- `route_relational_truth(subject) -> Result<ForgeQueryDeclarationRelationalRouting<D, I>, ForgeQueryDeclarationRelationalRoutingTerminalError<D, I>>`
+- `route_relational_truth_checked(subject) -> ForgeQueryDeclarationRelationalRoutingChecked<D, I>`
+- `route_relational_truth_from_progressed(progressed) -> Result<ForgeQueryDeclarationRelationalRouting<D, I>, ForgeQueryDeclarationRelationalRoutingTerminalError<D, I>>`
+- `route_relational_truth_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationRelationalRouting<D, I>, ForgeQueryDeclarationRelationalRoutingTerminalError<D, I>>`
+- `declare_review_progress_describe_plan_receipt_envelope_and_route_relational_truth(input) -> Result<ForgeQueryDeclarationRelationalRouting<D, I>, ForgeQueryDeclarationEntryRelationalRoutingError<D, I>>`
+- `relational_truth_support::<I>() -> ForgeQueryDeclarationRelationalRoutingSupportReport<D, I>`
+
+Admitted-handle bridge-routing entry points:
+
+- `route_bridge_continuation(subject) -> Result<ForgeQueryDeclarationBridgeRouting<D, I>, ForgeQueryDeclarationBridgeRoutingTerminalError<D, I>>`
+- `route_bridge_continuation_checked(subject) -> ForgeQueryDeclarationBridgeRoutingChecked<D, I>`
+- `route_bridge_continuation_from_progressed(progressed) -> Result<ForgeQueryDeclarationBridgeRouting<D, I>, ForgeQueryDeclarationBridgeRoutingTerminalError<D, I>>`
+- `route_bridge_continuation_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationBridgeRouting<D, I>, ForgeQueryDeclarationBridgeRoutingTerminalError<D, I>>`
+- `declare_review_progress_describe_plan_receipt_envelope_and_route_bridge_continuation(input) -> Result<ForgeQueryDeclarationBridgeRouting<D, I>, ForgeQueryDeclarationEntryBridgeRoutingError<D, I>>`
+- `bridge_continuation_support::<I>() -> ForgeQueryDeclarationBridgeRoutingSupportReport<D, I>`
+
+Admitted-handle signal-compatibility entry points:
+
+- `signal_compatibility(subject) -> Result<ForgeQueryDeclarationSignalCompatibility<D, I>, ForgeQueryDeclarationSignalCompatibilityTerminalError<D, I>>`
+- `signal_compatibility_checked(subject) -> ForgeQueryDeclarationSignalCompatibilityChecked<D, I>`
+- `signal_compatibility_from_progressed(progressed) -> Result<ForgeQueryDeclarationSignalCompatibility<D, I>, ForgeQueryDeclarationSignalCompatibilityTerminalError<D, I>>`
+- `signal_compatibility_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationSignalCompatibility<D, I>, ForgeQueryDeclarationSignalCompatibilityTerminalError<D, I>>`
+- `declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(input) -> Result<ForgeQueryDeclarationSignalCompatibility<D, I>, ForgeQueryDeclarationEntrySignalCompatibilityError<D, I>>`
+- `signal_compatibility_support::<I>() -> ForgeQueryDeclarationSignalCompatibilitySupportReport<D, I>`
+
+Admitted-handle seam-ledger entry points:
+
+- `declaration_entry_crossing_inventory::<I>() -> ForgeQueryDeclarationEntryCrossingInventory<D, I>`
+- `declaration_entry_readiness::<I>() -> ForgeQueryDeclarationEntryReadinessReport<D, I>`
+- `inspect_declaration_entry(subject) -> Result<ForgeQueryDeclarationEntryInspection<D, I>, ForgeQueryDeclarationEntryInspectionError<D, I>>`
+
+Admitted-handle orchestration entry points:
+
+- `orchestrate_declaration_entry(input) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEntryOrchestrationTerminalError<D, I>>`
+- `orchestrate_declaration_entry_checked(input) -> ForgeQueryDeclarationEntryOrchestrationChecked<D, I>`
+- `orchestrate_declaration_entry_proof(input) -> ForgeQueryDeclarationEntryOrchestrationProof<D, I>`
+
 Checked admission outcomes:
 
 - `ForgeQueryConfiguredDomainHandleChecked::Admitted(ForgeQueryAdmittedConfiguredDomainHandle<D, C>)`
@@ -83,6 +146,11 @@ Checked denial inspection:
 A configured domain handle is not a declaration and not a runtime binding.
 It is the stable admitted world that later declaration work is allowed to
 depend on.
+
+That same admitted world is also the ownership boundary for declaration-entry
+inventory, readiness, inspection, and declaration-entry orchestration.
+Seam-ledger projections and orchestration both reject retained artifacts from
+the wrong admitted handle or operating world.
 
 That means it should carry stable regime facts such as:
 
@@ -317,6 +385,12 @@ progression, and foundational evidence surfaces consume. Those later features
 should not call back into the operating-context object and rediscover world
 identity on their own.
 
+Once the handle is admitted, it is also the stable front door for the current
+declaration-entry orchestration ceiling. You do not need to manually chain
+declaration review, legality, progression, foundational description, route
+planning, receipt, and envelope calls unless you specifically want one of those
+intermediate artifacts directly.
+
 ## Inspection And Debugging
 
 The most useful inspection points are:
@@ -353,9 +427,17 @@ They do not yet provide:
 - declaration legality proof by themselves
 - declaration progression proof by themselves
 - foundational declaration evidence by themselves
+- declaration route planning by themselves
+- declaration boundary receipts by themselves
+- declaration boundary envelopes by themselves
+- declaration relational truth routing by themselves
+- declaration bridge continuation routing by themselves
+- declaration signal compatibility by themselves
+- declaration-entry orchestration beyond the retained envelope ceiling
 - dynamic operation eligibility
 - preview, historical, or runtime basis binding
 - lower-authority routing
+- lower-authority continuation routing
 
 ## Related Docs
 
@@ -363,6 +445,15 @@ They do not yet provide:
 - [Declaration Legality](./declaration-legality.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- [Declaration Route Plans](./declaration-route-plan.md)
+- [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+- [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
+- [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
+- [Declaration Entry Inspection](./declaration-entry-inspection.md)
+- [Declaration Entry Readiness](./declaration-entry-readiness.md)
 - [Platform Entry](./platform-entry.md)
 - [Domain Capabilities Index](./README.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)

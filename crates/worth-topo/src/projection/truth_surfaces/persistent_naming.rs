@@ -7,13 +7,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_query::facade::{
-    ForgeQueryEntity, ForgeQueryLiveView, ForgeQueryRuntimeError, ForgeQueryWorkspace,
-    ForgeQueryWorkspaceError, ForgeQueryWorkspaceLiveViewDeclaration,
+    ForgeQueryEntity, ForgeQueryLiveView, ForgeQueryLiveViewBuilder, ForgeQueryRuntimeError,
+    ForgeQueryWorkspace, ForgeQueryWorkspaceLiveViewDeclaration,
 };
-use schema::facade::{
-    EntityKind, NamingEntityKind, QueryAspectPath, QueryCollection, QueryDeclarationError,
-    QueryLiveDeclarationBuilder, QueryLiveField, QuerySchemaBasis, TopologyEntityKind,
-};
+use schema::facade::platform::entities::{EntityKind, NamingEntityKind, TopologyEntityKind};
+use schema::facade::{QueryAspectPath, QueryCollection, QueryLiveField, QuerySchemaBasis};
 
 use crate::facade::{NamingAttachmentReport, NamingAttachmentRow};
 use crate::projection::{parse_entity_identity, required_text};
@@ -48,20 +46,18 @@ impl<'a> TopologyNamingAttachmentInput<'a> {
 
 pub fn persistent_name_live_view_declaration(
     surface_name: impl Into<String>,
-) -> Result<ForgeQueryWorkspaceLiveViewDeclaration, QueryDeclarationError> {
-    QueryLiveDeclarationBuilder::new(
-        surface_name,
-        QueryCollection::PersistentName,
-        QuerySchemaBasis::PersistentNameLiveView,
-    )
-    .select_fields([
-        QueryLiveField::IdentityId,
-        QueryLiveField::LineageProvenance,
-        QueryAspectPath::NAMING_PERSISTENT_NAME.into(),
-        QueryLiveField::NamingTargetIdentity,
-    ])
-    .order_by_field(QueryLiveField::IdentityId)
-    .build()
+) -> Result<ForgeQueryWorkspaceLiveViewDeclaration, ForgeQueryRuntimeError> {
+    ForgeQueryLiveViewBuilder::surface(surface_name)
+        .select([
+            QueryLiveField::IdentityId.delivered_name(),
+            QueryLiveField::LineageProvenance.delivered_name(),
+            QueryAspectPath::NAMING_PERSISTENT_NAME.as_str(),
+            QueryLiveField::NamingTargetIdentity.delivered_name(),
+        ])
+        .order_by(QueryLiveField::IdentityId.delivered_name())
+        .from(QueryCollection::PersistentName.as_str())
+        .schema_basis(QuerySchemaBasis::PersistentNameLiveView.as_str())
+        .build()
 }
 
 pub fn declare_persistent_name_live_view<T>(
@@ -69,10 +65,7 @@ pub fn declare_persistent_name_live_view<T>(
     surface_name: impl Into<String>,
 ) -> Result<ForgeQueryLiveView<T>, ForgeQueryRuntimeError> {
     let surface_name = surface_name.into();
-    let declaration =
-        persistent_name_live_view_declaration(surface_name.clone()).map_err(|error| {
-            ForgeQueryRuntimeError::Workspace(ForgeQueryWorkspaceError::new(error.to_string()))
-        })?;
+    let declaration = persistent_name_live_view_declaration(surface_name.clone())?;
     let request = declaration.request().clone();
     let schema_view = declaration.schema_view().clone();
     workspace.live_view_request(surface_name, request, schema_view)
@@ -184,7 +177,7 @@ pub fn naming_attachment_report_from_query_input(
 
 #[cfg(test)]
 mod tests {
-    use schema::facade::TopologyEntityKind;
+    use schema::facade::platform::entities::TopologyEntityKind;
     use serde_json::json;
 
     use super::*;

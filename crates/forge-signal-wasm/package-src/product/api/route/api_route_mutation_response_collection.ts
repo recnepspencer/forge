@@ -30,7 +30,7 @@ const DELETE_ADMITTED_COLLECTION_TOPOLOGIES = Object.freeze([
   "sparsePage",
 ]);
 
-function lowerCollectionReconciliation(route, method, response, familyMetadata, collection, index) {
+function lowerCollectionReconciliation(route, semanticFinalizer, response, familyMetadata, collection, index) {
   if (!collection || typeof collection !== "object" || Array.isArray(collection)) {
     throw new TypeError(
       `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] collection must be a target declaration object`,
@@ -48,15 +48,15 @@ function lowerCollectionReconciliation(route, method, response, familyMetadata, 
     );
   }
   if (collection.kind === "item") {
-    if (method !== "PUT" && method !== "DELETE") {
+    if (semanticFinalizer !== "update" && semanticFinalizer !== "remove") {
       throw new TypeError(
         `api.url("${route}").response(...).create/update/remove(...) collection item replacement is currently admitted only for update/save and remove/delete responses`,
       );
     }
     const executionKind =
-      method === "DELETE" ? "exactCollectionTombstone" : "exactCollectionItem";
+      semanticFinalizer === "remove" ? "exactCollectionTombstone" : "exactCollectionItem";
     const targetDigest =
-      method === "DELETE" ? "collection:tombstone" : "collection:item";
+      semanticFinalizer === "remove" ? "collection:tombstone" : "collection:item";
     return Object.freeze({
       kind: "item",
       executionKind,
@@ -74,7 +74,7 @@ function lowerCollectionReconciliation(route, method, response, familyMetadata, 
     });
   }
   if (collection.kind === "insert") {
-    if (method !== "POST") {
+    if (semanticFinalizer !== "create") {
       throw new TypeError(
         `api.url("${route}").response(...).create/update/remove(...) collection insert reconciliation is currently admitted only for create responses`,
       );
@@ -104,7 +104,7 @@ function lowerCollectionReconciliation(route, method, response, familyMetadata, 
     });
   }
   if (collection.kind === "delete") {
-    if (method !== "DELETE") {
+    if (semanticFinalizer !== "remove") {
       throw new TypeError(
         `api.url("${route}").response(...).create/update/remove(...) collection deletion is currently admitted only for remove/delete responses`,
       );
@@ -116,7 +116,7 @@ function lowerCollectionReconciliation(route, method, response, familyMetadata, 
       );
     }
     if (
-      method === "DELETE"
+      semanticFinalizer === "remove"
       && response.kind !== "detail"
       && typeof collection.itemId !== "function"
     ) {

@@ -1,5 +1,6 @@
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::{TopologyEntityKind, TopologyRelationKind};
+use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::TopologyOperatorExecutionError;
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;

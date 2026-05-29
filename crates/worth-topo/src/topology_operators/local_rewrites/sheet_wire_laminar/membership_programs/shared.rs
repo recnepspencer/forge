@@ -4,7 +4,7 @@ use forge_query::facade::{
     ForgeQueryRuntimeError,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::TopologyEntityKind;
+use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::TopologyEditContract;

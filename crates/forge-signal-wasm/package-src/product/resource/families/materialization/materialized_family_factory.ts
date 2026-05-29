@@ -81,6 +81,21 @@ function createMaterializedFamily(
     return lookupOrCreateRegistryEntry(canonicalParamIdentity).handle;
   }
 
+  function createOptionalLine(selection) {
+    if (
+      selection == null
+      || (
+        typeof selection === "object"
+        && Object.keys(selection).length === 1
+        && "enabled" in selection
+        && selection.enabled === false
+      )
+    ) {
+      return null;
+    }
+    return createLine(selection);
+  }
+
   const family = {
     invalidate(rawParams) {
       const canonicalParamIdentity = requireCanonicalParamIdentity(
@@ -96,6 +111,10 @@ function createMaterializedFamily(
       return invalidateAllFamilyLines(linesByCanonicalKey);
     },
     line: createLine,
+    optionalLine: createOptionalLine,
+    execute(rawParams, options) {
+      return createLine(rawParams).execute(options);
+    },
   };
   return Object.freeze(
     attachResourceFamilyMetadata(family, {

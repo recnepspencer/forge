@@ -221,3 +221,90 @@ const saveTask = signals.api({}).url("/tasks/:taskId")
 
 void taskSummary.line({}).value();
 void saveTask.line({ taskId: "t1", body: {} }).mutationResponse()?.targets[0]?.fallback.kind;
+
+const commandSaveTask = signals.api({}).url("/tasks/:taskId").verb("POST")
+  .response(signals.resource.response.detail<{
+    id: string;
+    status: Task["status"];
+  }>()({
+    status: "status",
+  }))
+  .update({
+    reconciles: [{
+      family: taskDetailWithStatus,
+      params: ({ taskId }: { taskId: string | number }) => ({ taskId: String(taskId) }),
+      fallback: "partialReconciliation",
+      detail: { kind: "field", field: "status" },
+    }, {
+      family: tasks,
+      params: () => ({ workspaceId: "demo" }),
+      fallback: "partialReconciliation",
+      collection: { kind: "item" },
+    }],
+    diagnostics: [{ kind: "warnings", field: "status" }],
+    load: ({ taskId }: { taskId: string | number }) => ({
+      id: String(taskId),
+      status: "done" as const,
+    }),
+  });
+
+const commandDeleteTask = signals.api({}).url("/tasks/:taskId").verb("POST")
+  .response(signals.resource.response.summary<{ total: number }>())
+  .remove({
+    reconciles: [{
+      family: tasks,
+      params: () => ({ workspaceId: "demo" }),
+      fallback: "deletionUnavailable",
+      collection: {
+        kind: "delete",
+        itemId: ({ taskId }: { taskId: string | number }) => String(taskId),
+      },
+    }, {
+      family: taskSummary,
+      params: () => ({}),
+      fallback: "refetchRequired",
+      summary: { kind: "summary", summary: "total" },
+    }],
+    load: () => ({ total: 1 }),
+  });
+
+void commandSaveTask.line({ taskId: "t2", body: {} }).request().method;
+void commandDeleteTask.line({ taskId: "t2" }).request().method;
+
+const semanticMutationTask = signals.api({}).url("/tasks/:taskId")
+  .response(signals.resource.response.detail<{
+    id: string;
+    status: Task["status"];
+  }>()({
+    status: "status",
+  }))
+  .mutation({
+    semantics: "update",
+    method: "POST",
+    reconciles: [{
+      family: taskDetailWithStatus,
+      params: ({ taskId }: { taskId: string | number }) => ({ taskId: String(taskId) }),
+      fallback: "partialReconciliation",
+      detail: { kind: "field", field: "status" },
+    }],
+    load: ({ taskId }: { taskId: string | number }) => ({
+      id: String(taskId),
+      status: "done" as const,
+    }),
+  });
+
+const semanticCommandTask = signals.api({}).url("/tasks/:taskId/archive")
+  .response(signals.resource.response.summary<{ total: number }>())
+  .command({
+    semantics: "relationshipUpdate",
+    method: "POST",
+    reconciles: [{
+      family: tasks,
+      params: () => ({ workspaceId: "demo" }),
+      fallback: "refetchRequired",
+    }],
+    load: () => ({ total: 1 }),
+  });
+
+void semanticMutationTask.line({ taskId: "t3", body: {} }).request().method;
+void semanticCommandTask.line({ taskId: "t3", body: { archived: true } }).request().method;

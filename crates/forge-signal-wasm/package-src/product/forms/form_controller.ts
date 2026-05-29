@@ -71,10 +71,13 @@ import { materializeFormSourceAuthority, readSourceBootstrapArtifact } from "./s
 import { readResourceSourceReport, resourceSourceReadinessBlockers } from "./sources/resource_source_report.js";
 import { createSourceCompatibilityStore, sourceCompatibilityBlockers } from "./sources/source_compatibility.js";
 import { rawInputBlockers } from "./patching/patch_planning.js";
+import { createReactiveFormBindings } from "./reactive_summary_bindings.js";
+import { readFormFieldWritePosture, readFormReadiness } from "./form_runtime_policy.js";
 import { validationReadinessBlockers } from "./validation/artifacts.js";
 import { createAsyncValidationStore } from "./validation/async_execution.js";
 import { materializeValidationDeclarations } from "./validation/declarations.js";
 import { cloneFormValue, mergeDraft } from "./values/value_paths.js";
+import { createFormControllerBootstrapFacade } from "./form_controller_bootstrap.js";
 
 export function createFormController(signalNamespace, declaration, options = {}) {
   if (!declaration || typeof declaration !== "object") {
@@ -121,7 +124,13 @@ export function createFormController(signalNamespace, declaration, options = {})
   const messages = createMessagePresentationStore();
   const diagnosticsHistory = createFormDiagnosticsHistoryStore();
   const stateHistory = createFormStateHistoryStore();
-  const measurementSemanticCache = { value: null }; let form;
+  const form = createFormControllerBootstrapFacade();
+  const reactiveBindings = createReactiveFormBindings(
+    signalNamespace,
+    formDeclaration.formId,
+    () => form,
+  );
+  const measurementSemanticCache = { value: null };
   const currentMeasurementSemanticContext = createMeasurementSemanticContextReader({
     cache: measurementSemanticCache,
     authoritativeSource,
@@ -258,7 +267,7 @@ export function createFormController(signalNamespace, declaration, options = {})
     layoutMeasurements,
   });
 
-  form = {
+  Object.assign(form, {
     source() {
       const currentSource = authoritativeSource();
       syncSourceCompatibility(currentSource);
@@ -279,6 +288,7 @@ export function createFormController(signalNamespace, declaration, options = {})
     },
     sourceAdmission() { return readSourceBootstrapArtifact(declaration.source, "sourceAdmission"); },
     draftRestore() { return readSourceBootstrapArtifact(declaration.source, "draftRestore"); },
+    summarySignal() { return reactiveBindings.summarySignalHandle(); },
     ...resourceSurfaceBindings,
     ...formReportBindings,
     ...interactionBindings,
@@ -303,84 +313,53 @@ export function createFormController(signalNamespace, declaration, options = {})
     actionReadiness(actionId) { return form.actionPlan(actionId).readiness; },
     ...diagnosticsBindings,
     fieldWritePosture(fieldId, capability = "edit") {
-      form.field(fieldId);
-      const availabilityBlocker = availabilityEditBlocker(form.availability(), fieldId);
-      const admissionBlocker = admissionCapabilityBlocker(form.admission(), fieldId, capability);
-      const collaborationBlocker = collaborationFieldWriteBlocker(form.collaboration(), fieldId, capability);
-      const routeAuthorityBlocker = routeAuthorityWriteBlocker(form.routeAuthority(), fieldId);
-      const blockers = [
-        ...sourceCompatibilityBlockers(form.sourceCompatibility()),
-        availabilityBlocker,
-        admissionBlocker,
-        collaborationBlocker,
-        routeAuthorityBlocker,
-      ].filter(Boolean);
-      return Object.freeze({
-        field: fieldId,
+      return readFormFieldWritePosture({
+        form,
+        fieldId,
         capability,
-        canWrite: blockers.length === 0,
-        blockers: Object.freeze(blockers),
-        reason: blockers[0]?.reason ?? "field write admitted",
+        availabilityEditBlocker,
+        admissionCapabilityBlocker,
+        collaborationFieldWriteBlocker,
+        routeAuthorityWriteBlocker,
+        sourceCompatibilityBlockers,
       });
     },
     readiness() {
-      const patchPlan = form.patchPlan();
-      const blockers = rawInputBlockers(rawInputs);
-      blockers.push(...sourceCompatibilityBlockers(form.sourceCompatibility()));
-      blockers.push(...resourceSourceReadinessBlockers(form.resourceSource()));
-      blockers.push(...resourceMergeReadinessBlockers(form.resourceMerge()));
-      blockers.push(...attachmentTransferReadinessBlockers(form.attachmentTransfers()));
-      blockers.push(...validationReadinessBlockers(form.validation()));
-      blockers.push(...availabilityReadinessBlockers(form.availability()));
-      blockers.push(...admissionReadinessBlockers(form.admission()));
-      blockers.push(...collaborationReadinessBlockers(form.collaboration(), patchPlan));
-      blockers.push(...routeAuthorityReadinessBlockers(form.routeAuthority()));
-      const submitAction = actionDeclarations.find((entry) => entry.id === "submit");
-      if (submitAction) {
-        blockers.push(...hostRequirementBlockers(form.host(), submitAction.hostRequirements, "submit"));
-        blockers.push(
-          ...resolveResourceActionBinding(
-            submitAction,
-            declaration.source,
-            "submit",
-            fieldDeclarations,
-            patchPlan,
-          ).blockers,
-        );
-        blockers.push(
-          ...resolveResourceEffectProfileBinding(
-            submitAction,
-            form.resourceSource(),
-            "submit",
-          ).blockers,
-        );
-      }
-      if (patchPlan.empty) {
-        blockers.push({
-          kind: "unchanged",
-          reason: "form has no semantic changes to submit",
-        });
-      }
-      const dedupedBlockers = dedupeReadinessBlockers(blockers);
-      return Object.freeze({
-        canSubmit: dedupedBlockers.length === 0,
-        blockers: dedupedBlockers,
-        patchPlan,
+      return readFormReadiness({
+        form,
+        rawInputs,
+        sourceCompatibilityBlockers,
+        resourceSourceReadinessBlockers,
+        resourceMergeReadinessBlockers,
+        attachmentTransferReadinessBlockers,
+        validationReadinessBlockers,
+        availabilityReadinessBlockers,
+        admissionReadinessBlockers,
+        collaborationReadinessBlockers,
+        routeAuthorityReadinessBlockers,
+        hostRequirementBlockers,
+        resolveResourceActionBinding,
+        resolveResourceEffectProfileBinding,
+        declarationSource: declaration.source,
+        fieldDeclarations,
+        actionDeclarations,
+        dedupeReadinessBlockers,
+        rawInputBlockers,
       });
     },
     fields: fieldHandles,
     namespace: signalNamespace,
-  };
+  });
 
   for (const declaration of fieldDeclarations) {
-    const handle = createFieldHandle(declaration, form, {
+    const handle = reactiveBindings.wrapFieldHandle(createFieldHandle(declaration, form, {
       writeDraft: updateDraft,
       recordRawInput: stateHistoryBindings.recordRawInput,
       recordDraftWrite: stateHistoryBindings.recordDraftWrite,
       interactions,
       rawInputs,
       parseFailures,
-    });
+    }));
     fieldHandles[declaration.name] = handle;
     fieldsById.set(declaration.id, handle);
   }
@@ -395,6 +374,7 @@ export function createFormController(signalNamespace, declaration, options = {})
       return handle;
     },
   });
+  reactiveBindings.wrapControllerMutations(form);
   return Object.freeze(form);
 
   function authoritativeSource() { return canonicalizations.sourceFor(sourceAuthority.read()); }

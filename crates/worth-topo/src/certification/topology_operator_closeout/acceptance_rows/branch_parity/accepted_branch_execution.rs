@@ -1,10 +1,11 @@
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
-use schema::facade::topology_authoring::verify_topology_intent_on_branch;
-use schema::facade::{MutationOrigin, RawTopologyIntent, TopologyMutation, VerifiedTopologyCommit};
+use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent, TopologyMutation};
 
 use super::super::super::super::error::TopologyCertificationError;
 use crate::certification::shared::digest_rows;
+use crate::committed_artifact::TopologyCommittedArtifact;
+use crate::test_support::topology_commit::commit_topology_intent_on_branch;
 use crate::topology_operators::{
     TopologyEditApplicationMode, TopologyEditBatch, TopologyEditDigest,
 };
@@ -49,30 +50,30 @@ pub(super) fn apply_branch_batch(
     runtime: &mut RelationalRuntime,
     branch_id: &BranchId,
     batch: TopologyEditBatch,
-) -> Result<VerifiedTopologyCommit, TopologyCertificationError> {
+) -> Result<TopologyCommittedArtifact, TopologyCertificationError> {
     let mode = TopologyEditApplicationMode::BranchLocal(branch_id.clone());
-    verify_topology_intent_on_branch(runtime, batch.into_raw_intent(&mode), branch_id.clone())
-        .map_err(|failure| TopologyCertificationError::Query(format!("{:?}", failure.into_error())))
+    commit_topology_intent_on_branch(runtime, batch.into_raw_intent(&mode), branch_id.clone())
+        .map_err(|error| TopologyCertificationError::Query(error.to_string()))
 }
 
 pub(super) fn apply_branch_mutations(
     runtime: &mut RelationalRuntime,
     branch_id: &BranchId,
     mutations: Vec<TopologyMutation>,
-) -> Result<VerifiedTopologyCommit, TopologyCertificationError> {
-    verify_topology_intent_on_branch(
+) -> Result<TopologyCommittedArtifact, TopologyCertificationError> {
+    commit_topology_intent_on_branch(
         runtime,
         RawTopologyIntent::new(mutations, MutationOrigin::BranchLocalApplication),
         branch_id.clone(),
     )
-    .map_err(|failure| TopologyCertificationError::Query(format!("{:?}", failure.into_error())))
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))
 }
 
 pub(super) fn execution_from_verified(
     runtime: &RelationalRuntime,
     branch: BranchSetup,
     batches: Vec<TopologyEditBatch>,
-    verified: Vec<VerifiedTopologyCommit>,
+    verified: Vec<TopologyCommittedArtifact>,
 ) -> Result<AcceptedBranchExecution, TopologyCertificationError> {
     let branch_head_after_edit = runtime
         .history()

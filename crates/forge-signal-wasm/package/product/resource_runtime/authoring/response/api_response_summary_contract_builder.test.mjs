@@ -47,8 +47,11 @@ test("summary response contracts own the single-response detail finalizer lane",
     const publishLine = publishCount.line({
       body: { total: 2 },
     });
+    const publishSettlement = await publishLine.awaitSettlement();
     const submittedTarget = publishLine.mutationResponse().submittedTargets[0];
     assert.deepEqual(publishLine.value(), { total: 2 });
+    assert.equal(publishSettlement.resultKind, "partial");
+    assert.equal(publishSettlement.confirmationKind, "refetchRequired");
     assert.equal(publishLine.mutationResponse().method, "POST");
     assert.equal(publishLine.mutationResponse().atomicity, "singleTarget");
     assert.deepEqual(publishLine.mutationResponse().targets, [{

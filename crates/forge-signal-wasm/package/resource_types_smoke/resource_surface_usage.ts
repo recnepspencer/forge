@@ -101,6 +101,7 @@ const detailRefresh = detailLine.refresh();
 const detailRevalidate = detailLine.revalidate();
 const detailStatus = detailLine.status();
 const detailFreshness = detailLine.freshness();
+const detailAwaitedSettlement = await detailLine.awaitSettlement();
 const detailLabel = detailLine.view((product) => product?.label ?? null);
 const detailGraph = signals.graph("detailResource", {
   outputs: {
@@ -377,6 +378,7 @@ void detailRefresh;
 void detailRevalidate;
 void detailStatus;
 void detailFreshness;
+void detailAwaitedSettlement.resultKind;
 void detailLabel;
 void detailGraph;
 void collectionItems;

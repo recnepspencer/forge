@@ -9,7 +9,7 @@ load?" but "what request posture and lifecycle posture does this line admit?"
 - `resourceRequestContext(...)`
 - `resourcePolicyProfiles.*()`
 - `resourceContinuation.*(...)`
-- `signals.api(...)` and `api.scope(...)` for shared defaults
+- `signals.api(...)`, `signals.apiScope(...)`, and `api.scope(...)` for shared defaults
 - request and policy inspection through `line.request()` and diagnostics
 
 ## Happy Path
@@ -25,7 +25,7 @@ import {
 
 const signals = await createSignals();
 
-const receiptApi = signals.api({
+const receiptApi = signals.apiScope("receipt-api", {
   auth: resourceAuth.workspace(),
 }).scope({
   requestContext: ({ workspaceId }) =>
@@ -64,6 +64,10 @@ console.log(line.diagnostics().request);
 - stale/retry behavior should be explicit instead of incidental
 - the request must carry basis or branch context
 - the endpoint returns a continuation contract that the host needs to inspect
+
+Use `signals.apiScope(...)` when those shared defaults should have one stable
+runtime-scoped identity. Keep `api.scope({...})` for param-dependent defaults
+that cannot honestly participate in identity reuse.
 
 ## What To Inspect
 

@@ -33,7 +33,7 @@ pub enum ForgeQueryDeclarationCanonicalizationError {
     ComparisonPreparationFailed,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ForgeQueryCanonicalDeclarationArtifact<
     D: ForgeQueryDomainEntryMarker,
     I: ForgeQueryDeclarationInput<D>,
@@ -46,6 +46,25 @@ pub struct ForgeQueryCanonicalDeclarationArtifact<
     declaration_digest: CanonicalDerivedDigest,
     version: ForgeQueryDeclarationCanonicalizationVersion,
     _marker: std::marker::PhantomData<(D, I)>,
+}
+
+impl<D, I> Clone for ForgeQueryCanonicalDeclarationArtifact<D, I>
+where
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+{
+    fn clone(&self) -> Self {
+        Self {
+            handle_identity_digest: self.handle_identity_digest.clone(),
+            declaration_family_key: self.declaration_family_key,
+            declaration_taxonomy: self.declaration_taxonomy,
+            canonical_entries: self.canonical_entries.clone(),
+            canonical_basis_bundle: self.canonical_basis_bundle.clone(),
+            declaration_digest: self.declaration_digest.clone(),
+            version: self.version.clone(),
+            _marker: std::marker::PhantomData,
+        }
+    }
 }
 
 impl<D, I> ForgeQueryCanonicalDeclarationArtifact<D, I>

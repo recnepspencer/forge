@@ -34,11 +34,11 @@ fn seed_minimal_topology_commits_a_readable_bootstrap_snapshot() {
     assert!(read_view.get_entity(seeded.face).is_some());
     assert!(read_view.get_entity(seeded.half_edge).is_some());
     assert_eq!(seeded.persistent_name_ids.len(), 11);
-    assert_eq!(seeded.persisted_truth.snapshot, seeded.snapshot);
-    assert_eq!(seeded.read_basis.snapshot(), &seeded.snapshot);
-    assert_eq!(seeded.read_artifact.snapshot, seeded.snapshot);
+    assert_eq!(seeded.persisted_truth().snapshot, seeded.snapshot);
+    assert_eq!(seeded.read_basis().snapshot(), &seeded.snapshot);
+    assert_eq!(seeded.read_artifact().snapshot, seeded.snapshot);
     assert_eq!(
-        seeded.certified_interpretation.read_basis.snapshot(),
+        seeded.certified_interpretation().read_basis.snapshot(),
         &seeded.snapshot
     );
     for name_id in &seeded.persistent_name_ids {

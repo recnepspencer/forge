@@ -1,6 +1,6 @@
 use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
+use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::TopologyRelationKind;
 
 use super::super::query_runtime_support::{query_relation_id_from_row, QueryRuntimeSupport};
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;

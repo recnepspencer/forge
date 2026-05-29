@@ -21,6 +21,7 @@ speculate, restore, and inspect navigation truth.
 - `signals.router.layout(...)`
 - `signals.router.define(...)`
 - `routeRef.to(...)`
+- `routes.simulateSequence([...])`
 - `routes.project(...)`
 - `routes.admit(...)`
 - `signals.router.browserHistory.*(...)`
@@ -58,6 +59,14 @@ For browser-driven navigation:
    `routes.applyBrowserHistoryWriteback(...)`
 3. record the report in `signals.router.browserHistory.story()`
 4. read `inspection()` or `auditability()` when you need explanation surfaces
+
+For ordered route rehearsal and playback:
+
+1. build a sequence from typed route locations
+2. call `routes.simulateSequence([...])`
+3. run it once
+4. inspect `result.steps`, `result.story`, `result.replay.*()`, and
+   `result.diagnostics()`
 
 ## Small Example
 
@@ -113,9 +122,27 @@ console.log(story.current()?.breadcrumbTrail()?.entries);
 console.log(story.auditability().summary());
 ```
 
+For sequence rehearsal, the route tree now owns the ordinary playback lane too:
+
+```ts
+const scenario = routes.simulateSequence([
+  routes.home.to(),
+  routes.project.to({ params: { projectId: "p7" } }),
+]);
+
+const result = await scenario.run();
+
+console.log(result.steps.map((step) => step.report.outcome().routeId));
+console.log(result.replay.breadcrumbTrail().map((trail) => trail.entries));
+console.log(result.story.current()?.routeId);
+console.log(result.diagnostics().notAdmitted);
+```
+
 Authoritative truth is the browser-history ingress. The route outcome is
 derived from that authority. The story retains the admitted route-history entry
-and boundary explanation automatically.
+and boundary explanation automatically. Sequence rehearsal uses the same
+boundary truth, but without forcing the app to hand-author the ingress/admit/
+record loop for every step.
 
 ## How It Relates To Other Features
 

@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
 use forge_query::facade::ForgeQueryMutationBatchBuilder;
-use schema::facade::{EntityReference, TopologyEntityKind};
+use schema::facade::platform::authority::EntityReference;
+use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{

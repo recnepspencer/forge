@@ -101,8 +101,10 @@ impl LoweredPatchMatch {
                 let Some(relation) = projection.relation_record(relation_id) else {
                     return false;
                 };
-                schema::facade::RelationKind::from_kind_id(relation.kind.kind_id)
-                    .is_some_and(|kind| kind.kind_name() == kind_name)
+                schema::facade::platform::relations::RelationKind::from_kind_id(
+                    relation.kind.kind_id,
+                )
+                .is_some_and(|kind| kind.kind_name() == kind_name)
                     && entity_matches_identity(
                         runtime,
                         version_id,

@@ -1,4 +1,5 @@
 import type { SignalValue } from "../model.js";
+import type { ComputedSignalHandle } from "../callable_surface.js";
 import type {
   FormDirtyState,
   FormFieldDeclaration,
@@ -296,6 +297,19 @@ export interface FormController<
   diagnosticsSummary(): FormDiagnosticsSummaryReport;
   diagnosticsHistory(): ReadonlyArray<FormDiagnosticsHistoryArtifact>;
   stateHistory(): ReadonlyArray<FormStateHistoryArtifact>;
+  summarySignal(): ComputedSignalHandle<{
+    readonly source: TSource;
+    readonly draft: Partial<TSource>;
+    readonly effective: TSource;
+    readonly dirty: FormDirtyState;
+    readonly patchPlan: FormPatchPlan;
+    readonly readiness: {
+      readonly canSubmit: boolean;
+      readonly blockers: ReadonlyArray<FormReadinessBlocker>;
+      readonly patchPlan: FormPatchPlan;
+    };
+    readonly visibleMessages: ReadonlyArray<FormMessageArtifact>;
+  }>;
   diagnostics(): {
     readonly kind: "form";
     readonly declaration: ReturnType<FormController["declaration"]>;

@@ -19,9 +19,13 @@ import type {
   ApiRouteUploadKind,
 } from "./api_route_transfer_kinds.js";
 import type {
+  ApiRouteCommandSemantics,
   ApiRouteOwnedEffectsDeclaration,
   ApiRouteOwnedHeadersDeclaration,
+  ApiRouteResponseCommandMutationDeclarationForState,
   ApiRouteResolvedDownloadValue,
+  ApiRouteSemanticMutationDeclarationForState,
+  ApiRouteMutationSemantics,
   ApiRouteResponseCreateMutationDeclarationForState,
   ApiRouteResponseRemoveMutationDeclarationForState,
   ApiRouteResponseUpdateMutationDeclarationForState,
@@ -105,6 +109,52 @@ type ApiRouteResponseWriteFinalizers<
       TProcessingKind,
       TUploadKind
     >
+  >;
+  mutation<TValue, TWriteBody, TSemantics extends ApiRouteMutationSemantics>(
+    declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
+      ApiRouteSemanticMutationDeclarationForState<
+        TRoute,
+        ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+        TWriteBody,
+        TRequestParams,
+        TProcessingKind,
+        TUploadKind,
+        TDownloadsOwned
+      > & { readonly semantics: TSemantics },
+      THeadersOwned
+    >, TEffectsOwned>,
+  ): ApiDetailResourceFamily<
+    TRoute,
+    TRequestParams,
+    ApiRouteSettledTransferValue<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+      TProcessingKind,
+      TUploadKind
+    >,
+    TWriteBody
+  >;
+  command<TValue, TWriteBody, TSemantics extends ApiRouteCommandSemantics>(
+    declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
+      ApiRouteResponseCommandMutationDeclarationForState<
+        TRoute,
+        ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+        TWriteBody,
+        TRequestParams,
+        TProcessingKind,
+        TUploadKind,
+        TDownloadsOwned
+      > & { readonly semantics: TSemantics },
+      THeadersOwned
+    >, TEffectsOwned>,
+  ): ApiDetailResourceFamily<
+    TRoute,
+    TRequestParams,
+    ApiRouteSettledTransferValue<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+      TProcessingKind,
+      TUploadKind
+    >,
+    TWriteBody
   >;
 };
 

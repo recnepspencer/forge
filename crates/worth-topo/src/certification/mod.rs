@@ -16,6 +16,7 @@ mod structure_guard;
 #[cfg(test)]
 mod structure_guard_support;
 pub(crate) mod support;
+mod tracing;
 
 #[cfg(test)]
 mod tests;
@@ -104,4 +105,9 @@ pub use topology_operator_closeout::{
     MilestoneThreeSplitCollapseChurnWitness, MilestoneThreeTopologyEditDigestRow,
     MilestoneThreeValidationBreadthRow, MilestoneThreeValidatorFamily,
     MilestoneThreeValidatorFamilyCoverageRow,
+};
+pub use tracing::{
+    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure,
+    BridgeTraceAnchor, DecisionTrace, DerivedTraceAnchor, DerivedTraceEvidence, IntegrityMarkers,
+    NamedCounter, PerformanceAccounting, TraceAvailability, TraceWarning,
 };

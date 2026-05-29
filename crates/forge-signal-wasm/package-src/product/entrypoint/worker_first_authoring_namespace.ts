@@ -1,4 +1,4 @@
-import { createApiFactory } from "../api/api_namespace.js";
+import { createApiFactory, createApiScopeFactory } from "../api/api_namespace.js";
 import {
   requireAuthoringOptions,
 } from "../authoring_option_validation.js";
@@ -12,6 +12,8 @@ import {
 } from "./worker_first_async_recipe.js";
 import { createWorkerFirstExplicitSpecNamespace } from "./worker_first_explicit_spec_namespace.js";
 import { createWorkerFirstFormFactory } from "./worker_first_form_factory.js";
+import { createFeatureStoreFactory } from "../feature_store/feature_store_factory.js";
+import { createLocalNamespace } from "../local/local_namespace.js";
 import {
   createWorkerFirstPublicInputEntry,
   isWorkerFirstPublicGraphInputEntry,
@@ -21,7 +23,11 @@ import {
 import { createWorkerFirstResourceNamespace } from "./worker_first_resource_namespace.js";
 import { createWorkerFirstRootGraph } from "./worker_first_root_graph.js";
 import { createRouterNamespace } from "../router/router_namespace.js";
-import { createRootHistoryFacade } from "./worker_first_root_history.js";
+import {
+  assertSignalsRuntimeCompatibility,
+  createSignalsRuntimeContract,
+} from "../runtime_contract.js";
+import { readRootHistoryFacade } from "./worker_first_root_history.js";
 import { decorateWorkerFirstScopedHandle } from "./worker_first_scope_handle.js";
 import {
   canonicalWorkerFirstScopedSignalId,
@@ -48,9 +54,24 @@ function createNamespace(rootSession, path) {
   let form = null;
   let resource = null;
   let api = null;
+  let apiScope = null;
+  let featureStore = null;
+  let history = null;
+  let local = null;
   let router = null;
   let spec = null;
   const descriptor = createWorkerFirstScopeDescriptor(path);
+  const contract = createSignalsRuntimeContract({
+    surfaceFamily: "workerFirstScoped",
+    deployment: "workerFirst",
+    scopeId: descriptor.id,
+    capabilities: {
+      callableSurface: false,
+      scopedAuthoring: true,
+      specNamespace: true,
+      workerRuntime: true,
+    },
+  });
   const tagHandle = (handle, localId = null) => decorateWorkerFirstScopedHandle(
     handle,
     descriptor,
@@ -75,12 +96,25 @@ function createNamespace(rootSession, path) {
       api ??= createApiFactory(namespace);
       return api;
     },
+    get apiScope() {
+      apiScope ??= createApiScopeFactory(namespace);
+      return apiScope;
+    },
+    get featureStore() {
+      featureStore ??= createFeatureStoreFactory(namespace);
+      return featureStore;
+    },
+    get local() {
+      local ??= createLocalNamespace(namespace);
+      return local;
+    },
     get router() {
       router ??= createRouterNamespace(descriptor.id);
       return router;
     },
     history() {
-      return createRootHistoryFacade(rootSession);
+      history ??= readRootHistoryFacade(rootSession);
+      return history;
     },
     scope(localScopeId) {
       requireNonEmptyString(localScopeId, `${operationPrefix}.scope`);
@@ -232,10 +266,20 @@ function createNamespace(rootSession, path) {
     get parentScopeId() {
       return descriptor.parentScopeId;
     },
-    get graphOwnerId() {
-      return descriptor.graphOwnerId;
-    },
-  };
+        get graphOwnerId() {
+            return descriptor.graphOwnerId;
+        },
+        contract() {
+            return contract;
+        },
+        assertCompatibility(options) {
+            return assertSignalsRuntimeCompatibility(
+              contract,
+              options,
+              `${operationPrefix}.assertCompatibility`,
+            );
+        },
+    };
   return namespace;
 }
 

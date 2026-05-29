@@ -390,6 +390,8 @@ For local runtime inspection:
 
 - `signals.diagnostics()`
 - `signals.history()`
+- `signals.contract()`
+- `signals.assertCompatibility(...)`
 
 For graph-boundary inspection:
 
@@ -405,6 +407,43 @@ For graph-boundary inspection:
 
 These surfaces explain the published boundary honestly. They do not turn local
 `debugName` into stable contract identity.
+
+### Runtime Contract Introspection
+
+If a downstream foundation or adapter needs to verify what surface it is
+running against, use the runtime contract lane instead of hand-authored method
+lists or probe graphs:
+
+```ts
+const contract = signals.contract();
+
+contract.surfaceVersion;
+contract.capabilities.scopeAuthoring;
+contract.capabilities.specNamespace;
+contract.capabilities.workerRuntime;
+```
+
+If a wrapper requires a specific posture, assert it directly:
+
+```ts
+signals.assertCompatibility({
+  requires: ["callableSurface", "scopedAuthoring", "specNamespace"],
+});
+```
+
+Scoped namespaces expose the same surface:
+
+```ts
+signals.scope("admin").assertCompatibility({
+  requires: ["scopedAuthoring", "specNamespace"],
+});
+```
+
+This is the intended lane for compatibility checks. Do not rebuild:
+
+- `assertCallableSignalsRuntime(...)`
+- executable probe graphs
+- hand-maintained method inventories
 
 ## Anti-Patterns
 

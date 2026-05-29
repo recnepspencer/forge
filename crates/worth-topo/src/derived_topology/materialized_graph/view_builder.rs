@@ -1,4 +1,4 @@
-use schema::facade::{EntityKind, TopologyEntityKind};
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 
 use crate::brep::topology_graph::{
     TopologyBody, TopologyEdge, TopologyFace, TopologyHalfEdge, TopologyLoop, TopologyLump,

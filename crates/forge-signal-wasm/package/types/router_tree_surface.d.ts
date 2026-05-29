@@ -37,11 +37,16 @@ import type {
   RouteTransitionTarget,
 } from "./router_transition_surface.js";
 import type {
+  RouterSequenceNavigationStep,
+  RouterSequenceScenario,
+} from "./router_sequence_surface.js";
+import type {
   RouterWarmupIngress,
   RouterWarmupReport,
 } from "./router_warmup_surface.js";
 import type {
   RouteLayoutReference,
+  RouteLocation,
   RouteReference,
   RouterHashField,
   RouterRouteDeclaration,
@@ -205,4 +210,10 @@ export type RouterResolvedTree<TTree extends RouterDefinitionTree> =
       RouterResolvedAdmittedLeafUnion<TTree>,
       RouterResolvedLayoutUnion<TTree>
     > | null>>;
+    simulateSequence(
+      sequence: ReadonlyArray<RouterSequenceNavigationStep<RouteAdmissionFacts> | string | RawLocationAuthority | RouteLocation<any, any, any>>,
+    ): RouterSequenceScenario<
+      RouteOutcome<RouterResolvedAdmittedLeafUnion<TTree>, RouterResolvedLayoutUnion<TTree>>,
+      RouteAdmissionFacts
+    >;
   };

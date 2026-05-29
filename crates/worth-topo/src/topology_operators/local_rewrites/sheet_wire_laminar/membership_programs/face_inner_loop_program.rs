@@ -1,5 +1,7 @@
 use forge_query::facade::ForgeQueryBatchWriteReceipt;
-use schema::facade::{EntityReference, TopologyEntityKind, TopologyRelationKind};
+use schema::facade::platform::authority::EntityReference;
+use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{
@@ -77,7 +79,9 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                         )
                         .symbolic_entity_identity("topology.target_identity", &loop_symbol);
                     if let Some(path) = topology_relation_dependency_path(
-                        schema::facade::RelationKind::Topology(TopologyRelationKind::FaceInnerLoop),
+                        schema::facade::platform::relations::RelationKind::Topology(
+                            TopologyRelationKind::FaceInnerLoop,
+                        ),
                     ) {
                         relation.aspect(path, TopologyRelationKind::FaceInnerLoop.kind_name())
                     } else {

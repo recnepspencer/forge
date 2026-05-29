@@ -4,6 +4,7 @@ import type {
   ResourceItemAspectMap,
   ResourceValueSummaryMap,
 } from "./resource_reconciliation.js";
+import type { ResourceRequestMethod } from "./resource_postures.js";
 import type { ApiRequestParamsShape } from "./api_request_params.js";
 import type { ApiRouteProcessingKind, ApiRouteUploadKind } from "./api_route_transfer_kinds.js";
 import type {
@@ -204,6 +205,120 @@ export type ApiRouteResponseMutationDeclarationForState<
   TUploadKind,
   TDownloadsOwned
 >;
+
+export type ApiRouteMutationSemantics =
+  | "create"
+  | "update"
+  | "remove";
+
+export type ApiRouteCommandSemantics =
+  | "command"
+  | "relationshipUpdate"
+  | "aggregateMutation"
+  | "sideEffect";
+
+type ApiRouteSemanticMethodOwned<TDeclaration> =
+  Omit<TDeclaration, "method"> & {
+    readonly method?: ResourceRequestMethod;
+  };
+
+export type ApiRouteSemanticMutationDeclarationForState<
+  TRoute extends string,
+  TValue,
+  TWriteBody,
+  TRequestParams extends ApiRequestParamsShape | undefined,
+  TProcessingKind extends ApiRouteProcessingKind,
+  TUploadKind extends ApiRouteUploadKind,
+  TDownloadsOwned extends boolean,
+> =
+  | (ApiRouteSemanticMethodOwned<
+      ApiRouteResponseCreateMutationDeclarationForState<
+        TRoute,
+        TValue,
+        TWriteBody,
+        TRequestParams,
+        TProcessingKind,
+        TUploadKind,
+        TDownloadsOwned
+      >
+    > & { readonly semantics: "create" })
+  | (ApiRouteSemanticMethodOwned<
+      ApiRouteResponseUpdateMutationDeclarationForState<
+        TRoute,
+        TValue,
+        TWriteBody,
+        TRequestParams,
+        TProcessingKind,
+        TUploadKind,
+        TDownloadsOwned
+      >
+    > & { readonly semantics: "update" })
+  | (ApiRouteSemanticMethodOwned<
+      ApiRouteResponseRemoveMutationDeclarationForState<
+        TRoute,
+        TValue,
+        TRequestParams,
+        TProcessingKind,
+        TUploadKind,
+        TDownloadsOwned
+      >
+    > & { readonly semantics: "remove" });
+
+export type ApiRouteCommandMutationDeclarationForState<
+  TRoute extends string,
+  TValue,
+  TWriteBody,
+  TRequestParams extends ApiRequestParamsShape | undefined,
+  TProcessingKind extends ApiRouteProcessingKind,
+  TUploadKind extends ApiRouteUploadKind,
+  TDownloadsOwned extends boolean,
+> = ApiRouteSemanticMethodOwned<
+  ApiRouteCreateDeclarationForState<
+    TRoute,
+    TValue,
+    TWriteBody,
+    undefined,
+    TRequestParams,
+    TProcessingKind,
+    TUploadKind,
+    TDownloadsOwned
+  >
+> & {
+  readonly semantics: ApiRouteCommandSemantics;
+};
+
+export type ApiRouteResponseCommandMutationDeclarationForState<
+  TRoute extends string,
+  TValue,
+  TWriteBody,
+  TRequestParams extends ApiRequestParamsShape | undefined,
+  TProcessingKind extends ApiRouteProcessingKind,
+  TUploadKind extends ApiRouteUploadKind,
+  TDownloadsOwned extends boolean,
+> = ApiRouteSemanticMethodOwned<
+  ApiRouteCreateDeclarationForState<
+    TRoute,
+    TValue,
+    TWriteBody,
+    undefined,
+    TRequestParams,
+    TProcessingKind,
+    TUploadKind,
+    TDownloadsOwned
+  >
+> & {
+  readonly semantics: ApiRouteCommandSemantics;
+  readonly reconciles?: readonly ResourceMutationResponseFallbackTargetDeclaration<
+    import("./api_request_params.js").ApiRouteWriteDeclarationParams<
+      TRoute,
+      TRequestParams,
+      TWriteBody
+    >
+  >[];
+  readonly atomicity?: ResourceMutationResponseAtomicity;
+  readonly diagnostics?: never;
+  readonly identity?: never;
+};
 
 export type ApiRouteResponseRemoveMutationDeclarationForState<
   TRoute extends string,

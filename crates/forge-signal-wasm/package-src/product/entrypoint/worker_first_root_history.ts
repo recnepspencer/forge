@@ -5,7 +5,28 @@ import {
   normalizeWorkerFirstBranchId,
 } from "./sessions/support/worker_first_history_proofs.js";
 
+const workerFirstRootHistoryFacadeBySession = new WeakMap();
+
 export function createRootHistoryFacade(rootSession) {
+  const listeners = new Set();
+
+  function notifyListeners() {
+    for (const listener of Array.from(listeners)) {
+      listener();
+    }
+  }
+
+  function withNotification(result) {
+    if (result && typeof result.then === "function") {
+      return result.then((value) => {
+        notifyListeners();
+        return value;
+      });
+    }
+    notifyListeners();
+    return result;
+  }
+
   return freezeObject({
     replay_for(id) {
       const context = rootSession.currentImportContext();
@@ -33,11 +54,11 @@ export function createRootHistoryFacade(rootSession) {
     },
     restore_snapshot(snapshot) {
       if (typeof snapshot?.snapshotEnvelopePortableWire === "string") {
-        return rootSession.restorePortableHistorySnapshotEnvelope(
+        return withNotification(rootSession.restorePortableHistorySnapshotEnvelope(
           snapshot.snapshotEnvelopePortableWire,
-        );
+        ));
       }
-      return rootSession.restoreHistorySnapshotEnvelope(snapshot);
+      return withNotification(rootSession.restoreHistorySnapshotEnvelope(snapshot));
     },
     restore_exact_snapshot(snapshot) {
       const restoreToken = snapshot?.snapshotEnvelopeRestoreToken;
@@ -46,7 +67,7 @@ export function createRootHistoryFacade(rootSession) {
           "history.restore_exact_snapshot expects an artifact returned by history.snapshot() or history.branch_snapshot_envelope()",
         );
       }
-      return rootSession.restoreExactHistorySnapshotEnvelope(restoreToken);
+      return withNotification(rootSession.restoreExactHistorySnapshotEnvelope(restoreToken));
     },
     current_branch() {
       const branch = rootSession.currentBranchSummary();
@@ -61,10 +82,10 @@ export function createRootHistoryFacade(rootSession) {
       return rootSession.branchesSummary();
     },
     create_branch(name) {
-      return rootSession.createHistoryBranch(name);
+      return withNotification(rootSession.createHistoryBranch(name));
     },
     switch_branch(branchId) {
-      return rootSession.switchHistoryBranch(branchId);
+      return withNotification(rootSession.switchHistoryBranch(branchId));
     },
     replay_for_branch(branchId) {
       return requireWorkerFirstBranchValue(
@@ -108,12 +129,12 @@ export function createRootHistoryFacade(rootSession) {
     },
     restore_branch_snapshot(branchId, snapshot) {
       if (typeof snapshot?.snapshotPortableWire === "string") {
-        return rootSession.restorePortableHistoryBranchSnapshot(
+        return withNotification(rootSession.restorePortableHistoryBranchSnapshot(
           branchId,
           snapshot.snapshotPortableWire,
-        );
+        ));
       }
-      return rootSession.restoreHistoryBranchSnapshot(branchId, snapshot);
+      return withNotification(rootSession.restoreHistoryBranchSnapshot(branchId, snapshot));
     },
     restore_exact_branch_snapshot(branchId, snapshot) {
       const restoreToken = snapshot?.snapshotRestoreToken;
@@ -122,16 +143,18 @@ export function createRootHistoryFacade(rootSession) {
           "history.restore_exact_branch_snapshot expects an artifact returned by history.branch_snapshot()",
         );
       }
-      return rootSession.restoreExactHistoryBranchSnapshot(branchId, restoreToken);
+      return withNotification(rootSession.restoreExactHistoryBranchSnapshot(branchId, restoreToken));
     },
     restore_branch_snapshot_by_id(branchId, snapshotId) {
-      return rootSession.restoreHistoryBranchSnapshotById(branchId, snapshotId);
+      return withNotification(rootSession.restoreHistoryBranchSnapshotById(branchId, snapshotId));
     },
     merge_branches(sourceBranchId, targetBranchId) {
-      return rootSession.mergeHistoryBranches(sourceBranchId, targetBranchId);
+      return withNotification(rootSession.mergeHistoryBranches(sourceBranchId, targetBranchId));
     },
     merge_branches_with_proof(sourceBranchId, targetBranchId) {
-      return rootSession.mergeHistoryBranchesWithProof(sourceBranchId, targetBranchId);
+      return withNotification(
+        rootSession.mergeHistoryBranchesWithProof(sourceBranchId, targetBranchId),
+      );
     },
     plan_merge_branches(sourceBranchId, targetBranchId) {
       return rootSession.bridge().planMergeBranches(sourceBranchId, targetBranchId);
@@ -198,9 +221,27 @@ export function createRootHistoryFacade(rootSession) {
         }),
       );
     },
+    subscribe(listener) {
+      if (typeof listener !== "function") {
+        throw new TypeError("history.subscribe(...) requires a listener function");
+      }
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
     free() {},
     [Symbol.dispose]() {},
   });
+}
+
+export function readRootHistoryFacade(rootSession) {
+  let facade = workerFirstRootHistoryFacadeBySession.get(rootSession);
+  if (facade === undefined) {
+    facade = createRootHistoryFacade(rootSession);
+    workerFirstRootHistoryFacadeBySession.set(rootSession, facade);
+  }
+  return facade;
 }
 
 function throwWorkerFirstHistoryUnavailable(operation) {

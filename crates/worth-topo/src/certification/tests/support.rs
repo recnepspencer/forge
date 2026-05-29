@@ -1,7 +1,7 @@
 use super::*;
 
 pub(super) fn counter_value(
-    accounting: &schema::facade::PerformanceAccounting,
+    accounting: &crate::certification::PerformanceAccounting,
     name: &str,
 ) -> Option<u64> {
     accounting

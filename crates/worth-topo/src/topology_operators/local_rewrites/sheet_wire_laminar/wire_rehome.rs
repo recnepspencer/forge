@@ -4,7 +4,7 @@ use forge_query::facade::{
     ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder,
     ForgeQuerySymbolicTargetReference,
 };
-use schema::facade::TopologyEntityKind;
+use schema::facade::platform::entities::TopologyEntityKind;
 
 use super::wire_rehome_support::{parse_wire_rehome_program, resolve_wire_split_program};
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
@@ -34,13 +34,14 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         let outgoing_relation_ids = query_outgoing_relation_ids(
             bindings,
             &retired_wire_binding.query_identity,
-            schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
+            schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
         )?;
         if outgoing_relation_ids.len() != program.half_edge_ids.len() {
             return Err(
                 TopologyOperatorExecutionError::ExistingEntityOutgoingRelationCountMismatch {
                     entity_id: program.retired_wire_id,
-                    relation_kind: schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
+                    relation_kind:
+                        schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
                     expected: program.half_edge_ids.len(),
                     actual: outgoing_relation_ids.len(),
                 },
@@ -95,16 +96,18 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             return Err(
                 TopologyOperatorExecutionError::ExistingEntityOutgoingRelationCountMismatch {
                     entity_id: program.retired_wire_id,
-                    relation_kind: schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
+                    relation_kind:
+                        schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
                     expected: program.half_edge_ids.len(),
                     actual: 0,
                 },
             );
         }
-        let dependency_path =
-            topology_relation_dependency_path(schema::facade::RelationKind::Topology(
-                schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
-            ));
+        let dependency_path = topology_relation_dependency_path(
+            schema::facade::platform::relations::RelationKind::Topology(
+                schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
+            ),
+        );
         let retired_wire_identity = retired_wire_binding.query_identity.clone();
         let created_wire_key = program.create_key.clone();
         let mut builder = ForgeQueryMutationBatchBuilder::new().insert_symbolic(
@@ -123,7 +126,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 .ok_or(
                     TopologyOperatorExecutionError::ExistingEntityOutgoingRelationCountMismatch {
                         entity_id: program.retired_wire_id,
-                        relation_kind: schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
+                        relation_kind: schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
                         expected: program.half_edge_ids.len(),
                         actual: 0,
                     },
@@ -142,14 +145,14 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     let verify = verify
                         .aspect(
                             "topology.kind",
-                            schema::facade::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                            schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                         )
                         .aspect("topology.source_identity", retired_wire_identity.clone())
                         .aspect("topology.target_identity", half_edge_identity.clone());
                     if let Some(path) = dependency_path {
                         verify.aspect(
                             path,
-                            schema::facade::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                            schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                         )
                     } else {
                         verify
@@ -159,7 +162,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     let update = update
                         .aspect(
                             "topology.kind",
-                            schema::facade::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                            schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                         )
                         .symbolic_entity_identity(
                             "topology.source_identity",
@@ -170,7 +173,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     if let Some(path) = dependency_path {
                         update.aspect(
                             path,
-                            schema::facade::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                            schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                         )
                     } else {
                         update
@@ -209,7 +212,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         let outgoing_relation_ids = query_outgoing_relation_ids(
             bindings,
             &retained_wire_binding.query_identity,
-            schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
+            schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
         )?;
         let mut half_edge_bindings = Vec::with_capacity(program.half_edge_ids.len());
         let mut moved_half_edge_identities = BTreeSet::new();
@@ -257,16 +260,18 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             return Err(
                 TopologyOperatorExecutionError::ExistingEntityOutgoingRelationCountMismatch {
                     entity_id: retained_wire_id,
-                    relation_kind: schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
+                    relation_kind:
+                        schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
                     expected: program.half_edge_ids.len(),
                     actual: relation_bindings_by_target.len(),
                 },
             );
         }
-        let dependency_path =
-            topology_relation_dependency_path(schema::facade::RelationKind::Topology(
-                schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
-            ));
+        let dependency_path = topology_relation_dependency_path(
+            schema::facade::platform::relations::RelationKind::Topology(
+                schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
+            ),
+        );
         let retained_wire_identity = retained_wire_binding.query_identity.clone();
         let created_wire_key = program.create_key.clone();
         let mut builder = ForgeQueryMutationBatchBuilder::new().insert_symbolic(
@@ -285,7 +290,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 .ok_or(
                     TopologyOperatorExecutionError::ExistingEntityOutgoingRelationCountMismatch {
                         entity_id: retained_wire_id,
-                        relation_kind: schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
+                        relation_kind: schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
                         expected: program.half_edge_ids.len(),
                         actual: 0,
                     },
@@ -304,14 +309,14 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     let verify = verify
                         .aspect(
                             "topology.kind",
-                            schema::facade::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                            schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                         )
                         .aspect("topology.source_identity", retained_wire_identity.clone())
                         .aspect("topology.target_identity", half_edge_identity.clone());
                     if let Some(path) = dependency_path {
                         verify.aspect(
                             path,
-                            schema::facade::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                            schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                         )
                     } else {
                         verify
@@ -321,7 +326,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     let update = update
                         .aspect(
                             "topology.kind",
-                            schema::facade::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                            schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                         )
                         .symbolic_entity_identity(
                             "topology.source_identity",
@@ -332,7 +337,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     if let Some(path) = dependency_path {
                         update.aspect(
                             path,
-                            schema::facade::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                            schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                         )
                     } else {
                         update

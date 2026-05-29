@@ -34,9 +34,7 @@ const cargoManifestPath = path.resolve("crates/forge-signal-wasm/Cargo.toml");
 const reactTypeDeclarationsPath = path.resolve(
   "crates/forge-signal-wasm/react/index.d.ts",
 );
-const reactModelDeclarationsPath = path.resolve(
-  "crates/forge-signal-wasm/react/model.d.ts",
-);
+const reactDeclarationsDirPath = path.resolve("crates/forge-signal-wasm/react");
 const reactTsConfigPath = path.resolve("crates/forge-signal-wasm/tsconfig.react.json");
 const reactCrateDir = path.resolve("crates/forge-signal-wasm");
 const reactTscBinaryPath = path.resolve(
@@ -110,6 +108,25 @@ async function resetPackageStage() {
       continue;
     }
     await rm(path.join(pkgDir, entry.name), { recursive: true, force: true });
+  }
+}
+
+async function copyReactDeclarationsRecursive(sourceDir, destinationDir) {
+  await mkdir(destinationDir, { recursive: true });
+  const entries = await readdir(sourceDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const sourcePath = path.join(sourceDir, entry.name);
+    const destinationPath = path.join(destinationDir, entry.name);
+    if (entry.isDirectory()) {
+      await copyReactDeclarationsRecursive(sourcePath, destinationPath);
+      continue;
+    }
+    if (!entry.name.endsWith(".d.ts")) {
+      continue;
+    }
+    const source = await readFile(sourcePath, "utf8");
+    const rewritten = source.replaceAll("../package/types/", "../types/");
+    await writeFile(destinationPath, rewritten, "utf8");
   }
 }
 
@@ -257,13 +274,9 @@ await copyDirectoryRecursive(docsDirPath, path.join(pkgDir, "docs"));
 await copyDirectoryRecursive(typesDirPath, path.join(pkgDir, "types"));
 await mkdir(path.join(pkgDir, "react"), { recursive: true });
 await compileReactEntryPoints();
-await copyFile(
-  reactTypeDeclarationsPath,
-  path.join(pkgDir, "react", "index.d.ts"),
-);
-await copyFile(
-  reactModelDeclarationsPath,
-  path.join(pkgDir, "react", "model.d.ts"),
+await copyReactDeclarationsRecursive(
+  reactDeclarationsDirPath,
+  path.join(pkgDir, "react"),
 );
 await writeFile(
   packageJsonPath,

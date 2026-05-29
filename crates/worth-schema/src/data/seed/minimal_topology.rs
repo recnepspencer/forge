@@ -6,99 +6,110 @@ use crate::data::entities::{EntityKind, NamingEntityKind, TopologyEntityKind};
 use crate::data::relations::{RelationKind, TopologyRelationKind};
 use crate::data::seed::labels::MinimalTopologyLabels;
 use crate::data::seed::lookup::find_seeded_entity;
-use crate::data::seed::types::MinimalTopologySeed;
+use crate::data::seed::types::{MinimalTopologySeed, SeededTopologyCommit};
 use crate::data::seed::{created_ref, TopologyCreateBatchBuilder};
 
 pub fn seed_minimal_topology(
     runtime: &mut RelationalRuntime,
     stem: &str,
 ) -> Result<MinimalTopologySeed, TransactionCommitError> {
+    let verified = seed_minimal_topology_commit(runtime, stem)?;
     let labels = MinimalTopologyLabels::new(stem);
+    let naming_read = runtime
+        .read_truth()
+        .read_snapshot(verified.snapshot())
+        .expect(" seeded snapshot should remain readable");
+
+    Ok(MinimalTopologySeed::from_parts(
+        verified.snapshot().clone(),
+        find_seeded_entity(
+            &naming_read,
+            EntityKind::Topology(TopologyEntityKind::Model),
+            &labels.model,
+        ),
+        find_seeded_entity(
+            &naming_read,
+            EntityKind::Topology(TopologyEntityKind::Body),
+            &labels.body,
+        ),
+        find_seeded_entity(
+            &naming_read,
+            EntityKind::Topology(TopologyEntityKind::Lump),
+            &labels.lump,
+        ),
+        find_seeded_entity(
+            &naming_read,
+            EntityKind::Topology(TopologyEntityKind::Region),
+            &labels.region,
+        ),
+        find_seeded_entity(
+            &naming_read,
+            EntityKind::Topology(TopologyEntityKind::Shell),
+            &labels.shell,
+        ),
+        find_seeded_entity(
+            &naming_read,
+            EntityKind::Topology(TopologyEntityKind::Face),
+            &labels.face,
+        ),
+        find_seeded_entity(
+            &naming_read,
+            EntityKind::Topology(TopologyEntityKind::Loop),
+            &labels.outer_loop,
+        ),
+        find_seeded_entity(
+            &naming_read,
+            EntityKind::Topology(TopologyEntityKind::Wire),
+            &labels.wire,
+        ),
+        find_seeded_entity(
+            &naming_read,
+            EntityKind::Topology(TopologyEntityKind::HalfEdge),
+            &labels.half_edge,
+        ),
+        find_seeded_entity(
+            &naming_read,
+            EntityKind::Topology(TopologyEntityKind::Edge),
+            &labels.edge,
+        ),
+        find_seeded_entity(
+            &naming_read,
+            EntityKind::Topology(TopologyEntityKind::Vertex),
+            &labels.vertex,
+        ),
+        collect_persistent_name_ids(&naming_read, &labels),
+        verified.persisted_truth().clone(),
+        verified.read_basis().clone(),
+        crate::data::authority::TopologyReadArtifact::from_read_basis(verified.read_basis()),
+        crate::data::authority::CertifiedTopologyInterpretation::from_read_basis(
+            verified.read_basis().clone(),
+        ),
+    ))
+}
+
+pub fn seed_minimal_topology_commit(
+    runtime: &mut RelationalRuntime,
+    stem: &str,
+) -> Result<SeededTopologyCommit, TransactionCommitError> {
     let verified = TopologyAuthority::new(runtime)
-        .apply_topology_intent_traced(build_minimal_topology_intent(&labels))
+        .apply_topology_intent_traced(build_minimal_topology_intent(stem))
         .map(|traced| traced.into_primary_result())
         .map_err(|error| match error.into_error() {
             crate::data::authority::TopologyAuthorityError::Commit(error) => error,
             other => panic!(" minimal topology seed should author successfully: {other:?}"),
         })?;
-    let naming_read = runtime
-        .read_truth()
-        .read_snapshot(&verified.persisted_truth.snapshot)
-        .expect(" seeded snapshot should remain readable");
-
-    let ids = MinimalTopologySeed {
-        snapshot: verified.persisted_truth.snapshot.clone(),
-        model: find_seeded_entity(
-            &naming_read,
-            EntityKind::Topology(TopologyEntityKind::Model),
-            &labels.model,
-        ),
-        body: find_seeded_entity(
-            &naming_read,
-            EntityKind::Topology(TopologyEntityKind::Body),
-            &labels.body,
-        ),
-        lump: find_seeded_entity(
-            &naming_read,
-            EntityKind::Topology(TopologyEntityKind::Lump),
-            &labels.lump,
-        ),
-        region: find_seeded_entity(
-            &naming_read,
-            EntityKind::Topology(TopologyEntityKind::Region),
-            &labels.region,
-        ),
-        shell: find_seeded_entity(
-            &naming_read,
-            EntityKind::Topology(TopologyEntityKind::Shell),
-            &labels.shell,
-        ),
-        face: find_seeded_entity(
-            &naming_read,
-            EntityKind::Topology(TopologyEntityKind::Face),
-            &labels.face,
-        ),
-        outer_loop: find_seeded_entity(
-            &naming_read,
-            EntityKind::Topology(TopologyEntityKind::Loop),
-            &labels.outer_loop,
-        ),
-        wire: find_seeded_entity(
-            &naming_read,
-            EntityKind::Topology(TopologyEntityKind::Wire),
-            &labels.wire,
-        ),
-        half_edge: find_seeded_entity(
-            &naming_read,
-            EntityKind::Topology(TopologyEntityKind::HalfEdge),
-            &labels.half_edge,
-        ),
-        edge: find_seeded_entity(
-            &naming_read,
-            EntityKind::Topology(TopologyEntityKind::Edge),
-            &labels.edge,
-        ),
-        vertex: find_seeded_entity(
-            &naming_read,
-            EntityKind::Topology(TopologyEntityKind::Vertex),
-            &labels.vertex,
-        ),
-        persistent_name_ids: collect_persistent_name_ids(&naming_read, &labels),
-        persisted_truth: verified.persisted_truth.clone(),
-        read_basis: verified.read_basis.clone(),
-        read_artifact: crate::data::authority::TopologyReadArtifact::from_read_basis(
-            &verified.read_basis,
-        ),
-        certified_interpretation:
-            crate::data::authority::CertifiedTopologyInterpretation::from_read_basis(
-                verified.read_basis.clone(),
-            ),
-    };
-
-    Ok(MinimalTopologySeed { ..ids })
+    Ok(SeededTopologyCommit::from_parts(
+        verified.canonical_batch,
+        verified.branch_id,
+        verified.commits,
+        verified.persisted_truth.snapshot.clone(),
+        verified.persisted_truth,
+        verified.read_basis,
+    ))
 }
 
-fn build_minimal_topology_intent(labels: &MinimalTopologyLabels) -> RawTopologyIntent {
+pub fn build_minimal_topology_intent(stem: &str) -> RawTopologyIntent {
+    let labels = MinimalTopologyLabels::new(stem);
     let builder = TopologyCreateBatchBuilder::new()
         .topology_entity(
             labels.model.clone(),

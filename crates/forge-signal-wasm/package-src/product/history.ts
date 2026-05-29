@@ -24,6 +24,23 @@ function attachLiteralField(value, field, literal) {
   return value;
 }
 
+function notifyHistoryListeners(listeners) {
+  for (const listener of Array.from(listeners)) {
+    listener();
+  }
+}
+
+function withHistoryMutationNotification(result, listeners) {
+  if (result && typeof result.then === "function") {
+    return result.then((value) => {
+      notifyHistoryListeners(listeners);
+      return value;
+    });
+  }
+  notifyHistoryListeners(listeners);
+  return result;
+}
+
 function snapshotEnvelopeRestoreToken(snapshot) {
   return snapshot?.snapshotEnvelopeRestoreToken;
 }
@@ -92,6 +109,7 @@ function normalizeMergePreviewRequest(request, operation) {
 }
 
 export function wrapHistory(rawHistory) {
+  const listeners = new Set();
   return Object.freeze({
     replay_for(id) {
       return rawHistory.replay_for(id);
@@ -114,9 +132,15 @@ export function wrapHistory(rawHistory) {
     },
     restore_snapshot(snapshot) {
       if (typeof snapshot?.snapshotEnvelopePortableWire === "string") {
-        return rawHistory.restore_snapshot_portable_wire(snapshot.snapshotEnvelopePortableWire);
+        return withHistoryMutationNotification(
+          rawHistory.restore_snapshot_portable_wire(snapshot.snapshotEnvelopePortableWire),
+          listeners,
+        );
       }
-      return rawHistory.restore_snapshot(snapshot);
+      return withHistoryMutationNotification(
+        rawHistory.restore_snapshot(snapshot),
+        listeners,
+      );
     },
     restore_exact_snapshot(snapshot) {
       const restoreToken = snapshotEnvelopeRestoreToken(snapshot);
@@ -125,7 +149,10 @@ export function wrapHistory(rawHistory) {
           "history.restore_exact_snapshot expects an artifact returned by history.snapshot() or history.branch_snapshot_envelope()",
         );
       }
-      return rawHistory.restore_snapshot_wire(restoreToken);
+      return withHistoryMutationNotification(
+        rawHistory.restore_snapshot_wire(restoreToken),
+        listeners,
+      );
     },
     current_branch() {
       return rawHistory.current_branch();
@@ -134,10 +161,13 @@ export function wrapHistory(rawHistory) {
       return rawHistory.branches();
     },
     create_branch(name) {
-      return rawHistory.create_branch(name);
+      return withHistoryMutationNotification(rawHistory.create_branch(name), listeners);
     },
     switch_branch(branchId) {
-      return rawHistory.switch_branch(normalizeBranchId(branchId, "history.switch_branch"));
+      return withHistoryMutationNotification(
+        rawHistory.switch_branch(normalizeBranchId(branchId, "history.switch_branch")),
+        listeners,
+      );
     },
     replay_for_branch(branchId) {
       return rawHistory.replay_for_branch(normalizeBranchId(branchId, "history.replay_for_branch"));
@@ -176,14 +206,20 @@ export function wrapHistory(rawHistory) {
     restore_branch_snapshot(branchId, snapshot) {
       const normalizedBranchId = normalizeBranchId(branchId, "history.restore_branch_snapshot");
       if (typeof snapshot?.snapshotPortableWire === "string") {
-        return rawHistory.restore_branch_snapshot_portable_wire(
-          normalizedBranchId,
-          snapshot.snapshotPortableWire,
+        return withHistoryMutationNotification(
+          rawHistory.restore_branch_snapshot_portable_wire(
+            normalizedBranchId,
+            snapshot.snapshotPortableWire,
+          ),
+          listeners,
         );
       }
-      return rawHistory.restore_branch_snapshot(
-        normalizedBranchId,
-        snapshot,
+      return withHistoryMutationNotification(
+        rawHistory.restore_branch_snapshot(
+          normalizedBranchId,
+          snapshot,
+        ),
+        listeners,
       );
     },
     restore_exact_branch_snapshot(branchId, snapshot) {
@@ -194,24 +230,36 @@ export function wrapHistory(rawHistory) {
           "history.restore_exact_branch_snapshot expects an artifact returned by history.branch_snapshot()",
         );
       }
-      return rawHistory.restore_branch_snapshot_wire(normalizedBranchId, restoreToken);
+      return withHistoryMutationNotification(
+        rawHistory.restore_branch_snapshot_wire(normalizedBranchId, restoreToken),
+        listeners,
+      );
     },
     restore_branch_snapshot_by_id(branchId, snapshotId) {
-      return rawHistory.restore_branch_snapshot_by_id(
-        normalizeBranchId(branchId, "history.restore_branch_snapshot_by_id"),
-        normalizeSnapshotId(snapshotId, "history.restore_branch_snapshot_by_id"),
+      return withHistoryMutationNotification(
+        rawHistory.restore_branch_snapshot_by_id(
+          normalizeBranchId(branchId, "history.restore_branch_snapshot_by_id"),
+          normalizeSnapshotId(snapshotId, "history.restore_branch_snapshot_by_id"),
+        ),
+        listeners,
       );
     },
     merge_branches(sourceBranchId, targetBranchId) {
-      return rawHistory.merge_branches(
-        normalizeBranchId(sourceBranchId, "history.merge_branches"),
-        normalizeBranchId(targetBranchId, "history.merge_branches"),
+      return withHistoryMutationNotification(
+        rawHistory.merge_branches(
+          normalizeBranchId(sourceBranchId, "history.merge_branches"),
+          normalizeBranchId(targetBranchId, "history.merge_branches"),
+        ),
+        listeners,
       );
     },
     merge_branches_with_proof(sourceBranchId, targetBranchId) {
-      return rawHistory.merge_branches_with_proof(
-        normalizeBranchId(sourceBranchId, "history.merge_branches_with_proof"),
-        normalizeBranchId(targetBranchId, "history.merge_branches_with_proof"),
+      return withHistoryMutationNotification(
+        rawHistory.merge_branches_with_proof(
+          normalizeBranchId(sourceBranchId, "history.merge_branches_with_proof"),
+          normalizeBranchId(targetBranchId, "history.merge_branches_with_proof"),
+        ),
+        listeners,
       );
     },
     plan_merge_branches(sourceBranchId, targetBranchId) {
@@ -260,6 +308,15 @@ export function wrapHistory(rawHistory) {
         expected,
         normalizeBranchId(replayedBranchId, "history.replay_artifact_proof"),
       );
+    },
+    subscribe(listener) {
+      if (typeof listener !== "function") {
+        throw new TypeError("history.subscribe(...) requires a listener function");
+      }
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     },
     free() {
       rawHistory.free();

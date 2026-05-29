@@ -1,0 +1,12 @@
+error[E0432]: unresolved imports `schema::facade::admit_query_mutation_batch`, `schema::facade::query_mutation_support_contract`, `schema::facade::QueryMutationAdmission`, `schema::facade::QueryMutationAdmissionBlocker`, `schema::facade::QueryMutationSupportContract`
+ --> tests/compile_fail/removed_facade_exports/query_policy/removed_query_mutation_facade_exports.rs:2:5
+  |
+2 |     admit_query_mutation_batch, query_mutation_support_contract, QueryMutationAdmission,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^ no `QueryMutationAdmission` in `facade`
+  |     |                           |
+  |     |                           no `query_mutation_support_contract` in `facade`
+  |     no `admit_query_mutation_batch` in `facade`
+3 |     QueryMutationAdmissionBlocker, QueryMutationSupportContract,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `QueryMutationSupportContract` in `facade`
+  |     |
+  |     no `QueryMutationAdmissionBlocker` in `facade`

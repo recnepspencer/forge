@@ -1,6 +1,6 @@
 use forge_query::facade::{ForgeQueryEntity, ForgeQueryWorkspace};
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::super::shared::{entity_id_from_query_identity, relation_id_from_query_identity};
 use crate::certification::error::TopologyCertificationError;

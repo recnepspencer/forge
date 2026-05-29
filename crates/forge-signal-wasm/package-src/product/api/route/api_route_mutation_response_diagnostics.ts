@@ -3,7 +3,7 @@ const MUTATION_RESPONSE_DIAGNOSTIC_KINDS = Object.freeze([
   "warnings",
 ]);
 
-function lowerMutationResponseDiagnostics(route, method, response, diagnostics) {
+function lowerMutationResponseDiagnostics(route, semanticFinalizer, response, diagnostics) {
   if (diagnostics === undefined) {
     return Object.freeze([]);
   }
@@ -12,7 +12,7 @@ function lowerMutationResponseDiagnostics(route, method, response, diagnostics) 
       `api.url("${route}").response(...).create/update/remove(...) diagnostics must be an array of declared diagnostic mappings`,
     );
   }
-  if (method !== "PUT" && diagnostics.length > 0) {
+  if (semanticFinalizer !== "update" && diagnostics.length > 0) {
     throw new TypeError(
       `api.url("${route}").response(...).create/update/remove(...) diagnostics are currently admitted only for update/save responses`,
     );

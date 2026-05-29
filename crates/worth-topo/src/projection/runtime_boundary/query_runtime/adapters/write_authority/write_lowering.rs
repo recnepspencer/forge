@@ -9,7 +9,8 @@ use forge_relational::facade::transactions::{
     CreateIntent, EntityReference, EntitySpec, MutationIntent, RelationSpec,
     UpdateRelationEndpointsIntent,
 };
-use schema::facade::{EntityKind, NamingEntityKind, NamingRelationKind, RelationKind};
+use schema::facade::platform::entities::{EntityKind, NamingEntityKind};
+use schema::facade::platform::relations::{NamingRelationKind, RelationKind};
 use serde_json::Value;
 
 use super::super::write_support::{

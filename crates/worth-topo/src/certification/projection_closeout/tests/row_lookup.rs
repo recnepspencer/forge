@@ -1,8 +1,8 @@
 use crate::facade::{topology_runtime, TopologyQueryAssembly, TopologyRuntimeAdapters};
 use crate::projection::TopologyQueryRowLookup;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
+use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::TopologyRelationKind;
 
 #[test]
 fn row_lookup_finds_half_edge_neighbors_for_edge_fan_witnesses() {

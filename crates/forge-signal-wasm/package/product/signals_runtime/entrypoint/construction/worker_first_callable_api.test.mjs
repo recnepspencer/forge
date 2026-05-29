@@ -81,3 +81,45 @@ test("default worker-first root exposes terminal api detail, collection, and pag
     globalThis.Worker = previousWorker;
   }
 });
+
+test("api families expose optionalLine and execute as first-class final-form lanes", async () => {
+  const previousWorker = globalThis.Worker;
+  globalThis.Worker = NodeWorker;
+  const { createSignals, cleanup } = await loadSignalsModule({ rawSurface: "real" });
+
+  try {
+    const workerSignals = await createSignals();
+    let detailCallCount = 0;
+    const route = workerSignals.api({
+      baseUrl: "https://example.test",
+      effects: workerSignals.resource.effects.branchNative(),
+    }).url("/tasks/:taskId").response(
+      workerSignals.resource.response.detail()({ title: "title" }),
+    );
+    const detail = route.detail({
+      load: ({ taskId }) => ({ id: taskId, title: `Task ${++detailCallCount}` }),
+    });
+
+    assert.equal(detail.optionalLine({ enabled: false }), null);
+
+    const resident = detail.optionalLine({ taskId: "task-1" });
+    await settleWorkerResourceLine();
+    assert.deepEqual(resident?.value(), {
+      id: "task-1",
+      title: "Task 1",
+    });
+
+    const execution = detail.execute({ taskId: "task-2" });
+    const settlement = await execution.settled();
+
+    assert.equal(settlement.resultKind, "fulfilled");
+    assert.deepEqual(settlement.value, {
+      id: "task-2",
+      title: "Task 2",
+    });
+    await workerSignals.terminate();
+  } finally {
+    await cleanup();
+    globalThis.Worker = previousWorker;
+  }
+});

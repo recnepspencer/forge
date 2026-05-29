@@ -13,11 +13,11 @@ use crate::facade::{
     PrimitiveCorpusCoverageMatrix, PrimitiveCorpusParityReport,
 };
 use forge_relational::facade::history::BranchId;
+use schema::facade::platform::authority::MutationOrigin;
+use schema::facade::platform::authority::{ShellInterpretationClass, WireInterpretationClass};
 use schema::facade::topology_authoring::{
     MilestoneOnePrimitiveCase, MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
 };
-use schema::facade::{MutationOrigin, RawTopologyIntent, TopologyMutation};
-use schema::facade::{ShellInterpretationClass, WireInterpretationClass};
 
 use crate::certification::{
     certify_milestone_one_branch_local_primitive_scenarios, certify_milestone_one_closeout,

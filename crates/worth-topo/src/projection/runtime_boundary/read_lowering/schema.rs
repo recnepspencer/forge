@@ -1,8 +1,8 @@
-use forge_query::facade::{QuerySchemaView, RelationName};
-use schema::facade::{
-    QueryCollection, QueryDeclarationError, QueryLiveDeclarationBuilder, QueryLiveField,
-    QuerySchemaBasis, RelationKind, TopologyRelationKind,
+use forge_query::facade::{
+    ForgeQueryLiveViewBuilder, ForgeQueryRuntimeError, QuerySchemaView, RelationName,
 };
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use schema::facade::{QueryCollection, QueryLiveField, QuerySchemaBasis};
 
 pub(crate) const TOPOLOGY_DOMAIN_QUERY_MAX_CYCLE_DEPTH: u8 = 64;
 
@@ -54,17 +54,18 @@ impl TopologyDomainTraversalRelation {
     }
 }
 
-pub(crate) fn topology_domain_query_schema_view() -> Result<QuerySchemaView, QueryDeclarationError>
+pub(crate) fn topology_domain_query_schema_view() -> Result<QuerySchemaView, ForgeQueryRuntimeError>
 {
-    let mut builder = QueryLiveDeclarationBuilder::new(
-        ".topology.domain_query.schema",
-        QueryCollection::TopologyEntity,
-        QuerySchemaBasis::TopologyDomainQuery,
-    )
-    .select_fields([QueryLiveField::IdentityId, QueryLiveField::TopologyKind]);
+    let mut builder = ForgeQueryLiveViewBuilder::surface(".topology.domain_query.schema")
+        .from(QueryCollection::TopologyEntity.as_str())
+        .schema_basis(QuerySchemaBasis::TopologyDomainQuery.as_str())
+        .select([
+            QueryLiveField::IdentityId.delivered_name(),
+            QueryLiveField::TopologyKind.delivered_name(),
+        ]);
     for relation in TopologyDomainTraversalRelation::ALL {
         builder = builder.allow_traversal_relation(
-            RelationKind::Topology(relation.topology_relation_kind()),
+            RelationKind::Topology(relation.topology_relation_kind()).kind_name(),
             relation.max_depth(),
         );
     }

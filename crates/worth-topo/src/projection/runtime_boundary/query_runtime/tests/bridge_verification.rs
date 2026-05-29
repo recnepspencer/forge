@@ -94,9 +94,9 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
         .relations()
         .iter()
         .find(|record| {
-            schema::facade::RelationKind::from_kind_id(record.kind.kind_id)
-                == Some(schema::facade::RelationKind::Topology(
-                    schema::facade::TopologyRelationKind::LoopOwnsHalfEdge,
+            schema::facade::platform::relations::RelationKind::from_kind_id(record.kind.kind_id)
+                == Some(schema::facade::platform::relations::RelationKind::Topology(
+                    schema::facade::platform::relations::TopologyRelationKind::LoopOwnsHalfEdge,
                 ))
         })
         .map(|record| record.relation_id)

@@ -4,10 +4,8 @@ import { applyOwnedBinaryDownloads } from "./api_route_binary_download_finalizat
 import { createApiRouteItemsReconcile } from "./api_route_items_reconcile.js";
 import { createResponseMutationRouteDeclaration } from "./api_route_response_mutation_finalization.js";
 import { attachApiRouteTargetMetadata } from "./api_route_target_metadata.js";
-import {
-  createRouteBoundParams,
-  createRouteCanonicalKey,
-} from "./api_route_pattern.js";
+import { resolveApiRouteWriteMethod } from "./api_route_write_semantic_finalizer.js";
+import { createRouteBoundParams, createRouteCanonicalKey } from "./api_route_pattern.js";
 
 function lowerReadRouteDeclaration(
   pattern,
@@ -66,7 +64,7 @@ function lowerWriteRouteDeclaration(
   pattern,
   requestParamsState,
   declaration,
-  method,
+  semanticFinalizer,
   requestShapeState,
   transferState,
   downloadsState,
@@ -90,7 +88,7 @@ function lowerWriteRouteDeclaration(
   }
   return attachApiRouteTargetMetadata(Object.freeze({
     ...lowered,
-    method,
+    method: resolveApiRouteWriteMethod(pattern.route, requestShapeState, semanticFinalizer),
     requestBody: (params) => params.body,
     normalizeParams(rawParams) {
       const params = createRouteBoundParams(
@@ -155,15 +153,15 @@ function lowerResponseMutationRouteDeclaration(
   pattern,
   requestParamsState,
   declaration,
-  method,
+  semanticFinalizer,
+  authoringSurface,
   requestShapeState,
   directItemsState,
   transferState,
   downloadsState,
 ) {
-  const bodyRequired = method === "DELETE"
-    ? requestShapeState.bodyDeclared
-    : true;
+  const bodyRequired = semanticFinalizer === "remove" ? requestShapeState.bodyDeclared : true;
+  const method = resolveApiRouteWriteMethod(pattern.route, requestShapeState, semanticFinalizer);
   const lowered = lowerRouteDeclarationBase(
     pattern,
     declaration,
@@ -193,6 +191,8 @@ function lowerResponseMutationRouteDeclaration(
     requestParamsState,
     lowered: loweredWithoutMutationResponse,
     method,
+    semanticFinalizer,
+    authoringSurface,
     bodyRequired,
     response: directItemsState.response,
     reconciles,
@@ -257,6 +257,7 @@ function lowerRemoveRouteDeclaration(
   requestParamsState,
   declaration,
   requestShapeState,
+  semanticFinalizer,
   transferState,
   downloadsState,
 ) {
@@ -280,7 +281,7 @@ function lowerRemoveRouteDeclaration(
   }
   return attachApiRouteTargetMetadata(Object.freeze({
     ...lowered,
-    method: "DELETE",
+    method: resolveApiRouteWriteMethod(pattern.route, requestShapeState, semanticFinalizer),
   }), (rawParams) =>
     createRouteCanonicalKey(
       pattern,

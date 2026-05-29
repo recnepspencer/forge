@@ -5,7 +5,7 @@ use crate::facade::{MilestoneThreeHostileScenario, TopologyEditNamingOutcome};
 fn milestone_three_closeout_requires_naming_continuity_breadth_rows() {
     let report = certify_milestone_three_closeout(
         || {
-            crate::facade::milestone_one_runtime_builder()
+            crate::validation::reference_integrity::milestone_one_runtime_builder()
                 .expect(" milestone one runtime builder")
                 .build()
         },

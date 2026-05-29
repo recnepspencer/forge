@@ -1,9 +1,9 @@
 use forge_relational::facade::identity::EntityId;
 use forge_relational::facade::runtime::RelationalRuntime;
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::topology_authoring::created_ref;
-use schema::facade::{
-    DerivedTopologyReadBasis, EntityKind, RelationKind, TopologyEntityKind, TopologyRelationKind,
-};
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::error::TopologyCertificationError;
 use crate::topology_operators::{

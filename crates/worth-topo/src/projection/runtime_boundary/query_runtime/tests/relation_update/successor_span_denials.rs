@@ -66,7 +66,7 @@ fn current_head_runtime_denies_degenerate_two_half_edge_span_relocation_before_c
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
     let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let moved_start_identity = support.first_source_identity_for_relation_kind(
-        schema::facade::TopologyRelationKind::HalfEdgeNext,
+        schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
     );
     let cycle = support.successor_cycle_identities(&mut workspace, &moved_start_identity, 3);
     let old_successor_identity = cycle[2].as_str();
@@ -106,7 +106,7 @@ fn current_head_runtime_denies_three_half_edge_span_relocation_before_internal_m
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
     let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let moved_start_identity = support.first_source_identity_for_relation_kind(
-        schema::facade::TopologyRelationKind::HalfEdgeNext,
+        schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
     );
     let cycle = support.successor_cycle_identities(&mut workspace, &moved_start_identity, 3);
     let internal_successor_identity = cycle[1].as_str();

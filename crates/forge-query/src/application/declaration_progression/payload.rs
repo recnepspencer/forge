@@ -112,3 +112,19 @@ pub(crate) fn derive_progression_digest<
         format!("progression:{class:?}"),
     ])
 }
+
+impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>> Clone
+    for ForgeQueryDeclarationProgressionPayload<D, I>
+{
+    fn clone(&self) -> Self {
+        Self {
+            legality_evidence: self.legality_evidence.clone(),
+            handle_identity_digest: self.handle_identity_digest.clone(),
+            operating_context_identity_digest: self.operating_context_identity_digest.clone(),
+            declaration_digest: self.declaration_digest.clone(),
+            support_digest: self.support_digest.clone(),
+            legality_digest: self.legality_digest.clone(),
+            progression_contract: self.progression_contract,
+        }
+    }
+}

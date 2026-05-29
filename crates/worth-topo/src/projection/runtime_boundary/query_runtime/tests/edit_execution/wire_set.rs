@@ -4,12 +4,12 @@ use forge_query::facade::{
     ForgeQueryContinuityOutcomeClass, ForgeQueryExistingTruthAssertionMode,
     ForgeQueryGraphCompositionProgramStepKind,
 };
+use schema::facade::platform::authority::CreateKey;
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use schema::facade::topology_authoring::{
     created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
-};
-use schema::facade::{
-    CreateKey, DerivedTopologyReadBasis, EntityKind, RelationKind, TopologyEntityKind,
-    TopologyRelationKind,
 };
 
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
@@ -31,7 +31,7 @@ fn current_head_runtime_executes_rehome_all_owned_half_edges_to_new_wire_program
         &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
     )
     .expect("seed topology");
-    let (wire, half_edge_ids) = seeded_wire_and_half_edges(&runtime, &verified.read_basis);
+    let (wire, half_edge_ids) = seeded_wire_and_half_edges(&runtime, &verified.read_basis());
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-attach-wire-set").expect("workspace");
@@ -178,7 +178,7 @@ fn current_head_runtime_denies_wire_rehome_without_moving_the_full_owned_half_ed
         &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
     )
     .expect("seed topology");
-    let (wire, half_edge_ids) = seeded_wire_and_half_edges(&runtime, &verified.read_basis);
+    let (wire, half_edge_ids) = seeded_wire_and_half_edges(&runtime, &verified.read_basis());
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-attach-wire-set-partial")
@@ -219,7 +219,7 @@ fn current_head_runtime_denies_wire_rehome_when_created_wire_keys_diverge() {
         &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
     )
     .expect("seed topology");
-    let (wire, half_edge_ids) = seeded_wire_and_half_edges(&runtime, &verified.read_basis);
+    let (wire, half_edge_ids) = seeded_wire_and_half_edges(&runtime, &verified.read_basis());
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(
         adapters,

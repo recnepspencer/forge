@@ -1,10 +1,9 @@
 use forge_relational::facade::identity::{EntityId, RelationId};
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
-use schema::facade::topology_authoring::created_ref;
-use schema::facade::{
-    CreateKey, DerivedTopologyReadBasis, EntityKind, EntityReference, RelationKind,
-    TopologyEntityKind, TopologyMutation, TopologyRelationKind,
-};
+use schema::facade::platform::authority::{CreateKey, EntityReference, TopologyMutation};
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use schema::facade::topology_authoring::{created_ref, DerivedTopologyReadBasis};
 
 use crate::certification::error::TopologyCertificationError;
 use crate::relational_aspect_boundary::entity_record_domain_label;

@@ -15,6 +15,8 @@ writing server-backed state.
 - `.create(...)`
 - `.update(...)`
 - `.remove(...)`
+- `.mutation({ semantics, method?, ... })`
+- `.command({ semantics, method?, ... })`
 - advanced `.verb(...)`, `.body<T>()`, and `.headers(...)`
 
 ## Happy Path
@@ -64,6 +66,8 @@ console.log(createLine.value());
 - `.create(...)` for standard POST-style writes
 - `.update(...)` for standard PUT-style writes
 - `.remove(...)` for standard DELETE-style removal
+- `.mutation({ semantics, method?, ... })` when the transport method and the semantic mutation class should be declared honestly in one surface
+- `.command({ semantics, method?, ... })` for command-style routes that should stay fallback-only instead of pretending to be visible CRUD
 
 If those already match the endpoint, prefer them over `verb(...)`.
 

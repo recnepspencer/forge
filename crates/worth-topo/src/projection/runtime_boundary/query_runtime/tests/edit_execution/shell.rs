@@ -2,10 +2,11 @@ use forge_query::facade::{
     ForgeQueryContinuityOutcomeClass, ForgeQueryExistingTruthAssertionMode,
     ForgeQueryGraphCompositionProgramStepKind,
 };
+use schema::facade::platform::authority::CreateKey;
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::topology_authoring::{
     created_ref, seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
 };
-use schema::facade::{CreateKey, EntityKind, TopologyEntityKind};
 
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
@@ -209,7 +210,8 @@ fn current_head_runtime_denies_single_face_shell_rehome_when_old_shell_still_own
         &MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },
     )
     .expect("seed topology");
-    let (region, shell, face) = seeded_patch_region_shell_and_face(&runtime, &verified.read_basis);
+    let (region, shell, face) =
+        seeded_patch_region_shell_and_face(&runtime, &verified.read_basis());
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, ".current-head.query-edit-attach-shell-patch")
         .expect("workspace");
@@ -248,7 +250,7 @@ fn current_head_runtime_denies_single_face_shell_rehome_when_old_shell_still_own
 
 fn seeded_patch_region_shell_and_face(
     runtime: &forge_relational::facade::runtime::RelationalRuntime,
-    read_basis: &schema::facade::DerivedTopologyReadBasis,
+    read_basis: &schema::facade::topology_authoring::DerivedTopologyReadBasis,
 ) -> (
     forge_relational::facade::identity::EntityId,
     forge_relational::facade::identity::EntityId,

@@ -43,6 +43,9 @@ Good to know:
 - canonical declarations do not expose direct legality-review methods
 - the family marker now declares one explicit `legality_contract()`
 - legality does not rerun family support gating
+- route planning does not consume legality evidence directly on the ordinary
+  success lane; it consumes admitted progression plus matching foundational
+  evidence
 
 ## API Reference
 
@@ -303,6 +306,9 @@ What this example is showing:
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
   can describe either legality evidence or legality denial directly without
   forcing a progression step first
+- [Declaration Route Plans](./declaration-route-plan.md) begins after admitted
+  progression and matching foundational evidence rather than consuming legality
+  evidence directly
 
 ## Inspection And Debugging
 
@@ -343,6 +349,10 @@ This feature still does not decide:
 - proof progression
 - foundational evidence materialization
 - lower-authority route planning
+- Query boundary receipts
+- Query boundary envelopes
+- Query relational truth routing
+- Query bridge continuation routing
 - grouped execution semantics
 - continuation execution
 
@@ -353,4 +363,10 @@ This feature still does not decide:
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- [Declaration Route Plans](./declaration-route-plan.md)
+- [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+- [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Configured Domain Handles](./configured-domain-handles.md)

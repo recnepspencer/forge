@@ -89,3 +89,20 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         true
     }
 }
+
+impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>> Clone
+    for ForgeQueryDeclarationLegalityEvidence<D, I>
+{
+    fn clone(&self) -> Self {
+        Self {
+            declaration: self.declaration.clone(),
+            support_report: self.support_report.clone(),
+            legality_contract: self.legality_contract,
+            operating_context_identity_digest: self.operating_context_identity_digest.clone(),
+            role_claim_category: self.role_claim_category,
+            role_claim_role: self.role_claim_role,
+            surface_disposition: self.surface_disposition,
+            legality_digest: self.legality_digest.clone(),
+        }
+    }
+}

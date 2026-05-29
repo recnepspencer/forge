@@ -2,7 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::identity::EntityId;
 use forge_relational::facade::runtime::RelationalReadView;
-use schema::facade::{EntityKind, NamingRelationKind, RelationKind};
+use schema::facade::platform::entities::EntityKind;
+use schema::facade::platform::relations::{NamingRelationKind, RelationKind};
 
 use crate::validation::error::TopologyValidationError;
 use crate::validation::shared::err;

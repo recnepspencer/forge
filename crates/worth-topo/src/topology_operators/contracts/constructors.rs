@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
 
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::{
-    Aspect, CreateKey, DiagnosticsAspect, EntityReference, NamingAspect, RelationKind,
-    TopologyAspect, TopologyEntityKind, TopologyMutation, TopologyRelationKind,
-};
+use schema::facade::platform::aspects::{Aspect, DiagnosticsAspect, NamingAspect, TopologyAspect};
+use schema::facade::platform::authority::{CreateKey, EntityReference, TopologyMutation};
+use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 
 use super::{
     BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, ShellOrWireMembershipKind,
@@ -27,18 +27,18 @@ impl TopologyEditContract {
         let lowered_mutations = vec![
             TopologyMutation::CreateEntity {
                 create_key: create_key.clone(),
-                kind: schema::facade::EntityKind::Topology(kind),
+                kind: schema::facade::platform::entities::EntityKind::Topology(kind),
             },
             TopologyMutation::CreateEntity {
                 create_key: persistent_name_key.clone(),
-                kind: schema::facade::EntityKind::Naming(
-                    schema::facade::NamingEntityKind::PersistentName,
+                kind: schema::facade::platform::entities::EntityKind::Naming(
+                    schema::facade::platform::entities::NamingEntityKind::PersistentName,
                 ),
             },
             TopologyMutation::CreateRelation {
                 create_key: persistent_name_relation_key.clone(),
                 kind: RelationKind::Naming(
-                    schema::facade::NamingRelationKind::PersistentNameTargetsEntity,
+                    schema::facade::platform::relations::NamingRelationKind::PersistentNameTargetsEntity,
                 ),
                 source: EntityReference::Created(persistent_name_key.clone()),
                 target: EntityReference::Created(create_key.clone()),

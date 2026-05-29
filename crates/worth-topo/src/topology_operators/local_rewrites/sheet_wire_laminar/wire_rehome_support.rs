@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use schema::facade::{EntityReference, TopologyEntityKind};
+use schema::facade::platform::authority::EntityReference;
+use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{
@@ -79,7 +80,7 @@ pub(super) fn supports_owned_half_edge_set_wire_rehome_program(
     let Ok(outgoing_half_edge_targets) = query_outgoing_relation_target_identities(
         bindings,
         &retired_wire_binding.query_identity,
-        schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
+        schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
     ) else {
         return false;
     };
@@ -169,7 +170,7 @@ pub(super) fn supports_connected_wire_split_program(
     let Ok(outgoing_half_edge_targets) = query_outgoing_relation_target_identities(
         bindings,
         &retained_wire_binding.query_identity,
-        schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
+        schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
     ) else {
         return false;
     };
@@ -222,7 +223,7 @@ fn shared_existing_wire_owner_id(
         let incoming_relation_ids = query_incoming_relation_ids(
             bindings,
             &half_edge_binding.query_identity,
-            schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
+            schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
         )
         .ok()?;
         let [relation_id] = incoming_relation_ids.as_slice() else {
@@ -257,8 +258,8 @@ fn connected_by_incident_vertices(
         };
         let mut vertices = BTreeSet::new();
         for kind in [
-            schema::facade::TopologyRelationKind::HalfEdgeStartsAtVertex,
-            schema::facade::TopologyRelationKind::HalfEdgeEndsAtVertex,
+            schema::facade::platform::relations::TopologyRelationKind::HalfEdgeStartsAtVertex,
+            schema::facade::platform::relations::TopologyRelationKind::HalfEdgeEndsAtVertex,
         ] {
             let Ok(target_identities) = query_outgoing_relation_target_identities(
                 bindings,

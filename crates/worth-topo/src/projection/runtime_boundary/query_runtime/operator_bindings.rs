@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::{EntityKind, RelationKind, TopologyEntityKind, TopologyRelationKind};
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 
 use crate::topology_operators::application::bindings::{QueryEntityBinding, QueryRelationBinding};
 use crate::topology_operators::application::TopologyOperatorExecutionError;

@@ -17,7 +17,8 @@ import { wrapDiagnostics } from "./diagnostics.js";
 import { createFormController } from "./forms/form_controller.js";
 import { createFormSourceFactory } from "./forms/sources/form_sources.js";
 import { requireRouteFormsAuthorityArtifact } from "./router/projection/admission/router_forms_authority_artifact.js";
-import { createApiFactory } from "./api/api_namespace.js";
+import { createApiFactory, createApiScopeFactory } from "./api/api_namespace.js";
+import { createFeatureStoreFactory } from "./feature_store/feature_store_factory.js";
 import { createRouterNamespace } from "./router/router_namespace.js";
 import {
   createImportedSignalGraph,
@@ -30,6 +31,7 @@ import {
   wrapReadableSignal,
 } from "./handles.js";
 import { createLinkedSignal } from "./linked.js";
+import { createLocalNamespace } from "./local/local_namespace.js";
 import {
   nextOutputProjectionId,
   outputProjectionSpec,
@@ -75,8 +77,14 @@ import {
   nextGeneratedAuthoringSignalId,
 } from "./scopes.js";
 import { wrapSpecialist } from "./specialist.js";
+import {
+  assertSignalsRuntimeCompatibility,
+  createSignalsRuntimeContract,
+} from "./runtime_contract.js";
 import { PRIVATE_AUTHORING_ID, RAW_SIGNALS } from "./symbols.js";
 import { wrapAdapters, wrapTransaction } from "./transactions.js";
+
+const RAW_OBSERVATION_HANDLE = Symbol("forge.rawObservationHandle");
 
 function cloneSignalValue(value) {
   if (typeof globalThis.structuredClone === "function") {
@@ -373,6 +381,17 @@ export {
 export function wrapSignals(rawSignals, options) {
   const hostCapabilities = createHostCapabilities(rawSignals, options);
   let diagnostics = null;
+  let history = null;
+  const contract = createSignalsRuntimeContract({
+    surfaceFamily: "mainThreadCompatibilityCallable",
+    deployment: "mainThreadCompatibility",
+    capabilities: {
+      callableSurface: true,
+      scopedAuthoring: true,
+      specNamespace: true,
+      workerRuntime: false,
+    },
+  });
   const explicitSpec = explicitSignalSpecNamespace(rawSignals);
   const formSourceFactory = createFormSourceFactory();
   function createForm(declaration) {
@@ -388,6 +407,9 @@ export function wrapSignals(rawSignals, options) {
     host: hostCapabilities.host,
     resource: createResourceNamespace(null, rawSignals),
     api: null,
+    apiScope: null,
+    featureStore: null,
+    local: null,
     router: null,
     spec: explicitSpec,
     scope(localScopeId) {
@@ -570,16 +592,48 @@ export function wrapSignals(rawSignals, options) {
       );
     },
     watch(target, callback) {
-      return rawSignals.watch(
+      const deferred = createDeferredObservationCallback(callback);
+      const rawHandle = rawSignals.watch(
         unwrapSignalTarget(target, rawSignals, "signals.watch"),
-        callback,
+        deferred.callback,
       );
+      return Object.freeze({
+        free() {
+          deferred.dispose();
+          rawHandle.free();
+        },
+        [Symbol.dispose]() {
+          deferred.dispose();
+          if (typeof rawHandle[Symbol.dispose] === "function") {
+            rawHandle[Symbol.dispose]();
+            return;
+          }
+          rawHandle.free();
+        },
+        [RAW_OBSERVATION_HANDLE]: rawHandle,
+      });
     },
     effect(target, callback) {
-      return rawSignals.effect(
+      const deferred = createDeferredEffectCallback(callback);
+      const rawHandle = rawSignals.effect(
         unwrapSignalTarget(target, rawSignals, "signals.effect"),
-        callback,
+        deferred.callback,
       );
+      return Object.freeze({
+        free() {
+          deferred.dispose();
+          rawHandle.free();
+        },
+        [Symbol.dispose]() {
+          deferred.dispose();
+          if (typeof rawHandle[Symbol.dispose] === "function") {
+            rawHandle[Symbol.dispose]();
+            return;
+          }
+          rawHandle.free();
+        },
+        [RAW_OBSERVATION_HANDLE]: rawHandle,
+      });
     },
     transaction(callback) {
       return rawSignals.transaction((rawTx) =>
@@ -605,7 +659,9 @@ export function wrapSignals(rawSignals, options) {
         ),
       );
     },
-    nuke: rawSignals.nuke.bind(rawSignals),
+    nuke(handle) {
+      return rawSignals.nuke(handle?.[RAW_OBSERVATION_HANDLE] ?? handle);
+    },
     diagnostics() {
       if (!diagnostics) {
         diagnostics = wrapDiagnostics(
@@ -616,10 +672,23 @@ export function wrapSignals(rawSignals, options) {
       return diagnostics;
     },
     history() {
-      return wrapHistory(rawSignals.history());
+      if (!history) {
+        history = wrapHistory(rawSignals.history());
+      }
+      return history;
     },
     specialist() {
       return wrapSpecialist(rawSignals.specialist());
+    },
+    contract() {
+      return contract;
+    },
+    assertCompatibility(options) {
+      return assertSignalsRuntimeCompatibility(
+        contract,
+        options,
+        "signals.assertCompatibility",
+      );
     },
     adapters() {
       return wrapAdapters(rawSignals.adapters(), hostCapabilities);
@@ -649,6 +718,43 @@ export function wrapSignals(rawSignals, options) {
     rawSignals,
   );
   callableSignals.api = createApiFactory(callableSignals);
+  callableSignals.apiScope = createApiScopeFactory(callableSignals);
+  callableSignals.featureStore = createFeatureStoreFactory(callableSignals);
+  callableSignals.local = createLocalNamespace(callableSignals);
   callableSignals.router = createRouterNamespace();
   return callableSignals;
+}
+
+function createDeferredObservationCallback(callback) {
+  let active = true;
+  return Object.freeze({
+    callback(notice) {
+      queueMicrotask(() => {
+        if (!active) {
+          return;
+        }
+        callback(notice);
+      });
+    },
+    dispose() {
+      active = false;
+    },
+  });
+}
+
+function createDeferredEffectCallback(callback) {
+  let active = true;
+  return Object.freeze({
+    callback() {
+      queueMicrotask(() => {
+        if (!active) {
+          return;
+        }
+        callback();
+      });
+    },
+    dispose() {
+      active = false;
+    },
+  });
 }

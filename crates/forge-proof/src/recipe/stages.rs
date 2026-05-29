@@ -4,23 +4,23 @@ use crate::assumption::NoAssumptionBasis;
 
 pub trait RecipeStageMarker: 'static {}
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Unresolved;
 impl RecipeStageMarker for Unresolved {}
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Resolved;
 impl RecipeStageMarker for Resolved {}
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Lowered;
 impl RecipeStageMarker for Lowered {}
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Admitted;
 impl RecipeStageMarker for Admitted {}
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Recipe<S, T, A = NoAssumptionBasis>
 where
     S: RecipeStageMarker,
@@ -69,9 +69,9 @@ where
 mod tests {
     use std::mem::size_of;
 
-    use crate::assumption::{AssumptionBasis, NoAssumptionBasis};
+    use crate::assumption::{AssumptionBasis, CurrentValidity, FreshnessScopedBasis, NoAssumptionBasis};
 
-    use super::{Recipe, Resolved, Unresolved};
+    use super::{Admitted, Recipe, Resolved, Unresolved};
 
     #[test]
     fn unresolved_recipe_uses_empty_basis_default() {
@@ -88,5 +88,18 @@ mod tests {
             size_of::<Recipe<Resolved, u64, AssumptionBasis<u8>>>(),
             size_of::<(u64, AssumptionBasis<u8>)>()
         );
+    }
+
+    #[test]
+    fn recipe_clone_preserves_stage_payload_and_basis() {
+        let admitted = Recipe::<Admitted, _, _>::with_stage(
+            "payload",
+            FreshnessScopedBasis::<CurrentValidity, _>::new(AssumptionBasis::new(11_u8)),
+        );
+
+        let cloned = admitted.clone();
+
+        assert_eq!(cloned.payload(), admitted.payload());
+        assert_eq!(cloned.basis().basis().value(), admitted.basis().basis().value());
     }
 }

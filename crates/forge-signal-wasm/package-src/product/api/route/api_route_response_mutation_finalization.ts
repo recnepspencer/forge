@@ -18,6 +18,8 @@ function createResponseMutationRouteDeclaration(options) {
     mutationResponse: createApiRouteMutationResponseDeclaration(
       options.pattern.route,
       options.method,
+      options.semanticFinalizer,
+      options.authoringSurface,
       options.response,
       options.reconciles,
       options.atomicity,

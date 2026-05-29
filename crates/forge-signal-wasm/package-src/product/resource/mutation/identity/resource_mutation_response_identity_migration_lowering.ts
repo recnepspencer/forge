@@ -14,11 +14,11 @@ const MUTATION_RESPONSE_IDENTITY_ATOMICITY_KINDS = Object.freeze([
   "partialAllowed",
 ]);
 
-function lowerMutationResponseIdentityMigration(route, method, response, identity) {
+function lowerMutationResponseIdentityMigration(route, method, semanticFinalizer, response, identity) {
   if (identity === undefined) {
     return null;
   }
-  if (method === "DELETE") {
+  if (semanticFinalizer === "remove") {
     throw new TypeError(
       `api.url("${route}").response(...).remove(...) identity migration currently admits create/update/save responses only`,
     );
@@ -48,7 +48,7 @@ function lowerMutationResponseIdentityMigration(route, method, response, identit
   }
   const targets = lowerMutationResponseIdentityTargets(route, response, identity.targets);
   return Object.freeze({
-    source: `api.url("${route}").response(...).${method.toLowerCase()}(...).identity`,
+    source: `api.url("${route}").response(...).${semanticFinalizer}(...).identity`,
     route,
     method,
     topology: response.kind,

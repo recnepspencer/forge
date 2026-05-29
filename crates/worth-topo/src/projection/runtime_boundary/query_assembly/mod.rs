@@ -9,7 +9,7 @@
 use forge_query::facade::{
     ForgeQueryDerivedViewHandle, ForgeQueryLiveView, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
-use schema::facade::DerivedTopologyReadBasis;
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use serde_json::Value;
 
 use crate::facade::{

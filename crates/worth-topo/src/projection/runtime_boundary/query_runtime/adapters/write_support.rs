@@ -9,7 +9,8 @@ use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 use forge_relational::facade::publication::{PatchRecord, RecordStructuralChange};
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{CommitResult, RecordRef};
-use schema::facade::{EntityKind, NamingEntityKind, RelationKind};
+use schema::facade::platform::entities::{EntityKind, NamingEntityKind};
+use schema::facade::platform::relations::RelationKind;
 use serde_json::Value;
 
 use crate::relational_aspect_boundary::entity_record_domain_label;

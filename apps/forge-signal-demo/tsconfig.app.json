@@ -17,7 +17,8 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@forge/signal": ["../../packages/forge-signal/src/index.d.ts"]
+      "@forge/signal": ["../../packages/forge-signal/src/index.d.ts"],
+      "forge-signal-wasm": ["../../crates/forge-signal-wasm/pkg/index.d.ts"]
     },
 
     /* Linting */

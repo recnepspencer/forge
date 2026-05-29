@@ -2,13 +2,14 @@ use forge_relational::facade::diagnostics::DiagnosticCode;
 use forge_relational::facade::errors::ErrorContext;
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{RecordRef, TransactionCommitError};
-use schema::facade::topology_authoring::{
-    build_milestone_one_primitive_intent, verify_topology_intent,
-    MilestoneOnePrimitiveAuthoringError, MilestoneOnePrimitiveCase,
+use schema::facade::platform::authority::{
+    CreateKey, EntityReference, MutationOrigin, RawTopologyIntent, TopologyMutation,
 };
-use schema::facade::{
-    CreateKey, EntityKind, EntityReference, MutationOrigin, RawTopologyIntent, RelationKind,
-    TopologyAuthorityError, TopologyMutation, TopologyRelationKind,
+use schema::facade::platform::entities::EntityKind;
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use schema::facade::topology_authoring::{
+    build_milestone_one_primitive_intent, MilestoneOnePrimitiveAuthoringError,
+    MilestoneOnePrimitiveCase,
 };
 
 use crate::certification::error::MilestoneOneCertificationError;
@@ -16,6 +17,7 @@ use crate::certification::shared::digest_rows;
 use crate::certification::support::reporting::{
     IllegalTopologyRejectionCaseReport, IllegalTopologyRejectionReport, PrimitiveRejectionReport,
 };
+use crate::test_support::topology_commit::{commit_topology_intent, TopologyIntentCommitError};
 
 pub(crate) fn summarize_primitive_rejection(
     error: &MilestoneOnePrimitiveAuthoringError,
@@ -37,19 +39,26 @@ pub(crate) fn summarize_primitive_rejection(
             localized_entity_count: 0,
             localized_relation_count: 0,
         },
-        MilestoneOnePrimitiveAuthoringError::Authority(authority) => {
-            summarize_authority_rejection(authority, None, None)
-        }
+        MilestoneOnePrimitiveAuthoringError::Authority(authority) => PrimitiveRejectionReport {
+            rejection_class: "AuthorityBlocked".to_string(),
+            validator_family: None,
+            diagnostic_code: None,
+            detail: format!("{authority:?}"),
+            fields_json: None,
+            context: None,
+            localized_entity_count: 0,
+            localized_relation_count: 0,
+        },
     }
 }
 
-pub(crate) fn summarize_authority_rejection(
-    error: &TopologyAuthorityError,
+pub(crate) fn summarize_commit_rejection(
+    error: &TransactionCommitError,
     rejection_class_override: Option<&str>,
     validator_family_override: Option<&str>,
 ) -> PrimitiveRejectionReport {
     match error {
-        TopologyAuthorityError::Commit(TransactionCommitError::Conflict { error, .. }) => {
+        TransactionCommitError::Conflict { error, .. } => {
             let (localized_entity_count, localized_relation_count) =
                 summarize_localized_record_counts(&error.context);
             PrimitiveRejectionReport {
@@ -216,15 +225,27 @@ where
     F: FnMut() -> RelationalRuntime,
 {
     let mut runtime = runtime_factory();
-    let rejection = match verify_topology_intent(&mut runtime, intent) {
+    let rejection = match commit_topology_intent(&mut runtime, intent) {
         Ok(_) => {
             return Err(MilestoneOneCertificationError::ReadView(format!(
                 "illegal topology case `{name}` unexpectedly admitted"
             )))
         }
-        Err(error) => {
-            summarize_authority_rejection(&error.into_error(), Some(role), validator_family)
-        }
+        Err(error) => match &error {
+            TopologyIntentCommitError::Commit(commit) => {
+                summarize_commit_rejection(commit, Some(role), validator_family)
+            }
+            _ => PrimitiveRejectionReport {
+                rejection_class: role.to_string(),
+                validator_family: validator_family.map(ToString::to_string),
+                diagnostic_code: None,
+                detail: error.to_string(),
+                fields_json: None,
+                context: None,
+                localized_entity_count: 0,
+                localized_relation_count: 0,
+            },
+        },
     };
     cases.push(IllegalTopologyRejectionCaseReport {
         name: name.to_string(),
@@ -240,11 +261,15 @@ fn missing_persistent_names_intent(stem: &str) -> RawTopologyIntent {
         vec![
             TopologyMutation::CreateEntity {
                 create_key: CreateKey::new(format!("{stem}.model")),
-                kind: EntityKind::Topology(schema::facade::TopologyEntityKind::Model),
+                kind: EntityKind::Topology(
+                    schema::facade::platform::entities::TopologyEntityKind::Model,
+                ),
             },
             TopologyMutation::CreateEntity {
                 create_key: CreateKey::new(format!("{stem}.body")),
-                kind: EntityKind::Topology(schema::facade::TopologyEntityKind::Body),
+                kind: EntityKind::Topology(
+                    schema::facade::platform::entities::TopologyEntityKind::Body,
+                ),
             },
             TopologyMutation::CreateRelation {
                 create_key: CreateKey::new(format!("{stem}.owns_body")),

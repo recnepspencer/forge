@@ -1,5 +1,5 @@
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::{TopologyRelationKind, TopologyRelationKind::*};
+use schema::facade::platform::relations::{TopologyRelationKind, TopologyRelationKind::*};
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{

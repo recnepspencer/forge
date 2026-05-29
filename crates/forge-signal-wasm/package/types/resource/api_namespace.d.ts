@@ -38,18 +38,44 @@ export interface ApiScopedDefaults<
     | ((params: TParams) => ResourceEffectProfile);
 }
 
+export interface ApiStableScopedDefaults {
+  baseUrl?: string;
+  auth?: ResourceAuthPosture;
+  headers?: Record<string, string>;
+  requestContext?: ResourceRequestContext;
+  continuation?: ResourceContinuationPosture;
+  processingJob?: ResourceProcessingJobPosture;
+  uploadTransport?: ResourceUploadTransportPosture;
+  effects?: ResourceEffectProfile;
+}
+
 export interface ApiNamespace
   extends Pick<ResourceNamespace, "detail" | "collection" | "paged"> {
   scope<TParams extends object = Record<string, SignalValue>>(
     options?: ApiScopedDefaults<TParams>,
   ): ApiNamespace;
+  scope(
+    scopeId: string,
+    options?: ApiStableScopedDefaults,
+  ): ApiScopedNamespace;
   url<TRoute extends string>(
     route: TRoute & ApiRouteConstraint<TRoute>,
   ): ApiRouteBuilder<TRoute>;
+}
+
+export interface ApiScopedNamespace extends ApiNamespace {
+  readonly scopeId: string;
 }
 
 export interface ApiFactory {
   <TParams extends object = Record<string, SignalValue>>(
     options?: ApiScopedDefaults<TParams>,
   ): ApiNamespace;
+}
+
+export interface ApiScopeFactory {
+  (
+    scopeId: string,
+    options?: ApiStableScopedDefaults,
+  ): ApiScopedNamespace;
 }

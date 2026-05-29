@@ -3,8 +3,10 @@ use forge_query::facade::{
     ForgeQueryGraphCompositionProgramStepKind,
 };
 use forge_relational::facade::identity::RelationId;
+use schema::facade::platform::authority::CreateKey;
+use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::topology_authoring::{created_ref, seed_minimal_topology};
-use schema::facade::{CreateKey, RelationKind, TopologyEntityKind, TopologyRelationKind};
 
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{

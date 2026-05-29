@@ -1,6 +1,6 @@
 use forge_relational::facade::runtime::RelationalRuntime;
-use schema::facade::DerivedTopologyReadBasis;
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::projection::read_views::domain::parity::{
     build_domain_query_view_parity_artifact, TopologyDomainQueryViewParityArtifact,

@@ -1,7 +1,5 @@
-use crate::facade::{
-    certify_milestone_three_closeout, milestone_one_runtime_builder,
-    milestone_three_closeout_requirements,
-};
+use crate::facade::{certify_milestone_three_closeout, milestone_three_closeout_requirements};
+use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
 #[test]
 fn milestone_three_closeout_requires_derived_work_breadth_rows() {

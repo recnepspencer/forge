@@ -39,6 +39,7 @@ Stable line methods:
 
 - `line.value()`
 - `line.signal()`
+- `line.summarySignal()`
 - `line.descriptor()`
 - `line.request()`
 - `line.summary()`
@@ -46,6 +47,8 @@ Stable line methods:
 - `line.freshness()`
 - `line.refresh()`
 - `line.revalidate()`
+- `line.awaitSettlement(options?)`
+- `line.execute(options?)`
 - `line.invalidate()`
 - `line.view(...)`
 - `line.processing()`
@@ -61,6 +64,11 @@ Collection and paged lines can also expose:
 - `line.patch(...)`
 - `line.deliver(...)`
 - `line.reconciliation()`
+
+Families also expose final-form convenience lanes:
+
+- `family.optionalLine(selection)`
+- `family.execute(params, options?)`
 
 ## Core Mental Model
 
@@ -90,6 +98,14 @@ Once a line exists, the runtime keeps these pieces aligned:
 
 Operations such as `refresh()`, `revalidate()`, `invalidate()`, `patch(...)`,
 `deliver(...)`, and `restoreExact()` all update that same line state.
+
+When a line is pending and the caller needs the next settled truth, use:
+
+- `await line.awaitSettlement()`
+- or `await line.execute().settled()`
+
+That lane waits on the line's own runtime lifecycle instead of polling
+`line.status()` in app code.
 
 The history surface also exposes `replayExact()`, but on the shipped wasm
 Signals runtime that action currently reports typed unavailability rather than
@@ -129,6 +145,8 @@ If you want the first product-shaped read instead of stitching a few calls
 together, start with:
 
 - `line.summary()`
+- `line.summarySignal()` when React or another subscription layer needs the
+  grouped line truth as a live signal handle
 
 That grouped read keeps the common lane on one object:
 

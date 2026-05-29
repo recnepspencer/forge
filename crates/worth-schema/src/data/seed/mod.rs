@@ -4,10 +4,11 @@ mod lookup;
 mod minimal_topology;
 mod primitive_corpus;
 mod types;
-mod verification;
 
 pub use authoring::{created_ref, TopologyCreateBatchBuilder};
-pub use minimal_topology::seed_minimal_topology;
+pub use minimal_topology::{
+    build_minimal_topology_intent, seed_minimal_topology, seed_minimal_topology_commit,
+};
 pub use primitive_corpus::{
     build_milestone_one_primitive_intent,
     milestone_one_admitted_range_sweep_out_of_class_scenarios,
@@ -17,8 +18,7 @@ pub use primitive_corpus::{
     MilestoneOnePrimitiveCase, MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
     MilestoneOnePrimitiveScenario,
 };
-pub use types::MinimalTopologySeed;
-pub use verification::{verify_topology_intent, verify_topology_intent_on_branch};
+pub use types::{MinimalTopologySeed, SeededTopologyCommit};
 
 #[cfg(test)]
 mod tests;
