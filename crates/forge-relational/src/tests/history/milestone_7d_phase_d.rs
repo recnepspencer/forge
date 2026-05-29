@@ -314,8 +314,8 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
         .expect("executed last-writer-wins merge");
     let live_commit_id = merge.commit.commit.commit_id;
     assert_eq!(
-        read_entity_json_field(&runtime, &BranchId("main".to_string()), entity, "value"),
-        serde_json::json!("feature-change")
+        read_entity_aspect_field_display(&runtime, &BranchId("main".to_string()), entity, "value"),
+        "feature-change"
     );
 
     let live_envelope = runtime
@@ -337,8 +337,13 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
         recovered_envelope.diagnostics_summary
     );
     assert_eq!(
-        read_entity_json_field(&recovered, &BranchId("main".to_string()), entity, "value"),
-        serde_json::json!("feature-change")
+        read_entity_aspect_field_display(
+            &recovered,
+            &BranchId("main".to_string()),
+            entity,
+            "value"
+        ),
+        "feature-change"
     );
 }
 
@@ -380,8 +385,13 @@ fn auto_resolved_merge_reads_pinned_visible_value_through_declared_aspect_bindin
         .expect("executed binding-native merge");
 
     assert_eq!(
-        read_entity_json_field(&runtime, &BranchId("main".to_string()), entity, "display"),
-        serde_json::json!("feature-change")
+        read_entity_aspect_field_display(
+            &runtime,
+            &BranchId("main".to_string()),
+            entity,
+            "display"
+        ),
+        "feature-change"
     );
 }
 
@@ -451,8 +461,8 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
     let live_commit_id = merge.commit.commit.commit_id;
 
     assert_eq!(
-        read_entity_json_field(&runtime, &BranchId("main".to_string()), entity, "value"),
-        serde_json::json!(18)
+        read_entity_aspect_field_display(&runtime, &BranchId("main".to_string()), entity, "value"),
+        "18"
     );
     let live_envelope = runtime
         .replay()
@@ -469,8 +479,13 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         .cloned()
         .expect("recovered merge envelope");
     assert_eq!(
-        read_entity_json_field(&recovered, &BranchId("main".to_string()), entity, "value"),
-        serde_json::json!(18)
+        read_entity_aspect_field_display(
+            &recovered,
+            &BranchId("main".to_string()),
+            entity,
+            "value"
+        ),
+        "18"
     );
     assert_eq!(
         live_envelope.diagnostics_summary,
@@ -1457,10 +1472,8 @@ fn update_entity_aspect_fields_on_branch(
     fields: crate::transactions::data::AspectFieldPatch,
     branch_id: BranchId,
 ) {
-    let stable_name = read_entity_json_field(runtime, &branch_id, entity_id, "name")
-        .as_str()
-        .expect("stable name string")
-        .to_string();
+    let stable_name =
+        read_entity_aspect_field_display(runtime, &branch_id, entity_id, "name").to_string();
     let mut txn = runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
@@ -1493,12 +1506,12 @@ fn aspect_fields_with_identity_name(
     crate::transactions::data::AspectFieldPatch::new(targets)
 }
 
-fn read_entity_json_field(
+fn read_entity_aspect_field_display(
     runtime: &crate::facade::runtime::RelationalRuntime,
     branch: &BranchId,
     entity_id: crate::facade::identity::EntityId,
     field: &str,
-) -> serde_json::Value {
+) -> String {
     let version_id = runtime
         .history()
         .branch_head(branch)
@@ -1509,14 +1522,5 @@ fn read_entity_json_field(
         .read_version(version_id)
         .get_entity(entity_id)
         .and_then(|entity| read_entity_field(entity, field))
-        .as_deref()
-        .map(json_value_from_comparison_key)
-        .expect("json field value")
-}
-
-fn json_value_from_comparison_key(value: &str) -> serde_json::Value {
-    value
-        .parse::<i64>()
-        .map(serde_json::Value::from)
-        .unwrap_or_else(|_| serde_json::Value::String(value.to_string()))
+        .expect("aspect field display value")
 }
