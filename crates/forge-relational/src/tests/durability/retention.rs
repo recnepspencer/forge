@@ -1,3 +1,4 @@
+use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::facade::inspection::InspectionAvailability;
 use crate::facade::storage::RecordLifecycleState;
 use crate::tests::support::*;
@@ -284,19 +285,14 @@ fn retention_plan_reports_explicit_replay_pins_for_deleted_relations_until_relea
     assert_eq!(pinned.reclaimable_relations, 0);
     assert_eq!(latest_entry.code, DiagnosticCode::RetentionPlanInspected);
     assert_eq!(
-        latest_entry.fields.root_value()["replay_pinned_relations"].as_u64(),
-        Some(pinned.replay_pinned_relations as u64)
+        diagnostic_field(latest_entry, "replay_pinned_relations"),
+        &RelationalDiagnosticValue::Unsigned(pinned.replay_pinned_relations as u64)
     );
     assert_eq!(
-        latest_entry.fields.root_value()["branch_pinned_relations"].as_u64(),
-        Some(pinned.branch_pinned_relations as u64)
+        diagnostic_field(latest_entry, "branch_pinned_relations"),
+        &RelationalDiagnosticValue::Unsigned(pinned.branch_pinned_relations as u64)
     );
-    assert!(
-        latest_entry.fields.root_value()["branch_replay_overlap_relations"]
-            .as_u64()
-            .unwrap_or(0)
-            >= 1
-    );
+    assert!(diagnostic_unsigned_field(latest_entry, "branch_replay_overlap_relations") >= 1);
 
     assert!(runtime
         .history_authority()
@@ -304,4 +300,14 @@ fn retention_plan_reports_explicit_replay_pins_for_deleted_relations_until_relea
     let released = runtime.retention().inspect_plan();
     assert_eq!(released.replay_pinned_relations, 0);
     assert!(released.branch_pinned_relations >= 1);
+}
+
+fn diagnostic_unsigned_field(
+    entry: &crate::facade::diagnostics::RelationalDiagnosticsEntry,
+    field: &str,
+) -> u64 {
+    match diagnostic_field(entry, field) {
+        RelationalDiagnosticValue::Unsigned(value) => *value,
+        other => panic!("expected unsigned diagnostic field {field}, got {other:?}"),
+    }
 }
