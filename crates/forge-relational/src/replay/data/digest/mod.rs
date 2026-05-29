@@ -1,8 +1,15 @@
+#[cfg(test)]
+mod certification_terms;
 mod descriptor_terms;
 mod lineage_terms;
 mod primitive_terms;
 mod surface_terms;
 
+#[cfg(test)]
+pub(crate) use certification_terms::{
+    digest_schema_transition_decision, digest_subscriber_boundary_cdc_surface,
+    digest_subscriber_continuation_summary,
+};
 pub(crate) use descriptor_terms::{
     digest_schema_continuation_descriptor, digest_schema_continuation_summary,
     digest_schema_lineage_summary, digest_schema_reconciliation_descriptor,

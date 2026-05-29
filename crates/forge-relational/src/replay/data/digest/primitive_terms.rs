@@ -180,6 +180,14 @@ impl ReplayDigestBuilder {
         self.u64(value.0)
     }
 
+    #[cfg(test)]
+    pub(super) fn optional_patch_stream_position(self, value: Option<PatchStreamPosition>) -> Self {
+        match value {
+            Some(value) => self.tag(1).patch_stream_position(value),
+            None => self.tag(0),
+        }
+    }
+
     pub(super) fn structural_change(self, value: RecordStructuralChange) -> Self {
         match value {
             RecordStructuralChange::Created => self.tag(1),
