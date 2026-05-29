@@ -9,7 +9,7 @@ use crate::schema::data::{
     SchemaBridgeabilityClassification, SchemaContinuationClassification,
     SchemaContinuationDescriptor, SchemaStratum,
 };
-use crate::tests::support::{create_entity_outcome, runtime_with_test_schema};
+use crate::tests::support::{create_entity_outcome, diagnostic_field, runtime_with_test_schema};
 
 #[test]
 fn unsupported_continuation_failure_counts_current_boundary_when_no_prior_proof_exists() {
@@ -42,8 +42,8 @@ fn unsupported_continuation_failure_counts_current_boundary_when_no_prior_proof_
         .find(|entry| entry.code == DiagnosticCode::SubscriberContractEvaluated)
         .unwrap();
     assert_eq!(
-        rejection_entry.fields.root_value()["normalized_boundary_count_at_failure"],
-        serde_json::json!(1)
+        diagnostic_field(rejection_entry, "normalized_boundary_count_at_failure"),
+        &crate::diagnostics::data::RelationalDiagnosticValue::Unsigned(1)
     );
 }
 
@@ -80,8 +80,8 @@ fn unsupported_continuation_failure_deduplicates_boundary_already_present_in_pri
         .find(|entry| entry.code == DiagnosticCode::SubscriberContractEvaluated)
         .unwrap();
     assert_eq!(
-        rejection_entry.fields.root_value()["normalized_boundary_count_at_failure"],
-        serde_json::json!(1)
+        diagnostic_field(rejection_entry, "normalized_boundary_count_at_failure"),
+        &crate::diagnostics::data::RelationalDiagnosticValue::Unsigned(1)
     );
 }
 
