@@ -30,7 +30,8 @@ pub(super) fn capture_diagnostics(
             runtime.config().execution.execution_model,
             runtime.performance_access().counters(),
             publication_diagnostics,
-        ),
+        )
+        .into_json(),
         extensions: BTreeMap::new(),
     })
 }

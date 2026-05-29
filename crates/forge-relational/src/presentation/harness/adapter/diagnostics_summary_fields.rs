@@ -3,7 +3,7 @@ use crate::performance::data::RuntimeComplexityCounters;
 use crate::publication::data::PublicationDiagnosticsSnapshot;
 
 use super::harness_summary_value::{
-    harness_summary_array, harness_summary_object, harness_summary_projected_value,
+    harness_summary_array, harness_summary_diagnostic_fields, harness_summary_object,
     harness_summary_string, harness_summary_usize, HarnessSummaryValue,
 };
 use super::run_summary_fields::publication_observation_fields;
@@ -268,7 +268,7 @@ impl DiagnosticArtifactSummary {
 struct DiagnosticEntrySummary {
     code: String,
     message: String,
-    fields: HarnessSummaryValue,
+    fields: crate::diagnostics::data::RelationalDiagnosticValue,
 }
 
 impl DiagnosticEntrySummary {
@@ -276,7 +276,7 @@ impl DiagnosticEntrySummary {
         Self {
             code: format!("{:?}", entry.code),
             message: entry.message,
-            fields: entry.fields.root_value().clone(),
+            fields: entry.fields.root().clone(),
         }
     }
 
@@ -284,7 +284,7 @@ impl DiagnosticEntrySummary {
         harness_summary_object([
             ("code", harness_summary_string(self.code)),
             ("message", harness_summary_string(self.message)),
-            ("fields", harness_summary_projected_value(self.fields)),
+            ("fields", harness_summary_diagnostic_fields(self.fields)),
         ])
     }
 }
