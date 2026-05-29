@@ -24,13 +24,13 @@ pub struct StrategyCallerProvenance {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RawStrategyCommitRequest {
+pub struct NativeStrategyCommitRequest {
     strategy_name: CommitStrategySemanticName,
     input_bytes: Arc<[u8]>,
     caller_provenance: StrategyCallerProvenance,
 }
 
-impl RawStrategyCommitRequest {
+impl NativeStrategyCommitRequest {
     pub fn from_canonical_bytes(
         strategy_name: CommitStrategySemanticName,
         input_bytes: impl Into<Arc<[u8]>>,

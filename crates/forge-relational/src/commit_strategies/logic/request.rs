@@ -4,14 +4,14 @@ use sha2::{Digest, Sha256};
 
 use crate::commit_strategies::data::{
     CanonicalStrategyCommitRequest, CanonicalStrategyInputArtifact, CanonicalStrategyInputDigest,
-    RawStrategyCommitRequest, StrategyCommitRequestError, StrategyRequestCanonicalization,
+    NativeStrategyCommitRequest, StrategyCommitRequestError, StrategyRequestCanonicalization,
 };
 
 use super::FrozenCommitStrategyRegistry;
 
 pub(crate) fn canonicalize_request(
     registry: &FrozenCommitStrategyRegistry,
-    request: &RawStrategyCommitRequest,
+    request: &NativeStrategyCommitRequest,
 ) -> Result<CanonicalStrategyCommitRequest, StrategyCommitRequestError> {
     let registration = registry
         .get_by_name(request.strategy_name())
@@ -62,7 +62,7 @@ mod tests {
     use crate::commit_strategies::data::{
         CanonicalStrategyInputDigest, CommitStrategyDescriptor, CommitStrategyFamilyName,
         CommitStrategyId, CommitStrategyRegistration, CommitStrategySemanticName,
-        CommitStrategyVersion, PersistentArtifactName, RawStrategyCommitRequest,
+        CommitStrategyVersion, NativeStrategyCommitRequest, PersistentArtifactName,
         StrategyCallerProvenance, StrategyInputSchemaName, StrategyInputSchemaVersion,
         StrategyIntentName, StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract,
         StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
@@ -100,7 +100,7 @@ mod tests {
     #[test]
     fn canonical_request_binds_registered_strategy_and_preserves_native_bytes() {
         let registry = registry();
-        let left = RawStrategyCommitRequest::from_canonical_bytes(
+        let left = NativeStrategyCommitRequest::from_canonical_bytes(
             CommitStrategySemanticName::new("strategy.intent.reconcile"),
             b"native-left".to_vec(),
             StrategyCallerProvenance {
@@ -109,7 +109,7 @@ mod tests {
                 correlation_id: Some("corr-1".to_string()),
             },
         );
-        let right = RawStrategyCommitRequest::from_canonical_bytes(
+        let right = NativeStrategyCommitRequest::from_canonical_bytes(
             CommitStrategySemanticName::new("strategy.intent.reconcile"),
             b"native-left".to_vec(),
             StrategyCallerProvenance {
@@ -143,7 +143,7 @@ mod tests {
     #[test]
     fn canonical_request_rejects_unknown_strategy_name() {
         let registry = registry();
-        let request = RawStrategyCommitRequest::from_canonical_bytes(
+        let request = NativeStrategyCommitRequest::from_canonical_bytes(
             CommitStrategySemanticName::new("strategy.unknown"),
             b"unknown".to_vec(),
             StrategyCallerProvenance {

@@ -194,15 +194,16 @@ fn runtime_commit_strategy_facade_canonicalizes_requests_against_frozen_registry
         .commit_strategy(registration)
         .build();
 
-    let request = crate::facade::commit_strategies::RawStrategyCommitRequest::from_canonical_bytes(
-        CommitStrategySemanticName::new("strategy.intent.reconcile"),
-        b"native-request".to_vec(),
-        crate::facade::commit_strategies::StrategyCallerProvenance {
-            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Api,
-            actor_identity: Some("user-1".to_string()),
-            correlation_id: Some("corr-1".to_string()),
-        },
-    );
+    let request =
+        crate::facade::commit_strategies::NativeStrategyCommitRequest::from_canonical_bytes(
+            CommitStrategySemanticName::new("strategy.intent.reconcile"),
+            b"native-request".to_vec(),
+            crate::facade::commit_strategies::StrategyCallerProvenance {
+                request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Api,
+                actor_identity: Some("user-1".to_string()),
+                correlation_id: Some("corr-1".to_string()),
+            },
+        );
 
     let canonical = runtime
         .commit_strategies()

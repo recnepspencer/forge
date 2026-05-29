@@ -8,7 +8,7 @@ use crate::commit_strategies::data::{
     CanonicalStrategyOutputArtifact, CommitStrategyDescriptor, CommitStrategyExecutionRegistration,
     CommitStrategyExecutor, CommitStrategyFamilyName, CommitStrategyId, CommitStrategyRegistration,
     CommitStrategyRegistrationError, CommitStrategySemanticName, CommitStrategyVersion,
-    NativeCodecError, NativeCodecReader, PersistentArtifactName, RawStrategyCommitRequest,
+    NativeCodecError, NativeCodecReader, NativeStrategyCommitRequest, PersistentArtifactName,
     StrategyCallerProvenance, StrategyExecutionResult, StrategyExecutorFailure,
     StrategyExecutorFailureClass, StrategyInputSchemaName, StrategyInputSchemaVersion,
     StrategyIntentName, StrategyMutationProgram, StrategyObservationContext,
@@ -38,12 +38,12 @@ impl EntityReplacementReconciliationInput {
     pub fn into_native_canonical_request(
         self,
         caller_provenance: StrategyCallerProvenance,
-    ) -> Result<RawStrategyCommitRequest, NativeCodecError> {
+    ) -> Result<NativeStrategyCommitRequest, NativeCodecError> {
         let mut bytes = Vec::new();
         encode_entity_id(&mut bytes, self.entity_id);
         encode_string(&mut bytes, &self.replacement_client_key);
         encode_aspect_field_patch(&mut bytes, &self.desired_fields)?;
-        Ok(RawStrategyCommitRequest::from_canonical_bytes(
+        Ok(NativeStrategyCommitRequest::from_canonical_bytes(
             CommitStrategySemanticName::new(
                 EntityReplacementReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
             ),

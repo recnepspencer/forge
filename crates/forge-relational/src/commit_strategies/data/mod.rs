@@ -40,7 +40,7 @@ pub(crate) use native_codec::*;
 pub use registration::{CommitStrategyRegistration, CommitStrategyRegistrationError};
 pub use request::{
     CanonicalStrategyCommitRequest, CanonicalStrategyInputArtifact, CanonicalStrategyInputDigest,
-    RawStrategyCommitRequest, StrategyCallerProvenance, StrategyCommitRequestError,
+    NativeStrategyCommitRequest, StrategyCallerProvenance, StrategyCommitRequestError,
     StrategyRequestOrigin,
 };
 pub use strategy_id::CommitStrategyId;

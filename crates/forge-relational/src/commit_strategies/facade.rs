@@ -2,7 +2,7 @@ use crate::authority::commit::pipeline::{
     execute_authoritative_commit, AuthoritativeCommitContext,
 };
 use crate::commit_strategies::data::{
-    CanonicalStrategyCommitRequest, LoweredStrategyCommitPlan, RawStrategyCommitRequest,
+    CanonicalStrategyCommitRequest, LoweredStrategyCommitPlan, NativeStrategyCommitRequest,
     StrategyCommitRequestError, StrategyExecutionDraft, StrategyLoweringError,
     ValidatedStrategyCommitPlan,
 };
@@ -26,7 +26,7 @@ impl<'runtime> CommitStrategiesFacade<'runtime> {
 
     pub fn canonicalize_request(
         &self,
-        request: &RawStrategyCommitRequest,
+        request: &NativeStrategyCommitRequest,
     ) -> Result<CanonicalStrategyCommitRequest, StrategyCommitRequestError> {
         canonicalize_request(self.runtime.commit_strategy_registry(), request)
     }
@@ -619,7 +619,7 @@ mod tests {
         let request = runtime
             .commit_strategies()
             .canonicalize_request(
-                &crate::commit_strategies::data::RawStrategyCommitRequest::from_canonical_bytes(
+                &crate::commit_strategies::data::NativeStrategyCommitRequest::from_canonical_bytes(
                     CommitStrategySemanticName::new("strategy.intent.reconcile"),
                     b"fixture-input".to_vec(),
                     StrategyCallerProvenance {

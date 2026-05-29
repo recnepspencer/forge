@@ -9,7 +9,7 @@ use crate::commit_strategies::strategies::{
     IntentReconciliationInput, IntentReconciliationStrategy, ReplicaConvergenceInput,
     ReplicaConvergenceStrategy,
 };
-use crate::facade::commit_strategies::RawStrategyCommitRequest;
+use crate::facade::commit_strategies::NativeStrategyCommitRequest;
 use crate::facade::config::RelationalRuntimeProfile;
 use crate::facade::durability::{DurabilityMode, DurableStoreLayout};
 use crate::facade::history::{BranchId, CommitReference};
@@ -342,7 +342,7 @@ fn strategy_schema_registry() -> crate::schema::data::RelationalSchemaRegistry {
 
 fn execute_strategy_commit(
     runtime: &mut RelationalRuntime,
-    request: RawStrategyCommitRequest,
+    request: NativeStrategyCommitRequest,
     target_branch: Option<BranchId>,
 ) -> crate::facade::transactions::CommitResult {
     let request = runtime

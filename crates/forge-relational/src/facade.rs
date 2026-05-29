@@ -33,7 +33,7 @@ pub mod commit_strategies {
         CommitStrategyExecutionRegistration, CommitStrategyExecutor, CommitStrategyFamilyName,
         CommitStrategyId, CommitStrategyRegistration, CommitStrategyRegistrationError,
         CommitStrategySemanticName, CommitStrategyVersion, LoweredStrategyCommitPlan,
-        PersistentArtifactName, RawStrategyCommitRequest, StrategyCallerProvenance,
+        NativeStrategyCommitRequest, PersistentArtifactName, StrategyCallerProvenance,
         StrategyCommitArtifactBundle, StrategyCommitRequestError, StrategyExecutionDraft,
         StrategyExecutionResult, StrategyExecutionSummary, StrategyExecutorFailure,
         StrategyExecutorFailureClass, StrategyInputSchemaName, StrategyInputSchemaVersion,

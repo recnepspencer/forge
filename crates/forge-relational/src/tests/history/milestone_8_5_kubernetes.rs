@@ -7,7 +7,7 @@ use crate::commit_strategies::strategies::{
     IntentReconciliationInput, IntentReconciliationStrategy, ReplicaConvergenceInput,
     ReplicaConvergenceStrategy,
 };
-use crate::facade::commit_strategies::RawStrategyCommitRequest;
+use crate::facade::commit_strategies::NativeStrategyCommitRequest;
 use crate::facade::config::RelationalRuntimeProfile;
 use crate::facade::durability::{DurabilityMode, DurableStoreLayout};
 use crate::facade::history::{BranchId, CommitReference};
@@ -170,7 +170,7 @@ fn persisted_strategy_runtime(root_path: std::path::PathBuf) -> RelationalRuntim
 
 fn execute_strategy_commit(
     runtime: &mut RelationalRuntime,
-    request: RawStrategyCommitRequest,
+    request: NativeStrategyCommitRequest,
     target_branch: Option<BranchId>,
 ) -> CommitResult {
     let request = runtime

@@ -7,7 +7,7 @@ use crate::commit_strategies::data::{
     CommitStrategyExecutionRegistration, CommitStrategyExecutor, CommitStrategyFamilyName,
     CommitStrategyId, CommitStrategyRegistration, CommitStrategyRegistrationError,
     CommitStrategySemanticName, CommitStrategyVersion, NativeCodecError, NativeCodecReader,
-    PersistentArtifactName, RawStrategyCommitRequest, StrategyCallerProvenance,
+    NativeStrategyCommitRequest, PersistentArtifactName, StrategyCallerProvenance,
     StrategyExecutionResult, StrategyExecutorFailure, StrategyExecutorFailureClass,
     StrategyInputSchemaName, StrategyInputSchemaVersion, StrategyIntentName,
     StrategyMutationProgram, StrategyObservationContext, StrategyOutputSchemaName,
@@ -34,12 +34,12 @@ impl AspectFieldReconciliationInput {
     pub fn into_native_canonical_request(
         self,
         caller_provenance: StrategyCallerProvenance,
-    ) -> Result<RawStrategyCommitRequest, NativeCodecError> {
+    ) -> Result<NativeStrategyCommitRequest, NativeCodecError> {
         let mut bytes = Vec::new();
         encode_entity_id(&mut bytes, self.entity_id);
         encode_aspect_field_locator(&mut bytes, &self.field_locator);
         encode_aspect_value(&mut bytes, &self.desired_value)?;
-        Ok(RawStrategyCommitRequest::from_canonical_bytes(
+        Ok(NativeStrategyCommitRequest::from_canonical_bytes(
             CommitStrategySemanticName::new(
                 AspectFieldReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
             ),
