@@ -648,18 +648,16 @@ fn durable_recovery_and_schema_mismatch_test() {
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
-    let recovery_schema_bundle_digest = certification_digest(&(
-        transitioned.envelope().schema_transition.clone(),
-        transitioned
-            .envelope()
-            .schema_continuation_descriptor
-            .clone(),
-        transitioned
-            .envelope()
-            .schema_reconciliation_descriptor
-            .clone(),
-        plan.compatibility.clone(),
-    ));
+    let live_schema_transition = transitioned.envelope().schema_transition.clone();
+    let live_schema_continuation_descriptor = transitioned
+        .envelope()
+        .schema_continuation_descriptor
+        .clone();
+    let live_schema_reconciliation_descriptor = transitioned
+        .envelope()
+        .schema_reconciliation_descriptor
+        .clone();
+    let live_recovery_compatibility = plan.compatibility.clone();
 
     let mut recovered = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::CertificationCore)
@@ -688,24 +686,26 @@ fn durable_recovery_and_schema_mismatch_test() {
         .cloned()
         .expect("recovered transitioned envelope");
     let recovered_diagnostics = recovered.publication().diagnostics();
-    let recovery_compatibility_diagnostic_digest = certification_digest(
-        &recovered_diagnostics
-            .by_scope(DiagnosticsScope::History)
-            .into_iter()
-            .flat_map(|artifact| artifact.entries.iter())
-            .find(|entry| entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated)
-            .expect("recovery compatibility diagnostic"),
-    );
+    let recovery_compatibility_diagnostic = recovered_diagnostics
+        .by_scope(DiagnosticsScope::History)
+        .into_iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .find(|entry| entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated)
+        .expect("recovery compatibility diagnostic");
 
     assert_eq!(
-        recovery_schema_bundle_digest,
-        certification_digest(&(
-            recovered_envelope.schema_transition.clone(),
-            recovered_envelope.schema_continuation_descriptor.clone(),
-            recovered_envelope.schema_reconciliation_descriptor.clone(),
-            plan.compatibility.clone(),
-        ))
+        live_schema_transition,
+        recovered_envelope.schema_transition.clone()
     );
+    assert_eq!(
+        live_schema_continuation_descriptor,
+        recovered_envelope.schema_continuation_descriptor.clone()
+    );
+    assert_eq!(
+        live_schema_reconciliation_descriptor,
+        recovered_envelope.schema_reconciliation_descriptor.clone()
+    );
+    assert_eq!(live_recovery_compatibility, plan.compatibility.clone());
     assert!(recovered_diagnostics
         .by_scope(DiagnosticsScope::History)
         .into_iter()
@@ -730,8 +730,6 @@ fn durable_recovery_and_schema_mismatch_test() {
         .schema_registry(mismatched_registry)
         .build();
     let error = mismatched.durability_authority().recover(plan).unwrap_err();
-    let mismatch_failure_digest =
-        certification_digest(&(&error.class, &error.compatibility_mismatch, &error.detail));
 
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
     assert!(matches!(
@@ -745,8 +743,11 @@ fn durable_recovery_and_schema_mismatch_test() {
             ..
         })
     ));
-    assert!(!recovery_compatibility_diagnostic_digest.is_empty());
-    assert!(!mismatch_failure_digest.is_empty());
+    assert_eq!(
+        recovery_compatibility_diagnostic.fields.root_value()["verification_layer"],
+        json!("DigestParity")
+    );
+    assert!(!error.detail.is_empty());
 }
 
 #[test]
