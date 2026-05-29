@@ -357,7 +357,12 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
         .expect("executed last-writer-wins merge");
     let live_commit_id = merge.commit.commit.commit_id;
     assert_eq!(
-        read_entity_aspect_field_display(&runtime, &BranchId("main".to_string()), entity, "value"),
+        read_entity_aspect_field_display(
+            &runtime,
+            &BranchId("main".to_string()),
+            entity,
+            field_key("value")
+        ),
         "feature-change"
     );
 
@@ -388,7 +393,7 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
             &recovered,
             &BranchId("main".to_string()),
             entity,
-            "value"
+            field_key("value")
         ),
         "feature-change"
     );
@@ -448,7 +453,7 @@ fn auto_resolved_merge_reads_pinned_visible_value_through_declared_aspect_bindin
             &runtime,
             &BranchId("main".to_string()),
             entity,
-            "display"
+            field_key("display")
         ),
         "feature-change"
     );
@@ -539,7 +544,12 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
     let live_commit_id = merge.commit.commit.commit_id;
 
     assert_eq!(
-        read_entity_aspect_field_display(&runtime, &BranchId("main".to_string()), entity, "value"),
+        read_entity_aspect_field_display(
+            &runtime,
+            &BranchId("main".to_string()),
+            entity,
+            field_key("value")
+        ),
         "18"
     );
     let live_envelope = runtime
@@ -565,7 +575,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
             &recovered,
             &BranchId("main".to_string()),
             entity,
-            "value"
+            field_key("value")
         ),
         "18"
     );
@@ -1570,7 +1580,8 @@ fn update_entity_aspect_fields_on_branch(
     branch_id: BranchId,
 ) {
     let stable_name =
-        read_entity_aspect_field_display(runtime, &branch_id, entity_id, "name").to_string();
+        read_entity_aspect_field_display(runtime, &branch_id, entity_id, field_key("name"))
+            .to_string();
     let mut txn = runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
@@ -1607,7 +1618,7 @@ fn read_entity_aspect_field_display(
     runtime: &crate::facade::runtime::RelationalRuntime,
     branch: &BranchId,
     entity_id: crate::facade::identity::EntityId,
-    field: &str,
+    field: forge_foundational::facade::FieldKey,
 ) -> String {
     let version_id = runtime
         .history()
@@ -1618,6 +1629,6 @@ fn read_entity_aspect_field_display(
         .read_truth()
         .read_version(version_id)
         .get_entity(entity_id)
-        .and_then(|entity| read_entity_field(entity, field_key(field)))
+        .and_then(|entity| read_entity_field(entity, field))
         .expect("aspect field display value")
 }
