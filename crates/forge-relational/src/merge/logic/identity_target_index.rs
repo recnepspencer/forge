@@ -303,7 +303,7 @@ fn applicable_declared_key_sets(
         return applicable;
     };
     for binding in &plan.executable_bindings {
-        if let Some(key_sets) = catalog.aspect_scoped.get(&binding.aspect_key) {
+        if let Some(key_sets) = catalog.aspect_scoped.get(binding.aspect_key()) {
             for key_set in key_sets {
                 push_unique_key_set(&mut applicable, key_set);
             }
@@ -323,7 +323,7 @@ fn extract_declared_key_signature(
         .map(|aspect_key| {
             plan.executable_bindings
                 .iter()
-                .find(|binding| binding.aspect_key == *aspect_key)
+                .find(|binding| binding.aspect_key() == aspect_key)
         })
         .collect::<Option<Vec<_>>>()?;
     let components = bindings

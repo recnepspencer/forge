@@ -10,7 +10,6 @@ pub(super) fn lower_binding(
     aspect: &DeclaredAspect,
 ) -> LoweredAspectBinding {
     LoweredAspectBinding {
-        aspect_key: aspect.aspect_key(),
         contract: aspect.contract.clone(),
         target: match &aspect.binding {
             AspectBinding::EntityField { field } => LoweredAspectTarget::EntityField {

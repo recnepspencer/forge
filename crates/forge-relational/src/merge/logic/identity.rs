@@ -286,7 +286,7 @@ fn identity_declaration_applies_to_record(
             .map(|plan| {
                 plan.executable_bindings
                     .iter()
-                    .any(|binding| binding.aspect_key == *aspect_key)
+                    .any(|binding| binding.aspect_key() == aspect_key)
             })
             .unwrap_or(false),
     }

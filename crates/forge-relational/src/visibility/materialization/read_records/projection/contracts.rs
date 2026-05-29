@@ -22,7 +22,7 @@ pub(super) fn assert_declared_projection_aspects(
         if !plan
             .executable_bindings
             .iter()
-            .any(|binding| &binding.aspect_key == required)
+            .any(|binding| binding.aspect_key() == required)
         {
             panic!(
                 "{domain} projection for kind {:?} requires undeclared aspect {:?}",

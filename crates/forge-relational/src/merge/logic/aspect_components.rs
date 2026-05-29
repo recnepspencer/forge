@@ -109,7 +109,7 @@ fn scalar_aspect_component(
     authoritative_state: Option<&AuthoritativeRecordAspectState>,
     binding: &LoweredAspectBinding,
 ) -> Option<MergeAspectComponent> {
-    let entry = authoritative_state?.get(&binding.aspect_key)?;
+    let entry = authoritative_state?.get(binding.aspect_key())?;
     match entry.view() {
         ContractValidatedAspectValueView::Scalar(value) => {
             Some(MergeAspectComponent::AspectValue(value.clone()))
@@ -122,7 +122,7 @@ fn struct_aspect_component(
     authoritative_state: Option<&AuthoritativeRecordAspectState>,
     binding: &LoweredAspectBinding,
 ) -> Option<MergeAspectComponent> {
-    let entry = authoritative_state?.get(&binding.aspect_key)?;
+    let entry = authoritative_state?.get(binding.aspect_key())?;
     match entry.view() {
         ContractValidatedAspectValueView::Scalar(_) => None,
         ContractValidatedAspectValueView::Struct(value) => {

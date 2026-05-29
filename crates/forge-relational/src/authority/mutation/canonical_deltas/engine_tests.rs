@@ -151,7 +151,6 @@ fn entity_field_delta_requires_authoritative_state() {
             kind_id: KindId(1),
             plan_revision: AspectPlanRevision(7),
             executable_bindings: smallvec::smallvec![LoweredAspectBinding {
-                aspect_key: FoundationalAspectKey::new("name").unwrap(),
                 contract: aspects()
                     .contract()
                     .for_key(
@@ -212,7 +211,6 @@ fn entity_field_delta_materializes_authoritative_aspect_patch() {
             kind_id: KindId(1),
             plan_revision: AspectPlanRevision(7),
             executable_bindings: smallvec::smallvec![LoweredAspectBinding {
-                aspect_key: FoundationalAspectKey::new("name").unwrap(),
                 contract: contract.clone(),
                 target: LoweredAspectTarget::EntityField {
                     field: forge_foundational::facade::FieldKey::new("name").expect("valid field"),
@@ -268,7 +266,6 @@ fn relation_field_delta_materializes_authoritative_aspect_patch() {
             kind_id: KindId(2),
             plan_revision: AspectPlanRevision(3),
             executable_bindings: smallvec::smallvec![LoweredAspectBinding {
-                aspect_key: FoundationalAspectKey::new("relation.label").unwrap(),
                 contract: contract.clone(),
                 target: LoweredAspectTarget::RelationField {
                     field: forge_foundational::facade::FieldKey::new("label").expect("valid field"),

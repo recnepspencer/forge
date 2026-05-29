@@ -193,7 +193,7 @@ fn entity_authoritative_binding_aspect_value(
     match (&binding.target, binding.contract.shape()) {
         (LoweredAspectTarget::EntityField { .. }, forge_foundational::AspectShape::Scalar(_)) => {
             let authoritative_state = entity.authoritative_aspect_state.as_ref()?;
-            let entry = authoritative_state.get(&binding.aspect_key)?;
+            let entry = authoritative_state.get(binding.aspect_key())?;
             match entry.view() {
                 ContractValidatedAspectValueView::Scalar(value) => Some(value.clone()),
                 ContractValidatedAspectValueView::Struct(_) => None,

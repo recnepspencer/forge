@@ -252,7 +252,7 @@ impl<'runtime> MergeAccess<'runtime> {
             let binding = target_binding_plan
                 .executable_bindings
                 .iter()
-                .find(|binding| binding.aspect_key == *aspect_key)
+                .find(|binding| binding.aspect_key() == aspect_key)
                 .ok_or_else(|| MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
                     record: plan.target_record.clone(),
                     aspect_key: aspect_key.clone(),

@@ -614,12 +614,12 @@ fn runtime_build_lowers_schema_aspect_plans() {
     assert_eq!(plan.kind_id, KindId(1));
     assert_eq!(plan.executable_bindings.len(), 2);
     assert_eq!(
-        plan.executable_bindings[0].aspect_key,
-        AspectKey::new("lifecycle").unwrap()
+        plan.executable_bindings[0].aspect_key(),
+        &AspectKey::new("lifecycle").unwrap()
     );
     assert_eq!(
-        plan.executable_bindings[1].aspect_key,
-        AspectKey::new("name").unwrap()
+        plan.executable_bindings[1].aspect_key(),
+        &AspectKey::new("name").unwrap()
     );
     assert_eq!(
         plan.executable_bindings[0].contract.shape(),
@@ -745,7 +745,7 @@ fn aspect_schema_fixture_builds_runtime_with_lowered_plans_for_customized_aspect
         entity_plan
             .executable_bindings
             .iter()
-            .map(|binding| binding.aspect_key.clone())
+            .map(|binding| binding.aspect_key().clone())
             .collect::<Vec<_>>(),
         vec![
             aspect_key("lifecycle"),
@@ -757,7 +757,7 @@ fn aspect_schema_fixture_builds_runtime_with_lowered_plans_for_customized_aspect
         relation_plan
             .executable_bindings
             .iter()
-            .map(|binding| binding.aspect_key.clone())
+            .map(|binding| binding.aspect_key().clone())
             .collect::<Vec<_>>(),
         vec![aspect_key("source"), aspect_key("target")]
     );

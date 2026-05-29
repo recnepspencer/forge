@@ -30,7 +30,7 @@ pub(super) fn entity_create_fields_from_authoritative_state(
         let binding = lowered_plan
             .executable_bindings
             .iter()
-            .find(|binding| binding.aspect_key == *aspect_key)
+            .find(|binding| binding.aspect_key() == aspect_key)
             .ok_or_else(|| MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
                 record: plan.source_record.clone(),
                 aspect_key: aspect_key.clone(),
@@ -102,7 +102,7 @@ pub(super) fn relation_create_fields_from_authoritative_state(
         let Some(binding) = lowered_plan
             .executable_bindings
             .iter()
-            .find(|binding| binding.aspect_key == *aspect_key)
+            .find(|binding| binding.aspect_key() == aspect_key)
         else {
             continue;
         };

@@ -27,7 +27,7 @@ pub(super) fn evaluate_authoritative_binding_delta(
 ) -> Result<(CanonicalAspectDeltaEvidence, bool), CanonicalDeltaError> {
     let old_state = materialize_old_binding_state(binding, context)?;
     let new_state = materialize_new_binding_state(binding, context)?;
-    binding_evidence_from_states(&binding.aspect_key, old_state, new_state)
+    binding_evidence_from_states(binding.aspect_key(), old_state, new_state)
 }
 
 fn materialize_old_binding_state(
@@ -84,25 +84,25 @@ fn materialize_entity_field_binding_state(
 ) -> Result<MaterializedAspectState, CanonicalDeltaError> {
     if !matches!(context, BindingEvaluationContext::Entity { .. }) {
         return Err(invalid_binding_context(
-            &binding.aspect_key,
+            binding.aspect_key(),
             "entity field aspect cannot be evaluated against relation context",
         ));
     }
     match binding.contract.shape() {
         AspectShape::Scalar(_) => Ok(MaterializedAspectState::ScalarValue(
             materialize_authoritative_scalar_state(
-                &binding.aspect_key,
+                binding.aspect_key(),
                 authoritative_state_for_side(context, side),
             )?,
         )),
         AspectShape::Struct(_) => Ok(MaterializedAspectState::StructValue(
             materialize_authoritative_struct_state(
-                &binding.aspect_key,
+                binding.aspect_key(),
                 authoritative_state_for_side(context, side),
             )?,
         )),
         _ => Err(entity_field_binding_requires_authoritative_patch(
-            &binding.aspect_key,
+            binding.aspect_key(),
             field,
         )),
     }
@@ -115,25 +115,25 @@ fn materialize_relation_field_binding_state(
 ) -> Result<MaterializedAspectState, CanonicalDeltaError> {
     if !matches!(context, BindingEvaluationContext::Relation { .. }) {
         return Err(invalid_binding_context(
-            &binding.aspect_key,
+            binding.aspect_key(),
             "relation field aspect cannot be evaluated against entity context",
         ));
     }
     match binding.contract.shape() {
         AspectShape::Scalar(_) => Ok(MaterializedAspectState::ScalarValue(
             materialize_authoritative_scalar_state(
-                &binding.aspect_key,
+                binding.aspect_key(),
                 authoritative_state_for_side(context, side),
             )?,
         )),
         AspectShape::Struct(_) => Ok(MaterializedAspectState::StructValue(
             materialize_authoritative_struct_state(
-                &binding.aspect_key,
+                binding.aspect_key(),
                 authoritative_state_for_side(context, side),
             )?,
         )),
         _ => Err(invalid_binding_context(
-            &binding.aspect_key,
+            binding.aspect_key(),
             "relation field aspect requires scalar or struct contract shape",
         )),
     }
@@ -146,7 +146,7 @@ fn materialize_relation_source_endpoint_binding_state(
 ) -> Result<MaterializedAspectState, CanonicalDeltaError> {
     let Some((old_source, new_source, _, _)) = context.relation_endpoints() else {
         return Err(invalid_binding_context(
-            &binding.aspect_key,
+            binding.aspect_key(),
             "relation source endpoint aspect cannot be evaluated against entity context",
         ));
     };
@@ -163,7 +163,7 @@ fn materialize_relation_target_endpoint_binding_state(
 ) -> Result<MaterializedAspectState, CanonicalDeltaError> {
     let Some((_, _, old_target, new_target)) = context.relation_endpoints() else {
         return Err(invalid_binding_context(
-            &binding.aspect_key,
+            binding.aspect_key(),
             "relation target endpoint aspect cannot be evaluated against entity context",
         ));
     };

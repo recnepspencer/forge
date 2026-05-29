@@ -62,7 +62,7 @@ pub(super) fn source_locator_for_aspect_binding(
 ) -> BoundarySourceLocator {
     BoundarySourceLocator::aspect(AspectLocator::new(
         LocatorAuthority::Planned,
-        binding.aspect_key.clone(),
+        binding.aspect_key().clone(),
     ))
 }
 

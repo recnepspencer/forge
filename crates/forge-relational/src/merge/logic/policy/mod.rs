@@ -35,7 +35,7 @@ fn binding_matches_aspect(
     binding: &crate::schema::data::LoweredAspectBinding,
     aspect_key: &forge_foundational::facade::AspectKey,
 ) -> bool {
-    aspect_key_equivalent(runtime, &binding.aspect_key, aspect_key)
+    aspect_key_equivalent(runtime, binding.aspect_key(), aspect_key)
 }
 
 fn aspect_key_equivalent(

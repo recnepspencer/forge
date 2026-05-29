@@ -625,7 +625,7 @@ fn aspect_binding_for_record<'a>(
     }?;
     plan.executable_bindings
         .iter()
-        .find(|binding| binding.aspect_key == *aspect_key)
+        .find(|binding| binding.aspect_key() == aspect_key)
 }
 
 fn derive_deleted_on_both_sides_lineage_continuity(

@@ -99,7 +99,7 @@ pub(crate) fn create_entity_outcome_on_branch(
 fn entity_fields_for_runtime(runtime: &RelationalRuntime, name: &str) -> AspectFieldPatch {
     let declares_name = runtime.entity_aspect_plan(KindId(1)).is_some_and(|plan| {
         plan.executable_bindings.iter().any(|binding| {
-            binding.aspect_key == AspectKey::new("name").expect("valid name aspect key")
+            binding.aspect_key() == &AspectKey::new("name").expect("valid name aspect key")
         })
     });
     if declares_name {
@@ -291,7 +291,7 @@ pub(crate) fn create_relation_outcome(
 fn relation_fields_for_runtime(runtime: &RelationalRuntime, label: &str) -> AspectFieldPatch {
     let declares_label = runtime.relation_aspect_plan(KindId(2)).is_some_and(|plan| {
         plan.executable_bindings.iter().any(|binding| {
-            binding.aspect_key == AspectKey::new("label").expect("valid label aspect key")
+            binding.aspect_key() == &AspectKey::new("label").expect("valid label aspect key")
         })
     });
     if declares_label {

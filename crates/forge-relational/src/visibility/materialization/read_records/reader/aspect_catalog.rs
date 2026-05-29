@@ -31,7 +31,7 @@ fn plan_aspect_keys(plan: &crate::schema::data::LoweredAspectPlan) -> Vec<Aspect
     let mut aspects = plan
         .executable_bindings
         .iter()
-        .map(|binding| binding.aspect_key.clone())
+        .map(|binding| binding.aspect_key().clone())
         .collect::<Vec<_>>();
     if !aspects.windows(2).all(|window| window[0] < window[1]) {
         aspects.sort();

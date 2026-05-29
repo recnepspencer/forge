@@ -829,13 +829,13 @@ fn lowered_aspect_outcomes_for_record(
         .executable_bindings
         .iter()
         .map(|binding| {
-            let aspect_resolution = policy_by_aspect.get(&binding.aspect_key).copied();
+            let aspect_resolution = policy_by_aspect.get(binding.aspect_key()).copied();
             let readiness = aspect_resolution
                 .map(|aspect| readiness_for_policy_decision(aspect.decision_boundary))
                 .unwrap_or(MergeExecutionReadiness::Blocked);
             let applied_policy = aspect_resolution.and_then(|aspect| aspect.applied_policy.clone());
             LoweredAspectOutcome {
-                aspect_key: binding.aspect_key.clone(),
+                aspect_key: binding.aspect_key().clone(),
                 applied_policy,
                 readiness,
                 lowered_action: aspect_resolution.and_then(|aspect| {

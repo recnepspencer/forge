@@ -19,7 +19,7 @@ pub(super) fn combine_struct_field_patches(
         let mutation_mask = mutation_mask_for_field_sets(&field_sets);
         let field_patch = construct_struct_field_patch(
             &binding.contract,
-            &binding.aspect_key,
+            binding.aspect_key(),
             &mutation_mask,
             field_sets,
         )?;

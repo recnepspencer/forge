@@ -14,7 +14,7 @@ fn runtime_aspect_value_binding(
     match (&binding.target, binding.contract.shape()) {
         (LoweredAspectTarget::EntityField { .. }, forge_foundational::AspectShape::Scalar(_)) => {
             Some(RuntimeAspectValueBinding::EntityScalar(
-                binding.aspect_key.clone(),
+                binding.aspect_key().clone(),
             ))
         }
         (LoweredAspectTarget::EntityField { .. }, forge_foundational::AspectShape::Struct(_)) => {
@@ -22,7 +22,7 @@ fn runtime_aspect_value_binding(
         }
         (LoweredAspectTarget::RelationField { .. }, forge_foundational::AspectShape::Scalar(_)) => {
             Some(RuntimeAspectValueBinding::RelationScalar(
-                binding.aspect_key.clone(),
+                binding.aspect_key().clone(),
             ))
         }
         (LoweredAspectTarget::RelationField { .. }, forge_foundational::AspectShape::Struct(_)) => {

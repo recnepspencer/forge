@@ -18,7 +18,7 @@ pub(super) fn validate_entity_scalar_field_value(
             Err(EntityFieldAspectPatchDenial::ContractValidationDenied {
                 field_locator: forge_foundational::facade::AspectFieldLocator::new(
                     forge_foundational::facade::LocatorAuthority::Planned,
-                    binding.aspect_key.clone(),
+                    binding.aspect_key().clone(),
                     field_path.clone(),
                 ),
                 denial,

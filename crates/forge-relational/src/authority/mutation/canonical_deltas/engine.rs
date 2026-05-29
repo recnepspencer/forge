@@ -266,7 +266,7 @@ fn evaluate_entity_update_delta(
                 let Some(lowered_binding) = plan
                     .executable_bindings
                     .iter()
-                    .find(|candidate| candidate.aspect_key == binding.aspect_key)
+                    .find(|candidate| candidate.aspect_key() == &binding.aspect_key)
                 else {
                     continue;
                 };
@@ -397,7 +397,7 @@ fn evaluate_bindings(
     for binding in &plan.executable_bindings {
         let (evidence, changed) = evaluate_authoritative_binding_delta(binding, context)?;
         evaluated.push(EvaluatedAspectBinding {
-            aspect_key: binding.aspect_key.clone(),
+            aspect_key: binding.aspect_key().clone(),
             contract: binding.contract.clone(),
             changed,
             aspect_shape: binding.aspect_shape(),

@@ -79,7 +79,7 @@ impl LoweredAspectPlan {
                 .executable_bindings
                 .iter()
                 .map(|binding| AspectLoweringTraceRow {
-                    aspect_key: binding.aspect_key.clone(),
+                    aspect_key: binding.aspect_key().clone(),
                     target: binding.target.clone(),
                     aspect_shape: binding.aspect_shape(),
                 })

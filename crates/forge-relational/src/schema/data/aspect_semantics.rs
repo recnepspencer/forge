@@ -98,7 +98,6 @@ pub struct LoweredAspectPlan {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredAspectBinding {
-    pub aspect_key: AspectKey,
     pub contract: AspectContract,
     pub target: LoweredAspectTarget,
 }
@@ -124,6 +123,10 @@ impl DeclaredAspect {
 }
 
 impl LoweredAspectBinding {
+    pub fn aspect_key(&self) -> &AspectKey {
+        self.contract.key()
+    }
+
     pub fn aspect_shape(&self) -> forge_foundational::AspectShape {
         self.contract.shape().clone()
     }
@@ -171,7 +174,7 @@ impl LoweredAspectPlan {
         self.executable_bindings
             .iter()
             .find(|binding| binding.targets_entity_scalar_field(target))
-            .map(|binding| binding.aspect_key.clone())
+            .map(|binding| binding.aspect_key().clone())
     }
 
     pub fn admits_entity_field_update_target(&self, field: &FieldKey) -> bool {
@@ -185,7 +188,6 @@ impl LoweredAspectPlan {
 mod tests {
     use super::{AspectPlanRevision, LoweredAspectBinding, LoweredAspectPlan, LoweredAspectTarget};
     use crate::identity::data::KindId;
-    use forge_foundational::facade::AspectKey;
     use forge_foundational::FieldKey;
 
     #[test]
@@ -195,7 +197,6 @@ mod tests {
             plan_revision: AspectPlanRevision(1),
             executable_bindings: smallvec::smallvec![
                 LoweredAspectBinding {
-                    aspect_key: AspectKey::new("name").unwrap(),
                     contract: forge_foundational::AspectContract::scalar(
                         forge_foundational::AspectKey::new("name").expect("valid key"),
                         forge_foundational::AspectIdentity(1),
@@ -207,7 +208,6 @@ mod tests {
                     },
                 },
                 LoweredAspectBinding {
-                    aspect_key: AspectKey::new("lifecycle").unwrap(),
                     contract: forge_foundational::AspectContract::scalar(
                         forge_foundational::AspectKey::new("lifecycle").expect("valid key"),
                         forge_foundational::AspectIdentity(2),

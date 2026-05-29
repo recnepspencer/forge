@@ -768,7 +768,7 @@ fn aspect_conflict_evidence(
     plan.executable_bindings
         .iter()
         .map(|binding| AspectConflictEvidence {
-            aspect_key: binding.aspect_key.clone(),
+            aspect_key: binding.aspect_key().clone(),
             comparison: compare_binding(source_record, target_record, binding),
         })
         .collect()

@@ -56,7 +56,7 @@ fn authoritative_patch_evaluated_bindings(
             authoritative_patch_binding_evidence(binding, structural_change, patch)
         {
             evaluated.push(EvaluatedAspectBinding {
-                aspect_key: binding.aspect_key.clone(),
+                aspect_key: binding.aspect_key().clone(),
                 contract: binding.contract.clone(),
                 changed: true,
                 aspect_shape: binding.aspect_shape(),
