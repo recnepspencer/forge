@@ -1,34 +1,34 @@
 use forge_query::facade::{ForgeQueryAspectValue, ForgeQueryWorkspaceError};
 use serde_json::{Map, Value};
 
-pub(super) fn payload_from_aspects(
+pub(super) fn external_row_from_aspects(
     aspects: &[ForgeQueryAspectValue],
 ) -> Result<Value, ForgeQueryWorkspaceError> {
-    let mut payload = Value::Object(Map::new());
-    apply_aspects(&mut payload, aspects)?;
-    Ok(payload)
+    let mut external_row = Value::Object(Map::new());
+    apply_aspects_to_external_row(&mut external_row, aspects)?;
+    Ok(external_row)
 }
 
-pub(super) fn apply_aspects(
-    payload: &mut Value,
+pub(super) fn apply_aspects_to_external_row(
+    external_row: &mut Value,
     aspects: &[ForgeQueryAspectValue],
 ) -> Result<(), ForgeQueryWorkspaceError> {
     for aspect in aspects {
         if aspect.clears_existing_value() {
-            clear_payload_path(payload, aspect.aspect_path())?;
+            clear_external_row_path(external_row, aspect.aspect_path())?;
         } else {
-            set_payload_path(payload, aspect.aspect_path(), aspect.value().clone())?;
+            set_external_row_path(external_row, aspect.aspect_path(), aspect.value().clone())?;
         }
     }
     Ok(())
 }
 
-fn set_payload_path(
-    payload: &mut Value,
+fn set_external_row_path(
+    external_row: &mut Value,
     dotted_path: &str,
     value: Value,
 ) -> Result<(), ForgeQueryWorkspaceError> {
-    let mut current = payload;
+    let mut current = external_row;
     let mut parts = dotted_path.split('.').peekable();
     while let Some(part) = parts.next() {
         if parts.peek().is_none() {
@@ -50,11 +50,11 @@ fn set_payload_path(
     Ok(())
 }
 
-fn clear_payload_path(
-    payload: &mut Value,
+fn clear_external_row_path(
+    external_row: &mut Value,
     dotted_path: &str,
 ) -> Result<(), ForgeQueryWorkspaceError> {
-    let mut current = payload;
+    let mut current = external_row;
     let mut parts = dotted_path.split('.').peekable();
     while let Some(part) = parts.next() {
         if parts.peek().is_none() {
@@ -79,6 +79,6 @@ fn clear_payload_path(
 
 fn non_object_boundary_error(dotted_path: &str) -> ForgeQueryWorkspaceError {
     ForgeQueryWorkspaceError::new(format!(
-        "public bridge payload path `{dotted_path}` crossed a non-object boundary"
+        "public bridge external row path `{dotted_path}` crossed a non-object boundary"
     ))
 }

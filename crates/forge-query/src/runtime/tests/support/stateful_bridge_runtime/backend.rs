@@ -2,7 +2,7 @@ use super::super::*;
 use super::authority::build_bridge_authority_bundle;
 use super::state::StatefulBridgeState;
 use super::verification::{probe_existing_truth, verify_existing_truth_assertion};
-use super::writes::{apply_command, payload_text};
+use super::writes::{apply_command, external_row_text};
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -219,9 +219,9 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
             return Vec::new();
         };
         rows.iter()
-            .map(|(identity, payload)| ForgeQueryEntity {
+            .map(|(identity, external_row)| ForgeQueryEntity {
                 identity: identity.clone(),
-                payload: payload.clone(),
+                payload: external_row.clone(),
             })
             .collect()
     }
@@ -308,10 +308,10 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
             .get(request.target())
             .into_iter()
             .flat_map(|rows| rows.iter())
-            .filter_map(|(entity_identity, payload)| {
-                let member = payload_text(payload, &identity_path)
+            .filter_map(|(entity_identity, external_row)| {
+                let member = external_row_text(external_row, &identity_path)
                     .unwrap_or_else(|| entity_identity.clone());
-                let lane = payload_text(payload, &grouping_path)?;
+                let lane = external_row_text(external_row, &grouping_path)?;
                 Some((member, lane))
             })
             .collect::<Vec<_>>();
