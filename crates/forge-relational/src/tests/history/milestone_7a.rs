@@ -1,5 +1,3 @@
-use serde::Serialize;
-
 use crate::facade::diagnostics::{DiagnosticCode, DiagnosticsScope};
 use crate::facade::history::BranchId;
 use crate::facade::replay::{RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode};
@@ -7,7 +5,7 @@ use crate::tests::support::*;
 
 /// Canonical proof artifact for 7A parent-list parity across publication,
 /// replay, and durability recovery.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct ParentListSerializationArtifact {
     root_commit_id: u64,
     root_parents: Vec<u64>,
@@ -22,7 +20,7 @@ struct ParentListSerializationArtifact {
 }
 
 /// Canonical proof artifact for 7A ancestry and branch-reasoning scenarios.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct AncestryQueryMatrix {
     pre_merge_common_ancestor_commit_id: Option<u64>,
     post_merge_common_ancestor_commit_id: Option<u64>,
@@ -40,16 +38,39 @@ struct AncestryQueryMatrix {
 ///
 /// This bundle is not runtime authority. It certifies canonical runtime
 /// surfaces that remain authoritative elsewhere.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct MergeReadyHistoryCertificationBundle {
     parent_list_serialization: ParentListSerializationArtifact,
     ancestry_query_matrix: AncestryQueryMatrix,
-    parent_list_digest: String,
-    ancestry_query_digest: String,
-    replay_acceptance_digest: String,
-    durability_parity_digest: String,
-    diagnostics_digest: String,
-    branch_reasoning_digest: String,
+    replay_acceptance: ReplayAcceptanceEvidence,
+    durability_parity: DurabilityParityEvidence,
+    diagnostics: PublicationDiagnosticsEvidence,
+    branch_reasoning: BranchReasoningEvidence,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ReplayAcceptanceEvidence {
+    failure_absent: bool,
+    reconstructed_closure_len: usize,
+    parents_match_publication: bool,
+    mismatches_empty: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DurabilityParityEvidence {
+    recovered_parents_match_publication: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PublicationDiagnosticsEvidence {
+    merge_commit_published: bool,
+    merge_base_resolved: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct BranchReasoningEvidence {
+    inspected_merge_base_present: bool,
+    main_head_closure_contains_head: bool,
 }
 
 fn authoritative_parent_ids(
@@ -173,7 +194,7 @@ fn run_merge_ready_history_shape_certification() -> MergeReadyHistoryCertificati
         can_merge_feature_into_main: post_merge_inspection.can_merge,
     };
 
-    let publication_diagnostics = runtime
+    let publication_diagnostic_codes = runtime
         .publication()
         .diagnostics()
         .by_scope(DiagnosticsScope::PatchPublication)
@@ -185,46 +206,44 @@ fn run_merge_ready_history_shape_certification() -> MergeReadyHistoryCertificati
                 DiagnosticCode::MergeCommitPublished | DiagnosticCode::MergeBaseResolved
             )
         })
-        .map(|entry| {
-            (
-                format!("{:?}", entry.code),
-                entry.message.clone(),
-                entry.fields.clone(),
-            )
-        })
+        .map(|entry| entry.code)
         .collect::<Vec<_>>();
 
     MergeReadyHistoryCertificationBundle {
-        parent_list_digest: certification_digest(&parent_list_serialization),
-        ancestry_query_digest: certification_digest(&ancestry_query_matrix),
-        replay_acceptance_digest: certification_digest(&(
-            replay.failure.as_ref(),
-            &replay.reconstructed_commit_closure,
-            replay.commit.as_ref().map(|commit| {
+        replay_acceptance: ReplayAcceptanceEvidence {
+            failure_absent: replay.failure.is_none(),
+            reconstructed_closure_len: replay.reconstructed_commit_closure.len(),
+            parents_match_publication: replay.commit.as_ref().map(|commit| {
                 commit
                     .ordered_parents()
                     .as_slice()
                     .iter()
                     .map(|parent| parent.0)
                     .collect::<Vec<_>>()
-            }),
-            &replay.mismatches,
-        )),
-        durability_parity_digest: certification_digest(&(
-            parent_list_serialization.merge_ready_parents.clone(),
-            parent_list_serialization
+            }) == Some(
+                parent_list_serialization.merge_ready_parents.clone(),
+            ),
+            mismatches_empty: replay.mismatches.is_empty(),
+        },
+        durability_parity: DurabilityParityEvidence {
+            recovered_parents_match_publication: parent_list_serialization
                 .recovered_merge_ready_parents
-                .clone(),
-        )),
-        diagnostics_digest: certification_digest(&publication_diagnostics),
-        branch_reasoning_digest: certification_digest(&(
-            ancestry_query_matrix.pre_merge_common_ancestor_commit_id,
-            ancestry_query_matrix.post_merge_common_ancestor_commit_id,
-            ancestry_query_matrix.inspected_merge_base_commit_id,
-            ancestry_query_matrix.feature_only_commit_closure.clone(),
-            ancestry_query_matrix.main_only_commit_closure.clone(),
-            ancestry_query_matrix.can_merge_feature_into_main,
-        )),
+                == parent_list_serialization.merge_ready_parents,
+        },
+        diagnostics: PublicationDiagnosticsEvidence {
+            merge_commit_published: publication_diagnostic_codes
+                .contains(&DiagnosticCode::MergeCommitPublished),
+            merge_base_resolved: publication_diagnostic_codes
+                .contains(&DiagnosticCode::MergeBaseResolved),
+        },
+        branch_reasoning: BranchReasoningEvidence {
+            inspected_merge_base_present: ancestry_query_matrix
+                .inspected_merge_base_commit_id
+                .is_some(),
+            main_head_closure_contains_head: ancestry_query_matrix
+                .main_head_ancestor_closure
+                .contains(&ancestry_query_matrix.main_head_commit_id),
+        },
         parent_list_serialization,
         ancestry_query_matrix,
     }
@@ -313,12 +332,29 @@ fn merge_ready_history_shape_test() {
             .ancestry_query_matrix
             .merge_ready_commit_ancestor_closure
     );
-    assert!(certification.parent_list_digest.len() > 8);
-    assert!(certification.ancestry_query_digest.len() > 8);
-    assert!(certification.replay_acceptance_digest.len() > 8);
-    assert!(certification.durability_parity_digest.len() > 8);
-    assert!(certification.diagnostics_digest.len() > 8);
-    assert!(certification.branch_reasoning_digest.len() > 8);
+    assert!(certification.replay_acceptance.failure_absent);
+    assert_eq!(
+        certification.replay_acceptance.reconstructed_closure_len,
+        certification
+            .ancestry_query_matrix
+            .merge_ready_commit_ancestor_closure
+            .len()
+    );
+    assert!(certification.replay_acceptance.parents_match_publication);
+    assert!(certification.replay_acceptance.mismatches_empty);
+    assert!(
+        certification
+            .durability_parity
+            .recovered_parents_match_publication
+    );
+    assert!(certification.diagnostics.merge_commit_published);
+    assert!(certification.diagnostics.merge_base_resolved);
+    assert!(certification.branch_reasoning.inspected_merge_base_present);
+    assert!(
+        certification
+            .branch_reasoning
+            .main_head_closure_contains_head
+    );
 }
 
 #[test]
