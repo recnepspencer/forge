@@ -139,11 +139,17 @@ fn entity_field_patch_application_denial_carries_contract_field_locator() {
 #[test]
 fn authoritative_aspect_state_conflicts_carry_boundary_source_locators() {
     let entity_denial = EntityAuthoritativeAspectStateDenial::UnsupportedAspectValue {
-        source_locator: authoritative_field_source_locator("profile.summary", "summary"),
+        source_locator: authoritative_field_source_locator(
+            crate::tests::support::aspect_key("profile.summary"),
+            crate::tests::support::field_key("summary"),
+        ),
         value_family: "non-scalar-compatibility-input".to_string(),
     };
     let relation_denial = RelationAuthoritativeAspectStateDenial::UnsupportedAspectValue {
-        source_locator: authoritative_field_source_locator("edge.label", "label"),
+        source_locator: authoritative_field_source_locator(
+            crate::tests::support::aspect_key("edge.label"),
+            crate::tests::support::field_key("label"),
+        ),
         value_family: "non-scalar-compatibility-input".to_string(),
     };
 
@@ -173,11 +179,14 @@ fn authoritative_aspect_state_conflicts_carry_boundary_source_locators() {
     assert!(relation_conflict.detail().contains("label"));
 }
 
-fn authoritative_field_source_locator(aspect_key: &str, field: &str) -> BoundarySourceLocator {
+fn authoritative_field_source_locator(
+    aspect_key: AspectKey,
+    field_key: FieldKey,
+) -> BoundarySourceLocator {
     BoundarySourceLocator::aspect_field(AspectFieldLocator::new(
         LocatorAuthority::SupportOnly,
-        AspectKey::new(aspect_key).expect("valid aspect key"),
-        CanonicalFieldPath::single(FieldKey::new(field).expect("valid field key")),
+        aspect_key,
+        CanonicalFieldPath::single(field_key),
     ))
 }
 
@@ -218,7 +227,7 @@ fn assert_authoritative_field_source_locator(
     );
     assert_eq!(
         field_locator.field_path().fields(),
-        &[FieldKey::new(expected_field).expect("valid expected field key")]
+        &[crate::tests::support::field_key(expected_field)]
     );
 }
 

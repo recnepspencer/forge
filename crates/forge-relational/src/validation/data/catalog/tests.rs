@@ -28,8 +28,14 @@ fn canonical_catalog_digest_is_order_and_duplicate_independent_without_json_iden
 
 #[test]
 fn catalog_digest_preserves_foundational_aspect_field_locator_identity() {
-    let profile_name = catalog_for_unique_field("profile.name", "value");
-    let profile_value = catalog_for_unique_field("profile.value", "name");
+    let profile_name = catalog_for_unique_field(
+        crate::tests::support::aspect_key("profile.name"),
+        crate::tests::support::field_key("value"),
+    );
+    let profile_value = catalog_for_unique_field(
+        crate::tests::support::aspect_key("profile.value"),
+        crate::tests::support::field_key("name"),
+    );
 
     assert_ne!(
         profile_name.canonical_registration_digest(),
@@ -90,14 +96,11 @@ fn every_invariant_variant_supports_at_least_one_execution_point_and_can_registe
     }
 }
 
-fn catalog_for_unique_field(aspect_key: &str, field: &str) -> InvariantCatalog {
+fn catalog_for_unique_field(aspect_key: AspectKey, field_key: FieldKey) -> InvariantCatalog {
     InvariantCatalog {
         registrations: vec![InvariantRegistration::commit_boundary_blocking(
             InvariantRule::UniqueEntityAspectField(
-                crate::validation::data::UniqueEntityAspectField::single(
-                    AspectKey::new(aspect_key).expect("valid test aspect key"),
-                    FieldKey::new(field).expect("valid test field key"),
-                ),
+                crate::validation::data::UniqueEntityAspectField::single(aspect_key, field_key),
             ),
         )],
     }
