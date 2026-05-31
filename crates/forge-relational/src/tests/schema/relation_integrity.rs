@@ -9,7 +9,7 @@ fn relation_integrity_registry(
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::default(),
+            aspect_contract_declarations: KindAspectContractDeclarations::default(),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -19,7 +19,7 @@ fn relation_integrity_registry(
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity,
             })
         })
@@ -137,7 +137,7 @@ fn duplicate_relation_contract_ids_are_rejected() {
             schema_version_id: SchemaVersionId(1),
             cross_context_policy: CrossContextPolicy::AllowExplicit,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-            aspect_declarations: KindAspectDeclarations::default(),
+            aspect_contract_declarations: KindAspectContractDeclarations::default(),
             relation_integrity: crate::schema::data::RelationIntegrityDeclarations::new(
                 vec![crate::schema::data::EndpointKindContractDeclaration {
                     contract_id: "dup".into(),

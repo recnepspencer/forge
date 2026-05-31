@@ -5,7 +5,7 @@ use forge_foundational::facade::{
 use forge_proof::TransitionOutcome;
 use std::collections::BTreeMap;
 
-use crate::schema::data::{LoweredAspectBinding, LoweredAspectPlan};
+use crate::schema::data::{LoweredAspectContractBinding, LoweredAspectContractPlan};
 use crate::transactions::data::{AspectFieldPatch, EntityAuthoritativeAspectStateDenial};
 
 use super::field_classification::{
@@ -14,7 +14,7 @@ use super::field_classification::{
 };
 
 pub(super) fn validate_entity_creation_fields(
-    lowered_plan: &LoweredAspectPlan,
+    lowered_plan: &LoweredAspectContractPlan,
     fields: &AspectFieldPatch,
 ) -> Result<Vec<ContractValidatedAspectArtifact>, EntityAuthoritativeAspectStateDenial> {
     let mut scalar_artifacts = Vec::new();
@@ -47,7 +47,7 @@ pub(super) fn validate_entity_creation_fields(
 }
 
 fn validate_scalar_creation_value(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     target: &AspectFieldLocator,
     value: &AspectValue,
 ) -> Result<ContractValidatedAspectArtifact, EntityAuthoritativeAspectStateDenial> {
@@ -66,7 +66,7 @@ fn validate_scalar_creation_value(
 }
 
 fn validate_struct_creation_value(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     field_sets: Vec<(FieldKey, AspectValue)>,
 ) -> Result<ContractValidatedAspectArtifact, EntityAuthoritativeAspectStateDenial> {
     let source_locator = source_locator_for_aspect_binding(binding);

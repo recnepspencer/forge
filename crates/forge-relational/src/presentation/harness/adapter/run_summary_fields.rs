@@ -84,7 +84,7 @@ impl PublicationArtifactsExtension {
             latest_patch_record_count: publication_artifacts
                 .latest_patch
                 .as_ref()
-                .map(|patch| patch.records.len())
+                .map(|patch| patch.authoritative_record_patches.len())
                 .unwrap_or_default(),
             latest_replay_present: publication_artifacts.latest_replay.is_some(),
         }

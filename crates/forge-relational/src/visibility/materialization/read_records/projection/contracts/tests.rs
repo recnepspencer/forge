@@ -1,7 +1,8 @@
 use super::*;
 use crate::identity::data::KindId;
 use crate::schema::data::{
-    AspectBinding, AspectPlanRevision, LoweredAspectBinding, LoweredAspectPlan,
+    AspectBinding, AspectContractPlanRevision, LoweredAspectContractBinding,
+    LoweredAspectContractPlan,
 };
 use forge_foundational::facade::{
     AspectContract, AspectContractRevision, AspectIdentity, AspectKey, FieldKey, ScalarAspectType,
@@ -14,10 +15,10 @@ fn projection_contract_assertion_rejects_field_mask_denied_by_scalar_contract() 
     let aspect_key = AspectKey::new("counter").unwrap();
     let field_key = FieldKey::new("value").unwrap();
     let projection_scope = ProjectionAspectScope::fields(aspect_key.clone(), [field_key.clone()]);
-    let plan = LoweredAspectPlan {
+    let plan = LoweredAspectContractPlan {
         kind_id: KindId(1),
-        plan_revision: AspectPlanRevision(1),
-        executable_bindings: smallvec![LoweredAspectBinding {
+        plan_revision: AspectContractPlanRevision(1),
+        executable_bindings: smallvec![LoweredAspectContractBinding {
             contract: AspectContract::scalar(
                 aspect_key,
                 AspectIdentity(1),

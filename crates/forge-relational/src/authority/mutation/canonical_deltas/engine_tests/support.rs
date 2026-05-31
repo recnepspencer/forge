@@ -14,8 +14,8 @@ use crate::config::data::{
 };
 use crate::identity::data::{KindId, VersionId};
 use crate::schema::data::{
-    AspectBinding, AspectPlanCatalog, AspectPlanRevision, LoweredAspectBinding, LoweredAspectPlan,
-    RelationalSchemaRegistry,
+    AspectBinding, AspectContractPlanCatalog, AspectContractPlanRevision,
+    LoweredAspectContractBinding, LoweredAspectContractPlan, RelationalSchemaRegistry,
 };
 use crate::storage::overlay::WorkingState;
 use crate::symbols::data::StringInterner;
@@ -35,7 +35,7 @@ pub(super) fn mutation_config() -> crate::config::data::MutationConfig {
 pub(super) fn empty_workspace<'a>(
     state: &'a mut WorkingState,
     symbols: &'a mut StringInterner,
-    aspect_plans: &'a AspectPlanCatalog,
+    aspect_plans: &'a AspectContractPlanCatalog,
     config: &'a crate::config::data::MutationConfig,
     schema: &'a RelationalSchemaRegistry,
 ) -> MutationWorkspace<'a> {
@@ -54,14 +54,14 @@ pub(super) fn catalog_with_entity_binding(
     kind_id: KindId,
     contract: AspectContract,
     binding: AspectBinding,
-) -> AspectPlanCatalog {
-    let mut catalog = AspectPlanCatalog::empty();
+) -> AspectContractPlanCatalog {
+    let mut catalog = AspectContractPlanCatalog::empty();
     catalog.entity_plans.insert(
         kind_id,
-        LoweredAspectPlan {
+        LoweredAspectContractPlan {
             kind_id,
-            plan_revision: AspectPlanRevision(7),
-            executable_bindings: smallvec::smallvec![LoweredAspectBinding {
+            plan_revision: AspectContractPlanRevision(7),
+            executable_bindings: smallvec::smallvec![LoweredAspectContractBinding {
                 contract,
                 target: binding,
             }],
@@ -74,14 +74,14 @@ pub(super) fn catalog_with_relation_binding(
     kind_id: KindId,
     contract: AspectContract,
     binding: AspectBinding,
-) -> AspectPlanCatalog {
-    let mut catalog = AspectPlanCatalog::empty();
+) -> AspectContractPlanCatalog {
+    let mut catalog = AspectContractPlanCatalog::empty();
     catalog.relation_plans.insert(
         kind_id,
-        LoweredAspectPlan {
+        LoweredAspectContractPlan {
             kind_id,
-            plan_revision: AspectPlanRevision(3),
-            executable_bindings: smallvec::smallvec![LoweredAspectBinding {
+            plan_revision: AspectContractPlanRevision(3),
+            executable_bindings: smallvec::smallvec![LoweredAspectContractBinding {
                 contract,
                 target: binding,
             }],

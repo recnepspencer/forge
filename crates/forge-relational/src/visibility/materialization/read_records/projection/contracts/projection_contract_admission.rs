@@ -4,7 +4,7 @@ use super::ProjectionAspectScope;
 
 pub(crate) fn assert_declared_projection_aspects(
     projection_scope: &ProjectionAspectScope,
-    plan: Option<&crate::schema::data::LoweredAspectPlan>,
+    plan: Option<&crate::schema::data::LoweredAspectContractPlan>,
     domain: &str,
     kind_id: KindId,
 ) {

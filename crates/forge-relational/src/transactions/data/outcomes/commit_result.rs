@@ -1,7 +1,7 @@
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
 use crate::performance::data::RuntimeComplexityCounters;
 use crate::publication::bundle::PublicationStatus;
-use crate::publication::patch::data::PatchRecord;
+use crate::publication::patch::data::PublishedAuthoritativeRecordPatch;
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::schema::data::{DescriptorSemanticsVersion, SchemaTransitionSummary};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId};
@@ -267,8 +267,8 @@ impl CommitResult {
         }
     }
 
-    pub fn patch(&self) -> &[PatchRecord] {
-        &self.publication.envelope.patch.records
+    pub fn patch(&self) -> &[PublishedAuthoritativeRecordPatch] {
+        &self.publication.envelope.patch.authoritative_record_patches
     }
 
     pub fn envelope(&self) -> &CanonicalCommitEnvelope {

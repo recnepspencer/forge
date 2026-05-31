@@ -6,8 +6,8 @@ pub(super) fn declared_aspects_for_entity_kind(
     kind_id: crate::identity::data::KindId,
 ) -> Vec<AspectKey> {
     runtime
-        .aspect_semantics
-        .plans
+        .schema_contract_runtime
+        .aspect_contract_plans
         .entity_plans
         .get(&kind_id)
         .map(plan_aspect_keys)
@@ -19,15 +19,15 @@ pub(super) fn declared_aspects_for_relation_kind(
     kind_id: crate::identity::data::KindId,
 ) -> Vec<AspectKey> {
     runtime
-        .aspect_semantics
-        .plans
+        .schema_contract_runtime
+        .aspect_contract_plans
         .relation_plans
         .get(&kind_id)
         .map(plan_aspect_keys)
         .unwrap_or_default()
 }
 
-fn plan_aspect_keys(plan: &crate::schema::data::LoweredAspectPlan) -> Vec<AspectKey> {
+fn plan_aspect_keys(plan: &crate::schema::data::LoweredAspectContractPlan) -> Vec<AspectKey> {
     let mut aspects = plan
         .executable_bindings
         .iter()

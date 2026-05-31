@@ -228,14 +228,17 @@ fn relation_summary_projection_runtime() -> RelationalRuntime {
     .build_runtime()
 }
 
-fn relation_summary_struct_aspect(aspect_key: AspectKey, field: FieldKey) -> DeclaredAspect {
+fn relation_summary_struct_aspect(
+    aspect_key: AspectKey,
+    field: FieldKey,
+) -> DeclaredAspectContractBinding {
     let shape = aspects()
         .struct_fields()
         .required("title", ScalarAspectType::String)
         .optional("status", ScalarAspectType::String)
         .finish()
         .expect("valid relation summary struct aspect shape");
-    DeclaredAspect {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::RelationField { field },
         contract: aspects()
             .contract()

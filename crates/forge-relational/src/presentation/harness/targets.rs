@@ -4,9 +4,9 @@ use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::facade::harness::RelationalHarnessError;
 use crate::facade::identity::{EntityId, KindId, PartitionId, RelationId};
 use crate::facade::schema::{
-    AspectBinding, DeclaredAspect, EntityKindRegistration, KindAspectDeclarations,
-    RelationIntegrityDeclarations, RelationKindRegistration, RelationalSchemaRegistry, SchemaId,
-    SchemaVersionId,
+    AspectBinding, DeclaredAspectContractBinding, EntityKindRegistration,
+    KindAspectContractDeclarations, RelationIntegrityDeclarations, RelationKindRegistration,
+    RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::transactions::data::RecordRef;
 
@@ -89,7 +89,9 @@ pub(super) fn default_harness_schema_registry() -> RelationalSchemaRegistry {
             kind_name: "fixture.entity".to_string(),
             schema_id: SchemaId("fixture".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(default_harness_entity_aspects()),
+            aspect_contract_declarations: KindAspectContractDeclarations::new(
+                default_harness_entity_aspects(),
+            ),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -99,36 +101,44 @@ pub(super) fn default_harness_schema_registry() -> RelationalSchemaRegistry {
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::new(default_harness_relation_aspects()),
+                aspect_contract_declarations: KindAspectContractDeclarations::new(
+                    default_harness_relation_aspects(),
+                ),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })
         .expect("valid default harness schema registry")
 }
 
-fn default_harness_entity_aspects() -> Vec<DeclaredAspect> {
+fn default_harness_entity_aspects() -> Vec<DeclaredAspectContractBinding> {
     vec![scalar_entity_field_aspect(
         aspect_key("name"),
         field_key("name"),
     )]
 }
 
-fn default_harness_relation_aspects() -> Vec<DeclaredAspect> {
+fn default_harness_relation_aspects() -> Vec<DeclaredAspectContractBinding> {
     vec![scalar_relation_field_aspect(
         aspect_key("label"),
         field_key("label"),
     )]
 }
 
-fn scalar_entity_field_aspect(aspect_key: AspectKey, field_key: FieldKey) -> DeclaredAspect {
-    DeclaredAspect {
+fn scalar_entity_field_aspect(
+    aspect_key: AspectKey,
+    field_key: FieldKey,
+) -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::EntityField { field: field_key },
         contract: scalar_string_contract(aspect_key),
     }
 }
 
-fn scalar_relation_field_aspect(aspect_key: AspectKey, field_key: FieldKey) -> DeclaredAspect {
-    DeclaredAspect {
+fn scalar_relation_field_aspect(
+    aspect_key: AspectKey,
+    field_key: FieldKey,
+) -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::RelationField { field: field_key },
         contract: scalar_string_contract(aspect_key),
     }

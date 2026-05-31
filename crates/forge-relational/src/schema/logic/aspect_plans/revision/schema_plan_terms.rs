@@ -4,7 +4,7 @@ use crate::merge::data::{
     AspectMergePolicyDeclaration, AspectMergePolicyKind, IdentityBasisDeclaration,
     IdentityBasisKind, IdentityBasisScope,
 };
-use crate::schema::data::{AspectBinding, DeclaredAspect};
+use crate::schema::data::{AspectBinding, DeclaredAspectContractBinding};
 
 const FNV_OFFSET: u128 = 0x6c62272e07bb014262b821756295c58d;
 const FNV_PRIME: u128 = 0x0000000001000000000000000000013B;
@@ -85,7 +85,10 @@ impl RevisionHasher {
     }
 }
 
-pub(super) fn mix_aspect_binding_terms(revision: &mut RevisionHasher, aspect: &DeclaredAspect) {
+pub(super) fn mix_aspect_binding_terms(
+    revision: &mut RevisionHasher,
+    aspect: &DeclaredAspectContractBinding,
+) {
     revision.mix_text("declared_aspect");
     revision.mix_aspect_key(&aspect.aspect_key());
     match &aspect.binding {

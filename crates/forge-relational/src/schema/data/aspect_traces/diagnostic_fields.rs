@@ -8,8 +8,8 @@ use crate::merge::data::{
 };
 
 use super::{
-    AspectBinding, AspectDeclarationTrace, AspectDeclarationTraceRow, AspectLoweringTrace,
-    AspectLoweringTraceRow, AspectPlanRevision,
+    AspectBinding, AspectContractPlanRevision, AspectDeclarationTrace, AspectDeclarationTraceRow,
+    AspectLoweringTrace, AspectLoweringTraceRow,
 };
 
 pub(super) fn declaration_trace_diagnostic_fields(
@@ -301,6 +301,6 @@ fn kind_id_value(kind_id: KindId) -> RelationalDiagnosticValue {
     RelationalDiagnosticValue::Unsigned(kind_id.as_u64())
 }
 
-fn plan_revision_value(plan_revision: AspectPlanRevision) -> RelationalDiagnosticValue {
+fn plan_revision_value(plan_revision: AspectContractPlanRevision) -> RelationalDiagnosticValue {
     RelationalDiagnosticValue::string(plan_revision.0.to_string())
 }

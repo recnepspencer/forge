@@ -6,8 +6,8 @@ use forge_foundational::{
 use crate::authority::mutation::outcomes::RecordMutation;
 use crate::identity::data::{EntityId, KindId, PartitionId};
 use crate::schema::data::{
-    AspectBinding, AspectPlanCatalog, AspectPlanRevision, LoweredAspectBinding, LoweredAspectPlan,
-    RelationalSchemaRegistry,
+    AspectBinding, AspectContractPlanCatalog, AspectContractPlanRevision,
+    LoweredAspectContractBinding, LoweredAspectContractPlan, RelationalSchemaRegistry,
 };
 use crate::symbols::data::StringInterner;
 use crate::transactions::data::AspectDeltaFailureFields;
@@ -50,13 +50,13 @@ fn entity_field_delta_requires_authoritative_state() {
     let mut state = empty_working_state(&config);
     let mut symbols = StringInterner::default();
     let schema = RelationalSchemaRegistry::new();
-    let mut catalog = AspectPlanCatalog::empty();
+    let mut catalog = AspectContractPlanCatalog::empty();
     catalog.entity_plans.insert(
         KindId(1),
-        LoweredAspectPlan {
+        LoweredAspectContractPlan {
             kind_id: KindId(1),
-            plan_revision: AspectPlanRevision(7),
-            executable_bindings: smallvec::smallvec![LoweredAspectBinding {
+            plan_revision: AspectContractPlanRevision(7),
+            executable_bindings: smallvec::smallvec![LoweredAspectContractBinding {
                 contract: aspects()
                     .contract()
                     .for_key(FoundationalAspectKey::new("name").expect("valid aspect key"))

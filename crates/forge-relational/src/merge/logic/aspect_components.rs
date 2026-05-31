@@ -1,5 +1,5 @@
 use crate::merge::data::VisibleMergeRecord;
-use crate::schema::data::{AspectBinding, LoweredAspectBinding};
+use crate::schema::data::{AspectBinding, LoweredAspectContractBinding};
 use crate::storage::data::{EntityReadRecord, RecordLifecycleState, RelationReadRecord};
 use forge_foundational::facade::{
     AuthoritativeRecordAspectState, ContractValidatedAspectValueView, StructAspectValue,
@@ -21,7 +21,7 @@ pub(crate) enum VisibleRecordSide {
 
 pub(crate) fn binding_component_from_visible_record(
     record: &VisibleMergeRecord,
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     side: VisibleRecordSide,
 ) -> Option<MergeAspectComponent> {
     let entity = match side {
@@ -79,35 +79,35 @@ pub(crate) fn binding_component_from_visible_record(
 
 fn entity_scalar_aspect_component(
     entity: &EntityReadRecord,
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
 ) -> Option<MergeAspectComponent> {
     scalar_aspect_component(entity.authoritative_aspect_state.as_ref(), binding)
 }
 
 fn entity_struct_aspect_component(
     entity: &EntityReadRecord,
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
 ) -> Option<MergeAspectComponent> {
     struct_aspect_component(entity.authoritative_aspect_state.as_ref(), binding)
 }
 
 fn relation_scalar_aspect_component(
     relation: &RelationReadRecord,
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
 ) -> Option<MergeAspectComponent> {
     scalar_aspect_component(relation.authoritative_aspect_state.as_ref(), binding)
 }
 
 fn relation_struct_aspect_component(
     relation: &RelationReadRecord,
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
 ) -> Option<MergeAspectComponent> {
     struct_aspect_component(relation.authoritative_aspect_state.as_ref(), binding)
 }
 
 fn scalar_aspect_component(
     authoritative_state: Option<&AuthoritativeRecordAspectState>,
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
 ) -> Option<MergeAspectComponent> {
     let entry = authoritative_state?.get(binding.aspect_key())?;
     match entry.view() {
@@ -120,7 +120,7 @@ fn scalar_aspect_component(
 
 fn struct_aspect_component(
     authoritative_state: Option<&AuthoritativeRecordAspectState>,
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
 ) -> Option<MergeAspectComponent> {
     let entry = authoritative_state?.get(binding.aspect_key())?;
     match entry.view() {

@@ -1,5 +1,5 @@
 use crate::config::data::MutationConfig;
-use crate::schema::data::{AspectPlanCatalog, RelationalSchemaRegistry};
+use crate::schema::data::{AspectContractPlanCatalog, RelationalSchemaRegistry};
 use crate::storage::overlay::WorkingState;
 use crate::symbols::data::StringInterner;
 use crate::transactions::data::{AuthoritativeApplyPlan, CommitConflict};
@@ -20,7 +20,7 @@ pub(crate) fn apply_plan_to_working_state(
     apply_plan: &AuthoritativeApplyPlan,
     config: &MutationConfig,
     schema_registry: &RelationalSchemaRegistry,
-    aspect_plans: &AspectPlanCatalog,
+    aspect_plans: &AspectContractPlanCatalog,
     symbols: &mut StringInterner,
     branch_local_delete_allowance: BranchLocalDeleteAllowance,
 ) -> Result<MutationApplyOutcome, CommitConflict> {

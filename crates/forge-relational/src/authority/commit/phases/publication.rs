@@ -11,7 +11,7 @@ use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::LineageFinalizationArtifact;
 use crate::publication::bundle::PublicationStage;
 use crate::publication::data::PublicationError;
-use crate::publication::patch::data::RelationalPatchRecord;
+use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
 use crate::replay::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
 use crate::transactions::data::{
     MergedCommitPlan, PublishedMergeExecutionAuthority, RecordRef, TransactionCommitError,
@@ -19,15 +19,18 @@ use crate::transactions::data::{
 
 pub(crate) fn enforce_patch_budget(
     runtime: &mut (impl DiagnosticArtifactSink + PublicationPolicySource),
-    patch: &RelationalPatchRecord,
+    patch: &PublishedAuthoritativePatchEnvelope,
 ) -> Result<(), TransactionCommitError> {
     let max_patch_records_per_commit = runtime.max_patch_records_per_commit();
-    if patch.records.len() > max_patch_records_per_commit {
+    if patch.authoritative_record_patches.len() > max_patch_records_per_commit {
         runtime.emit_failure_diagnostic(
             DiagnosticsScope::PatchPublication,
             DiagnosticCode::DiagnosticsPublicationFailure,
             "patch record budget exceeded",
-            patch_record_budget_exceeded_fields(patch.records.len(), max_patch_records_per_commit),
+            patch_record_budget_exceeded_fields(
+                patch.authoritative_record_patches.len(),
+                max_patch_records_per_commit,
+            ),
         );
         return Err(TransactionCommitError::publication(PublicationError::new(
             PublicationStage::BundleAssembly,
@@ -47,7 +50,7 @@ pub(crate) fn canonical_commit_envelope(
     merge_parent_branches: &[BranchId],
     merge_base_commits: &[CommitId],
     merged_plan: &MergedCommitPlan,
-    patch: crate::publication::patch::data::RelationalPatchRecord,
+    patch: crate::publication::patch::data::PublishedAuthoritativePatchEnvelope,
     diagnostics_summary: crate::diagnostics::data::RelationalDiagnosticArtifact,
     lineage_artifact: LineageFinalizationArtifact,
     derived_index_artifacts: DerivedIndexArtifacts,

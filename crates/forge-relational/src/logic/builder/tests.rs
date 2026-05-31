@@ -70,12 +70,15 @@ fn builder_attaches_custom_invariants_without_polluting_config() {
         2
     );
     assert_eq!(
-        runtime.aspect_semantics.custom_invariant_registries.len(),
+        runtime
+            .schema_contract_runtime
+            .custom_invariant_registries
+            .len(),
         1
     );
     assert_eq!(
         runtime
-            .aspect_semantics
+            .schema_contract_runtime
             .custom_invariant_registries
             .iter()
             .next()

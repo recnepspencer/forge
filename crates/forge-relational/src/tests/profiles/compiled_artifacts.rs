@@ -12,7 +12,7 @@ fn chip_profile_emits_dense_patch_surface_details() {
     let patch = publication.latest_patch().unwrap();
 
     assert!(patch
-        .records
+        .authoritative_record_patches
         .iter()
         .all(|record| matches!(record.detail, PatchDetail::DenseBitset(_))));
 }

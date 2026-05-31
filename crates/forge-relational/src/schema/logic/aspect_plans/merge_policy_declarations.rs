@@ -3,17 +3,17 @@ use std::collections::BTreeSet;
 use forge_foundational::{AspectShape, ScalarAspectType};
 
 use crate::merge::data::{AspectMergePolicyDeclaration, AspectMergePolicyKind};
-use crate::schema::data::{AspectBinding, DeclaredAspect, SchemaRegistryError};
+use crate::schema::data::{AspectBinding, DeclaredAspectContractBinding, SchemaRegistryError};
 
 pub(super) fn canonicalize_merge_policy_declarations(
     kind_id: crate::identity::data::KindId,
     mut declarations: Vec<AspectMergePolicyDeclaration>,
-    aspects: &[DeclaredAspect],
+    aspects: &[DeclaredAspectContractBinding],
 ) -> Result<Vec<AspectMergePolicyDeclaration>, SchemaRegistryError> {
     declarations.sort_by(|left, right| left.aspect_key.cmp(&right.aspect_key));
     let aspect_keys = aspects
         .iter()
-        .map(DeclaredAspect::aspect_key)
+        .map(DeclaredAspectContractBinding::aspect_key)
         .collect::<BTreeSet<_>>();
     let mut seen = BTreeSet::new();
     for declaration in &declarations {
@@ -61,7 +61,7 @@ fn reject_duplicate_policy(
 fn validate_policy_contract(
     kind_id: crate::identity::data::KindId,
     declaration: &AspectMergePolicyDeclaration,
-    aspects: &[DeclaredAspect],
+    aspects: &[DeclaredAspectContractBinding],
 ) -> Result<(), SchemaRegistryError> {
     let aspect = aspects
         .iter()
@@ -82,7 +82,7 @@ fn validate_policy_contract(
 
 fn validate_last_writer_wins_contract(
     kind_id: crate::identity::data::KindId,
-    aspect: &DeclaredAspect,
+    aspect: &DeclaredAspectContractBinding,
 ) -> Result<(), SchemaRegistryError> {
     if is_scalar_record_field_aspect(aspect) {
         return Ok(());
@@ -95,7 +95,7 @@ fn validate_last_writer_wins_contract(
 
 fn validate_monotonic_counter_contract(
     kind_id: crate::identity::data::KindId,
-    aspect: &DeclaredAspect,
+    aspect: &DeclaredAspectContractBinding,
 ) -> Result<(), SchemaRegistryError> {
     if is_integer_record_field_aspect(aspect) {
         return Ok(());
@@ -122,7 +122,7 @@ fn reject_custom_policy(kind_id: crate::identity::data::KindId) -> Result<(), Sc
     ))
 }
 
-fn is_scalar_record_field_aspect(aspect: &DeclaredAspect) -> bool {
+fn is_scalar_record_field_aspect(aspect: &DeclaredAspectContractBinding) -> bool {
     matches!(
         (&aspect.binding, aspect.contract.shape()),
         (
@@ -132,7 +132,7 @@ fn is_scalar_record_field_aspect(aspect: &DeclaredAspect) -> bool {
     )
 }
 
-fn is_integer_record_field_aspect(aspect: &DeclaredAspect) -> bool {
+fn is_integer_record_field_aspect(aspect: &DeclaredAspectContractBinding) -> bool {
     matches!(
         (&aspect.binding, aspect.contract.shape()),
         (

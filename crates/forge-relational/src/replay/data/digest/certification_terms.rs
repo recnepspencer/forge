@@ -1,6 +1,6 @@
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
 use crate::publication::cdc::data::{SubscriberContinuationSummary, SubscriberRecoveryDecision};
-use crate::publication::patch::data::RelationalPatchRecord;
+use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
 use crate::schema::data::{
     DescriptorSemanticsVersion, SchemaBoundaryFingerprint, SchemaContinuationDescriptor,
     SchemaReconciliationDescriptor,
@@ -30,7 +30,7 @@ pub(crate) fn digest_schema_transition_decision(
 }
 
 pub(crate) fn digest_subscriber_boundary_cdc_surface(
-    patches: &[RelationalPatchRecord],
+    patches: &[PublishedAuthoritativePatchEnvelope],
     crossed_boundaries: &[SchemaBoundaryFingerprint],
     continuation_summary: &SubscriberContinuationSummary,
     recovery_decision: &SubscriberRecoveryDecision,
@@ -67,7 +67,9 @@ pub(crate) fn digest_subscriber_continuation_summary(
         .finish()
 }
 
-pub(crate) fn digest_patch_batch_surface(patches: &[RelationalPatchRecord]) -> [u8; 32] {
+pub(crate) fn digest_patch_batch_surface(
+    patches: &[PublishedAuthoritativePatchEnvelope],
+) -> [u8; 32] {
     let mut builder = ReplayDigestBuilder::new("forge.relational.replay.surface.patch_batch.v1")
         .usize(patches.len());
     for patch in patches {

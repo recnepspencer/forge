@@ -4,7 +4,7 @@ use forge_relational::facade::commit_strategies::{
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use forge_relational::facade::schema::{
-    EntityKindRegistration, KindAspectDeclarations, RelationalSchemaRegistry, SchemaId,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationalSchemaRegistry, SchemaId,
     SchemaVersionId,
 };
 use forge_relational::facade::transactions::{
@@ -110,7 +110,7 @@ fn test_schema_registry() -> RelationalSchemaRegistry {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
                 entity_string_field_aspect("name", "name").expect("name aspect"),
                 lifecycle_string_aspect("lifecycle").expect("lifecycle aspect"),
             ]),

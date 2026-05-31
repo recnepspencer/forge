@@ -20,9 +20,9 @@ use super::super::actions::{
 use super::super::fixture::FintechWorkflowCase;
 use super::super::scenarios::{setup_world_for, FintechScenario};
 use super::artifacts::capture_artifacts;
-use super::external_harness_artifact_json::{
+use super::external_harness_artifact_projection::{
     external_harness_artifact_object, optional_usize_field, string_array_field, string_field,
-    ExternalHarnessArtifactJson,
+    ExternalHarnessArtifactProjection,
 };
 use super::invariants::run_checks;
 use super::read_summaries::{case_read_summary, read_summary};
@@ -324,17 +324,17 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
     ) -> Result<ReproductionMetadata, Self::Error> {
         Ok(ReproductionMetadata {
             format: "json".to_string(),
-            payload: reproduction_external_harness_artifact_json(session, failure)
-                .into_external_harness_json()
+            payload: reproduction_external_harness_artifact_projection(session, failure)
+                .into_external_harness_payload()
                 .to_string(),
         })
     }
 }
 
-fn reproduction_external_harness_artifact_json(
+fn reproduction_external_harness_artifact_projection(
     session: &CertifiedRelationalFintechSession,
     failure: &WorkflowFailureContext,
-) -> ExternalHarnessArtifactJson {
+) -> ExternalHarnessArtifactProjection {
     external_harness_artifact_object([
         string_field("state", format!("{:?}", failure.state)),
         optional_usize_field("step_index", failure.step_index),

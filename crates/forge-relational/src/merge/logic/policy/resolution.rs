@@ -253,7 +253,7 @@ fn policy_value_basis_for_aspect(
     runtime: &RelationalRuntime,
     record: &crate::merge::data::VisibleMergeRecord,
     classification: &crate::merge::data::MergeConflictClassification,
-    binding: Option<&crate::schema::data::LoweredAspectBinding>,
+    binding: Option<&crate::schema::data::LoweredAspectContractBinding>,
     applied_policy: Option<&crate::merge::data::AspectMergePolicyKind>,
     source_branch: &crate::history::data::BranchId,
     target_branch: &crate::history::data::BranchId,

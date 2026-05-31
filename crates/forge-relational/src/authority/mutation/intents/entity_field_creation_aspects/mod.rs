@@ -6,7 +6,7 @@ mod field_classification;
 use forge_foundational::facade::AuthoritativeRecordAspectPatch;
 
 use crate::identity::data::KindId;
-use crate::schema::data::LoweredAspectPlan;
+use crate::schema::data::LoweredAspectContractPlan;
 use crate::storage::logic::state::EntityExtra;
 use crate::transactions::data::{AspectFieldPatch, EntityAuthoritativeAspectStateDenial};
 
@@ -22,7 +22,7 @@ pub(super) struct EntityFieldCreationAspectPlan {
 
 pub(super) fn plan_entity_field_creation_aspects(
     kind_id: KindId,
-    lowered_plan: Option<&LoweredAspectPlan>,
+    lowered_plan: Option<&LoweredAspectContractPlan>,
     fields: &AspectFieldPatch,
 ) -> Result<EntityFieldCreationAspectPlan, EntityAuthoritativeAspectStateDenial> {
     let Some(lowered_plan) = lowered_plan else {

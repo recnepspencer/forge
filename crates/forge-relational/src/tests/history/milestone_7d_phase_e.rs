@@ -6,7 +6,7 @@ use crate::facade::merge::{
 };
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::schema::data::{
-    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration, SchemaId,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationKindRegistration, SchemaId,
     SchemaVersionId,
 };
 use crate::tests::support::{
@@ -134,7 +134,7 @@ fn runtime_with_topology_identity_registry(root_path: std::path::PathBuf) -> Rel
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::default(),
+            aspect_contract_declarations: KindAspectContractDeclarations::default(),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -144,7 +144,7 @@ fn runtime_with_topology_identity_registry(root_path: std::path::PathBuf) -> Rel
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::new(vec![
+                aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
                     relation_field_aspect(
                         label_key.clone(),
                         crate::tests::support::field_key("label"),

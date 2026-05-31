@@ -1,5 +1,5 @@
 use crate::identity::data::EntityId;
-use crate::schema::data::{AspectBinding, LoweredAspectBinding};
+use crate::schema::data::{AspectBinding, LoweredAspectContractBinding};
 use forge_foundational::facade::AspectKey;
 use forge_foundational::facade::{
     AspectShape, AuthoritativeRecordAspectState, ContractValidatedAspectValueView,
@@ -21,7 +21,7 @@ pub(super) enum MaterializedAspectState {
 }
 
 pub(super) fn evaluate_authoritative_binding_delta(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     context: BindingEvaluationContext<'_>,
 ) -> Result<(CanonicalAspectDeltaEvidence, bool), CanonicalDeltaError> {
     let old_state = materialize_old_binding_state(binding, context)?;
@@ -30,14 +30,14 @@ pub(super) fn evaluate_authoritative_binding_delta(
 }
 
 fn materialize_old_binding_state(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     context: BindingEvaluationContext<'_>,
 ) -> Result<MaterializedAspectState, CanonicalDeltaError> {
     materialize_binding_state(binding, context, MaterializationSide::Old)
 }
 
 fn materialize_new_binding_state(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     context: BindingEvaluationContext<'_>,
 ) -> Result<MaterializedAspectState, CanonicalDeltaError> {
     materialize_binding_state(binding, context, MaterializationSide::New)
@@ -50,7 +50,7 @@ enum MaterializationSide {
 }
 
 fn materialize_binding_state(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     context: BindingEvaluationContext<'_>,
     side: MaterializationSide,
 ) -> Result<MaterializedAspectState, CanonicalDeltaError> {
@@ -74,7 +74,7 @@ fn materialize_binding_state(
 }
 
 fn materialize_entity_field_binding_state(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     context: BindingEvaluationContext<'_>,
     side: MaterializationSide,
     field: &forge_foundational::facade::FieldKey,
@@ -106,7 +106,7 @@ fn materialize_entity_field_binding_state(
 }
 
 fn materialize_relation_field_binding_state(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     context: BindingEvaluationContext<'_>,
     side: MaterializationSide,
 ) -> Result<MaterializedAspectState, CanonicalDeltaError> {
@@ -137,7 +137,7 @@ fn materialize_relation_field_binding_state(
 }
 
 fn materialize_relation_source_endpoint_binding_state(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     context: BindingEvaluationContext<'_>,
     side: MaterializationSide,
 ) -> Result<MaterializedAspectState, CanonicalDeltaError> {
@@ -154,7 +154,7 @@ fn materialize_relation_source_endpoint_binding_state(
 }
 
 fn materialize_relation_target_endpoint_binding_state(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     context: BindingEvaluationContext<'_>,
     side: MaterializationSide,
 ) -> Result<MaterializedAspectState, CanonicalDeltaError> {

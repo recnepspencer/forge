@@ -2,19 +2,19 @@ use crate::commit_strategies::data::StrategyReplayDescriptor;
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
 use crate::history::data::{BranchId, CommitId, CommitReference, OrderedParentList};
 use crate::indexes::data::{DerivedIndexArtifacts, DerivedIndexEntries};
-use crate::publication::patch::data::RelationalPatchRecord;
+use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
 use crate::replay::data::ReplaySnapshotSurface;
 
 use super::primitive_terms::ReplayDigestBuilder;
 
-pub(crate) fn digest_patch_surface(patch: &RelationalPatchRecord) -> [u8; 32] {
+pub(crate) fn digest_patch_surface(patch: &PublishedAuthoritativePatchEnvelope) -> [u8; 32] {
     let canonical = patch.canonicalized();
     let mut builder = ReplayDigestBuilder::new("forge.relational.replay.surface.patch.v1")
         .patch_ordering(canonical.ordering)
         .patch_publication_mode(canonical.publication_mode)
         .patch_stream_position(canonical.position)
-        .usize(canonical.records.len());
-    for record in &canonical.records {
+        .usize(canonical.authoritative_record_patches.len());
+    for record in &canonical.authoritative_record_patches {
         builder = builder
             .record_ref(&record.target)
             .structural_change(record.structural_change)
@@ -25,9 +25,9 @@ pub(crate) fn digest_patch_surface(patch: &RelationalPatchRecord) -> [u8; 32] {
     builder.finish()
 }
 
-pub(crate) fn digest_patch_summary(patch: &RelationalPatchRecord) -> [u8; 32] {
+pub(crate) fn digest_patch_summary(patch: &PublishedAuthoritativePatchEnvelope) -> [u8; 32] {
     ReplayDigestBuilder::new("forge.relational.replay.summary.patch.v1")
-        .usize(patch.records.len())
+        .usize(patch.authoritative_record_patches.len())
         .finish()
 }
 

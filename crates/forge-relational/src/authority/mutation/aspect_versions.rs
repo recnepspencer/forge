@@ -43,7 +43,7 @@ mod tests {
     use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
     use crate::identity::data::{EntityId, KindId, PartitionId, VersionId};
     use crate::publication::patch::data::{ordered_aspect_keys, RecordStructuralChange};
-    use crate::schema::data::AspectPlanRevision;
+    use crate::schema::data::AspectContractPlanRevision;
     use crate::storage::overlay::WorkingState;
     use crate::storage::substrate::{EntityRecordKind, SlotInit};
     use crate::symbols::data::StringInterner;
@@ -75,7 +75,7 @@ mod tests {
         let delta = CanonicalRecordAspectDelta {
             target: RecordRef::Entity(EntityId::new(PartitionId(1), 0, 1)),
             kind_id: KindId(1),
-            plan_revision: AspectPlanRevision(1),
+            plan_revision: AspectContractPlanRevision(1),
             structural_change: RecordStructuralChange::Created,
             changed_aspects: ordered_aspect_keys([AspectKey::new("name").unwrap()]),
             evaluated_bindings: smallvec::SmallVec::new(),

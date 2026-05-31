@@ -7,8 +7,8 @@ when changing commit, history, query, or diagnostics code.
 
 The runtime owns one one-way aspect-truth pipeline:
 
-`KindAspectDeclarations`
--> `LoweredAspectPlan`
+`KindAspectContractDeclarations`
+-> `LoweredAspectContractPlan`
 -> `CanonicalRecordAspectDelta`
 -> durable patch/commit encoding
 -> history/query/lineage consumers
@@ -22,17 +22,17 @@ re-derive aspect meaning from JSON or compatibility documents.
 
 Schema truth:
 
-- `schema::data::KindAspectDeclarations`
-- `schema::data::DeclaredAspect`
+- `schema::data::KindAspectContractDeclarations`
+- `schema::data::DeclaredAspectContractBinding`
 - `schema::data::AspectBinding`
 - `forge_foundational::facade::AspectContract`
 - `forge_foundational::facade::AspectKey`
 
 Executable truth:
 
-- `schema::data::LoweredAspectPlan`
-- `schema::data::LoweredAspectBinding`
-- `schema::data::AspectPlanCatalog`
+- `schema::data::LoweredAspectContractPlan`
+- `schema::data::LoweredAspectContractBinding`
+- `schema::data::AspectContractPlanCatalog`
 
 Commit-time truth:
 
@@ -43,7 +43,7 @@ Commit-time truth:
 
 Durable/public consumption:
 
-- `publication::patch::data::PatchRecord`
+- `publication::patch::data::PublishedAuthoritativeRecordPatch`
 - `transactions::data::CommitAspectSummary`
 - `history::data::AspectHistoryOrigin`
 - `history::data::AspectResolutionContext`

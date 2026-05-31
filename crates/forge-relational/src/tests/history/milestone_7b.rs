@@ -5,7 +5,7 @@ use crate::facade::merge::{
 };
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::{
-    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationKindRegistration,
     RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::tests::support::{
@@ -84,20 +84,17 @@ fn merge_planning_schema_snapshot_changes_when_schema_semantics_change() {
                 kind_name: "test.entity".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                    name_key.clone(),
-                    crate::tests::support::field_key("name"),
-                )])
+                aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                    entity_field_aspect(name_key.clone(), crate::tests::support::field_key("name")),
+                ])
                 .with_identity_declarations(vec![IdentityBasisDeclaration {
                     scope: IdentityBasisScope::AspectKey(name_key.clone()),
                     basis: IdentityBasisKind::DeclaredKeySet(vec![name_key.clone()].into()),
                 }])
-                .with_merge_policy_declarations(vec![
-                    AspectMergePolicyDeclaration {
-                        aspect_key: name_key,
-                        policy: merge_policy,
-                    },
-                ]),
+                .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
+                    aspect_key: name_key,
+                    policy: merge_policy,
+                }]),
             })
             .and_then(|registry| {
                 registry.register_relation_kind(RelationKindRegistration {
@@ -108,7 +105,7 @@ fn merge_planning_schema_snapshot_changes_when_schema_semantics_change() {
                     cross_context_policy: crate::config::data::CrossContextPolicy::AllowExplicit,
                     cascade_delete_policy:
                         crate::config::data::CascadeDeletePolicy::CascadeDeleteRelations,
-                    aspect_declarations: KindAspectDeclarations::default(),
+                    aspect_contract_declarations: KindAspectContractDeclarations::default(),
                     relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(
                     ),
                 })

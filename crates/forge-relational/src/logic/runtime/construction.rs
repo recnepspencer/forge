@@ -5,9 +5,9 @@ use crate::commit_strategies::{
     FrozenCommitStrategyRegistry,
 };
 use crate::logic::runtime::{
-    AspectSemanticsSubsystem, CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem,
-    IndexingSubsystem, LineageSubsystem, PublicationSubsystem, RuntimeServices, RuntimeSubsystem,
-    VisibilitySubsystem,
+    CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
+    LineageSubsystem, PublicationSubsystem, RuntimeServices, RuntimeSubsystem,
+    SchemaContractRuntimeSubsystem, VisibilitySubsystem,
 };
 use crate::validation::data::CustomInvariantRegistration;
 use crate::validation::logic::FrozenCustomInvariantRegistry;
@@ -31,17 +31,18 @@ impl RuntimeExtensions {
         }
     }
 
-    fn build_aspect_semantics_subsystem(
+    fn build_schema_contract_runtime_subsystem(
         &self,
         config: &super::RelationalRuntimeConfig,
-    ) -> AspectSemanticsSubsystem {
-        let mut aspect_semantics = <AspectSemanticsSubsystem as RuntimeSubsystem>::new(config);
-        aspect_semantics.custom_invariant_registries =
+    ) -> SchemaContractRuntimeSubsystem {
+        let mut schema_contract_runtime =
+            <SchemaContractRuntimeSubsystem as RuntimeSubsystem>::new(config);
+        schema_contract_runtime.custom_invariant_registries =
             FrozenCustomInvariantRegistry::from_registrations(self.custom_invariants.clone())
                 .expect(
                     "custom invariant registrations must have unique semantic identities at runtime construction",
                 );
-        aspect_semantics
+        schema_contract_runtime
     }
 
     fn build_commit_strategy_subsystem(
@@ -99,7 +100,7 @@ impl RelationalRuntime {
         extensions: RuntimeExtensions,
     ) -> Self {
         Self {
-            aspect_semantics: extensions.build_aspect_semantics_subsystem(&config),
+            schema_contract_runtime: extensions.build_schema_contract_runtime_subsystem(&config),
             commit_strategies: extensions.build_commit_strategy_subsystem(&config),
             history: <HistorySubsystem as RuntimeSubsystem>::new(&config.history.main_branch),
             indexes: <IndexingSubsystem as RuntimeSubsystem>::new(&()),
@@ -116,7 +117,7 @@ impl RelationalRuntime {
     pub fn fork(&self) -> Self {
         Self {
             config: self.config.clone(),
-            aspect_semantics: RuntimeSubsystem::fork(&self.aspect_semantics),
+            schema_contract_runtime: RuntimeSubsystem::fork(&self.schema_contract_runtime),
             commit_strategies: RuntimeSubsystem::fork(&self.commit_strategies),
             partitions: self.partitions.clone(),
             visibility: RuntimeSubsystem::fork(&self.visibility),

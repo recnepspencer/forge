@@ -477,7 +477,7 @@ fn dense_patch_record_count(runtime: &RelationalRuntime) -> usize {
         .latest_patch()
         .map(|patch| {
             patch
-                .records
+                .authoritative_record_patches
                 .iter()
                 .filter(|record| {
                     matches!(

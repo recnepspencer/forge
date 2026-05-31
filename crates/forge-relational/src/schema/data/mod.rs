@@ -1,4 +1,4 @@
-mod aspect_semantics;
+mod aspect_contracts;
 mod aspect_traces;
 mod continuity;
 mod registry_errors;
@@ -14,9 +14,10 @@ use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::identity::data::KindId;
 use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration};
 
-pub use aspect_semantics::{
-    AspectBinding, AspectPlanCatalog, AspectPlanRevision, DeclaredAspect, KindAspectDeclarations,
-    LoweredAspectBinding, LoweredAspectPlan,
+pub use aspect_contracts::{
+    AspectBinding, AspectContractPlanCatalog, AspectContractPlanRevision,
+    DeclaredAspectContractBinding, KindAspectContractDeclarations, LoweredAspectContractBinding,
+    LoweredAspectContractPlan,
 };
 pub use aspect_traces::{
     AspectDeclarationTrace, AspectDeclarationTraceRow, AspectLoweringTrace, AspectLoweringTraceRow,
@@ -66,7 +67,7 @@ pub struct EntityKindRegistration {
     pub kind_name: String,
     pub schema_id: SchemaId,
     pub schema_version_id: SchemaVersionId,
-    pub aspect_declarations: KindAspectDeclarations,
+    pub aspect_contract_declarations: KindAspectContractDeclarations,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -77,7 +78,7 @@ pub struct RelationKindRegistration {
     pub schema_version_id: SchemaVersionId,
     pub cross_context_policy: CrossContextPolicy,
     pub cascade_delete_policy: CascadeDeletePolicy,
-    pub aspect_declarations: KindAspectDeclarations,
+    pub aspect_contract_declarations: KindAspectContractDeclarations,
     pub relation_integrity: RelationIntegrityDeclarations,
 }
 
@@ -103,7 +104,7 @@ pub struct SchemaAuthorityKindSnapshot {
     pub kind_name: String,
     pub schema_id: SchemaId,
     pub schema_version_id: SchemaVersionId,
-    pub aspect_plan_revision: AspectPlanRevision,
+    pub aspect_plan_revision: AspectContractPlanRevision,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -112,7 +113,7 @@ pub struct SchemaAuthorityRelationSnapshot {
     pub kind_name: String,
     pub schema_id: SchemaId,
     pub schema_version_id: SchemaVersionId,
-    pub aspect_plan_revision: AspectPlanRevision,
+    pub aspect_plan_revision: AspectContractPlanRevision,
     pub relation_integrity_plan_revision: RelationIntegrityPlanRevision,
 }
 
@@ -206,7 +207,9 @@ impl RelationalSchemaRegistry {
             .entity_kinds
             .get(&kind_id)
             .ok_or_else(|| SchemaRegistryError::unknown_entity_kind(kind_id))?;
-        Ok(registration.aspect_declarations.declaration_trace(kind_id))
+        Ok(registration
+            .aspect_contract_declarations
+            .declaration_trace(kind_id))
     }
 
     pub fn relation_aspect_declaration_trace(
@@ -217,7 +220,9 @@ impl RelationalSchemaRegistry {
             .relation_kinds
             .get(&kind_id)
             .ok_or_else(|| SchemaRegistryError::unknown_relation_kind(kind_id))?;
-        Ok(registration.aspect_declarations.declaration_trace(kind_id))
+        Ok(registration
+            .aspect_contract_declarations
+            .declaration_trace(kind_id))
     }
 
     pub fn entity_identity_declarations(
@@ -228,7 +233,9 @@ impl RelationalSchemaRegistry {
             .entity_kinds
             .get(&kind_id)
             .ok_or_else(|| SchemaRegistryError::unknown_entity_kind(kind_id))?;
-        Ok(&registration.aspect_declarations.identity_declarations)
+        Ok(&registration
+            .aspect_contract_declarations
+            .identity_declarations)
     }
 
     pub fn relation_identity_declarations(
@@ -239,7 +246,9 @@ impl RelationalSchemaRegistry {
             .relation_kinds
             .get(&kind_id)
             .ok_or_else(|| SchemaRegistryError::unknown_relation_kind(kind_id))?;
-        Ok(&registration.aspect_declarations.identity_declarations)
+        Ok(&registration
+            .aspect_contract_declarations
+            .identity_declarations)
     }
 
     pub fn entity_merge_policy_declarations(
@@ -250,7 +259,9 @@ impl RelationalSchemaRegistry {
             .entity_kinds
             .get(&kind_id)
             .ok_or_else(|| SchemaRegistryError::unknown_entity_kind(kind_id))?;
-        Ok(&registration.aspect_declarations.merge_policy_declarations)
+        Ok(&registration
+            .aspect_contract_declarations
+            .merge_policy_declarations)
     }
 
     pub fn relation_merge_policy_declarations(
@@ -261,7 +272,9 @@ impl RelationalSchemaRegistry {
             .relation_kinds
             .get(&kind_id)
             .ok_or_else(|| SchemaRegistryError::unknown_relation_kind(kind_id))?;
-        Ok(&registration.aspect_declarations.merge_policy_declarations)
+        Ok(&registration
+            .aspect_contract_declarations
+            .merge_policy_declarations)
     }
 
     pub fn authoritative_schema_basis(
@@ -306,7 +319,7 @@ impl RelationalSchemaRegistry {
                 kind_name: registration.kind_name.clone(),
                 schema_id: registration.schema_id.clone(),
                 schema_version_id: registration.schema_version_id,
-                aspect_plan_revision: registration.aspect_declarations.plan_revision,
+                aspect_plan_revision: registration.aspect_contract_declarations.plan_revision,
             })
             .collect();
         let relation_kinds = self
@@ -317,7 +330,7 @@ impl RelationalSchemaRegistry {
                 kind_name: registration.kind_name.clone(),
                 schema_id: registration.schema_id.clone(),
                 schema_version_id: registration.schema_version_id,
-                aspect_plan_revision: registration.aspect_declarations.plan_revision,
+                aspect_plan_revision: registration.aspect_contract_declarations.plan_revision,
                 relation_integrity_plan_revision: registration.relation_integrity.plan_revision,
             })
             .collect();

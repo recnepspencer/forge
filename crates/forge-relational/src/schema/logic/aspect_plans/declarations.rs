@@ -4,7 +4,8 @@ use crate::merge::data::{IdentityBasisDeclaration, IdentityBasisKind, IdentityBa
 use forge_foundational::{AspectShape, ReferenceAspectType, ScalarAspectType};
 
 use crate::schema::data::{
-    AspectBinding, DeclaredAspect, KindAspectDeclarations, SchemaRegistryError,
+    AspectBinding, DeclaredAspectContractBinding, KindAspectContractDeclarations,
+    SchemaRegistryError,
 };
 
 use super::derive_kind_plan_revision;
@@ -17,9 +18,9 @@ pub(super) enum RegistrationDomain {
 
 pub(super) fn canonicalize_kind_aspect_declarations(
     kind_id: crate::identity::data::KindId,
-    declarations: KindAspectDeclarations,
+    declarations: KindAspectContractDeclarations,
     domain: RegistrationDomain,
-) -> Result<KindAspectDeclarations, SchemaRegistryError> {
+) -> Result<KindAspectContractDeclarations, SchemaRegistryError> {
     let mut seen = BTreeSet::new();
     let mut aspects = declarations.aspects;
     let mut identity_declarations = canonicalize_identity_declarations(
@@ -33,7 +34,7 @@ pub(super) fn canonicalize_kind_aspect_declarations(
         declarations.merge_policy_declarations,
         &aspects,
     )?;
-    aspects.sort_by_key(DeclaredAspect::aspect_key);
+    aspects.sort_by_key(DeclaredAspectContractBinding::aspect_key);
     for aspect in &aspects {
         if !seen.insert(aspect.aspect_key()) {
             return Err(SchemaRegistryError::duplicate_aspect_key(
@@ -50,7 +51,7 @@ pub(super) fn canonicalize_kind_aspect_declarations(
         &identity_declarations,
         &merge_policy_declarations,
     )?;
-    Ok(KindAspectDeclarations {
+    Ok(KindAspectContractDeclarations {
         plan_revision,
         aspects,
         identity_declarations,
@@ -61,7 +62,7 @@ pub(super) fn canonicalize_kind_aspect_declarations(
 fn canonicalize_identity_declarations(
     kind_id: crate::identity::data::KindId,
     mut declarations: Vec<IdentityBasisDeclaration>,
-    aspects: &[DeclaredAspect],
+    aspects: &[DeclaredAspectContractBinding],
     domain: &RegistrationDomain,
 ) -> Result<Vec<IdentityBasisDeclaration>, SchemaRegistryError> {
     if declarations.is_empty() {
@@ -71,7 +72,7 @@ fn canonicalize_identity_declarations(
     let mut seen = BTreeSet::new();
     let aspect_keys = aspects
         .iter()
-        .map(DeclaredAspect::aspect_key)
+        .map(DeclaredAspectContractBinding::aspect_key)
         .collect::<BTreeSet<_>>();
     for declaration in &declarations {
         if !seen.insert(declaration.clone()) {
@@ -190,7 +191,7 @@ fn default_identity_declarations(
 
 fn validate_declared_aspect(
     kind_id: crate::identity::data::KindId,
-    aspect: &DeclaredAspect,
+    aspect: &DeclaredAspectContractBinding,
     domain: &RegistrationDomain,
 ) -> Result<(), SchemaRegistryError> {
     validate_declared_aspect_key(kind_id, "aspect key", aspect)?;
@@ -264,7 +265,7 @@ fn validate_declared_aspect(
 fn validate_declared_aspect_key(
     kind_id: crate::identity::data::KindId,
     contract_key_label: &str,
-    aspect: &DeclaredAspect,
+    aspect: &DeclaredAspectContractBinding,
 ) -> Result<(), SchemaRegistryError> {
     let declared_key = aspect.aspect_key();
     let foundational_key = aspect.foundational_key().as_str();

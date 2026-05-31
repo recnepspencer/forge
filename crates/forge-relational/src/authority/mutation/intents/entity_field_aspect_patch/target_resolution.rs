@@ -1,10 +1,10 @@
 use forge_foundational::facade::{AspectFieldLocator, FieldKey};
 
-use crate::schema::data::{LoweredAspectBinding, LoweredAspectPlan};
+use crate::schema::data::{LoweredAspectContractBinding, LoweredAspectContractPlan};
 use crate::transactions::data::EntityFieldAspectPatchDenial;
 
 pub(super) enum EntityFieldPatchTarget<'a> {
-    Scalar(&'a LoweredAspectBinding),
+    Scalar(&'a LoweredAspectContractBinding),
     StructField {
         binding_index: usize,
         field: FieldKey,
@@ -12,7 +12,7 @@ pub(super) enum EntityFieldPatchTarget<'a> {
 }
 
 pub(super) fn resolve_entity_field_patch_target<'a>(
-    lowered_plan: &'a LoweredAspectPlan,
+    lowered_plan: &'a LoweredAspectContractPlan,
     target: &AspectFieldLocator,
 ) -> Result<EntityFieldPatchTarget<'a>, EntityFieldAspectPatchDenial> {
     let field_key = single_field_path_key(target)?;
@@ -63,7 +63,7 @@ mod tests {
     };
 
     use crate::identity::data::KindId;
-    use crate::schema::data::{AspectPlanRevision, LoweredAspectPlan};
+    use crate::schema::data::{AspectContractPlanRevision, LoweredAspectContractPlan};
     use crate::transactions::data::EntityFieldAspectPatchDenial;
 
     use super::resolve_entity_field_patch_target;
@@ -79,9 +79,9 @@ mod tests {
             ])
             .expect("valid nested field path"),
         );
-        let lowered_plan = LoweredAspectPlan {
+        let lowered_plan = LoweredAspectContractPlan {
             kind_id: KindId(1),
-            plan_revision: AspectPlanRevision(1),
+            plan_revision: AspectContractPlanRevision(1),
             executable_bindings: smallvec::smallvec![],
         };
 

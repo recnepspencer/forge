@@ -19,7 +19,7 @@ use crate::lineage::logic::authority::phase_types::{
 };
 use crate::lineage::logic::authority::LineageAuthority;
 use crate::publication::patch::data::{
-    PatchOrdering, PatchPublicationMode, PatchStreamPosition, RelationalPatchRecord,
+    PatchOrdering, PatchPublicationMode, PatchStreamPosition, PublishedAuthoritativePatchEnvelope,
 };
 use crate::replay::data::CanonicalCommitAuthorityKind;
 use crate::transactions::data::{MergedCommitPlan, TransactionId};
@@ -126,12 +126,12 @@ impl<'runtime> LineageAuthority<'runtime> {
 fn metadata_only_patch(
     _runtime: &crate::logic::runtime::RelationalRuntime,
     commit_id: crate::history::data::CommitId,
-) -> RelationalPatchRecord {
-    RelationalPatchRecord {
+) -> PublishedAuthoritativePatchEnvelope {
+    PublishedAuthoritativePatchEnvelope {
         ordering: PatchOrdering::CanonicalCommitOrder,
         publication_mode: PatchPublicationMode::CommitNative,
         position: PatchStreamPosition(commit_id.0),
-        records: Vec::new(),
+        authoritative_record_patches: Vec::new(),
     }
     .canonicalized()
 }

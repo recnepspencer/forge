@@ -1,7 +1,7 @@
 use crate::facade::config::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::{
-    EntityKindRegistration, KindAspectDeclarations, RelationIntegrityDeclarations,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationIntegrityDeclarations,
     RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
@@ -18,7 +18,7 @@ fn visibility_regression_schema_registry() -> RelationalSchemaRegistry {
             kind_name: "test.entity.alpha".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::default(),
+            aspect_contract_declarations: KindAspectContractDeclarations::default(),
         })
         .and_then(|registry| {
             registry.register_entity_kind(EntityKindRegistration {
@@ -26,7 +26,7 @@ fn visibility_regression_schema_registry() -> RelationalSchemaRegistry {
                 kind_name: "test.entity.beta".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
             })
         })
         .and_then(|registry| {
@@ -37,7 +37,7 @@ fn visibility_regression_schema_registry() -> RelationalSchemaRegistry {
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })
@@ -49,7 +49,7 @@ fn visibility_regression_schema_registry() -> RelationalSchemaRegistry {
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })

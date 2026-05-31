@@ -8,7 +8,7 @@ use crate::facade::merge::{
 };
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::{
-    EntityKindRegistration, KindAspectDeclarations, RelationIntegrityDeclarations,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationIntegrityDeclarations,
     RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::merge::data::{
@@ -102,10 +102,12 @@ fn prepare_merge_execution_rejects_rejected_merge_plans() {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                crate::tests::support::aspect_key("name"),
-                crate::tests::support::field_key("name"),
-            )])
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
+            ])
             .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
                 aspect_key: AspectKey::new("name").unwrap(),
                 policy: AspectMergePolicyKind::FailOnConflict,
@@ -119,7 +121,7 @@ fn prepare_merge_execution_rejects_rejected_merge_plans() {
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })
@@ -326,7 +328,7 @@ fn verify_prepared_merge_execution_rejects_schema_semantic_drift() {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(2),
-            aspect_declarations: KindAspectDeclarations::new(vec![
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
                 entity_field_aspect(
                     crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
@@ -345,7 +347,7 @@ fn verify_prepared_merge_execution_rejects_schema_semantic_drift() {
                 schema_version_id: SchemaVersionId(2),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })
@@ -524,10 +526,12 @@ fn prepare_merge_execution_compiles_exact_shared_record_plan() {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                crate::tests::support::aspect_key("name"),
-                crate::tests::support::field_key("name"),
-            )]),
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
+            ]),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -537,7 +541,7 @@ fn prepare_merge_execution_compiles_exact_shared_record_plan() {
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })
@@ -601,10 +605,12 @@ fn prepare_merge_execution_compiles_reconcile_record_plan() {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                crate::tests::support::aspect_key("name"),
-                crate::tests::support::field_key("name"),
-            )])
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
+            ])
             .with_identity_declarations(vec![crate::facade::merge::IdentityBasisDeclaration {
                 scope: crate::facade::merge::IdentityBasisScope::AspectKey(name_key.clone()),
                 basis: crate::facade::merge::IdentityBasisKind::DeclaredKeySet(Arc::from([
@@ -624,7 +630,7 @@ fn prepare_merge_execution_compiles_reconcile_record_plan() {
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })

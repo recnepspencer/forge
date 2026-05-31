@@ -3,7 +3,7 @@ use forge_foundational::facade::{AspectFieldLocator, AspectKey, AspectValue, Fie
 use crate::capabilities::AspectPlanSource;
 use crate::identity::data::KindId;
 use crate::logic::runtime::EntityProjectionRecord;
-use crate::schema::data::{LoweredAspectBinding, LoweredAspectPlan};
+use crate::schema::data::{LoweredAspectContractBinding, LoweredAspectContractPlan};
 use crate::visibility::materialization::read_records::ProjectionAspectScope;
 
 #[derive(Debug, Clone)]
@@ -132,7 +132,7 @@ pub(super) fn relation_index_projection_scopes(
 }
 
 fn entity_index_projection_scope(
-    plan: &LoweredAspectPlan,
+    plan: &LoweredAspectContractPlan,
     field_locator: &AspectFieldLocator,
 ) -> Option<EntityIndexFieldProjectionScope> {
     let field = single_field_locator_key(field_locator)?;
@@ -159,7 +159,7 @@ fn entity_index_projection_scope(
 }
 
 fn relation_index_projection_scope(
-    plan: &LoweredAspectPlan,
+    plan: &LoweredAspectContractPlan,
     field_locator: &AspectFieldLocator,
 ) -> Option<RelationIndexFieldProjectionScope> {
     let field = single_field_locator_key(field_locator)?;
@@ -186,9 +186,9 @@ fn relation_index_projection_scope(
 }
 
 fn matching_binding<'a>(
-    plan: &'a LoweredAspectPlan,
+    plan: &'a LoweredAspectContractPlan,
     field_locator: &AspectFieldLocator,
-) -> Option<&'a LoweredAspectBinding> {
+) -> Option<&'a LoweredAspectContractBinding> {
     plan.executable_bindings
         .iter()
         .find(|binding| binding.aspect_key() == field_locator.aspect().aspect_key())

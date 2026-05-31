@@ -3,7 +3,7 @@ use crate::merge::data::{
     AspectMergePolicyDeclaration, IdentityBasisDeclaration, IdentityBasisKind, IdentityBasisScope,
     MergeSchemaKindClass, MergeSchemaKindSemanticSnapshot,
 };
-use crate::schema::data::{AspectPlanRevision, RelationIntegrityPlanRevision};
+use crate::schema::data::{AspectContractPlanRevision, RelationIntegrityPlanRevision};
 
 impl super::CanonicalDigestBytes {
     pub(super) fn optional_schema_id(&mut self, value: Option<&crate::schema::data::SchemaId>) {
@@ -101,7 +101,7 @@ impl super::CanonicalDigestBytes {
         }
     }
 
-    fn aspect_plan_revision(&mut self, value: AspectPlanRevision) {
+    fn aspect_plan_revision(&mut self, value: AspectContractPlanRevision) {
         self.u128(value.0);
     }
 

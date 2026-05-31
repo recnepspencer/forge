@@ -24,7 +24,7 @@
 
 mod aspect_wire;
 mod authority;
-mod canonical_basis_terms;
+mod canonical_basis_ready_sequence;
 mod capabilities;
 mod commit_strategies;
 mod config;

@@ -8,14 +8,17 @@ use crate::identity::data::KindId;
 use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration};
 use forge_foundational::facade::AspectKey;
 
-use super::{AspectBinding, AspectPlanRevision, KindAspectDeclarations, LoweredAspectPlan};
+use super::{
+    AspectBinding, AspectContractPlanRevision, KindAspectContractDeclarations,
+    LoweredAspectContractPlan,
+};
 use diagnostic_fields::{declaration_trace_diagnostic_fields, lowering_trace_diagnostic_fields};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 pub struct AspectDeclarationTrace {
     pub kind_id: KindId,
-    pub plan_revision: AspectPlanRevision,
+    pub plan_revision: AspectContractPlanRevision,
     pub declarations: Vec<AspectDeclarationTraceRow>,
     pub identity_declarations: Vec<IdentityBasisDeclaration>,
     pub merge_policy_declarations: Vec<AspectMergePolicyDeclaration>,
@@ -34,7 +37,7 @@ pub struct AspectDeclarationTraceRow {
 #[must_use]
 pub struct AspectLoweringTrace {
     pub kind_id: KindId,
-    pub plan_revision: AspectPlanRevision,
+    pub plan_revision: AspectContractPlanRevision,
     pub bindings: Vec<AspectLoweringTraceRow>,
 }
 
@@ -45,7 +48,7 @@ pub struct AspectLoweringTraceRow {
     pub aspect_shape: forge_foundational::AspectShape,
 }
 
-impl KindAspectDeclarations {
+impl KindAspectContractDeclarations {
     pub fn declaration_trace(&self, kind_id: KindId) -> AspectDeclarationTrace {
         AspectDeclarationTrace {
             kind_id,
@@ -67,7 +70,7 @@ impl KindAspectDeclarations {
     }
 }
 
-impl LoweredAspectPlan {
+impl LoweredAspectContractPlan {
     pub fn lowering_trace(&self) -> AspectLoweringTrace {
         AspectLoweringTrace {
             kind_id: self.kind_id,

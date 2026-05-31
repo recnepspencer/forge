@@ -7,16 +7,16 @@ use forge_harness::facade::{
 use crate::facade::replay::RelationalReplayOutcome;
 
 use super::super::complexity::workflow_budgets;
-use super::external_harness_artifact_json::{
+use super::external_harness_artifact_projection::{
     bool_field, dynamic_external_harness_artifact_object, external_harness_artifact_field,
     external_harness_artifact_object, optional_string_field, optional_u64_field,
     optional_usize_field, string_array_field, string_field, usize_field,
-    ExternalHarnessArtifactJson,
+    ExternalHarnessArtifactProjection,
 };
 use super::read_summaries::read_summary_artifacts;
 use super::session::CertifiedRelationalFintechSession;
 
-fn replay_summary(replay: &RelationalReplayOutcome) -> ExternalHarnessArtifactJson {
+fn replay_summary(replay: &RelationalReplayOutcome) -> ExternalHarnessArtifactProjection {
     external_harness_artifact_object([
         optional_u64_field(
             "commit_id",
@@ -72,7 +72,9 @@ fn replay_summary(replay: &RelationalReplayOutcome) -> ExternalHarnessArtifactJs
     ])
 }
 
-fn branch_summary(session: &CertifiedRelationalFintechSession) -> ExternalHarnessArtifactJson {
+fn branch_summary(
+    session: &CertifiedRelationalFintechSession,
+) -> ExternalHarnessArtifactProjection {
     let latest_commit = session
         .world
         .runtime
@@ -109,7 +111,9 @@ fn branch_summary(session: &CertifiedRelationalFintechSession) -> ExternalHarnes
     ])
 }
 
-fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> ExternalHarnessArtifactJson {
+fn diagnostics_summary(
+    session: &CertifiedRelationalFintechSession,
+) -> ExternalHarnessArtifactProjection {
     let recovery = session.world.runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -143,7 +147,7 @@ fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> ExternalH
     ])
 }
 
-fn patch_summary(session: &CertifiedRelationalFintechSession) -> ExternalHarnessArtifactJson {
+fn patch_summary(session: &CertifiedRelationalFintechSession) -> ExternalHarnessArtifactProjection {
     let publication = session.world.runtime.publication();
     let artifacts = publication.artifact_snapshot();
     let observation = &artifacts.observation;
@@ -197,7 +201,9 @@ fn patch_summary(session: &CertifiedRelationalFintechSession) -> ExternalHarness
     ])
 }
 
-fn complexity_summary(session: &CertifiedRelationalFintechSession) -> ExternalHarnessArtifactJson {
+fn complexity_summary(
+    session: &CertifiedRelationalFintechSession,
+) -> ExternalHarnessArtifactProjection {
     let counters = session.world.runtime.performance_access().counters();
     external_harness_artifact_object([
         usize_field("full_state_clones", counters.full_state_clones),
@@ -224,7 +230,9 @@ fn complexity_summary(session: &CertifiedRelationalFintechSession) -> ExternalHa
     ])
 }
 
-fn budget_summary(session: &CertifiedRelationalFintechSession) -> ExternalHarnessArtifactJson {
+fn budget_summary(
+    session: &CertifiedRelationalFintechSession,
+) -> ExternalHarnessArtifactProjection {
     let counters = session.world.runtime.performance_access().counters();
     let mut all_passed = true;
     let checks = workflow_budgets()
@@ -243,7 +251,7 @@ fn budget_summary(session: &CertifiedRelationalFintechSession) -> ExternalHarnes
         .collect::<Vec<_>>();
     external_harness_artifact_object([
         bool_field("all_passed", all_passed),
-        external_harness_artifact_field("checks", ExternalHarnessArtifactJson::Array(checks)),
+        external_harness_artifact_field("checks", ExternalHarnessArtifactProjection::Array(checks)),
     ])
 }
 
@@ -300,12 +308,12 @@ pub(super) fn capture_artifacts(
                 ArtifactSurface::StepTrace,
                 "step-trace",
                 request,
-                ExternalHarnessArtifactJson::Array(
+                ExternalHarnessArtifactProjection::Array(
                     session
                         .executed_steps
                         .iter()
                         .cloned()
-                        .map(ExternalHarnessArtifactJson::String)
+                        .map(ExternalHarnessArtifactProjection::String)
                         .collect(),
                 ),
             )),
@@ -344,15 +352,29 @@ fn captured_artifact_bundle(
     surface: ArtifactSurface,
     name: &'static str,
     request: &WorkflowCaptureRequest,
-    projection: ExternalHarnessArtifactJson,
+    projection: ExternalHarnessArtifactProjection,
 ) -> ArtifactBundle {
+    let metadata = captured_artifact_metadata(surface.clone(), &projection);
     ArtifactBundle {
         artifact_class,
         surface,
         name: name.to_string(),
         boundary: request.boundary,
-        payload: projection.into_external_harness_json(),
+        payload: projection.into_external_harness_payload(),
         attachments: Vec::new(),
-        metadata: BTreeMap::new(),
+        metadata,
+    }
+}
+
+fn captured_artifact_metadata(
+    surface: ArtifactSurface,
+    projection: &ExternalHarnessArtifactProjection,
+) -> BTreeMap<String, String> {
+    match surface {
+        ArtifactSurface::BudgetOutcome => projection
+            .object_bool_field("all_passed")
+            .map(|passed| BTreeMap::from([("budget_all_passed".to_string(), passed.to_string())]))
+            .unwrap_or_default(),
+        _ => BTreeMap::new(),
     }
 }

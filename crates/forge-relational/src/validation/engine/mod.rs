@@ -8,6 +8,8 @@ mod profile;
 mod request;
 mod result;
 pub(crate) mod state_view;
+#[cfg(test)]
+mod tests;
 
 pub(crate) use engine::InvariantEngine;
 pub(crate) use observation::InvariantObservation;

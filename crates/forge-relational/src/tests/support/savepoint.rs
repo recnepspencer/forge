@@ -1,7 +1,7 @@
 use super::*;
 
 pub(crate) fn patch_detail_contains(
-    record: &crate::facade::publication::PatchRecord,
+    record: &crate::facade::publication::PublishedAuthoritativeRecordPatch,
     needle: &str,
 ) -> bool {
     let _ = (record, needle);
@@ -27,6 +27,6 @@ pub(crate) fn assert_subscriber_stream_omits_detail(
     assert!(subscriber
         .patches
         .iter()
-        .flat_map(|patch| patch.records.iter())
+        .flat_map(|patch| patch.authoritative_record_patches.iter())
         .all(|record| !patch_detail_contains(record, needle)));
 }

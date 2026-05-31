@@ -25,29 +25,41 @@ pub(crate) fn aspect_field_locator(aspect_key: AspectKey, field: FieldKey) -> As
     )
 }
 
-pub(crate) fn entity_field_aspect(aspect_key: AspectKey, field: FieldKey) -> DeclaredAspect {
-    DeclaredAspect {
+pub(crate) fn entity_field_aspect(
+    aspect_key: AspectKey,
+    field: FieldKey,
+) -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::EntityField { field },
         contract: scalar_string_contract(aspect_key),
     }
 }
 
-pub(crate) fn entity_u64_field_aspect(aspect_key: AspectKey, field: FieldKey) -> DeclaredAspect {
-    DeclaredAspect {
+pub(crate) fn entity_u64_field_aspect(
+    aspect_key: AspectKey,
+    field: FieldKey,
+) -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::EntityField { field },
         contract: scalar_u64_contract(aspect_key),
     }
 }
 
-pub(crate) fn entity_i64_field_aspect(aspect_key: AspectKey, field: FieldKey) -> DeclaredAspect {
-    DeclaredAspect {
+pub(crate) fn entity_i64_field_aspect(
+    aspect_key: AspectKey,
+    field: FieldKey,
+) -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::EntityField { field },
         contract: scalar_i64_contract(aspect_key),
     }
 }
 
-pub(crate) fn entity_bool_field_aspect(aspect_key: AspectKey, field: FieldKey) -> DeclaredAspect {
-    DeclaredAspect {
+pub(crate) fn entity_bool_field_aspect(
+    aspect_key: AspectKey,
+    field: FieldKey,
+) -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::EntityField { field },
         contract: scalar_bool_contract(aspect_key),
     }
@@ -56,14 +68,14 @@ pub(crate) fn entity_bool_field_aspect(aspect_key: AspectKey, field: FieldKey) -
 pub(crate) fn entity_summary_struct_aspect(
     aspect_key: AspectKey,
     field: FieldKey,
-) -> DeclaredAspect {
+) -> DeclaredAspectContractBinding {
     let shape = aspects()
         .struct_fields()
         .required("title", ScalarAspectType::String)
         .optional("status", ScalarAspectType::String)
         .finish()
         .expect("valid entity summary struct aspect shape");
-    DeclaredAspect {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::EntityField { field },
         contract: aspects()
             .contract()
@@ -74,29 +86,32 @@ pub(crate) fn entity_summary_struct_aspect(
     }
 }
 
-pub(crate) fn relation_field_aspect(aspect_key: AspectKey, field: FieldKey) -> DeclaredAspect {
-    DeclaredAspect {
+pub(crate) fn relation_field_aspect(
+    aspect_key: AspectKey,
+    field: FieldKey,
+) -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::RelationField { field },
         contract: scalar_string_contract(aspect_key),
     }
 }
 
-pub(crate) fn lifecycle_aspect() -> DeclaredAspect {
-    DeclaredAspect {
+pub(crate) fn lifecycle_aspect() -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::LifecycleTransition,
         contract: scalar_string_contract(aspect_key("lifecycle")),
     }
 }
 
-pub(crate) fn relation_source_aspect() -> DeclaredAspect {
-    DeclaredAspect {
+pub(crate) fn relation_source_aspect() -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::RelationSourceEndpoint,
         contract: entity_reference_contract(aspect_key("source")),
     }
 }
 
-pub(crate) fn relation_target_aspect() -> DeclaredAspect {
-    DeclaredAspect {
+pub(crate) fn relation_target_aspect() -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::RelationTargetEndpoint,
         contract: entity_reference_contract(aspect_key("target")),
     }
@@ -166,8 +181,8 @@ pub(crate) struct AspectSchemaFixture {
     pub schema_version_id: SchemaVersionId,
     pub cross_context_policy: CrossContextPolicy,
     pub cascade_delete_policy: CascadeDeletePolicy,
-    pub entity_aspects: Vec<DeclaredAspect>,
-    pub relation_aspects: Vec<DeclaredAspect>,
+    pub entity_aspects: Vec<DeclaredAspectContractBinding>,
+    pub relation_aspects: Vec<DeclaredAspectContractBinding>,
 }
 
 impl Default for AspectSchemaFixture {
@@ -214,7 +229,9 @@ impl AspectSchemaFixture {
                 kind_name: self.entity_kind_name.clone(),
                 schema_id: self.schema_id.clone(),
                 schema_version_id: self.schema_version_id,
-                aspect_declarations: KindAspectDeclarations::new(self.entity_aspects.clone()),
+                aspect_contract_declarations: KindAspectContractDeclarations::new(
+                    self.entity_aspects.clone(),
+                ),
             })
             .and_then(|registry| {
                 registry.register_relation_kind(RelationKindRegistration {
@@ -224,7 +241,9 @@ impl AspectSchemaFixture {
                     schema_version_id: self.schema_version_id,
                     cross_context_policy: self.cross_context_policy,
                     cascade_delete_policy: self.cascade_delete_policy,
-                    aspect_declarations: KindAspectDeclarations::new(self.relation_aspects.clone()),
+                    aspect_contract_declarations: KindAspectContractDeclarations::new(
+                        self.relation_aspects.clone(),
+                    ),
                     relation_integrity: RelationIntegrityDeclarations::default(),
                 })
             })

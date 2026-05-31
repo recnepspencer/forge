@@ -1,0 +1,11 @@
+﻿mod execution_model_traces;
+mod fixtures;
+mod harness_basic;
+mod harness_failure_visibility;
+mod harness_lane_metadata;
+mod harness_parity;
+mod harness_policy;
+mod harness_preparation_failures;
+mod invariant_diagnostics;
+mod mutation_convergence;
+mod publication_state;

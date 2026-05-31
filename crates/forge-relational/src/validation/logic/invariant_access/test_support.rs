@@ -4,7 +4,7 @@ use crate::facade::identity::PartitionId;
 use crate::facade::runtime::{InvariantCatalog, RelationalExecutionModel};
 use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use crate::facade::schema::{
-    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationKindRegistration,
     RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::identity::data::KindId;
@@ -33,7 +33,7 @@ pub(super) fn relation_integrity_runtime() -> RelationalRuntime {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::default(),
+            aspect_contract_declarations: KindAspectContractDeclarations::default(),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -43,7 +43,7 @@ pub(super) fn relation_integrity_runtime() -> RelationalRuntime {
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::new(
                     vec![EndpointKindContractDeclaration {
                         contract_id: "no_self".into(),
@@ -72,7 +72,7 @@ pub(super) fn relation_symmetry_runtime(mode: SymmetryMode) -> RelationalRuntime
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::default(),
+            aspect_contract_declarations: KindAspectContractDeclarations::default(),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -82,7 +82,7 @@ pub(super) fn relation_symmetry_runtime(mode: SymmetryMode) -> RelationalRuntime
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::new(
                     Vec::new(),
                     Vec::new(),
@@ -108,7 +108,7 @@ pub(super) fn relation_cardinality_runtime() -> RelationalRuntime {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::default(),
+            aspect_contract_declarations: KindAspectContractDeclarations::default(),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -118,7 +118,7 @@ pub(super) fn relation_cardinality_runtime() -> RelationalRuntime {
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::new(
                     Vec::new(),
                     vec![CardinalityContractDeclaration {

@@ -8,7 +8,9 @@ use crate::lineage::data::{
     LineageArtifactCounters, LineageDecisionLogDigestBasis, LineageDecisionRecord,
     LineageDigestBasis, LineageEventBatchDigestBasis, LineageEventRecord, PublishedLineageArtifact,
 };
-use crate::publication::patch::data::{PatchRecord, RelationalPatchRecord};
+use crate::publication::patch::data::{
+    PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch,
+};
 use crate::schema::data::{
     DescriptorSemanticsVersion, SchemaAuthoritySnapshot, SchemaContinuationDescriptor,
     SchemaReconciliationDescriptor, SchemaTransitionArtifact, SchemaVersionId,
@@ -30,7 +32,7 @@ pub struct CanonicalCommitEnvelope {
     pub schema_version: SchemaVersionId,
     pub schema_authority: SchemaAuthoritySnapshot,
     pub merged_plan: MergedCommitPlan,
-    pub patch: RelationalPatchRecord,
+    pub patch: PublishedAuthoritativePatchEnvelope,
     pub diagnostics_summary: RelationalDiagnosticArtifact,
     lineage: PublishedLineageArtifact,
     pub derived_index_artifacts: DerivedIndexArtifacts,
@@ -49,7 +51,7 @@ pub enum CanonicalCommitAuthorityKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct CommittedRecordChange<'a> {
     pub commit: &'a CommitReference,
-    pub record: &'a PatchRecord,
+    pub record: &'a PublishedAuthoritativeRecordPatch,
 }
 
 impl CanonicalCommitEnvelope {
@@ -65,7 +67,7 @@ impl CanonicalCommitEnvelope {
         schema_version: SchemaVersionId,
         schema_authority: SchemaAuthoritySnapshot,
         merged_plan: MergedCommitPlan,
-        patch: RelationalPatchRecord,
+        patch: PublishedAuthoritativePatchEnvelope,
         diagnostics_summary: RelationalDiagnosticArtifact,
         lineage: PublishedLineageArtifact,
         derived_index_artifacts: DerivedIndexArtifacts,
@@ -163,7 +165,7 @@ impl CanonicalCommitEnvelope {
     pub(crate) fn touched_record_refs(&self) -> BTreeSet<RecordRef> {
         let mut touched = self
             .patch
-            .records
+            .authoritative_record_patches
             .iter()
             .map(|record| record.target.clone())
             .collect::<BTreeSet<_>>();
@@ -179,7 +181,7 @@ impl CanonicalCommitEnvelope {
         &self,
     ) -> impl Iterator<Item = CommittedRecordChange<'_>> {
         self.patch
-            .records
+            .authoritative_record_patches
             .iter()
             .map(|record| CommittedRecordChange {
                 commit: &self.commit,
@@ -221,7 +223,7 @@ pub struct RelationalReplayRecord {
     pub commit_id: crate::history::data::CommitId,
     pub version_id: crate::identity::data::VersionId,
     pub snapshot_id: crate::snapshots::data::SnapshotId,
-    pub patch: crate::publication::patch::data::RelationalPatchRecord,
+    pub patch: crate::publication::patch::data::PublishedAuthoritativePatchEnvelope,
     pub schema_authority: SchemaAuthoritySnapshot,
 }
 
@@ -239,8 +241,9 @@ mod tests {
         FinalizedLineageEventBatch, LineageDecisionLog, LineageFinalizationArtifact,
     };
     use crate::publication::patch::data::{
-        PatchDetail, PatchOrdering, PatchPublicationMode, PatchRecord, PatchStreamPosition,
-        RecordStructuralChange, RelationalPatchRecord,
+        PatchDetail, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
+        PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch,
+        RecordStructuralChange,
     };
     use crate::schema::data::{
         DescriptorSemanticsVersion, RelationalSchemaRegistry, SchemaVersionId,
@@ -279,11 +282,11 @@ mod tests {
                 ))]
                 .into(),
             },
-            RelationalPatchRecord {
+            PublishedAuthoritativePatchEnvelope {
                 ordering: PatchOrdering::CanonicalCommitOrder,
                 publication_mode: PatchPublicationMode::CommitNative,
                 position: PatchStreamPosition(1),
-                records: vec![PatchRecord {
+                authoritative_record_patches: vec![PublishedAuthoritativeRecordPatch {
                     target: patch_target,
                     structural_change: RecordStructuralChange::Updated,
                     authoritative_patch:

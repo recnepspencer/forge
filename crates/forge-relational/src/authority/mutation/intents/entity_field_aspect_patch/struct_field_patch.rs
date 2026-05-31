@@ -6,12 +6,12 @@ use forge_foundational::facade::{
 };
 use forge_proof::TransitionOutcome;
 
-use crate::schema::data::LoweredAspectPlan;
+use crate::schema::data::LoweredAspectContractPlan;
 use crate::transactions::data::EntityFieldAspectPatchDenial;
 
 pub(super) fn combine_struct_field_patches(
     mut authoritative_patch: AuthoritativeRecordAspectPatch,
-    lowered_plan: &LoweredAspectPlan,
+    lowered_plan: &LoweredAspectContractPlan,
     struct_field_sets: BTreeMap<usize, Vec<(FieldKey, AspectValue)>>,
 ) -> Result<AuthoritativeRecordAspectPatch, EntityFieldAspectPatchDenial> {
     for (binding_index, field_sets) in struct_field_sets {

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use forge_foundational::facade::{AspectValue, AuthoritativeRecordAspectPatch, FieldKey};
 
 use crate::identity::data::KindId;
-use crate::schema::data::LoweredAspectPlan;
+use crate::schema::data::LoweredAspectContractPlan;
 use crate::transactions::data::{AspectFieldPatch, EntityFieldAspectPatchDenial};
 
 use self::scalar_whole_aspect_patch::{
@@ -23,7 +23,7 @@ pub(crate) struct EntityFieldAspectPatchPlan {
 
 pub(crate) fn plan_entity_field_aspect_patch(
     kind_id: KindId,
-    lowered_plan: Option<&LoweredAspectPlan>,
+    lowered_plan: Option<&LoweredAspectContractPlan>,
     field_patch: &AspectFieldPatch,
 ) -> Result<EntityFieldAspectPatchPlan, EntityFieldAspectPatchDenial> {
     reject_empty_field_patch_plan(field_patch)?;
@@ -53,7 +53,7 @@ fn reject_empty_field_patch_plan(
 }
 
 fn classify_entity_field_patch_targets(
-    lowered_plan: &LoweredAspectPlan,
+    lowered_plan: &LoweredAspectContractPlan,
     field_patch: &AspectFieldPatch,
 ) -> Result<PlannedEntityFieldUpdates, EntityFieldAspectPatchDenial> {
     let mut planned_updates = PlannedEntityFieldUpdates {
@@ -88,7 +88,7 @@ fn classify_entity_field_patch_targets(
 }
 
 fn build_authoritative_entity_field_patch(
-    lowered_plan: &LoweredAspectPlan,
+    lowered_plan: &LoweredAspectContractPlan,
     planned_updates: PlannedEntityFieldUpdates,
 ) -> Result<AuthoritativeRecordAspectPatch, EntityFieldAspectPatchDenial> {
     let authoritative_patch = construct_scalar_whole_aspect_patch(planned_updates.scalar_sets)?;

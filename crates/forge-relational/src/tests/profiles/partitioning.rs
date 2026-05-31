@@ -151,7 +151,7 @@ fn cross_context_relations_respect_relation_kind_policy() {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::default(),
+            aspect_contract_declarations: KindAspectContractDeclarations::default(),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -161,7 +161,7 @@ fn cross_context_relations_respect_relation_kind_policy() {
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::SchemaControlled,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
             })
         })

@@ -17,7 +17,7 @@ use crate::publication::data::{
     PublicationArtifactSnapshot, PublicationDiagnosticsSnapshot, PublicationObservationSnapshot,
 };
 use crate::publication::patch::data::{
-    PatchStreamBatch, PatchStreamReadError, PatchStreamRequest, RelationalPatchRecord,
+    PatchStreamBatch, PatchStreamReadError, PatchStreamRequest, PublishedAuthoritativePatchEnvelope,
 };
 
 pub(crate) use failure_diagnostics::publication_failure_diagnostic;
@@ -73,7 +73,7 @@ impl<'runtime> PublicationSurface<'runtime> {
         self.runtime.publication.latest_bundle.as_ref()
     }
 
-    pub fn latest_patch(&self) -> Option<&RelationalPatchRecord> {
+    pub fn latest_patch(&self) -> Option<&PublishedAuthoritativePatchEnvelope> {
         self.latest_bundle().map(|bundle| &bundle.patch)
     }
 

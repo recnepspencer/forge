@@ -1,7 +1,9 @@
 use crate::history::data::CommitId;
 use crate::logic::runtime::RelationalReplayRecord;
 use crate::publication::bundle::PublicationBundle;
-use crate::publication::patch::data::{PatchRecord, RecordStructuralChange, RelationalPatchRecord};
+use crate::publication::patch::data::{
+    PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch, RecordStructuralChange,
+};
 use crate::replay::data::CanonicalCommitEnvelope;
 use forge_foundational::facade::AspectKey;
 use forge_runtime_bridge::facade::{
@@ -17,7 +19,7 @@ pub fn publication_patch_to_bridge_envelope(
     commit_id: CommitId,
     branch_identity: impl Into<String>,
     snapshot_identity: impl Into<String>,
-    patch: &RelationalPatchRecord,
+    patch: &PublishedAuthoritativePatchEnvelope,
 ) -> RawCommittedPatchEnvelope {
     let snapshot_identity = TruthSnapshotIdentity::new(snapshot_identity.into());
     RawCommittedPatchEnvelope::new(
@@ -25,7 +27,7 @@ pub fn publication_patch_to_bridge_envelope(
         TruthPatchIdentity::new(format!("patch-{}", patch.position.0)),
         snapshot_identity,
         TruthBranchIdentity::new(branch_identity.into()),
-        bridge_patch_items(&patch.canonicalized().records),
+        bridge_patch_items(&patch.canonicalized().authoritative_record_patches),
     )
 }
 
@@ -55,9 +57,11 @@ pub fn commit_envelope_to_bridge_envelope(
     )
 }
 
-fn bridge_patch_items(records: &[PatchRecord]) -> Vec<BridgeCommittedPatchItem> {
+fn bridge_patch_items(
+    authoritative_record_patches: &[PublishedAuthoritativeRecordPatch],
+) -> Vec<BridgeCommittedPatchItem> {
     let mut items = Vec::new();
-    for record in records {
+    for record in authoritative_record_patches {
         let entity_identity = record_ref_identity(&record.target);
         let changed_aspects = record.authoritative_changed_aspects();
         if changed_aspects.is_empty() {
@@ -84,7 +88,7 @@ fn lifecycle_aspect_key() -> AspectKey {
     AspectKey::new("lifecycle").expect("lifecycle is a valid bridge aspect key")
 }
 
-fn structural_change_label(record: &PatchRecord) -> &'static str {
+fn structural_change_label(record: &PublishedAuthoritativeRecordPatch) -> &'static str {
     match record.structural_change {
         RecordStructuralChange::Created => "created",
         RecordStructuralChange::Updated => "updated",

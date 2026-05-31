@@ -27,7 +27,7 @@ impl RelationIntegritySchemaFixture {
                 kind_name: "test.entity".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
             })
             .and_then(|registry| {
                 registry.register_relation_kind(RelationKindRegistration {
@@ -37,7 +37,7 @@ impl RelationIntegritySchemaFixture {
                     schema_version_id: SchemaVersionId(1),
                     cross_context_policy: CrossContextPolicy::AllowExplicit,
                     cascade_delete_policy: self.cascade_delete_policy,
-                    aspect_declarations: KindAspectDeclarations::default(),
+                    aspect_contract_declarations: KindAspectContractDeclarations::default(),
                     relation_integrity: self.relation_integrity.clone(),
                 })
             })

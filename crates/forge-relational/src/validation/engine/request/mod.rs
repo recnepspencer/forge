@@ -132,6 +132,7 @@ pub(crate) fn relation_kind_scope(rule: &InvariantRule) -> Option<KindId> {
         InvariantRule::EndpointDeletionIntegrityContract(contract) => {
             Some(contract.relation_kind_id)
         }
+        InvariantRule::AcyclicityContract(contract) => Some(contract.relation_kind_id),
         _ => None,
     }
 }

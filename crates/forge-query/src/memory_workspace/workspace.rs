@@ -11,7 +11,7 @@ use forge_relational::facade::identity::PartitionId;
 use forge_relational::facade::runtime::RelationalRuntimeApi;
 use forge_relational::facade::runtime::{EntityProjectionRecord, ProjectionAspectScope};
 use forge_relational::facade::schema::{
-    EntityKindRegistration, KindAspectDeclarations, RelationalSchemaRegistry, SchemaId,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationalSchemaRegistry, SchemaId,
     SchemaVersionId,
 };
 use forge_relational::facade::symbols::ClientKey;
@@ -44,7 +44,7 @@ impl ForgeQueryMemoryWorkspace {
                 kind_name: kind_name.clone(),
                 schema_id: SchemaId("forge-query-memory".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                aspect_declarations: KindAspectDeclarations::new(declared_aspects),
+                aspect_contract_declarations: KindAspectContractDeclarations::new(declared_aspects),
             })
             .map_err(|error| ForgeQueryWorkspaceError::new(format!("{error:?}")))?;
         let runtime = RelationalRuntimeApi::builder()

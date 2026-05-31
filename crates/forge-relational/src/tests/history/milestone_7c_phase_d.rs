@@ -8,7 +8,7 @@ use crate::facade::merge::{
 };
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::{
-    EntityKindRegistration, KindAspectDeclarations, RelationIntegrityDeclarations,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationIntegrityDeclarations,
     RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::facade::transactions::{
@@ -79,10 +79,12 @@ fn derive_merge_commit_mutation_plan_preserves_exact_shared_truth_without_mutati
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                crate::tests::support::aspect_key("name"),
-                crate::tests::support::field_key("name"),
-            )]),
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
+            ]),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -92,7 +94,7 @@ fn derive_merge_commit_mutation_plan_preserves_exact_shared_truth_without_mutati
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })
@@ -138,7 +140,7 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
                 entity_field_aspect(
                     crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
@@ -165,7 +167,7 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })

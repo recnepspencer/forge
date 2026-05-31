@@ -7,7 +7,7 @@ mod field_classification;
 use forge_foundational::facade::AuthoritativeRecordAspectPatch;
 
 use crate::identity::data::{EntityId, KindId};
-use crate::schema::data::LoweredAspectPlan;
+use crate::schema::data::LoweredAspectContractPlan;
 use crate::storage::logic::state::RelationExtra;
 use crate::transactions::data::{AspectFieldPatch, RelationAuthoritativeAspectStateDenial};
 
@@ -24,7 +24,7 @@ pub(super) struct RelationFieldCreationAspectPlan {
 
 pub(super) fn plan_relation_field_creation_aspects(
     kind_id: KindId,
-    lowered_plan: Option<&LoweredAspectPlan>,
+    lowered_plan: Option<&LoweredAspectContractPlan>,
     fields: &AspectFieldPatch,
     source: EntityId,
     target: EntityId,

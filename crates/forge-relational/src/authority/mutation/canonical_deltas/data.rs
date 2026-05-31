@@ -2,7 +2,7 @@ use smallvec::SmallVec;
 
 use crate::identity::data::EntityId;
 use crate::publication::patch::data::RecordStructuralChange;
-use crate::schema::data::AspectPlanRevision;
+use crate::schema::data::AspectContractPlanRevision;
 use crate::transactions::data::RecordRef;
 use crate::transactions::data::{
     AspectDeltaFailureFields, AspectDeltaPatchConstructionDenial, AspectDeltaPatchValueDenial,
@@ -17,7 +17,7 @@ use forge_foundational::facade::{
 pub(crate) struct CanonicalRecordAspectDelta {
     pub(crate) target: RecordRef,
     pub(crate) kind_id: crate::identity::data::KindId,
-    pub(crate) plan_revision: AspectPlanRevision,
+    pub(crate) plan_revision: AspectContractPlanRevision,
     pub(crate) structural_change: RecordStructuralChange,
     pub(crate) changed_aspects: Vec<AspectKey>,
     pub(crate) evaluated_bindings: SmallVec<[EvaluatedAspectBinding; 4]>,

@@ -1,7 +1,7 @@
 mod auto_resolution;
 mod value_basis;
 
-use crate::schema::data::{AspectBinding, LoweredAspectBinding};
+use crate::schema::data::{AspectBinding, LoweredAspectContractBinding};
 
 pub(super) use auto_resolution::{resolve_aspect_value_strategy, AutoResolutionStrategy};
 pub(crate) use value_basis::{
@@ -11,7 +11,7 @@ pub(crate) use value_basis::{
 
 pub(super) fn scalar_policy_aspect_binding(
     record_kind: crate::merge::data::VisibleMergeRecordKind,
-    binding: Option<&LoweredAspectBinding>,
+    binding: Option<&LoweredAspectContractBinding>,
 ) -> Result<ScalarPolicyAspectBinding, ScalarPolicyBindingDenial> {
     let binding = binding.ok_or(ScalarPolicyBindingDenial::MissingBinding)?;
     match (&binding.target, binding.contract.shape()) {

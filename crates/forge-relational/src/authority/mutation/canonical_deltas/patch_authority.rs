@@ -1,7 +1,7 @@
 use smallvec::SmallVec;
 
 use crate::publication::patch::data::{ordered_aspect_keys, RecordStructuralChange};
-use crate::schema::data::{AspectBinding, LoweredAspectPlan};
+use crate::schema::data::{AspectBinding, LoweredAspectContractPlan};
 use crate::transactions::data::RecordRef;
 use forge_foundational::facade::{AspectLocator, AspectValueLocator, LocatorAuthority};
 
@@ -14,7 +14,7 @@ use super::lifecycle_transition_evidence::lifecycle_transition;
 pub(super) fn evaluate_authoritative_patch_delta(
     target: RecordRef,
     kind_id: crate::identity::data::KindId,
-    plan: &LoweredAspectPlan,
+    plan: &LoweredAspectContractPlan,
     structural_change: RecordStructuralChange,
     patch: &forge_foundational::facade::AuthoritativeRecordAspectPatch,
 ) -> CanonicalRecordAspectDelta {
@@ -44,7 +44,7 @@ pub(super) fn evaluate_authoritative_patch_delta(
 }
 
 fn authoritative_patch_evaluated_bindings(
-    plan: &LoweredAspectPlan,
+    plan: &LoweredAspectContractPlan,
     structural_change: RecordStructuralChange,
     patch: &forge_foundational::facade::AuthoritativeRecordAspectPatch,
 ) -> SmallVec<[EvaluatedAspectBinding; 4]> {
@@ -66,7 +66,7 @@ fn authoritative_patch_evaluated_bindings(
 }
 
 pub(super) fn authoritative_patch_binding_evidence(
-    binding: &crate::schema::data::LoweredAspectBinding,
+    binding: &crate::schema::data::LoweredAspectContractBinding,
     structural_change: RecordStructuralChange,
     patch: &forge_foundational::facade::AuthoritativeRecordAspectPatch,
 ) -> Option<CanonicalAspectDeltaEvidence> {
@@ -77,7 +77,7 @@ pub(super) fn authoritative_patch_binding_evidence(
 }
 
 fn lifecycle_structural_evidence(
-    binding: &crate::schema::data::LoweredAspectBinding,
+    binding: &crate::schema::data::LoweredAspectContractBinding,
     structural_change: RecordStructuralChange,
 ) -> Option<CanonicalAspectDeltaEvidence> {
     if !matches!(&binding.target, AspectBinding::LifecycleTransition) {
@@ -95,7 +95,7 @@ fn lifecycle_structural_evidence(
 }
 
 fn whole_aspect_set_evidence(
-    binding: &crate::schema::data::LoweredAspectBinding,
+    binding: &crate::schema::data::LoweredAspectContractBinding,
     patch: &forge_foundational::facade::AuthoritativeRecordAspectPatch,
 ) -> Option<CanonicalAspectDeltaEvidence> {
     let (_, value) = patch
@@ -110,7 +110,7 @@ fn whole_aspect_set_evidence(
 }
 
 fn whole_aspect_clear_evidence(
-    binding: &crate::schema::data::LoweredAspectBinding,
+    binding: &crate::schema::data::LoweredAspectContractBinding,
     patch: &forge_foundational::facade::AuthoritativeRecordAspectPatch,
 ) -> Option<CanonicalAspectDeltaEvidence> {
     patch
@@ -125,7 +125,7 @@ fn whole_aspect_clear_evidence(
 }
 
 fn field_level_patch_evidence(
-    binding: &crate::schema::data::LoweredAspectBinding,
+    binding: &crate::schema::data::LoweredAspectContractBinding,
     patch: &forge_foundational::facade::AuthoritativeRecordAspectPatch,
 ) -> Option<CanonicalAspectDeltaEvidence> {
     let (_, field_patch) = patch
@@ -140,7 +140,7 @@ fn field_level_patch_evidence(
 }
 
 fn authoritative_value_locator(
-    binding: &crate::schema::data::LoweredAspectBinding,
+    binding: &crate::schema::data::LoweredAspectContractBinding,
 ) -> AspectValueLocator {
     AspectValueLocator::whole_aspect(AspectLocator::new(
         LocatorAuthority::Authoritative,

@@ -3,7 +3,9 @@ mod schema_plan_terms;
 
 use crate::identity::data::KindId;
 use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration};
-use crate::schema::data::{AspectPlanRevision, DeclaredAspect, SchemaRegistryError};
+use crate::schema::data::{
+    AspectContractPlanRevision, DeclaredAspectContractBinding, SchemaRegistryError,
+};
 
 use foundational_contract_basis::mix_foundational_contract_basis;
 use schema_plan_terms::{
@@ -13,10 +15,10 @@ use schema_plan_terms::{
 
 pub(super) fn derive_plan_revision(
     kind_id: KindId,
-    aspects: &[DeclaredAspect],
+    aspects: &[DeclaredAspectContractBinding],
     identity_declarations: &[IdentityBasisDeclaration],
     merge_policy_declarations: &[AspectMergePolicyDeclaration],
-) -> Result<AspectPlanRevision, SchemaRegistryError> {
+) -> Result<AspectContractPlanRevision, SchemaRegistryError> {
     let mut revision = RevisionHasher::new();
     for aspect in aspects {
         mix_aspect_binding_terms(&mut revision, aspect);
@@ -28,7 +30,7 @@ pub(super) fn derive_plan_revision(
     for declaration in merge_policy_declarations {
         mix_merge_policy_declaration_terms(&mut revision, declaration);
     }
-    Ok(AspectPlanRevision(revision.finish()))
+    Ok(AspectContractPlanRevision(revision.finish()))
 }
 
 #[cfg(test)]
@@ -40,7 +42,7 @@ mod tests {
 
     use super::derive_plan_revision;
     use crate::identity::data::KindId;
-    use crate::schema::data::{AspectBinding, DeclaredAspect};
+    use crate::schema::data::{AspectBinding, DeclaredAspectContractBinding};
 
     #[test]
     fn revision_changes_when_foundational_scalar_contract_family_changes() {
@@ -72,10 +74,10 @@ mod tests {
         assert_ne!(required_revision, optional_revision);
     }
 
-    fn revision_for(contract: AspectContract) -> crate::schema::data::AspectPlanRevision {
+    fn revision_for(contract: AspectContract) -> crate::schema::data::AspectContractPlanRevision {
         derive_plan_revision(
             KindId(7),
-            &[DeclaredAspect {
+            &[DeclaredAspectContractBinding {
                 binding: AspectBinding::EntityField {
                     field: crate::tests::support::field_key("summary"),
                 },

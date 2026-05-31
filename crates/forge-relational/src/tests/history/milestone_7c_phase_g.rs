@@ -9,7 +9,7 @@ use crate::facade::merge::{
 };
 use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use crate::facade::schema::{
-    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationKindRegistration,
     RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::facade::transactions::{
@@ -378,7 +378,7 @@ fn prefer_richer_registry() -> RelationalSchemaRegistry {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
                 entity_field_aspect(
                     crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
@@ -405,7 +405,7 @@ fn prefer_richer_registry() -> RelationalSchemaRegistry {
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })
@@ -419,7 +419,7 @@ fn drifted_schema_registry() -> RelationalSchemaRegistry {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(2),
-            aspect_declarations: KindAspectDeclarations::new(vec![
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
                 entity_field_aspect(
                     crate::tests::support::aspect_key("name"),
                     crate::tests::support::field_key("name"),
@@ -438,7 +438,7 @@ fn drifted_schema_registry() -> RelationalSchemaRegistry {
                 schema_version_id: SchemaVersionId(2),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })

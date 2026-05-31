@@ -2,7 +2,7 @@ use crate::merge::data::{
     AspectComparisonState, AspectMergePolicyKind, MergeManualResolutionClass,
     MergePolicyDecisionBoundary, MergePolicyRejectClass, MergeResolvedAspectValueStrategy,
 };
-use crate::schema::data::LoweredAspectBinding;
+use crate::schema::data::LoweredAspectContractBinding;
 
 use super::value_basis::PolicyValueLookupFailure;
 use super::{scalar_policy_aspect_binding, PolicyAspectValueBasis, ScalarPolicyBindingDenial};
@@ -16,7 +16,7 @@ pub(in crate::merge::logic::policy) enum AutoResolutionStrategy {
 
 pub(in crate::merge::logic::policy) fn resolve_aspect_value_strategy(
     record_kind: crate::merge::data::VisibleMergeRecordKind,
-    binding: Option<&LoweredAspectBinding>,
+    binding: Option<&LoweredAspectContractBinding>,
     value_basis: Option<&PolicyAspectValueBasis>,
     comparison: AspectComparisonState,
     applied_policy: Option<&AspectMergePolicyKind>,

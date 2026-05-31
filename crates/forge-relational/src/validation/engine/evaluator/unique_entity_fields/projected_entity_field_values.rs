@@ -4,7 +4,7 @@ use forge_foundational::facade::{
 };
 
 use crate::identity::data::{EntityId, KindId};
-use crate::schema::data::{LoweredAspectBinding, LoweredAspectPlan};
+use crate::schema::data::{LoweredAspectContractBinding, LoweredAspectContractPlan};
 use crate::storage::data::{
     authoritative_aspect_value_field_comparison_key, AuthoritativeFieldComparisonKey,
 };
@@ -148,7 +148,7 @@ impl AdmittedEntityAspectFieldProjection {
         }
     }
 
-    fn admitted_by(&self, binding: &LoweredAspectBinding) -> bool {
+    fn admitted_by(&self, binding: &LoweredAspectContractBinding) -> bool {
         self.projection_scope()
             .requirements()
             .iter()
@@ -174,9 +174,9 @@ impl AdmittedEntityAspectFieldProjection {
 }
 
 fn matching_binding<'a>(
-    plan: &'a LoweredAspectPlan,
+    plan: &'a LoweredAspectContractPlan,
     field_locator: &AspectFieldLocator,
-) -> Option<&'a LoweredAspectBinding> {
+) -> Option<&'a LoweredAspectContractBinding> {
     plan.executable_bindings
         .iter()
         .find(|binding| binding.aspect_key() == field_locator.aspect().aspect_key())

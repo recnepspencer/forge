@@ -29,7 +29,7 @@ impl ReplaySummary {
             version_id: replay.version_id.0,
             snapshot_id: replay.snapshot_id.0,
             patch_stream_position: replay.patch.position.0,
-            patch_record_count: replay.patch.records.len(),
+            patch_record_count: replay.patch.authoritative_record_patches.len(),
             patch_ordering: format!("{:?}", replay.patch.ordering),
             patch_publication_mode: format!("{:?}", replay.patch.publication_mode),
         }

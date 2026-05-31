@@ -6,14 +6,14 @@ use crate::merge::data::{
     materialized_value_aspect_key, MaterializedAspectValue, MaterializedAspectValueEvidence,
     MergeExecutionMutationPlanError, ReconcileRecordPlan,
 };
-use crate::schema::data::{AspectBinding, LoweredAspectBinding};
+use crate::schema::data::{AspectBinding, LoweredAspectContractBinding};
 use crate::storage::data::EntityReadRecord;
 
 pub(super) fn resolved_entity_field_patch_value(
     plan: &ReconcileRecordPlan,
     source_entity: &EntityReadRecord,
     target_entity: &EntityReadRecord,
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     aspect_key: &forge_foundational::facade::AspectKey,
     resolved_value: &MaterializedAspectValue,
 ) -> Result<Option<(AspectFieldLocator, AspectValue)>, MergeExecutionMutationPlanError> {
@@ -88,7 +88,7 @@ fn resolve_materialized_aspect_value(
     value: &MaterializedAspectValue,
     source_entity: &EntityReadRecord,
     target_entity: &EntityReadRecord,
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
 ) -> Result<AspectValue, MergeExecutionMutationPlanError> {
     match &value.evidence {
         MaterializedAspectValueEvidence::PinnedVisibleAspect {
@@ -134,7 +134,7 @@ fn resolve_pinned_visible_aspect_value(
     record: &crate::transactions::data::RecordRef,
     source_entity: &EntityReadRecord,
     target_entity: &EntityReadRecord,
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
 ) -> Result<AspectValue, MergeExecutionMutationPlanError> {
     match side {
         crate::merge::data::MergeValueSourceSide::Source => {
@@ -192,7 +192,7 @@ fn ensure_pinned_record_matches(
 
 fn entity_authoritative_binding_aspect_value(
     entity: &EntityReadRecord,
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
 ) -> Option<AspectValue> {
     match (&binding.target, binding.contract.shape()) {
         (AspectBinding::EntityField { .. }, forge_foundational::AspectShape::Scalar(_)) => {

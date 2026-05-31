@@ -8,7 +8,7 @@ use crate::publication::patch::data::{
     PatchDetail, PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue,
     RecordStructuralChange,
 };
-use crate::schema::data::AspectPlanRevision;
+use crate::schema::data::AspectContractPlanRevision;
 use crate::transactions::data::RecordRef;
 
 use super::data::{
@@ -51,7 +51,7 @@ fn scalar_delta(aspect_key: AspectKey, value: &str) -> CanonicalRecordAspectDelt
     CanonicalRecordAspectDelta {
         target: RecordRef::Entity(EntityId::new(PartitionId(1), 0, 1)),
         kind_id: KindId(7),
-        plan_revision: AspectPlanRevision(1),
+        plan_revision: AspectContractPlanRevision(1),
         structural_change: RecordStructuralChange::Updated,
         changed_aspects: crate::publication::patch::data::ordered_aspect_keys([aspect_key.clone()]),
         evaluated_bindings: smallvec::smallvec![

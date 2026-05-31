@@ -31,7 +31,7 @@ fn request_excludes_unrelated_relation_kind_registrations_for_relation_create() 
 
     let request = request_for_plan(&runtime, &plan);
     let included_relation_kinds = runtime
-        .aspect_semantics
+        .schema_contract_runtime
         .relation_integrity_registrations
         .iter()
         .filter(|registration| request.includes_registration(registration))
@@ -66,7 +66,7 @@ fn request_excludes_unrelated_relation_kind_registrations_for_entity_delete() {
 
     let request = request_for_plan(&runtime, &plan);
     let included_relation_kinds = runtime
-        .aspect_semantics
+        .schema_contract_runtime
         .relation_integrity_registrations
         .iter()
         .filter(|registration| request.includes_registration(registration))
@@ -109,7 +109,7 @@ fn request_excludes_unrelated_relation_kind_registrations_for_entity_replace() {
 
     let request = request_for_plan(&runtime, &plan);
     let included_relation_kinds = runtime
-        .aspect_semantics
+        .schema_contract_runtime
         .relation_integrity_registrations
         .iter()
         .filter(|registration| request.includes_registration(registration))
@@ -135,7 +135,7 @@ fn request_includes_deleted_relation_kind_scope_for_delete_only_commits() {
 
     let request = request_for_plan(&runtime, &plan);
     let included_relation_kinds = runtime
-        .aspect_semantics
+        .schema_contract_runtime
         .relation_integrity_registrations
         .iter()
         .filter(|registration| request.includes_registration(registration))

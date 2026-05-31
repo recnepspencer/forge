@@ -1,8 +1,7 @@
 use forge_harness::facade::{
-    ArtifactBundle, ArtifactSurface, RegressionTargetKind, WorkflowCertificationRunner,
-    WorkflowRuntimeProfile, WorkflowState,
+    ArtifactSurface, RegressionTargetKind, WorkflowCertificationRunner, WorkflowRuntimeProfile,
+    WorkflowState,
 };
-use serde_json::Value as ExternalHarnessArtifactJson;
 
 use super::adapter::RelationalFintechWorkflowCertificationAdapter;
 use super::plans::{
@@ -12,10 +11,6 @@ use super::plans::{
 
 fn development_profile() -> WorkflowRuntimeProfile {
     WorkflowRuntimeProfile::new("fintech-development")
-}
-
-fn external_harness_artifact_projection(artifact: &ArtifactBundle) -> &ExternalHarnessArtifactJson {
-    &artifact.payload
 }
 
 #[test]
@@ -58,10 +53,8 @@ fn workflow_certification_runner_proves_relational_fintech_analysis_baseline() {
         })
         .unwrap();
     assert_eq!(
-        external_harness_artifact_projection(budget)
-            .get("all_passed")
-            .and_then(|value| value.as_bool()),
-        Some(true)
+        budget.metadata.get("budget_all_passed").map(String::as_str),
+        Some("true")
     );
 }
 
@@ -120,13 +113,19 @@ fn workflow_certification_runner_proves_relational_fintech_intraday_risk() {
         .session_data
         .named_replays
         .contains_key("analysis_intraday_replay"));
-    assert!(report.session.artifacts.iter().any(|artifact| {
-        artifact.surface == ArtifactSurface::ReplayRecoveryTruthState
-            && external_harness_artifact_projection(artifact)
-                .get("analysis_intraday_replay")
-                .and_then(|artifact_json| artifact_json.get("lineage_authority_digest_mode"))
-                .is_some()
-    }));
+    assert!(report
+        .session
+        .artifacts
+        .iter()
+        .any(|artifact| { artifact.surface == ArtifactSurface::ReplayRecoveryTruthState }));
+    assert!(report
+        .session
+        .session_data
+        .named_replays
+        .get("analysis_intraday_replay")
+        .and_then(|replay| replay.lineage_authority_basis.as_ref())
+        .map(|basis| basis.digest_mode())
+        .is_some());
 }
 
 #[test]
@@ -147,11 +146,17 @@ fn workflow_certification_runner_proves_relational_fintech_settlement_repair() {
         .session_data
         .named_replays
         .contains_key("analysis_repair_replay"));
-    assert!(report.session.artifacts.iter().any(|artifact| {
-        artifact.surface == ArtifactSurface::ReplayRecoveryTruthState
-            && external_harness_artifact_projection(artifact)
-                .get("analysis_repair_replay")
-                .and_then(|artifact_json| artifact_json.get("lineage_authority_basis_kind"))
-                .is_some()
-    }));
+    assert!(report
+        .session
+        .artifacts
+        .iter()
+        .any(|artifact| { artifact.surface == ArtifactSurface::ReplayRecoveryTruthState }));
+    assert!(report
+        .session
+        .session_data
+        .named_replays
+        .get("analysis_repair_replay")
+        .and_then(|replay| replay.lineage_authority_basis.as_ref())
+        .map(|basis| basis.kind())
+        .is_some());
 }

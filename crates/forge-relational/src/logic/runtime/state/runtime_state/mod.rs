@@ -8,15 +8,15 @@ use crate::logic::runtime::RelationalRuntimeConfig;
 use crate::storage::overlay::PartitionState;
 
 use super::{
-    AspectSemanticsSubsystem, CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem,
-    IndexingSubsystem, LineageSubsystem, PublicationSubsystem, RuntimeServices,
+    CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
+    LineageSubsystem, PublicationSubsystem, RuntimeServices, SchemaContractRuntimeSubsystem,
     VisibilitySubsystem,
 };
 
 #[derive(Debug)]
 pub struct RelationalRuntime {
     pub(crate) config: RelationalRuntimeConfig,
-    pub(crate) aspect_semantics: AspectSemanticsSubsystem,
+    pub(crate) schema_contract_runtime: SchemaContractRuntimeSubsystem,
     pub(crate) commit_strategies: CommitStrategiesSubsystem,
     pub(crate) partitions: BTreeMap<crate::identity::data::PartitionId, PartitionState>,
     pub(crate) visibility: VisibilitySubsystem,

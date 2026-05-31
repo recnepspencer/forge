@@ -79,7 +79,7 @@ fn build_compiled_execution_artifact(
     let partition_ids = partition_ids
         .into_iter()
         .collect::<std::collections::BTreeSet<_>>();
-    let compiled_record_count = envelope.patch.records.len();
+    let compiled_record_count = envelope.patch.authoritative_record_patches.len();
 
     CompiledExecutionArtifact {
         artifact_id,

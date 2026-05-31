@@ -1,0 +1,30 @@
+use super::PerformanceAccess;
+use crate::performance::data::{
+    ComplexityContract, RuntimeComplexityCounters, COMPLEXITY_CONTRACTS,
+};
+
+impl PerformanceAccess<'_> {
+    pub fn contracts(&self) -> &'static [ComplexityContract] {
+        COMPLEXITY_CONTRACTS
+    }
+
+    pub fn counters(&self) -> RuntimeComplexityCounters {
+        self.runtime
+            .services
+            .instrumentation
+            .complexity_counters
+            .lock()
+            .expect("complexity counter lock poisoned")
+            .clone()
+    }
+
+    pub fn reset_counters(&self) {
+        *self
+            .runtime
+            .services
+            .instrumentation
+            .complexity_counters
+            .lock()
+            .expect("complexity counter lock poisoned") = RuntimeComplexityCounters::default();
+    }
+}

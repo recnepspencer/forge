@@ -1,0 +1,243 @@
+use crate::facade::config::{
+    ConfigValueSource, MvccConfig, RetentionBackend, SnapshotReleasePolicy,
+};
+use crate::tests::support::*;
+
+#[test]
+fn entity_slot_reuse_increments_generation() {
+    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
+    let create_outcome = create_entity_outcome(&mut runtime, "first");
+    let entity_a = changed_entities(&create_outcome)[0];
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&create_outcome.snapshot));
+    let delete_outcome = delete_entity(&mut runtime, entity_a);
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&delete_outcome.snapshot));
+    let retention = runtime.retention().run_pass();
+    let entity_b = create_entity(&mut runtime, "second");
+
+    assert!(retention.entity_reclaimed <= 1);
+    assert_eq!(
+        runtime
+            .storage_access()
+            .storage_stats()
+            .reusable_entity_slots,
+        0
+    );
+    assert_eq!(entity_a.local_slot, entity_b.local_slot);
+    assert!(entity_b.generation.0 > entity_a.generation.0);
+}
+
+#[test]
+fn snapshot_reads_are_immutable_after_later_mutation() {
+    let mut runtime = runtime_with_test_schema();
+    let first = create_entity(&mut runtime, "first");
+    let snapshot = runtime.visibility_authority().snapshot();
+    let _second = create_entity(&mut runtime, "second");
+    let read = runtime.read_truth().read_snapshot(&snapshot).unwrap();
+
+    assert!(read.get_entity(first).is_some());
+    assert_eq!(read.entities().len(), 1);
+}
+
+#[test]
+fn snapshots_resolve_historical_entity_aspects_by_version() {
+    let mut runtime = runtime_with_test_schema();
+    let create_outcome = create_entity_outcome(&mut runtime, "before");
+    let entity = changed_entities(&create_outcome)[0];
+    let snapshot = runtime.visibility_authority().snapshot();
+    let update_outcome = update_entity(&mut runtime, entity, "after");
+
+    let old_read = runtime.read_truth().read_snapshot(&snapshot).unwrap();
+    let current_read = runtime
+        .read_truth()
+        .read_snapshot(&update_outcome.snapshot)
+        .unwrap();
+    let version_read = runtime.read_truth().read_version(create_outcome.version_id);
+
+    assert_eq!(
+        read_entity_name(old_read.get_entity(entity).unwrap()),
+        Some("before".into())
+    );
+    assert_eq!(
+        read_entity_name(current_read.get_entity(entity).unwrap()),
+        Some("after".into())
+    );
+    assert_eq!(
+        read_entity_name(version_read.get_entity(entity).unwrap()),
+        Some("before".into())
+    );
+}
+
+#[test]
+fn historical_reads_preserve_generation_and_aspects_after_slot_reuse() {
+    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
+    let created = create_entity_outcome(&mut runtime, "before");
+    let original = changed_entities(&created)[0];
+    let deleted = delete_entity(&mut runtime, original);
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&created.snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&deleted.snapshot));
+    assert!(runtime
+        .history_authority()
+        .retain_version_for_replay(created.version_id));
+    let _ = runtime.retention().run_pass();
+    let replacement = create_entity(&mut runtime, "after");
+
+    let historical = runtime.read_truth().read_version(created.version_id);
+    let record = historical.get_entity(original).unwrap();
+
+    assert_eq!(record.entity_id, original);
+    assert_eq!(read_entity_name(record), Some("before".into()));
+    assert_eq!(original.local_slot, replacement.local_slot);
+    assert!(replacement.generation.0 > original.generation.0);
+    assert!(runtime
+        .history_authority()
+        .release_version_replay_retention(created.version_id));
+}
+
+#[test]
+fn profile_resolution_and_provenance_are_explicit() {
+    let runtime = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::GeometryKernel)
+        .schema_registry(test_schema_registry())
+        .entity_capacity(999)
+        .build();
+
+    assert_eq!(
+        runtime.config().profile,
+        RelationalRuntimeProfile::GeometryKernel
+    );
+    assert_eq!(runtime.config().storage.initial_entity_capacity, 999);
+    assert!(runtime.config().diagnostics.profile.detailed_traces_enabled);
+    assert_eq!(runtime.config().storage.layout.entity_chunk_size, 2048);
+    assert_eq!(
+        runtime
+            .config()
+            .provenance
+            .source_for("storage.initial_entity_capacity")
+            .unwrap()
+            .source,
+        ConfigValueSource::BuilderOverride
+    );
+    assert_eq!(
+        runtime
+            .config()
+            .provenance
+            .source_for("storage.layout")
+            .unwrap()
+            .source,
+        ConfigValueSource::ProfileDefault
+    );
+    assert_eq!(
+        runtime
+            .config()
+            .provenance
+            .source_for("visibility.cache_policy")
+            .unwrap()
+            .source,
+        ConfigValueSource::ProfileDefault
+    );
+    assert!(runtime.config().visibility.cache_policy.enabled);
+}
+
+#[test]
+fn snapshot_pins_block_reclaim_until_release() {
+    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
+    let create_outcome = create_entity_outcome(&mut runtime, "pinned");
+    let create_snapshot = runtime.visibility_authority().snapshot();
+    let entity = changed_entities(&create_outcome)[0];
+    let _delete_outcome = delete_entity(&mut runtime, entity);
+    let delete_snapshot = runtime.visibility_authority().snapshot();
+    let first_retention = runtime.retention().run_pass();
+
+    assert_eq!(first_retention.entity_reclaimed, 0);
+    assert_eq!(runtime.storage_access().storage_stats().deleted_entities, 1);
+    assert_eq!(first_retention.entity_chunks_scanned, 1);
+
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&create_snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&delete_snapshot));
+    let second_retention = runtime.retention().run_pass();
+
+    assert!(second_retention.entity_reclaimed <= 1);
+    assert_eq!(
+        runtime
+            .storage_access()
+            .storage_stats()
+            .reusable_entity_slots,
+        1
+    );
+}
+
+#[test]
+fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::ChipSimulation)
+        .schema_registry(test_schema_registry())
+        .mvcc(MvccConfig {
+            track_visibility_metadata: true,
+            snapshot_release_policy: SnapshotReleasePolicy::ExplicitRelease,
+            auto_reclaim_deleted_records: true,
+            reclaim_batch_size: 128,
+            retention_backend: RetentionBackend::EpochChunkRetention,
+        })
+        .build();
+    let create_outcome = create_entity_outcome(&mut runtime, "epoch-pinned");
+    let create_snapshot = runtime.visibility_authority().snapshot();
+    let entity = changed_entities(&create_outcome)[0];
+    let _delete_outcome = delete_entity(&mut runtime, entity);
+    let delete_snapshot = runtime.visibility_authority().snapshot();
+
+    let first_retention = runtime.retention().run_pass();
+    assert_eq!(
+        runtime.config().storage.retention.backend,
+        RetentionBackend::EpochChunkRetention
+    );
+    assert_eq!(first_retention.entity_reclaimed, 0);
+    assert!(runtime
+        .read_truth()
+        .read_snapshot(&create_snapshot)
+        .unwrap()
+        .get_entity(entity)
+        .is_some());
+
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&create_snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&delete_snapshot));
+    let second_retention = runtime.retention().run_pass();
+
+    assert!(second_retention.entity_reclaimed <= 1);
+    assert_eq!(
+        runtime
+            .storage_access()
+            .storage_stats()
+            .reusable_entity_slots,
+        1
+    );
+}
+
+#[test]
+fn read_records_expose_visibility_metadata() {
+    let mut runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&mut runtime, "visible");
+    let read = runtime
+        .read_truth()
+        .read_snapshot(&outcome.snapshot)
+        .unwrap();
+    let record = read.entities().first().unwrap();
+
+    assert_eq!(record.created_at_version, outcome.version_id);
+    assert_eq!(record.retired_at_version, None);
+}

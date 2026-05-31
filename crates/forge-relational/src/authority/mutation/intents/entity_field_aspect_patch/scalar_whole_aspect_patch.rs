@@ -4,12 +4,12 @@ use forge_foundational::facade::{
 };
 use forge_proof::TransitionOutcome;
 
-use crate::schema::data::LoweredAspectBinding;
+use crate::schema::data::LoweredAspectContractBinding;
 use crate::transactions::data::EntityFieldAspectPatchDenial;
 
 pub(super) fn validate_entity_scalar_field_value(
     field_path: &CanonicalFieldPath,
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     value: AspectValue,
 ) -> Result<ContractValidatedAspectArtifact, EntityFieldAspectPatchDenial> {
     match validate_aspect_value(&binding.contract, ContractValidationInput::Scalar(value)) {

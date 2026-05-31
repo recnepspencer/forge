@@ -16,7 +16,8 @@ impl<'runtime> PublicationArtifactsAccess<'runtime> {
             publication_snapshot_id: latest_bundle.map(|bundle| bundle.snapshot.snapshot_id),
             publication_status: latest_bundle.map(|bundle| bundle.status.clone()),
             latest_patch_position: latest_patch.map(|patch| patch.position),
-            latest_patch_record_count: latest_patch.map(|patch| patch.records.len()),
+            latest_patch_record_count: latest_patch
+                .map(|patch| patch.authoritative_record_patches.len()),
             latest_replay_commit_id: latest_replay.map(|replay| replay.commit_id),
             latest_patch_present: latest_patch.is_some(),
             latest_replay_present: latest_replay.is_some(),

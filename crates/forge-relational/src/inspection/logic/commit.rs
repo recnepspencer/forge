@@ -15,7 +15,7 @@ impl<'runtime> InspectionAccess<'runtime> {
             commit: envelope.commit.clone(),
             changed_records: envelope
                 .patch
-                .records
+                .authoritative_record_patches
                 .iter()
                 .map(|record| record.target.clone())
                 .collect(),
@@ -30,7 +30,7 @@ impl<'runtime> InspectionAccess<'runtime> {
             changed_aspects: ordered_aspect_keys(
                 envelope
                     .patch
-                    .records
+                    .authoritative_record_patches
                     .iter()
                     .flat_map(|record| record.authoritative_changed_aspect_keys().cloned()),
             ),

@@ -6,7 +6,7 @@ use crate::authority::commit::publication::diagnostics_summary_artifact;
 use crate::diagnostics::data::RelationalDiagnosticsEntry;
 use crate::diagnostics::data::{DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::history::data::CommitReference;
-use crate::publication::patch::data::RelationalPatchRecord;
+use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
 use crate::transactions::data::{
     AspectEmissionTrace, AspectEvaluationTrace, CommitAspectSummary, CommitChangeSummary,
     CommitPublicationSummary, MergedCommitPlan, PublishedMergeExecutionAuthority, RecordRef,
@@ -34,7 +34,7 @@ pub(crate) struct PublicationFinalizeArtifacts {
 pub(crate) fn prepare_publication_artifacts(
     runtime: &mut crate::logic::runtime::RelationalRuntime,
     working_state: &mut crate::logic::runtime::WorkingState,
-    patch: RelationalPatchRecord,
+    patch: PublishedAuthoritativePatchEnvelope,
     commit_reference: &CommitReference,
     branch_id: &crate::history::data::BranchId,
     version_id: crate::identity::data::VersionId,
@@ -74,7 +74,7 @@ pub(crate) fn prepare_publication_artifacts(
     let aspect_emission_traces = if capture_patch_publication_traces {
         derive_aspect_emission_traces(
             patch.position,
-            &patch.records,
+            &patch.authoritative_record_patches,
             &effect.publication.canonical_deltas,
         )
     } else {
@@ -118,7 +118,7 @@ pub(crate) fn prepare_publication_artifacts(
     };
     let aspect_summary = summarize_commit_aspects(&effect.publication.canonical_deltas);
     let summary = CommitPublicationSummary {
-        patch_record_count: patch.records.len(),
+        patch_record_count: patch.authoritative_record_patches.len(),
         diagnostics_entry_count: artifacts.bundle.diagnostics_summary.entries.len(),
         lineage_event_count,
         patch_position: Some(patch.position),
@@ -143,7 +143,7 @@ pub(crate) fn prepare_publication_artifacts(
 
 fn derive_aspect_emission_traces(
     patch_position: crate::publication::patch::data::PatchStreamPosition,
-    patch_records: &[crate::publication::patch::data::PatchRecord],
+    patch_records: &[crate::publication::patch::data::PublishedAuthoritativeRecordPatch],
     deltas: &[crate::authority::mutation::CanonicalRecordAspectDelta],
 ) -> Vec<AspectEmissionTrace> {
     let delta_index = deltas
@@ -178,9 +178,10 @@ mod tests {
     use crate::authority::mutation::CanonicalRecordAspectDelta;
     use crate::identity::data::{EntityId, KindId, PartitionId};
     use crate::publication::patch::data::{
-        ordered_aspect_keys, PatchDetail, PatchRecord, PatchStreamPosition, RecordStructuralChange,
+        ordered_aspect_keys, PatchDetail, PatchStreamPosition, PublishedAuthoritativeRecordPatch,
+        RecordStructuralChange,
     };
-    use crate::schema::data::AspectPlanRevision;
+    use crate::schema::data::AspectContractPlanRevision;
     use crate::transactions::data::RecordRef;
     use forge_foundational::facade::AspectKey;
 
@@ -194,7 +195,7 @@ mod tests {
             CanonicalRecordAspectDelta {
                 target: target_a.clone(),
                 kind_id: KindId(7),
-                plan_revision: AspectPlanRevision(1),
+                plan_revision: AspectContractPlanRevision(1),
                 structural_change: RecordStructuralChange::Updated,
                 changed_aspects: ordered_aspect_keys([aspect_a.clone()]),
                 evaluated_bindings: Default::default(),
@@ -203,7 +204,7 @@ mod tests {
             CanonicalRecordAspectDelta {
                 target: target_b.clone(),
                 kind_id: KindId(7),
-                plan_revision: AspectPlanRevision(1),
+                plan_revision: AspectContractPlanRevision(1),
                 structural_change: RecordStructuralChange::Created,
                 changed_aspects: ordered_aspect_keys([aspect_b.clone()]),
                 evaluated_bindings: Default::default(),
@@ -211,7 +212,7 @@ mod tests {
             },
         ];
         let patch_records = vec![
-            PatchRecord {
+            PublishedAuthoritativeRecordPatch {
                 target: target_b.clone(),
                 structural_change: RecordStructuralChange::Created,
                 authoritative_patch:
@@ -219,7 +220,7 @@ mod tests {
                 contains_opaque_aspect: true,
                 detail: PatchDetail::DenseBitset(Vec::new()),
             },
-            PatchRecord {
+            PublishedAuthoritativeRecordPatch {
                 target: target_a.clone(),
                 structural_change: RecordStructuralChange::Updated,
                 authoritative_patch:

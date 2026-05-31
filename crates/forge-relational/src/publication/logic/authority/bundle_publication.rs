@@ -31,7 +31,7 @@ impl<'runtime> PublicationAuthority<'runtime> {
         &mut self,
         commit_reference: CommitReference,
         version_id: VersionId,
-        patch: crate::publication::patch::data::RelationalPatchRecord,
+        patch: crate::publication::patch::data::PublishedAuthoritativePatchEnvelope,
         diagnostics_summary: crate::diagnostics::data::RelationalDiagnosticArtifact,
     ) -> PublicationArtifacts {
         let snapshot_id = self.runtime.visibility.allocate_snapshot_id();

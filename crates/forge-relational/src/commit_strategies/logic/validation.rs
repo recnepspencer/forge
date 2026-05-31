@@ -107,7 +107,7 @@ fn preview_strategy_post_mutation_validation(
         &apply_plan,
         &mutation_config,
         &runtime.config().schema.registry,
-        &runtime.aspect_semantics.plans,
+        &runtime.schema_contract_runtime.aspect_contract_plans,
         &mut preview_symbols,
         branch_local_delete_allowance,
     )

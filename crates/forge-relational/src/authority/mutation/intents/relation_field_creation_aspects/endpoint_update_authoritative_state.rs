@@ -2,7 +2,7 @@ use forge_foundational::facade::{aspects, AuthoritativeRecordAspectState};
 use forge_proof::TransitionOutcome;
 
 use crate::identity::data::{EntityId, KindId};
-use crate::schema::data::LoweredAspectPlan;
+use crate::schema::data::LoweredAspectContractPlan;
 use crate::transactions::data::RelationAuthoritativeAspectStateDenial;
 
 use super::authoritative_state_admission::admit_relation_creation_state;
@@ -11,7 +11,7 @@ use super::creation_authoritative_patch::construct_creation_patch;
 
 pub(crate) fn apply_relation_endpoint_update_aspects(
     _kind_id: KindId,
-    lowered_plan: Option<&LoweredAspectPlan>,
+    lowered_plan: Option<&LoweredAspectContractPlan>,
     old_authoritative_state: Option<AuthoritativeRecordAspectState>,
     source: EntityId,
     target: EntityId,

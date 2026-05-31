@@ -1,23 +1,25 @@
 use crate::config::data::RelationalRuntimeConfig;
 use crate::logic::runtime::RelationalRuntime;
+use crate::schema::data::{
+    AspectContractPlanCatalog, LoweredAspectContractPlan, RelationalSchemaRegistry,
+};
 #[cfg(test)]
 use crate::schema::data::{AspectLoweringTrace, LoweredRelationIntegrityPlan};
-use crate::schema::data::{AspectPlanCatalog, LoweredAspectPlan, RelationalSchemaRegistry};
 
 pub(crate) trait SchemaSource {
     fn schema_registry(&self) -> &RelationalSchemaRegistry;
 }
 
 pub(crate) trait AspectPlanSource {
-    fn aspect_plan_catalog(&self) -> &AspectPlanCatalog;
+    fn aspect_plan_catalog(&self) -> &AspectContractPlanCatalog;
     fn entity_aspect_plan(
         &self,
         kind_id: crate::identity::data::KindId,
-    ) -> Option<&LoweredAspectPlan>;
+    ) -> Option<&LoweredAspectContractPlan>;
     fn relation_aspect_plan(
         &self,
         kind_id: crate::identity::data::KindId,
-    ) -> Option<&LoweredAspectPlan>;
+    ) -> Option<&LoweredAspectContractPlan>;
 }
 
 impl SchemaSource for RelationalRuntime {
@@ -27,22 +29,28 @@ impl SchemaSource for RelationalRuntime {
 }
 
 impl AspectPlanSource for RelationalRuntime {
-    fn aspect_plan_catalog(&self) -> &AspectPlanCatalog {
-        &self.aspect_semantics.plans
+    fn aspect_plan_catalog(&self) -> &AspectContractPlanCatalog {
+        &self.schema_contract_runtime.aspect_contract_plans
     }
 
     fn entity_aspect_plan(
         &self,
         kind_id: crate::identity::data::KindId,
-    ) -> Option<&LoweredAspectPlan> {
-        self.aspect_semantics.plans.entity_plans.get(&kind_id)
+    ) -> Option<&LoweredAspectContractPlan> {
+        self.schema_contract_runtime
+            .aspect_contract_plans
+            .entity_plans
+            .get(&kind_id)
     }
 
     fn relation_aspect_plan(
         &self,
         kind_id: crate::identity::data::KindId,
-    ) -> Option<&LoweredAspectPlan> {
-        self.aspect_semantics.plans.relation_plans.get(&kind_id)
+    ) -> Option<&LoweredAspectContractPlan> {
+        self.schema_contract_runtime
+            .aspect_contract_plans
+            .relation_plans
+            .get(&kind_id)
     }
 }
 
@@ -64,11 +72,11 @@ impl RelationalRuntime {
         &self,
         kind_id: crate::identity::data::KindId,
     ) -> Option<AspectLoweringTrace> {
-        self.aspect_semantics
-            .plans
+        self.schema_contract_runtime
+            .aspect_contract_plans
             .entity_plans
             .get(&kind_id)
-            .map(LoweredAspectPlan::lowering_trace)
+            .map(LoweredAspectContractPlan::lowering_trace)
     }
 
     #[cfg(test)]
@@ -76,11 +84,11 @@ impl RelationalRuntime {
         &self,
         kind_id: crate::identity::data::KindId,
     ) -> Option<AspectLoweringTrace> {
-        self.aspect_semantics
-            .plans
+        self.schema_contract_runtime
+            .aspect_contract_plans
             .relation_plans
             .get(&kind_id)
-            .map(LoweredAspectPlan::lowering_trace)
+            .map(LoweredAspectContractPlan::lowering_trace)
     }
 
     #[cfg(test)]
@@ -88,7 +96,7 @@ impl RelationalRuntime {
         &self,
         kind_id: crate::identity::data::KindId,
     ) -> Option<&LoweredRelationIntegrityPlan> {
-        self.aspect_semantics
+        self.schema_contract_runtime
             .relation_integrity_plans
             .relation_plans
             .get(&kind_id)

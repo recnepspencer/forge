@@ -1,5 +1,5 @@
 use crate::history::data::CommitId;
-use crate::publication::patch::data::{PatchStreamPosition, RelationalPatchRecord};
+use crate::publication::patch::data::{PatchStreamPosition, PublishedAuthoritativePatchEnvelope};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -19,7 +19,7 @@ impl Default for PatchStreamRequest {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PatchStreamBatch {
-    pub patches: Vec<RelationalPatchRecord>,
+    pub patches: Vec<PublishedAuthoritativePatchEnvelope>,
     pub resumed_after: Option<PatchStreamPosition>,
     pub next_position: Option<PatchStreamPosition>,
     pub latest_position: Option<PatchStreamPosition>,

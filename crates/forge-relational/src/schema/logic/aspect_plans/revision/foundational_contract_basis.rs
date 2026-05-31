@@ -5,9 +5,9 @@ use forge_foundational::facade::{
 };
 use forge_proof::TransitionOutcome;
 
-use crate::canonical_basis_terms::foundational_canonical_basis_terms;
+use crate::canonical_basis_ready_sequence::canonical_basis_ready_sequence;
 use crate::identity::data::KindId;
-use crate::schema::data::{DeclaredAspect, SchemaRegistryError};
+use crate::schema::data::{DeclaredAspectContractBinding, SchemaRegistryError};
 
 use super::schema_plan_terms::RevisionHasher;
 
@@ -16,7 +16,7 @@ const SCHEMA_ASPECT_PLAN_REVISION_BASIS: &str = "forge-relational.schema.aspect-
 pub(super) fn mix_foundational_contract_basis(
     revision: &mut RevisionHasher,
     kind_id: KindId,
-    aspect: &DeclaredAspect,
+    aspect: &DeclaredAspectContractBinding,
 ) -> Result<(), SchemaRegistryError> {
     let Some(version) = CanonicalizationRuleVersion::new(SCHEMA_ASPECT_PLAN_REVISION_BASIS) else {
         return Err(SchemaRegistryError::invalid_aspect_declaration(
@@ -44,9 +44,9 @@ pub(super) fn mix_foundational_contract_basis(
     };
 
     revision.mix_text("foundational_contract_basis");
-    let canonical_basis_terms = foundational_canonical_basis_terms(&ready);
-    revision.mix_text(canonical_basis_terms.version().as_str());
-    for entry in canonical_basis_terms.entries() {
+    let ready_sequence = canonical_basis_ready_sequence(&ready);
+    revision.mix_text(ready_sequence.version().as_str());
+    for entry in ready_sequence.entries() {
         mix_canonical_basis_entry(revision, entry);
     }
     Ok(())

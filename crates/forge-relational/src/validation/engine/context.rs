@@ -1,7 +1,7 @@
 use crate::capabilities::AspectPlanSource;
 use crate::identity::data::KindId;
 use crate::logic::runtime::RelationalRuntime;
-use crate::schema::data::LoweredAspectPlan;
+use crate::schema::data::LoweredAspectContractPlan;
 use crate::transactions::data::MergedCommitPlan;
 
 use super::metrics::InvariantMetrics;
@@ -61,7 +61,7 @@ impl<'runtime> InvariantExecutionContext<'runtime> {
             .and_then(|scopes| scopes.scope_for(relation_kind_id))
     }
 
-    pub(crate) fn entity_aspect_plan(&self, kind_id: KindId) -> Option<&LoweredAspectPlan> {
+    pub(crate) fn entity_aspect_plan(&self, kind_id: KindId) -> Option<&LoweredAspectContractPlan> {
         self.runtime.entity_aspect_plan(kind_id)
     }
 

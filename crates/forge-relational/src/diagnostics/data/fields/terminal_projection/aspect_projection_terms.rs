@@ -3,7 +3,7 @@ use forge_foundational::facade::{
     CanonicalBasisReadyArtifact, CanonicalFieldPath, DiagnosticMask,
 };
 
-use crate::canonical_basis_terms::foundational_canonical_basis_terms;
+use crate::canonical_basis_ready_sequence::canonical_basis_ready_sequence;
 
 use super::value::TerminalDiagnosticProjectionValue;
 
@@ -69,22 +69,19 @@ pub(super) fn diagnostic_mask_locator_terminal_projection(
 pub(super) fn canonical_basis_terminal_projection(
     basis: &CanonicalBasisReadyArtifact,
 ) -> TerminalDiagnosticProjectionValue {
-    let canonical_basis_terms = foundational_canonical_basis_terms(basis);
+    let ready_sequence = canonical_basis_ready_sequence(basis);
     object([
         ("basis_kind", string("canonical_basis_ready")),
-        (
-            "domain",
-            string(format!("{:?}", canonical_basis_terms.domain())),
-        ),
-        ("version", string(canonical_basis_terms.version().as_str())),
+        ("domain", string(format!("{:?}", ready_sequence.domain()))),
+        ("version", string(ready_sequence.version().as_str())),
         (
             "entry_count",
-            unsigned(canonical_basis_terms.entries().len() as u64),
+            unsigned(ready_sequence.entries().len() as u64),
         ),
         (
             "entries",
             TerminalDiagnosticProjectionValue::Array(
-                canonical_basis_terms
+                ready_sequence
                     .entries()
                     .iter()
                     .map(canonical_basis_entry_terminal_projection)

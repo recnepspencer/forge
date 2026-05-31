@@ -1,11 +1,9 @@
-use serde_json::Value as ExternalHarnessSummaryProjectionJson;
-
 pub(super) struct HarnessDiagnosticEntryView<'summary> {
-    root: &'summary ExternalHarnessSummaryProjectionJson,
+    root: &'summary serde_json::value::Value,
 }
 
 impl<'summary> HarnessDiagnosticEntryView<'summary> {
-    fn new(root: &'summary ExternalHarnessSummaryProjectionJson) -> Self {
+    fn new(root: &'summary serde_json::value::Value) -> Self {
         Self { root }
     }
 
@@ -19,11 +17,11 @@ impl<'summary> HarnessDiagnosticEntryView<'summary> {
 }
 
 struct HarnessDiagnosticsSummaryProjection<'summary> {
-    root: &'summary ExternalHarnessSummaryProjectionJson,
+    root: &'summary serde_json::value::Value,
 }
 
 impl<'summary> HarnessDiagnosticsSummaryProjection<'summary> {
-    fn new(root: &'summary ExternalHarnessSummaryProjectionJson) -> Self {
+    fn new(root: &'summary serde_json::value::Value) -> Self {
         Self { root }
     }
 
@@ -48,7 +46,7 @@ impl<'summary> HarnessDiagnosticsSummaryProjection<'summary> {
 }
 
 pub(super) fn harness_diagnostic_entries<'summary>(
-    summary: &'summary ExternalHarnessSummaryProjectionJson,
+    summary: &'summary serde_json::value::Value,
     code: &str,
 ) -> Vec<HarnessDiagnosticEntryView<'summary>> {
     HarnessDiagnosticsSummaryProjection::new(summary).diagnostic_entries(code)
@@ -63,14 +61,14 @@ pub(super) fn harness_diagnostic_field_matches(
 }
 
 pub(super) fn harness_summary_field<'summary>(
-    summary: &'summary ExternalHarnessSummaryProjectionJson,
+    summary: &'summary serde_json::value::Value,
     field: &str,
 ) -> Option<&'summary str> {
     HarnessDiagnosticsSummaryProjection::new(summary).field(field)
 }
 
 pub(super) fn harness_summary_counter(
-    summary: &ExternalHarnessSummaryProjectionJson,
+    summary: &serde_json::value::Value,
     counter: &str,
 ) -> Option<u64> {
     HarnessDiagnosticsSummaryProjection::new(summary).counter(counter)

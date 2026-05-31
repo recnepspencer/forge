@@ -1,8 +1,8 @@
 use crate::facade::history::CommitId;
 use crate::facade::identity::{EntityId, PartitionId};
 use crate::facade::publication::{
-    PatchOrdering, PatchPublicationMode, PatchRecord, PatchStreamPosition, RecordStructuralChange,
-    RelationalPatchRecord,
+    PatchOrdering, PatchPublicationMode, PatchStreamPosition, PublishedAuthoritativePatchEnvelope,
+    PublishedAuthoritativeRecordPatch, RecordStructuralChange,
 };
 use crate::publication::patch::data::{
     PatchDetail, PublishedAuthoritativePatch, PublishedAuthoritativePatchOperation,
@@ -21,11 +21,11 @@ fn publication_bridge_catalog_exposes_committed_patch_and_snapshot() {
         CommitId(7),
         "main",
         "snapshot-a",
-        &RelationalPatchRecord {
+        &PublishedAuthoritativePatchEnvelope {
             ordering: PatchOrdering::CanonicalCommitOrder,
             publication_mode: PatchPublicationMode::CommitNative,
             position: PatchStreamPosition(11),
-            records: vec![PatchRecord {
+            authoritative_record_patches: vec![PublishedAuthoritativeRecordPatch {
                 target: crate::transactions::data::RecordRef::Entity(EntityId::new(
                     PartitionId::main(),
                     4,

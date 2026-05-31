@@ -1,6 +1,5 @@
 pub(super) use forge_harness::facade::{
-    DiagnosticsHarnessAdapter, ExecutionProfile, ExecutionRequest, HarnessAdapter, MutationBatch,
-    ReplayHarnessAdapter, ReplayRequest, ScenarioPlan,
+    DiagnosticsHarnessAdapter, HarnessAdapter, ReplayHarnessAdapter,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -38,9 +37,9 @@ pub(super) use crate::facade::runtime::{
     RelationalRuntimeApi,
 };
 pub(super) use crate::facade::schema::{
-    AspectBinding, DeclaredAspect, EntityKindRegistration, KindAspectDeclarations,
-    RelationIntegrityDeclarations, RelationKindRegistration, RelationalSchemaRegistry, SchemaId,
-    SchemaVersionId,
+    AspectBinding, DeclaredAspectContractBinding, EntityKindRegistration,
+    KindAspectContractDeclarations, RelationIntegrityDeclarations, RelationKindRegistration,
+    RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 pub(super) use crate::facade::transactions::{
     AspectFieldPatch, BulkEntityCreateIntent, CommitResult, CreateIntent, DeleteEntityIntent,
@@ -122,7 +121,7 @@ pub(crate) fn diagnostic_field_optional<'a>(
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct AspectTruthBundle {
     pub visible_truth: VisibleTruthSummary,
-    pub latest_patch: Option<crate::facade::publication::RelationalPatchRecord>,
+    pub latest_patch: Option<crate::facade::publication::PublishedAuthoritativePatchEnvelope>,
     pub latest_replay: Option<crate::facade::runtime::RelationalReplayRecord>,
     pub diagnostics: crate::facade::diagnostics::RelationalDiagnosticsFacade,
     pub entity_history_digests: Vec<(

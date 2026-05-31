@@ -15,14 +15,24 @@ pub(super) fn schema_registry_mismatch(
         if expected_registration.kind_name == found_registration.kind_name
             && expected_registration.schema_id == found_registration.schema_id
             && expected_registration.schema_version_id == found_registration.schema_version_id
-            && expected_registration.aspect_declarations.plan_revision
-                != found_registration.aspect_declarations.plan_revision
+            && expected_registration
+                .aspect_contract_declarations
+                .plan_revision
+                != found_registration
+                    .aspect_contract_declarations
+                    .plan_revision
         {
             return RecoveryAuthorityContinuityMismatch::EntityAspectPlanRevision {
                 kind_id: *kind_id,
                 kind_name: expected_registration.kind_name.clone(),
-                expected_revision: expected_registration.aspect_declarations.plan_revision.0,
-                found_revision: found_registration.aspect_declarations.plan_revision.0,
+                expected_revision: expected_registration
+                    .aspect_contract_declarations
+                    .plan_revision
+                    .0,
+                found_revision: found_registration
+                    .aspect_contract_declarations
+                    .plan_revision
+                    .0,
             };
         }
     }
@@ -33,14 +43,24 @@ pub(super) fn schema_registry_mismatch(
         if expected_registration.kind_name == found_registration.kind_name
             && expected_registration.schema_id == found_registration.schema_id
             && expected_registration.schema_version_id == found_registration.schema_version_id
-            && expected_registration.aspect_declarations.plan_revision
-                != found_registration.aspect_declarations.plan_revision
+            && expected_registration
+                .aspect_contract_declarations
+                .plan_revision
+                != found_registration
+                    .aspect_contract_declarations
+                    .plan_revision
         {
             return RecoveryAuthorityContinuityMismatch::RelationAspectPlanRevision {
                 kind_id: *kind_id,
                 kind_name: expected_registration.kind_name.clone(),
-                expected_revision: expected_registration.aspect_declarations.plan_revision.0,
-                found_revision: found_registration.aspect_declarations.plan_revision.0,
+                expected_revision: expected_registration
+                    .aspect_contract_declarations
+                    .plan_revision
+                    .0,
+                found_revision: found_registration
+                    .aspect_contract_declarations
+                    .plan_revision
+                    .0,
             };
         }
         if expected_registration.kind_name == found_registration.kind_name

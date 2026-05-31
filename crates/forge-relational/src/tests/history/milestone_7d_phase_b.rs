@@ -9,7 +9,7 @@ use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::transactions::RecordRef;
 use crate::merge::data::AspectMergePolicyDeclaration;
 use crate::schema::data::{
-    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration, SchemaId,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationKindRegistration, SchemaId,
     SchemaVersionId,
 };
 use crate::tests::support::{
@@ -37,10 +37,9 @@ fn runtime_with_name_merge_policy(
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                name_key.clone(),
-                crate::tests::support::field_key("name"),
-            )])
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                entity_field_aspect(name_key.clone(), crate::tests::support::field_key("name")),
+            ])
             .with_identity_declarations(vec![IdentityBasisDeclaration {
                 scope: IdentityBasisScope::AspectKey(name_key.clone()),
                 basis: IdentityBasisKind::DeclaredKeySet(vec![name_key.clone()].into()),
@@ -58,7 +57,7 @@ fn runtime_with_name_merge_policy(
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
             })
         })

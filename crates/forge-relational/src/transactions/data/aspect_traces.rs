@@ -10,7 +10,7 @@ use crate::identity::data::{EntityId, KindId};
 use crate::publication::patch::data::{
     PatchStreamPosition, PublishedAuthoritativePatch, RecordStructuralChange,
 };
-use crate::schema::data::AspectPlanRevision;
+use crate::schema::data::AspectContractPlanRevision;
 
 use super::RecordRef;
 use diagnostic_fields::{emission_trace_diagnostic_fields, evaluation_trace_diagnostic_fields};
@@ -21,7 +21,7 @@ use forge_foundational::facade::{AspectKey, AspectValue, AspectValueLocator, Str
 pub struct AspectEvaluationTrace {
     pub target: RecordRef,
     pub kind_id: KindId,
-    pub plan_revision: AspectPlanRevision,
+    pub plan_revision: AspectContractPlanRevision,
     pub structural_change: RecordStructuralChange,
     pub changed_aspects: Vec<AspectKey>,
     pub contains_opaque_aspect: bool,

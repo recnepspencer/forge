@@ -87,7 +87,7 @@ impl<'runtime> HistoryAuthority<'runtime> {
     pub(crate) fn tamper_commit_patch_for_test(
         &mut self,
         commit_id: crate::history::data::CommitId,
-        mutate: impl FnOnce(&mut crate::publication::patch::data::RelationalPatchRecord),
+        mutate: impl FnOnce(&mut crate::publication::patch::data::PublishedAuthoritativePatchEnvelope),
     ) -> bool {
         let Some(envelope) = self.runtime.history.commit_envelopes.get_mut(&commit_id) else {
             return false;

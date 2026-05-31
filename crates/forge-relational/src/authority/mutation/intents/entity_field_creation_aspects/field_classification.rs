@@ -3,13 +3,13 @@ use forge_foundational::facade::{
     LocatorAuthority,
 };
 
-use crate::schema::data::{LoweredAspectBinding, LoweredAspectPlan};
+use crate::schema::data::{LoweredAspectContractBinding, LoweredAspectContractPlan};
 use crate::transactions::data::{
     AspectFieldTargetRejectionReason, EntityAuthoritativeAspectStateDenial,
 };
 
 pub(super) enum EntityCreationFieldTarget<'a> {
-    Scalar(&'a LoweredAspectBinding),
+    Scalar(&'a LoweredAspectContractBinding),
     StructField {
         binding_index: usize,
         field: FieldKey,
@@ -17,7 +17,7 @@ pub(super) enum EntityCreationFieldTarget<'a> {
 }
 
 pub(super) fn resolve_creation_field_target<'a>(
-    lowered_plan: &'a LoweredAspectPlan,
+    lowered_plan: &'a LoweredAspectContractPlan,
     target: &AspectFieldLocator,
 ) -> Result<EntityCreationFieldTarget<'a>, EntityAuthoritativeAspectStateDenial> {
     let Some(field) = single_creation_field(target) else {
@@ -58,7 +58,7 @@ pub(super) fn source_locator_for_target(target: &AspectFieldLocator) -> Boundary
 }
 
 pub(super) fn source_locator_for_aspect_binding(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
 ) -> BoundarySourceLocator {
     BoundarySourceLocator::aspect(AspectLocator::new(
         LocatorAuthority::Planned,

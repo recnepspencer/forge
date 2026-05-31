@@ -10,8 +10,9 @@ use forge_relational::facade::merge::{
 };
 use forge_relational::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use forge_relational::facade::schema::{
-    DeclaredAspect, EntityKindRegistration, KindAspectDeclarations, RelationIntegrityDeclarations,
-    RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
+    DeclaredAspectContractBinding, EntityKindRegistration, KindAspectContractDeclarations,
+    RelationIntegrityDeclarations, RelationKindRegistration, RelationalSchemaRegistry, SchemaId,
+    SchemaVersionId,
 };
 use forge_relational::facade::symbols::ClientKey;
 use forge_relational::facade::transactions::{
@@ -162,9 +163,9 @@ fn default_merge_registry() -> RelationalSchemaRegistry {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                "name", "name",
-            )])
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                entity_field_aspect("name", "name"),
+            ])
             .with_identity_declarations(vec![
                 IdentityBasisDeclaration {
                     scope: IdentityBasisScope::EntityKind(KindId(1)),
@@ -188,7 +189,7 @@ fn default_merge_registry() -> RelationalSchemaRegistry {
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })
@@ -203,9 +204,9 @@ fn topology_merge_registry() -> RelationalSchemaRegistry {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                "name", "name",
-            )]),
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                entity_field_aspect("name", "name"),
+            ]),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -215,7 +216,7 @@ fn topology_merge_registry() -> RelationalSchemaRegistry {
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::new(vec![
+                aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
                     relation_field_aspect("label", "label"),
                     relation_source_aspect(),
                     relation_target_aspect(),
@@ -385,18 +386,18 @@ fn aspect_key(name: &str) -> AspectKey {
     crate::aspect_field_authoring::aspect_key(name).expect("valid aspect key")
 }
 
-fn entity_field_aspect(name: &str, field: &str) -> DeclaredAspect {
+fn entity_field_aspect(name: &str, field: &str) -> DeclaredAspectContractBinding {
     entity_string_field_aspect(name, field).expect("entity field aspect")
 }
 
-fn relation_field_aspect(name: &str, field: &str) -> DeclaredAspect {
+fn relation_field_aspect(name: &str, field: &str) -> DeclaredAspectContractBinding {
     relation_string_field_aspect(name, field).expect("relation field aspect")
 }
 
-fn relation_source_aspect() -> DeclaredAspect {
+fn relation_source_aspect() -> DeclaredAspectContractBinding {
     relation_source_endpoint_aspect("source").expect("relation source aspect")
 }
 
-fn relation_target_aspect() -> DeclaredAspect {
+fn relation_target_aspect() -> DeclaredAspectContractBinding {
     relation_target_endpoint_aspect("target").expect("relation target aspect")
 }

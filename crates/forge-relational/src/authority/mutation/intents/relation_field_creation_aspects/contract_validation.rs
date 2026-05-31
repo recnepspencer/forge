@@ -6,7 +6,7 @@ use forge_proof::TransitionOutcome;
 use std::collections::BTreeMap;
 
 use crate::identity::data::EntityId;
-use crate::schema::data::{AspectBinding, LoweredAspectBinding, LoweredAspectPlan};
+use crate::schema::data::{AspectBinding, LoweredAspectContractBinding, LoweredAspectContractPlan};
 use crate::transactions::data::{AspectFieldPatch, RelationAuthoritativeAspectStateDenial};
 
 use super::field_classification::{
@@ -15,7 +15,7 @@ use super::field_classification::{
 };
 
 pub(super) fn validate_relation_creation_aspects(
-    lowered_plan: &LoweredAspectPlan,
+    lowered_plan: &LoweredAspectContractPlan,
     fields: &AspectFieldPatch,
     source: EntityId,
     target: EntityId,
@@ -55,7 +55,7 @@ pub(super) fn validate_relation_creation_aspects(
 }
 
 fn validate_scalar_creation_value(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     target: &AspectFieldLocator,
     value: &AspectValue,
 ) -> Result<ContractValidatedAspectArtifact, RelationAuthoritativeAspectStateDenial> {
@@ -74,7 +74,7 @@ fn validate_scalar_creation_value(
 }
 
 fn validate_struct_creation_value(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     field_sets: Vec<(FieldKey, AspectValue)>,
 ) -> Result<ContractValidatedAspectArtifact, RelationAuthoritativeAspectStateDenial> {
     let source_locator = source_locator_for_aspect_binding(binding);
@@ -103,7 +103,7 @@ fn validate_struct_creation_value(
 }
 
 pub(super) fn validate_endpoint_identity_aspects(
-    lowered_plan: &LoweredAspectPlan,
+    lowered_plan: &LoweredAspectContractPlan,
     source: EntityId,
     target: EntityId,
 ) -> Result<Vec<ContractValidatedAspectArtifact>, RelationAuthoritativeAspectStateDenial> {
@@ -123,7 +123,7 @@ pub(super) fn validate_endpoint_identity_aspects(
 }
 
 fn validate_endpoint_identity(
-    binding: &LoweredAspectBinding,
+    binding: &LoweredAspectContractBinding,
     endpoint: EntityId,
 ) -> Result<ContractValidatedAspectArtifact, RelationAuthoritativeAspectStateDenial> {
     let value = AspectValue::EntityRef(foundational_entity_id(endpoint));

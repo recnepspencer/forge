@@ -51,7 +51,7 @@ pub(crate) fn run_authoritative_mutation_for_runtime(
         &apply_plan,
         &mutation_config,
         &runtime.config.schema.registry,
-        &runtime.aspect_semantics.plans,
+        &runtime.schema_contract_runtime.aspect_contract_plans,
         &mut runtime.services.symbols,
         branch_local_delete_allowance,
     )

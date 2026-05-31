@@ -1,4 +1,4 @@
-use crate::facade::schema::{DeclaredAspect, RelationalSchemaRegistry};
+use crate::facade::schema::{DeclaredAspectContractBinding, RelationalSchemaRegistry};
 use crate::tests::support::{
     aspect_key, entity_bool_field_aspect, entity_field_aspect, entity_u64_field_aspect, field_key,
     lifecycle_aspect, relation_field_aspect, relation_source_aspect, relation_target_aspect,
@@ -19,7 +19,7 @@ pub(super) fn fintech_schema_registry() -> RelationalSchemaRegistry {
     .build_registry()
 }
 
-fn fintech_entity_aspects() -> Vec<DeclaredAspect> {
+fn fintech_entity_aspects() -> Vec<DeclaredAspectContractBinding> {
     string_entity_field_aspects()
         .into_iter()
         .chain(unsigned_entity_field_aspects())
@@ -28,7 +28,7 @@ fn fintech_entity_aspects() -> Vec<DeclaredAspect> {
         .collect()
 }
 
-fn string_entity_field_aspects() -> Vec<DeclaredAspect> {
+fn string_entity_field_aspects() -> Vec<DeclaredAspectContractBinding> {
     vec![
         entity_field_aspect(aspect_key("name"), field_key("name")),
         entity_field_aspect(aspect_key("entity_type"), field_key("entity_type")),
@@ -53,7 +53,7 @@ fn string_entity_field_aspects() -> Vec<DeclaredAspect> {
     ]
 }
 
-fn unsigned_entity_field_aspects() -> Vec<DeclaredAspect> {
+fn unsigned_entity_field_aspects() -> Vec<DeclaredAspectContractBinding> {
     vec![
         entity_u64_field_aspect(aspect_key("desk_index"), field_key("desk_index")),
         entity_u64_field_aspect(aspect_key("book_index"), field_key("book_index")),
@@ -66,7 +66,7 @@ fn unsigned_entity_field_aspects() -> Vec<DeclaredAspect> {
     ]
 }
 
-fn bool_entity_field_aspects() -> Vec<DeclaredAspect> {
+fn bool_entity_field_aspects() -> Vec<DeclaredAspectContractBinding> {
     vec![
         entity_bool_field_aspect(
             aspect_key("correction_candidate"),

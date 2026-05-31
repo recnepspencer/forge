@@ -1,4 +1,4 @@
-use crate::publication::patch::data::PatchRecord;
+use crate::publication::patch::data::PublishedAuthoritativeRecordPatch;
 use crate::publication::patch::data::RecordStructuralChange;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -28,5 +28,5 @@ pub(crate) struct DiffPreparationHeader {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct DiffPreparationPacket {
     pub(crate) header: DiffPreparationHeader,
-    pub(crate) records: Vec<PatchRecord>,
+    pub(crate) authoritative_record_patches: Vec<PublishedAuthoritativeRecordPatch>,
 }

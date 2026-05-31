@@ -2,7 +2,7 @@ use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::facade::{
     runtime::RelationalRuntimeApi,
     schema::{
-        EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
+        EntityKindRegistration, KindAspectContractDeclarations, RelationKindRegistration,
         RelationalSchemaRegistry, SchemaId, SchemaVersionId,
     },
 };
@@ -25,7 +25,7 @@ pub(super) fn relation_integrity_runtime() -> crate::logic::runtime::RelationalR
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::default(),
+            aspect_contract_declarations: KindAspectContractDeclarations::default(),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -35,7 +35,7 @@ pub(super) fn relation_integrity_runtime() -> crate::logic::runtime::RelationalR
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::new(
                     vec![EndpointKindContractDeclaration {
                         contract_id: "kind2".into(),
@@ -59,7 +59,7 @@ pub(super) fn relation_integrity_runtime() -> crate::logic::runtime::RelationalR
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::new(
                     vec![EndpointKindContractDeclaration {
                         contract_id: "kind3".into(),

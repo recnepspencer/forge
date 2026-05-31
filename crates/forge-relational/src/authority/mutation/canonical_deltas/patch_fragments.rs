@@ -6,7 +6,9 @@ use forge_foundational::facade::{
 };
 use forge_proof::TransitionOutcome;
 
-use crate::publication::patch::data::{PatchDetail, PatchRecord, RecordStructuralChange};
+use crate::publication::patch::data::{
+    PatchDetail, PublishedAuthoritativeRecordPatch, RecordStructuralChange,
+};
 use crate::transactions::data::RecordRef;
 
 use super::changed_authoritative_patch::authoritative_patch_filtered_to_changed_bindings;
@@ -126,8 +128,8 @@ fn non_authoritative_delta_patch(
 }
 
 impl FoundationalPatchFragment {
-    pub(crate) fn published_record(&self) -> PatchRecord {
-        PatchRecord {
+    pub(crate) fn published_record(&self) -> PublishedAuthoritativeRecordPatch {
+        PublishedAuthoritativeRecordPatch {
             target: self.target.clone(),
             structural_change: self.structural_change,
             authoritative_patch: published_patch_from_foundational_patch(&self.patch),

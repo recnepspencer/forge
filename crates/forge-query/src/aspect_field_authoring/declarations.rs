@@ -1,13 +1,13 @@
 use forge_foundational::facade::{aspects, AspectIdentity, ScalarAspectType};
-use forge_relational::facade::schema::{AspectBinding, DeclaredAspect};
+use forge_relational::facade::schema::{AspectBinding, DeclaredAspectContractBinding};
 
 use super::keys::{aspect_key, field_key};
 
 pub(crate) fn entity_string_field_aspect(
     aspect_label: &str,
     field_label: &str,
-) -> Result<DeclaredAspect, String> {
-    Ok(DeclaredAspect {
+) -> Result<DeclaredAspectContractBinding, String> {
+    Ok(DeclaredAspectContractBinding {
         binding: AspectBinding::EntityField {
             field: field_key(field_label)?,
         },
@@ -19,8 +19,8 @@ pub(crate) fn entity_string_field_aspect(
 pub(crate) fn relation_string_field_aspect(
     aspect_label: &str,
     field_label: &str,
-) -> Result<DeclaredAspect, String> {
-    Ok(DeclaredAspect {
+) -> Result<DeclaredAspectContractBinding, String> {
+    Ok(DeclaredAspectContractBinding {
         binding: AspectBinding::RelationField {
             field: field_key(field_label)?,
         },
@@ -28,8 +28,10 @@ pub(crate) fn relation_string_field_aspect(
     })
 }
 
-pub(crate) fn lifecycle_string_aspect(aspect_label: &str) -> Result<DeclaredAspect, String> {
-    Ok(DeclaredAspect {
+pub(crate) fn lifecycle_string_aspect(
+    aspect_label: &str,
+) -> Result<DeclaredAspectContractBinding, String> {
+    Ok(DeclaredAspectContractBinding {
         binding: AspectBinding::LifecycleTransition,
         contract: scalar_string_contract(aspect_label)?,
     })
@@ -38,8 +40,8 @@ pub(crate) fn lifecycle_string_aspect(aspect_label: &str) -> Result<DeclaredAspe
 #[cfg(test)]
 pub(crate) fn relation_source_endpoint_aspect(
     aspect_label: &str,
-) -> Result<DeclaredAspect, String> {
-    Ok(DeclaredAspect {
+) -> Result<DeclaredAspectContractBinding, String> {
+    Ok(DeclaredAspectContractBinding {
         binding: AspectBinding::RelationSourceEndpoint,
         contract: entity_reference_contract(aspect_label)?,
     })
@@ -48,8 +50,8 @@ pub(crate) fn relation_source_endpoint_aspect(
 #[cfg(test)]
 pub(crate) fn relation_target_endpoint_aspect(
     aspect_label: &str,
-) -> Result<DeclaredAspect, String> {
-    Ok(DeclaredAspect {
+) -> Result<DeclaredAspectContractBinding, String> {
+    Ok(DeclaredAspectContractBinding {
         binding: AspectBinding::RelationTargetEndpoint,
         contract: entity_reference_contract(aspect_label)?,
     })

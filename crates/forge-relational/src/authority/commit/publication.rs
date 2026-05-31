@@ -15,7 +15,8 @@ use crate::identity::data::VersionId;
 use crate::logic::planning::RelationalExecutionModel;
 use crate::logic::runtime::RelationalRuntime;
 use crate::publication::patch::data::{
-    PatchOrdering, PatchPublicationMode, PatchRecord, PatchStreamPosition, RelationalPatchRecord,
+    PatchOrdering, PatchPublicationMode, PatchStreamPosition, PublishedAuthoritativePatchEnvelope,
+    PublishedAuthoritativeRecordPatch,
 };
 use crate::storage::logic::state::{PartitionState, PublicationArtifacts};
 use crate::transactions::data::RecordRef;
@@ -80,7 +81,7 @@ pub(super) fn assemble_patch(
     runtime: &RelationalRuntime,
     commit_id: CommitId,
     fragments: Vec<FoundationalPatchFragment>,
-) -> RelationalPatchRecord {
+) -> PublishedAuthoritativePatchEnvelope {
     let records = prepare_patch_fragments(
         runtime,
         fragments
@@ -88,38 +89,40 @@ pub(super) fn assemble_patch(
             .map(|fragment| fragment.published_record())
             .collect(),
     );
-    RelationalPatchRecord {
+    PublishedAuthoritativePatchEnvelope {
         ordering: PatchOrdering::CanonicalCommitOrder,
         publication_mode: PatchPublicationMode::CommitNative,
         position: PatchStreamPosition(commit_id.0),
-        records,
+        authoritative_record_patches: records,
     }
     .canonicalized()
 }
 
 fn prepare_patch_fragments(
     runtime: &RelationalRuntime,
-    records: Vec<PatchRecord>,
-) -> Vec<PatchRecord> {
+    authoritative_record_patches: Vec<PublishedAuthoritativeRecordPatch>,
+) -> Vec<PublishedAuthoritativeRecordPatch> {
     use crate::authority::commit::preparation::packets::diff::{
         DiffPreparationHeader, DiffPreparationPacket,
     };
 
-    if records.is_empty() {
-        return records;
+    if authoritative_record_patches.is_empty() {
+        return authoritative_record_patches;
     }
 
-    let packet_count =
-        coarse_preparation_packet_count(records.len(), TARGET_PREPARATION_ITEMS_PER_PACKET);
+    let packet_count = coarse_preparation_packet_count(
+        authoritative_record_patches.len(),
+        TARGET_PREPARATION_ITEMS_PER_PACKET,
+    );
     runtime.performance_access().count_preparation_packet_shape(
         packet_count,
-        records.len(),
-        records
+        authoritative_record_patches.len(),
+        authoritative_record_patches
             .chunks(TARGET_PREPARATION_ITEMS_PER_PACKET)
             .map(|chunk| chunk.len())
             .max()
             .unwrap_or(0),
-        records
+        authoritative_record_patches
             .iter()
             .map(|record| match record.target {
                 RecordRef::Entity(entity_id) => entity_id.partition_id,
@@ -139,7 +142,7 @@ fn prepare_patch_fragments(
         runtime
             .performance_access()
             .count_preparation_serial_strategy();
-        return direct_diff_record_order(records);
+        return direct_diff_record_order(authoritative_record_patches);
     }
 
     runtime
@@ -153,7 +156,7 @@ fn prepare_patch_fragments(
         .count_preparation_staged_parallel_strategy();
 
     let mut packets = Vec::with_capacity(packet_count);
-    for (packet_index, chunk) in records
+    for (packet_index, chunk) in authoritative_record_patches
         .chunks(TARGET_PREPARATION_ITEMS_PER_PACKET)
         .enumerate()
     {
@@ -161,7 +164,7 @@ fn prepare_patch_fragments(
             header: DiffPreparationHeader {
                 packet_index_floor: packet_index * TARGET_PREPARATION_ITEMS_PER_PACKET,
             },
-            records: chunk.to_vec(),
+            authoritative_record_patches: chunk.to_vec(),
         });
     }
 
@@ -176,11 +179,13 @@ fn prepare_patch_fragments(
     .collect()
 }
 
-fn direct_diff_record_order(records: Vec<PatchRecord>) -> Vec<PatchRecord> {
+fn direct_diff_record_order(
+    authoritative_record_patches: Vec<PublishedAuthoritativeRecordPatch>,
+) -> Vec<PublishedAuthoritativeRecordPatch> {
     use crate::authority::commit::preparation::packets::diff::DiffFragmentKind;
     use crate::authority::commit::preparation::reduction::keys::DiffReductionKey;
 
-    let mut keyed_records = records
+    let mut keyed_records = authoritative_record_patches
         .into_iter()
         .enumerate()
         .map(|(record_index, record)| {
@@ -212,14 +217,14 @@ fn diff_packet_stream(
     packet: &crate::authority::commit::preparation::packets::diff::DiffPreparationPacket,
 ) -> OrderedReductionStream<
     crate::authority::commit::preparation::reduction::keys::DiffReductionKey,
-    PatchRecord,
+    PublishedAuthoritativeRecordPatch,
 > {
     use crate::authority::commit::preparation::reduction::keys::DiffReductionKey;
 
-    let mut canonical_records = Vec::with_capacity(packet.records.len());
-    let mut headers = Vec::with_capacity(packet.records.len());
+    let mut canonical_records = Vec::with_capacity(packet.authoritative_record_patches.len());
+    let mut headers = Vec::with_capacity(packet.authoritative_record_patches.len());
 
-    for (offset, record) in packet.records.iter().enumerate() {
+    for (offset, record) in packet.authoritative_record_patches.iter().enumerate() {
         let canonical = record.canonicalized();
         #[allow(unused_mut)]
         let mut key = DiffReductionKey::new(

@@ -336,7 +336,7 @@ fn extract_declared_key_signature(
 fn extract_identity_component(
     _runtime: &crate::logic::runtime::RelationalRuntime,
     record: &VisibleMergeRecord,
-    binding: &crate::schema::data::LoweredAspectBinding,
+    binding: &crate::schema::data::LoweredAspectContractBinding,
 ) -> Option<MergeAspectComponent> {
     binding_component_from_visible_record(record, binding, VisibleRecordSide::Source)
 }

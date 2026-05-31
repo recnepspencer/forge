@@ -4,7 +4,9 @@ use crate::authority::commit::preparation::packets::diff::{
 };
 use crate::authority::commit::preparation::reduction::merge::canonical_merge_streams;
 use crate::identity::data::{EntityId, PartitionId};
-use crate::publication::patch::data::{PatchDetail, PatchRecord, RecordStructuralChange};
+use crate::publication::patch::data::{
+    PatchDetail, PublishedAuthoritativeRecordPatch, RecordStructuralChange,
+};
 use crate::transactions::data::RecordRef;
 
 #[test]
@@ -24,7 +26,7 @@ fn direct_serial_patch_preparation_matches_packet_merge_order() {
             header: DiffPreparationHeader {
                 packet_index_floor: packet_index * 2,
             },
-            records: chunk.to_vec(),
+            authoritative_record_patches: chunk.to_vec(),
         });
     }
 
@@ -38,9 +40,12 @@ fn direct_serial_patch_preparation_matches_packet_merge_order() {
     assert_eq!(direct, merged);
 }
 
-fn patch_record(raw_entity_id: u64, structural_change: RecordStructuralChange) -> PatchRecord {
+fn patch_record(
+    raw_entity_id: u64,
+    structural_change: RecordStructuralChange,
+) -> PublishedAuthoritativeRecordPatch {
     let structural_change_label = format!("{structural_change:?}");
-    PatchRecord {
+    PublishedAuthoritativeRecordPatch {
         target: RecordRef::Entity(EntityId::new(PartitionId(0), raw_entity_id, 0)),
         structural_change,
         authoritative_patch: crate::publication::patch::data::PublishedAuthoritativePatch::empty(),

@@ -11,8 +11,8 @@ use crate::lineage::data::{
     FinalizedLineageEventBatch, LineageDecisionLog, LineageFinalizationArtifact,
 };
 use crate::publication::patch::data::{
-    PatchDetail, PatchOrdering, PatchPublicationMode, PatchRecord, PatchStreamPosition,
-    RecordStructuralChange, RelationalPatchRecord,
+    PatchDetail, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
+    PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch, RecordStructuralChange,
 };
 use crate::replay::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
 use crate::schema::data::{DescriptorSemanticsVersion, RelationalSchemaRegistry, SchemaVersionId};
@@ -97,11 +97,11 @@ fn commit_envelope(commit_id: u64, version_id: u64) -> CanonicalCommitEnvelope {
             transaction_id: TransactionId(commit_id),
             merged_intents: vec![],
         },
-        RelationalPatchRecord {
+        PublishedAuthoritativePatchEnvelope {
             ordering: PatchOrdering::CanonicalCommitOrder,
             publication_mode: PatchPublicationMode::CommitNative,
             position: PatchStreamPosition(commit_id),
-            records: vec![PatchRecord {
+            authoritative_record_patches: vec![PublishedAuthoritativeRecordPatch {
                 target: RecordRef::Entity(crate::identity::data::EntityId::new(
                     crate::identity::data::PartitionId::main(),
                     commit_id,

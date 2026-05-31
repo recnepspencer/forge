@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
 use crate::history::data::CommitId;
-use crate::publication::patch::data::RelationalPatchRecord;
+use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
 use forge_runtime_bridge::facade::{
     CommittedPatchSource, RawCommittedPatchEnvelope, RelationalBridgeSourceError,
     RelationalCommittedPatchRequest, SnapshotReadPacket, SnapshotReadPacketResult,
@@ -46,7 +46,7 @@ impl PublicationBridgeCatalog {
         commit_id: CommitId,
         branch_identity: impl Into<String>,
         snapshot_identity: impl Into<String>,
-        patch: &RelationalPatchRecord,
+        patch: &PublishedAuthoritativePatchEnvelope,
     ) {
         let envelope = publication_patch_to_bridge_envelope(
             commit_id,
