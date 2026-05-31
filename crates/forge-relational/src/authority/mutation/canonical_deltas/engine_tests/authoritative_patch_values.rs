@@ -1,4 +1,4 @@
-use forge_foundational::facade::{FieldKey, StructAspectValue};
+use forge_foundational::facade::{ContractValidatedAspectValueView, FieldKey, StructAspectValue};
 use forge_foundational::{
     AspectKey as FoundationalAspectKey, AspectValue as FoundationalAspectValue,
     InternedString as FoundationalInternedString,
@@ -6,20 +6,18 @@ use forge_foundational::{
 
 use crate::authority::mutation::outcomes::RecordMutation;
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId};
-use crate::publication::patch::data::{
-    ordered_aspect_keys, PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue,
-};
+use crate::publication::patch::data::ordered_aspect_keys;
 use crate::schema::data::{AspectBinding, RelationalSchemaRegistry};
 use crate::symbols::data::StringInterner;
 use crate::transactions::data::AspectTraceEvidence;
 
 use super::super::canonical_delta_for_mutation;
-use super::super::data::CanonicalAspectDeltaEvidence;
+use super::super::data::{AuthoritativePatchDeltaOperation, CanonicalAspectDeltaEvidence};
 use super::support::{
     assert_authoritative_whole_aspect_locator, authoritative_string_patch,
-    authoritative_summary_patch, catalog_with_entity_binding, catalog_with_relation_binding,
-    empty_working_state, empty_workspace, mutation_config, scalar_string_contract,
-    summary_struct_contract,
+    authoritative_summary_field_patch, authoritative_summary_patch, catalog_with_entity_binding,
+    catalog_with_relation_binding, empty_working_state, empty_workspace, mutation_config,
+    scalar_string_contract, summary_struct_contract,
 };
 
 #[test]
@@ -53,20 +51,20 @@ fn entity_field_delta_materializes_authoritative_aspect_patch() {
         delta.changed_aspects,
         ordered_aspect_keys([FoundationalAspectKey::new("name").unwrap()])
     );
-    let CanonicalAspectDeltaEvidence::AuthoritativePatchOperation {
+    let CanonicalAspectDeltaEvidence::AuthoritativePatch {
         locator,
-        operation:
-            PublishedAuthoritativePatchOperation::WholeAspectSet {
-                aspect_key,
-                value:
-                    PublishedAuthoritativePatchValue::Scalar(FoundationalAspectValue::String(actual)),
-            },
+        operation: AuthoritativePatchDeltaOperation::WholeAspectSet { value },
     } = &delta.evaluated_bindings[0].evidence
     else {
         panic!("expected scalar authoritative patch evidence");
     };
     assert_authoritative_whole_aspect_locator(locator, "name");
-    assert_eq!(aspect_key.as_str(), "name");
+    assert_eq!(value.key().as_str(), "name");
+    let ContractValidatedAspectValueView::Scalar(FoundationalAspectValue::String(actual)) =
+        value.view()
+    else {
+        panic!("expected validated scalar string authoritative patch value");
+    };
     assert_eq!(
         actual,
         &FoundationalInternedString::Raw("native-authority".to_string())
@@ -100,18 +98,17 @@ fn entity_struct_delta_materializes_authoritative_patch_value() {
     )
     .expect("struct evidence should come from authoritative patch");
 
-    let CanonicalAspectDeltaEvidence::AuthoritativePatchOperation {
-        operation:
-            PublishedAuthoritativePatchOperation::WholeAspectSet {
-                aspect_key,
-                value: PublishedAuthoritativePatchValue::Struct(actual),
-            },
+    let CanonicalAspectDeltaEvidence::AuthoritativePatch {
+        operation: AuthoritativePatchDeltaOperation::WholeAspectSet { value },
         ..
     } = &delta.evaluated_bindings[0].evidence
     else {
         panic!("expected struct authoritative patch evidence");
     };
-    assert_eq!(aspect_key.as_str(), "summary");
+    assert_eq!(value.key().as_str(), "summary");
+    let ContractValidatedAspectValueView::Struct(actual) = value.view() else {
+        panic!("expected validated struct authoritative patch value");
+    };
     assert_eq!(
         struct_field_value(actual, "title"),
         Some(&FoundationalAspectValue::String("native-summary".into()))
@@ -131,6 +128,70 @@ fn entity_struct_delta_materializes_authoritative_patch_value() {
     assert_eq!(
         struct_field_value(trace_value, "title"),
         Some(&FoundationalAspectValue::String("native-summary".into()))
+    );
+}
+
+#[test]
+fn entity_struct_delta_materializes_foundational_field_level_patch_evidence() {
+    let config = mutation_config();
+    let mut state = empty_working_state(&config);
+    let mut symbols = StringInterner::default();
+    let schema = RelationalSchemaRegistry::new();
+    let contract = summary_struct_contract(FoundationalAspectKey::new("summary").unwrap());
+    let authoritative_patch = authoritative_summary_field_patch(&contract, "field-level-summary");
+    let catalog = catalog_with_entity_binding(
+        KindId(1),
+        contract,
+        AspectBinding::EntityField {
+            field: forge_foundational::facade::FieldKey::new("summary").expect("valid field"),
+        },
+    );
+    let mutation = RecordMutation::EntityCreated {
+        entity_id: EntityId::new(PartitionId(1), 0, 1),
+        kind_id: KindId(1),
+        authoritative_patch: Some(authoritative_patch),
+    };
+
+    let delta = canonical_delta_for_mutation(
+        &mutation,
+        &empty_workspace(&mut state, &mut symbols, &catalog, &config, &schema),
+    )
+    .expect("field-level struct evidence should come from authoritative patch");
+
+    let CanonicalAspectDeltaEvidence::AuthoritativePatch {
+        operation: AuthoritativePatchDeltaOperation::FieldLevelPatch { patch },
+        ..
+    } = &delta.evaluated_bindings[0].evidence
+    else {
+        panic!("expected foundational field-level authoritative patch evidence");
+    };
+    assert_eq!(patch.key().as_str(), "summary");
+    assert_eq!(
+        patch
+            .field_sets()
+            .find(|(field, _)| field.as_str() == "title")
+            .map(|(_, value)| value),
+        Some(&FoundationalAspectValue::String(
+            "field-level-summary".into()
+        ))
+    );
+
+    let trace = delta.evaluation_trace();
+    let AspectTraceEvidence::AuthoritativePatch { patch, .. } = &trace.binding_rows[0].evidence
+    else {
+        panic!("expected field-level authoritative patch trace evidence");
+    };
+    let aspect_key = FoundationalAspectKey::new("summary").unwrap();
+    let title = FieldKey::new("title").expect("valid field");
+    assert_eq!(
+        patch
+            .field_sets_for(&aspect_key)
+            .map(|field_set| (&field_set.field, &field_set.value))
+            .collect::<Vec<_>>(),
+        vec![(
+            &title,
+            &FoundationalAspectValue::String("field-level-summary".into())
+        )]
     );
 }
 
@@ -166,20 +227,20 @@ fn relation_field_delta_materializes_authoritative_aspect_patch() {
     )
     .expect("relation field evidence should come from authoritative aspect patch");
 
-    let CanonicalAspectDeltaEvidence::AuthoritativePatchOperation {
+    let CanonicalAspectDeltaEvidence::AuthoritativePatch {
         locator,
-        operation:
-            PublishedAuthoritativePatchOperation::WholeAspectSet {
-                aspect_key,
-                value:
-                    PublishedAuthoritativePatchValue::Scalar(FoundationalAspectValue::String(actual)),
-            },
+        operation: AuthoritativePatchDeltaOperation::WholeAspectSet { value },
     } = &delta.evaluated_bindings[0].evidence
     else {
         panic!("expected scalar authoritative relation patch evidence");
     };
     assert_authoritative_whole_aspect_locator(locator, "relation.label");
-    assert_eq!(aspect_key.as_str(), "relation.label");
+    assert_eq!(value.key().as_str(), "relation.label");
+    let ContractValidatedAspectValueView::Scalar(FoundationalAspectValue::String(actual)) =
+        value.view()
+    else {
+        panic!("expected validated scalar string authoritative patch value");
+    };
     assert_eq!(
         actual,
         &FoundationalInternedString::Raw("native-authority".to_string())

@@ -2,8 +2,9 @@ use std::collections::BTreeMap;
 
 use forge_foundational::{
     aspects, validate_aspect_value, AspectContract, AspectContractRevision, AspectIdentity,
-    AspectKey as FoundationalAspectKey, AspectValue as FoundationalAspectValue,
-    InternedString as FoundationalInternedString, ScalarAspectType,
+    AspectKey as FoundationalAspectKey, AspectMask, AspectValue as FoundationalAspectValue,
+    CanonicalFieldPath, InternedString as FoundationalInternedString, MutationMask,
+    ScalarAspectType,
 };
 use forge_proof::TransitionOutcome;
 
@@ -169,6 +170,26 @@ pub(super) fn authoritative_summary_patch(
         forge_foundational::facade::AuthoritativeRecordAspectPatch::whole_aspect([validated], [])
     else {
         panic!("test patch should construct one whole-aspect set");
+    };
+    patch
+}
+
+pub(super) fn authoritative_summary_field_patch(
+    contract: &AspectContract,
+    title: &str,
+) -> forge_foundational::facade::AuthoritativeRecordAspectPatch {
+    let field_key = forge_foundational::facade::FieldKey::new("title").expect("valid field");
+    let mutation_mask =
+        AspectMask::<MutationMask>::new([CanonicalFieldPath::single(field_key.clone())]);
+    let TransitionOutcome::Success(patch) =
+        forge_foundational::facade::AuthoritativeRecordAspectPatch::field_level(
+            contract,
+            &mutation_mask,
+            [(field_key, FoundationalAspectValue::String(title.into()))],
+            [],
+        )
+    else {
+        panic!("test field-level patch should construct one field set");
     };
     patch
 }

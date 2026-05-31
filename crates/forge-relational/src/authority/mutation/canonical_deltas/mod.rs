@@ -6,6 +6,7 @@ mod lifecycle_transition_evidence;
 mod materialized_state;
 mod patch_authority;
 mod patch_fragments;
+mod published_patch_projection;
 
 #[cfg(test)]
 mod engine_tests;

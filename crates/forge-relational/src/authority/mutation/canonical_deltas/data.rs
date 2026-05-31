@@ -1,16 +1,17 @@
 use smallvec::SmallVec;
 
 use crate::identity::data::EntityId;
-use crate::publication::patch::data::{
-    PublishedAuthoritativePatchOperation, RecordStructuralChange,
-};
+use crate::publication::patch::data::RecordStructuralChange;
 use crate::schema::data::AspectPlanRevision;
 use crate::transactions::data::RecordRef;
 use crate::transactions::data::{
     AspectDeltaFailureFields, AspectDeltaPatchConstructionDenial, AspectDeltaPatchValueDenial,
     AspectDeltaRecordClass, CommitConflict, ConflictClass,
 };
-use forge_foundational::facade::{AspectFieldLocator, AspectKey, AspectValueLocator};
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectKey, AspectValueLocator, ContractValidatedAspectValue,
+    FieldLevelAspectPatch,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CanonicalRecordAspectDelta {
@@ -57,10 +58,17 @@ pub(crate) enum CanonicalAspectDeltaEvidence {
         locator: AspectValueLocator,
         transition: LifecycleTransitionClass,
     },
-    AuthoritativePatchOperation {
+    AuthoritativePatch {
         locator: AspectValueLocator,
-        operation: PublishedAuthoritativePatchOperation,
+        operation: AuthoritativePatchDeltaOperation,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum AuthoritativePatchDeltaOperation {
+    WholeAspectSet { value: ContractValidatedAspectValue },
+    WholeAspectClear { aspect_key: AspectKey },
+    FieldLevelPatch { patch: FieldLevelAspectPatch },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

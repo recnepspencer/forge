@@ -1,15 +1,13 @@
 use smallvec::SmallVec;
 
-use crate::publication::patch::data::{
-    ordered_aspect_keys, PublishedAuthoritativeFieldSet, PublishedAuthoritativePatchOperation,
-    PublishedAuthoritativePatchValue, RecordStructuralChange,
-};
+use crate::publication::patch::data::{ordered_aspect_keys, RecordStructuralChange};
 use crate::schema::data::{AspectBinding, LoweredAspectPlan};
 use crate::transactions::data::RecordRef;
 use forge_foundational::facade::{AspectLocator, AspectValueLocator, LocatorAuthority};
 
 use super::data::{
-    CanonicalAspectDeltaEvidence, CanonicalRecordAspectDelta, EvaluatedAspectBinding,
+    AuthoritativePatchDeltaOperation, CanonicalAspectDeltaEvidence, CanonicalRecordAspectDelta,
+    EvaluatedAspectBinding,
 };
 use super::lifecycle_transition_evidence::lifecycle_transition;
 
@@ -103,18 +101,10 @@ fn whole_aspect_set_evidence(
     let (_, value) = patch
         .whole_aspect_sets()
         .find(|(key, _)| *key == binding.contract.key())?;
-    Some(CanonicalAspectDeltaEvidence::AuthoritativePatchOperation {
+    Some(CanonicalAspectDeltaEvidence::AuthoritativePatch {
         locator: authoritative_value_locator(binding),
-        operation: PublishedAuthoritativePatchOperation::WholeAspectSet {
-            aspect_key: binding.contract.key().clone(),
-            value: match value.view() {
-                forge_foundational::facade::ContractValidatedAspectValueView::Scalar(value) => {
-                    PublishedAuthoritativePatchValue::Scalar(value.clone())
-                }
-                forge_foundational::facade::ContractValidatedAspectValueView::Struct(value) => {
-                    PublishedAuthoritativePatchValue::Struct(value.clone())
-                }
-            },
+        operation: AuthoritativePatchDeltaOperation::WholeAspectSet {
+            value: value.clone(),
         },
     })
 }
@@ -126,14 +116,12 @@ fn whole_aspect_clear_evidence(
     patch
         .whole_aspect_clears()
         .any(|key| key == binding.contract.key())
-        .then(
-            || CanonicalAspectDeltaEvidence::AuthoritativePatchOperation {
-                locator: authoritative_value_locator(binding),
-                operation: PublishedAuthoritativePatchOperation::WholeAspectClear {
-                    aspect_key: binding.contract.key().clone(),
-                },
+        .then(|| CanonicalAspectDeltaEvidence::AuthoritativePatch {
+            locator: authoritative_value_locator(binding),
+            operation: AuthoritativePatchDeltaOperation::WholeAspectClear {
+                aspect_key: binding.contract.key().clone(),
             },
-        )
+        })
 }
 
 fn field_level_patch_evidence(
@@ -143,18 +131,10 @@ fn field_level_patch_evidence(
     let (_, field_patch) = patch
         .field_patches()
         .find(|(key, _)| *key == binding.contract.key())?;
-    Some(CanonicalAspectDeltaEvidence::AuthoritativePatchOperation {
+    Some(CanonicalAspectDeltaEvidence::AuthoritativePatch {
         locator: authoritative_value_locator(binding),
-        operation: PublishedAuthoritativePatchOperation::FieldLevelPatch {
-            aspect_key: binding.contract.key().clone(),
-            field_sets: field_patch
-                .field_sets()
-                .map(|(field, value)| PublishedAuthoritativeFieldSet {
-                    field: field.clone(),
-                    value: value.clone(),
-                })
-                .collect(),
-            field_clears: field_patch.field_clears().cloned().collect(),
+        operation: AuthoritativePatchDeltaOperation::FieldLevelPatch {
+            patch: field_patch.clone(),
         },
     })
 }

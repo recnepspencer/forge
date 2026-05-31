@@ -6,10 +6,7 @@ use forge_foundational::facade::{
 };
 use forge_proof::TransitionOutcome;
 
-use crate::publication::patch::data::{
-    PatchDetail, PatchRecord, PublishedAuthoritativeFieldSet, PublishedAuthoritativePatch,
-    PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue, RecordStructuralChange,
-};
+use crate::publication::patch::data::{PatchDetail, PatchRecord, RecordStructuralChange};
 use crate::transactions::data::RecordRef;
 
 use super::changed_authoritative_patch::authoritative_patch_filtered_to_changed_bindings;
@@ -17,6 +14,7 @@ use super::data::{
     CanonicalAspectDeltaEvidence, CanonicalDeltaError, CanonicalRecordAspectDelta,
     EvaluatedAspectBinding, LifecycleTransitionClass,
 };
+use super::published_patch_projection::published_patch_from_foundational_patch;
 use crate::transactions::data::{AspectDeltaPatchConstructionDenial, AspectDeltaPatchValueDenial};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -105,7 +103,7 @@ fn non_authoritative_delta_patch(
         binding.changed
             && !matches!(
                 binding.evidence,
-                CanonicalAspectDeltaEvidence::AuthoritativePatchOperation { .. }
+                CanonicalAspectDeltaEvidence::AuthoritativePatch { .. }
             )
     }) {
         accumulate_patch_action(&delta.target, binding, &mut sets, &mut clears)?;
@@ -132,55 +130,9 @@ impl FoundationalPatchFragment {
         PatchRecord {
             target: self.target.clone(),
             structural_change: self.structural_change,
-            authoritative_patch: published_authoritative_patch(&self.patch),
+            authoritative_patch: published_patch_from_foundational_patch(&self.patch),
             contains_opaque_aspect: self.contains_opaque_aspect,
             detail: self.detail.clone(),
-        }
-    }
-}
-
-fn published_authoritative_patch(
-    patch: &AuthoritativeRecordAspectPatch,
-) -> PublishedAuthoritativePatch {
-    let operations = patch
-        .whole_aspect_sets()
-        .map(
-            |(aspect_key, value)| PublishedAuthoritativePatchOperation::WholeAspectSet {
-                aspect_key: aspect_key.clone(),
-                value: published_patch_value(value),
-            },
-        )
-        .chain(patch.whole_aspect_clears().map(|aspect_key| {
-            PublishedAuthoritativePatchOperation::WholeAspectClear {
-                aspect_key: aspect_key.clone(),
-            }
-        }))
-        .chain(patch.field_patches().map(|(aspect_key, field_patch)| {
-            PublishedAuthoritativePatchOperation::FieldLevelPatch {
-                aspect_key: aspect_key.clone(),
-                field_sets: field_patch
-                    .field_sets()
-                    .map(|(field, value)| PublishedAuthoritativeFieldSet {
-                        field: field.clone(),
-                        value: value.clone(),
-                    })
-                    .collect(),
-                field_clears: field_patch.field_clears().cloned().collect(),
-            }
-        }))
-        .collect();
-    PublishedAuthoritativePatch::new(operations)
-}
-
-fn published_patch_value(
-    value: &forge_foundational::facade::ContractValidatedAspectValue,
-) -> PublishedAuthoritativePatchValue {
-    match value.view() {
-        forge_foundational::facade::ContractValidatedAspectValueView::Scalar(value) => {
-            PublishedAuthoritativePatchValue::Scalar(value.clone())
-        }
-        forge_foundational::facade::ContractValidatedAspectValueView::Struct(value) => {
-            PublishedAuthoritativePatchValue::Struct(value.clone())
         }
     }
 }
@@ -244,7 +196,7 @@ fn accumulate_patch_action(
             ));
             sets.push(validate_patch_value(target, binding, value)?);
         }
-        CanonicalAspectDeltaEvidence::AuthoritativePatchOperation { .. } => {
+        CanonicalAspectDeltaEvidence::AuthoritativePatch { .. } => {
             return Err(CanonicalDeltaError::FoundationalPatchConstruction {
                 target: target.clone(),
                 denial: AspectDeltaPatchConstructionDenial::AuthoritativePatchEvidenceAlreadyCarriesPatch {
