@@ -8,7 +8,7 @@ use super::external_harness_summary_projection::{
     external_harness_summary_projection_object, external_harness_summary_projection_string,
     external_harness_summary_projection_usize, ExternalHarnessSummaryProjection,
 };
-use super::run_summary_fields::publication_observation_fields;
+use super::run_summary_fields::publication_diagnostic_observation_fields;
 
 pub(super) fn diagnostics_summary(
     execution_mode: forge_harness::facade::ExecutionMode,
@@ -212,7 +212,7 @@ impl PublicationDiagnosticSummary {
         external_harness_summary_projection_object([
             (
                 "observation",
-                publication_observation_fields(&self.observation),
+                publication_diagnostic_observation_fields(&self.observation),
             ),
             (
                 "diagnostics",

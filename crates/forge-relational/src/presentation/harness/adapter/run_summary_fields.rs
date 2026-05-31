@@ -25,10 +25,10 @@ pub(super) fn publication_artifacts_extension(
         .into_external_harness_summary_projection()
 }
 
-pub(super) fn publication_observation_fields(
+pub(super) fn publication_diagnostic_observation_fields(
     observation: &PublicationObservationSnapshot,
 ) -> ExternalHarnessSummaryProjection {
-    PublicationObservationSummary::from_observation(observation)
+    PublicationDiagnosticObservationSummary::from_observation(observation)
         .into_external_harness_summary_projection()
 }
 
@@ -70,7 +70,7 @@ impl RunSummary {
 }
 
 struct PublicationArtifactsExtension {
-    observation: PublicationObservationSummary,
+    observation: PublicationAuthorityObservationSummary,
     latest_patch_record_count: usize,
     latest_replay_present: bool,
 }
@@ -78,7 +78,7 @@ struct PublicationArtifactsExtension {
 impl PublicationArtifactsExtension {
     fn from_snapshot(publication_artifacts: PublicationArtifactSnapshot) -> Self {
         Self {
-            observation: PublicationObservationSummary::from_observation(
+            observation: PublicationAuthorityObservationSummary::from_observation(
                 &publication_artifacts.observation,
             ),
             latest_patch_record_count: publication_artifacts
@@ -108,7 +108,7 @@ impl PublicationArtifactsExtension {
     }
 }
 
-struct PublicationObservationSummary {
+struct PublicationAuthorityObservationSummary {
     latest_commit_id: Option<u64>,
     publication_snapshot_id: Option<u64>,
     publication_status: Option<String>,
@@ -117,10 +117,9 @@ struct PublicationObservationSummary {
     latest_replay_commit_id: Option<u64>,
     latest_patch_present: bool,
     latest_replay_present: bool,
-    diagnostics_artifact_count: usize,
 }
 
-impl PublicationObservationSummary {
+impl PublicationAuthorityObservationSummary {
     fn from_observation(observation: &PublicationObservationSnapshot) -> Self {
         Self {
             latest_commit_id: observation.latest_commit_id.map(|commit_id| commit_id.0),
@@ -138,12 +137,15 @@ impl PublicationObservationSummary {
                 .map(|commit_id| commit_id.0),
             latest_patch_present: observation.latest_patch_present,
             latest_replay_present: observation.latest_replay_present,
-            diagnostics_artifact_count: observation.diagnostics_artifact_count,
         }
     }
 
     fn into_external_harness_summary_projection(self) -> ExternalHarnessSummaryProjection {
-        external_harness_summary_projection_object([
+        external_harness_summary_projection_object(self.into_projection_fields())
+    }
+
+    fn into_projection_fields(self) -> Vec<(&'static str, ExternalHarnessSummaryProjection)> {
+        vec![
             (
                 "latest_commit_id",
                 optional_external_harness_summary_projection_u64(self.latest_commit_id),
@@ -176,10 +178,29 @@ impl PublicationObservationSummary {
                 "latest_replay_present",
                 external_harness_summary_projection_bool(self.latest_replay_present),
             ),
-            (
-                "diagnostics_artifact_count",
-                external_harness_summary_projection_usize(self.diagnostics_artifact_count),
-            ),
-        ])
+        ]
+    }
+}
+
+struct PublicationDiagnosticObservationSummary {
+    authority: PublicationAuthorityObservationSummary,
+    diagnostics_artifact_count: usize,
+}
+
+impl PublicationDiagnosticObservationSummary {
+    fn from_observation(observation: &PublicationObservationSnapshot) -> Self {
+        Self {
+            authority: PublicationAuthorityObservationSummary::from_observation(observation),
+            diagnostics_artifact_count: observation.diagnostics_artifact_count,
+        }
+    }
+
+    fn into_external_harness_summary_projection(self) -> ExternalHarnessSummaryProjection {
+        let mut fields = self.authority.into_projection_fields();
+        fields.push((
+            "diagnostics_artifact_count",
+            external_harness_summary_projection_usize(self.diagnostics_artifact_count),
+        ));
+        external_harness_summary_projection_object(fields)
     }
 }

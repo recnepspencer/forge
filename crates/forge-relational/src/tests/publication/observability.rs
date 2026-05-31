@@ -1113,6 +1113,46 @@ fn repeated_serial_runs_are_harness_comparable() {
     assert!(comparison.mismatches.is_empty());
 }
 
+#[test]
+fn harness_publication_artifact_extension_excludes_diagnostic_volume_from_run_parity() {
+    let adapter = RelationalHarnessAdapter;
+    let runner = forge_harness::facade::HarnessRunner::new(adapter);
+    let (fixture, batch, request) = harness_phase8_fixture_batch_request();
+    let serial = runner
+        .execute_core(
+            &fixture,
+            Some(&batch),
+            &request,
+            &ExecutionProfile::serial("serial"),
+        )
+        .unwrap();
+    let staged = runner
+        .execute_core(
+            &fixture,
+            Some(&batch),
+            &request,
+            &ExecutionProfile::staged_parallel("staged"),
+        )
+        .unwrap();
+    let serial_publication_artifacts = &serial.run.extensions["publication_artifacts"];
+    let staged_publication_artifacts = &staged.run.extensions["publication_artifacts"];
+    let comparison = runner
+        .compare_runs(
+            &serial.run,
+            &staged.run,
+            &forge_harness::facade::ComparisonProfile::default(),
+        )
+        .unwrap();
+
+    assert!(serial_publication_artifacts["observation"]
+        .get("diagnostics_artifact_count")
+        .is_none());
+    assert!(staged_publication_artifacts["observation"]
+        .get("diagnostics_artifact_count")
+        .is_none());
+    assert!(comparison.mismatches.is_empty());
+}
+
 fn harness_phase8_fixture_batch_request() -> (
     forge_harness::facade::ScenarioFixture<crate::presentation::harness::RelationalFixture>,
     MutationBatch<crate::facade::transactions::WorkerIntentBatch>,
