@@ -5,10 +5,10 @@
 
 mod adapter;
 mod artifacts;
-mod external_harness_artifact_projection;
 mod invariants;
 mod plans;
 mod read_summaries;
 mod session;
 mod steps;
 mod tests;
+mod workflow_artifact_projection;

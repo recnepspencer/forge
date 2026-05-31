@@ -25,7 +25,7 @@ pub(super) fn capture_replay(
         scenario_name: fixture.name.clone(),
         replay_name: replay.name.clone(),
         requested_targets: replay.request.targets.clone(),
-        summary: replay_summary(latest_replay).into_external_harness_json(),
+        summary: replay_summary(latest_replay).into_record_summary_value(),
         attachments: Vec::new(),
     })
 }

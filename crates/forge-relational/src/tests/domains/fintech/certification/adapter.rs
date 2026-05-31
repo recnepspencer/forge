@@ -20,14 +20,14 @@ use super::super::actions::{
 use super::super::fixture::FintechWorkflowCase;
 use super::super::scenarios::{setup_world_for, FintechScenario};
 use super::artifacts::capture_artifacts;
-use super::external_harness_artifact_projection::{
-    external_harness_artifact_object, optional_usize_field, string_array_field, string_field,
-    ExternalHarnessArtifactProjection,
-};
 use super::invariants::run_checks;
 use super::read_summaries::{case_read_summary, read_summary};
 use super::session::CertifiedRelationalFintechSession;
 use super::steps::{FintechCaseRef, FintechWorkflowStep};
+use super::workflow_artifact_projection::{
+    optional_usize_field, string_array_field, string_field, workflow_artifact_object,
+    WorkflowArtifactProjection,
+};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub(super) struct RelationalFintechWorkflowCertificationAdapter;
@@ -324,18 +324,18 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
     ) -> Result<ReproductionMetadata, Self::Error> {
         Ok(ReproductionMetadata {
             format: "json".to_string(),
-            payload: reproduction_external_harness_artifact_projection(session, failure)
-                .into_external_harness_payload()
+            payload: reproduction_workflow_artifact_projection(session, failure)
+                .into_record_summary_value()
                 .to_string(),
         })
     }
 }
 
-fn reproduction_external_harness_artifact_projection(
+fn reproduction_workflow_artifact_projection(
     session: &CertifiedRelationalFintechSession,
     failure: &WorkflowFailureContext,
-) -> ExternalHarnessArtifactProjection {
-    external_harness_artifact_object([
+) -> WorkflowArtifactProjection {
+    workflow_artifact_object([
         string_field("state", format!("{:?}", failure.state)),
         optional_usize_field("step_index", failure.step_index),
         string_array_field("known_branches", session.named_branches.keys().cloned()),

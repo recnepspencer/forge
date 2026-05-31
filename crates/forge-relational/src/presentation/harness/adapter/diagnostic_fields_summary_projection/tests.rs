@@ -3,7 +3,7 @@ use forge_foundational::facade::AspectValue;
 use super::*;
 
 #[test]
-fn terminal_harness_projection_keeps_aspect_value_typed_until_external_json() {
+fn terminal_harness_projection_keeps_aspect_value_typed_until_record_summary_materialization() {
     let typed_diagnostic = RelationalDiagnosticValue::object([(
         "typed_aspect",
         RelationalDiagnosticValue::AspectValue(AspectValue::UInt64(7)),
@@ -25,10 +25,10 @@ fn terminal_harness_projection_keeps_aspect_value_typed_until_external_json() {
         Some(TerminalHarnessSummaryProjection::String(value)) if value == "UInt64"
     ));
 
-    let external_json = harness_projection.into_external_harness_json();
-    assert_eq!(external_json["typed_aspect"]["value_family"], "UInt64");
+    let record_summary = harness_projection.into_record_summary_value();
+    assert_eq!(record_summary["typed_aspect"]["value_family"], "UInt64");
     assert!(
-        external_json["typed_aspect"]["canonical_value_bytes"].is_array(),
-        "terminal harness JSON should be the first JSON materialization"
+        record_summary["typed_aspect"]["canonical_value_bytes"].is_array(),
+        "harness record summary should be the first external materialization"
     );
 }

@@ -10,6 +10,12 @@ use crate::identity::{
 use crate::timeline::{FeedBatch, TimeMarker};
 use crate::workload::BudgetUsage;
 
+mod summary_projection;
+
+pub use summary_projection::{
+    HarnessRecordSummaryValue, HarnessRecordSummaryView, HarnessSummaryProjection,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum RecordSchemaVersion {
     V1,

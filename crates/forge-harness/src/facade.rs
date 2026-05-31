@@ -1,7 +1,8 @@
 pub use crate::artifact::{AttachmentKind, AttachmentRecord, BlobDescriptor};
 pub use crate::capture::{
     BinaryValue, DiagnosticsLevel, DiagnosticsRecord, EventCategory, EventRecord,
-    EventStreamRecord, ExecutionMode, ExplanationRecord, ObservationStatus, ProvenanceRecord,
+    EventStreamRecord, ExecutionMode, ExplanationRecord, HarnessRecordSummaryValue,
+    HarnessRecordSummaryView, HarnessSummaryProjection, ObservationStatus, ProvenanceRecord,
     RecordSchemaVersion, RunOutcome, RunRecord, RunStatus, ScenarioRecord, SnapshotObservation,
     SnapshotPayload, SnapshotRecord, StructuredValue, TargetStatusRecord,
 };

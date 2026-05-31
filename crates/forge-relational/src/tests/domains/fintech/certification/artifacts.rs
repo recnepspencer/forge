@@ -7,17 +7,17 @@ use forge_harness::facade::{
 use crate::facade::replay::RelationalReplayOutcome;
 
 use super::super::complexity::workflow_budgets;
-use super::external_harness_artifact_projection::{
-    bool_field, dynamic_external_harness_artifact_object, external_harness_artifact_field,
-    external_harness_artifact_object, optional_string_field, optional_u64_field,
-    optional_usize_field, string_array_field, string_field, usize_field,
-    ExternalHarnessArtifactProjection,
-};
 use super::read_summaries::read_summary_artifacts;
 use super::session::CertifiedRelationalFintechSession;
+use super::workflow_artifact_projection::{
+    bool_field, dynamic_workflow_artifact_object, optional_string_field, optional_u64_field,
+    optional_usize_field, string_array_field, string_field, usize_field,
+    workflow_artifact_bool_field, workflow_artifact_field, workflow_artifact_object,
+    WorkflowArtifactProjection,
+};
 
-fn replay_summary(replay: &RelationalReplayOutcome) -> ExternalHarnessArtifactProjection {
-    external_harness_artifact_object([
+fn replay_summary(replay: &RelationalReplayOutcome) -> WorkflowArtifactProjection {
+    workflow_artifact_object([
         optional_u64_field(
             "commit_id",
             replay.commit.as_ref().map(|commit| commit.commit_id.0),
@@ -72,9 +72,7 @@ fn replay_summary(replay: &RelationalReplayOutcome) -> ExternalHarnessArtifactPr
     ])
 }
 
-fn branch_summary(
-    session: &CertifiedRelationalFintechSession,
-) -> ExternalHarnessArtifactProjection {
+fn branch_summary(session: &CertifiedRelationalFintechSession) -> WorkflowArtifactProjection {
     let latest_commit = session
         .world
         .runtime
@@ -87,7 +85,7 @@ fn branch_summary(
         .map(|(alias, branch)| {
             (
                 alias.clone(),
-                external_harness_artifact_object([
+                workflow_artifact_object([
                     string_field("branch_id", branch.0.clone()),
                     optional_u64_field(
                         "head_commit",
@@ -102,18 +100,13 @@ fn branch_summary(
             )
         })
         .collect::<Vec<_>>();
-    external_harness_artifact_object([
+    workflow_artifact_object([
         optional_u64_field("latest_commit", latest_commit),
-        external_harness_artifact_field(
-            "branches",
-            dynamic_external_harness_artifact_object(branches),
-        ),
+        workflow_artifact_field("branches", dynamic_workflow_artifact_object(branches)),
     ])
 }
 
-fn diagnostics_summary(
-    session: &CertifiedRelationalFintechSession,
-) -> ExternalHarnessArtifactProjection {
+fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> WorkflowArtifactProjection {
     let recovery = session.world.runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -124,7 +117,7 @@ fn diagnostics_summary(
         .diagnostic_access()
         .snapshot();
     let observation = &publication_diagnostics.observation;
-    external_harness_artifact_object([
+    workflow_artifact_object([
         bool_field("latest_patch_present", observation.latest_patch_present),
         bool_field("latest_replay_present", observation.latest_replay_present),
         usize_field(
@@ -147,11 +140,11 @@ fn diagnostics_summary(
     ])
 }
 
-fn patch_summary(session: &CertifiedRelationalFintechSession) -> ExternalHarnessArtifactProjection {
+fn patch_summary(session: &CertifiedRelationalFintechSession) -> WorkflowArtifactProjection {
     let publication = session.world.runtime.publication();
     let artifacts = publication.artifact_snapshot();
     let observation = &artifacts.observation;
-    external_harness_artifact_object([
+    workflow_artifact_object([
         optional_u64_field(
             "latest_commit",
             observation.latest_commit_id.map(|commit_id| commit_id.0),
@@ -201,11 +194,9 @@ fn patch_summary(session: &CertifiedRelationalFintechSession) -> ExternalHarness
     ])
 }
 
-fn complexity_summary(
-    session: &CertifiedRelationalFintechSession,
-) -> ExternalHarnessArtifactProjection {
+fn complexity_summary(session: &CertifiedRelationalFintechSession) -> WorkflowArtifactProjection {
     let counters = session.world.runtime.performance_access().counters();
-    external_harness_artifact_object([
+    workflow_artifact_object([
         usize_field("full_state_clones", counters.full_state_clones),
         usize_field(
             "snapshot_pin_full_rebuilds",
@@ -230,9 +221,7 @@ fn complexity_summary(
     ])
 }
 
-fn budget_summary(
-    session: &CertifiedRelationalFintechSession,
-) -> ExternalHarnessArtifactProjection {
+fn budget_summary(session: &CertifiedRelationalFintechSession) -> WorkflowArtifactProjection {
     let counters = session.world.runtime.performance_access().counters();
     let mut all_passed = true;
     let checks = workflow_budgets()
@@ -241,7 +230,7 @@ fn budget_summary(
             let actual = (budget.selector)(&counters);
             let passed = actual <= budget.max;
             all_passed &= passed;
-            external_harness_artifact_object([
+            workflow_artifact_object([
                 string_field("label", budget.label.to_string()),
                 usize_field("max", budget.max),
                 usize_field("actual", actual),
@@ -249,9 +238,9 @@ fn budget_summary(
             ])
         })
         .collect::<Vec<_>>();
-    external_harness_artifact_object([
+    workflow_artifact_object([
         bool_field("all_passed", all_passed),
-        external_harness_artifact_field("checks", ExternalHarnessArtifactProjection::Array(checks)),
+        workflow_artifact_field("checks", WorkflowArtifactProjection::Array(checks)),
     ])
 }
 
@@ -281,7 +270,7 @@ pub(super) fn capture_artifacts(
                 ArtifactSurface::ReplayRecoveryTruthState,
                 "replay-recovery-truth",
                 request,
-                dynamic_external_harness_artifact_object(
+                dynamic_workflow_artifact_object(
                     session
                         .named_replays
                         .iter()
@@ -308,12 +297,12 @@ pub(super) fn capture_artifacts(
                 ArtifactSurface::StepTrace,
                 "step-trace",
                 request,
-                ExternalHarnessArtifactProjection::Array(
+                WorkflowArtifactProjection::Array(
                     session
                         .executed_steps
                         .iter()
                         .cloned()
-                        .map(ExternalHarnessArtifactProjection::String)
+                        .map(WorkflowArtifactProjection::String)
                         .collect(),
                 ),
             )),
@@ -322,7 +311,7 @@ pub(super) fn capture_artifacts(
                 ArtifactSurface::CheckpointTrace,
                 "checkpoint-trace",
                 request,
-                external_harness_artifact_object([
+                workflow_artifact_object([
                     string_array_field("checkpoints", session.checkpoints.iter().cloned()),
                     string_array_field("snapshots", session.named_snapshots.keys().cloned()),
                 ]),
@@ -352,7 +341,7 @@ fn captured_artifact_bundle(
     surface: ArtifactSurface,
     name: &'static str,
     request: &WorkflowCaptureRequest,
-    projection: ExternalHarnessArtifactProjection,
+    projection: WorkflowArtifactProjection,
 ) -> ArtifactBundle {
     let metadata = captured_artifact_metadata(surface.clone(), &projection);
     ArtifactBundle {
@@ -360,7 +349,7 @@ fn captured_artifact_bundle(
         surface,
         name: name.to_string(),
         boundary: request.boundary,
-        payload: projection.into_external_harness_payload(),
+        payload: projection.into_record_summary_value(),
         attachments: Vec::new(),
         metadata,
     }
@@ -368,11 +357,10 @@ fn captured_artifact_bundle(
 
 fn captured_artifact_metadata(
     surface: ArtifactSurface,
-    projection: &ExternalHarnessArtifactProjection,
+    projection: &WorkflowArtifactProjection,
 ) -> BTreeMap<String, String> {
     match surface {
-        ArtifactSurface::BudgetOutcome => projection
-            .object_bool_field("all_passed")
+        ArtifactSurface::BudgetOutcome => workflow_artifact_bool_field(projection, "all_passed")
             .map(|passed| BTreeMap::from([("budget_all_passed".to_string(), passed.to_string())]))
             .unwrap_or_default(),
         _ => BTreeMap::new(),

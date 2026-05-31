@@ -1,68 +1,27 @@
-use std::collections::BTreeMap;
-
-use serde_json::{Map as ExternalHarnessJsonObject, Value as ExternalHarnessJson};
+use forge_harness::facade::HarnessSummaryProjection;
 
 use crate::diagnostics::data::RelationalDiagnosticValue;
 
 use super::diagnostic_fields_summary_projection::project_diagnostic_fields_for_terminal_harness_summary;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum TerminalHarnessSummaryProjection {
-    Null,
-    Bool(bool),
-    Unsigned(u64),
-    Signed(i64),
-    String(String),
-    Array(Vec<TerminalHarnessSummaryProjection>),
-    Object(BTreeMap<String, TerminalHarnessSummaryProjection>),
-}
-
-impl TerminalHarnessSummaryProjection {
-    pub(super) fn into_external_harness_json(self) -> ExternalHarnessJson {
-        match self {
-            Self::Null => ExternalHarnessJson::Null,
-            Self::Bool(value) => ExternalHarnessJson::Bool(value),
-            Self::Unsigned(value) => ExternalHarnessJson::from(value),
-            Self::Signed(value) => ExternalHarnessJson::from(value),
-            Self::String(value) => ExternalHarnessJson::String(value),
-            Self::Array(values) => ExternalHarnessJson::Array(
-                values
-                    .into_iter()
-                    .map(TerminalHarnessSummaryProjection::into_external_harness_json)
-                    .collect(),
-            ),
-            Self::Object(fields) => {
-                ExternalHarnessJson::Object(ExternalHarnessJsonObject::from_iter(
-                    fields
-                        .into_iter()
-                        .map(|(field, value)| (field, value.into_external_harness_json())),
-                ))
-            }
-        }
-    }
-}
+pub(super) type TerminalHarnessSummaryProjection = HarnessSummaryProjection;
 
 pub(super) fn terminal_harness_summary_projection_object(
     fields: impl IntoIterator<Item = (&'static str, TerminalHarnessSummaryProjection)>,
 ) -> TerminalHarnessSummaryProjection {
-    TerminalHarnessSummaryProjection::Object(
-        fields
-            .into_iter()
-            .map(|(field, value)| (field.to_string(), value))
-            .collect(),
-    )
+    TerminalHarnessSummaryProjection::object(fields)
 }
 
 pub(super) fn terminal_harness_summary_projection_dynamic_object(
     fields: impl IntoIterator<Item = (String, TerminalHarnessSummaryProjection)>,
 ) -> TerminalHarnessSummaryProjection {
-    TerminalHarnessSummaryProjection::Object(fields.into_iter().collect())
+    TerminalHarnessSummaryProjection::object(fields)
 }
 
 pub(super) fn terminal_harness_summary_projection_array(
     values: impl IntoIterator<Item = TerminalHarnessSummaryProjection>,
 ) -> TerminalHarnessSummaryProjection {
-    TerminalHarnessSummaryProjection::Array(values.into_iter().collect())
+    TerminalHarnessSummaryProjection::array(values)
 }
 
 pub(super) fn terminal_harness_summary_projection_diagnostic_fields(

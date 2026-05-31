@@ -2,11 +2,11 @@ use std::collections::BTreeMap;
 
 use super::super::fixture::FintechCaseRole;
 use super::super::probes::{capture_case_truth_probe, CaseTruthProbe, ProbeStage};
-use super::external_harness_artifact_projection::{
-    dynamic_external_harness_artifact_object, external_harness_artifact_object, string_field,
-    u64_field, usize_field, ExternalHarnessArtifactProjection,
-};
 use super::session::CertifiedRelationalFintechSession;
+use super::workflow_artifact_projection::{
+    dynamic_workflow_artifact_object, string_field, u64_field, usize_field,
+    workflow_artifact_object, WorkflowArtifactProjection,
+};
 use crate::facade::snapshots::SnapshotHandle;
 use crate::tests::support::{field_key, read_entity_field};
 
@@ -82,9 +82,7 @@ impl CertifiedFintechReadSummary {
             .unwrap_or(false)
     }
 
-    pub(super) fn to_external_harness_artifact_projection(
-        &self,
-    ) -> ExternalHarnessArtifactProjection {
+    pub(super) fn to_workflow_artifact_projection(&self) -> WorkflowArtifactProjection {
         let mut fields = vec![
             u64_field("snapshot_id", self.snapshot_id),
             usize_field("entity_count", self.entity_count),
@@ -97,22 +95,17 @@ impl CertifiedFintechReadSummary {
         if let Some(case_role) = self.case_role {
             fields.push(string_field("case_role", format!("{case_role:?}")));
         }
-        external_harness_artifact_object(fields)
+        workflow_artifact_object(fields)
     }
 }
 
 pub(super) fn read_summary_artifacts(
     summaries: &BTreeMap<String, CertifiedFintechReadSummary>,
-) -> ExternalHarnessArtifactProjection {
-    dynamic_external_harness_artifact_object(
+) -> WorkflowArtifactProjection {
+    dynamic_workflow_artifact_object(
         summaries
             .iter()
-            .map(|(alias, summary)| {
-                (
-                    alias.clone(),
-                    summary.to_external_harness_artifact_projection(),
-                )
-            })
+            .map(|(alias, summary)| (alias.clone(), summary.to_workflow_artifact_projection()))
             .collect::<Vec<_>>(),
     )
 }

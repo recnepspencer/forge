@@ -82,10 +82,10 @@ pub(super) fn execute_request(
         changed_targets: targets,
         attachments: Vec::new(),
         summary: run_summary(&snapshot, result.entities.len(), result.relations.len())
-            .into_external_harness_json(),
+            .into_record_summary_value(),
         extensions: BTreeMap::from([(
             "publication_artifacts".to_string(),
-            publication_artifacts_extension(publication_artifacts).into_external_harness_json(),
+            publication_artifacts_extension(publication_artifacts).into_record_summary_value(),
         )]),
     })
 }

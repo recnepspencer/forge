@@ -1,52 +1,55 @@
+use forge_harness::facade::{HarnessRecordSummaryValue, HarnessRecordSummaryView};
+
 pub(super) struct HarnessDiagnosticEntryView<'summary> {
-    root: &'summary serde_json::value::Value,
+    root: HarnessRecordSummaryView<'summary>,
 }
 
 impl<'summary> HarnessDiagnosticEntryView<'summary> {
-    fn new(root: &'summary serde_json::value::Value) -> Self {
+    fn new(root: HarnessRecordSummaryView<'summary>) -> Self {
         Self { root }
     }
 
     pub(super) fn field_matches(&self, field: &str, expected: &str) -> bool {
-        self.root["fields"][field].as_str() == Some(expected)
+        self.root.string_field_at(&["fields", field]) == Some(expected)
     }
 
     fn code_matches(&self, code: &str) -> bool {
-        self.root["code"].as_str() == Some(code)
+        self.root.string_field("code") == Some(code)
     }
 }
 
 struct HarnessDiagnosticsSummaryProjection<'summary> {
-    root: &'summary serde_json::value::Value,
+    root: HarnessRecordSummaryView<'summary>,
 }
 
 impl<'summary> HarnessDiagnosticsSummaryProjection<'summary> {
-    fn new(root: &'summary serde_json::value::Value) -> Self {
-        Self { root }
+    fn new(root: &'summary HarnessRecordSummaryValue) -> Self {
+        Self {
+            root: HarnessRecordSummaryView::new(root),
+        }
     }
 
     fn diagnostic_entries(&self, code: &str) -> Vec<HarnessDiagnosticEntryView<'summary>> {
-        self.root["publication_diagnostics"]["diagnostics"]
-            .as_array()
+        self.root
+            .object_array_at(&["publication_diagnostics", "diagnostics"])
             .into_iter()
-            .flatten()
-            .flat_map(|artifact| artifact["entries"].as_array().into_iter().flatten())
+            .flat_map(|artifact| artifact.object_array_at(&["entries"]))
             .map(HarnessDiagnosticEntryView::new)
             .filter(|entry| entry.code_matches(code))
             .collect()
     }
 
     fn field(&self, field: &str) -> Option<&'summary str> {
-        self.root[field].as_str()
+        self.root.string_field(field)
     }
 
     fn counter(&self, counter: &str) -> Option<u64> {
-        self.root["performance_counters"][counter].as_u64()
+        self.root.u64_field_at(&["performance_counters", counter])
     }
 }
 
 pub(super) fn harness_diagnostic_entries<'summary>(
-    summary: &'summary serde_json::value::Value,
+    summary: &'summary HarnessRecordSummaryValue,
     code: &str,
 ) -> Vec<HarnessDiagnosticEntryView<'summary>> {
     HarnessDiagnosticsSummaryProjection::new(summary).diagnostic_entries(code)
@@ -61,14 +64,14 @@ pub(super) fn harness_diagnostic_field_matches(
 }
 
 pub(super) fn harness_summary_field<'summary>(
-    summary: &'summary serde_json::value::Value,
+    summary: &'summary HarnessRecordSummaryValue,
     field: &str,
 ) -> Option<&'summary str> {
     HarnessDiagnosticsSummaryProjection::new(summary).field(field)
 }
 
 pub(super) fn harness_summary_counter(
-    summary: &serde_json::value::Value,
+    summary: &HarnessRecordSummaryValue,
     counter: &str,
 ) -> Option<u64> {
     HarnessDiagnosticsSummaryProjection::new(summary).counter(counter)
