@@ -4,7 +4,7 @@ use crate::diagnostics::data::DiagnosticCode;
 use crate::facade::indexes::{
     DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexId, DerivedIndexKind,
 };
-use crate::facade::query::FallbackParityMode;
+use crate::facade::query::IndexParityMode;
 use crate::tests::support::*;
 
 #[test]
@@ -210,7 +210,7 @@ fn concurrent_pinned_traversal_reads_stay_snapshot_stable_under_hot_rewrite_pres
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
         ordering: QueryOrderingContract::CanonicalTraversalOrder,
-        fallback: QueryFallbackContract::StorageOnly,
+        access_contract: QueryAccessContract::AuthoritativeStorageOnly,
         execution_shape: QueryExecutionShape::BulkPacketized,
         reduction: ReductionDiscipline::DeterministicMerge,
         plan_key: DeterministicQueryPlanKey(1101),
@@ -320,7 +320,7 @@ fn concurrent_relation_index_certification_parity_stays_stable_under_scheduler_p
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
         ordering: QueryOrderingContract::CanonicalRelationIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: QueryExecutionShape::BulkPacketized,
         reduction: ReductionDiscipline::DeterministicMerge,
         plan_key: DeterministicQueryPlanKey(1401),
@@ -328,12 +328,12 @@ fn concurrent_relation_index_certification_parity_stays_stable_under_scheduler_p
     };
     let baseline = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&snapshot, packet.clone())
                 .expect("baseline plan"),
-            FallbackParityMode::CertificationParity,
+            IndexParityMode::CertificationParity,
         )
         .expect("baseline outcome");
     let runtime = Arc::new(runtime);
@@ -348,12 +348,12 @@ fn concurrent_relation_index_certification_parity_stays_stable_under_scheduler_p
             readers.push(scope.spawn(move || {
                 let outcome = runtime
                     .index_access()
-                    .execute_query_plan_with_fallback_parity(
+                    .execute_query_plan_with_index_parity(
                         runtime
                             .read_truth()
                             .plan_query_packet(&snapshot, packet)
                             .expect("thread plan"),
-                        FallbackParityMode::CertificationParity,
+                        IndexParityMode::CertificationParity,
                     )
                     .expect("thread outcome");
                 assert_eq!(outcome.access_path, expected.access_path);

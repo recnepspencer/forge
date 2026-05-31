@@ -31,7 +31,10 @@ fn explicit_target_helper_builds_planned_packet() {
         planned.ordering,
         QueryOrderingContract::CanonicalRecordRefOrder
     );
-    assert_eq!(planned.fallback, QueryFallbackContract::StorageOnly);
+    assert_eq!(
+        planned.access_contract,
+        QueryAccessContract::AuthoritativeStorageOnly
+    );
     assert_eq!(planned.target_count_hint, 1);
     assert_eq!(
         planned.explicit_target_refs(),
@@ -133,7 +136,7 @@ fn field_equals_plan_key(
         },
         &QueryLocalityClass::CrossPartitionTraversal,
         QueryOrderingContract::CanonicalEntityIdOrder,
-        QueryFallbackContract::StorageOnly,
+        QueryAccessContract::AuthoritativeStorageOnly,
         QueryExecutionShape::BulkPacketized,
         ReductionDiscipline::DeterministicMerge,
         0,

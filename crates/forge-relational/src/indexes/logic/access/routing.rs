@@ -2,8 +2,8 @@ use crate::history::data::BranchId;
 use crate::indexes::data::{DerivedIndexEntries, DerivedIndexGeneration, DerivedIndexKind};
 use crate::logic::runtime::RelationalRuntime;
 use crate::query::data::{
-    IndexQueryRejectionClass, PlannedQueryPacket, QueryAccessPath, QueryFallbackContract,
-    QueryScope, SnapshotPinnedQueryPlan,
+    IndexQueryRejectionClass, PlannedQueryPacket, QueryAccessContract, QueryAccessPath, QueryScope,
+    SnapshotPinnedQueryPlan,
 };
 
 const SAMPLED_PARITY_MODULUS: u128 = 8;
@@ -13,7 +13,7 @@ pub(crate) fn admissible_access_path(
     runtime: &RelationalRuntime,
     plan: &SnapshotPinnedQueryPlan,
 ) -> QueryAccessPath {
-    if plan.packet.fallback == QueryFallbackContract::StorageOnly {
+    if plan.packet.access_contract == QueryAccessContract::AuthoritativeStorageOnly {
         return QueryAccessPath::AuthoritativeStorage;
     }
 
@@ -21,7 +21,7 @@ pub(crate) fn admissible_access_path(
         .unwrap_or_else(|| runtime.config.history.main_branch.clone());
     let Some(generation) = candidate_generation_for_packet(runtime, &plan.packet, &branch_id)
     else {
-        return QueryAccessPath::DerivedIndexRejectedStorageFallback {
+        return QueryAccessPath::DerivedIndexRejectedStorageRead {
             rejection: if matching_index_definition_exists(runtime, &plan.packet) {
                 IndexQueryRejectionClass::MissingGeneration
             } else if runtime
@@ -39,7 +39,7 @@ pub(crate) fn admissible_access_path(
     };
 
     match index_rejection_for_packet(runtime, &plan.packet, generation, &branch_id) {
-        Some(rejection) => QueryAccessPath::DerivedIndexRejectedStorageFallback { rejection },
+        Some(rejection) => QueryAccessPath::DerivedIndexRejectedStorageRead { rejection },
         None => QueryAccessPath::DerivedIndexGeneration {
             generation_id: generation.generation_id,
         },

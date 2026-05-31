@@ -6,8 +6,8 @@ use crate::history::data::BranchId;
 use crate::indexes::data::{DerivedIndexDefinition, DerivedIndexGeneration, DerivedIndexId};
 use crate::logic::runtime::RelationalRuntime;
 use crate::query::data::{
-    query_fallback_parity_basis_digest, FallbackParityMode, FallbackParityVerifiedQueryOutcome,
-    QueryAccessPath, QueryFallbackContract, SnapshotPinnedQueryPlan,
+    query_index_parity_basis_digest, IndexParityMode, IndexParityVerifiedQueryOutcome,
+    QueryAccessContract, QueryAccessPath, SnapshotPinnedQueryPlan,
 };
 
 use self::execution::execute_index_backed_query_from_generation;
@@ -71,12 +71,12 @@ impl<'runtime> IndexAccess<'runtime> {
         generations
     }
 
-    pub fn execute_query_plan_with_fallback_parity(
+    pub fn execute_query_plan_with_index_parity(
         &self,
         plan: SnapshotPinnedQueryPlan,
-        parity_mode: FallbackParityMode,
-    ) -> Option<FallbackParityVerifiedQueryOutcome> {
-        if plan.packet.fallback == QueryFallbackContract::IndexAdmissibleStorageEquivalent {
+        parity_mode: IndexParityMode,
+    ) -> Option<IndexParityVerifiedQueryOutcome> {
+        if plan.packet.access_contract == QueryAccessContract::DerivedIndexWithStorageParity {
             self.runtime
                 .performance_access()
                 .count_query_index_attempt();
@@ -87,7 +87,7 @@ impl<'runtime> IndexAccess<'runtime> {
                 let index_execution =
                     execute_index_backed_query_from_generation(self.runtime, &plan, generation_id)?;
                 match parity_mode {
-                    FallbackParityMode::ProductionAdmissibility => {
+                    IndexParityMode::ProductionAdmissibility => {
                         self.runtime.performance_access().count_query_index_path();
                         record_index_execution_counters(self.runtime, &index_execution);
                         (
@@ -95,7 +95,7 @@ impl<'runtime> IndexAccess<'runtime> {
                             QueryAccessPath::DerivedIndexGeneration { generation_id },
                         )
                     }
-                    FallbackParityMode::SampledParity
+                    IndexParityMode::SampledParity
                         if !should_verify_sampled_parity(&plan, generation_id) =>
                     {
                         self.runtime.performance_access().count_query_index_path();
@@ -105,7 +105,7 @@ impl<'runtime> IndexAccess<'runtime> {
                             QueryAccessPath::DerivedIndexGeneration { generation_id },
                         )
                     }
-                    FallbackParityMode::SampledParity | FallbackParityMode::CertificationParity => {
+                    IndexParityMode::SampledParity | IndexParityMode::CertificationParity => {
                         self.runtime
                             .performance_access()
                             .count_query_index_parity_verification();
@@ -124,7 +124,7 @@ impl<'runtime> IndexAccess<'runtime> {
                             record_index_execution_shape(self.runtime, &index_execution);
                             (
                                 storage_execution,
-                                QueryAccessPath::DerivedIndexRejectedStorageFallback {
+                                QueryAccessPath::DerivedIndexRejectedStorageRead {
                                     rejection:
                                         crate::query::data::IndexQueryRejectionClass::CorruptIndexEntries,
                                 },
@@ -136,7 +136,7 @@ impl<'runtime> IndexAccess<'runtime> {
             access_path => {
                 if matches!(
                     access_path,
-                    QueryAccessPath::DerivedIndexRejectedStorageFallback { .. }
+                    QueryAccessPath::DerivedIndexRejectedStorageRead { .. }
                 ) {
                     self.runtime
                         .performance_access()
@@ -145,13 +145,13 @@ impl<'runtime> IndexAccess<'runtime> {
                 (storage_execution()?, access_path)
             }
         };
-        let parity_basis_digest = query_fallback_parity_basis_digest(
+        let parity_basis_digest = query_index_parity_basis_digest(
             &access_path,
             parity_mode,
             &execution.result,
             execution.plan.packet.plan_key,
         );
-        Some(FallbackParityVerifiedQueryOutcome {
+        Some(IndexParityVerifiedQueryOutcome {
             execution,
             access_path,
             parity_mode,

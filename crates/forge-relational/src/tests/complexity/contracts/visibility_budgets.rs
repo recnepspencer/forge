@@ -3,8 +3,8 @@ use crate::facade::indexes::{
     DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexId, DerivedIndexKind,
 };
 use crate::facade::query::{
-    DeterministicQueryPlanKey, FallbackParityMode, PlannedQueryPacket, QueryExecutionShape,
-    QueryFallbackContract, QueryLocalityClass, QueryOrderingContract, QueryScope,
+    DeterministicQueryPlanKey, IndexParityMode, PlannedQueryPacket, QueryAccessContract,
+    QueryExecutionShape, QueryLocalityClass, QueryOrderingContract, QueryScope,
     ReductionDiscipline,
 };
 use crate::tests::support::*;
@@ -316,7 +316,7 @@ fn complexity_budget_index_entity_field_equals_avoids_snapshot_materialization()
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
         ordering: QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: QueryExecutionShape::BulkPacketized,
         reduction: ReductionDiscipline::DeterministicMerge,
         plan_key: DeterministicQueryPlanKey(2001),
@@ -326,12 +326,12 @@ fn complexity_budget_index_entity_field_equals_avoids_snapshot_materialization()
     runtime.performance_access().reset_counters();
     let _ = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&snapshot, packet)
                 .expect("query plan"),
-            FallbackParityMode::ProductionAdmissibility,
+            IndexParityMode::ProductionAdmissibility,
         )
         .expect("query outcome");
     let counters = runtime.performance_access().counters();
@@ -383,7 +383,7 @@ fn complexity_budget_index_relation_field_equals_avoids_snapshot_materialization
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
         ordering: QueryOrderingContract::CanonicalRelationIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: QueryExecutionShape::BulkPacketized,
         reduction: ReductionDiscipline::DeterministicMerge,
         plan_key: DeterministicQueryPlanKey(2002),
@@ -393,12 +393,12 @@ fn complexity_budget_index_relation_field_equals_avoids_snapshot_materialization
     runtime.performance_access().reset_counters();
     let _ = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&snapshot, packet)
                 .expect("query plan"),
-            FallbackParityMode::ProductionAdmissibility,
+            IndexParityMode::ProductionAdmissibility,
         )
         .expect("query outcome");
     let counters = runtime.performance_access().counters();
@@ -446,7 +446,7 @@ fn complexity_budget_index_field_equals_reuses_warm_index_scratch_on_repeated_lo
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
         ordering: QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: QueryExecutionShape::BulkPacketized,
         reduction: ReductionDiscipline::DeterministicMerge,
         plan_key: DeterministicQueryPlanKey(2003),
@@ -457,12 +457,12 @@ fn complexity_budget_index_field_equals_reuses_warm_index_scratch_on_repeated_lo
     for _ in 0..2 {
         let _ = runtime
             .index_access()
-            .execute_query_plan_with_fallback_parity(
+            .execute_query_plan_with_index_parity(
                 runtime
                     .read_truth()
                     .plan_query_packet(&snapshot, packet.clone())
                     .expect("query plan"),
-                FallbackParityMode::ProductionAdmissibility,
+                IndexParityMode::ProductionAdmissibility,
             )
             .expect("query outcome");
     }
@@ -515,7 +515,7 @@ fn complexity_budget_index_field_equals_reports_actual_result_width() {
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
         ordering: QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: QueryExecutionShape::BulkPacketized,
         reduction: ReductionDiscipline::DeterministicMerge,
         plan_key: DeterministicQueryPlanKey(2004),
@@ -525,12 +525,12 @@ fn complexity_budget_index_field_equals_reports_actual_result_width() {
     runtime.performance_access().reset_counters();
     let outcome = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&snapshot, packet)
                 .expect("query plan"),
-            FallbackParityMode::ProductionAdmissibility,
+            IndexParityMode::ProductionAdmissibility,
         )
         .expect("query outcome");
     let counters = runtime.performance_access().counters();

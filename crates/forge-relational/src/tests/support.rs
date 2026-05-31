@@ -28,7 +28,7 @@ pub(super) use crate::facade::publication::{
     SubscriberResumeRequest, SubscriberStreamFailureClass,
 };
 pub(super) use crate::facade::query::{
-    DeterministicQueryPlanKey, PlannedQueryPacket, QueryExecutionShape, QueryFallbackContract,
+    DeterministicQueryPlanKey, PlannedQueryPacket, QueryAccessContract, QueryExecutionShape,
     QueryLocalityClass, QueryOrderingContract, QueryParallelLegality, QueryParallelProfitability,
     QueryPlanEvidenceBasis, QueryScope, QuerySerialReason, ReductionDiscipline,
 };

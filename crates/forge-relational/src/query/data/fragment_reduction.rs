@@ -134,8 +134,8 @@ fn reduce_traversal_fragments(
         .sum();
     let mut keyed_entities = Vec::with_capacity(entity_capacity);
     let mut keyed_relations = Vec::with_capacity(relation_capacity);
-    let mut fallback_entities = Vec::with_capacity(entity_capacity);
-    let mut fallback_relations = Vec::with_capacity(relation_capacity);
+    let mut unkeyed_entities = Vec::with_capacity(entity_capacity);
+    let mut unkeyed_relations = Vec::with_capacity(relation_capacity);
 
     for fragment in fragments {
         let QueryWorkerFragment {
@@ -155,25 +155,25 @@ fn reduce_traversal_fragments(
                 );
             }
             None => {
-                fallback_entities.extend(entities);
-                fallback_relations.extend(relations);
+                unkeyed_entities.extend(entities);
+                unkeyed_relations.extend(relations);
             }
         }
     }
 
     (
-        reduce_traversal_entities(keyed_entities, fallback_entities),
-        reduce_traversal_relations(keyed_relations, fallback_relations),
+        reduce_traversal_entities(keyed_entities, unkeyed_entities),
+        reduce_traversal_relations(keyed_relations, unkeyed_relations),
     )
 }
 
 fn reduce_traversal_entities(
     mut keyed_entities: Vec<(TraversalEntityVisitKey, EntityReadRecord)>,
-    fallback_entities: Vec<EntityReadRecord>,
+    unkeyed_entities: Vec<EntityReadRecord>,
 ) -> Vec<EntityReadRecord> {
     if keyed_entities.is_empty() {
         let mut seen = std::collections::BTreeSet::new();
-        return fallback_entities
+        return unkeyed_entities
             .into_iter()
             .filter(|record| seen.insert(record.entity_id))
             .collect();
@@ -194,11 +194,11 @@ fn reduce_traversal_entities(
 
 fn reduce_traversal_relations(
     mut keyed_relations: Vec<(TraversalRelationVisitKey, RelationReadRecord)>,
-    fallback_relations: Vec<RelationReadRecord>,
+    unkeyed_relations: Vec<RelationReadRecord>,
 ) -> Vec<RelationReadRecord> {
     if keyed_relations.is_empty() {
         let mut seen = std::collections::BTreeSet::new();
-        return fallback_relations
+        return unkeyed_relations
             .into_iter()
             .filter(|record| seen.insert(record.relation_id))
             .collect();

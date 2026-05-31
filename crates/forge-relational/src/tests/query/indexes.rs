@@ -3,7 +3,7 @@ use crate::facade::indexes::{
     DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexId, DerivedIndexKind,
 };
 use crate::facade::query::{
-    FallbackParityMode, IndexQueryRejectionClass, QueryAccessPath, QueryFallbackContract,
+    IndexParityMode, IndexQueryRejectionClass, QueryAccessContract, QueryAccessPath,
 };
 use crate::facade::runtime::RelationalExecutionModel;
 use crate::facade::transactions::RecordRef;
@@ -34,10 +34,10 @@ fn sampled_plan_key_for(
 }
 
 // CONTRACT: derived_index
-// LANES: success, fallback, determinism
+// LANES: success, access_contract, determinism
 
 #[test]
-fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
+fn derived_index_contract_success_branch_scoped_build_keeps_storage_read() {
     let mut runtime = runtime_with_index_field_aspects();
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
@@ -73,14 +73,14 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
         context,
         vec![RecordRef::Entity(changed_entities(&main_outcome)[0])],
     );
-    planned.fallback = QueryFallbackContract::IndexAdmissibleStorageEquivalent;
+    planned.access_contract = QueryAccessContract::DerivedIndexWithStorageParity;
     let plan = runtime
         .read_truth()
         .plan_query_packet(&main_outcome.snapshot, planned)
         .expect("query plan");
-    let fallback = runtime
+    let storage_read = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::ProductionAdmissibility)
+        .execute_query_plan_with_index_parity(plan, IndexParityMode::ProductionAdmissibility)
         .unwrap();
 
     assert!(feature_build.failed_indexes.is_empty());
@@ -92,10 +92,10 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
             .source_branch_id,
         BranchId("feature".to_string())
     );
-    assert_eq!(fallback.execution.result.entities.len(), 1);
+    assert_eq!(storage_read.execution.result.entities.len(), 1);
     assert_eq!(
-        fallback.access_path,
-        QueryAccessPath::DerivedIndexRejectedStorageFallback {
+        storage_read.access_path,
+        QueryAccessPath::DerivedIndexRejectedStorageRead {
             rejection: IndexQueryRejectionClass::MissingGeneration,
         }
     );
@@ -139,14 +139,14 @@ fn derived_index_contract_unscoped_generation_is_rejected_for_unsupported_scope(
         context,
         vec![RecordRef::Entity(changed_entities(&main_outcome)[0])],
     );
-    planned.fallback = QueryFallbackContract::IndexAdmissibleStorageEquivalent;
+    planned.access_contract = QueryAccessContract::DerivedIndexWithStorageParity;
     let plan = runtime
         .read_truth()
         .plan_query_packet(&snapshot, planned)
         .expect("query plan");
-    let fallback = runtime
+    let storage_read = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::ProductionAdmissibility)
+        .execute_query_plan_with_index_parity(plan, IndexParityMode::ProductionAdmissibility)
         .unwrap();
 
     assert!(build.failed_indexes.is_empty());
@@ -159,8 +159,8 @@ fn derived_index_contract_unscoped_generation_is_rejected_for_unsupported_scope(
         BranchId("feature".to_string())
     );
     assert_eq!(
-        fallback.access_path,
-        QueryAccessPath::DerivedIndexRejectedStorageFallback {
+        storage_read.access_path,
+        QueryAccessPath::DerivedIndexRejectedStorageRead {
             rejection: IndexQueryRejectionClass::UnsupportedScope,
         }
     );
@@ -178,16 +178,16 @@ fn derived_index_contract_failure_unknown_index_keeps_truth_reads_correct() {
         vec![RecordRef::Entity(changed_entities(&outcome)[0])],
     )
     .result;
-    let fallback_before = runtime
+    let storage_read_before = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             planned_explicit_query(
                 &runtime,
                 &snapshot,
                 "entities",
                 vec![RecordRef::Entity(changed_entities(&outcome)[0])],
             ),
-            FallbackParityMode::ProductionAdmissibility,
+            IndexParityMode::ProductionAdmissibility,
         )
         .unwrap();
     let build = runtime
@@ -197,26 +197,26 @@ fn derived_index_contract_failure_unknown_index_keeps_truth_reads_correct() {
             branch_id: BranchId("main".to_string()),
             index_ids: vec![DerivedIndexId(999)],
         });
-    let fallback_after = runtime
+    let storage_read_after = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             planned_explicit_query(
                 &runtime,
                 &snapshot,
                 "entities",
                 vec![RecordRef::Entity(changed_entities(&outcome)[0])],
             ),
-            FallbackParityMode::ProductionAdmissibility,
+            IndexParityMode::ProductionAdmissibility,
         )
         .unwrap();
 
     assert_eq!(build.failed_indexes, vec![DerivedIndexId(999)]);
     assert_eq!(
-        fallback_before.access_path,
+        storage_read_before.access_path,
         QueryAccessPath::AuthoritativeStorage
     );
-    assert_eq!(fallback_before.execution.result, storage_only);
-    assert_eq!(fallback_after.execution.result, storage_only);
+    assert_eq!(storage_read_before.execution.result, storage_only);
+    assert_eq!(storage_read_after.execution.result, storage_only);
 }
 
 #[test]
@@ -250,7 +250,7 @@ fn derived_index_contract_certification_mode_emits_stable_parity_digest() {
         context,
         vec![RecordRef::Entity(changed_entities(&outcome)[0])],
     );
-    planned.fallback = QueryFallbackContract::IndexAdmissibleStorageEquivalent;
+    planned.access_contract = QueryAccessContract::DerivedIndexWithStorageParity;
     let plan = runtime
         .read_truth()
         .plan_query_packet(&snapshot, planned)
@@ -258,14 +258,11 @@ fn derived_index_contract_certification_mode_emits_stable_parity_digest() {
 
     let first = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
-            plan.clone(),
-            FallbackParityMode::CertificationParity,
-        )
+        .execute_query_plan_with_index_parity(plan.clone(), IndexParityMode::CertificationParity)
         .expect("first parity outcome");
     let second = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::CertificationParity)
+        .execute_query_plan_with_index_parity(plan, IndexParityMode::CertificationParity)
         .expect("second parity outcome");
 
     assert_eq!(first.access_path, second.access_path);
@@ -310,7 +307,7 @@ fn derived_index_contract_entity_field_equals_executes_through_real_index_path_w
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(1001),
@@ -326,7 +323,7 @@ fn derived_index_contract_entity_field_equals_executes_through_real_index_path_w
         .expect("storage outcome");
     let indexed = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::CertificationParity)
+        .execute_query_plan_with_index_parity(plan, IndexParityMode::CertificationParity)
         .expect("indexed outcome");
 
     assert_eq!(
@@ -384,7 +381,7 @@ fn derived_index_contract_relation_field_equals_executes_through_real_index_path
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalRelationIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(1011),
@@ -400,7 +397,7 @@ fn derived_index_contract_relation_field_equals_executes_through_real_index_path
         .expect("storage outcome");
     let indexed = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::CertificationParity)
+        .execute_query_plan_with_index_parity(plan, IndexParityMode::CertificationParity)
         .expect("indexed outcome");
 
     assert_eq!(
@@ -468,7 +465,7 @@ fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalRelationIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(1012),
@@ -476,18 +473,18 @@ fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
     };
     let outcome = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&snapshot, packet)
                 .expect("query plan"),
-            FallbackParityMode::ProductionAdmissibility,
+            IndexParityMode::ProductionAdmissibility,
         )
         .expect("query outcome");
 
     assert_eq!(
         outcome.access_path,
-        QueryAccessPath::DerivedIndexRejectedStorageFallback {
+        QueryAccessPath::DerivedIndexRejectedStorageRead {
             rejection: IndexQueryRejectionClass::CorruptIndexEntries,
         }
     );
@@ -536,7 +533,7 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalRelationIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(1013),
@@ -544,12 +541,12 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
     };
     let original = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&snapshot, packet.clone())
                 .expect("original plan"),
-            FallbackParityMode::CertificationParity,
+            IndexParityMode::CertificationParity,
         )
         .expect("original outcome");
 
@@ -564,12 +561,12 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
     recovered_packet.context_id = recovered_context;
     let recovered_outcome = recovered
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             recovered
                 .read_truth()
                 .plan_query_packet(&recovered_snapshot, recovered_packet)
                 .expect("recovered plan"),
-            FallbackParityMode::CertificationParity,
+            IndexParityMode::CertificationParity,
         )
         .expect("recovered outcome");
 
@@ -624,7 +621,7 @@ fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: sampled_key,
@@ -639,32 +636,32 @@ fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
     runtime.performance_access().reset_counters();
     let sampled = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&snapshot, sampled_packet.clone())
                 .expect("sampled plan"),
-            FallbackParityMode::SampledParity,
+            IndexParityMode::SampledParity,
         )
         .expect("sampled outcome");
     let sampled_repeat = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&snapshot, sampled_packet)
                 .expect("sampled plan repeat"),
-            FallbackParityMode::SampledParity,
+            IndexParityMode::SampledParity,
         )
         .expect("sampled repeat outcome");
     let unsampled = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&snapshot, unsampled_packet)
                 .expect("unsampled plan"),
-            FallbackParityMode::SampledParity,
+            IndexParityMode::SampledParity,
         )
         .expect("unsampled outcome");
     let counters = runtime.performance_access().counters();
@@ -732,7 +729,7 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
             },
             locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
             ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
-            fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+            access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
             execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
             reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
             plan_key: crate::facade::query::DeterministicQueryPlanKey(2077),
@@ -743,12 +740,12 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
         for _ in 0..2 {
             let _ = runtime
                 .index_access()
-                .execute_query_plan_with_fallback_parity(
+                .execute_query_plan_with_index_parity(
                     runtime
                         .read_truth()
                         .plan_query_packet(&snapshot, packet.clone())
                         .expect("query plan"),
-                    FallbackParityMode::ProductionAdmissibility,
+                    IndexParityMode::ProductionAdmissibility,
                 )
                 .expect("query outcome");
         }
@@ -810,7 +807,7 @@ fn derived_index_contract_entity_field_any_of_executes_through_real_index_path_w
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(2010),
@@ -826,7 +823,7 @@ fn derived_index_contract_entity_field_any_of_executes_through_real_index_path_w
         .expect("storage outcome");
     let indexed = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::CertificationParity)
+        .execute_query_plan_with_index_parity(plan, IndexParityMode::CertificationParity)
         .expect("indexed outcome");
 
     assert_eq!(
@@ -910,7 +907,7 @@ fn derived_index_contract_relation_field_any_of_executes_through_real_index_path
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalRelationIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(2011),
@@ -926,7 +923,7 @@ fn derived_index_contract_relation_field_any_of_executes_through_real_index_path
         .expect("storage outcome");
     let indexed = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::CertificationParity)
+        .execute_query_plan_with_index_parity(plan, IndexParityMode::CertificationParity)
         .expect("indexed outcome");
 
     assert_eq!(
@@ -1029,7 +1026,7 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalRelationIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(1014),
@@ -1037,18 +1034,18 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
     };
     let outcome = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&main_relation.snapshot, packet)
                 .expect("query plan"),
-            FallbackParityMode::ProductionAdmissibility,
+            IndexParityMode::ProductionAdmissibility,
         )
         .expect("query outcome");
 
     assert_eq!(
         outcome.access_path,
-        QueryAccessPath::DerivedIndexRejectedStorageFallback {
+        QueryAccessPath::DerivedIndexRejectedStorageRead {
             rejection: IndexQueryRejectionClass::IncompatibleBranch,
         }
     );
@@ -1114,7 +1111,7 @@ fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_pa
             partitions: std::sync::Arc::from([PartitionId(7)]),
         },
         ordering: crate::facade::query::QueryOrderingContract::CanonicalRelationIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(1015),
@@ -1130,7 +1127,7 @@ fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_pa
         .expect("storage outcome");
     let indexed = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::CertificationParity)
+        .execute_query_plan_with_index_parity(plan, IndexParityMode::CertificationParity)
         .expect("indexed outcome");
 
     assert_eq!(indexed.execution.result, storage.result);
@@ -1191,7 +1188,7 @@ fn derived_index_contract_branch_scoped_generation_reports_incompatible_branch()
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(1002),
@@ -1203,12 +1200,12 @@ fn derived_index_contract_branch_scoped_generation_reports_incompatible_branch()
         .expect("query plan");
     let outcome = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::ProductionAdmissibility)
-        .expect("fallback outcome");
+        .execute_query_plan_with_index_parity(plan, IndexParityMode::ProductionAdmissibility)
+        .expect("storage-read outcome");
 
     assert_eq!(
         outcome.access_path,
-        QueryAccessPath::DerivedIndexRejectedStorageFallback {
+        QueryAccessPath::DerivedIndexRejectedStorageRead {
             rejection: IndexQueryRejectionClass::IncompatibleBranch,
         }
     );
@@ -1251,7 +1248,7 @@ fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(1003),
@@ -1259,12 +1256,12 @@ fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
     };
     runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&snapshot, success_packet)
                 .expect("success plan"),
-            FallbackParityMode::CertificationParity,
+            IndexParityMode::CertificationParity,
         )
         .expect("success outcome");
 
@@ -1277,7 +1274,7 @@ fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(1004),
@@ -1285,12 +1282,12 @@ fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
     };
     runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&snapshot, rejection_packet)
                 .expect("rejection plan"),
-            FallbackParityMode::ProductionAdmissibility,
+            IndexParityMode::ProductionAdmissibility,
         )
         .expect("rejection outcome");
 
@@ -1356,7 +1353,7 @@ fn derived_index_contract_prefers_older_compatible_generation_over_newer_incompa
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(1005),
@@ -1368,7 +1365,7 @@ fn derived_index_contract_prefers_older_compatible_generation_over_newer_incompa
         .expect("query plan");
     let outcome = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::ProductionAdmissibility)
+        .execute_query_plan_with_index_parity(plan, IndexParityMode::ProductionAdmissibility)
         .expect("query outcome");
 
     assert_eq!(
@@ -1406,7 +1403,7 @@ fn derived_index_contract_matching_definition_without_generation_reports_missing
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(1006),
@@ -1418,12 +1415,12 @@ fn derived_index_contract_matching_definition_without_generation_reports_missing
         .expect("query plan");
     let result = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(plan, FallbackParityMode::ProductionAdmissibility)
+        .execute_query_plan_with_index_parity(plan, IndexParityMode::ProductionAdmissibility)
         .expect("query result");
 
     assert_eq!(
         result.access_path,
-        QueryAccessPath::DerivedIndexRejectedStorageFallback {
+        QueryAccessPath::DerivedIndexRejectedStorageRead {
             rejection: IndexQueryRejectionClass::MissingGeneration,
         }
     );
@@ -1472,7 +1469,7 @@ fn derived_index_contract_explicit_corrupt_generation_reports_corrupt_entries() 
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(1007),
@@ -1480,18 +1477,18 @@ fn derived_index_contract_explicit_corrupt_generation_reports_corrupt_entries() 
     };
     let outcome = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&alpha.snapshot, packet)
                 .expect("query plan"),
-            FallbackParityMode::ProductionAdmissibility,
+            IndexParityMode::ProductionAdmissibility,
         )
         .expect("query outcome");
 
     assert_eq!(
         outcome.access_path,
-        QueryAccessPath::DerivedIndexRejectedStorageFallback {
+        QueryAccessPath::DerivedIndexRejectedStorageRead {
             rejection: IndexQueryRejectionClass::CorruptIndexEntries,
         }
     );
@@ -1533,7 +1530,7 @@ fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parit
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
         ordering: crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
         plan_key: crate::facade::query::DeterministicQueryPlanKey(1008),
@@ -1541,12 +1538,12 @@ fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parit
     };
     let original = runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             runtime
                 .read_truth()
                 .plan_query_packet(&snapshot, packet.clone())
                 .expect("original plan"),
-            FallbackParityMode::CertificationParity,
+            IndexParityMode::CertificationParity,
         )
         .expect("original outcome");
 
@@ -1561,12 +1558,12 @@ fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parit
     recovered_packet.context_id = recovered_context;
     let recovered_outcome = recovered
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             recovered
                 .read_truth()
                 .plan_query_packet(&recovered_snapshot, recovered_packet)
                 .expect("recovered plan"),
-            FallbackParityMode::CertificationParity,
+            IndexParityMode::CertificationParity,
         )
         .expect("recovered outcome");
 
@@ -1626,7 +1623,7 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
 
     let serial_outcome = serial_runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             serial_runtime
                 .read_truth()
                 .plan_query_packet(
@@ -1645,7 +1642,7 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
                         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
                         ordering:
                             crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
-                        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+                        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
                         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
                         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
                         plan_key: crate::facade::query::DeterministicQueryPlanKey(1009),
@@ -1653,13 +1650,13 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
                     },
                 )
                 .expect("serial plan"),
-            FallbackParityMode::CertificationParity,
+            IndexParityMode::CertificationParity,
         )
         .expect("serial outcome");
 
     let staged_outcome = staged_runtime
         .index_access()
-        .execute_query_plan_with_fallback_parity(
+        .execute_query_plan_with_index_parity(
             staged_runtime
                 .read_truth()
                 .plan_query_packet(
@@ -1678,7 +1675,7 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
                         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
                         ordering:
                             crate::facade::query::QueryOrderingContract::CanonicalEntityIdOrder,
-                        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+                        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
                         execution_shape: crate::facade::query::QueryExecutionShape::BulkPacketized,
                         reduction: crate::facade::query::ReductionDiscipline::DeterministicMerge,
                         plan_key: crate::facade::query::DeterministicQueryPlanKey(1010),
@@ -1686,7 +1683,7 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
                     },
                 )
                 .expect("staged plan"),
-            FallbackParityMode::CertificationParity,
+            IndexParityMode::CertificationParity,
         )
         .expect("staged outcome");
 

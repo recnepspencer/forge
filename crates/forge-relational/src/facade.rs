@@ -281,12 +281,12 @@ pub mod publication {
 pub mod query {
     pub use crate::query::data::{
         CanonicalQueryResult, DeterministicQueryFragmentKey, DeterministicQueryPlanKey,
-        FallbackParityMode, FallbackParityVerifiedQueryOutcome, IndexQueryRejectionClass,
-        PartitionHint, PlannedQueryPacket, QueryAccessPath, QueryComplexitySummary,
-        QueryExecutionOutcome, QueryExecutionShape, QueryFallbackContract, QueryFragmentCounters,
-        QueryLocalityClass, QueryOrderingContract, QueryParallelLegality,
-        QueryParallelProfitability, QueryPlanContextId, QueryPlanEvidenceBasis, QueryScope,
-        QuerySerialReason, QueryWorkerFragment, ReductionDiscipline, SnapshotPinnedQueryPlan,
+        IndexParityMode, IndexParityVerifiedQueryOutcome, IndexQueryRejectionClass, PartitionHint,
+        PlannedQueryPacket, QueryAccessContract, QueryAccessPath, QueryComplexitySummary,
+        QueryExecutionOutcome, QueryExecutionShape, QueryFragmentCounters, QueryLocalityClass,
+        QueryOrderingContract, QueryParallelLegality, QueryParallelProfitability,
+        QueryPlanContextId, QueryPlanEvidenceBasis, QueryScope, QuerySerialReason,
+        QueryWorkerFragment, ReductionDiscipline, SnapshotPinnedQueryPlan,
     };
 }
 

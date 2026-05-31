@@ -26,8 +26,8 @@ use crate::facade::lineage::{
 };
 use crate::facade::merge::{MergeExecutionRequest, MergeIntent};
 use crate::facade::query::{
-    DeterministicQueryPlanKey, FallbackParityMode, PlannedQueryPacket, QueryExecutionShape,
-    QueryFallbackContract, QueryLocalityClass, QueryOrderingContract, QueryScope,
+    DeterministicQueryPlanKey, IndexParityMode, PlannedQueryPacket, QueryAccessContract,
+    QueryExecutionShape, QueryLocalityClass, QueryOrderingContract, QueryScope,
     ReductionDiscipline,
 };
 use crate::facade::replay::{RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode};
@@ -510,7 +510,7 @@ fn entity_name_index_packet(
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
         ordering: QueryOrderingContract::CanonicalEntityIdOrder,
-        fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+        access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
         execution_shape: QueryExecutionShape::BulkPacketized,
         reduction: ReductionDiscipline::DeterministicMerge,
         plan_key: DeterministicQueryPlanKey(1901),
@@ -1613,7 +1613,7 @@ fn perf_query_packet_matrix() {
         .all(|sample| sample.elapsed_micros > 0));
     assert_budget(
         &explicit_target_samples,
-        "explicit target queries should stay packetized and avoid fallback scans",
+        "explicit target queries should stay packetized and avoid broad storage scans",
         |metrics| {
             counter_u64(metrics, "full_state_clones") == 0
                 && counter_u64(metrics, "query_packet_count") <= 4
@@ -1666,7 +1666,7 @@ fn perf_query_packet_matrix() {
                     ]),
                 },
                 ordering: QueryOrderingContract::CanonicalEntityIdOrder,
-                fallback: QueryFallbackContract::StorageOnly,
+                access_contract: QueryAccessContract::AuthoritativeStorageOnly,
                 execution_shape: QueryExecutionShape::BulkPacketized,
                 reduction: ReductionDiscipline::DeterministicMerge,
                 plan_key: DeterministicQueryPlanKey(20_001),
@@ -1775,7 +1775,7 @@ fn perf_query_packet_matrix() {
                 },
                 locality: QueryLocalityClass::CrossPartitionTraversal,
                 ordering: QueryOrderingContract::CanonicalTraversalOrder,
-                fallback: QueryFallbackContract::StorageOnly,
+                access_contract: QueryAccessContract::AuthoritativeStorageOnly,
                 execution_shape: QueryExecutionShape::BulkPacketized,
                 reduction: ReductionDiscipline::DeterministicMerge,
                 plan_key: DeterministicQueryPlanKey(20_002),
@@ -4747,7 +4747,7 @@ fn perf_rocketship_scale_matrix() {
                 },
                 locality: QueryLocalityClass::CrossPartitionTraversal,
                 ordering: QueryOrderingContract::CanonicalTraversalOrder,
-                fallback: QueryFallbackContract::StorageOnly,
+                access_contract: QueryAccessContract::AuthoritativeStorageOnly,
                 execution_shape: QueryExecutionShape::BulkPacketized,
                 reduction: ReductionDiscipline::DeterministicMerge,
                 plan_key: DeterministicQueryPlanKey(91_001),
@@ -4961,7 +4961,7 @@ fn perf_rocketship_scale_matrix() {
                 },
                 locality: QueryLocalityClass::CrossPartitionTraversal,
                 ordering: QueryOrderingContract::CanonicalTraversalOrder,
-                fallback: QueryFallbackContract::StorageOnly,
+                access_contract: QueryAccessContract::AuthoritativeStorageOnly,
                 execution_shape: QueryExecutionShape::BulkPacketized,
                 reduction: ReductionDiscipline::DeterministicMerge,
                 plan_key: DeterministicQueryPlanKey(91_002),
@@ -6220,7 +6220,7 @@ fn perf_rocketship_scale_matrix() {
                 },
                 locality: QueryLocalityClass::CrossPartitionTraversal,
                 ordering: QueryOrderingContract::CanonicalTraversalOrder,
-                fallback: QueryFallbackContract::StorageOnly,
+                access_contract: QueryAccessContract::AuthoritativeStorageOnly,
                 execution_shape: QueryExecutionShape::BulkPacketized,
                 reduction: ReductionDiscipline::DeterministicMerge,
                 plan_key: DeterministicQueryPlanKey(91_003),
@@ -6770,7 +6770,7 @@ fn perf_sustained_load_matrix() {
                     },
                     locality: QueryLocalityClass::CrossPartitionTraversal,
                     ordering: QueryOrderingContract::CanonicalTraversalOrder,
-                    fallback: QueryFallbackContract::StorageOnly,
+                    access_contract: QueryAccessContract::AuthoritativeStorageOnly,
                     execution_shape: QueryExecutionShape::BulkPacketized,
                     reduction: ReductionDiscipline::DeterministicMerge,
                     plan_key: DeterministicQueryPlanKey(92_001),
@@ -7060,7 +7060,7 @@ fn perf_sustained_load_matrix() {
                     },
                     locality: QueryLocalityClass::CrossPartitionTraversal,
                     ordering: QueryOrderingContract::CanonicalTraversalOrder,
-                    fallback: QueryFallbackContract::StorageOnly,
+                    access_contract: QueryAccessContract::AuthoritativeStorageOnly,
                     execution_shape: QueryExecutionShape::BulkPacketized,
                     reduction: ReductionDiscipline::DeterministicMerge,
                     plan_key: DeterministicQueryPlanKey(92_250),
@@ -7710,7 +7710,7 @@ fn perf_index_parity_matrix() {
             let query_started_at = Instant::now();
             let outcome = runtime
                 .index_access()
-                .execute_query_plan_with_fallback_parity(
+                .execute_query_plan_with_index_parity(
                     runtime
                         .read_truth()
                         .plan_query_packet(
@@ -7723,7 +7723,7 @@ fn perf_index_parity_matrix() {
                             ),
                         )
                         .expect("warm entity query plan"),
-                    FallbackParityMode::CertificationParity,
+                    IndexParityMode::CertificationParity,
                 )
                 .expect("warm entity index query outcome");
             let query_micros = query_started_at.elapsed().as_micros();
@@ -7773,8 +7773,10 @@ fn perf_index_parity_matrix() {
         },
     );
 
-    let build_failed_samples =
-        capture_perf_samples(suite, "entity_field_equals_build_failed_fallback", || {
+    let build_failed_samples = capture_perf_samples(
+        suite,
+        "entity_field_equals_build_failed_storage_read",
+        || {
             let mut runtime = runtime_with_test_schema();
             let alpha = create_entity_outcome(&mut runtime, "alpha");
             let index = runtime.index_authority().register(DerivedIndexDefinition {
@@ -7806,7 +7808,7 @@ fn perf_index_parity_matrix() {
             let query_started_at = Instant::now();
             let outcome = runtime
                 .index_access()
-                .execute_query_plan_with_fallback_parity(
+                .execute_query_plan_with_index_parity(
                     runtime
                         .read_truth()
                         .plan_query_packet(
@@ -7818,10 +7820,10 @@ fn perf_index_parity_matrix() {
                                 "alpha",
                             ),
                         )
-                        .expect("fallback entity query plan"),
-                    FallbackParityMode::ProductionAdmissibility,
+                        .expect("storage-read entity query plan"),
+                    IndexParityMode::ProductionAdmissibility,
                 )
-                .expect("fallback entity index query outcome");
+                .expect("storage-read entity index query outcome");
             let query_micros = query_started_at.elapsed().as_micros();
 
             PerfMeasurement {
@@ -7833,10 +7835,11 @@ fn perf_index_parity_matrix() {
                     "counters": runtime.performance_access().counters(),
                 }),
             }
-        });
+        },
+    );
     emit_metric_summaries(
         suite,
-        "entity_field_equals_build_failed_fallback",
+        "entity_field_equals_build_failed_storage_read",
         &build_failed_samples,
         &[
             ("query_micros", &["query_micros"]),
@@ -7848,13 +7851,13 @@ fn perf_index_parity_matrix() {
         .all(|sample| sample.elapsed_micros > 0));
     assert_budget(
         &build_failed_samples,
-        "build-failed generations should reject to storage fallback without changing truth",
+        "build-failed generations should reject to storage read without changing truth",
         |metrics| {
             metric_u64(metrics, "entity_result_count") == 1
                 && metrics["access_path"]
                     .as_str()
                     .unwrap_or("")
-                    .contains("DerivedIndexRejectedStorageFallback")
+                    .contains("DerivedIndexRejectedStorageRead")
                 && metrics["access_path"]
                     .as_str()
                     .unwrap_or("")
@@ -7890,7 +7893,7 @@ fn perf_index_parity_matrix() {
 
             let original = runtime
                 .index_access()
-                .execute_query_plan_with_fallback_parity(
+                .execute_query_plan_with_index_parity(
                     runtime
                         .read_truth()
                         .plan_query_packet(
@@ -7903,7 +7906,7 @@ fn perf_index_parity_matrix() {
                             ),
                         )
                         .expect("original persisted plan"),
-                    FallbackParityMode::CertificationParity,
+                    IndexParityMode::CertificationParity,
                 )
                 .expect("original persisted query outcome");
 
@@ -7917,7 +7920,7 @@ fn perf_index_parity_matrix() {
             let query_started_at = Instant::now();
             let recovered_outcome = recovered
                 .index_access()
-                .execute_query_plan_with_fallback_parity(
+                .execute_query_plan_with_index_parity(
                     recovered
                         .read_truth()
                         .plan_query_packet(
@@ -7930,7 +7933,7 @@ fn perf_index_parity_matrix() {
                             ),
                         )
                         .expect("recovered persisted plan"),
-                    FallbackParityMode::CertificationParity,
+                    IndexParityMode::CertificationParity,
                 )
                 .expect("recovered persisted query outcome");
             let query_micros = query_started_at.elapsed().as_micros();
@@ -8161,7 +8164,7 @@ fn perf_mixed_load_matrix() {
                 },
                 locality: QueryLocalityClass::CrossPartitionTraversal,
                 ordering: QueryOrderingContract::CanonicalRelationIdOrder,
-                fallback: QueryFallbackContract::IndexAdmissibleStorageEquivalent,
+                access_contract: QueryAccessContract::DerivedIndexWithStorageParity,
                 execution_shape: QueryExecutionShape::BulkPacketized,
                 reduction: ReductionDiscipline::DeterministicMerge,
                 plan_key: DeterministicQueryPlanKey(4401),
@@ -8169,12 +8172,12 @@ fn perf_mixed_load_matrix() {
             };
             let expected = runtime
                 .index_access()
-                .execute_query_plan_with_fallback_parity(
+                .execute_query_plan_with_index_parity(
                     runtime
                         .read_truth()
                         .plan_query_packet(&snapshot, packet.clone())
                         .expect("baseline relation plan"),
-                    FallbackParityMode::CertificationParity,
+                    IndexParityMode::CertificationParity,
                 )
                 .expect("baseline relation outcome");
 
@@ -8191,12 +8194,12 @@ fn perf_mixed_load_matrix() {
                     readers.push(scope.spawn(move || {
                         let outcome = runtime
                             .index_access()
-                            .execute_query_plan_with_fallback_parity(
+                            .execute_query_plan_with_index_parity(
                                 runtime
                                     .read_truth()
                                     .plan_query_packet(&snapshot, packet)
                                     .expect("thread relation plan"),
-                                FallbackParityMode::CertificationParity,
+                                IndexParityMode::CertificationParity,
                             )
                             .expect("thread relation outcome");
                         assert_eq!(outcome.access_path, expected.access_path);
@@ -10742,7 +10745,7 @@ fn perf_runtime_bridge_mock_matrix() {
                 },
                 locality: QueryLocalityClass::CrossPartitionTraversal,
                 ordering: QueryOrderingContract::CanonicalTraversalOrder,
-                fallback: QueryFallbackContract::StorageOnly,
+                access_contract: QueryAccessContract::AuthoritativeStorageOnly,
                 execution_shape: QueryExecutionShape::BulkPacketized,
                 reduction: ReductionDiscipline::DeterministicMerge,
                 plan_key: DeterministicQueryPlanKey(92_001),
@@ -10883,7 +10886,7 @@ fn perf_runtime_bridge_mock_matrix() {
                 },
                 locality: QueryLocalityClass::CrossPartitionTraversal,
                 ordering: QueryOrderingContract::CanonicalTraversalOrder,
-                fallback: QueryFallbackContract::StorageOnly,
+                access_contract: QueryAccessContract::AuthoritativeStorageOnly,
                 execution_shape: QueryExecutionShape::BulkPacketized,
                 reduction: ReductionDiscipline::DeterministicMerge,
                 plan_key: DeterministicQueryPlanKey(92_101),
@@ -11010,7 +11013,7 @@ fn perf_runtime_bridge_mock_matrix() {
                 },
                 locality: QueryLocalityClass::CrossPartitionTraversal,
                 ordering: QueryOrderingContract::CanonicalTraversalOrder,
-                fallback: QueryFallbackContract::StorageOnly,
+                access_contract: QueryAccessContract::AuthoritativeStorageOnly,
                 execution_shape: QueryExecutionShape::BulkPacketized,
                 reduction: ReductionDiscipline::DeterministicMerge,
                 plan_key: DeterministicQueryPlanKey(92_201),
@@ -11173,7 +11176,7 @@ fn perf_game_engine_matrix() {
                 },
                 locality: QueryLocalityClass::CrossPartitionTraversal,
                 ordering: QueryOrderingContract::CanonicalTraversalOrder,
-                fallback: QueryFallbackContract::StorageOnly,
+                access_contract: QueryAccessContract::AuthoritativeStorageOnly,
                 execution_shape: QueryExecutionShape::BulkPacketized,
                 reduction: ReductionDiscipline::DeterministicMerge,
                 plan_key: DeterministicQueryPlanKey(93_001),
@@ -11480,7 +11483,7 @@ fn perf_game_engine_matrix() {
                     },
                     locality: QueryLocalityClass::CrossPartitionTraversal,
                     ordering: QueryOrderingContract::CanonicalTraversalOrder,
-                    fallback: QueryFallbackContract::StorageOnly,
+                    access_contract: QueryAccessContract::AuthoritativeStorageOnly,
                     execution_shape: QueryExecutionShape::BulkPacketized,
                     reduction: ReductionDiscipline::DeterministicMerge,
                     plan_key: DeterministicQueryPlanKey(93_101),

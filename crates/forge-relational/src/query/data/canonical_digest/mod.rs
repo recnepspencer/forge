@@ -6,8 +6,8 @@ use sha2::{Digest, Sha256};
 
 use crate::query::data::{
     CanonicalQueryResult, DeterministicQueryFragmentKey, DeterministicQueryPlanKey,
-    FallbackParityMode, QueryAccessPath, QueryExecutionShape, QueryFallbackContract,
-    QueryLocalityClass, QueryOrderingContract, QueryPlanContextId, QueryScope, ReductionDiscipline,
+    IndexParityMode, QueryAccessContract, QueryAccessPath, QueryExecutionShape, QueryLocalityClass,
+    QueryOrderingContract, QueryPlanContextId, QueryScope, ReductionDiscipline,
 };
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 
@@ -17,8 +17,8 @@ use read_record_terms::{
     encode_unmasked_relation_records,
 };
 use scope_terms::{
-    encode_fallback_parity_mode, encode_query_access_path, encode_query_execution_shape,
-    encode_query_fallback_contract, encode_query_locality_class, encode_query_ordering_contract,
+    encode_index_parity_mode, encode_query_access_contract, encode_query_access_path,
+    encode_query_execution_shape, encode_query_locality_class, encode_query_ordering_contract,
     encode_query_plan_context_id, encode_query_scope, encode_reduction_discipline,
 };
 
@@ -28,7 +28,7 @@ pub(crate) fn deterministic_query_plan_key_from_canonical_bytes(
     scope: &QueryScope,
     locality: &QueryLocalityClass,
     ordering: QueryOrderingContract,
-    fallback: QueryFallbackContract,
+    access_contract: QueryAccessContract,
     execution_shape: QueryExecutionShape,
     reduction: ReductionDiscipline,
     target_count_hint: usize,
@@ -40,7 +40,7 @@ pub(crate) fn deterministic_query_plan_key_from_canonical_bytes(
     encode_query_scope(&mut bytes, scope);
     encode_query_locality_class(&mut bytes, locality);
     encode_query_ordering_contract(&mut bytes, ordering);
-    encode_query_fallback_contract(&mut bytes, fallback);
+    encode_query_access_contract(&mut bytes, access_contract);
     encode_query_execution_shape(&mut bytes, execution_shape);
     encode_reduction_discipline(&mut bytes, reduction);
     primitive_terms::encode_usize(&mut bytes, target_count_hint);
@@ -85,16 +85,16 @@ pub(crate) fn query_unmasked_relation_record_digest(record: &RelationReadRecord)
     sha256_hex(&bytes)
 }
 
-pub(crate) fn query_fallback_parity_basis_digest(
+pub(crate) fn query_index_parity_basis_digest(
     access_path: &QueryAccessPath,
-    parity_mode: FallbackParityMode,
+    parity_mode: IndexParityMode,
     result: &CanonicalQueryResult,
     plan_key: DeterministicQueryPlanKey,
 ) -> String {
     let mut bytes = Vec::new();
-    encode_string(&mut bytes, "query.fallback-parity.v1");
+    encode_string(&mut bytes, "query.index-parity.v1");
     encode_query_access_path(&mut bytes, access_path);
-    encode_fallback_parity_mode(&mut bytes, parity_mode);
+    encode_index_parity_mode(&mut bytes, parity_mode);
     encode_canonical_query_result(&mut bytes, result);
     encode_u128(&mut bytes, plan_key.0);
     sha256_hex(&bytes)

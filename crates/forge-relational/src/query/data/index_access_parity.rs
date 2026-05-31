@@ -5,7 +5,7 @@ use crate::indexes::data::DerivedIndexGenerationId;
 use super::QueryExecutionOutcome;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum FallbackParityMode {
+pub enum IndexParityMode {
     ProductionAdmissibility,
     SampledParity,
     CertificationParity,
@@ -27,15 +27,15 @@ pub enum QueryAccessPath {
     DerivedIndexGeneration {
         generation_id: DerivedIndexGenerationId,
     },
-    DerivedIndexRejectedStorageFallback {
+    DerivedIndexRejectedStorageRead {
         rejection: IndexQueryRejectionClass,
     },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct FallbackParityVerifiedQueryOutcome {
+pub struct IndexParityVerifiedQueryOutcome {
     pub execution: QueryExecutionOutcome,
     pub access_path: QueryAccessPath,
-    pub parity_mode: FallbackParityMode,
+    pub parity_mode: IndexParityMode,
     pub parity_basis_digest: String,
 }

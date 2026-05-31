@@ -58,9 +58,9 @@ pub enum QueryOrderingContract {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum QueryFallbackContract {
-    StorageOnly,
-    IndexAdmissibleStorageEquivalent,
+pub enum QueryAccessContract {
+    AuthoritativeStorageOnly,
+    DerivedIndexWithStorageParity,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -160,7 +160,7 @@ pub struct PlannedQueryPacket {
     pub scope: QueryScope,
     pub locality: QueryLocalityClass,
     pub ordering: QueryOrderingContract,
-    pub fallback: QueryFallbackContract,
+    pub access_contract: QueryAccessContract,
     pub execution_shape: QueryExecutionShape,
     pub reduction: ReductionDiscipline,
     pub plan_key: DeterministicQueryPlanKey,
@@ -211,14 +211,14 @@ impl PlannedQueryPacket {
             targets: Arc::<[RecordRef]>::from(targets),
         };
         let ordering = QueryOrderingContract::CanonicalRecordRefOrder;
-        let fallback = QueryFallbackContract::StorageOnly;
+        let access_contract = QueryAccessContract::AuthoritativeStorageOnly;
         let plan_key = deterministic_query_plan_key(
             &context_id,
             &label,
             &scope,
             &locality,
             ordering,
-            fallback,
+            access_contract,
             execution_shape,
             reduction,
             target_count_hint,
@@ -229,7 +229,7 @@ impl PlannedQueryPacket {
             scope,
             locality,
             ordering,
-            fallback,
+            access_contract,
             execution_shape,
             reduction,
             plan_key,
@@ -255,7 +255,7 @@ fn deterministic_query_plan_key(
     scope: &QueryScope,
     locality: &QueryLocalityClass,
     ordering: QueryOrderingContract,
-    fallback: QueryFallbackContract,
+    access_contract: QueryAccessContract,
     execution_shape: QueryExecutionShape,
     reduction: ReductionDiscipline,
     target_count_hint: usize,
@@ -266,7 +266,7 @@ fn deterministic_query_plan_key(
         scope,
         locality,
         ordering,
-        fallback,
+        access_contract,
         execution_shape,
         reduction,
         target_count_hint,

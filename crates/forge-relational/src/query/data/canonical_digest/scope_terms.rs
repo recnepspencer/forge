@@ -1,7 +1,7 @@
 use crate::indexes::data::DerivedIndexGenerationId;
 use crate::query::data::{
-    FallbackParityMode, IndexQueryRejectionClass, QueryAccessPath, QueryExecutionShape,
-    QueryFallbackContract, QueryLocalityClass, QueryOrderingContract, QueryPlanContextId,
+    IndexParityMode, IndexQueryRejectionClass, QueryAccessContract, QueryAccessPath,
+    QueryExecutionShape, QueryLocalityClass, QueryOrderingContract, QueryPlanContextId,
     QueryPlanEvidenceBasis, QueryScope, ReductionDiscipline,
 };
 use crate::transactions::data::RecordRef;
@@ -127,7 +127,7 @@ pub(super) fn encode_query_access_path(bytes: &mut Vec<u8>, access_path: &QueryA
             bytes.push(1);
             encode_derived_index_generation_id(bytes, *generation_id);
         }
-        QueryAccessPath::DerivedIndexRejectedStorageFallback { rejection } => {
+        QueryAccessPath::DerivedIndexRejectedStorageRead { rejection } => {
             bytes.push(2);
             encode_index_query_rejection_class(bytes, rejection);
         }
@@ -293,18 +293,21 @@ pub(super) fn encode_query_ordering_contract(bytes: &mut Vec<u8>, ordering: Quer
     });
 }
 
-pub(super) fn encode_query_fallback_contract(bytes: &mut Vec<u8>, fallback: QueryFallbackContract) {
-    bytes.push(match fallback {
-        QueryFallbackContract::StorageOnly => 0,
-        QueryFallbackContract::IndexAdmissibleStorageEquivalent => 1,
+pub(super) fn encode_query_access_contract(
+    bytes: &mut Vec<u8>,
+    access_contract: QueryAccessContract,
+) {
+    bytes.push(match access_contract {
+        QueryAccessContract::AuthoritativeStorageOnly => 0,
+        QueryAccessContract::DerivedIndexWithStorageParity => 1,
     });
 }
 
-pub(super) fn encode_fallback_parity_mode(bytes: &mut Vec<u8>, parity_mode: FallbackParityMode) {
+pub(super) fn encode_index_parity_mode(bytes: &mut Vec<u8>, parity_mode: IndexParityMode) {
     bytes.push(match parity_mode {
-        FallbackParityMode::ProductionAdmissibility => 0,
-        FallbackParityMode::SampledParity => 1,
-        FallbackParityMode::CertificationParity => 2,
+        IndexParityMode::ProductionAdmissibility => 0,
+        IndexParityMode::SampledParity => 1,
+        IndexParityMode::CertificationParity => 2,
     });
 }
 

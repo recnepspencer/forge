@@ -2,11 +2,11 @@ mod canonical_digest;
 mod fragment_reduction;
 #[cfg(test)]
 mod fragment_reduction_tests;
-mod index_fallback;
+mod index_access_parity;
 mod planned_packets;
 
 pub(crate) use canonical_digest::{
-    query_fallback_parity_basis_digest, query_result_reduction_digest,
+    query_index_parity_basis_digest, query_result_reduction_digest,
     query_unmasked_entity_record_digest, query_unmasked_relation_record_digest,
 };
 pub use fragment_reduction::{
@@ -14,13 +14,12 @@ pub use fragment_reduction::{
     QueryFragmentCounters, QueryWorkerFragment, TraversalEntityVisitKey, TraversalReductionBasis,
     TraversalRelationVisitKey,
 };
-pub use index_fallback::{
-    FallbackParityMode, FallbackParityVerifiedQueryOutcome, IndexQueryRejectionClass,
-    QueryAccessPath,
+pub use index_access_parity::{
+    IndexParityMode, IndexParityVerifiedQueryOutcome, IndexQueryRejectionClass, QueryAccessPath,
 };
 pub use planned_packets::{
     deterministic_query_fragment_key, DeterministicQueryFragmentKey, DeterministicQueryPlanKey,
-    PartitionHint, PlannedQueryPacket, QueryExecutionShape, QueryFallbackContract,
+    PartitionHint, PlannedQueryPacket, QueryAccessContract, QueryExecutionShape,
     QueryLocalityClass, QueryOrderingContract, QueryParallelLegality, QueryParallelProfitability,
     QueryPlanContextId, QueryPlanEvidenceBasis, QueryScope, QuerySerialReason, ReadPacketPlan,
     ReductionDiscipline, SnapshotPinnedQueryPlan,
