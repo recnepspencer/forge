@@ -1,4 +1,6 @@
 use crate::application::{
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
     ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationEnvelopeEvidenceOrigin,
     ForgeQueryDeclarationInput, ForgeQueryDeclarationPrimaryAuthorityFamily,
     ForgeQueryDeclarationReceiptDenialCause, ForgeQueryDeclarationRoutePlanDenialCause,
@@ -27,6 +29,12 @@ pub struct ForgeQueryDeclarationSignalCompatibility<
     primary_authority_family: ForgeQueryDeclarationPrimaryAuthorityFamily,
     execution_family: ForgeQueryDeclarationSignalExecutionFamily,
     basis_families: Vec<BasisFamily>,
+    aspect_contract: ForgeQueryDeclarationAspectContract,
+    aspect_coverage: ForgeQueryDeclarationAspectCoverage,
+    aspect_coverage_basis: ForgeQueryDeclarationAspectCoverageBasis,
+    aspect_fit: ForgeQueryDeclarationAspectFit,
+    dependency_aspects: ForgeQueryDeclarationAspectContract,
+    produced_aspects: ForgeQueryDeclarationAspectContract,
     envelope: ForgeQueryDeclarationEnvelope<D, I>,
     signal_compatibility_digest: String,
     explanation: ForgeQueryDeclarationSignalCompatibilityExplanation,
@@ -39,6 +47,12 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         primary_authority_family: ForgeQueryDeclarationPrimaryAuthorityFamily,
         execution_family: ForgeQueryDeclarationSignalExecutionFamily,
         basis_families: Vec<BasisFamily>,
+        aspect_contract: ForgeQueryDeclarationAspectContract,
+        aspect_coverage: ForgeQueryDeclarationAspectCoverage,
+        aspect_coverage_basis: ForgeQueryDeclarationAspectCoverageBasis,
+        aspect_fit: ForgeQueryDeclarationAspectFit,
+        dependency_aspects: ForgeQueryDeclarationAspectContract,
+        produced_aspects: ForgeQueryDeclarationAspectContract,
         envelope: ForgeQueryDeclarationEnvelope<D, I>,
         signal_compatibility_digest: String,
         explanation: ForgeQueryDeclarationSignalCompatibilityExplanation,
@@ -48,6 +62,12 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             primary_authority_family,
             execution_family,
             basis_families,
+            aspect_contract,
+            aspect_coverage,
+            aspect_coverage_basis,
+            aspect_fit,
+            dependency_aspects,
+            produced_aspects,
             envelope,
             signal_compatibility_digest,
             explanation,
@@ -68,6 +88,30 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn basis_families(&self) -> &[BasisFamily] {
         &self.basis_families
+    }
+
+    pub fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.aspect_contract
+    }
+
+    pub fn aspect_coverage(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        &self.aspect_coverage
+    }
+
+    pub fn aspect_coverage_basis(&self) -> ForgeQueryDeclarationAspectCoverageBasis {
+        self.aspect_coverage_basis
+    }
+
+    pub fn aspect_fit(&self) -> ForgeQueryDeclarationAspectFit {
+        self.aspect_fit
+    }
+
+    pub fn dependency_aspects(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.dependency_aspects
+    }
+
+    pub fn produced_aspects(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.produced_aspects
     }
 
     pub fn declaration_family_key(&self) -> &'static str {

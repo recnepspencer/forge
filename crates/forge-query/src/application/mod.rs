@@ -1,6 +1,8 @@
 mod capability;
 mod config;
 mod declaration;
+mod declaration_aspect;
+mod declaration_authority_summary;
 mod declaration_bridge_routing;
 mod declaration_capability;
 mod declaration_entry_orchestration;
@@ -10,6 +12,7 @@ mod declaration_evidence;
 mod declaration_family;
 mod declaration_legality;
 mod declaration_progression;
+mod declaration_publication;
 mod declaration_receipt;
 mod declaration_relational_routing;
 mod declaration_route_plan;
@@ -38,6 +41,16 @@ pub use declaration::{
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationCanonicalEntryKind,
     ForgeQueryDeclarationCanonicalValue, ForgeQueryDeclarationCanonicalizationError,
     ForgeQueryDeclarationCanonicalizationVersion, ForgeQueryDeclarationInput,
+};
+pub use declaration_aspect::{
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
+    ForgeQueryDeclarationAuthorityAspectMismatch,
+};
+pub use declaration_authority_summary::{
+    ForgeQueryDeclarationBridgeAuthorityAspectSummary,
+    ForgeQueryDeclarationRelationalAuthorityAspectSummary,
+    ForgeQueryDeclarationSignalAuthorityAspectSummary,
 };
 pub use declaration_bridge_routing::{
     ForgeQueryDeclarationBridgeBinding, ForgeQueryDeclarationBridgeContinuationContract,
@@ -71,16 +84,40 @@ pub use declaration_capability::{
     ForgeQuerySignalNotCompatiblePosture, ForgeQuerySingleOnlyGrouping,
 };
 pub use declaration_entry_orchestration::{
+    ForgeQueryDeclarationEntryOrchestrationArtifactPolicy,
+    ForgeQueryDeclarationEntryOrchestrationAutomationBoundary,
+    ForgeQueryDeclarationEntryOrchestrationAutomationRefusal,
+    ForgeQueryDeclarationEntryOrchestrationAutomationRefusalClass,
+    ForgeQueryDeclarationEntryOrchestrationAutomationStep,
     ForgeQueryDeclarationEntryOrchestrationChecked,
+    ForgeQueryDeclarationEntryOrchestrationCostPosture,
     ForgeQueryDeclarationEntryOrchestrationDeferred, ForgeQueryDeclarationEntryOrchestrationDenied,
-    ForgeQueryDeclarationEntryOrchestrationFailed, ForgeQueryDeclarationEntryOrchestrationProof,
+    ForgeQueryDeclarationEntryOrchestrationExposureLevel,
+    ForgeQueryDeclarationEntryOrchestrationFailed, ForgeQueryDeclarationEntryOrchestrationInput,
+    ForgeQueryDeclarationEntryOrchestrationMaterializationGate,
+    ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy,
+    ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
+    ForgeQueryDeclarationEntryOrchestrationOutcome, ForgeQueryDeclarationEntryOrchestrationPlan,
+    ForgeQueryDeclarationEntryOrchestrationProduct, ForgeQueryDeclarationEntryOrchestrationProof,
     ForgeQueryDeclarationEntryOrchestrationRebindRequired,
     ForgeQueryDeclarationEntryOrchestrationRefusal,
     ForgeQueryDeclarationEntryOrchestrationRefusalClass,
     ForgeQueryDeclarationEntryOrchestrationStage,
     ForgeQueryDeclarationEntryOrchestrationStageRecord,
     ForgeQueryDeclarationEntryOrchestrationStale,
+    ForgeQueryDeclarationEntryOrchestrationStepDisposition,
+    ForgeQueryDeclarationEntryOrchestrationStepRecord,
     ForgeQueryDeclarationEntryOrchestrationTerminalError,
+    ForgeQueryDeclarationEntryOrchestrationTranscript, ForgeQueryDeclarationEntryOrchestrationVerb,
+    ForgeQueryDeclarationEntryOrchestrationVerbCeiling,
+    ForgeQueryDeclarationEntryOrchestrationVerbFamily,
+    ForgeQueryDeclarationEntryOrchestrationVerbInventory,
+    ForgeQueryDeclarationEnvelopeOrchestrationProof,
+    ForgeQueryDeclarationEnvelopeOrchestrationTranscript,
+    ForgeQueryDeclarationReceiptOrchestrationProof,
+    ForgeQueryDeclarationReceiptOrchestrationTranscript,
+    ForgeQueryDeclarationRouteOrchestrationProof,
+    ForgeQueryDeclarationRouteOrchestrationTranscript,
 };
 pub use declaration_entry_seam::{
     ForgeQueryDeclarationEntryContributionCategoryFamily,
@@ -88,6 +125,7 @@ pub use declaration_entry_seam::{
     ForgeQueryDeclarationEntryContributionCompositionError,
     ForgeQueryDeclarationEntryContributionCompositionFailureClass,
     ForgeQueryDeclarationEntryContributionEvidence,
+    ForgeQueryDeclarationEntryContributionEvidenceRecord,
     ForgeQueryDeclarationEntryContributionEvidenceSet,
     ForgeQueryDeclarationEntryContributionTargetFamily,
     ForgeQueryDeclarationEntryCrossingInventory, ForgeQueryDeclarationEntryCrossingRow,
@@ -133,6 +171,7 @@ pub use declaration_progression::{
     ForgeQueryDeclarationProgressionRebindRequired, ForgeQueryDeclarationProgressionRecipe,
     ForgeQueryDeclarationProgressionStale, ForgeQueryDeclarationProgressionTerminalError,
 };
+pub use declaration_publication::ForgeQueryDeclarationAspectPublication;
 pub use declaration_receipt::{
     ForgeQueryDeclarationEntryReceiptError, ForgeQueryDeclarationReceipt,
     ForgeQueryDeclarationReceiptChecked, ForgeQueryDeclarationReceiptClass,
@@ -191,8 +230,10 @@ pub use domain_handle::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryConfiguredDomainHandleAdmissionError,
     ForgeQueryConfiguredDomainHandleChecked, ForgeQueryConfiguredDomainHandleDeferred,
     ForgeQueryConfiguredDomainHandleDraft, ForgeQueryConfiguredDomainHandleInvalidContext,
-    ForgeQueryConfiguredDomainHandleUnsupported, ForgeQueryDeclarationEntryProgressionError,
-    ForgeQueryDomainOperatingContext, ForgeQueryValidatedConfiguredDomainHandle,
+    ForgeQueryConfiguredDomainHandleUnsupported,
+    ForgeQueryContinuationExecutionReadmissionObservation,
+    ForgeQueryDeclarationEntryProgressionError, ForgeQueryDomainOperatingContext,
+    ForgeQueryValidatedConfiguredDomainHandle,
 };
 pub use support::{
     ForgeQueryCapabilityDescriptor, ForgeQueryCapabilityFamily, ForgeQueryCapabilityRegistry,
@@ -204,6 +245,16 @@ pub use support::{
 };
 
 pub(crate) use declaration::forge_query_canonical_declaration;
+pub(crate) use declaration_aspect::{
+    aspect_coverage_from_publication, authority_mismatch_from_fit,
+    authority_scoped_envelope_aspect_contract, merged_authority_aspect_contract,
+    route_scoped_declaration_aspect_contract,
+};
+pub(crate) use declaration_authority_summary::{
+    bridge_authority_summary_from_coverage, bridge_authority_summary_from_publication,
+    relational_authority_summary_from_coverage, relational_authority_summary_from_publication,
+    signal_authority_summary_from_coverage, signal_authority_summary_from_publication,
+};
 pub(crate) use declaration_bridge_routing::{
     derive_bridge_routing_support_report, forge_query_checked_declaration_bridge_routing_on_handle,
 };
@@ -212,8 +263,19 @@ pub(crate) use declaration_capability::{
 };
 pub(crate) use declaration_entry_orchestration::{
     forge_query_checked_declaration_entry_orchestration_on_handle,
+    forge_query_checked_declaration_envelope_orchestration_from_progressed_on_handle,
+    forge_query_checked_declaration_receipt_orchestration_from_progressed_on_handle,
+    forge_query_checked_declaration_route_orchestration_from_progressed_on_handle,
     forge_query_declaration_entry_orchestration_on_handle,
     forge_query_declaration_entry_orchestration_proof_on_handle,
+    forge_query_declaration_envelope_orchestration_from_progressed_on_handle,
+    forge_query_declaration_envelope_orchestration_from_progressed_proof_on_handle,
+    forge_query_declaration_receipt_orchestration_from_progressed_on_handle,
+    forge_query_declaration_receipt_orchestration_from_progressed_proof_on_handle,
+    forge_query_declaration_route_orchestration_from_progressed_on_handle,
+    forge_query_declaration_route_orchestration_from_progressed_proof_on_handle,
+    forge_query_lower_declaration_entry_product_orchestration_from_progressed_on_handle,
+    materialized_profile_for_tier, ForgeQueryDeclarationEntryProductChecked,
 };
 pub(crate) use declaration_entry_seam::{
     forge_query_bridge_routing_support_from_entry_readiness,
@@ -231,7 +293,11 @@ pub(crate) use declaration_legality::review_declaration_legality;
 pub(crate) use declaration_progression::{
     forge_query_checked_declaration_progression, forge_query_declaration_progression_recipe,
 };
-pub(crate) use declaration_receipt::forge_query_checked_declaration_receipt;
+pub(crate) use declaration_receipt::{
+    forge_query_checked_declaration_receipt,
+    forge_query_checked_declaration_receipt_with_materialized_profile,
+    receipt_materialized_profile_for_tier,
+};
 pub(crate) use declaration_relational_routing::{
     derive_relational_routing_support_report,
     forge_query_checked_declaration_relational_routing_on_handle,
@@ -241,6 +307,7 @@ pub(crate) use declaration_signal_compatibility::{
     derive_signal_compatibility_support_report,
     forge_query_checked_declaration_signal_compatibility_on_handle,
 };
+pub(crate) use domain_handle::checked_route_plan_from_progressed_with_profile;
 
 #[cfg(test)]
 mod tests;

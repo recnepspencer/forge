@@ -1,12 +1,14 @@
 use crate::application::{
-    ForgeQueryDeclarationEnvelopeChecked, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryLowerAuthorityRouteFamily,
+    ForgeQueryDeclarationAspectFit, ForgeQueryDeclarationEnvelopeChecked,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryLowerAuthorityRouteFamily,
 };
 
 use super::{
     artifact::{
         ForgeQueryDeclarationRelationalRouting, ForgeQueryDeclarationRelationalRoutingClass,
     },
+    aspect_gate::RelationalAuthorityAspectGate,
     contract::ForgeQueryDeclarationRelationalTruthRoutingSupportStatus,
     denial::{
         ForgeQueryDeclarationRelationalRoutingDeferred,
@@ -15,6 +17,7 @@ use super::{
     },
     digest::derive_relational_routing_digest,
     explain::ForgeQueryDeclarationRelationalRoutingExplanation,
+    handle_gate::{envelope_matches_handle, subject_matches_handle},
     input::ForgeQueryDeclarationRelationalRoutingInput,
     lower::forge_query_lower_relational_binding,
 };
@@ -36,107 +39,10 @@ pub(crate) fn forge_query_checked_declaration_relational_routing<
     input: ForgeQueryDeclarationRelationalRoutingInput<D, I>,
 ) -> ForgeQueryDeclarationRelationalRoutingChecked<D, I> {
     match input {
-        ForgeQueryDeclarationRelationalRoutingInput::EnvelopeChecked(checked) => match checked {
-            ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope) => {
-                forge_query_checked_declaration_relational_routing(
-                    ForgeQueryDeclarationRelationalRoutingInput::enveloped(envelope),
-                )
-            }
-            ForgeQueryDeclarationEnvelopeChecked::Deferred(envelope) => {
-                forge_query_checked_declaration_relational_routing(
-                    ForgeQueryDeclarationRelationalRoutingInput::deferred(envelope),
-                )
-            }
-            ForgeQueryDeclarationEnvelopeChecked::Denied(envelope) => {
-                forge_query_checked_declaration_relational_routing(
-                    ForgeQueryDeclarationRelationalRoutingInput::denied(envelope),
-                )
-            }
-            ForgeQueryDeclarationEnvelopeChecked::Failed(envelope) => {
-                forge_query_checked_declaration_relational_routing(
-                    ForgeQueryDeclarationRelationalRoutingInput::failed(envelope),
-                )
-            }
-        },
-        ForgeQueryDeclarationRelationalRoutingInput::Enveloped(envelope) => {
-            let Some(contract) = I::Family::relational_truth_contract() else {
-                return ForgeQueryDeclarationRelationalRoutingChecked::Denied(
-                    ForgeQueryDeclarationRelationalRoutingDenied::new(
-                        envelope,
-                        ForgeQueryDeclarationRelationalRoutingDenialCause::UnsupportedRelationalTruthClaim,
-                    ),
-                );
-            };
-            let Some(route_plan) = envelope.route_plan() else {
-                return ForgeQueryDeclarationRelationalRoutingChecked::Denied(
-                    ForgeQueryDeclarationRelationalRoutingDenied::new(
-                        envelope,
-                        ForgeQueryDeclarationRelationalRoutingDenialCause::RelationalEnvelopeMismatch,
-                    ),
-                );
-            };
-            if !route_plan
-                .route_families()
-                .contains(&ForgeQueryLowerAuthorityRouteFamily::Relational)
-            {
-                return ForgeQueryDeclarationRelationalRoutingChecked::Denied(
-                    ForgeQueryDeclarationRelationalRoutingDenied::new(
-                        envelope,
-                        ForgeQueryDeclarationRelationalRoutingDenialCause::NonRelationalRoutePlan,
-                    ),
-                );
-            }
-            let mixed_origin = route_plan.route_count() > 1;
-            let class = if mixed_origin {
-                ForgeQueryDeclarationRelationalRoutingClass::MixedAuthorityRelationalTruth
-            } else {
-                ForgeQueryDeclarationRelationalRoutingClass::ExclusiveRelationalTruth
-            };
-            let (truth_claim, authority_family, binding) =
-                forge_query_lower_relational_binding(&envelope, contract);
-            let digest = derive_relational_routing_digest(
-                &envelope,
-                class,
-                truth_claim,
-                authority_family,
-                binding.surface(),
-                envelope.route_denial_cause(),
-                envelope.receipt_denial_cause(),
-            );
-            let mut retained_truths = envelope.explain().retained_truths().to_vec();
-            retained_truths.push(format!(
-                "relational-truth-claim:{}",
-                truth_claim.as_str()
-            ));
-            retained_truths.push(format!(
-                "relational-authority-family:{}",
-                authority_family.as_str()
-            ));
-            let explanation = ForgeQueryDeclarationRelationalRoutingExplanation::new(
-                envelope.explain().crossing_posture(),
-                truth_claim,
-                authority_family,
-                binding.surface(),
-                retained_truths,
-                envelope.explain().route_governing_reason().map(ToOwned::to_owned),
-                envelope.route_denial_cause(),
-                envelope.explain().receipt_governing_reason().to_string(),
-                envelope.receipt_denial_cause(),
-                envelope.evidence_origin(),
-                mixed_origin,
-            );
-            ForgeQueryDeclarationRelationalRoutingChecked::Routed(
-                ForgeQueryDeclarationRelationalRouting::new(
-                    class,
-                    truth_claim,
-                    authority_family,
-                    binding,
-                    envelope,
-                    digest,
-                    explanation,
-                ),
-            )
+        ForgeQueryDeclarationRelationalRoutingInput::EnvelopeChecked(checked) => {
+            forge_query_checked_declaration_relational_routing(lower_checked_input(checked))
         }
+        ForgeQueryDeclarationRelationalRoutingInput::Enveloped(envelope) => route_enveloped(envelope),
         ForgeQueryDeclarationRelationalRoutingInput::Deferred(envelope) => {
             let reason = envelope.reason();
             ForgeQueryDeclarationRelationalRoutingChecked::Deferred(
@@ -150,6 +56,9 @@ pub(crate) fn forge_query_checked_declaration_relational_routing<
             ForgeQueryDeclarationRelationalRoutingChecked::Denied(
                 ForgeQueryDeclarationRelationalRoutingDenied::new(
                     envelope.into_envelope(),
+                    I::Family::relational_truth_contract().map(|contract| contract.truth_claim()),
+                    I::Family::relational_truth_contract()
+                        .map(|contract| contract.authority_family()),
                     ForgeQueryDeclarationRelationalRoutingDenialCause::EnvelopeNotCoveredForRelationalRouting,
                 ),
             )
@@ -176,140 +85,260 @@ pub(crate) fn forge_query_checked_declaration_relational_routing_on_handle<
     input: ForgeQueryDeclarationRelationalRoutingInput<D, I>,
 ) -> ForgeQueryDeclarationRelationalRoutingChecked<D, I> {
     match input {
-        ForgeQueryDeclarationRelationalRoutingInput::EnvelopeChecked(checked) => match checked {
-            ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope) => {
-                checked_enveloped_on_handle(
-                    handle_identity_digest,
-                    operating_context_identity_digest,
-                    support_status,
-                    envelope,
-                )
-            }
-            ForgeQueryDeclarationEnvelopeChecked::Deferred(envelope) => {
-                checked_non_success_on_handle(
-                    handle_identity_digest,
-                    operating_context_identity_digest,
-                    ForgeQueryDeclarationRelationalRoutingInput::deferred(envelope),
-                )
-            }
-            ForgeQueryDeclarationEnvelopeChecked::Denied(envelope) => {
-                checked_non_success_on_handle(
-                    handle_identity_digest,
-                    operating_context_identity_digest,
-                    ForgeQueryDeclarationRelationalRoutingInput::denied(envelope),
-                )
-            }
-            ForgeQueryDeclarationEnvelopeChecked::Failed(envelope) => {
-                checked_non_success_on_handle(
-                    handle_identity_digest,
-                    operating_context_identity_digest,
-                    ForgeQueryDeclarationRelationalRoutingInput::failed(envelope),
-                )
-            }
-        },
-        ForgeQueryDeclarationRelationalRoutingInput::Enveloped(envelope) => {
-            checked_enveloped_on_handle(
+        ForgeQueryDeclarationRelationalRoutingInput::EnvelopeChecked(checked) => {
+            forge_query_checked_declaration_relational_routing_on_handle(
                 handle_identity_digest,
                 operating_context_identity_digest,
                 support_status,
-                envelope,
+                lower_checked_input(checked),
             )
         }
-        other => checked_non_success_on_handle(
-            handle_identity_digest,
-            operating_context_identity_digest,
-            other,
-        ),
+        ForgeQueryDeclarationRelationalRoutingInput::Enveloped(envelope) => {
+            if !envelope_matches_handle(
+                handle_identity_digest,
+                operating_context_identity_digest,
+                &envelope,
+            ) {
+                return ForgeQueryDeclarationRelationalRoutingChecked::Denied(
+                    ForgeQueryDeclarationRelationalRoutingDenied::new(
+                        envelope,
+                        I::Family::relational_truth_contract().map(|contract| contract.truth_claim()),
+                        I::Family::relational_truth_contract()
+                            .map(|contract| contract.authority_family()),
+                        ForgeQueryDeclarationRelationalRoutingDenialCause::RelationalEnvelopeMismatch,
+                    ),
+                );
+            }
+            if support_status != ForgeQueryDeclarationRelationalTruthRoutingSupportStatus::Admitted
+            {
+                return ForgeQueryDeclarationRelationalRoutingChecked::Denied(
+                    ForgeQueryDeclarationRelationalRoutingDenied::new(
+                        envelope,
+                        I::Family::relational_truth_contract().map(|contract| contract.truth_claim()),
+                        I::Family::relational_truth_contract()
+                            .map(|contract| contract.authority_family()),
+                        ForgeQueryDeclarationRelationalRoutingDenialCause::RelationalAuthorityUnavailable,
+                    ),
+                );
+            }
+            route_enveloped(envelope)
+        }
+        other => {
+            if !subject_matches_handle(
+                handle_identity_digest,
+                operating_context_identity_digest,
+                &other,
+            ) {
+                return deny_non_success_mismatch(other);
+            }
+            forge_query_checked_declaration_relational_routing(other)
+        }
     }
 }
 
-fn checked_enveloped_on_handle<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
-    handle_identity_digest: &str,
-    operating_context_identity_digest: &str,
-    support_status: ForgeQueryDeclarationRelationalTruthRoutingSupportStatus,
+fn route_enveloped<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
     envelope: crate::application::ForgeQueryDeclarationEnvelope<D, I>,
 ) -> ForgeQueryDeclarationRelationalRoutingChecked<D, I> {
-    if envelope.handle_identity_digest() != handle_identity_digest
-        || envelope.operating_context_identity_digest() != operating_context_identity_digest
+    let Some(contract) = I::Family::relational_truth_contract() else {
+        return ForgeQueryDeclarationRelationalRoutingChecked::Denied(
+            ForgeQueryDeclarationRelationalRoutingDenied::new(
+                envelope,
+                None,
+                None,
+                ForgeQueryDeclarationRelationalRoutingDenialCause::UnsupportedRelationalTruthClaim,
+            ),
+        );
+    };
+    let denied_truth_claim = Some(contract.truth_claim());
+    let denied_authority_family = Some(contract.authority_family());
+    let Some(route_plan) = envelope.route_plan() else {
+        return ForgeQueryDeclarationRelationalRoutingChecked::Denied(
+            ForgeQueryDeclarationRelationalRoutingDenied::new(
+                envelope,
+                denied_truth_claim,
+                denied_authority_family,
+                ForgeQueryDeclarationRelationalRoutingDenialCause::RelationalEnvelopeMismatch,
+            ),
+        );
+    };
+    if !route_plan
+        .route_families()
+        .contains(&ForgeQueryLowerAuthorityRouteFamily::Relational)
     {
         return ForgeQueryDeclarationRelationalRoutingChecked::Denied(
             ForgeQueryDeclarationRelationalRoutingDenied::new(
                 envelope,
-                ForgeQueryDeclarationRelationalRoutingDenialCause::RelationalEnvelopeMismatch,
+                denied_truth_claim,
+                denied_authority_family,
+                ForgeQueryDeclarationRelationalRoutingDenialCause::NonRelationalRoutePlan,
             ),
         );
     }
-    if support_status != ForgeQueryDeclarationRelationalTruthRoutingSupportStatus::Admitted {
-        return ForgeQueryDeclarationRelationalRoutingChecked::Denied(
-            ForgeQueryDeclarationRelationalRoutingDenied::new(
-                envelope,
-                ForgeQueryDeclarationRelationalRoutingDenialCause::RelationalAuthorityUnavailable,
-            ),
-        );
+
+    let authority_aspects =
+        RelationalAuthorityAspectGate::from_envelope(&envelope, contract.required_aspects());
+    match authority_aspects.fit() {
+        ForgeQueryDeclarationAspectFit::Conflict => {
+            return ForgeQueryDeclarationRelationalRoutingChecked::Denied(
+                ForgeQueryDeclarationRelationalRoutingDenied::new(
+                    envelope,
+                    denied_truth_claim,
+                    denied_authority_family,
+                    ForgeQueryDeclarationRelationalRoutingDenialCause::AspectConflict,
+                ),
+            );
+        }
+        ForgeQueryDeclarationAspectFit::MissingRequired => {
+            return ForgeQueryDeclarationRelationalRoutingChecked::Denied(
+                ForgeQueryDeclarationRelationalRoutingDenied::new(
+                    envelope,
+                    denied_truth_claim,
+                    denied_authority_family,
+                    ForgeQueryDeclarationRelationalRoutingDenialCause::MissingRequiredAspect,
+                ),
+            );
+        }
+        ForgeQueryDeclarationAspectFit::Partial => {
+            return ForgeQueryDeclarationRelationalRoutingChecked::Denied(
+                ForgeQueryDeclarationRelationalRoutingDenied::new(
+                    envelope,
+                    denied_truth_claim,
+                    denied_authority_family,
+                    ForgeQueryDeclarationRelationalRoutingDenialCause::RelationalAspectGap,
+                ),
+            );
+        }
+        ForgeQueryDeclarationAspectFit::Exact
+        | ForgeQueryDeclarationAspectFit::CompatibleSuperset => {}
     }
-    forge_query_checked_declaration_relational_routing(
-        ForgeQueryDeclarationRelationalRoutingInput::enveloped(envelope),
+
+    let mixed_origin = route_plan.route_count() > 1;
+    let class = if mixed_origin {
+        ForgeQueryDeclarationRelationalRoutingClass::MixedAuthorityRelationalTruth
+    } else {
+        ForgeQueryDeclarationRelationalRoutingClass::ExclusiveRelationalTruth
+    };
+    let (truth_claim, authority_family, binding) =
+        forge_query_lower_relational_binding(&envelope, contract);
+    let digest = derive_relational_routing_digest(
+        &envelope,
+        class,
+        truth_claim,
+        authority_family,
+        binding.surface(),
+        authority_aspects.contract(),
+        authority_aspects.coverage(),
+        authority_aspects.coverage_basis(),
+        authority_aspects.fit(),
+        envelope.route_denial_cause(),
+        envelope.receipt_denial_cause(),
+    );
+    let mut retained_truths = envelope.explain().retained_truths().to_vec();
+    retained_truths.push(format!("relational-truth-claim:{}", truth_claim.as_str()));
+    retained_truths.push(format!(
+        "relational-authority-family:{}",
+        authority_family.as_str()
+    ));
+    retained_truths.push(format!(
+        "relational-aspect-fit:{:?}",
+        authority_aspects.fit()
+    ));
+    retained_truths.push(format!(
+        "relational-aspect-coverage-basis:{:?}",
+        authority_aspects.coverage_basis()
+    ));
+    let explanation = ForgeQueryDeclarationRelationalRoutingExplanation::new(
+        envelope.explain().crossing_posture(),
+        truth_claim,
+        authority_family,
+        binding.surface(),
+        retained_truths,
+        envelope
+            .explain()
+            .route_governing_reason()
+            .map(ToOwned::to_owned),
+        envelope.route_denial_cause(),
+        envelope.explain().receipt_governing_reason().to_string(),
+        envelope.receipt_denial_cause(),
+        envelope.evidence_origin(),
+        mixed_origin,
+    );
+    ForgeQueryDeclarationRelationalRoutingChecked::Routed(
+        ForgeQueryDeclarationRelationalRouting::new(
+            class,
+            truth_claim,
+            authority_family,
+            binding,
+            authority_aspects.contract().clone(),
+            authority_aspects.coverage().clone(),
+            authority_aspects.coverage_basis(),
+            authority_aspects.fit(),
+            envelope,
+            digest,
+            explanation,
+        ),
     )
 }
 
-fn checked_non_success_on_handle<
-    D: ForgeQueryDomainEntryMarker,
-    I: ForgeQueryDeclarationInput<D>,
->(
-    handle_identity_digest: &str,
-    operating_context_identity_digest: &str,
-    input: ForgeQueryDeclarationRelationalRoutingInput<D, I>,
-) -> ForgeQueryDeclarationRelationalRoutingChecked<D, I> {
-    if !subject_matches_handle(
-        handle_identity_digest,
-        operating_context_identity_digest,
-        &input,
-    ) {
-        return match input {
-            ForgeQueryDeclarationRelationalRoutingInput::Deferred(envelope) => {
-                ForgeQueryDeclarationRelationalRoutingChecked::Denied(
-                    ForgeQueryDeclarationRelationalRoutingDenied::new(
-                        envelope.into_envelope(),
-                        ForgeQueryDeclarationRelationalRoutingDenialCause::RelationalEnvelopeMismatch,
-                    ),
-                )
-            }
-            ForgeQueryDeclarationRelationalRoutingInput::Denied(envelope) => {
-                ForgeQueryDeclarationRelationalRoutingChecked::Denied(
-                    ForgeQueryDeclarationRelationalRoutingDenied::new(
-                        envelope.into_envelope(),
-                        ForgeQueryDeclarationRelationalRoutingDenialCause::RelationalEnvelopeMismatch,
-                    ),
-                )
-            }
-            ForgeQueryDeclarationRelationalRoutingInput::Failed(envelope) => {
-                ForgeQueryDeclarationRelationalRoutingChecked::Denied(
-                    ForgeQueryDeclarationRelationalRoutingDenied::new(
-                        envelope.into_envelope(),
-                        ForgeQueryDeclarationRelationalRoutingDenialCause::RelationalEnvelopeMismatch,
-                    ),
-                )
-            }
-            _ => unreachable!("covered envelopes use the covered-handle path"),
-        };
+fn lower_checked_input<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
+    checked: ForgeQueryDeclarationEnvelopeChecked<D, I>,
+) -> ForgeQueryDeclarationRelationalRoutingInput<D, I> {
+    match checked {
+        ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope) => {
+            ForgeQueryDeclarationRelationalRoutingInput::enveloped(envelope)
+        }
+        ForgeQueryDeclarationEnvelopeChecked::Deferred(envelope) => {
+            ForgeQueryDeclarationRelationalRoutingInput::deferred(envelope)
+        }
+        ForgeQueryDeclarationEnvelopeChecked::Denied(envelope) => {
+            ForgeQueryDeclarationRelationalRoutingInput::denied(envelope)
+        }
+        ForgeQueryDeclarationEnvelopeChecked::Failed(envelope) => {
+            ForgeQueryDeclarationRelationalRoutingInput::failed(envelope)
+        }
     }
-    forge_query_checked_declaration_relational_routing(input)
 }
 
-fn subject_matches_handle<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
-    handle_identity_digest: &str,
-    operating_context_identity_digest: &str,
-    input: &ForgeQueryDeclarationRelationalRoutingInput<D, I>,
-) -> bool {
-    let envelope = match input {
-        ForgeQueryDeclarationRelationalRoutingInput::Enveloped(envelope) => envelope,
-        ForgeQueryDeclarationRelationalRoutingInput::Deferred(envelope) => envelope.envelope(),
-        ForgeQueryDeclarationRelationalRoutingInput::Denied(envelope) => envelope.envelope(),
-        ForgeQueryDeclarationRelationalRoutingInput::Failed(envelope) => envelope.envelope(),
-        ForgeQueryDeclarationRelationalRoutingInput::EnvelopeChecked(_) => {
-            unreachable!("checked input is lowered before handle matching")
+fn deny_non_success_mismatch<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
+    input: ForgeQueryDeclarationRelationalRoutingInput<D, I>,
+) -> ForgeQueryDeclarationRelationalRoutingChecked<D, I> {
+    match input {
+        ForgeQueryDeclarationRelationalRoutingInput::Deferred(envelope) => {
+            ForgeQueryDeclarationRelationalRoutingChecked::Denied(
+                ForgeQueryDeclarationRelationalRoutingDenied::new(
+                    envelope.into_envelope(),
+                    I::Family::relational_truth_contract().map(|contract| contract.truth_claim()),
+                    I::Family::relational_truth_contract()
+                        .map(|contract| contract.authority_family()),
+                    ForgeQueryDeclarationRelationalRoutingDenialCause::RelationalEnvelopeMismatch,
+                ),
+            )
         }
-    };
-    envelope.handle_identity_digest() == handle_identity_digest
-        && envelope.operating_context_identity_digest() == operating_context_identity_digest
+        ForgeQueryDeclarationRelationalRoutingInput::Denied(envelope) => {
+            ForgeQueryDeclarationRelationalRoutingChecked::Denied(
+                ForgeQueryDeclarationRelationalRoutingDenied::new(
+                    envelope.into_envelope(),
+                    I::Family::relational_truth_contract().map(|contract| contract.truth_claim()),
+                    I::Family::relational_truth_contract()
+                        .map(|contract| contract.authority_family()),
+                    ForgeQueryDeclarationRelationalRoutingDenialCause::RelationalEnvelopeMismatch,
+                ),
+            )
+        }
+        ForgeQueryDeclarationRelationalRoutingInput::Failed(envelope) => {
+            ForgeQueryDeclarationRelationalRoutingChecked::Denied(
+                ForgeQueryDeclarationRelationalRoutingDenied::new(
+                    envelope.into_envelope(),
+                    I::Family::relational_truth_contract().map(|contract| contract.truth_claim()),
+                    I::Family::relational_truth_contract()
+                        .map(|contract| contract.authority_family()),
+                    ForgeQueryDeclarationRelationalRoutingDenialCause::RelationalEnvelopeMismatch,
+                ),
+            )
+        }
+        ForgeQueryDeclarationRelationalRoutingInput::Enveloped(_)
+        | ForgeQueryDeclarationRelationalRoutingInput::EnvelopeChecked(_) => {
+            unreachable!("covered envelopes use the covered-handle path")
+        }
+    }
 }

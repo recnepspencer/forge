@@ -1,28 +1,18 @@
 use crate::application::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryCapabilityFamily,
-    ForgeQueryCapabilityStatus, ForgeQueryConfigSectionFamily,
-    ForgeQueryDeclarationBridgeRoutingSupportReport, ForgeQueryDeclarationBridgeRoutingSupportRow,
-    ForgeQueryDeclarationBridgeRoutingSupportStatus, ForgeQueryDeclarationCapabilityStatus,
+    ForgeQueryCapabilityStatus, ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectFit,
+    ForgeQueryDeclarationAuthorityAspectMismatch, ForgeQueryDeclarationCapabilityStatus,
     ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationFamilySupportReport,
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationRelationalRoutingSupportReport,
-    ForgeQueryDeclarationRelationalRoutingSupportRow,
-    ForgeQueryDeclarationRelationalTruthRoutingSupportStatus,
-    ForgeQueryDeclarationSignalCompatibilitySupportReport,
-    ForgeQueryDeclarationSignalCompatibilitySupportRow,
-    ForgeQueryDeclarationSignalCompatibilitySupportStatus,
-    ForgeQueryDeclarationSignalExecutionFamily, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext, ForgeQueryLowerAuthorityRouteFamily,
-    ForgeQuerySignalCompatibilityPosture,
+    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryLowerAuthorityRouteFamily, ForgeQuerySignalCompatibilityPosture,
 };
-use crate::basis_lifecycle::BasisFamily;
 
 use super::{
-    digest::derive_readiness_digest,
-    row::{
-        crossing_rows_for_family, ForgeQueryDeclarationEntryCrossingRow,
-        ForgeQueryDeclarationEntryCrossingSurface,
+    row::{ForgeQueryDeclarationEntryCrossingRow, ForgeQueryDeclarationEntryCrossingSurface},
+    support::{
+        ForgeQueryDeclarationEntryReadinessRow, ForgeQueryDeclarationEntryReadinessStatus,
+        ReadinessRetainedPosture,
     },
-    support::{ForgeQueryDeclarationEntryReadinessRow, ForgeQueryDeclarationEntryReadinessStatus},
 };
 
 pub(crate) fn readiness_row_for_crossing<
@@ -32,21 +22,98 @@ pub(crate) fn readiness_row_for_crossing<
 >(
     row: ForgeQueryDeclarationEntryCrossingRow,
     handle: &ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
+    retained_posture: Option<&ReadinessRetainedPosture>,
 ) -> ForgeQueryDeclarationEntryReadinessRow {
     let family_support = handle.family_support::<I::Family>();
+    let envelope_aspect_publication =
+        retained_posture.map(|posture| posture.envelope_aspect_publication.clone());
     match row.surface() {
-        ForgeQueryDeclarationEntryCrossingSurface::Envelope => envelope_row(row, &family_support),
+        ForgeQueryDeclarationEntryCrossingSurface::Envelope => {
+            envelope_row(row, &family_support, envelope_aspect_publication)
+        }
         ForgeQueryDeclarationEntryCrossingSurface::RelationalTruthRouting => {
             let (status, reason) = relational_status::<D, C, I>(handle);
-            ForgeQueryDeclarationEntryReadinessRow::new(row, status, reason)
+            let relational_summary = retained_posture
+                .map(|posture| posture.relational_authority_summary.clone())
+                .unwrap_or_else(|| {
+                    crate::application::relational_authority_summary_from_coverage(
+                        &I::Family::aspect_contract(),
+                        I::Family::aspect_coverage(),
+                        crate::application::ForgeQueryDeclarationAspectCoverageBasis::DeclaredFamilyCoverage,
+                        I::Family::relational_truth_contract().as_ref(),
+                    )
+                });
+            let (status, reason) = reconcile_authority_readiness(
+                status,
+                reason,
+                relational_summary.aspect_mismatch(),
+                None,
+            );
+            ForgeQueryDeclarationEntryReadinessRow::new(
+                row,
+                status,
+                reason,
+                envelope_aspect_publication,
+                Some(relational_summary),
+                None,
+                None,
+            )
         }
         ForgeQueryDeclarationEntryCrossingSurface::BridgeContinuationRouting => {
             let (status, reason) = bridge_status::<D, C, I>(handle);
-            ForgeQueryDeclarationEntryReadinessRow::new(row, status, reason)
+            let bridge_summary = retained_posture
+                .map(|posture| posture.bridge_authority_summary.clone())
+                .unwrap_or_else(|| {
+                    crate::application::bridge_authority_summary_from_coverage(
+                        &I::Family::aspect_contract(),
+                        I::Family::aspect_coverage(),
+                        crate::application::ForgeQueryDeclarationAspectCoverageBasis::DeclaredFamilyCoverage,
+                        I::Family::bridge_continuation_contract().as_ref(),
+                    )
+                });
+            let (status, reason) = reconcile_authority_readiness(
+                status,
+                reason,
+                bridge_summary.aspect_mismatch(),
+                Some(bridge_summary.mapping_fit()),
+            );
+            ForgeQueryDeclarationEntryReadinessRow::new(
+                row,
+                status,
+                reason,
+                envelope_aspect_publication,
+                None,
+                Some(bridge_summary),
+                None,
+            )
         }
         ForgeQueryDeclarationEntryCrossingSurface::SignalCompatibility => {
             let (status, reason) = signal_status::<D, C, I>(handle);
-            ForgeQueryDeclarationEntryReadinessRow::new(row, status, reason)
+            let signal_summary = retained_posture
+                .map(|posture| posture.signal_authority_summary.clone())
+                .unwrap_or_else(|| {
+                    crate::application::signal_authority_summary_from_coverage(
+                        &I::Family::aspect_contract(),
+                        I::Family::aspect_coverage(),
+                        crate::application::ForgeQueryDeclarationAspectCoverageBasis::DeclaredFamilyCoverage,
+                        I::Family::signal_compatibility_contract().as_ref(),
+                    )
+                });
+            let (status, reason) = reconcile_authority_readiness(
+                status,
+                reason,
+                signal_summary.aspect_mismatch(),
+                None,
+            );
+            ForgeQueryDeclarationEntryReadinessRow::new(
+                row,
+                status,
+                reason,
+                envelope_aspect_publication,
+                None,
+                None,
+                Some(signal_summary),
+            )
         }
     }
 }
@@ -54,6 +121,7 @@ pub(crate) fn readiness_row_for_crossing<
 fn envelope_row<D: ForgeQueryDomainEntryMarker, F: ForgeQueryDeclarationFamilyMarker<D>>(
     row: ForgeQueryDeclarationEntryCrossingRow,
     family_support: &ForgeQueryDeclarationFamilySupportReport<D, F>,
+    envelope_aspect_publication: Option<crate::application::ForgeQueryDeclarationAspectPublication>,
 ) -> ForgeQueryDeclarationEntryReadinessRow {
     let status = match family_support.declare_status() {
         ForgeQueryDeclarationCapabilityStatus::Admitted => {
@@ -73,7 +141,15 @@ fn envelope_row<D: ForgeQueryDomainEntryMarker, F: ForgeQueryDeclarationFamilyMa
         .row(crate::application::ForgeQueryDeclarationCapabilityVerb::Declare)
         .expect("declare row must exist")
         .reason();
-    ForgeQueryDeclarationEntryReadinessRow::new(row, status, reason)
+    ForgeQueryDeclarationEntryReadinessRow::new(
+        row,
+        status,
+        reason,
+        envelope_aspect_publication,
+        None,
+        None,
+        None,
+    )
 }
 
 #[rustfmt::skip]
@@ -145,254 +221,53 @@ fn config_sections_enabled<
     })
 }
 
-pub(crate) fn forge_query_relational_routing_support_from_entry_readiness<
-    D: ForgeQueryDomainEntryMarker,
-    C: ForgeQueryDomainOperatingContext<D>,
-    I: ForgeQueryDeclarationInput<D>,
->(
-    handle: &ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
-) -> ForgeQueryDeclarationRelationalRoutingSupportReport<D, I> {
-    let mut rows = Vec::new();
-    for crossing in crossing_rows_for_family::<D, C, I>(handle)
-        .into_iter()
-        .filter(|crossing| {
-            matches!(
-                crossing.surface(),
-                ForgeQueryDeclarationEntryCrossingSurface::RelationalTruthRouting
-            )
-        })
-    {
-        let row = readiness_row_for_crossing::<D, C, I>(crossing, handle);
-        let crossing = row.crossing_row();
-        let truth_claim = crossing
-            .relational_truth_claim()
-            .expect("relational rows must carry truth claim");
-        let authority_family = crossing
-            .relational_authority_family()
-            .expect("relational rows must carry authority family");
-        if rows.iter().any(
-            |candidate: &ForgeQueryDeclarationRelationalRoutingSupportRow| {
-                candidate.truth_claim() == truth_claim
-                    && candidate.authority_family() == authority_family
-            },
-        ) {
-            continue;
-        }
-        rows.push(ForgeQueryDeclarationRelationalRoutingSupportRow::new(
-            truth_claim,
-            authority_family,
-            map_relational_status(row.status()),
-            row.reason(),
-        ));
+fn reconcile_authority_readiness(
+    status: ForgeQueryDeclarationEntryReadinessStatus,
+    reason: &'static str,
+    mismatch: Option<ForgeQueryDeclarationAuthorityAspectMismatch>,
+    mapping_fit: Option<ForgeQueryDeclarationAspectFit>,
+) -> (ForgeQueryDeclarationEntryReadinessStatus, &'static str) {
+    if status != ForgeQueryDeclarationEntryReadinessStatus::Admitted {
+        return (status, reason);
     }
-    ForgeQueryDeclarationRelationalRoutingSupportReport::new(
-        I::Family::semantic_family_key(),
-        rows.clone(),
-        digest_relational_rows(&rows),
-    )
+    if let Some(mismatch) = mismatch {
+        return readiness_from_mismatch(mismatch);
+    }
+    if let Some(mapping_fit) = mapping_fit {
+        return match mapping_fit {
+            ForgeQueryDeclarationAspectFit::Exact
+            | ForgeQueryDeclarationAspectFit::CompatibleSuperset => (status, reason),
+            ForgeQueryDeclarationAspectFit::MissingRequired => (
+                ForgeQueryDeclarationEntryReadinessStatus::Unsupported,
+                "the retained envelope publication does not map every required bridge continuation aspect",
+            ),
+            ForgeQueryDeclarationAspectFit::Partial => (
+                ForgeQueryDeclarationEntryReadinessStatus::Unsupported,
+                "the retained envelope publication only partially maps into the required bridge continuation aspect slice",
+            ),
+            ForgeQueryDeclarationAspectFit::Conflict => (
+                ForgeQueryDeclarationEntryReadinessStatus::Unsupported,
+                "the retained envelope publication conflicts with the required bridge continuation aspect mapping",
+            ),
+        };
+    }
+    (status, reason)
 }
 
-pub(crate) fn forge_query_bridge_routing_support_from_entry_readiness<
-    D: ForgeQueryDomainEntryMarker,
-    C: ForgeQueryDomainOperatingContext<D>,
-    I: ForgeQueryDeclarationInput<D>,
->(
-    handle: &ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
-) -> ForgeQueryDeclarationBridgeRoutingSupportReport<D, I> {
-    let mut rows = Vec::new();
-    for crossing in crossing_rows_for_family::<D, C, I>(handle)
-        .into_iter()
-        .filter(|crossing| {
-            matches!(
-                crossing.surface(),
-                ForgeQueryDeclarationEntryCrossingSurface::BridgeContinuationRouting
-            )
-        })
-    {
-        let row = readiness_row_for_crossing::<D, C, I>(crossing, handle);
-        let crossing = row.crossing_row();
-        let mode = crossing
-            .bridge_continuation_mode()
-            .expect("bridge rows must carry continuation mode");
-        let truth_context = crossing
-            .bridge_truth_context()
-            .expect("bridge rows must carry truth context");
-        let family = crossing
-            .bridge_continuation_family()
-            .expect("bridge rows must carry continuation family");
-        if rows
-            .iter()
-            .any(|candidate: &ForgeQueryDeclarationBridgeRoutingSupportRow| {
-                candidate.continuation_mode() == mode
-                    && candidate.truth_context() == truth_context
-                    && candidate.family() == family
-            })
-        {
-            continue;
-        }
-        rows.push(ForgeQueryDeclarationBridgeRoutingSupportRow::new(
-            mode,
-            truth_context,
-            family,
-            map_bridge_status(row.status()),
-            row.reason(),
-        ));
+fn readiness_from_mismatch(
+    mismatch: ForgeQueryDeclarationAuthorityAspectMismatch,
+) -> (ForgeQueryDeclarationEntryReadinessStatus, &'static str) {
+    match mismatch {
+        ForgeQueryDeclarationAuthorityAspectMismatch::BasisAspectMismatch => (
+            ForgeQueryDeclarationEntryReadinessStatus::InvalidBasis,
+            mismatch.reason(),
+        ),
+        ForgeQueryDeclarationAuthorityAspectMismatch::MissingRequiredAspect
+        | ForgeQueryDeclarationAuthorityAspectMismatch::AspectConflict
+        | ForgeQueryDeclarationAuthorityAspectMismatch::AuthorityAspectGap
+        | ForgeQueryDeclarationAuthorityAspectMismatch::AuthorityAspectAmbiguity => (
+            ForgeQueryDeclarationEntryReadinessStatus::Unsupported,
+            mismatch.reason(),
+        ),
     }
-    ForgeQueryDeclarationBridgeRoutingSupportReport::new(
-        I::Family::semantic_family_key(),
-        rows.clone(),
-        digest_bridge_rows(&rows),
-    )
-}
-
-pub(crate) fn forge_query_signal_compatibility_support_from_entry_readiness<
-    D: ForgeQueryDomainEntryMarker,
-    C: ForgeQueryDomainOperatingContext<D>,
-    I: ForgeQueryDeclarationInput<D>,
->(
-    handle: &ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
-) -> ForgeQueryDeclarationSignalCompatibilitySupportReport<D, I> {
-    let mut rows = Vec::new();
-    for crossing in crossing_rows_for_family::<D, C, I>(handle)
-        .into_iter()
-        .filter(|crossing| {
-            matches!(
-                crossing.surface(),
-                ForgeQueryDeclarationEntryCrossingSurface::SignalCompatibility
-            )
-        })
-    {
-        let row = readiness_row_for_crossing::<D, C, I>(crossing, handle);
-        let crossing = row.crossing_row();
-        let execution_family = crossing
-            .signal_execution_family()
-            .unwrap_or(ForgeQueryDeclarationSignalExecutionFamily::RuntimeDerivedExecution);
-        let basis_family = crossing
-            .basis_families()
-            .first()
-            .copied()
-            .unwrap_or(BasisFamily::CurrentHead);
-        if rows.iter().any(
-            |candidate: &ForgeQueryDeclarationSignalCompatibilitySupportRow| {
-                candidate.execution_family() == execution_family
-                    && candidate.basis_family() == basis_family
-            },
-        ) {
-            continue;
-        }
-        rows.push(ForgeQueryDeclarationSignalCompatibilitySupportRow::new(
-            execution_family,
-            basis_family,
-            map_signal_status(row.status()),
-            row.reason(),
-        ));
-    }
-    ForgeQueryDeclarationSignalCompatibilitySupportReport::new(
-        I::Family::semantic_family_key(),
-        rows.clone(),
-        digest_signal_rows(&rows),
-    )
-}
-
-fn map_relational_status(
-    value: ForgeQueryDeclarationEntryReadinessStatus,
-) -> ForgeQueryDeclarationRelationalTruthRoutingSupportStatus {
-    match value {
-        ForgeQueryDeclarationEntryReadinessStatus::Admitted => {
-            ForgeQueryDeclarationRelationalTruthRoutingSupportStatus::Admitted
-        }
-        ForgeQueryDeclarationEntryReadinessStatus::Deferred
-        | ForgeQueryDeclarationEntryReadinessStatus::Unsupported => {
-            ForgeQueryDeclarationRelationalTruthRoutingSupportStatus::Unsupported
-        }
-        ForgeQueryDeclarationEntryReadinessStatus::InvalidBasis => {
-            ForgeQueryDeclarationRelationalTruthRoutingSupportStatus::InvalidContext
-        }
-    }
-}
-
-fn map_bridge_status(
-    value: ForgeQueryDeclarationEntryReadinessStatus,
-) -> ForgeQueryDeclarationBridgeRoutingSupportStatus {
-    match value {
-        ForgeQueryDeclarationEntryReadinessStatus::Admitted => {
-            ForgeQueryDeclarationBridgeRoutingSupportStatus::Admitted
-        }
-        ForgeQueryDeclarationEntryReadinessStatus::Deferred
-        | ForgeQueryDeclarationEntryReadinessStatus::Unsupported => {
-            ForgeQueryDeclarationBridgeRoutingSupportStatus::Unsupported
-        }
-        ForgeQueryDeclarationEntryReadinessStatus::InvalidBasis => {
-            ForgeQueryDeclarationBridgeRoutingSupportStatus::InvalidContext
-        }
-    }
-}
-
-fn map_signal_status(
-    value: ForgeQueryDeclarationEntryReadinessStatus,
-) -> ForgeQueryDeclarationSignalCompatibilitySupportStatus {
-    match value {
-        ForgeQueryDeclarationEntryReadinessStatus::Admitted => {
-            ForgeQueryDeclarationSignalCompatibilitySupportStatus::Admitted
-        }
-        ForgeQueryDeclarationEntryReadinessStatus::Deferred => {
-            ForgeQueryDeclarationSignalCompatibilitySupportStatus::Deferred
-        }
-        ForgeQueryDeclarationEntryReadinessStatus::Unsupported => {
-            ForgeQueryDeclarationSignalCompatibilitySupportStatus::Unsupported
-        }
-        ForgeQueryDeclarationEntryReadinessStatus::InvalidBasis => {
-            ForgeQueryDeclarationSignalCompatibilitySupportStatus::InvalidBasis
-        }
-    }
-}
-
-fn digest_relational_rows(rows: &[ForgeQueryDeclarationRelationalRoutingSupportRow]) -> String {
-    derive_readiness_digest(
-        &rows
-            .iter()
-            .map(|row| {
-                format!(
-                    "{}:{}:{}:{}",
-                    row.truth_claim().as_str(),
-                    row.authority_family().as_str(),
-                    row.status().as_str(),
-                    row.reason()
-                )
-            })
-            .collect::<Vec<_>>(),
-    )
-}
-fn digest_bridge_rows(rows: &[ForgeQueryDeclarationBridgeRoutingSupportRow]) -> String {
-    derive_readiness_digest(
-        &rows
-            .iter()
-            .map(|row| {
-                format!(
-                    "{}:{}:{}:{}:{}",
-                    row.continuation_mode().as_str(),
-                    row.truth_context().as_str(),
-                    row.family().as_str(),
-                    row.status().as_str(),
-                    row.reason()
-                )
-            })
-            .collect::<Vec<_>>(),
-    )
-}
-fn digest_signal_rows(rows: &[ForgeQueryDeclarationSignalCompatibilitySupportRow]) -> String {
-    derive_readiness_digest(
-        &rows
-            .iter()
-            .map(|row| {
-                format!(
-                    "{}:{}:{}:{}",
-                    row.execution_family().as_str(),
-                    row.basis_family().as_str(),
-                    row.status().as_str(),
-                    row.reason()
-                )
-            })
-            .collect::<Vec<_>>(),
-    )
 }

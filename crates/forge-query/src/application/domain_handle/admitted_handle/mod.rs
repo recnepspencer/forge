@@ -1,16 +1,21 @@
 mod bridge_routing;
+mod continuation;
+mod contribution_composed_orchestration;
 mod declaration;
-mod declaration_entry_orchestration;
-mod declaration_entry_seam;
+mod declaration_entry;
 mod envelope;
 mod evidence;
-mod progression;
+mod family_helpers;
+mod grouped_authoring;
 mod receipt;
+mod recovery;
 mod relational_routing;
 mod route_plan;
 mod signal_compatibility;
+mod signal_compatibility_orchestration;
 
-pub use progression::ForgeQueryDeclarationEntryProgressionError;
+pub use declaration_entry::ForgeQueryDeclarationEntryProgressionError;
+pub(crate) use route_plan::checked_route_plan_from_progressed_with_profile;
 
 use super::operating_context::ForgeQueryDomainOperatingContext;
 use crate::application::{

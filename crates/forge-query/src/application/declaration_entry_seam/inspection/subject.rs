@@ -1,14 +1,9 @@
 use crate::application::{
-    ForgeQueryDeclarationBridgeContinuationFamily, ForgeQueryDeclarationBridgeContinuationMode,
-    ForgeQueryDeclarationBridgeRoutingChecked, ForgeQueryDeclarationBridgeRoutingClass,
-    ForgeQueryDeclarationBridgeTruthContext, ForgeQueryDeclarationEnvelope,
+    ForgeQueryDeclarationBridgeRoutingChecked, ForgeQueryDeclarationEnvelope,
     ForgeQueryDeclarationEnvelopeChecked, ForgeQueryDeclarationInput,
-    ForgeQueryDeclarationRelationalAuthorityFamily, ForgeQueryDeclarationRelationalRoutingChecked,
-    ForgeQueryDeclarationRelationalRoutingClass, ForgeQueryDeclarationRelationalTruthClaim,
-    ForgeQueryDeclarationSignalCompatibilityChecked, ForgeQueryDeclarationSignalCompatibilityClass,
-    ForgeQueryDeclarationSignalExecutionFamily, ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationRelationalRoutingChecked, ForgeQueryDeclarationSignalCompatibilityChecked,
+    ForgeQueryDomainEntryMarker,
 };
-use crate::basis_lifecycle::BasisFamily;
 
 use super::{
     super::contribution::{
@@ -21,6 +16,7 @@ use super::{
         ForgeQueryDeclarationEntryInspectionRelationalPosture,
         ForgeQueryDeclarationEntryInspectionSignalPosture,
     },
+    authority_posture::{normalized_bridge, normalized_relational, normalized_signal},
 };
 
 pub enum ForgeQueryDeclarationEntryRetainedSubjectInput<
@@ -192,178 +188,6 @@ pub(crate) fn normalize_retained_subject<
         }
         ForgeQueryDeclarationEntryRetainedSubjectInput::SignalCompatibilityChecked(checked) => {
             normalized_signal(checked)
-        }
-    }
-}
-
-fn normalized_relational<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
-    checked: ForgeQueryDeclarationRelationalRoutingChecked<D, I>,
-) -> NormalizedInspectionSubject<D, I> {
-    match checked {
-        ForgeQueryDeclarationRelationalRoutingChecked::Routed(routing) => {
-            let posture = ForgeQueryDeclarationEntryInspectionRelationalPosture {
-                class: routing.class(),
-                truth_claim: routing.truth_claim(),
-                authority_family: routing.authority_family(),
-                routing_digest: routing.relational_routing_digest().to_string(),
-                denial_cause: None,
-            };
-            NormalizedInspectionSubject {
-                envelope: routing.into_envelope(),
-                relational: Some(posture),
-                bridge: None,
-                signal: None,
-                subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Relational,
-            }
-        }
-        ForgeQueryDeclarationRelationalRoutingChecked::Deferred(routing) => {
-            NormalizedInspectionSubject {
-                envelope: routing.into_envelope(),
-                relational: None,
-                bridge: None,
-                signal: None,
-                subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Relational,
-            }
-        }
-        ForgeQueryDeclarationRelationalRoutingChecked::Denied(routing) => {
-            let posture = ForgeQueryDeclarationEntryInspectionRelationalPosture {
-                class: ForgeQueryDeclarationRelationalRoutingClass::ExclusiveRelationalTruth,
-                truth_claim: ForgeQueryDeclarationRelationalTruthClaim::AuthoritativeCurrentTruth,
-                authority_family: ForgeQueryDeclarationRelationalAuthorityFamily::Runtime,
-                routing_digest: "denied".to_string(),
-                denial_cause: Some(routing.cause()),
-            };
-            NormalizedInspectionSubject {
-                envelope: routing.into_envelope(),
-                relational: Some(posture),
-                bridge: None,
-                signal: None,
-                subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Relational,
-            }
-        }
-        ForgeQueryDeclarationRelationalRoutingChecked::Failed(routing) => {
-            NormalizedInspectionSubject {
-                envelope: routing.into_envelope(),
-                relational: None,
-                bridge: None,
-                signal: None,
-                subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Relational,
-            }
-        }
-    }
-}
-
-fn normalized_bridge<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
-    checked: ForgeQueryDeclarationBridgeRoutingChecked<D, I>,
-) -> NormalizedInspectionSubject<D, I> {
-    match checked {
-        ForgeQueryDeclarationBridgeRoutingChecked::Routed(routing) => {
-            let posture = ForgeQueryDeclarationEntryInspectionBridgePosture {
-                class: routing.class(),
-                continuation_mode: routing.continuation_request().mode(),
-                truth_context: routing.truth_context(),
-                continuation_family: routing.continuation_family(),
-                routing_digest: routing.bridge_routing_digest().to_string(),
-                denial_cause: None,
-            };
-            NormalizedInspectionSubject {
-                envelope: routing.into_envelope(),
-                relational: None,
-                bridge: Some(posture),
-                signal: None,
-                subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Bridge,
-            }
-        }
-        ForgeQueryDeclarationBridgeRoutingChecked::Deferred(routing) => {
-            NormalizedInspectionSubject {
-                envelope: routing.into_envelope(),
-                relational: None,
-                bridge: None,
-                signal: None,
-                subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Bridge,
-            }
-        }
-        ForgeQueryDeclarationBridgeRoutingChecked::Denied(routing) => {
-            let posture = ForgeQueryDeclarationEntryInspectionBridgePosture {
-                class: ForgeQueryDeclarationBridgeRoutingClass::ExclusiveBridgeContinuation,
-                continuation_mode: ForgeQueryDeclarationBridgeContinuationMode::RuntimeRoute,
-                truth_context: ForgeQueryDeclarationBridgeTruthContext::Current,
-                continuation_family: ForgeQueryDeclarationBridgeContinuationFamily::RuntimeRoute,
-                routing_digest: "denied".to_string(),
-                denial_cause: Some(routing.cause()),
-            };
-            NormalizedInspectionSubject {
-                envelope: routing.into_envelope(),
-                relational: None,
-                bridge: Some(posture),
-                signal: None,
-                subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Bridge,
-            }
-        }
-        ForgeQueryDeclarationBridgeRoutingChecked::Failed(routing) => NormalizedInspectionSubject {
-            envelope: routing.into_envelope(),
-            relational: None,
-            bridge: None,
-            signal: None,
-            subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Bridge,
-        },
-    }
-}
-
-fn normalized_signal<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
-    checked: ForgeQueryDeclarationSignalCompatibilityChecked<D, I>,
-) -> NormalizedInspectionSubject<D, I> {
-    match checked {
-        ForgeQueryDeclarationSignalCompatibilityChecked::Compatible(compatibility) => {
-            let posture = ForgeQueryDeclarationEntryInspectionSignalPosture {
-                class: compatibility.class(),
-                execution_family: compatibility.execution_family(),
-                basis_families: compatibility.basis_families().to_vec(),
-                compatibility_digest: compatibility.signal_compatibility_digest().to_string(),
-                denial_cause: None,
-            };
-            NormalizedInspectionSubject {
-                envelope: compatibility.into_envelope(),
-                relational: None,
-                bridge: None,
-                signal: Some(posture),
-                subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Signal,
-            }
-        }
-        ForgeQueryDeclarationSignalCompatibilityChecked::Deferred(compatibility) => {
-            NormalizedInspectionSubject {
-                envelope: compatibility.into_envelope(),
-                relational: None,
-                bridge: None,
-                signal: None,
-                subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Signal,
-            }
-        }
-        ForgeQueryDeclarationSignalCompatibilityChecked::Denied(compatibility) => {
-            let posture = ForgeQueryDeclarationEntryInspectionSignalPosture {
-                class: ForgeQueryDeclarationSignalCompatibilityClass::Denied,
-                execution_family:
-                    ForgeQueryDeclarationSignalExecutionFamily::RuntimeDerivedExecution,
-                basis_families: vec![BasisFamily::CurrentHead],
-                compatibility_digest: "denied".to_string(),
-                denial_cause: Some(compatibility.cause()),
-            };
-            NormalizedInspectionSubject {
-                envelope: compatibility.into_envelope(),
-                relational: None,
-                bridge: None,
-                signal: Some(posture),
-                subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Signal,
-            }
-        }
-        ForgeQueryDeclarationSignalCompatibilityChecked::Failed(compatibility) => {
-            NormalizedInspectionSubject {
-                envelope: compatibility.into_envelope(),
-                relational: None,
-                bridge: None,
-                signal: None,
-                subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Signal,
-            }
         }
     }
 }

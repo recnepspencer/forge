@@ -56,7 +56,10 @@ pub(crate) fn reconcile_contribution_evidence<
     }
 
     Ok(Some(
-        ForgeQueryDeclarationEntryContributionComposition::new(evidence_set.evidence().to_vec()),
+        ForgeQueryDeclarationEntryContributionComposition::new(
+            evidence_set.evidence().to_vec(),
+            Vec::new(),
+        ),
     ))
 }
 

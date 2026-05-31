@@ -1,12 +1,14 @@
 use forge_foundational::facade::CanonicalDerivedDigest;
 
 use crate::application::{
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectPublication,
     ForgeQueryDeclarationFoundationalEvidence, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationReceipt, ForgeQueryDeclarationReceiptDeferred,
     ForgeQueryDeclarationReceiptDenialCause, ForgeQueryDeclarationReceiptDenied,
     ForgeQueryDeclarationReceiptFailed, ForgeQueryDeclarationRoutePlan,
     ForgeQueryDeclarationRoutePlanDenialCause, ForgeQueryDomainEntryMarker,
 };
+use crate::target_binding::ForgeQueryDeclarationEnvelopeBindingTarget;
 
 use super::{
     class::{ForgeQueryDeclarationEnvelopeClass, ForgeQueryDeclarationEnvelopeEvidenceOrigin},
@@ -37,6 +39,8 @@ pub struct ForgeQueryDeclarationEnvelope<
     progression_digest: Option<String>,
     route_plan_digest: Option<String>,
     receipt_digest: CanonicalDerivedDigest,
+    published_aspect_contract: ForgeQueryDeclarationAspectContract,
+    published_aspect_publication: ForgeQueryDeclarationAspectPublication,
     envelope_digest: CanonicalDerivedDigest,
     explanation: ForgeQueryDeclarationEnvelopeExplanation,
 }
@@ -111,6 +115,8 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             progression_digest,
             route_plan_digest,
             receipt_digest,
+            published_aspect_contract,
+            published_aspect_publication,
         ) = {
             let receipt = owner.receipt();
             let evidence = receipt.foundational_evidence();
@@ -125,6 +131,8 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
                 receipt.progression_digest().map(ToOwned::to_owned),
                 receipt.route_plan_digest().map(ToOwned::to_owned),
                 receipt.receipt_digest().clone(),
+                receipt.aspect_contract().clone(),
+                receipt.aspect_publication().clone(),
             )
         };
         Self {
@@ -138,6 +146,8 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             progression_digest,
             route_plan_digest,
             receipt_digest,
+            published_aspect_contract,
+            published_aspect_publication,
             envelope_digest,
             explanation,
         }
@@ -177,6 +187,18 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn envelope_digest(&self) -> &CanonicalDerivedDigest {
         &self.envelope_digest
+    }
+
+    pub fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.published_aspect_contract
+    }
+
+    pub fn aspect_publication(&self) -> &ForgeQueryDeclarationAspectPublication {
+        &self.published_aspect_publication
+    }
+
+    pub fn binding_target(&self) -> ForgeQueryDeclarationEnvelopeBindingTarget {
+        ForgeQueryDeclarationEnvelopeBindingTarget::for_envelope(self)
     }
 
     pub fn foundational_evidence(&self) -> &ForgeQueryDeclarationFoundationalEvidence<D, I> {

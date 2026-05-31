@@ -6,12 +6,11 @@ Declaration bridge continuation routing is the Query-owned boundary that turns
 one retained declaration envelope into one retained bridge-continuation
 binding.
 
-This is the first phase where Query crosses from the public declaration
-crossing story into the real bridge authority family. Query still owns the
-public artifact and orchestration boundary. `forge-runtime-bridge` still owns
-bridge continuation semantics.
+This is the Query boundary where retained declaration crossing truth becomes a
+bridge-continuation binding. Query owns the public artifact and orchestration
+boundary. `forge-runtime-bridge` still owns bridge continuation semantics.
 
-Phase 13 is envelope-backed only on the public lane. It does not start from
+The public lane is envelope-backed only. It does not start from
 raw declarations, canonical declarations, legality evidence, foundational
 evidence, route plans, or receipts alone.
 
@@ -21,12 +20,13 @@ evidence, route plans, or receipts alone.
   actually needs
 - preserve admitted-world identity, route posture, receipt posture, and
   evidence origin while crossing into bridge authority
-- keep mixed route plans honest by lowering only the bridge slice in this
-  phase
+- keep mixed route plans honest by lowering only the bridge slice at this
+  boundary
 - get one bridge-routing digest that converges when retained truth matches and
   diverges when world, truth context, continuation mode, or denial topology
   changes
-- hand later phases one Query-owned continuation artifact instead of making
+- hand later continuation and recovery surfaces one Query-owned continuation
+  artifact instead of making
   them rediscover which bridge surface was selected
 
 ## Stable Entry Points
@@ -62,7 +62,7 @@ Good to know:
 - the public lane is envelope-backed only
 - common-lane helpers exist only for structurally bridge-capable declaration
   families
-- mixed route plans still route in Phase 13, but only the bridge slice is
+- mixed route plans still route here, but only the bridge slice is
   lowered now
 - deferred, denied, and failed envelopes remain first-class typed outcomes
 
@@ -100,6 +100,12 @@ Support-report inspection:
 - `ForgeQueryDeclarationBridgeRoutingSupportRow::continuation_mode()`
 - `ForgeQueryDeclarationBridgeRoutingSupportRow::truth_context()`
 - `ForgeQueryDeclarationBridgeRoutingSupportRow::family()`
+- `ForgeQueryDeclarationBridgeRoutingSupportRow::required_aspect_slice()`
+- `ForgeQueryDeclarationBridgeRoutingSupportRow::available_aspect_slice()`
+- `ForgeQueryDeclarationBridgeRoutingSupportRow::aspect_fit()`
+- `ForgeQueryDeclarationBridgeRoutingSupportRow::aspect_mismatch()`
+- `ForgeQueryDeclarationBridgeRoutingSupportRow::mapped_aspect_slice()`
+- `ForgeQueryDeclarationBridgeRoutingSupportRow::mapping_fit()`
 - `ForgeQueryDeclarationBridgeRoutingSupportRow::status()`
 - `ForgeQueryDeclarationBridgeRoutingSupportRow::reason()`
 
@@ -136,7 +142,7 @@ Bridge continuation families:
 
 ## Core Mental Model
 
-Think of bridge continuation routing as the binding phase between the public
+Think of bridge continuation routing as the binding step between the public
 declaration crossing story and bridge authority:
 
 1. envelopes prove one public crossing story already exists
@@ -150,6 +156,12 @@ That means the routing artifact is not a live bridge runtime. It is the
 proof-bearing Query boundary artifact that says which bridge continuation lane
 this declaration now binds to.
 
+The important shift is that bridge routing now starts from the
+envelope's published bridge-relevant slice and then freezes what actually
+mapped into the continuation request. "Available on the envelope" and
+"successfully mapped into bridge continuation semantics" are no longer treated
+as the same fact.
+
 ## How It Executes
 
 The advanced lane executes in this order:
@@ -161,6 +173,8 @@ The advanced lane executes in this order:
    - verifies the envelope is covered crossing truth
    - verifies the retained route plan still includes a bridge slice
    - verifies the envelope belongs to the current admitted handle and world
+   - narrows the public envelope contract to the bridge slice that is actually
+     eligible for continuation
    - reads the declaration family's bridge continuation contract
    - binds that contract to one real lower surface family:
      - `forge_runtime_bridge::facade::BridgeRouteRequest`
@@ -194,7 +208,7 @@ use forge_query::facade::{
 
 let envelope = handle.envelope_routes_from_progressed(
     handle.declare_review_and_progress(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        geometry_session.prepare_preview_for_active_face_selection()?,
     )?,
 )?;
 
@@ -218,7 +232,7 @@ checked boundary.
 ```rust
 let routing = handle
     .declare_review_progress_describe_plan_receipt_envelope_and_route_bridge_continuation(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        geometry_session.prepare_preview_for_active_face_selection()?,
     )?;
 
 assert_eq!(
@@ -241,17 +255,50 @@ What this example is showing:
 - the routed artifact tells you which continuation request was selected
 - the routed artifact tells you which lower bridge family now owns
   continuation semantics
-- later phases can keep using retained proof instead of rediscovering route,
+- the routed artifact distinguishes broad envelope coverage from the narrower
+  `mapped_aspects()` slice that actually entered bridge routing
+- later consumers can keep using retained proof instead of rediscovering route,
   receipt, or envelope meaning
+
+## Aspect Semantics
+
+Bridge continuation routing exposes mapped, missing, partial, and ambiguous
+aspect sets explicitly.
+
+Bridge mapping truth already exists in the bridge layer. This surface keeps
+that mapping posture visible so later continuation work can reuse retained
+truth instead of rebuilding it from the envelope and bridge registry.
+
+The routed artifact and support rows preserve:
+
+- `aspect_contract()`
+- `aspect_coverage()`
+- `aspect_coverage_basis()`
+- `aspect_fit()`
+- `mapped_aspects()`
+- `mapping_fit()`
+
+That lets a declaration family be bridge-capable in general while still
+surfacing `AuthorityAspectGap`, ambiguity, or partial mapping for one specific
+retained envelope.
+
+That same split now flows into declaration-entry readiness and inspection.
+Readiness may downgrade the bridge row from broad family admission to
+`Unsupported` when the retained envelope slice does not map cleanly, and denied
+inspection posture exposes continuation metadata only when the denied bridge
+artifact actually proved it.
 
 ## How It Relates To Other Features
 
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md) are
-  the required public input to Phase 13
+  the required public input to this surface
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
   still owns the relational slice of mixed-authority route plans
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md) still own
   crossing posture; bridge routing does not replace them
+- [Continuation Pipeline](./continuation-pipeline.md) consumes retained
+  bridge-routing truth when the next job is prepared or explicit continuation
+  execution
 - [Configured Domain Handles](./configured-domain-handles.md) still own the
   public orchestration lane and support snapshot
 
@@ -268,6 +315,12 @@ Use these surfaces when inspecting a routed artifact:
 - `truth_context()`
 - `continuation_family()`
 - `binding()`
+- `aspect_contract()`
+- `aspect_coverage()`
+- `aspect_coverage_basis()`
+- `aspect_fit()`
+- `mapped_aspects()`
+- `mapping_fit()`
 - `declaration_family_key()`
 - `handle_identity_digest()`
 - `operating_context_identity_digest()`
@@ -303,7 +356,7 @@ That support row is the fastest way to answer:
 - treating the routed artifact as a live bridge runtime
 - treating bridge continuation routing as if it already executed the lower
   bridge operation
-- assuming mixed route plans become pure bridge successes in this phase
+- assuming mixed route plans become pure bridge successes at this boundary
 - using common-lane helpers on non-bridge families
 
 ## Current Limits
@@ -321,6 +374,10 @@ one real bridge continuation family. It still does not provide:
 The retained bridge binding tells you which lower bridge surface this
 declaration now routes to. It does not claim the lower bridge request already
 ran.
+
+When you do want Query to carry that retained bridge-routing truth forward into
+one prepared continuation artifact and optional explicit execution step, move
+to [Continuation Pipeline](./continuation-pipeline.md).
 
 ## Related Docs
 

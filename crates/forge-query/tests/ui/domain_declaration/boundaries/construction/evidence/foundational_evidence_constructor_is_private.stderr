@@ -11,6 +11,6 @@ error[E0624]: associated function `new` is private
    | |         handle_identity_digest: String,
    | |         operating_context_identity_digest: String,
 ...  |
-   | |         materialization_profile: FoundationalBoundaryEvidenceMaterializationProfile,
+   | |         aspect_publication: ForgeQueryDeclarationAspectPublication,
    | |     ) -> Self {
    | |_____________- private associated function defined here

@@ -1,5 +1,7 @@
 use crate::application::{
-    ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationRelationalAuthorityFamily, ForgeQueryDeclarationRelationalTruthClaim,
+    ForgeQueryDomainEntryMarker,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -8,6 +10,9 @@ pub enum ForgeQueryDeclarationRelationalRoutingDenialCause {
     NonRelationalRoutePlan,
     UnsupportedRelationalTruthClaim,
     RelationalAuthorityUnavailable,
+    MissingRequiredAspect,
+    AspectConflict,
+    RelationalAspectGap,
     RelationalEnvelopeMismatch,
 }
 
@@ -25,6 +30,15 @@ impl ForgeQueryDeclarationRelationalRoutingDenialCause {
             }
             Self::RelationalAuthorityUnavailable => {
                 "required relational authority capabilities are unavailable in this operating world"
+            }
+            Self::MissingRequiredAspect => {
+                "the retained envelope publication does not expose the required relational semantic slice"
+            }
+            Self::AspectConflict => {
+                "the retained envelope publication conflicts with the required relational semantic slice"
+            }
+            Self::RelationalAspectGap => {
+                "the retained envelope publication only partially covers the required relational semantic slice"
             }
             Self::RelationalEnvelopeMismatch => {
                 "the retained envelope truth and relational boundary expectations no longer agree"
@@ -71,6 +85,8 @@ pub struct ForgeQueryDeclarationRelationalRoutingDenied<
     I: ForgeQueryDeclarationInput<D>,
 > {
     envelope: ForgeQueryDeclarationEnvelope<D, I>,
+    truth_claim: Option<ForgeQueryDeclarationRelationalTruthClaim>,
+    authority_family: Option<ForgeQueryDeclarationRelationalAuthorityFamily>,
     cause: ForgeQueryDeclarationRelationalRoutingDenialCause,
     reason: &'static str,
 }
@@ -80,10 +96,14 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 {
     pub(crate) fn new(
         envelope: ForgeQueryDeclarationEnvelope<D, I>,
+        truth_claim: Option<ForgeQueryDeclarationRelationalTruthClaim>,
+        authority_family: Option<ForgeQueryDeclarationRelationalAuthorityFamily>,
         cause: ForgeQueryDeclarationRelationalRoutingDenialCause,
     ) -> Self {
         Self {
             envelope,
+            truth_claim,
+            authority_family,
             cause,
             reason: cause.reason(),
         }
@@ -95,6 +115,14 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn cause(&self) -> ForgeQueryDeclarationRelationalRoutingDenialCause {
         self.cause
+    }
+
+    pub fn truth_claim(&self) -> Option<ForgeQueryDeclarationRelationalTruthClaim> {
+        self.truth_claim
+    }
+
+    pub fn authority_family(&self) -> Option<ForgeQueryDeclarationRelationalAuthorityFamily> {
+        self.authority_family
     }
 
     pub fn reason(&self) -> &'static str {

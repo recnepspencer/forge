@@ -14,3 +14,33 @@ error[E0624]: associated function `new` is private
    | |         explanation: ForgeQueryDeclarationRoutePlanExplanation,
    | |     ) -> Self {
    | |_____________- private associated function defined here
+
+error[E0061]: this function takes 10 arguments but 6 arguments were supplied
+  --> tests/ui/domain_declaration/boundaries/construction/route_plan/route_plan_constructor_is_private.rs:61:13
+   |
+61 |       let _ = ForgeQueryDeclarationRoutePlan::<GeometryDomain, SplitEdgeDeclaration>::new(
+   |  _____________^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-
+62 | |         fake(),
+63 | |         fake(),
+64 | |         None,
+...  |
+67 | |         fake(),
+68 | |     );
+   | |_____- multiple arguments are missing
+   |
+note: associated function defined here
+  --> src/application/declaration_route_plan/plan.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
+help: provide the arguments
+   |
+61 |     let _ = ForgeQueryDeclarationRoutePlan::<GeometryDomain, SplitEdgeDeclaration>::new(
+...
+67 |         fake(),
+68 ~         /* ForgeQueryDeclarationAspectContract */,
+69 +         /* ForgeQueryDeclarationAspectFit */,
+70 +         /* ForgeQueryDeclarationAspectPublication */,
+71 +         /* ForgeQueryDeclarationRoutePlanExplanation */,
+72 ~     );
+   |

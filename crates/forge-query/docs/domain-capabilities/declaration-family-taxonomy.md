@@ -105,7 +105,7 @@ Think of family identity as three connected layers:
 The first layer stays domain-owned. The second and third layers stay
 Query-owned.
 
-For example, a geometry domain may define `SplitEdge` while Query classifies it
+For example, a geometry domain may define `AttachFaceMaterial` while Query classifies it
 as:
 
 - relational-truth
@@ -143,15 +143,15 @@ use forge_query::facade::{
 };
 
 struct GeometryDomain;
-struct SplitEdge;
+struct AttachFaceMaterial;
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "attach-face-material"
     }
 
     fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
@@ -163,6 +163,12 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
     }
 }
 ```
+
+The family key remains canonical retained vocabulary, but it is not the
+primary app-facing targeting story. Declaration-entry and binding
+surfaces should treat dynamic context and semantic aspect contracts as the
+ordinary geometry mental model while preserving canonical family identity as
+internal proof shape.
 
 ## Real Example
 
@@ -177,15 +183,15 @@ use forge_query::facade::{
 
 struct GeometryDomain;
 
-struct SplitEdge;
+struct AttachFaceMaterial;
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "attach-face-material"
     }
 
     fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
@@ -201,15 +207,22 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
     }
 }
 
-struct SplitEdgeAtMidpoint {
-    edge_ref: &'static str,
-}
+struct AttachMaterialForActiveSelection;
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeAtMidpoint {
-    type Family = SplitEdge;
+impl ForgeQueryDeclarationInput<GeometryDomain> for AttachMaterialForActiveSelection {
+    type Family = AttachFaceMaterial;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref)]
+        vec![
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "selection_scope",
+                "active-face-selection",
+            ),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "material_edit_intent",
+                "attach-material-from-current-selection",
+            ),
+        ]
     }
 }
 ```

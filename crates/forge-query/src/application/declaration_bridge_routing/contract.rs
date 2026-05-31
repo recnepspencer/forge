@@ -1,7 +1,9 @@
 use crate::application::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryCapabilityFamily,
-    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext,
+    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationAspectFit,
+    ForgeQueryDeclarationAuthorityAspectMismatch, ForgeQueryDeclarationInput,
+    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
 };
 
 use super::request::{
@@ -49,12 +51,13 @@ impl ForgeQueryDeclarationBridgeContinuationFamily {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDeclarationBridgeContinuationContract {
     family: ForgeQueryDeclarationBridgeContinuationFamily,
     request: ForgeQueryDeclarationBridgeContinuationRequest,
     required_capability_families: &'static [ForgeQueryCapabilityFamily],
     required_config_sections: &'static [ForgeQueryConfigSectionFamily],
+    required_aspects: ForgeQueryDeclarationAspectContract,
     reason: &'static str,
 }
 
@@ -68,6 +71,7 @@ impl ForgeQueryDeclarationBridgeContinuationContract {
             ),
             required_capability_families: WORKFLOW_AND_BRIDGE,
             required_config_sections: RUNTIME_BRIDGE_ONLY,
+            required_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason: "the declaration lowers into a bridge runtime route request",
         }
     }
@@ -81,6 +85,7 @@ impl ForgeQueryDeclarationBridgeContinuationContract {
             ),
             required_capability_families: WORKFLOW_AND_BRIDGE,
             required_config_sections: RUNTIME_BRIDGE_ONLY,
+            required_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason: "the declaration lowers into a bridge truth-view request over current truth",
         }
     }
@@ -94,6 +99,7 @@ impl ForgeQueryDeclarationBridgeContinuationContract {
             ),
             required_capability_families: HISTORY_AND_BRIDGE,
             required_config_sections: RUNTIME_BRIDGE_ONLY,
+            required_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason: "the declaration lowers into a bridge truth-view request over historical truth",
         }
     }
@@ -107,6 +113,7 @@ impl ForgeQueryDeclarationBridgeContinuationContract {
             ),
             required_capability_families: WORKFLOW_AND_BRIDGE,
             required_config_sections: RUNTIME_BRIDGE_ONLY,
+            required_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason: "the declaration lowers into a bridge preview-session request",
         }
     }
@@ -120,6 +127,7 @@ impl ForgeQueryDeclarationBridgeContinuationContract {
             ),
             required_capability_families: WORKFLOW_AND_BRIDGE,
             required_config_sections: RUNTIME_BRIDGE_ONLY,
+            required_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason: "the declaration lowers into a bridge preview-promotion request",
         }
     }
@@ -133,6 +141,7 @@ impl ForgeQueryDeclarationBridgeContinuationContract {
             ),
             required_capability_families: LIVE_AND_BRIDGE,
             required_config_sections: RUNTIME_BRIDGE_ONLY,
+            required_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason:
                 "the declaration lowers into a bridge subscription-continuation preparation request",
         }
@@ -147,28 +156,41 @@ impl ForgeQueryDeclarationBridgeContinuationContract {
             ),
             required_capability_families: WORKFLOW_AND_BRIDGE,
             required_config_sections: RUNTIME_BRIDGE_ONLY,
+            required_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason: "the declaration lowers into a bridge writeback-preparation request",
         }
     }
 
-    pub fn family(self) -> ForgeQueryDeclarationBridgeContinuationFamily {
+    pub fn family(&self) -> ForgeQueryDeclarationBridgeContinuationFamily {
         self.family
     }
 
-    pub fn request(self) -> ForgeQueryDeclarationBridgeContinuationRequest {
+    pub fn request(&self) -> ForgeQueryDeclarationBridgeContinuationRequest {
         self.request
     }
 
-    pub fn required_capability_families(self) -> &'static [ForgeQueryCapabilityFamily] {
+    pub fn required_capability_families(&self) -> &'static [ForgeQueryCapabilityFamily] {
         self.required_capability_families
     }
 
-    pub fn required_config_sections(self) -> &'static [ForgeQueryConfigSectionFamily] {
+    pub fn required_config_sections(&self) -> &'static [ForgeQueryConfigSectionFamily] {
         self.required_config_sections
     }
 
-    pub fn reason(self) -> &'static str {
+    pub fn reason(&self) -> &'static str {
         self.reason
+    }
+
+    pub fn required_aspects(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.required_aspects
+    }
+
+    pub fn with_required_aspects(
+        mut self,
+        required_aspects: ForgeQueryDeclarationAspectContract,
+    ) -> Self {
+        self.required_aspects = required_aspects;
+        self
     }
 }
 
@@ -194,6 +216,12 @@ pub struct ForgeQueryDeclarationBridgeRoutingSupportRow {
     continuation_mode: ForgeQueryDeclarationBridgeContinuationMode,
     truth_context: ForgeQueryDeclarationBridgeTruthContext,
     family: ForgeQueryDeclarationBridgeContinuationFamily,
+    required_aspect_slice: ForgeQueryDeclarationAspectContract,
+    available_aspect_slice: ForgeQueryDeclarationAspectCoverage,
+    aspect_fit: ForgeQueryDeclarationAspectFit,
+    aspect_mismatch: Option<ForgeQueryDeclarationAuthorityAspectMismatch>,
+    mapped_aspect_slice: ForgeQueryDeclarationAspectCoverage,
+    mapping_fit: ForgeQueryDeclarationAspectFit,
     status: ForgeQueryDeclarationBridgeRoutingSupportStatus,
     reason: &'static str,
 }
@@ -203,6 +231,12 @@ impl ForgeQueryDeclarationBridgeRoutingSupportRow {
         continuation_mode: ForgeQueryDeclarationBridgeContinuationMode,
         truth_context: ForgeQueryDeclarationBridgeTruthContext,
         family: ForgeQueryDeclarationBridgeContinuationFamily,
+        required_aspect_slice: ForgeQueryDeclarationAspectContract,
+        available_aspect_slice: ForgeQueryDeclarationAspectCoverage,
+        aspect_fit: ForgeQueryDeclarationAspectFit,
+        aspect_mismatch: Option<ForgeQueryDeclarationAuthorityAspectMismatch>,
+        mapped_aspect_slice: ForgeQueryDeclarationAspectCoverage,
+        mapping_fit: ForgeQueryDeclarationAspectFit,
         status: ForgeQueryDeclarationBridgeRoutingSupportStatus,
         reason: &'static str,
     ) -> Self {
@@ -210,6 +244,12 @@ impl ForgeQueryDeclarationBridgeRoutingSupportRow {
             continuation_mode,
             truth_context,
             family,
+            required_aspect_slice,
+            available_aspect_slice,
+            aspect_fit,
+            aspect_mismatch,
+            mapped_aspect_slice,
+            mapping_fit,
             status,
             reason,
         }
@@ -225,6 +265,30 @@ impl ForgeQueryDeclarationBridgeRoutingSupportRow {
 
     pub fn family(&self) -> ForgeQueryDeclarationBridgeContinuationFamily {
         self.family
+    }
+
+    pub fn required_aspect_slice(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.required_aspect_slice
+    }
+
+    pub fn available_aspect_slice(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        &self.available_aspect_slice
+    }
+
+    pub fn aspect_fit(&self) -> ForgeQueryDeclarationAspectFit {
+        self.aspect_fit
+    }
+
+    pub fn aspect_mismatch(&self) -> Option<ForgeQueryDeclarationAuthorityAspectMismatch> {
+        self.aspect_mismatch
+    }
+
+    pub fn mapped_aspect_slice(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        &self.mapped_aspect_slice
+    }
+
+    pub fn mapping_fit(&self) -> ForgeQueryDeclarationAspectFit {
+        self.mapping_fit
     }
 
     pub fn status(&self) -> ForgeQueryDeclarationBridgeRoutingSupportStatus {

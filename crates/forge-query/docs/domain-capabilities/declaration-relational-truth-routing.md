@@ -5,12 +5,12 @@
 Declaration relational truth routing is the Query-owned boundary that turns one
 retained declaration envelope into one retained relational authority binding.
 
-This is the first phase where Query crosses from declaration-side proof into a
-lower truth-authority family. Query still owns the public artifact and the
+This is the Query boundary where retained declaration proof becomes one
+relational-authority binding. Query still owns the public artifact and the
 orchestration boundary. `forge-relational` still owns relational truth
 semantics.
 
-Phase 12 is envelope-backed only on the public lane. It does not start from
+The public lane is envelope-backed only. It does not start from
 raw declarations, canonical declarations, legality evidence, foundational
 evidence, route plans, or receipts alone.
 
@@ -20,12 +20,12 @@ evidence, route plans, or receipts alone.
   actually needs
 - preserve admitted-world identity, route posture, receipt posture, and
   evidence origin while crossing into relational truth
-- keep mixed route plans honest by lowering only the relational slice in this
-  phase
+- keep mixed route plans honest by lowering only the relational slice at this
+  boundary
 - get one relational-routing digest that converges when retained truth matches
   and diverges when world, route posture, receipt posture, or truth claim
   changes
-- hand later phases one Query-owned artifact instead of making them rediscover
+- hand later consumers one Query-owned artifact instead of making them rediscover
   which relational surface was selected
 
 ## Stable Entry Points
@@ -59,7 +59,7 @@ Good to know:
 - the public lane is envelope-backed only
 - common-lane helpers exist only for structurally relational declaration
   families
-- mixed route plans still route in Phase 12, but only the relational slice is
+- mixed route plans still route here, but only the relational slice is
   lowered now
 - deferred, denied, and failed envelopes remain first-class typed outcomes
 
@@ -109,7 +109,7 @@ Authority families:
 
 ## Core Mental Model
 
-Think of relational truth routing as the binding phase between declaration proof
+Think of relational truth routing as the binding step between declaration proof
 and relational authority:
 
 1. envelopes prove one public crossing story already exists
@@ -122,6 +122,11 @@ That means the routing artifact is not a live relational runtime. It is the
 proof-bearing Query boundary artifact that says which relational authority lane
 this declaration now binds to.
 
+The important shift is that relational routing now binds from the
+envelope's published semantic slice, not from broad declaration identity
+alone. Query is answering, "which relational truth slice is actually safe to
+lower right now?"
+
 ## How It Executes
 
 The advanced lane executes in this order:
@@ -131,6 +136,8 @@ The advanced lane executes in this order:
 3. Query:
    - verifies the envelope is covered crossing truth
    - verifies the retained route plan still includes a relational slice
+   - narrows the declaration contract to the relational slice the envelope is
+     actually publishing
    - reads the declaration family's relational truth contract
    - binds that truth contract to one real lower surface family:
      - `forge_relational::facade::runtime`
@@ -164,7 +171,7 @@ use forge_query::facade::{
 
 let envelope = handle.envelope_routes_from_progressed(
     handle.declare_review_and_progress(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        geometry_session.attach_material_for_active_face_selection()?,
     )?,
 )?;
 
@@ -188,7 +195,7 @@ hiding the checked boundary.
 ```rust
 let routing = handle
     .declare_review_progress_describe_plan_receipt_envelope_and_route_relational_truth(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        geometry_session.attach_material_for_active_face_selection()?,
     )?;
 
 assert_eq!(
@@ -207,13 +214,40 @@ What this example is showing:
 - the routed artifact tells you which relational truth claim was selected
 - the routed artifact tells you which lower authority family now owns truth
   semantics
-- later phases can keep using retained proof instead of rediscovering route or
+- the routed artifact freezes the envelope-backed aspect slice, coverage basis,
+  and fit before relational binding happens
+- later consumers can keep using retained proof instead of rediscovering route or
   receipt meaning
+
+## Aspect Semantics
+
+Relational routing aligns directly with relational `required_aspects()` and
+aspect-filtered truth access. Query does not invent a broader local notion of
+relational truth here.
+
+Routing success and denial expose which relational semantic slices were
+required, covered, or missing so later consumers can trust the routed artifact
+without rediscovering relational granularity themselves.
+
+The routed artifact and support rows preserve:
+
+- `aspect_contract()`
+- `aspect_coverage()`
+- `aspect_coverage_basis()`
+- `aspect_fit()`
+
+That means a family can be admitted structurally while still reporting an
+`AuthorityAspectGap` or another slice-level mismatch before routing succeeds.
+
+The same retained-truth rule now carries through declaration-entry inspection:
+if a denied relational-routing artifact did not actually prove one concrete
+truth claim or relational authority family, the inspection posture keeps those
+fields empty instead of synthesizing a best guess from family posture alone.
 
 ## How It Relates To Other Features
 
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md) are
-  the required public input to Phase 12
+  the required public input to this surface
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md) still own
   crossing posture; routing does not replace them
 - [Declaration Route Plans](./declaration-route-plan.md) still own route
@@ -233,6 +267,10 @@ Use these surfaces when inspecting a routed artifact:
 - `truth_claim()`
 - `authority_family()`
 - `binding()`
+- `aspect_contract()`
+- `aspect_coverage()`
+- `aspect_coverage_basis()`
+- `aspect_fit()`
 - `declaration_family_key()`
 - `handle_identity_digest()`
 - `operating_context_identity_digest()`
@@ -251,13 +289,20 @@ Use these surfaces when inspecting a routed artifact:
 Use `relational_truth_support::<I>()` when you need the family-scoped readiness
 row before attempting routing.
 
+That support row is also where you inspect:
+
+- `required_aspect_slice()`
+- `available_aspect_slice()`
+- `aspect_fit()`
+- `aspect_mismatch()`
+
 ## Anti-Patterns
 
 - trying to start relational truth routing from receipts without envelope truth
 - trying to reconstruct relational target selection from family labels or route
   folklore
 - treating the routed artifact as a live relational runtime
-- assuming mixed route plans become pure relational successes in this phase
+- assuming mixed route plans become pure relational successes at this boundary
 - using common-lane helpers on non-relational families
 
 ## Current Limits
@@ -265,8 +310,9 @@ row before attempting routing.
 Declaration relational truth routing now binds retained envelope truth to one
 real relational authority family. It still does not provide:
 
-- bridge continuation routing for the mixed-authority slice; that begins in the
-  next boundary
+- bridge continuation routing for the mixed-authority slice; use the dedicated
+  bridge-routing surface when the crossing story needs lower continuation
+  authority too
 - signal execution
 - signal compatibility classification
 - grouped declaration batching

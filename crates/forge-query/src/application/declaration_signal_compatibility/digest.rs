@@ -1,6 +1,8 @@
 use forge_foundational::facade::CanonicalDerivedDigest;
 
 use crate::application::{
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
     ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationFamilyMarker,
     ForgeQueryDeclarationReceiptDenialCause, ForgeQueryDeclarationRoutePlanDenialCause,
     ForgeQuerySignalCompatibilityPosture,
@@ -18,6 +20,12 @@ pub(crate) fn derive_signal_compatibility_digest<
     execution_family: ForgeQueryDeclarationSignalExecutionFamily,
     basis_families: &[BasisFamily],
     signal_posture: ForgeQuerySignalCompatibilityPosture,
+    authority_contract: &ForgeQueryDeclarationAspectContract,
+    aspect_coverage: &ForgeQueryDeclarationAspectCoverage,
+    aspect_coverage_basis: ForgeQueryDeclarationAspectCoverageBasis,
+    aspect_fit: ForgeQueryDeclarationAspectFit,
+    dependency_aspects: &ForgeQueryDeclarationAspectContract,
+    produced_aspects: &ForgeQueryDeclarationAspectContract,
     route_cause: Option<ForgeQueryDeclarationRoutePlanDenialCause>,
     receipt_cause: Option<ForgeQueryDeclarationReceiptDenialCause>,
 ) -> String {
@@ -55,6 +63,12 @@ pub(crate) fn derive_signal_compatibility_digest<
                 .collect::<Vec<_>>()
                 .join("|")
         ),
+        format!("authority_contract:{authority_contract:?}"),
+        format!("aspect_coverage:{aspect_coverage:?}"),
+        format!("aspect_coverage_basis:{aspect_coverage_basis:?}"),
+        format!("aspect_fit:{aspect_fit:?}"),
+        format!("dependency_aspects:{dependency_aspects:?}"),
+        format!("produced_aspects:{produced_aspects:?}"),
         format!(
             "primary_authority:{}",
             I::Family::taxonomy().primary_authority_family().as_str()

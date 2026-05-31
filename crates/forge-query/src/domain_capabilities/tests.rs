@@ -20,6 +20,10 @@ use super::targets::{
 };
 use super::test_support::success;
 use crate::runtime::ForgeQueryIntentDeclaration;
+use crate::target_binding::{
+    ForgeQueryAdmittedIntentPlanBindingTarget, ForgeQueryBindingTargetWitness,
+    ForgeQueryIntentDeclarationBindingTarget, ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget,
+};
 
 #[test]
 fn requested_contribution_denies_empty_semantic_code() {
@@ -172,6 +176,50 @@ fn every_category_reaches_admitted_form_through_the_same_lifecycle() {
             "explanation detail",
         )
         .bind_to_declaration_target(declaration_target),
+    );
+}
+
+#[test]
+fn compatibility_targets_share_digests_with_the_shared_binding_core() {
+    let declaration = sample_declaration("bind");
+    let legacy_declaration =
+        ForgeQueryDeclarationBoundContributionTarget::for_intent_declaration(&declaration);
+    let shared_declaration =
+        ForgeQueryIntentDeclarationBindingTarget::for_intent_declaration(&declaration);
+
+    assert_eq!(
+        ForgeQueryBindingTargetWitness::binding_digest(&legacy_declaration),
+        shared_declaration.binding_digest()
+    );
+    assert_eq!(
+        ForgeQueryBindingTargetWitness::target_digest(&legacy_declaration),
+        shared_declaration.target_digest()
+    );
+
+    let plan_target = ForgeQueryAdmittedPlanBoundContributionTarget::from_digest_parts(
+        "admitted-plan-a",
+        "request-a",
+        "eligibility-a",
+        "decision-a",
+    );
+    let shared_plan = ForgeQueryAdmittedIntentPlanBindingTarget::from_digest_parts(
+        "admitted-plan-a",
+        "request-a",
+        "eligibility-a",
+        "decision-a",
+    );
+    assert_eq!(
+        ForgeQueryBindingTargetWitness::binding_digest(&plan_target),
+        shared_plan.binding_digest()
+    );
+
+    let envelope_target =
+        ForgeQueryLowerRuntimeBoundaryBoundContributionTarget::from_digest("boundary-envelope-a");
+    let shared_envelope =
+        ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget::from_digest("boundary-envelope-a");
+    assert_eq!(
+        ForgeQueryBindingTargetWitness::binding_digest(&envelope_target),
+        shared_envelope.binding_digest()
     );
 }
 

@@ -64,6 +64,8 @@ Support report inspection:
 - `domain_key() -> &'static str`
 - `declaration_family_key() -> &'static str`
 - `declaration_taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy`
+- `aspect_contract() -> &ForgeQueryDeclarationAspectContract`
+- `aspect_coverage() -> &ForgeQueryDeclarationAspectCoverage`
 - `required_capability_families() -> &[ForgeQueryCapabilityFamily]`
 - `required_config_sections() -> &[ForgeQueryConfigSectionFamily]`
 - `rows() -> &[ForgeQueryDeclarationFamilySupportRow]`
@@ -74,6 +76,7 @@ Support report inspection:
 Support row inspection:
 - `verb() -> ForgeQueryDeclarationCapabilityVerb`
 - `status() -> ForgeQueryDeclarationCapabilityStatus`
+- `aspect_fit() -> ForgeQueryDeclarationAspectFit`
 - `reason() -> &'static str`
 
 Capability enum helpers:
@@ -159,6 +162,25 @@ Each row is classified as:
 - `Unsupported`
 - `InvalidContext`
 
+Each row also carries an aspect-fit posture for that witness surface:
+
+- `Exact`
+- `CompatibleSuperset`
+- `Partial`
+- `MissingRequired`
+- `Conflict`
+
+That row-level aspect fit is the semantic answer to "could this witness surface
+support the family's declared slices if support posture were otherwise
+admitted?", while the row `status()` remains the operating-world answer about
+support, config, and structural availability.
+
+The important detail is that aspect coverage is not inferred back
+from the contract itself. The family can now report declared semantic coverage
+separately, including masked slices, so a family may remain broadly admitted
+while still telling later consumers that a particular semantic slice is not
+currently bindable.
+
 ## Small Example
 
 ```rust
@@ -172,7 +194,7 @@ assert_eq!(
     ForgeQueryDeclarationCapabilityStatus::Admitted,
 );
 
-match handle.declare_checked(SplitEdgeAtMidpoint { edge_ref: "edge:42" }) {
+match handle.declare_checked(AttachMaterialForActiveFaceSelection) {
     ForgeQueryDeclaredFamilyChecked::Admitted(declaration) => {
         let _truth = declaration.relational_truth();
     }
@@ -249,15 +271,15 @@ impl ForgeQueryDomainOperatingContext<GeometryDomain> for CollaborativeWorld {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct SplitEdge;
+struct AttachFaceMaterial;
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "attach-face-material"
     }
 
     fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
@@ -270,15 +292,22 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct SplitEdgeAtMidpoint {
-    edge_ref: &'static str,
-}
+struct AttachMaterialForActiveFaceSelection;
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeAtMidpoint {
-    type Family = SplitEdge;
+impl ForgeQueryDeclarationInput<GeometryDomain> for AttachMaterialForActiveFaceSelection {
+    type Family = AttachFaceMaterial;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref)]
+        vec![
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "selection_scope",
+                "active-face-selection",
+            ),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "material_edit_intent",
+                "attach-material-from-current-selection",
+            ),
+        ]
     }
 }
 
@@ -289,7 +318,7 @@ let handle = query
     .validate()?
     .admit()?;
 
-let support = handle.family_support::<SplitEdge>();
+let support = handle.family_support::<AttachFaceMaterial>();
 assert_eq!(
     support.declare_status(),
     ForgeQueryDeclarationCapabilityStatus::Admitted,
@@ -302,25 +331,34 @@ assert_eq!(
     ForgeQueryDeclarationCapabilityStatus::Admitted,
 );
 
-let declaration = handle.declare(SplitEdgeAtMidpoint {
-    edge_ref: "edge:42",
-})?;
+let declaration = handle.declare(AttachMaterialForActiveFaceSelection)?;
 
 let truth = declaration.relational_truth();
 let signal = declaration.signal_compatible();
 let grouped = declaration.neighborhood_capable();
 
-assert_eq!(truth.artifact().declaration_family_key(), "split-edge");
-assert_eq!(signal.artifact().declaration_family_key(), "split-edge");
-assert_eq!(grouped.artifact().declaration_family_key(), "split-edge");
+assert_eq!(truth.artifact().declaration_family_key(), "attach-face-material");
+assert_eq!(signal.artifact().declaration_family_key(), "attach-face-material");
+assert_eq!(grouped.artifact().declaration_family_key(), "attach-face-material");
 ```
 
 What this example is showing:
 
 - family support rows and declaration admission agree
-- witness access is structural, not guessed later from strings
+- witness access is structural, not guessed later from source-order folklore
 - Query stays domain-agnostic while still exposing family-shaped capability
   surfaces
+- the primary app-facing geometry story is dynamic context, while the canonical
+  declaration entries remain an internal retained shape
+
+## Aspect Semantics
+
+This matrix is the first aspect-aware declaration-entry gate.
+Family admission remains the outer shape, but the retained support surface must
+be allowed to say "this family is admitted while this semantic slice is
+unsupported, masked, permission-limited, or invariant-sensitive." Later
+legality and progression surfaces consume that narrower support truth instead of
+pretending broad family admission already proved everything they need.
 
 ## How It Relates To Other Features
 

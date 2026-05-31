@@ -1,10 +1,12 @@
 use crate::application::{
-    ForgeQueryAdmittedDeclarationProgression, ForgeQueryDeclarationInput,
-    ForgeQueryDeclarationLegalityChecked, ForgeQueryDeclarationLegalityDenial,
-    ForgeQueryDeclarationLegalityEvidence, ForgeQueryDeclarationProgressionChecked,
-    ForgeQueryDeclarationProgressionDeferred, ForgeQueryDeclarationProgressionDenied,
-    ForgeQueryDeclarationProgressionFailed, ForgeQueryDeclarationProgressionRebindRequired,
-    ForgeQueryDeclarationProgressionStale, ForgeQueryDomainEntryMarker,
+    ForgeQueryAdmittedDeclarationProgression, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationAspectCoverageBasis,
+    ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityChecked,
+    ForgeQueryDeclarationLegalityDenial, ForgeQueryDeclarationLegalityEvidence,
+    ForgeQueryDeclarationProgressionChecked, ForgeQueryDeclarationProgressionDeferred,
+    ForgeQueryDeclarationProgressionDenied, ForgeQueryDeclarationProgressionFailed,
+    ForgeQueryDeclarationProgressionRebindRequired, ForgeQueryDeclarationProgressionStale,
+    ForgeQueryDomainEntryMarker,
 };
 
 use super::class::ForgeQueryDeclarationFoundationalEvidenceClass;
@@ -170,6 +172,55 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub(crate) fn support_digest(&self) -> &str {
         self.support_report().support_digest()
+    }
+
+    pub(crate) fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
+        self.support_report().aspect_contract()
+    }
+
+    pub(crate) fn aspect_coverage(&self) -> ForgeQueryDeclarationAspectCoverage {
+        match self {
+            Self::LegalityEvidence(evidence) => evidence.reviewed_aspect_coverage().clone(),
+            Self::LegalityDenial(denial) => denial.support_report().aspect_coverage().clone(),
+            Self::AdmittedProgression(progressed) => progressed.reviewed_aspect_coverage().clone(),
+            Self::ProgressionDeferred(progress) => progress
+                .legality_evidence()
+                .reviewed_aspect_coverage()
+                .clone(),
+            Self::ProgressionDenied(progress) => progress
+                .legality_evidence()
+                .reviewed_aspect_coverage()
+                .clone(),
+            Self::ProgressionStale(progress) => progress
+                .legality_evidence()
+                .reviewed_aspect_coverage()
+                .clone(),
+            Self::ProgressionRebindRequired(progress) => progress
+                .legality_evidence()
+                .reviewed_aspect_coverage()
+                .clone(),
+            Self::ProgressionFailed(progress) => progress
+                .legality_evidence()
+                .reviewed_aspect_coverage()
+                .clone(),
+        }
+    }
+
+    pub(crate) fn aspect_coverage_basis(&self) -> ForgeQueryDeclarationAspectCoverageBasis {
+        match self {
+            Self::LegalityEvidence(_)
+            | Self::AdmittedProgression(_)
+            | Self::ProgressionDeferred(_)
+            | Self::ProgressionDenied(_)
+            | Self::ProgressionStale(_)
+            | Self::ProgressionRebindRequired(_)
+            | Self::ProgressionFailed(_) => {
+                ForgeQueryDeclarationAspectCoverageBasis::ReviewedRetainedCoverage
+            }
+            Self::LegalityDenial(_) => {
+                ForgeQueryDeclarationAspectCoverageBasis::SupportReportedCoverage
+            }
+        }
     }
 
     pub(crate) fn legality_digest(&self) -> Option<&str> {

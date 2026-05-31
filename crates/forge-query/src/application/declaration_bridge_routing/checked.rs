@@ -1,12 +1,14 @@
 use crate::application::{
-    ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationEnvelopeChecked,
-    ForgeQueryDeclarationEnvelopeDeferred, ForgeQueryDeclarationEnvelopeDenied,
-    ForgeQueryDeclarationEnvelopeFailed, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryLowerAuthorityRouteFamily,
+    ForgeQueryDeclarationAspectFit, ForgeQueryDeclarationEnvelope,
+    ForgeQueryDeclarationEnvelopeChecked, ForgeQueryDeclarationEnvelopeDeferred,
+    ForgeQueryDeclarationEnvelopeDenied, ForgeQueryDeclarationEnvelopeFailed,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryLowerAuthorityRouteFamily,
 };
 
 use super::{
     artifact::{ForgeQueryDeclarationBridgeRouting, ForgeQueryDeclarationBridgeRoutingClass},
+    aspect_gate::BridgeAuthorityAspectGate,
     contract::ForgeQueryDeclarationBridgeRoutingSupportStatus,
     denial::{
         ForgeQueryDeclarationBridgeRoutingDeferred, ForgeQueryDeclarationBridgeRoutingDenialCause,
@@ -14,6 +16,7 @@ use super::{
     },
     digest::derive_bridge_routing_digest,
     explain::ForgeQueryDeclarationBridgeRoutingExplanation,
+    handle_gate::{envelope_matches_handle, subject_matches_handle},
     lower::forge_query_lower_bridge_binding,
 };
 
@@ -69,112 +72,10 @@ pub(crate) fn forge_query_checked_declaration_bridge_routing<
     input: ForgeQueryDeclarationBridgeRoutingInput<D, I>,
 ) -> ForgeQueryDeclarationBridgeRoutingChecked<D, I> {
     match input {
-        ForgeQueryDeclarationBridgeRoutingInput::EnvelopeChecked(checked) => match checked {
-            ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope) => {
-                forge_query_checked_declaration_bridge_routing(
-                    ForgeQueryDeclarationBridgeRoutingInput::enveloped(envelope),
-                )
-            }
-            ForgeQueryDeclarationEnvelopeChecked::Deferred(envelope) => {
-                forge_query_checked_declaration_bridge_routing(
-                    ForgeQueryDeclarationBridgeRoutingInput::deferred(envelope),
-                )
-            }
-            ForgeQueryDeclarationEnvelopeChecked::Denied(envelope) => {
-                forge_query_checked_declaration_bridge_routing(
-                    ForgeQueryDeclarationBridgeRoutingInput::denied(envelope),
-                )
-            }
-            ForgeQueryDeclarationEnvelopeChecked::Failed(envelope) => {
-                forge_query_checked_declaration_bridge_routing(
-                    ForgeQueryDeclarationBridgeRoutingInput::failed(envelope),
-                )
-            }
-        },
-        ForgeQueryDeclarationBridgeRoutingInput::Enveloped(envelope) => {
-            let Some(contract) = I::Family::bridge_continuation_contract() else {
-                return ForgeQueryDeclarationBridgeRoutingChecked::Denied(
-                    ForgeQueryDeclarationBridgeRoutingDenied::new(
-                        envelope,
-                        ForgeQueryDeclarationBridgeRoutingDenialCause::UnsupportedContinuationMode,
-                    ),
-                );
-            };
-            let Some(route_plan) = envelope.route_plan() else {
-                return ForgeQueryDeclarationBridgeRoutingChecked::Denied(
-                    ForgeQueryDeclarationBridgeRoutingDenied::new(
-                        envelope,
-                        ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeEnvelopeMismatch,
-                    ),
-                );
-            };
-            if !route_plan
-                .route_families()
-                .contains(&ForgeQueryLowerAuthorityRouteFamily::Bridge)
-            {
-                return ForgeQueryDeclarationBridgeRoutingChecked::Denied(
-                    ForgeQueryDeclarationBridgeRoutingDenied::new(
-                        envelope,
-                        ForgeQueryDeclarationBridgeRoutingDenialCause::NonBridgeRoutePlan,
-                    ),
-                );
-            }
-            let mixed_origin = route_plan.route_count() > 1;
-            let class = if mixed_origin {
-                ForgeQueryDeclarationBridgeRoutingClass::MixedAuthorityBridgeContinuation
-            } else {
-                ForgeQueryDeclarationBridgeRoutingClass::ExclusiveBridgeContinuation
-            };
-            let (continuation_request, continuation_family, binding) =
-                forge_query_lower_bridge_binding(&envelope, contract);
-            let digest = derive_bridge_routing_digest(
-                &envelope,
-                class,
-                continuation_request,
-                continuation_family,
-                binding.surface(),
-                envelope.route_denial_cause(),
-                envelope.receipt_denial_cause(),
-            );
-            let mut retained_truths = envelope.explain().retained_truths().to_vec();
-            retained_truths.push(format!(
-                "bridge-continuation-mode:{}",
-                continuation_request.mode().as_str()
-            ));
-            retained_truths.push(format!(
-                "bridge-truth-context:{}",
-                continuation_request.truth_context().as_str()
-            ));
-            retained_truths.push(format!(
-                "bridge-continuation-family:{}",
-                continuation_family.as_str()
-            ));
-            let explanation = ForgeQueryDeclarationBridgeRoutingExplanation::new(
-                envelope.explain().crossing_posture(),
-                continuation_request.mode(),
-                continuation_request.truth_context(),
-                continuation_family,
-                binding.surface(),
-                retained_truths,
-                envelope.explain().route_governing_reason().map(ToOwned::to_owned),
-                envelope.route_denial_cause(),
-                envelope.explain().receipt_governing_reason().to_string(),
-                envelope.receipt_denial_cause(),
-                envelope.evidence_origin(),
-                mixed_origin,
-            );
-            ForgeQueryDeclarationBridgeRoutingChecked::Routed(
-                ForgeQueryDeclarationBridgeRouting::new(
-                    class,
-                    continuation_request,
-                    continuation_family,
-                    binding,
-                    envelope,
-                    digest,
-                    explanation,
-                ),
-            )
+        ForgeQueryDeclarationBridgeRoutingInput::EnvelopeChecked(checked) => {
+            forge_query_checked_declaration_bridge_routing(lower_checked_input(checked))
         }
+        ForgeQueryDeclarationBridgeRoutingInput::Enveloped(envelope) => route_enveloped(envelope),
         ForgeQueryDeclarationBridgeRoutingInput::Deferred(envelope) => {
             let reason = envelope.reason();
             ForgeQueryDeclarationBridgeRoutingChecked::Deferred(
@@ -188,6 +89,8 @@ pub(crate) fn forge_query_checked_declaration_bridge_routing<
             ForgeQueryDeclarationBridgeRoutingChecked::Denied(
                 ForgeQueryDeclarationBridgeRoutingDenied::new(
                     envelope.into_envelope(),
+                    I::Family::bridge_continuation_contract().map(|contract| contract.request()),
+                    I::Family::bridge_continuation_contract().map(|contract| contract.family()),
                     ForgeQueryDeclarationBridgeRoutingDenialCause::EnvelopeNotCoveredForBridgeRouting,
                 ),
             )
@@ -214,140 +117,276 @@ pub(crate) fn forge_query_checked_declaration_bridge_routing_on_handle<
     input: ForgeQueryDeclarationBridgeRoutingInput<D, I>,
 ) -> ForgeQueryDeclarationBridgeRoutingChecked<D, I> {
     match input {
-        ForgeQueryDeclarationBridgeRoutingInput::EnvelopeChecked(checked) => match checked {
-            ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope) => {
-                checked_enveloped_on_handle(
-                    handle_identity_digest,
-                    operating_context_identity_digest,
-                    support_status,
-                    envelope,
-                )
-            }
-            ForgeQueryDeclarationEnvelopeChecked::Deferred(envelope) => {
-                checked_non_success_on_handle(
-                    handle_identity_digest,
-                    operating_context_identity_digest,
-                    ForgeQueryDeclarationBridgeRoutingInput::deferred(envelope),
-                )
-            }
-            ForgeQueryDeclarationEnvelopeChecked::Denied(envelope) => {
-                checked_non_success_on_handle(
-                    handle_identity_digest,
-                    operating_context_identity_digest,
-                    ForgeQueryDeclarationBridgeRoutingInput::denied(envelope),
-                )
-            }
-            ForgeQueryDeclarationEnvelopeChecked::Failed(envelope) => {
-                checked_non_success_on_handle(
-                    handle_identity_digest,
-                    operating_context_identity_digest,
-                    ForgeQueryDeclarationBridgeRoutingInput::failed(envelope),
-                )
-            }
-        },
-        ForgeQueryDeclarationBridgeRoutingInput::Enveloped(envelope) => {
-            checked_enveloped_on_handle(
+        ForgeQueryDeclarationBridgeRoutingInput::EnvelopeChecked(checked) => {
+            forge_query_checked_declaration_bridge_routing_on_handle(
                 handle_identity_digest,
                 operating_context_identity_digest,
                 support_status,
-                envelope,
+                lower_checked_input(checked),
             )
         }
-        other => checked_non_success_on_handle(
-            handle_identity_digest,
-            operating_context_identity_digest,
-            other,
-        ),
+        ForgeQueryDeclarationBridgeRoutingInput::Enveloped(envelope) => {
+            if !envelope_matches_handle(
+                handle_identity_digest,
+                operating_context_identity_digest,
+                &envelope,
+            ) {
+                return ForgeQueryDeclarationBridgeRoutingChecked::Denied(
+                    ForgeQueryDeclarationBridgeRoutingDenied::new(
+                        envelope,
+                        I::Family::bridge_continuation_contract()
+                            .map(|contract| contract.request()),
+                        I::Family::bridge_continuation_contract().map(|contract| contract.family()),
+                        ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeEnvelopeMismatch,
+                    ),
+                );
+            }
+            if support_status != ForgeQueryDeclarationBridgeRoutingSupportStatus::Admitted {
+                return ForgeQueryDeclarationBridgeRoutingChecked::Denied(
+                    ForgeQueryDeclarationBridgeRoutingDenied::new(
+                        envelope,
+                        I::Family::bridge_continuation_contract()
+                            .map(|contract| contract.request()),
+                        I::Family::bridge_continuation_contract().map(|contract| contract.family()),
+                        ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeAuthorityUnavailable,
+                    ),
+                );
+            }
+            route_enveloped(envelope)
+        }
+        other => {
+            if !subject_matches_handle(
+                handle_identity_digest,
+                operating_context_identity_digest,
+                &other,
+            ) {
+                return deny_non_success_mismatch(other);
+            }
+            forge_query_checked_declaration_bridge_routing(other)
+        }
     }
 }
 
-fn checked_enveloped_on_handle<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
-    handle_identity_digest: &str,
-    operating_context_identity_digest: &str,
-    support_status: ForgeQueryDeclarationBridgeRoutingSupportStatus,
-    envelope: crate::application::ForgeQueryDeclarationEnvelope<D, I>,
+fn route_enveloped<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
+    envelope: ForgeQueryDeclarationEnvelope<D, I>,
 ) -> ForgeQueryDeclarationBridgeRoutingChecked<D, I> {
-    if envelope.handle_identity_digest() != handle_identity_digest
-        || envelope.operating_context_identity_digest() != operating_context_identity_digest
+    let Some(contract) = I::Family::bridge_continuation_contract() else {
+        return ForgeQueryDeclarationBridgeRoutingChecked::Denied(
+            ForgeQueryDeclarationBridgeRoutingDenied::new(
+                envelope,
+                None,
+                None,
+                ForgeQueryDeclarationBridgeRoutingDenialCause::UnsupportedContinuationMode,
+            ),
+        );
+    };
+    let denied_request = Some(contract.request());
+    let denied_family = Some(contract.family());
+    let Some(route_plan) = envelope.route_plan() else {
+        return ForgeQueryDeclarationBridgeRoutingChecked::Denied(
+            ForgeQueryDeclarationBridgeRoutingDenied::new(
+                envelope,
+                denied_request,
+                denied_family,
+                ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeEnvelopeMismatch,
+            ),
+        );
+    };
+    if !route_plan
+        .route_families()
+        .contains(&ForgeQueryLowerAuthorityRouteFamily::Bridge)
     {
         return ForgeQueryDeclarationBridgeRoutingChecked::Denied(
             ForgeQueryDeclarationBridgeRoutingDenied::new(
                 envelope,
-                ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeEnvelopeMismatch,
+                denied_request,
+                denied_family,
+                ForgeQueryDeclarationBridgeRoutingDenialCause::NonBridgeRoutePlan,
             ),
         );
     }
-    if support_status != ForgeQueryDeclarationBridgeRoutingSupportStatus::Admitted {
+
+    let authority_aspects =
+        BridgeAuthorityAspectGate::from_envelope(&envelope, contract.required_aspects());
+    match authority_aspects.fit() {
+        ForgeQueryDeclarationAspectFit::Conflict => {
+            return ForgeQueryDeclarationBridgeRoutingChecked::Denied(
+                ForgeQueryDeclarationBridgeRoutingDenied::new(
+                    envelope,
+                    denied_request,
+                    denied_family,
+                    ForgeQueryDeclarationBridgeRoutingDenialCause::AspectConflict,
+                ),
+            );
+        }
+        ForgeQueryDeclarationAspectFit::MissingRequired => {
+            return ForgeQueryDeclarationBridgeRoutingChecked::Denied(
+                ForgeQueryDeclarationBridgeRoutingDenied::new(
+                    envelope,
+                    denied_request,
+                    denied_family,
+                    ForgeQueryDeclarationBridgeRoutingDenialCause::MissingRequiredAspect,
+                ),
+            );
+        }
+        ForgeQueryDeclarationAspectFit::Partial => {
+            return ForgeQueryDeclarationBridgeRoutingChecked::Denied(
+                ForgeQueryDeclarationBridgeRoutingDenied::new(
+                    envelope,
+                    denied_request,
+                    denied_family,
+                    ForgeQueryDeclarationBridgeRoutingDenialCause::AuthorityAspectGap,
+                ),
+            );
+        }
+        ForgeQueryDeclarationAspectFit::Exact
+        | ForgeQueryDeclarationAspectFit::CompatibleSuperset => {}
+    }
+    if matches!(
+        authority_aspects.mapping_fit(),
+        ForgeQueryDeclarationAspectFit::Partial
+    ) {
         return ForgeQueryDeclarationBridgeRoutingChecked::Denied(
             ForgeQueryDeclarationBridgeRoutingDenied::new(
                 envelope,
-                ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeAuthorityUnavailable,
+                denied_request,
+                denied_family,
+                ForgeQueryDeclarationBridgeRoutingDenialCause::AuthorityAspectGap,
             ),
         );
     }
-    forge_query_checked_declaration_bridge_routing(
-        ForgeQueryDeclarationBridgeRoutingInput::enveloped(envelope),
-    )
+
+    let mixed_origin = route_plan.route_count() > 1;
+    let class = if mixed_origin {
+        ForgeQueryDeclarationBridgeRoutingClass::MixedAuthorityBridgeContinuation
+    } else {
+        ForgeQueryDeclarationBridgeRoutingClass::ExclusiveBridgeContinuation
+    };
+    let (continuation_request, continuation_family, binding) =
+        forge_query_lower_bridge_binding(&envelope, contract);
+    let digest = derive_bridge_routing_digest(
+        &envelope,
+        class,
+        continuation_request,
+        continuation_family,
+        binding.surface(),
+        authority_aspects.contract(),
+        authority_aspects.coverage(),
+        authority_aspects.coverage_basis(),
+        authority_aspects.fit(),
+        authority_aspects.mapped_aspects(),
+        authority_aspects.mapping_fit(),
+        envelope.route_denial_cause(),
+        envelope.receipt_denial_cause(),
+    );
+    let mut retained_truths = envelope.explain().retained_truths().to_vec();
+    retained_truths.push(format!(
+        "bridge-continuation-mode:{}",
+        continuation_request.mode().as_str()
+    ));
+    retained_truths.push(format!(
+        "bridge-truth-context:{}",
+        continuation_request.truth_context().as_str()
+    ));
+    retained_truths.push(format!(
+        "bridge-continuation-family:{}",
+        continuation_family.as_str()
+    ));
+    retained_truths.push(format!("bridge-aspect-fit:{:?}", authority_aspects.fit()));
+    retained_truths.push(format!(
+        "bridge-mapping-fit:{:?}",
+        authority_aspects.mapping_fit()
+    ));
+    let explanation = ForgeQueryDeclarationBridgeRoutingExplanation::new(
+        envelope.explain().crossing_posture(),
+        continuation_request.mode(),
+        continuation_request.truth_context(),
+        continuation_family,
+        binding.surface(),
+        retained_truths,
+        envelope
+            .explain()
+            .route_governing_reason()
+            .map(ToOwned::to_owned),
+        envelope.route_denial_cause(),
+        envelope.explain().receipt_governing_reason().to_string(),
+        envelope.receipt_denial_cause(),
+        envelope.evidence_origin(),
+        mixed_origin,
+    );
+    ForgeQueryDeclarationBridgeRoutingChecked::Routed(ForgeQueryDeclarationBridgeRouting::new(
+        class,
+        continuation_request,
+        continuation_family,
+        binding,
+        authority_aspects.contract().clone(),
+        authority_aspects.coverage().clone(),
+        authority_aspects.coverage_basis(),
+        authority_aspects.fit(),
+        authority_aspects.mapped_aspects().clone(),
+        authority_aspects.mapping_fit(),
+        envelope,
+        digest,
+        explanation,
+    ))
 }
 
-fn checked_non_success_on_handle<
-    D: ForgeQueryDomainEntryMarker,
-    I: ForgeQueryDeclarationInput<D>,
->(
-    handle_identity_digest: &str,
-    operating_context_identity_digest: &str,
+fn lower_checked_input<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
+    checked: ForgeQueryDeclarationEnvelopeChecked<D, I>,
+) -> ForgeQueryDeclarationBridgeRoutingInput<D, I> {
+    match checked {
+        ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope) => {
+            ForgeQueryDeclarationBridgeRoutingInput::enveloped(envelope)
+        }
+        ForgeQueryDeclarationEnvelopeChecked::Deferred(envelope) => {
+            ForgeQueryDeclarationBridgeRoutingInput::deferred(envelope)
+        }
+        ForgeQueryDeclarationEnvelopeChecked::Denied(envelope) => {
+            ForgeQueryDeclarationBridgeRoutingInput::denied(envelope)
+        }
+        ForgeQueryDeclarationEnvelopeChecked::Failed(envelope) => {
+            ForgeQueryDeclarationBridgeRoutingInput::failed(envelope)
+        }
+    }
+}
+
+fn deny_non_success_mismatch<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
     input: ForgeQueryDeclarationBridgeRoutingInput<D, I>,
 ) -> ForgeQueryDeclarationBridgeRoutingChecked<D, I> {
-    if !subject_matches_handle(
-        handle_identity_digest,
-        operating_context_identity_digest,
-        &input,
-    ) {
-        return match input {
-            ForgeQueryDeclarationBridgeRoutingInput::Deferred(envelope) => {
-                ForgeQueryDeclarationBridgeRoutingChecked::Denied(
-                    ForgeQueryDeclarationBridgeRoutingDenied::new(
-                        envelope.into_envelope(),
-                        ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeEnvelopeMismatch,
-                    ),
-                )
-            }
-            ForgeQueryDeclarationBridgeRoutingInput::Denied(envelope) => {
-                ForgeQueryDeclarationBridgeRoutingChecked::Denied(
-                    ForgeQueryDeclarationBridgeRoutingDenied::new(
-                        envelope.into_envelope(),
-                        ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeEnvelopeMismatch,
-                    ),
-                )
-            }
-            ForgeQueryDeclarationBridgeRoutingInput::Failed(envelope) => {
-                ForgeQueryDeclarationBridgeRoutingChecked::Denied(
-                    ForgeQueryDeclarationBridgeRoutingDenied::new(
-                        envelope.into_envelope(),
-                        ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeEnvelopeMismatch,
-                    ),
-                )
-            }
-            _ => unreachable!("covered envelopes use the covered-handle path"),
-        };
-    }
-    forge_query_checked_declaration_bridge_routing(input)
-}
-
-fn subject_matches_handle<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
-    handle_identity_digest: &str,
-    operating_context_identity_digest: &str,
-    input: &ForgeQueryDeclarationBridgeRoutingInput<D, I>,
-) -> bool {
-    let envelope = match input {
-        ForgeQueryDeclarationBridgeRoutingInput::Enveloped(envelope) => envelope,
-        ForgeQueryDeclarationBridgeRoutingInput::Deferred(envelope) => envelope.envelope(),
-        ForgeQueryDeclarationBridgeRoutingInput::Denied(envelope) => envelope.envelope(),
-        ForgeQueryDeclarationBridgeRoutingInput::Failed(envelope) => envelope.envelope(),
-        ForgeQueryDeclarationBridgeRoutingInput::EnvelopeChecked(_) => {
-            unreachable!("checked input is lowered before handle matching")
+    match input {
+        ForgeQueryDeclarationBridgeRoutingInput::Deferred(envelope) => {
+            ForgeQueryDeclarationBridgeRoutingChecked::Denied(
+                ForgeQueryDeclarationBridgeRoutingDenied::new(
+                    envelope.into_envelope(),
+                    I::Family::bridge_continuation_contract().map(|contract| contract.request()),
+                    I::Family::bridge_continuation_contract().map(|contract| contract.family()),
+                    ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeEnvelopeMismatch,
+                ),
+            )
         }
-    };
-    envelope.handle_identity_digest() == handle_identity_digest
-        && envelope.operating_context_identity_digest() == operating_context_identity_digest
+        ForgeQueryDeclarationBridgeRoutingInput::Denied(envelope) => {
+            ForgeQueryDeclarationBridgeRoutingChecked::Denied(
+                ForgeQueryDeclarationBridgeRoutingDenied::new(
+                    envelope.into_envelope(),
+                    I::Family::bridge_continuation_contract().map(|contract| contract.request()),
+                    I::Family::bridge_continuation_contract().map(|contract| contract.family()),
+                    ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeEnvelopeMismatch,
+                ),
+            )
+        }
+        ForgeQueryDeclarationBridgeRoutingInput::Failed(envelope) => {
+            ForgeQueryDeclarationBridgeRoutingChecked::Denied(
+                ForgeQueryDeclarationBridgeRoutingDenied::new(
+                    envelope.into_envelope(),
+                    I::Family::bridge_continuation_contract().map(|contract| contract.request()),
+                    I::Family::bridge_continuation_contract().map(|contract| contract.family()),
+                    ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeEnvelopeMismatch,
+                ),
+            )
+        }
+        ForgeQueryDeclarationBridgeRoutingInput::Enveloped(_)
+        | ForgeQueryDeclarationBridgeRoutingInput::EnvelopeChecked(_) => {
+            unreachable!("covered envelopes use the covered-handle path")
+        }
+    }
 }

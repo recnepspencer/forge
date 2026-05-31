@@ -1,9 +1,11 @@
 mod artifact;
+mod aspect_gate;
 mod checked;
 mod contract;
 mod denial;
 mod digest;
 mod explain;
+mod handle_gate;
 mod lower;
 mod request;
 

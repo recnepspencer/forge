@@ -188,6 +188,8 @@ fn digest_for_receipt<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationIn
         ForgeQueryDeclarationEnvelopeEvidenceOrigin::from_foundational_class(evidence.class()),
         route_cause,
         receipt_cause,
+        receipt.aspect_contract(),
+        receipt.aspect_publication(),
     )
 }
 
@@ -205,6 +207,10 @@ fn build_explanation<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInp
         canonical_digest_token(receipt.receipt_digest())
     ));
     retained_truths.push(format!("evidence-origin:{}", evidence_origin.as_str()));
+    retained_truths.push(format!(
+        "receipt-aspect-publication:{:?}",
+        receipt.aspect_publication()
+    ));
     if let Some(route_plan) = receipt.route_plan() {
         retained_truths.push(format!("route-plan:{}", route_plan.route_plan_digest()));
     }
