@@ -11,21 +11,21 @@ use crate::topology_operators::application::bindings::{
 use crate::topology_operators::TopologyEditContract;
 use crate::topology_operators::{ShellOrWireMembershipKind, TopologyEditAction};
 
-pub(super) struct ShellFaceRehomeProgram {
+pub(crate) struct ShellFaceRehomeProgram {
     pub(super) create_key: String,
     pub(super) region_id: forge_relational::facade::identity::EntityId,
     pub(super) face_ids: Vec<forge_relational::facade::identity::EntityId>,
     pub(super) retired_shell_id: forge_relational::facade::identity::EntityId,
 }
 
-pub(super) struct ShellFaceSplitProgram {
+pub(crate) struct ShellFaceSplitProgram {
     pub(super) create_key: String,
     pub(super) region_id: forge_relational::facade::identity::EntityId,
     pub(super) face_id: forge_relational::facade::identity::EntityId,
     pub(super) retained_shell_id: Option<forge_relational::facade::identity::EntityId>,
 }
 
-pub(super) fn parse_shell_face_rehome_program(
+pub(crate) fn parse_shell_face_rehome_program(
     contracts: &[TopologyEditContract],
 ) -> Option<ShellFaceRehomeProgram> {
     let [create, attach_region, face_attaches @ .., retire] = contracts else {
@@ -79,7 +79,7 @@ pub(super) fn parse_shell_face_rehome_program(
     })
 }
 
-pub(super) fn parse_shell_face_split_program(
+pub(crate) fn parse_shell_face_split_program(
     contracts: &[TopologyEditContract],
 ) -> Option<ShellFaceSplitProgram> {
     let [create, attach_region, attach_face] = contracts else {
@@ -118,65 +118,7 @@ pub(super) fn parse_shell_face_split_program(
     })
 }
 
-pub(super) fn supports_owned_face_set_shell_rehome_program(
-    bindings: &TopologyQueryBindingIndex,
-    contracts: &[TopologyEditContract],
-) -> bool {
-    let Some(program) = parse_shell_face_rehome_program(contracts) else {
-        return false;
-    };
-    let Some(retired_shell_binding) = query_entity_binding(bindings, program.retired_shell_id)
-        .ok()
-        .flatten()
-    else {
-        return false;
-    };
-    let Ok(incoming_region_ids) = query_incoming_relation_ids(
-        bindings,
-        &retired_shell_binding.query_identity,
-        schema::facade::platform::relations::TopologyRelationKind::RegionOwnsShell,
-    ) else {
-        return false;
-    };
-    let Ok(outgoing_face_targets) = query_outgoing_relation_target_identities(
-        bindings,
-        &retired_shell_binding.query_identity,
-        schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace,
-    ) else {
-        return false;
-    };
-    let [incoming_region_relation_id] = incoming_region_ids.as_slice() else {
-        return false;
-    };
-    let Some(incoming_region_relation) =
-        crate::topology_operators::application::bindings::query_relation_binding(
-            bindings,
-            *incoming_region_relation_id,
-        )
-        .ok()
-        .flatten()
-    else {
-        return false;
-    };
-    let expected_face_ids = program.face_ids.iter().copied().collect::<BTreeSet<_>>();
-    let outgoing_face_ids = outgoing_face_targets
-        .iter()
-        .map(|identity| {
-            query_entity_id_by_identity(bindings, identity)
-                .ok()
-                .flatten()
-        })
-        .collect::<Option<Vec<_>>>();
-    query_entity_id_by_identity(bindings, &incoming_region_relation.source_query_identity)
-        .ok()
-        .flatten()
-        .is_some_and(|owned_region_id| owned_region_id == program.region_id)
-        && outgoing_face_targets.len() == program.face_ids.len()
-        && outgoing_face_ids
-            .is_some_and(|ids| ids.into_iter().collect::<BTreeSet<_>>() == expected_face_ids)
-}
-
-pub(super) fn resolve_single_face_two_face_shell_split_program(
+pub(crate) fn resolve_single_face_two_face_shell_split_program(
     bindings: &TopologyQueryBindingIndex,
     contracts: &[TopologyEditContract],
 ) -> Option<ShellFaceSplitProgram> {

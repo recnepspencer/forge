@@ -8,8 +8,11 @@ use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingInde
 use crate::topology_operators::application::{
     TopologyOperatorExecutionError, TopologyOperatorRunner,
 };
-use crate::topology_operators::{BoundaryMembershipKind, TopologyEditAction, TopologyEditContract};
+use crate::topology_operators::BoundaryMembershipKind;
+#[cfg(test)]
+use crate::topology_operators::{TopologyEditAction, TopologyEditContract};
 
+#[cfg(test)]
 pub(crate) fn supports_admitted_relation_create_program(
     contracts: &[TopologyEditContract],
 ) -> bool {
@@ -35,7 +38,7 @@ pub(crate) fn supports_admitted_relation_create_program(
     create_key.as_str() == member_key.as_str()
 }
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
+impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
     pub(crate) fn lower_attach_boundary_membership(
         &self,
         builder: ForgeQueryMutationBatchBuilder,

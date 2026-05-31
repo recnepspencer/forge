@@ -38,12 +38,6 @@ pub(crate) trait RelationBindingLookup {
         expected_kind: TopologyRelationKind,
     ) -> Result<Vec<String>, TopologyOperatorExecutionError>;
 
-    fn outgoing_relation_id_rows(
-        &self,
-        source_query_identity: &str,
-        expected_kind: TopologyRelationKind,
-    ) -> Result<Vec<RelationId>, TopologyOperatorExecutionError>;
-
     fn incoming_relation_source_identity_rows(
         &self,
         target_query_identity: &str,
@@ -87,14 +81,6 @@ impl RelationBindingLookup for TopologyQueryBindingIndex {
         Ok(self.outgoing_relation_target_identities(source_query_identity, expected_kind))
     }
 
-    fn outgoing_relation_id_rows(
-        &self,
-        source_query_identity: &str,
-        expected_kind: TopologyRelationKind,
-    ) -> Result<Vec<RelationId>, TopologyOperatorExecutionError> {
-        Ok(self.outgoing_relation_ids(source_query_identity, expected_kind))
-    }
-
     fn incoming_relation_source_identity_rows(
         &self,
         target_query_identity: &str,
@@ -125,14 +111,6 @@ pub(crate) fn query_outgoing_relation_target_identities(
     expected_kind: TopologyRelationKind,
 ) -> Result<Vec<String>, TopologyOperatorExecutionError> {
     bindings.outgoing_relation_target_identity_rows(source_query_identity, expected_kind)
-}
-
-pub(crate) fn query_outgoing_relation_ids(
-    bindings: &(impl RelationBindingLookup + ?Sized),
-    source_query_identity: &str,
-    expected_kind: TopologyRelationKind,
-) -> Result<Vec<RelationId>, TopologyOperatorExecutionError> {
-    bindings.outgoing_relation_id_rows(source_query_identity, expected_kind)
 }
 
 pub(crate) fn query_incoming_relation_source_identities(

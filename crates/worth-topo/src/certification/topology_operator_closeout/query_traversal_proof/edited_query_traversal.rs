@@ -4,19 +4,20 @@ use schema::facade::topology_authoring::{seed_milestone_one_primitive, Milestone
 use serde_json::Value;
 
 use super::super::report::{MilestoneThreeHostileScenario, MilestoneThreeHostileSuiteReport};
-use super::super::scenario_programs::successor_relocation_batch;
+use super::super::scenario_programs::successor_relocation_declaration;
 use super::super::shared::first_source_identity_for_relation_kind;
 use super::edited_query_traversal_types::{
     MilestoneThreeEditedTopologyQueryTraversalRow, MilestoneThreeEditedTopologyQueryTraversalView,
 };
 use crate::certification::error::TopologyCertificationError;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::projection::TopologyLocalRewireNeighborhoodView;
 use crate::projection::TopologyLoopCycleView;
-use crate::projection::{TopologyDomainQuery, TopologyLocalRewireNeighborhoodView};
-use crate::topology_operators::TopologyEditApplicationMode;
+use crate::topology_operators::TopologyRewireLoopSuccessorProgramDeclaration;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct EditedTraversalProbe {
@@ -109,13 +110,16 @@ where
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, &format!("{stem}.runtime"))
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let moved_half_edge_identity = first_source_identity_for_relation_kind(
-        &workspace.read::<Value>(assembly.relations()),
+        &workspace.read::<Value>(surfaces.relations()),
         TopologyRelationKind::HalfEdgeNext,
     )?;
-    let pre_edit_query = TopologyDomainQuery::load();
+    let pre_edit_query = TopologyReadProofHarness::new();
     let pre_edit_rewire = pre_edit_query
         .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 6)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
@@ -128,12 +132,16 @@ where
                 "ambiguous local rewire should expose a successor candidate",
             )
         })?;
-    let batch = successor_relocation_batch(&pre_edit_rewire, &chosen_successor_identity)?;
-    assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let declaration =
+        successor_relocation_declaration(&pre_edit_rewire, &chosen_successor_identity)?;
+    execute_current_head_topology_declaration::<TopologyRewireLoopSuccessorProgramDeclaration>(
+        &mut workspace,
+        &surfaces,
+        declaration,
+    )
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
 
-    let post_edit_query = TopologyDomainQuery::load();
+    let post_edit_query = TopologyReadProofHarness::new();
     let local_rewire = post_edit_query
         .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 6)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;

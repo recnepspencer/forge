@@ -2,28 +2,31 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{created_ref, seed_milestone_one_primitive};
+use schema::facade::topology_authoring::seed_milestone_one_primitive;
 use serde_json::Value;
 
-use super::super::super::scenario_programs::successor_relocation_batch;
+use super::super::super::scenario_programs::successor_relocation_declaration;
 use super::super::super::shared::first_source_identity_for_relation_kind;
 use super::accepted_branch_authority_projection::{
     authority_expanded_collapse_mutations, authority_expanded_rewire_mutations,
-    authority_expanded_split_mutations, collapse_split_wire_batch, entity_id_by_label,
+    authority_expanded_split_mutations, collapse_split_wire_contracts, entity_id_by_label,
     first_entity_id, owned_half_edge_relation_ids, owned_half_edges, read_snapshot,
-    relation_id_by_shape, seeded_wire_and_half_edges, split_wire_batch,
+    relation_id_by_shape, seeded_wire_and_half_edges,
 };
 use super::accepted_branch_execution::{
-    apply_branch_batch, apply_branch_mutations, create_branch, execution_from_verified,
+    apply_branch_declaration, apply_branch_mutations, create_branch, execution_from_verified,
     AcceptedBranchExecution,
 };
 use crate::certification::error::TopologyCertificationError;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::projection::TopologyDomainQuery;
-use crate::topology_operators::{BoundaryMembershipKind, TopologyEditBatch, TopologyEditContract};
+use crate::topology_operators::{
+    BoundaryMembershipKind, TopologyCreateInnerLoopOnExistingFaceDeclaration,
+    TopologyDetachBoundaryMembershipDeclaration, TopologyRetireTopologyEntityDeclaration,
+    TopologySplitConnectedHalfEdgeSetToNewWireDeclaration, TopologyWireSplitHalfEdgeMember,
+};
 
 pub(super) fn execute_cancellation_chain_branch<F>(
     runtime_factory: &mut F,
@@ -44,17 +47,13 @@ where
     )?;
     let branch = create_branch(&mut runtime, stem, "accepted.cancellation")?;
     let loop_key = CreateKey::new(format!("{stem}.cancellation.inner_loop"));
-    let batch_one = TopologyEditBatch::new(vec![
-        TopologyEditContract::create_topology_entity(loop_key.as_str(), TopologyEntityKind::Loop),
-        TopologyEditContract::attach_boundary_membership(
-            format!("{stem}.cancellation.face-inner-loop"),
-            BoundaryMembershipKind::FaceInnerLoop,
-            face_id,
-            created_ref(loop_key.as_str()),
-        ),
-    ])
-    .expect("cancellation-chain branch batch should be non-empty");
-    let verified_one = apply_branch_batch(&mut runtime, &branch.branch_id, batch_one.clone())?;
+    let create_inner_loop = TopologyCreateInnerLoopOnExistingFaceDeclaration::new(
+        loop_key.as_str(),
+        format!("{stem}.cancellation.face-inner-loop"),
+        face_id,
+    );
+    let verified_one =
+        apply_branch_declaration(&mut runtime, &branch.branch_id, create_inner_loop.clone())?;
     let after_attach = read_snapshot(&runtime, &verified_one.read_basis)?;
     let loop_id = entity_id_by_label(&after_attach, loop_key.as_str(), TopologyEntityKind::Loop)?;
     let inner_loop_relation_id = relation_id_by_shape(
@@ -63,22 +62,24 @@ where
         face_id,
         loop_id,
     )?;
-    let batch_two = TopologyEditBatch::new(vec![TopologyEditContract::detach_boundary_membership(
+    let detach_inner_loop = TopologyDetachBoundaryMembershipDeclaration::new(
         inner_loop_relation_id,
         BoundaryMembershipKind::FaceInnerLoop,
-    )])
-    .expect("cancellation-chain detach batch should be non-empty");
-    let verified_two = apply_branch_batch(&mut runtime, &branch.branch_id, batch_two.clone())?;
-    let batch_three = TopologyEditBatch::new(vec![TopologyEditContract::retire_topology_entity(
-        loop_id,
-        TopologyEntityKind::Loop,
-    )])
-    .expect("cancellation-chain retire batch should be non-empty");
-    let verified_three = apply_branch_batch(&mut runtime, &branch.branch_id, batch_three.clone())?;
+    );
+    let verified_two =
+        apply_branch_declaration(&mut runtime, &branch.branch_id, detach_inner_loop.clone())?;
+    let retire_loop =
+        TopologyRetireTopologyEntityDeclaration::new(loop_id, TopologyEntityKind::Loop);
+    let verified_three =
+        apply_branch_declaration(&mut runtime, &branch.branch_id, retire_loop.clone())?;
     execution_from_verified(
         &runtime,
         branch,
-        vec![batch_one, batch_two, batch_three],
+        vec![
+            create_inner_loop.into_contracts(),
+            detach_inner_loop.into_contracts(),
+            retire_loop.into_contracts(),
+        ],
         vec![verified_one, verified_two, verified_three],
     )
 }
@@ -100,13 +101,26 @@ where
     let seeded_read = read_snapshot(&runtime, &seeded.read_basis())?;
     let branch = create_branch(&mut runtime, stem, "accepted.split_collapse")?;
     let split_wire_key = CreateKey::new(format!("{stem}.split_collapse_churn.split_wire"));
-    let split_batch = split_wire_batch(split_wire_key.as_str(), &half_edge_ids[2..])?;
+    let split_declaration = TopologySplitConnectedHalfEdgeSetToNewWireDeclaration::new(
+        split_wire_key.as_str(),
+        half_edge_ids[2..]
+            .iter()
+            .enumerate()
+            .map(|(index, half_edge_id)| {
+                TopologyWireSplitHalfEdgeMember::new(
+                    format!("{}.owns_half_edge_{}", split_wire_key.as_str(), index + 1),
+                    *half_edge_id,
+                )
+            })
+            .collect(),
+    );
+    let split_contracts = split_declaration.clone().into_contracts();
     let moved_relation_ids =
         owned_half_edge_relation_ids(&seeded_read, wire_id, &half_edge_ids[2..])?;
     let verified_split = apply_branch_mutations(
         &mut runtime,
         &branch.branch_id,
-        authority_expanded_split_mutations(&split_batch, &moved_relation_ids),
+        authority_expanded_split_mutations(&split_contracts, &moved_relation_ids),
     )?;
     let after_split = read_snapshot(&runtime, &verified_split.read_basis)?;
     let split_wire_id = entity_id_by_label(
@@ -118,20 +132,20 @@ where
     let split_relation_ids =
         owned_half_edge_relation_ids(&after_split, split_wire_id, &split_half_edge_ids)?;
     let collapse_wire_key = CreateKey::new(format!("{stem}.split_collapse_churn.collapse_wire"));
-    let collapse_batch = collapse_split_wire_batch(
+    let collapse_contracts = collapse_split_wire_contracts(
         collapse_wire_key.as_str(),
         split_wire_id,
         &split_half_edge_ids,
-    )?;
+    );
     let verified_collapse = apply_branch_mutations(
         &mut runtime,
         &branch.branch_id,
-        authority_expanded_collapse_mutations(&collapse_batch, &split_relation_ids),
+        authority_expanded_collapse_mutations(&collapse_contracts, &split_relation_ids),
     )?;
     execution_from_verified(
         &runtime,
         branch,
-        vec![split_batch, collapse_batch],
+        vec![split_contracts, collapse_contracts],
         vec![verified_split, verified_collapse],
     )
 }
@@ -148,20 +162,31 @@ where
     let seed_stem = format!("{stem}.ambiguous_local_rewire.3");
     let mut runtime = runtime_factory();
     let _seeded = seed_milestone_one_primitive(&mut runtime, &seed_stem, &primitive)?;
-    let batch = ambiguous_rewire_batch(runtime_factory, stem)?;
+    let declaration = ambiguous_rewire_declaration(runtime_factory, stem)?;
     let branch = create_branch(&mut runtime, stem, "accepted.ambiguous_rewire")?;
     let verified = apply_branch_mutations(
         &mut runtime,
         &branch.branch_id,
-        authority_expanded_rewire_mutations(&batch, &format!("{stem}.branch_local.ambiguous"))?,
+        authority_expanded_rewire_mutations(
+            &declaration.clone().into_contracts(),
+            &format!("{stem}.branch_local.ambiguous"),
+        )?,
     )?;
-    execution_from_verified(&runtime, branch, vec![batch], vec![verified])
+    execution_from_verified(
+        &runtime,
+        branch,
+        vec![declaration.into_contracts()],
+        vec![verified],
+    )
 }
 
-fn ambiguous_rewire_batch<F>(
+fn ambiguous_rewire_declaration<F>(
     runtime_factory: &mut F,
     stem: &str,
-) -> Result<TopologyEditBatch, TopologyCertificationError>
+) -> Result<
+    crate::topology_operators::TopologyRewireLoopSuccessorProgramDeclaration,
+    TopologyCertificationError,
+>
 where
     F: FnMut() -> RelationalRuntime,
 {
@@ -176,14 +201,17 @@ where
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, &format!("{stem}.branch_local.plan.runtime"))
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let relation_rows = workspace.read::<Value>(assembly.relations());
+    let relation_rows = workspace.read::<Value>(surfaces.relations());
     let moved_half_edge_identity = first_source_identity_for_relation_kind(
         &relation_rows,
         TopologyRelationKind::HalfEdgeNext,
     )?;
-    let domain_query = TopologyDomainQuery::load();
+    let domain_query = TopologyReadProofHarness::new();
     let neighborhood = domain_query
         .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 6)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
@@ -195,5 +223,5 @@ where
             .ok_or_else(|| {
                 TopologyCertificationError::Query("branch-local ambiguous successor missing".into())
             })?;
-    successor_relocation_batch(&neighborhood, &chosen_successor_identity)
+    successor_relocation_declaration(&neighborhood, &chosen_successor_identity)
 }

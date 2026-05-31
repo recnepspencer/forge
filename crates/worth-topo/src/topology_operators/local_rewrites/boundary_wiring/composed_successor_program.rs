@@ -6,32 +6,25 @@ use crate::projection::runtime_boundary::query_runtime::{
     load_post_write_materialized_topology, TopologyQueryBindingIndex,
 };
 use crate::topology_operators::application::{
-    TopologyOperatorExecution, TopologyOperatorExecutionError, TopologyOperatorRunner,
+    TopologyOperatorExecution, TopologyOperatorExecutionError, TopologyOperatorExecutionPath,
+    TopologyOperatorRunner,
 };
-use crate::topology_operators::local_rewrites::boundary_wiring::{
-    supports_admitted_loop_successor_program, ResolvedLoopSuccessorRewire,
-};
+use crate::topology_operators::local_rewrites::boundary_wiring::ResolvedLoopSuccessorRewire;
 use crate::topology_operators::{
     NamingEditContinuityMatrix, TopologyEditAction, TopologyEditApplicationMode,
     TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
 };
 
-pub(crate) fn supports_composed_loop_successor_program(
-    bindings: &TopologyQueryBindingIndex,
-    contracts: &[TopologyEditContract],
-) -> bool {
-    supports_admitted_loop_successor_program(bindings, contracts)
-}
-
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
-    pub(crate) fn apply_composed_loop_successor_program(
+impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
+    pub(crate) fn execute_composed_loop_successor_program(
         &mut self,
+        path: TopologyOperatorExecutionPath,
         mode: TopologyEditApplicationMode,
         families: Vec<TopologyEditFamily>,
         topology_edit_digest: TopologyEditDigest,
         naming_continuity_matrix: NamingEditContinuityMatrix,
         naming_report: crate::topology_operators::TopologyEditNamingReport,
-        contracts: &[TopologyEditContract],
+        contracts: Vec<TopologyEditContract>,
         bindings: &TopologyQueryBindingIndex,
     ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
         let rewires = contracts
@@ -54,7 +47,6 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 ])),
             })
             .collect::<Result<Vec<_>, _>>()?;
-
         let receipt: ForgeQueryBatchWriteReceipt = self.workspace.compose_graph(|graph| {
             for rewire in &rewires {
                 add_verified_successor_retarget(graph, rewire)?;
@@ -66,9 +58,10 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 ForgeQueryInspection::BatchWriteReceipt(inspection) => inspection,
                 _ => return Err(TopologyOperatorExecutionError::UnexpectedInspectionFamily),
             };
-        let materialized = load_post_write_materialized_topology(self.workspace, self.assembly)?;
+        let materialized = load_post_write_materialized_topology(self.workspace, self.surfaces)?;
         Ok(TopologyOperatorExecution {
             mode,
+            path,
             families,
             receipt,
             inspection,

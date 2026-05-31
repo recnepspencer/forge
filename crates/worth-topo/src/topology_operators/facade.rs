@@ -2,6 +2,7 @@ use forge_relational::facade::history::BranchId;
 use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent};
 
 use super::contracts::{TopologyEditContract, TopologyEditFamily, TopologyEditNamingReport};
+use super::{topology_edit_families_for_contracts, topology_edit_naming_report_for_contracts};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TopologyEditApplicationMode {
     Mainline,
@@ -26,28 +27,15 @@ impl TopologyEditBatch {
     }
 
     pub fn naming_report(&self) -> TopologyEditNamingReport {
-        let rows = self
-            .contracts
-            .iter()
-            .flat_map(|contract| contract.naming_report().rows)
-            .collect();
-        TopologyEditNamingReport { rows }
+        topology_edit_naming_report_for_contracts(&self.contracts)
     }
 
     pub fn families(&self) -> Vec<TopologyEditFamily> {
-        self.contracts
-            .iter()
-            .map(|contract| contract.family)
-            .collect()
+        topology_edit_families_for_contracts(&self.contracts)
     }
 
     pub fn into_raw_intent(self, mode: &TopologyEditApplicationMode) -> RawTopologyIntent {
-        let mutations = self
-            .contracts
-            .into_iter()
-            .flat_map(|contract| contract.lowered_mutations().to_vec())
-            .collect();
-        RawTopologyIntent::new(mutations, mutation_origin_for_mode(mode))
+        raw_topology_intent_for_contracts(self.contracts, mode)
     }
 }
 
@@ -71,4 +59,15 @@ fn mutation_origin_for_mode(mode: &TopologyEditApplicationMode) -> MutationOrigi
         TopologyEditApplicationMode::Mainline => MutationOrigin::LocalEdit,
         TopologyEditApplicationMode::BranchLocal(_) => MutationOrigin::BranchLocalApplication,
     }
+}
+
+pub(crate) fn raw_topology_intent_for_contracts(
+    contracts: Vec<TopologyEditContract>,
+    mode: &TopologyEditApplicationMode,
+) -> RawTopologyIntent {
+    let mutations = contracts
+        .into_iter()
+        .flat_map(|contract| contract.lowered_mutations().to_vec())
+        .collect();
+    RawTopologyIntent::new(mutations, mutation_origin_for_mode(mode))
 }

@@ -9,22 +9,21 @@ use super::super::report::{
     MilestoneThreeHostileScenarioReport,
 };
 use super::super::shared::{
-    accepted_step_row, aggregate_naming_edit_continuity_matrix, aggregate_topology_edit_digest,
-    derived_validation_report_from_materialized, first_source_identity_for_relation_kind,
-    replay_checked,
+    accepted_step_row_for_declaration, aggregate_naming_edit_continuity_matrix_for_contract_sets,
+    aggregate_topology_edit_digest_for_contract_sets, derived_validation_report_from_materialized,
+    first_source_identity_for_relation_kind, replay_checked,
 };
-use super::local_successor_rewire::successor_relocation_batch;
+use super::local_successor_rewire::successor_relocation_declaration;
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::certification::support::parity::digest_materialized_topology_view;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::projection::TopologyDomainQuery;
-use crate::topology_operators::{
-    TopologyEditApplicationMode, TopologyEditDigest, TopologyEditFamily,
-};
+use crate::topology_operators::application::TopologyDeclarationContractPayload;
+use crate::topology_operators::{TopologyEditDigest, TopologyEditFamily};
 
 struct MilestoneThreeAmbiguousLocalRewireRun {
     primitive_family: String,
@@ -121,15 +120,18 @@ where
         &format!("{stem}.ambiguous_local_rewire.{candidate_offset}.runtime"),
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let baseline_snapshot = assembly
+    let baseline_snapshot = surfaces
         .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
         digest_materialized_topology_view(&baseline_snapshot.materialized);
-    let domain_query = TopologyDomainQuery::load();
-    let relation_rows = workspace.read::<Value>(assembly.relations());
+    let domain_query = TopologyReadProofHarness::new();
+    let relation_rows = workspace.read::<Value>(surfaces.relations());
     let moved_half_edge_identity = first_source_identity_for_relation_kind(
         &relation_rows,
         TopologyRelationKind::HalfEdgeNext,
@@ -143,25 +145,29 @@ where
         .get(candidate_offset)
         .cloned()
         .ok_or_else(|| cycle_query_error("requested successor candidate should exist in cycle"))?;
-    let batch = successor_relocation_batch(&neighborhood, &chosen_successor_identity)?;
-    let execution = assembly
-        .apply_edit(
-            &mut workspace,
-            batch.clone(),
-            TopologyEditApplicationMode::Mainline,
-        )
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let step_rows = vec![accepted_step_row(0, &batch, &execution)];
+    let declaration = successor_relocation_declaration(&neighborhood, &chosen_successor_identity)?;
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration.clone())
+            .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let step_rows = vec![accepted_step_row_for_declaration(
+        0,
+        &declaration,
+        &execution,
+    )];
     let derived_validation_report =
         derived_validation_report_from_materialized(&execution.materialized)?;
-    let batches = vec![batch];
+    let contract_sets = vec![declaration.clone().into_contracts()];
 
     Ok(MilestoneThreeAmbiguousLocalRewireRun {
         primitive_family,
         primitive,
-        edit_families: batches.iter().flat_map(|batch| batch.families()).collect(),
-        topology_edit_digest: aggregate_topology_edit_digest(&batches),
-        naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix(&batches),
+        edit_families: declaration.semantic_families(),
+        topology_edit_digest: aggregate_topology_edit_digest_for_contract_sets(
+            contract_sets.clone(),
+        ),
+        naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix_for_contract_sets(
+            contract_sets,
+        ),
         step_rows,
         baseline_materialized_topology_digest,
         final_materialized_topology_digest: digest_materialized_topology_view(

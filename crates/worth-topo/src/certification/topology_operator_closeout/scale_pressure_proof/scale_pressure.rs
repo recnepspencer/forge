@@ -6,30 +6,32 @@ use schema::facade::topology_authoring::{seed_milestone_one_primitive, Milestone
 use serde_json::Value;
 
 use super::super::report::MilestoneThreeHostileSuiteReport;
-use super::super::scenario_programs::successor_relocation_batch;
 use super::super::shared::{
-    aggregate_topology_edit_digest, derived_validation_report_from_materialized,
+    aggregate_topology_edit_digest_for_contract_sets, derived_validation_report_from_materialized,
     first_source_identity_for_relation_kind,
 };
 use super::scale_pressure_branch::certify_large_branch_history_row;
 use super::scale_pressure_detach::{certify_detach_pressure_row, DetachPressureKind};
-use super::scale_pressure_loop::high_cardinality_loop_batches;
-use super::scale_pressure_shell::high_face_count_shell_rehome_batch;
+use super::scale_pressure_loop::high_cardinality_loop_declarations;
+use super::scale_pressure_shell::high_face_count_shell_rehome_declaration;
 use super::scale_pressure_types::{
     MilestoneThreeScalePressureRow, MilestoneThreeScalePressureSweep,
 };
 use super::sweeps::certify_radial_splice_pressure_row;
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::certification::support::parity::digest_materialized_topology_view;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
+use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::projection::TopologyDomainQuery;
+use crate::topology_operators::application::TopologyDeclarationContractPayload;
 use crate::topology_operators::{
-    ShellOrWireMembershipKind, TopologyEditApplicationMode, TopologyEditBatch, TopologyEditDigest,
-    TopologyEditFamily,
+    ShellOrWireMembershipKind, TopologyEditDigest, TopologyEditFamily,
+    TopologyRehomeAllOwnedFacesToNewShellDeclaration, TopologyRewireLoopEndpointDeclaration,
+    TopologyRewireLoopSuccessorProgramDeclaration,
 };
 
 #[derive(Debug, Clone)]
@@ -47,6 +49,31 @@ struct ScaleRewireExecution {
     edit_families: Vec<TopologyEditFamily>,
     final_state_digest: String,
     derived_validation_row_count: usize,
+}
+
+#[derive(Clone)]
+enum ScaleRewireDeclaration {
+    LoopSuccessor(TopologyRewireLoopSuccessorProgramDeclaration),
+    LoopEndpoint(TopologyRewireLoopEndpointDeclaration),
+    ShellRehome(TopologyRehomeAllOwnedFacesToNewShellDeclaration),
+}
+
+impl ScaleRewireDeclaration {
+    fn semantic_families(&self) -> Vec<TopologyEditFamily> {
+        match self {
+            Self::LoopSuccessor(declaration) => declaration.semantic_families(),
+            Self::LoopEndpoint(declaration) => declaration.semantic_families(),
+            Self::ShellRehome(declaration) => declaration.semantic_families(),
+        }
+    }
+
+    fn into_contracts(self) -> Vec<crate::topology_operators::TopologyEditContract> {
+        match self {
+            Self::LoopSuccessor(declaration) => declaration.into_contracts(),
+            Self::LoopEndpoint(declaration) => declaration.into_contracts(),
+            Self::ShellRehome(declaration) => declaration.into_contracts(),
+        }
+    }
 }
 
 pub(in crate::certification::topology_operator_closeout) fn certify_milestone_three_scale_pressure_impl<
@@ -174,9 +201,9 @@ where
         &format!("{stem}.scale_pressure.{}", case.sweep.as_str()),
         &case.primitive,
     )?;
-    let high_face_shell_batch =
+    let high_face_shell_declaration =
         if case.sweep == MilestoneThreeScalePressureSweep::HighFaceCountShells {
-            Some(high_face_count_shell_rehome_batch(
+            Some(high_face_count_shell_rehome_declaration(
                 &runtime,
                 &verified.read_basis(),
                 stem,
@@ -188,48 +215,65 @@ where
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, format!("{stem}.scale_pressure.runtime"))
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let relation_rows = workspace.read::<Value>(assembly.relations());
-    let batches =
-        scale_rewire_batches(&mut workspace, &relation_rows, high_face_shell_batch, case)?;
-    scale_rewire_execution(primitive_family, &mut workspace, &assembly, batches)
+    let relation_rows = workspace.read::<Value>(surfaces.relations());
+    let declarations = scale_rewire_declarations(
+        &mut workspace,
+        &relation_rows,
+        high_face_shell_declaration,
+        case,
+    )?;
+    scale_rewire_execution(primitive_family, &mut workspace, &surfaces, declarations)
 }
 
-fn scale_rewire_batches(
+fn scale_rewire_declarations(
     workspace: &mut forge_query::facade::ForgeQueryWorkspace,
     relation_rows: &[forge_query::facade::ForgeQueryEntity],
-    high_face_shell_batch: Option<TopologyEditBatch>,
+    high_face_shell_declaration: Option<TopologyRehomeAllOwnedFacesToNewShellDeclaration>,
     case: &ScaleRewireCase,
-) -> Result<Vec<TopologyEditBatch>, TopologyCertificationError> {
-    let batches = if let Some(batch) = high_face_shell_batch {
-        vec![batch]
+) -> Result<Vec<ScaleRewireDeclaration>, TopologyCertificationError> {
+    let declarations = if let Some(declaration) = high_face_shell_declaration {
+        vec![ScaleRewireDeclaration::ShellRehome(declaration)]
     } else if case.sweep == MilestoneThreeScalePressureSweep::HighCardinalityLoops {
         let moved_half_edge_identity = first_source_identity_for_relation_kind(
             &relation_rows,
             TopologyRelationKind::HalfEdgeNext,
         )?;
-        high_cardinality_loop_batches(workspace, relation_rows, &moved_half_edge_identity)?
-    } else {
-        vec![local_successor_batch(
+        let (span, endpoint) = high_cardinality_loop_declarations(
             workspace,
             relation_rows,
-            case.cycle_depth,
-            case.candidate_offset,
-        )?]
+            &moved_half_edge_identity,
+        )?;
+        vec![
+            ScaleRewireDeclaration::LoopSuccessor(span),
+            ScaleRewireDeclaration::LoopEndpoint(endpoint),
+        ]
+    } else {
+        vec![ScaleRewireDeclaration::LoopSuccessor(
+            local_successor_declaration(
+                workspace,
+                relation_rows,
+                case.cycle_depth,
+                case.candidate_offset,
+            )?,
+        )]
     };
-    Ok(batches)
+    Ok(declarations)
 }
 
-fn local_successor_batch(
+fn local_successor_declaration(
     workspace: &mut forge_query::facade::ForgeQueryWorkspace,
     relation_rows: &[forge_query::facade::ForgeQueryEntity],
     cycle_depth: usize,
     candidate_offset: usize,
-) -> Result<TopologyEditBatch, TopologyCertificationError> {
+) -> Result<TopologyRewireLoopSuccessorProgramDeclaration, TopologyCertificationError> {
     let moved_half_edge_identity =
         first_source_identity_for_relation_kind(relation_rows, TopologyRelationKind::HalfEdgeNext)?;
-    let neighborhood = TopologyDomainQuery::load()
+    let neighborhood = TopologyReadProofHarness::new()
         .local_rewire_neighborhood(workspace, &moved_half_edge_identity, cycle_depth)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let chosen_successor_identity = neighborhood
@@ -237,22 +281,32 @@ fn local_successor_batch(
         .get(candidate_offset)
         .cloned()
         .ok_or_else(|| scale_pressure_error("scale rewire candidate should exist"))?;
-    successor_relocation_batch(&neighborhood, &chosen_successor_identity)
+    super::super::scenario_programs::successor_relocation_declaration(
+        &neighborhood,
+        &chosen_successor_identity,
+    )
 }
+
 fn scale_rewire_execution(
     primitive_family: String,
     workspace: &mut forge_query::facade::ForgeQueryWorkspace,
-    assembly: &TopologyQueryAssembly,
-    batches: Vec<TopologyEditBatch>,
+    surfaces: &TopologyDeclaredQuerySurfaces,
+    declarations: Vec<ScaleRewireDeclaration>,
 ) -> Result<ScaleRewireExecution, TopologyCertificationError> {
-    let topology_edit_digest = aggregate_topology_edit_digest(&batches);
-    let edit_families = batches.iter().flat_map(|batch| batch.families()).collect();
+    let contract_sets = declarations
+        .iter()
+        .cloned()
+        .map(ScaleRewireDeclaration::into_contracts)
+        .collect::<Vec<_>>();
+    let topology_edit_digest = aggregate_topology_edit_digest_for_contract_sets(contract_sets);
+    let edit_families = declarations
+        .iter()
+        .flat_map(ScaleRewireDeclaration::semantic_families)
+        .collect();
     let mut final_state_digest = String::new();
     let mut final_materialized = None;
-    for batch in batches {
-        let execution = assembly
-            .apply_edit(workspace, batch, TopologyEditApplicationMode::Mainline)
-            .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    for declaration in declarations {
+        let execution = execute_scale_rewire_declaration(workspace, surfaces, declaration)?;
         final_state_digest = digest_materialized_topology_view(&execution.materialized).digest_hex;
         final_materialized = Some(execution.materialized);
     }
@@ -266,6 +320,25 @@ fn scale_rewire_execution(
         final_state_digest,
         derived_validation_row_count: validation.rows.len(),
     })
+}
+
+fn execute_scale_rewire_declaration(
+    workspace: &mut forge_query::facade::ForgeQueryWorkspace,
+    surfaces: &TopologyDeclaredQuerySurfaces,
+    declaration: ScaleRewireDeclaration,
+) -> Result<crate::topology_operators::TopologyOperatorExecution, TopologyCertificationError> {
+    match declaration {
+        ScaleRewireDeclaration::LoopSuccessor(declaration) => {
+            execute_current_head_topology_declaration(workspace, surfaces, declaration)
+        }
+        ScaleRewireDeclaration::LoopEndpoint(declaration) => {
+            execute_current_head_topology_declaration(workspace, surfaces, declaration)
+        }
+        ScaleRewireDeclaration::ShellRehome(declaration) => {
+            execute_current_head_topology_declaration(workspace, surfaces, declaration)
+        }
+    }
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))
 }
 
 fn covered_scale_pressure_sweeps(

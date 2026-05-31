@@ -7,9 +7,6 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
     t.compile_fail(format!("{compile_fail}/mint_boundary_envelope.rs"));
     t.compile_fail(format!("{compile_fail}/mint_boundary_failure.rs"));
     t.compile_fail(format!(
-        "{compile_fail}/public_query_assembly_not_forgeable.rs"
-    ));
-    t.compile_fail(format!(
         "{compile_fail}/public_runtime_adapters_not_forgeable.rs"
     ));
     t.compile_fail(format!(
@@ -23,9 +20,6 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_runtime_constructor_requires_adapters.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_query_import_not_exported.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_query_row_materializer_not_exported.rs"
@@ -83,5 +77,11 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_domain_query_workspace_methods_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_edit_batch_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_edit_contract_not_exported.rs"
     ));
 }

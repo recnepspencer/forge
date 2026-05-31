@@ -6,7 +6,7 @@ use super::parity::{
     TopologyDomainQueryViewParityReport,
 };
 use super::report::TopologyDomainQueryAggregateReport;
-use crate::projection::read_views::domain::TopologyDomainQuery;
+use crate::projection::read_views::domain::TopologyReadLedger;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyDomainQueryProofReport {
@@ -41,7 +41,7 @@ impl TopologyDomainQueryProofLedger {
     }
 }
 
-impl TopologyDomainQuery {
+impl TopologyReadLedger {
     pub(crate) fn record_view_parity(
         &self,
         parity_kind: TopologyDomainQueryParityKind,

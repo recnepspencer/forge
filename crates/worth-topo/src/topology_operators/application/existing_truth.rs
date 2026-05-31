@@ -11,7 +11,7 @@ use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingInde
 use super::bindings::{query_entity_binding, query_relation_binding};
 use super::{TopologyEditContract, TopologyOperatorExecutionError, TopologyOperatorRunner};
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
+impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
     pub(crate) fn lower_retire_topology_entity(
         &self,
         builder: ForgeQueryMutationBatchBuilder,

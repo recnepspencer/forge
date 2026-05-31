@@ -2,7 +2,7 @@ use forge_query::facade::ForgeQueryWorkspace;
 
 use super::super::error::TopologyDomainQueryError;
 use super::super::request::TopologyDomainQueryRequest;
-use super::super::topology::TopologyDomainQuery;
+use super::super::TopologyReadLedger;
 use crate::projection::read_views::{
     TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
 };
@@ -12,7 +12,7 @@ use crate::projection::runtime_boundary::read_execution::{
     uses_edge_relation_name, ExecutedTopologyReadFamily, SharedNeighborhoodReadKind,
 };
 
-impl TopologyDomainQuery {
+impl TopologyReadLedger {
     pub(crate) fn shared_vertex_half_edge_neighborhood(
         &self,
         workspace: &mut ForgeQueryWorkspace,

@@ -4,9 +4,6 @@ use super::super::super::report::{
     MilestoneThreeEditBranchLocalParityRow, MilestoneThreeHostileOutcomeClass,
     MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
 };
-use super::super::super::shared::{
-    aggregate_naming_edit_continuity_matrix, aggregate_topology_edit_digest,
-};
 use super::accepted_branch_execution::edit_digest_shape_matches;
 use super::accepted_branch_scenarios::{
     execute_ambiguous_rewire_branch, execute_cancellation_chain_branch,
@@ -56,13 +53,9 @@ where
             )));
         }
     };
-    let topology_edit_digest = aggregate_topology_edit_digest(&execution.batches);
-    let naming_edit_continuity_matrix = aggregate_naming_edit_continuity_matrix(&execution.batches);
-    let edit_families = execution
-        .batches
-        .iter()
-        .flat_map(|batch| batch.families())
-        .collect::<Vec<_>>();
+    let topology_edit_digest = execution.topology_edit_digest.clone();
+    let naming_edit_continuity_matrix = execution.naming_edit_continuity_matrix.clone();
+    let edit_families = execution.edit_families.clone();
 
     if !edit_digest_shape_matches(&topology_edit_digest, &report.topology_edit_digest)
         || naming_edit_continuity_matrix != report.naming_edit_continuity_matrix

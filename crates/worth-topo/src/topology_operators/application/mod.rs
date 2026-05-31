@@ -1,43 +1,47 @@
-mod admission;
+#[cfg(test)]
+pub(crate) mod admission;
 pub(crate) mod bindings;
 #[cfg(test)]
 mod boundary_tests;
+mod declaration_entry;
 mod dependency_paths;
 mod error;
 mod existing_truth;
+pub(crate) use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
+pub(crate) use declaration_entry::contract_payload::TopologyDeclarationContractPayload;
 
 use std::collections::BTreeMap;
 
 use forge_query::facade::{
-    ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection, ForgeQueryInspection,
+    ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection,
     ForgeQueryMutationBatchBuilder, ForgeQueryWorkspace,
 };
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
-use crate::projection::runtime_boundary::query_runtime::{
-    load_post_write_materialized_topology, TopologyQueryBindingIndex, TopologyRuntimeSupport,
-};
+use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
+use crate::projection::runtime_boundary::query_runtime::load_post_write_materialized_topology;
 
 use super::contracts::{
     TopologyEditAction, TopologyEditContract, TopologyEditFamily, TopologyEditNamingReport,
 };
-use super::local_rewrites::boundary_wiring::supports_composed_loop_successor_program;
-use super::local_rewrites::sheet_wire_laminar::{
-    supports_admitted_shell_or_wire_create_program, supports_composed_membership_program,
-};
-use super::{
-    NamingEditContinuityMatrix, TopologyEditApplicationMode, TopologyEditBatch, TopologyEditDigest,
-};
-use admission::{planned_created_entity_kinds, unsupported_families};
+use super::{NamingEditContinuityMatrix, TopologyEditApplicationMode, TopologyEditDigest};
 pub(crate) use dependency_paths::topology_relation_dependency_path;
-pub use error::TopologyOperatorExecutionError;
+pub use error::{
+    TopologyDeclarationEntryRefusalClass, TopologyDeclarationEntryStopClass,
+    TopologyOperatorExecutionError,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TopologyOperatorExecutionPath {
+    DeclarationEntry { semantic_family_key: &'static str },
+}
 
 #[derive(Debug, Clone)]
 pub struct TopologyOperatorExecution {
     pub mode: TopologyEditApplicationMode,
+    pub path: TopologyOperatorExecutionPath,
     pub families: Vec<TopologyEditFamily>,
     pub receipt: ForgeQueryBatchWriteReceipt,
     pub inspection: ForgeQueryBatchWriteReceiptInspection,
@@ -47,97 +51,20 @@ pub struct TopologyOperatorExecution {
     pub naming_report: TopologyEditNamingReport,
 }
 
-pub(crate) struct TopologyOperatorRunner<'workspace, 'assembly> {
+pub(crate) struct TopologyOperatorRunner<'workspace, 'surfaces> {
     pub(crate) workspace: &'workspace mut ForgeQueryWorkspace,
-    pub(crate) assembly: &'assembly TopologyQueryAssembly,
+    pub(crate) surfaces: &'surfaces TopologyDeclaredQuerySurfaces,
 }
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
+impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
     pub(crate) fn new(
         workspace: &'workspace mut ForgeQueryWorkspace,
-        assembly: &'assembly TopologyQueryAssembly,
+        surfaces: &'surfaces TopologyDeclaredQuerySurfaces,
     ) -> Self {
         Self {
             workspace,
-            assembly,
+            surfaces,
         }
-    }
-
-    pub(crate) fn apply(
-        &mut self,
-        batch: TopologyEditBatch,
-        mode: TopologyEditApplicationMode,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
-        if mode != TopologyEditApplicationMode::Mainline {
-            return Err(TopologyOperatorExecutionError::UnsupportedMode(mode));
-        }
-
-        let topology_edit_digest = batch.topology_edit_digest();
-        let naming_continuity_matrix = batch.naming_edit_continuity_matrix();
-        let naming_report = batch.naming_report();
-        let families = batch.families();
-        let contracts = batch.contracts();
-        let support = TopologyRuntimeSupport::current_head_authoritative();
-        let entity_rows = self.workspace.read(self.assembly.entities());
-        let relation_rows = self.workspace.read(self.assembly.relations());
-        let bindings = TopologyQueryBindingIndex::from_query_rows(&entity_rows, &relation_rows)?;
-        let unsupported = unsupported_families(&support, &bindings, &families, contracts);
-        if !unsupported.is_empty() {
-            return Err(TopologyOperatorExecutionError::UnsupportedFamilies(
-                unsupported,
-            ));
-        }
-        if supports_composed_loop_successor_program(&bindings, contracts) {
-            return self.apply_composed_loop_successor_program(
-                mode,
-                families,
-                topology_edit_digest,
-                naming_continuity_matrix,
-                naming_report,
-                contracts,
-                &bindings,
-            );
-        }
-        if supports_composed_membership_program(&bindings, contracts) {
-            return self.apply_composed_membership_program(
-                mode,
-                families,
-                topology_edit_digest,
-                naming_continuity_matrix,
-                naming_report,
-                contracts,
-                &bindings,
-            );
-        }
-        let created_entity_kinds = planned_created_entity_kinds(contracts);
-        let lowered_batch = if supports_admitted_shell_or_wire_create_program(&bindings, contracts)
-        {
-            self.lower_admitted_shell_or_wire_create_program(&bindings, contracts)?
-        } else {
-            contracts.iter().try_fold(
-                ForgeQueryMutationBatchBuilder::new(),
-                |builder, contract| {
-                    self.lower_contract(builder, &bindings, &created_entity_kinds, contract)
-                },
-            )?
-        };
-
-        let receipt = self.workspace.batch(|_| lowered_batch)?;
-        let inspection = match self.workspace.inspect(&receipt)? {
-            ForgeQueryInspection::BatchWriteReceipt(inspection) => inspection,
-            _ => return Err(TopologyOperatorExecutionError::UnexpectedInspectionFamily),
-        };
-        let materialized = load_post_write_materialized_topology(self.workspace, self.assembly)?;
-        Ok(TopologyOperatorExecution {
-            mode,
-            families,
-            receipt,
-            inspection,
-            materialized,
-            topology_edit_digest,
-            naming_continuity_matrix,
-            naming_report,
-        })
     }
 
     fn lower_contract(

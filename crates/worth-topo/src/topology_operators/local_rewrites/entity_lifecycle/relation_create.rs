@@ -19,7 +19,7 @@ enum LoweredEntityReference {
     Created { create_key: String },
 }
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
+impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
     pub(crate) fn lower_attach_shell_or_wire_membership(
         &self,
         builder: ForgeQueryMutationBatchBuilder,

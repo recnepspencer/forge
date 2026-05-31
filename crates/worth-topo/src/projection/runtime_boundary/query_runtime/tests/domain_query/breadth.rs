@@ -3,7 +3,6 @@ use schema::facade::topology_authoring::{seed_milestone_one_primitive, Milestone
 
 use super::super::query_runtime_support::QueryRuntimeSupport;
 use crate::projection::read_views::domain::report::TopologyDomainQueryRequestFamily;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
@@ -21,8 +20,12 @@ fn relation_update_query_support_reports_domain_query_breadth_aggregate() {
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, ".current-head.domain-query-breadth.runtime")
         .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let support = QueryRuntimeSupport::load(&mut workspace, &surfaces);
     let moved_identity =
         support.first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext);
 
@@ -80,8 +83,12 @@ fn relation_update_query_support_reports_topology_operator_radial_breadth_aggreg
         ".current-head.domain-query-breadth.radial.runtime",
     )
     .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let support = QueryRuntimeSupport::load(&mut workspace, &surfaces);
     let source_identity =
         support.first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeRadialNext);
     let current_target_identity =

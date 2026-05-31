@@ -12,6 +12,12 @@ from:
 - `TopologyCurrentHeadReadHandleExt::topology_reads(...)`
 - `TopologySnapshotReadOnlyReadHandleExt::topology_reads(...)`
 
+Certification-owned proof aggregation is a separate internal support concern.
+When a proof needs cross-workspace replay or branch-local accumulation, it may
+use the certification harness in `crate::certification::support`. That harness
+is not part of the topology read facade and must not replace admitted-handle
+sessions for ordinary single-workspace read execution or proof authoring.
+
 External callers can:
 
 - admit a typed topology configured handle through Query domain entry
@@ -86,7 +92,7 @@ The two public surfaces still answer different questions:
 
 - `TopologyRuntimeSupport` answers whether a family is admitted on a
   runtime posture
-- `TopologyDomainQuery` answers what execution, proof, parity, and
+- `TopologyConfiguredDomainReadSession` answers what execution, proof, parity, and
   closeout facts were actually observed on executed topology reads
 
 ## Current Posture
@@ -113,11 +119,9 @@ Those request reports should expose:
 - executed snapshot token: the read-only runtime snapshot token
 - fallback count: `0`
 
-The underlying `TopologyDomainQuery` kernel remains request-only and does not
-preload whole-view topology state, but its workspace-taking neighborhood
-methods are now an internal adapter seam rather than the public executed-read
-entry. The active topology families no longer depend on a hidden bootstrap
-authority before they can decode their final views.
+The handle-bound read session remains request-only and does not preload
+whole-view topology state. The active topology families no longer depend on a
+separate query-root object before they can decode their final views.
 
 For the two local half-edge adjacency families:
 

@@ -1,5 +1,6 @@
 mod bridge_verification;
 mod core;
+mod declaration_runtime_support;
 mod doc_freshness;
 mod domain_query;
 mod edit_execution;

@@ -276,7 +276,7 @@ impl std::fmt::Display for TopologyRuntimeFailure {
                 write!(f, " topology query runtime bridge build failed: {error}")
             }
             Self::QueryRuntime(error) => {
-                write!(f, " topology query runtime assembly failed: {error}")
+                write!(f, " topology query runtime surfaces failed: {error}")
             }
         }
     }

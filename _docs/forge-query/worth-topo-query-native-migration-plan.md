@@ -2,9 +2,12 @@
 
 `worth-topo` already uses `forge-query` heavily, but it still exposes local
 entry, assembly, and orchestration surfaces that sit beside Query rather than
-beginning in Query. The target state is one where serious topology reads and
-workflow entry start from Query-owned typed domain entry, configured handles,
-declaration orchestration, contribution composition, and recovery.
+beginning in Query. The target state is a clean break: serious topology reads
+and workflow entry begin only from Query-owned typed domain entry, configured
+handles, declaration orchestration, contribution composition, and recovery. Old
+topology-owned entry systems are not to remain as secondary, internal, adapter,
+or fallback peers in live code. If a surface has been replaced, it must be
+deleted from live code rather than merely deprioritized.
 
 ## Scope
 
@@ -46,17 +49,19 @@ Required migration:
 - add one typed topology domain marker
 - add typed operating contexts for current-head authoritative work
 - add typed operating contexts for snapshot read-only work
-- route new public topology entry through Query domain entry instead of local
-  assembly roots
+- route public topology entry only through Query domain entry
+- remove local assembly-first entry as a live topology entry model
 
 Phase-completion rule:
 
-- phase 1 is not complete when the typed domain marker exists but legacy public
-  entry roots remain the real front door
-- phase 1 is complete only when the Query domain entry surface is the canonical
-  public beginning for topology workflow entry
-- any remaining local assembly roots at the end of phase 1 must already be on
-  the path to adapter-only status, not still treated as peer public entry
+- phase 1 is not complete while `TopologyQueryAssembly`, projection-first
+  entry, or any other topology-owned root remains in live code as a topology
+  entry option
+- phase 1 is complete only when Query domain entry is the only topology entry
+  model in live code
+- the only allowed remaining references to replaced phase-1 entry surfaces are
+  historical engineering docs or intentionally archived material, not
+  production code, certification code, or active support code
 
 ### 2. Read Helpers
 
@@ -74,20 +79,20 @@ Target Query surfaces to reference:
 
 Required migration:
 
-- keep the current read kernels
-- rehang them under admitted-handle helper entry
-- demote raw workspace-taking entry points to lower adapter seams
+- rehang the current read kernels under admitted-handle helper entry
+- remove raw workspace-taking entry points from live topology read code
+- remove query-object-root read entry as a live topology read model
 
 Phase-completion rule:
 
-- phase 2 is not complete when handle-bound helpers exist but the old raw
-  workspace-taking neighborhood methods still remain a public caller-facing
-  alternative
-- phase 2 is complete only when public topology reads begin from admitted
-  configured handles and the old raw read seam is reduced to adapter-only
-  status
-- documentation, compile-fail proofs, and public API certification must all
-  agree on that boundary before phase 2 is called done
+- phase 2 is not complete while `TopologyDomainQuery`, raw workspace-taking
+  neighborhood entry, or any equivalent read-root object remains in live code
+  as a topology read option
+- phase 2 is complete only when admitted configured handles and handle-bound
+  read sessions are the only topology read model in live code
+- documentation, compile-fail proofs, public API certification, and active
+  certification support code must all agree on that boundary before phase 2 is
+  called done
 
 ### 3. Edit And Declaration Workflow
 
@@ -109,7 +114,7 @@ Target Query surfaces to reference:
 Required migration:
 
 - recast topology edits as Query declarations
-- replace direct mutation-batch lowering as the public workflow seam
+- remove direct mutation-batch lowering as a live operator workflow seam
 - expose ordinary, checked, proof, and recovery lanes instead of one local
   execution product
 
@@ -122,8 +127,12 @@ Phase-completion rule:
 - migrating one narrow family first is allowed only as the opening
   implementation slice inside phase 3, not as the definition of phase-3
   completion
-- no remaining public operator may continue to depend on the old direct
-  mutation-batch workflow once phase 3 is declared done
+- no remaining public or internal live operator may continue to depend on the
+  old direct mutation-batch workflow once phase 3 is declared done
+- `TopologyEditBatch`, `TopologyEditContract`, batch-promotion helpers, and
+  batch-admission helpers must be removed from live operator code for
+  transitioned families rather than left behind as compatibility authoring
+  layers
 
 ### 4. Contribution-Composed Workflow
 
@@ -149,9 +158,8 @@ Required migration:
 
 Phase-completion rule:
 
-- phase 4 is not complete when one migrated declaration family has
-  contribution-composed workflow but the rest of the topology operator surface
-  still depends on local sidecars for continuity, fallback, or explanation
+- phase 4 is not complete while any migrated declaration family still depends
+  on local sidecars for continuity, fallback, or explanation
 - phase 4 is complete only when every operator family that requires
   topology-specific continuity, aftermath, or explanation semantics carries
   those semantics on Query contribution surfaces rather than local execution
@@ -176,12 +184,11 @@ Target Query surfaces to reference:
 Required migration:
 
 - treat construction as a first-class Query-native migration target
-- stop letting it remain a local planning layer that only happens to speak
-  Query vocabulary
+- remove the local construction-first planning story from live code
 
 Completion rule:
 
-- the construction migration is not complete when write and inspect planning
+- the construction migration is not complete while write and inspect planning
   still begin from local construction authority surfaces with Query used only as
   a downstream tool
 - it is complete only when construction entry, execution planning, and
@@ -204,18 +211,20 @@ Target Query surfaces to reference:
 
 Required migration:
 
-- keep projection-building machinery
-- demote raw declaration and maintainer exports from daily-driver public API
-- make the Query-native topology entry the primary front door
+- keep projection-building machinery only where still required as internal
+  implementation detail
+- remove raw declaration and maintainer exports from the live topology-facing
+  API
+- make the Query-native topology entry the only public front door
 
 Completion rule:
 
-- this subsystem is not complete when the Query-native topology front door
-  exists but callers are still expected to assemble live views, computed
-  surfaces, or maintainers directly as a normal public workflow
-- it is complete only when those low-level projection surfaces are clearly
-  lower-level infrastructure and the public story begins from the topology
-  Query-native entry
+- this subsystem is not complete while callers in live code can still assemble
+  live views, computed surfaces, or maintainers directly as a topology entry
+  workflow
+- it is complete only when those low-level projection surfaces are absent from
+  the live topology-facing API and the topology Query-native entry is the only
+  public front door
 
 ### 7. Query Assembly And Historical Materialization
 
@@ -235,16 +244,17 @@ Required migration:
 
 - collapse local historical-basis rebuilding onto Query-owned retained artifact
   semantics
-- keep assembly only as adapter infrastructure if it cannot yet be deleted
+- remove local assembly-owned historical entry once Query-owned historical
+  handling exists
 
 Completion rule:
 
-- this subsystem is not complete when historical correctness still depends on
-  `worth-topo` reconstructing missing basis/materialization truth locally as a
-  normal part of the public story
+- this subsystem is not complete while historical correctness still depends on
+  `worth-topo` reconstructing missing basis or materialization truth locally in
+  live code
 - it is complete only when Query-owned retained-artifact and historical-truth
-  handling are the authority and any surviving assembly layer is strictly
-  adapter infrastructure
+  handling are the only authority and local assembly-owned historical entry has
+  been removed from live code
 
 ### 8. Bridge Registration
 
@@ -261,15 +271,16 @@ Target Query surfaces to reference:
 
 Required migration:
 
-- classify bridge registration explicitly as retained adapter infrastructure or
-  wrap it behind the Query-native topology public story
+- remove bridge registration from the live topology-facing entry story
+- keep only the minimum internal bridge machinery still required by the Query
+  native boundary
 
 Completion rule:
 
-- bridge registration is not complete while callers still have to understand
-  bridge wiring as part of the normal topology public entry story
-- it is complete only when bridge seams are either clearly internal adapter
-  infrastructure or fully hidden behind the Query-native topology boundary
+- bridge registration is not complete while callers in live code still have to
+  understand bridge wiring as part of topology entry
+- it is complete only when bridge wiring is absent from the topology-facing API
+  and fully hidden behind the Query-native topology boundary
 
 ### 9. Committed Artifact Alignment
 
@@ -290,9 +301,9 @@ Required migration:
 
 Completion rule:
 
-- committed-artifact alignment is not complete while downstream workflows still
-  need to choose between a local topology artifact story and a Query receipt /
-  envelope story
+- committed-artifact alignment is not complete while downstream workflows in
+  live code still need to choose between a local topology artifact story and a
+  Query receipt or envelope story
 - it is complete only when there is one authoritative artifact progression for
   downstream topology workflows
 
@@ -307,10 +318,23 @@ Completion rule:
    first migrated family and continuing until the full operator surface is on
    the contribution-capable path where required.
 5. Widen to grouped topology workflows and remove the old direct
-   mutation-batch public path rather than leaving mixed execution stories in
-   place.
-6. Demote old public assembly and low-level projection entry surfaces only
-   after the public operator/read front doors are fully replaced.
+   mutation-batch path from live code rather than leaving mixed execution
+   stories in place.
+6. Remove old public assembly and low-level projection entry surfaces once the
+   Query-native front doors fully replace them.
+
+## Clean-Break Rule
+
+This plan follows a clean-break rule, not a compatibility-migration rule.
+
+- replaced topology entry surfaces must be removed from live code
+- replaced topology read surfaces must be removed from live code
+- replaced topology operator authoring and execution surfaces must be removed
+  from live code
+- "internal only", "secondary", "adapter-only", "reduced", "still available",
+  or similar coexistence language is not sufficient completion for any phase
+- the only acceptable surviving references to replaced surfaces are old
+  engineering docs or intentionally archived historical material
 
 ## Query Bug Rule
 

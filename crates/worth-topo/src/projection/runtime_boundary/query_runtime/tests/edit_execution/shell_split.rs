@@ -8,16 +8,17 @@ use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use schema::facade::topology_authoring::{
-    created_ref, seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
+    seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
 };
 
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use super::super::declaration_runtime_support::{
+    current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
+};
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    ShellOrWireMembershipKind, TopologyEditApplicationMode, TopologyEditBatch,
-    TopologyEditContract, TopologyEditFamily, TopologyOperatorExecutionError,
+    TopologyEditFamily, TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
@@ -37,27 +38,22 @@ fn current_head_runtime_executes_single_face_two_face_shell_split_program() {
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit.split-shell").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
     let shell_key = CreateKey::new(".current-head.query-edit.split-shell.new_shell");
-    let batch = TopologyEditBatch::new(vec![
-        TopologyEditContract::create_topology_entity(shell_key.as_str(), TopologyEntityKind::Shell),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit.split-shell.region-owns-shell",
-            ShellOrWireMembershipKind::RegionOwnsShell,
-            region,
-            created_ref(shell_key.as_str()),
-        ),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit.split-shell.shell-owns-face",
-            ShellOrWireMembershipKind::ShellOwnsFace,
-            created_ref(shell_key.as_str()),
-            moved_face_id,
-        ),
-    ])
-    .expect("non-empty edit batch");
-
-    let execution = assembly.apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("single-face two-face shell split should execute through the admitted owner-preserving shell lane");
+    let declaration = TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration::new(
+        shell_key.as_str(),
+        ".current-head.query-edit.split-shell.region-owns-shell",
+        ".current-head.query-edit.split-shell.shell-owns-face",
+        region,
+        moved_face_id,
+    );
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("single-face two-face shell split should execute through declaration entry");
 
     assert_eq!(
         execution.families,
@@ -173,86 +169,24 @@ fn current_head_runtime_denies_shell_split_when_old_shell_owns_more_than_two_fac
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, ".current-head.query-edit.split-shell-large")
         .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
     let shell_key = CreateKey::new(".current-head.query-edit.split-shell-large.new_shell");
-    let batch = TopologyEditBatch::new(vec![
-        TopologyEditContract::create_topology_entity(shell_key.as_str(), TopologyEntityKind::Shell),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit.split-shell-large.region-owns-shell",
-            ShellOrWireMembershipKind::RegionOwnsShell,
-            region,
-            created_ref(shell_key.as_str()),
-        ),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit.split-shell-large.shell-owns-face",
-            ShellOrWireMembershipKind::ShellOwnsFace,
-            created_ref(shell_key.as_str()),
-            face_ids[0],
-        ),
-    ])
-    .expect("non-empty edit batch");
+    let declaration = TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration::new(
+        shell_key.as_str(),
+        ".current-head.query-edit.split-shell-large.region-owns-shell",
+        ".current-head.query-edit.split-shell-large.shell-owns-face",
+        region,
+        face_ids[0],
+    );
 
-    let error = assembly.apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect_err("owner-preserving shell split must stay fail-closed beyond the admitted two-face shell lane");
-
-    assert!(matches!(
-        error,
-        TopologyOperatorExecutionError::UnsupportedFamilies(families)
-            if families == vec![TopologyEditFamily::AttachShellOrWireMembership]
-    ));
-}
-
-#[test]
-fn current_head_runtime_denies_shell_split_when_created_shell_keys_diverge() {
-    let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let verified = seed_milestone_one_primitive(
-        &mut runtime,
-        ".current-head.query-edit.split-shell-diverged-key",
-        &MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },
-    )
-    .expect("seed topology");
-    let (region, _shell, face_ids) =
-        seeded_patch_region_shell_and_faces(&runtime, &verified.read_basis());
-    let adapters = TopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace = topology_runtime(
-        adapters,
-        ".current-head.query-edit.split-shell-diverged-key",
-    )
-    .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let region_shell_key =
-        CreateKey::new(".current-head.query-edit.split-shell-diverged-key.region");
-    let face_shell_key = CreateKey::new(".current-head.query-edit.split-shell-diverged-key.face");
-    let batch = TopologyEditBatch::new(vec![
-        TopologyEditContract::create_topology_entity(
-            region_shell_key.as_str(),
-            TopologyEntityKind::Shell,
-        ),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit.split-shell-diverged-key.region-owns-shell",
-            ShellOrWireMembershipKind::RegionOwnsShell,
-            region,
-            created_ref(region_shell_key.as_str()),
-        ),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit.split-shell-diverged-key.shell-owns-face",
-            ShellOrWireMembershipKind::ShellOwnsFace,
-            created_ref(face_shell_key.as_str()),
-            face_ids[0],
-        ),
-    ])
-    .expect("non-empty edit batch");
-
-    let error = assembly.apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect_err(
-            "owner-preserving shell split must fail closed when the two owner updates target different created shells",
-        );
-
-    assert!(matches!(
-        error,
-        TopologyOperatorExecutionError::UnsupportedFamilies(families)
-            if families == vec![TopologyEditFamily::AttachShellOrWireMembership]
-    ));
+    assert_eq!(
+        current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
+        vec![TopologyEditFamily::AttachShellOrWireMembership]
+    );
 }
 
 #[test]
@@ -278,35 +212,24 @@ fn current_head_runtime_denies_shell_split_when_region_does_not_own_source_shell
         ".current-head.query-edit.split-shell-wrong-region",
     )
     .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
     let shell_key = CreateKey::new(".current-head.query-edit.split-shell-wrong-region.new");
-    let batch = TopologyEditBatch::new(vec![
-        TopologyEditContract::create_topology_entity(shell_key.as_str(), TopologyEntityKind::Shell),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit.split-shell-wrong-region.region-owns-shell",
-            ShellOrWireMembershipKind::RegionOwnsShell,
-            wrong_region,
-            created_ref(shell_key.as_str()),
-        ),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit.split-shell-wrong-region.shell-owns-face",
-            ShellOrWireMembershipKind::ShellOwnsFace,
-            created_ref(shell_key.as_str()),
-            face_ids[0],
-        ),
-    ])
-    .expect("non-empty edit batch");
+    let declaration = TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration::new(
+        shell_key.as_str(),
+        ".current-head.query-edit.split-shell-wrong-region.region-owns-shell",
+        ".current-head.query-edit.split-shell-wrong-region.shell-owns-face",
+        wrong_region,
+        face_ids[0],
+    );
 
-    let error = assembly.apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect_err(
-            "owner-preserving shell split must fail closed when the nominated region does not own the source shell",
-        );
-
-    assert!(matches!(
-        error,
-        TopologyOperatorExecutionError::UnsupportedFamilies(families)
-            if families == vec![TopologyEditFamily::AttachShellOrWireMembership]
-    ));
+    assert_eq!(
+        current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
+        vec![TopologyEditFamily::AttachShellOrWireMembership]
+    );
 }
 
 fn seeded_patch_region_shell_and_faces(

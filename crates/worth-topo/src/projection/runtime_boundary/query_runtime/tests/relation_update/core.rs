@@ -2,14 +2,13 @@ use forge_query::facade::{ForgeQueryExistingRelationTarget, ForgeQueryExistingTr
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
+use super::super::declaration_runtime_support::execute_current_head_topology_declaration;
 use super::super::query_runtime_support::{query_entity_id_from_row, query_relation_id_from_row};
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    LoopEndpointKind, TopologyEditApplicationMode, TopologyEditBatch, TopologyEditContract,
-    TopologyEditFamily,
+    LoopEndpointKind, TopologyEditFamily, TopologyRewireLoopEndpointDeclaration,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
@@ -25,8 +24,12 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, ".current-head.query-update-rewire-endpoint")
         .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let relation_rows = workspace.read(assembly.relations());
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let relation_rows = workspace.read(surfaces.relations());
     let relation = relation_rows
         .iter()
         .find(|row| {
@@ -89,7 +92,7 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
         forge_query::facade::ForgeQueryExistingTruthBindingFamily::DirectRelationIdentity
     );
 
-    let relation_rows_after = workspace.read(assembly.relations());
+    let relation_rows_after = workspace.read(surfaces.relations());
     let original_relation = relation_rows_after
         .iter()
         .find(|row| query_relation_id_from_row(row) == query_relation_id_from_row(relation))
@@ -116,9 +119,13 @@ fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_operator_
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-rewire-endpoint").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let relation_rows = workspace.read(assembly.relations());
-    let entity_rows = workspace.read(assembly.entities());
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let relation_rows = workspace.read(surfaces.relations());
+    let entity_rows = workspace.read(surfaces.entities());
     let relation = relation_rows
         .iter()
         .find(|row| {
@@ -160,17 +167,15 @@ fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_operator_
         .find(|row| row.identity == source_identity)
         .map(query_entity_id_from_row)
         .expect("relation source identity should resolve to a halfedge");
-    let batch = TopologyEditBatch::new(vec![TopologyEditContract::rewire_loop_endpoint(
+    let declaration = TopologyRewireLoopEndpointDeclaration::new(
         query_relation_id_from_row(relation),
         LoopEndpointKind::End,
         half_edge_id,
         target_vertex_id,
-    )])
-    .expect("non-empty edit batch");
-
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("endpoint rewire should execute through the admitted runtime family");
+    );
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("endpoint rewire should execute through declaration entry");
 
     assert_eq!(
         execution.families,

@@ -98,6 +98,10 @@ const TOPOLOGY_SNAPSHOT_SUPPORT: TopologyEntrySupportContract = TopologyEntrySup
     ],
 );
 
+pub(crate) const TOPOLOGY_CURRENT_HEAD_AUTHORITATIVE_CONTEXT_IDENTITY: &str =
+    "topology/current_head_authoritative";
+pub(crate) const TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY: &str = "topology/snapshot_read_only";
+
 pub type TopologyCurrentHeadConfiguredDomainHandle = ForgeQueryAdmittedConfiguredDomainHandle<
     TopologyQueryDomain,
     TopologyCurrentHeadAuthoritativeContext,
@@ -167,7 +171,7 @@ impl ForgeQueryDomainOperatingContext<TopologyQueryDomain>
     }
 
     fn context_identity_digest(&self) -> String {
-        "topology/current_head_authoritative".to_string()
+        TOPOLOGY_CURRENT_HEAD_AUTHORITATIVE_CONTEXT_IDENTITY.to_string()
     }
 }
 
@@ -181,7 +185,7 @@ impl ForgeQueryDomainOperatingContext<TopologyQueryDomain> for TopologySnapshotR
     }
 
     fn context_identity_digest(&self) -> String {
-        "topology/snapshot_read_only".to_string()
+        TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY.to_string()
     }
 }
 

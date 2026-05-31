@@ -29,7 +29,6 @@ use crate::facade::{
     build_derived_equivalence_contract, build_topology_read_artifact, certify_topology_view,
     compare_derived_equivalence_contracts, validate_named_topology_truth,
 };
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };

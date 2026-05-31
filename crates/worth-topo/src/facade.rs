@@ -115,10 +115,8 @@ pub use crate::projection::runtime_boundary::bridge::{
     build_milestone_one_bridge, milestone_one_bridge_aspect_registrations,
     milestone_one_bridge_mapping_registrations,
 };
-pub use crate::projection::runtime_boundary::query_assembly::{
-    TopologyQueryAppliedIntent, TopologyQueryApplyError, TopologyQueryAssembly,
-    TopologyQuerySnapshot,
-};
+#[cfg(test)]
+pub(crate) use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 pub use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyQueryEditFamilySupportStatus, TopologyQueryEditLane,
     TopologyQueryEditLaneExecutionShape, TopologyQueryEditLaneSupportStatus,
@@ -128,6 +126,7 @@ pub use crate::projection::runtime_boundary::query_runtime::{
     TopologyRuntimePostureCapability, TopologyRuntimePostureRow, TopologyRuntimePostureStatus,
     TopologyRuntimeReadFamilySupportRow, TopologyRuntimeSupport,
 };
+pub(crate) use crate::projection::TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY;
 pub use crate::projection::{
     declare_persistent_name_live_view, declare_topology_diagnostics_surface,
     declare_topology_entity_live_view, declare_topology_equivalence_contract_surface,
@@ -143,7 +142,7 @@ pub use crate::projection::{
     TopologyConfiguredDomainReadSession, TopologyCurrentHeadAuthoritativeContext,
     TopologyCurrentHeadConfiguredDomainHandle, TopologyCurrentHeadConfiguredDomainHandleChecked,
     TopologyCurrentHeadReadHandleExt, TopologyCurrentHeadReadSession,
-    TopologyDiagnosticsMaintainer, TopologyDomainQuery, TopologyDomainQueryAggregateReport,
+    TopologyDiagnosticsMaintainer, TopologyDomainQueryAggregateReport,
     TopologyDomainQueryCloseoutReport, TopologyDomainQueryCloseoutRow,
     TopologyDomainQueryCloseoutStatus, TopologyDomainQueryDebtRow, TopologyDomainQueryError,
     TopologyDomainQueryErrorKind, TopologyDomainQueryExecutionAggregateRow,
@@ -167,11 +166,33 @@ pub use crate::projection::{
 pub use crate::topology_operators::{
     BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, NamingEditContinuityMatrix,
     RejectedEditScopeReport, RejectedEditScopeRow, ShellOrWireMembershipKind,
-    TopologyDerivedRegion, TopologyEditAction, TopologyEditApplicationMode, TopologyEditBatch,
-    TopologyEditChangedScope, TopologyEditContract, TopologyEditDerivedFallbackPolicy,
-    TopologyEditDigest, TopologyEditFamily, TopologyEditNamingOutcome, TopologyEditNamingReport,
-    TopologyEditNamingRow, TopologyEditNamingScope, TopologyEditRejectionClass,
-    TopologyOperatorExecution, TopologyOperatorExecutionError,
+    TopologyAttachBoundaryMembershipDeclaration, TopologyAttachBoundaryMembershipFamily,
+    TopologyAttachShellOrWireMembershipDeclaration, TopologyAttachShellOrWireMembershipFamily,
+    TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyCreateInnerLoopOnExistingFaceFamily,
+    TopologyCreateTopologyEntityDeclaration, TopologyCreateTopologyEntityFamily,
+    TopologyDeclarationEntryRefusalClass, TopologyDeclarationEntryStopClass, TopologyDerivedRegion,
+    TopologyDetachBoundaryMembershipDeclaration, TopologyDetachBoundaryMembershipFamily,
+    TopologyDetachRadialAdjacencyDeclaration, TopologyDetachRadialAdjacencyFamily,
+    TopologyDetachShellOrWireMembershipDeclaration, TopologyDetachShellOrWireMembershipFamily,
+    TopologyEditAction, TopologyEditApplicationMode, TopologyEditChangedScope,
+    TopologyEditDerivedFallbackPolicy, TopologyEditDigest, TopologyEditFamily,
+    TopologyEditNamingOutcome, TopologyEditNamingReport, TopologyEditNamingRow,
+    TopologyEditNamingScope, TopologyEditRejectionClass, TopologyLoopSuccessorRewireMember,
+    TopologyOperatorExecution, TopologyOperatorExecutionError, TopologyOperatorExecutionPath,
+    TopologyRadialSpliceMember, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
+    TopologyRehomeAllOwnedFacesToNewShellFamily,
+    TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
+    TopologyRehomeAllOwnedHalfEdgesToNewWireFamily, TopologyRetireTopologyEntityDeclaration,
+    TopologyRetireTopologyEntityFamily, TopologyRewireLoopEndpointDeclaration,
+    TopologyRewireLoopEndpointFamily, TopologyRewireLoopSuccessorProgramDeclaration,
+    TopologyRewireLoopSuccessorProgramFamily, TopologyShellRehomeFaceMember,
+    TopologySpliceRadialAdjacencyDeclaration, TopologySpliceRadialAdjacencyFamily,
+    TopologySpliceRadialAdjacencyProgramDeclaration, TopologySpliceRadialAdjacencyProgramFamily,
+    TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
+    TopologySplitConnectedHalfEdgeSetToNewWireFamily,
+    TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
+    TopologySplitSingleFaceFromTwoFaceShellToNewShellFamily, TopologyWireRehomeHalfEdgeMember,
+    TopologyWireSplitHalfEdgeMember,
 };
 pub use crate::validation::{
     topology_validation_report, validate_interpreted_topology, validate_materialized_topology,

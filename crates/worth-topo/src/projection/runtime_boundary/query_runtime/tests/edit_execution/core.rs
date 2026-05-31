@@ -3,16 +3,17 @@ use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::topology_authoring::{
-    created_ref, seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
+    seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
 };
 
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use super::super::declaration_runtime_support::execute_current_head_topology_declaration;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    BoundaryMembershipKind, TopologyEditApplicationMode, TopologyEditBatch, TopologyEditContract,
-    TopologyEditFamily, TopologyEditNamingOutcome,
+    BoundaryMembershipKind, TopologyCreateInnerLoopOnExistingFaceDeclaration,
+    TopologyCreateTopologyEntityDeclaration, TopologyDetachBoundaryMembershipDeclaration,
+    TopologyDetachRadialAdjacencyDeclaration, TopologyEditFamily, TopologyEditNamingOutcome,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::{
@@ -24,16 +25,18 @@ fn current_head_runtime_executes_create_topology_entity_through_topology_operato
     let runtime = build_milestone_one_runtime().expect(" runtime");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, ".current-head.query-edit").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let batch = TopologyEditBatch::new(vec![TopologyEditContract::create_topology_entity(
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let declaration = TopologyCreateTopologyEntityDeclaration::new(
         "query-edit-runtime.added_vertex",
         TopologyEntityKind::Vertex,
-    )])
-    .expect("non-empty edit batch");
-
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("create topology entity should execute through query runtime");
+    );
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("create topology entity should execute through declaration entry");
 
     assert_eq!(
         execution.families,
@@ -53,7 +56,7 @@ fn current_head_runtime_executes_create_topology_entity_through_topology_operato
     assert!(execution
         .receipt
         .affected_derived_view_ids()
-        .contains(&assembly.materialized().name().to_string()));
+        .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
         execution.inspection.affected_derived_view_ids(),
         execution.receipt.affected_derived_view_ids()
@@ -74,16 +77,18 @@ fn current_head_runtime_executes_retire_topology_entity_through_topology_operato
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-retire").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let batch = TopologyEditBatch::new(vec![TopologyEditContract::retire_topology_entity(
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let declaration = crate::topology_operators::TopologyRetireTopologyEntityDeclaration::new(
         seeded.vertex,
         TopologyEntityKind::Vertex,
-    )])
-    .expect("non-empty edit batch");
-
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("retire topology entity should execute through query runtime");
+    );
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("retire topology entity should execute through declaration entry");
 
     assert_eq!(
         execution.families,
@@ -92,7 +97,7 @@ fn current_head_runtime_executes_retire_topology_entity_through_topology_operato
     assert!(execution
         .receipt
         .affected_derived_view_ids()
-        .contains(&assembly.materialized().name().to_string()));
+        .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
         execution.inspection.affected_derived_view_ids(),
         execution.receipt.affected_derived_view_ids()
@@ -132,16 +137,18 @@ fn current_head_runtime_executes_detach_boundary_membership_through_topology_ope
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-detach").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let batch = TopologyEditBatch::new(vec![TopologyEditContract::detach_boundary_membership(
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let declaration = TopologyDetachBoundaryMembershipDeclaration::new(
         loop_owns_half_edge_relation,
         BoundaryMembershipKind::LoopOwnsHalfEdge,
-    )])
-    .expect("non-empty edit batch");
-
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("detach boundary membership should execute through query runtime");
+    );
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("detach boundary membership should execute through declaration entry");
 
     assert_eq!(
         execution.families,
@@ -150,7 +157,7 @@ fn current_head_runtime_executes_detach_boundary_membership_through_topology_ope
     assert!(execution
         .receipt
         .affected_derived_view_ids()
-        .contains(&assembly.materialized().name().to_string()));
+        .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
         execution.inspection.affected_derived_view_ids(),
         execution.receipt.affected_derived_view_ids()
@@ -202,21 +209,20 @@ fn current_head_runtime_executes_create_inner_loop_on_existing_face_program() {
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-attach-boundary").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
     let loop_key = CreateKey::new("query-edit-runtime-attach-boundary.inner_loop");
-    let batch = TopologyEditBatch::new(vec![
-        TopologyEditContract::create_topology_entity(loop_key.as_str(), TopologyEntityKind::Loop),
-        TopologyEditContract::attach_boundary_membership(
-            "query-edit-runtime-attach-boundary.face-inner-loop",
-            BoundaryMembershipKind::FaceInnerLoop,
-            face_id,
-            created_ref(loop_key.as_str()),
-        ),
-    ])
-    .expect("non-empty edit batch");
-
-    let execution = assembly.apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("create-inner-loop program should execute through the admitted invariant-complete runtime lane");
+    let declaration = TopologyCreateInnerLoopOnExistingFaceDeclaration::new(
+        loop_key.as_str(),
+        "query-edit-runtime-attach-boundary.face-inner-loop",
+        face_id,
+    );
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("create-inner-loop program should execute through declaration entry");
 
     assert_eq!(
         execution.families,
@@ -228,7 +234,7 @@ fn current_head_runtime_executes_create_inner_loop_on_existing_face_program() {
     assert!(execution
         .receipt
         .affected_derived_view_ids()
-        .contains(&assembly.materialized().name().to_string()));
+        .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
         execution
             .receipt
@@ -269,15 +275,15 @@ fn current_head_runtime_executes_detach_radial_adjacency_through_topology_operat
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-detach-radial").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let batch = TopologyEditBatch::new(vec![TopologyEditContract::detach_radial_adjacency(
-        radial_relation,
-    )])
-    .expect("non-empty edit batch");
-
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("detach radial adjacency should execute through query runtime");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let declaration = TopologyDetachRadialAdjacencyDeclaration::new(radial_relation);
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("detach radial adjacency should execute through declaration entry");
 
     assert_eq!(
         execution.families,
@@ -286,7 +292,7 @@ fn current_head_runtime_executes_detach_radial_adjacency_through_topology_operat
     assert!(execution
         .receipt
         .affected_derived_view_ids()
-        .contains(&assembly.materialized().name().to_string()));
+        .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
         execution.inspection.affected_derived_view_ids(),
         execution.receipt.affected_derived_view_ids()

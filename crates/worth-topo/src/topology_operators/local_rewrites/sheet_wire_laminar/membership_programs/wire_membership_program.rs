@@ -10,8 +10,8 @@ use crate::topology_operators::topology_relation_dependency_path;
 use crate::topology_operators::TopologyEditContract;
 use crate::topology_operators::{TopologyOperatorExecutionError, TopologyOperatorRunner};
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
-    pub(super) fn compose_wire_rehome_program(
+impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
+    pub(crate) fn compose_wire_rehome_program(
         &mut self,
         program: super::super::wire_rehome_support::WireRehomeProgram,
         contracts: &[TopologyEditContract],
@@ -156,7 +156,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             .map_err(Into::into)
     }
 
-    pub(super) fn compose_wire_split_program(
+    pub(crate) fn compose_wire_split_program(
         &mut self,
         program: super::super::wire_rehome_support::WireSplitProgram,
         bindings: &TopologyQueryBindingIndex,

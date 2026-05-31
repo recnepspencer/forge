@@ -4,7 +4,7 @@ use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::topology_authoring::{
-    created_ref, seed_milestone_one_primitive, DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
+    seed_milestone_one_primitive, DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
 };
 
 use super::super::report::{
@@ -13,19 +13,22 @@ use super::super::report::{
     MilestoneThreeSplitCollapseChurnWitness,
 };
 use super::super::shared::{
-    accepted_step_row, aggregate_naming_edit_continuity_matrix, aggregate_topology_edit_digest,
-    derived_validation_report_from_materialized, replay_checked,
+    accepted_step_row_for_declaration, aggregate_naming_edit_continuity_matrix_for_contract_sets,
+    aggregate_topology_edit_digest_for_contract_sets, derived_validation_report_from_materialized,
+    replay_checked,
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::certification::support::parity::digest_materialized_topology_view;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::topology_operators::application::TopologyDeclarationContractPayload;
 use crate::topology_operators::{
-    ShellOrWireMembershipKind, TopologyEditApplicationMode, TopologyEditBatch,
-    TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
+    TopologyEditDigest, TopologyEditFamily, TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
+    TopologySplitConnectedHalfEdgeSetToNewWireDeclaration, TopologyWireRehomeHalfEdgeMember,
+    TopologyWireSplitHalfEdgeMember,
 };
 
 struct MilestoneThreeSplitCollapseRun {
@@ -107,9 +110,12 @@ where
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, &format!("{stem}.split_collapse_churn.runtime"))
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let baseline_snapshot = assembly
+    let baseline_snapshot = surfaces
         .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
@@ -127,14 +133,13 @@ where
         half_edge_identities(&baseline_snapshot.materialized, &retained_half_edge_ids)?;
 
     let split_wire_key = CreateKey::new(&format!("{stem}.split_collapse_churn.split_wire"));
-    let split_batch = split_wire_batch(split_wire_key.as_str(), &moved_half_edge_ids)?;
-    let split_execution = assembly
-        .apply_edit(
-            &mut workspace,
-            split_batch.clone(),
-            TopologyEditApplicationMode::Mainline,
-        )
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let split_declaration = split_wire_declaration(split_wire_key.as_str(), &moved_half_edge_ids)?;
+    let split_execution = execute_current_head_topology_declaration(
+        &mut workspace,
+        &surfaces,
+        split_declaration.clone(),
+    )
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let split_wire = split_execution
         .materialized
         .topology()
@@ -151,34 +156,44 @@ where
     let split_step_wire_count = split_execution.materialized.topology().wires.len();
 
     let collapse_wire_key = CreateKey::new(&format!("{stem}.split_collapse_churn.collapse_wire"));
-    let collapse_batch = collapse_split_wire_batch(
+    let collapse_declaration = collapse_split_wire_declaration(
         collapse_wire_key.as_str(),
         split_wire_id,
         &split_wire_half_edge_ids,
     )?;
-    let collapse_execution = assembly
-        .apply_edit(
-            &mut workspace,
-            collapse_batch.clone(),
-            TopologyEditApplicationMode::Mainline,
-        )
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let collapse_execution = execute_current_head_topology_declaration(
+        &mut workspace,
+        &surfaces,
+        collapse_declaration.clone(),
+    )
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let final_materialized_topology_digest =
         digest_materialized_topology_view(&collapse_execution.materialized);
     let derived_validation_report =
         derived_validation_report_from_materialized(&collapse_execution.materialized)?;
-    let batches = vec![split_batch.clone(), collapse_batch.clone()];
+    let contract_sets = vec![
+        split_declaration.clone().into_contracts(),
+        collapse_declaration.clone().into_contracts(),
+    ];
     let step_rows = vec![
-        accepted_step_row(0, &split_batch, &split_execution),
-        accepted_step_row(1, &collapse_batch, &collapse_execution),
+        accepted_step_row_for_declaration(0, &split_declaration, &split_execution),
+        accepted_step_row_for_declaration(1, &collapse_declaration, &collapse_execution),
     ];
 
     Ok(MilestoneThreeSplitCollapseRun {
         primitive_family,
         primitive,
-        edit_families: batches.iter().flat_map(|batch| batch.families()).collect(),
-        topology_edit_digest: aggregate_topology_edit_digest(&batches),
-        naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix(&batches),
+        edit_families: split_declaration
+            .semantic_families()
+            .into_iter()
+            .chain(collapse_declaration.semantic_families())
+            .collect(),
+        topology_edit_digest: aggregate_topology_edit_digest_for_contract_sets(
+            contract_sets.clone(),
+        ),
+        naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix_for_contract_sets(
+            contract_sets,
+        ),
         step_rows,
         baseline_materialized_topology_digest,
         final_materialized_topology_digest,
@@ -199,49 +214,44 @@ where
     })
 }
 
-fn split_wire_batch(
+fn split_wire_declaration(
     split_wire_key: &str,
     moved_half_edge_ids: &[EntityId],
-) -> Result<TopologyEditBatch, TopologyCertificationError> {
-    let mut contracts = vec![TopologyEditContract::create_topology_entity(
-        split_wire_key,
-        TopologyEntityKind::Wire,
-    )];
-    for (index, half_edge_id) in moved_half_edge_ids.iter().enumerate() {
-        contracts.push(TopologyEditContract::attach_shell_or_wire_membership(
-            &format!("{split_wire_key}.owns_half_edge_{}", index + 1),
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-            created_ref(split_wire_key),
-            *half_edge_id,
-        ));
-    }
-    TopologyEditBatch::new(contracts)
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))
+) -> Result<TopologySplitConnectedHalfEdgeSetToNewWireDeclaration, TopologyCertificationError> {
+    Ok(TopologySplitConnectedHalfEdgeSetToNewWireDeclaration::new(
+        split_wire_key.to_string(),
+        moved_half_edge_ids
+            .iter()
+            .enumerate()
+            .map(|(index, half_edge_id)| {
+                TopologyWireSplitHalfEdgeMember::new(
+                    format!("{split_wire_key}.owns_half_edge_{}", index + 1),
+                    *half_edge_id,
+                )
+            })
+            .collect(),
+    ))
 }
 
-fn collapse_split_wire_batch(
+fn collapse_split_wire_declaration(
     collapse_wire_key: &str,
     retired_wire_id: EntityId,
     moved_half_edge_ids: &[EntityId],
-) -> Result<TopologyEditBatch, TopologyCertificationError> {
-    let mut contracts = vec![TopologyEditContract::create_topology_entity(
-        collapse_wire_key,
-        TopologyEntityKind::Wire,
-    )];
-    for (index, half_edge_id) in moved_half_edge_ids.iter().enumerate() {
-        contracts.push(TopologyEditContract::attach_shell_or_wire_membership(
-            &format!("{collapse_wire_key}.owns_half_edge_{}", index + 1),
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-            created_ref(collapse_wire_key),
-            *half_edge_id,
-        ));
-    }
-    contracts.push(TopologyEditContract::retire_topology_entity(
+) -> Result<TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyCertificationError> {
+    Ok(TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration::new(
+        collapse_wire_key.to_string(),
         retired_wire_id,
-        TopologyEntityKind::Wire,
-    ));
-    TopologyEditBatch::new(contracts)
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))
+        moved_half_edge_ids
+            .iter()
+            .enumerate()
+            .map(|(index, half_edge_id)| {
+                TopologyWireRehomeHalfEdgeMember::new(
+                    format!("{collapse_wire_key}.owns_half_edge_{}", index + 1),
+                    *half_edge_id,
+                )
+            })
+            .collect(),
+    ))
 }
 
 fn seeded_wire_and_half_edges(

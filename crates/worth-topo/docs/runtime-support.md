@@ -116,13 +116,13 @@ domain proof ledger or milestone certification reports.
 
 That means this surface may say a family is admitted on a runtime posture
 without restating the deeper execution-proof claims that belong to
-`TopologyDomainQuery` request, proof, and closeout artifacts. For snapshot
+handle-bound topology read-session request, proof, and closeout artifacts. For snapshot
 read-only posture, those deeper request reports are the authority for whether
 the executed receipt was actually basis-honest.
 
 If a caller needs to know why the executed-read proof boundary is or is not
 ready for phase-three closure, that caller must inspect the typed
-`TopologyDomainQuery::closeout_report()` family rows and phase-three
+the read-session `closeout_report()` family rows and phase-three
 blocker rows rather than asking the runtime admission surface to summarize
 proof it does not own.
 

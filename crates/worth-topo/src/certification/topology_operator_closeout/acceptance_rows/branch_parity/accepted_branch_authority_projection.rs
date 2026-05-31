@@ -7,34 +7,14 @@ use schema::facade::topology_authoring::{created_ref, DerivedTopologyReadBasis};
 
 use crate::certification::error::TopologyCertificationError;
 use crate::topology_operators::{
-    ShellOrWireMembershipKind, TopologyEditAction, TopologyEditBatch, TopologyEditContract,
+    ShellOrWireMembershipKind, TopologyEditAction, TopologyEditContract,
 };
 
-pub(super) fn split_wire_batch(
-    split_wire_key: &str,
-    moved_half_edge_ids: &[EntityId],
-) -> Result<TopologyEditBatch, TopologyCertificationError> {
-    let mut contracts = vec![TopologyEditContract::create_topology_entity(
-        split_wire_key,
-        TopologyEntityKind::Wire,
-    )];
-    for (index, half_edge_id) in moved_half_edge_ids.iter().enumerate() {
-        contracts.push(TopologyEditContract::attach_shell_or_wire_membership(
-            format!("{split_wire_key}.owns_half_edge_{}", index + 1),
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-            created_ref(split_wire_key),
-            *half_edge_id,
-        ));
-    }
-    TopologyEditBatch::new(contracts)
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))
-}
-
-pub(super) fn collapse_split_wire_batch(
+pub(super) fn collapse_split_wire_contracts(
     collapse_wire_key: &str,
     retired_wire_id: EntityId,
     moved_half_edge_ids: &[EntityId],
-) -> Result<TopologyEditBatch, TopologyCertificationError> {
+) -> Vec<TopologyEditContract> {
     let mut contracts = vec![TopologyEditContract::create_topology_entity(
         collapse_wire_key,
         TopologyEntityKind::Wire,
@@ -51,12 +31,11 @@ pub(super) fn collapse_split_wire_batch(
         retired_wire_id,
         TopologyEntityKind::Wire,
     ));
-    TopologyEditBatch::new(contracts)
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))
+    contracts
 }
 
 pub(super) fn authority_expanded_split_mutations(
-    batch: &TopologyEditBatch,
+    contracts: &[TopologyEditContract],
     moved_relation_ids: &[RelationId],
 ) -> Vec<TopologyMutation> {
     moved_relation_ids
@@ -64,7 +43,7 @@ pub(super) fn authority_expanded_split_mutations(
         .map(|relation_id| TopologyMutation::RemoveRelation {
             relation_id: *relation_id,
         })
-        .chain(batch.contracts().iter().flat_map(|contract| {
+        .chain(contracts.iter().flat_map(|contract| {
             contract
                 .lowered_mutations()
                 .iter()
@@ -75,11 +54,10 @@ pub(super) fn authority_expanded_split_mutations(
 }
 
 pub(super) fn authority_expanded_collapse_mutations(
-    batch: &TopologyEditBatch,
+    contracts: &[TopologyEditContract],
     split_relation_ids: &[RelationId],
 ) -> Vec<TopologyMutation> {
-    let mut mutations = batch
-        .contracts()
+    let mut mutations = contracts
         .iter()
         .flat_map(|contract| contract.lowered_mutations().iter().cloned())
         .collect::<Vec<_>>();
@@ -99,11 +77,11 @@ pub(super) fn authority_expanded_collapse_mutations(
 }
 
 pub(super) fn authority_expanded_rewire_mutations(
-    batch: &TopologyEditBatch,
+    contracts: &[TopologyEditContract],
     create_key_prefix: &str,
 ) -> Result<Vec<TopologyMutation>, TopologyCertificationError> {
     let mut mutations = Vec::new();
-    for (index, contract) in batch.contracts().iter().enumerate() {
+    for (index, contract) in contracts.iter().enumerate() {
         let TopologyEditAction::RewireLoopSuccessor {
             relation_id,
             kind,

@@ -11,13 +11,13 @@ use crate::topology_operators::application::bindings::{
 use crate::topology_operators::TopologyEditContract;
 use crate::topology_operators::{ShellOrWireMembershipKind, TopologyEditAction};
 
-pub(super) struct WireRehomeProgram {
+pub(crate) struct WireRehomeProgram {
     pub(super) create_key: String,
     pub(super) half_edge_ids: Vec<forge_relational::facade::identity::EntityId>,
     pub(super) retired_wire_id: forge_relational::facade::identity::EntityId,
 }
 
-pub(super) fn parse_wire_rehome_program(
+pub(crate) fn parse_wire_rehome_program(
     contracts: &[TopologyEditContract],
 ) -> Option<WireRehomeProgram> {
     let [create, attaches @ .., retire] = contracts else {
@@ -64,51 +64,13 @@ pub(super) fn parse_wire_rehome_program(
     })
 }
 
-pub(super) fn supports_owned_half_edge_set_wire_rehome_program(
-    bindings: &TopologyQueryBindingIndex,
-    contracts: &[TopologyEditContract],
-) -> bool {
-    let Some(program) = parse_wire_rehome_program(contracts) else {
-        return false;
-    };
-    let Some(retired_wire_binding) = query_entity_binding(bindings, program.retired_wire_id)
-        .ok()
-        .flatten()
-    else {
-        return false;
-    };
-    let Ok(outgoing_half_edge_targets) = query_outgoing_relation_target_identities(
-        bindings,
-        &retired_wire_binding.query_identity,
-        schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
-    ) else {
-        return false;
-    };
-    let expected_half_edge_ids = program
-        .half_edge_ids
-        .iter()
-        .copied()
-        .collect::<BTreeSet<_>>();
-    let outgoing_half_edge_ids = outgoing_half_edge_targets
-        .iter()
-        .map(|identity| {
-            query_entity_id_by_identity(bindings, identity)
-                .ok()
-                .flatten()
-        })
-        .collect::<Option<Vec<_>>>();
-    outgoing_half_edge_targets.len() == program.half_edge_ids.len()
-        && outgoing_half_edge_ids
-            .is_some_and(|ids| ids.into_iter().collect::<BTreeSet<_>>() == expected_half_edge_ids)
-}
-
-pub(super) struct WireSplitProgram {
+pub(crate) struct WireSplitProgram {
     pub(super) create_key: String,
     pub(super) half_edge_ids: Vec<forge_relational::facade::identity::EntityId>,
     pub(super) retained_wire_id: Option<forge_relational::facade::identity::EntityId>,
 }
 
-pub(super) fn parse_wire_split_program(
+pub(crate) fn parse_wire_split_program(
     contracts: &[TopologyEditContract],
 ) -> Option<WireSplitProgram> {
     let [create, attaches @ ..] = contracts else {
@@ -149,31 +111,22 @@ pub(super) fn parse_wire_split_program(
     })
 }
 
-pub(super) fn supports_connected_wire_split_program(
+pub(crate) fn resolve_wire_split_program(
     bindings: &TopologyQueryBindingIndex,
     contracts: &[TopologyEditContract],
-) -> bool {
-    let Some(mut program) = parse_wire_split_program(contracts) else {
-        return false;
-    };
-    let Some(retained_wire_id) = shared_existing_wire_owner_id(bindings, &program.half_edge_ids)
-    else {
-        return false;
-    };
+) -> Option<WireSplitProgram> {
+    let mut program = parse_wire_split_program(contracts)?;
+    let retained_wire_id = shared_existing_wire_owner_id(bindings, &program.half_edge_ids)?;
     program.retained_wire_id = Some(retained_wire_id);
-    let Some(retained_wire_binding) = query_entity_binding(bindings, retained_wire_id)
+    let retained_wire_binding = query_entity_binding(bindings, retained_wire_id)
         .ok()
-        .flatten()
-    else {
-        return false;
-    };
-    let Ok(outgoing_half_edge_targets) = query_outgoing_relation_target_identities(
+        .flatten()?;
+    let outgoing_half_edge_targets = query_outgoing_relation_target_identities(
         bindings,
         &retained_wire_binding.query_identity,
         schema::facade::platform::relations::TopologyRelationKind::WireOwnsHalfEdge,
-    ) else {
-        return false;
-    };
+    )
+    .ok()?;
     let outgoing_half_edge_ids = outgoing_half_edge_targets
         .iter()
         .map(|identity| {
@@ -181,10 +134,7 @@ pub(super) fn supports_connected_wire_split_program(
                 .ok()
                 .flatten()
         })
-        .collect::<Option<Vec<_>>>();
-    let Some(outgoing_half_edge_ids) = outgoing_half_edge_ids else {
-        return false;
-    };
+        .collect::<Option<Vec<_>>>()?;
     let moved_half_edge_ids = program
         .half_edge_ids
         .iter()
@@ -194,21 +144,10 @@ pub(super) fn supports_connected_wire_split_program(
         .into_iter()
         .filter(|half_edge_id| !moved_half_edge_ids.contains(half_edge_id))
         .collect::<BTreeSet<_>>();
-    !retained_half_edge_ids.is_empty()
+    (!retained_half_edge_ids.is_empty()
         && connected_by_incident_vertices(bindings, &moved_half_edge_ids)
-        && connected_by_incident_vertices(bindings, &retained_half_edge_ids)
-}
-
-pub(super) fn resolve_wire_split_program(
-    bindings: &TopologyQueryBindingIndex,
-    contracts: &[TopologyEditContract],
-) -> Option<WireSplitProgram> {
-    let mut program = parse_wire_split_program(contracts)?;
-    program.retained_wire_id = Some(shared_existing_wire_owner_id(
-        bindings,
-        &program.half_edge_ids,
-    )?);
-    supports_connected_wire_split_program(bindings, contracts).then_some(program)
+        && connected_by_incident_vertices(bindings, &retained_half_edge_ids))
+    .then_some(program)
 }
 
 fn shared_existing_wire_owner_id(

@@ -20,39 +20,50 @@ use topology::facade::{
     topology_current_head_authoritative_context, topology_query_domain,
     topology_query_domain_entry, topology_query_domain_entry_checked,
     topology_query_domain_proof_root, topology_runtime, topology_snapshot_read_only_context,
-    MilestoneOneCertificationError, TopologyCommittedArtifact, TopologyConstructionAuthority,
-    TopologyConstructionCertificationPlan, TopologyConstructionCertificationReadSurface,
-    TopologyConstructionExecutionError, TopologyConstructionExecutionPlan,
-    TopologyConstructionFactKind, TopologyConstructionFactProvenance,
-    TopologyConstructionFactReport, TopologyConstructionInspectionSurface,
-    TopologyConstructionLoweringError, TopologyConstructionLoweringPlan,
-    TopologyConstructionMutationSurface, TopologyCurrentHeadAuthoritativeContext,
-    TopologyCurrentHeadConfiguredDomainHandle, TopologyCurrentHeadConfiguredDomainHandleChecked,
-    TopologyCurrentHeadReadHandleExt, TopologyCurrentHeadReadSession, TopologyDomainQuery,
+    MilestoneOneCertificationError, TopologyAttachBoundaryMembershipDeclaration,
+    TopologyAttachShellOrWireMembershipDeclaration, TopologyCommittedArtifact,
+    TopologyConstructionAuthority, TopologyConstructionCertificationPlan,
+    TopologyConstructionCertificationReadSurface, TopologyConstructionExecutionError,
+    TopologyConstructionExecutionPlan, TopologyConstructionFactKind,
+    TopologyConstructionFactProvenance, TopologyConstructionFactReport,
+    TopologyConstructionInspectionSurface, TopologyConstructionLoweringError,
+    TopologyConstructionLoweringPlan, TopologyConstructionMutationSurface,
+    TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyCreateTopologyEntityDeclaration,
+    TopologyCurrentHeadAuthoritativeContext, TopologyCurrentHeadConfiguredDomainHandle,
+    TopologyCurrentHeadConfiguredDomainHandleChecked, TopologyCurrentHeadReadHandleExt,
+    TopologyCurrentHeadReadSession, TopologyDetachBoundaryMembershipDeclaration,
+    TopologyDetachRadialAdjacencyDeclaration, TopologyDetachShellOrWireMembershipDeclaration,
     TopologyDomainQueryAggregateReport, TopologyDomainQueryCloseoutReport,
     TopologyDomainQueryCloseoutRow, TopologyDomainQueryCloseoutStatus,
-    TopologyDomainQueryExecutionEngine, TopologyDomainQueryParityAggregateReport,
-    TopologyDomainQueryPhaseThreeBlocker, TopologyDomainQueryPhaseThreeBlockerRow,
-    TopologyDomainQueryPhaseThreeBlockerStatus, TopologyDomainQueryProofReport,
-    TopologyDomainQueryRequestFamily, TopologyDomainQueryRequestReport,
-    TopologyEditApplicationMode, TopologyEditBatch, TopologyHalfEdgeRadialNeighborhoodView,
+    TopologyDomainQueryExecutionEngine, TopologyDomainQueryFallbackPosture,
+    TopologyDomainQueryParityAggregateReport, TopologyDomainQueryPhaseThreeBlocker,
+    TopologyDomainQueryPhaseThreeBlockerRow, TopologyDomainQueryPhaseThreeBlockerStatus,
+    TopologyDomainQueryProofReport, TopologyDomainQueryRequestFamily,
+    TopologyDomainQueryRequestReport, TopologyHalfEdgeRadialNeighborhoodView,
     TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,
-    TopologyLoopCycleView, TopologyNamingAttachmentInput, TopologyNoNPlusOneContract,
-    TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus, TopologyOperatorExecution,
-    TopologyOperatorExecutionError, TopologyQueryAppliedIntent, TopologyQueryApplyError,
-    TopologyQueryAssembly, TopologyQueryBoundaryCleanupArea,
+    TopologyLoopCycleView, TopologyLoopSuccessorRewireMember, TopologyNamingAttachmentInput,
+    TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
+    TopologyOperatorExecutionPath, TopologyQueryBoundaryCleanupArea,
     TopologyQueryBoundaryCleanupCloseoutReport, TopologyQueryBoundaryCleanupRow,
     TopologyQueryBoundaryCleanupStatus, TopologyQueryDomain, TopologyQueryEditFamilySupportStatus,
     TopologyQueryEditLane, TopologyQueryEditLaneExecutionShape, TopologyQueryEditLaneSupportStatus,
-    TopologyQueryMutationEvidence, TopologyQueryReadFamilySupportStatus, TopologyQuerySnapshot,
+    TopologyQueryMutationEvidence, TopologyQueryReadFamilySupportStatus,
+    TopologyRadialSpliceMember, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
+    TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyRetireTopologyEntityDeclaration,
+    TopologyRewireLoopEndpointDeclaration, TopologyRewireLoopSuccessorProgramDeclaration,
     TopologyRuntimeAdapters, TopologyRuntimeCloseout, TopologyRuntimeCloseoutFamily,
     TopologyRuntimeCloseoutStatus, TopologyRuntimeEditFamilySupportRow,
     TopologyRuntimeEditLaneSupportRow, TopologyRuntimeFailure, TopologyRuntimePostureCapability,
     TopologyRuntimePostureRow, TopologyRuntimePostureStatus, TopologyRuntimeReadFamilySupportRow,
-    TopologyRuntimeSupport, TopologySnapshotReadOnlyConfiguredDomainHandle,
+    TopologyRuntimeSupport, TopologyShellRehomeFaceMember,
+    TopologySnapshotReadOnlyConfiguredDomainHandle,
     TopologySnapshotReadOnlyConfiguredDomainHandleChecked, TopologySnapshotReadOnlyContext,
     TopologySnapshotReadOnlyReadHandleExt, TopologySnapshotReadOnlyReadSession,
-    TracedMilestoneOneCertificationReport, TracedMilestoneTwoDerivedReadReport,
+    TopologySpliceRadialAdjacencyDeclaration, TopologySpliceRadialAdjacencyProgramDeclaration,
+    TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
+    TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration, TopologyWireRehomeHalfEdgeMember,
+    TopologyWireSplitHalfEdgeMember, TracedMilestoneOneCertificationReport,
+    TracedMilestoneTwoDerivedReadReport,
 };
 use worth_spatial::facade::SpatialConstructionBirthPlan;
 
@@ -86,15 +97,6 @@ fn _m2_commit_cert_contract(
     certify_milestone_two_verified_topology_commit_traced(runtime, verified)
 }
 
-fn _edit_apply_contract(
-    assembly: &TopologyQueryAssembly,
-    workspace: &mut forge_query::facade::ForgeQueryWorkspace,
-    batch: TopologyEditBatch,
-    mode: TopologyEditApplicationMode,
-) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
-    assembly.apply_edit(workspace, batch, mode)
-}
-
 fn _vocab_live_query_declaration_contract() {
     let _ = ForgeQueryLiveViewBuilder::surface(".topo.query.entities")
         .select([
@@ -115,169 +117,14 @@ fn _vocab_computed_query_declaration_contract() {
         .unwrap();
 }
 
-fn _topology_operator_surface_contracts() {
-    let _: fn() -> TopologyQueryDomain = topology_query_domain;
-    let _: fn() -> TopologyCurrentHeadAuthoritativeContext =
-        topology_current_head_authoritative_context;
-    let _: fn() -> TopologySnapshotReadOnlyContext = topology_snapshot_read_only_context;
-    let _: fn(
-        &ForgeQueryApplicationFacade,
-    ) -> forge_query::facade::ForgeQueryDomainEntryRoot<TopologyQueryDomain> =
-        topology_query_domain_entry;
-    let _: fn(
-        &ForgeQueryApplicationFacade,
-    ) -> forge_query::facade::ForgeQueryDomainEntryChecked<TopologyQueryDomain> =
-        topology_query_domain_entry_checked;
-    let _: fn(
-        &ForgeQueryApplicationFacade,
-    ) -> forge_query::facade::ForgeQueryDomainEntryProofRoot<TopologyQueryDomain> =
-        topology_query_domain_proof_root;
-    let _: Option<TopologyCurrentHeadConfiguredDomainHandle> = None;
-    let _: Option<TopologyCurrentHeadConfiguredDomainHandleChecked> = None;
-    let _: Option<TopologySnapshotReadOnlyConfiguredDomainHandle> = None;
-    let _: Option<TopologySnapshotReadOnlyConfiguredDomainHandleChecked> = None;
-    let _: for<'a> fn(
-        &'a TopologyCurrentHeadConfiguredDomainHandle,
-        &'a mut forge_query::facade::ForgeQueryWorkspace,
-    ) -> TopologyCurrentHeadReadSession<'a> =
-        <TopologyCurrentHeadConfiguredDomainHandle as TopologyCurrentHeadReadHandleExt>::topology_reads;
-    let _: for<'a> fn(
-        &'a TopologySnapshotReadOnlyConfiguredDomainHandle,
-        &'a mut forge_query::facade::ForgeQueryWorkspace,
-    ) -> TopologySnapshotReadOnlyReadSession<'a> =
-        <TopologySnapshotReadOnlyConfiguredDomainHandle as TopologySnapshotReadOnlyReadHandleExt>::topology_reads;
-    let _: Option<TopologyCurrentHeadReadSession<'_>> = None;
-    let _: Option<TopologySnapshotReadOnlyReadSession<'_>> = None;
-    let _: fn() -> TopologyDomainQuery = TopologyDomainQuery::load;
-    let _: fn(&TopologyDomainQuery) -> Vec<TopologyDomainQueryRequestFamily> =
-        TopologyDomainQuery::supported_request_families;
-    let _: fn(&TopologyDomainQuery) -> TopologyDomainQueryAggregateReport =
-        TopologyDomainQuery::aggregate_report;
-    let _: fn(&TopologyDomainQuery) -> TopologyDomainQueryProofReport =
-        TopologyDomainQuery::proof_report;
-    let _: fn(&TopologyDomainQuery) -> TopologyDomainQueryCloseoutReport =
-        TopologyDomainQuery::closeout_report;
-    let _: fn(TopologyDomainQueryExecutionEngine) -> &'static str =
-        TopologyDomainQueryExecutionEngine::as_str;
-    let _: fn(TopologyDomainQueryRequestFamily) -> &'static str =
-        TopologyDomainQueryRequestFamily::as_str;
-    let _: fn(&TopologyDomainQueryRequestReport) -> TopologyDomainQueryRequestFamily =
-        TopologyDomainQueryRequestReport::request_family;
-    let _: fn(&TopologyDomainQueryRequestReport) -> TopologyDomainQueryExecutionEngine =
-        TopologyDomainQueryRequestReport::execution_engine;
-    let _: fn(&TopologyHalfEdgeSharedVertexNeighborhoodView) -> &TopologyDomainQueryRequestReport =
-        TopologyHalfEdgeSharedVertexNeighborhoodView::request_report;
-    let _: fn(&TopologyHalfEdgeRadialNeighborhoodView) -> &TopologyDomainQueryRequestReport =
-        TopologyHalfEdgeRadialNeighborhoodView::request_report;
-    let _: fn(&TopologyLoopCycleView) -> &TopologyDomainQueryRequestReport =
-        TopologyLoopCycleView::request_report;
-    let _: fn(&TopologyLocalRewireNeighborhoodView) -> &TopologyDomainQueryRequestReport =
-        TopologyLocalRewireNeighborhoodView::request_report;
-    let _: fn(&TopologyDomainQueryProofReport) -> &TopologyDomainQueryAggregateReport =
-        TopologyDomainQueryProofReport::request_aggregate;
-    let _: fn(&TopologyDomainQueryProofReport) -> &TopologyDomainQueryParityAggregateReport =
-        TopologyDomainQueryProofReport::parity_aggregate;
-    let _: fn(TopologyDomainQueryCloseoutStatus) -> &'static str =
-        TopologyDomainQueryCloseoutStatus::as_str;
-    let _: fn(&TopologyDomainQueryCloseoutReport) -> &[TopologyDomainQueryCloseoutRow] =
-        TopologyDomainQueryCloseoutReport::family_rows;
-    let _: fn(
-        &TopologyDomainQueryCloseoutReport,
-        TopologyDomainQueryRequestFamily,
-    ) -> TopologyDomainQueryCloseoutStatus = TopologyDomainQueryCloseoutReport::status;
-    let _: fn(&TopologyDomainQueryCloseoutRow) -> &str = TopologyDomainQueryCloseoutRow::reason;
-    let _: fn(&TopologyDomainQueryCloseoutRow) -> &str = TopologyDomainQueryCloseoutRow::row_digest;
-    let _: fn(TopologyDomainQueryPhaseThreeBlocker) -> &'static str =
-        TopologyDomainQueryPhaseThreeBlocker::as_str;
-    let _: fn(TopologyDomainQueryPhaseThreeBlockerStatus) -> &'static str =
-        TopologyDomainQueryPhaseThreeBlockerStatus::as_str;
-    let _: fn(&TopologyDomainQueryCloseoutReport) -> &[TopologyDomainQueryPhaseThreeBlockerRow] =
-        TopologyDomainQueryCloseoutReport::phase_three_blocker_rows;
-    let _: fn(
-        &TopologyDomainQueryCloseoutReport,
-        TopologyDomainQueryPhaseThreeBlocker,
-    ) -> TopologyDomainQueryPhaseThreeBlockerStatus =
-        TopologyDomainQueryCloseoutReport::phase_three_blocker_status;
-    let _: fn(TopologyNoNPlusOneContract) -> &'static str = TopologyNoNPlusOneContract::as_str;
-    let _: fn(TopologyNoNPlusOneContractStatus) -> &'static str =
-        TopologyNoNPlusOneContractStatus::as_str;
-    let _: fn(&TopologyDomainQueryCloseoutReport) -> &[TopologyNoNPlusOneContractRow] =
-        TopologyDomainQueryCloseoutReport::no_n_plus_one_contract_rows;
-    let _: fn(
-        &TopologyDomainQueryCloseoutReport,
-        TopologyNoNPlusOneContract,
-    ) -> TopologyNoNPlusOneContractStatus =
-        TopologyDomainQueryCloseoutReport::no_n_plus_one_contract_status;
-    let _: fn(&TopologyNoNPlusOneContractRow) -> TopologyNoNPlusOneContract =
-        TopologyNoNPlusOneContractRow::contract;
-    let _: fn(&TopologyNoNPlusOneContractRow) -> TopologyNoNPlusOneContractStatus =
-        TopologyNoNPlusOneContractRow::status;
-    let _: fn(&TopologyNoNPlusOneContractRow) -> &str = TopologyNoNPlusOneContractRow::reason;
-    let _: fn(&TopologyNoNPlusOneContractRow) -> &str = TopologyNoNPlusOneContractRow::row_digest;
-    let _: fn(
-        TopologyRuntimeAdapters,
-        String,
-    ) -> Result<forge_query::facade::ForgeQueryWorkspace, TopologyRuntimeFailure> =
-        topology_runtime;
-    let _: fn(forge_relational::facade::runtime::RelationalRuntime) -> TopologyRuntimeAdapters =
-        TopologyRuntimeAdapters::current_head;
-    let _: fn(
-        forge_relational::facade::runtime::RelationalReadView,
-        SnapshotHandle,
-    ) -> TopologyRuntimeAdapters = TopologyRuntimeAdapters::snapshot_read_only;
-    let _: fn(&TopologyRuntimeAdapters) -> &TopologyRuntimeSupport =
-        TopologyRuntimeAdapters::support;
-    let _: fn(
-        &TopologyRuntimeSupport,
-        topology::facade::TopologyEditFamily,
-    ) -> TopologyQueryEditFamilySupportStatus =
-        TopologyRuntimeSupport::query_edit_family_support_status;
-    let _: fn(&TopologyRuntimeSupport) -> &[TopologyRuntimeEditFamilySupportRow] =
-        TopologyRuntimeSupport::query_edit_family_support_rows;
-    let _: fn(&TopologyRuntimeSupport) -> &[TopologyRuntimeEditLaneSupportRow] =
-        TopologyRuntimeSupport::query_edit_lane_support_rows;
-    let _: fn(
-        &TopologyRuntimeSupport,
-        TopologyQueryEditLane,
-    ) -> TopologyQueryEditLaneSupportStatus =
-        TopologyRuntimeSupport::query_edit_lane_support_status;
-    let _: fn(&TopologyRuntimeSupport) -> &[TopologyRuntimePostureRow] =
-        TopologyRuntimeSupport::runtime_posture_rows;
-    let _: fn(
-        &TopologyRuntimeSupport,
-        TopologyRuntimePostureCapability,
-    ) -> TopologyRuntimePostureStatus = TopologyRuntimeSupport::runtime_posture_status;
-    let _: fn(&TopologyRuntimeSupport) -> &[TopologyRuntimeReadFamilySupportRow] =
-        TopologyRuntimeSupport::query_read_family_support_rows;
-    let _: fn(
-        &TopologyRuntimeSupport,
-        TopologyDomainQueryRequestFamily,
-    ) -> TopologyQueryReadFamilySupportStatus =
-        TopologyRuntimeSupport::query_read_family_support_status;
-    let _: fn(&TopologyRuntimeSupport) -> &TopologyRuntimeCloseout =
-        TopologyRuntimeSupport::closeout;
-    let _: fn(
-        &TopologyRuntimeCloseout,
-        TopologyRuntimeCloseoutFamily,
-    ) -> TopologyRuntimeCloseoutStatus = TopologyRuntimeCloseout::status;
-    let _: fn(TopologyQueryEditLane) -> &'static str = TopologyQueryEditLane::as_str;
-    let _: Option<TopologyQueryEditLaneExecutionShape> = None;
-    let _: fn(
-        &mut forge_query::facade::ForgeQueryWorkspace,
-    ) -> Result<TopologyQueryAssembly, forge_query::facade::ForgeQueryRuntimeError> =
-        TopologyQueryAssembly::declare;
-    let _: fn(
-        &TopologyQueryAssembly,
-        &mut forge_query::facade::ForgeQueryWorkspace,
-    ) -> Result<TopologyQuerySnapshot, topology::facade::TopologyQuerySurfaceError> =
-        TopologyQueryAssembly::snapshot;
-    let _: fn(
-        &TopologyQueryAssembly,
-        &mut forge_query::facade::ForgeQueryWorkspace,
-        schema::facade::platform::authority::RawTopologyIntent,
-        &DerivedTopologyReadBasis,
-    ) -> Result<TopologyQueryAppliedIntent, TopologyQueryApplyError> =
-        TopologyQueryAssembly::apply_raw_intent;
+include!("public_api_topology_operator_surface.rs");
+include!("public_api_topology_operator_scalar_surface.rs");
+include!("public_api_topology_operator_grouped_rehome_surface.rs");
+include!("public_api_topology_operator_radial_program_surface.rs");
+include!("public_api_topology_operator_successor_surface.rs");
+include!("public_api_topology_operator_split_surface.rs");
+
+fn _topology_projection_surface_contracts() {
     let _: fn(
         &mut forge_query::facade::ForgeQueryWorkspace,
         String,
@@ -424,8 +271,12 @@ fn topo_public_traced_boundaries_compile_with_envelope_contracts() {
     let _ = _m1_commit_cert_contract;
     let _ = _m2_read_cert_contract;
     let _ = _m2_commit_cert_contract;
-    let _ = _edit_apply_contract;
     let _ = _vocab_live_query_declaration_contract;
     let _ = _vocab_computed_query_declaration_contract;
     let _ = _topology_operator_surface_contracts;
+    let _ = _topology_operator_scalar_surface_contracts;
+    let _ = _topology_operator_grouped_rehome_surface_contracts;
+    let _ = _topology_operator_radial_program_surface_contracts;
+    let _ = _topology_operator_successor_surface_contracts;
+    let _ = _topology_projection_surface_contracts;
 }

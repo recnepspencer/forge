@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use super::super::hostile_categories::milestone_three_expected_primitive_family_labels;
 use super::super::report::MilestoneThreeHostileSuiteReport;
-use super::super::scenario_programs::successor_relocation_batch;
+use super::super::scenario_programs::successor_relocation_declaration;
 use super::super::shared::{
     derived_validation_report_from_materialized, first_source_identity_for_relation_kind,
 };
@@ -15,13 +15,14 @@ use super::primitive_family_closure_types::MilestoneThreePrimitiveFamilyClosureR
 use super::primitive_family_wire_closure::execute_wire_split_collapse_primitive_closure;
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::certification::support::parity::digest_materialized_topology_view;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::projection::TopologyDomainQuery;
-use crate::topology_operators::{TopologyEditApplicationMode, TopologyEditDigest};
+use crate::topology_operators::application::TopologyDeclarationContractPayload;
+use crate::topology_operators::TopologyEditDigest;
 
 #[derive(Debug, Clone)]
 struct PrimitiveClosureCase {
@@ -212,13 +213,16 @@ where
         format!("{stem}.primitive_family_closure.{primitive_family}.runtime"),
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let moved_half_edge_identity = first_source_identity_for_relation_kind(
-        &workspace.read::<Value>(assembly.relations()),
+        &workspace.read::<Value>(surfaces.relations()),
         TopologyRelationKind::HalfEdgeNext,
     )?;
-    let domain_query = TopologyDomainQuery::load();
+    let domain_query = TopologyReadProofHarness::new();
     let neighborhood = domain_query
         .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, cycle_depth)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
@@ -229,12 +233,12 @@ where
         .ok_or_else(|| {
             primitive_family_closure_error("primitive closure candidate should exist in cycle")
         })?;
-    let batch = successor_relocation_batch(&neighborhood, &chosen_successor_identity)?;
-    let topology_edit_digest = batch.topology_edit_digest();
-    let edit_families = batch.families();
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let declaration = successor_relocation_declaration(&neighborhood, &chosen_successor_identity)?;
+    let topology_edit_digest = declaration.topology_edit_digest();
+    let edit_families = declaration.semantic_families();
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let validation = derived_validation_report_from_materialized(&execution.materialized)?;
     Ok(PrimitiveClosureExecution {
         primitive_family,

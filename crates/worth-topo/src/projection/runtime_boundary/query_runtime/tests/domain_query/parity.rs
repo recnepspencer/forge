@@ -10,7 +10,6 @@ use crate::projection::read_views::domain::report::TopologyDomainQueryRequestFam
 use crate::projection::read_views::domain::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractStatus,
 };
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
@@ -34,22 +33,30 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
             TopologyRuntimeAdapters::snapshot_read_only(read_view, replay_basis.snapshot().clone());
         let mut workspace = topology_runtime(adapters, ".current-head.domain-query-parity.replay")
             .expect("snapshot workspace");
-        let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-        (workspace, assembly)
+        let surfaces =
+            crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+                &mut workspace,
+            )
+            .expect("declare surfaces");
+        (workspace, surfaces)
     };
 
     let (current_head_support, mut current_head_workspace) = {
         let adapters = TopologyRuntimeAdapters::current_head(runtime);
         let mut workspace = topology_runtime(adapters, ".current-head.domain-query-parity.runtime")
             .expect("workspace");
-        let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+        let surfaces =
+            crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+                &mut workspace,
+            )
+            .expect("declare surfaces");
         (
-            QueryRuntimeSupport::load(&mut workspace, &assembly),
+            QueryRuntimeSupport::load(&mut workspace, &surfaces),
             workspace,
         )
     };
-    let (mut snapshot_workspace, snapshot_assembly) = replay_workspace;
-    let replay_support = QueryRuntimeSupport::load(&mut snapshot_workspace, &snapshot_assembly);
+    let (mut snapshot_workspace, snapshot_surfaces) = replay_workspace;
+    let replay_support = QueryRuntimeSupport::load(&mut snapshot_workspace, &snapshot_surfaces);
     let moved_identity = current_head_support.first_source_identity_for_relation_kind(
         schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
     );

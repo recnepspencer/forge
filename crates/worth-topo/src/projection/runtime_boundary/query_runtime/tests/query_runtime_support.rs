@@ -4,6 +4,7 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use serde_json::Value;
 
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::diagnostic_surfaces::read_proof::TopologyDomainQueryProofReport;
 use crate::projection::read_views::domain::closeout::TopologyDomainQueryCloseoutReport;
 use crate::projection::read_views::domain::parity::{
@@ -11,8 +12,8 @@ use crate::projection::read_views::domain::parity::{
     TopologyDomainQueryViewParityArtifact, TopologyDomainQueryViewRef,
 };
 use crate::projection::read_views::domain::report::TopologyDomainQueryAggregateReport;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
-use crate::projection::{TopologyDomainQuery, TopologyQueryRowLookup};
+use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
+use crate::projection::TopologyQueryRowLookup;
 
 pub(super) fn query_relation_id_from_row(
     row: &forge_query::facade::ForgeQueryEntity,
@@ -26,7 +27,7 @@ pub(super) fn query_entity_id_from_row(row: &forge_query::facade::ForgeQueryEnti
 }
 
 pub(super) struct QueryRuntimeSupport {
-    domain_query: TopologyDomainQuery,
+    domain_query: TopologyReadProofHarness,
     entity_rows: Vec<forge_query::facade::ForgeQueryEntity>,
     relation_rows: Vec<forge_query::facade::ForgeQueryEntity>,
 }
@@ -34,12 +35,12 @@ pub(super) struct QueryRuntimeSupport {
 impl QueryRuntimeSupport {
     pub(super) fn load(
         workspace: &mut ForgeQueryWorkspace,
-        assembly: &TopologyQueryAssembly,
+        surfaces: &TopologyDeclaredQuerySurfaces,
     ) -> Self {
-        let entity_rows = workspace.read::<Value>(assembly.entities());
-        let relation_rows = workspace.read::<Value>(assembly.relations());
+        let entity_rows = workspace.read::<Value>(surfaces.entities());
+        let relation_rows = workspace.read::<Value>(surfaces.relations());
         Self {
-            domain_query: TopologyDomainQuery::load(),
+            domain_query: TopologyReadProofHarness::new(),
             entity_rows,
             relation_rows,
         }

@@ -12,8 +12,8 @@ use crate::topology_operators::application::{
 use crate::topology_operators::topology_relation_dependency_path;
 use crate::topology_operators::TopologyEditContract;
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
-    pub(super) fn compose_shell_rehome_program(
+impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
+    pub(crate) fn compose_shell_rehome_program(
         &mut self,
         program: super::super::shell_face_rehome_support::ShellFaceRehomeProgram,
         contracts: &[TopologyEditContract],
@@ -239,7 +239,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             .map_err(Into::into)
     }
 
-    pub(super) fn compose_shell_split_program(
+    pub(crate) fn compose_shell_split_program(
         &mut self,
         program: super::super::shell_face_rehome_support::ShellFaceSplitProgram,
         bindings: &TopologyQueryBindingIndex,

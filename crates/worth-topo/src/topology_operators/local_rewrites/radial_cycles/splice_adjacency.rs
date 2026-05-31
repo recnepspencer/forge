@@ -13,7 +13,7 @@ use crate::topology_operators::application::{
 use crate::topology_operators::local_rewrites::boundary_wiring::adjacency_support::single_outgoing_relation_target_identity;
 use crate::topology_operators::topology_relation_dependency_path;
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
+impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
     pub(crate) fn lower_splice_radial_adjacency(
         &self,
         builder: ForgeQueryMutationBatchBuilder,

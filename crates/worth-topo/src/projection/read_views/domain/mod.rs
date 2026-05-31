@@ -1,7 +1,7 @@
 pub(crate) mod error;
 mod handle_reads;
 pub(crate) mod request;
-mod topology;
+mod session_state;
 mod views;
 
 #[allow(unused_imports)]
@@ -31,7 +31,7 @@ pub use handle_reads::{
     TopologyCurrentHeadReadSession, TopologySnapshotReadOnlyReadHandleExt,
     TopologySnapshotReadOnlyReadSession,
 };
-pub use topology::TopologyDomainQuery;
+pub(crate) use session_state::TopologyReadLedger;
 #[allow(unused_imports)]
 pub use views::{
     TopologyAdjacentHalfEdgeEvidence, TopologyHalfEdgeRadialNeighborhoodView,

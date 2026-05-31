@@ -15,14 +15,16 @@ use super::super::shared::{
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::certification::support::parity::digest_materialized_topology_view;
 use crate::projection::parse_relation_identity;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    BoundaryMembershipKind, TopologyEditApplicationMode, TopologyEditBatch, TopologyEditContract,
+    BoundaryMembershipKind, TopologyCreateInnerLoopOnExistingFaceDeclaration,
+    TopologyDetachBoundaryMembershipDeclaration, TopologyEditBatch, TopologyEditContract,
+    TopologyRetireTopologyEntityDeclaration,
 };
 
 struct MilestoneThreeCancellationRun {
@@ -120,9 +122,12 @@ where
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, &format!("{stem}.runtime"))
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let baseline_snapshot = assembly
+    let baseline_snapshot = surfaces
         .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
@@ -139,13 +144,16 @@ where
         ),
     ])
     .expect("cancellation-chain first batch should be non-empty");
-    let execution_one = assembly
-        .apply_edit(
-            &mut workspace,
-            batch_one.clone(),
-            TopologyEditApplicationMode::Mainline,
-        )
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let execution_one = execute_current_head_topology_declaration(
+        &mut workspace,
+        &surfaces,
+        TopologyCreateInnerLoopOnExistingFaceDeclaration::new(
+            loop_key.as_str(),
+            format!("{stem}.cancellation.face-inner-loop"),
+            face_id,
+        ),
+    )
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let step_one = accepted_step_row(0, &batch_one, &execution_one);
     let loop_id = find_loop_id_by_label(&execution_one.materialized, loop_key.as_str())?;
     let inner_loop_relation_id = created_relation_id(&execution_one.receipt)?;
@@ -155,13 +163,15 @@ where
         BoundaryMembershipKind::FaceInnerLoop,
     )])
     .expect("cancellation-chain second batch should be non-empty");
-    let execution_two = assembly
-        .apply_edit(
-            &mut workspace,
-            batch_two.clone(),
-            TopologyEditApplicationMode::Mainline,
-        )
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let execution_two = execute_current_head_topology_declaration(
+        &mut workspace,
+        &surfaces,
+        TopologyDetachBoundaryMembershipDeclaration::new(
+            inner_loop_relation_id,
+            BoundaryMembershipKind::FaceInnerLoop,
+        ),
+    )
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let step_two = accepted_step_row(1, &batch_two, &execution_two);
 
     let batch_three = TopologyEditBatch::new(vec![TopologyEditContract::retire_topology_entity(
@@ -169,13 +179,12 @@ where
         TopologyEntityKind::Loop,
     )])
     .expect("cancellation-chain third batch should be non-empty");
-    let execution_three = assembly
-        .apply_edit(
-            &mut workspace,
-            batch_three.clone(),
-            TopologyEditApplicationMode::Mainline,
-        )
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let execution_three = execute_current_head_topology_declaration(
+        &mut workspace,
+        &surfaces,
+        TopologyRetireTopologyEntityDeclaration::new(loop_id, TopologyEntityKind::Loop),
+    )
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let step_three = accepted_step_row(2, &batch_three, &execution_three);
 
     let batches = vec![batch_one, batch_two, batch_three];

@@ -1,5 +1,6 @@
+use super::support::current_head_query_handle;
 use super::support::current_lookup_rows;
-use crate::facade::{topology_runtime, TopologyQueryAssembly, TopologyRuntimeAdapters};
+use crate::facade::{topology_runtime, TopologyCurrentHeadReadHandleExt, TopologyRuntimeAdapters};
 use crate::projection::read_views::domain::error::TopologyDomainQueryErrorKind;
 use crate::projection::read_views::domain::report::TopologyDomainQueryExecutionEngine;
 use crate::projection::read_views::domain::request::TopologyDomainQueryRequest;
@@ -130,21 +131,26 @@ fn topology_domain_views_expose_canonical_lowering_and_explicit_debt_rows() {
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, "query.domain-query.lowering-debt.runtime")
         .expect(" topology runtime");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let domain_query = crate::projection::read_views::domain::TopologyDomainQuery::load();
-    let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let handle = current_head_query_handle();
+    let lookup_rows = current_lookup_rows(&mut workspace, &surfaces);
     let source_identity = lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeRadialNext)
         .expect("edge fan should expose radial source");
+    let mut reads = handle.topology_reads(&mut workspace);
 
-    let shared_vertex = domain_query
-        .shared_vertex_half_edge_neighborhood(&mut workspace, &source_identity)
+    let shared_vertex = reads
+        .shared_vertex_half_edge_neighborhood(&source_identity)
         .expect("shared-vertex neighborhood should load");
-    let radial = domain_query
-        .radial_half_edge_neighborhood(&mut workspace, &source_identity)
+    let radial = reads
+        .radial_half_edge_neighborhood(&source_identity)
         .expect("radial neighborhood should load");
-    let aggregate = domain_query.aggregate_report();
+    let aggregate = reads.aggregate_report();
 
     assert_eq!(
         shared_vertex

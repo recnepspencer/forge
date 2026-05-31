@@ -4,13 +4,15 @@ use forge_query::facade::{
 };
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
+use super::super::declaration_runtime_support::execute_current_head_topology_declaration;
 use super::super::query_runtime_support::QueryRuntimeSupport;
-use super::span_batch::{successor_span_relocation_batch, two_half_edge_span_relocation_batch};
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use super::span_batch::{
+    successor_span_relocation_declaration, two_half_edge_span_relocation_declaration,
+};
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::topology_operators::{TopologyEditApplicationMode, TopologyEditFamily};
+use crate::topology_operators::TopologyEditFamily;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
@@ -26,8 +28,12 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-rewire-successor-span")
             .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let support = QueryRuntimeSupport::load(&mut workspace, &surfaces);
     let moved_start_identity = support.first_source_identity_for_relation_kind(
         schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
     );
@@ -43,17 +49,15 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
     let old_successor_id = support.find_entity_id_by_identity(old_successor_identity);
     let new_predecessor_id = support.find_entity_id_by_identity(new_predecessor_identity);
     let new_successor_id = support.find_entity_id_by_identity(new_successor_identity);
-    let batch = two_half_edge_span_relocation_batch(
+    let declaration = two_half_edge_span_relocation_declaration(
         &mut workspace,
         &support,
         &moved_start_identity,
         new_successor_identity,
     );
-
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect(
-            "two-halfedge span relocation program should execute through admitted successor lane",
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration).expect(
+            "two-halfedge span relocation program should execute through declaration entry",
         );
 
     assert_eq!(execution.families.len(), 6);
@@ -148,8 +152,12 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
         ".current-head.query-edit-rewire-successor-three-span",
     )
     .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let support = QueryRuntimeSupport::load(&mut workspace, &surfaces);
     let moved_start_identity = support.first_source_identity_for_relation_kind(
         schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
     );
@@ -167,18 +175,16 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
     let old_successor_id = support.find_entity_id_by_identity(old_successor_identity);
     let new_predecessor_id = support.find_entity_id_by_identity(new_predecessor_identity);
     let new_successor_id = support.find_entity_id_by_identity(new_successor_identity);
-    let batch = successor_span_relocation_batch(
+    let declaration = successor_span_relocation_declaration(
         &mut workspace,
         &support,
         &moved_start_identity,
         new_successor_identity,
         3,
     );
-
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect(
-            "three-halfedge span relocation program should execute through admitted successor lane",
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration).expect(
+            "three-halfedge span relocation program should execute through declaration entry",
         );
 
     assert_eq!(execution.families.len(), 6);

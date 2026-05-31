@@ -11,7 +11,3 @@ fn main() {
         performance_accounting: PerformanceAccounting::default(),
     };
 }
-
-
-
-

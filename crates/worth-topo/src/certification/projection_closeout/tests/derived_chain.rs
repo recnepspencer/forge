@@ -3,7 +3,7 @@ use super::*;
 
 #[test]
 fn query_native_derived_chain_materializes_interpretation_and_validation() {
-    let (mut workspace, assembly, _) = seeded_sheet_disk_workspace("query-derived-chain");
+    let (mut workspace, surfaces, _) = seeded_sheet_disk_workspace("query-derived-chain");
 
     let last_receipt = workspace
         .insert("TopologyEntity", |builder| {
@@ -20,9 +20,9 @@ fn query_native_derived_chain_materializes_interpretation_and_validation() {
                 .aspect("naming.persistent_name", "query-derived-chain.extra-vertex")
         })
         .expect("entity insert should succeed");
-    let materialized_rows = workspace.materialize(assembly.materialized());
-    let interpreted_rows = workspace.materialize(assembly.interpreted());
-    let validation_rows = workspace.materialize(assembly.validation());
+    let materialized_rows = workspace.materialize(surfaces.materialized());
+    let interpreted_rows = workspace.materialize(surfaces.interpreted());
+    let validation_rows = workspace.materialize(surfaces.validation());
 
     assert!(last_receipt
         .affected_derived_view_ids()
@@ -55,7 +55,7 @@ fn query_native_derived_chain_materializes_interpretation_and_validation() {
 
 #[test]
 fn query_native_derived_chain_exposes_query_state_and_inspection() {
-    let (mut workspace, assembly, _) = seeded_sheet_disk_workspace("query-derived-inspection");
+    let (mut workspace, surfaces, _) = seeded_sheet_disk_workspace("query-derived-inspection");
     let receipt = workspace
         .insert("TopologyEntity", |builder| {
             builder
@@ -78,16 +78,16 @@ fn query_native_derived_chain_exposes_query_state_and_inspection() {
         })
         .expect("entity insert should succeed");
     let validation_state = workspace
-        .state(assembly.validation())
+        .state(surfaces.validation())
         .expect("validation state should reflect retained derived posture");
     let equivalence_state = workspace
-        .state(assembly.equivalence_contract())
+        .state(surfaces.equivalence_contract())
         .expect("equivalence state should reflect retained derived posture");
     let validation_inspection = workspace
-        .inspect(assembly.validation())
+        .inspect(surfaces.validation())
         .expect("validation surface should inspect");
     let equivalence_inspection = workspace
-        .inspect(assembly.equivalence_contract())
+        .inspect(surfaces.equivalence_contract())
         .expect("equivalence surface should inspect");
     let receipt_inspection = workspace
         .inspect(&receipt)
@@ -197,8 +197,8 @@ fn query_native_derived_chain_exposes_query_state_and_inspection() {
         ]
     );
 
-    let diagnostics_rows = workspace.materialize(assembly.diagnostics());
-    let equivalence_rows = workspace.materialize(assembly.equivalence_contract());
+    let diagnostics_rows = workspace.materialize(surfaces.diagnostics());
+    let equivalence_rows = workspace.materialize(surfaces.equivalence_contract());
     let diagnostics_report: DerivedReadDiagnostics =
         serde_json::from_value(diagnostics_rows[0].clone()).expect("diagnostics topology row");
     let equivalence_report = equivalence_contract_from_diagnostics_rows(&diagnostics_rows)

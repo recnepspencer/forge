@@ -3,11 +3,17 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent, TopologyMutation};
 
 use super::super::super::super::error::TopologyCertificationError;
+use super::super::super::shared::{
+    aggregate_naming_edit_continuity_matrix_for_contract_sets,
+    aggregate_topology_edit_digest_for_contract_sets,
+};
 use crate::certification::shared::digest_rows;
 use crate::committed_artifact::TopologyCommittedArtifact;
 use crate::test_support::topology_commit::commit_topology_intent_on_branch;
+use crate::topology_operators::application::TopologyDeclarationContractPayload;
 use crate::topology_operators::{
-    TopologyEditApplicationMode, TopologyEditBatch, TopologyEditDigest,
+    topology_edit_families_for_contracts, NamingEditContinuityMatrix, TopologyEditApplicationMode,
+    TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
 };
 
 pub(super) struct AcceptedBranchExecution {
@@ -15,7 +21,9 @@ pub(super) struct AcceptedBranchExecution {
     pub(super) branch_id: String,
     pub(super) branch_head_diverged_from_main: bool,
     pub(super) branch_truth_digest: crate::certification::DeterministicDigest,
-    pub(super) batches: Vec<TopologyEditBatch>,
+    pub(super) topology_edit_digest: TopologyEditDigest,
+    pub(super) naming_edit_continuity_matrix: NamingEditContinuityMatrix,
+    pub(super) edit_families: Vec<TopologyEditFamily>,
 }
 
 pub(super) struct BranchSetup {
@@ -46,14 +54,31 @@ pub(super) fn create_branch(
     })
 }
 
-pub(super) fn apply_branch_batch(
+pub(super) fn apply_branch_contracts(
     runtime: &mut RelationalRuntime,
     branch_id: &BranchId,
-    batch: TopologyEditBatch,
+    contracts: Vec<TopologyEditContract>,
 ) -> Result<TopologyCommittedArtifact, TopologyCertificationError> {
-    let mode = TopologyEditApplicationMode::BranchLocal(branch_id.clone());
-    commit_topology_intent_on_branch(runtime, batch.into_raw_intent(&mode), branch_id.clone())
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))
+    commit_topology_intent_on_branch(
+        runtime,
+        raw_topology_intent_for_contracts(
+            contracts,
+            &TopologyEditApplicationMode::BranchLocal(branch_id.clone()),
+        ),
+        branch_id.clone(),
+    )
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))
+}
+
+pub(super) fn apply_branch_declaration<D>(
+    runtime: &mut RelationalRuntime,
+    branch_id: &BranchId,
+    declaration: D,
+) -> Result<TopologyCommittedArtifact, TopologyCertificationError>
+where
+    D: TopologyDeclarationContractPayload,
+{
+    apply_branch_contracts(runtime, branch_id, declaration.into_contracts())
 }
 
 pub(super) fn apply_branch_mutations(
@@ -72,7 +97,7 @@ pub(super) fn apply_branch_mutations(
 pub(super) fn execution_from_verified(
     runtime: &RelationalRuntime,
     branch: BranchSetup,
-    batches: Vec<TopologyEditBatch>,
+    contract_sets: Vec<Vec<TopologyEditContract>>,
     verified: Vec<TopologyCommittedArtifact>,
 ) -> Result<AcceptedBranchExecution, TopologyCertificationError> {
     let branch_head_after_edit = runtime
@@ -93,13 +118,23 @@ pub(super) fn execution_from_verified(
             .iter()
             .map(|mutation| serde_json::to_string(mutation).expect("mutation serializes"))
     }));
+    let topology_edit_digest =
+        aggregate_topology_edit_digest_for_contract_sets(contract_sets.clone());
+    let naming_edit_continuity_matrix =
+        aggregate_naming_edit_continuity_matrix_for_contract_sets(contract_sets.clone());
+    let edit_families = contract_sets
+        .iter()
+        .flat_map(|contracts| topology_edit_families_for_contracts(contracts))
+        .collect();
     Ok(AcceptedBranchExecution {
         branch_label: branch.branch_label,
         branch_id: branch.branch_id.0,
         branch_head_diverged_from_main: branch_head_after_edit != main_head_after_edit
             && branch.main_head_before_edit == main_head_after_edit,
         branch_truth_digest,
-        batches,
+        topology_edit_digest,
+        naming_edit_continuity_matrix,
+        edit_families,
     })
 }
 
@@ -114,4 +149,22 @@ pub(super) fn edit_digest_shape_matches(
         && left.derived_region_count == right.derived_region_count
         && left.fallback_policy_count == right.fallback_policy_count
         && left.fallback_rejection_policy_count == right.fallback_rejection_policy_count
+}
+
+fn raw_topology_intent_for_contracts(
+    contracts: Vec<TopologyEditContract>,
+    mode: &TopologyEditApplicationMode,
+) -> RawTopologyIntent {
+    let mutations = contracts
+        .into_iter()
+        .flat_map(|contract| contract.lowered_mutations().to_vec())
+        .collect();
+    RawTopologyIntent::new(mutations, mutation_origin_for_mode(mode))
+}
+
+fn mutation_origin_for_mode(mode: &TopologyEditApplicationMode) -> MutationOrigin {
+    match mode {
+        TopologyEditApplicationMode::Mainline => MutationOrigin::LocalEdit,
+        TopologyEditApplicationMode::BranchLocal(_) => MutationOrigin::BranchLocalApplication,
+    }
 }

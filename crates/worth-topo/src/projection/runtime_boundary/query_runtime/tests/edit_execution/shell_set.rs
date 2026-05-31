@@ -6,17 +6,17 @@ use forge_query::facade::{
 };
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
-use schema::facade::topology_authoring::{
-    created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
-};
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use super::super::declaration_runtime_support::{
+    current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
+};
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    ShellOrWireMembershipKind, TopologyEditApplicationMode, TopologyEditBatch,
-    TopologyEditContract, TopologyEditFamily,
+    TopologyEditFamily, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
+    TopologyShellRehomeFaceMember,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
@@ -35,34 +35,31 @@ fn current_head_runtime_executes_rehome_all_owned_faces_to_new_shell_program() {
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-attach-shell-face-set")
             .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
     let shell_key = CreateKey::new(".current-head.query-edit-attach-shell-face-set.new_shell");
-    let batch = TopologyEditBatch::new(vec![
-        TopologyEditContract::create_topology_entity(shell_key.as_str(), TopologyEntityKind::Shell),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit-attach-shell-face-set.region-owns-shell",
-            ShellOrWireMembershipKind::RegionOwnsShell,
-            region,
-            created_ref(shell_key.as_str()),
-        ),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit-attach-shell-face-set.shell-owns-face-1",
-            ShellOrWireMembershipKind::ShellOwnsFace,
-            created_ref(shell_key.as_str()),
-            face_ids[0],
-        ),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit-attach-shell-face-set.shell-owns-face-2",
-            ShellOrWireMembershipKind::ShellOwnsFace,
-            created_ref(shell_key.as_str()),
-            face_ids[1],
-        ),
-        TopologyEditContract::retire_topology_entity(shell, TopologyEntityKind::Shell),
-    ])
-    .expect("non-empty edit batch");
-
-    let execution = assembly.apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("full face-set shell rehome should execute through the admitted shell owner-rehome lane");
+    let declaration = TopologyRehomeAllOwnedFacesToNewShellDeclaration::new(
+        shell_key.as_str(),
+        ".current-head.query-edit-attach-shell-face-set.region-owns-shell",
+        region,
+        shell,
+        vec![
+            TopologyShellRehomeFaceMember::new(
+                ".current-head.query-edit-attach-shell-face-set.shell-owns-face-1",
+                face_ids[0],
+            ),
+            TopologyShellRehomeFaceMember::new(
+                ".current-head.query-edit-attach-shell-face-set.shell-owns-face-2",
+                face_ids[1],
+            ),
+        ],
+    );
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("full face-set shell rehome should execute through declaration entry");
 
     assert_eq!(
         execution.families,
@@ -169,41 +166,33 @@ fn current_head_runtime_denies_shell_face_set_rehome_with_duplicate_face_members
         ".current-head.query-edit-attach-shell-face-set-duplicate",
     )
     .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
     let shell_key =
         CreateKey::new(".current-head.query-edit-attach-shell-face-set-duplicate.new_shell");
-    let batch = TopologyEditBatch::new(vec![
-        TopologyEditContract::create_topology_entity(shell_key.as_str(), TopologyEntityKind::Shell),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit-attach-shell-face-set-duplicate.region-owns-shell",
-            ShellOrWireMembershipKind::RegionOwnsShell,
-            region,
-            created_ref(shell_key.as_str()),
-        ),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit-attach-shell-face-set-duplicate.shell-owns-face-1",
-            ShellOrWireMembershipKind::ShellOwnsFace,
-            created_ref(shell_key.as_str()),
-            face_ids[0],
-        ),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit-attach-shell-face-set-duplicate.shell-owns-face-2",
-            ShellOrWireMembershipKind::ShellOwnsFace,
-            created_ref(shell_key.as_str()),
-            face_ids[0],
-        ),
-        TopologyEditContract::retire_topology_entity(shell, TopologyEntityKind::Shell),
-    ])
-    .expect("non-empty edit batch");
-
-    let error = assembly.apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect_err("shell face-set rehome must fail closed if face attachments do not form a unique full set");
-
-    assert!(matches!(
-        error,
-        crate::topology_operators::TopologyOperatorExecutionError::UnsupportedFamilies(families)
-            if families == vec![TopologyEditFamily::AttachShellOrWireMembership]
-    ));
+    let declaration = TopologyRehomeAllOwnedFacesToNewShellDeclaration::new(
+        shell_key.as_str(),
+        ".current-head.query-edit-attach-shell-face-set-duplicate.region-owns-shell",
+        region,
+        shell,
+        vec![
+            TopologyShellRehomeFaceMember::new(
+                ".current-head.query-edit-attach-shell-face-set-duplicate.shell-owns-face-1",
+                face_ids[0],
+            ),
+            TopologyShellRehomeFaceMember::new(
+                ".current-head.query-edit-attach-shell-face-set-duplicate.shell-owns-face-2",
+                face_ids[0],
+            ),
+        ],
+    );
+    assert_eq!(
+        current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
+        vec![TopologyEditFamily::AttachShellOrWireMembership]
+    );
 }
 
 fn seeded_patch_region_shell_and_faces(

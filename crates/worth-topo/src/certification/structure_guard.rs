@@ -193,7 +193,7 @@ fn broad_direct_file_clusters_stay_explicitly_reviewed() {
         "construction",
         "derived_topology/materialized_graph",
         "projection/diagnostic_surfaces/read_proof",
-        "projection/runtime_boundary/query_assembly",
+        "projection/runtime_boundary/declared_query_surfaces",
         "projection/runtime_boundary/query_runtime",
         "projection/runtime_boundary/query_runtime/tests",
         "validation/reference_integrity",

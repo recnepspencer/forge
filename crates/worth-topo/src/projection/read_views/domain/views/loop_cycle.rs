@@ -2,13 +2,13 @@ use forge_query::facade::ForgeQueryWorkspace;
 
 use super::super::error::TopologyDomainQueryError;
 use super::super::request::TopologyDomainQueryRequest;
-use super::super::topology::TopologyDomainQuery;
+use super::super::TopologyReadLedger;
 use crate::projection::read_views::TopologyLoopCycleView;
 use crate::projection::runtime_boundary::read_execution::{
     decode_loop_cycle, execute_loop_cycle_read, successor_relation_name, ExecutedTopologyReadFamily,
 };
 
-impl TopologyDomainQuery {
+impl TopologyReadLedger {
     #[allow(dead_code)]
     pub(crate) fn loop_cycle(
         &self,

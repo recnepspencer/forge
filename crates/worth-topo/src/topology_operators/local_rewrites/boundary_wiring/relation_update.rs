@@ -29,7 +29,7 @@ pub(crate) struct ResolvedLoopSuccessorRewire {
     pub(crate) dependency_path: Option<&'static str>,
 }
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
+impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
     pub(crate) fn resolve_loop_successor_rewire(
         &self,
         bindings: &TopologyQueryBindingIndex,

@@ -8,17 +8,17 @@ use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
-use schema::facade::topology_authoring::{
-    created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
-};
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use super::super::declaration_runtime_support::{
+    current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
+};
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    ShellOrWireMembershipKind, TopologyEditApplicationMode, TopologyEditBatch,
-    TopologyEditContract, TopologyEditFamily, TopologyOperatorExecutionError,
+    TopologyEditFamily, TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
+    TopologyWireSplitHalfEdgeMember,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
@@ -37,28 +37,28 @@ fn current_head_runtime_executes_connected_wire_split_program() {
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit.split-wire").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
     let wire_key = CreateKey::new(".current-head.query-edit.split-wire.new_wire");
-    let batch = TopologyEditBatch::new(vec![
-        TopologyEditContract::create_topology_entity(wire_key.as_str(), TopologyEntityKind::Wire),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit.split-wire.new-wire-owns-half-edge-1",
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-            created_ref(wire_key.as_str()),
-            moved_half_edge_ids[0],
-        ),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit.split-wire.new-wire-owns-half-edge-2",
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-            created_ref(wire_key.as_str()),
-            moved_half_edge_ids[1],
-        ),
-    ])
-    .expect("non-empty edit batch");
-
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("connected wire split should execute through the admitted owner-preserving lane");
+    let declaration = TopologySplitConnectedHalfEdgeSetToNewWireDeclaration::new(
+        wire_key.as_str(),
+        vec![
+            TopologyWireSplitHalfEdgeMember::new(
+                ".current-head.query-edit.split-wire.new-wire-owns-half-edge-1",
+                moved_half_edge_ids[0],
+            ),
+            TopologyWireSplitHalfEdgeMember::new(
+                ".current-head.query-edit.split-wire.new-wire-owns-half-edge-2",
+                moved_half_edge_ids[1],
+            ),
+        ],
+    );
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("connected wire split should execute through declaration entry");
 
     assert_eq!(
         execution.families,
@@ -174,34 +174,30 @@ fn current_head_runtime_denies_wire_split_when_moved_subset_is_disconnected() {
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit.split-wire-disconnected")
             .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
     let wire_key = CreateKey::new(".current-head.query-edit.split-wire-disconnected.new_wire");
-    let batch = TopologyEditBatch::new(vec![
-        TopologyEditContract::create_topology_entity(wire_key.as_str(), TopologyEntityKind::Wire),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit.split-wire-disconnected.new-wire-owns-half-edge-1",
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-            created_ref(wire_key.as_str()),
-            half_edge_ids[0],
-        ),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            ".current-head.query-edit.split-wire-disconnected.new-wire-owns-half-edge-2",
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-            created_ref(wire_key.as_str()),
-            half_edge_ids[2],
-        ),
-    ])
-    .expect("non-empty edit batch");
+    let declaration = TopologySplitConnectedHalfEdgeSetToNewWireDeclaration::new(
+        wire_key.as_str(),
+        vec![
+            TopologyWireSplitHalfEdgeMember::new(
+                ".current-head.query-edit.split-wire-disconnected.new-wire-owns-half-edge-1",
+                half_edge_ids[0],
+            ),
+            TopologyWireSplitHalfEdgeMember::new(
+                ".current-head.query-edit.split-wire-disconnected.new-wire-owns-half-edge-2",
+                half_edge_ids[2],
+            ),
+        ],
+    );
 
-    let error = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect_err("wire split must fail closed when the moved half-edge subset is disconnected");
-
-    assert!(matches!(
-        error,
-        TopologyOperatorExecutionError::UnsupportedFamilies(families)
-            if families == vec![TopologyEditFamily::AttachShellOrWireMembership]
-    ));
+    assert_eq!(
+        current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
+        vec![TopologyEditFamily::AttachShellOrWireMembership]
+    );
 }
 
 fn seeded_wire_and_half_edges(

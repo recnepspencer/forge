@@ -1,4 +1,3 @@
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyQueryEditFamilySupportStatus, TopologyQueryEditLane,
     TopologyQueryEditLaneSupportStatus, TopologyRuntimeAdapters, TopologyRuntimePostureCapability,
@@ -93,11 +92,15 @@ fn current_head_runtime_reads_seeded_topology_without_query_import() {
     seed_minimal_topology(&mut runtime, "query-runtime").expect("seed topology");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, ".current-head.runtime").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
 
-    let entity_rows = workspace.read(assembly.entities());
-    let relation_rows = workspace.read(assembly.relations());
-    let persistent_name_rows = workspace.read(assembly.persistent_names());
+    let entity_rows = workspace.read(surfaces.entities());
+    let relation_rows = workspace.read(surfaces.relations());
+    let persistent_name_rows = workspace.read(surfaces.persistent_names());
 
     assert!(!entity_rows.is_empty());
     assert!(!relation_rows.is_empty());
@@ -117,7 +120,11 @@ fn current_head_runtime_writes_topology_through_real_runtime() {
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.authoritative").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
 
     let receipt = workspace
         .insert("TopologyEntity", |builder| {
@@ -128,8 +135,8 @@ fn current_head_runtime_writes_topology_through_real_runtime() {
         })
         .expect("entity create should commit");
 
-    let entity_rows = workspace.read(assembly.entities());
-    let materialized_rows = workspace.materialize(assembly.materialized());
+    let entity_rows = workspace.read(surfaces.entities());
+    let materialized_rows = workspace.materialize(surfaces.materialized());
     let materialized: crate::facade::MaterializedTopologyView =
         serde_json::from_value(materialized_rows[0].clone()).expect("materialized topology row");
     assert!(entity_rows.iter().any(|row| {
@@ -141,7 +148,7 @@ fn current_head_runtime_writes_topology_through_real_runtime() {
     }));
     assert!(receipt
         .affected_derived_view_ids()
-        .contains(&assembly.materialized().name().to_string()));
+        .contains(&surfaces.materialized().name().to_string()));
     assert!(!materialized.topology().vertices.is_empty());
 }
 
@@ -240,9 +247,13 @@ fn snapshot_read_only_runtime_reads_seeded_topology_and_denies_writes() {
     let adapters = TopologyRuntimeAdapters::snapshot_read_only(read_view, seeded.snapshot);
     let mut workspace =
         topology_runtime(adapters, ".snapshot-read-only.runtime").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
 
-    assert!(!workspace.read(assembly.entities()).is_empty());
+    assert!(!workspace.read(surfaces.entities()).is_empty());
 
     let error = workspace
         .insert("TopologyEntity", |builder| {

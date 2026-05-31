@@ -14,9 +14,9 @@ const PROJECTION_MOD_RS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/src/projection/mod.rs"
 ));
-const QUERY_ASSEMBLY_MOD_RS: &str = include_str!(concat!(
+const DECLARED_QUERY_SURFACES_MOD_RS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/src/projection/runtime_boundary/query_assembly/mod.rs"
+    "/src/projection/runtime_boundary/declared_query_surfaces/mod.rs"
 ));
 
 #[test]
@@ -44,7 +44,12 @@ fn topology_query_docs_do_not_regress_snapshot_reads_to_deferred_fallback() {
 
 #[test]
 fn topology_query_source_comments_do_not_keep_naming_purge_artifacts() {
-    for source in [LIB_RS, FACADE_RS, PROJECTION_MOD_RS, QUERY_ASSEMBLY_MOD_RS] {
+    for source in [
+        LIB_RS,
+        FACADE_RS,
+        PROJECTION_MOD_RS,
+        DECLARED_QUERY_SURFACES_MOD_RS,
+    ] {
         assert!(!source.contains("-topo"));
         assert!(!source.contains("for  without"));
         assert!(!source.contains("the -owned"));

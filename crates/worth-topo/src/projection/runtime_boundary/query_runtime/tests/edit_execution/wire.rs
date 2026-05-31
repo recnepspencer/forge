@@ -4,17 +4,20 @@ use forge_query::facade::{
 };
 use forge_relational::facade::identity::RelationId;
 use schema::facade::platform::authority::CreateKey;
-use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::topology_authoring::{created_ref, seed_minimal_topology};
 
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use super::super::declaration_runtime_support::{
+    current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
+};
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    RejectedEditScopeRow, ShellOrWireMembershipKind, TopologyEditApplicationMode,
-    TopologyEditBatch, TopologyEditContract, TopologyEditFamily, TopologyEditRejectionClass,
+    RejectedEditScopeRow, ShellOrWireMembershipKind,
+    TopologyAttachShellOrWireMembershipDeclaration, TopologyDetachShellOrWireMembershipDeclaration,
+    TopologyEditFamily, TopologyEditRejectionClass,
+    TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyWireRehomeHalfEdgeMember,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
@@ -29,17 +32,18 @@ fn current_head_runtime_executes_detach_shell_or_wire_membership_through_topolog
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-detach-wire").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let batch =
-        TopologyEditBatch::new(vec![TopologyEditContract::detach_shell_or_wire_membership(
-            wire_owns_half_edge_relation,
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-        )])
-        .expect("non-empty edit batch");
-
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("detach shell-or-wire membership should execute through query runtime");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let declaration = TopologyDetachShellOrWireMembershipDeclaration::new(
+        wire_owns_half_edge_relation,
+        ShellOrWireMembershipKind::WireOwnsHalfEdge,
+    );
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("detach shell-or-wire membership should execute through declaration entry");
 
     assert_eq!(
         execution.families,
@@ -77,23 +81,23 @@ fn current_head_runtime_executes_rehome_single_half_edge_to_new_wire_program() {
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-attach-wire").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
     let wire_key = CreateKey::new("query-edit-runtime-attach-wire.new_wire");
-    let batch = TopologyEditBatch::new(vec![
-        TopologyEditContract::create_topology_entity(wire_key.as_str(), TopologyEntityKind::Wire),
-        TopologyEditContract::attach_shell_or_wire_membership(
+    let declaration = TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration::new(
+        wire_key.as_str(),
+        seeded.wire,
+        vec![TopologyWireRehomeHalfEdgeMember::new(
             "query-edit-runtime-attach-wire.new-wire-owns-half-edge",
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-            created_ref(wire_key.as_str()),
             seeded.half_edge,
-        ),
-        TopologyEditContract::retire_topology_entity(seeded.wire, TopologyEntityKind::Wire),
-    ])
-    .expect("non-empty edit batch");
-
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("wire rehome should execute through the admitted created-wire owner-rehome lane");
+        )],
+    );
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("wire rehome should execute through declaration entry");
 
     assert_eq!(
         execution.families,
@@ -185,33 +189,36 @@ fn current_head_runtime_denies_region_owns_shell_membership_until_invariant_comp
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-attach-shell").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
     let shell_key = CreateKey::new("query-edit-runtime-attach-shell.inner_shell");
-    let batch = TopologyEditBatch::new(vec![
-        TopologyEditContract::create_topology_entity(shell_key.as_str(), TopologyEntityKind::Shell),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            "query-edit-runtime-attach-shell.region-owns-shell",
-            ShellOrWireMembershipKind::RegionOwnsShell,
-            seeded.region,
-            created_ref(shell_key.as_str()),
-        ),
-    ])
-    .expect("non-empty edit batch");
+    let declaration = TopologyAttachShellOrWireMembershipDeclaration::new(
+        "query-edit-runtime-attach-shell.region-owns-shell",
+        ShellOrWireMembershipKind::RegionOwnsShell,
+        seeded.region,
+        created_ref(shell_key.as_str()),
+    );
+    let contracts = declaration.clone().into_contracts();
 
-    let error = assembly.apply_edit(&mut workspace, batch.clone(), TopologyEditApplicationMode::Mainline)
-        .expect_err("attach shell-or-wire membership must fail closed until invariant-complete shell subgraphs are admitted");
-
-    assert!(matches!(
-        error,
-        crate::topology_operators::TopologyOperatorExecutionError::UnsupportedFamilies(ref families)
-            if families == &vec![TopologyEditFamily::AttachShellOrWireMembership]
-    ));
     assert_eq!(
-        error.rejection_class(),
+        current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
+        vec![TopologyEditFamily::AttachShellOrWireMembership]
+    );
+    assert_eq!(
+        crate::topology_operators::TopologyOperatorExecutionError::UnsupportedFamilies(vec![
+            TopologyEditFamily::AttachShellOrWireMembership
+        ])
+        .rejection_class(),
         Some(TopologyEditRejectionClass::OutOfClassEdit)
     );
     assert_eq!(
-        error.rejected_edit_scope_report(&batch),
+        crate::topology_operators::TopologyOperatorExecutionError::UnsupportedFamilies(
+            vec![TopologyEditFamily::AttachShellOrWireMembership]
+        )
+        .rejected_contract_scope_report(&contracts),
         Some(crate::topology_operators::RejectedEditScopeReport {
             rows: vec![RejectedEditScopeRow {
                 family: TopologyEditFamily::AttachShellOrWireMembership,

@@ -12,8 +12,8 @@ use crate::topology_operators::{
     BoundaryMembershipKind, TopologyEditAction, TopologyEditContract, TopologyEditFamily,
 };
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
-    pub(super) fn compose_face_inner_loop_program(
+impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
+    pub(crate) fn compose_face_inner_loop_program(
         &mut self,
         contracts: &[TopologyEditContract],
         bindings: &TopologyQueryBindingIndex,

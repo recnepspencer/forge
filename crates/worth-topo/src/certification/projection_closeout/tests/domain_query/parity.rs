@@ -4,11 +4,11 @@ use schema::facade::topology_authoring::{
     seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch, MilestoneOnePrimitiveCase,
 };
 
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::read_views::domain::parity::{
     compare_domain_query_view_parity, TopologyDomainQueryParityAggregateReport,
     TopologyDomainQueryParityKind,
 };
-use crate::projection::read_views::domain::TopologyDomainQuery;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 use super::parity_harness::{
@@ -25,8 +25,8 @@ fn domain_query_replay_parity_matches_for_local_rewire_view() {
     )
     .expect("seed primitive");
     let replay_basis = verified.read_basis().replay_of();
-    let left_query = TopologyDomainQuery::load();
-    let right_query = TopologyDomainQuery::load();
+    let left_query = TopologyReadProofHarness::new();
+    let right_query = TopologyReadProofHarness::new();
 
     let left = local_rewire_parity_artifact(
         &left_query,
@@ -67,8 +67,8 @@ fn domain_query_replay_parity_matches_for_radial_view() {
     )
     .expect("seed primitive");
     let replay_basis = verified.read_basis().replay_of();
-    let left_query = TopologyDomainQuery::load();
-    let right_query = TopologyDomainQuery::load();
+    let left_query = TopologyReadProofHarness::new();
+    let right_query = TopologyReadProofHarness::new();
 
     let left = radial_parity_artifact(
         &left_query,
@@ -119,8 +119,8 @@ fn domain_query_branch_local_parity_matches_for_feature_loop_cycle_view() {
     )
     .expect("seed branch-local primitive");
     let replay_basis = verified.read_basis().replay_of();
-    let left_query = TopologyDomainQuery::load();
-    let right_query = TopologyDomainQuery::load();
+    let left_query = TopologyReadProofHarness::new();
+    let right_query = TopologyReadProofHarness::new();
 
     let left = loop_cycle_parity_artifact(
         &left_query,
@@ -158,13 +158,13 @@ fn domain_query_parity_aggregate_reports_replay_and_branch_local_coverage() {
     let replay_report = compare_domain_query_view_parity(
         TopologyDomainQueryParityKind::Replay,
         &local_rewire_parity_artifact(
-            &TopologyDomainQuery::load(),
+            &TopologyReadProofHarness::new(),
             &replay_runtime,
             "query.domain-query-parity.aggregate.replay.left",
             &replay_verified.read_basis(),
         ),
         &local_rewire_parity_artifact(
-            &TopologyDomainQuery::load(),
+            &TopologyReadProofHarness::new(),
             &replay_runtime,
             "query.domain-query-parity.aggregate.replay.right",
             &replay_verified.read_basis().replay_of(),
@@ -190,14 +190,14 @@ fn domain_query_parity_aggregate_reports_replay_and_branch_local_coverage() {
     let branch_report = compare_domain_query_view_parity(
         TopologyDomainQueryParityKind::BranchLocal,
         &loop_cycle_parity_artifact(
-            &TopologyDomainQuery::load(),
+            &TopologyReadProofHarness::new(),
             &branch_runtime,
             "query.domain-query-parity.aggregate.branch.left",
             &branch_verified.read_basis(),
             5,
         ),
         &loop_cycle_parity_artifact(
-            &TopologyDomainQuery::load(),
+            &TopologyReadProofHarness::new(),
             &branch_runtime,
             "query.domain-query-parity.aggregate.branch.right",
             &branch_verified.read_basis().replay_of(),

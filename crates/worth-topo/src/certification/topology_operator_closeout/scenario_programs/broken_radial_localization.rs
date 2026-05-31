@@ -15,15 +15,16 @@ use super::super::shared::{
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::certification::support::parity::digest_materialized_topology_view;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::projection::{TopologyDomainQuery, TopologyHalfEdgeSharedVertexNeighborhoodView};
+use crate::projection::TopologyHalfEdgeSharedVertexNeighborhoodView;
 use crate::topology_operators::{
-    TopologyEditApplicationMode, TopologyEditBatch, TopologyEditContract, TopologyEditDigest,
-    TopologyEditFamily, TopologyEditRejectionClass,
+    TopologyEditBatch, TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
+    TopologyEditRejectionClass, TopologySpliceRadialAdjacencyDeclaration,
 };
 
 struct MilestoneThreeBrokenRadialRun {
@@ -125,15 +126,18 @@ where
         &format!("{stem}.broken_radial_localization.runtime"),
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let baseline_snapshot = assembly
+    let baseline_snapshot = surfaces
         .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
         digest_materialized_topology_view(&baseline_snapshot.materialized);
-    let domain_query = TopologyDomainQuery::load();
-    let relation_rows = workspace.read::<Value>(assembly.relations());
+    let domain_query = TopologyReadProofHarness::new();
+    let relation_rows = workspace.read::<Value>(surfaces.relations());
     let source_identity = first_source_identity_for_relation_kind(
         &relation_rows,
         TopologyRelationKind::HalfEdgeRadialNext,
@@ -159,10 +163,14 @@ where
     .expect("broken radial localization batch should be non-empty");
     let batches = vec![batch.clone()];
 
-    match assembly.apply_edit(
+    match execute_current_head_topology_declaration(
         &mut workspace,
-        batch.clone(),
-        TopologyEditApplicationMode::Mainline,
+        &surfaces,
+        TopologySpliceRadialAdjacencyDeclaration::new(
+            relation_id_from_query_identity(&source_radial_next_relation_identity)?,
+            source_half_edge_id,
+            illegal_target_half_edge_id,
+        ),
     ) {
         Ok(execution) => {
             let detail = format!(

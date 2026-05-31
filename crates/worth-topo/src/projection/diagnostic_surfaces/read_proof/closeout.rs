@@ -4,7 +4,7 @@ use super::no_n_plus_one::{
 };
 use super::report::TopologyDomainQueryAggregateReport;
 use super::report::TopologyDomainQueryRequestFamily;
-use crate::projection::read_views::domain::TopologyDomainQuery;
+use crate::projection::read_views::domain::TopologyReadLedger;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TopologyDomainQueryCloseoutStatus {
@@ -138,7 +138,7 @@ fn phase_three_ready(
             .all(|row| row.status == TopologyNoNPlusOneContractStatus::Satisfied)
 }
 
-impl TopologyDomainQuery {
+impl TopologyReadLedger {
     #[allow(dead_code)]
     pub fn closeout_report(&self) -> TopologyDomainQueryCloseoutReport {
         TopologyDomainQueryCloseoutReport::from_proof_report(self.proof_report())

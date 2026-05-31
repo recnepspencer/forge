@@ -2,14 +2,14 @@ use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
+use super::super::declaration_runtime_support::execute_current_head_topology_declaration;
 use super::super::query_runtime_support::{query_relation_id_from_row, QueryRuntimeSupport};
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    TopologyEditApplicationMode, TopologyEditBatch, TopologyEditContract, TopologyEditFamily,
-    TopologyEditRejectionClass, TopologyOperatorExecutionError,
+    TopologyEditFamily, TopologyEditRejectionClass, TopologyOperatorExecutionError,
+    TopologySpliceRadialAdjacencyDeclaration,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
@@ -25,9 +25,13 @@ fn current_head_runtime_executes_splice_radial_adjacency_through_topology_operat
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-splice-radial").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
-    let relation_rows = workspace.read(assembly.relations());
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let support = QueryRuntimeSupport::load(&mut workspace, &surfaces);
+    let relation_rows = workspace.read(surfaces.relations());
     let relation = relation_rows
         .iter()
         .find(|row| {
@@ -58,16 +62,14 @@ fn current_head_runtime_executes_splice_radial_adjacency_through_topology_operat
         source_identity,
         current_target_identity,
     );
-    let batch = TopologyEditBatch::new(vec![TopologyEditContract::splice_radial_adjacency(
+    let declaration = TopologySpliceRadialAdjacencyDeclaration::new(
         query_relation_id_from_row(relation),
         half_edge_id,
         radial_next_half_edge_id,
-    )])
-    .expect("non-empty edit batch");
-
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("radial splice should execute through the admitted runtime family");
+    );
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("radial splice should execute through declaration entry");
 
     assert_eq!(
         execution.families,
@@ -123,9 +125,13 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
         ".current-head.query-edit-splice-radial-source-mismatch",
     )
     .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
-    let relation_rows = workspace.read(assembly.relations());
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let support = QueryRuntimeSupport::load(&mut workspace, &surfaces);
+    let relation_rows = workspace.read(surfaces.relations());
     let relation = relation_rows
         .iter()
         .find(|row| {
@@ -156,19 +162,13 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
         source_identity,
         current_target_identity,
     );
-    let batch = TopologyEditBatch::new(vec![TopologyEditContract::splice_radial_adjacency(
+    let declaration = TopologySpliceRadialAdjacencyDeclaration::new(
         query_relation_id_from_row(relation),
         wrong_half_edge_id,
         radial_next_half_edge_id,
-    )])
-    .expect("non-empty edit batch");
-
-    let error = assembly
-        .apply_edit(
-            &mut workspace,
-            batch.clone(),
-            TopologyEditApplicationMode::Mainline,
-        )
+    );
+    let contracts = declaration.clone().into_contracts();
+    let error = execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
         .expect_err("radial splice with mismatched source binding must fail typed and early");
 
     assert!(matches!(
@@ -185,7 +185,7 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
         Some(TopologyEditRejectionClass::InvariantBlocked)
     );
     let report = error
-        .rejected_edit_scope_report(&batch)
+        .rejected_contract_scope_report(&contracts)
         .expect("invariant-block denial should expose exact rejected scope report");
     assert_eq!(report.rows.len(), 1);
     assert_eq!(
@@ -217,9 +217,13 @@ fn current_head_runtime_denies_splice_radial_adjacency_across_different_edges() 
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-splice-radial-mismatch")
             .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
-    let relation_rows = workspace.read(assembly.relations());
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let support = QueryRuntimeSupport::load(&mut workspace, &surfaces);
+    let relation_rows = workspace.read(surfaces.relations());
     let relation = relation_rows
         .iter()
         .find(|row| {
@@ -241,15 +245,12 @@ fn current_head_runtime_denies_splice_radial_adjacency_across_different_edges() 
     let half_edge_id = support.find_entity_id_by_identity(source_identity);
     let expected_target_half_edge_id =
         support.different_edge_half_edge_id(&mut workspace, source_identity);
-    let batch = TopologyEditBatch::new(vec![TopologyEditContract::splice_radial_adjacency(
+    let declaration = TopologySpliceRadialAdjacencyDeclaration::new(
         query_relation_id_from_row(relation),
         half_edge_id,
         expected_target_half_edge_id,
-    )])
-    .expect("non-empty edit batch");
-
-    let error = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
+    );
+    let error = execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
         .expect_err("radial splice across different edges must fail typed and early");
 
     assert!(matches!(

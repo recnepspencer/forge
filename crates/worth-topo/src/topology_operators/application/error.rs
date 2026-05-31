@@ -1,4 +1,7 @@
-use forge_query::facade::{ForgeQueryRuntimeError, ForgeQueryWorkspaceError};
+use forge_query::facade::{
+    ForgeQueryDeclarationEntryOrchestrationRefusalClass,
+    ForgeQueryDeclarationEntryOrchestrationStage, ForgeQueryRuntimeError, ForgeQueryWorkspaceError,
+};
 use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
@@ -10,6 +13,21 @@ use super::TopologyEditApplicationMode;
 pub enum TopologyOperatorExecutionError {
     UnsupportedMode(TopologyEditApplicationMode),
     UnsupportedFamilies(Vec<TopologyEditFamily>),
+    DeclarationEntryRequired {
+        family: TopologyEditFamily,
+        reason: &'static str,
+    },
+    DeclarationEntryProgramRequired {
+        families: Vec<TopologyEditFamily>,
+        reason: &'static str,
+    },
+    DeclarationEntry {
+        family: TopologyEditFamily,
+        stop_class: TopologyDeclarationEntryStopClass,
+        stop_stage: ForgeQueryDeclarationEntryOrchestrationStage,
+        refusal_class: Option<TopologyDeclarationEntryRefusalClass>,
+        reason: &'static str,
+    },
     MissingCreatedEntityReference(String),
     MissingExistingEntityBinding(EntityId),
     MissingExistingRelationBinding(RelationId),
@@ -64,6 +82,79 @@ pub enum TopologyOperatorExecutionError {
     UnexpectedInspectionFamily,
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum TopologyDeclarationEntryStopClass {
+    Deferred,
+    Denied,
+    Stale,
+    RebindRequired,
+    Failed,
+    Refused,
+}
+
+impl TopologyDeclarationEntryStopClass {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Deferred => "deferred",
+            Self::Denied => "denied",
+            Self::Stale => "stale",
+            Self::RebindRequired => "rebind_required",
+            Self::Failed => "failed",
+            Self::Refused => "refused",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum TopologyDeclarationEntryRefusalClass {
+    UnsupportedAutomation,
+    ExplicitIntentRequired,
+    StrongerProofRequired,
+    AuthorityTransitionRequired,
+    ExpensiveWorkNotAdmittedByDefault,
+    PreparedButNotExecutedContinuation,
+}
+
+impl TopologyDeclarationEntryRefusalClass {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::UnsupportedAutomation => "unsupported_automation",
+            Self::ExplicitIntentRequired => "explicit_intent_required",
+            Self::StrongerProofRequired => "stronger_proof_required",
+            Self::AuthorityTransitionRequired => "authority_transition_required",
+            Self::ExpensiveWorkNotAdmittedByDefault => "expensive_work_not_admitted_by_default",
+            Self::PreparedButNotExecutedContinuation => "prepared_but_not_executed_continuation",
+        }
+    }
+}
+
+impl From<ForgeQueryDeclarationEntryOrchestrationRefusalClass>
+    for TopologyDeclarationEntryRefusalClass
+{
+    fn from(value: ForgeQueryDeclarationEntryOrchestrationRefusalClass) -> Self {
+        match value {
+            ForgeQueryDeclarationEntryOrchestrationRefusalClass::UnsupportedAutomation => {
+                Self::UnsupportedAutomation
+            }
+            ForgeQueryDeclarationEntryOrchestrationRefusalClass::ExplicitIntentRequired => {
+                Self::ExplicitIntentRequired
+            }
+            ForgeQueryDeclarationEntryOrchestrationRefusalClass::StrongerProofRequired => {
+                Self::StrongerProofRequired
+            }
+            ForgeQueryDeclarationEntryOrchestrationRefusalClass::AuthorityTransitionRequired => {
+                Self::AuthorityTransitionRequired
+            }
+            ForgeQueryDeclarationEntryOrchestrationRefusalClass::ExpensiveWorkNotAdmittedByDefault => {
+                Self::ExpensiveWorkNotAdmittedByDefault
+            }
+            ForgeQueryDeclarationEntryOrchestrationRefusalClass::PreparedButNotExecutedContinuation => {
+                Self::PreparedButNotExecutedContinuation
+            }
+        }
+    }
+}
+
 impl std::fmt::Display for TopologyOperatorExecutionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -75,6 +166,31 @@ impl std::fmt::Display for TopologyOperatorExecutionError {
                 f,
                 "topology query edit execution does not admit families `{families:?}` yet"
             ),
+            Self::DeclarationEntryRequired { family, reason } => write!(
+                f,
+                "topology query edit execution requires declaration-entry canonical input for family `{family:?}`: {reason}"
+            ),
+            Self::DeclarationEntryProgramRequired { families, reason } => write!(
+                f,
+                "topology query edit execution requires declaration-entry canonical grouped input for families `{families:?}`: {reason}"
+            ),
+            Self::DeclarationEntry {
+                family,
+                stop_class,
+                stop_stage,
+                refusal_class,
+                reason,
+            } => {
+                write!(
+                    f,
+                    "topology query declaration entry orchestration for family `{family:?}` stopped as `{}` at stage `{stop_stage:?}`",
+                    stop_class.as_str(),
+                )?;
+                if let Some(refusal_class) = refusal_class {
+                    write!(f, " with refusal class `{}`", refusal_class.as_str())?;
+                }
+                write!(f, ": {reason}")
+            }
             Self::MissingCreatedEntityReference(create_key) => write!(
                 f,
                 "topology query edit execution is missing same-batch created entity `{create_key}`"

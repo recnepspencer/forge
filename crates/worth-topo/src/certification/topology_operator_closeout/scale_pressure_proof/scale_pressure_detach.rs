@@ -10,14 +10,15 @@ use super::scale_pressure_types::{
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::certification::support::parity::digest_materialized_topology_view;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    ShellOrWireMembershipKind, TopologyEditApplicationMode, TopologyEditBatch,
-    TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
+    ShellOrWireMembershipKind, TopologyDetachRadialAdjacencyDeclaration,
+    TopologyDetachShellOrWireMembershipDeclaration, TopologyEditBatch, TopologyEditContract,
+    TopologyEditDigest, TopologyEditFamily,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -101,9 +102,12 @@ where
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, format!("{stem}.scale_pressure.runtime"))
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let relation_rows = workspace.read::<Value>(assembly.relations());
+    let relation_rows = workspace.read::<Value>(surfaces.relations());
     let relation_id = first_relation_id_for_kind(&relation_rows, relation_kind)?;
     let detach_contract = match detach_kind {
         DetachPressureKind::ShellOrWire(kind) => {
@@ -116,13 +120,20 @@ where
     let batches = vec![batch];
     let topology_edit_digest = aggregate_topology_edit_digest(&batches);
     let edit_families = batches.iter().flat_map(|batch| batch.families()).collect();
-    let mut final_state_digest = String::new();
-    for batch in batches {
-        let execution = assembly
-            .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-            .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-        final_state_digest = digest_materialized_topology_view(&execution.materialized).digest_hex;
+    let execution = match detach_kind {
+        DetachPressureKind::ShellOrWire(kind) => execute_current_head_topology_declaration(
+            &mut workspace,
+            &surfaces,
+            TopologyDetachShellOrWireMembershipDeclaration::new(relation_id, kind),
+        ),
+        DetachPressureKind::Radial => execute_current_head_topology_declaration(
+            &mut workspace,
+            &surfaces,
+            TopologyDetachRadialAdjacencyDeclaration::new(relation_id),
+        ),
     }
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let final_state_digest = digest_materialized_topology_view(&execution.materialized).digest_hex;
     Ok(DetachPressureExecution {
         primitive_family,
         topology_edit_digest,

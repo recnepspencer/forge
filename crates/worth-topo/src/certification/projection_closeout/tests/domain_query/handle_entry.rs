@@ -1,32 +1,26 @@
-use super::support::{current_lookup_rows, snapshot_basis_workspace};
+use super::support::{
+    current_head_query_handle, current_lookup_rows, snapshot_basis_workspace, snapshot_query_handle,
+};
 use crate::facade::{
-    topology_current_head_authoritative_context, topology_query_domain_entry, topology_runtime,
-    topology_snapshot_read_only_context, TopologyCurrentHeadReadHandleExt,
-    TopologyDomainQueryExecutionEngine, TopologyQueryAssembly, TopologyRuntimeAdapters,
+    topology_runtime, TopologyCurrentHeadReadHandleExt, TopologyDeclaredQuerySurfaces,
+    TopologyDomainQueryExecutionEngine, TopologyRuntimeAdapters,
     TopologySnapshotReadOnlyReadHandleExt,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
-use forge_query::facade::ForgeQueryApplicationFacade;
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
 #[test]
 fn current_head_handle_bound_reads_execute_neighborhood_queries_and_accumulate_reports() {
-    let (mut workspace, assembly) = seeded_workspace(
+    let (mut workspace, surfaces) = seeded_workspace(
         "query.domain-query.handle-entry.current",
         MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
     );
-    let source_identity = current_lookup_rows(&mut workspace, &assembly)
+    let source_identity = current_lookup_rows(&mut workspace, &surfaces)
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeRadialNext)
         .expect("edge fan should expose radial source");
-    let facade = ForgeQueryApplicationFacade::runtime_backed_default();
-    let handle = topology_query_domain_entry(&facade)
-        .with_operating_context(topology_current_head_authoritative_context())
-        .validate()
-        .expect("current-head context should validate")
-        .admit()
-        .expect("current-head context should admit");
+    let handle = current_head_query_handle();
     let mut reads = handle.topology_reads(&mut workspace);
 
     let shared_vertex = reads
@@ -61,22 +55,16 @@ fn snapshot_handle_bound_reads_preserve_historical_execution_posture() {
         &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 5 },
     )
     .expect("seed primitive");
-    let (mut workspace, assembly) = snapshot_basis_workspace(
+    let (mut workspace, surfaces) = snapshot_basis_workspace(
         &runtime,
         &format!("{stem}.workspace"),
         &verified.read_basis(),
     );
-    let start_identity = current_lookup_rows(&mut workspace, &assembly)
+    let start_identity = current_lookup_rows(&mut workspace, &surfaces)
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
         .expect("wire should expose successor source");
-    let facade = ForgeQueryApplicationFacade::runtime_backed_default();
-    let handle = topology_query_domain_entry(&facade)
-        .with_operating_context(topology_snapshot_read_only_context())
-        .validate()
-        .expect("snapshot context should validate")
-        .admit()
-        .expect("snapshot context should admit");
+    let handle = snapshot_query_handle();
     let snapshot_token = workspace.snapshot_token().to_string();
     let mut reads = handle.topology_reads(&mut workspace);
 
@@ -104,12 +92,16 @@ fn seeded_workspace(
     primitive: MilestoneOnePrimitiveCase,
 ) -> (
     forge_query::facade::ForgeQueryWorkspace,
-    TopologyQueryAssembly,
+    TopologyDeclaredQuerySurfaces,
 ) {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     seed_milestone_one_primitive(&mut runtime, stem, &primitive).expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, stem).expect("workspace should build");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    (workspace, assembly)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    (workspace, surfaces)
 }

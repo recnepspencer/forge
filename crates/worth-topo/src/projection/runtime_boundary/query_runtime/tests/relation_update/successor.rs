@@ -5,15 +5,14 @@ use forge_query::facade::{
 };
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
+use super::super::declaration_runtime_support::{
+    current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
+};
 use super::super::query_runtime_support::QueryRuntimeSupport;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::topology_operators::{
-    LoopSuccessorKind, TopologyEditApplicationMode, TopologyEditBatch, TopologyEditContract,
-    TopologyEditFamily, TopologyOperatorExecutionError,
-};
+use crate::topology_operators::{LoopSuccessorKind, TopologyEditFamily};
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
@@ -28,8 +27,12 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-rewire-successor").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let support = QueryRuntimeSupport::load(&mut workspace, &surfaces);
     let moved_identity = support.first_source_identity_for_relation_kind(
         schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
     );
@@ -46,16 +49,15 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     let new_successor_identity = support.find_entity_identity_by_id(new_successor_id);
     let new_predecessor_id =
         support.prev_target_half_edge_id(&mut workspace, &new_successor_identity);
-    let batch = successor_relocation_batch(
+    let declaration = successor_relocation_declaration(
         &mut workspace,
         &support,
         &moved_identity,
         &new_successor_identity,
     );
-
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("halfedge relocation program should execute through admitted successor lane");
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("halfedge relocation program should execute through declaration entry");
 
     assert_eq!(execution.families.len(), 6);
     assert!(execution
@@ -190,34 +192,32 @@ fn current_head_runtime_denies_cross_loop_successor_relocation_program() {
         ".current-head.query-edit-rewire-successor-cross-loop",
     )
     .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let support = QueryRuntimeSupport::load(&mut workspace, &surfaces);
     let (moved_identity, new_successor_identity) =
         support.half_edge_identities_for_different_loops();
-    let batch = successor_relocation_batch(
+    let declaration = successor_relocation_declaration(
         &mut workspace,
         &support,
         &moved_identity,
         &new_successor_identity,
     );
-
-    let error = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect_err("cross-loop successor relocation must fail closed");
-
-    assert!(matches!(
-        error,
-        TopologyOperatorExecutionError::UnsupportedFamilies(families)
-            if families.iter().all(|family| *family == TopologyEditFamily::RewireLoopSuccessor)
-    ));
+    assert_eq!(
+        current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
+        vec![TopologyEditFamily::RewireLoopSuccessor]
+    );
 }
 
-fn successor_relocation_batch(
+fn successor_relocation_declaration(
     workspace: &mut forge_query::facade::ForgeQueryWorkspace,
     support: &QueryRuntimeSupport,
     moved_identity: &str,
     new_successor_identity: &str,
-) -> TopologyEditBatch {
+) -> crate::topology_operators::TopologyRewireLoopSuccessorProgramDeclaration {
     let moved_half_edge_id = support.find_entity_id_by_identity(moved_identity);
     let old_successor_id = support.next_target_half_edge_id(workspace, moved_identity);
     let old_predecessor_id = support.prev_target_half_edge_id(workspace, moved_identity);
@@ -227,8 +227,8 @@ fn successor_relocation_batch(
     let old_predecessor_identity = support.find_entity_identity_by_id(old_predecessor_id);
     let new_predecessor_identity = support.find_entity_identity_by_id(new_predecessor_id);
 
-    TopologyEditBatch::new(vec![
-        TopologyEditContract::rewire_loop_successor(
+    crate::topology_operators::TopologyRewireLoopSuccessorProgramDeclaration::new(vec![
+        crate::topology_operators::TopologyLoopSuccessorRewireMember::new(
             support.relation_id_for_source_kind(
                 moved_identity,
                 schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
@@ -237,7 +237,7 @@ fn successor_relocation_batch(
             moved_half_edge_id,
             new_successor_id,
         ),
-        TopologyEditContract::rewire_loop_successor(
+        crate::topology_operators::TopologyLoopSuccessorRewireMember::new(
             support.relation_id_for_source_kind(
                 moved_identity,
                 schema::facade::platform::relations::TopologyRelationKind::HalfEdgePrev,
@@ -246,7 +246,7 @@ fn successor_relocation_batch(
             moved_half_edge_id,
             new_predecessor_id,
         ),
-        TopologyEditContract::rewire_loop_successor(
+        crate::topology_operators::TopologyLoopSuccessorRewireMember::new(
             support.relation_id_for_source_kind(
                 &old_predecessor_identity,
                 schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
@@ -255,7 +255,7 @@ fn successor_relocation_batch(
             old_predecessor_id,
             old_successor_id,
         ),
-        TopologyEditContract::rewire_loop_successor(
+        crate::topology_operators::TopologyLoopSuccessorRewireMember::new(
             support.relation_id_for_source_kind(
                 &old_successor_identity,
                 schema::facade::platform::relations::TopologyRelationKind::HalfEdgePrev,
@@ -264,7 +264,7 @@ fn successor_relocation_batch(
             old_successor_id,
             old_predecessor_id,
         ),
-        TopologyEditContract::rewire_loop_successor(
+        crate::topology_operators::TopologyLoopSuccessorRewireMember::new(
             support.relation_id_for_source_kind(
                 &new_predecessor_identity,
                 schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
@@ -273,7 +273,7 @@ fn successor_relocation_batch(
             new_predecessor_id,
             moved_half_edge_id,
         ),
-        TopologyEditContract::rewire_loop_successor(
+        crate::topology_operators::TopologyLoopSuccessorRewireMember::new(
             support.relation_id_for_source_kind(
                 new_successor_identity,
                 schema::facade::platform::relations::TopologyRelationKind::HalfEdgePrev,
@@ -283,5 +283,4 @@ fn successor_relocation_batch(
             moved_half_edge_id,
         ),
     ])
-    .expect("non-empty successor relocation batch")
 }

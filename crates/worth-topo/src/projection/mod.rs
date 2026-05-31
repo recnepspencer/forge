@@ -18,6 +18,7 @@ pub use diagnostic_surfaces::query_diagnostics::{
     topology_equivalence_contract_computed_declaration, TopologyDiagnosticsMaintainer,
     TopologyEquivalenceContractMaintainer, TopologyQueryMutationEvidence,
 };
+pub(crate) use domain_entry::TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY;
 pub use domain_entry::{
     topology_current_head_authoritative_context, topology_query_domain,
     topology_query_domain_entry, topology_query_domain_entry_checked,
@@ -33,7 +34,7 @@ pub(crate) use read_views::domain::parity::{
 };
 pub use read_views::domain::{
     TopologyConfiguredDomainReadSession, TopologyCurrentHeadReadHandleExt,
-    TopologyCurrentHeadReadSession, TopologyDomainQuery, TopologyDomainQueryAggregateReport,
+    TopologyCurrentHeadReadSession, TopologyDomainQueryAggregateReport,
     TopologyDomainQueryCloseoutReport, TopologyDomainQueryCloseoutRow,
     TopologyDomainQueryCloseoutStatus, TopologyDomainQueryDebtRow, TopologyDomainQueryError,
     TopologyDomainQueryErrorKind, TopologyDomainQueryExecutionAggregateRow,

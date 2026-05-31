@@ -13,14 +13,14 @@ use super::side_quest_types::{
     MilestoneThreeSideQuestContractRow,
 };
 use crate::certification::error::TopologyCertificationError;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
+use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::projection::{
-    build_domain_query_view_parity_artifact, query_entity_identity, TopologyDomainQuery,
-    TopologyDomainQueryParityKind, TopologyDomainQueryViewParityArtifact,
-    TopologyDomainQueryViewRef,
+    build_domain_query_view_parity_artifact, query_entity_identity, TopologyDomainQueryParityKind,
+    TopologyDomainQueryViewParityArtifact, TopologyDomainQueryViewRef,
 };
 
 pub(in crate::certification::topology_operator_closeout) fn certify_milestone_three_side_quest_closeout_impl<
@@ -32,7 +32,7 @@ pub(in crate::certification::topology_operator_closeout) fn certify_milestone_th
 where
     F: FnMut() -> RelationalRuntime,
 {
-    let query = TopologyDomainQuery::load();
+    let query = TopologyReadProofHarness::new();
     let (replay_left, replay_right) =
         replay_local_rewire_parity_artifacts(runtime_factory, stem, &query)?;
     let replay_parity = query.record_view_parity(
@@ -91,7 +91,7 @@ where
 fn replay_local_rewire_parity_artifacts<F>(
     runtime_factory: &mut F,
     stem: &str,
-    query: &TopologyDomainQuery,
+    query: &TopologyReadProofHarness,
 ) -> Result<
     (
         TopologyDomainQueryViewParityArtifact,
@@ -128,7 +128,7 @@ where
 fn branch_local_loop_cycle_parity_artifacts<F>(
     runtime_factory: &mut F,
     stem: &str,
-    query: &TopologyDomainQuery,
+    query: &TopologyReadProofHarness,
 ) -> Result<
     (
         TopologyDomainQueryViewParityArtifact,
@@ -177,7 +177,7 @@ fn local_rewire_parity_artifact(
     runtime: &RelationalRuntime,
     stem: &str,
     read_basis: &DerivedTopologyReadBasis,
-    query: &TopologyDomainQuery,
+    query: &TopologyReadProofHarness,
 ) -> Result<TopologyDomainQueryViewParityArtifact, TopologyCertificationError> {
     let moved_identity = first_source_identity_for_snapshot_relation(
         runtime,
@@ -198,7 +198,7 @@ fn loop_cycle_parity_artifact(
     runtime: &RelationalRuntime,
     stem: &str,
     read_basis: &DerivedTopologyReadBasis,
-    query: &TopologyDomainQuery,
+    query: &TopologyReadProofHarness,
     depth: usize,
 ) -> Result<TopologyDomainQueryViewParityArtifact, TopologyCertificationError> {
     let start_identity = first_source_identity_for_snapshot_relation(
@@ -220,7 +220,7 @@ fn snapshot_basis_workspace(
     runtime: &RelationalRuntime,
     stem: &str,
     read_basis: &DerivedTopologyReadBasis,
-) -> Result<(ForgeQueryWorkspace, TopologyQueryAssembly), TopologyCertificationError> {
+) -> Result<(ForgeQueryWorkspace, TopologyDeclaredQuerySurfaces), TopologyCertificationError> {
     let read_view = runtime
         .read_truth()
         .read_snapshot(read_basis.snapshot())
@@ -234,9 +234,12 @@ fn snapshot_basis_workspace(
         TopologyRuntimeAdapters::snapshot_read_only(read_view, read_basis.snapshot().clone());
     let mut workspace = topology_runtime(adapters, stem)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    Ok((workspace, assembly))
+    Ok((workspace, surfaces))
 }
 
 fn first_source_identity_for_snapshot_relation(

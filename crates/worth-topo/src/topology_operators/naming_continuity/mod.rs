@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    TopologyEditBatch, TopologyEditNamingOutcome, TopologyEditNamingRow, TopologyEditRejectionClass,
+    naming_edit_continuity_matrix_for_contracts, TopologyEditBatch, TopologyEditNamingOutcome,
+    TopologyEditNamingRow, TopologyEditRejectionClass,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -38,24 +39,6 @@ impl NamingEditContinuityMatrix {
 
 impl TopologyEditBatch {
     pub fn naming_edit_continuity_matrix(&self) -> NamingEditContinuityMatrix {
-        let rows = self.naming_report().rows;
-        let preserved_count = rows
-            .iter()
-            .filter(|row| row.outcome == TopologyEditNamingOutcome::Preserved)
-            .count();
-        let ambiguous_count = rows
-            .iter()
-            .filter(|row| row.outcome == TopologyEditNamingOutcome::Ambiguous)
-            .count();
-        let rejected_count = rows
-            .iter()
-            .filter(|row| row.outcome == TopologyEditNamingOutcome::Rejected)
-            .count();
-        NamingEditContinuityMatrix {
-            rows,
-            preserved_count,
-            ambiguous_count,
-            rejected_count,
-        }
+        naming_edit_continuity_matrix_for_contracts(self.contracts())
     }
 }

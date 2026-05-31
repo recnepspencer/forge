@@ -92,17 +92,6 @@ impl TopologyQueryBindingIndex {
             .unwrap_or_default()
     }
 
-    pub(crate) fn outgoing_relation_ids(
-        &self,
-        source_query_identity: &str,
-        expected_kind: TopologyRelationKind,
-    ) -> Vec<RelationId> {
-        self.outgoing_relation_ids
-            .get(&relation_key(source_query_identity, expected_kind))
-            .cloned()
-            .unwrap_or_default()
-    }
-
     pub(crate) fn incoming_relation_source_identities(
         &self,
         target_query_identity: &str,

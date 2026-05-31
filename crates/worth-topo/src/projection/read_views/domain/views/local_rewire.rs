@@ -1,6 +1,6 @@
 use super::super::error::TopologyDomainQueryError;
 use super::super::request::TopologyDomainQueryRequest;
-use super::super::topology::TopologyDomainQuery;
+use super::super::TopologyReadLedger;
 use crate::projection::diagnostic_surfaces::read_proof::report::TopologyDomainQueryRequestFamily;
 use crate::projection::read_views::TopologyLocalRewireNeighborhoodView;
 use crate::projection::runtime_boundary::read_execution::{
@@ -9,7 +9,7 @@ use crate::projection::runtime_boundary::read_execution::{
 };
 use forge_query::facade::ForgeQueryWorkspace;
 
-impl TopologyDomainQuery {
+impl TopologyReadLedger {
     pub(crate) fn local_rewire_neighborhood(
         &self,
         workspace: &mut ForgeQueryWorkspace,

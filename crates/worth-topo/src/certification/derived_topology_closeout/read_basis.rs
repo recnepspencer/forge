@@ -129,27 +129,30 @@ fn certify_milestone_two_query_read_basis(
         TopologyRuntimeAdapters::snapshot_read_only(read_view, read_basis.snapshot().clone());
     let mut workspace = topology_runtime(adapters, ".milestone-two.certification")
         .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?;
     let validation_state = workspace
-        .state(assembly.validation())
+        .state(surfaces.validation())
         .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?;
     ensure_query_surface_ready(".topology.validation", &validation_state)?;
     let equivalence_state = workspace
-        .state(assembly.equivalence_contract())
+        .state(surfaces.equivalence_contract())
         .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?;
     ensure_query_surface_ready(".topology.equivalence_contract", &equivalence_state)?;
     let validation_inspection = derived_query_inspection(
         &mut workspace,
-        assembly.validation(),
+        surfaces.validation(),
         ".topology.validation",
     )?;
     let equivalence_inspection = derived_query_inspection(
         &mut workspace,
-        assembly.equivalence_contract(),
+        surfaces.equivalence_contract(),
         ".topology.equivalence_contract",
     )?;
-    let snapshot = assembly.snapshot_for_read_basis(&mut workspace, &read_basis)?;
+    let snapshot = surfaces.snapshot_for_read_basis(&mut workspace, &read_basis)?;
     let read_artifact = build_topology_read_artifact(&read_basis, &snapshot.interpreted);
     let certified_interpretation = certify_topology_view(read_basis.clone(), &snapshot.interpreted);
     let replay_basis = read_basis.replay_of();

@@ -1,6 +1,8 @@
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
+use crate::facade::TopologyCurrentHeadReadHandleExt;
 use crate::projection::read_views::domain::closeout::{
     TopologyDomainQueryCloseoutStatus, TopologyDomainQueryPhaseThreeBlocker,
     TopologyDomainQueryPhaseThreeBlockerStatus,
@@ -9,19 +11,20 @@ use crate::projection::read_views::domain::parity::{
     build_domain_query_view_parity_artifact, TopologyDomainQueryParityKind,
     TopologyDomainQueryViewRef,
 };
-use crate::projection::read_views::domain::{
-    TopologyDomainQuery, TopologyDomainQueryRequestFamily,
-};
+use crate::projection::read_views::domain::TopologyDomainQueryRequestFamily;
 use crate::projection::read_views::domain::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractStatus,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
-use super::support::{current_lookup_rows, seeded_sheet_disk_workspace, snapshot_basis_workspace};
+use super::support::{
+    current_head_query_handle, current_lookup_rows, seeded_sheet_disk_workspace,
+    snapshot_basis_workspace,
+};
 
 #[test]
 fn domain_query_closeout_reports_unobserved_families_before_any_requests() {
-    let query = TopologyDomainQuery::load();
+    let query = TopologyReadProofHarness::new();
     let closeout_report = query.closeout_report();
 
     assert_eq!(closeout_report.query_executed_family_count, 0);
@@ -61,19 +64,20 @@ fn domain_query_closeout_reports_unobserved_families_before_any_requests() {
 
 #[test]
 fn domain_query_closeout_requires_no_n_plus_one_contracts_before_phase_three_ready() {
-    let (mut workspace, assembly, _read_basis) =
+    let (mut workspace, surfaces, _read_basis) =
         seeded_sheet_disk_workspace("query.domain-query-closeout.contract-gate");
-    let query = TopologyDomainQuery::load();
-    let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
+    let handle = current_head_query_handle();
+    let lookup_rows = current_lookup_rows(&mut workspace, &surfaces);
     let moved_identity = lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
         .expect("sheet disk should expose successor source");
+    let mut reads = handle.topology_reads(&mut workspace);
 
-    let _ = query
-        .local_rewire_neighborhood(&mut workspace, &moved_identity, 4)
+    let _ = reads
+        .local_rewire_neighborhood(&moved_identity, 4)
         .expect("query-native local rewire neighborhood should load");
-    let closeout_report = query.closeout_report();
+    let closeout_report = reads.closeout_report();
 
     assert_eq!(
         closeout_report
@@ -120,8 +124,8 @@ fn domain_query_proof_report_aggregates_request_and_parity_evidence_on_the_bound
         "query.domain-query-proof.replay.right",
         &replay_basis,
     );
-    let left_query = TopologyDomainQuery::load();
-    let right_query = TopologyDomainQuery::load();
+    let left_query = TopologyReadProofHarness::new();
+    let right_query = TopologyReadProofHarness::new();
     let left_lookup_rows = current_lookup_rows(&mut left_workspace, &left_assembly);
     let moved_identity = left_lookup_rows
         .lookup()

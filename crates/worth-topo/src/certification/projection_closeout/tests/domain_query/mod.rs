@@ -1,5 +1,6 @@
 mod closeout;
 mod core;
+mod declaration_entry;
 mod handle_entry;
 mod lowering;
 mod parity;

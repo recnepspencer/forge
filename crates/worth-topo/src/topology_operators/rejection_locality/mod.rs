@@ -55,9 +55,13 @@ pub struct RejectedEditScopeReport {
 impl TopologyOperatorExecutionError {
     pub fn rejection_class(&self) -> Option<TopologyEditRejectionClass> {
         match self {
-            Self::UnsupportedMode(_) | Self::UnsupportedFamilies(_) => {
+            Self::UnsupportedMode(_)
+            | Self::UnsupportedFamilies(_)
+            | Self::DeclarationEntryRequired { .. }
+            | Self::DeclarationEntryProgramRequired { .. } => {
                 Some(TopologyEditRejectionClass::OutOfClassEdit)
             }
+            Self::DeclarationEntry { .. } => Some(TopologyEditRejectionClass::OutOfClassEdit),
             Self::MissingCreatedEntityReference(_)
             | Self::MissingExistingEntityBinding(_)
             | Self::MissingExistingRelationBinding(_)
@@ -81,9 +85,16 @@ impl TopologyOperatorExecutionError {
         &self,
         batch: &TopologyEditBatch,
     ) -> Option<RejectedEditScopeReport> {
+        self.rejected_contract_scope_report(batch.contracts())
+    }
+
+    pub fn rejected_contract_scope_report(
+        &self,
+        contracts: &[TopologyEditContract],
+    ) -> Option<RejectedEditScopeReport> {
         let rejection_class = self.rejection_class()?;
         let detail = self.to_string();
-        let rows = rejected_contracts(self, batch)
+        let rows = rejected_contracts(self, contracts)
             .into_iter()
             .map(|contract| RejectedEditScopeRow {
                 family: contract.family,
@@ -100,14 +111,23 @@ impl TopologyOperatorExecutionError {
 
 fn rejected_contracts<'a>(
     error: &TopologyOperatorExecutionError,
-    batch: &'a TopologyEditBatch,
+    contracts: &'a [TopologyEditContract],
 ) -> Vec<&'a TopologyEditContract> {
     match error {
-        TopologyOperatorExecutionError::UnsupportedFamilies(families) => batch
-            .contracts()
+        TopologyOperatorExecutionError::UnsupportedFamilies(families) => contracts
             .iter()
             .filter(|contract| families.contains(&contract.family))
             .collect(),
-        _ => batch.contracts().iter().collect(),
+        TopologyOperatorExecutionError::DeclarationEntryRequired { family, .. } => contracts
+            .iter()
+            .filter(|contract| contract.family == *family)
+            .collect(),
+        TopologyOperatorExecutionError::DeclarationEntryProgramRequired { families, .. } => {
+            contracts
+                .iter()
+                .filter(|contract| families.contains(&contract.family))
+                .collect()
+        }
+        _ => contracts.iter().collect(),
     }
 }
