@@ -104,7 +104,7 @@ pub(crate) fn resolve_schema_continuity(
             branch_id,
             options.proposed_schema_transition.as_ref(),
             Some(previous_envelope),
-            ConflictClass::DescriptorVersionIncompatibility {
+            ConflictClass::DescriptorSemanticsVersionUnsupported {
                 previous_descriptor_semantics_version: previous_envelope
                     .descriptor_semantics_version,
                 current_descriptor_semantics_version,
@@ -236,26 +236,26 @@ fn materialize_declared_transition(
             )
         })?;
     match validated.reconciliation {
-        crate::schema::data::SchemaReconciliationClassification::TypeIncompatible => {
+        crate::schema::data::SchemaReconciliationClassification::TypeContinuityDenied => {
             return Err(schema_continuity_conflict(
                 runtime,
                 branch_id,
                 Some(&proposed_transition),
                 previous_envelope,
-                ConflictClass::TypeIncompatibleSchemaTransition {
-                    detail: "declared schema transition contains a type-incompatible boundary that cannot continue honestly"
+                ConflictClass::TypeContinuityDeniedSchemaTransition {
+                    detail: "declared schema transition contains a type-continuity-denied boundary that cannot continue honestly"
                         .to_string(),
                 },
             ));
         }
-        crate::schema::data::SchemaReconciliationClassification::StructuralIncompatible => {
+        crate::schema::data::SchemaReconciliationClassification::StructuralContinuityDenied => {
             return Err(schema_continuity_conflict(
                 runtime,
                 branch_id,
                 Some(&proposed_transition),
                 previous_envelope,
-                ConflictClass::StructuralIncompatibleSchemaTransition {
-                    detail: "declared schema transition contains a structural/semantic incompatibility that cannot continue honestly"
+                ConflictClass::StructuralContinuityDeniedSchemaTransition {
+                    detail: "declared schema transition contains a structural/semantic continuity denial that cannot continue honestly"
                         .to_string(),
                 },
             ));

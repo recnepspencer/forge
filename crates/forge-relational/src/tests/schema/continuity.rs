@@ -202,7 +202,7 @@ fn schema_transition_summary_derives_changed_strata_without_duplicate_noise() {
                 HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
                 SchemaDiffDetail::FreeText {
                     detail: Arc::<str>::from("unit semantics widened"),
-                    declared_intent: FreeFormSchemaDiffIntent::StructuralIncompatible,
+                    declared_intent: FreeFormSchemaDiffIntent::StructuralContinuityDenied,
                 },
             ),
             SchemaDiffAtom::new(
@@ -590,7 +590,7 @@ fn schema_boundary_fingerprint_is_canonical_across_diff_atom_orderings() {
 }
 
 #[test]
-fn type_incompatible_schema_transition_is_rejected_not_continued() {
+fn type_continuity_denied_schema_transition_is_rejected_not_continued() {
     let proposed = ProposedSchemaTransition {
         source_schema_id: SchemaId("chip".to_string()),
         source_schema_version_id: SchemaVersionId(1),
@@ -627,7 +627,7 @@ fn type_incompatible_schema_transition_is_rejected_not_continued() {
 
     assert_eq!(
         validated.reconciliation,
-        SchemaReconciliationClassification::TypeIncompatible
+        SchemaReconciliationClassification::TypeContinuityDenied
     );
     assert_eq!(
         validated.continuation,
@@ -1166,7 +1166,7 @@ fn declared_schema_transition_requires_non_empty_runtime_basis() {
 }
 
 #[test]
-fn declared_type_incompatible_schema_transition_reports_specific_conflict_class() {
+fn declared_type_continuity_denied_schema_transition_reports_specific_conflict_class() {
     let mut runtime = runtime_with_test_schema();
     let _first = create_entity_outcome(&mut runtime, "a");
 
@@ -1215,10 +1215,10 @@ fn declared_type_incompatible_schema_transition_reports_specific_conflict_class(
         crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {
             assert!(matches!(
                 error.class,
-                ConflictClass::TypeIncompatibleSchemaTransition { .. }
+                ConflictClass::TypeContinuityDeniedSchemaTransition { .. }
             ));
         }
-        other => panic!("expected type-incompatible conflict, got {other:?}"),
+        other => panic!("expected type-continuity-denied conflict, got {other:?}"),
     }
 }
 

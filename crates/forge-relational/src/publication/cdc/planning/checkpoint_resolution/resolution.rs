@@ -31,15 +31,15 @@ pub(crate) fn resolve_checkpoint(
 
     if checkpoint.replay_schema_version().0 != 1 {
         let detail = format!(
-            "subscriber checkpoint replay schema version {} is incompatible with runtime replay schema version 1",
+            "subscriber checkpoint replay schema version {} is unsupported by runtime replay schema version 1",
             checkpoint.replay_schema_version().0
         );
         diagnostics.push(rejection_artifact(
-            SubscriberStreamFailureClass::SchemaIncompatible,
+            SubscriberStreamFailureClass::SchemaUnsupported,
             &detail,
         ));
         return Err(SubscriberStreamFailure::new(
-            SubscriberStreamFailureClass::SchemaIncompatible,
+            SubscriberStreamFailureClass::SchemaUnsupported,
             detail,
             latest,
             diagnostics,

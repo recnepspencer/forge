@@ -293,7 +293,7 @@ fn schema_reconciliation_classification_test() {
                 HistoricalInterpretationSensitivity::SensitiveToPublicationMeaning,
                 SchemaDiffDetail::FreeText {
                     detail: "projection semantics became ambiguous".into(),
-                    declared_intent: FreeFormSchemaDiffIntent::StructuralIncompatible,
+                    declared_intent: FreeFormSchemaDiffIntent::StructuralContinuityDenied,
                 },
             )],
         },
@@ -354,11 +354,11 @@ fn schema_reconciliation_classification_test() {
     );
     assert_eq!(
         type_conflict.reconciliation,
-        SchemaReconciliationClassification::TypeIncompatible
+        SchemaReconciliationClassification::TypeContinuityDenied
     );
     assert_eq!(
         structural_conflict.reconciliation,
-        SchemaReconciliationClassification::StructuralIncompatible
+        SchemaReconciliationClassification::StructuralContinuityDenied
     );
     assert_eq!(
         additive_plan

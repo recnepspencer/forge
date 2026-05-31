@@ -14,8 +14,8 @@ pub enum IndexParityMode {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum IndexQueryRejectionClass {
     MissingGeneration,
-    IncompatibleVersion,
-    IncompatibleBranch,
+    UnsupportedVersion,
+    UnsupportedBranch,
     CorruptIndexEntries,
     UnsupportedScope,
     UnsupportedOrderingContract,

@@ -121,7 +121,7 @@ pub(crate) fn assess_subscriber_continuity(
             }
             SchemaContinuationClassification::Rejected => {
                 return Err(unsupported_continuation_failure(
-                    SubscriberStreamFailureClass::SchemaIncompatible,
+                    SubscriberStreamFailureClass::SchemaUnsupported,
                     "schema boundary rejected subscriber continuation",
                     subscriber_contract,
                     prior_proof,

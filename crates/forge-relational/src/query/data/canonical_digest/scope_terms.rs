@@ -314,8 +314,8 @@ pub(super) fn encode_index_parity_mode(bytes: &mut Vec<u8>, parity_mode: IndexPa
 fn encode_index_query_rejection_class(bytes: &mut Vec<u8>, rejection: &IndexQueryRejectionClass) {
     bytes.push(match rejection {
         IndexQueryRejectionClass::MissingGeneration => 0,
-        IndexQueryRejectionClass::IncompatibleVersion => 1,
-        IndexQueryRejectionClass::IncompatibleBranch => 2,
+        IndexQueryRejectionClass::UnsupportedVersion => 1,
+        IndexQueryRejectionClass::UnsupportedBranch => 2,
         IndexQueryRejectionClass::CorruptIndexEntries => 3,
         IndexQueryRejectionClass::UnsupportedScope => 4,
         IndexQueryRejectionClass::UnsupportedOrderingContract => 5,

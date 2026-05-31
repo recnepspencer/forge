@@ -271,7 +271,7 @@ fn schema_continuity_conflicts_are_typed_not_json() {
             previous_descriptor_semantics_version: DescriptorSemanticsVersion(1),
             current_descriptor_semantics_version: DescriptorSemanticsVersion(2),
         },
-        ConflictClass::DescriptorVersionIncompatibility {
+        ConflictClass::DescriptorSemanticsVersionUnsupported {
             previous_descriptor_semantics_version: DescriptorSemanticsVersion(1),
             current_descriptor_semantics_version: DescriptorSemanticsVersion(2),
         },
@@ -296,10 +296,10 @@ fn schema_continuity_conflicts_are_typed_not_json() {
         ConflictClass::HistoricalReinterpretationViolation {
             detail: "reinterpretation denied".to_string(),
         },
-        ConflictClass::TypeIncompatibleSchemaTransition {
+        ConflictClass::TypeContinuityDeniedSchemaTransition {
             detail: "type mismatch".to_string(),
         },
-        ConflictClass::StructuralIncompatibleSchemaTransition {
+        ConflictClass::StructuralContinuityDeniedSchemaTransition {
             detail: "shape mismatch".to_string(),
         },
         ConflictClass::DirectionalityMismatchUnderCanonicalReconciliation {

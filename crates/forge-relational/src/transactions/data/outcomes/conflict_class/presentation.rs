@@ -37,14 +37,14 @@ impl ConflictClass {
             Self::MergeConflictOverlap { .. } => DiagnosticCode::MergeConflictOverlap,
             Self::MissingMergeBase { .. } => DiagnosticCode::MissingMergeBase,
             Self::UndeclaredSchemaTransition { .. }
-            | Self::DescriptorVersionIncompatibility { .. }
+            | Self::DescriptorSemanticsVersionUnsupported { .. }
             | Self::InvalidSchemaTransitionSourceBasis { .. }
             | Self::InvalidSchemaTransitionTargetBasis { .. }
             | Self::MissingSchemaBasisForTransition { .. }
             | Self::UnsupportedBridgeDescriptor { .. }
             | Self::HistoricalReinterpretationViolation { .. }
-            | Self::TypeIncompatibleSchemaTransition { .. }
-            | Self::StructuralIncompatibleSchemaTransition { .. }
+            | Self::TypeContinuityDeniedSchemaTransition { .. }
+            | Self::StructuralContinuityDeniedSchemaTransition { .. }
             | Self::DirectionalityMismatchUnderCanonicalReconciliation { .. }
             | Self::InvalidSchemaTransitionShape { .. } => {
                 DiagnosticCode::SchemaContinuityViolation
@@ -66,8 +66,8 @@ impl ConflictClass {
             | Self::MissingMergeBase { detail }
             | Self::UnsupportedBridgeDescriptor { detail }
             | Self::HistoricalReinterpretationViolation { detail }
-            | Self::TypeIncompatibleSchemaTransition { detail }
-            | Self::StructuralIncompatibleSchemaTransition { detail }
+            | Self::TypeContinuityDeniedSchemaTransition { detail }
+            | Self::StructuralContinuityDeniedSchemaTransition { detail }
             | Self::DirectionalityMismatchUnderCanonicalReconciliation { detail } => detail.clone(),
             Self::InvariantViolation { detail, .. } => detail.clone(),
             Self::InvalidSchemaTransitionShape { detail } => detail.clone(),
@@ -130,7 +130,7 @@ impl ConflictClass {
                 previous_descriptor_semantics_version,
                 current_descriptor_semantics_version
             ),
-            Self::DescriptorVersionIncompatibility {
+            Self::DescriptorSemanticsVersionUnsupported {
                 previous_descriptor_semantics_version,
                 current_descriptor_semantics_version,
             } => format!(

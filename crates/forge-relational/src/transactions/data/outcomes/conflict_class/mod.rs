@@ -195,7 +195,7 @@ pub enum ConflictClass {
         previous_descriptor_semantics_version: DescriptorSemanticsVersion,
         current_descriptor_semantics_version: DescriptorSemanticsVersion,
     },
-    DescriptorVersionIncompatibility {
+    DescriptorSemanticsVersionUnsupported {
         previous_descriptor_semantics_version: DescriptorSemanticsVersion,
         current_descriptor_semantics_version: DescriptorSemanticsVersion,
     },
@@ -220,10 +220,10 @@ pub enum ConflictClass {
     HistoricalReinterpretationViolation {
         detail: String,
     },
-    TypeIncompatibleSchemaTransition {
+    TypeContinuityDeniedSchemaTransition {
         detail: String,
     },
-    StructuralIncompatibleSchemaTransition {
+    StructuralContinuityDeniedSchemaTransition {
         detail: String,
     },
     DirectionalityMismatchUnderCanonicalReconciliation {

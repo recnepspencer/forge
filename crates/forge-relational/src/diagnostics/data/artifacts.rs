@@ -54,7 +54,7 @@ pub enum DiagnosticCode {
     RelationUniquenessViolation,
     RelationSymmetryViolation,
     RelationEndpointDeletionIntegrityViolation,
-    RelationContractCompatibilityMismatch,
+    RelationContractAdmissionMismatch,
     ConflictingIntent,
     InvalidSavepoint,
     InvalidMergeParent,

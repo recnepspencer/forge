@@ -226,8 +226,8 @@ pub(crate) fn classify_schema_transition(
 
     if matches!(
         reconciliation,
-        SchemaReconciliationClassification::TypeIncompatible
-            | SchemaReconciliationClassification::StructuralIncompatible
+        SchemaReconciliationClassification::TypeContinuityDenied
+            | SchemaReconciliationClassification::StructuralContinuityDenied
     ) {
         continuation = SchemaContinuationClassification::Rejected;
         bridgeability = SchemaBridgeabilityClassification::Rejected;
@@ -239,7 +239,7 @@ pub(crate) fn classify_schema_transition(
     {
         reconciliation = max_reconciliation_classification(
             reconciliation,
-            SchemaReconciliationClassification::StructuralIncompatible,
+            SchemaReconciliationClassification::StructuralContinuityDenied,
         );
     }
 
@@ -249,8 +249,8 @@ pub(crate) fn classify_schema_transition(
             == SchemaContinuationClassification::Rejected
             && matches!(
                 reconciliation,
-                SchemaReconciliationClassification::TypeIncompatible
-                    | SchemaReconciliationClassification::StructuralIncompatible
+                SchemaReconciliationClassification::TypeContinuityDenied
+                    | SchemaReconciliationClassification::StructuralContinuityDenied
             ) {
             SchemaContinuationAdmissionObservation::RejectedInAllLayers
         } else {
@@ -768,7 +768,7 @@ fn classify_reconciliation(atom: &SchemaDiffAtom) -> SchemaReconciliationClassif
         }
         SchemaDiffDetail::RemovedField { .. } => SchemaReconciliationClassification::Narrowing,
         SchemaDiffDetail::TypeChanged { .. } => {
-            SchemaReconciliationClassification::TypeIncompatible
+            SchemaReconciliationClassification::TypeContinuityDenied
         }
         SchemaDiffDetail::InvariantContractChanged { .. } => {
             if atom.strata.contains(&SchemaStratum::BehavioralSemantics)
@@ -777,7 +777,7 @@ fn classify_reconciliation(atom: &SchemaDiffAtom) -> SchemaReconciliationClassif
                     .contains(&SchemaStratum::EntityIdentitySemantics)
                 || atom.strata.contains(&SchemaStratum::LineageSemantics)
             {
-                SchemaReconciliationClassification::StructuralIncompatible
+                SchemaReconciliationClassification::StructuralContinuityDenied
             } else {
                 SchemaReconciliationClassification::Additive
             }
@@ -786,8 +786,8 @@ fn classify_reconciliation(atom: &SchemaDiffAtom) -> SchemaReconciliationClassif
             declared_intent, ..
         } => match declared_intent {
             FreeFormSchemaDiffIntent::Additive => SchemaReconciliationClassification::Additive,
-            FreeFormSchemaDiffIntent::StructuralIncompatible => {
-                SchemaReconciliationClassification::StructuralIncompatible
+            FreeFormSchemaDiffIntent::StructuralContinuityDenied => {
+                SchemaReconciliationClassification::StructuralContinuityDenied
             }
         },
     }
@@ -870,8 +870,10 @@ fn max_reconciliation_classification(
 ) -> SchemaReconciliationClassification {
     use SchemaReconciliationClassification::*;
     match (current, candidate) {
-        (StructuralIncompatible, _) | (_, StructuralIncompatible) => StructuralIncompatible,
-        (TypeIncompatible, _) | (_, TypeIncompatible) => TypeIncompatible,
+        (StructuralContinuityDenied, _) | (_, StructuralContinuityDenied) => {
+            StructuralContinuityDenied
+        }
+        (TypeContinuityDenied, _) | (_, TypeContinuityDenied) => TypeContinuityDenied,
         (Narrowing, _) | (_, Narrowing) => Narrowing,
         _ => Additive,
     }

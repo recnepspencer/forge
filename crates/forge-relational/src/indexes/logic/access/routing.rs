@@ -84,13 +84,13 @@ fn index_rejection_for_packet(
             .get(&generation.index_id)
             .is_some_and(|definition| definition.branch_scoped)
     {
-        return Some(IndexQueryRejectionClass::IncompatibleBranch);
+        return Some(IndexQueryRejectionClass::UnsupportedBranch);
     }
     if generation.applicability.version_id > packet.context_id.version_id {
-        return Some(IndexQueryRejectionClass::IncompatibleVersion);
+        return Some(IndexQueryRejectionClass::UnsupportedVersion);
     }
     if generation.applicability.schema_version != packet.context_id.schema_version {
-        return Some(IndexQueryRejectionClass::IncompatibleVersion);
+        return Some(IndexQueryRejectionClass::UnsupportedVersion);
     }
     match &packet.scope {
         QueryScope::EntityFieldEquals { .. } | QueryScope::EntityFieldAnyOf { .. } => {

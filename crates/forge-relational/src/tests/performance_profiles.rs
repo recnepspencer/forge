@@ -4116,7 +4116,7 @@ fn perf_chip_simulator_matrix() {
         .all(|sample| sample.elapsed_micros > 0));
     assert_budget(
         &event_wave_churn_samples,
-        "chip event-wave churn should keep repeated compile windows compatible and bounded under sustained stepping",
+        "chip event-wave churn should keep repeated compile windows supported and bounded under sustained stepping",
         |metrics| {
             metrics["iterations"].as_u64() == Some(24)
                 && metrics["max_outgoing_relation_count"].as_u64() == Some(16)
@@ -4253,7 +4253,7 @@ fn perf_chip_simulator_matrix() {
         .all(|sample| sample.elapsed_micros > 0));
     assert_budget(
         &event_wave_rich_diagnostics_samples,
-        "chip event-wave rich diagnostics should keep compile windows compatible while surfacing diagnostic cost clearly",
+        "chip event-wave rich diagnostics should keep compile windows supported while surfacing diagnostic cost clearly",
         |metrics| {
             metrics["iterations"].as_u64() == Some(16)
                 && metrics["max_outgoing_relation_count"].as_u64() == Some(16)

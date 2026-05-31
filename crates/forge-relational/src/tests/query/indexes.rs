@@ -946,7 +946,7 @@ fn derived_index_contract_relation_field_any_of_executes_through_real_index_path
 }
 
 #[test]
-fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports_incompatible_branch(
+fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports_unsupported_branch(
 ) {
     let mut runtime = runtime_with_index_field_aspects();
     let main_source = create_entity_outcome(&mut runtime, "main-source");
@@ -1046,7 +1046,7 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
     assert_eq!(
         outcome.access_path,
         QueryAccessPath::DerivedIndexRejectedStorageRead {
-            rejection: IndexQueryRejectionClass::IncompatibleBranch,
+            rejection: IndexQueryRejectionClass::UnsupportedBranch,
         }
     );
 }
@@ -1145,7 +1145,7 @@ fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_pa
 }
 
 #[test]
-fn derived_index_contract_branch_scoped_generation_reports_incompatible_branch() {
+fn derived_index_contract_branch_scoped_generation_reports_unsupported_branch() {
     let mut runtime = runtime_with_index_field_aspects();
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
@@ -1206,7 +1206,7 @@ fn derived_index_contract_branch_scoped_generation_reports_incompatible_branch()
     assert_eq!(
         outcome.access_path,
         QueryAccessPath::DerivedIndexRejectedStorageRead {
-            rejection: IndexQueryRejectionClass::IncompatibleBranch,
+            rejection: IndexQueryRejectionClass::UnsupportedBranch,
         }
     );
 }
@@ -1299,7 +1299,7 @@ fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
 }
 
 #[test]
-fn derived_index_contract_prefers_older_compatible_generation_over_newer_incompatible_one() {
+fn derived_index_contract_prefers_older_supported_generation_over_newer_unsupported_one() {
     let mut runtime = runtime_with_index_field_aspects();
     let main_alpha = create_entity_outcome(&mut runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {

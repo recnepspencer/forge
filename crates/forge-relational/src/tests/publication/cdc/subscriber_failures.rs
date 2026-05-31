@@ -19,7 +19,7 @@ fn subscriber_stream_rejects_zero_batch_size() {
 }
 
 #[test]
-fn subscriber_stream_rejects_schema_incompatible_checkpoint() {
+fn subscriber_stream_rejects_schema_unsupported_checkpoint() {
     let mut runtime = runtime_with_test_schema();
     let _ = create_entity_outcome(&mut runtime, "anchor");
 
@@ -33,10 +33,7 @@ fn subscriber_stream_rejects_schema_incompatible_checkpoint() {
         ))
         .unwrap_err();
 
-    assert_eq!(
-        error.class,
-        SubscriberStreamFailureClass::SchemaIncompatible
-    );
+    assert_eq!(error.class, SubscriberStreamFailureClass::SchemaUnsupported);
 }
 
 #[test]

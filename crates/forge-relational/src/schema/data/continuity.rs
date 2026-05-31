@@ -250,7 +250,7 @@ pub const fn default_boundary_visibility_for_continuation(
 #[non_exhaustive]
 pub enum FreeFormSchemaDiffIntent {
     Additive,
-    StructuralIncompatible,
+    StructuralContinuityDenied,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -344,8 +344,8 @@ pub enum SchemaTransitionBarrier {
 pub enum SchemaReconciliationClassification {
     Additive,
     Narrowing,
-    TypeIncompatible,
-    StructuralIncompatible,
+    TypeContinuityDenied,
+    StructuralContinuityDenied,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

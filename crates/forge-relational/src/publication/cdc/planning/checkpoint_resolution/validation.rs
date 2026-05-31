@@ -13,7 +13,7 @@ pub(crate) fn validate_checkpoint_against_envelope(
 ) -> Result<(), SubscriberStreamFailure> {
     if envelope.schema_version != checkpoint.schema_version() {
         return checkpoint_validation_error(
-            SubscriberStreamFailureClass::SchemaIncompatible,
+            SubscriberStreamFailureClass::SchemaUnsupported,
             format!(
                 "subscriber checkpoint schema version {} does not match {authority_label} schema version {}",
                 checkpoint.schema_version().0,
