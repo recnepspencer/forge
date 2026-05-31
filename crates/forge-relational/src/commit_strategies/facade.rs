@@ -857,7 +857,7 @@ mod tests {
             CanonicalFieldPath::single(FieldKey::new("replicas").expect("valid replicas field")),
         );
         assert_eq!(
-            crate::storage::data::entity_authoritative_aspect_field_comparison_key(
+            crate::visibility::materialization::read_records::entity_query_locus_comparison_key(
                 &replacement_record,
                 &replicas_locator
             ),

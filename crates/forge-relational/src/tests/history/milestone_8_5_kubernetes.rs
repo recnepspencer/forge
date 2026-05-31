@@ -91,8 +91,10 @@ fn replicas_canonical_bytes(record: &crate::storage::data::EntityReadRecord) -> 
         AspectKey::new("replicas").expect("valid replicas aspect"),
         CanonicalFieldPath::single(FieldKey::new("replicas").expect("valid replicas field")),
     );
-    crate::storage::data::entity_authoritative_aspect_field_comparison_key(record, &locator)
-        .map(|key| key.canonical_value_bytes().to_vec())
+    crate::visibility::materialization::read_records::entity_query_locus_comparison_key(
+        record, &locator,
+    )
+    .map(|key| key.canonical_value_bytes().to_vec())
 }
 
 fn strategy_schema_registry() -> crate::schema::data::RelationalSchemaRegistry {

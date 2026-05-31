@@ -3,6 +3,9 @@ mod projection;
 mod reader;
 mod visibility;
 
+pub(crate) use projection::{
+    entity_query_locus_comparison_key, relation_query_locus_comparison_key,
+};
 pub use projection::{
     EntityProjectionRecord, EntityRecordProjection, ProjectionAspectFilter,
     ProjectionAspectFilterMode, ProjectionAspectRequirement, ProjectionAspectScope,

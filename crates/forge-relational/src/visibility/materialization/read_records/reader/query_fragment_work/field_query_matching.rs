@@ -1,8 +1,8 @@
 use forge_foundational::facade::AspectFieldLocator;
 
-use crate::storage::data::{
-    entity_authoritative_aspect_field_comparison_key,
-    relation_authoritative_aspect_field_comparison_key, AuthoritativeFieldComparisonKey,
+use crate::storage::data::AuthoritativeFieldComparisonKey;
+use crate::visibility::materialization::read_records::{
+    entity_query_locus_comparison_key, relation_query_locus_comparison_key,
 };
 
 pub(super) fn entity_field_matches(
@@ -10,8 +10,7 @@ pub(super) fn entity_field_matches(
     field_locator: &AspectFieldLocator,
     expected: &AuthoritativeFieldComparisonKey,
 ) -> bool {
-    entity_authoritative_aspect_field_comparison_key(record, field_locator).as_ref()
-        == Some(expected)
+    entity_query_locus_comparison_key(record, field_locator).as_ref() == Some(expected)
 }
 
 pub(super) fn relation_field_matches(
@@ -19,6 +18,5 @@ pub(super) fn relation_field_matches(
     field_locator: &AspectFieldLocator,
     expected: &AuthoritativeFieldComparisonKey,
 ) -> bool {
-    relation_authoritative_aspect_field_comparison_key(record, field_locator).as_ref()
-        == Some(expected)
+    relation_query_locus_comparison_key(record, field_locator).as_ref() == Some(expected)
 }

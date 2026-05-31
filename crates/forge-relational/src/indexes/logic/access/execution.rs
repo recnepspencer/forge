@@ -8,9 +8,9 @@ use crate::query::data::{
     reduce_query_fragments, QueryExecutionOutcome, QueryFragmentCounters, QueryScope,
     QueryWorkerFragment, SnapshotPinnedQueryPlan,
 };
-use crate::storage::data::{
-    entity_authoritative_aspect_field_comparison_key,
-    relation_authoritative_aspect_field_comparison_key, AuthoritativeFieldComparisonKey,
+use crate::storage::data::AuthoritativeFieldComparisonKey;
+use crate::visibility::materialization::read_records::{
+    entity_query_locus_comparison_key, relation_query_locus_comparison_key,
 };
 
 use super::scratch::{index_query_scratch_for_runtime, retain_index_query_scratch};
@@ -51,7 +51,7 @@ pub(crate) fn execute_index_backed_query_from_generation(
                     .collect(),
                 1,
                 |record| {
-                    entity_authoritative_aspect_field_comparison_key(record, field_locator)
+                    entity_query_locus_comparison_key(record, field_locator)
                         == Some(expected.clone())
                 },
             )
@@ -88,7 +88,7 @@ pub(crate) fn execute_index_backed_query_from_generation(
                 candidate_ids,
                 values.len(),
                 |record| {
-                    entity_authoritative_aspect_field_comparison_key(record, field_locator)
+                    entity_query_locus_comparison_key(record, field_locator)
                         .is_some_and(|value| selected.contains(&value))
                 },
             )
@@ -116,7 +116,7 @@ pub(crate) fn execute_index_backed_query_from_generation(
                     .collect(),
                 1,
                 |record| {
-                    relation_authoritative_aspect_field_comparison_key(record, field_locator)
+                    relation_query_locus_comparison_key(record, field_locator)
                         == Some(expected.clone())
                 },
             )
@@ -153,7 +153,7 @@ pub(crate) fn execute_index_backed_query_from_generation(
                 candidate_ids,
                 values.len(),
                 |record| {
-                    relation_authoritative_aspect_field_comparison_key(record, field_locator)
+                    relation_query_locus_comparison_key(record, field_locator)
                         .is_some_and(|value| selected.contains(&value))
                 },
             )

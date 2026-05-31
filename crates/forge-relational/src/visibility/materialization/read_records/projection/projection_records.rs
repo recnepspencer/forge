@@ -34,7 +34,7 @@ pub struct EntityProjectionRecord<'a> {
 }
 
 impl<'a> EntityProjectionRecord<'a> {
-    pub(super) const fn new(
+    pub(crate) const fn new(
         record: &'a EntityReadRecord,
         projection_scope: &'a ProjectionAspectScope,
     ) -> Self {
@@ -112,7 +112,7 @@ pub struct RelationProjectionRecord<'a> {
 }
 
 impl<'a> RelationProjectionRecord<'a> {
-    pub(super) const fn new(
+    pub(crate) const fn new(
         record: &'a RelationReadRecord,
         projection_scope: &'a ProjectionAspectScope,
     ) -> Self {

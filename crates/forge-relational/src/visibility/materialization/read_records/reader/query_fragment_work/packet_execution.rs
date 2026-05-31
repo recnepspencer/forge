@@ -7,9 +7,8 @@ use super::super::query_traversal::{
 use super::super::*;
 use super::field_query_matching::{entity_field_matches, relation_field_matches};
 use super::fragment_builders::{entity_fragment, relation_fragment};
-use crate::storage::data::{
-    entity_authoritative_aspect_field_comparison_key,
-    relation_authoritative_aspect_field_comparison_key,
+use crate::visibility::materialization::read_records::{
+    entity_query_locus_comparison_key, relation_query_locus_comparison_key,
 };
 
 pub(crate) fn execute_query_fragment(
@@ -86,7 +85,7 @@ pub(crate) fn execute_query_fragment(
                 scratch,
                 |record| {
                     record.entity_id.partition_id == *partition_id
-                        && entity_authoritative_aspect_field_comparison_key(record, field_locator)
+                        && entity_query_locus_comparison_key(record, field_locator)
                             .is_some_and(|value| values.contains(&value))
                 },
             ))
@@ -122,7 +121,7 @@ pub(crate) fn execute_query_fragment(
                 scratch,
                 |record| {
                     record.relation_id.partition_id == *partition_id
-                        && relation_authoritative_aspect_field_comparison_key(record, field_locator)
+                        && relation_query_locus_comparison_key(record, field_locator)
                             .is_some_and(|value| values.contains(&value))
                 },
             ))

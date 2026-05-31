@@ -4,9 +4,9 @@ use forge_foundational::facade::{
     AspectFieldLocator, AspectValue, CanonicalFieldPath, FieldKey, InternedString, LocatorAuthority,
 };
 
-use crate::storage::data::{
-    entity_authoritative_aspect_field_comparison_key,
-    relation_authoritative_aspect_field_comparison_key, AuthoritativeFieldComparisonKey,
+use crate::storage::data::AuthoritativeFieldComparisonKey;
+use crate::visibility::materialization::read_records::{
+    entity_query_locus_comparison_key, relation_query_locus_comparison_key,
 };
 
 pub(crate) fn read_entity_name(record: &EntityReadRecord) -> Option<String> {
@@ -22,18 +22,15 @@ pub(crate) fn read_entity_aspect_field(
     aspect_key: forge_foundational::facade::AspectKey,
     field_key: FieldKey,
 ) -> Option<String> {
-    entity_authoritative_aspect_field_comparison_key(
-        record,
-        &test_aspect_field_locator(aspect_key, field_key),
-    )
-    .and_then(display_text_from_comparison_key)
+    entity_query_locus_comparison_key(record, &test_aspect_field_locator(aspect_key, field_key))
+        .and_then(display_text_from_comparison_key)
 }
 
 pub(crate) fn read_relation_field(
     record: &crate::facade::runtime::RelationReadRecord,
     field_key: FieldKey,
 ) -> Option<String> {
-    relation_authoritative_aspect_field_comparison_key(
+    relation_query_locus_comparison_key(
         record,
         &test_aspect_field_locator(aspect_key(field_key.as_str()), field_key),
     )
