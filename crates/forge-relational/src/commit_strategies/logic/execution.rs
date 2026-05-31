@@ -334,7 +334,7 @@ mod tests {
         {
             let _ = observation
                 .visibility()
-                .unmasked_entity_records_in(PartitionId(1), KindId(100))?;
+                .entities_in::<TestEntityProjection>(PartitionId(1))?;
             Ok(empty_result())
         }
     }
@@ -558,7 +558,7 @@ mod tests {
             "intent.reconcile.output.v1"
         );
         assert_eq!(draft.summary().projected_partition_reads, 0);
-        assert_eq!(draft.summary().unmasked_entity_record_reads, 0);
+        assert_eq!(draft.summary().projected_entity_record_reads, 0);
 
         let mut panic_runtime = RelationalRuntimeBuilder::new()
             .commit_strategy(registration)

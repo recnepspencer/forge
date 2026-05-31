@@ -16,8 +16,8 @@ pub(crate) fn lowering_summary_digest(summary: &StrategyLoweringSummary) -> [u8;
         bytes.usize(summary.cross_partition_relation_count());
         bytes.usize(summary.normalized_client_key_count());
         bytes.usize(summary.lineage_transition_count());
-        bytes.usize(summary.unmasked_entity_record_reads());
-        bytes.usize(summary.unmasked_relation_record_reads());
+        bytes.usize(summary.projected_entity_record_reads());
+        bytes.usize(summary.projected_relation_record_reads());
         bytes.usize(summary.projected_partition_reads());
     })
 }

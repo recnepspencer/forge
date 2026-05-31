@@ -8,6 +8,7 @@ mod native_codec;
 mod native_strategy_intent_scope;
 mod registration;
 mod request;
+mod strategy_aspect_read_record;
 mod strategy_id;
 mod validation;
 
@@ -45,6 +46,7 @@ pub use request::{
     NativeStrategyCommitRequest, StrategyCallerProvenance, StrategyCommitRequestError,
     StrategyRequestOrigin,
 };
+pub use strategy_aspect_read_record::StrategyEntityAspectReadRecord;
 pub use strategy_id::CommitStrategyId;
 pub(crate) use validation::PreparedStrategyAuthorityScope;
 pub use validation::{StrategyPreviewValidationCostSummary, ValidatedStrategyCommitPlan};

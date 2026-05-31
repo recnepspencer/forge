@@ -854,8 +854,8 @@ mod tests {
             summary.cross_partition_relation_count(),
             summary.normalized_client_key_count(),
             summary.lineage_transition_count(),
-            summary.unmasked_entity_record_reads(),
-            summary.unmasked_relation_record_reads(),
+            summary.projected_entity_record_reads(),
+            summary.projected_relation_record_reads(),
             summary.projected_partition_reads(),
         );
 

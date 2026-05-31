@@ -206,14 +206,14 @@ pub(super) fn verify_strategy_reexecution_surface(
             == expected_artifacts
                 .replay_descriptor()
                 .mutation_program_digest()
-        && execution.summary().unmasked_entity_record_reads
+        && execution.summary().projected_entity_record_reads
             == expected_artifacts
                 .lowering_summary()
-                .unmasked_entity_record_reads()
-        && execution.summary().unmasked_relation_record_reads
+                .projected_entity_record_reads()
+        && execution.summary().projected_relation_record_reads
             == expected_artifacts
                 .lowering_summary()
-                .unmasked_relation_record_reads()
+                .projected_relation_record_reads()
         && execution.summary().projected_partition_reads
             == expected_artifacts
                 .lowering_summary()

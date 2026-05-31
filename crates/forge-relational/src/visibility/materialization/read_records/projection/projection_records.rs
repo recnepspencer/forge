@@ -48,6 +48,14 @@ impl<'a> EntityProjectionRecord<'a> {
         self.record.entity_id
     }
 
+    pub const fn kind_id(self) -> KindId {
+        self.record.kind.kind_id
+    }
+
+    pub fn kind_name(self) -> &'a str {
+        &self.record.kind.kind_name
+    }
+
     pub const fn lifecycle(self) -> RecordLifecycleState {
         self.record.lifecycle
     }
@@ -116,6 +124,14 @@ impl<'a> RelationProjectionRecord<'a> {
 
     pub const fn relation_id(self) -> RelationId {
         self.record.relation_id
+    }
+
+    pub const fn kind_id(self) -> KindId {
+        self.record.kind.kind_id
+    }
+
+    pub fn kind_name(self) -> &'a str {
+        &self.record.kind.kind_name
     }
 
     pub const fn source(self) -> EntityId {

@@ -8,17 +8,15 @@ use crate::commit_strategies::data::{
     CommitStrategyExecutor, CommitStrategyFamilyName, CommitStrategyId, CommitStrategyRegistration,
     CommitStrategyRegistrationError, CommitStrategySemanticName, CommitStrategyVersion,
     NativeCodecError, NativeCodecReader, NativeStrategyCommitRequest, PersistentArtifactName,
-    StrategyCallerProvenance, StrategyExecutionResult, StrategyExecutorFailure,
-    StrategyExecutorFailureClass, StrategyInputSchemaName, StrategyInputSchemaVersion,
-    StrategyIntentName, StrategyMutationProgram, StrategyObservationContext,
-    StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract, StrategyReadCostClass,
-    StrategyReadLocalityClass, StrategyReadScopeClass, StrategyTraversalBasis,
+    StrategyCallerProvenance, StrategyEntityAspectReadRecord, StrategyExecutionResult,
+    StrategyExecutorFailure, StrategyExecutorFailureClass, StrategyInputSchemaName,
+    StrategyInputSchemaVersion, StrategyIntentName, StrategyMutationProgram,
+    StrategyObservationContext, StrategyOutputSchemaName, StrategyPacketContract,
+    StrategyReadContract, StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
+    StrategyTraversalBasis,
 };
 use crate::identity::data::EntityId;
-use crate::storage::data::{
-    authoritative_aspect_value_field_comparison_key,
-    entity_authoritative_aspect_field_comparison_key,
-};
+use crate::storage::data::authoritative_aspect_value_field_comparison_key;
 use crate::transactions::data::{
     AspectFieldPatch, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent,
     WorkerIntentBatch,
@@ -179,21 +177,20 @@ impl ReplicaConvergenceStrategy {
 
     fn require_lowered_entity_scalar_field(
         observation: &StrategyObservationContext<'_>,
-        existing: &crate::storage::data::EntityReadRecord,
+        existing: &StrategyEntityAspectReadRecord,
         field: &FieldKey,
     ) -> Result<forge_foundational::facade::AspectKey, StrategyExecutorFailure> {
-        let lowered_plan =
-            observation
-                .entity_aspect_plan(existing.kind.kind_id)
-                .ok_or_else(|| {
-                    StrategyExecutorFailure::new(
-                        StrategyExecutorFailureClass::DomainRejection,
-                        format!(
-                            "lowered foundational entity aspect plan is missing for kind {} during replica convergence",
-                            existing.kind.kind_name
-                        ),
-                    )
-                })?;
+        let lowered_plan = observation
+            .entity_aspect_plan(existing.kind_id())
+            .ok_or_else(|| {
+                StrategyExecutorFailure::new(
+                    StrategyExecutorFailureClass::DomainRejection,
+                    format!(
+                        "lowered foundational entity aspect plan is missing for kind {} during replica convergence",
+                        existing.kind_name()
+                    ),
+                )
+            })?;
         lowered_plan
             .entity_scalar_field_aspect_key(field)
             .ok_or_else(|| {
@@ -202,7 +199,7 @@ impl ReplicaConvergenceStrategy {
                     format!(
                         "field '{}' is not a lowered foundational scalar entity aspect on kind {}",
                         field.as_str(),
-                        existing.kind.kind_name
+                        existing.kind_name()
                     ),
                 )
             })
@@ -210,7 +207,7 @@ impl ReplicaConvergenceStrategy {
 
     fn plan_replica_field_patch(
         observation: &StrategyObservationContext<'_>,
-        existing: &crate::storage::data::EntityReadRecord,
+        existing: &StrategyEntityAspectReadRecord,
         desired_replicas: u64,
     ) -> Result<PlannedReplicaFieldPatch, StrategyExecutorFailure> {
         let replicas = FieldKey::new("replicas").expect("static field key must be valid");
@@ -236,9 +233,9 @@ impl CommitStrategyExecutor for ReplicaConvergenceStrategy {
         observation: &StrategyObservationContext<'_>,
     ) -> Result<StrategyExecutionResult, StrategyExecutorFailure> {
         let input = Self::parse_input(request)?;
-        let existing = observation
+        let existing_basis = observation
             .visibility()
-            .unmasked_entity_record(input.entity_id)?
+            .entity_whole_aspects(input.entity_id, [])?
             .ok_or_else(|| {
                 StrategyExecutorFailure::new(
                     StrategyExecutorFailureClass::DomainRejection,
@@ -249,14 +246,20 @@ impl CommitStrategyExecutor for ReplicaConvergenceStrategy {
                 )
             })?;
         let replica_field_patch =
-            Self::plan_replica_field_patch(observation, &existing, input.desired_replicas)?;
+            Self::plan_replica_field_patch(observation, &existing_basis, input.desired_replicas)?;
+        let existing = observation
+            .visibility()
+            .entity_whole_aspects(
+                input.entity_id,
+                [replica_field_patch.target.aspect().aspect_key().clone()],
+            )?
+            .expect("entity was visible during strategy basis read");
         let desired_replicas_comparison_key =
             authoritative_aspect_value_field_comparison_key(&replica_field_patch.desired_value);
 
-        let (action, mutation_program) = if entity_authoritative_aspect_field_comparison_key(
-            &existing,
-            &replica_field_patch.target,
-        ) == Some(desired_replicas_comparison_key)
+        let (action, mutation_program) = if existing
+            .scalar_field_comparison_key(&replica_field_patch.target)
+            == Some(desired_replicas_comparison_key)
         {
             (
                 ReplicaConvergenceAction::NoChange,

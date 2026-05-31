@@ -9,17 +9,15 @@ use crate::commit_strategies::data::{
     CommitStrategyId, CommitStrategyRegistration, CommitStrategyRegistrationError,
     CommitStrategySemanticName, CommitStrategyVersion, NativeCodecError, NativeCodecReader,
     NativeStrategyCommitRequest, PersistentArtifactName, StrategyCallerProvenance,
-    StrategyExecutionResult, StrategyExecutorFailure, StrategyExecutorFailureClass,
-    StrategyExecutorFailureEvidence, StrategyInputSchemaName, StrategyInputSchemaVersion,
-    StrategyIntentName, StrategyMutationProgram, StrategyObservationContext,
-    StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract, StrategyReadCostClass,
-    StrategyReadLocalityClass, StrategyReadScopeClass, StrategyTraversalBasis,
+    StrategyEntityAspectReadRecord, StrategyExecutionResult, StrategyExecutorFailure,
+    StrategyExecutorFailureClass, StrategyExecutorFailureEvidence, StrategyInputSchemaName,
+    StrategyInputSchemaVersion, StrategyIntentName, StrategyMutationProgram,
+    StrategyObservationContext, StrategyOutputSchemaName, StrategyPacketContract,
+    StrategyReadContract, StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
+    StrategyTraversalBasis,
 };
 use crate::identity::data::EntityId;
-use crate::storage::data::{
-    authoritative_aspect_value_field_comparison_key,
-    entity_authoritative_aspect_field_comparison_key,
-};
+use crate::storage::data::authoritative_aspect_value_field_comparison_key;
 use crate::transactions::data::AspectFieldPatch;
 use crate::transactions::data::{
     EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
@@ -164,18 +162,18 @@ impl IntentReconciliationStrategy {
 
     fn require_lowered_entity_scalar_field(
         observation: &StrategyObservationContext<'_>,
-        existing: &crate::storage::data::EntityReadRecord,
+        existing: &StrategyEntityAspectReadRecord,
         field: &FieldKey,
     ) -> Result<forge_foundational::facade::AspectKey, StrategyExecutorFailure> {
         let lowered_plan =
             observation
-                .entity_aspect_plan(existing.kind.kind_id)
+                .entity_aspect_plan(existing.kind_id())
                 .ok_or_else(|| {
                     StrategyExecutorFailure::new(
                         StrategyExecutorFailureClass::DomainRejection,
                         format!(
                             "lowered foundational entity aspect plan is missing for kind {} during intent reconciliation",
-                            existing.kind.kind_name
+                            existing.kind_name()
                         ),
                     )
                 })?;
@@ -187,7 +185,7 @@ impl IntentReconciliationStrategy {
                     format!(
                         "field '{}' is not a lowered foundational scalar entity aspect on kind {}",
                         field.as_str(),
-                        existing.kind.kind_name
+                        existing.kind_name()
                     ),
                 )
             })
@@ -195,7 +193,7 @@ impl IntentReconciliationStrategy {
 
     fn reconcile_fields(
         observation: &StrategyObservationContext<'_>,
-        existing: &crate::storage::data::EntityReadRecord,
+        existing: &StrategyEntityAspectReadRecord,
         desired_aspect_fields: &AspectFieldPatch,
     ) -> Result<AspectFieldPatch, StrategyExecutorFailure> {
         for target in desired_aspect_fields.locators() {
@@ -225,13 +223,12 @@ impl IntentReconciliationStrategy {
     }
 
     fn authoritative_field_matches(
-        existing: &crate::storage::data::EntityReadRecord,
+        existing: &StrategyEntityAspectReadRecord,
         target: &forge_foundational::facade::AspectFieldLocator,
         desired_value: &forge_foundational::facade::AspectValue,
     ) -> bool {
         let desired_comparison_key = authoritative_aspect_value_field_comparison_key(desired_value);
-        entity_authoritative_aspect_field_comparison_key(existing, target)
-            == Some(desired_comparison_key)
+        existing.scalar_field_comparison_key(target) == Some(desired_comparison_key)
     }
 }
 
@@ -242,9 +239,9 @@ impl CommitStrategyExecutor for IntentReconciliationStrategy {
         observation: &StrategyObservationContext<'_>,
     ) -> Result<StrategyExecutionResult, StrategyExecutorFailure> {
         let input = Self::parse_input(request)?;
-        let existing = observation
+        let existing_basis = observation
             .visibility()
-            .unmasked_entity_record(input.entity_id)?
+            .entity_whole_aspects(input.entity_id, [])?
             .ok_or_else(|| {
                 StrategyExecutorFailure::new(
                     StrategyExecutorFailureClass::DomainRejection,
@@ -255,7 +252,14 @@ impl CommitStrategyExecutor for IntentReconciliationStrategy {
                 )
             })?;
         let desired_aspect_fields =
-            Self::reconcile_fields(observation, &existing, &input.desired_aspect_fields)?;
+            Self::reconcile_fields(observation, &existing_basis, &input.desired_aspect_fields)?;
+        let projected_aspect_keys = desired_aspect_fields
+            .locators()
+            .map(|locator| locator.aspect().aspect_key().clone());
+        let existing = observation
+            .visibility()
+            .entity_whole_aspects(input.entity_id, projected_aspect_keys)?
+            .expect("entity was visible during strategy basis read");
         let unchanged = desired_aspect_fields.iter().all(|(target, desired_value)| {
             let [_field] = target.field_path().fields() else {
                 return false;
