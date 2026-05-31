@@ -5,6 +5,7 @@ use forge_foundational::facade::{
 };
 use forge_proof::TransitionOutcome;
 
+use crate::canonical_basis_terms::foundational_canonical_basis_terms;
 use crate::identity::data::KindId;
 use crate::schema::data::{DeclaredAspect, SchemaRegistryError};
 
@@ -43,7 +44,7 @@ pub(super) fn mix_foundational_contract_basis(
     };
 
     revision.mix_text("foundational_contract_basis");
-    let canonical_basis_terms = ready.payload();
+    let canonical_basis_terms = foundational_canonical_basis_terms(&ready);
     revision.mix_text(canonical_basis_terms.version().as_str());
     for entry in canonical_basis_terms.entries() {
         mix_canonical_basis_entry(revision, entry);

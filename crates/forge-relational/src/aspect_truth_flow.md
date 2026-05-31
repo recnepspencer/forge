@@ -14,9 +14,9 @@ The runtime owns one one-way aspect-truth pipeline:
 -> history/query/lineage consumers
 -> diagnostics, traces, and reports derived from those same artifacts
 
-If a helper needs raw payload access after `CanonicalRecordAspectDelta` exists,
-treat that as suspect. History, query, and diagnostics must not re-derive
-aspect meaning from payloads.
+If a helper needs raw external document access after `CanonicalRecordAspectDelta`
+exists, treat that as suspect. History, query, and diagnostics must not
+re-derive aspect meaning from JSON or compatibility documents.
 
 ## Core types
 
@@ -65,9 +65,9 @@ Trace/report views:
 
 Keep these invariants intact:
 
-- no post-delta payload rescans
+- no post-delta external document rescans
 - no second aspect-set construction path
-- no diagnostics builder with raw payload access
+- no diagnostics builder with raw external document access
 - no lineage mutation of origin semantics
 - no noncanonical emitted aspect collections
 - no replay or patch parity path that ignores structural or degraded-precision flags

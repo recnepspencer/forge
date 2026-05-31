@@ -3,6 +3,8 @@ use forge_foundational::facade::{
     CanonicalBasisReadyArtifact, CanonicalFieldPath, DiagnosticMask,
 };
 
+use crate::canonical_basis_terms::foundational_canonical_basis_terms;
+
 use super::value::TerminalDiagnosticProjectionValue;
 
 pub(super) fn aspect_field_locator_terminal_projection(
@@ -67,7 +69,7 @@ pub(super) fn diagnostic_mask_locator_terminal_projection(
 pub(super) fn canonical_basis_terminal_projection(
     basis: &CanonicalBasisReadyArtifact,
 ) -> TerminalDiagnosticProjectionValue {
-    let canonical_basis_terms = basis.payload();
+    let canonical_basis_terms = foundational_canonical_basis_terms(basis);
     object([
         ("basis_kind", string("canonical_basis_ready")),
         (

@@ -1,5 +1,7 @@
 use forge_foundational::facade::{AspectFieldLocator, CanonicalBasisReadyArtifact};
 
+use crate::canonical_basis_terms::foundational_canonical_basis_terms;
+
 use super::ReplayDigestBuilder;
 use crate::diagnostics::data::RelationalDiagnosticValue;
 
@@ -91,7 +93,7 @@ impl ReplayDigestBuilder {
     }
 
     fn canonical_basis_ready(mut self, value: &CanonicalBasisReadyArtifact) -> Self {
-        let canonical_basis_terms = value.payload();
+        let canonical_basis_terms = foundational_canonical_basis_terms(value);
         self = self
             .label(canonical_basis_terms.domain())
             .string(canonical_basis_terms.version().as_str())

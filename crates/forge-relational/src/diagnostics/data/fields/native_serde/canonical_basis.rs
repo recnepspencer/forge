@@ -5,6 +5,8 @@ use forge_foundational::facade::{
 use forge_proof::TransitionOutcome;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+use crate::canonical_basis_terms::foundational_canonical_basis_terms;
+
 mod grammar;
 mod value;
 
@@ -56,7 +58,7 @@ impl TryFrom<&CanonicalBasisReadyArtifact> for NativeCanonicalBasis {
     type Error = String;
 
     fn try_from(basis: &CanonicalBasisReadyArtifact) -> Result<Self, Self::Error> {
-        let canonical_basis_terms = basis.payload();
+        let canonical_basis_terms = foundational_canonical_basis_terms(basis);
         Ok(Self {
             version: canonical_basis_terms.version().as_str().to_string(),
             domain: canonical_basis_terms.domain().try_into()?,
