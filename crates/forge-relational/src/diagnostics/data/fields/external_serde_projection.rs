@@ -140,6 +140,7 @@ fn project_diagnostic_value_for_external_serde(
         RelationalDiagnosticValue::FieldPath(fields) => {
             ExternalSerdeDiagnosticProjectionValue::Array(
                 fields
+                    .fields()
                     .iter()
                     .map(|field| {
                         ExternalSerdeDiagnosticProjectionValue::String(field.as_str().to_string())

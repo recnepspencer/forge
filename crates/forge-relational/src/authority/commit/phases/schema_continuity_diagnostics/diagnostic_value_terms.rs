@@ -1,4 +1,4 @@
-use forge_foundational::FieldKey;
+use forge_foundational::{CanonicalFieldPath, FieldKey};
 
 use crate::diagnostics::data::{RelationalDiagnosticFields, RelationalDiagnosticValue};
 use crate::history::data::BranchId;
@@ -71,7 +71,7 @@ pub(super) fn optional_kind_id(value: Option<KindId>) -> RelationalDiagnosticVal
 }
 
 pub(super) fn contract_field_path(field: FieldKey) -> RelationalDiagnosticValue {
-    RelationalDiagnosticValue::FieldPath(vec![field])
+    RelationalDiagnosticValue::FieldPath(CanonicalFieldPath::single(field))
 }
 
 pub(super) fn strata(values: Vec<SchemaStratum>) -> RelationalDiagnosticValue {

@@ -124,7 +124,7 @@ fn failure_projection_emits_aspect_field_diagnostic_fields() {
     ));
     assert!(matches!(
         typed_aspect_field.get("field_path"),
-        Some(RelationalDiagnosticValue::FieldPath(path)) if path == &vec![field.clone()]
+        Some(RelationalDiagnosticValue::FieldPath(path)) if path == &CanonicalFieldPath::single(field.clone())
     ));
     assert!(matches!(
         typed_aspect_field.get("diagnostic_mask"),

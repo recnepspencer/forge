@@ -1,10 +1,9 @@
 use forge_foundational::facade::{
     prepare_aspect_mask_for_canonical_basis, AspectKey, AspectMask, AspectMaskLocator, AspectValue,
-    CanonicalBasisReadyArtifact, CanonicalizationRuleVersion, DiagnosticMask, FieldKey,
-    LocatorAuthority,
+    CanonicalBasisReadyArtifact, CanonicalFieldPath, CanonicalizationRuleVersion, DiagnosticMask,
+    FieldKey, LocatorAuthority,
 };
 use forge_proof::TransitionOutcome;
-use serde::Serialize;
 
 use crate::config::data::CascadeDeletePolicy;
 use crate::diagnostics::data::RelationalDiagnosticValue;
@@ -22,8 +21,7 @@ use crate::validation::data::{
 mod from_invariant_violation_fields;
 mod typed_projection;
 
-#[derive(Debug, Serialize)]
-#[serde(tag = "violation_kind", rename_all = "snake_case")]
+#[derive(Debug)]
 pub(super) enum InvariantViolationDiagnosticProjection<'a> {
     None,
     MergedIntentLimit {
@@ -152,25 +150,23 @@ pub(super) enum InvariantViolationDiagnosticProjection<'a> {
     },
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub(super) struct AspectFieldDiagnosticProjection<'a> {
     aspect_key: &'a AspectKey,
-    field_path: &'a [FieldKey],
-    #[serde(skip_serializing)]
+    field_path: CanonicalFieldPath,
     diagnostic_mask: AspectMask<DiagnosticMask>,
-    #[serde(skip_serializing)]
     diagnostic_mask_locator: AspectMaskLocator<DiagnosticMask>,
-    #[serde(skip_serializing)]
     canonical_diagnostic_mask_basis: CanonicalBasisReadyArtifact,
     value: &'a AspectValue,
 }
 
 impl<'a> AspectFieldDiagnosticProjection<'a> {
-    fn new(aspect_key: &'a AspectKey, field_path: &'a [FieldKey], value: &'a AspectValue) -> Self {
-        let diagnostic_mask = AspectMask::<DiagnosticMask>::new([
-            forge_foundational::facade::CanonicalFieldPath::new(field_path.to_vec())
-                .expect("invariant field locator has a non-empty field path"),
-        ]);
+    fn new(
+        aspect_key: &'a AspectKey,
+        field_path: CanonicalFieldPath,
+        value: &'a AspectValue,
+    ) -> Self {
+        let diagnostic_mask = AspectMask::<DiagnosticMask>::new([field_path.clone()]);
         let diagnostic_mask_locator = AspectMaskLocator::diagnostic(
             LocatorAuthority::SupportOnly,
             aspect_key.clone(),
@@ -197,7 +193,7 @@ impl<'a> AspectFieldDiagnosticProjection<'a> {
             ),
             (
                 "field_path",
-                RelationalDiagnosticValue::FieldPath(self.field_path.to_vec()),
+                RelationalDiagnosticValue::FieldPath(self.field_path.clone()),
             ),
             (
                 "diagnostic_mask",

@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use forge_foundational::facade::CanonicalFieldPath;
+
 use crate::authority::commit::phases::schema_continuity::{
     validate_schema_continuity_publication, SchemaContinuityPlan,
 };
@@ -874,7 +876,7 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
     );
     assert_eq!(
         diagnostic_object_field(detail, "field_path"),
-        &RelationalDiagnosticValue::FieldPath(vec![field_key("tag")])
+        &RelationalDiagnosticValue::FieldPath(CanonicalFieldPath::single(field_key("tag")))
     );
 }
 

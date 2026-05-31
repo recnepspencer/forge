@@ -31,8 +31,8 @@ impl ReplayDigestBuilder {
             RelationalDiagnosticValue::AspectKey(value) => self.tag(7).aspect_key(value),
             RelationalDiagnosticValue::FieldKey(value) => self.tag(8).field_key(value),
             RelationalDiagnosticValue::FieldPath(fields) => {
-                self = self.tag(9).usize(fields.len());
-                for field in fields {
+                self = self.tag(9).usize(fields.fields().len());
+                for field in fields.fields() {
                     self = self.field_key(field);
                 }
                 self
