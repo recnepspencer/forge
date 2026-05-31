@@ -1,4 +1,4 @@
-use forge_foundational::facade::{AspectFieldLocator, CanonicalFieldPath, FieldKey};
+use forge_foundational::facade::{AspectFieldLocator, FieldKey};
 
 use crate::schema::data::{LoweredAspectBinding, LoweredAspectPlan};
 use crate::transactions::data::EntityFieldAspectPatchDenial;
@@ -15,7 +15,7 @@ pub(super) fn resolve_entity_field_patch_target<'a>(
     lowered_plan: &'a LoweredAspectPlan,
     target: &AspectFieldLocator,
 ) -> Result<EntityFieldPatchTarget<'a>, EntityFieldAspectPatchDenial> {
-    let field_key = single_field_path_key(target.field_path())?;
+    let field_key = single_field_path_key(target)?;
     let Some((binding_index, binding)) = lowered_plan
         .executable_bindings
         .iter()
@@ -44,14 +44,57 @@ pub(super) fn resolve_entity_field_patch_target<'a>(
 }
 
 fn single_field_path_key(
-    field_path: &CanonicalFieldPath,
+    target: &AspectFieldLocator,
 ) -> Result<&FieldKey, EntityFieldAspectPatchDenial> {
-    match field_path.fields() {
+    match target.field_path().fields() {
         [field] => Ok(field),
-        fields => Err(
+        _ => Err(
             EntityFieldAspectPatchDenial::UnsupportedNestedEntityFieldPath {
-                path: fields.to_vec(),
+                field_locator: target.clone(),
             },
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use forge_foundational::facade::{
+        AspectFieldLocator, AspectKey, CanonicalFieldPath, FieldKey, LocatorAuthority,
+    };
+
+    use crate::identity::data::KindId;
+    use crate::schema::data::{AspectPlanRevision, LoweredAspectPlan};
+    use crate::transactions::data::EntityFieldAspectPatchDenial;
+
+    use super::resolve_entity_field_patch_target;
+
+    #[test]
+    fn nested_entity_field_patch_denial_preserves_full_aspect_field_locator() {
+        let nested_locator = AspectFieldLocator::new(
+            LocatorAuthority::Planned,
+            AspectKey::new("summary").expect("valid aspect key"),
+            CanonicalFieldPath::new([
+                FieldKey::new("title").expect("valid field key"),
+                FieldKey::new("locale").expect("valid field key"),
+            ])
+            .expect("valid nested field path"),
+        );
+        let lowered_plan = LoweredAspectPlan {
+            kind_id: KindId(1),
+            plan_revision: AspectPlanRevision(1),
+            executable_bindings: smallvec::smallvec![],
+        };
+
+        let error = match resolve_entity_field_patch_target(&lowered_plan, &nested_locator) {
+            Ok(_) => panic!("nested path must be rejected before aspect lookup"),
+            Err(error) => error,
+        };
+
+        assert!(matches!(
+            error,
+            EntityFieldAspectPatchDenial::UnsupportedNestedEntityFieldPath {
+                field_locator
+            } if field_locator == nested_locator
+        ));
     }
 }

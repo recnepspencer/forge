@@ -24,15 +24,11 @@ pub(super) fn entity_field_aspect_patch_denial_detail(
                 aspect_field_locator_path_label(field_locator)
             )
         }
-        EntityFieldAspectPatchDenial::UnsupportedNestedEntityFieldPath { path } => {
-            let label = path
-                .iter()
-                .map(forge_foundational::facade::FieldKey::as_str)
-                .collect::<Vec<_>>()
-                .join(".");
+        EntityFieldAspectPatchDenial::UnsupportedNestedEntityFieldPath { field_locator } => {
             format!(
-                "entity field aspect update targets unsupported nested contract field path '{}'",
-                label
+                "entity field aspect update targets unsupported nested contract field path '{}' for aspect {:?}",
+                aspect_field_locator_path_label(field_locator),
+                field_locator.aspect().aspect_key()
             )
         }
         EntityFieldAspectPatchDenial::ContractValidationDenied {

@@ -1,6 +1,6 @@
 use forge_foundational::facade::{
     AspectFieldLocator, AspectKey, AuthoritativePatchApplicationDenial,
-    AuthoritativePatchConstructionDenial, ContractValidationDenial, FieldKey,
+    AuthoritativePatchConstructionDenial, ContractValidationDenial,
 };
 use serde::{Deserialize, Serialize};
 
@@ -20,7 +20,8 @@ pub enum EntityFieldAspectPatchDenial {
         field_locator: AspectFieldLocator,
     },
     UnsupportedNestedEntityFieldPath {
-        path: Vec<FieldKey>,
+        #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator")]
+        field_locator: AspectFieldLocator,
     },
     ContractValidationDenied {
         #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator")]

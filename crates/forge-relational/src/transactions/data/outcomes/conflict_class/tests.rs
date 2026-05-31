@@ -137,6 +137,40 @@ fn entity_field_patch_application_denial_carries_contract_field_locator() {
 }
 
 #[test]
+fn nested_entity_field_patch_denial_carries_full_aspect_field_locator() {
+    let field_locator = AspectFieldLocator::new(
+        LocatorAuthority::Planned,
+        AspectKey::new("summary").expect("valid aspect key"),
+        CanonicalFieldPath::new([
+            FieldKey::new("title").expect("valid field key"),
+            FieldKey::new("locale").expect("valid field key"),
+        ])
+        .expect("valid nested field path"),
+    );
+    let conflict = ConflictClass::EntityFieldAspectPatchDenied {
+        entity_id: EntityId::new(PartitionId::main(), 10, 0),
+        denial: EntityFieldAspectPatchDenial::UnsupportedNestedEntityFieldPath {
+            field_locator: field_locator.clone(),
+        },
+    };
+
+    let ConflictClass::EntityFieldAspectPatchDenied {
+        denial:
+            EntityFieldAspectPatchDenial::UnsupportedNestedEntityFieldPath {
+                field_locator: actual_locator,
+            },
+        ..
+    } = &conflict
+    else {
+        panic!("expected nested field path denial with locator");
+    };
+
+    assert_eq!(actual_locator, &field_locator);
+    assert!(conflict.detail().contains("summary"));
+    assert!(conflict.detail().contains("title.locale"));
+}
+
+#[test]
 fn authoritative_aspect_state_conflicts_carry_typed_target_rejections() {
     let entity_target = crate::transactions::data::planned_single_field_locator(
         crate::tests::support::aspect_key("profile.summary"),
