@@ -1,9 +1,8 @@
 use crate::topology_operators::declaration_entry::TopologyRewireLoopSuccessorProgramDeclaration;
 
 use super::super::super::{
-    TopologyEditApplicationMode, TopologyEditFamily, TopologyOperatorExecution,
-    TopologyOperatorExecutionError, TopologyOperatorExecutionPath, TopologyOperatorRunner,
-    TopologyQueryBindingIndex,
+    TopologyDeclaredMutationArtifact, TopologyEditApplicationMode, TopologyEditFamily,
+    TopologyOperatorExecutionError, TopologyOperatorRunner, TopologyQueryBindingIndex,
 };
 use super::super::contract_payload::TopologyDeclarationContractPayload;
 use super::super::orchestration_boundary::orchestrate_topology_declaration_entry;
@@ -14,17 +13,14 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
         declaration: TopologyRewireLoopSuccessorProgramDeclaration,
         bindings: &TopologyQueryBindingIndex,
         mode: TopologyEditApplicationMode,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
         orchestrate_topology_declaration_entry(
             TopologyEditFamily::RewireLoopSuccessor,
             declaration.clone(),
         )?;
 
         self.execute_composed_loop_successor_program(
-            TopologyOperatorExecutionPath::DeclarationEntry {
-                semantic_family_key:
-                    TopologyRewireLoopSuccessorProgramDeclaration::SEMANTIC_FAMILY_KEY,
-            },
+            TopologyRewireLoopSuccessorProgramDeclaration::SEMANTIC_FAMILY_KEY,
             mode,
             declaration.semantic_families(),
             declaration.topology_edit_digest(),

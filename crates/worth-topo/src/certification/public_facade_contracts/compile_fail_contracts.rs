@@ -84,4 +84,7 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
     t.compile_fail(format!(
         "{compile_fail}/public_topology_edit_contract_not_exported.rs"
     ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_operator_execution_not_exported.rs"
+    ));
 }

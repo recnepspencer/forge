@@ -326,7 +326,10 @@ fn execute_scale_rewire_declaration(
     workspace: &mut forge_query::facade::ForgeQueryWorkspace,
     surfaces: &TopologyDeclaredQuerySurfaces,
     declaration: ScaleRewireDeclaration,
-) -> Result<crate::topology_operators::TopologyOperatorExecution, TopologyCertificationError> {
+) -> Result<
+    crate::topology_operators::application::TopologyDeclaredMutationArtifact,
+    TopologyCertificationError,
+> {
     match declaration {
         ScaleRewireDeclaration::LoopSuccessor(declaration) => {
             execute_current_head_topology_declaration(workspace, surfaces, declaration)

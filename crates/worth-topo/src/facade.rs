@@ -178,7 +178,6 @@ pub use crate::topology_operators::{
     TopologyEditDerivedFallbackPolicy, TopologyEditDigest, TopologyEditFamily,
     TopologyEditNamingOutcome, TopologyEditNamingReport, TopologyEditNamingRow,
     TopologyEditNamingScope, TopologyEditRejectionClass, TopologyLoopSuccessorRewireMember,
-    TopologyOperatorExecution, TopologyOperatorExecutionError, TopologyOperatorExecutionPath,
     TopologyRadialSpliceMember, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     TopologyRehomeAllOwnedFacesToNewShellFamily,
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,

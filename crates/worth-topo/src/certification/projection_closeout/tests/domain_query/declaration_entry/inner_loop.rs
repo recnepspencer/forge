@@ -2,8 +2,7 @@ use super::super::support::{
     current_head_query_handle, execute_current_head_topology_declaration, snapshot_query_handle,
 };
 use crate::facade::{
-    topology_runtime, TopologyCreateInnerLoopOnExistingFaceDeclaration,
-    TopologyOperatorExecutionPath, TopologyRuntimeAdapters,
+    topology_runtime, TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyRuntimeAdapters,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::{
@@ -107,10 +106,8 @@ fn current_head_runtime_executes_canonical_create_inner_loop_batch_through_decla
     .expect("canonical inner-loop batch should execute through declaration entry");
 
     assert_eq!(
-        execution.path,
-        TopologyOperatorExecutionPath::DeclarationEntry {
-            semantic_family_key: "topology.create_inner_loop_on_existing_face",
-        }
+        execution.semantic_family_key(),
+        "topology.create_inner_loop_on_existing_face"
     );
     let face = execution
         .materialized

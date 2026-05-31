@@ -1,12 +1,13 @@
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
-use crate::topology_operators::application::TopologyDeclarationContractPayload;
-use crate::topology_operators::application::TopologyOperatorRunner;
+use crate::topology_operators::application::{
+    TopologyDeclarationContractPayload, TopologyDeclaredMutationArtifact, TopologyOperatorRunner,
+};
 use crate::topology_operators::{
     TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyCreateTopologyEntityDeclaration,
     TopologyDetachBoundaryMembershipDeclaration, TopologyDetachRadialAdjacencyDeclaration,
-    TopologyDetachShellOrWireMembershipDeclaration, TopologyOperatorExecution,
-    TopologyOperatorExecutionError, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
+    TopologyDetachShellOrWireMembershipDeclaration, TopologyOperatorExecutionError,
+    TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyRetireTopologyEntityDeclaration,
     TopologyRewireLoopEndpointDeclaration, TopologyRewireLoopSuccessorProgramDeclaration,
     TopologySpliceRadialAdjacencyDeclaration, TopologySpliceRadialAdjacencyProgramDeclaration,
@@ -29,7 +30,7 @@ pub(crate) fn execute_current_head_topology_declaration<D>(
     workspace: &mut ForgeQueryWorkspace,
     surfaces: &TopologyDeclaredQuerySurfaces,
     declaration: D,
-) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError>
+) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError>
 where
     D: TopologyCurrentHeadRuntimeDeclaration,
 {
@@ -45,7 +46,7 @@ pub(crate) trait TopologyCurrentHeadRuntimeDeclaration:
         self,
         runner: &mut TopologyOperatorRunner<'_, '_>,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError>;
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError>;
 }
 
 impl TopologyCurrentHeadRuntimeDeclaration for TopologyCreateInnerLoopOnExistingFaceDeclaration {
@@ -53,7 +54,7 @@ impl TopologyCurrentHeadRuntimeDeclaration for TopologyCreateInnerLoopOnExisting
         self,
         runner: &mut TopologyOperatorRunner<'_, '_>,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
         runner.apply_create_inner_loop_on_existing_face_declaration(
             self,
             bindings,
@@ -69,7 +70,7 @@ macro_rules! impl_single_family_runtime_declaration {
                 self,
                 runner: &mut TopologyOperatorRunner<'_, '_>,
                 bindings: &TopologyQueryBindingIndex,
-            ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+            ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
                 runner.$method(
                     self,
                     bindings,
@@ -116,7 +117,7 @@ impl TopologyCurrentHeadRuntimeDeclaration for TopologyCreateTopologyEntityDecla
         self,
         runner: &mut TopologyOperatorRunner<'_, '_>,
         _bindings: &TopologyQueryBindingIndex,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
         runner.apply_create_topology_entity_declaration(
             self,
             crate::facade::TopologyEditApplicationMode::Mainline,
@@ -131,7 +132,7 @@ macro_rules! impl_grouped_runtime_declaration {
                 self,
                 runner: &mut TopologyOperatorRunner<'_, '_>,
                 bindings: &TopologyQueryBindingIndex,
-            ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+            ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
                 runner.$method(
                     self,
                     bindings,

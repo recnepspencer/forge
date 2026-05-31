@@ -7,7 +7,7 @@ use super::support::{
     shell_split_declaration_for_fixture, shell_split_fixture, wire_split_declaration_for_fixture,
     wire_split_fixture,
 };
-use crate::facade::{topology_runtime, TopologyOperatorExecutionPath, TopologyRuntimeAdapters};
+use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
@@ -40,10 +40,8 @@ fn current_head_runtime_executes_canonical_wire_split_batch_through_declaration_
     .expect("canonical wire split batch should execute through declaration entry");
 
     assert_eq!(
-        execution.path,
-        TopologyOperatorExecutionPath::DeclarationEntry {
-            semantic_family_key: "topology.split_connected_half_edge_set_to_new_wire",
-        }
+        execution.semantic_family_key(),
+        "topology.split_connected_half_edge_set_to_new_wire"
     );
     let topology = execution.materialized.topology();
     let new_wire = topology
@@ -113,10 +111,8 @@ fn current_head_runtime_executes_canonical_shell_split_batch_through_declaration
     .expect("canonical shell split batch should execute through declaration entry");
 
     assert_eq!(
-        execution.path,
-        TopologyOperatorExecutionPath::DeclarationEntry {
-            semantic_family_key: "topology.split_single_face_from_two_face_shell_to_new_shell",
-        }
+        execution.semantic_family_key(),
+        "topology.split_single_face_from_two_face_shell_to_new_shell"
     );
     let topology = execution.materialized.topology();
     let new_shell = topology

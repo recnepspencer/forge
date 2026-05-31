@@ -6,8 +6,7 @@ use crate::projection::runtime_boundary::query_runtime::{
     load_post_write_materialized_topology, TopologyQueryBindingIndex,
 };
 use crate::topology_operators::application::{
-    TopologyOperatorExecution, TopologyOperatorExecutionError, TopologyOperatorExecutionPath,
-    TopologyOperatorRunner,
+    TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError, TopologyOperatorRunner,
 };
 use crate::topology_operators::local_rewrites::boundary_wiring::ResolvedLoopSuccessorRewire;
 use crate::topology_operators::{
@@ -18,15 +17,15 @@ use crate::topology_operators::{
 impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
     pub(crate) fn execute_composed_loop_successor_program(
         &mut self,
-        path: TopologyOperatorExecutionPath,
-        mode: TopologyEditApplicationMode,
+        semantic_family_key: &'static str,
+        _mode: TopologyEditApplicationMode,
         families: Vec<TopologyEditFamily>,
         topology_edit_digest: TopologyEditDigest,
         naming_continuity_matrix: NamingEditContinuityMatrix,
         naming_report: crate::topology_operators::TopologyEditNamingReport,
         contracts: Vec<TopologyEditContract>,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
         let rewires = contracts
             .iter()
             .map(|contract| match contract.action {
@@ -59,9 +58,8 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
                 _ => return Err(TopologyOperatorExecutionError::UnexpectedInspectionFamily),
             };
         let materialized = load_post_write_materialized_topology(self.workspace, self.surfaces)?;
-        Ok(TopologyOperatorExecution {
-            mode,
-            path,
+        Ok(TopologyDeclaredMutationArtifact {
+            semantic_family_key,
             families,
             receipt,
             inspection,

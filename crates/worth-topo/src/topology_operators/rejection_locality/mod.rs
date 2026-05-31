@@ -55,12 +55,7 @@ pub struct RejectedEditScopeReport {
 impl TopologyOperatorExecutionError {
     pub fn rejection_class(&self) -> Option<TopologyEditRejectionClass> {
         match self {
-            Self::UnsupportedMode(_)
-            | Self::UnsupportedFamilies(_)
-            | Self::DeclarationEntryRequired { .. }
-            | Self::DeclarationEntryProgramRequired { .. } => {
-                Some(TopologyEditRejectionClass::OutOfClassEdit)
-            }
+            Self::UnsupportedFamilies(_) => Some(TopologyEditRejectionClass::OutOfClassEdit),
             Self::DeclarationEntry { .. } => Some(TopologyEditRejectionClass::OutOfClassEdit),
             Self::MissingCreatedEntityReference(_)
             | Self::MissingExistingEntityBinding(_)
@@ -111,16 +106,6 @@ fn rejected_contracts<'a>(
             .iter()
             .filter(|contract| families.contains(&contract.family))
             .collect(),
-        TopologyOperatorExecutionError::DeclarationEntryRequired { family, .. } => contracts
-            .iter()
-            .filter(|contract| contract.family == *family)
-            .collect(),
-        TopologyOperatorExecutionError::DeclarationEntryProgramRequired { families, .. } => {
-            contracts
-                .iter()
-                .filter(|contract| families.contains(&contract.family))
-                .collect()
-        }
         _ => contracts.iter().collect(),
     }
 }

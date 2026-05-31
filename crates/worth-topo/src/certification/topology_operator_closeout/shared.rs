@@ -7,12 +7,13 @@ use crate::certification::topology_operator_closeout::report::{
 use crate::certification::{DeterministicDigest, ReplayParityStatus};
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::interpret_topology_view;
-use crate::topology_operators::application::TopologyDeclarationContractPayload;
+use crate::topology_operators::application::{
+    TopologyDeclarationContractPayload, TopologyDeclaredMutationArtifact,
+};
 use crate::topology_operators::{
     naming_edit_continuity_matrix_for_contracts, topology_edit_digest_for_contracts,
     topology_edit_families_for_contracts, NamingEditContinuityMatrix, TopologyEditContract,
-    TopologyEditNamingOutcome, TopologyOperatorDigest, TopologyOperatorExecution,
-    TopologyOperatorExecutionError,
+    TopologyEditNamingOutcome, TopologyOperatorDigest, TopologyOperatorExecutionError,
 };
 use crate::validation::{validate_interpreted_topology, DerivedTopologyValidationReport};
 use forge_query::facade::ForgeQueryEntity;
@@ -207,7 +208,7 @@ pub(super) fn aggregate_naming_edit_continuity_matrix_for_contract_sets(
 pub(super) fn accepted_step_row(
     step_index: usize,
     contracts: &[TopologyEditContract],
-    execution: &TopologyOperatorExecution,
+    execution: &TopologyDeclaredMutationArtifact,
 ) -> MilestoneThreeEditReplayStepRow {
     MilestoneThreeEditReplayStepRow {
         step_index,
@@ -225,7 +226,7 @@ pub(super) fn accepted_step_row(
 pub(super) fn accepted_step_row_for_declaration<D>(
     step_index: usize,
     declaration: &D,
-    execution: &TopologyOperatorExecution,
+    execution: &TopologyDeclaredMutationArtifact,
 ) -> MilestoneThreeEditReplayStepRow
 where
     D: TopologyDeclarationContractPayload,

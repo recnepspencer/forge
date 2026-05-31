@@ -7,20 +7,9 @@ use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::super::contracts::TopologyEditFamily;
-use super::TopologyEditApplicationMode;
-
 #[derive(Debug)]
 pub enum TopologyOperatorExecutionError {
-    UnsupportedMode(TopologyEditApplicationMode),
     UnsupportedFamilies(Vec<TopologyEditFamily>),
-    DeclarationEntryRequired {
-        family: TopologyEditFamily,
-        reason: &'static str,
-    },
-    DeclarationEntryProgramRequired {
-        families: Vec<TopologyEditFamily>,
-        reason: &'static str,
-    },
     DeclarationEntry {
         family: TopologyEditFamily,
         stop_class: TopologyDeclarationEntryStopClass,
@@ -158,21 +147,9 @@ impl From<ForgeQueryDeclarationEntryOrchestrationRefusalClass>
 impl std::fmt::Display for TopologyOperatorExecutionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::UnsupportedMode(mode) => write!(
-                f,
-                "topology query edit execution does not admit mode `{mode:?}` yet"
-            ),
             Self::UnsupportedFamilies(families) => write!(
                 f,
                 "topology query edit execution does not admit families `{families:?}` yet"
-            ),
-            Self::DeclarationEntryRequired { family, reason } => write!(
-                f,
-                "topology query edit execution requires declaration-entry canonical input for family `{family:?}`: {reason}"
-            ),
-            Self::DeclarationEntryProgramRequired { families, reason } => write!(
-                f,
-                "topology query edit execution requires declaration-entry canonical grouped input for families `{families:?}`: {reason}"
             ),
             Self::DeclarationEntry {
                 family,

@@ -1,5 +1,8 @@
 use std::collections::BTreeMap;
 
+use crate::topology_operators::{
+    NamingEditContinuityMatrix, TopologyEditDigest, TopologyEditFamily, TopologyEditNamingReport,
+};
 use forge_query::facade::{
     ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection, ForgeQueryInspection,
     ForgeQueryMutationBatchBuilder,
@@ -7,9 +10,8 @@ use forge_query::facade::{
 use schema::facade::platform::entities::TopologyEntityKind;
 
 use super::super::{
-    load_post_write_materialized_topology, NamingEditContinuityMatrix, TopologyEditApplicationMode,
-    TopologyEditContract, TopologyEditDigest, TopologyEditFamily, TopologyEditNamingReport,
-    TopologyOperatorExecution, TopologyOperatorExecutionError, TopologyOperatorExecutionPath,
+    load_post_write_materialized_topology, TopologyDeclaredMutationArtifact,
+    TopologyEditApplicationMode, TopologyEditContract, TopologyOperatorExecutionError,
     TopologyOperatorRunner, TopologyQueryBindingIndex,
 };
 
@@ -30,19 +32,18 @@ pub(super) fn lower_contracts(
 pub(super) fn finalize_lowered_batch(
     runner: &mut TopologyOperatorRunner<'_, '_>,
     lowered_batch: ForgeQueryMutationBatchBuilder,
-    path: TopologyOperatorExecutionPath,
-    mode: TopologyEditApplicationMode,
+    semantic_family_key: &'static str,
+    _mode: TopologyEditApplicationMode,
     families: Vec<TopologyEditFamily>,
     topology_edit_digest: TopologyEditDigest,
     naming_continuity_matrix: NamingEditContinuityMatrix,
     naming_report: TopologyEditNamingReport,
-) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
     let receipt = runner.workspace.batch(|_| lowered_batch)?;
     let inspection = load_batch_write_receipt_inspection(runner, &receipt)?;
     let materialized = load_post_write_materialized_topology(runner.workspace, runner.surfaces)?;
-    Ok(TopologyOperatorExecution {
-        mode,
-        path,
+    Ok(TopologyDeclaredMutationArtifact {
+        semantic_family_key,
         families,
         receipt,
         inspection,

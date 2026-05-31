@@ -2,9 +2,7 @@ use std::collections::BTreeSet;
 
 use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::platform::aspects::Aspect;
-use schema::facade::platform::authority::{
-    CreateKey, EntityReference, MutationOrigin, TopologyMutation,
-};
+use schema::facade::platform::authority::{CreateKey, EntityReference, TopologyMutation};
 use schema::facade::platform::entities::TopologyEntityKind;
 use serde::{Deserialize, Serialize};
 
@@ -82,19 +80,7 @@ pub struct TopologyEditContract {
 }
 
 impl TopologyEditContract {
-    pub fn mutation_origin_for(
-        mode: &super::super::facade::TopologyEditApplicationMode,
-    ) -> MutationOrigin {
-        match mode {
-            super::super::facade::TopologyEditApplicationMode::Mainline => {
-                MutationOrigin::LocalEdit
-            }
-            super::super::facade::TopologyEditApplicationMode::BranchLocal(_) => {
-                MutationOrigin::BranchLocalApplication
-            }
-        }
-    }
-
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn touched_aspects(&self) -> &BTreeSet<Aspect> {
         &self.touched_aspects
     }
@@ -115,6 +101,7 @@ impl TopologyEditContract {
         self.derived_fallback_policy
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn with_derived_fallback_policy(
         mut self,
         policy: TopologyEditDerivedFallbackPolicy,

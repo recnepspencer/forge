@@ -10,12 +10,12 @@ use crate::projection::runtime_boundary::query_runtime::TopologyRuntimeSupport;
 use crate::projection::runtime_boundary::read_stage::open_topology_read_view;
 use crate::projection::TopologyQueryRowLookup;
 use crate::topology_operators::application::{
-    TopologyDeclarationContractPayload, TopologyOperatorRunner,
+    TopologyDeclarationContractPayload, TopologyDeclaredMutationArtifact, TopologyOperatorRunner,
 };
 use crate::topology_operators::{
     TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyCreateTopologyEntityDeclaration,
     TopologyDetachBoundaryMembershipDeclaration, TopologyDetachRadialAdjacencyDeclaration,
-    TopologyDetachShellOrWireMembershipDeclaration, TopologyEditFamily, TopologyOperatorExecution,
+    TopologyDetachShellOrWireMembershipDeclaration, TopologyEditFamily,
     TopologyOperatorExecutionError, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyRetireTopologyEntityDeclaration,
     TopologyRewireLoopEndpointDeclaration, TopologyRewireLoopSuccessorProgramDeclaration,
@@ -173,7 +173,7 @@ pub(in crate::certification::projection_closeout::tests) fn execute_current_head
     workspace: &mut ForgeQueryWorkspace,
     surfaces: &TopologyDeclaredQuerySurfaces,
     declaration: D,
-) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError>
+) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError>
 where
     D: TopologyCurrentHeadRuntimeDeclaration,
 {
@@ -189,7 +189,7 @@ pub(in crate::certification::projection_closeout::tests) trait TopologyCurrentHe
         self,
         runner: &mut TopologyOperatorRunner<'_, '_>,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError>;
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError>;
 }
 
 impl TopologyCurrentHeadRuntimeDeclaration for TopologyCreateTopologyEntityDeclaration {
@@ -197,7 +197,7 @@ impl TopologyCurrentHeadRuntimeDeclaration for TopologyCreateTopologyEntityDecla
         self,
         runner: &mut TopologyOperatorRunner<'_, '_>,
         _bindings: &TopologyQueryBindingIndex,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
         runner.apply_create_topology_entity_declaration(
             self,
             crate::facade::TopologyEditApplicationMode::Mainline,
@@ -210,7 +210,7 @@ impl TopologyCurrentHeadRuntimeDeclaration for TopologyCreateInnerLoopOnExisting
         self,
         runner: &mut TopologyOperatorRunner<'_, '_>,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
         runner.apply_create_inner_loop_on_existing_face_declaration(
             self,
             bindings,
@@ -226,7 +226,7 @@ macro_rules! impl_single_family_runtime_declaration {
                 self,
                 runner: &mut TopologyOperatorRunner<'_, '_>,
                 bindings: &TopologyQueryBindingIndex,
-            ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+            ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
                 runner.$method(
                     self,
                     bindings,
@@ -269,7 +269,7 @@ macro_rules! impl_grouped_runtime_declaration {
                 self,
                 runner: &mut TopologyOperatorRunner<'_, '_>,
                 bindings: &TopologyQueryBindingIndex,
-            ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+            ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
                 runner.$method(
                     self,
                     bindings,

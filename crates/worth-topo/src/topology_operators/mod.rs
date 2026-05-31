@@ -9,11 +9,9 @@ mod rejection_locality;
 mod replay;
 
 pub(crate) use application::topology_relation_dependency_path;
+pub(crate) use application::TopologyOperatorExecutionError;
 pub(crate) use application::TopologyOperatorRunner;
-pub use application::{
-    TopologyDeclarationEntryRefusalClass, TopologyDeclarationEntryStopClass,
-    TopologyOperatorExecution, TopologyOperatorExecutionError, TopologyOperatorExecutionPath,
-};
+pub use application::{TopologyDeclarationEntryRefusalClass, TopologyDeclarationEntryStopClass};
 pub(crate) use contract_sequence::{
     naming_edit_continuity_matrix_for_contracts, topology_edit_digest_for_contracts,
     topology_edit_families_for_contracts, topology_edit_naming_report_for_contracts,

@@ -2,9 +2,8 @@ use crate::topology_operators::declaration_entry::TopologySplitSingleFaceFromTwo
 use crate::topology_operators::local_rewrites::sheet_wire_laminar::resolve_single_face_two_face_shell_split_program;
 
 use super::super::super::{
-    TopologyEditApplicationMode, TopologyEditFamily, TopologyOperatorExecution,
-    TopologyOperatorExecutionError, TopologyOperatorExecutionPath, TopologyOperatorRunner,
-    TopologyQueryBindingIndex,
+    TopologyDeclaredMutationArtifact, TopologyEditApplicationMode, TopologyEditFamily,
+    TopologyOperatorExecutionError, TopologyOperatorRunner, TopologyQueryBindingIndex,
 };
 use super::super::contract_payload::TopologyDeclarationContractPayload;
 use super::super::orchestration_boundary::orchestrate_topology_declaration_entry;
@@ -15,7 +14,7 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
         declaration: TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
         bindings: &TopologyQueryBindingIndex,
         mode: TopologyEditApplicationMode,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
         orchestrate_topology_declaration_entry(
             TopologyEditFamily::AttachShellOrWireMembership,
             declaration.clone(),
@@ -27,10 +26,7 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
         let receipt = self.compose_shell_split_program(program, bindings)?;
         self.finish_composed_membership_execution(
             mode,
-            TopologyOperatorExecutionPath::DeclarationEntry {
-                semantic_family_key:
-                    TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration::SEMANTIC_FAMILY_KEY,
-            },
+            TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration::SEMANTIC_FAMILY_KEY,
             declaration.semantic_families(),
             declaration.topology_edit_digest(),
             declaration.naming_continuity_matrix(),

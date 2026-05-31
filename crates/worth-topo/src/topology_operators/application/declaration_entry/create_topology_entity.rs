@@ -1,8 +1,8 @@
 use crate::topology_operators::declaration_entry::TopologyCreateTopologyEntityDeclaration;
 
 use super::super::{
-    TopologyEditApplicationMode, TopologyOperatorExecution, TopologyOperatorExecutionError,
-    TopologyOperatorExecutionPath, TopologyOperatorRunner,
+    TopologyDeclaredMutationArtifact, TopologyEditApplicationMode, TopologyOperatorExecutionError,
+    TopologyOperatorRunner,
 };
 use super::contract_payload::TopologyDeclarationContractPayload;
 use super::execution_finalize::{finalize_lowered_batch, lower_contracts};
@@ -13,7 +13,7 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
         &mut self,
         declaration: TopologyCreateTopologyEntityDeclaration,
         mode: TopologyEditApplicationMode,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
         orchestrate_topology_declaration_entry(
             crate::topology_operators::TopologyEditFamily::CreateTopologyEntity,
             declaration.clone(),
@@ -30,9 +30,7 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
         finalize_lowered_batch(
             self,
             lowered_batch,
-            TopologyOperatorExecutionPath::DeclarationEntry {
-                semantic_family_key: TopologyCreateTopologyEntityDeclaration::SEMANTIC_FAMILY_KEY,
-            },
+            TopologyCreateTopologyEntityDeclaration::SEMANTIC_FAMILY_KEY,
             mode,
             declaration.semantic_families(),
             declaration.topology_edit_digest(),

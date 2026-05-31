@@ -9,11 +9,11 @@ use super::support::{endpoint_rewire_fixture, radial_splice_fixture, seeded_rela
 use crate::facade::{
     topology_runtime, BoundaryMembershipKind, LoopEndpointKind, ShellOrWireMembershipKind,
     TopologyDetachBoundaryMembershipDeclaration, TopologyDetachRadialAdjacencyDeclaration,
-    TopologyDetachShellOrWireMembershipDeclaration, TopologyOperatorExecutionError,
-    TopologyOperatorExecutionPath, TopologyRetireTopologyEntityDeclaration,
+    TopologyDetachShellOrWireMembershipDeclaration, TopologyRetireTopologyEntityDeclaration,
     TopologyRewireLoopEndpointDeclaration, TopologyRuntimeAdapters,
     TopologySpliceRadialAdjacencyDeclaration,
 };
+use crate::topology_operators::TopologyOperatorExecutionError;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
@@ -81,10 +81,8 @@ fn retire_runtime_case() {
     .expect("retire batch should execute through declaration entry");
 
     assert_eq!(
-        execution.path,
-        TopologyOperatorExecutionPath::DeclarationEntry {
-            semantic_family_key: "topology.retire_topology_entity",
-        }
+        execution.semantic_family_key(),
+        "topology.retire_topology_entity"
     );
     assert!(!execution
         .materialized
@@ -122,10 +120,8 @@ fn detach_boundary_runtime_case() {
     .expect("detach boundary batch should execute through declaration entry");
 
     assert_eq!(
-        execution.path,
-        TopologyOperatorExecutionPath::DeclarationEntry {
-            semantic_family_key: "topology.detach_boundary_membership",
-        }
+        execution.semantic_family_key(),
+        "topology.detach_boundary_membership"
     );
     let loop_record = execution
         .materialized
@@ -168,10 +164,8 @@ fn rewire_endpoint_runtime_case() {
     .expect("rewire endpoint batch should execute through declaration entry");
 
     assert_eq!(
-        execution.path,
-        TopologyOperatorExecutionPath::DeclarationEntry {
-            semantic_family_key: "topology.rewire_loop_endpoint",
-        }
+        execution.semantic_family_key(),
+        "topology.rewire_loop_endpoint"
     );
     let half_edge = execution
         .materialized
@@ -211,10 +205,8 @@ fn detach_shell_or_wire_runtime_case() {
     .expect("detach shell-or-wire batch should execute through declaration entry");
 
     assert_eq!(
-        execution.path,
-        TopologyOperatorExecutionPath::DeclarationEntry {
-            semantic_family_key: "topology.detach_shell_or_wire_membership",
-        }
+        execution.semantic_family_key(),
+        "topology.detach_shell_or_wire_membership"
     );
     let wire = execution
         .materialized
@@ -256,10 +248,8 @@ fn splice_radial_runtime_case() {
     .expect("splice radial batch should execute through declaration entry");
 
     assert_eq!(
-        execution.path,
-        TopologyOperatorExecutionPath::DeclarationEntry {
-            semantic_family_key: "topology.splice_radial_adjacency",
-        }
+        execution.semantic_family_key(),
+        "topology.splice_radial_adjacency"
     );
     let half_edge = execution
         .materialized
@@ -299,10 +289,8 @@ fn detach_radial_runtime_case() {
     .expect("detach radial batch should execute through declaration entry");
 
     assert_eq!(
-        execution.path,
-        TopologyOperatorExecutionPath::DeclarationEntry {
-            semantic_family_key: "topology.detach_radial_adjacency",
-        }
+        execution.semantic_family_key(),
+        "topology.detach_radial_adjacency"
     );
     let half_edge = execution
         .materialized

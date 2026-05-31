@@ -5,9 +5,8 @@ use crate::topology_operators::declaration_entry::{
 };
 
 use super::super::super::{
-    TopologyEditApplicationMode, TopologyEditFamily, TopologyOperatorExecution,
-    TopologyOperatorExecutionError, TopologyOperatorExecutionPath, TopologyOperatorRunner,
-    TopologyQueryBindingIndex,
+    TopologyDeclaredMutationArtifact, TopologyEditApplicationMode, TopologyEditFamily,
+    TopologyOperatorExecutionError, TopologyOperatorRunner, TopologyQueryBindingIndex,
 };
 use super::super::contract_payload::TopologyDeclarationContractPayload;
 use super::super::execution_finalize::{finalize_lowered_batch, lower_contracts};
@@ -46,7 +45,7 @@ pub(super) fn apply_scalar_declaration<D>(
     declaration: D,
     bindings: &TopologyQueryBindingIndex,
     mode: TopologyEditApplicationMode,
-) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError>
+) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError>
 where
     D: ScalarDeclarationBatch
         + TopologyDeclarationContractPayload
@@ -59,9 +58,7 @@ where
     finalize_lowered_batch(
         runner,
         lowered_batch,
-        TopologyOperatorExecutionPath::DeclarationEntry {
-            semantic_family_key: D::SEMANTIC_FAMILY_KEY,
-        },
+        D::SEMANTIC_FAMILY_KEY,
         mode,
         declaration.semantic_families(),
         declaration.topology_edit_digest(),

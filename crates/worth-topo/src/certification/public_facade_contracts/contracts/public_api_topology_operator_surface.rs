@@ -198,7 +198,6 @@ fn _topology_operator_surface_contracts() {
     > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry_proof::<
         TopologyCreateInnerLoopOnExistingFaceDeclaration,
     >;
-    let _: fn(TopologyOperatorExecutionPath) -> TopologyOperatorExecutionPath = |path| path;
     let _: fn(&TopologyCurrentHeadReadSession<'_>) -> Vec<TopologyDomainQueryRequestFamily> =
         |session| session.supported_request_families();
     let _: fn(&TopologyCurrentHeadReadSession<'_>) -> TopologyDomainQueryFallbackPosture =

@@ -1,7 +1,7 @@
 use crate::topology_operators::declaration_entry::TopologyRewireLoopEndpointDeclaration;
 
 use super::super::super::{
-    TopologyEditApplicationMode, TopologyOperatorExecution, TopologyOperatorExecutionError,
+    TopologyDeclaredMutationArtifact, TopologyEditApplicationMode, TopologyOperatorExecutionError,
     TopologyOperatorRunner, TopologyQueryBindingIndex,
 };
 use super::shared::apply_scalar_declaration;
@@ -12,7 +12,7 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
         declaration: TopologyRewireLoopEndpointDeclaration,
         bindings: &TopologyQueryBindingIndex,
         mode: TopologyEditApplicationMode,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
         apply_scalar_declaration(self, declaration, bindings, mode)
     }
 }

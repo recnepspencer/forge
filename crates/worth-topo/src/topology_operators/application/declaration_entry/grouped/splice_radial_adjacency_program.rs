@@ -1,9 +1,8 @@
 use crate::topology_operators::declaration_entry::TopologySpliceRadialAdjacencyProgramDeclaration;
 
 use super::super::super::{
-    TopologyEditApplicationMode, TopologyEditFamily, TopologyOperatorExecution,
-    TopologyOperatorExecutionError, TopologyOperatorExecutionPath, TopologyOperatorRunner,
-    TopologyQueryBindingIndex,
+    TopologyDeclaredMutationArtifact, TopologyEditApplicationMode, TopologyEditFamily,
+    TopologyOperatorExecutionError, TopologyOperatorRunner, TopologyQueryBindingIndex,
 };
 use super::super::contract_payload::TopologyDeclarationContractPayload;
 use super::super::execution_finalize::{finalize_lowered_batch, lower_contracts};
@@ -15,7 +14,7 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
         declaration: TopologySpliceRadialAdjacencyProgramDeclaration,
         bindings: &TopologyQueryBindingIndex,
         mode: TopologyEditApplicationMode,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
         orchestrate_topology_declaration_entry(
             TopologyEditFamily::SpliceRadialAdjacency,
             declaration.clone(),
@@ -26,10 +25,7 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
         finalize_lowered_batch(
             self,
             lowered_batch,
-            TopologyOperatorExecutionPath::DeclarationEntry {
-                semantic_family_key:
-                    TopologySpliceRadialAdjacencyProgramDeclaration::SEMANTIC_FAMILY_KEY,
-            },
+            TopologySpliceRadialAdjacencyProgramDeclaration::SEMANTIC_FAMILY_KEY,
             mode,
             declaration.semantic_families(),
             declaration.topology_edit_digest(),

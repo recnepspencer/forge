@@ -4,6 +4,7 @@ pub(crate) mod bindings;
 #[cfg(test)]
 mod boundary_tests;
 mod declaration_entry;
+mod declared_mutation_artifact;
 mod dependency_paths;
 mod error;
 mod existing_truth;
@@ -12,44 +13,21 @@ pub(crate) use declaration_entry::contract_payload::TopologyDeclarationContractP
 
 use std::collections::BTreeMap;
 
-use forge_query::facade::{
-    ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection,
-    ForgeQueryMutationBatchBuilder, ForgeQueryWorkspace,
-};
+use forge_query::facade::{ForgeQueryMutationBatchBuilder, ForgeQueryWorkspace};
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
-use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 use crate::projection::runtime_boundary::query_runtime::load_post_write_materialized_topology;
 
-use super::contracts::{
-    TopologyEditAction, TopologyEditContract, TopologyEditFamily, TopologyEditNamingReport,
-};
-use super::{NamingEditContinuityMatrix, TopologyEditApplicationMode, TopologyEditDigest};
+use super::contracts::{TopologyEditAction, TopologyEditContract, TopologyEditFamily};
+use super::TopologyEditApplicationMode;
+pub(crate) use declared_mutation_artifact::TopologyDeclaredMutationArtifact;
 pub(crate) use dependency_paths::topology_relation_dependency_path;
 pub use error::{
     TopologyDeclarationEntryRefusalClass, TopologyDeclarationEntryStopClass,
     TopologyOperatorExecutionError,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TopologyOperatorExecutionPath {
-    DeclarationEntry { semantic_family_key: &'static str },
-}
-
-#[derive(Debug, Clone)]
-pub struct TopologyOperatorExecution {
-    pub mode: TopologyEditApplicationMode,
-    pub path: TopologyOperatorExecutionPath,
-    pub families: Vec<TopologyEditFamily>,
-    pub receipt: ForgeQueryBatchWriteReceipt,
-    pub inspection: ForgeQueryBatchWriteReceiptInspection,
-    pub materialized: MaterializedTopologyView,
-    pub topology_edit_digest: TopologyEditDigest,
-    pub naming_continuity_matrix: NamingEditContinuityMatrix,
-    pub naming_report: TopologyEditNamingReport,
-}
 
 pub(crate) struct TopologyOperatorRunner<'workspace, 'surfaces> {
     pub(crate) workspace: &'workspace mut ForgeQueryWorkspace,

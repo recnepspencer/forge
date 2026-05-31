@@ -8,10 +8,7 @@ use schema::facade::topology_authoring::{seed_milestone_one_primitive, Milestone
 use super::super::support::{
     current_head_query_handle, execute_current_head_topology_declaration, snapshot_query_handle,
 };
-use crate::facade::{
-    topology_runtime, TopologyDeclaredQuerySurfaces, TopologyOperatorExecutionPath,
-    TopologyRuntimeAdapters,
-};
+use crate::facade::{topology_runtime, TopologyDeclaredQuerySurfaces, TopologyRuntimeAdapters};
 use crate::projection::{query_entity_id_from_row, query_relation_id_from_row};
 use crate::topology_operators::{
     TopologyRadialSpliceMember, TopologySpliceRadialAdjacencyProgramDeclaration,
@@ -84,10 +81,8 @@ fn current_head_runtime_executes_canonical_radial_splice_program_through_declara
             .expect("radial splice program should execute through declaration entry");
 
     assert_eq!(
-        execution.path,
-        TopologyOperatorExecutionPath::DeclarationEntry {
-            semantic_family_key: "topology.splice_radial_adjacency_program",
-        }
+        execution.semantic_family_key(),
+        "topology.splice_radial_adjacency_program"
     );
 }
 

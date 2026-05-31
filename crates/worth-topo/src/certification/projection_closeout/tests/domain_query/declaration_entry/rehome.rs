@@ -14,8 +14,7 @@ use super::super::support::{
     current_head_query_handle, execute_current_head_topology_declaration, snapshot_query_handle,
 };
 use crate::facade::{
-    topology_runtime, TopologyOperatorExecutionPath,
-    TopologyRehomeAllOwnedFacesToNewShellDeclaration,
+    topology_runtime, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyRuntimeAdapters,
     TopologyShellRehomeFaceMember, TopologyWireRehomeHalfEdgeMember,
 };
@@ -147,10 +146,8 @@ fn current_head_runtime_executes_canonical_wire_rehome_batch_through_declaration
             .expect("canonical wire rehome batch should execute through declaration entry");
 
     assert_eq!(
-        execution.path,
-        TopologyOperatorExecutionPath::DeclarationEntry {
-            semantic_family_key: "topology.rehome_all_owned_half_edges_to_new_wire",
-        }
+        execution.semantic_family_key(),
+        "topology.rehome_all_owned_half_edges_to_new_wire"
     );
     let topology = execution.materialized.topology();
     assert!(!topology.wires.iter().any(|wire| wire.entity_id == wire_id));
@@ -316,10 +313,8 @@ fn current_head_runtime_executes_canonical_shell_rehome_batch_through_declaratio
             .expect("canonical shell rehome batch should execute through declaration entry");
 
     assert_eq!(
-        execution.path,
-        TopologyOperatorExecutionPath::DeclarationEntry {
-            semantic_family_key: "topology.rehome_all_owned_faces_to_new_shell",
-        }
+        execution.semantic_family_key(),
+        "topology.rehome_all_owned_faces_to_new_shell"
     );
     let topology = execution.materialized.topology();
     assert!(!topology

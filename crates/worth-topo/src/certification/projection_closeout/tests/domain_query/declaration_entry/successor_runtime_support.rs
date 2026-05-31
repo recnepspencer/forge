@@ -4,7 +4,8 @@ use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
-use crate::facade::{LoopSuccessorKind, TopologyOperatorExecution};
+use crate::facade::LoopSuccessorKind;
+use crate::topology_operators::application::TopologyDeclaredMutationArtifact;
 use crate::topology_operators::{
     TopologyLoopSuccessorRewireMember, TopologyRewireLoopSuccessorProgramDeclaration,
 };
@@ -149,7 +150,7 @@ pub(super) fn cross_loop_successor_declaration(
 }
 
 pub(super) fn find_half_edge(
-    execution: &TopologyOperatorExecution,
+    execution: &TopologyDeclaredMutationArtifact,
     half_edge_id: EntityId,
 ) -> &crate::facade::TopologyHalfEdge {
     execution
