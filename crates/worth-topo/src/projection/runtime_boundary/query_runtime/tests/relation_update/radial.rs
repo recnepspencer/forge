@@ -167,9 +167,9 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
         wrong_half_edge_id,
         radial_next_half_edge_id,
     );
-    let contracts = declaration.clone().into_contracts();
-    let error = execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
-        .expect_err("radial splice with mismatched source binding must fail typed and early");
+    let error =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration.clone())
+            .expect_err("radial splice with mismatched source binding must fail typed and early");
 
     assert!(matches!(
         error,
@@ -185,7 +185,7 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
         Some(TopologyEditRejectionClass::InvariantBlocked)
     );
     let report = error
-        .rejected_contract_scope_report(&contracts)
+        .rejected_declaration_scope_report(&declaration)
         .expect("invariant-block denial should expose exact rejected scope report");
     assert_eq!(report.rows.len(), 1);
     assert_eq!(

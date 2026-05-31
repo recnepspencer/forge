@@ -5,6 +5,7 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::seed_milestone_one_primitive;
 use serde_json::Value;
 
+use super::super::super::edit_sequence_support::TopologyCloseoutDeclaration;
 use super::super::super::scenario_programs::successor_relocation_declaration;
 use super::super::super::shared::first_source_identity_for_relation_kind;
 use super::accepted_branch_authority_projection::{
@@ -14,7 +15,8 @@ use super::accepted_branch_authority_projection::{
     relation_id_by_shape, seeded_wire_and_half_edges,
 };
 use super::accepted_branch_execution::{
-    apply_branch_declaration, apply_branch_mutations, create_branch, execution_from_verified,
+    apply_branch_declaration, apply_branch_mutations, create_branch,
+    execution_from_verified_contract_sets, execution_from_verified_declarations,
     AcceptedBranchExecution,
 };
 use crate::certification::error::TopologyCertificationError;
@@ -72,13 +74,13 @@ where
         TopologyRetireTopologyEntityDeclaration::new(loop_id, TopologyEntityKind::Loop);
     let verified_three =
         apply_branch_declaration(&mut runtime, &branch.branch_id, retire_loop.clone())?;
-    execution_from_verified(
+    execution_from_verified_declarations(
         &runtime,
         branch,
         vec![
-            create_inner_loop.into_contracts(),
-            detach_inner_loop.into_contracts(),
-            retire_loop.into_contracts(),
+            TopologyCloseoutDeclaration::CreateInnerLoopOnExistingFace(create_inner_loop),
+            TopologyCloseoutDeclaration::DetachBoundaryMembership(detach_inner_loop),
+            TopologyCloseoutDeclaration::RetireTopologyEntity(retire_loop),
         ],
         vec![verified_one, verified_two, verified_three],
     )
@@ -142,7 +144,7 @@ where
         &branch.branch_id,
         authority_expanded_collapse_mutations(&collapse_contracts, &split_relation_ids),
     )?;
-    execution_from_verified(
+    execution_from_verified_contract_sets(
         &runtime,
         branch,
         vec![split_contracts, collapse_contracts],
@@ -172,10 +174,12 @@ where
             &format!("{stem}.branch_local.ambiguous"),
         )?,
     )?;
-    execution_from_verified(
+    execution_from_verified_declarations(
         &runtime,
         branch,
-        vec![declaration.into_contracts()],
+        vec![TopologyCloseoutDeclaration::RewireLoopSuccessorProgram(
+            declaration,
+        )],
         vec![verified],
     )
 }

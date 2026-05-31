@@ -4,9 +4,7 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use serde_json::Value;
 
-use super::super::shared::{
-    aggregate_topology_edit_digest_for_contract_sets, relation_id_from_query_identity,
-};
+use super::super::shared::relation_id_from_query_identity;
 use super::scale_pressure_types::{
     MilestoneThreeScalePressureRow, MilestoneThreeScalePressureSweep,
 };
@@ -17,11 +15,44 @@ use crate::certification::support::parity::digest_materialized_topology_view;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::topology_operators::application::TopologyDeclarationContractPayload;
 use crate::topology_operators::{
-    topology_edit_families_for_contracts, ShellOrWireMembershipKind,
-    TopologyDetachRadialAdjacencyDeclaration, TopologyDetachShellOrWireMembershipDeclaration,
-    TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
+    ShellOrWireMembershipKind, TopologyDetachRadialAdjacencyDeclaration,
+    TopologyDetachShellOrWireMembershipDeclaration, TopologyEditDigest, TopologyEditFamily,
 };
+
+#[derive(Clone)]
+enum DetachPressureDeclaration {
+    ShellOrWire(TopologyDetachShellOrWireMembershipDeclaration),
+    Radial(TopologyDetachRadialAdjacencyDeclaration),
+}
+
+impl DetachPressureDeclaration {
+    fn new(
+        relation_id: forge_relational::facade::identity::RelationId,
+        detach_kind: DetachPressureKind,
+    ) -> Self {
+        match detach_kind {
+            DetachPressureKind::ShellOrWire(kind) => Self::ShellOrWire(
+                TopologyDetachShellOrWireMembershipDeclaration::new(relation_id, kind),
+            ),
+            DetachPressureKind::Radial => {
+                Self::Radial(TopologyDetachRadialAdjacencyDeclaration::new(relation_id))
+            }
+        }
+    }
+}
+
+impl TopologyDeclarationContractPayload for DetachPressureDeclaration {
+    const SEMANTIC_FAMILY_KEY: &'static str = "topology.detach_pressure_declaration";
+
+    fn into_contracts(self) -> Vec<crate::topology_operators::TopologyEditContract> {
+        match self {
+            Self::ShellOrWire(declaration) => declaration.into_contracts(),
+            Self::Radial(declaration) => declaration.into_contracts(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub(super) enum DetachPressureKind {
@@ -111,27 +142,16 @@ where
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let relation_rows = workspace.read::<Value>(surfaces.relations());
     let relation_id = first_relation_id_for_kind(&relation_rows, relation_kind)?;
-    let detach_contract = match detach_kind {
-        DetachPressureKind::ShellOrWire(kind) => {
-            TopologyEditContract::detach_shell_or_wire_membership(relation_id, kind)
+    let declaration = DetachPressureDeclaration::new(relation_id, detach_kind);
+    let topology_edit_digest = declaration.topology_edit_digest();
+    let edit_families = declaration.semantic_families();
+    let execution = match declaration {
+        DetachPressureDeclaration::ShellOrWire(declaration) => {
+            execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
         }
-        DetachPressureKind::Radial => TopologyEditContract::detach_radial_adjacency(relation_id),
-    };
-    let contracts = vec![detach_contract];
-    let topology_edit_digest =
-        aggregate_topology_edit_digest_for_contract_sets(vec![contracts.clone()]);
-    let edit_families = topology_edit_families_for_contracts(&contracts);
-    let execution = match detach_kind {
-        DetachPressureKind::ShellOrWire(kind) => execute_current_head_topology_declaration(
-            &mut workspace,
-            &surfaces,
-            TopologyDetachShellOrWireMembershipDeclaration::new(relation_id, kind),
-        ),
-        DetachPressureKind::Radial => execute_current_head_topology_declaration(
-            &mut workspace,
-            &surfaces,
-            TopologyDetachRadialAdjacencyDeclaration::new(relation_id),
-        ),
+        DetachPressureDeclaration::Radial(declaration) => {
+            execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+        }
     }
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let final_state_digest = digest_materialized_topology_view(&execution.materialized).digest_hex;

@@ -7,15 +7,18 @@ use schema::facade::topology_authoring::{
     seed_milestone_one_primitive, DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
 };
 
+use super::super::edit_sequence_support::{
+    aggregate_naming_edit_continuity_matrix_for_declarations,
+    aggregate_topology_edit_digest_for_declarations, topology_edit_families_for_declarations,
+    TopologyCloseoutDeclaration,
+};
 use super::super::report::{
     MilestoneThreeEditReplayStepRow, MilestoneThreeHostileOutcomeClass,
     MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
     MilestoneThreeSplitCollapseChurnWitness,
 };
 use super::super::shared::{
-    accepted_step_row_for_declaration, aggregate_naming_edit_continuity_matrix_for_contract_sets,
-    aggregate_topology_edit_digest_for_contract_sets, derived_validation_report_from_materialized,
-    replay_checked,
+    accepted_step_row_for_declaration, derived_validation_report_from_materialized, replay_checked,
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
@@ -24,7 +27,6 @@ use crate::certification::support::parity::digest_materialized_topology_view;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::topology_operators::application::TopologyDeclarationContractPayload;
 use crate::topology_operators::{
     TopologyEditDigest, TopologyEditFamily, TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
     TopologySplitConnectedHalfEdgeSetToNewWireDeclaration, TopologyWireRehomeHalfEdgeMember,
@@ -171,9 +173,9 @@ where
         digest_materialized_topology_view(&collapse_execution.materialized);
     let derived_validation_report =
         derived_validation_report_from_materialized(&collapse_execution.materialized)?;
-    let contract_sets = vec![
-        split_declaration.clone().into_contracts(),
-        collapse_declaration.clone().into_contracts(),
+    let declarations = vec![
+        TopologyCloseoutDeclaration::SplitConnectedHalfEdgeSetToNewWire(split_declaration.clone()),
+        TopologyCloseoutDeclaration::RehomeAllOwnedHalfEdgesToNewWire(collapse_declaration.clone()),
     ];
     let step_rows = vec![
         accepted_step_row_for_declaration(0, &split_declaration, &split_execution),
@@ -183,16 +185,10 @@ where
     Ok(MilestoneThreeSplitCollapseRun {
         primitive_family,
         primitive,
-        edit_families: split_declaration
-            .semantic_families()
-            .into_iter()
-            .chain(collapse_declaration.semantic_families())
-            .collect(),
-        topology_edit_digest: aggregate_topology_edit_digest_for_contract_sets(
-            contract_sets.clone(),
-        ),
-        naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix_for_contract_sets(
-            contract_sets,
+        edit_families: topology_edit_families_for_declarations(declarations.clone()),
+        topology_edit_digest: aggregate_topology_edit_digest_for_declarations(declarations.clone()),
+        naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix_for_declarations(
+            declarations,
         ),
         step_rows,
         baseline_materialized_topology_digest,

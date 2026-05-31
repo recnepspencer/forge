@@ -10,8 +10,6 @@ use schema::facade::platform::authority::EntityReference;
 
 use super::shared::canonical_entity_reference_entry;
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-#[cfg(test)]
-use crate::topology_operators::TopologyEditAction;
 use crate::topology_operators::{ShellOrWireMembershipKind, TopologyEditContract};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -143,92 +141,5 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain>
                 &self.member,
             ),
         ]
-    }
-}
-
-#[cfg(test)]
-fn declaration_for_canonical_single_attach_shell_or_wire_contracts(
-    contracts: &[TopologyEditContract],
-) -> Option<TopologyAttachShellOrWireMembershipDeclaration> {
-    let [contract] = contracts else {
-        return None;
-    };
-    declaration_for_canonical_attach_shell_or_wire_contract(contract)
-}
-
-#[cfg(test)]
-fn declaration_for_canonical_attach_shell_or_wire_contract(
-    contract: &TopologyEditContract,
-) -> Option<TopologyAttachShellOrWireMembershipDeclaration> {
-    let TopologyEditAction::AttachShellOrWireMembership {
-        create_key,
-        kind,
-        owner,
-        member,
-    } = &contract.action
-    else {
-        return None;
-    };
-    let declaration = TopologyAttachShellOrWireMembershipDeclaration::new(
-        create_key.as_str().to_string(),
-        *kind,
-        owner.clone(),
-        member.clone(),
-    );
-    let canonical_contract = declaration.clone().into_contracts().pop()?;
-
-    (contract == &canonical_contract).then_some(declaration)
-}
-
-#[cfg(test)]
-mod tests {
-    use forge_relational::facade::identity::{EntityId, PartitionId};
-
-    use super::{
-        declaration_for_canonical_single_attach_shell_or_wire_contracts,
-        TopologyAttachShellOrWireMembershipDeclaration,
-    };
-    use crate::topology_operators::{
-        ShellOrWireMembershipKind, TopologyEditContract, TopologyEditDerivedFallbackPolicy,
-    };
-
-    #[test]
-    fn canonical_single_attach_shell_or_wire_contracts_promote_to_query_declaration() {
-        let contracts = vec![TopologyEditContract::attach_shell_or_wire_membership(
-            "query-native.attach-wire.half-edge",
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-            EntityId::new(PartitionId::main(), 1, 1),
-            EntityId::new(PartitionId::main(), 2, 1),
-        )];
-
-        let declaration =
-            declaration_for_canonical_single_attach_shell_or_wire_contracts(&contracts)
-                .expect("canonical single attach-shell-or-wire contracts should promote");
-
-        assert_eq!(
-            declaration,
-            TopologyAttachShellOrWireMembershipDeclaration::new(
-                "query-native.attach-wire.half-edge",
-                ShellOrWireMembershipKind::WireOwnsHalfEdge,
-                EntityId::new(PartitionId::main(), 1, 1),
-                EntityId::new(PartitionId::main(), 2, 1),
-            )
-        );
-    }
-
-    #[test]
-    fn non_canonical_attach_shell_or_wire_contracts_stay_off_query_declaration_promotion() {
-        let contracts = vec![TopologyEditContract::attach_shell_or_wire_membership(
-            "query-native.attach-wire.half-edge",
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-            EntityId::new(PartitionId::main(), 1, 1),
-            EntityId::new(PartitionId::main(), 2, 1),
-        )
-        .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback)];
-
-        assert!(
-            declaration_for_canonical_single_attach_shell_or_wire_contracts(&contracts).is_none(),
-            "non-canonical attach-shell-or-wire contract should not be silently re-authored as a query declaration"
-        );
     }
 }

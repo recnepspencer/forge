@@ -1,17 +1,19 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::TopologyEntityKind;
-use schema::facade::topology_authoring::{
-    created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
-};
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
+use super::super::edit_sequence_support::{
+    aggregate_naming_edit_continuity_matrix_for_declarations,
+    aggregate_topology_edit_digest_for_declarations, topology_edit_families_for_declarations,
+    TopologyCloseoutDeclaration,
+};
 use super::super::report::{
     MilestoneThreeEditReplayStepRow, MilestoneThreeHostileOutcomeClass,
     MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
 };
 use super::super::shared::{
-    accepted_step_row, aggregate_naming_edit_continuity_matrix_for_contract_sets,
-    aggregate_topology_edit_digest_for_contract_sets, derived_validation_report_from_materialized,
+    accepted_step_row_for_declaration, derived_validation_report_from_materialized,
     find_loop_id_by_label, replay_checked,
 };
 use crate::certification::error::TopologyCertificationError;
@@ -23,9 +25,8 @@ use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    topology_edit_families_for_contracts, BoundaryMembershipKind,
-    TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyDetachBoundaryMembershipDeclaration,
-    TopologyEditContract, TopologyRetireTopologyEntityDeclaration,
+    BoundaryMembershipKind, TopologyCreateInnerLoopOnExistingFaceDeclaration,
+    TopologyDetachBoundaryMembershipDeclaration, TopologyRetireTopologyEntityDeclaration,
 };
 
 struct MilestoneThreeCancellationRun {
@@ -135,71 +136,54 @@ where
         digest_materialized_topology_view(&baseline_snapshot.materialized);
 
     let loop_key = CreateKey::new(format!("{stem}.cancellation.inner_loop"));
-    let contracts_one = vec![
-        TopologyEditContract::create_topology_entity(loop_key.as_str(), TopologyEntityKind::Loop),
-        TopologyEditContract::attach_boundary_membership(
-            format!("{stem}.cancellation.face-inner-loop"),
-            BoundaryMembershipKind::FaceInnerLoop,
-            face_id,
-            created_ref(loop_key.as_str()),
-        ),
-    ];
+    let create_inner_loop = TopologyCreateInnerLoopOnExistingFaceDeclaration::new(
+        loop_key.as_str(),
+        format!("{stem}.cancellation.face-inner-loop"),
+        face_id,
+    );
     let execution_one = execute_current_head_topology_declaration(
         &mut workspace,
         &surfaces,
-        TopologyCreateInnerLoopOnExistingFaceDeclaration::new(
-            loop_key.as_str(),
-            format!("{stem}.cancellation.face-inner-loop"),
-            face_id,
-        ),
+        create_inner_loop.clone(),
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let step_one = accepted_step_row(0, &contracts_one, &execution_one);
+    let step_one = accepted_step_row_for_declaration(0, &create_inner_loop, &execution_one);
     let loop_id = find_loop_id_by_label(&execution_one.materialized, loop_key.as_str())?;
     let inner_loop_relation_id = created_relation_id(&execution_one.receipt)?;
 
-    let contracts_two = vec![TopologyEditContract::detach_boundary_membership(
+    let detach_inner_loop = TopologyDetachBoundaryMembershipDeclaration::new(
         inner_loop_relation_id,
         BoundaryMembershipKind::FaceInnerLoop,
-    )];
+    );
     let execution_two = execute_current_head_topology_declaration(
         &mut workspace,
         &surfaces,
-        TopologyDetachBoundaryMembershipDeclaration::new(
-            inner_loop_relation_id,
-            BoundaryMembershipKind::FaceInnerLoop,
-        ),
+        detach_inner_loop.clone(),
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let step_two = accepted_step_row(1, &contracts_two, &execution_two);
+    let step_two = accepted_step_row_for_declaration(1, &detach_inner_loop, &execution_two);
 
-    let contracts_three = vec![TopologyEditContract::retire_topology_entity(
-        loop_id,
-        TopologyEntityKind::Loop,
-    )];
-    let execution_three = execute_current_head_topology_declaration(
-        &mut workspace,
-        &surfaces,
-        TopologyRetireTopologyEntityDeclaration::new(loop_id, TopologyEntityKind::Loop),
-    )
-    .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let step_three = accepted_step_row(2, &contracts_three, &execution_three);
+    let retire_loop =
+        TopologyRetireTopologyEntityDeclaration::new(loop_id, TopologyEntityKind::Loop);
+    let execution_three =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, retire_loop.clone())
+            .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let step_three = accepted_step_row_for_declaration(2, &retire_loop, &execution_three);
 
-    let contract_sets = vec![contracts_one, contracts_two, contracts_three];
+    let declarations = vec![
+        TopologyCloseoutDeclaration::CreateInnerLoopOnExistingFace(create_inner_loop),
+        TopologyCloseoutDeclaration::DetachBoundaryMembership(detach_inner_loop),
+        TopologyCloseoutDeclaration::RetireTopologyEntity(retire_loop),
+    ];
     let derived_validation_report =
         derived_validation_report_from_materialized(&execution_three.materialized)?;
     Ok(MilestoneThreeCancellationRun {
         primitive_family,
         primitive,
-        edit_families: contract_sets
-            .iter()
-            .flat_map(|contracts| topology_edit_families_for_contracts(contracts))
-            .collect(),
-        topology_edit_digest: aggregate_topology_edit_digest_for_contract_sets(
-            contract_sets.clone(),
-        ),
-        naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix_for_contract_sets(
-            contract_sets,
+        edit_families: topology_edit_families_for_declarations(declarations.clone()),
+        topology_edit_digest: aggregate_topology_edit_digest_for_declarations(declarations.clone()),
+        naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix_for_declarations(
+            declarations,
         ),
         step_rows: vec![step_one, step_two, step_three],
         baseline_materialized_topology_digest,

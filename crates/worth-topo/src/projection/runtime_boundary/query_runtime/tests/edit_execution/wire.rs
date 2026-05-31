@@ -201,8 +201,6 @@ fn current_head_runtime_denies_region_owns_shell_membership_until_invariant_comp
         seeded.region,
         created_ref(shell_key.as_str()),
     );
-    let contracts = declaration.clone().into_contracts();
-
     assert_eq!(
         current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
         vec![TopologyEditFamily::AttachShellOrWireMembership]
@@ -218,7 +216,7 @@ fn current_head_runtime_denies_region_owns_shell_membership_until_invariant_comp
         crate::topology_operators::TopologyOperatorExecutionError::UnsupportedFamilies(
             vec![TopologyEditFamily::AttachShellOrWireMembership]
         )
-        .rejected_contract_scope_report(&contracts),
+        .rejected_declaration_scope_report(&declaration),
         Some(crate::topology_operators::RejectedEditScopeReport {
             rows: vec![RejectedEditScopeRow {
                 family: TopologyEditFamily::AttachShellOrWireMembership,

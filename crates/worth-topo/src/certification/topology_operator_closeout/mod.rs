@@ -2,6 +2,7 @@ mod acceptance_rows;
 #[cfg(test)]
 mod contract_tests;
 mod derived_fallout;
+mod edit_sequence_support;
 mod hostile_categories;
 mod naming_continuity_breadth_row;
 mod operator_family_proof;

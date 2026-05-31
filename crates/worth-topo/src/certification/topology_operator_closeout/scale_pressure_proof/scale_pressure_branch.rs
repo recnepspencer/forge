@@ -3,7 +3,10 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
-use super::super::shared::aggregate_topology_edit_digest_for_contract_sets;
+use super::super::edit_sequence_support::{
+    aggregate_topology_edit_digest_for_declarations,
+    branch_local_raw_topology_intent_for_declaration, topology_edit_families_for_declarations,
+};
 use super::scale_pressure_types::{
     MilestoneThreeScalePressureRow, MilestoneThreeScalePressureSweep,
 };
@@ -11,8 +14,7 @@ use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::{digest_rows, primitive_family_name};
 use crate::test_support::topology_commit::commit_topology_intent_on_branch;
 use crate::topology_operators::{
-    raw_topology_intent_for_contracts, topology_edit_families_for_contracts,
-    TopologyEditApplicationMode, TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
+    TopologyCreateTopologyEntityDeclaration, TopologyEditDigest, TopologyEditFamily,
 };
 
 struct BranchHistoryExecution {
@@ -73,14 +75,13 @@ fn execute_branch_local_vertex_history(
     branch_id: BranchId,
     stem: &str,
 ) -> Result<BranchHistoryExecution, TopologyCertificationError> {
-    let mode = TopologyEditApplicationMode::BranchLocal(branch_id.clone());
-    let mut contract_sets = Vec::new();
+    let mut declarations = Vec::new();
     let mut truth_digest_rows = Vec::new();
     for step in 0..large_branch_history_step_count() {
-        let contracts = branch_local_vertex_creation_contracts(stem, step);
+        let declaration = branch_local_vertex_creation_declaration(stem, step);
         let verified = commit_topology_intent_on_branch(
             &mut runtime,
-            raw_topology_intent_for_contracts(contracts.clone(), &mode),
+            branch_local_raw_topology_intent_for_declaration(declaration.clone()),
             branch_id.clone(),
         )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
@@ -92,25 +93,23 @@ fn execute_branch_local_vertex_history(
                 .iter()
                 .map(|mutation| serde_json::to_string(mutation).expect("mutation serializes")),
         );
-        contract_sets.push(contracts);
+        declarations.push(declaration);
     }
     Ok(BranchHistoryExecution {
-        topology_edit_digest: aggregate_topology_edit_digest_for_contract_sets(
-            contract_sets.clone(),
-        ),
-        edit_families: contract_sets
-            .iter()
-            .flat_map(|contracts| topology_edit_families_for_contracts(contracts))
-            .collect(),
+        topology_edit_digest: aggregate_topology_edit_digest_for_declarations(declarations.clone()),
+        edit_families: topology_edit_families_for_declarations(declarations),
         final_state_digest: digest_rows(truth_digest_rows.into_iter()).digest_hex,
     })
 }
 
-fn branch_local_vertex_creation_contracts(stem: &str, step: usize) -> Vec<TopologyEditContract> {
-    vec![TopologyEditContract::create_topology_entity(
+fn branch_local_vertex_creation_declaration(
+    stem: &str,
+    step: usize,
+) -> TopologyCreateTopologyEntityDeclaration {
+    TopologyCreateTopologyEntityDeclaration::new(
         format!("{stem}.branch_pressure.vertex.{step:02}"),
         TopologyEntityKind::Vertex,
-    )]
+    )
 }
 
 fn large_branch_history_step_count() -> usize {

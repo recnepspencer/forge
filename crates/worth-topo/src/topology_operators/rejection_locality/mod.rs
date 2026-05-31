@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::topology_operators::application::TopologyDeclarationContractPayload;
+
 use super::{
     TopologyDerivedRegion, TopologyEditChangedScope, TopologyEditContract, TopologyEditFamily,
     TopologyEditNamingScope, TopologyOperatorExecutionError,
@@ -94,6 +96,16 @@ impl TopologyOperatorExecutionError {
             })
             .collect();
         Some(RejectedEditScopeReport { rows })
+    }
+
+    pub fn rejected_declaration_scope_report<D>(
+        &self,
+        declaration: &D,
+    ) -> Option<RejectedEditScopeReport>
+    where
+        D: TopologyDeclarationContractPayload,
+    {
+        self.rejected_contract_scope_report(&declaration.clone().into_contracts())
     }
 }
 

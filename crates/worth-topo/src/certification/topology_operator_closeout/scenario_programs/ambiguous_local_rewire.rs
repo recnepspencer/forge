@@ -3,14 +3,17 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use serde_json::Value;
 
+use super::super::edit_sequence_support::{
+    aggregate_naming_edit_continuity_matrix_for_declarations,
+    aggregate_topology_edit_digest_for_declarations, topology_edit_families_for_declarations,
+};
 use super::super::report::{
     MilestoneThreeAmbiguousLocalRewireWitness, MilestoneThreeEditReplayStepRow,
     MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario,
     MilestoneThreeHostileScenarioReport,
 };
 use super::super::shared::{
-    accepted_step_row_for_declaration, aggregate_naming_edit_continuity_matrix_for_contract_sets,
-    aggregate_topology_edit_digest_for_contract_sets, derived_validation_report_from_materialized,
+    accepted_step_row_for_declaration, derived_validation_report_from_materialized,
     first_source_identity_for_relation_kind, replay_checked,
 };
 use super::local_successor_rewire::successor_relocation_declaration;
@@ -22,7 +25,6 @@ use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::topology_operators::application::TopologyDeclarationContractPayload;
 use crate::topology_operators::{TopologyEditDigest, TopologyEditFamily};
 
 struct MilestoneThreeAmbiguousLocalRewireRun {
@@ -156,17 +158,15 @@ where
     )];
     let derived_validation_report =
         derived_validation_report_from_materialized(&execution.materialized)?;
-    let contract_sets = vec![declaration.clone().into_contracts()];
-
     Ok(MilestoneThreeAmbiguousLocalRewireRun {
         primitive_family,
         primitive,
-        edit_families: declaration.semantic_families(),
-        topology_edit_digest: aggregate_topology_edit_digest_for_contract_sets(
-            contract_sets.clone(),
-        ),
-        naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix_for_contract_sets(
-            contract_sets,
+        edit_families: topology_edit_families_for_declarations(vec![declaration.clone()]),
+        topology_edit_digest: aggregate_topology_edit_digest_for_declarations(vec![
+            declaration.clone()
+        ]),
+        naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix_for_declarations(
+            vec![declaration.clone()],
         ),
         step_rows,
         baseline_materialized_topology_digest,

@@ -9,8 +9,6 @@ use forge_query::facade::{
 use forge_relational::facade::identity::RelationId;
 
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-#[cfg(test)]
-use crate::topology_operators::TopologyEditAction;
 use crate::topology_operators::{ShellOrWireMembershipKind, TopologyEditContract};
 
 use super::super::shared::canonical_relation_id;
@@ -116,67 +114,5 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain>
                 ),
             ),
         ]
-    }
-}
-
-#[cfg(test)]
-pub(crate) fn declaration_for_canonical_single_detach_shell_or_wire_contracts(
-    contracts: &[TopologyEditContract],
-) -> Option<TopologyDetachShellOrWireMembershipDeclaration> {
-    let [contract] = contracts else {
-        return None;
-    };
-    let TopologyEditAction::DetachShellOrWireMembership { relation_id, kind } = contract.action
-    else {
-        return None;
-    };
-    let declaration = TopologyDetachShellOrWireMembershipDeclaration::new(relation_id, kind);
-    let canonical_contracts = declaration.clone().into_contracts();
-    (contracts == canonical_contracts.as_slice()).then_some(declaration)
-}
-
-#[cfg(test)]
-mod tests {
-    use forge_relational::facade::identity::{PartitionId, RelationId};
-
-    use super::{
-        declaration_for_canonical_single_detach_shell_or_wire_contracts,
-        TopologyDetachShellOrWireMembershipDeclaration,
-    };
-    use crate::topology_operators::{
-        ShellOrWireMembershipKind, TopologyEditContract, TopologyEditDerivedFallbackPolicy,
-    };
-
-    #[test]
-    fn canonical_single_detach_shell_or_wire_contracts_promote_to_query_declaration() {
-        let contracts = vec![TopologyEditContract::detach_shell_or_wire_membership(
-            RelationId::new(PartitionId::main(), 7, 1),
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-        )];
-
-        let declaration =
-            declaration_for_canonical_single_detach_shell_or_wire_contracts(&contracts)
-                .expect("canonical detach shell-or-wire contracts should promote");
-
-        assert_eq!(
-            declaration,
-            TopologyDetachShellOrWireMembershipDeclaration::new(
-                RelationId::new(PartitionId::main(), 7, 1),
-                ShellOrWireMembershipKind::WireOwnsHalfEdge,
-            )
-        );
-    }
-
-    #[test]
-    fn non_canonical_detach_shell_or_wire_contracts_stay_off_query_declaration_promotion() {
-        let contracts = vec![TopologyEditContract::detach_shell_or_wire_membership(
-            RelationId::new(PartitionId::main(), 7, 1),
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-        )
-        .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback)];
-
-        assert!(
-            declaration_for_canonical_single_detach_shell_or_wire_contracts(&contracts).is_none()
-        );
     }
 }

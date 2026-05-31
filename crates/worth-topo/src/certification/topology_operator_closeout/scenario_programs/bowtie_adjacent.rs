@@ -10,10 +10,10 @@ use super::super::report::{
     MilestoneThreeHostileScenarioReport,
 };
 use super::super::shared::{
-    accepted_step_row, aggregate_naming_edit_continuity_matrix_for_contract_sets,
-    aggregate_topology_edit_digest_for_contract_sets, derived_validation_report_from_materialized,
-    entity_id_from_query_identity, first_source_identity_for_relation_kind, rejected_step_row,
-    relation_id_from_query_identity, replay_checked, replay_checked_rejected,
+    accepted_step_row_for_declaration, derived_validation_report_from_materialized,
+    entity_id_from_query_identity, first_source_identity_for_relation_kind,
+    rejected_step_row_for_declaration, relation_id_from_query_identity, replay_checked,
+    replay_checked_rejected,
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
@@ -24,9 +24,9 @@ use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    naming_edit_continuity_matrix_for_contracts, NamingEditContinuityMatrix,
-    RejectedEditScopeReport, TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
-    TopologyEditRejectionClass, TopologySpliceRadialAdjacencyDeclaration,
+    application::TopologyDeclarationContractPayload, NamingEditContinuityMatrix,
+    RejectedEditScopeReport, TopologyEditDigest, TopologyEditFamily, TopologyEditRejectionClass,
+    TopologySpliceRadialAdjacencyDeclaration,
 };
 
 struct MilestoneThreeBowtieAdjacentRun {
@@ -144,24 +144,14 @@ where
     let radial = domain_query
         .radial_half_edge_neighborhood(&mut workspace, &source_identity)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let contracts = vec![TopologyEditContract::splice_radial_adjacency(
+    let declaration = TopologySpliceRadialAdjacencyDeclaration::new(
         relation_id_from_query_identity(radial.source_radial_next_relation_identity())?,
         source_half_edge_id,
         entity_id_from_query_identity(bowtie_adjacent_witness.target_half_edge_identity.as_str())?,
-    )];
-    let contract_sets = vec![contracts.clone()];
+    );
 
-    match execute_current_head_topology_declaration(
-        &mut workspace,
-        &surfaces,
-        TopologySpliceRadialAdjacencyDeclaration::new(
-            relation_id_from_query_identity(radial.source_radial_next_relation_identity())?,
-            source_half_edge_id,
-            entity_id_from_query_identity(
-                bowtie_adjacent_witness.target_half_edge_identity.as_str(),
-            )?,
-        ),
-    ) {
+    match execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration.clone())
+    {
         Ok(execution) => {
             let final_materialized_topology_digest =
                 digest_materialized_topology_view(&execution.materialized);
@@ -170,12 +160,13 @@ where
             Ok(MilestoneThreeBowtieAdjacentRun {
                 primitive_family,
                 primitive,
-                topology_edit_digest: aggregate_topology_edit_digest_for_contract_sets(
-                    contract_sets.clone(),
-                ),
-                naming_edit_continuity_matrix:
-                    aggregate_naming_edit_continuity_matrix_for_contract_sets(contract_sets.clone()),
-                step_rows: vec![accepted_step_row(0, &contracts, &execution)],
+                topology_edit_digest: declaration.topology_edit_digest(),
+                naming_edit_continuity_matrix: declaration.naming_continuity_matrix(),
+                step_rows: vec![accepted_step_row_for_declaration(
+                    0,
+                    &declaration,
+                    &execution,
+                )],
                 baseline_materialized_topology_digest,
                 final_materialized_topology_digest: Some(final_materialized_topology_digest),
                 outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
@@ -195,14 +186,14 @@ where
         Err(error) => Ok(MilestoneThreeBowtieAdjacentRun {
             primitive_family,
             primitive,
-            topology_edit_digest: aggregate_topology_edit_digest_for_contract_sets(contract_sets),
-            naming_edit_continuity_matrix: naming_edit_continuity_matrix_for_contracts(&contracts),
-            step_rows: vec![rejected_step_row(0, &contracts, &error)],
+            topology_edit_digest: declaration.topology_edit_digest(),
+            naming_edit_continuity_matrix: declaration.naming_continuity_matrix(),
+            step_rows: vec![rejected_step_row_for_declaration(0, &declaration, &error)],
             baseline_materialized_topology_digest,
             final_materialized_topology_digest: None,
             outcome_class: MilestoneThreeHostileOutcomeClass::Rejected,
             rejection_class: error.rejection_class(),
-            rejected_edit_scope_report: error.rejected_contract_scope_report(&contracts),
+            rejected_edit_scope_report: error.rejected_declaration_scope_report(&declaration),
             derived_validation_report: None,
             derived_materialization_fallback_class: None,
             witness: bowtie_adjacent_witness,

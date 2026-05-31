@@ -5,10 +5,10 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use serde_json::Value;
 
+use super::super::edit_sequence_support::aggregate_topology_edit_digest_for_declarations;
 use super::super::report::MilestoneThreeHostileSuiteReport;
 use super::super::shared::{
-    aggregate_topology_edit_digest_for_contract_sets, derived_validation_report_from_materialized,
-    first_source_identity_for_relation_kind,
+    derived_validation_report_from_materialized, first_source_identity_for_relation_kind,
 };
 use super::scale_pressure_branch::certify_large_branch_history_row;
 use super::scale_pressure_detach::{certify_detach_pressure_row, DetachPressureKind};
@@ -66,6 +66,10 @@ impl ScaleRewireDeclaration {
             Self::ShellRehome(declaration) => declaration.semantic_families(),
         }
     }
+}
+
+impl TopologyDeclarationContractPayload for ScaleRewireDeclaration {
+    const SEMANTIC_FAMILY_KEY: &'static str = "topology.scale_rewire_declaration";
 
     fn into_contracts(self) -> Vec<crate::topology_operators::TopologyEditContract> {
         match self {
@@ -293,12 +297,8 @@ fn scale_rewire_execution(
     surfaces: &TopologyDeclaredQuerySurfaces,
     declarations: Vec<ScaleRewireDeclaration>,
 ) -> Result<ScaleRewireExecution, TopologyCertificationError> {
-    let contract_sets = declarations
-        .iter()
-        .cloned()
-        .map(ScaleRewireDeclaration::into_contracts)
-        .collect::<Vec<_>>();
-    let topology_edit_digest = aggregate_topology_edit_digest_for_contract_sets(contract_sets);
+    let topology_edit_digest =
+        aggregate_topology_edit_digest_for_declarations(declarations.clone());
     let edit_families = declarations
         .iter()
         .flat_map(ScaleRewireDeclaration::semantic_families)

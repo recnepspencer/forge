@@ -9,8 +9,6 @@ use forge_query::facade::{
 use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-#[cfg(test)]
-use crate::topology_operators::TopologyEditAction;
 use crate::topology_operators::TopologyEditContract;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -109,77 +107,5 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain> for TopologyCreateTopologyE
                 ForgeQueryDeclarationCanonicalValue::ExactText(self.kind.kind_name().to_string()),
             ),
         ]
-    }
-}
-
-#[cfg(test)]
-pub(crate) fn declaration_for_canonical_single_create_contracts(
-    contracts: &[TopologyEditContract],
-) -> Option<TopologyCreateTopologyEntityDeclaration> {
-    let [contract] = contracts else {
-        return None;
-    };
-    declaration_for_canonical_create_contract(contract)
-}
-
-#[cfg(test)]
-fn declaration_for_canonical_create_contract(
-    contract: &TopologyEditContract,
-) -> Option<TopologyCreateTopologyEntityDeclaration> {
-    let TopologyEditAction::CreateTopologyEntity {
-        create_key, kind, ..
-    } = &contract.action
-    else {
-        return None;
-    };
-    let declaration =
-        TopologyCreateTopologyEntityDeclaration::new(create_key.as_str().to_string(), *kind);
-    let canonical_contract = declaration.clone().into_contracts().pop()?;
-
-    (contract == &canonical_contract).then_some(declaration)
-}
-
-#[cfg(test)]
-mod tests {
-    use schema::facade::platform::entities::TopologyEntityKind;
-
-    use super::{
-        declaration_for_canonical_single_create_contracts, TopologyCreateTopologyEntityDeclaration,
-    };
-    use crate::topology_operators::TopologyEditContract;
-
-    #[test]
-    fn canonical_single_create_contracts_promote_to_query_declaration() {
-        let contracts = vec![TopologyEditContract::create_topology_entity(
-            "query-native.create.vertex",
-            TopologyEntityKind::Vertex,
-        )];
-
-        let declaration = declaration_for_canonical_single_create_contracts(&contracts)
-            .expect("canonical single-create contracts should promote");
-
-        assert_eq!(
-            declaration,
-            TopologyCreateTopologyEntityDeclaration::new(
-                "query-native.create.vertex",
-                TopologyEntityKind::Vertex,
-            )
-        );
-    }
-
-    #[test]
-    fn non_canonical_create_contracts_stay_off_query_declaration_promotion() {
-        let contracts = vec![TopologyEditContract::create_topology_entity(
-            "query-native.create.vertex",
-            TopologyEntityKind::Vertex,
-        )
-        .with_derived_fallback_policy(
-            crate::topology_operators::TopologyEditDerivedFallbackPolicy::RejectAnyFallback,
-        )];
-
-        assert!(
-            declaration_for_canonical_single_create_contracts(&contracts).is_none(),
-            "non-canonical create contract should not be silently re-authored as a query declaration"
-        );
     }
 }

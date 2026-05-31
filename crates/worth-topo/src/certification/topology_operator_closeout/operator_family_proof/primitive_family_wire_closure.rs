@@ -7,9 +7,10 @@ use schema::facade::topology_authoring::{
     seed_milestone_one_primitive, DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
 };
 
-use super::super::shared::{
-    aggregate_topology_edit_digest_for_contract_sets, derived_validation_report_from_materialized,
+use super::super::edit_sequence_support::{
+    aggregate_topology_edit_digest_for_declarations, TopologyCloseoutDeclaration,
 };
+use super::super::shared::derived_validation_report_from_materialized;
 use super::primitive_family_closure::{primitive_family_closure_error, PrimitiveClosureExecution};
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
@@ -91,10 +92,6 @@ where
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let validation = derived_validation_report_from_materialized(&collapse_execution.materialized)?;
-    let contract_sets = vec![
-        split_declaration.clone().into_contracts(),
-        collapse_declaration.clone().into_contracts(),
-    ];
     let edit_families = split_declaration
         .semantic_families()
         .into_iter()
@@ -103,7 +100,10 @@ where
     Ok(PrimitiveClosureExecution {
         primitive_family,
         edit_families,
-        topology_edit_digest: aggregate_topology_edit_digest_for_contract_sets(contract_sets),
+        topology_edit_digest: aggregate_topology_edit_digest_for_declarations(vec![
+            TopologyCloseoutDeclaration::SplitConnectedHalfEdgeSetToNewWire(split_declaration),
+            TopologyCloseoutDeclaration::RehomeAllOwnedHalfEdgesToNewWire(collapse_declaration),
+        ]),
         final_materialized_topology_digest: digest_materialized_topology_view(
             &collapse_execution.materialized,
         ),

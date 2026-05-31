@@ -4,10 +4,10 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use serde_json::Value;
 
+use super::super::super::edit_sequence_support::aggregate_topology_edit_digest_for_declarations;
 use super::super::super::shared::{
-    aggregate_topology_edit_digest_for_contract_sets, derived_validation_report_from_materialized,
-    entity_id_from_query_identity, first_source_identity_for_relation_kind,
-    relation_id_from_query_identity,
+    derived_validation_report_from_materialized, entity_id_from_query_identity,
+    first_source_identity_for_relation_kind, relation_id_from_query_identity,
 };
 use super::super::scale_pressure_types::{
     MilestoneThreeScalePressureRow, MilestoneThreeScalePressureSweep,
@@ -105,9 +105,8 @@ where
     let cycle = radial_cycle_identities(&relation_rows, &source_identity)?;
     let reordered_cycle = reorder_radial_cycle(&cycle)?;
     let declaration = radial_cycle_reorder_declaration(&relation_rows, &cycle, &reordered_cycle)?;
-    let topology_edit_digest = aggregate_topology_edit_digest_for_contract_sets(vec![declaration
-        .clone()
-        .into_contracts()]);
+    let topology_edit_digest =
+        aggregate_topology_edit_digest_for_declarations(vec![declaration.clone()]);
     let edit_families = declaration.semantic_families();
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)

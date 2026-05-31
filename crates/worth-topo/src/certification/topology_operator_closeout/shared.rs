@@ -10,11 +10,7 @@ use crate::derived_topology::traversal_views::interpret_topology_view;
 use crate::topology_operators::application::{
     TopologyDeclarationContractPayload, TopologyDeclaredMutationArtifact,
 };
-use crate::topology_operators::{
-    naming_edit_continuity_matrix_for_contracts, topology_edit_digest_for_contracts,
-    topology_edit_families_for_contracts, NamingEditContinuityMatrix, TopologyEditContract,
-    TopologyEditNamingOutcome, TopologyOperatorDigest, TopologyOperatorExecutionError,
-};
+use crate::topology_operators::TopologyOperatorExecutionError;
 use crate::validation::{validate_interpreted_topology, DerivedTopologyValidationReport};
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
@@ -126,103 +122,6 @@ pub(super) fn find_loop_id_by_label(
         })
 }
 
-pub(super) type DeterministicDigestBackedEditDigest = crate::topology_operators::TopologyEditDigest;
-
-pub(super) fn aggregate_topology_edit_digest_for_contract_sets(
-    contract_sets: impl IntoIterator<Item = Vec<TopologyEditContract>>,
-) -> DeterministicDigestBackedEditDigest {
-    let contract_sets = contract_sets.into_iter().collect::<Vec<_>>();
-    let rows = contract_sets.iter().flatten().map(contract_digest_row);
-    let contract_count = contract_sets.iter().map(Vec::len).sum();
-    let family_count = contract_sets
-        .iter()
-        .map(|contracts| {
-            crate::topology_operators::topology_edit_families_for_contracts(contracts).len()
-        })
-        .sum();
-    let changed_scope_count = contract_sets
-        .iter()
-        .flatten()
-        .map(|contract| contract.changed_scopes().len())
-        .sum();
-    let naming_scope_count = contract_sets
-        .iter()
-        .flatten()
-        .map(|contract| contract.naming_scopes().len())
-        .sum();
-    let derived_region_count = contract_sets
-        .iter()
-        .flatten()
-        .map(|contract| contract.derived_regions().len())
-        .sum();
-    let fallback_policy_count = contract_sets.iter().map(Vec::len).sum();
-    let fallback_rejection_policy_count = contract_sets
-        .iter()
-        .flatten()
-        .filter(|contract| {
-            contract.derived_fallback_policy()
-                == crate::topology_operators::TopologyEditDerivedFallbackPolicy::RejectAnyFallback
-        })
-        .count();
-    DeterministicDigestBackedEditDigest {
-        digest: digest_rows(rows),
-        contract_count,
-        family_count,
-        changed_scope_count,
-        naming_scope_count,
-        derived_region_count,
-        fallback_policy_count,
-        fallback_rejection_policy_count,
-    }
-}
-
-pub(super) fn aggregate_naming_edit_continuity_matrix_for_contract_sets(
-    contract_sets: impl IntoIterator<Item = Vec<TopologyEditContract>>,
-) -> NamingEditContinuityMatrix {
-    let rows = contract_sets
-        .into_iter()
-        .flat_map(|contracts| {
-            crate::topology_operators::naming_edit_continuity_matrix_for_contracts(&contracts).rows
-        })
-        .collect::<Vec<_>>();
-    let preserved_count = rows
-        .iter()
-        .filter(|row| row.outcome == TopologyEditNamingOutcome::Preserved)
-        .count();
-    let ambiguous_count = rows
-        .iter()
-        .filter(|row| row.outcome == TopologyEditNamingOutcome::Ambiguous)
-        .count();
-    let rejected_count = rows
-        .iter()
-        .filter(|row| row.outcome == TopologyEditNamingOutcome::Rejected)
-        .count();
-    NamingEditContinuityMatrix {
-        rows,
-        preserved_count,
-        ambiguous_count,
-        rejected_count,
-    }
-}
-
-pub(super) fn accepted_step_row(
-    step_index: usize,
-    contracts: &[TopologyEditContract],
-    execution: &TopologyDeclaredMutationArtifact,
-) -> MilestoneThreeEditReplayStepRow {
-    MilestoneThreeEditReplayStepRow {
-        step_index,
-        edit_families: topology_edit_families_for_contracts(contracts),
-        topology_edit_digest: execution.topology_edit_digest.clone(),
-        naming_edit_continuity_matrix: execution.naming_continuity_matrix.clone(),
-        outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
-        rejection_class: None,
-        resulting_materialized_topology_digest: Some(digest_materialized_topology_view(
-            &execution.materialized,
-        )),
-    }
-}
-
 pub(super) fn accepted_step_row_for_declaration<D>(
     step_index: usize,
     declaration: &D,
@@ -252,16 +151,19 @@ pub(super) fn derived_validation_report_from_materialized(
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))
 }
 
-pub(super) fn rejected_step_row(
+pub(super) fn rejected_step_row_for_declaration<D>(
     step_index: usize,
-    contracts: &[TopologyEditContract],
+    declaration: &D,
     error: &TopologyOperatorExecutionError,
-) -> MilestoneThreeEditReplayStepRow {
+) -> MilestoneThreeEditReplayStepRow
+where
+    D: TopologyDeclarationContractPayload,
+{
     MilestoneThreeEditReplayStepRow {
         step_index,
-        edit_families: topology_edit_families_for_contracts(contracts),
-        topology_edit_digest: topology_edit_digest_for_contracts(contracts),
-        naming_edit_continuity_matrix: naming_edit_continuity_matrix_for_contracts(contracts),
+        edit_families: declaration.semantic_families(),
+        topology_edit_digest: declaration.topology_edit_digest(),
+        naming_edit_continuity_matrix: declaration.naming_continuity_matrix(),
         outcome_class: MilestoneThreeHostileOutcomeClass::Rejected,
         rejection_class: error.rejection_class(),
         resulting_materialized_topology_digest: None,
@@ -323,28 +225,5 @@ pub(super) fn replay_checked_rejected(
         final_materialized_topology_digest: Some(baseline_materialized_topology_digest.clone()),
         replay_final_materialized_topology_digest: Some(baseline_materialized_topology_digest),
         returned_to_baseline: Some(true),
-    }
-}
-
-fn contract_digest_row(contract: &TopologyEditContract) -> String {
-    serde_json::to_string(contract).expect(" topology edit contracts should serialize")
-}
-
-fn digest_rows(rows: impl IntoIterator<Item = String>) -> TopologyOperatorDigest {
-    let mut count = 0usize;
-    let mut hash = 0xcbf29ce484222325u64;
-    for row in rows {
-        count += 1;
-        for byte in row.as_bytes() {
-            hash ^= u64::from(*byte);
-            hash = hash.wrapping_mul(0x100000001b3);
-        }
-        hash ^= u64::from(b'\n');
-        hash = hash.wrapping_mul(0x100000001b3);
-    }
-    TopologyOperatorDigest {
-        algorithm: "fnv1a64".to_string(),
-        digest_hex: format!("{hash:016x}"),
-        row_count: count,
     }
 }

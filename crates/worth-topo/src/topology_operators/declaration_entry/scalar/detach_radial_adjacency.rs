@@ -9,8 +9,6 @@ use forge_query::facade::{
 use forge_relational::facade::identity::RelationId;
 
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-#[cfg(test)]
-use crate::topology_operators::TopologyEditAction;
 use crate::topology_operators::TopologyEditContract;
 
 use super::super::shared::canonical_relation_id;
@@ -101,64 +99,5 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain> for TopologyDetachRadialAdj
                 )),
             ),
         ]
-    }
-}
-
-#[cfg(test)]
-pub(crate) fn declaration_for_canonical_single_detach_radial_contracts(
-    contracts: &[TopologyEditContract],
-) -> Option<TopologyDetachRadialAdjacencyDeclaration> {
-    let [contract] = contracts else {
-        return None;
-    };
-    let TopologyEditAction::DetachRadialAdjacency { relation_id } = contract.action else {
-        return None;
-    };
-    let declaration = TopologyDetachRadialAdjacencyDeclaration::new(relation_id);
-    let canonical_contracts = declaration.clone().into_contracts();
-    (contracts == canonical_contracts.as_slice()).then_some(declaration)
-}
-
-#[cfg(test)]
-mod tests {
-    use forge_relational::facade::identity::{PartitionId, RelationId};
-
-    use super::{
-        declaration_for_canonical_single_detach_radial_contracts,
-        TopologyDetachRadialAdjacencyDeclaration,
-    };
-    use crate::topology_operators::{TopologyEditContract, TopologyEditDerivedFallbackPolicy};
-
-    #[test]
-    fn canonical_single_detach_radial_contracts_promote_to_query_declaration() {
-        let contracts = vec![TopologyEditContract::detach_radial_adjacency(
-            RelationId::new(PartitionId::main(), 7, 1),
-        )];
-
-        let declaration = declaration_for_canonical_single_detach_radial_contracts(&contracts)
-            .expect("canonical detach-radial contracts should promote");
-
-        assert_eq!(
-            declaration,
-            TopologyDetachRadialAdjacencyDeclaration::new(RelationId::new(
-                PartitionId::main(),
-                7,
-                1,
-            ))
-        );
-    }
-
-    #[test]
-    fn non_canonical_detach_radial_contracts_stay_off_query_declaration_promotion() {
-        let contracts = vec![
-            TopologyEditContract::detach_radial_adjacency(RelationId::new(
-                PartitionId::main(),
-                7,
-                1,
-            ))
-            .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback),
-        ];
-
-        assert!(declaration_for_canonical_single_detach_radial_contracts(&contracts).is_none());
     }
 }
