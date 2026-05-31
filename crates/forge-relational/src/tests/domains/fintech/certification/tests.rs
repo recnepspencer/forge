@@ -2,7 +2,7 @@ use forge_harness::facade::{
     ArtifactBundle, ArtifactSurface, RegressionTargetKind, WorkflowCertificationRunner,
     WorkflowRuntimeProfile, WorkflowState,
 };
-use serde_json::Value as ExternalHarnessJson;
+use serde_json::Value as ExternalHarnessArtifactJson;
 
 use super::adapter::RelationalFintechWorkflowCertificationAdapter;
 use super::plans::{
@@ -14,7 +14,7 @@ fn development_profile() -> WorkflowRuntimeProfile {
     WorkflowRuntimeProfile::new("fintech-development")
 }
 
-fn external_harness_artifact_json(artifact: &ArtifactBundle) -> &ExternalHarnessJson {
+fn external_harness_artifact_projection(artifact: &ArtifactBundle) -> &ExternalHarnessArtifactJson {
     &artifact.payload
 }
 
@@ -58,7 +58,7 @@ fn workflow_certification_runner_proves_relational_fintech_analysis_baseline() {
         })
         .unwrap();
     assert_eq!(
-        external_harness_artifact_json(budget)
+        external_harness_artifact_projection(budget)
             .get("all_passed")
             .and_then(|value| value.as_bool()),
         Some(true)
@@ -122,7 +122,7 @@ fn workflow_certification_runner_proves_relational_fintech_intraday_risk() {
         .contains_key("analysis_intraday_replay"));
     assert!(report.session.artifacts.iter().any(|artifact| {
         artifact.surface == ArtifactSurface::ReplayRecoveryTruthState
-            && external_harness_artifact_json(artifact)
+            && external_harness_artifact_projection(artifact)
                 .get("analysis_intraday_replay")
                 .and_then(|artifact_json| artifact_json.get("lineage_authority_digest_mode"))
                 .is_some()
@@ -149,7 +149,7 @@ fn workflow_certification_runner_proves_relational_fintech_settlement_repair() {
         .contains_key("analysis_repair_replay"));
     assert!(report.session.artifacts.iter().any(|artifact| {
         artifact.surface == ArtifactSurface::ReplayRecoveryTruthState
-            && external_harness_artifact_json(artifact)
+            && external_harness_artifact_projection(artifact)
                 .get("analysis_repair_replay")
                 .and_then(|artifact_json| artifact_json.get("lineage_authority_basis_kind"))
                 .is_some()

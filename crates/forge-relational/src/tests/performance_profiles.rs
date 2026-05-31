@@ -570,7 +570,7 @@ const ROCKETSHIP_SUBSYSTEM_LAYOUTS: [RocketshipSubsystemLayout; 12] = [
     },
     RocketshipSubsystemLayout {
         section: "upper_stage",
-        subsystem: "payload_fairing",
+        subsystem: "cargo_fairing",
         weight: 6,
         partition_base: 31,
     },

@@ -56,11 +56,11 @@ impl TryFrom<&CanonicalBasisReadyArtifact> for NativeCanonicalBasis {
     type Error = String;
 
     fn try_from(basis: &CanonicalBasisReadyArtifact) -> Result<Self, Self::Error> {
-        let payload = basis.payload();
+        let canonical_basis_terms = basis.payload();
         Ok(Self {
-            version: payload.version().as_str().to_string(),
-            domain: payload.domain().try_into()?,
-            entries: payload
+            version: canonical_basis_terms.version().as_str().to_string(),
+            domain: canonical_basis_terms.domain().try_into()?,
+            entries: canonical_basis_terms
                 .entries()
                 .iter()
                 .map(NativeEntry::try_from)

@@ -43,8 +43,9 @@ pub(super) fn mix_foundational_contract_basis(
     };
 
     revision.mix_text("foundational_contract_basis");
-    revision.mix_text(ready.payload().version().as_str());
-    for entry in ready.payload().entries() {
+    let canonical_basis_terms = ready.payload();
+    revision.mix_text(canonical_basis_terms.version().as_str());
+    for entry in canonical_basis_terms.entries() {
         mix_canonical_basis_entry(revision, entry);
     }
     Ok(())

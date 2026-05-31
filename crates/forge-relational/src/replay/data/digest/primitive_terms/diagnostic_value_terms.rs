@@ -91,12 +91,12 @@ impl ReplayDigestBuilder {
     }
 
     fn canonical_basis_ready(mut self, value: &CanonicalBasisReadyArtifact) -> Self {
-        let payload = value.payload();
+        let canonical_basis_terms = value.payload();
         self = self
-            .label(payload.domain())
-            .string(payload.version().as_str())
-            .usize(payload.entries().len());
-        for entry in payload.entries() {
+            .label(canonical_basis_terms.domain())
+            .string(canonical_basis_terms.version().as_str())
+            .usize(canonical_basis_terms.entries().len());
+        for entry in canonical_basis_terms.entries() {
             self = self
                 .label((entry.domain(), entry.locus()))
                 .label(entry.kind())

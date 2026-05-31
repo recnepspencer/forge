@@ -137,10 +137,12 @@ fn failure_projection_emits_aspect_field_diagnostic_fields() {
     ));
     assert!(matches!(
         typed_aspect_field.get("canonical_diagnostic_mask_basis"),
-        Some(RelationalDiagnosticValue::CanonicalBasis(basis))
-            if basis.payload().entries().len() == 1
-                && basis.payload().version().as_str()
+        Some(RelationalDiagnosticValue::CanonicalBasis(basis)) if {
+            let canonical_basis_terms = basis.payload();
+            canonical_basis_terms.entries().len() == 1
+                && canonical_basis_terms.version().as_str()
                     == "forge.relational.invariant.diagnostic_mask.v1"
+        }
     ));
     assert!(matches!(
         typed_aspect_field.get("value"),

@@ -67,19 +67,22 @@ pub(super) fn diagnostic_mask_locator_external_serde_projection(
 pub(super) fn canonical_basis_external_serde_projection(
     basis: &CanonicalBasisReadyArtifact,
 ) -> ExternalSerdeDiagnosticProjectionValue {
+    let canonical_basis_terms = basis.payload();
     object([
         ("basis_kind", string("canonical_basis_ready")),
-        ("domain", string(format!("{:?}", basis.payload().domain()))),
-        ("version", string(basis.payload().version().as_str())),
+        (
+            "domain",
+            string(format!("{:?}", canonical_basis_terms.domain())),
+        ),
+        ("version", string(canonical_basis_terms.version().as_str())),
         (
             "entry_count",
-            unsigned(basis.payload().entries().len() as u64),
+            unsigned(canonical_basis_terms.entries().len() as u64),
         ),
         (
             "entries",
             ExternalSerdeDiagnosticProjectionValue::Array(
-                basis
-                    .payload()
+                canonical_basis_terms
                     .entries()
                     .iter()
                     .map(canonical_basis_entry_external_serde_projection)
