@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use forge_foundational::facade::{AspectValue, AuthoritativeRecordAspectPatch, FieldKey};
+use forge_foundational::facade::AuthoritativeRecordAspectPatch;
 
 use crate::identity::data::KindId;
 use crate::schema::data::LoweredAspectContractPlan;
@@ -11,6 +11,7 @@ use self::scalar_whole_aspect_patch::{
 };
 use self::struct_field_patch::combine_struct_field_patches;
 use self::target_resolution::{resolve_entity_field_patch_target, EntityFieldPatchTarget};
+use super::struct_field_value_set::StructFieldValueSet;
 
 mod scalar_whole_aspect_patch;
 mod struct_field_patch;
@@ -40,7 +41,7 @@ pub(crate) fn plan_entity_field_aspect_patch(
 
 struct PlannedEntityFieldUpdates {
     scalar_sets: Vec<forge_foundational::facade::ContractValidatedAspectArtifact>,
-    struct_field_sets: BTreeMap<usize, Vec<(FieldKey, AspectValue)>>,
+    struct_field_sets: BTreeMap<usize, StructFieldValueSet>,
 }
 
 fn reject_empty_field_patch_plan(
@@ -79,7 +80,7 @@ fn classify_entity_field_patch_targets(
                     .struct_field_sets
                     .entry(binding_index)
                     .or_default()
-                    .push((field, value.clone()));
+                    .push(field, value.clone());
             }
         }
     }

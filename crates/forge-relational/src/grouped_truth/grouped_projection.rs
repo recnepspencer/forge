@@ -173,13 +173,15 @@ pub fn project_relational_grouped_truth(
 
     let mut members = Vec::with_capacity(row_set.rows().len());
     for row in row_set.rows() {
-        let Some(identity_value) = row.aspect_values().get(&identity_aspect).cloned() else {
+        let Some(identity_value) = row.projected_aspect_values().get(identity_aspect).cloned()
+        else {
             return Err(RelationalGroupedTruthError::MissingIdentityAspect {
                 row_identity: row.row_identity().clone(),
                 aspect_key: contract.identity_binding_aspect_key().clone(),
             });
         };
-        let Some(grouping_value) = row.aspect_values().get(&grouping_aspect).cloned() else {
+        let Some(grouping_value) = row.projected_aspect_values().get(grouping_aspect).cloned()
+        else {
             return Err(RelationalGroupedTruthError::MissingGroupingAspect {
                 row_identity: row.row_identity().clone(),
                 aspect_key: contract.grouping_binding_aspect_key().clone(),

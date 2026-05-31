@@ -246,7 +246,7 @@ impl EntityReplacementReconciliationStrategy {
                 return false;
             };
             let desired_comparison_key = authoritative_aspect_value_field_comparison_key(value);
-            existing.scalar_field_comparison_key(target) == Some(desired_comparison_key)
+            existing.projected_field_comparison_key(target) == Some(desired_comparison_key)
         })
     }
 }

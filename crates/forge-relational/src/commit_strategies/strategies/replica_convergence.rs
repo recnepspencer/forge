@@ -258,7 +258,7 @@ impl CommitStrategyExecutor for ReplicaConvergenceStrategy {
             authoritative_aspect_value_field_comparison_key(&replica_field_patch.desired_value);
 
         let (action, mutation_program) = if existing
-            .scalar_field_comparison_key(&replica_field_patch.target)
+            .projected_field_comparison_key(&replica_field_patch.target)
             == Some(desired_replicas_comparison_key)
         {
             (

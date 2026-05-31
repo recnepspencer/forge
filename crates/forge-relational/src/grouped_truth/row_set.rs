@@ -39,9 +39,40 @@ impl RelationalRowSetDigest {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct RelationalProjectedAspectValueSet {
+    values: BTreeMap<AspectKey, AspectValue>,
+}
+
+impl RelationalProjectedAspectValueSet {
+    pub fn get(&self, aspect_key: &AspectKey) -> Option<&AspectValue> {
+        self.values.get(aspect_key)
+    }
+
+    pub fn contains_key(&self, aspect_key: &AspectKey) -> bool {
+        self.values.contains_key(aspect_key)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&AspectKey, &AspectValue)> {
+        self.values.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.values.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.values.is_empty()
+    }
+
+    fn from_projected_values(values: BTreeMap<AspectKey, AspectValue>) -> Self {
+        Self { values }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct RelationalAuthoritativeRowArtifact {
     row_identity: RelationalRowIdentity,
-    aspect_values: BTreeMap<AspectKey, AspectValue>,
+    projected_aspect_values: RelationalProjectedAspectValueSet,
 }
 
 impl RelationalAuthoritativeRowArtifact {
@@ -49,8 +80,8 @@ impl RelationalAuthoritativeRowArtifact {
         &self.row_identity
     }
 
-    pub fn aspect_values(&self) -> &BTreeMap<AspectKey, AspectValue> {
-        &self.aspect_values
+    pub fn projected_aspect_values(&self) -> &RelationalProjectedAspectValueSet {
+        &self.projected_aspect_values
     }
 }
 
@@ -92,15 +123,16 @@ pub fn materialize_relational_authoritative_row_set(
             .insert(read.aspect_key().clone(), aspect_read.value().clone());
     }
 
-    let rows = rows
-        .into_iter()
-        .map(
-            |(row_identity, aspect_values)| RelationalAuthoritativeRowArtifact {
-                row_identity,
-                aspect_values,
-            },
-        )
-        .collect::<Vec<_>>();
+    let rows =
+        rows.into_iter()
+            .map(
+                |(row_identity, aspect_values)| RelationalAuthoritativeRowArtifact {
+                    row_identity,
+                    projected_aspect_values:
+                        RelationalProjectedAspectValueSet::from_projected_values(aspect_values),
+                },
+            )
+            .collect::<Vec<_>>();
 
     let digest = row_set_digest(result.snapshot_identity(), &rows);
 
@@ -156,11 +188,11 @@ mod tests {
         assert_eq!(row_set.rows().len(), 2);
         assert_eq!(row_set.rows()[0].row_identity().as_str(), "entity-1");
         assert!(row_set.rows()[0]
-            .aspect_values()
+            .projected_aspect_values()
             .contains_key(&AspectKey::new("identity.id").unwrap()));
         assert_eq!(
             row_set.rows()[0]
-                .aspect_values()
+                .projected_aspect_values()
                 .get(&AspectKey::new("identity.id").unwrap()),
             Some(&AspectValue::String("task-1".into()))
         );

@@ -32,7 +32,7 @@ pub(super) fn extract_relational_row_set_facts(
         row_set.rows().iter().map(|row| {
             (
                 row.row_identity().as_str(),
-                row.aspect_values().iter().map(|(key, value)| {
+                row.projected_aspect_values().iter().map(|(key, value)| {
                     (
                         key.as_str(),
                         project_aspect_value_for_consumption_json(value),

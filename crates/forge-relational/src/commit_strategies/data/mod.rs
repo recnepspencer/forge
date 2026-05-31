@@ -46,7 +46,9 @@ pub use request::{
     NativeStrategyCommitRequest, StrategyCallerProvenance, StrategyCommitRequestError,
     StrategyRequestOrigin,
 };
-pub use strategy_aspect_read_record::StrategyEntityAspectReadRecord;
+pub use strategy_aspect_read_record::{
+    StrategyEntityAspectReadRecord, StrategyProjectedAspectReadSet,
+};
 pub use strategy_id::CommitStrategyId;
 pub(crate) use validation::PreparedStrategyAuthorityScope;
 pub use validation::{StrategyPreviewValidationCostSummary, ValidatedStrategyCommitPlan};

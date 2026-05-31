@@ -217,7 +217,7 @@ impl CommitStrategyExecutor for AspectFieldReconciliationStrategy {
             .expect("entity was visible during strategy basis read");
         let desired_comparison_key =
             authoritative_aspect_value_field_comparison_key(&input.desired_value);
-        let updated = existing.scalar_field_comparison_key(&input.field_locator)
+        let updated = existing.projected_field_comparison_key(&input.field_locator)
             != Some(desired_comparison_key);
         let mutation_program = if updated {
             let batch = WorkerIntentBatch::new("aspect-field-reconciliation-update").push(

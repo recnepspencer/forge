@@ -228,7 +228,7 @@ impl IntentReconciliationStrategy {
         desired_value: &forge_foundational::facade::AspectValue,
     ) -> bool {
         let desired_comparison_key = authoritative_aspect_value_field_comparison_key(desired_value);
-        existing.scalar_field_comparison_key(target) == Some(desired_comparison_key)
+        existing.projected_field_comparison_key(target) == Some(desired_comparison_key)
     }
 }
 

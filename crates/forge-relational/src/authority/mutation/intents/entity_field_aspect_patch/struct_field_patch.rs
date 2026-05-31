@@ -1,27 +1,29 @@
 use std::collections::BTreeMap;
 
 use forge_foundational::facade::{
-    AspectFieldLocator, AspectMask, AspectValue, AuthoritativeRecordAspectPatch,
-    CanonicalFieldPath, FieldKey, LocatorAuthority, MutationMask,
+    AspectFieldLocator, AspectMask, AuthoritativeRecordAspectPatch, CanonicalFieldPath,
+    LocatorAuthority, MutationMask,
 };
 use forge_proof::TransitionOutcome;
 
 use crate::schema::data::LoweredAspectContractPlan;
 use crate::transactions::data::EntityFieldAspectPatchDenial;
 
+use super::super::struct_field_value_set::StructFieldValueSet;
+
 pub(super) fn combine_struct_field_patches(
     mut authoritative_patch: AuthoritativeRecordAspectPatch,
     lowered_plan: &LoweredAspectContractPlan,
-    struct_field_sets: BTreeMap<usize, Vec<(FieldKey, AspectValue)>>,
+    struct_field_sets: BTreeMap<usize, StructFieldValueSet>,
 ) -> Result<AuthoritativeRecordAspectPatch, EntityFieldAspectPatchDenial> {
-    for (binding_index, field_sets) in struct_field_sets {
+    for (binding_index, field_set) in struct_field_sets {
         let binding = &lowered_plan.executable_bindings[binding_index];
-        let mutation_mask = mutation_mask_for_field_sets(&field_sets);
+        let mutation_mask = field_set.mutation_mask();
         let field_patch = construct_struct_field_patch(
             &binding.contract,
             binding.aspect_key(),
             &mutation_mask,
-            field_sets,
+            field_set,
         )?;
         authoritative_patch = combine_authoritative_patch(authoritative_patch, field_patch)?;
     }
@@ -29,26 +31,16 @@ pub(super) fn combine_struct_field_patches(
     Ok(authoritative_patch)
 }
 
-fn mutation_mask_for_field_sets(
-    field_sets: &[(FieldKey, AspectValue)],
-) -> AspectMask<MutationMask> {
-    AspectMask::<MutationMask>::new(
-        field_sets
-            .iter()
-            .map(|(field, _)| CanonicalFieldPath::single(field.clone())),
-    )
-}
-
 fn construct_struct_field_patch(
     contract: &forge_foundational::facade::AspectContract,
     aspect_key: &forge_foundational::facade::AspectKey,
     mutation_mask: &AspectMask<MutationMask>,
-    field_sets: Vec<(FieldKey, AspectValue)>,
+    field_set: StructFieldValueSet,
 ) -> Result<AuthoritativeRecordAspectPatch, EntityFieldAspectPatchDenial> {
     let mut builder = forge_foundational::facade::aspects()
         .patch()
         .field_level(contract, mutation_mask);
-    for (field, value) in field_sets {
+    for (field, value) in field_set.into_field_values() {
         builder = builder.set_field(field, value);
     }
 

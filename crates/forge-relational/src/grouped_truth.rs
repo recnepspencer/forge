@@ -10,6 +10,7 @@ pub use grouped_projection::{
 };
 pub use row_set::{
     materialize_relational_authoritative_row_set, RelationalAuthoritativeRowArtifact,
-    RelationalAuthoritativeRowSetArtifact, RelationalRowIdentity, RelationalRowSetDigest,
+    RelationalAuthoritativeRowSetArtifact, RelationalProjectedAspectValueSet,
+    RelationalRowIdentity, RelationalRowSetDigest,
 };
 pub use snapshot_aspect_reads::encode_snapshot_aspect_read_value;

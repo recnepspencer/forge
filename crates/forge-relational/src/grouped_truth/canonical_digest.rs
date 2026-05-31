@@ -17,7 +17,7 @@ pub(super) fn row_set_digest(
     for row in rows {
         bytes.push(2);
         encode_string(&mut bytes, row.row_identity().as_str());
-        for (aspect_key, value) in row.aspect_values() {
+        for (aspect_key, value) in row.projected_aspect_values().iter() {
             encode_aspect_entry(&mut bytes, aspect_key, value);
         }
     }

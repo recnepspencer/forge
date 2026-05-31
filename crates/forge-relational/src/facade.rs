@@ -20,8 +20,8 @@ pub mod grouped_truth {
         project_relational_grouped_truth, GroupedProjectionContract,
         RelationalAuthoritativeRowArtifact, RelationalAuthoritativeRowSetArtifact,
         RelationalGroupedMemberRow, RelationalGroupedProjectionArtifact,
-        RelationalGroupedProjectionDigest, RelationalGroupedTruthError, RelationalRowIdentity,
-        RelationalRowSetDigest,
+        RelationalGroupedProjectionDigest, RelationalGroupedTruthError,
+        RelationalProjectedAspectValueSet, RelationalRowIdentity, RelationalRowSetDigest,
     };
 }
 
@@ -41,10 +41,10 @@ pub mod commit_strategies {
         StrategyLoweringError, StrategyLoweringProvenance, StrategyLoweringSummary,
         StrategyMergeConflictClass, StrategyMergeDescriptor, StrategyMergeSemantics,
         StrategyMutationProgram, StrategyMutationProgramDigest, StrategyObservationContext,
-        StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract,
-        StrategyReadCostClass, StrategyReadLocalityClass, StrategyReadScopeClass,
-        StrategyReplayDescriptor, StrategyRequestOrigin, StrategyTraversalBasis,
-        StrategyVisibilityReadView, ValidatedStrategyCommitPlan,
+        StrategyOutputSchemaName, StrategyPacketContract, StrategyProjectedAspectReadSet,
+        StrategyReadContract, StrategyReadCostClass, StrategyReadLocalityClass,
+        StrategyReadScopeClass, StrategyReplayDescriptor, StrategyRequestOrigin,
+        StrategyTraversalBasis, StrategyVisibilityReadView, ValidatedStrategyCommitPlan,
     };
     pub use crate::commit_strategies::facade::{
         CommitStrategiesAuthorityFacade, CommitStrategiesFacade,

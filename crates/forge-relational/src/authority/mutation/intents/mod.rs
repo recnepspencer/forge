@@ -11,6 +11,7 @@ mod entity_field_aspect_patch;
 mod entity_field_creation_aspects;
 mod relation_field_creation_aspects;
 mod replace_entity;
+mod struct_field_value_set;
 mod update_entity_fields;
 mod update_relation_endpoints;
 

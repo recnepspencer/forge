@@ -1,6 +1,5 @@
 use forge_foundational::facade::{
-    AspectFieldLocator, AspectLocator, AspectValue, BoundarySourceLocator, FieldKey,
-    LocatorAuthority,
+    AspectFieldLocator, AspectLocator, BoundarySourceLocator, FieldKey, LocatorAuthority,
 };
 
 use crate::schema::data::{LoweredAspectContractBinding, LoweredAspectContractPlan};
@@ -82,5 +81,3 @@ fn unsupported_target(
         reason,
     }
 }
-
-pub(super) type StructCreationFieldSet = Vec<(FieldKey, AspectValue)>;

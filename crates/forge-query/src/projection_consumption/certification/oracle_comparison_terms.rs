@@ -13,14 +13,14 @@ pub(super) fn row_set_control_expected_digest(row_count: usize) -> String {
             .iter()
             .flat_map(|row| {
                 let entity_identity = row
-                    .aspect_values()
+                    .projected_aspect_values()
                     .iter()
                     .find_map(|(field, value)| {
                         (field.as_str() == "identity.id").then(|| canonical_aspect_value(value))
                     })
                     .expect("identity.id should exist");
                 let display_name = row
-                    .aspect_values()
+                    .projected_aspect_values()
                     .iter()
                     .find_map(|(field, value)| {
                         (field.as_str() == "profile.display_name")

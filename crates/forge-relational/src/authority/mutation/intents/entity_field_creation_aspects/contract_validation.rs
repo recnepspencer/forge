@@ -1,6 +1,6 @@
 use forge_foundational::facade::{
-    aspects, validate_aspect_value, AspectFieldLocator, AspectValue,
-    ContractValidatedAspectArtifact, ContractValidationInput, FieldKey,
+    validate_aspect_value, AspectFieldLocator, AspectValue, ContractValidatedAspectArtifact,
+    ContractValidationInput,
 };
 use forge_proof::TransitionOutcome;
 use std::collections::BTreeMap;
@@ -8,9 +8,10 @@ use std::collections::BTreeMap;
 use crate::schema::data::{LoweredAspectContractBinding, LoweredAspectContractPlan};
 use crate::transactions::data::{AspectFieldPatch, EntityAuthoritativeAspectStateDenial};
 
+use super::super::struct_field_value_set::StructFieldValueSet;
 use super::field_classification::{
     resolve_creation_field_target, source_locator_for_aspect_binding, source_locator_for_target,
-    EntityCreationFieldTarget, StructCreationFieldSet,
+    EntityCreationFieldTarget,
 };
 
 pub(super) fn validate_entity_creation_fields(
@@ -18,7 +19,7 @@ pub(super) fn validate_entity_creation_fields(
     fields: &AspectFieldPatch,
 ) -> Result<Vec<ContractValidatedAspectArtifact>, EntityAuthoritativeAspectStateDenial> {
     let mut scalar_artifacts = Vec::new();
-    let mut struct_field_sets = BTreeMap::<usize, StructCreationFieldSet>::new();
+    let mut struct_field_sets = BTreeMap::<usize, StructFieldValueSet>::new();
 
     for (target, value) in fields.iter() {
         match resolve_creation_field_target(lowered_plan, target)? {
@@ -32,7 +33,7 @@ pub(super) fn validate_entity_creation_fields(
                 struct_field_sets
                     .entry(binding_index)
                     .or_default()
-                    .push((field, value.clone()));
+                    .push(field, value.clone());
             }
         }
     }
@@ -67,14 +68,10 @@ fn validate_scalar_creation_value(
 
 fn validate_struct_creation_value(
     binding: &LoweredAspectContractBinding,
-    field_sets: Vec<(FieldKey, AspectValue)>,
+    field_set: StructFieldValueSet,
 ) -> Result<ContractValidatedAspectArtifact, EntityAuthoritativeAspectStateDenial> {
     let source_locator = source_locator_for_aspect_binding(binding);
-    let mut builder = aspects().vocabulary().struct_value();
-    for (field, value) in field_sets {
-        builder = builder.with_field(field.as_str(), value);
-    }
-    let struct_value = builder.finish().map_err(|_| {
+    let struct_value = field_set.into_struct_value().map_err(|_| {
         EntityAuthoritativeAspectStateDenial::StructValueConstructionDenied {
             source_locator: source_locator.clone(),
         }
