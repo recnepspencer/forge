@@ -62,7 +62,7 @@ impl<'runtime> StorageAuthority<'runtime> {
                 ) {
                     self.runtime
                         .performance_access()
-                        .count_aosoa_publish_fallback(
+                        .count_aosoa_publish_soa_merge(
                             chunk_plan.chunk_count.max(1),
                             journal.entity_slots.len(),
                         );

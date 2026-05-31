@@ -3989,7 +3989,7 @@ fn perf_chip_simulator_matrix() {
                 && counter_u64(metrics, "partitions_touched_by_commit") >= 8
                 && counter_u64(metrics, "aosoa_entity_chunk_slots_materialized") == 32
                 && counter_u64(metrics, "aosoa_entity_chunks_published") >= 8
-                && counter_u64(metrics, "aosoa_publish_fallback_count") == 0
+                && counter_u64(metrics, "aosoa_publish_soa_merge_count") == 0
         },
     );
 
@@ -5404,7 +5404,7 @@ fn perf_rocketship_scale_matrix() {
                 && counter_u64(metrics, "aosoa_entity_chunk_slots_materialized")
                     == batch_target_count
                 && counter_u64(metrics, "aosoa_entity_chunks_published") >= batch_partition_count
-                && counter_u64(metrics, "aosoa_publish_fallback_count") == 0
+                && counter_u64(metrics, "aosoa_publish_soa_merge_count") == 0
         },
     );
 
@@ -5655,7 +5655,7 @@ fn perf_rocketship_scale_matrix() {
                 && counter_u64(metrics, "aosoa_entity_chunk_slots_materialized")
                     == batch_target_count
                 && counter_u64(metrics, "aosoa_entity_chunks_published") >= batch_partition_count
-                && counter_u64(metrics, "aosoa_publish_fallback_count") == 0
+                && counter_u64(metrics, "aosoa_publish_soa_merge_count") == 0
         },
     );
 
@@ -5891,7 +5891,7 @@ fn perf_rocketship_scale_matrix() {
                 && counter_u64(metrics, "aosoa_entity_chunk_slots_materialized")
                     == batch_target_count
                 && counter_u64(metrics, "aosoa_entity_chunks_published") >= batch_partition_count
-                && counter_u64(metrics, "aosoa_publish_fallback_count") == 0
+                && counter_u64(metrics, "aosoa_publish_soa_merge_count") == 0
         },
     );
 
@@ -11427,7 +11427,7 @@ fn perf_game_engine_matrix() {
                 && counter_u64(metrics, "aosoa_entity_chunk_slots_materialized")
                     == batch_target_count
                 && counter_u64(metrics, "aosoa_entity_chunks_published") >= batch_partition_count
-                && counter_u64(metrics, "aosoa_publish_fallback_count") == 0
+                && counter_u64(metrics, "aosoa_publish_soa_merge_count") == 0
                 && counter_u64(metrics, "full_state_clones") == 0
         },
     );

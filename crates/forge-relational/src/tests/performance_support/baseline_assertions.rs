@@ -313,7 +313,7 @@ fn perf_case_contract(suite: &str, case: &str) -> PerfCaseContract {
             PerfCaseContract::noisy()
         }
         ("merge_lineage_matrix", "merge_planning_divergent_update")
-        | ("index_parity_matrix", "entity_field_equals_build_failed_fallback")
+        | ("index_parity_matrix", "entity_field_equals_build_failed_storage_read")
         | ("inspection_budget_matrix", "structural_identity_historical_window")
         | ("merge_lineage_matrix", "lineage_branch_divergence_breadth")
         | ("query_packet_matrix", "entity_kind_scan_partition_matrix")

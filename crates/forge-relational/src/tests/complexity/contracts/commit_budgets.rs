@@ -710,7 +710,9 @@ fn complexity_budget_schema_transition_classification_is_changed_atom_bounded() 
 
     runtime.config.schema.registry = AspectSchemaFixture {
         schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
+        ..AspectSchemaFixture::with_default_declared_aspects(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        )
     }
     .build_registry();
 
@@ -741,7 +743,9 @@ fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
 
     runtime.config.schema.registry = AspectSchemaFixture {
         schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
+        ..AspectSchemaFixture::with_default_declared_aspects(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        )
     }
     .build_registry();
     let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
@@ -822,7 +826,9 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
 
     runtime.config.schema.registry = AspectSchemaFixture {
         schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
+        ..AspectSchemaFixture::with_default_declared_aspects(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        )
     }
     .build_registry();
 
@@ -885,7 +891,9 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
         .schema_registry(
             AspectSchemaFixture {
                 schema_version_id: SchemaVersionId(2),
-                ..AspectSchemaFixture::default()
+                ..AspectSchemaFixture::with_default_declared_aspects(
+                    CascadeDeletePolicy::CascadeDeleteRelations,
+                )
             }
             .build_registry(),
         )

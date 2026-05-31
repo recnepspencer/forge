@@ -79,11 +79,11 @@ impl<'runtime> PerformanceAccess<'runtime> {
         });
     }
 
-    pub(crate) fn count_aosoa_publish_fallback(&self, chunk_count: usize, slot_count: usize) {
+    pub(crate) fn count_aosoa_publish_soa_merge(&self, chunk_count: usize, slot_count: usize) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.aosoa_entity_chunks_published += chunk_count;
-            counters.aosoa_entity_slot_fallback_merges += slot_count;
-            counters.aosoa_publish_fallback_count += 1;
+            counters.aosoa_entity_slot_soa_merges += slot_count;
+            counters.aosoa_publish_soa_merge_count += 1;
         });
     }
 

@@ -859,15 +859,15 @@ fn complexity_delta(
         aosoa_entity_chunks_published: after
             .aosoa_entity_chunks_published
             .saturating_sub(before.aosoa_entity_chunks_published),
-        aosoa_entity_slot_fallback_merges: after
-            .aosoa_entity_slot_fallback_merges
-            .saturating_sub(before.aosoa_entity_slot_fallback_merges),
-        aosoa_prepare_fallback_count: after
-            .aosoa_prepare_fallback_count
-            .saturating_sub(before.aosoa_prepare_fallback_count),
-        aosoa_publish_fallback_count: after
-            .aosoa_publish_fallback_count
-            .saturating_sub(before.aosoa_publish_fallback_count),
+        aosoa_entity_slot_soa_merges: after
+            .aosoa_entity_slot_soa_merges
+            .saturating_sub(before.aosoa_entity_slot_soa_merges),
+        aosoa_prepare_soa_merge_count: after
+            .aosoa_prepare_soa_merge_count
+            .saturating_sub(before.aosoa_prepare_soa_merge_count),
+        aosoa_publish_soa_merge_count: after
+            .aosoa_publish_soa_merge_count
+            .saturating_sub(before.aosoa_publish_soa_merge_count),
         commit_topology_flags: after.commit_topology_flags,
         partitions_touched_by_commit: after
             .partitions_touched_by_commit
