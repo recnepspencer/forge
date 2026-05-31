@@ -22,10 +22,9 @@ use crate::snapshots::data::SnapshotId;
 mod aspect_value_diagnostic_terms;
 mod external_serde_projection;
 mod native_serde;
+pub(crate) mod terminal_projection;
 
-use external_serde_projection::{
-    serialize_diagnostic_fields, typed_external_serde_projection_tree,
-};
+use external_serde_projection::serialize_diagnostic_fields;
 
 #[derive(Debug, Clone)]
 pub struct RelationalDiagnosticFields {
@@ -39,10 +38,6 @@ impl RelationalDiagnosticFields {
 
     pub fn root(&self) -> &RelationalDiagnosticValue {
         &self.root
-    }
-
-    pub fn to_external_serde_projection_tree(&self) -> RelationalDiagnosticValue {
-        typed_external_serde_projection_tree(self.root())
     }
 }
 

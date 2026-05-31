@@ -1,6 +1,6 @@
 mod artifacts;
 mod diagnostic_value_terms;
-mod fields;
+pub(crate) mod fields;
 mod profiles;
 
 pub use artifacts::{

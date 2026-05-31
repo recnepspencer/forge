@@ -1,21 +1,20 @@
 use std::collections::BTreeMap;
 
 use serde::ser::{SerializeMap, SerializeSeq};
-use serde::{Deserialize, Serialize, Serializer};
+use serde::Serializer;
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(untagged)]
-pub(super) enum ExternalSerdeDiagnosticProjectionValue {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum TerminalDiagnosticProjectionValue {
     Null,
     Bool(bool),
     Unsigned(u64),
     Signed(i64),
     String(String),
-    Array(Vec<ExternalSerdeDiagnosticProjectionValue>),
-    Object(BTreeMap<String, ExternalSerdeDiagnosticProjectionValue>),
+    Array(Vec<TerminalDiagnosticProjectionValue>),
+    Object(BTreeMap<String, TerminalDiagnosticProjectionValue>),
 }
 
-impl Serialize for ExternalSerdeDiagnosticProjectionValue {
+impl serde::Serialize for TerminalDiagnosticProjectionValue {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

@@ -16,6 +16,7 @@ use super::data::{RelationalFixture, RelationalHarnessAdapter};
 use super::targets::{commit_error_to_harness_error, default_harness_schema_registry};
 
 mod aspect_snapshot_binaries;
+mod diagnostic_fields_summary_projection;
 mod diagnostics_capture;
 mod diagnostics_summary_fields;
 mod execution;

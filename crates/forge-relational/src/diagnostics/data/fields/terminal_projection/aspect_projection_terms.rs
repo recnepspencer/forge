@@ -1,13 +1,13 @@
 use forge_foundational::facade::{
     AspectFieldLocator, AspectMask, AspectMaskLocator, AspectValueLocator, CanonicalBasisEntry,
-    CanonicalBasisReadyArtifact, DiagnosticMask,
+    CanonicalBasisReadyArtifact, CanonicalFieldPath, DiagnosticMask,
 };
 
-use super::projected_value::ExternalSerdeDiagnosticProjectionValue;
+use super::value::TerminalDiagnosticProjectionValue;
 
-pub(super) fn aspect_field_locator_external_serde_projection(
+pub(super) fn aspect_field_locator_terminal_projection(
     locator: &AspectFieldLocator,
-) -> ExternalSerdeDiagnosticProjectionValue {
+) -> TerminalDiagnosticProjectionValue {
     object([
         ("locator_kind", string("aspect_field")),
         (
@@ -19,9 +19,9 @@ pub(super) fn aspect_field_locator_external_serde_projection(
     ])
 }
 
-pub(super) fn aspect_value_locator_external_serde_projection(
+pub(super) fn aspect_value_locator_terminal_projection(
     locator: &AspectValueLocator,
-) -> ExternalSerdeDiagnosticProjectionValue {
+) -> TerminalDiagnosticProjectionValue {
     match locator {
         AspectValueLocator::WholeAspect(aspect) => object([
             ("locator_kind", string("whole_aspect")),
@@ -40,9 +40,9 @@ pub(super) fn aspect_value_locator_external_serde_projection(
     }
 }
 
-pub(super) fn diagnostic_mask_external_serde_projection(
+pub(super) fn diagnostic_mask_terminal_projection(
     mask: &AspectMask<DiagnosticMask>,
-) -> ExternalSerdeDiagnosticProjectionValue {
+) -> TerminalDiagnosticProjectionValue {
     if mask.is_whole_aspect() {
         return object([("mask_kind", string("whole_aspect"))]);
     }
@@ -53,9 +53,9 @@ pub(super) fn diagnostic_mask_external_serde_projection(
     ])
 }
 
-pub(super) fn diagnostic_mask_locator_external_serde_projection(
+pub(super) fn diagnostic_mask_locator_terminal_projection(
     locator: &AspectMaskLocator<DiagnosticMask>,
-) -> ExternalSerdeDiagnosticProjectionValue {
+) -> TerminalDiagnosticProjectionValue {
     object([
         ("locator_kind", string("diagnostic_mask")),
         ("authority", string(format!("{:?}", locator.authority()))),
@@ -64,9 +64,9 @@ pub(super) fn diagnostic_mask_locator_external_serde_projection(
     ])
 }
 
-pub(super) fn canonical_basis_external_serde_projection(
+pub(super) fn canonical_basis_terminal_projection(
     basis: &CanonicalBasisReadyArtifact,
-) -> ExternalSerdeDiagnosticProjectionValue {
+) -> TerminalDiagnosticProjectionValue {
     let canonical_basis_terms = basis.payload();
     object([
         ("basis_kind", string("canonical_basis_ready")),
@@ -81,20 +81,20 @@ pub(super) fn canonical_basis_external_serde_projection(
         ),
         (
             "entries",
-            ExternalSerdeDiagnosticProjectionValue::Array(
+            TerminalDiagnosticProjectionValue::Array(
                 canonical_basis_terms
                     .entries()
                     .iter()
-                    .map(canonical_basis_entry_external_serde_projection)
+                    .map(canonical_basis_entry_terminal_projection)
                     .collect(),
             ),
         ),
     ])
 }
 
-fn canonical_basis_entry_external_serde_projection(
+fn canonical_basis_entry_terminal_projection(
     entry: &CanonicalBasisEntry,
-) -> ExternalSerdeDiagnosticProjectionValue {
+) -> TerminalDiagnosticProjectionValue {
     object([
         ("domain", string(format!("{:?}", entry.domain()))),
         ("locus", string(format!("{:?}", entry.locus()))),
@@ -103,16 +103,12 @@ fn canonical_basis_entry_external_serde_projection(
     ])
 }
 
-fn field_paths_projection(
-    paths: &[forge_foundational::facade::CanonicalFieldPath],
-) -> ExternalSerdeDiagnosticProjectionValue {
-    ExternalSerdeDiagnosticProjectionValue::Array(paths.iter().map(field_path_projection).collect())
+fn field_paths_projection(paths: &[CanonicalFieldPath]) -> TerminalDiagnosticProjectionValue {
+    TerminalDiagnosticProjectionValue::Array(paths.iter().map(field_path_projection).collect())
 }
 
-fn field_path_projection(
-    path: &forge_foundational::facade::CanonicalFieldPath,
-) -> ExternalSerdeDiagnosticProjectionValue {
-    ExternalSerdeDiagnosticProjectionValue::Array(
+fn field_path_projection(path: &CanonicalFieldPath) -> TerminalDiagnosticProjectionValue {
+    TerminalDiagnosticProjectionValue::Array(
         path.fields()
             .iter()
             .map(|field| string(field.as_str()))
@@ -121,9 +117,9 @@ fn field_path_projection(
 }
 
 fn object(
-    fields: impl IntoIterator<Item = (&'static str, ExternalSerdeDiagnosticProjectionValue)>,
-) -> ExternalSerdeDiagnosticProjectionValue {
-    ExternalSerdeDiagnosticProjectionValue::Object(
+    fields: impl IntoIterator<Item = (&'static str, TerminalDiagnosticProjectionValue)>,
+) -> TerminalDiagnosticProjectionValue {
+    TerminalDiagnosticProjectionValue::Object(
         fields
             .into_iter()
             .map(|(key, value)| (key.to_string(), value))
@@ -131,10 +127,10 @@ fn object(
     )
 }
 
-fn string(value: impl Into<String>) -> ExternalSerdeDiagnosticProjectionValue {
-    ExternalSerdeDiagnosticProjectionValue::String(value.into())
+fn string(value: impl Into<String>) -> TerminalDiagnosticProjectionValue {
+    TerminalDiagnosticProjectionValue::String(value.into())
 }
 
-fn unsigned(value: u64) -> ExternalSerdeDiagnosticProjectionValue {
-    ExternalSerdeDiagnosticProjectionValue::Unsigned(value)
+fn unsigned(value: u64) -> TerminalDiagnosticProjectionValue {
+    TerminalDiagnosticProjectionValue::Unsigned(value)
 }
