@@ -31,9 +31,9 @@ fn main() {
 
     println!("branches={}", branches.len());
     println!(
-        "seed_commit={} feature_commit={} replay_patch_records={}",
+        "seed_commit={} feature_commit={} authoritative_record_patches={}",
         seed.commit.commit_id.0,
         feature_commit.commit.commit_id.0,
-        envelope.patch.records.len()
+        envelope.patch.authoritative_record_patches.len()
     );
 }

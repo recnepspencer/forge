@@ -9,9 +9,9 @@ use forge_relational::facade::{
     history::BranchId,
     identity::{EntityId, KindId, PartitionId, RelationId},
     schema::{
-        AspectBinding, DeclaredAspect, EntityKindRegistration, KindAspectDeclarations,
-        RelationIntegrityDeclarations, RelationKindRegistration, RelationalSchemaRegistry,
-        SchemaId, SchemaVersionId,
+        AspectBinding, DeclaredAspectContractBinding, EntityKindRegistration,
+        KindAspectContractDeclarations, RelationIntegrityDeclarations, RelationKindRegistration,
+        RelationalSchemaRegistry, SchemaId, SchemaVersionId,
     },
     symbols::ClientKey,
     transactions::{
@@ -28,10 +28,9 @@ pub fn demo_schema_registry() -> RelationalSchemaRegistry {
             kind_name: "demo.entity".to_string(),
             schema_id: SchemaId("demo".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_string_field_aspect(
-                aspect_key("name"),
-                field_key("name"),
-            )]),
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                entity_string_field_aspect(aspect_key("name"), field_key("name")),
+            ]),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -41,7 +40,7 @@ pub fn demo_schema_registry() -> RelationalSchemaRegistry {
                 schema_version_id: SchemaVersionId(1),
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::new(vec![
+                aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
                     relation_string_field_aspect(aspect_key("label"), field_key("label")),
                 ]),
                 relation_integrity: RelationIntegrityDeclarations::default(),
@@ -203,15 +202,21 @@ fn aspect_key(label: &str) -> AspectKey {
     AspectKey::new(label).expect("example aspect key must be foundational")
 }
 
-fn entity_string_field_aspect(aspect_key: AspectKey, field_key: FieldKey) -> DeclaredAspect {
-    DeclaredAspect {
+fn entity_string_field_aspect(
+    aspect_key: AspectKey,
+    field_key: FieldKey,
+) -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::EntityField { field: field_key },
         contract: scalar_string_contract(aspect_key),
     }
 }
 
-fn relation_string_field_aspect(aspect_key: AspectKey, field_key: FieldKey) -> DeclaredAspect {
-    DeclaredAspect {
+fn relation_string_field_aspect(
+    aspect_key: AspectKey,
+    field_key: FieldKey,
+) -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
         binding: AspectBinding::RelationField { field: field_key },
         contract: scalar_string_contract(aspect_key),
     }
