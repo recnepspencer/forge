@@ -166,7 +166,7 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
 }
 
 #[test]
-fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
+fn built_in_last_writer_wins_reject_retained_envelope_is_stable_across_recovery() {
     let mut runtime = runtime_with_aspect_field_merge_policy(
         AspectKey::new("value").unwrap(),
         field_key("value"),

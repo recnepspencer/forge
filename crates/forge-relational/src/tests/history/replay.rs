@@ -815,7 +815,7 @@ fn replay_contract_reports_lineage_decision_log_drift_at_digest_layer_when_artif
 }
 
 #[test]
-fn replay_contract_uses_history_envelope_fallback_basis_only_in_normal_mode() {
+fn replay_contract_uses_retained_envelope_basis_only_in_normal_mode() {
     let mut runtime = runtime_with_test_schema();
     let first = create_entity_outcome(&mut runtime, "source");
     let second = create_entity_outcome(&mut runtime, "target");
@@ -835,7 +835,7 @@ fn replay_contract_uses_history_envelope_fallback_basis_only_in_normal_mode() {
         BranchId("main".to_string()),
         vec![first_lineage],
         vec![second_lineage],
-        "lineage-fallback-basis",
+        "lineage-retained-envelope-basis",
     );
     runtime
         .lineage_authority()
@@ -860,12 +860,12 @@ fn replay_contract_uses_history_envelope_fallback_basis_only_in_normal_mode() {
             .lineage_authority_basis
             .as_ref()
             .map(|basis| basis.kind()),
-        Some(crate::facade::replay::ReplayAuthorityBasisKind::HistoryEnvelopeFallback)
+        Some(crate::facade::replay::ReplayAuthorityBasisKind::RetainedEnvelopeCanonical)
     );
 }
 
 #[test]
-fn replay_contract_rejects_history_envelope_fallback_basis_in_audit_mode() {
+fn replay_contract_rejects_retained_envelope_basis_in_audit_mode() {
     let mut runtime = runtime_with_test_schema();
     let first = create_entity_outcome(&mut runtime, "source");
     let second = create_entity_outcome(&mut runtime, "target");

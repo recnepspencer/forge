@@ -336,7 +336,10 @@ fn complexity_budget_replay_lineage_parity_reports_authority_basis_and_digest_wi
     assert_eq!(counters.replay_lineage_log_index_hits, 1);
     assert_eq!(counters.replay_lineage_checkpoint_index_hits, 0);
     assert_eq!(counters.replay_lineage_durable_basis_selections, 1);
-    assert_eq!(counters.replay_lineage_history_fallback_basis_selections, 0);
+    assert_eq!(
+        counters.replay_lineage_retained_envelope_basis_selections,
+        0
+    );
     assert_eq!(counters.replay_lineage_authoritative_basis_rejections, 0);
     assert_eq!(
         counters.replay_lineage_digest_event_width,
@@ -359,24 +362,25 @@ fn complexity_budget_replay_lineage_parity_reports_authority_basis_and_digest_wi
         .durability_authority()
         .remove_durable_envelope_for_test(promoted_commit_id));
     runtime.performance_access().reset_counters();
-    let fallback_replay = runtime
-        .replay_authority()
-        .replay_commit(RelationalReplayRequest {
-            commit_id: promoted_commit_id,
-            branch_id: BranchId("main".to_string()),
-            execution_mode: ReplayExecutionMode::SerialDeterministic,
-            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-        });
+    let retained_envelope_replay =
+        runtime
+            .replay_authority()
+            .replay_commit(RelationalReplayRequest {
+                commit_id: promoted_commit_id,
+                branch_id: BranchId("main".to_string()),
+                execution_mode: ReplayExecutionMode::SerialDeterministic,
+                verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+            });
     let counters = runtime.performance_access().counters();
     assert_eq!(
-        fallback_replay
+        retained_envelope_replay
             .lineage_authority_basis
             .as_ref()
             .map(|basis| basis.kind()),
-        Some(ReplayAuthorityBasisKind::HistoryEnvelopeFallback)
+        Some(ReplayAuthorityBasisKind::RetainedEnvelopeCanonical)
     );
     assert_eq!(
-        fallback_replay
+        retained_envelope_replay
             .lineage_authority_basis
             .as_ref()
             .map(|basis| basis.digest_mode()),
@@ -386,6 +390,9 @@ fn complexity_budget_replay_lineage_parity_reports_authority_basis_and_digest_wi
     assert_eq!(counters.replay_lineage_log_index_hits, 0);
     assert_eq!(counters.replay_lineage_checkpoint_index_hits, 0);
     assert_eq!(counters.replay_lineage_durable_basis_selections, 0);
-    assert_eq!(counters.replay_lineage_history_fallback_basis_selections, 1);
+    assert_eq!(
+        counters.replay_lineage_retained_envelope_basis_selections,
+        1
+    );
     assert_eq!(counters.replay_lineage_authoritative_basis_rejections, 0);
 }

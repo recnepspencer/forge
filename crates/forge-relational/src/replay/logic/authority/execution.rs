@@ -210,7 +210,7 @@ impl<'runtime> ReplayAuthority<'runtime> {
                     selected.artifact.digest_basis().lineage_event_count(),
                     selected.artifact.digest_basis().lineage_decision_count(),
                 );
-            if selected.kind == ReplayAuthorityBasisKind::HistoryEnvelopeFallback
+            if selected.kind == ReplayAuthorityBasisKind::RetainedEnvelopeCanonical
                 && request.verification_mode != ReplayVerificationMode::NormalRecoveryVerification
             {
                 self.runtime

@@ -1306,9 +1306,9 @@ fn complexity_delta(
         replay_lineage_durable_basis_selections: after
             .replay_lineage_durable_basis_selections
             .saturating_sub(before.replay_lineage_durable_basis_selections),
-        replay_lineage_history_fallback_basis_selections: after
-            .replay_lineage_history_fallback_basis_selections
-            .saturating_sub(before.replay_lineage_history_fallback_basis_selections),
+        replay_lineage_retained_envelope_basis_selections: after
+            .replay_lineage_retained_envelope_basis_selections
+            .saturating_sub(before.replay_lineage_retained_envelope_basis_selections),
         replay_lineage_authoritative_basis_rejections: after
             .replay_lineage_authoritative_basis_rejections
             .saturating_sub(before.replay_lineage_authoritative_basis_rejections),

@@ -5,7 +5,7 @@ use crate::history::data::CommitId;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReplayAuthorityBasisKind {
     DurableLogCanonical,
-    HistoryEnvelopeFallback,
+    RetainedEnvelopeCanonical,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

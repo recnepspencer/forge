@@ -153,7 +153,7 @@ pub(super) fn select_published_lineage_authority<'a>(
         }
     } else {
         SelectedPublishedLineageAuthority {
-            kind: ReplayAuthorityBasisKind::HistoryEnvelopeFallback,
+            kind: ReplayAuthorityBasisKind::RetainedEnvelopeCanonical,
             indexed_source: None,
             artifact: envelope.published_lineage(),
         }

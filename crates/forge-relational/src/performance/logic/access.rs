@@ -637,8 +637,8 @@ impl<'runtime> PerformanceAccess<'runtime> {
                 ReplayAuthorityBasisKind::DurableLogCanonical => {
                     counters.replay_lineage_durable_basis_selections += 1;
                 }
-                ReplayAuthorityBasisKind::HistoryEnvelopeFallback => {
-                    counters.replay_lineage_history_fallback_basis_selections += 1;
+                ReplayAuthorityBasisKind::RetainedEnvelopeCanonical => {
+                    counters.replay_lineage_retained_envelope_basis_selections += 1;
                 }
             }
             counters.replay_lineage_digest_event_width += event_width;
