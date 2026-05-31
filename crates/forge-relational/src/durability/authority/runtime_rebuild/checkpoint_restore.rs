@@ -5,7 +5,7 @@ use crate::history::data::VersionNode;
 use crate::logic::runtime::RelationalRuntime;
 
 use super::super::super::derived_index_artifacts::restore_checkpoint_derived_index_artifacts;
-use super::super::compatibility::validate_checkpoint_lineage_artifact;
+use super::super::authority_continuity::validate_checkpoint_lineage_artifact;
 
 pub(super) fn restore_checkpoint_state(
     restored: &mut RelationalRuntime,

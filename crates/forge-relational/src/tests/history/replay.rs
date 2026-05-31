@@ -507,7 +507,7 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
     let diagnostics = runtime.publication().diagnostics();
-    let compatibility_entry = diagnostics
+    let authority_continuity_entry = diagnostics
         .by_scope(DiagnosticsScope::Replay)
         .into_iter()
         .flat_map(|artifact| artifact.entries.iter())
@@ -524,16 +524,16 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
         })
         .expect("replay certification diagnostic");
     assert_eq!(
-        diagnostic_field(compatibility_entry, "verification_mode"),
+        diagnostic_field(authority_continuity_entry, "verification_mode"),
         &RelationalDiagnosticValue::string("AuditRecoveryVerification")
     );
     assert!(diagnostic_array_contains_string(
-        compatibility_entry,
+        authority_continuity_entry,
         "mismatch_verification_layers",
         "DeepArtifactParity",
     ));
     assert!(diagnostic_array_contains_string(
-        compatibility_entry,
+        authority_continuity_entry,
         "mismatch_classes",
         "SchemaContinuationDescriptorDrift",
     ));

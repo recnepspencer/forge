@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     DurableCheckpoint, DurableCheckpointId, DurableCheckpointManifest, DurableSegmentId,
-    DurableStore, RecoveryCompatibilityMismatch,
+    DurableStore, RecoveryAuthorityContinuityMismatch,
 };
 use crate::history::data::{CommitId, CommitReference};
 use crate::replay::data::{CanonicalCommitEnvelope, ReplayVerificationLayer};
@@ -30,7 +30,7 @@ pub struct RecoveryIntegrityReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RecoveryCompatibilityCheck {
+pub struct RecoveryAuthorityContinuityCheck {
     pub schema_parity: RecoveryAuthorityParity,
     pub profile_parity: RecoveryAuthorityParity,
     pub runtime_name_parity: RecoveryAuthorityParity,
@@ -40,7 +40,7 @@ pub struct RecoveryCompatibilityCheck {
     pub reconciliation_descriptor_parity: RecoveryAuthorityParity,
     pub schema_lineage_parity: RecoveryAuthorityParity,
     pub verification_outcome: RecoveryVerificationOutcome,
-    pub first_mismatch: Option<RecoveryCompatibilityMismatch>,
+    pub first_mismatch: Option<RecoveryAuthorityContinuityMismatch>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -90,7 +90,7 @@ pub struct RecoveryPlan {
     pub tail_log: Vec<CanonicalCommitEnvelope>,
     pub cursor: RecoveryCursor,
     pub integrity_report: RecoveryIntegrityReport,
-    pub compatibility: RecoveryCompatibilityCheck,
+    pub authority_continuity: RecoveryAuthorityContinuityCheck,
     pub verification_plan: RecoveryVerificationPlan,
     pub descriptor_semantics_version: DescriptorSemanticsVersion,
     pub restore_authoritative_envelope_commit_ids: Vec<CommitId>,
@@ -140,7 +140,7 @@ impl RecoveryAuthorityParity {
     }
 }
 
-impl RecoveryCompatibilityCheck {
+impl RecoveryAuthorityContinuityCheck {
     pub fn verified_at(layer: ReplayVerificationLayer) -> Self {
         Self {
             schema_parity: RecoveryAuthorityParity::verified_at(layer),
@@ -167,7 +167,7 @@ impl RecoveryPlan {
         tail_log: Vec<CanonicalCommitEnvelope>,
         cursor: RecoveryCursor,
         integrity_report: RecoveryIntegrityReport,
-        compatibility: RecoveryCompatibilityCheck,
+        authority_continuity: RecoveryAuthorityContinuityCheck,
         verification_mode: RecoveryVerificationMode,
         descriptor_semantics_version: DescriptorSemanticsVersion,
         mut restore_authoritative_envelope_commit_ids: Vec<CommitId>,
@@ -182,7 +182,7 @@ impl RecoveryPlan {
             tail_log,
             cursor,
             integrity_report,
-            compatibility,
+            authority_continuity,
             verification_plan: RecoveryVerificationPlan::from_mode(verification_mode),
             descriptor_semantics_version,
             restore_authoritative_envelope_commit_ids,

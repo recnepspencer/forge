@@ -1,5 +1,5 @@
 use crate::diagnostics::data::{RelationalDiagnosticFields, RelationalDiagnosticValue};
-use crate::durability::authority::diagnostics::recovery::compatibility_mismatch_fields::compatibility_mismatch_fields;
+use crate::durability::authority::diagnostics::recovery::authority_continuity_mismatch_fields::authority_continuity_mismatch_fields;
 use crate::durability::authority::diagnostics::recovery::durable_identity_fields::{
     checkpoint_id_array, segment_id_array, verification_layer_value,
 };
@@ -8,11 +8,11 @@ use crate::durability::data::{
     RecoveryVerificationOutcome,
 };
 
-pub(super) fn recovery_compatibility_evaluated_fields(
+pub(super) fn recovery_authority_continuity_evaluated_fields(
     plan: &RecoveryPlan,
 ) -> RelationalDiagnosticFields {
     let verification =
-        VerificationOutcomeDiagnostic::from(&plan.compatibility.verification_outcome);
+        VerificationOutcomeDiagnostic::from(&plan.authority_continuity.verification_outcome);
 
     RelationalDiagnosticValue::object([
         (
@@ -42,43 +42,47 @@ pub(super) fn recovery_compatibility_evaluated_fields(
         (
             "first_mismatch",
             RelationalDiagnosticValue::optional(
-                plan.compatibility
+                plan.authority_continuity
                     .first_mismatch
                     .as_ref()
-                    .map(compatibility_mismatch_fields),
+                    .map(authority_continuity_mismatch_fields),
             ),
         ),
         (
             "schema_parity",
-            recovery_authority_parity_value(plan.compatibility.schema_parity),
+            recovery_authority_parity_value(plan.authority_continuity.schema_parity),
         ),
         (
             "profile_parity",
-            recovery_authority_parity_value(plan.compatibility.profile_parity),
+            recovery_authority_parity_value(plan.authority_continuity.profile_parity),
         ),
         (
             "runtime_name_parity",
-            recovery_authority_parity_value(plan.compatibility.runtime_name_parity),
+            recovery_authority_parity_value(plan.authority_continuity.runtime_name_parity),
         ),
         (
             "descriptor_version_parity",
-            recovery_authority_parity_value(plan.compatibility.descriptor_version_parity),
+            recovery_authority_parity_value(plan.authority_continuity.descriptor_version_parity),
         ),
         (
             "schema_transition_parity",
-            recovery_authority_parity_value(plan.compatibility.schema_transition_parity),
+            recovery_authority_parity_value(plan.authority_continuity.schema_transition_parity),
         ),
         (
             "continuation_descriptor_parity",
-            recovery_authority_parity_value(plan.compatibility.continuation_descriptor_parity),
+            recovery_authority_parity_value(
+                plan.authority_continuity.continuation_descriptor_parity,
+            ),
         ),
         (
             "reconciliation_descriptor_parity",
-            recovery_authority_parity_value(plan.compatibility.reconciliation_descriptor_parity),
+            recovery_authority_parity_value(
+                plan.authority_continuity.reconciliation_descriptor_parity,
+            ),
         ),
         (
             "schema_lineage_parity",
-            recovery_authority_parity_value(plan.compatibility.schema_lineage_parity),
+            recovery_authority_parity_value(plan.authority_continuity.schema_lineage_parity),
         ),
     ])
     .into()

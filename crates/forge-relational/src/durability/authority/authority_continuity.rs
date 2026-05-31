@@ -7,16 +7,16 @@ use crate::capabilities::{
 };
 use crate::diagnostics::data::RelationalDiagnosticsEntry;
 use crate::durability::data::{
-    DurabilityError, RecoveryCompatibilityCheck, RecoveryCompatibilityMismatch,
+    DurabilityError, RecoveryAuthorityContinuityCheck, RecoveryAuthorityContinuityMismatch,
     RecoveryFailureClass, RecoveryPlan,
 };
 use crate::logic::runtime::RelationalRuntime;
 
-use super::diagnostics::recovery_compatibility_evaluated;
+use super::diagnostics::recovery_authority_continuity_evaluated;
 use registry_mismatch::schema_registry_mismatch;
-use schema_continuity::validate_schema_continuity_compatibility;
+use schema_continuity::validate_schema_recovery_authority_continuity;
 
-pub(super) fn validate_recovery_compatibility(
+pub(super) fn validate_recovery_authority_continuity(
     runtime: &(impl SchemaSource + RuntimeIdentitySource + SchemaVersionSource + RuntimeConfigSource),
     plan: &RecoveryPlan,
 ) -> Result<(), DurabilityError> {
@@ -25,7 +25,7 @@ pub(super) fn validate_recovery_compatibility(
             RecoveryFailureClass::SchemaMismatch,
             "recovery schema registry mismatch",
         )
-        .with_compatibility_mismatch(schema_registry_mismatch(
+        .with_authority_continuity_mismatch(schema_registry_mismatch(
             &plan.config.schema.registry,
             runtime.schema_registry(),
             plan.config.primary_schema_version_id(),
@@ -37,27 +37,33 @@ pub(super) fn validate_recovery_compatibility(
             RecoveryFailureClass::ProfileMismatch,
             "recovery profile mismatch",
         )
-        .with_compatibility_mismatch(RecoveryCompatibilityMismatch::RuntimeProfile {
-            expected: format!("{:?}", plan.config.profile),
-            found: format!("{:?}", runtime.runtime_profile()),
-        }));
+        .with_authority_continuity_mismatch(
+            RecoveryAuthorityContinuityMismatch::RuntimeProfile {
+                expected: format!("{:?}", plan.config.profile),
+                found: format!("{:?}", runtime.runtime_profile()),
+            },
+        ));
     }
     if plan.config.execution.runtime_name != runtime.runtime_name() {
         return Err(DurabilityError::new(
             RecoveryFailureClass::RuntimeNameMismatch,
             "recovery runtime name mismatch",
         )
-        .with_compatibility_mismatch(RecoveryCompatibilityMismatch::RuntimeName {
-            expected: plan.config.execution.runtime_name.clone(),
-            found: runtime.runtime_name().to_string(),
-        }));
+        .with_authority_continuity_mismatch(
+            RecoveryAuthorityContinuityMismatch::RuntimeName {
+                expected: plan.config.execution.runtime_name.clone(),
+                found: runtime.runtime_name().to_string(),
+            },
+        ));
     }
-    validate_schema_continuity_compatibility(runtime, plan)?;
+    validate_schema_recovery_authority_continuity(runtime, plan)?;
     Ok(())
 }
 
-pub(super) fn recovery_compatibility_diagnostic(plan: &RecoveryPlan) -> RelationalDiagnosticsEntry {
-    recovery_compatibility_evaluated(plan)
+pub(super) fn recovery_authority_continuity_diagnostic(
+    plan: &RecoveryPlan,
+) -> RelationalDiagnosticsEntry {
+    recovery_authority_continuity_evaluated(plan)
 }
 
 pub(super) fn validate_checkpoint_lineage_artifact(
@@ -68,9 +74,9 @@ pub(super) fn validate_checkpoint_lineage_artifact(
 
 pub(super) fn record_recovery_verification_counters(
     runtime: &RelationalRuntime,
-    compatibility: &RecoveryCompatibilityCheck,
+    authority_continuity: &RecoveryAuthorityContinuityCheck,
 ) {
-    let layer = match compatibility.verification_outcome {
+    let layer = match authority_continuity.verification_outcome {
         crate::durability::data::RecoveryVerificationOutcome::VerifiedAtLayer(layer) => layer,
         crate::durability::data::RecoveryVerificationOutcome::Rejected { layer, .. } => layer,
     };
@@ -78,9 +84,9 @@ pub(super) fn record_recovery_verification_counters(
         .performance_access()
         .count_replay_verification_layer(layer);
     if matches!(
-        compatibility.first_mismatch,
-        Some(RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { .. })
-            | Some(RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion { .. })
+        authority_continuity.first_mismatch,
+        Some(RecoveryAuthorityContinuityMismatch::DescriptorSemanticsVersion { .. })
+            | Some(RecoveryAuthorityContinuityMismatch::DescriptorCanonicalBasisVersion { .. })
     ) {
         runtime
             .performance_access()

@@ -2,8 +2,8 @@ use crate::capabilities::{
     DurabilityRead, RuntimeConfigSource, RuntimeIdentitySource, SchemaVersionSource,
 };
 use crate::durability::data::{
-    DurabilityMode, RecoveryAuthorityParity, RecoveryCompatibilityCheck,
-    RecoveryCompatibilityMismatch, RecoveryCursor, RecoveryIntegrityReport, RecoveryPlan,
+    DurabilityMode, RecoveryAuthorityContinuityCheck, RecoveryAuthorityContinuityMismatch,
+    RecoveryAuthorityParity, RecoveryCursor, RecoveryIntegrityReport, RecoveryPlan,
     RecoveryVerificationOutcome,
 };
 use crate::durability::log::local_store::{load_store_from_disk, read_segment_entries};
@@ -67,7 +67,9 @@ impl<'runtime> DurabilityAccess<'runtime> {
                     verified_segment_ids: Vec::new(),
                     corrupt_segment_id: None,
                 },
-                RecoveryCompatibilityCheck::verified_at(ReplayVerificationLayer::DigestParity),
+                RecoveryAuthorityContinuityCheck::verified_at(
+                    ReplayVerificationLayer::DigestParity,
+                ),
                 verification_mode,
                 self.runtime
                     .runtime_config()
@@ -126,7 +128,7 @@ impl<'runtime> DurabilityAccess<'runtime> {
                 .unwrap_or(&[]),
             &tail_log,
         );
-        let mut continuity_compatibility = continuity_compatibility_for_envelopes(
+        let mut recovery_authority_continuity = authority_continuity_for_envelopes(
             self.runtime,
             selected_checkpoint
                 .as_ref()
@@ -146,23 +148,23 @@ impl<'runtime> DurabilityAccess<'runtime> {
             .as_ref()
             .map(|manifest| manifest.runtime_name == self.runtime.runtime_name())
             .unwrap_or(true);
-        continuity_compatibility.schema_parity = if schema_match {
+        recovery_authority_continuity.schema_parity = if schema_match {
             RecoveryAuthorityParity::verified_at(ReplayVerificationLayer::DigestParity)
         } else {
             RecoveryAuthorityParity::drift()
         };
-        continuity_compatibility.profile_parity = if profile_match {
+        recovery_authority_continuity.profile_parity = if profile_match {
             RecoveryAuthorityParity::verified_at(ReplayVerificationLayer::DigestParity)
         } else {
             RecoveryAuthorityParity::drift()
         };
-        continuity_compatibility.runtime_name_parity = if runtime_name_match {
+        recovery_authority_continuity.runtime_name_parity = if runtime_name_match {
             RecoveryAuthorityParity::verified_at(ReplayVerificationLayer::DigestParity)
         } else {
             RecoveryAuthorityParity::drift()
         };
-        if continuity_compatibility.first_mismatch.is_none() {
-            continuity_compatibility.first_mismatch = recovery_basis_mismatch(
+        if recovery_authority_continuity.first_mismatch.is_none() {
+            recovery_authority_continuity.first_mismatch = recovery_basis_mismatch(
                 selected_checkpoint_manifest.as_ref(),
                 &self.runtime.runtime_config().schema.registry,
                 self.runtime.runtime_profile(),
@@ -194,7 +196,7 @@ impl<'runtime> DurabilityAccess<'runtime> {
                 verified_segment_ids,
                 corrupt_segment_id,
             },
-            continuity_compatibility,
+            recovery_authority_continuity,
             verification_mode,
             descriptor_semantics_version,
             restore_authoritative_envelope_commit_ids,
@@ -233,7 +235,7 @@ fn in_memory_recovery_plan(
             .unwrap_or(&[]),
         &tail_log,
     );
-    let continuity_compatibility = continuity_compatibility_for_envelopes(
+    let recovery_authority_continuity = authority_continuity_for_envelopes(
         runtime,
         checkpoint
             .as_ref()
@@ -261,7 +263,7 @@ fn in_memory_recovery_plan(
             verified_segment_ids: Vec::new(),
             corrupt_segment_id: None,
         },
-        continuity_compatibility,
+        recovery_authority_continuity,
         verification_mode,
         descriptor_semantics_version,
         restore_authoritative_envelope_commit_ids,
@@ -280,11 +282,11 @@ fn descriptor_semantics_version_for_envelopes(
         .unwrap_or_else(crate::schema::data::DescriptorSemanticsVersion::default)
 }
 
-fn continuity_compatibility_for_envelopes(
+fn authority_continuity_for_envelopes(
     runtime: &RelationalRuntime,
     checkpoint_envelopes: &[crate::replay::data::CanonicalCommitEnvelope],
     tail_log: &[crate::replay::data::CanonicalCommitEnvelope],
-) -> RecoveryCompatibilityCheck {
+) -> RecoveryAuthorityContinuityCheck {
     let descriptor_policy = runtime
         .runtime_config()
         .schema
@@ -298,8 +300,8 @@ fn continuity_compatibility_for_envelopes(
     let expected_descriptor_semantics_version = descriptor_policy.current_write_version();
     let expected_descriptor_canonical_basis_version =
         canonical_basis_policy.current_write_version();
-    let mut compatibility =
-        RecoveryCompatibilityCheck::verified_at(ReplayVerificationLayer::DigestParity);
+    let mut authority_continuity =
+        RecoveryAuthorityContinuityCheck::verified_at(ReplayVerificationLayer::DigestParity);
 
     for envelope in checkpoint_envelopes.iter().chain(tail_log.iter()) {
         if !descriptor_policy.supports(envelope.descriptor_semantics_version) {
@@ -309,14 +311,14 @@ fn continuity_compatibility_for_envelopes(
             runtime
                 .performance_access()
                 .count_replay_verification_layer(ReplayVerificationLayer::DigestParity);
-            compatibility.descriptor_version_parity = RecoveryAuthorityParity::drift();
-            compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::DescriptorSemanticsVersion {
+            authority_continuity.descriptor_version_parity = RecoveryAuthorityParity::drift();
+            authority_continuity.first_mismatch.get_or_insert(
+                RecoveryAuthorityContinuityMismatch::DescriptorSemanticsVersion {
                     expected: expected_descriptor_semantics_version,
                     found: envelope.descriptor_semantics_version,
                 },
             );
-            compatibility.verification_outcome = RecoveryVerificationOutcome::Rejected {
+            authority_continuity.verification_outcome = RecoveryVerificationOutcome::Rejected {
                 layer: ReplayVerificationLayer::DigestParity,
                 detail: "descriptor semantics version mismatch".to_string(),
             };
@@ -331,14 +333,14 @@ fn continuity_compatibility_for_envelopes(
             runtime
                 .performance_access()
                 .count_replay_verification_layer(ReplayVerificationLayer::DigestParity);
-            compatibility.descriptor_version_parity = RecoveryAuthorityParity::drift();
-            compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion {
+            authority_continuity.descriptor_version_parity = RecoveryAuthorityParity::drift();
+            authority_continuity.first_mismatch.get_or_insert(
+                RecoveryAuthorityContinuityMismatch::DescriptorCanonicalBasisVersion {
                     expected: expected_descriptor_canonical_basis_version,
                     found,
                 },
             );
-            compatibility.verification_outcome = RecoveryVerificationOutcome::Rejected {
+            authority_continuity.verification_outcome = RecoveryVerificationOutcome::Rejected {
                 layer: ReplayVerificationLayer::DigestParity,
                 detail: "descriptor canonical basis version mismatch".to_string(),
             };
@@ -357,11 +359,13 @@ fn continuity_compatibility_for_envelopes(
                     validated_bundle.reconciliation(),
                 );
             }
-            Err(issue) => apply_continuity_issue(runtime, &mut compatibility, envelope, issue),
+            Err(issue) => {
+                apply_continuity_issue(runtime, &mut authority_continuity, envelope, issue)
+            }
         }
     }
 
-    compatibility
+    authority_continuity
 }
 
 fn unsupported_canonical_basis_version(
@@ -384,7 +388,7 @@ fn unsupported_canonical_basis_version(
 
 fn apply_continuity_issue(
     runtime: &RelationalRuntime,
-    compatibility: &mut RecoveryCompatibilityCheck,
+    authority_continuity: &mut RecoveryAuthorityContinuityCheck,
     envelope: &crate::replay::data::CanonicalCommitEnvelope,
     issue: SchemaContinuityBundleIssue,
 ) {
@@ -392,15 +396,15 @@ fn apply_continuity_issue(
     runtime
         .performance_access()
         .count_replay_verification_layer(ReplayVerificationLayer::DigestParity);
-    compatibility.verification_outcome = RecoveryVerificationOutcome::Rejected {
+    authority_continuity.verification_outcome = RecoveryVerificationOutcome::Rejected {
         layer: ReplayVerificationLayer::DigestParity,
         detail: detail.clone(),
     };
     match issue {
         SchemaContinuityBundleIssue::IncompleteBundle => {
-            compatibility.schema_transition_parity = RecoveryAuthorityParity::drift();
-            compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::SchemaTransitionArtifact {
+            authority_continuity.schema_transition_parity = RecoveryAuthorityParity::drift();
+            authority_continuity.first_mismatch.get_or_insert(
+                RecoveryAuthorityContinuityMismatch::SchemaTransitionArtifact {
                     commit_id: envelope.commit.commit_id.0,
                     detail,
                 },
@@ -409,9 +413,9 @@ fn apply_continuity_issue(
         SchemaContinuityBundleIssue::ContinuationDescriptorDrift {
             boundary_fingerprint,
         } => {
-            compatibility.continuation_descriptor_parity = RecoveryAuthorityParity::drift();
-            compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::ContinuationDescriptor {
+            authority_continuity.continuation_descriptor_parity = RecoveryAuthorityParity::drift();
+            authority_continuity.first_mismatch.get_or_insert(
+                RecoveryAuthorityContinuityMismatch::ContinuationDescriptor {
                     commit_id: envelope.commit.commit_id.0,
                     boundary_fingerprint,
                     detail,
@@ -419,9 +423,10 @@ fn apply_continuity_issue(
             );
         }
         SchemaContinuityBundleIssue::ReconciliationDescriptorDrift => {
-            compatibility.reconciliation_descriptor_parity = RecoveryAuthorityParity::drift();
-            compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::ReconciliationDescriptor {
+            authority_continuity.reconciliation_descriptor_parity =
+                RecoveryAuthorityParity::drift();
+            authority_continuity.first_mismatch.get_or_insert(
+                RecoveryAuthorityContinuityMismatch::ReconciliationDescriptor {
                     commit_id: envelope.commit.commit_id.0,
                     detail,
                 },
@@ -430,9 +435,9 @@ fn apply_continuity_issue(
         SchemaContinuityBundleIssue::ContinuationBoundaryFingerprintMismatch {
             boundary_fingerprint,
         } => {
-            compatibility.continuation_descriptor_parity = RecoveryAuthorityParity::drift();
-            compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::ContinuationDescriptor {
+            authority_continuity.continuation_descriptor_parity = RecoveryAuthorityParity::drift();
+            authority_continuity.first_mismatch.get_or_insert(
+                RecoveryAuthorityContinuityMismatch::ContinuationDescriptor {
                     commit_id: envelope.commit.commit_id.0,
                     boundary_fingerprint: Some(boundary_fingerprint),
                     detail,
@@ -443,9 +448,9 @@ fn apply_continuity_issue(
             runtime
                 .performance_access()
                 .count_descriptor_version_mismatch();
-            compatibility.descriptor_version_parity = RecoveryAuthorityParity::drift();
-            compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { expected, found },
+            authority_continuity.descriptor_version_parity = RecoveryAuthorityParity::drift();
+            authority_continuity.first_mismatch.get_or_insert(
+                RecoveryAuthorityContinuityMismatch::DescriptorSemanticsVersion { expected, found },
             );
         }
         SchemaContinuityBundleIssue::DescriptorCanonicalBasisVersionMismatch {
@@ -455,15 +460,18 @@ fn apply_continuity_issue(
             runtime
                 .performance_access()
                 .count_descriptor_version_mismatch();
-            compatibility.descriptor_version_parity = RecoveryAuthorityParity::drift();
-            compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion { expected, found },
+            authority_continuity.descriptor_version_parity = RecoveryAuthorityParity::drift();
+            authority_continuity.first_mismatch.get_or_insert(
+                RecoveryAuthorityContinuityMismatch::DescriptorCanonicalBasisVersion {
+                    expected,
+                    found,
+                },
             );
         }
         SchemaContinuityBundleIssue::VisibleBridgeProofMismatch => {
-            compatibility.continuation_descriptor_parity = RecoveryAuthorityParity::drift();
-            compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::ContinuationDescriptor {
+            authority_continuity.continuation_descriptor_parity = RecoveryAuthorityParity::drift();
+            authority_continuity.first_mismatch.get_or_insert(
+                RecoveryAuthorityContinuityMismatch::ContinuationDescriptor {
                     commit_id: envelope.commit.commit_id.0,
                     boundary_fingerprint: envelope
                         .schema_continuation_descriptor
@@ -474,27 +482,27 @@ fn apply_continuity_issue(
             );
         }
         SchemaContinuityBundleIssue::TargetSchemaVersionMismatch => {
-            compatibility.schema_transition_parity = RecoveryAuthorityParity::drift();
-            compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::SchemaTransitionArtifact {
+            authority_continuity.schema_transition_parity = RecoveryAuthorityParity::drift();
+            authority_continuity.first_mismatch.get_or_insert(
+                RecoveryAuthorityContinuityMismatch::SchemaTransitionArtifact {
                     commit_id: envelope.commit.commit_id.0,
                     detail,
                 },
             );
         }
         SchemaContinuityBundleIssue::LineageSchemaVersionMismatch => {
-            compatibility.schema_lineage_parity = RecoveryAuthorityParity::drift();
-            compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::SchemaLineage {
+            authority_continuity.schema_lineage_parity = RecoveryAuthorityParity::drift();
+            authority_continuity.first_mismatch.get_or_insert(
+                RecoveryAuthorityContinuityMismatch::SchemaLineage {
                     commit_id: envelope.commit.commit_id.0,
                     detail,
                 },
             );
         }
         SchemaContinuityBundleIssue::HistoricalReinterpretationViolation => {
-            compatibility.continuation_descriptor_parity = RecoveryAuthorityParity::drift();
-            compatibility.first_mismatch.get_or_insert(
-                RecoveryCompatibilityMismatch::ContinuationDescriptor {
+            authority_continuity.continuation_descriptor_parity = RecoveryAuthorityParity::drift();
+            authority_continuity.first_mismatch.get_or_insert(
+                RecoveryAuthorityContinuityMismatch::ContinuationDescriptor {
                     commit_id: envelope.commit.commit_id.0,
                     boundary_fingerprint: envelope
                         .schema_continuation_descriptor
@@ -519,10 +527,10 @@ fn recovery_basis_mismatch(
     runtime_profile: crate::config::data::RelationalRuntimeProfile,
     runtime_name: &str,
     primary_schema_version_id: crate::schema::data::SchemaVersionId,
-) -> Option<RecoveryCompatibilityMismatch> {
+) -> Option<RecoveryAuthorityContinuityMismatch> {
     let manifest = checkpoint_manifest?;
     if manifest.schema_version != primary_schema_version_id {
-        return Some(RecoveryCompatibilityMismatch::SchemaRegistryShape {
+        return Some(RecoveryAuthorityContinuityMismatch::SchemaRegistryShape {
             expected_primary_schema_version: manifest.schema_version,
             found_primary_schema_version: primary_schema_version_id,
             expected_entity_kind_count: runtime_registry.entity_kinds.len(),
@@ -532,13 +540,13 @@ fn recovery_basis_mismatch(
         });
     }
     if manifest.profile != runtime_profile {
-        return Some(RecoveryCompatibilityMismatch::RuntimeProfile {
+        return Some(RecoveryAuthorityContinuityMismatch::RuntimeProfile {
             expected: format!("{:?}", manifest.profile),
             found: format!("{runtime_profile:?}"),
         });
     }
     if manifest.runtime_name != runtime_name {
-        return Some(RecoveryCompatibilityMismatch::RuntimeName {
+        return Some(RecoveryAuthorityContinuityMismatch::RuntimeName {
             expected: manifest.runtime_name.clone(),
             found: runtime_name.to_string(),
         });

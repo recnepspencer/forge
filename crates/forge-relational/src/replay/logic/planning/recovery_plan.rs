@@ -65,7 +65,7 @@ pub(in crate::replay::logic) fn replay_recovery_plan_for_chain(
             verified_segment_ids: Vec::new(),
             corrupt_segment_id: None,
         },
-        crate::durability::data::RecoveryCompatibilityCheck::verified_at(
+        crate::durability::data::RecoveryAuthorityContinuityCheck::verified_at(
             ReplayVerificationLayer::DigestParity,
         ),
         replay_verification_mode_to_recovery_mode(verification_mode),

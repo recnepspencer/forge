@@ -1,11 +1,13 @@
-use crate::durability::data::{RecoveryCompatibilityMismatch, RelationIntegrityContractFamily};
+use crate::durability::data::{
+    RecoveryAuthorityContinuityMismatch, RelationIntegrityContractFamily,
+};
 
 pub(super) fn schema_registry_mismatch(
     expected: &crate::schema::data::RelationalSchemaRegistry,
     found: &crate::schema::data::RelationalSchemaRegistry,
     expected_primary_schema_version: crate::schema::data::SchemaVersionId,
     found_primary_schema_version: crate::schema::data::SchemaVersionId,
-) -> RecoveryCompatibilityMismatch {
+) -> RecoveryAuthorityContinuityMismatch {
     for (kind_id, expected_registration) in &expected.entity_kinds {
         let Some(found_registration) = found.entity_kinds.get(kind_id) else {
             break;
@@ -16,7 +18,7 @@ pub(super) fn schema_registry_mismatch(
             && expected_registration.aspect_declarations.plan_revision
                 != found_registration.aspect_declarations.plan_revision
         {
-            return RecoveryCompatibilityMismatch::EntityAspectPlanRevision {
+            return RecoveryAuthorityContinuityMismatch::EntityAspectPlanRevision {
                 kind_id: *kind_id,
                 kind_name: expected_registration.kind_name.clone(),
                 expected_revision: expected_registration.aspect_declarations.plan_revision.0,
@@ -34,7 +36,7 @@ pub(super) fn schema_registry_mismatch(
             && expected_registration.aspect_declarations.plan_revision
                 != found_registration.aspect_declarations.plan_revision
         {
-            return RecoveryCompatibilityMismatch::RelationAspectPlanRevision {
+            return RecoveryAuthorityContinuityMismatch::RelationAspectPlanRevision {
                 kind_id: *kind_id,
                 kind_name: expected_registration.kind_name.clone(),
                 expected_revision: expected_registration.aspect_declarations.plan_revision.0,
@@ -52,7 +54,7 @@ pub(super) fn schema_registry_mismatch(
                     &expected_registration.relation_integrity,
                     &found_registration.relation_integrity,
                 );
-            return RecoveryCompatibilityMismatch::RelationIntegrityPlanRevision {
+            return RecoveryAuthorityContinuityMismatch::RelationIntegrityPlanRevision {
                 kind_id: *kind_id,
                 kind_name: expected_registration.kind_name.clone(),
                 contract_family,
@@ -63,7 +65,7 @@ pub(super) fn schema_registry_mismatch(
             };
         }
     }
-    RecoveryCompatibilityMismatch::SchemaRegistryShape {
+    RecoveryAuthorityContinuityMismatch::SchemaRegistryShape {
         expected_primary_schema_version,
         found_primary_schema_version,
         expected_entity_kind_count: expected.entity_kinds.len(),

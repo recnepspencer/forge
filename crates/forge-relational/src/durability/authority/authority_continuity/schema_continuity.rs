@@ -2,12 +2,12 @@ use crate::capabilities::{
     RuntimeConfigSource, RuntimeIdentitySource, SchemaSource, SchemaVersionSource,
 };
 use crate::durability::data::{
-    DurabilityError, RecoveryCompatibilityMismatch, RecoveryFailureClass, RecoveryPlan,
+    DurabilityError, RecoveryAuthorityContinuityMismatch, RecoveryFailureClass, RecoveryPlan,
 };
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::schema::logic::{validate_schema_continuity_bundle, SchemaContinuityBundleIssue};
 
-pub(super) fn validate_schema_continuity_compatibility(
+pub(super) fn validate_schema_recovery_authority_continuity(
     runtime: &(impl SchemaSource + RuntimeIdentitySource + SchemaVersionSource + RuntimeConfigSource),
     plan: &RecoveryPlan,
 ) -> Result<(), DurabilityError> {
@@ -28,8 +28,8 @@ pub(super) fn validate_schema_continuity_compatibility(
             RecoveryFailureClass::SchemaMismatch,
             "recovery descriptor semantics version mismatch",
         )
-        .with_compatibility_mismatch(
-            RecoveryCompatibilityMismatch::DescriptorSemanticsVersion {
+        .with_authority_continuity_mismatch(
+            RecoveryAuthorityContinuityMismatch::DescriptorSemanticsVersion {
                 expected: plan.descriptor_semantics_version,
                 found: runtime_descriptor_version,
             },
@@ -47,8 +47,8 @@ pub(super) fn validate_schema_continuity_compatibility(
                 RecoveryFailureClass::SchemaMismatch,
                 "recovery envelope descriptor semantics version mismatch",
             )
-            .with_compatibility_mismatch(
-                RecoveryCompatibilityMismatch::DescriptorSemanticsVersion {
+            .with_authority_continuity_mismatch(
+                RecoveryAuthorityContinuityMismatch::DescriptorSemanticsVersion {
                     expected: plan.descriptor_semantics_version,
                     found: envelope.descriptor_semantics_version,
                 },
@@ -72,8 +72,8 @@ pub(super) fn validate_schema_continuity_compatibility(
                 RecoveryFailureClass::SchemaMismatch,
                 "recovery envelope descriptor canonical basis version mismatch",
             )
-            .with_compatibility_mismatch(
-                RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion {
+            .with_authority_continuity_mismatch(
+                RecoveryAuthorityContinuityMismatch::DescriptorCanonicalBasisVersion {
                     expected: runtime_canonical_basis_version,
                     found,
                 },
@@ -94,34 +94,36 @@ fn schema_continuity_recovery_error(
     let detail = issue.detail();
     let mismatch = match issue {
         SchemaContinuityBundleIssue::IncompleteBundle => {
-            RecoveryCompatibilityMismatch::SchemaTransitionArtifact {
+            RecoveryAuthorityContinuityMismatch::SchemaTransitionArtifact {
                 commit_id: envelope.commit.commit_id.0,
                 detail,
             }
         }
         SchemaContinuityBundleIssue::ContinuationDescriptorDrift {
             boundary_fingerprint,
-        } => RecoveryCompatibilityMismatch::ContinuationDescriptor {
+        } => RecoveryAuthorityContinuityMismatch::ContinuationDescriptor {
             commit_id: envelope.commit.commit_id.0,
             boundary_fingerprint,
             detail,
         },
         SchemaContinuityBundleIssue::ContinuationBoundaryFingerprintMismatch {
             boundary_fingerprint,
-        } => RecoveryCompatibilityMismatch::ContinuationDescriptor {
+        } => RecoveryAuthorityContinuityMismatch::ContinuationDescriptor {
             commit_id: envelope.commit.commit_id.0,
             boundary_fingerprint: Some(boundary_fingerprint),
             detail,
         },
         SchemaContinuityBundleIssue::DescriptorSemanticsVersionMismatch { expected, found } => {
-            RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { expected, found }
+            RecoveryAuthorityContinuityMismatch::DescriptorSemanticsVersion { expected, found }
         }
         SchemaContinuityBundleIssue::DescriptorCanonicalBasisVersionMismatch {
             expected,
             found,
-        } => RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion { expected, found },
+        } => {
+            RecoveryAuthorityContinuityMismatch::DescriptorCanonicalBasisVersion { expected, found }
+        }
         SchemaContinuityBundleIssue::VisibleBridgeProofMismatch => {
-            RecoveryCompatibilityMismatch::ContinuationDescriptor {
+            RecoveryAuthorityContinuityMismatch::ContinuationDescriptor {
                 commit_id: envelope.commit.commit_id.0,
                 boundary_fingerprint: envelope
                     .schema_continuation_descriptor
@@ -131,25 +133,25 @@ fn schema_continuity_recovery_error(
             }
         }
         SchemaContinuityBundleIssue::ReconciliationDescriptorDrift => {
-            RecoveryCompatibilityMismatch::ReconciliationDescriptor {
+            RecoveryAuthorityContinuityMismatch::ReconciliationDescriptor {
                 commit_id: envelope.commit.commit_id.0,
                 detail,
             }
         }
         SchemaContinuityBundleIssue::TargetSchemaVersionMismatch => {
-            RecoveryCompatibilityMismatch::SchemaTransitionArtifact {
+            RecoveryAuthorityContinuityMismatch::SchemaTransitionArtifact {
                 commit_id: envelope.commit.commit_id.0,
                 detail,
             }
         }
         SchemaContinuityBundleIssue::LineageSchemaVersionMismatch => {
-            RecoveryCompatibilityMismatch::SchemaLineage {
+            RecoveryAuthorityContinuityMismatch::SchemaLineage {
                 commit_id: envelope.commit.commit_id.0,
                 detail,
             }
         }
         SchemaContinuityBundleIssue::HistoricalReinterpretationViolation => {
-            RecoveryCompatibilityMismatch::ContinuationDescriptor {
+            RecoveryAuthorityContinuityMismatch::ContinuationDescriptor {
                 commit_id: envelope.commit.commit_id.0,
                 boundary_fingerprint: envelope
                     .schema_continuation_descriptor
@@ -161,7 +163,7 @@ fn schema_continuity_recovery_error(
     };
     DurabilityError::new(
         RecoveryFailureClass::SchemaMismatch,
-        "recovery schema continuity compatibility failure",
+        "recovery schema continuity authority failure",
     )
-    .with_compatibility_mismatch(mismatch)
+    .with_authority_continuity_mismatch(mismatch)
 }

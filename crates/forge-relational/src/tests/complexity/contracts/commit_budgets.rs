@@ -880,7 +880,7 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
     assert!(plan_counters.replay_digest_parity_checks >= 1);
     assert_eq!(plan_counters.replay_deep_artifact_parity_checks, 0);
     assert_eq!(
-        plan.compatibility.verification_outcome,
+        plan.authority_continuity.verification_outcome,
         crate::durability::data::RecoveryVerificationOutcome::VerifiedAtLayer(
             crate::replay::data::ReplayVerificationLayer::DigestParity
         )

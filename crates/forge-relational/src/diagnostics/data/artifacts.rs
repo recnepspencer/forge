@@ -95,7 +95,7 @@ pub enum DiagnosticCode {
     CheckpointFailed,
     RecoveryCheckpointSelected,
     RecoveryRangeReplayed,
-    DurableRecoveryCompatibilityEvaluated,
+    DurableRecoveryAuthorityContinuityEvaluated,
     SubscriberContractEvaluated,
     SubscriberBoundaryEvaluated,
     DurableCorruptionDetected,

@@ -457,7 +457,7 @@ fn recover_stage_from_final_history(
             verified_segment_ids: Vec::new(),
             corrupt_segment_id: None,
         },
-        crate::durability::data::RecoveryCompatibilityCheck::verified_at(
+        crate::durability::data::RecoveryAuthorityContinuityCheck::verified_at(
             crate::replay::data::ReplayVerificationLayer::DigestParity,
         ),
         crate::durability::data::RecoveryVerificationMode::AuditRecoveryVerification,

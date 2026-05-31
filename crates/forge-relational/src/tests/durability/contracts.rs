@@ -1,8 +1,8 @@
 use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::facade::diagnostics::{DiagnosticCode, DiagnosticsScope};
 use crate::facade::durability::{
-    DurabilityMode, DurableStore, DurableStoreLayout, RecoveryAuthorityParity,
-    RecoveryCompatibilityCheck, RecoveryCompatibilityMismatch, RecoveryCursor,
+    DurabilityMode, DurableStore, DurableStoreLayout, RecoveryAuthorityContinuityCheck,
+    RecoveryAuthorityContinuityMismatch, RecoveryAuthorityParity, RecoveryCursor,
     RecoveryFailureClass, RecoveryIntegrityReport, RecoveryPlan, RecoveryVerificationMode,
     RecoveryVerificationOutcome, RelationIntegrityContractFamily,
 };
@@ -371,8 +371,8 @@ fn durability_contract_failure_schema_mismatch_is_explicit() {
 
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
     assert!(matches!(
-        error.compatibility_mismatch,
-        Some(RecoveryCompatibilityMismatch::SchemaRegistryShape {
+        error.authority_continuity_mismatch,
+        Some(RecoveryAuthorityContinuityMismatch::SchemaRegistryShape {
             expected_primary_schema_version: SchemaVersionId(1),
             found_primary_schema_version: SchemaVersionId(2),
             ..
@@ -394,11 +394,13 @@ fn durability_contract_failure_descriptor_semantics_version_mismatch_is_explicit
 
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
     assert!(matches!(
-        error.compatibility_mismatch,
-        Some(RecoveryCompatibilityMismatch::DescriptorSemanticsVersion {
-            expected: DescriptorSemanticsVersion(99),
-            found: DescriptorSemanticsVersion(1),
-        })
+        error.authority_continuity_mismatch,
+        Some(
+            RecoveryAuthorityContinuityMismatch::DescriptorSemanticsVersion {
+                expected: DescriptorSemanticsVersion(99),
+                found: DescriptorSemanticsVersion(1),
+            }
+        )
     ));
 }
 
@@ -456,18 +458,20 @@ fn durability_recovery_plan_reports_descriptor_version_mismatch_before_recovery(
         DescriptorSemanticsVersion(99)
     );
     assert_eq!(
-        plan.compatibility.descriptor_version_parity,
+        plan.authority_continuity.descriptor_version_parity,
         RecoveryAuthorityParity::Drift
     );
     assert!(matches!(
-        plan.compatibility.first_mismatch,
-        Some(RecoveryCompatibilityMismatch::DescriptorSemanticsVersion {
-            expected: DescriptorSemanticsVersion(1),
-            found: DescriptorSemanticsVersion(99),
-        })
+        plan.authority_continuity.first_mismatch,
+        Some(
+            RecoveryAuthorityContinuityMismatch::DescriptorSemanticsVersion {
+                expected: DescriptorSemanticsVersion(1),
+                found: DescriptorSemanticsVersion(99),
+            }
+        )
     ));
     assert_eq!(
-        plan.compatibility.verification_outcome,
+        plan.authority_continuity.verification_outcome,
         RecoveryVerificationOutcome::Rejected {
             layer: ReplayVerificationLayer::DigestParity,
             detail: "descriptor semantics version mismatch".to_string(),
@@ -524,20 +528,20 @@ fn durability_contract_failure_descriptor_canonical_basis_version_mismatch_is_ex
     );
 
     assert_eq!(
-        plan.compatibility.descriptor_version_parity,
+        plan.authority_continuity.descriptor_version_parity,
         RecoveryAuthorityParity::Drift
     );
     assert!(matches!(
-        plan.compatibility.first_mismatch,
+        plan.authority_continuity.first_mismatch,
         Some(
-            RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion {
+            RecoveryAuthorityContinuityMismatch::DescriptorCanonicalBasisVersion {
                 expected: DescriptorCanonicalBasisVersion(1),
                 found: DescriptorCanonicalBasisVersion(99),
             }
         )
     ));
     assert_eq!(
-        plan.compatibility.verification_outcome,
+        plan.authority_continuity.verification_outcome,
         RecoveryVerificationOutcome::Rejected {
             layer: ReplayVerificationLayer::DigestParity,
             detail: "descriptor canonical basis version mismatch".to_string(),
@@ -546,7 +550,7 @@ fn durability_contract_failure_descriptor_canonical_basis_version_mismatch_is_ex
 }
 
 #[test]
-fn durability_recovery_emits_compatibility_diagnostic_before_execution() {
+fn durability_recovery_emits_authority_continuity_diagnostic_before_execution() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "main-a");
     let plan = runtime.durability().recovery_plan(
@@ -557,24 +561,24 @@ fn durability_recovery_emits_compatibility_diagnostic_before_execution() {
     let _ = recovered.durability_authority().recover(plan).unwrap();
 
     let diagnostics = recovered.publication().diagnostics();
-    let compatibility_entry = diagnostics
+    let authority_continuity_entry = diagnostics
         .by_scope(DiagnosticsScope::History)
         .into_iter()
         .flat_map(|artifact| artifact.entries.iter())
-        .find(|entry| entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated)
-        .expect("recovery compatibility diagnostic");
+        .find(|entry| entry.code == DiagnosticCode::DurableRecoveryAuthorityContinuityEvaluated)
+        .expect("recovery authority continuity diagnostic");
     assert_eq!(
-        diagnostic_field(compatibility_entry, "verification_rejected"),
+        diagnostic_field(authority_continuity_entry, "verification_rejected"),
         &RelationalDiagnosticValue::Bool(false)
     );
     assert_eq!(
-        diagnostic_field(compatibility_entry, "verification_layer"),
+        diagnostic_field(authority_continuity_entry, "verification_layer"),
         &RelationalDiagnosticValue::string("DigestParity")
     );
 }
 
 #[test]
-fn durability_certification_recovery_compatibility_is_explained_and_counted() {
+fn durability_certification_recovery_authority_continuity_is_explained_and_counted() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "main-a");
     runtime.performance_access().reset_counters();
@@ -586,30 +590,30 @@ fn durability_certification_recovery_compatibility_is_explained_and_counted() {
     let _ = recovered.durability_authority().recover(plan).unwrap();
 
     let diagnostics = recovered.publication().diagnostics();
-    let compatibility_entry = diagnostics
+    let authority_continuity_entry = diagnostics
         .by_scope(DiagnosticsScope::History)
         .into_iter()
         .flat_map(|artifact| artifact.entries.iter())
-        .find(|entry| entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated)
+        .find(|entry| entry.code == DiagnosticCode::DurableRecoveryAuthorityContinuityEvaluated)
         .expect("recovery certification diagnostic");
     assert_eq!(
-        diagnostic_field(compatibility_entry, "verification_mode"),
+        diagnostic_field(authority_continuity_entry, "verification_mode"),
         &RelationalDiagnosticValue::string("NormalRecoveryVerification")
     );
     assert_eq!(
-        diagnostic_field(compatibility_entry, "verification_rejected"),
+        diagnostic_field(authority_continuity_entry, "verification_rejected"),
         &RelationalDiagnosticValue::Bool(false)
     );
     assert_eq!(
-        diagnostic_field(compatibility_entry, "verification_layer"),
+        diagnostic_field(authority_continuity_entry, "verification_layer"),
         &RelationalDiagnosticValue::string("DigestParity")
     );
     assert_eq!(
-        diagnostic_field(compatibility_entry, "descriptor_version_parity"),
+        diagnostic_field(authority_continuity_entry, "descriptor_version_parity"),
         &verified_at_digest_parity_value()
     );
     assert_eq!(
-        diagnostic_field(compatibility_entry, "schema_transition_parity"),
+        diagnostic_field(authority_continuity_entry, "schema_transition_parity"),
         &verified_at_digest_parity_value()
     );
     let counters = runtime.performance_access().counters();
@@ -651,7 +655,7 @@ fn durable_recovery_and_schema_mismatch_test() {
         .envelope()
         .schema_reconciliation_descriptor
         .clone();
-    let live_recovery_compatibility = plan.compatibility.clone();
+    let live_recovery_authority_continuity = plan.authority_continuity.clone();
 
     let mut recovered = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::CertificationCore)
@@ -680,12 +684,12 @@ fn durable_recovery_and_schema_mismatch_test() {
         .cloned()
         .expect("recovered transitioned envelope");
     let recovered_diagnostics = recovered.publication().diagnostics();
-    let recovery_compatibility_diagnostic = recovered_diagnostics
+    let recovery_authority_continuity_diagnostic = recovered_diagnostics
         .by_scope(DiagnosticsScope::History)
         .into_iter()
         .flat_map(|artifact| artifact.entries.iter())
-        .find(|entry| entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated)
-        .expect("recovery compatibility diagnostic");
+        .find(|entry| entry.code == DiagnosticCode::DurableRecoveryAuthorityContinuityEvaluated)
+        .expect("recovery authority continuity diagnostic");
 
     assert_eq!(
         live_schema_transition,
@@ -699,13 +703,16 @@ fn durable_recovery_and_schema_mismatch_test() {
         live_schema_reconciliation_descriptor,
         recovered_envelope.schema_reconciliation_descriptor.clone()
     );
-    assert_eq!(live_recovery_compatibility, plan.compatibility.clone());
+    assert_eq!(
+        live_recovery_authority_continuity,
+        plan.authority_continuity.clone()
+    );
     assert!(recovered_diagnostics
         .by_scope(DiagnosticsScope::History)
         .into_iter()
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| {
-            entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated
+            entry.code == DiagnosticCode::DurableRecoveryAuthorityContinuityEvaluated
                 && diagnostic_field_optional(entry, "verification_layer")
                     == Some(&RelationalDiagnosticValue::string("DigestParity"))
         }));
@@ -728,18 +735,21 @@ fn durable_recovery_and_schema_mismatch_test() {
 
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
     assert!(matches!(
-        error.compatibility_mismatch,
-        Some(RecoveryCompatibilityMismatch::SchemaRegistryShape { .. })
+        error.authority_continuity_mismatch,
+        Some(RecoveryAuthorityContinuityMismatch::SchemaRegistryShape { .. })
     ));
     assert!(matches!(
-        error.compatibility_mismatch,
-        Some(RecoveryCompatibilityMismatch::SchemaRegistryShape {
+        error.authority_continuity_mismatch,
+        Some(RecoveryAuthorityContinuityMismatch::SchemaRegistryShape {
             expected_primary_schema_version: SchemaVersionId(2),
             ..
         })
     ));
     assert_eq!(
-        diagnostic_field(recovery_compatibility_diagnostic, "verification_layer"),
+        diagnostic_field(
+            recovery_authority_continuity_diagnostic,
+            "verification_layer"
+        ),
         &RelationalDiagnosticValue::string("DigestParity")
     );
     assert!(!error.detail.is_empty());
@@ -793,8 +803,8 @@ fn durability_contract_failure_aspect_plan_mismatch_is_explicit() {
     assert_ne!(expected_revision, mismatched_revision);
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
     assert!(matches!(
-        error.compatibility_mismatch,
-        Some(RecoveryCompatibilityMismatch::EntityAspectPlanRevision {
+        error.authority_continuity_mismatch,
+        Some(RecoveryAuthorityContinuityMismatch::EntityAspectPlanRevision {
             kind_id: KindId(1),
             expected_revision: expected,
             found_revision: found,
@@ -906,8 +916,8 @@ fn durability_contract_failure_relation_integrity_plan_mismatch_is_explicit() {
 
     assert_eq!(error.class, RecoveryFailureClass::SchemaMismatch);
     assert!(matches!(
-        error.compatibility_mismatch,
-        Some(RecoveryCompatibilityMismatch::RelationIntegrityPlanRevision {
+        error.authority_continuity_mismatch,
+        Some(RecoveryAuthorityContinuityMismatch::RelationIntegrityPlanRevision {
             kind_id: KindId(2),
             contract_family: RelationIntegrityContractFamily::Cardinality,
             ref expected_contract_ids,
@@ -1069,7 +1079,7 @@ fn durability_contract_failure_missing_authoritative_parent_closure_is_explicit(
             verified_segment_ids: Vec::new(),
             corrupt_segment_id: None,
         },
-        RecoveryCompatibilityCheck::verified_at(ReplayVerificationLayer::DigestParity),
+        RecoveryAuthorityContinuityCheck::verified_at(ReplayVerificationLayer::DigestParity),
         RecoveryVerificationMode::NormalRecoveryVerification,
         DescriptorSemanticsVersion::default(),
         vec![child.commit.commit_id],

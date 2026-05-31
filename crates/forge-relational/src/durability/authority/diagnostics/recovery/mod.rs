@@ -1,21 +1,21 @@
-mod compatibility_fields;
-mod compatibility_mismatch_fields;
+mod authority_continuity_fields;
+mod authority_continuity_mismatch_fields;
 mod durable_identity_fields;
 
 use crate::diagnostics::data::{DiagnosticCode, RelationalDiagnosticsEntry};
-use crate::durability::authority::diagnostics::recovery::compatibility_fields::{
-    recovery_checkpoint_selected_fields, recovery_compatibility_evaluated_fields,
+use crate::durability::authority::diagnostics::recovery::authority_continuity_fields::{
+    recovery_authority_continuity_evaluated_fields, recovery_checkpoint_selected_fields,
     recovery_range_replayed_fields,
 };
 use crate::durability::data::{DurableCheckpointId, DurableSegmentId, RecoveryPlan};
 
-pub(in crate::durability::authority) fn recovery_compatibility_evaluated(
+pub(in crate::durability::authority) fn recovery_authority_continuity_evaluated(
     plan: &RecoveryPlan,
 ) -> RelationalDiagnosticsEntry {
     RelationalDiagnosticsEntry::new(
-        DiagnosticCode::DurableRecoveryCompatibilityEvaluated,
-        "durable recovery compatibility evaluated before recovery execution",
-        recovery_compatibility_evaluated_fields(plan),
+        DiagnosticCode::DurableRecoveryAuthorityContinuityEvaluated,
+        "durable recovery authority continuity evaluated before recovery execution",
+        recovery_authority_continuity_evaluated_fields(plan),
     )
 }
 

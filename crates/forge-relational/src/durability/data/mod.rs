@@ -11,14 +11,14 @@ pub use checkpoint_images::{
     VersionedEntityMetadataImage, VersionedRelationMetadataImage,
 };
 pub use recovery_errors::{
-    DurabilityError, RecoveryCompatibilityMismatch, RecoveryFailureClass,
+    DurabilityError, RecoveryAuthorityContinuityMismatch, RecoveryFailureClass,
     RelationIntegrityContractFamily,
 };
 pub use recovery_outcome::{
     CompactionOutcome, CompactionPlan, CompactionPolicy, RecoveryOutcome, SegmentRetentionClass,
 };
 pub use recovery_plan::{
-    RecoveryAuthorityParity, RecoveryCompatibilityCheck, RecoveryCoverage, RecoveryCursor,
+    RecoveryAuthorityContinuityCheck, RecoveryAuthorityParity, RecoveryCoverage, RecoveryCursor,
     RecoveryIntegrityReport, RecoveryPlan, RecoveryVerificationMode, RecoveryVerificationOutcome,
     RecoveryVerificationPlan,
 };

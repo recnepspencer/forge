@@ -6,5 +6,5 @@ pub(super) use checkpointing::{
     persisted_checkpoint_created,
 };
 pub(super) use recovery::{
-    recovery_checkpoint_selected, recovery_compatibility_evaluated, recovery_range_replayed,
+    recovery_authority_continuity_evaluated, recovery_checkpoint_selected, recovery_range_replayed,
 };

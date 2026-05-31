@@ -1,14 +1,14 @@
 use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::durability::authority::diagnostics::recovery::durable_identity_fields::contract_id_array;
-use crate::durability::data::RecoveryCompatibilityMismatch;
+use crate::durability::data::RecoveryAuthorityContinuityMismatch;
 use crate::history::data::CommitId;
 use crate::schema::data::ContractId;
 
-pub(super) fn compatibility_mismatch_fields(
-    mismatch: &RecoveryCompatibilityMismatch,
+pub(super) fn authority_continuity_mismatch_fields(
+    mismatch: &RecoveryAuthorityContinuityMismatch,
 ) -> RelationalDiagnosticValue {
     match mismatch {
-        RecoveryCompatibilityMismatch::SchemaRegistryShape {
+        RecoveryAuthorityContinuityMismatch::SchemaRegistryShape {
             expected_primary_schema_version,
             found_primary_schema_version,
             expected_entity_kind_count,
@@ -45,7 +45,7 @@ pub(super) fn compatibility_mismatch_fields(
                 RelationalDiagnosticValue::unsigned(*found_relation_kind_count),
             ),
         ]),
-        RecoveryCompatibilityMismatch::EntityAspectPlanRevision {
+        RecoveryAuthorityContinuityMismatch::EntityAspectPlanRevision {
             kind_id,
             kind_name,
             expected_revision,
@@ -60,7 +60,7 @@ pub(super) fn compatibility_mismatch_fields(
             &[],
             &[],
         ),
-        RecoveryCompatibilityMismatch::RelationAspectPlanRevision {
+        RecoveryAuthorityContinuityMismatch::RelationAspectPlanRevision {
             kind_id,
             kind_name,
             expected_revision,
@@ -75,7 +75,7 @@ pub(super) fn compatibility_mismatch_fields(
             &[],
             &[],
         ),
-        RecoveryCompatibilityMismatch::RelationIntegrityPlanRevision {
+        RecoveryAuthorityContinuityMismatch::RelationIntegrityPlanRevision {
             kind_id,
             kind_name,
             contract_family,
@@ -93,13 +93,13 @@ pub(super) fn compatibility_mismatch_fields(
             expected_contract_ids,
             found_contract_ids,
         ),
-        RecoveryCompatibilityMismatch::RuntimeProfile { expected, found } => {
+        RecoveryAuthorityContinuityMismatch::RuntimeProfile { expected, found } => {
             expected_found_text_mismatch("RuntimeProfile", expected, found)
         }
-        RecoveryCompatibilityMismatch::RuntimeName { expected, found } => {
+        RecoveryAuthorityContinuityMismatch::RuntimeName { expected, found } => {
             expected_found_text_mismatch("RuntimeName", expected, found)
         }
-        RecoveryCompatibilityMismatch::DescriptorSemanticsVersion { expected, found } => {
+        RecoveryAuthorityContinuityMismatch::DescriptorSemanticsVersion { expected, found } => {
             RelationalDiagnosticValue::object([
                 (
                     "mismatch",
@@ -115,26 +115,27 @@ pub(super) fn compatibility_mismatch_fields(
                 ),
             ])
         }
-        RecoveryCompatibilityMismatch::DescriptorCanonicalBasisVersion { expected, found } => {
-            RelationalDiagnosticValue::object([
-                (
-                    "mismatch",
-                    RelationalDiagnosticValue::string("DescriptorCanonicalBasisVersion"),
-                ),
-                (
-                    "expected",
-                    RelationalDiagnosticValue::DescriptorCanonicalBasisVersion(*expected),
-                ),
-                (
-                    "found",
-                    RelationalDiagnosticValue::DescriptorCanonicalBasisVersion(*found),
-                ),
-            ])
-        }
-        RecoveryCompatibilityMismatch::SchemaTransitionArtifact { commit_id, detail } => {
+        RecoveryAuthorityContinuityMismatch::DescriptorCanonicalBasisVersion {
+            expected,
+            found,
+        } => RelationalDiagnosticValue::object([
+            (
+                "mismatch",
+                RelationalDiagnosticValue::string("DescriptorCanonicalBasisVersion"),
+            ),
+            (
+                "expected",
+                RelationalDiagnosticValue::DescriptorCanonicalBasisVersion(*expected),
+            ),
+            (
+                "found",
+                RelationalDiagnosticValue::DescriptorCanonicalBasisVersion(*found),
+            ),
+        ]),
+        RecoveryAuthorityContinuityMismatch::SchemaTransitionArtifact { commit_id, detail } => {
             commit_artifact_mismatch("SchemaTransitionArtifact", *commit_id, detail)
         }
-        RecoveryCompatibilityMismatch::ContinuationDescriptor {
+        RecoveryAuthorityContinuityMismatch::ContinuationDescriptor {
             commit_id,
             boundary_fingerprint,
             detail,
@@ -155,10 +156,10 @@ pub(super) fn compatibility_mismatch_fields(
             ),
             ("detail", RelationalDiagnosticValue::string(detail)),
         ]),
-        RecoveryCompatibilityMismatch::ReconciliationDescriptor { commit_id, detail } => {
+        RecoveryAuthorityContinuityMismatch::ReconciliationDescriptor { commit_id, detail } => {
             commit_artifact_mismatch("ReconciliationDescriptor", *commit_id, detail)
         }
-        RecoveryCompatibilityMismatch::SchemaLineage { commit_id, detail } => {
+        RecoveryAuthorityContinuityMismatch::SchemaLineage { commit_id, detail } => {
             commit_artifact_mismatch("SchemaLineage", *commit_id, detail)
         }
     }

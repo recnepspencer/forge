@@ -1,5 +1,5 @@
+mod authority_continuity;
 mod checkpointing;
-mod compatibility;
 mod diagnostics;
 mod recovery;
 mod runtime_rebuild;
