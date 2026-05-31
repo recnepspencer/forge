@@ -1,5 +1,5 @@
-mod authoritative_field_values;
 mod planned_field_values;
+mod projected_entity_field_values;
 
 use std::collections::HashMap;
 
@@ -15,8 +15,11 @@ use crate::validation::data::{
 
 use super::super::context::InvariantExecutionContext;
 use super::common::{storage_inconsistency_violation, StorageInconsistencyContext};
-use authoritative_field_values::visible_entity_field_value_conflict;
 use planned_field_values::{planned_entity_aspect_field_values, PlannedEntityAspectFieldValue};
+use projected_entity_field_values::{
+    projected_entity_aspect_field_value, projected_entity_aspect_field_value_for_metadata,
+    visible_entity_field_value_conflict,
+};
 
 pub(super) fn evaluate_unique_entity_aspect_field(
     context: &InvariantExecutionContext<'_>,
@@ -92,14 +95,12 @@ fn touched_unique_entity_aspect_field_violation(
         HashMap::<AuthoritativeFieldComparisonKey, crate::identity::data::EntityId>::new();
     for entity_id in touched_entity_ids {
         context.metrics().count_entity_slot_scans(1);
-        let Some(record) = context.visible_unmasked_entity_record(entity_id) else {
-            continue;
-        };
-        let Some(value) =
-            crate::storage::data::entity_authoritative_aspect_field_value(&record, field_locator)
+        let Some(projected) =
+            projected_entity_aspect_field_value(context, entity_id, field_locator)
         else {
             continue;
         };
+        let value = projected.value;
         let comparison_key = authoritative_aspect_value_field_comparison_key(&value);
         if touched_value_to_entity
             .insert(comparison_key.clone(), entity_id)
@@ -150,17 +151,14 @@ fn visible_unique_entity_aspect_field_violation(
             let Some(metadata) = state_view.entity_metadata_for_slot(partition_id, slot) else {
                 continue;
             };
-            let Some(record) = context.visible_unmasked_entity_record(metadata.entity_id) else {
+            let Some(projected) =
+                projected_entity_aspect_field_value_for_metadata(context, &metadata, field_locator)
+            else {
                 continue;
             };
-            let Some(value) = crate::storage::data::entity_authoritative_aspect_field_value(
-                &record,
-                field_locator,
-            ) else {
-                continue;
-            };
+            let value = projected.value;
             let comparison_key = authoritative_aspect_value_field_comparison_key(&value);
-            if seen.insert(comparison_key, metadata.entity_id).is_some() {
+            if seen.insert(comparison_key, projected.entity_id).is_some() {
                 return Some(duplicate_field_violation(class, field_locator, value));
             }
         }
@@ -174,11 +172,18 @@ fn committed_entity_value_conflicts_with_planned_value(
     planned_comparison_key: &AuthoritativeFieldComparisonKey,
     planned_entity_id: Option<crate::identity::data::EntityId>,
 ) -> bool {
+    let touched_visible_entity_ids = planned_entity_id
+        .is_none()
+        .then(|| context.state_view().touched_visible_entity_ids())
+        .flatten()
+        .unwrap_or_default();
     visible_entity_field_value_conflict(
         context,
         field_locator,
         planned_comparison_key,
-        |entity_id| planned_entity_id != Some(entity_id),
+        |entity_id| {
+            planned_entity_id != Some(entity_id) && !touched_visible_entity_ids.contains(&entity_id)
+        },
     )
 }
 

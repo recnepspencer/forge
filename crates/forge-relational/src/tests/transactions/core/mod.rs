@@ -616,7 +616,7 @@ fn commit_log_records_structural_summary_and_phase_progress() {
     assert!(change_summary.changed_record_count >= 1);
     assert!(change_summary.adjacency_delta_count <= change_summary.changed_record_count);
     assert!(patch_budget_summary.patch_record_count >= 1);
-    assert_eq!(aspect_summary.changed_entity_aspect_count, 0);
+    assert_eq!(aspect_summary.changed_entity_aspect_count, 2);
     assert_eq!(aspect_summary.changed_relation_aspect_count, 0);
     assert_eq!(
         outcome.commit_log().structural_summary_event(),
@@ -723,7 +723,7 @@ fn commit_returns_envelope_with_patch_diagnostics_invariants_and_complexity() {
         change_summary.changed_record_count,
         result.changed_records.len()
     );
-    assert_eq!(aspect_summary.changed_entity_aspect_count, 0);
+    assert_eq!(aspect_summary.changed_entity_aspect_count, 2);
     assert_eq!(aspect_summary.changed_relation_aspect_count, 0);
     assert_eq!(
         publication_summary.final_snapshot_id,

@@ -148,7 +148,10 @@ mod tests {
         RelationIntegrityDeclarations,
     };
     use crate::symbols::data::ClientKey;
-    use crate::tests::support::{aspect_key, field_key};
+    use crate::tests::support::{
+        aspect_field_patch_from_values, aspect_key, entity_field_aspect,
+        entity_summary_struct_aspect, field_key, string_aspect_value, AspectSchemaFixture,
+    };
     use crate::transactions::data::{
         EntitySpec, RelationSpec, TransactionOptions, WorkerIntentBatch,
     };
@@ -375,6 +378,67 @@ mod tests {
             .expect("created relation id")
     }
 
+    fn runtime_with_summary_title_uniqueness() -> RelationalRuntime {
+        RelationalRuntimeApi::builder()
+            .schema_registry(
+                AspectSchemaFixture {
+                    entity_aspects: vec![
+                        entity_field_aspect(aspect_key("name"), field_key("name")),
+                        entity_summary_struct_aspect(aspect_key("summary"), field_key("summary")),
+                    ],
+                    ..AspectSchemaFixture::default()
+                }
+                .build_registry(),
+            )
+            .invariant_catalog(InvariantCatalog {
+                registrations: vec![InvariantRegistration::mutation_sensitive_blocking(
+                    InvariantRule::unique_entity_aspect_field(
+                        aspect_key("summary"),
+                        field_key("title"),
+                    ),
+                )],
+                ..InvariantCatalog::default()
+            })
+            .build()
+    }
+
+    fn commit_entity_with_summary(
+        runtime: &mut RelationalRuntime,
+        client_key: &str,
+        title: &str,
+        status: &str,
+    ) -> Result<
+        crate::facade::transactions::CommitResult,
+        crate::transactions::data::TransactionCommitError,
+    > {
+        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        txn.push_batch(WorkerIntentBatch::new(format!("entity-{client_key}")).push(
+            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: ClientKey::raw(client_key),
+                fields: aspect_field_patch_from_values([
+                    (
+                        aspect_key("name"),
+                        field_key("name"),
+                        string_aspect_value(client_key),
+                    ),
+                    (
+                        aspect_key("summary"),
+                        field_key("title"),
+                        string_aspect_value(title),
+                    ),
+                    (
+                        aspect_key("summary"),
+                        field_key("status"),
+                        string_aspect_value(status),
+                    ),
+                ]),
+            })),
+        ));
+        txn.commit()
+    }
+
     struct AlwaysViolatesCustomRule;
     struct StructuralSurfaceRule;
     struct PanicDuringPrepareRule;
@@ -598,6 +662,28 @@ mod tests {
         let results = runtime.validation().commit_boundary(&plan);
 
         assert!(results.results().is_empty());
+    }
+
+    #[test]
+    fn unique_entity_aspect_field_invariant_rejects_duplicate_struct_field_projection() {
+        let mut runtime = runtime_with_summary_title_uniqueness();
+        commit_entity_with_summary(&mut runtime, "alpha", "shared-title", "open")
+            .expect("first summary entity");
+
+        let duplicate = commit_entity_with_summary(&mut runtime, "beta", "shared-title", "closed");
+
+        assert!(duplicate.is_err());
+    }
+
+    #[test]
+    fn unique_entity_aspect_field_invariant_ignores_sibling_struct_field_values() {
+        let mut runtime = runtime_with_summary_title_uniqueness();
+        commit_entity_with_summary(&mut runtime, "alpha", "alpha-title", "shared-status")
+            .expect("first summary entity");
+        let distinct_title =
+            commit_entity_with_summary(&mut runtime, "beta", "beta-title", "shared-status");
+
+        assert!(distinct_title.is_ok());
     }
 
     #[test]

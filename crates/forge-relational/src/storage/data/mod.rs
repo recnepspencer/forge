@@ -13,7 +13,7 @@ mod authoritative_aspect_field_value;
 mod authoritative_field_comparison_key;
 
 pub use authoritative_aspect_field_value::{
-    entity_authoritative_aspect_field_comparison_key, entity_authoritative_aspect_field_value,
+    entity_authoritative_aspect_field_comparison_key,
     relation_authoritative_aspect_field_comparison_key,
 };
 pub use authoritative_field_comparison_key::{
