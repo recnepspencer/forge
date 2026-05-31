@@ -21,10 +21,10 @@ use crate::snapshots::data::SnapshotId;
 
 mod aspect_value_diagnostic_terms;
 mod external_serde_projection;
+mod native_serde;
 
 use external_serde_projection::{
-    deserialize_native_projection_diagnostic_fields, serialize_diagnostic_fields,
-    typed_external_serde_projection_tree,
+    serialize_diagnostic_fields, typed_external_serde_projection_tree,
 };
 
 #[derive(Debug, Clone)]
@@ -46,7 +46,7 @@ impl RelationalDiagnosticFields {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RelationalDiagnosticValue {
     Null,
     Bool(bool),
@@ -58,13 +58,19 @@ pub enum RelationalDiagnosticValue {
     Object(BTreeMap<String, RelationalDiagnosticValue>),
     AspectKey(AspectKey),
     FieldKey(FieldKey),
+    #[serde(with = "native_serde::canonical_field_path")]
     FieldPath(CanonicalFieldPath),
     AspectValue(AspectValue),
+    #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator")]
     AspectFieldLocator(AspectFieldLocator),
+    #[serde(with = "crate::aspect_wire::serde_canonical_aspect_value_locator")]
     AspectValueLocator(AspectValueLocator),
     StructAspectValue(StructAspectValue),
+    #[serde(with = "native_serde::diagnostic_mask")]
     DiagnosticMask(AspectMask<DiagnosticMask>),
+    #[serde(with = "native_serde::diagnostic_mask_locator")]
     DiagnosticMaskLocator(AspectMaskLocator<DiagnosticMask>),
+    #[serde(with = "native_serde::canonical_basis")]
     CanonicalBasis(CanonicalBasisReadyArtifact),
     PartitionId(PartitionId),
     KindId(KindId),
@@ -124,7 +130,11 @@ impl Serialize for RelationalDiagnosticFields {
     where
         S: serde::Serializer,
     {
-        serialize_diagnostic_fields(self, serializer)
+        if serializer.is_human_readable() {
+            serialize_diagnostic_fields(self, serializer)
+        } else {
+            self.root.serialize(serializer)
+        }
     }
 }
 
@@ -134,7 +144,7 @@ impl<'de> Deserialize<'de> for RelationalDiagnosticFields {
         D: serde::Deserializer<'de>,
     {
         if !deserializer.is_human_readable() {
-            return deserialize_native_projection_diagnostic_fields(deserializer);
+            return RelationalDiagnosticValue::deserialize(deserializer).map(Self::from);
         }
         Err(serde::de::Error::custom(
             "relational diagnostic fields are typed authority and cannot be recovered from external serde projection",

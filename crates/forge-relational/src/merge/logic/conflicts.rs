@@ -1,6 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
+mod ancestor_record_basis;
+
 use crate::identity::data::{EntityId, VersionId};
 use crate::merge::data::{
     AspectComparisonState, AspectConflictEvidence, ConflictClassificationSummary,
@@ -22,6 +24,9 @@ use crate::storage::data::{
     EntityReadRecord, RecordLifecycleState, RelationReadRecord, RelationalReadView,
 };
 use crate::transactions::data::RecordRef;
+use ancestor_record_basis::{
+    AncestorEntityRecordBasis, AncestorRecordBasisContext, AncestorRelationRecordBasis,
+};
 
 impl<'runtime> MergeAccess<'runtime> {
     pub(crate) fn plan_conflict_scope(
@@ -48,6 +53,7 @@ impl<'runtime> MergeAccess<'runtime> {
             })?;
         let base_version_id = base_envelope.commit.version_id;
         let base_view = self.runtime.read_truth().read_version(base_version_id);
+        let ancestor_basis = AncestorRecordBasisContext::new(&base_view);
         let source_records_by_ref = identity_plan
             .source_records
             .iter()
@@ -74,7 +80,7 @@ impl<'runtime> MergeAccess<'runtime> {
         let classifications = refine_relation_topology_conflicts(
             self.runtime,
             &source_records_by_ref,
-            &base_view,
+            &ancestor_basis,
             &target_view,
             identity_plan
                 .candidates
@@ -92,6 +98,7 @@ impl<'runtime> MergeAccess<'runtime> {
                         validated_by_source.contains_key(&candidate.source_record),
                         base_version_id,
                         &base_view,
+                        &ancestor_basis,
                         &target_view,
                         &source_touched_by_record,
                         &target_touched_by_record,
@@ -170,6 +177,7 @@ fn classify_candidate(
     has_validated_schema_correspondence: bool,
     base_version_id: VersionId,
     base_view: &RelationalReadView,
+    ancestor_basis: &AncestorRecordBasisContext<'_>,
     target_view: &RelationalReadView,
     source_touched_by_record: &BTreeMap<RecordRef, &crate::merge::data::BranchTouchedRecordDelta>,
     target_touched_by_record: &BTreeMap<RecordRef, &crate::merge::data::BranchTouchedRecordDelta>,
@@ -202,7 +210,8 @@ fn classify_candidate(
             .or(Some(&record.record_ref))
             .and_then(|target_record| target_touched_by_record.get(target_record).copied()),
     );
-    let relation_evidence = relation_conflict_evidence(record, target_record.as_ref(), base_view);
+    let relation_evidence =
+        relation_conflict_evidence(record, target_record.as_ref(), ancestor_basis);
     let class = if has_validated_schema_correspondence {
         match relation_evidence.as_ref() {
             Some(evidence)
@@ -219,7 +228,8 @@ fn classify_candidate(
             source_record_visible,
             target_record_visible,
             normalized_match_class,
-            base_view,
+            ancestor_basis,
+            candidate_target_record.as_ref(),
         )
     };
     let class = if strategy_evidence.is_some() && class == MergeConflictClass::DivergentVisibleState
@@ -371,13 +381,22 @@ fn classify_record_state(
     source_record_visible: bool,
     target_record_visible: bool,
     match_class: IdentityMatchClass,
-    base_view: &RelationalReadView,
+    ancestor_basis: &AncestorRecordBasisContext<'_>,
+    target_record: Option<&RecordRef>,
 ) -> MergeConflictClass {
     match (source_record_visible, target_record_visible) {
-        (false, true) => MergeConflictClass::Deletion(classify_source_deleted(record, base_view)),
+        (false, true) => MergeConflictClass::Deletion(classify_source_deleted(
+            record,
+            target_record,
+            ancestor_basis,
+        )),
         (true, false) => {
             if base_record_visible {
-                MergeConflictClass::Deletion(classify_target_deleted(record, base_view))
+                MergeConflictClass::Deletion(classify_target_deleted(
+                    record,
+                    target_record,
+                    ancestor_basis,
+                ))
             } else {
                 MergeConflictClass::SourceOnlyAddition
             }
@@ -395,15 +414,16 @@ fn classify_record_state(
 
 fn classify_source_deleted(
     record: &VisibleMergeRecord,
-    base_view: &RelationalReadView,
+    target_record: Option<&RecordRef>,
+    ancestor_basis: &AncestorRecordBasisContext<'_>,
 ) -> DeletionMergeClass {
     match record.record_kind {
         VisibleMergeRecordKind::Entity => {
             match (
-                base_unmasked_entity_record(base_view, record),
+                ancestor_basis.entity_basis(record, target_record),
                 record.target_entity.as_ref(),
             ) {
-                (Some(base), Some(target)) if !entity_state_equal(base, target) => {
+                (Some(base), Some(target)) if !entity_matches_ancestor(target, &base) => {
                     DeletionMergeClass::DeletedVsModified
                 }
                 _ => DeletionMergeClass::SourceDeletedTargetLive,
@@ -411,13 +431,13 @@ fn classify_source_deleted(
         }
         VisibleMergeRecordKind::Relation => {
             match (
-                base_unmasked_relation_record(base_view, record),
+                ancestor_basis.relation_basis(record, target_record),
                 record.target_relation.as_ref(),
             ) {
-                (Some(base), Some(target)) if !relation_endpoints_equal(base, target) => {
+                (Some(base), Some(target)) if !relation_endpoints_match_ancestor(target, &base) => {
                     DeletionMergeClass::DeletedVsRewired
                 }
-                (Some(base), Some(target)) if !relation_state_equal(base, target) => {
+                (Some(base), Some(target)) if !relation_matches_ancestor(target, &base) => {
                     DeletionMergeClass::DeletedVsModified
                 }
                 _ => DeletionMergeClass::SourceDeletedTargetLive,
@@ -428,15 +448,16 @@ fn classify_source_deleted(
 
 fn classify_target_deleted(
     record: &VisibleMergeRecord,
-    base_view: &RelationalReadView,
+    target_record: Option<&RecordRef>,
+    ancestor_basis: &AncestorRecordBasisContext<'_>,
 ) -> DeletionMergeClass {
     match record.record_kind {
         VisibleMergeRecordKind::Entity => {
             match (
-                base_unmasked_entity_record(base_view, record),
+                ancestor_basis.entity_basis(record, target_record),
                 record.source_entity.as_ref(),
             ) {
-                (Some(base), Some(source)) if !entity_state_equal(base, source) => {
+                (Some(base), Some(source)) if !entity_matches_ancestor(source, &base) => {
                     DeletionMergeClass::DeletedVsModified
                 }
                 _ => DeletionMergeClass::SourceLiveTargetDeleted,
@@ -444,13 +465,13 @@ fn classify_target_deleted(
         }
         VisibleMergeRecordKind::Relation => {
             match (
-                base_unmasked_relation_record(base_view, record),
+                ancestor_basis.relation_basis(record, target_record),
                 record.source_relation.as_ref(),
             ) {
-                (Some(base), Some(source)) if !relation_endpoints_equal(base, source) => {
+                (Some(base), Some(source)) if !relation_endpoints_match_ancestor(source, &base) => {
                     DeletionMergeClass::DeletedVsRewired
                 }
-                (Some(base), Some(source)) if !relation_state_equal(base, source) => {
+                (Some(base), Some(source)) if !relation_matches_ancestor(source, &base) => {
                     DeletionMergeClass::DeletedVsModified
                 }
                 _ => DeletionMergeClass::SourceLiveTargetDeleted,
@@ -510,12 +531,13 @@ fn relation_endpoints_equal(source: &RelationReadRecord, target: &RelationReadRe
 fn relation_conflict_evidence(
     record: &VisibleMergeRecord,
     target_record: Option<&VisibleMergeRecord>,
-    base_view: &RelationalReadView,
+    ancestor_basis: &AncestorRecordBasisContext<'_>,
 ) -> Option<RelationConflictEvidence> {
     if record.record_kind != VisibleMergeRecordKind::Relation {
         return None;
     }
-    let base = base_unmasked_relation_record(base_view, record);
+    let base =
+        ancestor_basis.relation_basis(record, target_record.map(|record| &record.record_ref));
     let source = record.source_relation.as_ref();
     let target = target_record
         .and_then(|record| record.target_relation.as_ref())
@@ -523,8 +545,8 @@ fn relation_conflict_evidence(
 
     let endpoint_continuity = match (source, target, base) {
         (Some(source), Some(target), _) => endpoint_continuity_between(source, target),
-        (Some(source), None, Some(base)) => endpoint_continuity_between(base, source),
-        (None, Some(target), Some(base)) => endpoint_continuity_between(base, target),
+        (Some(source), None, Some(base)) => endpoint_continuity_from_ancestor(&base, source),
+        (None, Some(target), Some(base)) => endpoint_continuity_from_ancestor(&base, target),
         _ => EndpointContinuityClass::EndpointsStable,
     };
     let relation_continuity = match endpoint_continuity {
@@ -554,7 +576,7 @@ fn relation_conflict_evidence(
 fn refine_relation_topology_conflicts(
     runtime: &crate::logic::runtime::RelationalRuntime,
     source_records_by_ref: &BTreeMap<RecordRef, &VisibleMergeRecord>,
-    base_view: &RelationalReadView,
+    ancestor_basis: &AncestorRecordBasisContext<'_>,
     target_view: &RelationalReadView,
     mut classifications: Vec<MergeConflictClassification>,
 ) -> Vec<MergeConflictClassification> {
@@ -569,7 +591,7 @@ fn refine_relation_topology_conflicts(
         let endpoint_ids = relation_topology_endpoints(
             source_record,
             classification.target_record.as_ref(),
-            base_view,
+            ancestor_basis,
             target_view,
         );
         if endpoint_ids.is_empty() {
@@ -702,7 +724,7 @@ fn relation_topology_component(
 fn relation_topology_endpoints(
     source_record: &VisibleMergeRecord,
     candidate_target_record: Option<&RecordRef>,
-    base_view: &RelationalReadView,
+    ancestor_basis: &AncestorRecordBasisContext<'_>,
     target_view: &RelationalReadView,
 ) -> BTreeSet<EntityId> {
     let mut endpoints = BTreeSet::new();
@@ -718,9 +740,9 @@ fn relation_topology_endpoints(
         endpoints.insert(target_relation.source);
         endpoints.insert(target_relation.target);
     }
-    if let Some(base) = base_unmasked_relation_record(base_view, source_record) {
-        endpoints.insert(base.source);
-        endpoints.insert(base.target);
+    if let Some(base) = ancestor_basis.relation_basis(source_record, candidate_target_record) {
+        endpoints.insert(base.source_endpoint());
+        endpoints.insert(base.target_endpoint());
     }
     endpoints
 }
@@ -737,24 +759,42 @@ fn endpoint_continuity_between(
     }
 }
 
-fn base_unmasked_entity_record<'a>(
-    base_view: &'a RelationalReadView,
-    record: &VisibleMergeRecord,
-) -> Option<&'a EntityReadRecord> {
-    match record.record_ref {
-        RecordRef::Entity(entity_id) => base_view.get_entity(entity_id),
-        RecordRef::Relation(_) => None,
+fn endpoint_continuity_from_ancestor(
+    ancestor: &AncestorRelationRecordBasis<'_>,
+    right: &RelationReadRecord,
+) -> EndpointContinuityClass {
+    match (
+        ancestor.source_endpoint() == right.source,
+        ancestor.target_endpoint() == right.target,
+    ) {
+        (true, true) => EndpointContinuityClass::EndpointsStable,
+        (false, true) => EndpointContinuityClass::SourceEndpointRewired,
+        (true, false) => EndpointContinuityClass::TargetEndpointRewired,
+        (false, false) => EndpointContinuityClass::BothEndpointsRewired,
     }
 }
 
-fn base_unmasked_relation_record<'a>(
-    base_view: &'a RelationalReadView,
-    record: &VisibleMergeRecord,
-) -> Option<&'a RelationReadRecord> {
-    match record.record_ref {
-        RecordRef::Relation(relation_id) => base_view.get_relation(relation_id),
-        RecordRef::Entity(_) => None,
-    }
+fn entity_matches_ancestor(
+    record: &EntityReadRecord,
+    ancestor: &AncestorEntityRecordBasis<'_>,
+) -> bool {
+    record.lifecycle == ancestor.lifecycle()
+        && record.authoritative_aspect_state.as_ref() == ancestor.authoritative_state()
+}
+
+fn relation_matches_ancestor(
+    record: &RelationReadRecord,
+    ancestor: &AncestorRelationRecordBasis<'_>,
+) -> bool {
+    record.lifecycle == ancestor.lifecycle()
+        && record.authoritative_aspect_state.as_ref() == ancestor.authoritative_state()
+}
+
+fn relation_endpoints_match_ancestor(
+    record: &RelationReadRecord,
+    ancestor: &AncestorRelationRecordBasis<'_>,
+) -> bool {
+    record.source == ancestor.source_endpoint() && record.target == ancestor.target_endpoint()
 }
 
 fn aspect_conflict_evidence(
