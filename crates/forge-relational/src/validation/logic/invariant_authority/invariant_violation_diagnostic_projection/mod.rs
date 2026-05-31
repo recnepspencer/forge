@@ -1,4 +1,9 @@
-use forge_foundational::facade::{AspectKey, AspectMask, AspectValue, DiagnosticMask, FieldKey};
+use forge_foundational::facade::{
+    prepare_aspect_mask_for_canonical_basis, AspectKey, AspectMask, AspectMaskLocator, AspectValue,
+    CanonicalBasisReadyArtifact, CanonicalizationRuleVersion, DiagnosticMask, FieldKey,
+    LocatorAuthority,
+};
+use forge_proof::TransitionOutcome;
 use serde::Serialize;
 
 use crate::config::data::CascadeDeletePolicy;
@@ -153,6 +158,10 @@ pub(super) struct AspectFieldDiagnosticProjection<'a> {
     field_path: &'a [FieldKey],
     #[serde(skip_serializing)]
     diagnostic_mask: AspectMask<DiagnosticMask>,
+    #[serde(skip_serializing)]
+    diagnostic_mask_locator: AspectMaskLocator<DiagnosticMask>,
+    #[serde(skip_serializing)]
+    canonical_diagnostic_mask_basis: CanonicalBasisReadyArtifact,
     value: &'a AspectValue,
 }
 
@@ -162,11 +171,20 @@ impl<'a> AspectFieldDiagnosticProjection<'a> {
             forge_foundational::facade::CanonicalFieldPath::new(field_path.to_vec())
                 .expect("invariant field locator has a non-empty field path"),
         ]);
+        let diagnostic_mask_locator = AspectMaskLocator::diagnostic(
+            LocatorAuthority::SupportOnly,
+            aspect_key.clone(),
+            &diagnostic_mask,
+        );
+        let canonical_diagnostic_mask_basis =
+            canonical_diagnostic_mask_basis(aspect_key, &diagnostic_mask);
 
         Self {
             aspect_key,
             field_path,
             diagnostic_mask,
+            diagnostic_mask_locator,
+            canonical_diagnostic_mask_basis,
             value,
         }
     }
@@ -186,10 +204,45 @@ impl<'a> AspectFieldDiagnosticProjection<'a> {
                 RelationalDiagnosticValue::DiagnosticMask(self.diagnostic_mask.clone()),
             ),
             (
+                "diagnostic_mask_locator",
+                RelationalDiagnosticValue::DiagnosticMaskLocator(
+                    self.diagnostic_mask_locator.clone(),
+                ),
+            ),
+            (
+                "canonical_diagnostic_mask_basis",
+                RelationalDiagnosticValue::CanonicalBasis(
+                    self.canonical_diagnostic_mask_basis.clone(),
+                ),
+            ),
+            (
                 "value",
                 RelationalDiagnosticValue::AspectValue(self.value.clone()),
             ),
         ])
+    }
+}
+
+fn canonical_diagnostic_mask_basis(
+    aspect_key: &AspectKey,
+    diagnostic_mask: &AspectMask<DiagnosticMask>,
+) -> CanonicalBasisReadyArtifact {
+    let version = CanonicalizationRuleVersion::new("forge.relational.invariant.diagnostic_mask.v1")
+        .expect("diagnostic mask canonicalization version is static and non-empty");
+    match prepare_aspect_mask_for_canonical_basis(
+        version,
+        aspect_key.clone(),
+        diagnostic_mask.clone(),
+    ) {
+        TransitionOutcome::Success(ready) => ready,
+        TransitionOutcome::Denied(denial) => {
+            panic!("invariant diagnostic mask basis denied for {aspect_key:?}: {denial:?}")
+        }
+        TransitionOutcome::Deferred(_)
+        | TransitionOutcome::RebindRequired(_)
+        | TransitionOutcome::Failed(_) => {
+            panic!("invariant diagnostic mask basis did not become ready for {aspect_key:?}")
+        }
     }
 }
 

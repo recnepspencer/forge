@@ -1,6 +1,6 @@
 use forge_foundational::facade::{
-    AspectKey, AspectMask, AspectValue, AspectValueLocator, DiagnosticMask, FieldKey,
-    StructAspectValue,
+    AspectKey, AspectMask, AspectMaskLocator, AspectValue, AspectValueLocator,
+    CanonicalBasisReadyArtifact, DiagnosticMask, FieldKey, StructAspectValue,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -62,6 +62,8 @@ pub enum RelationalDiagnosticValue {
     AspectValueLocator(AspectValueLocator),
     StructAspectValue(StructAspectValue),
     DiagnosticMask(AspectMask<DiagnosticMask>),
+    DiagnosticMaskLocator(AspectMaskLocator<DiagnosticMask>),
+    CanonicalBasis(CanonicalBasisReadyArtifact),
     PartitionId(PartitionId),
     KindId(KindId),
     VersionId(VersionId),

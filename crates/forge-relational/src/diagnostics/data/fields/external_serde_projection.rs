@@ -1,4 +1,6 @@
-use forge_foundational::facade::{AspectMask, AspectValueLocator, DiagnosticMask};
+use forge_foundational::facade::{
+    AspectMask, AspectMaskLocator, AspectValueLocator, CanonicalBasisReadyArtifact, DiagnosticMask,
+};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::aspect_value_diagnostic_terms::{
@@ -152,6 +154,12 @@ fn project_diagnostic_value_for_external_serde(
         RelationalDiagnosticValue::DiagnosticMask(mask) => {
             diagnostic_mask_external_serde_projection(mask)
         }
+        RelationalDiagnosticValue::DiagnosticMaskLocator(locator) => {
+            diagnostic_mask_locator_external_serde_projection(locator)
+        }
+        RelationalDiagnosticValue::CanonicalBasis(basis) => {
+            canonical_basis_external_serde_projection(basis)
+        }
         RelationalDiagnosticValue::PartitionId(value) => unsigned(value.as_u64()),
         RelationalDiagnosticValue::KindId(value) => unsigned(value.as_u64()),
         RelationalDiagnosticValue::VersionId(value) => unsigned(value.as_u64()),
@@ -195,6 +203,70 @@ fn project_diagnostic_value_for_external_serde(
             value.generation_value(),
         ),
     }
+}
+
+fn diagnostic_mask_locator_external_serde_projection(
+    locator: &AspectMaskLocator<DiagnosticMask>,
+) -> ExternalSerdeDiagnosticProjectionValue {
+    object([
+        ("locator_kind", string("diagnostic_mask")),
+        ("authority", string(format!("{:?}", locator.authority()))),
+        ("aspect_key", string(locator.aspect_key().as_str())),
+        (
+            "field_paths",
+            ExternalSerdeDiagnosticProjectionValue::Array(
+                locator
+                    .paths()
+                    .iter()
+                    .map(|field_path| {
+                        ExternalSerdeDiagnosticProjectionValue::Array(
+                            field_path
+                                .fields()
+                                .iter()
+                                .map(|field| string(field.as_str()))
+                                .collect(),
+                        )
+                    })
+                    .collect(),
+            ),
+        ),
+    ])
+}
+
+fn canonical_basis_external_serde_projection(
+    basis: &CanonicalBasisReadyArtifact,
+) -> ExternalSerdeDiagnosticProjectionValue {
+    object([
+        ("basis_kind", string("canonical_basis_ready")),
+        ("domain", string(format!("{:?}", basis.payload().domain()))),
+        ("version", string(basis.payload().version().as_str())),
+        (
+            "entry_count",
+            unsigned(basis.payload().entries().len() as u64),
+        ),
+        (
+            "entries",
+            ExternalSerdeDiagnosticProjectionValue::Array(
+                basis
+                    .payload()
+                    .entries()
+                    .iter()
+                    .map(canonical_basis_entry_external_serde_projection)
+                    .collect(),
+            ),
+        ),
+    ])
+}
+
+fn canonical_basis_entry_external_serde_projection(
+    entry: &forge_foundational::facade::CanonicalBasisEntry,
+) -> ExternalSerdeDiagnosticProjectionValue {
+    object([
+        ("domain", string(format!("{:?}", entry.domain()))),
+        ("locus", string(format!("{:?}", entry.locus()))),
+        ("kind", string(format!("{:?}", entry.kind()))),
+        ("value", string(format!("{:?}", entry.value()))),
+    ])
 }
 
 fn aspect_value_locator_external_serde_projection(

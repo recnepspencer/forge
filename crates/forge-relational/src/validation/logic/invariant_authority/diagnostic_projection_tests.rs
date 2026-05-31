@@ -123,6 +123,18 @@ fn failure_projection_emits_aspect_field_diagnostic_fields() {
         Some(RelationalDiagnosticValue::DiagnosticMask(mask)) if !mask.is_whole_aspect()
     ));
     assert!(matches!(
+        typed_aspect_field.get("diagnostic_mask_locator"),
+        Some(RelationalDiagnosticValue::DiagnosticMaskLocator(locator))
+            if locator.aspect_key() == &aspect_key && locator.paths().len() == 1
+    ));
+    assert!(matches!(
+        typed_aspect_field.get("canonical_diagnostic_mask_basis"),
+        Some(RelationalDiagnosticValue::CanonicalBasis(basis))
+            if basis.payload().entries().len() == 1
+                && basis.payload().version().as_str()
+                    == "forge.relational.invariant.diagnostic_mask.v1"
+    ));
+    assert!(matches!(
         typed_aspect_field.get("value"),
         Some(RelationalDiagnosticValue::AspectValue(value)) if value == &AspectValue::String(InternedString::Raw("dupe@example.test".to_string()))
     ));

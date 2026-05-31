@@ -1,6 +1,8 @@
 use sha2::{Digest, Sha256};
 
-use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, StructAspectValue};
+use forge_foundational::facade::{
+    AspectKey, AspectValue, CanonicalBasisReadyArtifact, FieldKey, StructAspectValue,
+};
 
 use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::history::data::{BranchId, CommitId, OrderedParentList};
@@ -287,6 +289,21 @@ impl ReplayDigestBuilder {
         }
     }
 
+    fn canonical_basis_ready(mut self, value: &CanonicalBasisReadyArtifact) -> Self {
+        let payload = value.payload();
+        self = self
+            .label(payload.domain())
+            .string(payload.version().as_str())
+            .usize(payload.entries().len());
+        for entry in payload.entries() {
+            self = self
+                .label((entry.domain(), entry.locus()))
+                .label(entry.kind())
+                .label(entry.value());
+        }
+        self
+    }
+
     pub(super) fn diagnostic_value(mut self, value: &RelationalDiagnosticValue) -> Self {
         match value {
             RelationalDiagnosticValue::Null => self.tag(0),
@@ -359,6 +376,10 @@ impl ReplayDigestBuilder {
             RelationalDiagnosticValue::ReplaySchemaVersion(value) => self.tag(33).label(value),
             RelationalDiagnosticValue::SchemaId(value) => self.tag(34).label(value),
             RelationalDiagnosticValue::ContractId(value) => self.tag(35).label(value),
+            RelationalDiagnosticValue::DiagnosticMaskLocator(value) => self.tag(36).label(value),
+            RelationalDiagnosticValue::CanonicalBasis(value) => {
+                self.tag(37).canonical_basis_ready(value)
+            }
         }
     }
 
