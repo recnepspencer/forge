@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::validation::data::{
     CustomInvariantProvenance, InvariantCheckResult, InvariantExecutionPoint,
     InvariantFailureEffect, InvariantReportedRule, InvariantVerdict, InvariantViolationFields,
+    InvariantWitnessKey,
 };
 
 use super::{InvariantExecutionResult, InvariantFailure, InvariantProofBoundarySummary};
@@ -46,6 +47,7 @@ impl InvariantProofBoundaryArtifact {
 pub struct InvariantFailureArtifact {
     execution_point: InvariantExecutionPoint,
     failure_effect: InvariantFailureEffect,
+    witness: InvariantWitnessKey,
     proof_boundary: Option<InvariantProofBoundaryArtifact>,
     violation: InvariantViolationFields,
     custom_provenance: Option<CustomInvariantProvenance>,
@@ -55,6 +57,7 @@ impl InvariantFailureArtifact {
     fn new(
         execution_point: InvariantExecutionPoint,
         failure_effect: InvariantFailureEffect,
+        witness: InvariantWitnessKey,
         proof_boundary: Option<InvariantProofBoundaryArtifact>,
         violation: InvariantViolationFields,
         custom_provenance: Option<CustomInvariantProvenance>,
@@ -62,6 +65,7 @@ impl InvariantFailureArtifact {
         Self {
             execution_point,
             failure_effect,
+            witness,
             proof_boundary,
             violation,
             custom_provenance,
@@ -74,6 +78,10 @@ impl InvariantFailureArtifact {
 
     pub fn failure_effect(&self) -> InvariantFailureEffect {
         self.failure_effect
+    }
+
+    pub fn witness(&self) -> &InvariantWitnessKey {
+        &self.witness
     }
 
     pub fn proof_boundary(&self) -> Option<&InvariantProofBoundaryArtifact> {
@@ -153,12 +161,16 @@ pub fn failure_artifact(
     result: &InvariantExecutionResult,
     failure: &InvariantFailure,
 ) -> InvariantFailureArtifact {
+    let matching_result = matching_failure_check_result(result, failure);
     InvariantFailureArtifact::new(
         failure.execution_point(),
         failure.effect(),
+        matching_result
+            .map(|result| result.witness.clone())
+            .unwrap_or_else(|| failure.violation().witness_key()),
         proof_boundary_artifact(result),
         failure.fields().clone(),
-        matching_custom_provenance(result, failure),
+        matching_result.and_then(|result| result.custom_provenance().cloned()),
     )
 }
 
@@ -174,16 +186,16 @@ pub fn custom_trace_artifact(
     ))
 }
 
-fn matching_custom_provenance(
-    result: &InvariantExecutionResult,
+fn matching_failure_check_result<'a>(
+    result: &'a InvariantExecutionResult,
     failure: &InvariantFailure,
-) -> Option<CustomInvariantProvenance> {
+) -> Option<&'a InvariantCheckResult> {
     result
         .results()
         .iter()
         .find_map(|result| match &result.verdict {
             InvariantVerdict::Violation(violation) if *violation == *failure.violation() => {
-                result.custom_provenance().cloned()
+                Some(result)
             }
             _ => None,
         })

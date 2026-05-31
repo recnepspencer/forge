@@ -1,6 +1,3 @@
-use forge_foundational::facade::{
-    AspectMask, AspectMaskLocator, AspectValueLocator, CanonicalBasisReadyArtifact, DiagnosticMask,
-};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::aspect_value_diagnostic_terms::{
@@ -9,9 +6,16 @@ use super::aspect_value_diagnostic_terms::{
 use super::{RelationalDiagnosticFields, RelationalDiagnosticValue};
 use crate::identity::data::PartitionId;
 
+#[path = "external_serde_projection/aspect_projection_terms.rs"]
+mod aspect_projection_terms;
 #[path = "external_serde_projection/projected_value.rs"]
 mod projected_value;
 
+use aspect_projection_terms::{
+    aspect_field_locator_external_serde_projection, aspect_value_locator_external_serde_projection,
+    canonical_basis_external_serde_projection, diagnostic_mask_external_serde_projection,
+    diagnostic_mask_locator_external_serde_projection,
+};
 use projected_value::ExternalSerdeDiagnosticProjectionValue;
 
 pub(super) fn serialize_diagnostic_fields<S>(
@@ -105,6 +109,9 @@ fn project_diagnostic_value_for_external_serde(
         RelationalDiagnosticValue::String(value) => {
             ExternalSerdeDiagnosticProjectionValue::String(value.clone())
         }
+        RelationalDiagnosticValue::CanonicalBytes(bytes) => {
+            ExternalSerdeDiagnosticProjectionValue::String(hex_bytes(bytes))
+        }
         RelationalDiagnosticValue::Array(values) => ExternalSerdeDiagnosticProjectionValue::Array(
             values
                 .iter()
@@ -142,6 +149,9 @@ fn project_diagnostic_value_for_external_serde(
         }
         RelationalDiagnosticValue::AspectValue(value) => {
             project_diagnostic_value_for_external_serde(&aspect_value_diagnostic_value(value))
+        }
+        RelationalDiagnosticValue::AspectFieldLocator(locator) => {
+            aspect_field_locator_external_serde_projection(locator)
         }
         RelationalDiagnosticValue::AspectValueLocator(locator) => {
             aspect_value_locator_external_serde_projection(locator)
@@ -205,130 +215,6 @@ fn project_diagnostic_value_for_external_serde(
     }
 }
 
-fn diagnostic_mask_locator_external_serde_projection(
-    locator: &AspectMaskLocator<DiagnosticMask>,
-) -> ExternalSerdeDiagnosticProjectionValue {
-    object([
-        ("locator_kind", string("diagnostic_mask")),
-        ("authority", string(format!("{:?}", locator.authority()))),
-        ("aspect_key", string(locator.aspect_key().as_str())),
-        (
-            "field_paths",
-            ExternalSerdeDiagnosticProjectionValue::Array(
-                locator
-                    .paths()
-                    .iter()
-                    .map(|field_path| {
-                        ExternalSerdeDiagnosticProjectionValue::Array(
-                            field_path
-                                .fields()
-                                .iter()
-                                .map(|field| string(field.as_str()))
-                                .collect(),
-                        )
-                    })
-                    .collect(),
-            ),
-        ),
-    ])
-}
-
-fn canonical_basis_external_serde_projection(
-    basis: &CanonicalBasisReadyArtifact,
-) -> ExternalSerdeDiagnosticProjectionValue {
-    object([
-        ("basis_kind", string("canonical_basis_ready")),
-        ("domain", string(format!("{:?}", basis.payload().domain()))),
-        ("version", string(basis.payload().version().as_str())),
-        (
-            "entry_count",
-            unsigned(basis.payload().entries().len() as u64),
-        ),
-        (
-            "entries",
-            ExternalSerdeDiagnosticProjectionValue::Array(
-                basis
-                    .payload()
-                    .entries()
-                    .iter()
-                    .map(canonical_basis_entry_external_serde_projection)
-                    .collect(),
-            ),
-        ),
-    ])
-}
-
-fn canonical_basis_entry_external_serde_projection(
-    entry: &forge_foundational::facade::CanonicalBasisEntry,
-) -> ExternalSerdeDiagnosticProjectionValue {
-    object([
-        ("domain", string(format!("{:?}", entry.domain()))),
-        ("locus", string(format!("{:?}", entry.locus()))),
-        ("kind", string(format!("{:?}", entry.kind()))),
-        ("value", string(format!("{:?}", entry.value()))),
-    ])
-}
-
-fn aspect_value_locator_external_serde_projection(
-    locator: &AspectValueLocator,
-) -> ExternalSerdeDiagnosticProjectionValue {
-    match locator {
-        AspectValueLocator::WholeAspect(aspect) => object([
-            ("locator_kind", string("whole_aspect")),
-            ("authority", string(format!("{:?}", aspect.authority()))),
-            ("aspect_key", string(aspect.aspect_key().as_str())),
-        ]),
-        AspectValueLocator::StructField(field) => object([
-            ("locator_kind", string("struct_field")),
-            (
-                "authority",
-                string(format!("{:?}", field.aspect().authority())),
-            ),
-            ("aspect_key", string(field.aspect().aspect_key().as_str())),
-            (
-                "field_path",
-                ExternalSerdeDiagnosticProjectionValue::Array(
-                    field
-                        .field_path()
-                        .fields()
-                        .iter()
-                        .map(|field| string(field.as_str()))
-                        .collect(),
-                ),
-            ),
-        ]),
-    }
-}
-
-fn diagnostic_mask_external_serde_projection(
-    mask: &AspectMask<DiagnosticMask>,
-) -> ExternalSerdeDiagnosticProjectionValue {
-    if mask.is_whole_aspect() {
-        return object([("mask_kind", string("whole_aspect"))]);
-    }
-
-    object([
-        ("mask_kind", string("fields")),
-        (
-            "field_paths",
-            ExternalSerdeDiagnosticProjectionValue::Array(
-                mask.paths()
-                    .iter()
-                    .map(|field_path| {
-                        ExternalSerdeDiagnosticProjectionValue::Array(
-                            field_path
-                                .fields()
-                                .iter()
-                                .map(|field| string(field.as_str()))
-                                .collect(),
-                        )
-                    })
-                    .collect(),
-            ),
-        ),
-    ])
-}
-
 fn record_id_external_serde_projection(
     record_kind: &'static str,
     partition_id: PartitionId,
@@ -369,4 +255,13 @@ fn string(value: impl Into<String>) -> ExternalSerdeDiagnosticProjectionValue {
 
 fn unsigned(value: u64) -> ExternalSerdeDiagnosticProjectionValue {
     ExternalSerdeDiagnosticProjectionValue::Unsigned(value)
+}
+
+fn hex_bytes(bytes: &[u8]) -> String {
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        use std::fmt::Write;
+        write!(&mut encoded, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    encoded
 }

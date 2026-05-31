@@ -1,10 +1,7 @@
 use sha2::{Digest, Sha256};
 
-use forge_foundational::facade::{
-    AspectKey, AspectValue, CanonicalBasisReadyArtifact, FieldKey, StructAspectValue,
-};
+use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, StructAspectValue};
 
-use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::history::data::{BranchId, CommitId, OrderedParentList};
 use crate::identity::data::{EntityId, RelationId, VersionId};
 use crate::publication::patch::data::{
@@ -17,6 +14,9 @@ use crate::schema::data::{
     SchemaVersionId,
 };
 use crate::transactions::data::RecordRef;
+
+#[path = "primitive_terms/diagnostic_value_terms.rs"]
+mod diagnostic_value_terms;
 
 pub(super) struct ReplayDigestBuilder {
     bytes: Vec<u8>,
@@ -43,6 +43,11 @@ impl ReplayDigestBuilder {
     }
 
     pub(super) fn u64(mut self, value: u64) -> Self {
+        self.bytes.extend_from_slice(&value.to_le_bytes());
+        self
+    }
+
+    pub(super) fn i64(mut self, value: i64) -> Self {
         self.bytes.extend_from_slice(&value.to_le_bytes());
         self
     }
@@ -286,100 +291,6 @@ impl ReplayDigestBuilder {
         match crate::aspect_wire::encode_aspect_value(value) {
             Ok(bytes) => self.tag(1).byte_vec(&bytes),
             Err(error) => self.tag(255).string(&error.to_string()),
-        }
-    }
-
-    fn canonical_basis_ready(mut self, value: &CanonicalBasisReadyArtifact) -> Self {
-        let payload = value.payload();
-        self = self
-            .label(payload.domain())
-            .string(payload.version().as_str())
-            .usize(payload.entries().len());
-        for entry in payload.entries() {
-            self = self
-                .label((entry.domain(), entry.locus()))
-                .label(entry.kind())
-                .label(entry.value());
-        }
-        self
-    }
-
-    pub(super) fn diagnostic_value(mut self, value: &RelationalDiagnosticValue) -> Self {
-        match value {
-            RelationalDiagnosticValue::Null => self.tag(0),
-            RelationalDiagnosticValue::Bool(value) => self.tag(1).bool(*value),
-            RelationalDiagnosticValue::Unsigned(value) => self.tag(2).u64(*value),
-            RelationalDiagnosticValue::Signed(value) => {
-                self.bytes.extend_from_slice(&3_u8.to_le_bytes());
-                self.bytes.extend_from_slice(&value.to_le_bytes());
-                self
-            }
-            RelationalDiagnosticValue::String(value) => self.tag(4).string(value),
-            RelationalDiagnosticValue::Array(values) => {
-                self = self.tag(5).usize(values.len());
-                for value in values {
-                    self = self.diagnostic_value(value);
-                }
-                self
-            }
-            RelationalDiagnosticValue::Object(fields) => {
-                self = self.tag(6).usize(fields.len());
-                for (key, value) in fields {
-                    self = self.string(key).diagnostic_value(value);
-                }
-                self
-            }
-            RelationalDiagnosticValue::AspectKey(value) => self.tag(7).aspect_key(value),
-            RelationalDiagnosticValue::FieldKey(value) => self.tag(8).field_key(value),
-            RelationalDiagnosticValue::FieldPath(fields) => {
-                self = self.tag(9).usize(fields.len());
-                for field in fields {
-                    self = self.field_key(field);
-                }
-                self
-            }
-            RelationalDiagnosticValue::AspectValue(value) => self.tag(10).aspect_value(value),
-            RelationalDiagnosticValue::StructAspectValue(value) => self.tag(11).struct_value(value),
-            RelationalDiagnosticValue::PartitionId(value) => self.tag(12).u32(value.as_u32()),
-            RelationalDiagnosticValue::KindId(value) => self.tag(13).u32(value.as_u32()),
-            RelationalDiagnosticValue::VersionId(value) => self.tag(14).version_id(*value),
-            RelationalDiagnosticValue::LineageId(value) => self.tag(15).u64(value.as_u64()),
-            RelationalDiagnosticValue::CommitId(value) => self.tag(16).commit_id(*value),
-            RelationalDiagnosticValue::BranchId(value) => self.tag(17).branch_id(value),
-            RelationalDiagnosticValue::PatchStreamPosition(value) => {
-                self.tag(18).patch_stream_position(*value)
-            }
-            RelationalDiagnosticValue::SchemaVersionId(value) => {
-                self.tag(19).schema_version_id(*value)
-            }
-            RelationalDiagnosticValue::DescriptorSemanticsVersion(value) => {
-                self.tag(20).descriptor_semantics_version(*value)
-            }
-            RelationalDiagnosticValue::DescriptorCanonicalBasisVersion(value) => {
-                self.tag(21).descriptor_canonical_basis_version(*value)
-            }
-            RelationalDiagnosticValue::EntityId(value) => self.tag(22).entity_id(*value),
-            RelationalDiagnosticValue::RelationId(value) => self.tag(23).relation_id(*value),
-            RelationalDiagnosticValue::SchemaBoundaryFingerprint(value) => {
-                self.tag(24).boundary_fingerprint(*value)
-            }
-            RelationalDiagnosticValue::AspectValueLocator(value) => self.tag(25).label(value),
-            RelationalDiagnosticValue::DiagnosticMask(value) => self.tag(26).label(value),
-            RelationalDiagnosticValue::SnapshotId(value) => self.tag(27).label(value),
-            RelationalDiagnosticValue::DurableCheckpointId(value) => self.tag(28).label(value),
-            RelationalDiagnosticValue::DurableSegmentId(value) => self.tag(29).label(value),
-            RelationalDiagnosticValue::DerivedIndexId(value) => self.tag(30).label(value),
-            RelationalDiagnosticValue::DerivedIndexGenerationId(value) => self.tag(31).label(value),
-            RelationalDiagnosticValue::CorrespondenceCandidateId(value) => {
-                self.tag(32).label(value)
-            }
-            RelationalDiagnosticValue::ReplaySchemaVersion(value) => self.tag(33).label(value),
-            RelationalDiagnosticValue::SchemaId(value) => self.tag(34).label(value),
-            RelationalDiagnosticValue::ContractId(value) => self.tag(35).label(value),
-            RelationalDiagnosticValue::DiagnosticMaskLocator(value) => self.tag(36).label(value),
-            RelationalDiagnosticValue::CanonicalBasis(value) => {
-                self.tag(37).canonical_basis_ready(value)
-            }
         }
     }
 

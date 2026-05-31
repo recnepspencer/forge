@@ -1,7 +1,10 @@
 use crate::authority::commit::preparation::diagnostics::failures::PreparationFailureClass;
 use crate::authority::commit::preparation::planning::strategy::PreparationFallbackReason;
 use crate::diagnostics::data::{RelationalDiagnosticFields, RelationalDiagnosticValue};
-use crate::validation::data::InvariantExecutionPoint;
+use crate::validation::data::{
+    InvariantAspectValueWitnessBasis, InvariantExecutionPoint, InvariantWitnessBasis,
+    InvariantWitnessKey,
+};
 use crate::validation::engine::{
     CustomInvariantTraceArtifact, InvariantFailureArtifact, InvariantProofBoundaryArtifact,
 };
@@ -37,6 +40,7 @@ pub(super) fn failure_diagnostic_fields(
             "failure_effect",
             RelationalDiagnosticValue::string(artifact.failure_effect().diagnostic_label()),
         ),
+        ("witness", witness_diagnostic_value(artifact.witness())),
         (
             "proof_boundary",
             RelationalDiagnosticValue::optional(
@@ -58,6 +62,81 @@ pub(super) fn failure_diagnostic_fields(
                 .unwrap_or(RelationalDiagnosticValue::Null),
         ),
     ]))
+}
+
+fn witness_diagnostic_value(witness: &InvariantWitnessKey) -> RelationalDiagnosticValue {
+    let basis = match witness.basis() {
+        InvariantWitnessBasis::StringOnly => RelationalDiagnosticValue::object([(
+            "basis_kind",
+            RelationalDiagnosticValue::string("string_only"),
+        )]),
+        InvariantWitnessBasis::Pass => RelationalDiagnosticValue::object([(
+            "basis_kind",
+            RelationalDiagnosticValue::string("pass"),
+        )]),
+        InvariantWitnessBasis::UniqueEntityAspectField {
+            field_locator,
+            value,
+            field_locator_canonical_bytes,
+            value_basis,
+        } => RelationalDiagnosticValue::object([
+            (
+                "basis_kind",
+                RelationalDiagnosticValue::string("unique_entity_aspect_field"),
+            ),
+            (
+                "field_locator",
+                RelationalDiagnosticValue::AspectFieldLocator(field_locator.clone()),
+            ),
+            (
+                "value",
+                RelationalDiagnosticValue::AspectValue(value.clone()),
+            ),
+            (
+                "field_locator_canonical_bytes",
+                RelationalDiagnosticValue::CanonicalBytes(field_locator_canonical_bytes.clone()),
+            ),
+            (
+                "value_basis",
+                aspect_value_witness_basis_diagnostic_value(value_basis),
+            ),
+        ]),
+    };
+    RelationalDiagnosticValue::object([
+        (
+            "presentation_key",
+            RelationalDiagnosticValue::string(witness.as_str()),
+        ),
+        ("basis", basis),
+    ])
+}
+
+fn aspect_value_witness_basis_diagnostic_value(
+    basis: &InvariantAspectValueWitnessBasis,
+) -> RelationalDiagnosticValue {
+    match basis {
+        InvariantAspectValueWitnessBasis::CanonicalBytes(bytes) => {
+            RelationalDiagnosticValue::object([
+                (
+                    "basis_kind",
+                    RelationalDiagnosticValue::string("canonical_bytes"),
+                ),
+                (
+                    "bytes",
+                    RelationalDiagnosticValue::CanonicalBytes(bytes.clone()),
+                ),
+            ])
+        }
+        InvariantAspectValueWitnessBasis::UnsupportedValueFamily(family) => {
+            RelationalDiagnosticValue::object([
+                (
+                    "basis_kind",
+                    RelationalDiagnosticValue::string("unsupported_value_family"),
+                ),
+                ("value_family", RelationalDiagnosticValue::string(family)),
+            ])
+        }
+    }
 }
 
 pub(super) fn custom_trace_diagnostic_fields(

@@ -1,5 +1,5 @@
 use forge_foundational::facade::{
-    AspectKey, AspectMask, AspectMaskLocator, AspectValue, AspectValueLocator,
+    AspectFieldLocator, AspectKey, AspectMask, AspectMaskLocator, AspectValue, AspectValueLocator,
     CanonicalBasisReadyArtifact, DiagnosticMask, FieldKey, StructAspectValue,
 };
 use serde::{Deserialize, Serialize};
@@ -53,12 +53,14 @@ pub enum RelationalDiagnosticValue {
     Unsigned(u64),
     Signed(i64),
     String(String),
+    CanonicalBytes(Vec<u8>),
     Array(Vec<RelationalDiagnosticValue>),
     Object(BTreeMap<String, RelationalDiagnosticValue>),
     AspectKey(AspectKey),
     FieldKey(FieldKey),
     FieldPath(Vec<FieldKey>),
     AspectValue(AspectValue),
+    AspectFieldLocator(AspectFieldLocator),
     AspectValueLocator(AspectValueLocator),
     StructAspectValue(StructAspectValue),
     DiagnosticMask(AspectMask<DiagnosticMask>),

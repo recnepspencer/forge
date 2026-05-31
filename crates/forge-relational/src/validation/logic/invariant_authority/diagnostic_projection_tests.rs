@@ -10,7 +10,7 @@ use crate::validation::data::{
     CustomInvariantProvenance, CustomInvariantTraversalSummary, InvariantClass, InvariantCostClass,
     InvariantExecutionPoint, InvariantFailureEffect, InvariantGroupSet, InvariantReportedRule,
     InvariantRule, InvariantVerdict, InvariantViolation, InvariantViolationFields,
-    InvariantWitnessKey, StructuralCountView, TouchedStructuralSet,
+    StructuralCountView, TouchedStructuralSet,
 };
 use crate::validation::engine::{
     InvariantExecutionDisposition, InvariantExecutionMetadata, InvariantExecutionResult,
@@ -64,6 +64,7 @@ fn failure_projection_preserves_typed_invariant_artifact_fields() {
                 "failure_effect",
                 RelationalDiagnosticValue::string("block_commit"),
             ),
+            ("witness", expected_none_violation_witness_value()),
             ("proof_boundary", expected_proof_boundary_value()),
             (
                 "violation",
@@ -81,16 +82,17 @@ fn failure_projection_preserves_typed_invariant_artifact_fields() {
 fn failure_projection_emits_aspect_field_diagnostic_fields() {
     let aspect_key = AspectKey::new("profile.email").expect("valid aspect key");
     let field = FieldKey::new("email").expect("valid field key");
+    let field_locator = AspectFieldLocator::new(
+        LocatorAuthority::Planned,
+        aspect_key.clone(),
+        CanonicalFieldPath::single(field.clone()),
+    );
     let violation = InvariantViolation {
         class: InvariantClass::CommitBoundary,
         code: DiagnosticCode::InvariantViolation,
         detail: "duplicate email".to_string(),
         fields: InvariantViolationFields::UniqueEntityField {
-            field_locator: AspectFieldLocator::new(
-                LocatorAuthority::Planned,
-                aspect_key.clone(),
-                CanonicalFieldPath::single(field.clone()),
-            ),
+            field_locator: field_locator.clone(),
             value: AspectValue::String(InternedString::Raw("dupe@example.test".to_string())),
         },
     };
@@ -109,6 +111,12 @@ fn failure_projection_emits_aspect_field_diagnostic_fields() {
     let Some(RelationalDiagnosticValue::Object(typed_aspect_field)) = violation.get("aspect_field")
     else {
         panic!("expected typed aspect-field diagnostic object");
+    };
+    let Some(RelationalDiagnosticValue::Object(witness)) = root.get("witness") else {
+        panic!("expected typed witness diagnostic object");
+    };
+    let Some(RelationalDiagnosticValue::Object(witness_basis)) = witness.get("basis") else {
+        panic!("expected typed witness basis diagnostic object");
     };
     assert!(matches!(
         typed_aspect_field.get("aspect_key"),
@@ -142,6 +150,22 @@ fn failure_projection_emits_aspect_field_diagnostic_fields() {
         diagnostic_object_field(violation, "violation_kind"),
         &RelationalDiagnosticValue::string("unique_entity_field")
     );
+    assert_eq!(
+        diagnostic_object_field(witness_basis, "basis_kind"),
+        &RelationalDiagnosticValue::string("unique_entity_aspect_field")
+    );
+    assert!(matches!(
+        witness_basis.get("field_locator"),
+        Some(RelationalDiagnosticValue::AspectFieldLocator(locator)) if locator == &field_locator
+    ));
+    assert!(matches!(
+        witness_basis.get("value"),
+        Some(RelationalDiagnosticValue::AspectValue(value)) if value == &AspectValue::String(InternedString::Raw("dupe@example.test".to_string()))
+    ));
+    assert!(matches!(
+        witness_basis.get("field_locator_canonical_bytes"),
+        Some(RelationalDiagnosticValue::CanonicalBytes(bytes)) if !bytes.is_empty()
+    ));
 }
 
 #[test]
@@ -211,6 +235,22 @@ fn expected_proof_boundary_value() -> RelationalDiagnosticValue {
     ])
 }
 
+fn expected_none_violation_witness_value() -> RelationalDiagnosticValue {
+    RelationalDiagnosticValue::object([
+        (
+            "presentation_key",
+            RelationalDiagnosticValue::string("none:InvariantViolation"),
+        ),
+        (
+            "basis",
+            RelationalDiagnosticValue::object([(
+                "basis_kind",
+                RelationalDiagnosticValue::string("string_only"),
+            )]),
+        ),
+    ])
+}
+
 fn diagnostic_object_field<'a>(
     object: &'a std::collections::BTreeMap<String, RelationalDiagnosticValue>,
     field: &str,
@@ -224,11 +264,12 @@ fn check_result_for_violation(
     violation: InvariantViolation,
     custom_provenance: Option<CustomInvariantProvenance>,
 ) -> crate::validation::data::InvariantCheckResult {
+    let witness = violation.witness_key();
     crate::validation::data::InvariantCheckResult {
         execution_point: InvariantExecutionPoint::CommitBoundary,
         failure_effect: InvariantFailureEffect::BlockCommit,
         rule: InvariantReportedRule::Native(InvariantRule::MaxMergedIntents(1)),
-        witness: InvariantWitnessKey::pass(),
+        witness,
         groups: InvariantGroupSet::empty(),
         cost: InvariantCostClass::Touched,
         custom_provenance,
