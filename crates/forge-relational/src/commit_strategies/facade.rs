@@ -377,7 +377,7 @@ mod tests {
         StrategyExecutionResult::new(
             CanonicalStrategyOutputArtifact::new(
                 StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-                br#"{"status":"planned"}"#.to_vec(),
+                b"status=planned".to_vec(),
                 PersistentArtifactName::new("strategy.intent.reconcile.output"),
             ),
             StrategyMutationProgram::new(vec![batch]),
@@ -407,7 +407,7 @@ mod tests {
             StrategyExecutionResult::new(
                 CanonicalStrategyOutputArtifact::new(
                     StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-                    format!(r#"{{"status":"planned","name":"{name}"}}"#).into_bytes(),
+                    format!("status=planned;name={name}").into_bytes(),
                     PersistentArtifactName::new("strategy.intent.reconcile.output"),
                 ),
                 StrategyMutationProgram::new(vec![batch]),

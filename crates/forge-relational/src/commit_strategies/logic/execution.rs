@@ -315,7 +315,7 @@ mod tests {
         StrategyExecutionResult::new(
             CanonicalStrategyOutputArtifact::new(
                 StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-                br#"{"status":"ok"}"#.to_vec(),
+                b"status=ok".to_vec(),
                 PersistentArtifactName::new("strategy.intent.reconcile"),
             ),
             StrategyMutationProgram::new(Vec::<crate::transactions::data::WorkerIntentBatch>::new()),
@@ -459,7 +459,7 @@ mod tests {
             CanonicalStrategyInputArtifact::new(
                 descriptor.input_schema_name().clone(),
                 descriptor.input_schema_version(),
-                br#"{"a":1}"#.to_vec().into(),
+                b"a=1".to_vec().into(),
                 CanonicalStrategyInputDigest([7; 32]),
                 descriptor.artifact_name().clone(),
             ),
@@ -501,7 +501,7 @@ mod tests {
             CanonicalStrategyInputArtifact::new(
                 descriptor.input_schema_name().clone(),
                 descriptor.input_schema_version(),
-                br#"{"a":1}"#.to_vec().into(),
+                b"a=1".to_vec().into(),
                 CanonicalStrategyInputDigest([7; 32]),
                 descriptor.artifact_name().clone(),
             ),

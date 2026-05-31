@@ -129,7 +129,7 @@ mod tests {
             CanonicalStrategyInputArtifact::new(
                 StrategyInputSchemaName::new("intent.reconcile.input.v1"),
                 StrategyInputSchemaVersion(1),
-                br#"{"replicas":3}"#.to_vec().into(),
+                b"replicas=3".to_vec().into(),
                 CanonicalStrategyInputDigest([9; 32]),
                 PersistentArtifactName::new("strategy.intent.reconcile.input"),
             ),
@@ -162,7 +162,7 @@ mod tests {
             StrategyExecutionResult::new(
                 CanonicalStrategyOutputArtifact::new(
                     StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-                    br#"{"status":"planned"}"#.to_vec(),
+                    b"status=planned".to_vec(),
                     PersistentArtifactName::new("strategy.intent.reconcile.output"),
                 ),
                 StrategyMutationProgram::new(vec![batch]),
