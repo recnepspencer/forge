@@ -10,11 +10,11 @@ fn terminal_harness_projection_keeps_aspect_value_typed_until_external_json() {
     )]);
 
     let harness_projection =
-        project_diagnostic_fields_for_external_harness_summary(typed_diagnostic);
-    let ExternalHarnessSummaryProjection::Object(projected_fields) = &harness_projection else {
+        project_diagnostic_fields_for_terminal_harness_summary(typed_diagnostic);
+    let TerminalHarnessSummaryProjection::Object(projected_fields) = &harness_projection else {
         panic!("expected typed harness diagnostic object projection");
     };
-    let Some(ExternalHarnessSummaryProjection::Object(typed_aspect_terms)) =
+    let Some(TerminalHarnessSummaryProjection::Object(typed_aspect_terms)) =
         projected_fields.get("typed_aspect")
     else {
         panic!("expected aspect diagnostic terms before terminal JSON egress");
@@ -22,7 +22,7 @@ fn terminal_harness_projection_keeps_aspect_value_typed_until_external_json() {
 
     assert!(matches!(
         typed_aspect_terms.get("value_family"),
-        Some(ExternalHarnessSummaryProjection::String(value)) if value == "UInt64"
+        Some(TerminalHarnessSummaryProjection::String(value)) if value == "UInt64"
     ));
 
     let external_json = harness_projection.into_external_harness_json();

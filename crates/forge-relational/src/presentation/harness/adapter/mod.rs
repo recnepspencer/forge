@@ -20,11 +20,11 @@ mod diagnostic_fields_summary_projection;
 mod diagnostics_capture;
 mod diagnostics_summary_fields;
 mod execution;
-mod external_harness_summary_projection;
 mod replay_capture;
 mod replay_summary_fields;
 mod run_summary_fields;
 mod snapshot_capture;
+mod terminal_harness_summary_projection;
 
 impl HarnessAdapter for RelationalHarnessAdapter {
     type Runtime = RelationalRuntime;

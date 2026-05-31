@@ -5,14 +5,14 @@ use crate::diagnostics::data::fields::{
     RelationalDiagnosticValue,
 };
 
-use super::external_harness_summary_projection::{
-    external_harness_summary_projection_array, external_harness_summary_projection_dynamic_object,
-    ExternalHarnessSummaryProjection,
+use super::terminal_harness_summary_projection::{
+    terminal_harness_summary_projection_array, terminal_harness_summary_projection_dynamic_object,
+    TerminalHarnessSummaryProjection,
 };
 
-pub(super) fn project_diagnostic_fields_for_external_harness_summary(
+pub(super) fn project_diagnostic_fields_for_terminal_harness_summary(
     value: RelationalDiagnosticValue,
-) -> ExternalHarnessSummaryProjection {
+) -> TerminalHarnessSummaryProjection {
     terminal_diagnostic_projection_to_harness_summary(
         project_diagnostic_value_for_terminal_projection(&value),
     )
@@ -20,30 +20,30 @@ pub(super) fn project_diagnostic_fields_for_external_harness_summary(
 
 fn terminal_diagnostic_projection_to_harness_summary(
     value: TerminalDiagnosticProjectionValue,
-) -> ExternalHarnessSummaryProjection {
+) -> TerminalHarnessSummaryProjection {
     match value {
-        TerminalDiagnosticProjectionValue::Null => ExternalHarnessSummaryProjection::Null,
+        TerminalDiagnosticProjectionValue::Null => TerminalHarnessSummaryProjection::Null,
         TerminalDiagnosticProjectionValue::Bool(value) => {
-            ExternalHarnessSummaryProjection::Bool(value)
+            TerminalHarnessSummaryProjection::Bool(value)
         }
         TerminalDiagnosticProjectionValue::Unsigned(value) => {
-            ExternalHarnessSummaryProjection::Unsigned(value)
+            TerminalHarnessSummaryProjection::Unsigned(value)
         }
         TerminalDiagnosticProjectionValue::Signed(value) => {
-            ExternalHarnessSummaryProjection::Signed(value)
+            TerminalHarnessSummaryProjection::Signed(value)
         }
         TerminalDiagnosticProjectionValue::String(value) => {
-            ExternalHarnessSummaryProjection::String(value)
+            TerminalHarnessSummaryProjection::String(value)
         }
         TerminalDiagnosticProjectionValue::Array(values) => {
-            external_harness_summary_projection_array(
+            terminal_harness_summary_projection_array(
                 values
                     .into_iter()
                     .map(terminal_diagnostic_projection_to_harness_summary),
             )
         }
         TerminalDiagnosticProjectionValue::Object(fields) => {
-            external_harness_summary_projection_dynamic_object(fields.into_iter().map(
+            terminal_harness_summary_projection_dynamic_object(fields.into_iter().map(
                 |(field, value)| {
                     (
                         field,

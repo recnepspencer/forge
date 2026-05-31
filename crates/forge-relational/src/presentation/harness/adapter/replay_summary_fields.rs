@@ -1,13 +1,13 @@
 use crate::replay::data::RelationalReplayRecord;
 
-use super::external_harness_summary_projection::{
-    external_harness_summary_projection_object, external_harness_summary_projection_string,
-    external_harness_summary_projection_u64, external_harness_summary_projection_usize,
-    ExternalHarnessSummaryProjection,
+use super::terminal_harness_summary_projection::{
+    terminal_harness_summary_projection_object, terminal_harness_summary_projection_string,
+    terminal_harness_summary_projection_u64, terminal_harness_summary_projection_usize,
+    TerminalHarnessSummaryProjection,
 };
 
-pub(super) fn replay_summary(replay: RelationalReplayRecord) -> ExternalHarnessSummaryProjection {
-    ReplaySummary::from_replay_record(replay).into_external_harness_summary_projection()
+pub(super) fn replay_summary(replay: RelationalReplayRecord) -> TerminalHarnessSummaryProjection {
+    ReplaySummary::from_replay_record(replay).into_terminal_harness_summary_projection()
 }
 
 struct ReplaySummary {
@@ -35,39 +35,39 @@ impl ReplaySummary {
         }
     }
 
-    fn into_external_harness_summary_projection(self) -> ExternalHarnessSummaryProjection {
-        external_harness_summary_projection_object([
+    fn into_terminal_harness_summary_projection(self) -> TerminalHarnessSummaryProjection {
+        terminal_harness_summary_projection_object([
             (
                 "schema_version",
-                external_harness_summary_projection_u64(self.schema_version),
+                terminal_harness_summary_projection_u64(self.schema_version),
             ),
             (
                 "commit_id",
-                external_harness_summary_projection_u64(self.commit_id),
+                terminal_harness_summary_projection_u64(self.commit_id),
             ),
             (
                 "version_id",
-                external_harness_summary_projection_u64(self.version_id),
+                terminal_harness_summary_projection_u64(self.version_id),
             ),
             (
                 "snapshot_id",
-                external_harness_summary_projection_u64(self.snapshot_id),
+                terminal_harness_summary_projection_u64(self.snapshot_id),
             ),
             (
                 "patch_stream_position",
-                external_harness_summary_projection_u64(self.patch_stream_position),
+                terminal_harness_summary_projection_u64(self.patch_stream_position),
             ),
             (
                 "patch_record_count",
-                external_harness_summary_projection_usize(self.patch_record_count),
+                terminal_harness_summary_projection_usize(self.patch_record_count),
             ),
             (
                 "patch_ordering",
-                external_harness_summary_projection_string(self.patch_ordering),
+                terminal_harness_summary_projection_string(self.patch_ordering),
             ),
             (
                 "patch_publication_mode",
-                external_harness_summary_projection_string(self.patch_publication_mode),
+                terminal_harness_summary_projection_string(self.patch_publication_mode),
             ),
         ])
     }

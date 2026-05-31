@@ -20,11 +20,11 @@ use crate::schema::data::{
 use crate::snapshots::data::SnapshotId;
 
 mod aspect_value_diagnostic_terms;
-mod external_serde_projection;
 mod native_serde;
 pub(crate) mod terminal_projection;
+mod terminal_serde_projection;
 
-use external_serde_projection::serialize_diagnostic_fields;
+use terminal_serde_projection::serialize_diagnostic_fields;
 
 #[derive(Debug, Clone)]
 pub struct RelationalDiagnosticFields {
