@@ -1,5 +1,5 @@
-use super::external_baseline_jsonl::{perf_baseline_elapsed_rows, perf_baseline_metric_rows};
-use super::external_report_jsonl::{PerfMetricSummaryRecord, PerfSummaryRecord};
+use super::baseline_records::{perf_baseline_elapsed_rows, perf_baseline_metric_rows};
+use super::report_records::{PerfMetricSummaryRecord, PerfSummaryRecord};
 
 #[derive(Debug, Clone, Copy)]
 struct PerfCaseContract {

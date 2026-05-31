@@ -34,9 +34,6 @@ pub(super) struct PerfMetricSummaryRecord<'a> {
     pub(super) max: u128,
 }
 
-pub(super) fn emit_external_performance_jsonl_record(value: impl Serialize) {
-    println!(
-        "{}",
-        serde_json::to_string(&value).expect("external performance JSONL record serialization")
-    );
+pub(super) fn emit_external_performance_record(value: impl Serialize) {
+    forge_harness::facade::emit_external_record_line(value);
 }

@@ -1,16 +1,15 @@
 use std::time::Instant;
 
 use baseline_assertions::{assert_elapsed_against_baseline, assert_metric_against_baseline};
-use external_report_jsonl::{
-    emit_external_performance_jsonl_record, PerfMetricSummaryRecord, PerfSampleRecord,
-    PerfSummaryRecord,
+use report_records::{
+    emit_external_performance_record, PerfMetricSummaryRecord, PerfSampleRecord, PerfSummaryRecord,
 };
 
 pub(super) use super::performance_metrics::{perf_metrics, PerfMetricSet};
 
 mod baseline_assertions;
-mod external_baseline_jsonl;
-mod external_report_jsonl;
+mod baseline_records;
+mod report_records;
 
 #[derive(Debug, Clone)]
 pub(super) struct PerfMeasurement {
@@ -86,7 +85,7 @@ pub(super) fn capture_perf_samples(
     let mut samples = Vec::with_capacity(perf_samples());
     for sample_index in 0..perf_samples() {
         let measurement = run();
-        emit_external_performance_jsonl_record(PerfSampleRecord {
+        emit_external_performance_record(PerfSampleRecord {
             suite,
             case,
             sample: sample_index,
@@ -110,7 +109,7 @@ pub(super) fn capture_perf_samples(
         min_elapsed_micros: *elapsed_values.iter().min().expect("sample minimum"),
         max_elapsed_micros: *elapsed_values.iter().max().expect("sample maximum"),
     };
-    emit_external_performance_jsonl_record(&summary);
+    emit_external_performance_record(&summary);
     assert_elapsed_against_baseline(suite, case, &summary);
 
     samples
@@ -138,7 +137,7 @@ pub(super) fn emit_metric_summaries(
             min: *values.iter().min().expect("metric minimum"),
             max: *values.iter().max().expect("metric maximum"),
         };
-        emit_external_performance_jsonl_record(&summary);
+        emit_external_performance_record(&summary);
         assert_metric_against_baseline(suite, case, metric_name, &summary);
     }
 }

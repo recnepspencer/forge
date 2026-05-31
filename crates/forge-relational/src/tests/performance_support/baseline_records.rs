@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::fs;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 
@@ -37,7 +36,7 @@ static PERF_BASELINE_METRIC_ROWS: OnceLock<
 pub(super) fn perf_baseline_elapsed_rows(
 ) -> &'static BTreeMap<(String, String), PerfBaselineElapsedRow> {
     PERF_BASELINE_ELAPSED_ROWS.get_or_init(|| {
-        perf_external_baseline_jsonl_rows()
+        perf_external_baseline_rows()
             .into_iter()
             .filter_map(|row| match row {
                 PerfBaselineRow::Elapsed(parsed) => {
@@ -52,7 +51,7 @@ pub(super) fn perf_baseline_elapsed_rows(
 pub(super) fn perf_baseline_metric_rows(
 ) -> &'static BTreeMap<(String, String, String), PerfBaselineMetricRow> {
     PERF_BASELINE_METRIC_ROWS.get_or_init(|| {
-        perf_external_baseline_jsonl_rows()
+        perf_external_baseline_rows()
             .into_iter()
             .filter_map(|row| match row {
                 PerfBaselineRow::Metric(parsed) => Some((
@@ -69,37 +68,17 @@ pub(super) fn perf_baseline_metric_rows(
     })
 }
 
-fn perf_external_baseline_jsonl_path() -> PathBuf {
+fn perf_external_baseline_record_path() -> PathBuf {
     std::env::var("RELATIONAL_PERF_BASELINE_PATH")
         .map(PathBuf::from)
         .unwrap_or_else(|_| {
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("..")
-                .join("..")
-                .join("_docs")
-                .join("engineering")
-                .join("forge_relational_performance_baseline.jsonl")
+            forge_harness::facade::engineering_external_record_lines_path(
+                "forge_relational_performance_baseline",
+            )
         })
 }
 
-fn perf_external_baseline_jsonl_rows() -> Vec<PerfBaselineRow> {
-    let path = perf_external_baseline_jsonl_path();
-    fs::read_to_string(&path)
-        .unwrap_or_else(|error| {
-            panic!(
-                "failed to read external relational perf baseline JSONL {}: {error}",
-                path.display()
-            )
-        })
-        .lines()
-        .filter(|line| !line.trim().is_empty())
-        .map(|line| {
-            serde_json::from_str::<PerfBaselineRow>(line).unwrap_or_else(|error| {
-                panic!(
-                    "failed to deserialize external relational perf baseline JSONL row from {}: {error}",
-                    path.display()
-                )
-            })
-        })
-        .collect()
+fn perf_external_baseline_rows() -> Vec<PerfBaselineRow> {
+    let path = perf_external_baseline_record_path();
+    forge_harness::facade::read_external_record_lines(&path, "relational performance baseline")
 }

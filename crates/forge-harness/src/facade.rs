@@ -1,5 +1,6 @@
 pub use crate::artifact::{AttachmentKind, AttachmentRecord, BlobDescriptor};
 pub use crate::capture::{
+    emit_external_record_line, engineering_external_record_lines_path, read_external_record_lines,
     record_summary_from_serializable, record_summary_into_deserializable, BinaryValue,
     DiagnosticsLevel, DiagnosticsRecord, EventCategory, EventRecord, EventStreamRecord,
     ExecutionMode, ExplanationRecord, HarnessRecordSummaryValue, HarnessRecordSummaryView,

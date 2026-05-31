@@ -10,8 +10,12 @@ use crate::identity::{
 use crate::timeline::{FeedBatch, TimeMarker};
 use crate::workload::BudgetUsage;
 
+mod external_record_lines;
 mod summary_projection;
 
+pub use external_record_lines::{
+    emit_external_record_line, engineering_external_record_lines_path, read_external_record_lines,
+};
 pub use summary_projection::{
     record_summary_from_serializable, record_summary_into_deserializable,
     HarnessRecordSummaryValue, HarnessRecordSummaryView, HarnessSummaryProjection,
