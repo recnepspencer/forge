@@ -13,7 +13,7 @@ pub(crate) struct PolicyValueLookupCounters {
     pub source_state_hit: u64,
     pub target_state_hit: u64,
     pub base_state_hit: u64,
-    pub base_patch_fallback_hit: u64,
+    pub base_patch_authority_hit: u64,
     pub missing_ancestor_basis: u64,
     pub missing_visible_state: u64,
     pub invalid_shape: u64,
@@ -37,9 +37,9 @@ impl PolicyValueLookupCounters {
         }
     }
 
-    pub(crate) fn record_base_patch_fallback(&mut self, hit: bool) {
+    pub(crate) fn record_base_patch_authority(&mut self, hit: bool) {
         if hit {
-            self.base_patch_fallback_hit += 1;
+            self.base_patch_authority_hit += 1;
         } else {
             self.missing_ancestor_basis += 1;
         }
@@ -89,7 +89,7 @@ fn build_foundational_policy_admission_receipt() -> Option<FoundationalPolicyAdm
         .access_pattern(FoundationalPerformanceAccessPatternPosture::PointLookup)
         .execution_temperature(FoundationalPerformanceExecutionTemperature::WarmPath)
         .freshness_retention(FoundationalPerformanceFreshnessRetentionPosture::ExactBasisCurrent)
-        .fallback_debt(FoundationalPerformanceFallbackDebtPosture::Deferred)
+        .fallback_debt(FoundationalPerformanceFallbackDebtPosture::Verified)
         .include_work(FoundationalPerformanceWorkClass::ValidationPlanning)
         .exclude_work(FoundationalPerformanceWorkClass::SupportReportAssembly)
         .finish()
@@ -107,14 +107,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn value_lookup_counters_distinguish_base_state_and_patch_fallback() {
+    fn value_lookup_counters_distinguish_base_state_and_patch_authority() {
         let mut counters = PolicyValueLookupCounters::default();
 
         counters.record_base_state(Ok(()));
-        counters.record_base_patch_fallback(true);
+        counters.record_base_patch_authority(true);
 
         assert_eq!(counters.base_state_hit, 1);
-        assert_eq!(counters.base_patch_fallback_hit, 1);
+        assert_eq!(counters.base_patch_authority_hit, 1);
         assert_eq!(counters.missing_ancestor_basis, 0);
     }
 

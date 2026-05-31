@@ -297,7 +297,7 @@ fn policy_value_basis_for_aspect(
             counters.source_state_hit,
             counters.target_state_hit,
             counters.base_state_hit,
-            counters.base_patch_fallback_hit,
+            counters.base_patch_authority_hit,
             counters.missing_ancestor_basis,
             counters.missing_visible_state,
             counters.invalid_shape,

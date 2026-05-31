@@ -546,7 +546,7 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
     );
     assert_eq!(value_lookup_counters.merge_policy_value_base_state_hits, 0);
     assert_eq!(
-        value_lookup_counters.merge_policy_value_base_patch_fallback_hits,
+        value_lookup_counters.merge_policy_value_base_patch_authority_hits,
         1
     );
 

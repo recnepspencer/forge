@@ -207,7 +207,7 @@ pub struct RuntimeComplexityCounters {
     pub merge_policy_value_source_state_hits: usize,
     pub merge_policy_value_target_state_hits: usize,
     pub merge_policy_value_base_state_hits: usize,
-    pub merge_policy_value_base_patch_fallback_hits: usize,
+    pub merge_policy_value_base_patch_authority_hits: usize,
     pub merge_policy_value_missing_ancestor_basis: usize,
     pub merge_policy_value_missing_visible_state: usize,
     pub merge_policy_value_invalid_shape: usize,

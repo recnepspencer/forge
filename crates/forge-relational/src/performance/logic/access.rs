@@ -743,7 +743,7 @@ impl<'runtime> PerformanceAccess<'runtime> {
         source_state_hits: u64,
         target_state_hits: u64,
         base_state_hits: u64,
-        base_patch_fallback_hits: u64,
+        base_patch_authority_hits: u64,
         missing_ancestor_basis: u64,
         missing_visible_state: u64,
         invalid_shape: u64,
@@ -752,8 +752,8 @@ impl<'runtime> PerformanceAccess<'runtime> {
             counters.merge_policy_value_source_state_hits += source_state_hits as usize;
             counters.merge_policy_value_target_state_hits += target_state_hits as usize;
             counters.merge_policy_value_base_state_hits += base_state_hits as usize;
-            counters.merge_policy_value_base_patch_fallback_hits +=
-                base_patch_fallback_hits as usize;
+            counters.merge_policy_value_base_patch_authority_hits +=
+                base_patch_authority_hits as usize;
             counters.merge_policy_value_missing_ancestor_basis += missing_ancestor_basis as usize;
             counters.merge_policy_value_missing_visible_state += missing_visible_state as usize;
             counters.merge_policy_value_invalid_shape += invalid_shape as usize;

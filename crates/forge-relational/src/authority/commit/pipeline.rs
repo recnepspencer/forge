@@ -1399,9 +1399,9 @@ fn complexity_delta(
         merge_policy_value_base_state_hits: after
             .merge_policy_value_base_state_hits
             .saturating_sub(before.merge_policy_value_base_state_hits),
-        merge_policy_value_base_patch_fallback_hits: after
-            .merge_policy_value_base_patch_fallback_hits
-            .saturating_sub(before.merge_policy_value_base_patch_fallback_hits),
+        merge_policy_value_base_patch_authority_hits: after
+            .merge_policy_value_base_patch_authority_hits
+            .saturating_sub(before.merge_policy_value_base_patch_authority_hits),
         merge_policy_value_missing_ancestor_basis: after
             .merge_policy_value_missing_ancestor_basis
             .saturating_sub(before.merge_policy_value_missing_ancestor_basis),

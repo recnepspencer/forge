@@ -195,7 +195,7 @@ fn base_scalar_value(
                 )
             },
         );
-    counters.record_base_patch_fallback(patch_value.is_some());
+    counters.record_base_patch_authority(patch_value.is_some());
     patch_value.ok_or(PolicyValueLookupFailure::MissingRecordBasis)
 }
 
