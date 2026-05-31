@@ -23,8 +23,7 @@ mod aspect_value_diagnostic_terms;
 mod external_serde_projection;
 
 use external_serde_projection::{
-    deserialize_diagnostic_fields, external_serde_projection_equal, serialize_diagnostic_fields,
-    typed_external_serde_projection_tree,
+    serialize_diagnostic_fields, typed_external_serde_projection_tree,
 };
 
 #[derive(Debug, Clone)]
@@ -129,11 +128,13 @@ impl Serialize for RelationalDiagnosticFields {
 }
 
 impl<'de> Deserialize<'de> for RelationalDiagnosticFields {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    fn deserialize<D>(_deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        deserialize_diagnostic_fields(deserializer)
+        Err(serde::de::Error::custom(
+            "relational diagnostic fields are typed authority and cannot be recovered from external serde projection",
+        ))
     }
 }
 
@@ -145,7 +146,7 @@ impl From<RelationalDiagnosticValue> for RelationalDiagnosticFields {
 
 impl PartialEq for RelationalDiagnosticFields {
     fn eq(&self, other: &Self) -> bool {
-        external_serde_projection_equal(&self.root, &other.root)
+        self.root == other.root
     }
 }
 

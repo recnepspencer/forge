@@ -1,4 +1,4 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Serialize, Serializer};
 
 use super::aspect_value_diagnostic_terms::{
     aspect_value_diagnostic_value, struct_aspect_value_diagnostic_value,
@@ -28,39 +28,15 @@ where
     project_diagnostic_value_for_external_serde(fields.root()).serialize(serializer)
 }
 
-pub(super) fn deserialize_diagnostic_fields<'de, D>(
-    deserializer: D,
-) -> Result<RelationalDiagnosticFields, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    ExternalSerdeDiagnosticProjectionValue::deserialize(deserializer)
-        .map(recover_external_serde_diagnostic_fields)
-}
-
-pub(super) fn external_serde_projection_equal(
-    left: &RelationalDiagnosticValue,
-    right: &RelationalDiagnosticValue,
-) -> bool {
-    project_diagnostic_value_for_external_serde(left)
-        == project_diagnostic_value_for_external_serde(right)
-}
-
 pub(super) fn typed_external_serde_projection_tree(
     value: &RelationalDiagnosticValue,
 ) -> RelationalDiagnosticValue {
-    recover_external_serde_diagnostic_value(project_diagnostic_value_for_external_serde(value))
-}
-
-fn recover_external_serde_diagnostic_fields(
-    projection: ExternalSerdeDiagnosticProjectionValue,
-) -> RelationalDiagnosticFields {
-    RelationalDiagnosticFields::from_diagnostic_value(recover_external_serde_diagnostic_value(
-        projection,
+    external_serde_projection_value_to_diagnostic_tree(project_diagnostic_value_for_external_serde(
+        value,
     ))
 }
 
-fn recover_external_serde_diagnostic_value(
+fn external_serde_projection_value_to_diagnostic_tree(
     projection: ExternalSerdeDiagnosticProjectionValue,
 ) -> RelationalDiagnosticValue {
     match projection {
@@ -80,14 +56,15 @@ fn recover_external_serde_diagnostic_value(
         ExternalSerdeDiagnosticProjectionValue::Array(values) => RelationalDiagnosticValue::array(
             values
                 .into_iter()
-                .map(recover_external_serde_diagnostic_value),
+                .map(external_serde_projection_value_to_diagnostic_tree),
         ),
         ExternalSerdeDiagnosticProjectionValue::Object(fields) => {
-            RelationalDiagnosticValue::object(
-                fields
-                    .into_iter()
-                    .map(|(key, value)| (key, recover_external_serde_diagnostic_value(value))),
-            )
+            RelationalDiagnosticValue::object(fields.into_iter().map(|(key, value)| {
+                (
+                    key,
+                    external_serde_projection_value_to_diagnostic_tree(value),
+                )
+            }))
         }
     }
 }

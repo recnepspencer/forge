@@ -51,7 +51,7 @@ fn struct_aspect_value_diagnostic_fields_keep_typed_fields_and_canonical_bytes()
 }
 
 #[test]
-fn diagnostic_serde_projection_is_not_stored_authority() {
+fn diagnostic_serde_projection_is_terminal_egress_only() {
     let live_fields =
         RelationalDiagnosticFields::from_diagnostic_value(RelationalDiagnosticValue::object([(
             "typed_aspect",
@@ -60,12 +60,15 @@ fn diagnostic_serde_projection_is_not_stored_authority() {
 
     let external_serde_projection_json =
         serde_json::to_value(&live_fields).expect("external serde diagnostic projection");
-    let recovered: RelationalDiagnosticFields =
-        serde_json::from_value(external_serde_projection_json)
-            .expect("recover external serde diagnostic fields");
+    let external_projection_fields = RelationalDiagnosticFields::from_diagnostic_value(
+        live_fields.to_external_serde_projection_tree(),
+    );
+    let recovered = serde_json::from_value::<RelationalDiagnosticFields>(
+        external_serde_projection_json.clone(),
+    );
 
-    assert_ne!(live_fields.root(), recovered.root());
-    assert_eq!(live_fields, recovered);
+    assert_ne!(live_fields, external_projection_fields);
+    assert!(recovered.is_err());
     assert!(matches!(
         live_fields.root(),
         RelationalDiagnosticValue::Object(fields)
@@ -74,6 +77,11 @@ fn diagnostic_serde_projection_is_not_stored_authority() {
                 Some(RelationalDiagnosticValue::AspectValue(AspectValue::UInt64(7)))
             )
     ));
+    assert_eq!(
+        external_serde_projection_json["typed_aspect"]["value_family"],
+        "UInt64"
+    );
+    assert!(external_serde_projection_json["typed_aspect"]["canonical_value_bytes"].is_array());
 }
 
 fn diagnostic_aspect_value(value: &RelationalDiagnosticValue) -> Option<&AspectValue> {
