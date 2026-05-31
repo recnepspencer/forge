@@ -1,8 +1,7 @@
 use super::*;
 use crate::aspect_field_authoring::{
-    aspect_field_patch_from_json_values, aspect_key, entity_string_field_aspect, field_key,
-    lower_json_scalar_to_aspect_value, planned_single_field_locator,
-    project_aspect_value_to_workspace_json, terminal_field_label,
+    aspect_key, entity_string_field_aspect, field_key, lower_json_scalar_to_aspect_value,
+    planned_single_field_locator, project_aspect_value_to_workspace_json, terminal_field_label,
 };
 use crate::runtime::ForgeQueryAspectValue;
 use forge_foundational::facade::AspectValue;
@@ -33,7 +32,7 @@ impl ForgeQueryMemoryWorkspace {
             .map(|aspect| {
                 entity_string_field_aspect(
                     aspect.label(),
-                    terminal_field_label(aspect.payload_path())?,
+                    terminal_field_label(aspect.external_projection_path())?,
                 )
             })
             .collect::<Result<Vec<_>, _>>()
@@ -64,14 +63,6 @@ impl ForgeQueryMemoryWorkspace {
         &self.kind_name
     }
 
-    pub fn insert(
-        &mut self,
-        payload: Value,
-    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        let fields = self.field_patch_from_payload(&payload)?;
-        self.commit_entity_create(fields, Vec::new())
-    }
-
     pub fn insert_aspects(
         &mut self,
         aspects: Vec<ForgeQueryAspectValue>,
@@ -84,47 +75,12 @@ impl ForgeQueryMemoryWorkspace {
         self.commit_entity_create(fields, aspect_paths)
     }
 
-    pub fn update_aspect(
-        &mut self,
-        entity_identity: &str,
-        aspect_path: &str,
-        value: Value,
-    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        let entity_id = super::helpers::parse_entity_identity(entity_identity)?;
-        self.ensure_entity_exists(entity_id)?;
-        let field_label = self.field_label_for_aspect_path(aspect_path)?;
-        let mut txn = self
-            .runtime
-            .begin_transaction(TransactionOptions::default());
-        txn.push_batch(
-            WorkerIntentBatch::new("query-memory-update").push(MutationIntent::Entity(
-                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
-                    entity_id,
-                    fields: aspect_field_patch_from_json_values([(
-                        aspect_path,
-                        field_label.as_str(),
-                        value,
-                    )])
-                    .map_err(ForgeQueryWorkspaceError::new)?,
-                }),
-            )),
-        );
-        let result = txn
-            .commit()
-            .map_err(|error| ForgeQueryWorkspaceError::new(format!("{error:?}")))?;
-        Ok(self.receipt_from_commit(
-            result,
-            ForgeQueryMutationKind::Updated,
-            vec![aspect_path.to_string()],
-        ))
-    }
-
     pub fn update_aspects(
         &mut self,
         entity_identity: &str,
         aspects: Vec<ForgeQueryAspectValue>,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        let entity_id = super::helpers::parse_entity_identity(entity_identity)?;
+        let entity_id = super::runtime_identity::parse_entity_identity(entity_identity)?;
         self.ensure_entity_exists(entity_id)?;
         let mut aspect_paths = Vec::with_capacity(aspects.len());
         for aspect in &aspects {
@@ -149,7 +105,7 @@ impl ForgeQueryMemoryWorkspace {
         &mut self,
         entity_identity: &str,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        let entity_id = super::helpers::parse_entity_identity(entity_identity)?;
+        let entity_id = super::runtime_identity::parse_entity_identity(entity_identity)?;
         let mut txn = self
             .runtime
             .begin_transaction(TransactionOptions::default());
@@ -191,7 +147,7 @@ impl ForgeQueryMemoryWorkspace {
                 let (aspect_values, external_projection) =
                     self.aspect_projection_from_projection_record(record);
                 Some(ForgeQueryEntity::from_aspect_projection(
-                    super::helpers::entity_identity(record.entity_id()),
+                    super::runtime_identity::entity_identity(record.entity_id()),
                     aspect_values,
                     external_projection,
                 ))
@@ -199,7 +155,7 @@ impl ForgeQueryMemoryWorkspace {
     }
 
     pub fn snapshot_token(&self) -> String {
-        super::helpers::snapshot_token_from_runtime(&self.runtime)
+        super::runtime_identity::snapshot_token_from_runtime(&self.runtime)
     }
 
     fn ensure_entity_exists(&self, entity_id: EntityId) -> Result<(), ForgeQueryWorkspaceError> {
@@ -249,25 +205,6 @@ impl ForgeQueryMemoryWorkspace {
         Ok(self.receipt_from_commit(result, ForgeQueryMutationKind::Created, aspect_paths))
     }
 
-    fn field_patch_from_payload(
-        &self,
-        payload: &Value,
-    ) -> Result<forge_relational::facade::transactions::AspectFieldPatch, ForgeQueryWorkspaceError>
-    {
-        let mut values = Vec::new();
-        for aspect in &self.aspects {
-            if let Some(value) = json_path_value(payload, aspect.payload_path()) {
-                values.push((
-                    aspect.label(),
-                    terminal_field_label(aspect.payload_path())
-                        .map_err(ForgeQueryWorkspaceError::new)?,
-                    value.clone(),
-                ));
-            }
-        }
-        aspect_field_patch_from_json_values(values).map_err(ForgeQueryWorkspaceError::new)
-    }
-
     fn field_patch_from_aspect_values(
         &self,
         aspects: &[ForgeQueryAspectValue],
@@ -280,7 +217,7 @@ impl ForgeQueryMemoryWorkspace {
                 planned_single_field_locator(
                     aspect_key(declared.label()).map_err(ForgeQueryWorkspaceError::new)?,
                     field_key(
-                        terminal_field_label(declared.payload_path())
+                        terminal_field_label(declared.external_projection_path())
                             .map_err(ForgeQueryWorkspaceError::new)?,
                     )
                     .map_err(ForgeQueryWorkspaceError::new)?,
@@ -314,24 +251,13 @@ impl ForgeQueryMemoryWorkspace {
                 continue;
             };
             aspect_values.insert(aspect.label().to_string(), value.clone());
-            let _ = super::helpers::set_json_path(
+            let _ = super::external_projection::set_json_path(
                 &mut external_projection,
-                aspect.payload_path(),
+                aspect.external_projection_path(),
                 project_aspect_value_to_workspace_json(value),
             );
         }
         (aspect_values, external_projection)
-    }
-
-    fn field_label_for_aspect_path(
-        &self,
-        aspect_path: &str,
-    ) -> Result<String, ForgeQueryWorkspaceError> {
-        let field_label =
-            terminal_field_label(self.declared_aspect_for_path(aspect_path)?.payload_path())
-                .map_err(ForgeQueryWorkspaceError::new)
-                .map(str::to_owned)?;
-        Ok(field_label)
     }
 
     fn declared_aspect_for_path(
@@ -340,7 +266,9 @@ impl ForgeQueryMemoryWorkspace {
     ) -> Result<&ForgeQueryAspect, ForgeQueryWorkspaceError> {
         self.aspects
             .iter()
-            .find(|aspect| aspect.label() == aspect_path || aspect.payload_path() == aspect_path)
+            .find(|aspect| {
+                aspect.label() == aspect_path || aspect.external_projection_path() == aspect_path
+            })
             .ok_or_else(|| {
                 ForgeQueryWorkspaceError::new(format!("undeclared aspect `{aspect_path}`"))
             })
@@ -360,7 +288,7 @@ impl ForgeQueryMemoryWorkspace {
                 forge_relational::facade::transactions::RecordRef::Entity(entity) => {
                     Some(ForgeQueryMutationDelta {
                         collection: self.kind_name.clone(),
-                        entity_identity: super::helpers::entity_identity(*entity),
+                        entity_identity: super::runtime_identity::entity_identity(*entity),
                         kind: kind.clone(),
                         aspect_paths: aspect_paths.clone(),
                     })
@@ -375,12 +303,4 @@ impl ForgeQueryMemoryWorkspace {
             bridge_authority: None,
         }
     }
-}
-
-fn json_path_value<'a>(payload: &'a Value, path: &str) -> Option<&'a Value> {
-    let mut current = payload;
-    for part in path.split('.') {
-        current = current.as_object()?.get(part)?;
-    }
-    Some(current)
 }

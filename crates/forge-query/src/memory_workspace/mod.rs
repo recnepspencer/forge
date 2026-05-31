@@ -6,7 +6,8 @@ use forge_runtime_bridge::facade::BridgeMutationAuthorityBundle;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
-mod helpers;
+mod external_projection;
+mod runtime_identity;
 #[cfg(test)]
 mod tests;
 mod workspace;
@@ -14,14 +15,14 @@ mod workspace;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ForgeQueryAspect {
     label: String,
-    payload_path: String,
+    external_projection_path: String,
 }
 
 impl ForgeQueryAspect {
-    pub fn new(label: impl Into<String>, payload_path: impl Into<String>) -> Self {
+    pub fn new(label: impl Into<String>, external_projection_path: impl Into<String>) -> Self {
         Self {
             label: label.into(),
-            payload_path: payload_path.into(),
+            external_projection_path: external_projection_path.into(),
         }
     }
 
@@ -29,8 +30,8 @@ impl ForgeQueryAspect {
         &self.label
     }
 
-    pub fn payload_path(&self) -> &str {
-        &self.payload_path
+    pub fn external_projection_path(&self) -> &str {
+        &self.external_projection_path
     }
 }
 
