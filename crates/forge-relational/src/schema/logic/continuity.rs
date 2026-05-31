@@ -6,10 +6,10 @@ use std::sync::Arc;
 use forge_foundational::FieldKey;
 
 use crate::schema::data::{
-    CompatibilityObservation, DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion,
-    FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan,
-    ProposedSchemaTransition, SchemaBoundaryFingerprint, SchemaBridgeDescriptor,
-    SchemaBridgeabilityClassification, SchemaContinuationClassification,
+    DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion, FreeFormSchemaDiffIntent,
+    HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan, ProposedSchemaTransition,
+    SchemaBoundaryFingerprint, SchemaBridgeDescriptor, SchemaBridgeabilityClassification,
+    SchemaContinuationAdmissionObservation, SchemaContinuationClassification,
     SchemaContinuationDescriptor, SchemaDiffAtom, SchemaDiffDetail, SchemaLineageArtifact,
     SchemaLineageOrderingSemantics, SchemaReconciliationClassification,
     SchemaReconciliationDescriptor, SchemaReconciliationOrderingMode, SchemaReconciliationPolicy,
@@ -245,15 +245,16 @@ pub(crate) fn classify_schema_transition(
 
     ValidatedSchemaTransition {
         proposed,
-        compatibility_observation: if continuation == SchemaContinuationClassification::Rejected
+        continuation_admission_observation: if continuation
+            == SchemaContinuationClassification::Rejected
             && matches!(
                 reconciliation,
                 SchemaReconciliationClassification::TypeIncompatible
                     | SchemaReconciliationClassification::StructuralIncompatible
             ) {
-            CompatibilityObservation::RejectedInAllLayers
+            SchemaContinuationAdmissionObservation::RejectedInAllLayers
         } else {
-            CompatibilityObservation::NonRejectedInAtLeastOneLayer
+            SchemaContinuationAdmissionObservation::NonRejectedInAtLeastOneLayer
         },
         reconciliation,
         continuation,

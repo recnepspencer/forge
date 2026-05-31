@@ -23,11 +23,11 @@ pub use aspect_traces::{
 };
 pub use continuity::{
     runtime_descriptor_canonical_basis_policy, runtime_descriptor_semantics_policy,
-    CompatibilityObservation, DescriptorCanonicalBasisCompatibilityPolicy,
-    DescriptorCanonicalBasisVersion, DescriptorSemanticsCompatibilityPolicy,
-    DescriptorSemanticsVersion, FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity,
-    LoweredSchemaTransitionPlan, ProposedSchemaTransition, SchemaBoundaryFingerprint,
-    SchemaBridgeDescriptor, SchemaBridgeabilityClassification, SchemaContinuationClassification,
+    DescriptorCanonicalBasisSupportPolicy, DescriptorCanonicalBasisVersion,
+    DescriptorSemanticsSupportPolicy, DescriptorSemanticsVersion, FreeFormSchemaDiffIntent,
+    HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan, ProposedSchemaTransition,
+    SchemaBoundaryFingerprint, SchemaBridgeDescriptor, SchemaBridgeabilityClassification,
+    SchemaContinuationAdmissionObservation, SchemaContinuationClassification,
     SchemaContinuationDescriptor, SchemaDiffAtom, SchemaDiffDetail, SchemaElementKind,
     SchemaElementRef, SchemaLineageArtifact, SchemaLineageOrderingSemantics,
     SchemaPublicationImpact, SchemaReconciliationClassification, SchemaReconciliationDescriptor,

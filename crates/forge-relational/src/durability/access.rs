@@ -370,7 +370,7 @@ fn authority_continuity_for_envelopes(
 
 fn unsupported_canonical_basis_version(
     envelope: &crate::replay::data::CanonicalCommitEnvelope,
-    policy: &crate::schema::data::DescriptorCanonicalBasisCompatibilityPolicy,
+    policy: &crate::schema::data::DescriptorCanonicalBasisSupportPolicy,
 ) -> Option<crate::schema::data::DescriptorCanonicalBasisVersion> {
     let continuation = envelope
         .schema_continuation_descriptor

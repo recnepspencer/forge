@@ -9,10 +9,10 @@ use crate::diagnostics::data::{DiagnosticsArtifactKind, RelationalDiagnosticValu
 use crate::facade::history::BranchId;
 use crate::facade::identity::KindId;
 use crate::facade::schema::{
-    CompatibilityObservation, DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion,
-    FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan,
-    ProposedSchemaTransition, SchemaBoundaryFingerprint, SchemaBridgeDescriptor,
-    SchemaBridgeabilityClassification, SchemaContinuationClassification,
+    DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion, FreeFormSchemaDiffIntent,
+    HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan, ProposedSchemaTransition,
+    SchemaBoundaryFingerprint, SchemaBridgeDescriptor, SchemaBridgeabilityClassification,
+    SchemaContinuationAdmissionObservation, SchemaContinuationClassification,
     SchemaContinuationDescriptor, SchemaDiffAtom, SchemaDiffDetail, SchemaElementKind,
     SchemaElementRef, SchemaId, SchemaLineageArtifact, SchemaLineageOrderingSemantics,
     SchemaPublicationImpact, SchemaReconciliationClassification, SchemaReconciliationDescriptor,
@@ -89,7 +89,7 @@ fn schema_diff_atom_requires_structured_detail_and_strata() {
 }
 
 #[test]
-fn compatibility_observation_remains_non_authoritative_summary_only() {
+fn continuation_admission_observation_remains_non_authoritative_summary_only() {
     let proposed = ProposedSchemaTransition {
         source_schema_id: SchemaId("cad".to_string()),
         source_schema_version_id: SchemaVersionId(1),
@@ -99,15 +99,16 @@ fn compatibility_observation_remains_non_authoritative_summary_only() {
     };
     let validated = ValidatedSchemaTransition {
         proposed,
-        compatibility_observation: CompatibilityObservation::NonRejectedInAtLeastOneLayer,
+        continuation_admission_observation:
+            SchemaContinuationAdmissionObservation::NonRejectedInAtLeastOneLayer,
         reconciliation: SchemaReconciliationClassification::Additive,
         continuation: SchemaContinuationClassification::ContinueWithVisibleBridge,
         bridgeability: SchemaBridgeabilityClassification::SubscriberVisible,
     };
 
     assert_eq!(
-        validated.compatibility_observation,
-        CompatibilityObservation::NonRejectedInAtLeastOneLayer
+        validated.continuation_admission_observation,
+        SchemaContinuationAdmissionObservation::NonRejectedInAtLeastOneLayer
     );
     assert_eq!(
         validated.continuation,
@@ -156,7 +157,8 @@ fn schema_descriptor_constructors_preserve_semantics_version_and_ordering_truth(
                 target_schema_version_id: SchemaVersionId(7),
                 diff_atoms: Vec::new(),
             },
-            compatibility_observation: CompatibilityObservation::NonRejectedInAtLeastOneLayer,
+            continuation_admission_observation:
+                SchemaContinuationAdmissionObservation::NonRejectedInAtLeastOneLayer,
             reconciliation: SchemaReconciliationClassification::Additive,
             continuation: SchemaContinuationClassification::ContinueWithTransparentBridge,
             bridgeability: SchemaBridgeabilityClassification::Transparent,
@@ -484,7 +486,7 @@ fn consumable_surface_change_requires_explicit_visible_bridge_proof() {
 
 #[test]
 fn descriptor_semantics_policy_supports_explicit_historical_versions() {
-    let policy = crate::schema::data::DescriptorSemanticsCompatibilityPolicy::new(
+    let policy = crate::schema::data::DescriptorSemanticsSupportPolicy::new(
         DescriptorSemanticsVersion(3),
         [DescriptorSemanticsVersion(1), DescriptorSemanticsVersion(2)],
     );
@@ -636,8 +638,8 @@ fn type_incompatible_schema_transition_is_rejected_not_continued() {
         SchemaBridgeabilityClassification::Rejected
     );
     assert_eq!(
-        validated.compatibility_observation,
-        CompatibilityObservation::RejectedInAllLayers
+        validated.continuation_admission_observation,
+        SchemaContinuationAdmissionObservation::RejectedInAllLayers
     );
 }
 

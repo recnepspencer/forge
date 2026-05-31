@@ -20,12 +20,12 @@ impl Default for DescriptorSemanticsVersion {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DescriptorSemanticsCompatibilityPolicy {
+pub struct DescriptorSemanticsSupportPolicy {
     current_write_version: DescriptorSemanticsVersion,
     supported_historical_versions: BTreeSet<DescriptorSemanticsVersion>,
 }
 
-impl DescriptorSemanticsCompatibilityPolicy {
+impl DescriptorSemanticsSupportPolicy {
     pub fn new(
         current_write_version: DescriptorSemanticsVersion,
         supported_historical_versions: impl IntoIterator<Item = DescriptorSemanticsVersion>,
@@ -49,7 +49,7 @@ impl DescriptorSemanticsCompatibilityPolicy {
     }
 }
 
-impl Default for DescriptorSemanticsCompatibilityPolicy {
+impl Default for DescriptorSemanticsSupportPolicy {
     fn default() -> Self {
         Self::new(
             DescriptorSemanticsVersion::default(),
@@ -58,8 +58,8 @@ impl Default for DescriptorSemanticsCompatibilityPolicy {
     }
 }
 
-pub fn runtime_descriptor_semantics_policy() -> DescriptorSemanticsCompatibilityPolicy {
-    DescriptorSemanticsCompatibilityPolicy::default()
+pub fn runtime_descriptor_semantics_policy() -> DescriptorSemanticsSupportPolicy {
+    DescriptorSemanticsSupportPolicy::default()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -72,12 +72,12 @@ impl Default for DescriptorCanonicalBasisVersion {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DescriptorCanonicalBasisCompatibilityPolicy {
+pub struct DescriptorCanonicalBasisSupportPolicy {
     current_write_version: DescriptorCanonicalBasisVersion,
     supported_historical_versions: BTreeSet<DescriptorCanonicalBasisVersion>,
 }
 
-impl DescriptorCanonicalBasisCompatibilityPolicy {
+impl DescriptorCanonicalBasisSupportPolicy {
     pub fn new(
         current_write_version: DescriptorCanonicalBasisVersion,
         supported_historical_versions: impl IntoIterator<Item = DescriptorCanonicalBasisVersion>,
@@ -101,7 +101,7 @@ impl DescriptorCanonicalBasisCompatibilityPolicy {
     }
 }
 
-impl Default for DescriptorCanonicalBasisCompatibilityPolicy {
+impl Default for DescriptorCanonicalBasisSupportPolicy {
     fn default() -> Self {
         Self::new(
             DescriptorCanonicalBasisVersion::default(),
@@ -110,8 +110,8 @@ impl Default for DescriptorCanonicalBasisCompatibilityPolicy {
     }
 }
 
-pub fn runtime_descriptor_canonical_basis_policy() -> DescriptorCanonicalBasisCompatibilityPolicy {
-    DescriptorCanonicalBasisCompatibilityPolicy::default()
+pub fn runtime_descriptor_canonical_basis_policy() -> DescriptorCanonicalBasisSupportPolicy {
+    DescriptorCanonicalBasisSupportPolicy::default()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -371,7 +371,7 @@ pub enum SchemaContinuationClassification {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub enum CompatibilityObservation {
+pub enum SchemaContinuationAdmissionObservation {
     RejectedInAllLayers,
     NonRejectedInAtLeastOneLayer,
 }
@@ -413,7 +413,7 @@ pub struct ProposedSchemaTransition {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ValidatedSchemaTransition {
     pub proposed: ProposedSchemaTransition,
-    pub compatibility_observation: CompatibilityObservation,
+    pub continuation_admission_observation: SchemaContinuationAdmissionObservation,
     pub reconciliation: SchemaReconciliationClassification,
     pub continuation: SchemaContinuationClassification,
     pub bridgeability: SchemaBridgeabilityClassification,

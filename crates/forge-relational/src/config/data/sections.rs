@@ -4,7 +4,7 @@ use crate::history::data::{BranchId, HistoryRetentionClass, VersionGraphPolicy};
 use crate::logic::commit::CommitAuthorityContract;
 use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
 use crate::schema::data::{
-    DescriptorCanonicalBasisCompatibilityPolicy, DescriptorSemanticsCompatibilityPolicy,
+    DescriptorCanonicalBasisSupportPolicy, DescriptorSemanticsSupportPolicy,
     RelationalSchemaRegistry,
 };
 use crate::symbols::data::{ClientKeySymbolPolicy, SymbolTableSnapshot};
@@ -50,8 +50,8 @@ pub struct HistoryConfig {
 pub struct SchemaConfig {
     pub registry: RelationalSchemaRegistry,
     pub invariant_catalog: InvariantCatalog,
-    pub descriptor_semantics_policy: DescriptorSemanticsCompatibilityPolicy,
-    pub descriptor_canonical_basis_policy: DescriptorCanonicalBasisCompatibilityPolicy,
+    pub descriptor_semantics_policy: DescriptorSemanticsSupportPolicy,
+    pub descriptor_canonical_basis_policy: DescriptorCanonicalBasisSupportPolicy,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
