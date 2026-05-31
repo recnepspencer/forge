@@ -623,7 +623,7 @@ fn grouped_truth_view_for_plan_with_rows(
 }
 
 fn aspect_bytes(value: AspectValue) -> Vec<u8> {
-    encode_snapshot_aspect_read_value(&value).expect("certification aspect value bytes")
+    encode_snapshot_aspect_read_value(&value)
 }
 
 fn relational_grouped_projection_contract(

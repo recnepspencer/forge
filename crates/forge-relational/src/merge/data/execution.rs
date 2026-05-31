@@ -178,11 +178,6 @@ pub enum MergeExecutionCompilationError {
         record: RecordRef,
         aspect_key: forge_foundational::facade::AspectKey,
     },
-    UnsupportedAspectValueWitness {
-        record: RecordRef,
-        aspect_key: forge_foundational::facade::AspectKey,
-        detail: String,
-    },
     MissingAspectBinding {
         record: RecordRef,
         aspect_key: forge_foundational::facade::AspectKey,

@@ -23,10 +23,10 @@ use crate::transactions::data::AspectFieldPatch;
 fn native_strategy_codec_uses_canonical_aspect_value_bytes() {
     for value in canonical_aspect_value_samples() {
         let mut canonical_bytes = Vec::new();
-        encode_length_prefixed_aspect_value(&mut canonical_bytes, &value).unwrap();
+        encode_length_prefixed_aspect_value(&mut canonical_bytes, &value);
 
         let mut native_bytes = Vec::new();
-        encode_native_aspect_value(&mut native_bytes, &value).unwrap();
+        encode_native_aspect_value(&mut native_bytes, &value);
 
         assert_eq!(native_bytes, canonical_bytes);
 
@@ -54,7 +54,7 @@ fn reported_value_families_keep_one_canonical_tag_layout() {
     ];
 
     for (value, expected_body) in reported_samples {
-        assert_eq!(encode_aspect_value(&value).unwrap(), expected_body);
+        assert_eq!(encode_aspect_value(&value), expected_body);
         assert_eq!(decode_aspect_value(expected_body).unwrap(), value);
     }
 }
@@ -69,7 +69,7 @@ fn aspect_field_patch_canonical_bytes_use_shared_aspect_value_bodies() {
         let target_bytes = encode_aspect_field_locator(target);
         encode_u32(&mut expected_bytes, target_bytes.len() as u32);
         expected_bytes.extend_from_slice(&target_bytes);
-        encode_length_prefixed_aspect_value(&mut expected_bytes, value).unwrap();
+        encode_length_prefixed_aspect_value(&mut expected_bytes, value);
     }
 
     assert_eq!(patch.to_canonical_bytes().unwrap(), expected_bytes);
@@ -99,7 +99,7 @@ fn aspect_field_patch_locator_bytes_are_canonical_planned_field_locator_bytes() 
     let locator_bytes = encode_aspect_field_locator(&non_planned_locator);
     encode_u32(&mut patch_bytes, locator_bytes.len() as u32);
     patch_bytes.extend_from_slice(&locator_bytes);
-    encode_length_prefixed_aspect_value(&mut patch_bytes, &AspectValue::Bool(true)).unwrap();
+    encode_length_prefixed_aspect_value(&mut patch_bytes, &AspectValue::Bool(true));
 
     let error = AspectFieldPatch::from_canonical_bytes(&patch_bytes).unwrap_err();
 

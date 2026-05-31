@@ -14,11 +14,10 @@ fn aspect_value_diagnostic_fields_keep_typed_value_and_canonical_bytes() {
         &RelationalDiagnosticValue::AspectValue(value.clone())
     );
     assert_eq!(
-        crate::aspect_wire::encode_aspect_value(&value).expect("canonical bytes"),
+        crate::aspect_wire::encode_aspect_value(&value),
         crate::aspect_wire::encode_aspect_value(
             diagnostic_aspect_value(fields.root()).expect("typed aspect value")
         )
-        .expect("diagnostic canonical bytes")
     );
 }
 
@@ -46,9 +45,8 @@ fn struct_aspect_value_diagnostic_fields_keep_typed_fields_and_canonical_bytes()
         .expect("diagnostic struct field value");
     assert_eq!(diagnostic_field_value, &value);
     assert_eq!(
-        crate::aspect_wire::encode_aspect_value(&value).expect("canonical bytes"),
+        crate::aspect_wire::encode_aspect_value(&value),
         crate::aspect_wire::encode_aspect_value(diagnostic_field_value)
-            .expect("diagnostic field canonical bytes")
     );
 }
 

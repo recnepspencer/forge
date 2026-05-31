@@ -21,14 +21,14 @@ fn mix_identity_component(hash: &mut u128, component: &MergeAspectComponent) -> 
     match component {
         MergeAspectComponent::AspectValue(value) => {
             mix_identity_bytes(hash, b"aspect_value");
-            let encoded_value = encode_aspect_value(value).ok()?;
+            let encoded_value = encode_aspect_value(value);
             mix_identity_bytes(hash, &encoded_value);
         }
         MergeAspectComponent::StructValue(value) => {
             mix_identity_bytes(hash, b"struct_value");
             for (field, field_value) in value.fields() {
                 mix_identity_bytes(hash, field.as_str().as_bytes());
-                let encoded_value = encode_aspect_value(field_value).ok()?;
+                let encoded_value = encode_aspect_value(field_value);
                 mix_identity_bytes(hash, &encoded_value);
             }
         }

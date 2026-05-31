@@ -25,12 +25,6 @@ pub(super) fn decode_snapshot_aspect_read_value(
     Ok(SnapshotAspectReadValue { value })
 }
 
-pub fn encode_snapshot_aspect_read_value(
-    value: &AspectValue,
-) -> Result<Vec<u8>, RelationalGroupedTruthError> {
-    crate::aspect_wire::encode_aspect_value(value).map_err(|error| {
-        RelationalGroupedTruthError::AspectValueEncodeFailure {
-            detail: error.detail().to_string(),
-        }
-    })
+pub fn encode_snapshot_aspect_read_value(value: &AspectValue) -> Vec<u8> {
+    crate::aspect_wire::encode_aspect_value(value)
 }

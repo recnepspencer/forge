@@ -602,13 +602,11 @@ fn aspect_shared_witness_digest(
                     aspect_key: aspect_key.clone(),
                 },
             )?;
-    canonical_aspect_witness_digest(aspect_key, &source_component, &target_component).map_err(
-        |error| MergeExecutionCompilationError::UnsupportedAspectValueWitness {
-            record,
-            aspect_key: aspect_key.clone(),
-            detail: error.detail().to_owned(),
-        },
-    )
+    Ok(canonical_aspect_witness_digest(
+        aspect_key,
+        &source_component,
+        &target_component,
+    ))
 }
 
 fn aspect_binding_for_record<'a>(

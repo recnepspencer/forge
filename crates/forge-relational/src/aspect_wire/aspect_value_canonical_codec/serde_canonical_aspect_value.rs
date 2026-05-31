@@ -9,7 +9,7 @@ where
     S: Serializer,
 {
     let mut bytes = Vec::new();
-    encode_length_prefixed_aspect_value(&mut bytes, value).map_err(serde::ser::Error::custom)?;
+    encode_length_prefixed_aspect_value(&mut bytes, value);
     serializer.serialize_bytes(&bytes)
 }
 

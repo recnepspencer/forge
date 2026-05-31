@@ -202,7 +202,7 @@ fn fingerprint_authoritative_aspect_state(
 }
 
 fn encode_aspect_value(value: &forge_foundational::facade::AspectValue) -> Vec<u8> {
-    crate::aspect_wire::encode_aspect_value(value).expect("case truth aspect value fingerprint")
+    crate::aspect_wire::encode_aspect_value(value)
 }
 
 fn field_is(entity: &EntityReadRecord, field: FieldKey, expected: &str) -> bool {

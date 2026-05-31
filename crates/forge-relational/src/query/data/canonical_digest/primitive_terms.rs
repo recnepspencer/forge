@@ -65,8 +65,7 @@ pub(super) fn encode_descriptor_semantics_version(
 }
 
 pub(super) fn encode_length_prefixed_aspect_value(bytes: &mut Vec<u8>, value: &AspectValue) {
-    let value_bytes =
-        aspect_wire::encode_aspect_value(value).expect("authoritative query aspect value encoding");
+    let value_bytes = aspect_wire::encode_aspect_value(value);
     encode_usize(bytes, value_bytes.len());
     bytes.extend_from_slice(&value_bytes);
 }

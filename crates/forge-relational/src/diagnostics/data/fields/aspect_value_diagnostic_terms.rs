@@ -33,14 +33,7 @@ pub(super) fn struct_aspect_value_diagnostic_value(
 }
 
 fn canonical_aspect_value_bytes(value: &AspectValue) -> RelationalDiagnosticValue {
-    crate::aspect_wire::encode_aspect_value(value)
-        .map(canonical_byte_array)
-        .unwrap_or_else(|error| {
-            RelationalDiagnosticValue::object([(
-                "encoding_error",
-                RelationalDiagnosticValue::string(format!("{error:?}")),
-            )])
-        })
+    canonical_byte_array(crate::aspect_wire::encode_aspect_value(value))
 }
 
 fn canonical_byte_array(bytes: Vec<u8>) -> RelationalDiagnosticValue {

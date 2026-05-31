@@ -15,7 +15,7 @@ pub(crate) fn export_relation_aspect_snapshot_bytes(
     aspect_key: &AspectKey,
 ) -> Option<Vec<u8>> {
     let value = relation_snapshot_aspect_value(record, aspect_key)?;
-    encode_snapshot_aspect_value(&value)
+    Some(encode_snapshot_aspect_value(&value))
 }
 
 fn relation_snapshot_aspect_value(

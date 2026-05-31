@@ -46,7 +46,7 @@ pub(crate) fn encode_aspect_field_patch_canonical_bytes(
     encode_u32(&mut bytes, patch.len() as u32);
     for (locator, value) in patch.iter() {
         encode_length_prefixed_aspect_field_locator(&mut bytes, locator);
-        encode_length_prefixed_aspect_value(&mut bytes, value)?;
+        encode_length_prefixed_aspect_value(&mut bytes, value);
     }
     Ok(bytes)
 }

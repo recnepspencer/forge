@@ -26,15 +26,6 @@ pub fn authoritative_aspect_value_field_comparison_key(
 
 fn canonical_aspect_value_bytes(value: &AspectValue) -> Vec<u8> {
     crate::aspect_wire::encode_aspect_value(value)
-        .unwrap_or_else(|error| unsupported_aspect_value_comparison_bytes(error.detail()))
-}
-
-fn unsupported_aspect_value_comparison_bytes(detail: &str) -> Vec<u8> {
-    let mut bytes = Vec::new();
-    bytes.push(0xff);
-    bytes.extend_from_slice(&(detail.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(detail.as_bytes());
-    bytes
 }
 
 #[cfg(test)]

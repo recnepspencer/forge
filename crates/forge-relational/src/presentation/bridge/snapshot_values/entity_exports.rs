@@ -14,7 +14,7 @@ pub(crate) fn export_entity_aspect_snapshot_bytes(
     } else {
         authoritative_entity_scalar_aspect_value(record, aspect_key)?
     };
-    encode_snapshot_aspect_value(&value)
+    Some(encode_snapshot_aspect_value(&value))
 }
 
 fn authoritative_entity_scalar_aspect_value(

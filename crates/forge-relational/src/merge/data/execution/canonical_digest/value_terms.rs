@@ -113,8 +113,7 @@ impl super::CanonicalDigestBytes {
     }
 
     pub(super) fn aspect_value(&mut self, value: &forge_foundational::facade::AspectValue) {
-        let bytes = aspect_wire::encode_aspect_value(value)
-            .expect("merge execution digest requires canonical aspect value bytes");
+        let bytes = aspect_wire::encode_aspect_value(value);
         self.extend_canonical_bytes(&bytes);
     }
 

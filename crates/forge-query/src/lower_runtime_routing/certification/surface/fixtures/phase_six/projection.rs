@@ -310,7 +310,7 @@ impl GroupedProjectionSource for BridgeProjection {
 }
 
 fn aspect_bytes(value: AspectValue) -> Vec<u8> {
-    encode_snapshot_aspect_read_value(&value).expect("fixture aspect value bytes")
+    encode_snapshot_aspect_read_value(&value)
 }
 
 fn grouped_projection_contract(

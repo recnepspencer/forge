@@ -212,8 +212,7 @@ fn canonical_aspect_value_witness_basis(
     value: &forge_foundational::facade::AspectValue,
 ) -> Vec<u8> {
     let mut bytes = Vec::new();
-    encode_length_prefixed_aspect_value(&mut bytes, value)
-        .expect("shared AspectValue witness codec must cover every AspectValue family");
+    encode_length_prefixed_aspect_value(&mut bytes, value);
     bytes
 }
 

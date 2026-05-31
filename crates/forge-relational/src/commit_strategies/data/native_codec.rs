@@ -130,11 +130,8 @@ pub fn decode_aspect_field_patch(
     })
 }
 
-pub fn encode_aspect_value(
-    bytes: &mut Vec<u8>,
-    value: &AspectValue,
-) -> Result<(), NativeCodecError> {
-    encode_length_prefixed_aspect_value(bytes, value).map_err(NativeCodecError::from)
+pub fn encode_aspect_value(bytes: &mut Vec<u8>, value: &AspectValue) {
+    encode_length_prefixed_aspect_value(bytes, value);
 }
 
 pub fn decode_aspect_value(

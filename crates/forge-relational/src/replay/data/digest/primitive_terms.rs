@@ -288,10 +288,8 @@ impl ReplayDigestBuilder {
     }
 
     pub(super) fn aspect_value(self, value: &AspectValue) -> Self {
-        match crate::aspect_wire::encode_aspect_value(value) {
-            Ok(bytes) => self.tag(1).byte_vec(&bytes),
-            Err(error) => self.tag(255).string(&error.to_string()),
-        }
+        self.tag(1)
+            .byte_vec(&crate::aspect_wire::encode_aspect_value(value))
     }
 
     pub(super) fn byte_vec(mut self, bytes: &[u8]) -> Self {

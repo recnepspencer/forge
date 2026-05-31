@@ -4,14 +4,13 @@ use sha2::{Digest, Sha256};
 
 use super::grouped_projection::{
     GroupedProjectionContract, RelationalGroupedMemberRow, RelationalGroupedProjectionDigest,
-    RelationalGroupedTruthError,
 };
 use super::row_set::{RelationalAuthoritativeRowArtifact, RelationalRowSetDigest};
 
 pub(super) fn row_set_digest(
     snapshot_identity: &TruthSnapshotIdentity,
     rows: &[RelationalAuthoritativeRowArtifact],
-) -> Result<RelationalRowSetDigest, RelationalGroupedTruthError> {
+) -> RelationalRowSetDigest {
     let mut bytes = Vec::new();
     bytes.push(1);
     encode_string(&mut bytes, snapshot_identity.as_str());
@@ -19,10 +18,10 @@ pub(super) fn row_set_digest(
         bytes.push(2);
         encode_string(&mut bytes, row.row_identity().as_str());
         for (aspect_key, value) in row.aspect_values() {
-            encode_aspect_entry(&mut bytes, aspect_key, value)?;
+            encode_aspect_entry(&mut bytes, aspect_key, value);
         }
     }
-    Ok(RelationalRowSetDigest::from_canonical_bytes(&bytes))
+    RelationalRowSetDigest::from_canonical_bytes(&bytes)
 }
 
 pub(super) fn grouped_projection_digest(
@@ -30,7 +29,7 @@ pub(super) fn grouped_projection_digest(
     snapshot_identity: &TruthSnapshotIdentity,
     contract: &GroupedProjectionContract,
     members: &[RelationalGroupedMemberRow],
-) -> Result<RelationalGroupedProjectionDigest, RelationalGroupedTruthError> {
+) -> RelationalGroupedProjectionDigest {
     let mut bytes = Vec::new();
     bytes.push(16);
     encode_string(&mut bytes, row_set_digest.as_str());
@@ -41,35 +40,21 @@ pub(super) fn grouped_projection_digest(
     for member in members {
         bytes.push(17);
         encode_string(&mut bytes, member.row_identity().as_str());
-        encode_aspect_value(&mut bytes, member.identity_value())?;
-        encode_aspect_value(&mut bytes, member.grouping_value())?;
+        encode_aspect_value(&mut bytes, member.identity_value());
+        encode_aspect_value(&mut bytes, member.grouping_value());
     }
-    Ok(RelationalGroupedProjectionDigest::from_canonical_bytes(
-        &bytes,
-    ))
+    RelationalGroupedProjectionDigest::from_canonical_bytes(&bytes)
 }
 
-fn encode_aspect_entry(
-    bytes: &mut Vec<u8>,
-    aspect_key: &AspectKey,
-    value: &AspectValue,
-) -> Result<(), RelationalGroupedTruthError> {
+fn encode_aspect_entry(bytes: &mut Vec<u8>, aspect_key: &AspectKey, value: &AspectValue) {
     bytes.push(3);
     encode_string(bytes, aspect_key.as_str());
     encode_aspect_value(bytes, value)
 }
 
-fn encode_aspect_value(
-    bytes: &mut Vec<u8>,
-    value: &AspectValue,
-) -> Result<(), RelationalGroupedTruthError> {
-    let value_bytes = crate::aspect_wire::encode_aspect_value(value).map_err(|error| {
-        RelationalGroupedTruthError::AspectValueEncodeFailure {
-            detail: error.to_string(),
-        }
-    })?;
+fn encode_aspect_value(bytes: &mut Vec<u8>, value: &AspectValue) {
+    let value_bytes = crate::aspect_wire::encode_aspect_value(value);
     encode_length_prefixed_bytes(bytes, &value_bytes);
-    Ok(())
 }
 
 fn encode_string(bytes: &mut Vec<u8>, value: &str) {

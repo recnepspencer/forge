@@ -113,12 +113,7 @@ impl AspectSnapshotBinaryEncoder {
     }
 
     fn aspect_value(&mut self, value: &AspectValue) -> Result<(), RelationalHarnessError> {
-        let canonical_bytes = crate::aspect_wire::encode_aspect_value(value).map_err(|error| {
-            RelationalHarnessError(format!(
-                "failed to encode harness snapshot aspect value: {}",
-                error.detail()
-            ))
-        })?;
+        let canonical_bytes = crate::aspect_wire::encode_aspect_value(value);
         self.bytes(&canonical_bytes);
         Ok(())
     }

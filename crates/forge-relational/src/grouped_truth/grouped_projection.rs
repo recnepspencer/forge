@@ -151,9 +151,6 @@ impl GroupedProjectionSource for RelationalGroupedProjectionArtifact {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RelationalGroupedTruthError {
     PacketResultShapeMismatch,
-    AspectValueEncodeFailure {
-        detail: String,
-    },
     AspectValueDecodeFailure {
         request_key: String,
     },
@@ -201,7 +198,7 @@ pub fn project_relational_grouped_truth(
         row_set.snapshot_identity(),
         &contract,
         &members,
-    )?;
+    );
 
     Ok(RelationalGroupedProjectionArtifact {
         row_set_digest: row_set.digest().clone(),
@@ -310,7 +307,7 @@ mod tests {
     }
 
     fn aspect_bytes(value: AspectValue) -> Vec<u8> {
-        crate::aspect_wire::encode_aspect_value(&value).expect("test aspect value bytes")
+        crate::aspect_wire::encode_aspect_value(&value)
     }
 
     fn aspect_key(value: &str) -> AspectKey {

@@ -213,7 +213,7 @@ fn relational_phase_one_authoring_surfaces_build_declarations() {
 }
 
 fn aspect_bytes(value: AspectValue) -> Vec<u8> {
-    encode_snapshot_aspect_read_value(&value).expect("test aspect value bytes")
+    encode_snapshot_aspect_read_value(&value)
 }
 
 fn grouped_projection_contract(

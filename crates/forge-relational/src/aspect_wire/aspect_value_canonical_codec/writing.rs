@@ -2,31 +2,22 @@ use forge_foundational::facade::{
     AspectValue, CanonicalBigInt, ContentRefId, EntityId, InternedString,
 };
 
-use super::{encode_string, encode_u32, tags, AspectValueCanonicalCodecError};
+use super::{encode_string, encode_u32, tags};
 
-pub(crate) fn encode_length_prefixed_aspect_value(
-    bytes: &mut Vec<u8>,
-    value: &AspectValue,
-) -> Result<(), AspectValueCanonicalCodecError> {
+pub(crate) fn encode_length_prefixed_aspect_value(bytes: &mut Vec<u8>, value: &AspectValue) {
     let mut value_bytes = Vec::new();
-    encode_aspect_value_body(&mut value_bytes, value)?;
+    encode_aspect_value_body(&mut value_bytes, value);
     encode_u32(bytes, value_bytes.len() as u32);
     bytes.extend_from_slice(&value_bytes);
-    Ok(())
 }
 
-pub(crate) fn encode_aspect_value(
-    value: &AspectValue,
-) -> Result<Vec<u8>, AspectValueCanonicalCodecError> {
+pub(crate) fn encode_aspect_value(value: &AspectValue) -> Vec<u8> {
     let mut bytes = Vec::new();
-    encode_aspect_value_body(&mut bytes, value)?;
-    Ok(bytes)
+    encode_aspect_value_body(&mut bytes, value);
+    bytes
 }
 
-fn encode_aspect_value_body(
-    bytes: &mut Vec<u8>,
-    value: &AspectValue,
-) -> Result<(), AspectValueCanonicalCodecError> {
+fn encode_aspect_value_body(bytes: &mut Vec<u8>, value: &AspectValue) {
     match value {
         AspectValue::Null => bytes.push(tags::NULL),
         AspectValue::Bool(value) => {
@@ -124,7 +115,6 @@ fn encode_aspect_value_body(
             encode_content_ref(bytes, *value);
         }
     }
-    Ok(())
 }
 
 fn encode_interned_string(bytes: &mut Vec<u8>, value: &InternedString) {

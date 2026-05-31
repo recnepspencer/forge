@@ -1,8 +1,6 @@
 use sha2::{Digest, Sha256};
 
-use crate::aspect_wire::{
-    encode_aspect_value, encode_string, encode_u32, AspectValueCanonicalCodecError,
-};
+use crate::aspect_wire::{encode_aspect_value, encode_string, encode_u32};
 use crate::merge::logic::aspect_components::MergeAspectComponent;
 use crate::storage::data::RecordLifecycleState;
 use forge_foundational::facade::AspectKey;
@@ -11,44 +9,44 @@ pub(crate) fn canonical_aspect_witness_digest(
     aspect_key: &AspectKey,
     source_component: &MergeAspectComponent,
     target_component: &MergeAspectComponent,
-) -> Result<String, AspectValueCanonicalCodecError> {
-    Ok(sha256_hex(&canonical_aspect_witness_bytes(
+) -> String {
+    sha256_hex(&canonical_aspect_witness_bytes(
         aspect_key,
         source_component,
         target_component,
-    )?))
+    ))
 }
 
 fn canonical_aspect_witness_bytes(
     aspect_key: &AspectKey,
     source_component: &MergeAspectComponent,
     target_component: &MergeAspectComponent,
-) -> Result<Vec<u8>, AspectValueCanonicalCodecError> {
+) -> Vec<u8> {
     let mut bytes = Vec::new();
     encode_string(&mut bytes, "merge.aspect_witness.v1");
     encode_string(&mut bytes, aspect_key.as_str());
-    encode_merge_component(&mut bytes, "source", source_component)?;
-    encode_merge_component(&mut bytes, "target", target_component)?;
-    Ok(bytes)
+    encode_merge_component(&mut bytes, "source", source_component);
+    encode_merge_component(&mut bytes, "target", target_component);
+    bytes
 }
 
 fn encode_merge_component(
     bytes: &mut Vec<u8>,
     side: &'static str,
     component: &MergeAspectComponent,
-) -> Result<(), AspectValueCanonicalCodecError> {
+) {
     encode_string(bytes, side);
     match component {
         MergeAspectComponent::AspectValue(value) => {
             encode_string(bytes, "aspect_value");
-            encode_length_prefixed_bytes(bytes, &encode_aspect_value(value)?);
+            encode_length_prefixed_bytes(bytes, &encode_aspect_value(value));
         }
         MergeAspectComponent::StructValue(value) => {
             encode_string(bytes, "struct_value");
             encode_u32(bytes, value.fields().count() as u32);
             for (field, field_value) in value.fields() {
                 encode_string(bytes, field.as_str());
-                encode_length_prefixed_bytes(bytes, &encode_aspect_value(field_value)?);
+                encode_length_prefixed_bytes(bytes, &encode_aspect_value(field_value));
             }
         }
         MergeAspectComponent::EntityEndpoint(entity_id) => {
@@ -62,7 +60,6 @@ fn encode_merge_component(
             bytes.push(lifecycle_state_tag(*state));
         }
     }
-    Ok(())
 }
 
 fn encode_length_prefixed_bytes(bytes: &mut Vec<u8>, value: &[u8]) {
@@ -101,8 +98,7 @@ mod tests {
             &aspect_key,
             &MergeAspectComponent::AspectValue(AspectValue::String("same".into())),
             &MergeAspectComponent::AspectValue(AspectValue::String("same".into())),
-        )
-        .expect("canonical digest");
+        );
 
         let mut expected_bytes = Vec::new();
         encode_string(&mut expected_bytes, "merge.aspect_witness.v1");
@@ -111,13 +107,13 @@ mod tests {
         encode_string(&mut expected_bytes, "aspect_value");
         encode_length_prefixed_bytes(
             &mut expected_bytes,
-            &encode_aspect_value(&AspectValue::String("same".into())).expect("source bytes"),
+            &encode_aspect_value(&AspectValue::String("same".into())),
         );
         encode_string(&mut expected_bytes, "target");
         encode_string(&mut expected_bytes, "aspect_value");
         encode_length_prefixed_bytes(
             &mut expected_bytes,
-            &encode_aspect_value(&AspectValue::String("same".into())).expect("target bytes"),
+            &encode_aspect_value(&AspectValue::String("same".into())),
         );
 
         assert_eq!(digest, sha256_hex(&expected_bytes));
@@ -137,8 +133,7 @@ mod tests {
             &aspect_key,
             &MergeAspectComponent::StructValue(struct_value.clone()),
             &MergeAspectComponent::StructValue(struct_value),
-        )
-        .expect("canonical witness bytes");
+        );
 
         let digest = sha256_hex(&witness_bytes);
         assert_eq!(digest.len(), 64);

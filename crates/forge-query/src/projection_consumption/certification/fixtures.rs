@@ -333,7 +333,7 @@ fn snapshot_aspect_key(value: &str) -> AspectKey {
 }
 
 fn aspect_bytes(value: AspectValue) -> Vec<u8> {
-    encode_snapshot_aspect_read_value(&value).expect("certification aspect value bytes")
+    encode_snapshot_aspect_read_value(&value)
 }
 
 pub(crate) fn intent_admission_admitted_projection_declaration() -> ProjectionConsumptionDeclaration

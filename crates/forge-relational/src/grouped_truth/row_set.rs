@@ -102,7 +102,7 @@ pub fn materialize_relational_authoritative_row_set(
         )
         .collect::<Vec<_>>();
 
-    let digest = row_set_digest(result.snapshot_identity(), &rows)?;
+    let digest = row_set_digest(result.snapshot_identity(), &rows);
 
     Ok(RelationalAuthoritativeRowSetArtifact {
         snapshot_identity: result.snapshot_identity().clone(),
@@ -220,7 +220,7 @@ mod tests {
     }
 
     fn aspect_bytes(value: AspectValue) -> Vec<u8> {
-        crate::aspect_wire::encode_aspect_value(&value).expect("test aspect value bytes")
+        crate::aspect_wire::encode_aspect_value(&value)
     }
 
     fn aspect_key(value: &str) -> AspectKey {
