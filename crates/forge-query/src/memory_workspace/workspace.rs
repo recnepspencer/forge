@@ -5,7 +5,7 @@ use crate::aspect_field_authoring::{
     project_aspect_value_to_workspace_json, terminal_field_label,
 };
 use crate::runtime::ForgeQueryAspectValue;
-use forge_foundational::facade::ContractValidatedAspectValueView;
+use forge_foundational::facade::{AspectValue, ContractValidatedAspectValueView};
 use forge_relational::facade::config::RelationalRuntimeProfile;
 use forge_relational::facade::identity::PartitionId;
 use forge_relational::facade::runtime::RelationalRuntimeApi;
@@ -188,12 +188,15 @@ impl ForgeQueryMemoryWorkspace {
             .unmasked_entity_records(self.kind_id)
             .into_iter()
             .filter_map(|record| {
-                Some(ForgeQueryEntity {
-                    identity: super::helpers::entity_identity(record.entity_id),
-                    payload: self.payload_from_authoritative_aspect_state(
+                let (aspect_values, external_projection) = self
+                    .aspect_projection_from_authoritative_aspect_state(
                         record.authoritative_aspect_state.as_ref()?,
-                    ),
-                })
+                    );
+                Some(ForgeQueryEntity::from_aspect_projection(
+                    super::helpers::entity_identity(record.entity_id),
+                    aspect_values,
+                    external_projection,
+                ))
             })
             .collect()
     }
@@ -290,11 +293,12 @@ impl ForgeQueryMemoryWorkspace {
         Ok(forge_relational::facade::transactions::AspectFieldPatch::from(targets))
     }
 
-    fn payload_from_authoritative_aspect_state(
+    fn aspect_projection_from_authoritative_aspect_state(
         &self,
         state: &forge_foundational::facade::AuthoritativeRecordAspectState,
-    ) -> Value {
-        let mut payload = Value::Object(serde_json::Map::new());
+    ) -> (std::collections::BTreeMap<String, AspectValue>, Value) {
+        let mut aspect_values = std::collections::BTreeMap::new();
+        let mut external_projection = Value::Object(serde_json::Map::new());
         for aspect in &self.aspects {
             let Ok(key) = aspect_key(aspect.label()) else {
                 continue;
@@ -305,13 +309,14 @@ impl ForgeQueryMemoryWorkspace {
             let ContractValidatedAspectValueView::Scalar(value) = validated.view() else {
                 continue;
             };
+            aspect_values.insert(aspect.label().to_string(), value.clone());
             let _ = super::helpers::set_json_path(
-                &mut payload,
+                &mut external_projection,
                 aspect.payload_path(),
                 project_aspect_value_to_workspace_json(value),
             );
         }
-        payload
+        (aspect_values, external_projection)
     }
 
     fn field_label_for_aspect_path(

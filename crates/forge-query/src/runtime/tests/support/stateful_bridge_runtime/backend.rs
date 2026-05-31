@@ -219,9 +219,8 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
             return Vec::new();
         };
         rows.iter()
-            .map(|(identity, external_row)| ForgeQueryEntity {
-                identity: identity.clone(),
-                payload: external_row.clone(),
+            .map(|(identity, external_row)| {
+                ForgeQueryEntity::from_external_projection(identity.clone(), external_row.clone())
             })
             .collect()
     }

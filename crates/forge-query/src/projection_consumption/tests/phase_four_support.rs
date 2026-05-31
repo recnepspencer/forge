@@ -231,20 +231,20 @@ pub(super) fn write_receipt_without_source_references() -> ForgeQueryWriteReceip
 pub(super) fn read_result() -> ForgeQueryReadResult {
     ForgeQueryReadResult::test_only(
         vec![
-            ForgeQueryEntity {
-                identity: "task-1".to_string(),
-                payload: json!({
+            ForgeQueryEntity::from_external_projection(
+                "task-1",
+                json!({
                     "profile": { "display_name": "Task One" },
                     "metrics": { "priority": 1 }
                 }),
-            },
-            ForgeQueryEntity {
-                identity: "task-2".to_string(),
-                payload: json!({
+            ),
+            ForgeQueryEntity::from_external_projection(
+                "task-2",
+                json!({
                     "profile": { "display_name": "Task Two" },
                     "metrics": { "priority": 2 }
                 }),
-            },
+            ),
         ],
         ForgeQueryReadReceipt::test_only(
             "read-graph:test",

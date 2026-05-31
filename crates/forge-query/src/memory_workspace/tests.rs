@@ -54,8 +54,14 @@ fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
     assert_eq!(update.deltas[0].kind, ForgeQueryMutationKind::Updated);
     assert_eq!(update.deltas[0].aspect_paths, ["title.value"]);
     assert_eq!(
-        workspace.entities()[0].payload["title"]["value"],
+        workspace.entities()[0].external_row()["title"]["value"],
         json!("Updated task")
+    );
+    assert_eq!(
+        workspace.entities()[0]
+            .aspect_value("title.value")
+            .map(crate::aspect_field_authoring::project_aspect_value_to_workspace_json),
+        Some(json!("Updated task"))
     );
 
     let delete = workspace

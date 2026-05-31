@@ -357,7 +357,7 @@ fn assert_context_materialized_rows(
     }));
     assert!(rows
         .iter()
-        .all(|row| row.identity.starts_with("query-context:")));
+        .all(|row| row.identity().starts_with("query-context:")));
 }
 
 fn assert_runtime_materialized_rows(rows: &[crate::facade::ForgeQueryEntity]) {
@@ -370,5 +370,5 @@ fn assert_runtime_materialized_rows(rows: &[crate::facade::ForgeQueryEntity]) {
         .any(|row| row.external_row().get("read").is_some()));
     assert!(rows
         .iter()
-        .all(|row| !row.identity.starts_with("query-context:")));
+        .all(|row| !row.identity().starts_with("query-context:")));
 }

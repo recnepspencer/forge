@@ -1,8 +1,10 @@
 use crate::view_shape_live::ViewShapePatchEnvelope;
+use forge_foundational::facade::AspectValue;
 use forge_relational::facade::identity::{EntityId, KindId};
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::BridgeMutationAuthorityBundle;
 use serde_json::Value;
+use std::collections::BTreeMap;
 
 mod helpers;
 #[cfg(test)]
@@ -34,21 +36,86 @@ impl ForgeQueryAspect {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ForgeQueryEntity {
-    pub identity: String,
-    pub payload: Value,
+    identity: String,
+    row: ForgeQueryEntityRow,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum ForgeQueryEntityRow {
+    AspectProjection {
+        aspect_values: BTreeMap<String, AspectValue>,
+        external_projection: Value,
+    },
+    ExternalProjection(Value),
 }
 
 impl ForgeQueryEntity {
+    pub fn from_aspect_projection(
+        identity: impl Into<String>,
+        aspect_values: BTreeMap<String, AspectValue>,
+        external_projection: Value,
+    ) -> Self {
+        Self {
+            identity: identity.into(),
+            row: ForgeQueryEntityRow::AspectProjection {
+                aspect_values,
+                external_projection,
+            },
+        }
+    }
+
+    pub fn from_external_projection(
+        identity: impl Into<String>,
+        external_projection: Value,
+    ) -> Self {
+        Self {
+            identity: identity.into(),
+            row: ForgeQueryEntityRow::ExternalProjection(external_projection),
+        }
+    }
+
     pub fn identity(&self) -> &str {
         &self.identity
     }
 
     pub fn external_row(&self) -> &Value {
-        &self.payload
+        match &self.row {
+            ForgeQueryEntityRow::AspectProjection {
+                external_projection,
+                ..
+            }
+            | ForgeQueryEntityRow::ExternalProjection(external_projection) => external_projection,
+        }
+    }
+
+    pub fn aspect_value(&self, aspect_path: &str) -> Option<&AspectValue> {
+        match &self.row {
+            ForgeQueryEntityRow::AspectProjection { aspect_values, .. } => {
+                aspect_values.get(aspect_path)
+            }
+            ForgeQueryEntityRow::ExternalProjection(_) => None,
+        }
+    }
+
+    pub fn aspect_values(&self) -> Box<dyn Iterator<Item = (&str, &AspectValue)> + '_> {
+        match &self.row {
+            ForgeQueryEntityRow::AspectProjection { aspect_values, .. } => Box::new(
+                aspect_values
+                    .iter()
+                    .map(|(path, value)| (path.as_str(), value)),
+            ),
+            ForgeQueryEntityRow::ExternalProjection(_) => Box::new(std::iter::empty()),
+        }
     }
 
     pub fn into_external_row(self) -> Value {
-        self.payload
+        match self.row {
+            ForgeQueryEntityRow::AspectProjection {
+                external_projection,
+                ..
+            }
+            | ForgeQueryEntityRow::ExternalProjection(external_projection) => external_projection,
+        }
     }
 
     pub fn external_row_path(&self, dotted_path: &str) -> Option<&Value> {

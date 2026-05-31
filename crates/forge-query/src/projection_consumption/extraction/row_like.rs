@@ -95,7 +95,7 @@ where
     let materialized_rows = rows
         .map(|(row_identity, fields)| {
             (
-                row_identity,
+                row_identity.to_string(),
                 fields.collect::<BTreeMap<&str, serde_json::Value>>(),
             )
         })
@@ -124,13 +124,18 @@ fn extract_json_rows(
 ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError> {
     let materialized_rows = rows
         .iter()
-        .map(|row| (row.identity(), row.external_row()))
+        .map(|row| {
+            (
+                row.identity().to_string(),
+                query_read_result_row_fields(contract, row),
+            )
+        })
         .collect::<Vec<_>>();
     extract_materialized_rows(
         contract,
         &materialized_rows,
-        |row_identity, external_row, field_key, fact_kind| {
-            external_row_path_value(external_row, field_key).ok_or_else(|| {
+        |row_identity, row_fields, field_key, fact_kind| {
+            row_fields.get(field_key).ok_or_else(|| {
                 ProjectionFactExtractionError::MissingDeclaredFieldEvidence {
                     source_family: contract.source_family(),
                     source_identity: format!("{}::{row_identity}", contract.source_identity()),
@@ -143,9 +148,49 @@ fn extract_json_rows(
     )
 }
 
+fn query_read_result_row_fields(
+    contract: &MaterializedProjectionContract,
+    row: &ForgeQueryEntity,
+) -> BTreeMap<String, serde_json::Value> {
+    let mut row_fields = row
+        .aspect_values()
+        .map(|(aspect_path, value)| {
+            (
+                aspect_path.to_string(),
+                project_aspect_value_for_consumption_json(value),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+
+    for field_key in contract_declared_field_keys(contract) {
+        if row_fields.contains_key(field_key.as_str()) {
+            continue;
+        }
+        if let Some(value) = external_row_path_value(row.external_row(), field_key.as_str()) {
+            row_fields.insert(field_key, value.clone());
+        }
+    }
+
+    row_fields
+}
+
+fn contract_declared_field_keys(contract: &MaterializedProjectionContract) -> BTreeSet<String> {
+    contract
+        .fact_families()
+        .iter()
+        .filter_map(|fact| match fact.kind() {
+            ProjectionFactKind::EntityIdentity => Some("identity.id".to_string()),
+            ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+                fact.field_key().map(str::to_string)
+            }
+            _ => None,
+        })
+        .collect()
+}
+
 fn extract_materialized_rows<RowData, Lookup>(
     contract: &MaterializedProjectionContract,
-    rows: &[(&str, RowData)],
+    rows: &[(String, RowData)],
     lookup: Lookup,
     row_identity_mode: RowIdentityExtractionMode,
 ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError>
@@ -189,11 +234,11 @@ where
                 ProjectionFactKind::EntityIdentity => {
                     let entity_identity = match row_identity_mode {
                         RowIdentityExtractionMode::RowIdentityAsEntityIdentity => {
-                            (*row_identity).to_string()
+                            row_identity.clone()
                         }
                         RowIdentityExtractionMode::IdentityFieldBackedEntityIdentity => {
                             let value = lookup(
-                                *row_identity,
+                                row_identity.as_str(),
                                 row_data,
                                 "identity.id",
                                 ProjectionFactKind::EntityIdentity,
@@ -213,20 +258,29 @@ where
                         }
                     };
                     entity_identities.push(ConsumedEntityIdentityFact::new(
-                        *row_identity,
+                        row_identity.as_str(),
                         entity_identity,
                     ));
                 }
                 ProjectionFactKind::ViewLocalIdentity => {
                     view_local_identities.push(ConsumedViewLocalIdentityFact::new(
-                        *row_identity,
-                        *row_identity,
+                        row_identity.as_str(),
+                        row_identity.as_str(),
                     ));
                 }
                 ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
                     let field_key = fact_family.field_key().expect("field key required");
-                    let value = lookup(*row_identity, row_data, field_key, fact_family.kind())?;
-                    let fact = ConsumedFieldValueFact::new(*row_identity, field_key, value.clone());
+                    let value = lookup(
+                        row_identity.as_str(),
+                        row_data,
+                        field_key,
+                        fact_family.kind(),
+                    )?;
+                    let fact = ConsumedFieldValueFact::new(
+                        row_identity.as_str(),
+                        field_key,
+                        value.clone(),
+                    );
                     if fact_family.kind() == ProjectionFactKind::DisplayField {
                         display_fields.push(fact);
                     } else {
