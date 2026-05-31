@@ -43,7 +43,7 @@ impl<'runtime> IndexAccess<'runtime> {
             .get(&index_id)
             .and_then(|generations| {
                 generations.iter().rev().find(|generation| {
-                    !definition.branch_scoped || generation.compatibility.branch_id == *branch_id
+                    !definition.branch_scoped || generation.applicability.branch_id == *branch_id
                 })
             })
     }
@@ -58,13 +58,13 @@ impl<'runtime> IndexAccess<'runtime> {
             .generations
             .values()
             .flat_map(|generations| generations.iter())
-            .filter(|generation| generation.compatibility.version_id <= version_id)
+            .filter(|generation| generation.applicability.version_id <= version_id)
             .cloned()
             .collect::<Vec<_>>();
         generations.sort_by(|left, right| {
-            left.compatibility
+            left.applicability
                 .branch_id
-                .cmp(&right.compatibility.branch_id)
+                .cmp(&right.applicability.branch_id)
                 .then_with(|| left.source_commit_id.cmp(&right.source_commit_id))
                 .then_with(|| left.generation_id.cmp(&right.generation_id))
         });

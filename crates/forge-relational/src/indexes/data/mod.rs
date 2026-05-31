@@ -48,7 +48,7 @@ pub enum DerivedIndexPublicationStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DerivedIndexCompatibility {
+pub struct DerivedIndexApplicability {
     pub branch_id: BranchId,
     pub version_id: VersionId,
     pub schema_version: SchemaVersionId,
@@ -60,7 +60,7 @@ pub struct DerivedIndexGeneration {
     pub index_id: DerivedIndexId,
     pub source_commit_id: CommitId,
     pub source_branch_id: BranchId,
-    pub compatibility: DerivedIndexCompatibility,
+    pub applicability: DerivedIndexApplicability,
     pub status: DerivedIndexPublicationStatus,
     pub entries: DerivedIndexEntries,
 }

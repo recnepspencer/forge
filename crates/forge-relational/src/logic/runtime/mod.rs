@@ -13,7 +13,7 @@ pub use crate::performance::data::{
 };
 pub use crate::replay::data::{RelationalReplayRecord, ReplaySchemaVersion};
 pub use crate::simulation::data::{
-    CompiledArtifactCompatibility, CompiledArtifactError, CompiledExecutionArtifact,
+    CompiledArtifactAuthorityStatus, CompiledArtifactError, CompiledExecutionArtifact,
     TopologyFreezeMode,
 };
 pub use crate::simulation::logic::{SimulationAccess, SimulationAuthority};

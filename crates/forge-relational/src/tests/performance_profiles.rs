@@ -31,7 +31,7 @@ use crate::facade::query::{
     ReductionDiscipline,
 };
 use crate::facade::replay::{RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode};
-use crate::facade::runtime::{CompiledArtifactCompatibility, EntityRecordProjection};
+use crate::facade::runtime::{CompiledArtifactAuthorityStatus, EntityRecordProjection};
 use crate::facade::symbols::Symbol;
 use crate::replay::data::digest_diagnostics_surface;
 use crate::tests::support::*;
@@ -3232,11 +3232,11 @@ fn perf_chip_simulator_matrix() {
                     RelationalRuntimeProfile::ChipSimulation,
                 ),
                 "adjacency_backend": format!("{:?}", runtime.config().storage.adjacency_policy.backend),
-                "compiled_artifact_compatibility": format!(
+                "compiled_artifact_authority_status": format!(
                     "{:?}",
                     runtime
                         .compiled_artifacts()
-                        .compiled_artifact_compatibility(artifact.artifact_id)
+                        .compiled_artifact_authority_status(artifact.artifact_id)
                 ),
                 "counters": counters,
             }),
@@ -3284,8 +3284,11 @@ fn perf_chip_simulator_matrix() {
                         "{:?}",
                         AdjacencyBackend::CompressedFanoutAdjacency
                     ))
-                && metrics["compiled_artifact_compatibility"].as_str()
-                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
+                && metrics["compiled_artifact_authority_status"].as_str()
+                    == Some(&format!(
+                        "{:?}",
+                        CompiledArtifactAuthorityStatus::Authoritative
+                    ))
                 && metrics["diagnostic_artifact_count"].as_u64().unwrap_or(0) >= 1
                 && metrics["detailed_trace_entries"].as_u64() == Some(0)
                 && metrics["profile_boundary"]["execution_lane_code"].as_u64() == Some(1)
@@ -3398,11 +3401,11 @@ fn perf_chip_simulator_matrix() {
                         RelationalRuntimeProfile::ChipSimulation,
                     ),
                     "adjacency_backend": format!("{:?}", runtime.config().storage.adjacency_policy.backend),
-                    "compiled_artifact_compatibility": format!(
+                    "compiled_artifact_authority_status": format!(
                         "{:?}",
                         runtime
                             .compiled_artifacts()
-                            .compiled_artifact_compatibility(artifact.artifact_id)
+                            .compiled_artifact_authority_status(artifact.artifact_id)
                     ),
                     "counters": counters,
                 }),
@@ -3448,8 +3451,8 @@ fn perf_chip_simulator_matrix() {
                 && metrics["outgoing_relation_count"].as_u64() == Some(24)
                 && metrics["adjacency_backend"].as_str()
                     == Some(&format!("{:?}", AdjacencyBackend::CompressedFanoutAdjacency))
-                && metrics["compiled_artifact_compatibility"].as_str()
-                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
+                && metrics["compiled_artifact_authority_status"].as_str()
+                    == Some(&format!("{:?}", CompiledArtifactAuthorityStatus::Authoritative))
                 && metrics["diagnostic_artifact_count"].as_u64().unwrap_or(0) >= 1
                 && metrics["detailed_trace_entries"].as_u64().unwrap_or(0) >= 1
                 && metrics["profile_boundary"]["execution_lane_code"].as_u64() == Some(1)
@@ -3555,11 +3558,11 @@ fn perf_chip_simulator_matrix() {
                         .durable_log()
                         .len(),
                     "outgoing_relation_count": outgoing_relations.len(),
-                    "compiled_artifact_compatibility": format!(
+                    "compiled_artifact_authority_status": format!(
                         "{:?}",
                         recovered
                             .compiled_artifacts()
-                            .compiled_artifact_compatibility(artifact.artifact_id)
+                            .compiled_artifact_authority_status(artifact.artifact_id)
                     ),
                     "counters": recovered.performance_access().counters(),
                 }),
@@ -3589,8 +3592,11 @@ fn perf_chip_simulator_matrix() {
             metrics["checkpoint_micros"].as_u64().unwrap_or(0) > 0
                 && metrics["recover_micros"].as_u64().unwrap_or(0) > 0
                 && metrics["outgoing_relation_count"].as_u64() == Some(12)
-                && metrics["compiled_artifact_compatibility"].as_str()
-                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
+                && metrics["compiled_artifact_authority_status"].as_str()
+                    == Some(&format!(
+                        "{:?}",
+                        CompiledArtifactAuthorityStatus::Authoritative
+                    ))
                 && counter_u64(metrics, "full_state_clones") == 0
         },
     );
@@ -3750,11 +3756,11 @@ fn perf_chip_simulator_matrix() {
                     "outgoing_relation_count": outgoing_relations.len(),
                     "diagnostic_artifact_count": diagnostic_artifact_count,
                     "detailed_trace_entries": detailed_trace_entries,
-                    "compiled_artifact_compatibility": format!(
+                    "compiled_artifact_authority_status": format!(
                         "{:?}",
                         runtime
                             .compiled_artifacts()
-                            .compiled_artifact_compatibility(artifact.artifact_id)
+                            .compiled_artifact_authority_status(artifact.artifact_id)
                     ),
                     "counters": runtime.performance_access().counters(),
                 }),
@@ -3790,8 +3796,8 @@ fn perf_chip_simulator_matrix() {
                 && metrics["rollback_restored_records"].as_u64() == Some(0)
                 && metrics["committed_changed_records"].as_u64() == Some(1)
                 && metrics["outgoing_relation_count"].as_u64() == Some(8)
-                && metrics["compiled_artifact_compatibility"].as_str()
-                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
+                && metrics["compiled_artifact_authority_status"].as_str()
+                    == Some(&format!("{:?}", CompiledArtifactAuthorityStatus::Authoritative))
                 && metrics["diagnostic_artifact_count"].as_u64().unwrap_or(0) >= 1
                 && counter_u64(metrics, "full_state_clones") == 0
         },
@@ -3920,11 +3926,11 @@ fn perf_chip_simulator_matrix() {
                         "explicit_result_entities": explicit.result.entities.len(),
                         "diagnostic_artifact_count": diagnostic_artifact_count,
                         "detailed_trace_entries": detailed_trace_entries,
-                        "compiled_artifact_compatibility": format!(
+                        "compiled_artifact_authority_status": format!(
                             "{:?}",
                             runtime
                                 .compiled_artifacts()
-                                .compiled_artifact_compatibility(artifact.artifact_id)
+                                .compiled_artifact_authority_status(artifact.artifact_id)
                         ),
                         "phase_timing": {
                             "draft_preparation_micros": phase_timing.draft_preparation_micros,
@@ -3980,8 +3986,8 @@ fn perf_chip_simulator_matrix() {
                 && metrics["batch_partition_count"].as_u64() == Some(8)
                 && metrics["hot_changed_records"].as_u64() == Some(32)
                 && metrics["explicit_result_entities"].as_u64() == Some(8)
-                && metrics["compiled_artifact_compatibility"].as_str()
-                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
+                && metrics["compiled_artifact_authority_status"].as_str()
+                    == Some(&format!("{:?}", CompiledArtifactAuthorityStatus::Authoritative))
                 && metrics["diagnostic_artifact_count"].as_u64().unwrap_or(0) >= 1
                 && metrics["detailed_trace_entries"].as_u64() == Some(0)
                 && counter_u64(metrics, "full_state_clones") == 0
@@ -4072,8 +4078,8 @@ fn perf_chip_simulator_matrix() {
                 assert_eq!(
                     runtime
                         .compiled_artifacts()
-                        .compiled_artifact_compatibility(artifact.artifact_id),
-                    CompiledArtifactCompatibility::Compatible
+                        .compiled_artifact_authority_status(artifact.artifact_id),
+                    CompiledArtifactAuthorityStatus::Authoritative
                 );
             }
 
@@ -4203,8 +4209,8 @@ fn perf_chip_simulator_matrix() {
                 assert_eq!(
                     runtime
                         .compiled_artifacts()
-                        .compiled_artifact_compatibility(artifact.artifact_id),
-                    CompiledArtifactCompatibility::Compatible
+                        .compiled_artifact_authority_status(artifact.artifact_id),
+                    CompiledArtifactAuthorityStatus::Authoritative
                 );
             }
 
@@ -7322,8 +7328,8 @@ fn perf_sustained_load_matrix() {
                 assert_eq!(
                     runtime
                         .compiled_artifacts()
-                        .compiled_artifact_compatibility(artifact.artifact_id),
-                    CompiledArtifactCompatibility::Compatible
+                        .compiled_artifact_authority_status(artifact.artifact_id),
+                    CompiledArtifactAuthorityStatus::Authoritative
                 );
 
                 cycle_samples.push(update_micros + compile_micros + adjacency_micros);
@@ -9663,13 +9669,13 @@ fn perf_hot_cold_path_matrix() {
                     "hot_changed_records": hot_commit.changed_records.len(),
                     "replay_mismatch_count": replay.mismatches.len(),
                     "replay_failure": replay.failure.as_ref().map(|failure| format!("{failure:?}")),
-                    "hot_compatibility": format!(
+                    "hot_authority_status": format!(
                         "{:?}",
-                        runtime.compiled_artifacts().compiled_artifact_compatibility(hot_artifact.artifact_id)
+                        runtime.compiled_artifacts().compiled_artifact_authority_status(hot_artifact.artifact_id)
                     ),
-                    "cold_compatibility": format!(
+                    "cold_authority_status": format!(
                         "{:?}",
-                        recovered.compiled_artifacts().compiled_artifact_compatibility(cold_artifact.artifact_id)
+                        recovered.compiled_artifacts().compiled_artifact_authority_status(cold_artifact.artifact_id)
                     ),
                     "phase_timing": {
                         "hot_commit_micros": hot_commit_micros,
@@ -9717,10 +9723,10 @@ fn perf_hot_cold_path_matrix() {
             metrics["hot_changed_records"].as_u64() == Some(1)
                 && metrics["replay_failure"].is_null()
                 && metrics["replay_mismatch_count"].as_u64() == Some(0)
-                && metrics["hot_compatibility"].as_str()
-                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
-                && metrics["cold_compatibility"].as_str()
-                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
+                && metrics["hot_authority_status"].as_str()
+                    == Some(&format!("{:?}", CompiledArtifactAuthorityStatus::Authoritative))
+                && metrics["cold_authority_status"].as_str()
+                    == Some(&format!("{:?}", CompiledArtifactAuthorityStatus::Authoritative))
                 && metrics["phase_timing"]["hot_compile_micros"].as_u64().unwrap_or(0) > 0
                 && metrics["phase_timing"]["recover_micros"].as_u64().unwrap_or(0) > 0
                 && metrics["phase_timing"]["cold_compile_micros"].as_u64().unwrap_or(0) > 0
@@ -10072,13 +10078,13 @@ fn perf_hot_cold_path_matrix() {
                     "hot_detailed_trace_entries": hot_detailed_trace_entries,
                     "replay_mismatch_count": replay.mismatches.len(),
                     "replay_failure": replay.failure.as_ref().map(|failure| format!("{failure:?}")),
-                    "hot_compatibility": format!(
+                    "hot_authority_status": format!(
                         "{:?}",
-                        runtime.compiled_artifacts().compiled_artifact_compatibility(hot_artifact.artifact_id)
+                        runtime.compiled_artifacts().compiled_artifact_authority_status(hot_artifact.artifact_id)
                     ),
-                    "cold_compatibility": format!(
+                    "cold_authority_status": format!(
                         "{:?}",
-                        recovered.compiled_artifacts().compiled_artifact_compatibility(cold_artifact.artifact_id)
+                        recovered.compiled_artifacts().compiled_artifact_authority_status(cold_artifact.artifact_id)
                     ),
                     "phase_timing": {
                         "hot_commit_micros": hot_commit_micros,
@@ -10136,10 +10142,10 @@ fn perf_hot_cold_path_matrix() {
                 && metrics["hot_detailed_trace_entries"].as_u64().unwrap_or(0) >= 1
                 && metrics["replay_failure"].is_null()
                 && metrics["replay_mismatch_count"].as_u64() == Some(0)
-                && metrics["hot_compatibility"].as_str()
-                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
-                && metrics["cold_compatibility"].as_str()
-                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
+                && metrics["hot_authority_status"].as_str()
+                    == Some(&format!("{:?}", CompiledArtifactAuthorityStatus::Authoritative))
+                && metrics["cold_authority_status"].as_str()
+                    == Some(&format!("{:?}", CompiledArtifactAuthorityStatus::Authoritative))
                 && metrics["phase_timing"]["hot_compile_micros"].as_u64().unwrap_or(0) > 0
                 && metrics["phase_timing"]["recover_micros"].as_u64().unwrap_or(0) > 0
                 && metrics["phase_timing"]["cold_compile_micros"].as_u64().unwrap_or(0) > 0
@@ -10445,13 +10451,13 @@ fn perf_artifact_recoverability_matrix() {
                     "cold_compiled_record_count": cold_artifact.compiled_record_count,
                     "hot_partition_count": hot_artifact.partition_ids.len(),
                     "cold_partition_count": cold_artifact.partition_ids.len(),
-                    "hot_compatibility": format!(
+                    "hot_authority_status": format!(
                         "{:?}",
-                        runtime.compiled_artifacts().compiled_artifact_compatibility(hot_artifact.artifact_id)
+                        runtime.compiled_artifacts().compiled_artifact_authority_status(hot_artifact.artifact_id)
                     ),
-                    "cold_compatibility": format!(
+                    "cold_authority_status": format!(
                         "{:?}",
-                        recovered.compiled_artifacts().compiled_artifact_compatibility(cold_artifact.artifact_id)
+                        recovered.compiled_artifacts().compiled_artifact_authority_status(cold_artifact.artifact_id)
                     ),
                     "replay_failure": replay.failure.as_ref().map(|failure| format!("{failure:?}")),
                     "replay_mismatch_count": replay.mismatches.len(),
@@ -10500,10 +10506,10 @@ fn perf_artifact_recoverability_matrix() {
         |metrics| {
             metrics["hot_compiled_record_count"] == metrics["cold_compiled_record_count"]
                 && metrics["hot_partition_count"] == metrics["cold_partition_count"]
-                && metrics["hot_compatibility"].as_str()
-                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
-                && metrics["cold_compatibility"].as_str()
-                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
+                && metrics["hot_authority_status"].as_str()
+                    == Some(&format!("{:?}", CompiledArtifactAuthorityStatus::Authoritative))
+                && metrics["cold_authority_status"].as_str()
+                    == Some(&format!("{:?}", CompiledArtifactAuthorityStatus::Authoritative))
                 && metrics["replay_failure"].is_null()
                 && metrics["replay_mismatch_count"].as_u64() == Some(0)
         },
@@ -11879,13 +11885,13 @@ fn perf_recoverability_policy_matrix() {
                     "must_be_hot_changed_records": hot_commit.changed_records.len(),
                     "reconstructable_compiled_record_count": cold_artifact.compiled_record_count,
                     "hot_compiled_record_count": hot_artifact.compiled_record_count,
-                    "hot_compatibility": format!(
+                    "hot_authority_status": format!(
                         "{:?}",
-                        runtime.compiled_artifacts().compiled_artifact_compatibility(hot_artifact.artifact_id)
+                        runtime.compiled_artifacts().compiled_artifact_authority_status(hot_artifact.artifact_id)
                     ),
-                    "cold_compatibility": format!(
+                    "cold_authority_status": format!(
                         "{:?}",
-                        recovered.compiled_artifacts().compiled_artifact_compatibility(cold_artifact.artifact_id)
+                        recovered.compiled_artifacts().compiled_artifact_authority_status(cold_artifact.artifact_id)
                     ),
                     "replay_mismatch_count": replay.mismatches.len(),
                     "replay_failure": replay.failure.as_ref().map(|failure| format!("{failure:?}")),
@@ -11933,10 +11939,10 @@ fn perf_recoverability_policy_matrix() {
         |metrics| {
             metrics["must_be_hot_changed_records"].as_u64() == Some(1)
                 && metrics["hot_compiled_record_count"] == metrics["reconstructable_compiled_record_count"]
-                && metrics["hot_compatibility"].as_str()
-                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
-                && metrics["cold_compatibility"].as_str()
-                    == Some(&format!("{:?}", CompiledArtifactCompatibility::Compatible))
+                && metrics["hot_authority_status"].as_str()
+                    == Some(&format!("{:?}", CompiledArtifactAuthorityStatus::Authoritative))
+                && metrics["cold_authority_status"].as_str()
+                    == Some(&format!("{:?}", CompiledArtifactAuthorityStatus::Authoritative))
                 && metrics["replay_failure"].is_null()
                 && metrics["replay_mismatch_count"].as_u64() == Some(0)
         },

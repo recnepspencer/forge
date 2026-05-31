@@ -1,5 +1,5 @@
 use crate::facade::config::AdjacencyBackend;
-use crate::facade::runtime::CompiledArtifactCompatibility;
+use crate::facade::runtime::CompiledArtifactAuthorityStatus;
 use crate::tests::support::*;
 
 #[test]
@@ -69,8 +69,8 @@ fn chip_profile_compiled_artifacts_are_derived_from_committed_truth() {
     assert_eq!(
         runtime
             .compiled_artifacts()
-            .compiled_artifact_compatibility(artifact.artifact_id),
-        CompiledArtifactCompatibility::Compatible
+            .compiled_artifact_authority_status(artifact.artifact_id),
+        CompiledArtifactAuthorityStatus::Authoritative
     );
 }
 
@@ -87,8 +87,8 @@ fn compiled_artifact_rejects_stale_topology_after_later_commit() {
     assert_eq!(
         runtime
             .compiled_artifacts()
-            .compiled_artifact_compatibility(artifact.artifact_id),
-        CompiledArtifactCompatibility::StaleVersion
+            .compiled_artifact_authority_status(artifact.artifact_id),
+        CompiledArtifactAuthorityStatus::StaleVersion
     );
 }
 
@@ -146,8 +146,8 @@ fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_li
     assert_eq!(
         runtime
             .compiled_artifacts()
-            .compiled_artifact_compatibility(compiled.artifact_id),
-        CompiledArtifactCompatibility::StaleVersion
+            .compiled_artifact_authority_status(compiled.artifact_id),
+        CompiledArtifactAuthorityStatus::StaleVersion
     );
     assert_eq!(deleted.changed_records.len(), 4);
     for relation in relations {
@@ -295,13 +295,13 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
     assert_eq!(
         runtime
             .compiled_artifacts()
-            .compiled_artifact_compatibility(main_artifact.artifact_id),
-        CompiledArtifactCompatibility::StaleVersion
+            .compiled_artifact_authority_status(main_artifact.artifact_id),
+        CompiledArtifactAuthorityStatus::StaleVersion
     );
     assert_eq!(
         runtime
             .compiled_artifacts()
-            .compiled_artifact_compatibility(feature_artifact.artifact_id),
-        CompiledArtifactCompatibility::Compatible
+            .compiled_artifact_authority_status(feature_artifact.artifact_id),
+        CompiledArtifactAuthorityStatus::Authoritative
     );
 }

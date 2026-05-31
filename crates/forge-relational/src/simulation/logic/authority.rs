@@ -8,7 +8,7 @@ use crate::identity::data::PartitionId;
 use crate::logic::runtime::RelationalRuntime;
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::simulation::data::{
-    CompiledArtifactCompatibility, CompiledArtifactError, CompiledExecutionArtifact,
+    CompiledArtifactAuthorityStatus, CompiledArtifactError, CompiledExecutionArtifact,
     TopologyFreezeMode,
 };
 
@@ -51,7 +51,7 @@ fn ensure_compiled_lane_enabled(runtime: &RelationalRuntime) -> Result<(), Compi
     }
 
     Err(CompiledArtifactError {
-        compatibility: CompiledArtifactCompatibility::CompiledLaneDisabled,
+        authority_status: CompiledArtifactAuthorityStatus::CompiledLaneDisabled,
         detail: "compiled execution lane is disabled for this profile".to_string(),
     })
 }
@@ -65,7 +65,7 @@ fn source_commit_envelope(
         .commit_envelope(commit_id)
         .cloned()
         .ok_or_else(|| CompiledArtifactError {
-            compatibility: CompiledArtifactCompatibility::MissingSourceCommit,
+            authority_status: CompiledArtifactAuthorityStatus::MissingSourceCommit,
             detail: format!("missing source commit {}", commit_id.0),
         })
 }

@@ -29,7 +29,7 @@ pub(crate) fn admissible_access_path(
                 .generations
                 .values()
                 .flat_map(|generations| generations.iter())
-                .any(|generation| generation.compatibility.version_id <= plan.snapshot.version_id)
+                .any(|generation| generation.applicability.version_id <= plan.snapshot.version_id)
             {
                 IndexQueryRejectionClass::UnsupportedScope
             } else {
@@ -77,7 +77,7 @@ fn index_rejection_for_packet(
     if generation.status != crate::indexes::data::DerivedIndexPublicationStatus::Published {
         return Some(IndexQueryRejectionClass::CorruptIndexEntries);
     }
-    if generation.compatibility.branch_id != *branch_id
+    if generation.applicability.branch_id != *branch_id
         && runtime
             .indexes
             .definitions
@@ -86,10 +86,10 @@ fn index_rejection_for_packet(
     {
         return Some(IndexQueryRejectionClass::IncompatibleBranch);
     }
-    if generation.compatibility.version_id > packet.context_id.version_id {
+    if generation.applicability.version_id > packet.context_id.version_id {
         return Some(IndexQueryRejectionClass::IncompatibleVersion);
     }
-    if generation.compatibility.schema_version != packet.context_id.schema_version {
+    if generation.applicability.schema_version != packet.context_id.schema_version {
         return Some(IndexQueryRejectionClass::IncompatibleVersion);
     }
     match &packet.scope {
@@ -256,22 +256,22 @@ fn generation_preference(
     packet: &PlannedQueryPacket,
     branch_id: &BranchId,
 ) -> (bool, bool, bool, bool) {
-    let branch_compatible = runtime
+    let branch_applicable = runtime
         .indexes
         .definitions
         .get(&generation.index_id)
         .is_none_or(|definition| {
-            !definition.branch_scoped || generation.compatibility.branch_id == *branch_id
+            !definition.branch_scoped || generation.applicability.branch_id == *branch_id
         });
-    let version_compatible = generation.compatibility.version_id <= packet.context_id.version_id;
-    let schema_compatible =
-        generation.compatibility.schema_version == packet.context_id.schema_version;
+    let version_applicable = generation.applicability.version_id <= packet.context_id.version_id;
+    let schema_applicable =
+        generation.applicability.schema_version == packet.context_id.schema_version;
     let published =
         generation.status == crate::indexes::data::DerivedIndexPublicationStatus::Published;
     (
         published,
-        branch_compatible,
-        version_compatible,
-        schema_compatible,
+        branch_applicable,
+        version_applicable,
+        schema_applicable,
     )
 }

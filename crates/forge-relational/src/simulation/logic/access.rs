@@ -1,6 +1,6 @@
 use crate::config::data::CompiledLanePolicy;
 use crate::logic::runtime::RelationalRuntime;
-use crate::simulation::data::{CompiledArtifactCompatibility, CompiledExecutionArtifact};
+use crate::simulation::data::{CompiledArtifactAuthorityStatus, CompiledExecutionArtifact};
 
 pub struct SimulationAccess<'runtime> {
     runtime: &'runtime RelationalRuntime,
@@ -21,17 +21,17 @@ impl<'runtime> SimulationAccess<'runtime> {
         self.runtime.services.compiled_artifact(artifact_id)
     }
 
-    pub fn compiled_artifact_compatibility(
+    pub fn compiled_artifact_authority_status(
         &self,
         artifact_id: u64,
-    ) -> CompiledArtifactCompatibility {
+    ) -> CompiledArtifactAuthorityStatus {
         if self.runtime.config.execution.compiled_lane_policy
             != CompiledLanePolicy::DerivedCompiledLane
         {
-            return CompiledArtifactCompatibility::CompiledLaneDisabled;
+            return CompiledArtifactAuthorityStatus::CompiledLaneDisabled;
         }
         let Some(artifact) = self.runtime.services.compiled_artifact(artifact_id) else {
-            return CompiledArtifactCompatibility::MissingSourceCommit;
+            return CompiledArtifactAuthorityStatus::MissingSourceCommit;
         };
         let Some(commit) = self
             .runtime
@@ -39,14 +39,14 @@ impl<'runtime> SimulationAccess<'runtime> {
             .commit_envelopes
             .get(&artifact.source_commit_id)
         else {
-            return CompiledArtifactCompatibility::MissingSourceCommit;
+            return CompiledArtifactAuthorityStatus::MissingSourceCommit;
         };
         if commit.commit.version_id != artifact.source_version_id {
-            return CompiledArtifactCompatibility::StaleVersion;
+            return CompiledArtifactAuthorityStatus::StaleVersion;
         }
         if self.runtime.current_version_id() != artifact.source_version_id {
-            return CompiledArtifactCompatibility::StaleVersion;
+            return CompiledArtifactAuthorityStatus::StaleVersion;
         }
-        CompiledArtifactCompatibility::Compatible
+        CompiledArtifactAuthorityStatus::Authoritative
     }
 }

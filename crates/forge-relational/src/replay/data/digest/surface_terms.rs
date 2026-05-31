@@ -172,9 +172,9 @@ pub(crate) fn digest_derived_index_surface(artifacts: &DerivedIndexArtifacts) ->
             .u64(generation.index_id.0)
             .commit_id(generation.source_commit_id)
             .branch_id(&generation.source_branch_id)
-            .branch_id(&generation.compatibility.branch_id)
-            .version_id(generation.compatibility.version_id)
-            .schema_version_id(generation.compatibility.schema_version)
+            .branch_id(&generation.applicability.branch_id)
+            .version_id(generation.applicability.version_id)
+            .schema_version_id(generation.applicability.schema_version)
             .label(generation.status)
             .derived_index_entries(&generation.entries);
     }

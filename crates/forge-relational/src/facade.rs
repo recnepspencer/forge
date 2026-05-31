@@ -141,7 +141,7 @@ pub mod inspection {
 
 pub mod indexes {
     pub use crate::indexes::data::{
-        DerivedIndexBuildOutcome, DerivedIndexBuildRequest, DerivedIndexCompatibility,
+        DerivedIndexApplicability, DerivedIndexBuildOutcome, DerivedIndexBuildRequest,
         DerivedIndexDefinition, DerivedIndexEntries, DerivedIndexGeneration,
         DerivedIndexGenerationId, DerivedIndexId, DerivedIndexKind, DerivedIndexPublicationStatus,
     };
@@ -211,7 +211,7 @@ pub mod runtime {
     #[cfg(test)]
     pub use crate::logic::runtime::HarnessAuditMode;
     pub use crate::logic::runtime::{
-        CompiledArtifactCompatibility, CompiledArtifactError, CompiledExecutionArtifact,
+        CompiledArtifactAuthorityStatus, CompiledArtifactError, CompiledExecutionArtifact,
         ComplexityContract, ComplexityStatus, EntityProjectionRecord, EntityRecordProjection,
         InvariantAccess, RelationProjectionRecord, RelationRecordProjection,
         RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion,

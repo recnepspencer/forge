@@ -5,7 +5,7 @@ mod packet_planning;
 use crate::capabilities::SchemaVersionSource;
 use crate::history::data::CommitId;
 use crate::indexes::data::{
-    DerivedIndexBuildOutcome, DerivedIndexBuildRequest, DerivedIndexCompatibility,
+    DerivedIndexApplicability, DerivedIndexBuildOutcome, DerivedIndexBuildRequest,
     DerivedIndexDefinition, DerivedIndexGeneration, DerivedIndexGenerationId, DerivedIndexId,
     DerivedIndexPublicationStatus,
 };
@@ -85,7 +85,7 @@ impl<'runtime> IndexAuthority<'runtime> {
                         index_id: result.index_id,
                         source_commit_id: request.source_commit_id,
                         source_branch_id: request.branch_id.clone(),
-                        compatibility: DerivedIndexCompatibility {
+                        applicability: DerivedIndexApplicability {
                             branch_id: request.branch_id.clone(),
                             version_id,
                             schema_version,
