@@ -83,7 +83,7 @@ fn batch_admission_denies_preview_mutation_until_authoritative_rebind() {
             ),
             input: MutationLoweringInput::IntentReconciliation {
                 entity_id: forge_relational::facade::identity::EntityId::new(PartitionId(1), 33, 0),
-                desired_aspect_fields_json: serde_json::json!({ "name": "preview-batch-mutation" }),
+                desired_aspect_fields_external_json: serde_json::json!({ "name": "preview-batch-mutation" }),
             },
         })
         .admit()
@@ -112,7 +112,7 @@ fn batch_admission_denies_advisory_preview_derived_mutation_components() {
             ),
             input: MutationLoweringInput::IntentReconciliation {
                 entity_id: forge_relational::facade::identity::EntityId::new(PartitionId(1), 34, 0),
-                desired_aspect_fields_json: serde_json::json!({ "name": "advisory-batch-mutation" }),
+                desired_aspect_fields_external_json: serde_json::json!({ "name": "advisory-batch-mutation" }),
             },
         })
         .admit()

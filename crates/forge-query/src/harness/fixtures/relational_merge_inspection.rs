@@ -23,7 +23,7 @@ use serde_json::json;
 
 use crate::aspect_field_authoring::{
     entity_string_field_aspect, relation_source_endpoint_aspect, relation_string_field_aspect,
-    relation_target_endpoint_aspect, single_aspect_field_patch_from_json,
+    relation_target_endpoint_aspect, single_aspect_field_patch_from_external_json,
 };
 
 const TARGET_BRANCH: &str = "main";
@@ -140,9 +140,10 @@ fn inspect_execution_surface(runtime: &RelationalRuntime) -> RelationalMergeInsp
 }
 
 fn runtime_with_default_merge_registry() -> RelationalRuntime {
+    let registry = default_merge_registry();
     RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::CertificationCore)
-        .schema_registry(default_merge_registry())
+        .schema_registry(registry)
         .build()
 }
 
@@ -164,10 +165,20 @@ fn default_merge_registry() -> RelationalSchemaRegistry {
             aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
                 "name", "name",
             )])
-            .with_identity_declarations(vec![IdentityBasisDeclaration {
-                scope: IdentityBasisScope::AspectKey(name_key.clone()),
-                basis: IdentityBasisKind::DeclaredKeySet(vec![name_key].into()),
-            }]),
+            .with_identity_declarations(vec![
+                IdentityBasisDeclaration {
+                    scope: IdentityBasisScope::EntityKind(KindId(1)),
+                    basis: IdentityBasisKind::StorageIdentity,
+                },
+                IdentityBasisDeclaration {
+                    scope: IdentityBasisScope::EntityKind(KindId(1)),
+                    basis: IdentityBasisKind::LineageIdentity,
+                },
+                IdentityBasisDeclaration {
+                    scope: IdentityBasisScope::AspectKey(name_key.clone()),
+                    basis: IdentityBasisKind::DeclaredKeySet(vec![name_key].into()),
+                },
+            ]),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -192,7 +203,9 @@ fn topology_merge_registry() -> RelationalSchemaRegistry {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::default(),
+            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
+                "name", "name",
+            )]),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -250,7 +263,7 @@ fn commit_entity_create(
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: ClientKey::raw(name),
-                fields: single_aspect_field_patch_from_json("name", "name", json!(name))
+                fields: single_aspect_field_patch_from_external_json("name", "name", json!(name))
                     .expect("entity name aspect patch"),
             }),
         )),
@@ -272,7 +285,7 @@ fn update_entity_on_branch(
         WorkerIntentBatch::new("update-entity").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                fields: single_aspect_field_patch_from_json("name", "name", json!(name))
+                fields: single_aspect_field_patch_from_external_json("name", "name", json!(name))
                     .expect("entity name aspect patch"),
             }),
         )),
@@ -317,8 +330,12 @@ fn create_relation_on_branch(
                 client_key: ClientKey::raw(client_key),
                 source: EntityReference::Existing(source),
                 target: EntityReference::Existing(target),
-                fields: single_aspect_field_patch_from_json("label", "label", json!(label))
-                    .expect("relation label aspect patch"),
+                fields: single_aspect_field_patch_from_external_json(
+                    "label",
+                    "label",
+                    json!(label),
+                )
+                .expect("relation label aspect patch"),
             }),
         )),
     );

@@ -248,7 +248,7 @@ fn post_merge_inspection_denies_non_authoritative_mutation_outcomes() {
         binding.basis_digest(),
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
-            desired_aspect_fields_json: json!({"name":"after"}),
+            desired_aspect_fields_external_json: json!({"name":"after"}),
         },
     )
     .expect("mutation lowering should succeed");

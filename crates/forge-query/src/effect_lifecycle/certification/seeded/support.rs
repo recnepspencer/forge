@@ -23,7 +23,8 @@ use forge_runtime_bridge::facade::{
 };
 
 use crate::aspect_field_authoring::{
-    entity_string_field_aspect, lifecycle_string_aspect, single_aspect_field_patch_from_json,
+    entity_string_field_aspect, lifecycle_string_aspect,
+    single_aspect_field_patch_from_external_json,
 };
 
 pub(super) fn relational_runtime_with_intent_strategy() -> RelationalRuntime {
@@ -54,7 +55,7 @@ pub(super) fn create_entity(
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: ClientKey::raw(name),
-                fields: single_aspect_field_patch_from_json(
+                fields: single_aspect_field_patch_from_external_json(
                     "name",
                     "name",
                     serde_json::json!(name),

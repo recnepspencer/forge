@@ -1,4 +1,4 @@
-use crate::aspect_field_authoring::aspect_field_patch_from_json_values;
+use crate::aspect_field_authoring::aspect_field_patch_from_external_json_values;
 use crate::identity::hash_parts;
 use crate::workflow::{
     QueryWorkflowDeclaration, WorkflowBasisFamily, WorkflowFreshnessPolicy,
@@ -145,11 +145,13 @@ fn intent_reconciliation_strategy_request(
 ) -> Result<NativeStrategyCommitRequest, WorkflowLoweringError> {
     let MutationLoweringInput::IntentReconciliation {
         entity_id,
-        desired_aspect_fields_json,
+        desired_aspect_fields_external_json,
     } = input;
     IntentReconciliationInput {
         entity_id,
-        desired_aspect_fields: intent_reconciliation_field_patch(desired_aspect_fields_json)?,
+        desired_aspect_fields: intent_reconciliation_field_patch(
+            desired_aspect_fields_external_json,
+        )?,
     }
     .into_native_canonical_request(StrategyCallerProvenance {
         request_origin: StrategyRequestOrigin::Api,
@@ -167,9 +169,9 @@ fn intent_reconciliation_strategy_request(
 }
 
 fn intent_reconciliation_field_patch(
-    desired_aspect_fields_json: serde_json::Value,
+    desired_aspect_fields_external_json: serde_json::Value,
 ) -> Result<forge_relational::facade::transactions::AspectFieldPatch, WorkflowLoweringError> {
-    let serde_json::Value::Object(fields) = desired_aspect_fields_json else {
+    let serde_json::Value::Object(fields) = desired_aspect_fields_external_json else {
         return Err(WorkflowLoweringError::new(
             WorkflowLoweringFailureClass::LoweringSerializationFailed,
             "intent reconciliation desired aspect fields must be a flat object of aspect fields",
@@ -181,7 +183,7 @@ fn intent_reconciliation_field_patch(
         .into_iter()
         .map(|(field, value)| (field.clone(), field, value))
         .collect::<Vec<_>>();
-    aspect_field_patch_from_json_values(
+    aspect_field_patch_from_external_json_values(
         flattened_fields
             .iter()
             .map(|(aspect, field, value)| (aspect.as_str(), field.as_str(), value.clone())),

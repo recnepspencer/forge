@@ -194,7 +194,7 @@ fn inspectable_lowered_story() -> DxStoryEvidence {
         ),
         input: MutationLoweringInput::IntentReconciliation {
             entity_id: entity,
-            desired_aspect_fields_json: json!({ "name": "lowered-dx" }),
+            desired_aspect_fields_external_json: json!({ "name": "lowered-dx" }),
         },
     };
     let normalized = normalize_raw_effect_intent(&basis, raw).expect("dx lowered story normalizes");
@@ -269,7 +269,7 @@ fn denial_or_rebind_story() -> DxStoryEvidence {
                 55,
                 0,
             ),
-            desired_aspect_fields_json: json!({ "name": "preview-rebind" }),
+            desired_aspect_fields_external_json: json!({ "name": "preview-rebind" }),
         },
     };
     let normalized = normalize_raw_effect_intent(&basis, raw).expect("dx rebind story normalizes");

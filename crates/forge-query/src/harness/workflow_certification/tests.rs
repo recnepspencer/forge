@@ -2,7 +2,7 @@ use super::{
     MilestoneFivePointFiveWorkflowCertificationAdapter, WorkflowFailureClass,
     WORKFLOW_REQUIRED_CANONICAL_ROW_NAMES, WORKFLOW_REQUIRED_REJECTION_ROW_NAMES,
 };
-use crate::aspect_field_authoring::single_aspect_field_patch_from_json;
+use crate::aspect_field_authoring::single_aspect_field_patch_from_external_json;
 use crate::harness::certification::{milestone_five_point_five_requirements, unmet_required_rows};
 use crate::harness::fixtures::execution_preflights;
 use crate::harness::fixtures::relational_merge_inspection::deleted_vs_modified_inspection_artifact;
@@ -125,15 +125,19 @@ fn workflow_certification_mutation_lowering_matches_direct_relational_control() 
         binding.basis_digest(),
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
-            desired_aspect_fields_json: json!({"name":"after"}),
+            desired_aspect_fields_external_json: json!({"name":"after"}),
         },
     )
     .expect("mutation lowering should succeed");
 
     let control = IntentReconciliationInput {
         entity_id: EntityId::new(PartitionId(1), 41, 0),
-        desired_aspect_fields: single_aspect_field_patch_from_json("name", "name", json!("after"))
-            .expect("control field patch"),
+        desired_aspect_fields: single_aspect_field_patch_from_external_json(
+            "name",
+            "name",
+            json!("after"),
+        )
+        .expect("control field patch"),
     }
     .into_native_canonical_request(StrategyCallerProvenance {
         request_origin: StrategyRequestOrigin::Api,
@@ -363,7 +367,7 @@ fn workflow_certification_lane_specific_counters_are_exercised() {
         binding.basis_digest(),
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
-            desired_aspect_fields_json: json!({"name":"after"}),
+            desired_aspect_fields_external_json: json!({"name":"after"}),
         },
     )
     .expect("mutation lowering should succeed");

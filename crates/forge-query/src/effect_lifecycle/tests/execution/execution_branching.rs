@@ -16,7 +16,7 @@ use serde_json::json;
 
 use crate::aspect_field_authoring::{
     aspect_key, entity_string_field_aspect, lifecycle_string_aspect,
-    single_aspect_field_patch_from_json,
+    single_aspect_field_patch_from_external_json,
 };
 use crate::effect_lifecycle::{
     scope_admitted_effect_plan, EffectExecutionAuthority, EffectExecutionDenialKind,
@@ -237,7 +237,7 @@ fn create_entity(
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: ClientKey::raw(name),
-                fields: single_aspect_field_patch_from_json("name", "name", json!(name))
+                fields: single_aspect_field_patch_from_external_json("name", "name", json!(name))
                     .expect("entity name aspect patch"),
             }),
         )),
@@ -267,7 +267,7 @@ fn update_entity_name(
         WorkerIntentBatch::new(format!("update-{name}")).push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                fields: single_aspect_field_patch_from_json("name", "name", json!(name))
+                fields: single_aspect_field_patch_from_external_json("name", "name", json!(name))
                     .expect("entity name aspect patch"),
             }),
         )),

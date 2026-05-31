@@ -1,7 +1,8 @@
 use super::*;
 use crate::aspect_field_authoring::{
-    aspect_key, entity_string_field_aspect, field_key, lower_json_scalar_to_aspect_value,
-    planned_single_field_locator, project_aspect_value_to_workspace_json, terminal_field_label,
+    aspect_key, entity_string_field_aspect, field_key,
+    lower_external_json_through_scalar_string_contract, planned_single_field_locator,
+    project_aspect_value_to_workspace_json, terminal_field_label,
 };
 use crate::runtime::ForgeQueryAspectValue;
 use forge_foundational::facade::AspectValue;
@@ -222,8 +223,11 @@ impl ForgeQueryMemoryWorkspace {
                     )
                     .map_err(ForgeQueryWorkspaceError::new)?,
                 ),
-                lower_json_scalar_to_aspect_value(aspect.value().clone())
-                    .map_err(ForgeQueryWorkspaceError::new)?,
+                lower_external_json_through_scalar_string_contract(
+                    declared.label(),
+                    aspect.value(),
+                )
+                .map_err(ForgeQueryWorkspaceError::new)?,
             );
         }
         Ok(forge_relational::facade::transactions::AspectFieldPatch::from(targets))
