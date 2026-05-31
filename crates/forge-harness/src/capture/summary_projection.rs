@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{Map as ExternalRecordObject, Value as ExternalRecordValue};
 
 pub type HarnessRecordSummaryValue = ExternalRecordValue;
@@ -75,6 +76,11 @@ impl<'summary> HarnessRecordSummaryView<'summary> {
         self.value_at(path)?.as_u64()
     }
 
+    pub fn is_array_at(&self, path: &[&str]) -> bool {
+        self.value_at(path)
+            .is_some_and(HarnessRecordSummaryValue::is_array)
+    }
+
     pub fn object_array_at(&self, path: &[&str]) -> Vec<Self> {
         self.value_at(path)
             .and_then(HarnessRecordSummaryValue::as_array)
@@ -88,6 +94,24 @@ impl<'summary> HarnessRecordSummaryView<'summary> {
         path.iter()
             .try_fold(self.root, |value, segment| value.get(*segment))
     }
+}
+
+pub fn record_summary_from_serializable<T>(
+    value: &T,
+) -> Result<HarnessRecordSummaryValue, serde_json::Error>
+where
+    T: Serialize,
+{
+    serde_json::to_value(value)
+}
+
+pub fn record_summary_into_deserializable<T>(
+    value: HarnessRecordSummaryValue,
+) -> Result<T, serde_json::Error>
+where
+    T: DeserializeOwned,
+{
+    serde_json::from_value(value)
 }
 
 impl From<bool> for HarnessSummaryProjection {
@@ -122,7 +146,12 @@ impl From<&str> for HarnessSummaryProjection {
 
 #[cfg(test)]
 mod tests {
-    use super::HarnessSummaryProjection;
+    use serde::{Deserialize, Serialize};
+
+    use super::{
+        record_summary_from_serializable, record_summary_into_deserializable,
+        HarnessSummaryProjection,
+    };
 
     #[test]
     fn record_summary_value_materializes_nested_projection_at_harness_boundary() {
@@ -169,5 +198,31 @@ mod tests {
             view.object_array_at(&["entries"])[0].string_field("code"),
             Some("Ready")
         );
+        assert_eq!(view.object_array_at(&["entries"]).len(), 1);
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+    struct SerializableSummaryRecord {
+        status: String,
+        counts: Vec<u64>,
+    }
+
+    #[test]
+    fn serializable_record_summary_materialization_stays_at_harness_boundary() {
+        let summary_record = SerializableSummaryRecord {
+            status: "validated".to_string(),
+            counts: vec![2, 3],
+        };
+
+        let record_summary =
+            record_summary_from_serializable(&summary_record).expect("record summary value");
+        let recovered: SerializableSummaryRecord =
+            record_summary_into_deserializable(record_summary.clone())
+                .expect("recovered summary record");
+        let view = super::HarnessRecordSummaryView::new(&record_summary);
+
+        assert_eq!(recovered, summary_record);
+        assert_eq!(view.string_field("status"), Some("validated"));
+        assert!(view.is_array_at(&["counts"]));
     }
 }

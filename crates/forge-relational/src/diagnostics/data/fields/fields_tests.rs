@@ -3,6 +3,9 @@ use forge_foundational::facade::{
     CanonicalFieldPath, CanonicalizationRuleVersion, DiagnosticMask, FieldKey, InternedString,
     LocatorAuthority, StructAspectValue,
 };
+use forge_harness::facade::{
+    record_summary_from_serializable, record_summary_into_deserializable, HarnessRecordSummaryView,
+};
 use forge_proof::TransitionOutcome;
 
 use super::{RelationalDiagnosticFields, RelationalDiagnosticValue};
@@ -56,17 +59,19 @@ fn struct_aspect_value_diagnostic_fields_keep_typed_fields_and_canonical_bytes()
 }
 
 #[test]
-fn diagnostic_serde_projection_is_terminal_egress_only() {
+fn diagnostic_terminal_projection_is_not_authoritative_input() {
     let live_fields =
         RelationalDiagnosticFields::from_diagnostic_value(RelationalDiagnosticValue::object([(
             "typed_aspect",
             RelationalDiagnosticValue::AspectValue(AspectValue::UInt64(7)),
         )]));
 
-    let terminal_serde_projection =
-        serde_json::to_value(&live_fields).expect("external serde diagnostic projection");
-    let recovered =
-        serde_json::from_value::<RelationalDiagnosticFields>(terminal_serde_projection.clone());
+    let terminal_projection =
+        record_summary_from_serializable(&live_fields).expect("external diagnostic projection");
+    let recovered = record_summary_into_deserializable::<RelationalDiagnosticFields>(
+        terminal_projection.clone(),
+    );
+    let terminal_projection_view = HarnessRecordSummaryView::new(&terminal_projection);
 
     assert!(recovered.is_err());
     assert!(matches!(
@@ -78,10 +83,10 @@ fn diagnostic_serde_projection_is_terminal_egress_only() {
             )
     ));
     assert_eq!(
-        terminal_serde_projection["typed_aspect"]["value_family"],
-        "UInt64"
+        terminal_projection_view.string_field_at(&["typed_aspect", "value_family"]),
+        Some("UInt64")
     );
-    assert!(terminal_serde_projection["typed_aspect"]["canonical_value_bytes"].is_array());
+    assert!(terminal_projection_view.is_array_at(&["typed_aspect", "canonical_value_bytes"]));
 }
 
 #[test]

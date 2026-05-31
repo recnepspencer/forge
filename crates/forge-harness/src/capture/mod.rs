@@ -13,6 +13,7 @@ use crate::workload::BudgetUsage;
 mod summary_projection;
 
 pub use summary_projection::{
+    record_summary_from_serializable, record_summary_into_deserializable,
     HarnessRecordSummaryValue, HarnessRecordSummaryView, HarnessSummaryProjection,
 };
 
