@@ -403,7 +403,7 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
             if conflict.code == DiagnosticCode::InvariantViolation
     ));
     assert_eq!(counters.invariant_entity_slot_scans, 1);
-    assert_eq!(counters.invariant_entity_records_materialized, 0);
+    assert_eq!(counters.invariant_unmasked_entity_records_materialized, 0);
 }
 
 #[test]
@@ -443,7 +443,7 @@ fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() 
             if conflict.code == DiagnosticCode::InvariantViolation
     ));
     assert_eq!(counters.invariant_entity_slot_scans, 1);
-    assert_eq!(counters.invariant_entity_records_materialized, 0);
+    assert_eq!(counters.invariant_unmasked_entity_records_materialized, 0);
 }
 
 #[test]

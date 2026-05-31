@@ -11,21 +11,21 @@ pub(in crate::visibility::materialization::read_records::reader) fn query_execut
     target_count: usize,
     fragments: Vec<crate::query::data::QueryWorkerFragment>,
 ) -> QueryExecutionOutcome {
-    let entity_records_emitted = fragments
+    let unmasked_entity_records_emitted = fragments
         .iter()
-        .map(|fragment| fragment.counters.entity_records_emitted)
+        .map(|fragment| fragment.counters.unmasked_entity_records_emitted)
         .sum();
-    let relation_records_emitted = fragments
+    let unmasked_relation_records_emitted = fragments
         .iter()
-        .map(|fragment| fragment.counters.relation_records_emitted)
+        .map(|fragment| fragment.counters.unmasked_relation_records_emitted)
         .sum();
     let complexity = QueryComplexitySummary {
         packet_count,
         fragment_count: packet_count,
         touched_partitions,
         target_count,
-        entity_records_emitted,
-        relation_records_emitted,
+        unmasked_entity_records_emitted,
+        unmasked_relation_records_emitted,
     };
     let result =
         reduce_query_fragments(plan.packet.execution_shape, plan.packet.ordering, fragments);

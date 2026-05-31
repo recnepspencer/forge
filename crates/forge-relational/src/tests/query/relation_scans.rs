@@ -108,7 +108,7 @@ fn relation_kind_scans_are_deterministic_across_equivalent_insert_order() {
 }
 
 #[test]
-fn all_relation_records_use_canonical_relation_order_not_creation_order() {
+fn all_unmasked_relation_records_use_canonical_relation_order_not_creation_order() {
     let mut runtime =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let left = create_entity(&mut runtime, "left");
@@ -126,7 +126,7 @@ fn all_relation_records_use_canonical_relation_order_not_creation_order() {
     let all_records = runtime
         .read_truth()
         .project_version(runtime.current_version_id())
-        .all_relation_records();
+        .all_unmasked_relation_records();
 
     assert_eq!(
         all_records

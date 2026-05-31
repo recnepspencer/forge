@@ -1723,7 +1723,7 @@ fn perf_query_packet_matrix() {
         |metrics| {
             counter_u64(metrics, "full_state_clones") == 0
                 && counter_u64(metrics, "query_packet_count") <= 4
-                && counter_u64(metrics, "query_entity_records_emitted") == 128
+                && counter_u64(metrics, "query_unmasked_entity_records_emitted") == 128
                 && metrics["result_entities"].as_u64() == Some(128)
         },
     );
@@ -1837,7 +1837,7 @@ fn perf_query_packet_matrix() {
             counter_u64(metrics, "full_state_clones") == 0
                 && counter_u64(metrics, "query_packet_count") <= 3
                 && counter_u64(metrics, "query_scope_unit_count") <= 12
-                && counter_u64(metrics, "query_relation_records_emitted") == 12
+                && counter_u64(metrics, "query_unmasked_relation_records_emitted") == 12
                 && counter_u64(metrics, "query_packet_peak_width_total") <= 4
                 && metrics["result_entities"].as_u64() == Some(24)
                 && metrics["result_relations"].as_u64() == Some(12)
@@ -1888,7 +1888,7 @@ fn perf_snapshot_materialization_matrix() {
         |metrics| {
             counter_u64(metrics, "full_state_clones") == 0
                 && counter_u64(metrics, "snapshot_pin_full_rebuilds") == 0
-                && counter_u64(metrics, "visible_entity_records_materialized") == 128
+                && counter_u64(metrics, "visible_unmasked_entity_records_materialized") == 128
                 && metrics["entities"].as_u64() == Some(128)
         },
     );
@@ -1939,7 +1939,7 @@ fn perf_snapshot_materialization_matrix() {
         |metrics| {
             counter_u64(metrics, "full_state_clones") == 0
                 && counter_u64(metrics, "snapshot_pin_full_rebuilds") == 0
-                && counter_u64(metrics, "visible_entity_records_materialized") == 96
+                && counter_u64(metrics, "visible_unmasked_entity_records_materialized") == 96
                 && metrics["entities"].as_u64() == Some(96)
         },
     );
@@ -1983,7 +1983,7 @@ fn perf_snapshot_materialization_matrix() {
         |metrics| {
             counter_u64(metrics, "full_state_clones") == 0
                 && counter_u64(metrics, "snapshot_pin_full_rebuilds") == 0
-                && counter_u64(metrics, "visible_entity_records_materialized") == 0
+                && counter_u64(metrics, "visible_unmasked_entity_records_materialized") == 0
                 && metrics["projected_entities"].as_u64() == Some(128)
         },
     );
@@ -2968,8 +2968,10 @@ fn perf_geometry_kernel_matrix() {
 fn perf_cad_topology_matrix() {
     let suite = "cad_topology_matrix";
 
-    let assembly_bridge_samples =
-        capture_perf_samples(suite, "assembly_interface_bridge_wave", || {
+    let assembly_bridge_samples = capture_perf_samples(
+        suite,
+        "assembly_interface_bridge_wave",
+        || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
             let mut nose = Vec::new();
@@ -3090,7 +3092,7 @@ fn perf_cad_topology_matrix() {
                     "explicit_query_micros": explicit_query_micros,
                     "connectivity_summary_micros": connectivity_summary_micros,
                     "bridge_changed_records": bridge_outcome.changed_records.len(),
-                    "explicit_query_entities": explicit_outcome.complexity.entity_records_emitted,
+                    "explicit_query_entities": explicit_outcome.complexity.unmasked_entity_records_emitted,
                     "component_count": summary.component_count,
                     "largest_component_size": summary.largest_component_size,
                     "enumerated_entity_count": summary.enumerated_entity_count,
@@ -3098,7 +3100,8 @@ fn perf_cad_topology_matrix() {
                     "counters": counters,
                 }),
             }
-        });
+        },
+    );
     emit_metric_summaries(
         suite,
         "assembly_interface_bridge_wave",
@@ -6445,7 +6448,7 @@ fn perf_sustained_load_matrix() {
             let final_entity_count = runtime
                 .read_truth()
                 .project_version(latest_version)
-                .all_entity_records()
+                .all_unmasked_entity_records()
                 .len();
             let counters = runtime.performance_access().counters();
 
@@ -7492,8 +7495,8 @@ fn perf_inspection_budget_matrix() {
                 && counter_u64(metrics, "inspection_graph_summary_requests") == 1
                 && counter_u64(metrics, "inspection_kind_summary_requests") == 1
                 && counter_u64(metrics, "inspection_connectivity_summary_requests") == 1
-                && counter_u64(metrics, "visible_entity_records_materialized") == 4
-                && counter_u64(metrics, "visible_relation_records_materialized") == 1
+                && counter_u64(metrics, "visible_unmasked_entity_records_materialized") == 4
+                && counter_u64(metrics, "visible_unmasked_relation_records_materialized") == 1
                 && counter_u64(metrics, "visibility_entity_slot_scans") == 0
                 && counter_u64(metrics, "visibility_relation_slot_scans") == 0
                 && counter_u64(metrics, "full_state_clones") == 0
@@ -7666,8 +7669,8 @@ fn perf_inspection_budget_matrix() {
                 && counter_u64(metrics, "inspection_commit_reads") == 4
                 && counter_u64(metrics, "inspection_retention_entity_slot_scans") >= 2
                 && counter_u64(metrics, "inspection_retention_relation_slot_scans") >= 1
-                && counter_u64(metrics, "visible_entity_records_materialized") == 0
-                && counter_u64(metrics, "visible_relation_records_materialized") == 0
+                && counter_u64(metrics, "visible_unmasked_entity_records_materialized") == 0
+                && counter_u64(metrics, "visible_unmasked_relation_records_materialized") == 0
                 && counter_u64(metrics, "full_state_clones") == 0
         },
     );

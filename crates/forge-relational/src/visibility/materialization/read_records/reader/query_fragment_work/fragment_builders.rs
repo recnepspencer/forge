@@ -15,8 +15,8 @@ pub(super) fn entity_fragment(
             entities.push(record.clone());
         }
     }
-    let entity_records_emitted = entities.len();
-    scratch.remember_entity_capacity(entity_records_emitted);
+    let unmasked_entity_records_emitted = entities.len();
+    scratch.remember_entity_capacity(unmasked_entity_records_emitted);
     crate::query::data::QueryWorkerFragment {
         plan_key: packet.plan_key,
         fragment_key: crate::query::data::deterministic_query_fragment_key(
@@ -26,9 +26,10 @@ pub(super) fn entity_fragment(
         ordering: packet.ordering,
         counters: crate::query::data::QueryFragmentCounters {
             target_count,
-            entity_records_emitted,
-            relation_records_emitted: 0,
-            touched_partitions: usize::from(entity_records_emitted > 0) * touched_partitions,
+            unmasked_entity_records_emitted,
+            unmasked_relation_records_emitted: 0,
+            touched_partitions: usize::from(unmasked_entity_records_emitted > 0)
+                * touched_partitions,
         },
         entities,
         relations: Vec::new(),
@@ -51,8 +52,8 @@ pub(super) fn relation_fragment(
             relations.push(record.clone());
         }
     }
-    let relation_records_emitted = relations.len();
-    scratch.remember_relation_capacity(relation_records_emitted);
+    let unmasked_relation_records_emitted = relations.len();
+    scratch.remember_relation_capacity(unmasked_relation_records_emitted);
     crate::query::data::QueryWorkerFragment {
         plan_key: packet.plan_key,
         fragment_key: crate::query::data::deterministic_query_fragment_key(
@@ -62,9 +63,10 @@ pub(super) fn relation_fragment(
         ordering: packet.ordering,
         counters: crate::query::data::QueryFragmentCounters {
             target_count,
-            entity_records_emitted: 0,
-            relation_records_emitted,
-            touched_partitions: usize::from(relation_records_emitted > 0) * touched_partitions,
+            unmasked_entity_records_emitted: 0,
+            unmasked_relation_records_emitted,
+            touched_partitions: usize::from(unmasked_relation_records_emitted > 0)
+                * touched_partitions,
         },
         entities: Vec::new(),
         relations,

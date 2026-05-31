@@ -11,14 +11,17 @@ use super::primitive_terms::{
     encode_usize, encode_version_id,
 };
 
-pub(super) fn encode_entity_records(bytes: &mut Vec<u8>, records: &[EntityReadRecord]) {
+pub(super) fn encode_unmasked_entity_records(bytes: &mut Vec<u8>, records: &[EntityReadRecord]) {
     encode_usize(bytes, records.len());
     for record in records {
         encode_entity_read_record(bytes, record);
     }
 }
 
-pub(super) fn encode_relation_records(bytes: &mut Vec<u8>, records: &[RelationReadRecord]) {
+pub(super) fn encode_unmasked_relation_records(
+    bytes: &mut Vec<u8>,
+    records: &[RelationReadRecord],
+) {
     encode_usize(bytes, records.len());
     for record in records {
         encode_relation_read_record(bytes, record);

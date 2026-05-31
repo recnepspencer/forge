@@ -1,12 +1,14 @@
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 
-pub(super) fn entity_records_are_identity_ordered(records: &[EntityReadRecord]) -> bool {
+pub(super) fn unmasked_entity_records_are_identity_ordered(records: &[EntityReadRecord]) -> bool {
     records
         .windows(2)
         .all(|window| window[0].entity_id <= window[1].entity_id)
 }
 
-pub(super) fn relation_records_are_identity_ordered(records: &[RelationReadRecord]) -> bool {
+pub(super) fn unmasked_relation_records_are_identity_ordered(
+    records: &[RelationReadRecord],
+) -> bool {
     records.windows(2).all(|window| {
         relation_identity_order_key(&window[0]) <= relation_identity_order_key(&window[1])
     })

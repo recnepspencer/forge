@@ -88,7 +88,7 @@ impl<'runtime> LineageAccess<'runtime> {
             .filter_map(|lineage_id| self.runtime.lineage_node(*lineage_id))
             .filter_map(|node| {
                 read_truth
-                    .entity_record_at_version(node.entity_id(), version_id)
+                    .unmasked_entity_record_at_version(node.entity_id(), version_id)
                     .map(|_| node.entity_id())
             })
             .collect::<Vec<_>>();

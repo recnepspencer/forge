@@ -47,8 +47,8 @@ use rayon::prelude::*;
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::materialization::{
-    materialize_current_entity_record, materialize_current_relation_record,
-    materialize_entity_record_at_version, materialize_relation_record_at_version,
+    materialize_current_unmasked_entity_record, materialize_current_unmasked_relation_record,
+    materialize_unmasked_entity_record_at_version, materialize_unmasked_relation_record_at_version,
 };
 use super::visibility::{
     entity_slot_matches_kind_at_version, relation_slot_matches_kind_at_version,

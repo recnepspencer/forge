@@ -264,7 +264,7 @@ impl CommitStrategyExecutor for EntityReplacementReconciliationStrategy {
         let input = Self::parse_input(request)?;
         let existing = observation
             .visibility()
-            .entity_record(input.entity_id)?
+            .unmasked_entity_record(input.entity_id)?
             .ok_or_else(|| {
                 StrategyExecutorFailure::new(
                     StrategyExecutorFailureClass::DomainRejection,

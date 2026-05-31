@@ -185,7 +185,7 @@ impl ForgeQueryMemoryWorkspace {
         self.runtime
             .read_truth()
             .project_version(version_id)
-            .entity_records(self.kind_id)
+            .unmasked_entity_records(self.kind_id)
             .into_iter()
             .filter_map(|record| {
                 Some(ForgeQueryEntity {
@@ -214,7 +214,7 @@ impl ForgeQueryMemoryWorkspace {
         self.runtime
             .read_truth()
             .project_version(version_id)
-            .entity_record(entity_id)
+            .unmasked_entity_record(entity_id)
             .ok_or_else(|| ForgeQueryWorkspaceError::new("entity not found"))?;
         Ok(())
     }

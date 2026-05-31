@@ -96,8 +96,8 @@ fn build_lowering_summary(
         planned
             .map(|planned| planned.lineage.transitions.len())
             .unwrap_or(0),
-        execution.summary().entity_record_reads,
-        execution.summary().relation_record_reads,
+        execution.summary().unmasked_entity_record_reads,
+        execution.summary().unmasked_relation_record_reads,
         execution.summary().projected_partition_reads,
     )
 }

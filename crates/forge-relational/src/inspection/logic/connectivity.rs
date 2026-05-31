@@ -255,7 +255,7 @@ impl<'runtime> InspectionAccess<'runtime> {
                     );
                 }
                 let Some(record) =
-                    self.scoped_relation_record(&InspectionScope::Current, relation_id)
+                    self.scoped_unmasked_relation_record(&InspectionScope::Current, relation_id)
                 else {
                     continue;
                 };

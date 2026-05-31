@@ -54,7 +54,7 @@ pub(super) fn traversal_fragment(
     {
         let Some(entity_record) = runtime
             .read_truth()
-            .entity_record_for_id_at_version(state, entity_id, version_id)
+            .unmasked_entity_record_for_id_at_version(state, entity_id, version_id)
         else {
             continue;
         };
@@ -85,11 +85,10 @@ pub(super) fn traversal_fragment(
         }
 
         for relation_id in relation_ids {
-            let Some(relation_record) = runtime.read_truth().relation_record_for_id_at_version(
-                state,
-                relation_id,
-                version_id,
-            ) else {
+            let Some(relation_record) = runtime
+                .read_truth()
+                .unmasked_relation_record_for_id_at_version(state, relation_id, version_id)
+            else {
                 continue;
             };
             if scratch
@@ -138,8 +137,8 @@ pub(super) fn traversal_fragment(
         ordering: packet.ordering,
         counters: crate::query::data::QueryFragmentCounters {
             target_count: seeds.len(),
-            entity_records_emitted: entities.len(),
-            relation_records_emitted: relations.len(),
+            unmasked_entity_records_emitted: entities.len(),
+            unmasked_relation_records_emitted: relations.len(),
             touched_partitions,
         },
         entities,
@@ -170,10 +169,9 @@ fn relation_ids_for_traversal(
     };
     relation_ids.sort();
     relation_ids.retain(|relation_id| {
-        let Some(relation_record) =
-            runtime
-                .read_truth()
-                .relation_record_for_id_at_version(state, *relation_id, version_id)
+        let Some(relation_record) = runtime
+            .read_truth()
+            .unmasked_relation_record_for_id_at_version(state, *relation_id, version_id)
         else {
             return false;
         };

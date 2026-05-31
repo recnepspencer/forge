@@ -59,14 +59,14 @@ impl<'runtime> InvariantExecutionContext<'runtime> {
             .and_then(|scopes| scopes.scope_for(relation_kind_id))
     }
 
-    pub(crate) fn visible_entity_record(
+    pub(crate) fn visible_unmasked_entity_record(
         &self,
         entity_id: crate::identity::data::EntityId,
     ) -> Option<crate::storage::data::EntityReadRecord> {
         self.runtime
             .read_truth()
             .project_version(self.version_id)
-            .entity_record(entity_id)
+            .unmasked_entity_record(entity_id)
     }
 
     pub fn metrics(&self) -> InvariantMetrics<'runtime> {

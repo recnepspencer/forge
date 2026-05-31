@@ -17,7 +17,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         let version_id = self.scope_version_id(&scope);
         match target {
             RecordRef::Entity(entity_id) => {
-                let read = self.scoped_entity_record(&scope, entity_id)?;
+                let read = self.scoped_unmasked_entity_record(&scope, entity_id)?;
                 let (lineage_id, structural_fingerprint) =
                     self.entity_structural_sidecars(entity_id);
                 let mut degradations = Vec::new();
@@ -43,7 +43,7 @@ impl<'runtime> InspectionAccess<'runtime> {
                 })
             }
             RecordRef::Relation(relation_id) => {
-                let read = self.scoped_relation_record(&scope, relation_id)?;
+                let read = self.scoped_unmasked_relation_record(&scope, relation_id)?;
                 Some(StructuralIdentityEvidence {
                     target,
                     record_class: InspectionRecordClass::Relation,

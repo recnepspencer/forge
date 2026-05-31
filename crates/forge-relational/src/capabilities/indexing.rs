@@ -13,8 +13,8 @@ impl ReplayRead for RelationalRuntime {
         let projection = self.read_truth().project_version(version_id);
         ReplaySnapshotSurface {
             version_id,
-            entities: projection.all_entity_records(),
-            relations: projection.all_relation_records(),
+            entities: projection.all_unmasked_entity_records(),
+            relations: projection.all_unmasked_relation_records(),
         }
     }
 

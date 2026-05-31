@@ -400,7 +400,7 @@ fn classify_source_deleted(
     match record.record_kind {
         VisibleMergeRecordKind::Entity => {
             match (
-                base_entity_record(base_view, record),
+                base_unmasked_entity_record(base_view, record),
                 record.target_entity.as_ref(),
             ) {
                 (Some(base), Some(target)) if !entity_state_equal(base, target) => {
@@ -411,7 +411,7 @@ fn classify_source_deleted(
         }
         VisibleMergeRecordKind::Relation => {
             match (
-                base_relation_record(base_view, record),
+                base_unmasked_relation_record(base_view, record),
                 record.target_relation.as_ref(),
             ) {
                 (Some(base), Some(target)) if !relation_endpoints_equal(base, target) => {
@@ -433,7 +433,7 @@ fn classify_target_deleted(
     match record.record_kind {
         VisibleMergeRecordKind::Entity => {
             match (
-                base_entity_record(base_view, record),
+                base_unmasked_entity_record(base_view, record),
                 record.source_entity.as_ref(),
             ) {
                 (Some(base), Some(source)) if !entity_state_equal(base, source) => {
@@ -444,7 +444,7 @@ fn classify_target_deleted(
         }
         VisibleMergeRecordKind::Relation => {
             match (
-                base_relation_record(base_view, record),
+                base_unmasked_relation_record(base_view, record),
                 record.source_relation.as_ref(),
             ) {
                 (Some(base), Some(source)) if !relation_endpoints_equal(base, source) => {
@@ -515,7 +515,7 @@ fn relation_conflict_evidence(
     if record.record_kind != VisibleMergeRecordKind::Relation {
         return None;
     }
-    let base = base_relation_record(base_view, record);
+    let base = base_unmasked_relation_record(base_view, record);
     let source = record.source_relation.as_ref();
     let target = target_record
         .and_then(|record| record.target_relation.as_ref())
@@ -718,7 +718,7 @@ fn relation_topology_endpoints(
         endpoints.insert(target_relation.source);
         endpoints.insert(target_relation.target);
     }
-    if let Some(base) = base_relation_record(base_view, source_record) {
+    if let Some(base) = base_unmasked_relation_record(base_view, source_record) {
         endpoints.insert(base.source);
         endpoints.insert(base.target);
     }
@@ -737,7 +737,7 @@ fn endpoint_continuity_between(
     }
 }
 
-fn base_entity_record<'a>(
+fn base_unmasked_entity_record<'a>(
     base_view: &'a RelationalReadView,
     record: &VisibleMergeRecord,
 ) -> Option<&'a EntityReadRecord> {
@@ -747,7 +747,7 @@ fn base_entity_record<'a>(
     }
 }
 
-fn base_relation_record<'a>(
+fn base_unmasked_relation_record<'a>(
     base_view: &'a RelationalReadView,
     record: &VisibleMergeRecord,
 ) -> Option<&'a RelationReadRecord> {

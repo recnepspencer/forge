@@ -191,11 +191,10 @@ fn execute_entity_index_lookup(
         {
             continue;
         }
-        let Some(record) = runtime.read_truth().entity_record_for_id_at_version(
-            state,
-            entity_id,
-            plan.snapshot.version_id,
-        ) else {
+        let Some(record) = runtime
+            .read_truth()
+            .unmasked_entity_record_for_id_at_version(state, entity_id, plan.snapshot.version_id)
+        else {
             continue;
         };
         if include(&record) {
@@ -241,11 +240,14 @@ fn execute_relation_index_lookup(
         {
             continue;
         }
-        let Some(record) = runtime.read_truth().relation_record_for_id_at_version(
-            state,
-            relation_id,
-            plan.snapshot.version_id,
-        ) else {
+        let Some(record) = runtime
+            .read_truth()
+            .unmasked_relation_record_for_id_at_version(
+                state,
+                relation_id,
+                plan.snapshot.version_id,
+            )
+        else {
             continue;
         };
         if include(&record) {
@@ -273,8 +275,8 @@ fn build_index_query_execution(
     entities: Vec<crate::storage::data::EntityReadRecord>,
     relations: Vec<crate::storage::data::RelationReadRecord>,
     target_count: usize,
-    entity_records_emitted: usize,
-    relation_records_emitted: usize,
+    unmasked_entity_records_emitted: usize,
+    unmasked_relation_records_emitted: usize,
     touched_partitions: usize,
 ) -> QueryExecutionOutcome {
     let result = reduce_query_fragments(
@@ -291,8 +293,8 @@ fn build_index_query_execution(
             relations,
             counters: QueryFragmentCounters {
                 target_count,
-                entity_records_emitted,
-                relation_records_emitted,
+                unmasked_entity_records_emitted,
+                unmasked_relation_records_emitted,
                 touched_partitions,
             },
             traversal_basis: None,
@@ -305,8 +307,8 @@ fn build_index_query_execution(
             fragment_count: 1,
             touched_partitions,
             target_count,
-            entity_records_emitted,
-            relation_records_emitted,
+            unmasked_entity_records_emitted,
+            unmasked_relation_records_emitted,
         },
         result,
     }

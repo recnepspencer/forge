@@ -20,8 +20,8 @@ fn complexity_budget_snapshot_visibility_state_avoids_record_materialization() {
     let _snapshot = runtime.visibility_authority().snapshot();
     let counters = runtime.performance_access().counters();
 
-    assert_eq!(counters.visible_entity_records_materialized, 0);
-    assert_eq!(counters.visible_relation_records_materialized, 0);
+    assert_eq!(counters.visible_unmasked_entity_records_materialized, 0);
+    assert_eq!(counters.visible_unmasked_relation_records_materialized, 0);
 }
 
 #[test]
@@ -112,8 +112,8 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
 
     assert_eq!(snapshot_counters.visibility_entity_slot_scans, 0);
     assert_eq!(snapshot_counters.visibility_relation_slot_scans, 0);
-    assert!(snapshot_counters.visible_entity_records_materialized >= 2);
-    assert!(snapshot_counters.visible_relation_records_materialized >= 1);
+    assert!(snapshot_counters.visible_unmasked_entity_records_materialized >= 2);
+    assert!(snapshot_counters.visible_unmasked_relation_records_materialized >= 1);
 
     runtime.performance_access().reset_counters();
     let _ = runtime.read_truth().read_version(historical_version);
@@ -121,8 +121,8 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
 
     assert_eq!(current_version_counters.visibility_entity_slot_scans, 0);
     assert_eq!(current_version_counters.visibility_relation_slot_scans, 0);
-    assert!(current_version_counters.visible_entity_records_materialized >= 2);
-    assert!(current_version_counters.visible_relation_records_materialized >= 1);
+    assert!(current_version_counters.visible_unmasked_entity_records_materialized >= 2);
+    assert!(current_version_counters.visible_unmasked_relation_records_materialized >= 1);
 
     runtime.performance_access().reset_counters();
     let _ = runtime.read_truth().read_version(current_version);
@@ -150,7 +150,7 @@ fn complexity_contract_invariant_materialization_is_declared_and_measured() {
     let counters = runtime.performance_access().counters();
 
     assert!(counters.invariant_entity_slot_scans >= 1);
-    assert_eq!(counters.invariant_entity_records_materialized, 0);
+    assert_eq!(counters.invariant_unmasked_entity_records_materialized, 0);
 }
 
 #[test]
@@ -174,7 +174,7 @@ fn complexity_budget_snapshot_entity_limit_uses_live_bitsets_for_current_version
     assert_eq!(results[0].class(), InvariantClass::SnapshotAudit);
     assert_eq!(results[0].verdict, InvariantVerdict::Pass);
     assert_eq!(counters.invariant_entity_slot_scans, 0);
-    assert_eq!(counters.invariant_entity_records_materialized, 0);
+    assert_eq!(counters.invariant_unmasked_entity_records_materialized, 0);
 }
 
 #[test]
@@ -239,7 +239,7 @@ fn complexity_budget_partition_scoped_historical_entity_scans_are_partition_boun
     let records = runtime
         .read_truth()
         .project_version(historical_version)
-        .entity_records_in(PartitionId(7), KindId(1));
+        .unmasked_entity_records_in(PartitionId(7), KindId(1));
     let counters = runtime.performance_access().counters();
 
     assert_eq!(records.len(), 2);
@@ -273,7 +273,7 @@ fn complexity_budget_partition_scoped_historical_relation_scans_are_partition_bo
     let records = runtime
         .read_truth()
         .project_version(historical_version)
-        .relation_records_in(PartitionId(7), KindId(2));
+        .unmasked_relation_records_in(PartitionId(7), KindId(2));
     let counters = runtime.performance_access().counters();
 
     assert_eq!(records.len(), 1);
@@ -336,11 +336,11 @@ fn complexity_budget_index_entity_field_equals_avoids_snapshot_materialization()
         .expect("query outcome");
     let counters = runtime.performance_access().counters();
 
-    assert_eq!(counters.visible_entity_records_materialized, 0);
+    assert_eq!(counters.visible_unmasked_entity_records_materialized, 0);
     assert_eq!(counters.query_index_attempt_count, 1);
     assert_eq!(counters.query_index_path_count, 1);
     assert_eq!(counters.query_index_parity_verification_count, 0);
-    assert_eq!(counters.query_entity_records_emitted, 1);
+    assert_eq!(counters.query_unmasked_entity_records_emitted, 1);
 }
 
 #[test]
@@ -403,11 +403,11 @@ fn complexity_budget_index_relation_field_equals_avoids_snapshot_materialization
         .expect("query outcome");
     let counters = runtime.performance_access().counters();
 
-    assert_eq!(counters.visible_relation_records_materialized, 0);
+    assert_eq!(counters.visible_unmasked_relation_records_materialized, 0);
     assert_eq!(counters.query_index_attempt_count, 1);
     assert_eq!(counters.query_index_path_count, 1);
     assert_eq!(counters.query_index_parity_verification_count, 0);
-    assert_eq!(counters.query_relation_records_emitted, 1);
+    assert_eq!(counters.query_unmasked_relation_records_emitted, 1);
 }
 
 #[test]

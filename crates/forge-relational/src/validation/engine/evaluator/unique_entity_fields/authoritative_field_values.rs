@@ -28,7 +28,7 @@ pub(super) fn visible_entity_field_value_conflict(
             if !include_entity(metadata.entity_id) {
                 continue;
             }
-            let Some(record) = context.visible_entity_record(metadata.entity_id) else {
+            let Some(record) = context.visible_unmasked_entity_record(metadata.entity_id) else {
                 continue;
             };
             let Some(value) = entity_authoritative_aspect_field_value(&record, field_locator)

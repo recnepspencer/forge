@@ -67,7 +67,7 @@ pub(super) fn execute_index_packets(
 
     let entity_streams = match selected_mode {
         PreparationStrategySelection::StagedParallel => {
-            let records = projection.all_entity_records();
+            let records = projection.all_unmasked_entity_records();
             entity_packets
                 .par_iter()
                 .map(|(reduction_key, index_id, field_locator)| {
@@ -83,7 +83,7 @@ pub(super) fn execute_index_packets(
                 .collect::<Vec<_>>()
         }
         PreparationStrategySelection::Serial => {
-            let records = projection.all_entity_records();
+            let records = projection.all_unmasked_entity_records();
             entity_packets
                 .iter()
                 .map(|(reduction_key, index_id, field_locator)| {
@@ -102,7 +102,7 @@ pub(super) fn execute_index_packets(
 
     let relation_streams = match selected_mode {
         PreparationStrategySelection::StagedParallel => {
-            let records = projection.all_relation_records();
+            let records = projection.all_unmasked_relation_records();
             relation_packets
                 .par_iter()
                 .map(|(reduction_key, index_id, field_locator)| {
@@ -118,7 +118,7 @@ pub(super) fn execute_index_packets(
                 .collect::<Vec<_>>()
         }
         PreparationStrategySelection::Serial => {
-            let records = projection.all_relation_records();
+            let records = projection.all_unmasked_relation_records();
             relation_packets
                 .iter()
                 .map(|(reduction_key, index_id, field_locator)| {

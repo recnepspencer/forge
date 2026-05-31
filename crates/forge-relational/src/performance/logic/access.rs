@@ -335,8 +335,8 @@ impl<'runtime> PerformanceAccess<'runtime> {
 
     pub(crate) fn count_query_emissions(&self, entities: usize, relations: usize) {
         self.runtime.services.instrumentation.count(|counters| {
-            counters.query_entity_records_emitted += entities;
-            counters.query_relation_records_emitted += relations;
+            counters.query_unmasked_entity_records_emitted += entities;
+            counters.query_unmasked_relation_records_emitted += relations;
         });
     }
 

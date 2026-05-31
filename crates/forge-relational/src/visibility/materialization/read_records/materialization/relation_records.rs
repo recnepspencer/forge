@@ -6,7 +6,7 @@ use super::super::visibility::{
     historical_lifecycle, lifecycle_storage_visible, relation_visible_in_partition_at_version,
     visible_metadata,
 };
-pub(in super::super) fn materialize_current_relation_record(
+pub(in super::super) fn materialize_current_unmasked_relation_record(
     runtime: &RelationalRuntime,
     partition: &PartitionState,
     partition_id: crate::identity::data::PartitionId,
@@ -41,7 +41,7 @@ pub(in super::super) fn materialize_current_relation_record(
     })
 }
 
-pub(in super::super) fn materialize_relation_record_at_version(
+pub(in super::super) fn materialize_unmasked_relation_record_at_version(
     runtime: &RelationalRuntime,
     partition: &PartitionState,
     partition_id: crate::identity::data::PartitionId,

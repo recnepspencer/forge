@@ -41,8 +41,8 @@ fn complexity_budget_graph_summary_reports_explicit_inspection_work() {
         summary.access_path,
         crate::facade::inspection::InspectionAccessPath::DirectLookup
     );
-    assert_eq!(counters.visible_entity_records_materialized, 0);
-    assert_eq!(counters.visible_relation_records_materialized, 0);
+    assert_eq!(counters.visible_unmasked_entity_records_materialized, 0);
+    assert_eq!(counters.visible_unmasked_relation_records_materialized, 0);
     assert_eq!(counters.visibility_entity_slot_scans, 0);
     assert_eq!(counters.visibility_relation_slot_scans, 0);
 }
@@ -81,7 +81,7 @@ fn complexity_budget_structural_identity_distinguishes_direct_lookup_from_broad_
     assert!(broad.is_empty());
     assert_eq!(broad_counters.inspection_structural_identity_query_scans, 1);
     assert!(broad_counters.inspection_structural_identity_lookups >= 2);
-    assert!(broad_counters.visible_entity_records_materialized >= 2);
+    assert!(broad_counters.visible_unmasked_entity_records_materialized >= 2);
 }
 
 #[test]
@@ -106,7 +106,7 @@ fn complexity_budget_kind_summary_reports_request_shaped_scope() {
     assert_eq!(summary.touched_partitions, vec![PartitionId(7)]);
     assert_eq!(counters.inspection_kind_summary_requests, 1);
     assert_eq!(counters.visibility_entity_slot_scans, 0);
-    assert_eq!(counters.visible_relation_records_materialized, 0);
+    assert_eq!(counters.visible_unmasked_relation_records_materialized, 0);
 }
 
 #[test]
@@ -152,8 +152,8 @@ fn complexity_budget_connectivity_summary_reports_broad_traversal_work_explicitl
         summary.access_path,
         crate::facade::inspection::InspectionAccessPath::DirectLookup
     );
-    assert_eq!(counters.visible_entity_records_materialized, 0);
-    assert_eq!(counters.visible_relation_records_materialized, 0);
+    assert_eq!(counters.visible_unmasked_entity_records_materialized, 0);
+    assert_eq!(counters.visible_unmasked_relation_records_materialized, 0);
     assert_eq!(counters.visibility_entity_slot_scans, 0);
     assert_eq!(counters.visibility_relation_slot_scans, 0);
     assert!(summary
@@ -204,7 +204,7 @@ fn complexity_budget_neighbor_inspection_uses_adjacency_not_relation_materializa
 
     assert_eq!(neighbors.outgoing_relation_ids, vec![relation]);
     assert!(neighbors.incoming_relation_ids.is_empty());
-    assert_eq!(counters.visible_relation_records_materialized, 0);
+    assert_eq!(counters.visible_unmasked_relation_records_materialized, 0);
     assert_eq!(counters.visibility_relation_slot_scans, 0);
 }
 
@@ -236,6 +236,6 @@ fn complexity_budget_commit_inspection_reads_are_index_explicit_and_bounded() {
     assert_eq!(commit.commit.commit_id, latest_commit);
     assert_eq!(recent.commits.len(), 2);
     assert_eq!(counters.inspection_commit_reads, 3);
-    assert_eq!(counters.visible_entity_records_materialized, 0);
-    assert_eq!(counters.visible_relation_records_materialized, 0);
+    assert_eq!(counters.visible_unmasked_entity_records_materialized, 0);
+    assert_eq!(counters.visible_unmasked_relation_records_materialized, 0);
 }

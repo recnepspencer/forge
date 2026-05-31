@@ -1,25 +1,25 @@
 use super::*;
 
 impl<'runtime> VisibilityReadContext<'runtime> {
-    pub(crate) fn entity_record_at_version(
+    pub(crate) fn unmasked_entity_record_at_version(
         &self,
         entity_id: crate::identity::data::EntityId,
         version_id: crate::identity::data::VersionId,
     ) -> Option<EntityReadRecord> {
         let state = self.runtime.storage_access().current_state();
-        self.entity_record_for_id_at_version(&state, entity_id, version_id)
+        self.unmasked_entity_record_for_id_at_version(&state, entity_id, version_id)
     }
 
-    pub(crate) fn relation_record_at_version(
+    pub(crate) fn unmasked_relation_record_at_version(
         &self,
         relation_id: crate::identity::data::RelationId,
         version_id: crate::identity::data::VersionId,
     ) -> Option<RelationReadRecord> {
         let state = self.runtime.storage_access().current_state();
-        self.relation_record_for_id_at_version(&state, relation_id, version_id)
+        self.unmasked_relation_record_for_id_at_version(&state, relation_id, version_id)
     }
 
-    pub(crate) fn entity_record_for_id_at_version(
+    pub(crate) fn unmasked_entity_record_for_id_at_version(
         &self,
         state: &impl PartitionAccess,
         entity_id: crate::identity::data::EntityId,
@@ -28,13 +28,18 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         let partition = state.get_partition(entity_id.partition_id)?;
         let slot = entity_id.slot_index();
         if version_id == self.runtime.current_version_id() {
-            materialize_current_entity_record(self.runtime, partition, entity_id.partition_id, slot)
-                .filter(|record| {
-                    entity_id.generation.is_zero()
-                        || record.entity_id.generation == entity_id.generation
-                })
+            materialize_current_unmasked_entity_record(
+                self.runtime,
+                partition,
+                entity_id.partition_id,
+                slot,
+            )
+            .filter(|record| {
+                entity_id.generation.is_zero()
+                    || record.entity_id.generation == entity_id.generation
+            })
         } else {
-            materialize_entity_record_at_version(
+            materialize_unmasked_entity_record_at_version(
                 self.runtime,
                 partition,
                 entity_id.partition_id,
@@ -48,7 +53,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         }
     }
 
-    pub(crate) fn relation_record_for_id_at_version(
+    pub(crate) fn unmasked_relation_record_for_id_at_version(
         &self,
         state: &impl PartitionAccess,
         relation_id: crate::identity::data::RelationId,
@@ -57,7 +62,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         let partition = state.get_partition(relation_id.partition_id)?;
         let slot = relation_id.slot_index();
         if version_id == self.runtime.current_version_id() {
-            materialize_current_relation_record(
+            materialize_current_unmasked_relation_record(
                 self.runtime,
                 partition,
                 relation_id.partition_id,
@@ -68,7 +73,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                     || record.relation_id.generation == relation_id.generation
             })
         } else {
-            materialize_relation_record_at_version(
+            materialize_unmasked_relation_record_at_version(
                 self.runtime,
                 partition,
                 relation_id.partition_id,
@@ -99,9 +104,12 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 if !slot_kind_matches_current(&partition.entity_arena, slot, kind_id) {
                     continue;
                 }
-                if let Some(record) =
-                    materialize_current_entity_record(self.runtime, partition, partition_id, slot)
-                {
+                if let Some(record) = materialize_current_unmasked_entity_record(
+                    self.runtime,
+                    partition,
+                    partition_id,
+                    slot,
+                ) {
                     records.push(record);
                 }
             }
@@ -119,7 +127,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 ) {
                     continue;
                 }
-                if let Some(record) = materialize_entity_record_at_version(
+                if let Some(record) = materialize_unmasked_entity_record_at_version(
                     self.runtime,
                     partition,
                     partition_id,
@@ -150,9 +158,12 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 if !slot_kind_matches_current(&partition.relation_arena, slot, kind_id) {
                     continue;
                 }
-                if let Some(record) =
-                    materialize_current_relation_record(self.runtime, partition, partition_id, slot)
-                {
+                if let Some(record) = materialize_current_unmasked_relation_record(
+                    self.runtime,
+                    partition,
+                    partition_id,
+                    slot,
+                ) {
                     records.push(record);
                 }
             }
@@ -170,7 +181,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 ) {
                     continue;
                 }
-                if let Some(record) = materialize_relation_record_at_version(
+                if let Some(record) = materialize_unmasked_relation_record_at_version(
                     self.runtime,
                     partition,
                     partition_id,
@@ -200,7 +211,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         partitions
     }
 
-    pub(crate) fn all_entity_records_at_version(
+    pub(crate) fn all_unmasked_entity_records_at_version(
         &self,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<EntityReadRecord> {
@@ -215,7 +226,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             for slot in slots.iter_set_slots() {
                 let entity_id = crate::identity::data::EntityId::new(partition_id, slot as u64, 0);
                 if let Some(record) =
-                    self.entity_record_for_id_at_version(&state, entity_id, version_id)
+                    self.unmasked_entity_record_for_id_at_version(&state, entity_id, version_id)
                 {
                     records.push(record);
                 }
@@ -259,7 +270,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         partitions
     }
 
-    pub(crate) fn all_relation_records_at_version(
+    pub(crate) fn all_unmasked_relation_records_at_version(
         &self,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<RelationReadRecord> {
@@ -277,13 +288,13 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 let relation_id =
                     crate::identity::data::RelationId::new(partition_id, slot as u64, 0);
                 if let Some(record) =
-                    self.relation_record_for_id_at_version(&state, relation_id, version_id)
+                    self.unmasked_relation_record_for_id_at_version(&state, relation_id, version_id)
                 {
                     records.push(record);
                 }
             }
         }
-        sort_relation_records(&mut records);
+        sort_unmasked_relation_records(&mut records);
         records
     }
 
@@ -312,12 +323,12 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         version_id: crate::identity::data::VersionId,
     ) -> bool {
         let current_state = self.runtime.storage_access().current_state();
-        self.relation_record_for_id_at_version(&current_state, relation_id, version_id)
+        self.unmasked_relation_record_for_id_at_version(&current_state, relation_id, version_id)
             .is_some()
     }
 }
 
-pub(super) fn sort_relation_records(records: &mut [RelationReadRecord]) {
+pub(super) fn sort_unmasked_relation_records(records: &mut [RelationReadRecord]) {
     records.sort_by_key(|record| {
         (
             record.source.partition_id.0,

@@ -186,7 +186,7 @@ fn projection_raw_record_escape_hatches_preserve_full_visible_record_sets() {
     let read = runtime.read_truth().read_version(version_id);
 
     assert_eq!(
-        view.all_entity_records()
+        view.all_unmasked_entity_records()
             .into_iter()
             .map(|record| record.entity_id)
             .collect::<Vec<_>>(),
@@ -196,7 +196,7 @@ fn projection_raw_record_escape_hatches_preserve_full_visible_record_sets() {
             .collect::<Vec<_>>()
     );
     assert_eq!(
-        view.all_relation_records()
+        view.all_unmasked_relation_records()
             .into_iter()
             .map(|record| record.relation_id)
             .collect::<Vec<_>>(),

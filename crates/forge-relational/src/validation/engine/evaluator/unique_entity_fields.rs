@@ -92,7 +92,7 @@ fn touched_unique_entity_aspect_field_violation(
         HashMap::<AuthoritativeFieldComparisonKey, crate::identity::data::EntityId>::new();
     for entity_id in touched_entity_ids {
         context.metrics().count_entity_slot_scans(1);
-        let Some(record) = context.visible_entity_record(entity_id) else {
+        let Some(record) = context.visible_unmasked_entity_record(entity_id) else {
             continue;
         };
         let Some(value) =
@@ -150,7 +150,7 @@ fn visible_unique_entity_aspect_field_violation(
             let Some(metadata) = state_view.entity_metadata_for_slot(partition_id, slot) else {
                 continue;
             };
-            let Some(record) = context.visible_entity_record(metadata.entity_id) else {
+            let Some(record) = context.visible_unmasked_entity_record(metadata.entity_id) else {
                 continue;
             };
             let Some(value) = crate::storage::data::entity_authoritative_aspect_field_value(

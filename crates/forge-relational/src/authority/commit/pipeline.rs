@@ -893,12 +893,12 @@ fn complexity_delta(
         visibility_relation_slot_scans: after
             .visibility_relation_slot_scans
             .saturating_sub(before.visibility_relation_slot_scans),
-        visible_entity_records_materialized: after
-            .visible_entity_records_materialized
-            .saturating_sub(before.visible_entity_records_materialized),
-        visible_relation_records_materialized: after
-            .visible_relation_records_materialized
-            .saturating_sub(before.visible_relation_records_materialized),
+        visible_unmasked_entity_records_materialized: after
+            .visible_unmasked_entity_records_materialized
+            .saturating_sub(before.visible_unmasked_entity_records_materialized),
+        visible_unmasked_relation_records_materialized: after
+            .visible_unmasked_relation_records_materialized
+            .saturating_sub(before.visible_unmasked_relation_records_materialized),
         query_packet_count: after
             .query_packet_count
             .saturating_sub(before.query_packet_count),
@@ -941,12 +941,12 @@ fn complexity_delta(
         query_index_scratch_reuse_count: after
             .query_index_scratch_reuse_count
             .saturating_sub(before.query_index_scratch_reuse_count),
-        query_entity_records_emitted: after
-            .query_entity_records_emitted
-            .saturating_sub(before.query_entity_records_emitted),
-        query_relation_records_emitted: after
-            .query_relation_records_emitted
-            .saturating_sub(before.query_relation_records_emitted),
+        query_unmasked_entity_records_emitted: after
+            .query_unmasked_entity_records_emitted
+            .saturating_sub(before.query_unmasked_entity_records_emitted),
+        query_unmasked_relation_records_emitted: after
+            .query_unmasked_relation_records_emitted
+            .saturating_sub(before.query_unmasked_relation_records_emitted),
         bulk_mutation_batch_count: after
             .bulk_mutation_batch_count
             .saturating_sub(before.bulk_mutation_batch_count),
@@ -992,12 +992,12 @@ fn complexity_delta(
         invariant_relation_slot_scans: after
             .invariant_relation_slot_scans
             .saturating_sub(before.invariant_relation_slot_scans),
-        invariant_entity_records_materialized: after
-            .invariant_entity_records_materialized
-            .saturating_sub(before.invariant_entity_records_materialized),
-        invariant_relation_records_materialized: after
-            .invariant_relation_records_materialized
-            .saturating_sub(before.invariant_relation_records_materialized),
+        invariant_unmasked_entity_records_materialized: after
+            .invariant_unmasked_entity_records_materialized
+            .saturating_sub(before.invariant_unmasked_entity_records_materialized),
+        invariant_unmasked_relation_records_materialized: after
+            .invariant_unmasked_relation_records_materialized
+            .saturating_sub(before.invariant_unmasked_relation_records_materialized),
         custom_invariant_preparation_count: after
             .custom_invariant_preparation_count
             .saturating_sub(before.custom_invariant_preparation_count),

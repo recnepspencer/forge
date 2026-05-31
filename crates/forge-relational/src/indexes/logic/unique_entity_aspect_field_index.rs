@@ -18,7 +18,7 @@ pub(crate) fn refresh_unique_entity_aspect_field_index_for_records(
         return;
     }
     let projection = runtime.read_truth().project_version(version_id);
-    let refreshed_values = changed_entity_records(&projection, changed_records);
+    let refreshed_values = changed_unmasked_entity_records(&projection, changed_records);
     let refreshed_values =
         collect_unique_entity_aspect_field_entries(&refreshed_values, &tracked_fields);
     remove_changed_entities_from_unique_entity_aspect_field_index(
@@ -39,7 +39,7 @@ pub(crate) fn rebuild_unique_entity_aspect_field_indexes(runtime: &mut Relationa
         .read_truth()
         .project_version(runtime.current_version_id());
     let rebuilt_values = collect_unique_entity_aspect_field_entries(
-        &projection.all_entity_records(),
+        &projection.all_unmasked_entity_records(),
         &tracked_fields,
     );
     write_unique_entity_aspect_field_index_entries(runtime, rebuilt_values);
@@ -139,7 +139,7 @@ fn tracked_unique_entity_aspect_fields(
     fields
 }
 
-fn changed_entity_records(
+fn changed_unmasked_entity_records(
     projection: &crate::logic::runtime::VisibilityProjectionView<'_>,
     changed_records: &[crate::transactions::data::RecordRef],
 ) -> Vec<crate::storage::data::EntityReadRecord> {
@@ -147,7 +147,7 @@ fn changed_entity_records(
         .iter()
         .filter_map(|record| match record {
             crate::transactions::data::RecordRef::Entity(entity_id) => {
-                projection.entity_record(*entity_id)
+                projection.unmasked_entity_record(*entity_id)
             }
             crate::transactions::data::RecordRef::Relation(_) => None,
         })

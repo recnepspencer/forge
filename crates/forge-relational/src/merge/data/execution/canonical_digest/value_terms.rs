@@ -6,7 +6,9 @@ use crate::merge::data::{
     MaterializedAspectValue, MaterializedAspectValueEvidence, MergeValueMaterialization,
     MergeValueSourceSide,
 };
-use crate::query::data::{query_entity_record_digest, query_relation_record_digest};
+use crate::query::data::{
+    query_unmasked_entity_record_digest, query_unmasked_relation_record_digest,
+};
 use crate::transactions::data::RecordRef;
 
 impl super::CanonicalDigestBytes {
@@ -59,7 +61,7 @@ impl super::CanonicalDigestBytes {
         match value {
             Some(value) => {
                 self.tag(1);
-                self.str(&query_entity_record_digest(value));
+                self.str(&query_unmasked_entity_record_digest(value));
             }
             None => self.tag(0),
         }
@@ -72,7 +74,7 @@ impl super::CanonicalDigestBytes {
         match value {
             Some(value) => {
                 self.tag(1);
-                self.str(&query_relation_record_digest(value));
+                self.str(&query_unmasked_relation_record_digest(value));
             }
             None => self.tag(0),
         }

@@ -6,8 +6,8 @@ mod index_fallback;
 mod planned_packets;
 
 pub(crate) use canonical_digest::{
-    query_entity_record_digest, query_fallback_parity_basis_digest, query_relation_record_digest,
-    query_result_reduction_digest,
+    query_fallback_parity_basis_digest, query_result_reduction_digest,
+    query_unmasked_entity_record_digest, query_unmasked_relation_record_digest,
 };
 pub use fragment_reduction::{
     reduce_query_fragments, CanonicalQueryResult, QueryComplexitySummary, QueryExecutionOutcome,

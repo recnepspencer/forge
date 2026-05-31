@@ -144,8 +144,8 @@ impl<'de> Deserialize<'de> for CanonicalStrategyOutputArtifact {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct StrategyExecutionSummary {
-    pub entity_record_reads: usize,
-    pub relation_record_reads: usize,
+    pub unmasked_entity_record_reads: usize,
+    pub unmasked_relation_record_reads: usize,
     pub projected_partition_reads: usize,
 }
 
@@ -406,75 +406,77 @@ impl<'observation, 'runtime> StrategyVisibilityReadView<'observation, 'runtime> 
         Ok(value)
     }
 
-    pub fn entity_records(
+    pub fn unmasked_entity_records(
         &self,
         kind_id: KindId,
     ) -> Result<Vec<EntityReadRecord>, StrategyExecutorFailure> {
         self.admit_kind_scan(None, "cross-partition entity record scan")?;
         let values = self.safe_projection("cross-partition entity record scan", || {
-            self.projection.entity_records(kind_id)
+            self.projection.unmasked_entity_records(kind_id)
         })?;
         self.record_entity_reads(None, values.len());
         Ok(values)
     }
 
-    pub fn entity_records_in(
+    pub fn unmasked_entity_records_in(
         &self,
         partition_id: PartitionId,
         kind_id: KindId,
     ) -> Result<Vec<EntityReadRecord>, StrategyExecutorFailure> {
         self.admit_kind_scan(Some(partition_id), "partition-scoped entity record scan")?;
         let values = self.safe_projection("partition-scoped entity record scan", || {
-            self.projection.entity_records_in(partition_id, kind_id)
+            self.projection
+                .unmasked_entity_records_in(partition_id, kind_id)
         })?;
         self.record_entity_reads(Some(partition_id), values.len());
         Ok(values)
     }
 
-    pub fn entity_record(
+    pub fn unmasked_entity_record(
         &self,
         entity_id: EntityId,
     ) -> Result<Option<EntityReadRecord>, StrategyExecutorFailure> {
         self.admit_target_lookup(entity_id.partition_id, "entity record lookup")?;
         let value = self.safe_projection("entity record lookup", || {
-            self.projection.entity_record(entity_id)
+            self.projection.unmasked_entity_record(entity_id)
         })?;
         self.record_entity_reads(Some(entity_id.partition_id), usize::from(value.is_some()));
         Ok(value)
     }
 
-    pub fn relation_records(
+    pub fn unmasked_relation_records(
         &self,
         kind_id: KindId,
     ) -> Result<Vec<RelationReadRecord>, StrategyExecutorFailure> {
         self.admit_kind_scan(None, "cross-partition relation record scan")?;
         let values = self.safe_projection("cross-partition relation record scan", || {
-            self.projection.relation_records(kind_id)
+            self.projection.unmasked_relation_records(kind_id)
         })?;
         self.record_relation_reads(None, values.len());
         Ok(values)
     }
 
-    pub fn relation_records_in(
+    pub fn unmasked_relation_records_in(
         &self,
         partition_id: PartitionId,
         kind_id: KindId,
     ) -> Result<Vec<RelationReadRecord>, StrategyExecutorFailure> {
         self.admit_kind_scan(Some(partition_id), "partition-scoped relation record scan")?;
         let values = self.safe_projection("partition-scoped relation record scan", || {
-            self.projection.relation_records_in(partition_id, kind_id)
+            self.projection
+                .unmasked_relation_records_in(partition_id, kind_id)
         })?;
         self.record_relation_reads(Some(partition_id), values.len());
         Ok(values)
     }
 
-    pub fn relation_record(
+    pub fn unmasked_relation_record(
         &self,
         relation_id: RelationId,
     ) -> Result<Option<RelationReadRecord>, StrategyExecutorFailure> {
         self.admit_target_lookup(relation_id.partition_id, "relation record lookup")?;
         let value = self.safe_projection("relation record lookup", || {
-            self.projection.relation_record(relation_id)
+            self.projection.unmasked_relation_record(relation_id)
         })?;
         self.record_relation_reads(Some(relation_id.partition_id), usize::from(value.is_some()));
         Ok(value)
@@ -583,7 +585,7 @@ impl<'observation, 'runtime> StrategyVisibilityReadView<'observation, 'runtime> 
             return;
         }
         let mut metrics = self.metrics.borrow_mut();
-        metrics.entity_record_reads += count;
+        metrics.unmasked_entity_record_reads += count;
         if let Some(partition_id) = partition_id {
             metrics.partitions_touched.insert(partition_id);
         }
@@ -594,7 +596,7 @@ impl<'observation, 'runtime> StrategyVisibilityReadView<'observation, 'runtime> 
             return;
         }
         let mut metrics = self.metrics.borrow_mut();
-        metrics.relation_record_reads += count;
+        metrics.unmasked_relation_record_reads += count;
         if let Some(partition_id) = partition_id {
             metrics.partitions_touched.insert(partition_id);
         }
@@ -688,8 +690,8 @@ impl<'runtime> StrategyObservationContext<'runtime> {
 
 #[derive(Debug, Default)]
 struct StrategyObservationMetrics {
-    entity_record_reads: usize,
-    relation_record_reads: usize,
+    unmasked_entity_record_reads: usize,
+    unmasked_relation_record_reads: usize,
     partitions_touched: BTreeSet<PartitionId>,
     first_partition: Option<PartitionId>,
 }
@@ -697,8 +699,8 @@ struct StrategyObservationMetrics {
 impl StrategyObservationMetrics {
     fn summary(&self) -> StrategyExecutionSummary {
         StrategyExecutionSummary {
-            entity_record_reads: self.entity_record_reads,
-            relation_record_reads: self.relation_record_reads,
+            unmasked_entity_record_reads: self.unmasked_entity_record_reads,
+            unmasked_relation_record_reads: self.unmasked_relation_record_reads,
             projected_partition_reads: self.partitions_touched.len(),
         }
     }
