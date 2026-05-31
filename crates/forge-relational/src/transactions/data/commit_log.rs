@@ -11,8 +11,7 @@ use crate::validation::engine::{
 use serde::{Deserialize, Serialize};
 
 use crate::authority::commit::preparation::planning::strategy::{
-    ParallelLegality, ParallelProfitability, PreparationFallbackReason,
-    PreparationStrategySelection,
+    ParallelLegality, ParallelProfitability, PreparationStrategySelection, SerialPreparationReason,
 };
 use forge_foundational::facade::AspectKey;
 
@@ -85,7 +84,7 @@ pub enum CommitTraceEvent {
         preparation_selected_mode: Option<PreparationStrategySelection>,
         preparation_parallel_legality: Option<ParallelLegality>,
         preparation_parallel_profitability: Option<ParallelProfitability>,
-        preparation_fallback_reason: Option<PreparationFallbackReason>,
+        preparation_serial_selection_reason: Option<SerialPreparationReason>,
         consumed_groups: InvariantGroupSet,
         applicable_groups: InvariantGroupSet,
         result_count: usize,
@@ -292,9 +291,9 @@ impl CommitLog {
             preparation_parallel_profitability: metadata
                 .preparation_strategy()
                 .map(|strategy| strategy.parallel_profitability),
-            preparation_fallback_reason: metadata
+            preparation_serial_selection_reason: metadata
                 .preparation_strategy()
-                .and_then(|strategy| strategy.fallback_reason),
+                .and_then(|strategy| strategy.serial_selection_reason),
             consumed_groups: metadata.consumed_groups(),
             applicable_groups: metadata.applicable_groups(),
             result_count,

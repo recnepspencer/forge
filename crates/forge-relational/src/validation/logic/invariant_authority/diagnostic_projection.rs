@@ -1,5 +1,5 @@
 use crate::authority::commit::preparation::diagnostics::failures::PreparationFailureClass;
-use crate::authority::commit::preparation::planning::strategy::PreparationFallbackReason;
+use crate::authority::commit::preparation::planning::strategy::SerialPreparationReason;
 use crate::diagnostics::data::{RelationalDiagnosticFields, RelationalDiagnosticValue};
 use crate::validation::data::{
     InvariantExecutionPoint, InvariantWitnessBasis, InvariantWitnessKey,
@@ -141,9 +141,9 @@ pub(super) fn custom_trace_diagnostic_fields(
     ]))
 }
 
-pub(super) fn preparation_fallback_diagnostic_fields(
+pub(super) fn serial_preparation_diagnostic_fields(
     execution_point: InvariantExecutionPoint,
-    reason: PreparationFallbackReason,
+    reason: SerialPreparationReason,
 ) -> RelationalDiagnosticFields {
     RelationalDiagnosticFields::from_diagnostic_value(RelationalDiagnosticValue::object([
         (

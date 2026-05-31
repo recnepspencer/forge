@@ -54,8 +54,8 @@ pub(crate) fn reduce_invariant_execution(
         .iter()
         .flat_map(|envelope| envelope.preparation_failures.clone())
         .collect::<Vec<_>>();
-    if strategy.fallback_reason.is_some() {
-        preparation_failures.push(PreparationFailureClass::FallbackToSerial);
+    if strategy.serial_selection_reason.is_some() {
+        preparation_failures.push(PreparationFailureClass::SerialStrategySelected);
     }
 
     let mut results = Vec::new();

@@ -106,14 +106,14 @@ pub(crate) fn native_entity_replacement_scope_digest(
     })
 }
 
-pub(crate) fn fallback_intent_scope_digest(
+pub(crate) fn serial_intent_scope_digest(
     strategy_id: crate::commit_strategies::data::CommitStrategyId,
     input_schema_name: &StrategyInputSchemaName,
     input_schema_version: StrategyInputSchemaVersion,
     input_digest: CanonicalStrategyInputDigest,
     targets: &[ExistingRecordTarget],
 ) -> [u8; 32] {
-    commit_strategy_digest("strategy-fallback-intent-scope-v1", |bytes| {
+    commit_strategy_digest("strategy-serial-intent-scope-v1", |bytes| {
         bytes.u32(strategy_id.0);
         bytes.string(input_schema_name.as_str());
         bytes.u16(input_schema_version.0);

@@ -3,8 +3,8 @@ use crate::authority::commit::preparation::facade::PreparedInvariantExecution;
 use crate::authority::commit::preparation::packets::invariant::InvariantPacketRegistration;
 use crate::authority::commit::preparation::planning::context::PreparationPlanningContext;
 use crate::authority::commit::preparation::planning::strategy::{
-    packet_width_is_profitable, ParallelLegality, ParallelProfitability, PreparationFallbackReason,
-    PreparationStrategy, PreparationStrategySelection, MIN_PARALLEL_PACKET_WIDTH,
+    packet_width_is_profitable, ParallelLegality, ParallelProfitability, PreparationStrategy,
+    PreparationStrategySelection, SerialPreparationReason, MIN_PARALLEL_PACKET_WIDTH,
 };
 use crate::authority::commit::preparation::proofs::kinds::PreparationProofKind;
 use crate::authority::commit::preparation::proofs::locality::{
@@ -92,22 +92,22 @@ pub(crate) fn plan_invariant_execution<'runtime>(
         runtime.config.execution.execution_model,
         RelationalExecutionModel::StagedParallelPreparation
     ) {
-        PreparationStrategy::serial(PreparationFallbackReason::ExecutionModelSerial)
+        PreparationStrategy::serial(SerialPreparationReason::ExecutionModelSerial)
     } else if !packet_width_is_profitable(packet_count, MIN_PARALLEL_PACKET_WIDTH) {
         PreparationStrategy {
             parallel_legality: ParallelLegality::ProvenParallel,
             parallel_profitability: ParallelProfitability::NotProfitable,
             selected_mode: PreparationStrategySelection::Serial,
-            fallback_reason: Some(PreparationFallbackReason::InsufficientPacketBreadth),
+            serial_selection_reason: Some(SerialPreparationReason::InsufficientPacketBreadth),
         }
     } else if proof_kind == PreparationProofKind::RequiresSerial {
-        PreparationStrategy::serial(PreparationFallbackReason::ProofRequiresSerial)
+        PreparationStrategy::serial(SerialPreparationReason::ProofRequiresSerial)
     } else {
         PreparationStrategy {
             parallel_legality: ParallelLegality::ProvenParallel,
             parallel_profitability: ParallelProfitability::Profitable,
             selected_mode: PreparationStrategySelection::StagedParallel,
-            fallback_reason: None,
+            serial_selection_reason: None,
         }
     };
 

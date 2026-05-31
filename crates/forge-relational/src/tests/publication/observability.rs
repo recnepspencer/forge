@@ -1531,7 +1531,7 @@ fn harness_diagnostics_expose_execution_mode_and_performance_counters() {
 }
 
 #[test]
-fn harness_phase8_fallbacks_are_harness_visible_and_still_parity_safe() {
+fn harness_phase8_serial_strategy_selection_is_harness_visible_and_still_parity_safe() {
     let adapter = InvariantHarnessAdapter::new(InvariantCatalog {
         registrations: vec![InvariantRegistration::commit_boundary_blocking(
             InvariantRule::MaxMergedIntents(16),
@@ -1569,14 +1569,14 @@ fn harness_phase8_fallbacks_are_harness_visible_and_still_parity_safe() {
         .unwrap();
     let summary = bundles[0].diagnostics.as_ref().unwrap().summary.clone();
 
-    let fallback_entries = harness_diagnostic_entries(&summary, "PreparationFallback");
+    let serial_entries = harness_diagnostic_entries(&summary, "SerialPreparationSelected");
     let failure_entries = harness_diagnostic_entries(&summary, "PreparationFailure");
 
-    assert!(fallback_entries.iter().any(|entry| {
+    assert!(serial_entries.iter().any(|entry| {
         harness_diagnostic_field_matches(entry, "reason", "insufficient_packet_breadth")
     }));
     assert!(failure_entries.iter().any(|entry| {
-        harness_diagnostic_field_matches(entry, "failure_class", "fallback_to_serial")
+        harness_diagnostic_field_matches(entry, "failure_class", "serial_strategy_selected")
     }));
     assert_eq!(
         harness_summary_field(&summary, "execution_mode"),
@@ -1875,15 +1875,15 @@ fn harness_phase8_packet_overlap_failures_are_harness_visible() {
 
 #[test]
 fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
-    let fallback_adapter = InvariantHarnessAdapter::new(InvariantCatalog {
+    let serial_adapter = InvariantHarnessAdapter::new(InvariantCatalog {
         registrations: vec![InvariantRegistration::commit_boundary_blocking(
             InvariantRule::MaxMergedIntents(16),
         )],
         ..InvariantCatalog::default()
     });
     let (fixture, batch, request) = harness_phase8_fixture_batch_request();
-    let fallback_report = forge_harness::facade::certification_matrix(
-        fallback_adapter,
+    let serial_report = forge_harness::facade::certification_matrix(
+        serial_adapter,
         fixture,
         request,
         ExecutionProfile::serial("serial"),
@@ -1892,12 +1892,12 @@ fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
     .candidate(ExecutionProfile::staged_parallel("staged"))
     .certify()
     .unwrap();
-    let fallback_summary = certification_case(&fallback_report, "staged")
+    let serial_summary = certification_case(&serial_report, "staged")
         .diagnostics_summary
         .as_ref()
         .unwrap();
     assert!(
-        harness_diagnostic_entries(fallback_summary, "PreparationFallback")
+        harness_diagnostic_entries(serial_summary, "SerialPreparationSelected")
             .iter()
             .any(|entry| harness_diagnostic_field_matches(
                 entry,
@@ -1906,12 +1906,12 @@ fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
             ))
     );
     assert!(
-        harness_diagnostic_entries(fallback_summary, "PreparationFailure")
+        harness_diagnostic_entries(serial_summary, "PreparationFailure")
             .iter()
             .any(|entry| harness_diagnostic_field_matches(
                 entry,
                 "failure_class",
-                "fallback_to_serial"
+                "serial_strategy_selected"
             ))
     );
 

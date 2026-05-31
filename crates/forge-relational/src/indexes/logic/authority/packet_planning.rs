@@ -2,7 +2,7 @@ use crate::authority::commit::preparation::packets::index::{
     IndexFragmentIdentity, IndexPreparationHeader, IndexPreparationPacket,
 };
 use crate::authority::commit::preparation::planning::strategy::{
-    strategy_for_parallel_packets, PreparationFallbackReason, PreparationStrategy,
+    strategy_for_parallel_packets, PreparationStrategy, SerialPreparationReason,
 };
 use crate::authority::commit::preparation::proofs::kinds::PreparationProofKind;
 use crate::authority::commit::preparation::proofs::locality::{
@@ -41,7 +41,7 @@ pub(super) fn choose_index_preparation_strategy(
         runtime.config.execution.execution_model,
         RelationalExecutionModel::StagedParallelPreparation
     ) {
-        return PreparationStrategy::serial(PreparationFallbackReason::ExecutionModelSerial);
+        return PreparationStrategy::serial(SerialPreparationReason::ExecutionModelSerial);
     }
 
     strategy_for_parallel_packets(runtime.config.execution.execution_model, packet_count)

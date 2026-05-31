@@ -13,9 +13,9 @@ use crate::transactions::data::CommitValidationSummary;
 use std::sync::Arc;
 
 use super::canonical_digest::{
-    commit_validation_summary_digest, fallback_intent_scope_digest, lowering_summary_digest,
-    preview_validation_cost_digest, runtime_execution_model_digest,
-    runtime_invariant_catalog_digest, runtime_planning_contract_digest,
+    commit_validation_summary_digest, lowering_summary_digest, preview_validation_cost_digest,
+    runtime_execution_model_digest, runtime_invariant_catalog_digest,
+    runtime_planning_contract_digest, serial_intent_scope_digest,
 };
 use super::native_strategy_intent_scope::{
     native_strategy_intent_scope_digest, native_strategy_intent_scope_targets,
@@ -661,7 +661,7 @@ fn strategy_intent_scope_digest(
         .collect::<Vec<_>>();
     targets.sort();
     targets.dedup();
-    StrategyIntentScopeDigest::new(fallback_intent_scope_digest(
+    StrategyIntentScopeDigest::new(serial_intent_scope_digest(
         lowered.request().strategy_id(),
         lowered.request().canonical_input().schema_name(),
         lowered.request().canonical_input().schema_version(),

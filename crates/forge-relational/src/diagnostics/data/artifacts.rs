@@ -63,7 +63,7 @@ pub enum DiagnosticCode {
     SavepointRolledBack,
     InvariantViolation,
     PreparationFailure,
-    PreparationFallback,
+    SerialPreparationSelected,
     InvariantProofBoundaryObserved,
     StorageInconsistencyDetected,
     CanonicalOrderingViolation,

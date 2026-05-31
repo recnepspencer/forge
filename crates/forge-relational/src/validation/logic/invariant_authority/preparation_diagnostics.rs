@@ -6,7 +6,7 @@ use crate::validation::engine::InvariantExecutionResult;
 
 use super::diagnostic_projection::{
     custom_trace_diagnostic_fields, preparation_failure_diagnostic_fields,
-    preparation_fallback_diagnostic_fields, proof_boundary_trace_diagnostic_fields,
+    proof_boundary_trace_diagnostic_fields, serial_preparation_diagnostic_fields,
 };
 
 pub(super) fn emit_preparation_diagnostics(
@@ -44,21 +44,21 @@ pub(super) fn emit_preparation_diagnostics(
             );
         }
     }
-    let fallback_reason = result
+    let serial_selection_reason = result
         .metadata()
         .preparation_strategy()
-        .and_then(|strategy| strategy.fallback_reason);
+        .and_then(|strategy| strategy.serial_selection_reason);
     let failures = result.metadata().preparation_failures();
-    if fallback_reason.is_none() && failures.is_empty() {
+    if serial_selection_reason.is_none() && failures.is_empty() {
         return;
     }
 
     let mut entries = Vec::new();
-    if let Some(reason) = fallback_reason {
+    if let Some(reason) = serial_selection_reason {
         entries.push(RelationalDiagnosticsEntry::new(
-            DiagnosticCode::PreparationFallback,
-            "preparation fell back to serial execution",
-            preparation_fallback_diagnostic_fields(result.metadata().execution_point(), reason),
+            DiagnosticCode::SerialPreparationSelected,
+            "preparation selected serial execution",
+            serial_preparation_diagnostic_fields(result.metadata().execution_point(), reason),
         ));
     }
     for failure in failures {
