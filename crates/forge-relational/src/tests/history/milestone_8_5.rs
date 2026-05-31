@@ -386,7 +386,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         &mut runtime,
         IntentReconciliationInput {
             entity_id: entity,
-            desired_fields: strategy_name_and_replicas_patch("service-main", 1),
+            desired_aspect_fields: strategy_name_and_replicas_patch("service-main", 1),
         }
         .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
@@ -568,7 +568,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         &mut runtime,
         IntentReconciliationInput {
             entity_id: controller_sequence_entity,
-            desired_fields: strategy_name_and_replicas_patch("controller-main", 2),
+            desired_aspect_fields: strategy_name_and_replicas_patch("controller-main", 2),
         }
         .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
@@ -596,7 +596,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         &mut runtime,
         IntentReconciliationInput {
             entity_id: controller_sequence_entity,
-            desired_fields: crate::transactions::data::AspectFieldPatch::from_locator(
+            desired_aspect_fields: crate::transactions::data::AspectFieldPatch::from_locator(
                 crate::transactions::data::planned_single_field_locator(
                     forge_foundational::facade::AspectKey::new("name")
                         .expect("valid test aspect key"),
@@ -1038,7 +1038,7 @@ fn run_replacement_strategy_certification() -> ReplacementCertificationBundle {
         EntityReplacementReconciliationInput {
             entity_id: replacement_entity,
             replacement_client_key: "replace-target-v2".to_string(),
-            desired_fields: strategy_name_and_replicas_patch("replace-main", 2),
+            desired_aspect_fields: strategy_name_and_replicas_patch("replace-main", 2),
         }
         .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,

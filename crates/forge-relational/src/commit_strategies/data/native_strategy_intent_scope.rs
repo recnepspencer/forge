@@ -106,12 +106,12 @@ fn native_intent_reconciliation_scope(
 ) -> Option<NativeStrategyIntentScope> {
     let mut reader = NativeCodecReader::new(bytes);
     let entity_id = decode_entity_id(&mut reader).ok()?;
-    let desired_fields = decode_aspect_field_patch(&mut reader).ok()?;
+    let desired_aspect_fields = decode_aspect_field_patch(&mut reader).ok()?;
     reader.finish().ok()?;
     Some(NativeStrategyIntentScope::EntityFields {
         entity_id,
         targets: lowered_entity_patch_targets(lowered, entity_id)
-            .unwrap_or_else(|| desired_fields.locators().cloned().collect()),
+            .unwrap_or_else(|| desired_aspect_fields.locators().cloned().collect()),
     })
 }
 
@@ -122,13 +122,13 @@ fn native_entity_replacement_scope(
     let mut reader = NativeCodecReader::new(bytes);
     let entity_id = decode_entity_id(&mut reader).ok()?;
     let replacement_client_key = decode_string(&mut reader).ok()?;
-    let desired_fields = decode_aspect_field_patch(&mut reader).ok()?;
+    let desired_aspect_fields = decode_aspect_field_patch(&mut reader).ok()?;
     reader.finish().ok()?;
     Some(NativeStrategyIntentScope::EntityReplacement {
         entity_id,
         replacement_client_key,
         targets: lowered_entity_patch_targets(lowered, entity_id)
-            .unwrap_or_else(|| desired_fields.locators().cloned().collect()),
+            .unwrap_or_else(|| desired_aspect_fields.locators().cloned().collect()),
     })
 }
 

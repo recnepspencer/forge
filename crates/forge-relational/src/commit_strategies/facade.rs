@@ -305,16 +305,19 @@ mod tests {
             .canonicalize_request(
                 &IntentReconciliationInput {
                     entity_id: entity,
-                    desired_fields: crate::transactions::data::AspectFieldPatch::from_locator(
-                        crate::transactions::data::planned_single_field_locator(
-                            forge_foundational::facade::AspectKey::new("name")
-                                .expect("valid test aspect key"),
-                            FieldKey::new("name").expect("valid test field key"),
+                    desired_aspect_fields:
+                        crate::transactions::data::AspectFieldPatch::from_locator(
+                            crate::transactions::data::planned_single_field_locator(
+                                forge_foundational::facade::AspectKey::new("name")
+                                    .expect("valid test aspect key"),
+                                FieldKey::new("name").expect("valid test field key"),
+                            ),
+                            forge_foundational::facade::AspectValue::String(
+                                forge_foundational::facade::InternedString::Raw(
+                                    "after".to_string(),
+                                ),
+                            ),
                         ),
-                        forge_foundational::facade::AspectValue::String(
-                            forge_foundational::facade::InternedString::Raw("after".to_string()),
-                        ),
-                    ),
                 }
                 .into_native_canonical_request(StrategyCallerProvenance {
                     request_origin: StrategyRequestOrigin::Test,
@@ -691,16 +694,19 @@ mod tests {
             .canonicalize_request(
                 &IntentReconciliationInput {
                     entity_id: entity,
-                    desired_fields: crate::transactions::data::AspectFieldPatch::from_locator(
-                        crate::transactions::data::planned_single_field_locator(
-                            forge_foundational::facade::AspectKey::new("name")
-                                .expect("valid test aspect key"),
-                            FieldKey::new("name").expect("valid test field key"),
+                    desired_aspect_fields:
+                        crate::transactions::data::AspectFieldPatch::from_locator(
+                            crate::transactions::data::planned_single_field_locator(
+                                forge_foundational::facade::AspectKey::new("name")
+                                    .expect("valid test aspect key"),
+                                FieldKey::new("name").expect("valid test field key"),
+                            ),
+                            forge_foundational::facade::AspectValue::String(
+                                forge_foundational::facade::InternedString::Raw(
+                                    "after".to_string(),
+                                ),
+                            ),
                         ),
-                        forge_foundational::facade::AspectValue::String(
-                            forge_foundational::facade::InternedString::Raw("after".to_string()),
-                        ),
-                    ),
                 }
                 .into_native_canonical_request(StrategyCallerProvenance {
                     request_origin: StrategyRequestOrigin::Test,
@@ -794,7 +800,7 @@ mod tests {
                 &EntityReplacementReconciliationInput {
                     entity_id: entity,
                     replacement_client_key: "service-replacement".to_string(),
-                    desired_fields: strategy_name_and_replicas_patch("before", 3),
+                    desired_aspect_fields: strategy_name_and_replicas_patch("before", 3),
                 }
                 .into_native_canonical_request(StrategyCallerProvenance {
                     request_origin: StrategyRequestOrigin::Test,
@@ -934,7 +940,7 @@ mod tests {
                 .canonicalize_request(
                     &IntentReconciliationInput {
                         entity_id: entity,
-                        desired_fields: AspectFieldPatch::from_locator(
+                        desired_aspect_fields: AspectFieldPatch::from_locator(
                             crate::transactions::data::planned_single_field_locator(
                                 forge_foundational::facade::AspectKey::new("name")
                                     .expect("valid test aspect key"),
@@ -1077,7 +1083,7 @@ mod tests {
                 .canonicalize_request(
                     &IntentReconciliationInput {
                         entity_id: entity,
-                        desired_fields: strategy_name_and_replicas_patch("main-intent", 1),
+                        desired_aspect_fields: strategy_name_and_replicas_patch("main-intent", 1),
                     }
                     .into_native_canonical_request(StrategyCallerProvenance {
                         request_origin: StrategyRequestOrigin::Test,

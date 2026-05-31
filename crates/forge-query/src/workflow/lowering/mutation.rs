@@ -149,7 +149,7 @@ fn intent_reconciliation_strategy_request(
     } = input;
     IntentReconciliationInput {
         entity_id,
-        desired_fields: intent_reconciliation_field_patch(desired_aspect_fields_json)?,
+        desired_aspect_fields: intent_reconciliation_field_patch(desired_aspect_fields_json)?,
     }
     .into_native_canonical_request(StrategyCallerProvenance {
         request_origin: StrategyRequestOrigin::Api,

@@ -71,7 +71,7 @@ fn entity_replacement_reconciliation_strategy_replaces_with_normalized_client_ke
             &EntityReplacementReconciliationInput {
                 entity_id: entity,
                 replacement_client_key: "service-replacement".to_string(),
-                desired_fields: AspectFieldPatch::from_locator(
+                desired_aspect_fields: AspectFieldPatch::from_locator(
                     replicas_patch_target(),
                     AspectValue::UInt64(3),
                 ),
@@ -133,7 +133,7 @@ fn entity_replacement_reconciliation_strategy_replacement_declaration_applies_to
             &EntityReplacementReconciliationInput {
                 entity_id: entity,
                 replacement_client_key: "service-replacement".to_string(),
-                desired_fields: AspectFieldPatch::from_locator(
+                desired_aspect_fields: AspectFieldPatch::from_locator(
                     replicas_patch_target(),
                     AspectValue::UInt64(7),
                 ),
@@ -225,7 +225,7 @@ fn entity_replacement_reconciliation_strategy_rejects_undeclared_fields() {
             &EntityReplacementReconciliationInput {
                 entity_id: entity,
                 replacement_client_key: "service-replacement".to_string(),
-                desired_fields: AspectFieldPatch::from_locator(
+                desired_aspect_fields: AspectFieldPatch::from_locator(
                     replicas_patch_target(),
                     AspectValue::UInt64(3),
                 ),
@@ -277,7 +277,7 @@ fn entity_replacement_reconciliation_strategy_replaces_when_only_client_key_chan
             &EntityReplacementReconciliationInput {
                 entity_id: entity,
                 replacement_client_key: "service-v2".to_string(),
-                desired_fields: AspectFieldPatch::from_locator(
+                desired_aspect_fields: AspectFieldPatch::from_locator(
                     name_patch_target(),
                     AspectValue::String(InternedString::Raw("service".to_string())),
                 ),
@@ -327,7 +327,7 @@ fn entity_replacement_reconciliation_strategy_noops_when_authoritative_fields_ma
             &EntityReplacementReconciliationInput {
                 entity_id: entity,
                 replacement_client_key: String::new(),
-                desired_fields: AspectFieldPatch::from_locator(
+                desired_aspect_fields: AspectFieldPatch::from_locator(
                     name_patch_target(),
                     AspectValue::String(InternedString::Raw("service".to_string())),
                 ),

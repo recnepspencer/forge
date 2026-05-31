@@ -31,7 +31,7 @@ use crate::transactions::data::{
 pub struct EntityReplacementReconciliationInput {
     pub entity_id: EntityId,
     pub replacement_client_key: String,
-    pub desired_fields: AspectFieldPatch,
+    pub desired_aspect_fields: AspectFieldPatch,
 }
 
 impl EntityReplacementReconciliationInput {
@@ -42,7 +42,7 @@ impl EntityReplacementReconciliationInput {
         let mut bytes = Vec::new();
         encode_entity_id(&mut bytes, self.entity_id);
         encode_string(&mut bytes, &self.replacement_client_key);
-        encode_aspect_field_patch(&mut bytes, &self.desired_fields)?;
+        encode_aspect_field_patch(&mut bytes, &self.desired_aspect_fields)?;
         Ok(NativeStrategyCommitRequest::from_native_canonical_bytes(
             CommitStrategySemanticName::new(
                 EntityReplacementReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
@@ -56,12 +56,12 @@ impl EntityReplacementReconciliationInput {
         let mut reader = NativeCodecReader::new(bytes);
         let entity_id = decode_entity_id(&mut reader)?;
         let replacement_client_key = decode_string(&mut reader)?;
-        let desired_fields = decode_aspect_field_patch(&mut reader)?;
+        let desired_aspect_fields = decode_aspect_field_patch(&mut reader)?;
         reader.finish()?;
         Ok(Self {
             entity_id,
             replacement_client_key,
-            desired_fields,
+            desired_aspect_fields,
         })
     }
 }
@@ -212,9 +212,9 @@ impl EntityReplacementReconciliationStrategy {
     fn reconcile_fields(
         observation: &StrategyObservationContext<'_>,
         existing: &crate::storage::data::EntityReadRecord,
-        desired_fields: &AspectFieldPatch,
+        desired_aspect_fields: &AspectFieldPatch,
     ) -> Result<AspectFieldPatch, StrategyExecutorFailure> {
-        for target in desired_fields.locators() {
+        for target in desired_aspect_fields.locators() {
             let [field] = target.field_path().fields() else {
                 return Err(StrategyExecutorFailure::with_evidence(
                     StrategyExecutorFailureClass::DomainRejection,
@@ -237,14 +237,14 @@ impl EntityReplacementReconciliationStrategy {
                 ));
             }
         }
-        Ok(desired_fields.clone())
+        Ok(desired_aspect_fields.clone())
     }
 
     fn authoritative_fields_match(
         existing: &crate::storage::data::EntityReadRecord,
-        desired_fields: &AspectFieldPatch,
+        desired_aspect_fields: &AspectFieldPatch,
     ) -> bool {
-        desired_fields.iter().all(|(target, value)| {
+        desired_aspect_fields.iter().all(|(target, value)| {
             let [_field] = target.field_path().fields() else {
                 return false;
             };
@@ -274,9 +274,10 @@ impl CommitStrategyExecutor for EntityReplacementReconciliationStrategy {
                     ),
                 )
             })?;
-        let desired_fields = Self::reconcile_fields(observation, &existing, &input.desired_fields)?;
+        let desired_aspect_fields =
+            Self::reconcile_fields(observation, &existing, &input.desired_aspect_fields)?;
         let unchanged = input.replacement_client_key.is_empty()
-            && Self::authoritative_fields_match(&existing, &desired_fields);
+            && Self::authoritative_fields_match(&existing, &desired_aspect_fields);
 
         let (action, mutation_program) = if unchanged {
             (
@@ -291,7 +292,7 @@ impl CommitStrategyExecutor for EntityReplacementReconciliationStrategy {
                         partition_id: input.entity_id.partition_id,
                         kind_id: existing.kind.kind_id,
                         client_key: ClientKey::raw(input.replacement_client_key.clone()),
-                        fields: desired_fields,
+                        fields: desired_aspect_fields,
                     },
                 })),
             );

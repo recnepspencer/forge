@@ -64,7 +64,7 @@ fn intent_reconciliation_strategy_emits_update_when_aspect_fields_differ() {
         .canonicalize_request(
             &IntentReconciliationInput {
                 entity_id: entity,
-                desired_fields: AspectFieldPatch::from_locator(
+                desired_aspect_fields: AspectFieldPatch::from_locator(
                     name_patch_target(),
                     AspectValue::String(InternedString::Raw("after".to_string())),
                 ),
@@ -111,7 +111,7 @@ fn intent_reconciliation_strategy_emits_noop_when_aspect_fields_match() {
         .canonicalize_request(
             &IntentReconciliationInput {
                 entity_id: entity,
-                desired_fields: AspectFieldPatch::from_locator(
+                desired_aspect_fields: AspectFieldPatch::from_locator(
                     name_patch_target(),
                     AspectValue::String(InternedString::Raw("stable".to_string())),
                 ),
@@ -157,7 +157,7 @@ fn intent_reconciliation_strategy_preserves_untouched_declared_fields() {
         .canonicalize_request(
             &IntentReconciliationInput {
                 entity_id: entity,
-                desired_fields: AspectFieldPatch::from_locator(
+                desired_aspect_fields: AspectFieldPatch::from_locator(
                     replicas_patch_target(),
                     AspectValue::UInt64(3),
                 ),

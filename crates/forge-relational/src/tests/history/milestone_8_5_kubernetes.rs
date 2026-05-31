@@ -497,7 +497,7 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
         &mut runtime,
         IntentReconciliationInput {
             entity_id: entity,
-            desired_fields: strategy_name_and_replicas_patch("svc-v1", 3),
+            desired_aspect_fields: strategy_name_and_replicas_patch("svc-v1", 3),
         }
         .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
@@ -547,7 +547,7 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
         &mut runtime,
         IntentReconciliationInput {
             entity_id: entity,
-            desired_fields: crate::transactions::data::AspectFieldPatch::from_locator(
+            desired_aspect_fields: crate::transactions::data::AspectFieldPatch::from_locator(
                 crate::transactions::data::planned_single_field_locator(
                     forge_foundational::facade::AspectKey::new("name")
                         .expect("valid test aspect key"),
@@ -614,7 +614,7 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
         &mut runtime,
         IntentReconciliationInput {
             entity_id: entity,
-            desired_fields: strategy_name_and_replicas_patch("svc-v2", 9),
+            desired_aspect_fields: strategy_name_and_replicas_patch("svc-v2", 9),
         }
         .into_native_canonical_request(crate::facade::commit_strategies::StrategyCallerProvenance {
             request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,

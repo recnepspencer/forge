@@ -132,7 +132,7 @@ fn workflow_certification_mutation_lowering_matches_direct_relational_control() 
 
     let control = IntentReconciliationInput {
         entity_id: EntityId::new(PartitionId(1), 41, 0),
-        desired_fields: single_aspect_field_patch_from_json("name", "name", json!("after"))
+        desired_aspect_fields: single_aspect_field_patch_from_json("name", "name", json!("after"))
             .expect("control field patch"),
     }
     .into_native_canonical_request(StrategyCallerProvenance {

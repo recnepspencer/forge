@@ -28,7 +28,7 @@ use crate::transactions::data::{
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IntentReconciliationInput {
     pub entity_id: EntityId,
-    pub desired_fields: AspectFieldPatch,
+    pub desired_aspect_fields: AspectFieldPatch,
 }
 
 impl IntentReconciliationInput {
@@ -38,7 +38,7 @@ impl IntentReconciliationInput {
     ) -> Result<NativeStrategyCommitRequest, NativeCodecError> {
         let mut bytes = Vec::new();
         encode_entity_id(&mut bytes, self.entity_id);
-        encode_aspect_field_patch(&mut bytes, &self.desired_fields)?;
+        encode_aspect_field_patch(&mut bytes, &self.desired_aspect_fields)?;
         Ok(NativeStrategyCommitRequest::from_native_canonical_bytes(
             CommitStrategySemanticName::new(IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME),
             bytes,
@@ -49,11 +49,11 @@ impl IntentReconciliationInput {
     fn decode(bytes: &[u8]) -> Result<Self, NativeCodecError> {
         let mut reader = NativeCodecReader::new(bytes);
         let entity_id = decode_entity_id(&mut reader)?;
-        let desired_fields = decode_aspect_field_patch(&mut reader)?;
+        let desired_aspect_fields = decode_aspect_field_patch(&mut reader)?;
         reader.finish()?;
         Ok(Self {
             entity_id,
-            desired_fields,
+            desired_aspect_fields,
         })
     }
 }
@@ -196,9 +196,9 @@ impl IntentReconciliationStrategy {
     fn reconcile_fields(
         observation: &StrategyObservationContext<'_>,
         existing: &crate::storage::data::EntityReadRecord,
-        desired_fields: &AspectFieldPatch,
+        desired_aspect_fields: &AspectFieldPatch,
     ) -> Result<AspectFieldPatch, StrategyExecutorFailure> {
-        for target in desired_fields.locators() {
+        for target in desired_aspect_fields.locators() {
             let [field] = target.field_path().fields() else {
                 return Err(StrategyExecutorFailure::with_evidence(
                     StrategyExecutorFailureClass::DomainRejection,
@@ -221,7 +221,7 @@ impl IntentReconciliationStrategy {
                 ));
             }
         }
-        Ok(desired_fields.clone())
+        Ok(desired_aspect_fields.clone())
     }
 
     fn authoritative_field_matches(
@@ -254,8 +254,9 @@ impl CommitStrategyExecutor for IntentReconciliationStrategy {
                     ),
                 )
             })?;
-        let desired_fields = Self::reconcile_fields(observation, &existing, &input.desired_fields)?;
-        let unchanged = desired_fields.iter().all(|(target, desired_value)| {
+        let desired_aspect_fields =
+            Self::reconcile_fields(observation, &existing, &input.desired_aspect_fields)?;
+        let unchanged = desired_aspect_fields.iter().all(|(target, desired_value)| {
             let [_field] = target.field_path().fields() else {
                 return false;
             };
@@ -272,7 +273,7 @@ impl CommitStrategyExecutor for IntentReconciliationStrategy {
                 MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                     UpdateEntityFieldsIntent {
                         entity_id: input.entity_id,
-                        fields: desired_fields,
+                        fields: desired_aspect_fields,
                     },
                 )),
             );
