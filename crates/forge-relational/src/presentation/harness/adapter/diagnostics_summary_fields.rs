@@ -2,10 +2,11 @@ use crate::logic::planning::RelationalExecutionModel;
 use crate::performance::data::RuntimeComplexityCounters;
 use crate::publication::data::PublicationDiagnosticsSnapshot;
 
-use super::external_harness_summary_json::{
-    external_harness_summary_array, external_harness_summary_diagnostic_fields,
-    external_harness_summary_object, external_harness_summary_string,
-    external_harness_summary_usize, ExternalHarnessSummaryJson,
+use super::external_harness_summary_projection::{
+    external_harness_summary_projection_array,
+    external_harness_summary_projection_diagnostic_fields,
+    external_harness_summary_projection_object, external_harness_summary_projection_string,
+    external_harness_summary_projection_usize, ExternalHarnessSummaryProjection,
 };
 use super::run_summary_fields::publication_observation_fields;
 
@@ -14,14 +15,14 @@ pub(super) fn diagnostics_summary(
     runtime_execution_model: RelationalExecutionModel,
     performance_counters: RuntimeComplexityCounters,
     publication_diagnostics: PublicationDiagnosticsSnapshot,
-) -> ExternalHarnessSummaryJson {
+) -> ExternalHarnessSummaryProjection {
     DiagnosticsSummary::new(
         execution_mode,
         runtime_execution_model,
         performance_counters,
         publication_diagnostics,
     )
-    .into_external_harness_summary_json()
+    .into_external_harness_summary_projection()
 }
 
 struct DiagnosticsSummary {
@@ -48,25 +49,28 @@ impl DiagnosticsSummary {
         }
     }
 
-    fn into_external_harness_summary_json(self) -> ExternalHarnessSummaryJson {
-        external_harness_summary_object([
+    fn into_external_harness_summary_projection(self) -> ExternalHarnessSummaryProjection {
+        external_harness_summary_projection_object([
             (
                 "execution_mode",
-                external_harness_summary_string(format!("{:?}", self.execution_mode)),
+                external_harness_summary_projection_string(format!("{:?}", self.execution_mode)),
             ),
             (
                 "runtime_execution_model",
-                external_harness_summary_string(format!("{:?}", self.runtime_execution_model)),
+                external_harness_summary_projection_string(format!(
+                    "{:?}",
+                    self.runtime_execution_model
+                )),
             ),
             (
                 "performance_counters",
                 self.performance_counters
-                    .into_external_harness_summary_json(),
+                    .into_external_harness_summary_projection(),
             ),
             (
                 "publication_diagnostics",
                 self.publication_diagnostics
-                    .into_external_harness_summary_json(),
+                    .into_external_harness_summary_projection(),
             ),
         ])
     }
@@ -110,63 +114,67 @@ impl PerformanceCounterSummary {
         }
     }
 
-    fn into_external_harness_summary_json(self) -> ExternalHarnessSummaryJson {
-        external_harness_summary_object([
+    fn into_external_harness_summary_projection(self) -> ExternalHarnessSummaryProjection {
+        external_harness_summary_projection_object([
             (
                 "query_packet_count",
-                external_harness_summary_usize(self.query_packet_count),
+                external_harness_summary_projection_usize(self.query_packet_count),
             ),
             (
                 "query_packet_item_count",
-                external_harness_summary_usize(self.query_packet_item_count),
+                external_harness_summary_projection_usize(self.query_packet_item_count),
             ),
             (
                 "preparation_packet_count",
-                external_harness_summary_usize(self.preparation_packet_count),
+                external_harness_summary_projection_usize(self.preparation_packet_count),
             ),
             (
                 "preparation_packet_item_count",
-                external_harness_summary_usize(self.preparation_packet_item_count),
+                external_harness_summary_projection_usize(self.preparation_packet_item_count),
             ),
             (
                 "preparation_packet_peak_width_total",
-                external_harness_summary_usize(self.preparation_packet_peak_width_total),
+                external_harness_summary_projection_usize(self.preparation_packet_peak_width_total),
             ),
             (
                 "preparation_scope_unit_count",
-                external_harness_summary_usize(self.preparation_scope_unit_count),
+                external_harness_summary_projection_usize(self.preparation_scope_unit_count),
             ),
             (
                 "preparation_serial_strategy_count",
-                external_harness_summary_usize(self.preparation_serial_strategy_count),
+                external_harness_summary_projection_usize(self.preparation_serial_strategy_count),
             ),
             (
                 "preparation_staged_parallel_strategy_count",
-                external_harness_summary_usize(self.preparation_staged_parallel_strategy_count),
+                external_harness_summary_projection_usize(
+                    self.preparation_staged_parallel_strategy_count,
+                ),
             ),
             (
                 "post_commit_consumer_packet_count",
-                external_harness_summary_usize(self.post_commit_consumer_packet_count),
+                external_harness_summary_projection_usize(self.post_commit_consumer_packet_count),
             ),
             (
                 "post_commit_consumer_peak_width_total",
-                external_harness_summary_usize(self.post_commit_consumer_peak_width_total),
+                external_harness_summary_projection_usize(
+                    self.post_commit_consumer_peak_width_total,
+                ),
             ),
             (
                 "post_commit_serial_strategy_count",
-                external_harness_summary_usize(self.post_commit_serial_strategy_count),
+                external_harness_summary_projection_usize(self.post_commit_serial_strategy_count),
             ),
             (
                 "post_commit_parallel_strategy_count",
-                external_harness_summary_usize(self.post_commit_parallel_strategy_count),
+                external_harness_summary_projection_usize(self.post_commit_parallel_strategy_count),
             ),
             (
                 "replay_digest_parity_checks",
-                external_harness_summary_usize(self.replay_digest_parity_checks),
+                external_harness_summary_projection_usize(self.replay_digest_parity_checks),
             ),
             (
                 "replay_summary_parity_checks",
-                external_harness_summary_usize(self.replay_summary_parity_checks),
+                external_harness_summary_projection_usize(self.replay_summary_parity_checks),
             ),
         ])
     }
@@ -200,27 +208,27 @@ impl PublicationDiagnosticSummary {
         }
     }
 
-    fn into_external_harness_summary_json(self) -> ExternalHarnessSummaryJson {
-        external_harness_summary_object([
+    fn into_external_harness_summary_projection(self) -> ExternalHarnessSummaryProjection {
+        external_harness_summary_projection_object([
             (
                 "observation",
                 publication_observation_fields(&self.observation),
             ),
             (
                 "diagnostics",
-                external_harness_summary_array(
+                external_harness_summary_projection_array(
                     self.diagnostic_artifacts
                         .into_iter()
-                        .map(DiagnosticArtifactSummary::into_external_harness_summary_json),
+                        .map(DiagnosticArtifactSummary::into_external_harness_summary_projection),
                 ),
             ),
             (
                 "diagnostic_artifact_count",
-                external_harness_summary_usize(self.diagnostic_artifact_count),
+                external_harness_summary_projection_usize(self.diagnostic_artifact_count),
             ),
             (
                 "diagnostic_entry_count",
-                external_harness_summary_usize(self.diagnostic_entry_count),
+                external_harness_summary_projection_usize(self.diagnostic_entry_count),
             ),
         ])
     }
@@ -251,20 +259,26 @@ impl DiagnosticArtifactSummary {
         self.entries.len()
     }
 
-    fn into_external_harness_summary_json(self) -> ExternalHarnessSummaryJson {
-        external_harness_summary_object([
-            ("scope", external_harness_summary_string(self.scope)),
-            ("kind", external_harness_summary_string(self.kind)),
+    fn into_external_harness_summary_projection(self) -> ExternalHarnessSummaryProjection {
+        external_harness_summary_projection_object([
+            (
+                "scope",
+                external_harness_summary_projection_string(self.scope),
+            ),
+            (
+                "kind",
+                external_harness_summary_projection_string(self.kind),
+            ),
             (
                 "determinism",
-                external_harness_summary_string(self.determinism),
+                external_harness_summary_projection_string(self.determinism),
             ),
             (
                 "entries",
-                external_harness_summary_array(
+                external_harness_summary_projection_array(
                     self.entries
                         .into_iter()
-                        .map(DiagnosticEntrySummary::into_external_harness_summary_json),
+                        .map(DiagnosticEntrySummary::into_external_harness_summary_projection),
                 ),
             ),
         ])
@@ -286,13 +300,19 @@ impl DiagnosticEntrySummary {
         }
     }
 
-    fn into_external_harness_summary_json(self) -> ExternalHarnessSummaryJson {
-        external_harness_summary_object([
-            ("code", external_harness_summary_string(self.code)),
-            ("message", external_harness_summary_string(self.message)),
+    fn into_external_harness_summary_projection(self) -> ExternalHarnessSummaryProjection {
+        external_harness_summary_projection_object([
+            (
+                "code",
+                external_harness_summary_projection_string(self.code),
+            ),
+            (
+                "message",
+                external_harness_summary_projection_string(self.message),
+            ),
             (
                 "fields",
-                external_harness_summary_diagnostic_fields(self.fields),
+                external_harness_summary_projection_diagnostic_fields(self.fields),
             ),
         ])
     }

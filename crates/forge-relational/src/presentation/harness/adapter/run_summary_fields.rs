@@ -1,34 +1,35 @@
 use crate::publication::data::{PublicationArtifactSnapshot, PublicationObservationSnapshot};
 use crate::snapshots::data::SnapshotHandle;
 
-use super::external_harness_summary_json::{
-    external_harness_summary_bool, external_harness_summary_object, external_harness_summary_u64,
-    external_harness_summary_usize, optional_external_harness_summary_string,
-    optional_external_harness_summary_u64, optional_external_harness_summary_usize,
-    ExternalHarnessSummaryJson,
+use super::external_harness_summary_projection::{
+    external_harness_summary_projection_bool, external_harness_summary_projection_object,
+    external_harness_summary_projection_u64, external_harness_summary_projection_usize,
+    optional_external_harness_summary_projection_string,
+    optional_external_harness_summary_projection_u64,
+    optional_external_harness_summary_projection_usize, ExternalHarnessSummaryProjection,
 };
 
 pub(super) fn run_summary(
     snapshot: &SnapshotHandle,
     entity_hits: usize,
     relation_hits: usize,
-) -> ExternalHarnessSummaryJson {
+) -> ExternalHarnessSummaryProjection {
     RunSummary::from_snapshot_read(snapshot, entity_hits, relation_hits)
-        .into_external_harness_summary_json()
+        .into_external_harness_summary_projection()
 }
 
 pub(super) fn publication_artifacts_extension(
     publication_artifacts: PublicationArtifactSnapshot,
-) -> ExternalHarnessSummaryJson {
+) -> ExternalHarnessSummaryProjection {
     PublicationArtifactsExtension::from_snapshot(publication_artifacts)
-        .into_external_harness_summary_json()
+        .into_external_harness_summary_projection()
 }
 
 pub(super) fn publication_observation_fields(
     observation: &PublicationObservationSnapshot,
-) -> ExternalHarnessSummaryJson {
+) -> ExternalHarnessSummaryProjection {
     PublicationObservationSummary::from_observation(observation)
-        .into_external_harness_summary_json()
+        .into_external_harness_summary_projection()
 }
 
 struct RunSummary {
@@ -50,19 +51,19 @@ impl RunSummary {
         }
     }
 
-    fn into_external_harness_summary_json(self) -> ExternalHarnessSummaryJson {
-        external_harness_summary_object([
+    fn into_external_harness_summary_projection(self) -> ExternalHarnessSummaryProjection {
+        external_harness_summary_projection_object([
             (
                 "snapshot_id",
-                external_harness_summary_u64(self.snapshot_id),
+                external_harness_summary_projection_u64(self.snapshot_id),
             ),
             (
                 "entity_hits",
-                external_harness_summary_usize(self.entity_hits),
+                external_harness_summary_projection_usize(self.entity_hits),
             ),
             (
                 "relation_hits",
-                external_harness_summary_usize(self.relation_hits),
+                external_harness_summary_projection_usize(self.relation_hits),
             ),
         ])
     }
@@ -89,19 +90,19 @@ impl PublicationArtifactsExtension {
         }
     }
 
-    fn into_external_harness_summary_json(self) -> ExternalHarnessSummaryJson {
-        external_harness_summary_object([
+    fn into_external_harness_summary_projection(self) -> ExternalHarnessSummaryProjection {
+        external_harness_summary_projection_object([
             (
                 "observation",
-                self.observation.into_external_harness_summary_json(),
+                self.observation.into_external_harness_summary_projection(),
             ),
             (
                 "latest_patch_record_count",
-                external_harness_summary_usize(self.latest_patch_record_count),
+                external_harness_summary_projection_usize(self.latest_patch_record_count),
             ),
             (
                 "latest_replay_present",
-                external_harness_summary_bool(self.latest_replay_present),
+                external_harness_summary_projection_bool(self.latest_replay_present),
             ),
         ])
     }
@@ -141,43 +142,43 @@ impl PublicationObservationSummary {
         }
     }
 
-    fn into_external_harness_summary_json(self) -> ExternalHarnessSummaryJson {
-        external_harness_summary_object([
+    fn into_external_harness_summary_projection(self) -> ExternalHarnessSummaryProjection {
+        external_harness_summary_projection_object([
             (
                 "latest_commit_id",
-                optional_external_harness_summary_u64(self.latest_commit_id),
+                optional_external_harness_summary_projection_u64(self.latest_commit_id),
             ),
             (
                 "publication_snapshot_id",
-                optional_external_harness_summary_u64(self.publication_snapshot_id),
+                optional_external_harness_summary_projection_u64(self.publication_snapshot_id),
             ),
             (
                 "publication_status",
-                optional_external_harness_summary_string(self.publication_status),
+                optional_external_harness_summary_projection_string(self.publication_status),
             ),
             (
                 "latest_patch_position",
-                optional_external_harness_summary_u64(self.latest_patch_position),
+                optional_external_harness_summary_projection_u64(self.latest_patch_position),
             ),
             (
                 "latest_patch_record_count",
-                optional_external_harness_summary_usize(self.latest_patch_record_count),
+                optional_external_harness_summary_projection_usize(self.latest_patch_record_count),
             ),
             (
                 "latest_replay_commit_id",
-                optional_external_harness_summary_u64(self.latest_replay_commit_id),
+                optional_external_harness_summary_projection_u64(self.latest_replay_commit_id),
             ),
             (
                 "latest_patch_present",
-                external_harness_summary_bool(self.latest_patch_present),
+                external_harness_summary_projection_bool(self.latest_patch_present),
             ),
             (
                 "latest_replay_present",
-                external_harness_summary_bool(self.latest_replay_present),
+                external_harness_summary_projection_bool(self.latest_replay_present),
             ),
             (
                 "diagnostics_artifact_count",
-                external_harness_summary_usize(self.diagnostics_artifact_count),
+                external_harness_summary_projection_usize(self.diagnostics_artifact_count),
             ),
         ])
     }

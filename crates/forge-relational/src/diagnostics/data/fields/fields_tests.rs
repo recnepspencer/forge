@@ -63,14 +63,13 @@ fn diagnostic_serde_projection_is_terminal_egress_only() {
             RelationalDiagnosticValue::AspectValue(AspectValue::UInt64(7)),
         )]));
 
-    let external_serde_projection_json =
+    let external_serde_projection =
         serde_json::to_value(&live_fields).expect("external serde diagnostic projection");
     let external_projection_fields = RelationalDiagnosticFields::from_diagnostic_value(
         live_fields.to_external_serde_projection_tree(),
     );
-    let recovered = serde_json::from_value::<RelationalDiagnosticFields>(
-        external_serde_projection_json.clone(),
-    );
+    let recovered =
+        serde_json::from_value::<RelationalDiagnosticFields>(external_serde_projection.clone());
 
     assert_ne!(live_fields, external_projection_fields);
     assert!(recovered.is_err());
@@ -83,10 +82,10 @@ fn diagnostic_serde_projection_is_terminal_egress_only() {
             )
     ));
     assert_eq!(
-        external_serde_projection_json["typed_aspect"]["value_family"],
+        external_serde_projection["typed_aspect"]["value_family"],
         "UInt64"
     );
-    assert!(external_serde_projection_json["typed_aspect"]["canonical_value_bytes"].is_array());
+    assert!(external_serde_projection["typed_aspect"]["canonical_value_bytes"].is_array());
 }
 
 #[test]
