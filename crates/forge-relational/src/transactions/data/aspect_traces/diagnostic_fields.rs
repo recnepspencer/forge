@@ -1,15 +1,16 @@
+mod authoritative_patch_evidence;
+
 use crate::diagnostics::data::{
     aspect_shape_diagnostic_value, RelationalDiagnosticFields, RelationalDiagnosticValue,
 };
 use crate::identity::data::{EntityId, RelationId};
-use crate::publication::patch::data::{
-    PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue, RecordStructuralChange,
-};
+use crate::publication::patch::data::RecordStructuralChange;
 
 use super::{
     AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow,
     AspectLifecycleTransitionClass, AspectTraceEvidence, RecordRef,
 };
+use authoritative_patch_evidence::authoritative_patch_evidence_value;
 
 pub(super) fn evaluation_trace_diagnostic_fields(
     trace: &AspectEvaluationTrace,
@@ -174,95 +175,8 @@ fn aspect_trace_evidence_value(evidence: &AspectTraceEvidence) -> RelationalDiag
             ),
             ("transition", lifecycle_transition_value(*transition)),
         ]),
-        AspectTraceEvidence::AuthoritativePatchOperation { operation } => {
-            RelationalDiagnosticValue::object([
-                (
-                    "evidence_kind",
-                    RelationalDiagnosticValue::string("authoritative_patch_operation"),
-                ),
-                ("operation", patch_operation_value(operation)),
-            ])
-        }
-    }
-}
-
-fn patch_operation_value(
-    operation: &PublishedAuthoritativePatchOperation,
-) -> RelationalDiagnosticValue {
-    match operation {
-        PublishedAuthoritativePatchOperation::WholeAspectSet { aspect_key, value } => {
-            RelationalDiagnosticValue::object([
-                (
-                    "operation_kind",
-                    RelationalDiagnosticValue::string("whole_aspect_set"),
-                ),
-                (
-                    "aspect_key",
-                    RelationalDiagnosticValue::AspectKey(aspect_key.clone()),
-                ),
-                ("value", patch_set_value(value)),
-            ])
-        }
-        PublishedAuthoritativePatchOperation::WholeAspectClear { aspect_key } => {
-            RelationalDiagnosticValue::object([
-                (
-                    "operation_kind",
-                    RelationalDiagnosticValue::string("whole_aspect_clear"),
-                ),
-                (
-                    "aspect_key",
-                    RelationalDiagnosticValue::AspectKey(aspect_key.clone()),
-                ),
-            ])
-        }
-        PublishedAuthoritativePatchOperation::FieldLevelPatch {
-            aspect_key,
-            field_sets,
-            field_clears,
-        } => RelationalDiagnosticValue::object([
-            (
-                "operation_kind",
-                RelationalDiagnosticValue::string("field_level_patch"),
-            ),
-            (
-                "aspect_key",
-                RelationalDiagnosticValue::AspectKey(aspect_key.clone()),
-            ),
-            (
-                "field_sets",
-                RelationalDiagnosticValue::array(field_sets.iter().map(|field_set| {
-                    RelationalDiagnosticValue::object([
-                        (
-                            "field",
-                            RelationalDiagnosticValue::FieldKey(field_set.field.clone()),
-                        ),
-                        (
-                            "value",
-                            RelationalDiagnosticValue::AspectValue(field_set.value.clone()),
-                        ),
-                    ])
-                })),
-            ),
-            (
-                "field_clears",
-                RelationalDiagnosticValue::array(
-                    field_clears
-                        .iter()
-                        .cloned()
-                        .map(RelationalDiagnosticValue::FieldKey),
-                ),
-            ),
-        ]),
-    }
-}
-
-fn patch_set_value(value: &PublishedAuthoritativePatchValue) -> RelationalDiagnosticValue {
-    match value {
-        PublishedAuthoritativePatchValue::Scalar(value) => {
-            RelationalDiagnosticValue::AspectValue(value.clone())
-        }
-        PublishedAuthoritativePatchValue::Struct(value) => {
-            RelationalDiagnosticValue::StructAspectValue(value.clone())
+        AspectTraceEvidence::AuthoritativePatch { locator, patch } => {
+            authoritative_patch_evidence_value(locator, patch)
         }
     }
 }

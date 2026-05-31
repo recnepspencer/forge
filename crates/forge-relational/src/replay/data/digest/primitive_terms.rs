@@ -218,8 +218,8 @@ impl ReplayDigestBuilder {
 
     pub(super) fn published_patch(mut self, value: &PublishedAuthoritativePatch) -> Self {
         let canonical = value.canonicalized();
-        self = self.usize(canonical.operations.len());
-        for operation in &canonical.operations {
+        self = self.usize(canonical.full_grammar_operation_count());
+        for operation in canonical.full_grammar_operations() {
             self = self.published_patch_operation(operation);
         }
         self

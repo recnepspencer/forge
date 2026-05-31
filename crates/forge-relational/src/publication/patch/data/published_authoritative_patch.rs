@@ -5,7 +5,7 @@ use super::ordered_aspect_keys;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct PublishedAuthoritativePatch {
-    pub operations: Vec<PublishedAuthoritativePatchOperation>,
+    operations: Vec<PublishedAuthoritativePatchOperation>,
 }
 
 impl PublishedAuthoritativePatch {
@@ -13,7 +13,7 @@ impl PublishedAuthoritativePatch {
         Self::default()
     }
 
-    pub fn new(operations: Vec<PublishedAuthoritativePatchOperation>) -> Self {
+    pub(crate) fn new(operations: Vec<PublishedAuthoritativePatchOperation>) -> Self {
         Self { operations }.canonicalized()
     }
 
@@ -31,6 +31,14 @@ impl PublishedAuthoritativePatch {
         self.operations
             .iter()
             .map(PublishedAuthoritativePatchOperation::aspect_key)
+    }
+
+    pub(crate) fn full_grammar_operations(&self) -> &[PublishedAuthoritativePatchOperation] {
+        &self.operations
+    }
+
+    pub(crate) fn full_grammar_operation_count(&self) -> usize {
+        self.operations.len()
     }
 
     pub fn scalar_set_for(&self, aspect_key: &AspectKey) -> Option<&AspectValue> {
@@ -104,7 +112,7 @@ impl PublishedAuthoritativePatch {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PublishedAuthoritativePatchOperation {
+pub(crate) enum PublishedAuthoritativePatchOperation {
     WholeAspectSet {
         aspect_key: AspectKey,
         value: PublishedAuthoritativePatchValue,
@@ -130,7 +138,7 @@ impl PublishedAuthoritativePatchOperation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PublishedAuthoritativePatchValue {
+pub(crate) enum PublishedAuthoritativePatchValue {
     Scalar(AspectValue),
     Struct(StructAspectValue),
 }

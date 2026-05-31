@@ -16,8 +16,10 @@ pub use patch_position::PatchStreamPosition;
 pub use patch_record::{PatchRecord, RelationalPatchRecord};
 pub use published_authoritative_patch::{
     PublishedAuthoritativeFieldSet, PublishedAuthoritativePatch,
-    PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue,
 };
 pub use record_structural_change::RecordStructuralChange;
 
 pub(crate) use aspect_key_ordering::ordered_aspect_keys;
+pub(crate) use published_authoritative_patch::{
+    PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue,
+};

@@ -1,3 +1,4 @@
+use crate::publication::patch::data::PublishedAuthoritativePatch;
 use crate::transactions::data::{
     AspectEvaluationTrace, AspectEvaluationTraceRow, AspectLifecycleTransitionClass,
     AspectTraceEvidence,
@@ -71,9 +72,10 @@ impl CanonicalAspectDeltaEvidence {
             Self::Lifecycle { transition, .. } => AspectTraceEvidence::Lifecycle {
                 transition: transition.trace_transition(),
             },
-            Self::AuthoritativePatchOperation { operation, .. } => {
-                AspectTraceEvidence::AuthoritativePatchOperation {
-                    operation: operation.clone(),
+            Self::AuthoritativePatchOperation { locator, operation } => {
+                AspectTraceEvidence::AuthoritativePatch {
+                    locator: locator.clone(),
+                    patch: PublishedAuthoritativePatch::new(vec![operation.clone()]),
                 }
             }
         }

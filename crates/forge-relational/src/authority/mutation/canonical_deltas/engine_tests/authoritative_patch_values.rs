@@ -118,17 +118,16 @@ fn entity_struct_delta_materializes_authoritative_patch_value() {
     );
 
     let trace = delta.evaluation_trace();
-    let AspectTraceEvidence::AuthoritativePatchOperation {
-        operation:
-            PublishedAuthoritativePatchOperation::WholeAspectSet {
-                aspect_key,
-                value: PublishedAuthoritativePatchValue::Struct(trace_value),
-            },
-    } = &trace.binding_rows[0].evidence
+    let AspectTraceEvidence::AuthoritativePatch { locator, patch } =
+        &trace.binding_rows[0].evidence
     else {
         panic!("expected struct authoritative patch trace evidence");
     };
-    assert_eq!(aspect_key.as_str(), "summary");
+    assert_authoritative_whole_aspect_locator(locator, "summary");
+    let aspect_key = FoundationalAspectKey::new("summary").unwrap();
+    let trace_value = patch
+        .struct_set_for(&aspect_key)
+        .expect("summary struct patch value");
     assert_eq!(
         struct_field_value(trace_value, "title"),
         Some(&FoundationalAspectValue::String("native-summary".into()))

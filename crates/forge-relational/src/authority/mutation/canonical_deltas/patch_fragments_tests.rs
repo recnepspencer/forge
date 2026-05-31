@@ -32,7 +32,9 @@ fn scalar_changed_binding_materializes_foundational_whole_aspect_set() {
         crate::publication::patch::data::ordered_aspect_keys([name_key.clone()])
     );
     assert!(matches!(
-        published_record.authoritative_patch.operations.as_slice(),
+        published_record
+            .authoritative_patch
+            .full_grammar_operations(),
         [PublishedAuthoritativePatchOperation::WholeAspectSet {
             aspect_key,
             value: PublishedAuthoritativePatchValue::Scalar(value),

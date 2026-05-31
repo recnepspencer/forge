@@ -260,7 +260,7 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
         ordered_aspect_keys([AspectKey::new("name").unwrap()])
     );
     assert!(matches!(
-        patch_record.authoritative_patch.operations.as_slice(),
+        patch_record.authoritative_patch.full_grammar_operations(),
         [PublishedAuthoritativePatchOperation::WholeAspectSet {
             aspect_key,
             value: PublishedAuthoritativePatchValue::Scalar(value),
@@ -279,16 +279,13 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
         ContractValidatedAspectValueView::Scalar(value)
             if value == &AspectValue::String("after".into())
     ));
-    assert!(matches!(
-        &row.evidence,
-        AspectTraceEvidence::AuthoritativePatchOperation {
-            operation: PublishedAuthoritativePatchOperation::WholeAspectSet {
-                aspect_key,
-                value: PublishedAuthoritativePatchValue::Scalar(value)
-            }
-        } if aspect_key == &AspectKey::new("name").unwrap()
-            && value == &AspectValue::String("after".into())
-    ));
+    let AspectTraceEvidence::AuthoritativePatch { patch, .. } = &row.evidence else {
+        panic!("expected authoritative patch trace evidence");
+    };
+    assert_eq!(
+        patch.scalar_set_for(&AspectKey::new("name").unwrap()),
+        Some(&AspectValue::String("after".into()))
+    );
 }
 
 #[test]
@@ -365,7 +362,7 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
         ordered_aspect_keys([AspectKey::new("summary").unwrap()])
     );
     assert!(matches!(
-        patch_record.authoritative_patch.operations.as_slice(),
+        patch_record.authoritative_patch.full_grammar_operations(),
         [PublishedAuthoritativePatchOperation::FieldLevelPatch {
             aspect_key,
             field_sets,
@@ -389,21 +386,22 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
         .expect("summary aspect row");
 
     assert!(row.changed);
-    assert!(matches!(
-        &row.evidence,
-        AspectTraceEvidence::AuthoritativePatchOperation {
-            operation: PublishedAuthoritativePatchOperation::FieldLevelPatch {
-                aspect_key,
-                field_sets,
-                field_clears,
-            }
-        } if aspect_key == &AspectKey::new("summary").unwrap()
-            && field_sets == &vec![crate::publication::patch::data::PublishedAuthoritativeFieldSet {
+    let AspectTraceEvidence::AuthoritativePatch { patch, .. } = &row.evidence else {
+        panic!("expected authoritative patch trace evidence");
+    };
+    let summary = AspectKey::new("summary").unwrap();
+    let field_sets = patch.field_sets_for(&summary).collect::<Vec<_>>();
+    let field_clears = patch.field_clears_for(&summary).collect::<Vec<_>>();
+    assert_eq!(
+        field_sets,
+        vec![
+            &crate::publication::patch::data::PublishedAuthoritativeFieldSet {
                 field: FieldKey::new("title").expect("valid test field key"),
                 value: AspectValue::String("after".into()),
-            }]
-            && field_clears.is_empty()
-    ));
+            }
+        ]
+    );
+    assert!(field_clears.is_empty());
 }
 
 #[test]

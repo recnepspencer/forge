@@ -8,13 +8,13 @@ use crate::diagnostics::data::{
 };
 use crate::identity::data::{EntityId, KindId};
 use crate::publication::patch::data::{
-    PatchStreamPosition, PublishedAuthoritativePatchOperation, RecordStructuralChange,
+    PatchStreamPosition, PublishedAuthoritativePatch, RecordStructuralChange,
 };
 use crate::schema::data::AspectPlanRevision;
 
 use super::RecordRef;
 use diagnostic_fields::{emission_trace_diagnostic_fields, evaluation_trace_diagnostic_fields};
-use forge_foundational::facade::{AspectKey, AspectValue, StructAspectValue};
+use forge_foundational::facade::{AspectKey, AspectValue, AspectValueLocator, StructAspectValue};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
@@ -59,8 +59,10 @@ pub enum AspectTraceEvidence {
     Lifecycle {
         transition: AspectLifecycleTransitionClass,
     },
-    AuthoritativePatchOperation {
-        operation: PublishedAuthoritativePatchOperation,
+    AuthoritativePatch {
+        #[serde(with = "crate::aspect_wire::serde_canonical_aspect_value_locator")]
+        locator: AspectValueLocator,
+        patch: PublishedAuthoritativePatch,
     },
 }
 
