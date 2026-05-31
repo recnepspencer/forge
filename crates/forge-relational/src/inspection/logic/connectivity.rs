@@ -254,8 +254,8 @@ impl<'runtime> InspectionAccess<'runtime> {
                         InspectionDegradation::RelationBudgetExceeded,
                     );
                 }
-                let Some(record) =
-                    self.scoped_unmasked_relation_record(&InspectionScope::Current, relation_id)
+                let Some(record) = self
+                    .scoped_authoritative_relation_record(&InspectionScope::Current, relation_id)
                 else {
                     continue;
                 };

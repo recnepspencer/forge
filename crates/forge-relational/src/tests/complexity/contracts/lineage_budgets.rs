@@ -88,7 +88,7 @@ fn complexity_budget_lineage_branch_divergence_reports_breadth() {
         divergence.metrics.left_node_count + divergence.metrics.right_node_count
     );
     assert!(
-        counters.visible_unmasked_entity_records_materialized
+        counters.visible_authoritative_entity_records_materialized
             >= counters.lineage_graph_snapshot_nodes_materialized
     );
     assert!(counters.visibility_cache_hits + counters.visibility_cache_miss_reconstructions >= 2);

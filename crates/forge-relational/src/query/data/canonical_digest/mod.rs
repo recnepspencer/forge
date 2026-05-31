@@ -13,8 +13,8 @@ use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 
 use primitive_terms::{encode_string, encode_u128, encode_u64};
 use read_record_terms::{
-    encode_entity_read_record, encode_relation_read_record, encode_unmasked_entity_records,
-    encode_unmasked_relation_records,
+    encode_authoritative_entity_records, encode_authoritative_relation_records,
+    encode_entity_read_record, encode_relation_read_record,
 };
 use scope_terms::{
     encode_index_parity_mode, encode_query_access_contract, encode_query_access_path,
@@ -66,19 +66,19 @@ pub(crate) fn query_result_reduction_digest(
     let mut bytes = Vec::new();
     encode_string(&mut bytes, "query.reduction-result.v1");
     encode_query_ordering_contract(&mut bytes, ordering);
-    encode_unmasked_entity_records(&mut bytes, entities);
-    encode_unmasked_relation_records(&mut bytes, relations);
+    encode_authoritative_entity_records(&mut bytes, entities);
+    encode_authoritative_relation_records(&mut bytes, relations);
     sha256_hex(&bytes)
 }
 
-pub(crate) fn query_unmasked_entity_record_digest(record: &EntityReadRecord) -> String {
+pub(crate) fn query_authoritative_entity_record_digest(record: &EntityReadRecord) -> String {
     let mut bytes = Vec::new();
     encode_string(&mut bytes, "query.entity-record.v1");
     encode_entity_read_record(&mut bytes, record);
     sha256_hex(&bytes)
 }
 
-pub(crate) fn query_unmasked_relation_record_digest(record: &RelationReadRecord) -> String {
+pub(crate) fn query_authoritative_relation_record_digest(record: &RelationReadRecord) -> String {
     let mut bytes = Vec::new();
     encode_string(&mut bytes, "query.relation-record.v1");
     encode_relation_read_record(&mut bytes, record);
@@ -103,8 +103,8 @@ pub(crate) fn query_index_parity_basis_digest(
 fn encode_canonical_query_result(bytes: &mut Vec<u8>, result: &CanonicalQueryResult) {
     encode_query_execution_shape(bytes, result.execution_shape);
     encode_query_ordering_contract(bytes, result.ordering);
-    encode_unmasked_entity_records(bytes, &result.entities);
-    encode_unmasked_relation_records(bytes, &result.relations);
+    encode_authoritative_entity_records(bytes, &result.entities);
+    encode_authoritative_relation_records(bytes, &result.relations);
     encode_string(bytes, &result.reduction_digest);
 }
 

@@ -33,8 +33,8 @@ fn planned_query_execution_reduces_explicit_targets_into_canonical_entity_order(
     assert_eq!(outcome.complexity.packet_count, 1);
     assert_eq!(outcome.complexity.fragment_count, 1);
     assert_eq!(outcome.complexity.target_count, 2);
-    assert_eq!(outcome.complexity.unmasked_entity_records_emitted, 2);
-    assert_eq!(outcome.complexity.unmasked_relation_records_emitted, 0);
+    assert_eq!(outcome.complexity.authoritative_entity_records_emitted, 2);
+    assert_eq!(outcome.complexity.authoritative_relation_records_emitted, 0);
 }
 
 #[test]
@@ -112,8 +112,8 @@ fn planned_query_execution_uses_staged_parallel_packets_for_profitable_cross_par
     assert_eq!(counters.query_parallel_profitable_count, 1);
     assert_eq!(counters.query_staged_parallel_strategy_count, 1);
     assert_eq!(counters.query_serial_strategy_count, 0);
-    assert_eq!(counters.query_unmasked_entity_records_emitted, 6);
-    assert_eq!(counters.query_unmasked_relation_records_emitted, 0);
+    assert_eq!(counters.query_authoritative_entity_records_emitted, 6);
+    assert_eq!(counters.query_authoritative_relation_records_emitted, 0);
 }
 
 #[test]
@@ -157,7 +157,7 @@ fn planned_query_execution_supports_entity_kind_scans_through_reducer_path() {
 
     assert_eq!(outcome.complexity.packet_count, 2);
     assert_eq!(outcome.complexity.fragment_count, 2);
-    assert_eq!(outcome.complexity.unmasked_entity_records_emitted, 3);
+    assert_eq!(outcome.complexity.authoritative_entity_records_emitted, 3);
     assert_eq!(outcome.result.entities.len(), 3);
     assert_eq!(outcome.result.entities[0].entity_id, left);
     assert_eq!(outcome.result.entities[2].entity_id, right);
@@ -249,7 +249,7 @@ fn planned_query_execution_supports_relation_kind_scans_through_reducer_path() {
         .expect("query execution outcome");
 
     assert_eq!(outcome.complexity.packet_count, 2);
-    assert_eq!(outcome.complexity.unmasked_relation_records_emitted, 2);
+    assert_eq!(outcome.complexity.authoritative_relation_records_emitted, 2);
     assert_eq!(
         outcome
             .result
@@ -363,7 +363,7 @@ fn planned_query_execution_aspect_filter_requires_projected_authoritative_presen
         .expect("query execution outcome");
 
     assert_eq!(outcome.result.entities.len(), 0);
-    assert_eq!(outcome.complexity.unmasked_entity_records_emitted, 0);
+    assert_eq!(outcome.complexity.authoritative_entity_records_emitted, 0);
 }
 
 #[test]
@@ -695,8 +695,8 @@ fn planned_query_execution_supports_connectivity_traversal_with_depth_bound() {
             .collect::<Vec<_>>(),
         vec![first_relation]
     );
-    assert_eq!(outcome.complexity.unmasked_entity_records_emitted, 2);
-    assert_eq!(outcome.complexity.unmasked_relation_records_emitted, 1);
+    assert_eq!(outcome.complexity.authoritative_entity_records_emitted, 2);
+    assert_eq!(outcome.complexity.authoritative_relation_records_emitted, 1);
 }
 
 #[test]

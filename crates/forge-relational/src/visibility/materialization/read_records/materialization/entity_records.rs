@@ -5,7 +5,7 @@ use crate::storage::logic::state::{HistoricalMetadata, PartitionState};
 use super::super::visibility::{
     entity_visible_in_partition_at_version, historical_lifecycle, visible_metadata,
 };
-pub(in super::super) fn materialize_current_unmasked_entity_record(
+pub(in super::super) fn materialize_current_authoritative_entity_record(
     runtime: &RelationalRuntime,
     partition: &PartitionState,
     partition_id: crate::identity::data::PartitionId,
@@ -37,7 +37,7 @@ pub(in super::super) fn materialize_current_unmasked_entity_record(
     })
 }
 
-pub(in super::super) fn materialize_unmasked_entity_record_at_version(
+pub(in super::super) fn materialize_authoritative_entity_record_at_version(
     runtime: &RelationalRuntime,
     partition: &PartitionState,
     partition_id: crate::identity::data::PartitionId,

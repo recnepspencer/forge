@@ -91,7 +91,7 @@ fn retained_relation_slots_for_version(
     for slot in relation_slots.iter_set_slots() {
         let relation_id = crate::identity::data::RelationId::new(partition_id, slot as u64, 0);
         if reader
-            .unmasked_relation_record_for_id_at_version(state, relation_id, version_id)
+            .authoritative_relation_record_for_id_at_version(state, relation_id, version_id)
             .is_some_and(|record| {
                 record.lifecycle
                     == crate::storage::data::RecordLifecycleState::RetainedDanglingForAudit

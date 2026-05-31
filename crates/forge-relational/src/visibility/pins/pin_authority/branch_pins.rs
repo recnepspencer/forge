@@ -70,7 +70,7 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
                 crate::transactions::data::RecordRef::Entity(entity_id) => {
                     let was_visible = old_version.is_some_and(|version_id| {
                         reader
-                            .unmasked_entity_record_for_id_at_version(
+                            .authoritative_entity_record_for_id_at_version(
                                 &current_state,
                                 *entity_id,
                                 version_id,
@@ -78,7 +78,7 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
                             .is_some()
                     });
                     let is_visible = reader
-                        .unmasked_entity_record_for_id_at_version(
+                        .authoritative_entity_record_for_id_at_version(
                             &current_state,
                             *entity_id,
                             new_version,
@@ -93,7 +93,7 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
                 crate::transactions::data::RecordRef::Relation(relation_id) => {
                     let was_visible = old_version.is_some_and(|version_id| {
                         reader
-                            .unmasked_relation_record_for_id_at_version(
+                            .authoritative_relation_record_for_id_at_version(
                                 &current_state,
                                 *relation_id,
                                 version_id,
@@ -101,7 +101,7 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
                             .is_some()
                     });
                     let is_visible = reader
-                        .unmasked_relation_record_for_id_at_version(
+                        .authoritative_relation_record_for_id_at_version(
                             &current_state,
                             *relation_id,
                             new_version,

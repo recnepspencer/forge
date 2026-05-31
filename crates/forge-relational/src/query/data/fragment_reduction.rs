@@ -11,8 +11,8 @@ use crate::identity::data::EntityId;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QueryFragmentCounters {
     pub target_count: usize,
-    pub unmasked_entity_records_emitted: usize,
-    pub unmasked_relation_records_emitted: usize,
+    pub authoritative_entity_records_emitted: usize,
+    pub authoritative_relation_records_emitted: usize,
     pub touched_partitions: usize,
 }
 
@@ -63,8 +63,8 @@ pub struct QueryComplexitySummary {
     pub fragment_count: usize,
     pub touched_partitions: usize,
     pub target_count: usize,
-    pub unmasked_entity_records_emitted: usize,
-    pub unmasked_relation_records_emitted: usize,
+    pub authoritative_entity_records_emitted: usize,
+    pub authoritative_relation_records_emitted: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -181,8 +181,8 @@ fn reduce_traversal_entities(
 
     keyed_entities.sort_by(|left, right| {
         left.0.cmp(&right.0).then_with(|| {
-            super::query_unmasked_entity_record_digest(&left.1)
-                .cmp(&super::query_unmasked_entity_record_digest(&right.1))
+            super::query_authoritative_entity_record_digest(&left.1)
+                .cmp(&super::query_authoritative_entity_record_digest(&right.1))
         })
     });
     let mut seen = std::collections::BTreeSet::new();
@@ -206,8 +206,8 @@ fn reduce_traversal_relations(
 
     keyed_relations.sort_by(|left, right| {
         left.0.cmp(&right.0).then_with(|| {
-            super::query_unmasked_relation_record_digest(&left.1)
-                .cmp(&super::query_unmasked_relation_record_digest(&right.1))
+            super::query_authoritative_relation_record_digest(&left.1)
+                .cmp(&super::query_authoritative_relation_record_digest(&right.1))
         })
     });
     let mut seen = std::collections::BTreeSet::new();

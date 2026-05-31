@@ -67,15 +67,11 @@ impl super::CanonicalDigestBytes {
         match value {
             VisibleMergeRecordSnapshot::Entity(record) => {
                 self.tag(1);
-                self.str(&crate::query::data::query_unmasked_entity_record_digest(
-                    record,
-                ));
+                self.str(&crate::query::data::query_authoritative_entity_record_digest(record));
             }
             VisibleMergeRecordSnapshot::Relation(record) => {
                 self.tag(2);
-                self.str(&crate::query::data::query_unmasked_relation_record_digest(
-                    record,
-                ));
+                self.str(&crate::query::data::query_authoritative_relation_record_digest(record));
             }
         }
     }

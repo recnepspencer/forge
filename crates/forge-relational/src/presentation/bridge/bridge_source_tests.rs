@@ -111,7 +111,7 @@ fn runtime_bridge_lineage_source_resolves_real_relational_history() {
     let expected_successor_record_keys = runtime
         .read_truth()
         .project_version(latest_bundle.commit.version_id)
-        .all_unmasked_entity_records()
+        .all_authoritative_entity_records()
         .into_iter()
         .filter_map(|record| {
             record.lineage_id.map(|_| {

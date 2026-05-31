@@ -103,7 +103,7 @@ fn stale_entity_id_does_not_materialize_reused_slot_at_current_version() {
     let current_state = runtime.storage_access().current_state();
     assert!(runtime
         .read_truth()
-        .unmasked_entity_record_for_id_at_version(
+        .authoritative_entity_record_for_id_at_version(
             &current_state,
             stale_id,
             runtime.current_version_id()
@@ -151,11 +151,11 @@ fn historical_entity_kind_reads_follow_visible_metadata_not_current_slot_kind() 
     let historical_records = runtime
         .read_truth()
         .project_version(VersionId(1))
-        .unmasked_entity_records(KindId(11));
+        .authoritative_entity_records(KindId(11));
     let reused_kind_records = runtime
         .read_truth()
         .project_version(VersionId(1))
-        .unmasked_entity_records(KindId(12));
+        .authoritative_entity_records(KindId(12));
 
     assert_eq!(historical_records.len(), 1);
     assert_eq!(
@@ -221,11 +221,11 @@ fn historical_relation_kind_reads_follow_visible_metadata_not_current_slot_kind(
     let historical_records = runtime
         .read_truth()
         .project_version(VersionId(1))
-        .unmasked_relation_records(KindId(21));
+        .authoritative_relation_records(KindId(21));
     let reused_kind_records = runtime
         .read_truth()
         .project_version(VersionId(1))
-        .unmasked_relation_records(KindId(22));
+        .authoritative_relation_records(KindId(22));
 
     assert_eq!(historical_records.len(), 1);
     assert_eq!(

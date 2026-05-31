@@ -3,13 +3,13 @@ use crate::schema::data::{KindResolution, SchemaId, SchemaVersionId};
 use crate::storage::data::{EntityReadRecord, RecordLifecycleState, RelationReadRecord};
 
 use super::{
-    query_unmasked_entity_record_digest, reduce_query_fragments, DeterministicQueryFragmentKey,
-    DeterministicQueryPlanKey, QueryExecutionShape, QueryFragmentCounters, QueryOrderingContract,
-    QueryWorkerFragment, TraversalEntityVisitKey, TraversalReductionBasis,
-    TraversalRelationVisitKey,
+    query_authoritative_entity_record_digest, reduce_query_fragments,
+    DeterministicQueryFragmentKey, DeterministicQueryPlanKey, QueryExecutionShape,
+    QueryFragmentCounters, QueryOrderingContract, QueryWorkerFragment, TraversalEntityVisitKey,
+    TraversalReductionBasis, TraversalRelationVisitKey,
 };
 
-fn test_unmasked_entity_record(
+fn test_authoritative_entity_record(
     entity_id: crate::identity::data::EntityId,
     kind: KindResolution,
 ) -> EntityReadRecord {
@@ -24,7 +24,7 @@ fn test_unmasked_entity_record(
     }
 }
 
-fn test_unmasked_relation_record(
+fn test_authoritative_relation_record(
     relation_id: crate::identity::data::RelationId,
     kind: KindResolution,
     source: crate::identity::data::EntityId,
@@ -60,8 +60,8 @@ fn traversal_reduction_uses_visit_keys_for_cross_fragment_determinism() {
         schema_id: SchemaId("test".to_string()),
         schema_version_id: SchemaVersionId(1),
     };
-    let mid_record = test_unmasked_entity_record(mid, kind.clone());
-    let mid_duplicate_record = test_unmasked_entity_record(
+    let mid_record = test_authoritative_entity_record(mid, kind.clone());
+    let mid_duplicate_record = test_authoritative_entity_record(
         mid,
         KindResolution {
             kind_id: KindId(1),
@@ -70,8 +70,8 @@ fn traversal_reduction_uses_visit_keys_for_cross_fragment_determinism() {
             schema_version_id: SchemaVersionId(1),
         },
     );
-    let expected_mid_record = if query_unmasked_entity_record_digest(&mid_record)
-        <= query_unmasked_entity_record_digest(&mid_duplicate_record)
+    let expected_mid_record = if query_authoritative_entity_record_digest(&mid_record)
+        <= query_authoritative_entity_record_digest(&mid_duplicate_record)
     {
         mid_record.clone()
     } else {
@@ -86,8 +86,11 @@ fn traversal_reduction_uses_visit_keys_for_cross_fragment_determinism() {
                 plan_key: DeterministicQueryPlanKey(1),
                 fragment_key: DeterministicQueryFragmentKey(2),
                 ordering: QueryOrderingContract::CanonicalTraversalOrder,
-                entities: vec![mid_record, test_unmasked_entity_record(leaf, kind.clone())],
-                relations: vec![test_unmasked_relation_record(
+                entities: vec![
+                    mid_record,
+                    test_authoritative_entity_record(leaf, kind.clone()),
+                ],
+                relations: vec![test_authoritative_relation_record(
                     relation,
                     relation_kind,
                     seed,
@@ -95,8 +98,8 @@ fn traversal_reduction_uses_visit_keys_for_cross_fragment_determinism() {
                 )],
                 counters: QueryFragmentCounters {
                     target_count: 1,
-                    unmasked_entity_records_emitted: 2,
-                    unmasked_relation_records_emitted: 1,
+                    authoritative_entity_records_emitted: 2,
+                    authoritative_relation_records_emitted: 1,
                     touched_partitions: 1,
                 },
                 traversal_basis: Some(TraversalReductionBasis {
@@ -126,14 +129,14 @@ fn traversal_reduction_uses_visit_keys_for_cross_fragment_determinism() {
                 fragment_key: DeterministicQueryFragmentKey(1),
                 ordering: QueryOrderingContract::CanonicalTraversalOrder,
                 entities: vec![
-                    test_unmasked_entity_record(seed, kind),
+                    test_authoritative_entity_record(seed, kind),
                     mid_duplicate_record,
                 ],
                 relations: vec![],
                 counters: QueryFragmentCounters {
                     target_count: 1,
-                    unmasked_entity_records_emitted: 2,
-                    unmasked_relation_records_emitted: 0,
+                    authoritative_entity_records_emitted: 2,
+                    authoritative_relation_records_emitted: 0,
                     touched_partitions: 1,
                 },
                 traversal_basis: Some(TraversalReductionBasis {

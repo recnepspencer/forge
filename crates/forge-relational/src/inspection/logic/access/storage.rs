@@ -66,7 +66,7 @@ impl<'runtime> InspectionAccess<'runtime> {
             .auto_reclaim_deleted_records
     }
 
-    pub(crate) fn scoped_unmasked_entity_record(
+    pub(crate) fn scoped_authoritative_entity_record(
         &self,
         scope: &InspectionScope,
         entity_id: EntityId,
@@ -75,7 +75,7 @@ impl<'runtime> InspectionAccess<'runtime> {
             InspectionScope::Current => self
                 .runtime
                 .read_truth()
-                .unmasked_entity_record_for_id_at_version(
+                .authoritative_entity_record_for_id_at_version(
                     &self.runtime.storage_access().current_state(),
                     entity_id,
                     self.runtime.current_version_id(),
@@ -87,7 +87,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         }
     }
 
-    pub(crate) fn scoped_unmasked_relation_record(
+    pub(crate) fn scoped_authoritative_relation_record(
         &self,
         scope: &InspectionScope,
         relation_id: RelationId,
@@ -96,7 +96,7 @@ impl<'runtime> InspectionAccess<'runtime> {
             InspectionScope::Current => self
                 .runtime
                 .read_truth()
-                .unmasked_relation_record_for_id_at_version(
+                .authoritative_relation_record_for_id_at_version(
                     &self.runtime.storage_access().current_state(),
                     relation_id,
                     self.runtime.current_version_id(),
@@ -146,7 +146,7 @@ impl<'runtime> InspectionAccess<'runtime> {
                 .and_then(|slot_view| slot_view.extra().endpoints.clone())
                 .map(|endpoints| (endpoints.source, endpoints.target)),
             InspectionScope::Version(_) | InspectionScope::Snapshot(_) => self
-                .scoped_unmasked_relation_record(scope, relation_id)
+                .scoped_authoritative_relation_record(scope, relation_id)
                 .map(|record| (record.source, record.target)),
         }
     }

@@ -10,7 +10,8 @@ use super::projection_records::{
     RelationRecordProjection,
 };
 use super::read_record_identity_ordering::{
-    unmasked_entity_records_are_identity_ordered, unmasked_relation_records_are_identity_ordered,
+    authoritative_entity_records_are_identity_ordered,
+    authoritative_relation_records_are_identity_ordered,
 };
 use crate::visibility::snapshot_states::resolve_snapshot_handle;
 
@@ -36,7 +37,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
 
     pub fn entities<T: EntityRecordProjection>(&self) -> Vec<T> {
         let projection_scope = self.assert_entity_projection_contract::<T>();
-        self.unmasked_entity_records(T::KIND)
+        self.authoritative_entity_records(T::KIND)
             .into_iter()
             .filter_map(|record| {
                 T::from_record(EntityProjectionRecord::new(&record, &projection_scope))
@@ -46,7 +47,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
 
     pub fn entities_in<T: EntityRecordProjection>(&self, partition_id: PartitionId) -> Vec<T> {
         let projection_scope = self.assert_entity_projection_contract::<T>();
-        self.unmasked_entity_records_in(partition_id, T::KIND)
+        self.authoritative_entity_records_in(partition_id, T::KIND)
             .into_iter()
             .filter_map(|record| {
                 T::from_record(EntityProjectionRecord::new(&record, &projection_scope))
@@ -56,9 +57,10 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
 
     pub fn entity<T: EntityRecordProjection>(&self, entity_id: EntityId) -> Option<T> {
         let projection_scope = self.assert_entity_projection_contract::<T>();
-        self.unmasked_entity_record(entity_id).and_then(|record| {
-            T::from_record(EntityProjectionRecord::new(&record, &projection_scope))
-        })
+        self.authoritative_entity_record(entity_id)
+            .and_then(|record| {
+                T::from_record(EntityProjectionRecord::new(&record, &projection_scope))
+            })
     }
 
     pub fn entity_records_with_projection_scope<T>(
@@ -68,7 +70,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
         mut project: impl FnMut(EntityProjectionRecord<'_>) -> Option<T>,
     ) -> Vec<T> {
         self.assert_entity_projection_scope(kind_id, &projection_scope);
-        self.unmasked_entity_records(kind_id)
+        self.authoritative_entity_records(kind_id)
             .into_iter()
             .filter_map(|record| project(EntityProjectionRecord::new(&record, &projection_scope)))
             .collect()
@@ -80,14 +82,14 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
         projection_scope: ProjectionAspectScope,
         mut project: impl FnMut(EntityProjectionRecord<'_>) -> Option<T>,
     ) -> Option<T> {
-        let record = self.unmasked_entity_record(entity_id)?;
+        let record = self.authoritative_entity_record(entity_id)?;
         self.assert_entity_projection_scope(record.kind.kind_id, &projection_scope);
         project(EntityProjectionRecord::new(&record, &projection_scope))
     }
 
     pub fn relations<T: RelationRecordProjection>(&self) -> Vec<T> {
         let projection_scope = self.assert_relation_projection_contract::<T>();
-        self.unmasked_relation_records(T::KIND)
+        self.authoritative_relation_records(T::KIND)
             .into_iter()
             .filter_map(|record| {
                 T::from_record(RelationProjectionRecord::new(&record, &projection_scope))
@@ -97,7 +99,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
 
     pub fn relations_in<T: RelationRecordProjection>(&self, partition_id: PartitionId) -> Vec<T> {
         let projection_scope = self.assert_relation_projection_contract::<T>();
-        self.unmasked_relation_records_in(partition_id, T::KIND)
+        self.authoritative_relation_records_in(partition_id, T::KIND)
             .into_iter()
             .filter_map(|record| {
                 T::from_record(RelationProjectionRecord::new(&record, &projection_scope))
@@ -107,7 +109,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
 
     pub fn relation<T: RelationRecordProjection>(&self, relation_id: RelationId) -> Option<T> {
         let projection_scope = self.assert_relation_projection_contract::<T>();
-        self.unmasked_relation_record(relation_id)
+        self.authoritative_relation_record(relation_id)
             .and_then(|record| {
                 T::from_record(RelationProjectionRecord::new(&record, &projection_scope))
             })
@@ -120,7 +122,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
         mut project: impl FnMut(RelationProjectionRecord<'_>) -> Option<T>,
     ) -> Vec<T> {
         self.assert_relation_projection_scope(kind_id, &projection_scope);
-        self.unmasked_relation_records(kind_id)
+        self.authoritative_relation_records(kind_id)
             .into_iter()
             .filter_map(|record| project(RelationProjectionRecord::new(&record, &projection_scope)))
             .collect()
@@ -132,35 +134,38 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
         projection_scope: ProjectionAspectScope,
         mut project: impl FnMut(RelationProjectionRecord<'_>) -> Option<T>,
     ) -> Option<T> {
-        let record = self.unmasked_relation_record(relation_id)?;
+        let record = self.authoritative_relation_record(relation_id)?;
         self.assert_relation_projection_scope(record.kind.kind_id, &projection_scope);
         project(RelationProjectionRecord::new(&record, &projection_scope))
     }
 
-    pub(crate) fn unmasked_entity_records(&self, kind_id: KindId) -> Vec<EntityReadRecord> {
+    pub(crate) fn authoritative_entity_records(&self, kind_id: KindId) -> Vec<EntityReadRecord> {
         self.reader()
             .visible_entities_of_kind(kind_id, self.version_id)
     }
 
-    pub(crate) fn unmasked_entity_record(&self, entity_id: EntityId) -> Option<EntityReadRecord> {
+    pub(crate) fn authoritative_entity_record(
+        &self,
+        entity_id: EntityId,
+    ) -> Option<EntityReadRecord> {
         self.reader()
-            .unmasked_entity_record_at_version(entity_id, self.version_id)
+            .authoritative_entity_record_at_version(entity_id, self.version_id)
     }
 
     pub(crate) fn entity_record_kind_id(&self, entity_id: EntityId) -> Option<KindId> {
-        self.unmasked_entity_record(entity_id)
+        self.authoritative_entity_record(entity_id)
             .map(|record| record.kind.kind_id)
     }
 
-    pub(crate) fn all_unmasked_entity_records(&self) -> Vec<EntityReadRecord> {
+    pub(crate) fn all_authoritative_entity_records(&self) -> Vec<EntityReadRecord> {
         let records = self
             .reader()
-            .all_unmasked_entity_records_at_version(self.version_id);
-        debug_assert!(unmasked_entity_records_are_identity_ordered(&records));
+            .all_authoritative_entity_records_at_version(self.version_id);
+        debug_assert!(authoritative_entity_records_are_identity_ordered(&records));
         records
     }
 
-    pub(crate) fn unmasked_entity_records_in(
+    pub(crate) fn authoritative_entity_records_in(
         &self,
         partition_id: PartitionId,
         kind_id: KindId,
@@ -169,28 +174,33 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
             .visible_entities_of_kind_in_partition(partition_id, kind_id, self.version_id)
     }
 
-    pub(crate) fn unmasked_relation_records(&self, kind_id: KindId) -> Vec<RelationReadRecord> {
+    pub(crate) fn authoritative_relation_records(
+        &self,
+        kind_id: KindId,
+    ) -> Vec<RelationReadRecord> {
         self.reader()
             .visible_relations_of_kind(kind_id, self.version_id)
     }
 
-    pub(crate) fn unmasked_relation_record(
+    pub(crate) fn authoritative_relation_record(
         &self,
         relation_id: RelationId,
     ) -> Option<RelationReadRecord> {
         self.reader()
-            .unmasked_relation_record_at_version(relation_id, self.version_id)
+            .authoritative_relation_record_at_version(relation_id, self.version_id)
     }
 
-    pub(crate) fn all_unmasked_relation_records(&self) -> Vec<RelationReadRecord> {
+    pub(crate) fn all_authoritative_relation_records(&self) -> Vec<RelationReadRecord> {
         let records = self
             .reader()
-            .all_unmasked_relation_records_at_version(self.version_id);
-        debug_assert!(unmasked_relation_records_are_identity_ordered(&records));
+            .all_authoritative_relation_records_at_version(self.version_id);
+        debug_assert!(authoritative_relation_records_are_identity_ordered(
+            &records
+        ));
         records
     }
 
-    pub(crate) fn unmasked_relation_records_in(
+    pub(crate) fn authoritative_relation_records_in(
         &self,
         partition_id: PartitionId,
         kind_id: KindId,

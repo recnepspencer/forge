@@ -16,7 +16,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 version_id,
             ));
         }
-        debug_assert!(unmasked_entity_records_are_canonical(&records));
+        debug_assert!(authoritative_entity_records_are_canonical(&records));
         records
     }
 
@@ -33,7 +33,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             kind_id,
             version_id,
         );
-        debug_assert!(unmasked_entity_records_are_canonical(&records));
+        debug_assert!(authoritative_entity_records_are_canonical(&records));
         records
     }
 
@@ -52,7 +52,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                 version_id,
             ));
         }
-        super::truth_record_access::sort_unmasked_relation_records(&mut records);
+        super::truth_record_access::sort_authoritative_relation_records(&mut records);
         records
     }
 
@@ -69,7 +69,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
             kind_id,
             version_id,
         );
-        super::truth_record_access::sort_unmasked_relation_records(&mut records);
+        super::truth_record_access::sort_authoritative_relation_records(&mut records);
         records
     }
     pub fn entity_aspects_at_version(
@@ -79,7 +79,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
     ) -> Option<Vec<AspectKey>> {
         let state = self.runtime.storage_access().current_state();
         let record =
-            self.unmasked_entity_record_for_id_at_version(&state, entity_id, version_id)?;
+            self.authoritative_entity_record_for_id_at_version(&state, entity_id, version_id)?;
         Some(super::aspect_catalog::declared_aspects_for_entity_kind(
             self.runtime,
             record.kind.kind_id,
@@ -93,7 +93,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
     ) -> Option<Vec<AspectKey>> {
         let state = self.runtime.storage_access().current_state();
         let record =
-            self.unmasked_relation_record_for_id_at_version(&state, relation_id, version_id)?;
+            self.authoritative_relation_record_for_id_at_version(&state, relation_id, version_id)?;
         Some(super::aspect_catalog::declared_aspects_for_relation_kind(
             self.runtime,
             record.kind.kind_id,
@@ -101,7 +101,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
     }
 }
 
-fn unmasked_entity_records_are_canonical(records: &[EntityReadRecord]) -> bool {
+fn authoritative_entity_records_are_canonical(records: &[EntityReadRecord]) -> bool {
     records.windows(2).all(|window| {
         let left = &window[0];
         let right = &window[1];

@@ -97,8 +97,8 @@ impl RelationalReadView {
                 }
             }
         }
-        let unmasked_entity_records_emitted = entities.len();
-        let unmasked_relation_records_emitted = relations.len();
+        let authoritative_entity_records_emitted = entities.len();
+        let authoritative_relation_records_emitted = relations.len();
 
         Some(QueryWorkerFragment {
             plan_key,
@@ -108,8 +108,8 @@ impl RelationalReadView {
             relations,
             counters: QueryFragmentCounters {
                 target_count: targets.len(),
-                unmasked_entity_records_emitted,
-                unmasked_relation_records_emitted,
+                authoritative_entity_records_emitted,
+                authoritative_relation_records_emitted,
                 touched_partitions: touched_partitions.len(),
             },
             traversal_basis: None,

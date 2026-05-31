@@ -242,7 +242,7 @@ pub(crate) fn execute_explicit_query_fragment_from_state(
                 {
                     continue;
                 }
-                if let Some(record) = read_context.unmasked_entity_record_for_id_at_version(
+                if let Some(record) = read_context.authoritative_entity_record_for_id_at_version(
                     current_state,
                     *entity_id,
                     version_id,
@@ -265,7 +265,7 @@ pub(crate) fn execute_explicit_query_fragment_from_state(
                 {
                     continue;
                 }
-                if let Some(record) = read_context.unmasked_relation_record_for_id_at_version(
+                if let Some(record) = read_context.authoritative_relation_record_for_id_at_version(
                     current_state,
                     *relation_id,
                     version_id,
@@ -288,8 +288,8 @@ pub(crate) fn execute_explicit_query_fragment_from_state(
         }
     }
 
-    let unmasked_entity_records_emitted = entities.len();
-    let unmasked_relation_records_emitted = relations.len();
+    let authoritative_entity_records_emitted = entities.len();
+    let authoritative_relation_records_emitted = relations.len();
     Some(crate::query::data::QueryWorkerFragment {
         plan_key: packet.plan_key,
         fragment_key: crate::query::data::deterministic_query_fragment_key(
@@ -299,8 +299,8 @@ pub(crate) fn execute_explicit_query_fragment_from_state(
         ordering: packet.ordering,
         counters: crate::query::data::QueryFragmentCounters {
             target_count: targets.len(),
-            unmasked_entity_records_emitted,
-            unmasked_relation_records_emitted,
+            authoritative_entity_records_emitted,
+            authoritative_relation_records_emitted,
             touched_partitions: touched_partitions.len(),
         },
         entities,

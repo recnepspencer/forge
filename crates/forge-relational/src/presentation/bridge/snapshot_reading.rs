@@ -50,7 +50,7 @@ impl TruthSnapshotReader for RuntimePublicationSnapshotReader {
             let aspect_bytes = match record_ref {
                 crate::transactions::data::RecordRef::Entity(entity_id) => {
                     let record = read_truth
-                        .unmasked_entity_record_at_version(entity_id, self.version_id)
+                        .authoritative_entity_record_at_version(entity_id, self.version_id)
                         .ok_or_else(|| {
                         BridgeSnapshotReadError::new(format!(
                             "relational bridge snapshot reader could not find entity `{}` in authoritative snapshot `{}`",
@@ -69,7 +69,7 @@ impl TruthSnapshotReader for RuntimePublicationSnapshotReader {
                 }
                 crate::transactions::data::RecordRef::Relation(relation_id) => {
                     let record = read_truth
-                        .unmasked_relation_record_at_version(relation_id, self.version_id)
+                        .authoritative_relation_record_at_version(relation_id, self.version_id)
                         .ok_or_else(|| {
                         BridgeSnapshotReadError::new(format!(
                             "relational bridge snapshot reader could not find relation `{}` in authoritative snapshot `{}`",

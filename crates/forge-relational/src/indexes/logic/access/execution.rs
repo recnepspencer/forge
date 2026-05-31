@@ -193,7 +193,11 @@ fn execute_entity_index_lookup(
         }
         let Some(record) = runtime
             .read_truth()
-            .unmasked_entity_record_for_id_at_version(state, entity_id, plan.snapshot.version_id)
+            .authoritative_entity_record_for_id_at_version(
+                state,
+                entity_id,
+                plan.snapshot.version_id,
+            )
         else {
             continue;
         };
@@ -242,7 +246,7 @@ fn execute_relation_index_lookup(
         }
         let Some(record) = runtime
             .read_truth()
-            .unmasked_relation_record_for_id_at_version(
+            .authoritative_relation_record_for_id_at_version(
                 state,
                 relation_id,
                 plan.snapshot.version_id,
@@ -275,8 +279,8 @@ fn build_index_query_execution(
     entities: Vec<crate::storage::data::EntityReadRecord>,
     relations: Vec<crate::storage::data::RelationReadRecord>,
     target_count: usize,
-    unmasked_entity_records_emitted: usize,
-    unmasked_relation_records_emitted: usize,
+    authoritative_entity_records_emitted: usize,
+    authoritative_relation_records_emitted: usize,
     touched_partitions: usize,
 ) -> QueryExecutionOutcome {
     let result = reduce_query_fragments(
@@ -293,8 +297,8 @@ fn build_index_query_execution(
             relations,
             counters: QueryFragmentCounters {
                 target_count,
-                unmasked_entity_records_emitted,
-                unmasked_relation_records_emitted,
+                authoritative_entity_records_emitted,
+                authoritative_relation_records_emitted,
                 touched_partitions,
             },
             traversal_basis: None,
@@ -307,8 +311,8 @@ fn build_index_query_execution(
             fragment_count: 1,
             touched_partitions,
             target_count,
-            unmasked_entity_records_emitted,
-            unmasked_relation_records_emitted,
+            authoritative_entity_records_emitted,
+            authoritative_relation_records_emitted,
         },
         result,
     }
