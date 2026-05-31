@@ -273,7 +273,9 @@ pub mod publication {
     pub use crate::publication::patch::data::{
         PatchDetail, PatchFragmentBudget, PatchOrdering, PatchPublicationMode, PatchRecord,
         PatchStreamBatch, PatchStreamPosition, PatchStreamReadError, PatchStreamReadErrorClass,
-        PatchStreamRequest, RecordStructuralChange, RelationalPatchRecord,
+        PatchStreamRequest, PublishedAuthoritativeFieldSet, PublishedAuthoritativePatch,
+        PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue,
+        RecordStructuralChange, RelationalPatchRecord,
     };
 }
 
@@ -357,13 +359,12 @@ pub mod transactions {
     pub use crate::transactions::data::{
         AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow, AspectFieldPatch,
         AspectLifecycleTransitionClass, AspectTagAccuracyReport, AspectTraceEvidence,
-        AspectTracePatchOperation, AspectTracePatchSetValue, AuthoritativeApplyPlan, AuthorityMode,
-        BulkEntityCreateIntent, BulkMutationLineagePlan, BulkMutationLocalityFootprint,
-        BulkMutationNamingPlan, BulkMutationProvenancePlan, BulkMutationScope,
-        BulkRelationCreateIntent, CommitAspectSummary, CommitAuthority, CommitChangeSummary,
-        CommitConflict, CommitHistorySummary, CommitLog, CommitOutcome, CommitPatchBudgetSummary,
-        CommitPhase, CommitPhaseTiming, CommitPublicationSummary, CommitResult,
-        CommitSchemaSummary, CommitStructuralSummary, CommitSummary, CommitTopology,
+        AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkMutationLineagePlan,
+        BulkMutationLocalityFootprint, BulkMutationNamingPlan, BulkMutationProvenancePlan,
+        BulkMutationScope, BulkRelationCreateIntent, CommitAspectSummary, CommitAuthority,
+        CommitChangeSummary, CommitConflict, CommitHistorySummary, CommitLog, CommitOutcome,
+        CommitPatchBudgetSummary, CommitPhase, CommitPhaseTiming, CommitPublicationSummary,
+        CommitResult, CommitSchemaSummary, CommitStructuralSummary, CommitSummary, CommitTopology,
         CommitTraceEvent, ConflictClass, CreateIntent, CreatedEntityRef, CrossContextEndpointClass,
         DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, EntityReference,
         EntitySpec, LineageSafeBulkMutationBatch, MergeCommitMutationPlan, MergeExecutionOutcome,

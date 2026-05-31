@@ -7,12 +7,14 @@ use crate::diagnostics::data::{
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
 use crate::identity::data::{EntityId, KindId};
-use crate::publication::patch::data::{PatchStreamPosition, RecordStructuralChange};
+use crate::publication::patch::data::{
+    PatchStreamPosition, PublishedAuthoritativePatchOperation, RecordStructuralChange,
+};
 use crate::schema::data::AspectPlanRevision;
 
 use super::RecordRef;
 use diagnostic_fields::{emission_trace_diagnostic_fields, evaluation_trace_diagnostic_fields};
-use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, StructAspectValue};
+use forge_foundational::facade::{AspectKey, AspectValue, StructAspectValue};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
@@ -58,28 +60,8 @@ pub enum AspectTraceEvidence {
         transition: AspectLifecycleTransitionClass,
     },
     AuthoritativePatchOperation {
-        operation: AspectTracePatchOperation,
+        operation: PublishedAuthoritativePatchOperation,
     },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum AspectTracePatchOperation {
-    WholeAspectSet {
-        value: AspectTracePatchSetValue,
-    },
-    WholeAspectClear,
-    FieldLevelPatch {
-        field_sets: Vec<(FieldKey, AspectValue)>,
-        field_clears: Vec<FieldKey>,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum AspectTracePatchSetValue {
-    Scalar(AspectValue),
-    Struct(StructAspectValue),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -4,7 +4,6 @@ use crate::transactions::data::{
 };
 
 use super::data::{
-    AuthoritativeDeltaPatchOperation, AuthoritativeDeltaPatchSetValue,
     CanonicalAspectDeltaEvidence, CanonicalRecordAspectDelta, EvaluatedAspectBinding,
     LifecycleTransitionClass,
 };
@@ -74,49 +73,8 @@ impl CanonicalAspectDeltaEvidence {
             },
             Self::AuthoritativePatchOperation { operation, .. } => {
                 AspectTraceEvidence::AuthoritativePatchOperation {
-                    operation: operation.trace_operation(),
+                    operation: operation.clone(),
                 }
-            }
-        }
-    }
-}
-
-impl AuthoritativeDeltaPatchOperation {
-    fn trace_operation(&self) -> crate::transactions::data::AspectTracePatchOperation {
-        match self {
-            Self::WholeAspectSet { value } => {
-                crate::transactions::data::AspectTracePatchOperation::WholeAspectSet {
-                    value: value.trace_patch_set_value(),
-                }
-            }
-            Self::WholeAspectClear => {
-                crate::transactions::data::AspectTracePatchOperation::WholeAspectClear
-            }
-            Self::FieldLevelPatch {
-                field_sets,
-                field_clears,
-            } => crate::transactions::data::AspectTracePatchOperation::FieldLevelPatch {
-                field_sets: field_sets
-                    .iter()
-                    .map(|field_set| (field_set.field.clone(), field_set.value.clone()))
-                    .collect(),
-                field_clears: field_clears
-                    .iter()
-                    .filter_map(|locator| locator.field_path().fields().first().cloned())
-                    .collect(),
-            },
-        }
-    }
-}
-
-impl AuthoritativeDeltaPatchSetValue {
-    fn trace_patch_set_value(&self) -> crate::transactions::data::AspectTracePatchSetValue {
-        match self {
-            Self::Scalar(value) => {
-                crate::transactions::data::AspectTracePatchSetValue::Scalar(value.clone())
-            }
-            Self::Struct(value) => {
-                crate::transactions::data::AspectTracePatchSetValue::Struct(value.clone())
             }
         }
     }

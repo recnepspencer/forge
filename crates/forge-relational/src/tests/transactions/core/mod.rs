@@ -14,9 +14,8 @@ use crate::facade::runtime::{InvariantExecutionPoint, RelationalExecutionModel};
 use crate::facade::schema::SchemaRegistryError;
 use crate::facade::storage::RecordLifecycleState;
 use crate::facade::transactions::{
-    AspectTraceEvidence, AspectTracePatchOperation, AspectTracePatchSetValue, AuthorityMode,
-    CommitPatchBudgetSummary, CommitPhase, CommitTopology, CommitTraceEvent, EntitySpec,
-    MutationIntent, RelationSpec, TransactionCommitError,
+    AspectTraceEvidence, AuthorityMode, CommitPatchBudgetSummary, CommitPhase, CommitTopology,
+    CommitTraceEvent, EntitySpec, MutationIntent, RelationSpec, TransactionCommitError,
 };
 use crate::publication::patch::data::{
     PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue,
@@ -283,10 +282,12 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
     assert!(matches!(
         &row.evidence,
         AspectTraceEvidence::AuthoritativePatchOperation {
-            operation: AspectTracePatchOperation::WholeAspectSet {
-                value: AspectTracePatchSetValue::Scalar(value)
+            operation: PublishedAuthoritativePatchOperation::WholeAspectSet {
+                aspect_key,
+                value: PublishedAuthoritativePatchValue::Scalar(value)
             }
-        } if value == &AspectValue::String("after".into())
+        } if aspect_key == &AspectKey::new("name").unwrap()
+            && value == &AspectValue::String("after".into())
     ));
 }
 
@@ -391,14 +392,16 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
     assert!(matches!(
         &row.evidence,
         AspectTraceEvidence::AuthoritativePatchOperation {
-            operation: AspectTracePatchOperation::FieldLevelPatch {
+            operation: PublishedAuthoritativePatchOperation::FieldLevelPatch {
+                aspect_key,
                 field_sets,
                 field_clears,
             }
-        } if field_sets == &vec![(
-                FieldKey::new("title").expect("valid test field key"),
-                AspectValue::String("after".into()),
-            )]
+        } if aspect_key == &AspectKey::new("summary").unwrap()
+            && field_sets == &vec![crate::publication::patch::data::PublishedAuthoritativeFieldSet {
+                field: FieldKey::new("title").expect("valid test field key"),
+                value: AspectValue::String("after".into()),
+            }]
             && field_clears.is_empty()
     ));
 }

@@ -1,16 +1,15 @@
 use smallvec::SmallVec;
 
-use crate::publication::patch::data::{ordered_aspect_keys, RecordStructuralChange};
+use crate::publication::patch::data::{
+    ordered_aspect_keys, PublishedAuthoritativeFieldSet, PublishedAuthoritativePatchOperation,
+    PublishedAuthoritativePatchValue, RecordStructuralChange,
+};
 use crate::schema::data::{AspectBinding, LoweredAspectPlan};
 use crate::transactions::data::RecordRef;
-use forge_foundational::facade::{
-    AspectFieldLocator, AspectLocator, AspectValueLocator, FieldKey, LocatorAuthority,
-};
+use forge_foundational::facade::{AspectLocator, AspectValueLocator, LocatorAuthority};
 
 use super::data::{
-    AuthoritativeDeltaPatchOperation, AuthoritativeDeltaPatchSetValue,
-    AuthoritativeFieldSetEvidence, CanonicalAspectDeltaEvidence, CanonicalRecordAspectDelta,
-    EvaluatedAspectBinding,
+    CanonicalAspectDeltaEvidence, CanonicalRecordAspectDelta, EvaluatedAspectBinding,
 };
 use super::lifecycle_transition_evidence::lifecycle_transition;
 
@@ -106,13 +105,14 @@ fn whole_aspect_set_evidence(
         .find(|(key, _)| *key == binding.contract.key())?;
     Some(CanonicalAspectDeltaEvidence::AuthoritativePatchOperation {
         locator: authoritative_value_locator(binding),
-        operation: AuthoritativeDeltaPatchOperation::WholeAspectSet {
+        operation: PublishedAuthoritativePatchOperation::WholeAspectSet {
+            aspect_key: binding.contract.key().clone(),
             value: match value.view() {
                 forge_foundational::facade::ContractValidatedAspectValueView::Scalar(value) => {
-                    AuthoritativeDeltaPatchSetValue::Scalar(value.clone())
+                    PublishedAuthoritativePatchValue::Scalar(value.clone())
                 }
                 forge_foundational::facade::ContractValidatedAspectValueView::Struct(value) => {
-                    AuthoritativeDeltaPatchSetValue::Struct(value.clone())
+                    PublishedAuthoritativePatchValue::Struct(value.clone())
                 }
             },
         },
@@ -129,7 +129,9 @@ fn whole_aspect_clear_evidence(
         .then(
             || CanonicalAspectDeltaEvidence::AuthoritativePatchOperation {
                 locator: authoritative_value_locator(binding),
-                operation: AuthoritativeDeltaPatchOperation::WholeAspectClear,
+                operation: PublishedAuthoritativePatchOperation::WholeAspectClear {
+                    aspect_key: binding.contract.key().clone(),
+                },
             },
         )
 }
@@ -143,19 +145,16 @@ fn field_level_patch_evidence(
         .find(|(key, _)| *key == binding.contract.key())?;
     Some(CanonicalAspectDeltaEvidence::AuthoritativePatchOperation {
         locator: authoritative_value_locator(binding),
-        operation: AuthoritativeDeltaPatchOperation::FieldLevelPatch {
+        operation: PublishedAuthoritativePatchOperation::FieldLevelPatch {
+            aspect_key: binding.contract.key().clone(),
             field_sets: field_patch
                 .field_sets()
-                .map(|(field, value)| AuthoritativeFieldSetEvidence {
-                    locator: authoritative_field_locator(binding, field.clone()),
+                .map(|(field, value)| PublishedAuthoritativeFieldSet {
                     field: field.clone(),
                     value: value.clone(),
                 })
                 .collect(),
-            field_clears: field_patch
-                .field_clears()
-                .map(|field| authoritative_field_locator(binding, field.clone()))
-                .collect(),
+            field_clears: field_patch.field_clears().cloned().collect(),
         },
     })
 }
@@ -167,15 +166,4 @@ fn authoritative_value_locator(
         LocatorAuthority::Authoritative,
         binding.contract.key().clone(),
     ))
-}
-
-fn authoritative_field_locator(
-    binding: &crate::schema::data::LoweredAspectBinding,
-    field: FieldKey,
-) -> AspectFieldLocator {
-    AspectFieldLocator::new(
-        LocatorAuthority::Authoritative,
-        binding.contract.key().clone(),
-        forge_foundational::facade::CanonicalFieldPath::single(field),
-    )
 }

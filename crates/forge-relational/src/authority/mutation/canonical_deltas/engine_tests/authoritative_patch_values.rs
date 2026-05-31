@@ -6,15 +6,15 @@ use forge_foundational::{
 
 use crate::authority::mutation::outcomes::RecordMutation;
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId};
-use crate::publication::patch::data::ordered_aspect_keys;
+use crate::publication::patch::data::{
+    ordered_aspect_keys, PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue,
+};
 use crate::schema::data::{AspectBinding, RelationalSchemaRegistry};
 use crate::symbols::data::StringInterner;
-use crate::transactions::data::{AspectTraceEvidence, AspectTracePatchSetValue};
+use crate::transactions::data::AspectTraceEvidence;
 
 use super::super::canonical_delta_for_mutation;
-use super::super::data::{
-    AuthoritativeDeltaPatchOperation, AuthoritativeDeltaPatchSetValue, CanonicalAspectDeltaEvidence,
-};
+use super::super::data::CanonicalAspectDeltaEvidence;
 use super::support::{
     assert_authoritative_whole_aspect_locator, authoritative_string_patch,
     authoritative_summary_patch, catalog_with_entity_binding, catalog_with_relation_binding,
@@ -56,15 +56,17 @@ fn entity_field_delta_materializes_authoritative_aspect_patch() {
     let CanonicalAspectDeltaEvidence::AuthoritativePatchOperation {
         locator,
         operation:
-            AuthoritativeDeltaPatchOperation::WholeAspectSet {
+            PublishedAuthoritativePatchOperation::WholeAspectSet {
+                aspect_key,
                 value:
-                    AuthoritativeDeltaPatchSetValue::Scalar(FoundationalAspectValue::String(actual)),
+                    PublishedAuthoritativePatchValue::Scalar(FoundationalAspectValue::String(actual)),
             },
     } = &delta.evaluated_bindings[0].evidence
     else {
         panic!("expected scalar authoritative patch evidence");
     };
     assert_authoritative_whole_aspect_locator(locator, "name");
+    assert_eq!(aspect_key.as_str(), "name");
     assert_eq!(
         actual,
         &FoundationalInternedString::Raw("native-authority".to_string())
@@ -100,14 +102,16 @@ fn entity_struct_delta_materializes_authoritative_patch_value() {
 
     let CanonicalAspectDeltaEvidence::AuthoritativePatchOperation {
         operation:
-            AuthoritativeDeltaPatchOperation::WholeAspectSet {
-                value: AuthoritativeDeltaPatchSetValue::Struct(actual),
+            PublishedAuthoritativePatchOperation::WholeAspectSet {
+                aspect_key,
+                value: PublishedAuthoritativePatchValue::Struct(actual),
             },
         ..
     } = &delta.evaluated_bindings[0].evidence
     else {
         panic!("expected struct authoritative patch evidence");
     };
+    assert_eq!(aspect_key.as_str(), "summary");
     assert_eq!(
         struct_field_value(actual, "title"),
         Some(&FoundationalAspectValue::String("native-summary".into()))
@@ -116,13 +120,15 @@ fn entity_struct_delta_materializes_authoritative_patch_value() {
     let trace = delta.evaluation_trace();
     let AspectTraceEvidence::AuthoritativePatchOperation {
         operation:
-            crate::transactions::data::AspectTracePatchOperation::WholeAspectSet {
-                value: AspectTracePatchSetValue::Struct(trace_value),
+            PublishedAuthoritativePatchOperation::WholeAspectSet {
+                aspect_key,
+                value: PublishedAuthoritativePatchValue::Struct(trace_value),
             },
     } = &trace.binding_rows[0].evidence
     else {
         panic!("expected struct authoritative patch trace evidence");
     };
+    assert_eq!(aspect_key.as_str(), "summary");
     assert_eq!(
         struct_field_value(trace_value, "title"),
         Some(&FoundationalAspectValue::String("native-summary".into()))
@@ -164,15 +170,17 @@ fn relation_field_delta_materializes_authoritative_aspect_patch() {
     let CanonicalAspectDeltaEvidence::AuthoritativePatchOperation {
         locator,
         operation:
-            AuthoritativeDeltaPatchOperation::WholeAspectSet {
+            PublishedAuthoritativePatchOperation::WholeAspectSet {
+                aspect_key,
                 value:
-                    AuthoritativeDeltaPatchSetValue::Scalar(FoundationalAspectValue::String(actual)),
+                    PublishedAuthoritativePatchValue::Scalar(FoundationalAspectValue::String(actual)),
             },
     } = &delta.evaluated_bindings[0].evidence
     else {
         panic!("expected scalar authoritative relation patch evidence");
     };
     assert_authoritative_whole_aspect_locator(locator, "relation.label");
+    assert_eq!(aspect_key.as_str(), "relation.label");
     assert_eq!(
         actual,
         &FoundationalInternedString::Raw("native-authority".to_string())
