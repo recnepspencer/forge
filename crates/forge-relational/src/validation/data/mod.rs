@@ -31,10 +31,12 @@ pub use descriptor::{
     CustomInvariantDescriptor, CustomInvariantOperationalMetadata, InvariantRuleDescriptor,
     InvariantSemanticsClass, SupportedExecutionPoints,
 };
+#[allow(unused_imports)]
+pub use execution::InvariantWitnessBasis;
 pub use execution::{
-    InvariantCheckResult, InvariantClass, InvariantDecisionKind, InvariantDecisionRecord,
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantReportedRule, InvariantVerdict,
-    InvariantWitnessKey,
+    InvariantAspectValueWitnessBasis, InvariantCheckResult, InvariantClass, InvariantDecisionKind,
+    InvariantDecisionRecord, InvariantExecutionPoint, InvariantFailureEffect,
+    InvariantReportedRule, InvariantVerdict, InvariantWitnessKey,
 };
 pub use groups::{InvariantCostClass, InvariantGroup, InvariantGroupSet};
 pub use results::{

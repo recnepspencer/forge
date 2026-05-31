@@ -7,6 +7,7 @@ use crate::diagnostics::data::DiagnosticCode;
 use crate::identity::data::{KindId, PartitionId, VersionId};
 use crate::transactions::data::{CreatedEntityRef, EntityReference};
 use crate::validation::data::InvariantClass;
+use crate::validation::data::{InvariantAspectValueWitnessBasis, InvariantWitnessBasis};
 use forge_foundational::facade::{
     AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
 };
@@ -69,14 +70,32 @@ fn unique_entity_field_violation_uses_foundational_field_and_value_carriers() {
     }
     let witness = violation.witness_key();
     let witness_parts = witness.as_str().split(':').collect::<Vec<_>>();
-    assert_eq!(witness_parts.len(), 3);
+    assert_eq!(witness_parts.len(), 4);
     assert_eq!(witness_parts[0], "unique_entity_aspect_field");
+    assert_eq!(witness_parts[1], "InvariantViolation");
     assert!(!witness.as_str().contains("profile.email"));
     assert!(!witness.as_str().contains(":email:"));
     assert!(!violation
         .witness_key()
         .as_str()
         .contains("duplicate@example.test"));
+    match witness.basis() {
+        InvariantWitnessBasis::UniqueEntityAspectField {
+            field_locator: witness_field_locator,
+            value: witness_value,
+            field_locator_canonical_bytes,
+            value_basis,
+        } => {
+            assert_eq!(witness_field_locator, &field_locator);
+            assert_eq!(witness_value, &value);
+            assert!(!field_locator_canonical_bytes.is_empty());
+            assert!(matches!(
+                value_basis,
+                InvariantAspectValueWitnessBasis::CanonicalBytes(bytes) if !bytes.is_empty()
+            ));
+        }
+        basis => panic!("expected typed unique entity aspect-field witness basis, got {basis:?}"),
+    }
 }
 
 #[test]

@@ -1,7 +1,7 @@
 use crate::aspect_wire::{encode_aspect_field_locator, encode_length_prefixed_aspect_value};
 use crate::diagnostics::data::DiagnosticCode;
 use crate::schema::data::{EndpointDeletionIntegrityMode, SymmetryMode, UniquenessScope};
-use crate::validation::data::InvariantWitnessKey;
+use crate::validation::data::{InvariantAspectValueWitnessBasis, InvariantWitnessKey};
 
 use super::{InvariantViolationFields, RelationCardinalityBoundary, RelationEndpointBoundary};
 
@@ -23,11 +23,7 @@ pub(super) fn invariant_violation_witness_key(
         InvariantViolationFields::UniqueEntityField {
             field_locator,
             value,
-        } => format!(
-            "unique_entity_aspect_field:{}:{}",
-            canonical_aspect_field_locator_witness_fragment(field_locator),
-            canonical_aspect_value_witness_fragment(value)
-        ),
+        } => return unique_entity_aspect_field_witness_key(code, field_locator, value),
         InvariantViolationFields::SidecarConsistency {
             partition_id,
             slot,
@@ -191,20 +187,49 @@ pub(super) fn invariant_violation_witness_key(
     InvariantWitnessKey::new(key)
 }
 
-fn canonical_aspect_field_locator_witness_fragment(
-    locator: &forge_foundational::facade::AspectFieldLocator,
-) -> String {
-    hex_bytes(&encode_aspect_field_locator(locator))
+fn unique_entity_aspect_field_witness_key(
+    code: DiagnosticCode,
+    field_locator: &forge_foundational::facade::AspectFieldLocator,
+    value: &forge_foundational::facade::AspectValue,
+) -> InvariantWitnessKey {
+    let field_locator_canonical_bytes = encode_aspect_field_locator(field_locator);
+    let value_basis = canonical_aspect_value_witness_basis(value);
+    let key = format!(
+        "unique_entity_aspect_field:{code:?}:{}:{}",
+        hex_bytes(&field_locator_canonical_bytes),
+        canonical_aspect_value_witness_fragment(&value_basis)
+    );
+    InvariantWitnessKey::unique_entity_aspect_field(
+        key,
+        field_locator.clone(),
+        value.clone(),
+        field_locator_canonical_bytes,
+        value_basis,
+    )
+}
+
+fn canonical_aspect_value_witness_basis(
+    value: &forge_foundational::facade::AspectValue,
+) -> InvariantAspectValueWitnessBasis {
+    let mut bytes = Vec::new();
+    match encode_length_prefixed_aspect_value(&mut bytes, value) {
+        Ok(()) => InvariantAspectValueWitnessBasis::CanonicalBytes(bytes),
+        Err(_) => InvariantAspectValueWitnessBasis::UnsupportedValueFamily(format!(
+            "{:?}",
+            value.value_family()
+        )),
+    }
 }
 
 fn canonical_aspect_value_witness_fragment(
-    value: &forge_foundational::facade::AspectValue,
+    value_basis: &InvariantAspectValueWitnessBasis,
 ) -> String {
-    let mut bytes = Vec::new();
-    if encode_length_prefixed_aspect_value(&mut bytes, value).is_err() {
-        return format!("unsupported:{:?}", value.value_family());
+    match value_basis {
+        InvariantAspectValueWitnessBasis::CanonicalBytes(bytes) => hex_bytes(bytes),
+        InvariantAspectValueWitnessBasis::UnsupportedValueFamily(family) => {
+            format!("unsupported:{family}")
+        }
     }
-    hex_bytes(&bytes)
 }
 
 fn hex_bytes(bytes: &[u8]) -> String {
