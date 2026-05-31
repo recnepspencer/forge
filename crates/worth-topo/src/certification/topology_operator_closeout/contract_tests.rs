@@ -3,10 +3,10 @@ use schema::facade::platform::aspects::{Aspect, DiagnosticsAspect, NamingAspect,
 use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::topology_operators::{
-    BoundaryMembershipKind, TopologyDerivedRegion, TopologyEditBatch, TopologyEditChangedScope,
-    TopologyEditContract, TopologyEditDerivedFallbackPolicy, TopologyEditFamily,
-    TopologyEditNamingOutcome, TopologyEditNamingScope, TopologyEditRejectionClass,
-    TopologyOperatorExecutionError,
+    naming_edit_continuity_matrix_for_contracts, topology_edit_digest_for_contracts,
+    BoundaryMembershipKind, TopologyDerivedRegion, TopologyEditChangedScope, TopologyEditContract,
+    TopologyEditDerivedFallbackPolicy, TopologyEditFamily, TopologyEditNamingOutcome,
+    TopologyEditNamingScope, TopologyEditRejectionClass, TopologyOperatorExecutionError,
 };
 
 #[test]
@@ -89,11 +89,8 @@ fn edit_batch_digest_is_deterministic_for_same_contracts() {
         ),
     ];
 
-    let left = TopologyEditBatch::new(contracts.clone()).expect("non-empty edit batch");
-    let right = TopologyEditBatch::new(contracts).expect("non-empty edit batch");
-
-    let left_digest = left.topology_edit_digest();
-    let right_digest = right.topology_edit_digest();
+    let left_digest = topology_edit_digest_for_contracts(&contracts);
+    let right_digest = topology_edit_digest_for_contracts(&contracts);
     assert_eq!(left_digest, right_digest);
     assert_eq!(left_digest.contract_count, 2);
     assert_eq!(left_digest.family_count, 2);
@@ -113,8 +110,7 @@ fn edit_batch_digest_tracks_locality_only_fallback_policy() {
         EntityId::new(PartitionId::main(), 2, 1),
     )
     .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback);
-    let batch = TopologyEditBatch::new(vec![contract]).expect("non-empty edit batch");
-    let digest = batch.topology_edit_digest();
+    let digest = topology_edit_digest_for_contracts(&[contract]);
 
     assert_eq!(digest.fallback_policy_count, 1);
     assert_eq!(digest.fallback_rejection_policy_count, 1);
@@ -122,7 +118,7 @@ fn edit_batch_digest_tracks_locality_only_fallback_policy() {
 
 #[test]
 fn edit_batch_continuity_matrix_counts_naming_outcomes() {
-    let batch = TopologyEditBatch::new(vec![
+    let contracts = vec![
         TopologyEditContract::create_topology_entity(
             "m3.naming.vertex",
             TopologyEntityKind::Vertex,
@@ -133,10 +129,9 @@ fn edit_batch_continuity_matrix_counts_naming_outcomes() {
             EntityId::new(PartitionId::main(), 1, 1),
             EntityId::new(PartitionId::main(), 2, 1),
         ),
-    ])
-    .expect("non-empty edit batch");
+    ];
 
-    let matrix = batch.naming_edit_continuity_matrix();
+    let matrix = naming_edit_continuity_matrix_for_contracts(&contracts);
 
     assert_eq!(matrix.rows.len(), 2);
     assert_eq!(matrix.preserved_count, 1);
@@ -148,14 +143,14 @@ fn edit_batch_continuity_matrix_counts_naming_outcomes() {
 
 #[test]
 fn continuity_matrix_exposes_overall_outcome_class() {
-    let ambiguous = TopologyEditBatch::new(vec![TopologyEditContract::attach_boundary_membership(
-        "m3.naming.ambiguous.loop",
-        BoundaryMembershipKind::LoopOwnsHalfEdge,
-        EntityId::new(PartitionId::main(), 1, 1),
-        EntityId::new(PartitionId::main(), 2, 1),
-    )])
-    .expect("non-empty ambiguous batch")
-    .naming_edit_continuity_matrix();
+    let ambiguous = naming_edit_continuity_matrix_for_contracts(&[
+        TopologyEditContract::attach_boundary_membership(
+            "m3.naming.ambiguous.loop",
+            BoundaryMembershipKind::LoopOwnsHalfEdge,
+            EntityId::new(PartitionId::main(), 1, 1),
+            EntityId::new(PartitionId::main(), 2, 1),
+        ),
+    ]);
     assert_eq!(
         ambiguous.outcome_class(),
         TopologyEditNamingOutcome::Ambiguous
@@ -165,12 +160,12 @@ fn continuity_matrix_exposes_overall_outcome_class() {
         Some(TopologyEditRejectionClass::NamingContinuityAmbiguous)
     );
 
-    let rejected = TopologyEditBatch::new(vec![TopologyEditContract::retire_topology_entity(
-        EntityId::new(PartitionId::main(), 3, 1),
-        TopologyEntityKind::Loop,
-    )])
-    .expect("non-empty rejected batch")
-    .naming_edit_continuity_matrix();
+    let rejected = naming_edit_continuity_matrix_for_contracts(&[
+        TopologyEditContract::retire_topology_entity(
+            EntityId::new(PartitionId::main(), 3, 1),
+            TopologyEntityKind::Loop,
+        ),
+    ]);
     assert_eq!(
         rejected.outcome_class(),
         TopologyEditNamingOutcome::Rejected

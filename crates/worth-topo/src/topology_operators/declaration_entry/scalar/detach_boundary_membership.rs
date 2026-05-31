@@ -11,8 +11,6 @@ use forge_relational::facade::identity::RelationId;
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
 #[cfg(test)]
 use crate::topology_operators::TopologyEditAction;
-#[cfg(test)]
-use crate::topology_operators::TopologyEditBatch;
 use crate::topology_operators::{BoundaryMembershipKind, TopologyEditContract};
 
 use super::super::shared::canonical_relation_id;
@@ -122,19 +120,18 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain>
 }
 
 #[cfg(test)]
-pub(crate) fn declaration_for_canonical_single_detach_boundary_batch(
-    batch: &TopologyEditBatch,
+pub(crate) fn declaration_for_canonical_single_detach_boundary_contracts(
+    contracts: &[TopologyEditContract],
 ) -> Option<TopologyDetachBoundaryMembershipDeclaration> {
-    let [contract] = batch.contracts() else {
+    let [contract] = contracts else {
         return None;
     };
     let TopologyEditAction::DetachBoundaryMembership { relation_id, kind } = contract.action else {
         return None;
     };
     let declaration = TopologyDetachBoundaryMembershipDeclaration::new(relation_id, kind);
-    let canonical_batch = TopologyEditBatch::new(declaration.clone().into_contracts())
-        .expect("single detach-boundary declaration should always form a non-empty batch");
-    (batch == &canonical_batch).then_some(declaration)
+    let canonical_contracts = declaration.clone().into_contracts();
+    (contracts == canonical_contracts.as_slice()).then_some(declaration)
 }
 
 #[cfg(test)]
@@ -142,24 +139,22 @@ mod tests {
     use forge_relational::facade::identity::{PartitionId, RelationId};
 
     use super::{
-        declaration_for_canonical_single_detach_boundary_batch,
+        declaration_for_canonical_single_detach_boundary_contracts,
         TopologyDetachBoundaryMembershipDeclaration,
     };
     use crate::topology_operators::{
-        BoundaryMembershipKind, TopologyEditBatch, TopologyEditContract,
-        TopologyEditDerivedFallbackPolicy,
+        BoundaryMembershipKind, TopologyEditContract, TopologyEditDerivedFallbackPolicy,
     };
 
     #[test]
-    fn canonical_single_detach_boundary_batch_promotes_to_query_declaration() {
-        let batch = TopologyEditBatch::new(vec![TopologyEditContract::detach_boundary_membership(
+    fn canonical_single_detach_boundary_contracts_promote_to_query_declaration() {
+        let contracts = vec![TopologyEditContract::detach_boundary_membership(
             RelationId::new(PartitionId::main(), 7, 1),
             BoundaryMembershipKind::LoopOwnsHalfEdge,
-        )])
-        .expect("detach batch should be non-empty");
+        )];
 
-        let declaration = declaration_for_canonical_single_detach_boundary_batch(&batch)
-            .expect("canonical detach-boundary batch should promote");
+        let declaration = declaration_for_canonical_single_detach_boundary_contracts(&contracts)
+            .expect("canonical detach-boundary contracts should promote");
 
         assert_eq!(
             declaration,
@@ -171,14 +166,13 @@ mod tests {
     }
 
     #[test]
-    fn non_canonical_detach_boundary_batch_stays_off_query_declaration_promotion() {
-        let batch = TopologyEditBatch::new(vec![TopologyEditContract::detach_boundary_membership(
+    fn non_canonical_detach_boundary_contracts_stay_off_query_declaration_promotion() {
+        let contracts = vec![TopologyEditContract::detach_boundary_membership(
             RelationId::new(PartitionId::main(), 7, 1),
             BoundaryMembershipKind::LoopOwnsHalfEdge,
         )
-        .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback)])
-        .expect("detach batch should be non-empty");
+        .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback)];
 
-        assert!(declaration_for_canonical_single_detach_boundary_batch(&batch).is_none());
+        assert!(declaration_for_canonical_single_detach_boundary_contracts(&contracts).is_none());
     }
 }

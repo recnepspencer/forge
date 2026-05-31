@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use super::{topology_edit_digest_for_contracts, TopologyEditBatch};
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TopologyOperatorDigest {
     pub algorithm: String,
@@ -19,10 +17,4 @@ pub struct TopologyEditDigest {
     pub derived_region_count: usize,
     pub fallback_policy_count: usize,
     pub fallback_rejection_policy_count: usize,
-}
-
-impl TopologyEditBatch {
-    pub fn topology_edit_digest(&self) -> TopologyEditDigest {
-        topology_edit_digest_for_contracts(self.contracts())
-    }
 }

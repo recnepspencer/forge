@@ -9,8 +9,10 @@ use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::interpret_topology_view;
 use crate::topology_operators::application::TopologyDeclarationContractPayload;
 use crate::topology_operators::{
-    NamingEditContinuityMatrix, TopologyEditBatch, TopologyEditContract, TopologyEditNamingOutcome,
-    TopologyOperatorDigest, TopologyOperatorExecution, TopologyOperatorExecutionError,
+    naming_edit_continuity_matrix_for_contracts, topology_edit_digest_for_contracts,
+    topology_edit_families_for_contracts, NamingEditContinuityMatrix, TopologyEditContract,
+    TopologyEditNamingOutcome, TopologyOperatorDigest, TopologyOperatorExecution,
+    TopologyOperatorExecutionError,
 };
 use crate::validation::{validate_interpreted_topology, DerivedTopologyValidationReport};
 use forge_query::facade::ForgeQueryEntity;
@@ -123,78 +125,7 @@ pub(super) fn find_loop_id_by_label(
         })
 }
 
-pub(super) fn aggregate_topology_edit_digest(
-    batches: &[TopologyEditBatch],
-) -> DeterministicDigestBackedEditDigest {
-    let rows = batches
-        .iter()
-        .flat_map(|batch| batch.contracts().iter().map(contract_digest_row));
-    let contract_count = batches.iter().map(|batch| batch.contracts().len()).sum();
-    let family_count = batches.iter().map(|batch| batch.families().len()).sum();
-    let changed_scope_count = batches
-        .iter()
-        .flat_map(|batch| batch.contracts().iter())
-        .map(|contract| contract.changed_scopes().len())
-        .sum();
-    let naming_scope_count = batches
-        .iter()
-        .flat_map(|batch| batch.contracts().iter())
-        .map(|contract| contract.naming_scopes().len())
-        .sum();
-    let derived_region_count = batches
-        .iter()
-        .flat_map(|batch| batch.contracts().iter())
-        .map(|contract| contract.derived_regions().len())
-        .sum();
-    let fallback_policy_count = batches.iter().map(|batch| batch.contracts().len()).sum();
-    let fallback_rejection_policy_count = batches
-        .iter()
-        .flat_map(|batch| batch.contracts().iter())
-        .filter(|contract| {
-            contract.derived_fallback_policy()
-                == crate::topology_operators::TopologyEditDerivedFallbackPolicy::RejectAnyFallback
-        })
-        .count();
-    DeterministicDigestBackedEditDigest {
-        digest: digest_rows(rows),
-        contract_count,
-        family_count,
-        changed_scope_count,
-        naming_scope_count,
-        derived_region_count,
-        fallback_policy_count,
-        fallback_rejection_policy_count,
-    }
-}
-
 pub(super) type DeterministicDigestBackedEditDigest = crate::topology_operators::TopologyEditDigest;
-
-pub(super) fn aggregate_naming_edit_continuity_matrix(
-    batches: &[TopologyEditBatch],
-) -> NamingEditContinuityMatrix {
-    let rows = batches
-        .iter()
-        .flat_map(|batch| batch.naming_edit_continuity_matrix().rows.into_iter())
-        .collect::<Vec<_>>();
-    let preserved_count = rows
-        .iter()
-        .filter(|row| row.outcome == TopologyEditNamingOutcome::Preserved)
-        .count();
-    let ambiguous_count = rows
-        .iter()
-        .filter(|row| row.outcome == TopologyEditNamingOutcome::Ambiguous)
-        .count();
-    let rejected_count = rows
-        .iter()
-        .filter(|row| row.outcome == TopologyEditNamingOutcome::Rejected)
-        .count();
-    NamingEditContinuityMatrix {
-        rows,
-        preserved_count,
-        ambiguous_count,
-        rejected_count,
-    }
-}
 
 pub(super) fn aggregate_topology_edit_digest_for_contract_sets(
     contract_sets: impl IntoIterator<Item = Vec<TopologyEditContract>>,
@@ -275,12 +206,12 @@ pub(super) fn aggregate_naming_edit_continuity_matrix_for_contract_sets(
 
 pub(super) fn accepted_step_row(
     step_index: usize,
-    batch: &TopologyEditBatch,
+    contracts: &[TopologyEditContract],
     execution: &TopologyOperatorExecution,
 ) -> MilestoneThreeEditReplayStepRow {
     MilestoneThreeEditReplayStepRow {
         step_index,
-        edit_families: batch.families(),
+        edit_families: topology_edit_families_for_contracts(contracts),
         topology_edit_digest: execution.topology_edit_digest.clone(),
         naming_edit_continuity_matrix: execution.naming_continuity_matrix.clone(),
         outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
@@ -322,14 +253,14 @@ pub(super) fn derived_validation_report_from_materialized(
 
 pub(super) fn rejected_step_row(
     step_index: usize,
-    batch: &TopologyEditBatch,
+    contracts: &[TopologyEditContract],
     error: &TopologyOperatorExecutionError,
 ) -> MilestoneThreeEditReplayStepRow {
     MilestoneThreeEditReplayStepRow {
         step_index,
-        edit_families: batch.families(),
-        topology_edit_digest: batch.topology_edit_digest(),
-        naming_edit_continuity_matrix: batch.naming_edit_continuity_matrix(),
+        edit_families: topology_edit_families_for_contracts(contracts),
+        topology_edit_digest: topology_edit_digest_for_contracts(contracts),
+        naming_edit_continuity_matrix: naming_edit_continuity_matrix_for_contracts(contracts),
         outcome_class: MilestoneThreeHostileOutcomeClass::Rejected,
         rejection_class: error.rejection_class(),
         resulting_materialized_topology_digest: None,

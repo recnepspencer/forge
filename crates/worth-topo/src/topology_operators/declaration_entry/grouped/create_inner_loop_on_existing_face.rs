@@ -13,8 +13,6 @@ use super::super::shared::canonical_entity_reference_entry;
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
 #[cfg(test)]
 use crate::topology_operators::TopologyEditAction;
-#[cfg(test)]
-use crate::topology_operators::TopologyEditBatch;
 use crate::topology_operators::{BoundaryMembershipKind, TopologyEditContract};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -143,10 +141,10 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain>
 }
 
 #[cfg(test)]
-pub(crate) fn declaration_for_canonical_create_inner_loop_on_existing_face_batch(
-    batch: &TopologyEditBatch,
+pub(crate) fn declaration_for_canonical_create_inner_loop_on_existing_face_contracts(
+    contracts: &[TopologyEditContract],
 ) -> Option<TopologyCreateInnerLoopOnExistingFaceDeclaration> {
-    let [create, attach] = batch.contracts() else {
+    let [create, attach] = contracts else {
         return None;
     };
     let (
@@ -173,9 +171,8 @@ pub(crate) fn declaration_for_canonical_create_inner_loop_on_existing_face_batch
         relation_create_key.as_str().to_string(),
         owner.clone(),
     );
-    let canonical_batch = TopologyEditBatch::new(declaration.clone().into_contracts())
-        .expect("grouped inner-loop declaration should always form a non-empty batch");
-    (batch == &canonical_batch).then_some(declaration)
+    let canonical_contracts = declaration.clone().into_contracts();
+    (contracts == canonical_contracts.as_slice()).then_some(declaration)
 }
 
 #[cfg(test)]
@@ -185,17 +182,16 @@ mod tests {
     use schema::facade::platform::entities::TopologyEntityKind;
 
     use super::{
-        declaration_for_canonical_create_inner_loop_on_existing_face_batch,
+        declaration_for_canonical_create_inner_loop_on_existing_face_contracts,
         TopologyCreateInnerLoopOnExistingFaceDeclaration,
     };
     use crate::topology_operators::{
-        BoundaryMembershipKind, TopologyEditBatch, TopologyEditContract,
-        TopologyEditDerivedFallbackPolicy,
+        BoundaryMembershipKind, TopologyEditContract, TopologyEditDerivedFallbackPolicy,
     };
 
     #[test]
-    fn canonical_inner_loop_batch_promotes_to_grouped_query_declaration() {
-        let batch = TopologyEditBatch::new(vec![
+    fn canonical_inner_loop_contracts_promote_to_grouped_query_declaration() {
+        let contracts = vec![
             TopologyEditContract::create_topology_entity(
                 "query-native.inner-loop.loop",
                 TopologyEntityKind::Loop,
@@ -206,12 +202,11 @@ mod tests {
                 EntityId::new(PartitionId::main(), 1, 1),
                 EntityReference::Created(CreateKey::new("query-native.inner-loop.loop")),
             ),
-        ])
-        .expect("grouped inner-loop batch should be non-empty");
+        ];
 
         let declaration =
-            declaration_for_canonical_create_inner_loop_on_existing_face_batch(&batch)
-                .expect("canonical inner-loop batch should promote");
+            declaration_for_canonical_create_inner_loop_on_existing_face_contracts(&contracts)
+                .expect("canonical inner-loop contracts should promote");
 
         assert_eq!(
             declaration,
@@ -224,8 +219,8 @@ mod tests {
     }
 
     #[test]
-    fn non_canonical_inner_loop_batch_stays_off_query_declaration_promotion() {
-        let batch = TopologyEditBatch::new(vec![
+    fn non_canonical_inner_loop_contracts_stay_off_query_declaration_promotion() {
+        let contracts = vec![
             TopologyEditContract::create_topology_entity(
                 "query-native.inner-loop.loop",
                 TopologyEntityKind::Loop,
@@ -237,12 +232,12 @@ mod tests {
                 EntityReference::Created(CreateKey::new("query-native.inner-loop.loop")),
             )
             .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback),
-        ])
-        .expect("grouped inner-loop batch should be non-empty");
+        ];
 
         assert!(
-            declaration_for_canonical_create_inner_loop_on_existing_face_batch(&batch).is_none(),
-            "non-canonical grouped inner-loop batch should not be silently re-authored as a query declaration"
+            declaration_for_canonical_create_inner_loop_on_existing_face_contracts(&contracts)
+                .is_none(),
+            "non-canonical grouped inner-loop contracts should not be silently re-authored as a query declaration"
         );
     }
 }

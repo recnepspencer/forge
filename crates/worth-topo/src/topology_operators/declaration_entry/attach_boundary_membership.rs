@@ -12,8 +12,6 @@ use super::shared::canonical_entity_reference_entry;
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
 #[cfg(test)]
 use crate::topology_operators::TopologyEditAction;
-#[cfg(test)]
-use crate::topology_operators::TopologyEditBatch;
 use crate::topology_operators::{BoundaryMembershipKind, TopologyEditContract};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -149,10 +147,10 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain>
 }
 
 #[cfg(test)]
-fn declaration_for_canonical_single_attach_boundary_batch(
-    batch: &TopologyEditBatch,
+fn declaration_for_canonical_single_attach_boundary_contracts(
+    contracts: &[TopologyEditContract],
 ) -> Option<TopologyAttachBoundaryMembershipDeclaration> {
-    let [contract] = batch.contracts() else {
+    let [contract] = contracts else {
         return None;
     };
     declaration_for_canonical_attach_boundary_contract(contract)
@@ -187,26 +185,24 @@ mod tests {
     use forge_relational::facade::identity::{EntityId, PartitionId};
 
     use super::{
-        declaration_for_canonical_single_attach_boundary_batch,
+        declaration_for_canonical_single_attach_boundary_contracts,
         TopologyAttachBoundaryMembershipDeclaration,
     };
     use crate::topology_operators::{
-        BoundaryMembershipKind, TopologyEditBatch, TopologyEditContract,
-        TopologyEditDerivedFallbackPolicy,
+        BoundaryMembershipKind, TopologyEditContract, TopologyEditDerivedFallbackPolicy,
     };
 
     #[test]
-    fn canonical_single_attach_boundary_batch_promotes_to_query_declaration() {
-        let batch = TopologyEditBatch::new(vec![TopologyEditContract::attach_boundary_membership(
+    fn canonical_single_attach_boundary_contracts_promote_to_query_declaration() {
+        let contracts = vec![TopologyEditContract::attach_boundary_membership(
             "query-native.attach-boundary.loop",
             BoundaryMembershipKind::LoopOwnsHalfEdge,
             EntityId::new(PartitionId::main(), 1, 1),
             EntityId::new(PartitionId::main(), 2, 1),
-        )])
-        .expect("attach-boundary batch should be non-empty");
+        )];
 
-        let declaration = declaration_for_canonical_single_attach_boundary_batch(&batch)
-            .expect("canonical single attach-boundary batch should promote");
+        let declaration = declaration_for_canonical_single_attach_boundary_contracts(&contracts)
+            .expect("canonical single attach-boundary contracts should promote");
 
         assert_eq!(
             declaration,
@@ -220,18 +216,17 @@ mod tests {
     }
 
     #[test]
-    fn non_canonical_attach_boundary_batch_stays_off_query_declaration_promotion() {
-        let batch = TopologyEditBatch::new(vec![TopologyEditContract::attach_boundary_membership(
+    fn non_canonical_attach_boundary_contracts_stay_off_query_declaration_promotion() {
+        let contracts = vec![TopologyEditContract::attach_boundary_membership(
             "query-native.attach-boundary.loop",
             BoundaryMembershipKind::LoopOwnsHalfEdge,
             EntityId::new(PartitionId::main(), 1, 1),
             EntityId::new(PartitionId::main(), 2, 1),
         )
-        .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback)])
-        .expect("attach-boundary batch should be non-empty");
+        .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback)];
 
         assert!(
-            declaration_for_canonical_single_attach_boundary_batch(&batch).is_none(),
+            declaration_for_canonical_single_attach_boundary_contracts(&contracts).is_none(),
             "non-canonical attach-boundary contract should not be silently re-authored as a query declaration"
         );
     }

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    TopologyDerivedRegion, TopologyEditBatch, TopologyEditChangedScope, TopologyEditContract,
-    TopologyEditFamily, TopologyEditNamingScope, TopologyOperatorExecutionError,
+    TopologyDerivedRegion, TopologyEditChangedScope, TopologyEditContract, TopologyEditFamily,
+    TopologyEditNamingScope, TopologyOperatorExecutionError,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -79,13 +79,6 @@ impl TopologyOperatorExecutionError {
             }
             Self::Query(_) | Self::MaterializedDecode(_) | Self::UnexpectedInspectionFamily => None,
         }
-    }
-
-    pub fn rejected_edit_scope_report(
-        &self,
-        batch: &TopologyEditBatch,
-    ) -> Option<RejectedEditScopeReport> {
-        self.rejected_contract_scope_report(batch.contracts())
     }
 
     pub fn rejected_contract_scope_report(

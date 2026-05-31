@@ -10,8 +10,9 @@ use super::super::report::{
     MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
 };
 use super::super::shared::{
-    accepted_step_row, aggregate_naming_edit_continuity_matrix, aggregate_topology_edit_digest,
-    derived_validation_report_from_materialized, find_loop_id_by_label, replay_checked,
+    accepted_step_row, aggregate_naming_edit_continuity_matrix_for_contract_sets,
+    aggregate_topology_edit_digest_for_contract_sets, derived_validation_report_from_materialized,
+    find_loop_id_by_label, replay_checked,
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
@@ -22,9 +23,9 @@ use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    BoundaryMembershipKind, TopologyCreateInnerLoopOnExistingFaceDeclaration,
-    TopologyDetachBoundaryMembershipDeclaration, TopologyEditBatch, TopologyEditContract,
-    TopologyRetireTopologyEntityDeclaration,
+    topology_edit_families_for_contracts, BoundaryMembershipKind,
+    TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyDetachBoundaryMembershipDeclaration,
+    TopologyEditContract, TopologyRetireTopologyEntityDeclaration,
 };
 
 struct MilestoneThreeCancellationRun {
@@ -134,7 +135,7 @@ where
         digest_materialized_topology_view(&baseline_snapshot.materialized);
 
     let loop_key = CreateKey::new(format!("{stem}.cancellation.inner_loop"));
-    let batch_one = TopologyEditBatch::new(vec![
+    let contracts_one = vec![
         TopologyEditContract::create_topology_entity(loop_key.as_str(), TopologyEntityKind::Loop),
         TopologyEditContract::attach_boundary_membership(
             format!("{stem}.cancellation.face-inner-loop"),
@@ -142,8 +143,7 @@ where
             face_id,
             created_ref(loop_key.as_str()),
         ),
-    ])
-    .expect("cancellation-chain first batch should be non-empty");
+    ];
     let execution_one = execute_current_head_topology_declaration(
         &mut workspace,
         &surfaces,
@@ -154,15 +154,14 @@ where
         ),
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let step_one = accepted_step_row(0, &batch_one, &execution_one);
+    let step_one = accepted_step_row(0, &contracts_one, &execution_one);
     let loop_id = find_loop_id_by_label(&execution_one.materialized, loop_key.as_str())?;
     let inner_loop_relation_id = created_relation_id(&execution_one.receipt)?;
 
-    let batch_two = TopologyEditBatch::new(vec![TopologyEditContract::detach_boundary_membership(
+    let contracts_two = vec![TopologyEditContract::detach_boundary_membership(
         inner_loop_relation_id,
         BoundaryMembershipKind::FaceInnerLoop,
-    )])
-    .expect("cancellation-chain second batch should be non-empty");
+    )];
     let execution_two = execute_current_head_topology_declaration(
         &mut workspace,
         &surfaces,
@@ -172,30 +171,36 @@ where
         ),
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let step_two = accepted_step_row(1, &batch_two, &execution_two);
+    let step_two = accepted_step_row(1, &contracts_two, &execution_two);
 
-    let batch_three = TopologyEditBatch::new(vec![TopologyEditContract::retire_topology_entity(
+    let contracts_three = vec![TopologyEditContract::retire_topology_entity(
         loop_id,
         TopologyEntityKind::Loop,
-    )])
-    .expect("cancellation-chain third batch should be non-empty");
+    )];
     let execution_three = execute_current_head_topology_declaration(
         &mut workspace,
         &surfaces,
         TopologyRetireTopologyEntityDeclaration::new(loop_id, TopologyEntityKind::Loop),
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let step_three = accepted_step_row(2, &batch_three, &execution_three);
+    let step_three = accepted_step_row(2, &contracts_three, &execution_three);
 
-    let batches = vec![batch_one, batch_two, batch_three];
+    let contract_sets = vec![contracts_one, contracts_two, contracts_three];
     let derived_validation_report =
         derived_validation_report_from_materialized(&execution_three.materialized)?;
     Ok(MilestoneThreeCancellationRun {
         primitive_family,
         primitive,
-        edit_families: batches.iter().flat_map(|batch| batch.families()).collect(),
-        topology_edit_digest: aggregate_topology_edit_digest(&batches),
-        naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix(&batches),
+        edit_families: contract_sets
+            .iter()
+            .flat_map(|contracts| topology_edit_families_for_contracts(contracts))
+            .collect(),
+        topology_edit_digest: aggregate_topology_edit_digest_for_contract_sets(
+            contract_sets.clone(),
+        ),
+        naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix_for_contract_sets(
+            contract_sets,
+        ),
         step_rows: vec![step_one, step_two, step_three],
         baseline_materialized_topology_digest,
         final_materialized_topology_digest: digest_materialized_topology_view(

@@ -47,8 +47,8 @@ pub use declaration_entry::{
     TopologySplitSingleFaceFromTwoFaceShellToNewShellFamily, TopologyWireRehomeHalfEdgeMember,
     TopologyWireSplitHalfEdgeMember,
 };
+pub(crate) use facade::raw_topology_intent_for_contracts;
 pub use facade::TopologyEditApplicationMode;
-pub(crate) use facade::TopologyEditBatch;
 pub use naming_continuity::NamingEditContinuityMatrix;
 pub use rejection_locality::{
     RejectedEditScopeReport, RejectedEditScopeRow, TopologyEditRejectionClass,

@@ -4,7 +4,9 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use serde_json::Value;
 
-use super::super::shared::{aggregate_topology_edit_digest, relation_id_from_query_identity};
+use super::super::shared::{
+    aggregate_topology_edit_digest_for_contract_sets, relation_id_from_query_identity,
+};
 use super::scale_pressure_types::{
     MilestoneThreeScalePressureRow, MilestoneThreeScalePressureSweep,
 };
@@ -16,9 +18,9 @@ use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    ShellOrWireMembershipKind, TopologyDetachRadialAdjacencyDeclaration,
-    TopologyDetachShellOrWireMembershipDeclaration, TopologyEditBatch, TopologyEditContract,
-    TopologyEditDigest, TopologyEditFamily,
+    topology_edit_families_for_contracts, ShellOrWireMembershipKind,
+    TopologyDetachRadialAdjacencyDeclaration, TopologyDetachShellOrWireMembershipDeclaration,
+    TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -115,11 +117,10 @@ where
         }
         DetachPressureKind::Radial => TopologyEditContract::detach_radial_adjacency(relation_id),
     };
-    let batch = TopologyEditBatch::new(vec![detach_contract])
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let batches = vec![batch];
-    let topology_edit_digest = aggregate_topology_edit_digest(&batches);
-    let edit_families = batches.iter().flat_map(|batch| batch.families()).collect();
+    let contracts = vec![detach_contract];
+    let topology_edit_digest =
+        aggregate_topology_edit_digest_for_contract_sets(vec![contracts.clone()]);
+    let edit_families = topology_edit_families_for_contracts(&contracts);
     let execution = match detach_kind {
         DetachPressureKind::ShellOrWire(kind) => execute_current_head_topology_declaration(
             &mut workspace,

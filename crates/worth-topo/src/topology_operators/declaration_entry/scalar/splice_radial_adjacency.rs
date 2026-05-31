@@ -11,8 +11,6 @@ use forge_relational::facade::identity::{EntityId, RelationId};
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
 #[cfg(test)]
 use crate::topology_operators::TopologyEditAction;
-#[cfg(test)]
-use crate::topology_operators::TopologyEditBatch;
 use crate::topology_operators::TopologyEditContract;
 
 use super::super::shared::{canonical_entity_id, canonical_relation_id};
@@ -141,10 +139,10 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain> for TopologySpliceRadialAdj
 }
 
 #[cfg(test)]
-pub(crate) fn declaration_for_canonical_single_splice_radial_batch(
-    batch: &TopologyEditBatch,
+pub(crate) fn declaration_for_canonical_single_splice_radial_contracts(
+    contracts: &[TopologyEditContract],
 ) -> Option<TopologySpliceRadialAdjacencyDeclaration> {
-    let [contract] = batch.contracts() else {
+    let [contract] = contracts else {
         return None;
     };
     let TopologyEditAction::SpliceRadialAdjacency {
@@ -160,9 +158,8 @@ pub(crate) fn declaration_for_canonical_single_splice_radial_batch(
         half_edge_id,
         radial_next_half_edge_id,
     );
-    let canonical_batch = TopologyEditBatch::new(declaration.clone().into_contracts())
-        .expect("single radial splice declaration should always form a non-empty batch");
-    (batch == &canonical_batch).then_some(declaration)
+    let canonical_contracts = declaration.clone().into_contracts();
+    (contracts == canonical_contracts.as_slice()).then_some(declaration)
 }
 
 #[cfg(test)]
@@ -170,24 +167,21 @@ mod tests {
     use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 
     use super::{
-        declaration_for_canonical_single_splice_radial_batch,
+        declaration_for_canonical_single_splice_radial_contracts,
         TopologySpliceRadialAdjacencyDeclaration,
     };
-    use crate::topology_operators::{
-        TopologyEditBatch, TopologyEditContract, TopologyEditDerivedFallbackPolicy,
-    };
+    use crate::topology_operators::{TopologyEditContract, TopologyEditDerivedFallbackPolicy};
 
     #[test]
-    fn canonical_single_splice_radial_batch_promotes_to_query_declaration() {
-        let batch = TopologyEditBatch::new(vec![TopologyEditContract::splice_radial_adjacency(
+    fn canonical_single_splice_radial_contracts_promote_to_query_declaration() {
+        let contracts = vec![TopologyEditContract::splice_radial_adjacency(
             RelationId::new(PartitionId::main(), 7, 1),
             EntityId::new(PartitionId::main(), 8, 1),
             EntityId::new(PartitionId::main(), 9, 1),
-        )])
-        .expect("radial splice batch should be non-empty");
+        )];
 
-        let declaration = declaration_for_canonical_single_splice_radial_batch(&batch)
-            .expect("canonical radial splice batch should promote");
+        let declaration = declaration_for_canonical_single_splice_radial_contracts(&contracts)
+            .expect("canonical radial splice contracts should promote");
 
         assert_eq!(
             declaration,
@@ -200,15 +194,14 @@ mod tests {
     }
 
     #[test]
-    fn non_canonical_splice_radial_batch_stays_off_query_declaration_promotion() {
-        let batch = TopologyEditBatch::new(vec![TopologyEditContract::splice_radial_adjacency(
+    fn non_canonical_splice_radial_contracts_stay_off_query_declaration_promotion() {
+        let contracts = vec![TopologyEditContract::splice_radial_adjacency(
             RelationId::new(PartitionId::main(), 7, 1),
             EntityId::new(PartitionId::main(), 8, 1),
             EntityId::new(PartitionId::main(), 9, 1),
         )
-        .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback)])
-        .expect("radial splice batch should be non-empty");
+        .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback)];
 
-        assert!(declaration_for_canonical_single_splice_radial_batch(&batch).is_none());
+        assert!(declaration_for_canonical_single_splice_radial_contracts(&contracts).is_none());
     }
 }

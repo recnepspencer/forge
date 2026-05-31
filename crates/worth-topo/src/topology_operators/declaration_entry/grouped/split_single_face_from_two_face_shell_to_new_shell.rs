@@ -18,8 +18,6 @@ use crate::topology_operators::application::TopologyQueryBindingIndex;
 use crate::topology_operators::local_rewrites::sheet_wire_laminar::resolve_single_face_two_face_shell_split_program;
 #[cfg(test)]
 use crate::topology_operators::TopologyEditAction;
-#[cfg(test)]
-use crate::topology_operators::TopologyEditBatch;
 use crate::topology_operators::{ShellOrWireMembershipKind, TopologyEditContract};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -159,11 +157,11 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain>
 }
 
 #[cfg(test)]
-pub(crate) fn declaration_for_canonical_split_single_face_from_two_face_shell_to_new_shell_batch(
+pub(crate) fn declaration_for_canonical_split_single_face_from_two_face_shell_to_new_shell_contracts(
     bindings: &TopologyQueryBindingIndex,
-    batch: &TopologyEditBatch,
+    contracts: &[TopologyEditContract],
 ) -> Option<TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration> {
-    let [create, attach_region, attach_face] = batch.contracts() else {
+    let [create, attach_region, attach_face] = contracts else {
         return None;
     };
     let (
@@ -198,10 +196,9 @@ pub(crate) fn declaration_for_canonical_split_single_face_from_two_face_shell_to
         *region_id,
         *face_id,
     );
-    let canonical_batch = TopologyEditBatch::new(declaration.clone().into_contracts())
-        .expect("shell split declaration should always form a non-empty batch");
-    (batch == &canonical_batch
-        && resolve_single_face_two_face_shell_split_program(bindings, batch.contracts()).is_some())
+    let canonical_contracts = declaration.clone().into_contracts();
+    (contracts == canonical_contracts.as_slice()
+        && resolve_single_face_two_face_shell_split_program(bindings, contracts).is_some())
     .then_some(declaration)
 }
 
@@ -211,13 +208,11 @@ mod tests {
     use schema::facade::platform::entities::TopologyEntityKind;
 
     use super::{
-        declaration_for_canonical_split_single_face_from_two_face_shell_to_new_shell_batch,
+        declaration_for_canonical_split_single_face_from_two_face_shell_to_new_shell_contracts,
         TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
     };
     use crate::topology_operators::application::TopologyQueryBindingIndex;
-    use crate::topology_operators::{
-        TopologyEditBatch, TopologyEditContract, TopologyEditDerivedFallbackPolicy,
-    };
+    use crate::topology_operators::{TopologyEditContract, TopologyEditDerivedFallbackPolicy};
 
     #[test]
     fn declaration_reauthors_to_the_expected_shell_split_batch() {
@@ -257,8 +252,8 @@ mod tests {
     }
 
     #[test]
-    fn non_canonical_shell_split_batch_stays_off_query_declaration_promotion() {
-        let batch = TopologyEditBatch::new(vec![
+    fn non_canonical_shell_split_contracts_stay_off_query_declaration_promotion() {
+        let contracts = vec![
             TopologyEditContract::create_topology_entity(
                 "query-native.split-shell.new-shell",
                 TopologyEntityKind::Shell,
@@ -280,16 +275,15 @@ mod tests {
                 EntityId::new(PartitionId::main(), 8, 1),
             )
             .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback),
-        ])
-        .expect("shell split batch should be non-empty");
+        ];
 
         assert!(
-            declaration_for_canonical_split_single_face_from_two_face_shell_to_new_shell_batch(
+            declaration_for_canonical_split_single_face_from_two_face_shell_to_new_shell_contracts(
                 &TopologyQueryBindingIndex::default(),
-                &batch,
+                &contracts,
             )
             .is_none(),
-            "non-canonical shell split batch should not be silently re-authored as a query declaration"
+            "non-canonical shell split contracts should not be silently re-authored as a query declaration"
         );
     }
 }

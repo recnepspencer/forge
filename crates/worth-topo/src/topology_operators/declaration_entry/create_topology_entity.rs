@@ -11,8 +11,6 @@ use schema::facade::platform::entities::TopologyEntityKind;
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
 #[cfg(test)]
 use crate::topology_operators::TopologyEditAction;
-#[cfg(test)]
-use crate::topology_operators::TopologyEditBatch;
 use crate::topology_operators::TopologyEditContract;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -115,10 +113,10 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain> for TopologyCreateTopologyE
 }
 
 #[cfg(test)]
-pub(crate) fn declaration_for_canonical_single_create_batch(
-    batch: &TopologyEditBatch,
+pub(crate) fn declaration_for_canonical_single_create_contracts(
+    contracts: &[TopologyEditContract],
 ) -> Option<TopologyCreateTopologyEntityDeclaration> {
-    let [contract] = batch.contracts() else {
+    let [contract] = contracts else {
         return None;
     };
     declaration_for_canonical_create_contract(contract)
@@ -146,20 +144,19 @@ mod tests {
     use schema::facade::platform::entities::TopologyEntityKind;
 
     use super::{
-        declaration_for_canonical_single_create_batch, TopologyCreateTopologyEntityDeclaration,
+        declaration_for_canonical_single_create_contracts, TopologyCreateTopologyEntityDeclaration,
     };
-    use crate::topology_operators::{TopologyEditBatch, TopologyEditContract};
+    use crate::topology_operators::TopologyEditContract;
 
     #[test]
-    fn canonical_single_create_batch_promotes_to_query_declaration() {
-        let batch = TopologyEditBatch::new(vec![TopologyEditContract::create_topology_entity(
+    fn canonical_single_create_contracts_promote_to_query_declaration() {
+        let contracts = vec![TopologyEditContract::create_topology_entity(
             "query-native.create.vertex",
             TopologyEntityKind::Vertex,
-        )])
-        .expect("create batch should be non-empty");
+        )];
 
-        let declaration = declaration_for_canonical_single_create_batch(&batch)
-            .expect("canonical single-create batch should promote");
+        let declaration = declaration_for_canonical_single_create_contracts(&contracts)
+            .expect("canonical single-create contracts should promote");
 
         assert_eq!(
             declaration,
@@ -171,18 +168,17 @@ mod tests {
     }
 
     #[test]
-    fn non_canonical_create_batch_stays_off_query_declaration_promotion() {
-        let batch = TopologyEditBatch::new(vec![TopologyEditContract::create_topology_entity(
+    fn non_canonical_create_contracts_stay_off_query_declaration_promotion() {
+        let contracts = vec![TopologyEditContract::create_topology_entity(
             "query-native.create.vertex",
             TopologyEntityKind::Vertex,
         )
         .with_derived_fallback_policy(
             crate::topology_operators::TopologyEditDerivedFallbackPolicy::RejectAnyFallback,
-        )])
-        .expect("create batch should be non-empty");
+        )];
 
         assert!(
-            declaration_for_canonical_single_create_batch(&batch).is_none(),
+            declaration_for_canonical_single_create_contracts(&contracts).is_none(),
             "non-canonical create contract should not be silently re-authored as a query declaration"
         );
     }

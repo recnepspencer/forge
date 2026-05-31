@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{
-    naming_edit_continuity_matrix_for_contracts, TopologyEditBatch, TopologyEditNamingOutcome,
-    TopologyEditNamingRow, TopologyEditRejectionClass,
-};
+use super::{TopologyEditNamingOutcome, TopologyEditNamingRow, TopologyEditRejectionClass};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NamingEditContinuityMatrix {
@@ -34,11 +31,5 @@ impl NamingEditContinuityMatrix {
                 Some(TopologyEditRejectionClass::NamingContinuityRejected)
             }
         }
-    }
-}
-
-impl TopologyEditBatch {
-    pub fn naming_edit_continuity_matrix(&self) -> NamingEditContinuityMatrix {
-        naming_edit_continuity_matrix_for_contracts(self.contracts())
     }
 }

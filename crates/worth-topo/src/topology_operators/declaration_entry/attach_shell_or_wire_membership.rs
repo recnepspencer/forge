@@ -12,8 +12,6 @@ use super::shared::canonical_entity_reference_entry;
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
 #[cfg(test)]
 use crate::topology_operators::TopologyEditAction;
-#[cfg(test)]
-use crate::topology_operators::TopologyEditBatch;
 use crate::topology_operators::{ShellOrWireMembershipKind, TopologyEditContract};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -149,10 +147,10 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain>
 }
 
 #[cfg(test)]
-fn declaration_for_canonical_single_attach_shell_or_wire_batch(
-    batch: &TopologyEditBatch,
+fn declaration_for_canonical_single_attach_shell_or_wire_contracts(
+    contracts: &[TopologyEditContract],
 ) -> Option<TopologyAttachShellOrWireMembershipDeclaration> {
-    let [contract] = batch.contracts() else {
+    let [contract] = contracts else {
         return None;
     };
     declaration_for_canonical_attach_shell_or_wire_contract(contract)
@@ -187,27 +185,25 @@ mod tests {
     use forge_relational::facade::identity::{EntityId, PartitionId};
 
     use super::{
-        declaration_for_canonical_single_attach_shell_or_wire_batch,
+        declaration_for_canonical_single_attach_shell_or_wire_contracts,
         TopologyAttachShellOrWireMembershipDeclaration,
     };
     use crate::topology_operators::{
-        ShellOrWireMembershipKind, TopologyEditBatch, TopologyEditContract,
-        TopologyEditDerivedFallbackPolicy,
+        ShellOrWireMembershipKind, TopologyEditContract, TopologyEditDerivedFallbackPolicy,
     };
 
     #[test]
-    fn canonical_single_attach_shell_or_wire_batch_promotes_to_query_declaration() {
-        let batch =
-            TopologyEditBatch::new(vec![TopologyEditContract::attach_shell_or_wire_membership(
-                "query-native.attach-wire.half-edge",
-                ShellOrWireMembershipKind::WireOwnsHalfEdge,
-                EntityId::new(PartitionId::main(), 1, 1),
-                EntityId::new(PartitionId::main(), 2, 1),
-            )])
-            .expect("attach-shell-or-wire batch should be non-empty");
+    fn canonical_single_attach_shell_or_wire_contracts_promote_to_query_declaration() {
+        let contracts = vec![TopologyEditContract::attach_shell_or_wire_membership(
+            "query-native.attach-wire.half-edge",
+            ShellOrWireMembershipKind::WireOwnsHalfEdge,
+            EntityId::new(PartitionId::main(), 1, 1),
+            EntityId::new(PartitionId::main(), 2, 1),
+        )];
 
-        let declaration = declaration_for_canonical_single_attach_shell_or_wire_batch(&batch)
-            .expect("canonical single attach-shell-or-wire batch should promote");
+        let declaration =
+            declaration_for_canonical_single_attach_shell_or_wire_contracts(&contracts)
+                .expect("canonical single attach-shell-or-wire contracts should promote");
 
         assert_eq!(
             declaration,
@@ -221,21 +217,17 @@ mod tests {
     }
 
     #[test]
-    fn non_canonical_attach_shell_or_wire_batch_stays_off_query_declaration_promotion() {
-        let batch =
-            TopologyEditBatch::new(vec![TopologyEditContract::attach_shell_or_wire_membership(
-                "query-native.attach-wire.half-edge",
-                ShellOrWireMembershipKind::WireOwnsHalfEdge,
-                EntityId::new(PartitionId::main(), 1, 1),
-                EntityId::new(PartitionId::main(), 2, 1),
-            )
-            .with_derived_fallback_policy(
-                TopologyEditDerivedFallbackPolicy::RejectAnyFallback,
-            )])
-            .expect("attach-shell-or-wire batch should be non-empty");
+    fn non_canonical_attach_shell_or_wire_contracts_stay_off_query_declaration_promotion() {
+        let contracts = vec![TopologyEditContract::attach_shell_or_wire_membership(
+            "query-native.attach-wire.half-edge",
+            ShellOrWireMembershipKind::WireOwnsHalfEdge,
+            EntityId::new(PartitionId::main(), 1, 1),
+            EntityId::new(PartitionId::main(), 2, 1),
+        )
+        .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback)];
 
         assert!(
-            declaration_for_canonical_single_attach_shell_or_wire_batch(&batch).is_none(),
+            declaration_for_canonical_single_attach_shell_or_wire_contracts(&contracts).is_none(),
             "non-canonical attach-shell-or-wire contract should not be silently re-authored as a query declaration"
         );
     }
