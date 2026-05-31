@@ -1,32 +1,30 @@
 use crate::topology_operators::declaration_entry::TopologyRewireLoopSuccessorProgramDeclaration;
 
 use super::super::super::{
-    TopologyDeclaredMutationArtifact, TopologyEditApplicationMode, TopologyEditFamily,
-    TopologyOperatorExecutionError, TopologyOperatorRunner, TopologyQueryBindingIndex,
+    TopologyDeclaredMutationArtifact, TopologyMutationApplicationError,
+    TopologyMutationApplicationMode, TopologyMutationApplicationRunner, TopologyMutationFamily,
+    TopologyQueryBindingIndex,
 };
-use super::super::contract_payload::TopologyDeclarationContractPayload;
+use super::super::mutation_payload::TopologyDeclarationMutationPayload;
 use super::super::orchestration_boundary::orchestrate_topology_declaration_entry;
 
-impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
+impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
     pub(crate) fn apply_rewire_loop_successor_program_declaration(
         &mut self,
         declaration: TopologyRewireLoopSuccessorProgramDeclaration,
         bindings: &TopologyQueryBindingIndex,
-        mode: TopologyEditApplicationMode,
-    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
+        mode: TopologyMutationApplicationMode,
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
         orchestrate_topology_declaration_entry(
-            TopologyEditFamily::RewireLoopSuccessor,
+            TopologyMutationFamily::RewireLoopSuccessor,
             declaration.clone(),
         )?;
 
+        let sequence = declaration.into_mutation_sequence();
         self.execute_composed_loop_successor_program(
             TopologyRewireLoopSuccessorProgramDeclaration::SEMANTIC_FAMILY_KEY,
             mode,
-            declaration.semantic_families(),
-            declaration.topology_edit_digest(),
-            declaration.naming_continuity_matrix(),
-            declaration.naming_report(),
-            declaration.into_contracts(),
+            sequence,
             bindings,
         )
     }

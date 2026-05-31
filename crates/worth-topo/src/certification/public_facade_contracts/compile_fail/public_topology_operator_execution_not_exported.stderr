@@ -1,9 +1,0 @@
-error[E0432]: unresolved imports `topology::facade::TopologyOperatorExecution`, `topology::facade::TopologyOperatorExecutionError`, `topology::facade::TopologyOperatorExecutionPath`
- --> src/certification/public_facade_contracts/compile_fail/public_topology_operator_execution_not_exported.rs:2:5
-  |
-2 |     TopologyOperatorExecution, TopologyOperatorExecutionError, TopologyOperatorExecutionPath,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyOperatorExecutionPath` in `facade`
-  |     |                          |
-  |     |                          no `TopologyOperatorExecutionError` in `facade`
-  |     |                          help: a similar name exists in the module: `TopologyCertificationError`
-  |     no `TopologyOperatorExecution` in `facade`

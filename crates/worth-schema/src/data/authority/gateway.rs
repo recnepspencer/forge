@@ -8,8 +8,7 @@ use forge_relational::facade::symbols::InternedString;
 use forge_relational::facade::transactions::{
     CreateIntent, CreatedEntityRef, DeleteEntityIntent, DeleteRelationIntent,
     EntityReference as RelationalEntityReference, EntitySpec, MutationIntent,
-    RelationMutationIntent, RelationSpec, TransactionCommitError, TransactionOptions,
-    WorkerIntentBatch,
+    RelationMutationIntent, RelationSpec, TransactionCommitError,
 };
 use serde_json::json;
 
@@ -17,10 +16,11 @@ use crate::data::aspects::{
     Aspect, DiagnosticsAspect, GeometryAspect, NamingAspect, TopologyAspect,
 };
 use crate::data::authority::{
-    CanonicalTopologyMutationBatch, CreateKey, DerivedTopologyReadBasis, EntityReference,
-    PersistedTopologyTruthBatch, RawTopologyIntent, TopologyMutation, TopologyMutationBatch,
+    CreateKey, DerivedTopologyReadBasis, EntityReference, PersistedTopologyTruth,
+    RawTopologyIntent, TopologyCommittedMutationSet, TopologyMutation,
 };
 use crate::data::entities::{DiagnosticsEntityKind, EntityKind};
+use crate::data::mutation_commit::commit_topology_mutation_set_on_branch_internal;
 use crate::data::relations::{
     DiagnosticsRelationKind, GeometryRelationKind, NamingRelationKind, RelationKind,
     TopologyRelationKind,
@@ -65,10 +65,10 @@ impl From<TransactionCommitError> for TopologyAuthorityError {
 
 #[derive(Debug, Clone)]
 pub struct VerifiedTopologyCommit {
-    pub canonical_batch: CanonicalTopologyMutationBatch,
+    pub committed_mutation_set: TopologyCommittedMutationSet,
     pub branch_id: BranchId,
     pub commits: Vec<forge_relational::facade::transactions::CommitResult>,
-    pub persisted_truth: PersistedTopologyTruthBatch,
+    pub persisted_truth: PersistedTopologyTruth,
     pub read_basis: DerivedTopologyReadBasis,
 }
 
@@ -100,29 +100,27 @@ impl<'a> TopologyAuthority<'a> {
 
         let touched_aspects = touched_aspects_for_intent(read.as_ref(), &intent)
             .map_err(|error| authority_failure_for_intent(error, &branch_id, &intent))?;
-        let canonical_batch = CanonicalTopologyMutationBatch {
-            batch: TopologyMutationBatch::from_raw_intent(intent, touched_aspects),
-        };
+        let committed_mutation_set =
+            TopologyCommittedMutationSet::from_raw_intent(intent, touched_aspects);
 
         let commits = self
-            .execute_canonical_batch(read.as_ref(), &canonical_batch.batch, &branch_id)
+            .execute_committed_mutation_set(read.as_ref(), &committed_mutation_set, &branch_id)
             .map_err(|error| {
-                authority_failure_for_batch(error, &branch_id, &canonical_batch.batch)
+                authority_failure_for_mutation_set(error, &branch_id, &committed_mutation_set)
             })?;
 
         let persisted_snapshot = commits
             .last()
             .map(|commit| commit.snapshot.clone())
             .unwrap_or(snapshot);
-        let persisted_truth = PersistedTopologyTruthBatch {
-            batch: canonical_batch.batch.clone(),
+        let persisted_truth = PersistedTopologyTruth {
+            committed_mutation_set: committed_mutation_set.clone(),
             snapshot: persisted_snapshot,
             branch_id: branch_id.clone(),
-            mutation_origin: canonical_batch.batch.mutation_origin,
         };
         let read_basis = DerivedTopologyReadBasis::from_persisted_truth(&persisted_truth);
         let verified_commit = VerifiedTopologyCommit {
-            canonical_batch,
+            committed_mutation_set,
             branch_id: branch_id.clone(),
             commits,
             persisted_truth,
@@ -154,39 +152,35 @@ impl<'a> TopologyAuthority<'a> {
         ))
     }
 
-    fn execute_canonical_batch(
+    fn execute_committed_mutation_set(
         &mut self,
         read: Option<&forge_relational::facade::runtime::RelationalReadView>,
-        batch: &TopologyMutationBatch,
+        committed_mutation_set: &TopologyCommittedMutationSet,
         branch_id: &BranchId,
     ) -> Result<Vec<forge_relational::facade::transactions::CommitResult>, TopologyAuthorityError>
     {
-        let lowered = self.lower_canonical_batch(read, batch)?;
+        let lowered = self.lower_committed_mutation_set(read, committed_mutation_set)?;
         if lowered.is_empty() {
             return Ok(Vec::new());
         }
 
-        let mut tx = self.runtime.begin_transaction(TransactionOptions {
-            target_branch: Some(branch_id.clone()),
-            ..TransactionOptions::default()
-        });
-        let batch = lowered.into_iter().fold(
-            WorkerIntentBatch::new(batch_name(batch.mutation_origin)),
-            |batch, mutation| batch.push(mutation),
-        );
-        tx.push_batch(batch);
-        Ok(vec![tx.commit()?])
+        Ok(vec![commit_topology_mutation_set_on_branch_internal(
+            self.runtime,
+            branch_id,
+            mutation_set_transaction_label(committed_mutation_set.mutation_origin),
+            lowered,
+        )?])
     }
 
-    fn lower_canonical_batch(
+    fn lower_committed_mutation_set(
         &self,
         read: Option<&forge_relational::facade::runtime::RelationalReadView>,
-        batch: &TopologyMutationBatch,
+        committed_mutation_set: &TopologyCommittedMutationSet,
     ) -> Result<Vec<MutationIntent>, TopologyAuthorityError> {
         let mut seen = BTreeSet::new();
         let mut created_entities = BTreeMap::new();
 
-        for mutation in &batch.mutations {
+        for mutation in &committed_mutation_set.mutations {
             match mutation {
                 TopologyMutation::CreateEntity { create_key, kind } => {
                     if !seen.insert(create_key.clone()) {
@@ -222,7 +216,7 @@ impl<'a> TopologyAuthority<'a> {
         }
 
         let mut lowered = Vec::new();
-        for mutation in &batch.mutations {
+        for mutation in &committed_mutation_set.mutations {
             match mutation {
                 TopologyMutation::CreateEntity { create_key, kind } => {
                     lowered.push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -298,10 +292,10 @@ fn authority_failure_for_intent(
     )
 }
 
-fn authority_failure_for_batch(
+fn authority_failure_for_mutation_set(
     error: TopologyAuthorityError,
     branch_id: &BranchId,
-    batch: &TopologyMutationBatch,
+    committed_mutation_set: &TopologyCommittedMutationSet,
 ) -> BoundaryFailure<TopologyAuthorityError> {
     let authority = match &error {
         TopologyAuthorityError::Commit(commit_error) => {
@@ -331,11 +325,11 @@ fn authority_failure_for_batch(
         },
         IntegrityMarkers::new(
             Some(branch_id.clone()),
-            batch.touched_aspects.clone(),
-            Some(batch.mutation_origin),
+            committed_mutation_set.touched_aspects.clone(),
+            Some(committed_mutation_set.mutation_origin),
             None,
-            batch.precision_fallbacks.len(),
-            batch.precision_budget_fallbacks.len(),
+            committed_mutation_set.precision_fallbacks.len(),
+            committed_mutation_set.precision_budget_fallbacks.len(),
         ),
         performance_accounting,
     )
@@ -344,13 +338,12 @@ fn authority_failure_for_batch(
 fn integrity_markers_for_verified_commit(commit: &VerifiedTopologyCommit) -> IntegrityMarkers {
     IntegrityMarkers::new(
         Some(commit.branch_id.clone()),
-        commit.canonical_batch.batch.touched_aspects.clone(),
-        Some(commit.canonical_batch.batch.mutation_origin),
+        commit.committed_mutation_set.touched_aspects.clone(),
+        Some(commit.committed_mutation_set.mutation_origin),
         Some(commit.read_basis.authority.truth_basis_identity.clone()),
-        commit.canonical_batch.batch.precision_fallbacks.len(),
+        commit.committed_mutation_set.precision_fallbacks.len(),
         commit
-            .canonical_batch
-            .batch
+            .committed_mutation_set
             .precision_budget_fallbacks
             .len(),
     )
@@ -390,12 +383,14 @@ fn entity_create_payload(kind: EntityKind, label: &str) -> serde_json::Value {
     }
 }
 
-fn batch_name(origin: crate::data::authority::MutationOrigin) -> &'static str {
+fn mutation_set_transaction_label(origin: crate::data::authority::MutationOrigin) -> &'static str {
     match origin {
-        crate::data::authority::MutationOrigin::Seed => "topology-seed",
-        crate::data::authority::MutationOrigin::LocalEdit => "topology-local-edit",
-        crate::data::authority::MutationOrigin::Replay => "topology-replay",
-        crate::data::authority::MutationOrigin::BranchLocalApplication => "topology-branch-local",
+        crate::data::authority::MutationOrigin::Seed => "topology-mutation-seed",
+        crate::data::authority::MutationOrigin::LocalEdit => "topology-mutation-local-edit",
+        crate::data::authority::MutationOrigin::Replay => "topology-mutation-replay",
+        crate::data::authority::MutationOrigin::BranchLocalApplication => {
+            "topology-mutation-branch-local"
+        }
     }
 }
 
@@ -699,7 +694,7 @@ mod tests {
 
         let verified = TopologyAuthority::new(&mut runtime)
             .apply_topology_intent_traced(intent)
-            .expect("create batch should commit")
+            .expect("create mutation set should commit")
             .into_primary_result();
 
         assert_eq!(verified.commits.len(), 1);
@@ -748,7 +743,7 @@ mod tests {
                 }],
                 crate::data::authority::MutationOrigin::Seed,
             ))
-            .expect("traced create batch should commit");
+            .expect("traced create mutation set should commit");
 
         assert_eq!(traced.primary_result().branch_id.0, "main");
         assert_eq!(

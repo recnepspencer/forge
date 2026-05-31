@@ -1,10 +1,10 @@
 use crate::certification::{DeterministicDigest, ReplayParityStatus};
 use crate::derived_topology::materialized_graph::MaterializationFallbackClass;
 use crate::topology_operators::{
-    NamingEditContinuityMatrix, RejectedEditScopeReport, TopologyDerivedRegion,
-    TopologyEditChangedScope, TopologyEditDerivedFallbackPolicy, TopologyEditDigest,
-    TopologyEditFamily, TopologyEditNamingOutcome, TopologyEditNamingScope,
-    TopologyEditRejectionClass,
+    NamingMutationContinuityMatrix, RejectedMutationScopeReport, TopologyDerivedRegion,
+    TopologyMutationChangedScope, TopologyMutationDerivedFallbackPolicy, TopologyMutationDigest,
+    TopologyMutationFamily, TopologyMutationNamingOutcome, TopologyMutationNamingScope,
+    TopologyMutationRejectionClass,
 };
 use crate::validation::DerivedTopologyValidationReport;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
@@ -19,7 +19,7 @@ use super::naming_continuity_breadth_row::MilestoneThreeNamingContinuityBreadthR
 use super::operator_family_proof::{
     MilestoneThreeOperatorFamilyClosureRow, MilestoneThreePrimitiveFamilyClosureRow,
 };
-use super::query_traversal_proof::MilestoneThreeEditedTopologyQueryTraversalRow;
+use super::query_traversal_proof::MilestoneThreeMutationTopologyQueryTraversalRow;
 use super::replay_branch_breadth_row::MilestoneThreeReplayBranchBreadthRow;
 use super::scale_pressure_proof::MilestoneThreeScalePressureRow;
 use super::side_quest_gate::{
@@ -97,23 +97,23 @@ pub struct MilestoneThreeSplitCollapseChurnWitness {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MilestoneThreeEditReplayStepRow {
+pub struct MilestoneThreeMutationReplayStepRow {
     pub step_index: usize,
-    pub edit_families: Vec<TopologyEditFamily>,
-    pub topology_edit_digest: TopologyEditDigest,
-    pub naming_edit_continuity_matrix: NamingEditContinuityMatrix,
+    pub mutation_families: Vec<TopologyMutationFamily>,
+    pub topology_mutation_digest: TopologyMutationDigest,
+    pub naming_mutation_continuity_matrix: NamingMutationContinuityMatrix,
     pub outcome_class: MilestoneThreeHostileOutcomeClass,
-    pub rejection_class: Option<TopologyEditRejectionClass>,
+    pub rejection_class: Option<TopologyMutationRejectionClass>,
     pub resulting_materialized_topology_digest: Option<DeterministicDigest>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MilestoneThreeEditReplayParityReport {
+pub struct MilestoneThreeMutationReplayParityReport {
     pub replay_checked: bool,
     pub parity_status: ReplayParityStatus,
     pub mismatch_count: usize,
-    pub step_rows: Vec<MilestoneThreeEditReplayStepRow>,
-    pub replay_step_rows: Vec<MilestoneThreeEditReplayStepRow>,
+    pub step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
+    pub replay_step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
     pub baseline_materialized_topology_digest: Option<DeterministicDigest>,
     pub final_materialized_topology_digest: Option<DeterministicDigest>,
     pub replay_final_materialized_topology_digest: Option<DeterministicDigest>,
@@ -125,21 +125,21 @@ pub struct MilestoneThreeHostileScenarioReport {
     pub scenario: MilestoneThreeHostileScenario,
     pub primitive_family: String,
     pub primitive: MilestoneOnePrimitiveCase,
-    pub edit_families: Vec<TopologyEditFamily>,
+    pub mutation_families: Vec<TopologyMutationFamily>,
     pub bowtie_adjacent_witness: Option<MilestoneThreeBowtieAdjacentWitness>,
     pub ambiguous_local_rewire_witness: Option<MilestoneThreeAmbiguousLocalRewireWitness>,
     pub split_collapse_churn_witness: Option<MilestoneThreeSplitCollapseChurnWitness>,
     pub broken_radial_witness: Option<MilestoneThreeBrokenRadialWitness>,
-    pub topology_edit_digest: TopologyEditDigest,
-    pub naming_edit_continuity_matrix: NamingEditContinuityMatrix,
-    pub continuity_outcome_class: TopologyEditNamingOutcome,
-    pub continuity_rejection_class: Option<TopologyEditRejectionClass>,
+    pub topology_mutation_digest: TopologyMutationDigest,
+    pub naming_mutation_continuity_matrix: NamingMutationContinuityMatrix,
+    pub continuity_outcome_class: TopologyMutationNamingOutcome,
+    pub continuity_rejection_class: Option<TopologyMutationRejectionClass>,
     pub outcome_class: MilestoneThreeHostileOutcomeClass,
-    pub rejection_class: Option<TopologyEditRejectionClass>,
-    pub rejected_edit_scope_report: Option<RejectedEditScopeReport>,
+    pub rejection_class: Option<TopologyMutationRejectionClass>,
+    pub rejected_mutation_scope_report: Option<RejectedMutationScopeReport>,
     pub derived_validation_report: Option<DerivedTopologyValidationReport>,
     pub derived_materialization_fallback_class: Option<MaterializationFallbackClass>,
-    pub edit_replay_parity_report: MilestoneThreeEditReplayParityReport,
+    pub mutation_replay_parity_report: MilestoneThreeMutationReplayParityReport,
     pub detail: String,
 }
 
@@ -147,16 +147,16 @@ pub struct MilestoneThreeHostileScenarioReport {
 pub struct MilestoneThreeHostileCoverageRow {
     pub scenario: MilestoneThreeHostileScenario,
     pub outcome_class: MilestoneThreeHostileOutcomeClass,
-    pub rejection_class: Option<TopologyEditRejectionClass>,
-    pub continuity_outcome_class: TopologyEditNamingOutcome,
-    pub continuity_rejection_class: Option<TopologyEditRejectionClass>,
+    pub rejection_class: Option<TopologyMutationRejectionClass>,
+    pub continuity_outcome_class: TopologyMutationNamingOutcome,
+    pub continuity_rejection_class: Option<TopologyMutationRejectionClass>,
     pub replay_checked: bool,
     pub replay_parity_status: ReplayParityStatus,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MilestoneThreeHostileFamilyCoverageRow {
-    pub family: TopologyEditFamily,
+    pub family: TopologyMutationFamily,
     pub scenario_count: usize,
     pub scenarios: Vec<MilestoneThreeHostileScenario>,
     pub row_digest: String,
@@ -164,7 +164,7 @@ pub struct MilestoneThreeHostileFamilyCoverageRow {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MilestoneThreeHostileRejectionDistributionRow {
-    pub rejection_class: TopologyEditRejectionClass,
+    pub rejection_class: TopologyMutationRejectionClass,
     pub case_count: usize,
     pub scenarios: Vec<MilestoneThreeHostileScenario>,
     pub row_digest: String,
@@ -172,38 +172,38 @@ pub struct MilestoneThreeHostileRejectionDistributionRow {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MilestoneThreeHostileNamingDistributionRow {
-    pub continuity_outcome_class: TopologyEditNamingOutcome,
+    pub continuity_outcome_class: TopologyMutationNamingOutcome,
     pub case_count: usize,
     pub scenarios: Vec<MilestoneThreeHostileScenario>,
     pub row_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MilestoneThreeTopologyEditDigestRow {
+pub struct MilestoneThreeTopologyMutationDigestRow {
     pub(crate) scenario: MilestoneThreeHostileScenario,
-    pub(crate) topology_edit_digest: TopologyEditDigest,
+    pub(crate) topology_mutation_digest: TopologyMutationDigest,
     pub(crate) row_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MilestoneThreeNamingContinuityMatrixRow {
     pub(crate) scenario: MilestoneThreeHostileScenario,
-    pub(crate) naming_edit_continuity_matrix: NamingEditContinuityMatrix,
-    pub(crate) continuity_outcome_class: TopologyEditNamingOutcome,
-    pub(crate) continuity_rejection_class: Option<TopologyEditRejectionClass>,
+    pub(crate) naming_mutation_continuity_matrix: NamingMutationContinuityMatrix,
+    pub(crate) continuity_outcome_class: TopologyMutationNamingOutcome,
+    pub(crate) continuity_rejection_class: Option<TopologyMutationRejectionClass>,
     pub(crate) row_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MilestoneThreeRejectedEditScopeReportRow {
+pub struct MilestoneThreeRejectedMutationScopeReportRow {
     pub(crate) scenario: MilestoneThreeHostileScenario,
-    pub(crate) rejection_class: TopologyEditRejectionClass,
-    pub(crate) rejected_edit_scope_report: RejectedEditScopeReport,
+    pub(crate) rejection_class: TopologyMutationRejectionClass,
+    pub(crate) rejected_mutation_scope_report: RejectedMutationScopeReport,
     pub(crate) row_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MilestoneThreeEditReplayParityRow {
+pub struct MilestoneThreeMutationReplayParityRow {
     pub(crate) scenario: MilestoneThreeHostileScenario,
     pub(crate) replay_checked: bool,
     pub(crate) parity_status: ReplayParityStatus,
@@ -214,16 +214,16 @@ pub struct MilestoneThreeEditReplayParityRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MilestoneThreeEditBranchLocalParityRow {
+pub struct MilestoneThreeMutationBranchLocalParityRow {
     pub(crate) scenario: Option<MilestoneThreeHostileScenario>,
     pub(crate) branch_label: String,
     pub(crate) branch_id: String,
     pub(crate) mutation_origin: String,
     pub(crate) outcome_class: MilestoneThreeHostileOutcomeClass,
-    pub(crate) rejection_class: Option<TopologyEditRejectionClass>,
-    pub(crate) edit_families: Vec<TopologyEditFamily>,
-    pub(crate) topology_edit_digest: TopologyEditDigest,
-    pub(crate) naming_edit_continuity_matrix: NamingEditContinuityMatrix,
+    pub(crate) rejection_class: Option<TopologyMutationRejectionClass>,
+    pub(crate) mutation_families: Vec<TopologyMutationFamily>,
+    pub(crate) topology_mutation_digest: TopologyMutationDigest,
+    pub(crate) naming_mutation_continuity_matrix: NamingMutationContinuityMatrix,
     pub(crate) branch_head_diverged_from_main: bool,
     pub(crate) branch_head_unchanged_after_rejection: bool,
     pub(crate) branch_truth_digest: Option<DeterministicDigest>,
@@ -232,7 +232,7 @@ pub struct MilestoneThreeEditBranchLocalParityRow {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum MilestoneThreeValidatorFamily {
-    EditLocalContinuity,
+    MutationLocalContinuity,
     NamingContinuity,
     DerivedValidationInspection,
     RejectionLocality,
@@ -241,7 +241,7 @@ pub enum MilestoneThreeValidatorFamily {
 impl MilestoneThreeValidatorFamily {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::EditLocalContinuity => "edit_local_continuity",
+            Self::MutationLocalContinuity => "mutation_local_continuity",
             Self::NamingContinuity => "naming_continuity",
             Self::DerivedValidationInspection => "derived_validation_inspection",
             Self::RejectionLocality => "rejection_locality",
@@ -254,7 +254,7 @@ pub struct MilestoneThreeValidatorFamilyCoverageRow {
     pub(crate) scenario: MilestoneThreeHostileScenario,
     pub(crate) validator_family: MilestoneThreeValidatorFamily,
     pub(crate) validator_names: Vec<String>,
-    pub(crate) edit_family_count: usize,
+    pub(crate) mutation_family_count: usize,
     pub(crate) changed_scope_count: usize,
     pub(crate) naming_scope_count: usize,
     pub(crate) derived_region_count: usize,
@@ -265,7 +265,7 @@ pub struct MilestoneThreeValidatorFamilyCoverageRow {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MilestoneThreeChangedScopeCoverageRow {
-    pub(crate) changed_scope: TopologyEditChangedScope,
+    pub(crate) changed_scope: TopologyMutationChangedScope,
     pub(crate) scenario_count: usize,
     pub(crate) scenarios: Vec<MilestoneThreeHostileScenario>,
     pub(crate) row_digest: String,
@@ -281,8 +281,8 @@ pub struct MilestoneThreeDerivedRegionCoverageRow {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum MilestoneThreeDeterminismRuleKind {
-    StableEditOrder,
-    StableEditDigest,
+    StableMutationOrder,
+    StableMutationDigest,
     StableRejectionClassification,
     AmbiguousTieBreakEvidence,
 }
@@ -290,8 +290,8 @@ pub enum MilestoneThreeDeterminismRuleKind {
 impl MilestoneThreeDeterminismRuleKind {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::StableEditOrder => "stable_edit_order",
-            Self::StableEditDigest => "stable_edit_digest",
+            Self::StableMutationOrder => "stable_mutation_order",
+            Self::StableMutationDigest => "stable_mutation_digest",
             Self::StableRejectionClassification => "stable_rejection_classification",
             Self::AmbiguousTieBreakEvidence => "ambiguous_tie_break_evidence",
         }
@@ -310,9 +310,9 @@ pub struct MilestoneThreeDeterminismRuleRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MilestoneThreeEditBreadthCounterRow {
+pub struct MilestoneThreeMutationBreadthCounterRow {
     pub(crate) scenario: MilestoneThreeHostileScenario,
-    pub(crate) contract_count: usize,
+    pub(crate) mutation_record_count: usize,
     pub(crate) family_count: usize,
     pub(crate) changed_scope_count: usize,
     pub(crate) naming_scope_count: usize,
@@ -323,7 +323,7 @@ pub struct MilestoneThreeEditBreadthCounterRow {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MilestoneThreeEditFalloutClass {
+pub enum MilestoneThreeMutationFalloutClass {
     Localized,
     Widened,
     WholeViewFallback,
@@ -332,12 +332,12 @@ pub enum MilestoneThreeEditFalloutClass {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MilestoneThreeEditFalloutBreadthRow {
+pub struct MilestoneThreeMutationFalloutBreadthRow {
     pub(crate) scenario: MilestoneThreeHostileScenario,
-    pub(crate) fallout_class: MilestoneThreeEditFalloutClass,
-    pub(crate) fallback_policy: TopologyEditDerivedFallbackPolicy,
+    pub(crate) fallout_class: MilestoneThreeMutationFalloutClass,
+    pub(crate) fallback_policy: TopologyMutationDerivedFallbackPolicy,
     pub(crate) fallback_policy_exceeded: bool,
-    pub(crate) fallback_rejection_class: Option<TopologyEditRejectionClass>,
+    pub(crate) fallback_rejection_class: Option<TopologyMutationRejectionClass>,
     pub(crate) declared_derived_region_count: usize,
     pub(crate) derived_validation_row_count: usize,
     pub(crate) fallback_count: usize,
@@ -348,11 +348,11 @@ pub struct MilestoneThreeEditFalloutBreadthRow {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MilestoneThreeFailureLocalityRow {
     pub(crate) scenario: MilestoneThreeHostileScenario,
-    pub(crate) rejection_class: TopologyEditRejectionClass,
+    pub(crate) rejection_class: TopologyMutationRejectionClass,
     pub(crate) scope_row_count: usize,
-    pub(crate) families: Vec<TopologyEditFamily>,
-    pub(crate) changed_scopes: Vec<TopologyEditChangedScope>,
-    pub(crate) naming_scopes: Vec<TopologyEditNamingScope>,
+    pub(crate) families: Vec<TopologyMutationFamily>,
+    pub(crate) changed_scopes: Vec<TopologyMutationChangedScope>,
+    pub(crate) naming_scopes: Vec<TopologyMutationNamingScope>,
     pub(crate) derived_regions: Vec<TopologyDerivedRegion>,
     pub(crate) row_digest: String,
 }
@@ -368,21 +368,21 @@ pub struct MilestoneThreeHostileSuiteReport {
     pub operator_family_closure_rows: Vec<MilestoneThreeOperatorFamilyClosureRow>,
     pub primitive_family_closure_rows: Vec<MilestoneThreePrimitiveFamilyClosureRow>,
     pub scale_pressure_rows: Vec<MilestoneThreeScalePressureRow>,
-    pub topology_edit_digest_rows: Vec<MilestoneThreeTopologyEditDigestRow>,
-    pub naming_edit_continuity_matrix_rows: Vec<MilestoneThreeNamingContinuityMatrixRow>,
+    pub topology_mutation_digest_rows: Vec<MilestoneThreeTopologyMutationDigestRow>,
+    pub naming_mutation_continuity_matrix_rows: Vec<MilestoneThreeNamingContinuityMatrixRow>,
     pub naming_continuity_breadth_rows: Vec<MilestoneThreeNamingContinuityBreadthRow>,
-    pub rejected_edit_scope_report_rows: Vec<MilestoneThreeRejectedEditScopeReportRow>,
-    pub edit_replay_parity_rows: Vec<MilestoneThreeEditReplayParityRow>,
-    pub edit_branch_local_parity_rows: Vec<MilestoneThreeEditBranchLocalParityRow>,
+    pub rejected_mutation_scope_report_rows: Vec<MilestoneThreeRejectedMutationScopeReportRow>,
+    pub mutation_replay_parity_rows: Vec<MilestoneThreeMutationReplayParityRow>,
+    pub mutation_branch_local_parity_rows: Vec<MilestoneThreeMutationBranchLocalParityRow>,
     pub replay_branch_breadth_rows: Vec<MilestoneThreeReplayBranchBreadthRow>,
-    pub edited_query_traversal_rows: Vec<MilestoneThreeEditedTopologyQueryTraversalRow>,
+    pub mutation_query_traversal_rows: Vec<MilestoneThreeMutationTopologyQueryTraversalRow>,
     pub validator_family_coverage_rows: Vec<MilestoneThreeValidatorFamilyCoverageRow>,
     pub validation_breadth_rows: Vec<MilestoneThreeValidationBreadthRow>,
     pub changed_scope_coverage_rows: Vec<MilestoneThreeChangedScopeCoverageRow>,
     pub derived_region_coverage_rows: Vec<MilestoneThreeDerivedRegionCoverageRow>,
     pub determinism_rule_rows: Vec<MilestoneThreeDeterminismRuleRow>,
-    pub edit_breadth_counter_rows: Vec<MilestoneThreeEditBreadthCounterRow>,
-    pub edit_fallout_breadth_rows: Vec<MilestoneThreeEditFalloutBreadthRow>,
+    pub mutation_breadth_counter_rows: Vec<MilestoneThreeMutationBreadthCounterRow>,
+    pub mutation_fallout_breadth_rows: Vec<MilestoneThreeMutationFalloutBreadthRow>,
     pub derived_fallback_policy_denial_rows: Vec<MilestoneThreeDerivedFallbackPolicyDenialRow>,
     pub derived_reuse_legality_rows: Vec<MilestoneThreeDerivedReuseLegalityRow>,
     pub derived_work_breadth_rows: Vec<MilestoneThreeDerivedWorkBreadthRow>,

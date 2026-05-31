@@ -9,7 +9,9 @@ use forge_query::facade::{
 use forge_relational::facade::identity::{EntityId, RelationId};
 
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-use crate::topology_operators::TopologyEditContract;
+use crate::topology_operators::{
+    TopologyDeclaredMutationSequence, TopologyDeclaredMutationSequenceBuilder,
+};
 
 use super::super::shared::{canonical_entity_id, canonical_relation_id};
 
@@ -48,17 +50,16 @@ impl TopologySpliceRadialAdjacencyProgramDeclaration {
         &self.splices
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        self.splices
-            .into_iter()
-            .map(|splice| {
-                TopologyEditContract::splice_radial_adjacency(
-                    splice.relation_id,
-                    splice.half_edge_id,
-                    splice.radial_next_half_edge_id,
-                )
-            })
-            .collect()
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        for splice in self.splices {
+            builder.splice_radial_adjacency(
+                splice.relation_id,
+                splice.half_edge_id,
+                splice.radial_next_half_edge_id,
+            );
+        }
+        builder.finish()
     }
 }
 
@@ -156,10 +157,11 @@ mod tests {
     use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 
     use super::{TopologyRadialSpliceMember, TopologySpliceRadialAdjacencyProgramDeclaration};
-    use crate::topology_operators::TopologyEditContract;
+    use crate::topology_operators::application::TopologyDeclarationMutationPayload;
+    use crate::topology_operators::TopologyDeclaredMutationSequenceBuilder;
 
     #[test]
-    fn declaration_reauthors_to_the_expected_radial_splice_program_batch() {
+    fn declaration_reauthors_to_the_expected_radial_splice_program_mutation_sequence() {
         let declaration = TopologySpliceRadialAdjacencyProgramDeclaration::new(vec![
             TopologyRadialSpliceMember::new(
                 RelationId::new(PartitionId::main(), 20, 1),
@@ -172,21 +174,31 @@ mod tests {
                 EntityId::new(PartitionId::main(), 12, 1),
             ),
         ]);
+        let sequence = declaration.into_mutation_sequence();
+        let actual_contracts = sequence
+            .members()
+            .map(|member| member.record().clone())
+            .collect::<Vec<_>>();
+        let mut expected = TopologyDeclaredMutationSequenceBuilder::builder();
+        expected
+            .splice_radial_adjacency(
+                RelationId::new(PartitionId::main(), 20, 1),
+                EntityId::new(PartitionId::main(), 10, 1),
+                EntityId::new(PartitionId::main(), 11, 1),
+            )
+            .splice_radial_adjacency(
+                RelationId::new(PartitionId::main(), 21, 1),
+                EntityId::new(PartitionId::main(), 11, 1),
+                EntityId::new(PartitionId::main(), 12, 1),
+            );
 
         assert_eq!(
-            declaration.clone().into_contracts(),
-            vec![
-                TopologyEditContract::splice_radial_adjacency(
-                    RelationId::new(PartitionId::main(), 20, 1),
-                    EntityId::new(PartitionId::main(), 10, 1),
-                    EntityId::new(PartitionId::main(), 11, 1),
-                ),
-                TopologyEditContract::splice_radial_adjacency(
-                    RelationId::new(PartitionId::main(), 21, 1),
-                    EntityId::new(PartitionId::main(), 11, 1),
-                    EntityId::new(PartitionId::main(), 12, 1),
-                ),
-            ]
+            actual_contracts,
+            expected
+                .finish()
+                .members()
+                .map(|member| member.record().clone())
+                .collect::<Vec<_>>()
         );
     }
 }

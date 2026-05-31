@@ -14,9 +14,9 @@ use forge_query::facade::{
 };
 use schema::facade::platform::entities::TopologyEntityKind;
 
-use super::support::{
-    current_head_query_handle, current_head_unsupported_declaration_families,
-    execute_current_head_topology_declaration, snapshot_query_handle,
+use super::support::{current_head_query_handle, snapshot_query_handle};
+use crate::certification::support::declaration_runtime::{
+    current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
 };
 use crate::facade::{
     topology_runtime, BoundaryMembershipKind, ShellOrWireMembershipKind,
@@ -100,7 +100,7 @@ fn snapshot_handle_does_not_envelope_create_topology_entity_declaration() {
 }
 
 #[test]
-fn current_head_runtime_executes_single_create_batch_through_declaration_entry() {
+fn current_head_runtime_executes_single_create_declaration_through_declaration_entry() {
     let runtime = build_milestone_one_runtime().expect("runtime");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
@@ -118,7 +118,7 @@ fn current_head_runtime_executes_single_create_batch_through_declaration_entry()
             TopologyEntityKind::Vertex,
         ),
     )
-    .expect("single create batch should execute through declaration entry");
+    .expect("single create declaration should execute through declaration entry");
 
     assert!(execution
         .materialized
@@ -167,7 +167,8 @@ fn current_head_handle_orchestrates_attach_boundary_membership_declaration_acros
 }
 
 #[test]
-fn current_head_runtime_keeps_single_attach_boundary_batch_on_unsupported_admission_boundary() {
+fn current_head_runtime_keeps_single_attach_boundary_declaration_on_unsupported_admission_boundary()
+{
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     let seeded = seed_minimal_topology(&mut runtime, "query-native.attach-boundary.runtime")
         .expect("seed topology");
@@ -188,7 +189,7 @@ fn current_head_runtime_keeps_single_attach_boundary_batch_on_unsupported_admiss
 
     assert_eq!(
         current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
-        vec![crate::facade::TopologyEditFamily::AttachBoundaryMembership]
+        vec![crate::facade::TopologyMutationFamily::AttachBoundaryMembership]
     );
 }
 
@@ -233,8 +234,8 @@ fn current_head_handle_orchestrates_attach_shell_or_wire_membership_declaration_
 }
 
 #[test]
-fn current_head_runtime_keeps_single_attach_shell_or_wire_batch_on_unsupported_admission_boundary()
-{
+fn current_head_runtime_keeps_single_attach_shell_or_wire_declaration_on_unsupported_admission_boundary(
+) {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     let seeded = seed_minimal_topology(&mut runtime, "query-native.attach-wire.runtime")
         .expect("seed topology");
@@ -255,6 +256,6 @@ fn current_head_runtime_keeps_single_attach_shell_or_wire_batch_on_unsupported_a
 
     assert_eq!(
         current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
-        vec![crate::facade::TopologyEditFamily::AttachShellOrWireMembership]
+        vec![crate::facade::TopologyMutationFamily::AttachShellOrWireMembership]
     );
 }

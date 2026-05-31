@@ -15,10 +15,10 @@ pub(crate) mod topology_class;
 
 #[allow(unused_imports)]
 pub(crate) use commit_flow::{
-    AuthoritativeTopologySnapshot, CanonicalTopologyMutationBatch, CertifiedTopologyInterpretation,
-    CreateKey, DerivedTopologyReadBasis, DerivedTruthBasisIdentity, EntityReference,
-    MutationOrigin, PersistedTopologyTruthBatch, RawTopologyIntent, TopologyMutation,
-    TopologyMutationBatch, TopologyReadArtifact,
+    AuthoritativeTopologySnapshot, CertifiedTopologyInterpretation, CreateKey,
+    DerivedTopologyReadBasis, DerivedTruthBasisIdentity, EntityReference, MutationOrigin,
+    PersistedTopologyTruth, RawTopologyIntent, TopologyCommittedMutationSet, TopologyMutation,
+    TopologyReadArtifact,
 };
 #[allow(unused_imports)]
 pub use derived_invalidation::{

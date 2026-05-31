@@ -15,10 +15,11 @@ use crate::certification::support::parity::digest_materialized_topology_view;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::topology_operators::application::TopologyDeclarationContractPayload;
+use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
-    ShellOrWireMembershipKind, TopologyDetachRadialAdjacencyDeclaration,
-    TopologyDetachShellOrWireMembershipDeclaration, TopologyEditDigest, TopologyEditFamily,
+    ShellOrWireMembershipKind, TopologyDeclaredMutationSequence,
+    TopologyDetachRadialAdjacencyDeclaration, TopologyDetachShellOrWireMembershipDeclaration,
+    TopologyMutationDigest, TopologyMutationFamily,
 };
 
 #[derive(Clone)]
@@ -43,13 +44,13 @@ impl DetachPressureDeclaration {
     }
 }
 
-impl TopologyDeclarationContractPayload for DetachPressureDeclaration {
+impl TopologyDeclarationMutationPayload for DetachPressureDeclaration {
     const SEMANTIC_FAMILY_KEY: &'static str = "topology.detach_pressure_declaration";
 
-    fn into_contracts(self) -> Vec<crate::topology_operators::TopologyEditContract> {
+    fn into_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
         match self {
-            Self::ShellOrWire(declaration) => declaration.into_contracts(),
-            Self::Radial(declaration) => declaration.into_contracts(),
+            Self::ShellOrWire(declaration) => declaration.into_mutation_sequence(),
+            Self::Radial(declaration) => declaration.into_mutation_sequence(),
         }
     }
 }
@@ -62,8 +63,8 @@ pub(super) enum DetachPressureKind {
 
 struct DetachPressureExecution {
     primitive_family: String,
-    topology_edit_digest: TopologyEditDigest,
-    edit_families: Vec<TopologyEditFamily>,
+    topology_mutation_digest: TopologyMutationDigest,
+    mutation_families: Vec<TopologyMutationFamily>,
     final_state_digest: String,
 }
 
@@ -94,18 +95,18 @@ where
         relation_kind,
         detach_kind,
     )?;
-    let replay_verified = left.topology_edit_digest == replay.topology_edit_digest
+    let replay_verified = left.topology_mutation_digest == replay.topology_mutation_digest
         && left.final_state_digest == replay.final_state_digest
-        && left.edit_families == replay.edit_families;
+        && left.mutation_families == replay.mutation_families;
     Ok(MilestoneThreeScalePressureRow {
         sweep,
         primitive_family: left.primitive_family,
         primitive,
         workload_size: 1,
-        edit_step_count: left.topology_edit_digest.contract_count,
-        edit_families: left.edit_families,
+        mutation_step_count: left.topology_mutation_digest.mutation_record_count,
+        mutation_families: left.mutation_families,
         branch_local: false,
-        topology_edit_digest: left.topology_edit_digest,
+        topology_mutation_digest: left.topology_mutation_digest,
         replay_verified,
         final_state_digest: left.final_state_digest.clone(),
         replay_final_state_digest: replay.final_state_digest,
@@ -143,8 +144,8 @@ where
     let relation_rows = workspace.read::<Value>(surfaces.relations());
     let relation_id = first_relation_id_for_kind(&relation_rows, relation_kind)?;
     let declaration = DetachPressureDeclaration::new(relation_id, detach_kind);
-    let topology_edit_digest = declaration.topology_edit_digest();
-    let edit_families = declaration.semantic_families();
+    let topology_mutation_digest = declaration.topology_mutation_digest();
+    let mutation_families = declaration.semantic_families();
     let execution = match declaration {
         DetachPressureDeclaration::ShellOrWire(declaration) => {
             execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
@@ -157,8 +158,8 @@ where
     let final_state_digest = digest_materialized_topology_view(&execution.materialized).digest_hex;
     Ok(DetachPressureExecution {
         primitive_family,
-        topology_edit_digest,
-        edit_families,
+        topology_mutation_digest,
+        mutation_families,
         final_state_digest,
     })
 }

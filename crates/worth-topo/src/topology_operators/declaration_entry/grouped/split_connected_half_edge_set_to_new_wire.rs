@@ -12,7 +12,10 @@ use schema::facade::platform::entities::TopologyEntityKind;
 
 use super::super::shared::canonical_entity_reference_entry;
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-use crate::topology_operators::{ShellOrWireMembershipKind, TopologyEditContract};
+use crate::topology_operators::{
+    ShellOrWireMembershipKind, TopologyDeclaredMutationSequence,
+    TopologyDeclaredMutationSequenceBuilder,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TopologyWireSplitHalfEdgeMember {
@@ -46,20 +49,18 @@ impl TopologySplitConnectedHalfEdgeSetToNewWireDeclaration {
         }
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        let mut contracts = vec![TopologyEditContract::create_topology_entity(
-            self.wire_create_key.clone(),
-            TopologyEntityKind::Wire,
-        )];
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        builder.create_topology_entity(self.wire_create_key.clone(), TopologyEntityKind::Wire);
         for member in self.members {
-            contracts.push(TopologyEditContract::attach_shell_or_wire_membership(
+            builder.attach_shell_or_wire_membership(
                 member.relation_create_key,
                 ShellOrWireMembershipKind::WireOwnsHalfEdge,
                 EntityReference::Created(CreateKey::new(self.wire_create_key.clone())),
                 member.half_edge_id,
-            ));
+            );
         }
-        contracts
+        builder.finish()
     }
 }
 
@@ -155,10 +156,11 @@ mod tests {
     use super::{
         TopologySplitConnectedHalfEdgeSetToNewWireDeclaration, TopologyWireSplitHalfEdgeMember,
     };
-    use crate::topology_operators::TopologyEditContract;
+    use crate::topology_operators::application::TopologyDeclarationMutationPayload;
+    use crate::topology_operators::TopologyDeclaredMutationSequenceBuilder;
 
     #[test]
-    fn declaration_reauthors_to_the_expected_wire_split_batch() {
+    fn declaration_reauthors_to_the_expected_wire_split_mutation_sequence() {
         let declaration = TopologySplitConnectedHalfEdgeSetToNewWireDeclaration::new(
             "query-native.split-wire.new-wire",
             vec![
@@ -172,31 +174,34 @@ mod tests {
                 ),
             ],
         );
+        let sequence = declaration.into_mutation_sequence();
+        let actual_contracts = sequence
+            .members()
+            .map(|member| member.record().clone())
+            .collect::<Vec<_>>();
+        let mut expected = TopologyDeclaredMutationSequenceBuilder::builder();
+        expected
+            .create_topology_entity("query-native.split-wire.new-wire", TopologyEntityKind::Wire)
+            .attach_shell_or_wire_membership(
+                "query-native.split-wire.member-1",
+                crate::topology_operators::ShellOrWireMembershipKind::WireOwnsHalfEdge,
+                schema::facade::topology_authoring::created_ref("query-native.split-wire.new-wire"),
+                EntityId::new(PartitionId::main(), 10, 1),
+            )
+            .attach_shell_or_wire_membership(
+                "query-native.split-wire.member-2",
+                crate::topology_operators::ShellOrWireMembershipKind::WireOwnsHalfEdge,
+                schema::facade::topology_authoring::created_ref("query-native.split-wire.new-wire"),
+                EntityId::new(PartitionId::main(), 11, 1),
+            );
 
         assert_eq!(
-            declaration.clone().into_contracts(),
-            vec![
-                TopologyEditContract::create_topology_entity(
-                    "query-native.split-wire.new-wire",
-                    TopologyEntityKind::Wire,
-                ),
-                TopologyEditContract::attach_shell_or_wire_membership(
-                    "query-native.split-wire.member-1",
-                    crate::topology_operators::ShellOrWireMembershipKind::WireOwnsHalfEdge,
-                    schema::facade::topology_authoring::created_ref(
-                        "query-native.split-wire.new-wire",
-                    ),
-                    EntityId::new(PartitionId::main(), 10, 1),
-                ),
-                TopologyEditContract::attach_shell_or_wire_membership(
-                    "query-native.split-wire.member-2",
-                    crate::topology_operators::ShellOrWireMembershipKind::WireOwnsHalfEdge,
-                    schema::facade::topology_authoring::created_ref(
-                        "query-native.split-wire.new-wire",
-                    ),
-                    EntityId::new(PartitionId::main(), 11, 1),
-                ),
-            ]
+            actual_contracts,
+            expected
+                .finish()
+                .members()
+                .map(|member| member.record().clone())
+                .collect::<Vec<_>>()
         );
     }
 }

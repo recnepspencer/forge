@@ -8,8 +8,9 @@ use crate::topology_operators::application::bindings::{
     query_entity_binding, query_entity_id_by_identity, query_incoming_relation_ids,
     query_outgoing_relation_target_identities,
 };
-use crate::topology_operators::TopologyEditContract;
-use crate::topology_operators::{ShellOrWireMembershipKind, TopologyEditAction};
+use crate::topology_operators::{
+    ShellOrWireMembershipKind, TopologyDeclaredMutationActionRef, TopologyDeclaredMutationSequence,
+};
 
 pub(crate) struct ShellFaceRehomeProgram {
     pub(super) create_key: String,
@@ -26,92 +27,96 @@ pub(crate) struct ShellFaceSplitProgram {
 }
 
 pub(crate) fn parse_shell_face_rehome_program(
-    contracts: &[TopologyEditContract],
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> Option<ShellFaceRehomeProgram> {
-    let [create, attach_region, face_attaches @ .., retire] = contracts else {
+    let members = sequence.members().collect::<Vec<_>>();
+    let [create, attach_region, face_attaches @ .., retire] = members.as_slice() else {
         return None;
     };
     let (
-        TopologyEditAction::CreateTopologyEntity {
+        TopologyDeclaredMutationActionRef::CreateTopologyEntity {
             create_key,
             kind: TopologyEntityKind::Shell,
-            ..
         },
-        TopologyEditAction::AttachShellOrWireMembership {
+        TopologyDeclaredMutationActionRef::AttachShellOrWireMembership {
             kind: ShellOrWireMembershipKind::RegionOwnsShell,
             owner: EntityReference::Existing(region_id),
             member: EntityReference::Created(member_key),
-            ..
         },
-        TopologyEditAction::RetireTopologyEntity {
+        TopologyDeclaredMutationActionRef::RetireTopologyEntity {
             entity_id: retired_shell_id,
             kind: TopologyEntityKind::Shell,
         },
-    ) = (&create.action, &attach_region.action, &retire.action)
+    ) = (
+        create.action_ref(),
+        attach_region.action_ref(),
+        retire.action_ref(),
+    )
     else {
         return None;
     };
-    if create_key.as_str() != member_key.as_str() || face_attaches.is_empty() {
+    if create_key != member_key.as_str() || face_attaches.is_empty() {
         return None;
     }
     let mut face_ids = Vec::with_capacity(face_attaches.len());
     let mut seen_face_ids = BTreeSet::new();
     for attach in face_attaches {
-        let TopologyEditAction::AttachShellOrWireMembership {
+        let TopologyDeclaredMutationActionRef::AttachShellOrWireMembership {
             kind: ShellOrWireMembershipKind::ShellOwnsFace,
             owner: EntityReference::Created(owner_key),
             member: EntityReference::Existing(face_id),
-            ..
-        } = &attach.action
+        } = attach.action_ref()
         else {
             return None;
         };
-        if owner_key.as_str() != create_key.as_str() || !seen_face_ids.insert(*face_id) {
+        if owner_key.as_str() != create_key || !seen_face_ids.insert(*face_id) {
             return None;
         }
         face_ids.push(*face_id);
     }
     Some(ShellFaceRehomeProgram {
-        create_key: create_key.as_str().to_string(),
+        create_key: create_key.to_string(),
         region_id: *region_id,
         face_ids,
-        retired_shell_id: *retired_shell_id,
+        retired_shell_id,
     })
 }
 
 pub(crate) fn parse_shell_face_split_program(
-    contracts: &[TopologyEditContract],
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> Option<ShellFaceSplitProgram> {
-    let [create, attach_region, attach_face] = contracts else {
+    let members = sequence.members().collect::<Vec<_>>();
+    let [create, attach_region, attach_face] = members.as_slice() else {
         return None;
     };
     let (
-        TopologyEditAction::CreateTopologyEntity {
+        TopologyDeclaredMutationActionRef::CreateTopologyEntity {
             create_key,
             kind: TopologyEntityKind::Shell,
-            ..
         },
-        TopologyEditAction::AttachShellOrWireMembership {
+        TopologyDeclaredMutationActionRef::AttachShellOrWireMembership {
             kind: ShellOrWireMembershipKind::RegionOwnsShell,
             owner: EntityReference::Existing(region_id),
             member: EntityReference::Created(member_key),
-            ..
         },
-        TopologyEditAction::AttachShellOrWireMembership {
+        TopologyDeclaredMutationActionRef::AttachShellOrWireMembership {
             kind: ShellOrWireMembershipKind::ShellOwnsFace,
             owner: EntityReference::Created(owner_key),
             member: EntityReference::Existing(face_id),
-            ..
         },
-    ) = (&create.action, &attach_region.action, &attach_face.action)
+    ) = (
+        create.action_ref(),
+        attach_region.action_ref(),
+        attach_face.action_ref(),
+    )
     else {
         return None;
     };
-    if create_key.as_str() != member_key.as_str() || create_key.as_str() != owner_key.as_str() {
+    if create_key != member_key.as_str() || create_key != owner_key.as_str() {
         return None;
     }
     Some(ShellFaceSplitProgram {
-        create_key: create_key.as_str().to_string(),
+        create_key: create_key.to_string(),
         region_id: *region_id,
         face_id: *face_id,
         retained_shell_id: None,
@@ -120,9 +125,9 @@ pub(crate) fn parse_shell_face_split_program(
 
 pub(crate) fn resolve_single_face_two_face_shell_split_program(
     bindings: &TopologyQueryBindingIndex,
-    contracts: &[TopologyEditContract],
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> Option<ShellFaceSplitProgram> {
-    let mut program = parse_shell_face_split_program(contracts)?;
+    let mut program = parse_shell_face_split_program(sequence)?;
     let face_binding = query_entity_binding(bindings, program.face_id)
         .ok()
         .flatten()?;

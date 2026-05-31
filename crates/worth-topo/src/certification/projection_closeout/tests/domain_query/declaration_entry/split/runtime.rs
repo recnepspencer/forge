@@ -2,16 +2,16 @@ use std::collections::BTreeSet;
 
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
-use super::super::super::support::execute_current_head_topology_declaration;
 use super::support::{
     shell_split_declaration_for_fixture, shell_split_fixture, wire_split_declaration_for_fixture,
     wire_split_fixture,
 };
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
-fn current_head_runtime_executes_canonical_wire_split_batch_through_declaration_entry() {
+fn current_head_runtime_executes_canonical_wire_split_declaration_through_declaration_entry() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     let verified = seed_milestone_one_primitive(
         &mut runtime,
@@ -37,7 +37,7 @@ fn current_head_runtime_executes_canonical_wire_split_batch_through_declaration_
             &fixture.moved_half_edge_ids,
         ),
     )
-    .expect("canonical wire split batch should execute through declaration entry");
+    .expect("canonical wire split declaration should execute through declaration entry");
 
     assert_eq!(
         execution.semantic_family_key(),
@@ -81,7 +81,7 @@ fn current_head_runtime_executes_canonical_wire_split_batch_through_declaration_
 }
 
 #[test]
-fn current_head_runtime_executes_canonical_shell_split_batch_through_declaration_entry() {
+fn current_head_runtime_executes_canonical_shell_split_declaration_through_declaration_entry() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     let verified = seed_milestone_one_primitive(
         &mut runtime,
@@ -108,7 +108,7 @@ fn current_head_runtime_executes_canonical_shell_split_batch_through_declaration
             fixture.moved_face_id,
         ),
     )
-    .expect("canonical shell split batch should execute through declaration entry");
+    .expect("canonical shell split declaration should execute through declaration entry");
 
     assert_eq!(
         execution.semantic_family_key(),

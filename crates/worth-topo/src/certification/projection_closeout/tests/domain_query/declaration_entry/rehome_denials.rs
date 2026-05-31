@@ -5,7 +5,7 @@ use schema::facade::topology_authoring::{
     seed_milestone_one_primitive, DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
 };
 
-use crate::certification::projection_closeout::tests::domain_query::support::current_head_unsupported_declaration_families;
+use crate::certification::support::declaration_runtime::current_head_unsupported_declaration_families;
 use crate::facade::{
     topology_runtime, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyRuntimeAdapters,
@@ -14,7 +14,8 @@ use crate::facade::{
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
-fn current_head_runtime_rejects_partial_wire_rehome_batch_before_any_declaration_entry_execution() {
+fn current_head_runtime_rejects_partial_wire_rehome_declaration_before_any_declaration_entry_execution(
+) {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     let verified = seed_milestone_one_primitive(
         &mut runtime,
@@ -44,13 +45,13 @@ fn current_head_runtime_rejects_partial_wire_rehome_batch_before_any_declaration
     );
     assert!(
         current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration)
-            .contains(&crate::facade::TopologyEditFamily::AttachShellOrWireMembership)
+            .contains(&crate::facade::TopologyMutationFamily::AttachShellOrWireMembership)
     );
 }
 
 #[test]
-fn current_head_runtime_rejects_partial_shell_rehome_batch_before_any_declaration_entry_execution()
-{
+fn current_head_runtime_rejects_partial_shell_rehome_declaration_before_any_declaration_entry_execution(
+) {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     let verified = seed_milestone_one_primitive(
         &mut runtime,
@@ -83,7 +84,7 @@ fn current_head_runtime_rejects_partial_shell_rehome_batch_before_any_declaratio
     );
     assert!(
         current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration)
-            .contains(&crate::facade::TopologyEditFamily::AttachShellOrWireMembership)
+            .contains(&crate::facade::TopologyMutationFamily::AttachShellOrWireMembership)
     );
 }
 

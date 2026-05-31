@@ -7,8 +7,8 @@ use schema::facade::topology_authoring::{
     seed_milestone_one_primitive, DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
 };
 
-use super::super::edit_sequence_support::{
-    aggregate_topology_edit_digest_for_declarations, TopologyCloseoutDeclaration,
+use super::super::mutation_sequence_support::{
+    aggregate_topology_mutation_digest_for_declarations, TopologyCloseoutDeclaration,
 };
 use super::super::shared::derived_validation_report_from_materialized;
 use super::primitive_family_closure::{primitive_family_closure_error, PrimitiveClosureExecution};
@@ -19,7 +19,7 @@ use crate::certification::support::parity::digest_materialized_topology_view;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::topology_operators::application::TopologyDeclarationContractPayload;
+use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
     TopologySplitConnectedHalfEdgeSetToNewWireDeclaration, TopologyWireRehomeHalfEdgeMember,
@@ -92,15 +92,15 @@ where
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let validation = derived_validation_report_from_materialized(&collapse_execution.materialized)?;
-    let edit_families = split_declaration
+    let mutation_families = split_declaration
         .semantic_families()
         .into_iter()
         .chain(collapse_declaration.semantic_families())
         .collect();
     Ok(PrimitiveClosureExecution {
         primitive_family,
-        edit_families,
-        topology_edit_digest: aggregate_topology_edit_digest_for_declarations(vec![
+        mutation_families,
+        topology_mutation_digest: aggregate_topology_mutation_digest_for_declarations(vec![
             TopologyCloseoutDeclaration::SplitConnectedHalfEdgeSetToNewWire(split_declaration),
             TopologyCloseoutDeclaration::RehomeAllOwnedHalfEdgesToNewWire(collapse_declaration),
         ]),

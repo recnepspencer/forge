@@ -1,13 +1,13 @@
 use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
-use super::super::declaration_runtime_support::execute_current_head_topology_declaration;
 use super::super::query_runtime_support::QueryRuntimeSupport;
-use super::span_batch::successor_span_relocation_declaration;
+use super::successor_span_declaration::successor_span_relocation_declaration;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::topology_operators::TopologyEditFamily;
+use crate::topology_operators::TopologyMutationFamily;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
@@ -15,14 +15,14 @@ fn current_head_runtime_executes_four_half_edge_span_relocation_on_larger_loop()
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.query-edit-rewire-successor-four-span",
+        ".current-head.query-mutation-rewire-successor-four-span",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 7 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(
         adapters,
-        ".current-head.query-edit-rewire-successor-four-span",
+        ".current-head.query-mutation-rewire-successor-four-span",
     )
     .expect("workspace");
     let surfaces =
@@ -51,11 +51,10 @@ fn current_head_runtime_executes_four_half_edge_span_relocation_on_larger_loop()
     assert!(execution
         .families
         .iter()
-        .all(|family| *family == TopologyEditFamily::RewireLoopSuccessor));
+        .all(|family| *family == TopologyMutationFamily::RewireLoopSuccessor));
     assert_eq!(
         execution
-            .receipt
-            .batch_mutation_evidence()
+            .mutation_evidence()
             .backend_verified_update_count(),
         6
     );

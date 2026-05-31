@@ -10,7 +10,10 @@ use schema::facade::platform::authority::EntityReference;
 
 use super::shared::canonical_entity_reference_entry;
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-use crate::topology_operators::{BoundaryMembershipKind, TopologyEditContract};
+use crate::topology_operators::{
+    BoundaryMembershipKind, TopologyDeclaredMutationSequence,
+    TopologyDeclaredMutationSequenceBuilder,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TopologyAttachBoundaryMembershipDeclaration {
@@ -51,13 +54,10 @@ impl TopologyAttachBoundaryMembershipDeclaration {
         &self.member
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        vec![TopologyEditContract::attach_boundary_membership(
-            self.create_key,
-            self.kind,
-            self.owner,
-            self.member,
-        )]
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        builder.attach_boundary_membership(self.create_key, self.kind, self.owner, self.member);
+        builder.finish()
     }
 }
 

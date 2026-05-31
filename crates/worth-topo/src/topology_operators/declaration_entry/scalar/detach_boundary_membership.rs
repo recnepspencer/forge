@@ -9,7 +9,10 @@ use forge_query::facade::{
 use forge_relational::facade::identity::RelationId;
 
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-use crate::topology_operators::{BoundaryMembershipKind, TopologyEditContract};
+use crate::topology_operators::{
+    BoundaryMembershipKind, TopologyDeclaredMutationSequence,
+    TopologyDeclaredMutationSequenceBuilder,
+};
 
 use super::super::shared::canonical_relation_id;
 
@@ -32,11 +35,10 @@ impl TopologyDetachBoundaryMembershipDeclaration {
         self.kind
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        vec![TopologyEditContract::detach_boundary_membership(
-            self.relation_id,
-            self.kind,
-        )]
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        builder.detach_boundary_membership(self.relation_id, self.kind);
+        builder.finish()
     }
 }
 

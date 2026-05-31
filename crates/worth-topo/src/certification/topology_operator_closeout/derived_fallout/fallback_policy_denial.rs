@@ -1,14 +1,16 @@
 use crate::certification::TopologyCertificationError;
-use crate::topology_operators::{TopologyEditDerivedFallbackPolicy, TopologyEditRejectionClass};
+use crate::topology_operators::{
+    TopologyMutationDerivedFallbackPolicy, TopologyMutationRejectionClass,
+};
 
 use super::super::report::{
-    MilestoneThreeEditFalloutBreadthRow, MilestoneThreeEditFalloutClass,
-    MilestoneThreeHostileSuiteReport,
+    MilestoneThreeHostileSuiteReport, MilestoneThreeMutationFalloutBreadthRow,
+    MilestoneThreeMutationFalloutClass,
 };
 use super::fallback_policy_denial_rows::MilestoneThreeDerivedFallbackPolicyDenialRow;
 
 pub(in crate::certification::topology_operator_closeout) fn build_fallback_policy_denial_rows(
-    fallout_rows: &[MilestoneThreeEditFalloutBreadthRow],
+    fallout_rows: &[MilestoneThreeMutationFalloutBreadthRow],
 ) -> Vec<MilestoneThreeDerivedFallbackPolicyDenialRow> {
     fallout_rows
         .iter()
@@ -26,7 +28,7 @@ pub(in crate::certification::topology_operator_closeout) fn ensure_fallback_poli
         ));
     }
     for row in &report.derived_fallback_policy_denial_rows {
-        if row.strict_fallback_policy != TopologyEditDerivedFallbackPolicy::RejectAnyFallback {
+        if row.strict_fallback_policy != TopologyMutationDerivedFallbackPolicy::RejectAnyFallback {
             return Err(closeout_requirement_error(&format!(
                 "fallback denial row used a non-strict policy for {}",
                 row.scenario.as_str()
@@ -38,7 +40,7 @@ pub(in crate::certification::topology_operator_closeout) fn ensure_fallback_poli
                 row.scenario.as_str()
             )));
         }
-        if row.denied_rejection_class != TopologyEditRejectionClass::DerivedFallbackExceeded {
+        if row.denied_rejection_class != TopologyMutationRejectionClass::DerivedFallbackExceeded {
             return Err(closeout_requirement_error(&format!(
                 "fallback denial row used the wrong rejection class for {}",
                 row.scenario.as_str()
@@ -58,9 +60,9 @@ pub(in crate::certification::topology_operator_closeout) fn ensure_fallback_poli
 }
 
 fn build_fallback_policy_denial_row(
-    fallout: &MilestoneThreeEditFalloutBreadthRow,
+    fallout: &MilestoneThreeMutationFalloutBreadthRow,
 ) -> MilestoneThreeDerivedFallbackPolicyDenialRow {
-    let strict_fallback_policy = TopologyEditDerivedFallbackPolicy::RejectAnyFallback;
+    let strict_fallback_policy = TopologyMutationDerivedFallbackPolicy::RejectAnyFallback;
     let policy_exceeded = strict_fallback_policy.is_exceeded_by(fallout.fallback_count);
 
     MilestoneThreeDerivedFallbackPolicyDenialRow {
@@ -68,7 +70,7 @@ fn build_fallback_policy_denial_row(
         strict_fallback_policy,
         observed_fallout_class: fallout.fallout_class,
         observed_fallback_count: fallout.fallback_count,
-        denied_rejection_class: TopologyEditRejectionClass::DerivedFallbackExceeded,
+        denied_rejection_class: TopologyMutationRejectionClass::DerivedFallbackExceeded,
         policy_exceeded,
         row_digest: format!(
             "scenario={};strict_policy={};observed_fallout={:?};observed_fallback_count={};denied_rejection_class={:?};policy_exceeded={}",
@@ -76,17 +78,17 @@ fn build_fallback_policy_denial_row(
             strict_fallback_policy.as_str(),
             fallout.fallout_class,
             fallout.fallback_count,
-            TopologyEditRejectionClass::DerivedFallbackExceeded,
+            TopologyMutationRejectionClass::DerivedFallbackExceeded,
             policy_exceeded
         ),
     }
 }
 
-fn fallback_can_be_denied(row: &MilestoneThreeEditFalloutBreadthRow) -> bool {
+fn fallback_can_be_denied(row: &MilestoneThreeMutationFalloutBreadthRow) -> bool {
     matches!(
         row.fallout_class,
-        MilestoneThreeEditFalloutClass::WholeViewFallback
-            | MilestoneThreeEditFalloutClass::WholeHistoryFallback
+        MilestoneThreeMutationFalloutClass::WholeViewFallback
+            | MilestoneThreeMutationFalloutClass::WholeHistoryFallback
     ) && row.fallback_count > 0
 }
 

@@ -9,7 +9,9 @@ use forge_query::facade::{
 use forge_relational::facade::identity::{EntityId, RelationId};
 
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-use crate::topology_operators::{LoopEndpointKind, TopologyEditContract};
+use crate::topology_operators::{
+    LoopEndpointKind, TopologyDeclaredMutationSequence, TopologyDeclaredMutationSequenceBuilder,
+};
 
 use super::super::shared::{canonical_entity_id, canonical_relation_id};
 
@@ -52,13 +54,15 @@ impl TopologyRewireLoopEndpointDeclaration {
         self.vertex_id
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        vec![TopologyEditContract::rewire_loop_endpoint(
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        builder.rewire_loop_endpoint(
             self.relation_id,
             self.endpoint,
             self.half_edge_id,
             self.vertex_id,
-        )]
+        );
+        builder.finish()
     }
 }
 
@@ -152,24 +156,36 @@ mod tests {
     use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 
     use super::TopologyRewireLoopEndpointDeclaration;
-    use crate::topology_operators::{LoopEndpointKind, TopologyEditContract};
+    use crate::topology_operators::application::TopologyDeclarationMutationPayload;
+    use crate::topology_operators::{LoopEndpointKind, TopologyDeclaredMutationSequenceBuilder};
 
     #[test]
-    fn declaration_reauthors_to_the_expected_rewire_loop_endpoint_batch() {
+    fn declaration_reauthors_to_the_expected_rewire_loop_endpoint_mutation_sequence() {
         let declaration = TopologyRewireLoopEndpointDeclaration::new(
             RelationId::new(PartitionId::main(), 7, 1),
             LoopEndpointKind::End,
             EntityId::new(PartitionId::main(), 8, 1),
             EntityId::new(PartitionId::main(), 9, 1),
         );
+        let actual_contracts = declaration
+            .into_mutation_sequence()
+            .members()
+            .map(|member| member.record().clone())
+            .collect::<Vec<_>>();
+        let mut expected = TopologyDeclaredMutationSequenceBuilder::builder();
+        expected.rewire_loop_endpoint(
+            RelationId::new(PartitionId::main(), 7, 1),
+            LoopEndpointKind::End,
+            EntityId::new(PartitionId::main(), 8, 1),
+            EntityId::new(PartitionId::main(), 9, 1),
+        );
         assert_eq!(
-            declaration.clone().into_contracts(),
-            vec![TopologyEditContract::rewire_loop_endpoint(
-                RelationId::new(PartitionId::main(), 7, 1),
-                LoopEndpointKind::End,
-                EntityId::new(PartitionId::main(), 8, 1),
-                EntityId::new(PartitionId::main(), 9, 1),
-            )]
+            actual_contracts,
+            expected
+                .finish()
+                .members()
+                .map(|member| member.record().clone())
+                .collect::<Vec<_>>()
         );
     }
 }

@@ -10,7 +10,10 @@ use schema::facade::platform::authority::EntityReference;
 
 use super::shared::canonical_entity_reference_entry;
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-use crate::topology_operators::{ShellOrWireMembershipKind, TopologyEditContract};
+use crate::topology_operators::{
+    ShellOrWireMembershipKind, TopologyDeclaredMutationSequence,
+    TopologyDeclaredMutationSequenceBuilder,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TopologyAttachShellOrWireMembershipDeclaration {
@@ -51,13 +54,15 @@ impl TopologyAttachShellOrWireMembershipDeclaration {
         &self.member
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        vec![TopologyEditContract::attach_shell_or_wire_membership(
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        builder.attach_shell_or_wire_membership(
             self.create_key,
             self.kind,
             self.owner,
             self.member,
-        )]
+        );
+        builder.finish()
     }
 }
 

@@ -3,7 +3,7 @@ use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use super::super::super::scale_pressure_proof::{
     MilestoneThreeScalePressureRow, MilestoneThreeScalePressureSweep,
 };
-use crate::topology_operators::{TopologyEditDigest, TopologyEditFamily};
+use crate::topology_operators::{TopologyMutationDigest, TopologyMutationFamily};
 
 impl MilestoneThreeScalePressureRow {
     pub fn sweep(&self) -> MilestoneThreeScalePressureSweep {
@@ -26,20 +26,20 @@ impl MilestoneThreeScalePressureRow {
         self.workload_size
     }
 
-    pub fn edit_step_count(&self) -> usize {
-        self.edit_step_count
+    pub fn mutation_step_count(&self) -> usize {
+        self.mutation_step_count
     }
 
-    pub fn edit_families(&self) -> &[TopologyEditFamily] {
-        self.edit_families.as_slice()
+    pub fn mutation_families(&self) -> &[TopologyMutationFamily] {
+        self.mutation_families.as_slice()
     }
 
     pub fn branch_local(&self) -> bool {
         self.branch_local
     }
 
-    pub fn topology_edit_digest(&self) -> &TopologyEditDigest {
-        &self.topology_edit_digest
+    pub fn topology_mutation_digest(&self) -> &TopologyMutationDigest {
+        &self.topology_mutation_digest
     }
 
     pub fn replay_verified(&self) -> bool {

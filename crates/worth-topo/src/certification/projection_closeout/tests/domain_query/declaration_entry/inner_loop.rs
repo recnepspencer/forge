@@ -1,6 +1,5 @@
-use super::super::support::{
-    current_head_query_handle, execute_current_head_topology_declaration, snapshot_query_handle,
-};
+use super::super::support::{current_head_query_handle, snapshot_query_handle};
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::facade::{
     topology_runtime, TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyRuntimeAdapters,
 };
@@ -82,7 +81,8 @@ fn snapshot_handle_does_not_envelope_create_inner_loop_on_existing_face_declarat
 }
 
 #[test]
-fn current_head_runtime_executes_canonical_create_inner_loop_batch_through_declaration_entry() {
+fn current_head_runtime_executes_canonical_create_inner_loop_declaration_through_declaration_entry()
+{
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     let seeded = seed_minimal_topology(&mut runtime, "query-native.inner-loop.runtime")
         .expect("seed topology");
@@ -103,7 +103,7 @@ fn current_head_runtime_executes_canonical_create_inner_loop_batch_through_decla
             seeded.face,
         ),
     )
-    .expect("canonical inner-loop batch should execute through declaration entry");
+    .expect("canonical inner-loop declaration should execute through declaration entry");
 
     assert_eq!(
         execution.semantic_family_key(),

@@ -18,8 +18,8 @@ impl MilestoneThreeValidationBreadthRow {
         self.validator_name_count
     }
 
-    pub fn edit_family_count(&self) -> usize {
-        self.edit_family_count
+    pub fn mutation_family_count(&self) -> usize {
+        self.mutation_family_count
     }
 
     pub fn changed_scope_count(&self) -> usize {

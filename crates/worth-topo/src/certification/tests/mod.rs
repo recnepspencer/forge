@@ -9,7 +9,7 @@ use crate::facade::{
     DerivedInvalidationAggregateReport, DerivedRebuildAggregateReport,
     DerivedValidatorCoverageReport, DeterministicDigest, FailureLocalityReport,
     MilestoneOneCloseoutReport, MilestoneOneCounters, MilestoneThreeDeterminismRuleKind,
-    MilestoneThreeEditFalloutClass, MilestoneTwoCloseoutReport, MilestoneTwoCounters,
+    MilestoneThreeMutationFalloutClass, MilestoneTwoCloseoutReport, MilestoneTwoCounters,
     PrimitiveCorpusCoverageMatrix, PrimitiveCorpusParityReport,
 };
 use forge_relational::facade::history::BranchId;

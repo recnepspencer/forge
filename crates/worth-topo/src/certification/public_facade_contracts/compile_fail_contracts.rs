@@ -10,7 +10,7 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_runtime_adapters_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_topology_operator_runner_not_exported.rs"
+        "{compile_fail}/public_topology_mutation_application_runner_not_exported.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_milestone_one_read_view_cert_not_exported.rs"
@@ -34,19 +34,16 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_runtime_read_family_support_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_runtime_edit_family_support_row_not_forgeable.rs"
+        "{compile_fail}/public_runtime_mutation_family_support_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_runtime_edit_lane_support_row_not_forgeable.rs"
+        "{compile_fail}/public_runtime_mutation_lane_support_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_runtime_posture_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_runtime_removed_edit_execution_supported_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_runtime_removed_edit_lane_string_support_not_exported.rs"
+        "{compile_fail}/public_runtime_removed_mutation_lane_string_support_not_exported.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_runtime_removed_current_head_live_reads_supported_not_exported.rs"
@@ -70,21 +67,12 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_no_n_plus_one_contract_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_milestone_three_topology_edit_digest_row_not_forgeable.rs"
+        "{compile_fail}/public_milestone_three_topology_mutation_digest_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_topology_query_domain_entry_constructors_not_exported.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_domain_query_workspace_methods_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_topology_edit_batch_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_topology_edit_contract_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_topology_operator_execution_not_exported.rs"
     ));
 }

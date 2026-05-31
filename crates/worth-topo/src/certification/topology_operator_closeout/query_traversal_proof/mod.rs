@@ -1,11 +1,12 @@
-mod edited_query_traversal;
-mod edited_query_traversal_types;
+mod mutation_query_traversal;
+mod mutation_query_traversal_types;
 
-pub use edited_query_traversal_types::{
-    MilestoneThreeEditedTopologyQueryTraversalRow, MilestoneThreeEditedTopologyQueryTraversalView,
+pub use mutation_query_traversal_types::{
+    MilestoneThreeMutationTopologyQueryTraversalRow,
+    MilestoneThreeMutationTopologyQueryTraversalView,
 };
 
-pub(in crate::certification::topology_operator_closeout) use edited_query_traversal::{
-    certify_milestone_three_edited_query_traversal_impl, ensure_edited_query_traversal_rows,
-    required_edited_query_traversal_views,
+pub(in crate::certification::topology_operator_closeout) use mutation_query_traversal::{
+    certify_milestone_three_mutation_query_traversal_impl, ensure_mutation_query_traversal_rows,
+    required_mutation_query_traversal_views,
 };

@@ -5,19 +5,19 @@ use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingInde
 use crate::topology_operators::application::bindings::{
     query_incoming_relation_source_identities, query_outgoing_relation_target_identities,
 };
-use crate::topology_operators::application::TopologyOperatorExecutionError;
+use crate::topology_operators::application::TopologyMutationApplicationError;
 
 pub(crate) fn single_outgoing_relation_target_identity(
     bindings: &TopologyQueryBindingIndex,
     entity_id: EntityId,
     source_query_identity: &str,
     relation_kind: TopologyRelationKind,
-) -> Result<String, TopologyOperatorExecutionError> {
+) -> Result<String, TopologyMutationApplicationError> {
     let identities =
         query_outgoing_relation_target_identities(bindings, source_query_identity, relation_kind)?;
     if identities.len() != 1 {
         return Err(
-            TopologyOperatorExecutionError::ExistingEntityOutgoingRelationCountMismatch {
+            TopologyMutationApplicationError::ExistingEntityOutgoingRelationCountMismatch {
                 entity_id,
                 relation_kind,
                 expected: 1,
@@ -33,12 +33,12 @@ pub(crate) fn single_incoming_relation_source_identity(
     entity_id: EntityId,
     target_query_identity: &str,
     relation_kind: TopologyRelationKind,
-) -> Result<String, TopologyOperatorExecutionError> {
+) -> Result<String, TopologyMutationApplicationError> {
     let identities =
         query_incoming_relation_source_identities(bindings, target_query_identity, relation_kind)?;
     if identities.len() != 1 {
         return Err(
-            TopologyOperatorExecutionError::ExistingEntityIncomingRelationCountMismatch {
+            TopologyMutationApplicationError::ExistingEntityIncomingRelationCountMismatch {
                 entity_id,
                 relation_kind,
                 expected: 1,

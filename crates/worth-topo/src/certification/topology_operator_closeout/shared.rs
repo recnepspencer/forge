@@ -1,16 +1,16 @@
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::support::parity::digest_materialized_topology_view;
 use crate::certification::topology_operator_closeout::report::{
-    MilestoneThreeEditReplayParityReport, MilestoneThreeEditReplayStepRow,
-    MilestoneThreeHostileOutcomeClass,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeMutationReplayParityReport,
+    MilestoneThreeMutationReplayStepRow,
 };
 use crate::certification::{DeterministicDigest, ReplayParityStatus};
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::interpret_topology_view;
+use crate::topology_operators::application::TopologyMutationApplicationError;
 use crate::topology_operators::application::{
-    TopologyDeclarationContractPayload, TopologyDeclaredMutationArtifact,
+    TopologyDeclarationMutationPayload, TopologyDeclaredMutationArtifact,
 };
-use crate::topology_operators::TopologyOperatorExecutionError;
 use crate::validation::{validate_interpreted_topology, DerivedTopologyValidationReport};
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
@@ -126,15 +126,15 @@ pub(super) fn accepted_step_row_for_declaration<D>(
     step_index: usize,
     declaration: &D,
     execution: &TopologyDeclaredMutationArtifact,
-) -> MilestoneThreeEditReplayStepRow
+) -> MilestoneThreeMutationReplayStepRow
 where
-    D: TopologyDeclarationContractPayload,
+    D: TopologyDeclarationMutationPayload,
 {
-    MilestoneThreeEditReplayStepRow {
+    MilestoneThreeMutationReplayStepRow {
         step_index,
-        edit_families: declaration.semantic_families(),
-        topology_edit_digest: declaration.topology_edit_digest(),
-        naming_edit_continuity_matrix: declaration.naming_continuity_matrix(),
+        mutation_families: declaration.semantic_families(),
+        topology_mutation_digest: declaration.topology_mutation_digest(),
+        naming_mutation_continuity_matrix: declaration.naming_continuity_matrix(),
         outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
         rejection_class: None,
         resulting_materialized_topology_digest: Some(digest_materialized_topology_view(
@@ -154,16 +154,16 @@ pub(super) fn derived_validation_report_from_materialized(
 pub(super) fn rejected_step_row_for_declaration<D>(
     step_index: usize,
     declaration: &D,
-    error: &TopologyOperatorExecutionError,
-) -> MilestoneThreeEditReplayStepRow
+    error: &TopologyMutationApplicationError,
+) -> MilestoneThreeMutationReplayStepRow
 where
-    D: TopologyDeclarationContractPayload,
+    D: TopologyDeclarationMutationPayload,
 {
-    MilestoneThreeEditReplayStepRow {
+    MilestoneThreeMutationReplayStepRow {
         step_index,
-        edit_families: declaration.semantic_families(),
-        topology_edit_digest: declaration.topology_edit_digest(),
-        naming_edit_continuity_matrix: declaration.naming_continuity_matrix(),
+        mutation_families: declaration.semantic_families(),
+        topology_mutation_digest: declaration.topology_mutation_digest(),
+        naming_mutation_continuity_matrix: declaration.naming_continuity_matrix(),
         outcome_class: MilestoneThreeHostileOutcomeClass::Rejected,
         rejection_class: error.rejection_class(),
         resulting_materialized_topology_digest: None,
@@ -171,12 +171,12 @@ where
 }
 
 pub(super) fn replay_checked(
-    step_rows: Vec<MilestoneThreeEditReplayStepRow>,
-    replay_step_rows: Vec<MilestoneThreeEditReplayStepRow>,
+    step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
+    replay_step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
     baseline_materialized_topology_digest: DeterministicDigest,
     final_materialized_topology_digest: DeterministicDigest,
     replay_final_materialized_topology_digest: DeterministicDigest,
-) -> MilestoneThreeEditReplayParityReport {
+) -> MilestoneThreeMutationReplayParityReport {
     let returned_to_baseline =
         final_materialized_topology_digest == baseline_materialized_topology_digest;
     let mut mismatch_count = 0usize;
@@ -191,7 +191,7 @@ pub(super) fn replay_checked(
     } else {
         ReplayParityStatus::Mismatch
     };
-    MilestoneThreeEditReplayParityReport {
+    MilestoneThreeMutationReplayParityReport {
         replay_checked: true,
         parity_status,
         mismatch_count,
@@ -205,17 +205,17 @@ pub(super) fn replay_checked(
 }
 
 pub(super) fn replay_checked_rejected(
-    step_rows: Vec<MilestoneThreeEditReplayStepRow>,
-    replay_step_rows: Vec<MilestoneThreeEditReplayStepRow>,
+    step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
+    replay_step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
     baseline_materialized_topology_digest: DeterministicDigest,
-) -> MilestoneThreeEditReplayParityReport {
+) -> MilestoneThreeMutationReplayParityReport {
     let mismatch_count = usize::from(step_rows != replay_step_rows);
     let parity_status = if mismatch_count == 0 {
         ReplayParityStatus::Match
     } else {
         ReplayParityStatus::Mismatch
     };
-    MilestoneThreeEditReplayParityReport {
+    MilestoneThreeMutationReplayParityReport {
         replay_checked: true,
         parity_status,
         mismatch_count,

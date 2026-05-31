@@ -7,14 +7,14 @@ use schema::facade::topology_authoring::{
     seed_milestone_one_primitive, DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
 };
 
-use super::super::edit_sequence_support::{
-    aggregate_naming_edit_continuity_matrix_for_declarations,
-    aggregate_topology_edit_digest_for_declarations, topology_edit_families_for_declarations,
-    TopologyCloseoutDeclaration,
+use super::super::mutation_sequence_support::{
+    aggregate_naming_mutation_continuity_matrix_for_declarations,
+    aggregate_topology_mutation_digest_for_declarations,
+    topology_mutation_families_for_declarations, TopologyCloseoutDeclaration,
 };
 use super::super::report::{
-    MilestoneThreeEditReplayStepRow, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario,
+    MilestoneThreeHostileScenarioReport, MilestoneThreeMutationReplayStepRow,
     MilestoneThreeSplitCollapseChurnWitness,
 };
 use super::super::shared::{
@@ -28,7 +28,8 @@ use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    TopologyEditDigest, TopologyEditFamily, TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
+    TopologyMutationDigest, TopologyMutationFamily,
+    TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
     TopologySplitConnectedHalfEdgeSetToNewWireDeclaration, TopologyWireRehomeHalfEdgeMember,
     TopologyWireSplitHalfEdgeMember,
 };
@@ -36,10 +37,10 @@ use crate::topology_operators::{
 struct MilestoneThreeSplitCollapseRun {
     primitive_family: String,
     primitive: MilestoneOnePrimitiveCase,
-    edit_families: Vec<TopologyEditFamily>,
-    topology_edit_digest: TopologyEditDigest,
-    naming_edit_continuity_matrix: crate::topology_operators::NamingEditContinuityMatrix,
-    step_rows: Vec<MilestoneThreeEditReplayStepRow>,
+    mutation_families: Vec<TopologyMutationFamily>,
+    topology_mutation_digest: TopologyMutationDigest,
+    naming_mutation_continuity_matrix: crate::topology_operators::NamingMutationContinuityMatrix,
+    step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
     baseline_materialized_topology_digest: crate::certification::DeterministicDigest,
     final_materialized_topology_digest: crate::certification::DeterministicDigest,
     derived_validation_report: crate::validation::DerivedTopologyValidationReport,
@@ -64,28 +65,28 @@ where
         left.final_materialized_topology_digest.clone(),
         replay.final_materialized_topology_digest.clone(),
     );
-    let continuity_outcome_class = left.naming_edit_continuity_matrix.outcome_class();
-    let continuity_rejection_class = left.naming_edit_continuity_matrix.rejection_class();
+    let continuity_outcome_class = left.naming_mutation_continuity_matrix.outcome_class();
+    let continuity_rejection_class = left.naming_mutation_continuity_matrix.rejection_class();
 
     Ok(MilestoneThreeHostileScenarioReport {
         scenario: MilestoneThreeHostileScenario::SplitCollapseChurn,
         primitive_family: left.primitive_family,
         primitive: left.primitive,
-        edit_families: left.edit_families,
+        mutation_families: left.mutation_families,
         bowtie_adjacent_witness: None,
         ambiguous_local_rewire_witness: None,
         split_collapse_churn_witness: Some(left.witness),
         broken_radial_witness: None,
-        topology_edit_digest: left.topology_edit_digest,
-        naming_edit_continuity_matrix: left.naming_edit_continuity_matrix,
+        topology_mutation_digest: left.topology_mutation_digest,
+        naming_mutation_continuity_matrix: left.naming_mutation_continuity_matrix,
         continuity_outcome_class,
         continuity_rejection_class,
         outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
         rejection_class: None,
-        rejected_edit_scope_report: None,
+        rejected_mutation_scope_report: None,
         derived_validation_report: Some(left.derived_validation_report),
         derived_materialization_fallback_class: left.derived_materialization_fallback_class,
-        edit_replay_parity_report: replay_report,
+        mutation_replay_parity_report: replay_report,
         detail: format!(
             "connected wire split and owner-retiring collapse churn both executed through query-native membership programs with continuity `{continuity_outcome_class:?}`"
         ),
@@ -185,11 +186,12 @@ where
     Ok(MilestoneThreeSplitCollapseRun {
         primitive_family,
         primitive,
-        edit_families: topology_edit_families_for_declarations(declarations.clone()),
-        topology_edit_digest: aggregate_topology_edit_digest_for_declarations(declarations.clone()),
-        naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix_for_declarations(
-            declarations,
+        mutation_families: topology_mutation_families_for_declarations(declarations.clone()),
+        topology_mutation_digest: aggregate_topology_mutation_digest_for_declarations(
+            declarations.clone(),
         ),
+        naming_mutation_continuity_matrix:
+            aggregate_naming_mutation_continuity_matrix_for_declarations(declarations),
         step_rows,
         baseline_materialized_topology_digest,
         final_materialized_topology_digest,

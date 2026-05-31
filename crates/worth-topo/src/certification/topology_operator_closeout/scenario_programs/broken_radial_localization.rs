@@ -23,21 +23,22 @@ use crate::projection::runtime_boundary::query_runtime::{
 };
 use crate::projection::TopologyHalfEdgeSharedVertexNeighborhoodView;
 use crate::topology_operators::{
-    application::TopologyDeclarationContractPayload, TopologyEditDigest, TopologyEditFamily,
-    TopologyEditRejectionClass, TopologySpliceRadialAdjacencyDeclaration,
+    application::TopologyDeclarationMutationPayload, TopologyMutationDigest,
+    TopologyMutationFamily, TopologyMutationRejectionClass,
+    TopologySpliceRadialAdjacencyDeclaration,
 };
 
 struct MilestoneThreeBrokenRadialRun {
     primitive_family: String,
     primitive: MilestoneOnePrimitiveCase,
-    topology_edit_digest: TopologyEditDigest,
-    naming_edit_continuity_matrix: crate::topology_operators::NamingEditContinuityMatrix,
-    step_rows: Vec<super::super::report::MilestoneThreeEditReplayStepRow>,
+    topology_mutation_digest: TopologyMutationDigest,
+    naming_mutation_continuity_matrix: crate::topology_operators::NamingMutationContinuityMatrix,
+    step_rows: Vec<super::super::report::MilestoneThreeMutationReplayStepRow>,
     baseline_materialized_topology_digest: crate::certification::DeterministicDigest,
     final_materialized_topology_digest: Option<crate::certification::DeterministicDigest>,
     outcome_class: MilestoneThreeHostileOutcomeClass,
-    rejection_class: Option<TopologyEditRejectionClass>,
-    rejected_edit_scope_report: Option<crate::topology_operators::RejectedEditScopeReport>,
+    rejection_class: Option<TopologyMutationRejectionClass>,
+    rejected_mutation_scope_report: Option<crate::topology_operators::RejectedMutationScopeReport>,
     derived_validation_report: Option<crate::validation::DerivedTopologyValidationReport>,
     derived_materialization_fallback_class:
         Option<crate::derived_topology::materialized_graph::MaterializationFallbackClass>,
@@ -86,21 +87,21 @@ where
         scenario: MilestoneThreeHostileScenario::BrokenRadialLocalization,
         primitive_family: left.primitive_family,
         primitive: left.primitive,
-        edit_families: vec![TopologyEditFamily::SpliceRadialAdjacency],
+        mutation_families: vec![TopologyMutationFamily::SpliceRadialAdjacency],
         bowtie_adjacent_witness: None,
         ambiguous_local_rewire_witness: None,
         split_collapse_churn_witness: None,
         broken_radial_witness: Some(left.witness),
-        topology_edit_digest: left.topology_edit_digest,
-        naming_edit_continuity_matrix: left.naming_edit_continuity_matrix.clone(),
-        continuity_outcome_class: left.naming_edit_continuity_matrix.outcome_class(),
-        continuity_rejection_class: left.naming_edit_continuity_matrix.rejection_class(),
+        topology_mutation_digest: left.topology_mutation_digest,
+        naming_mutation_continuity_matrix: left.naming_mutation_continuity_matrix.clone(),
+        continuity_outcome_class: left.naming_mutation_continuity_matrix.outcome_class(),
+        continuity_rejection_class: left.naming_mutation_continuity_matrix.rejection_class(),
         outcome_class: left.outcome_class,
         rejection_class: left.rejection_class,
-        rejected_edit_scope_report: left.rejected_edit_scope_report,
+        rejected_mutation_scope_report: left.rejected_mutation_scope_report,
         derived_validation_report: left.derived_validation_report,
         derived_materialization_fallback_class: left.derived_materialization_fallback_class,
-        edit_replay_parity_report: replay_report,
+        mutation_replay_parity_report: replay_report,
         detail: left.detail,
     })
 }
@@ -173,8 +174,8 @@ where
             Ok(MilestoneThreeBrokenRadialRun {
                 primitive_family,
                 primitive,
-                topology_edit_digest: declaration.topology_edit_digest(),
-                naming_edit_continuity_matrix: declaration.naming_continuity_matrix(),
+                topology_mutation_digest: declaration.topology_mutation_digest(),
+                naming_mutation_continuity_matrix: declaration.naming_continuity_matrix(),
                 step_rows: vec![accepted_step_row_for_declaration(
                     0,
                     &declaration,
@@ -186,7 +187,7 @@ where
                 )),
                 outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
                 rejection_class: None,
-                rejected_edit_scope_report: None,
+                rejected_mutation_scope_report: None,
                 derived_validation_report: Some(derived_validation_report),
                 derived_materialization_fallback_class: execution
                     .materialized
@@ -199,14 +200,14 @@ where
         Err(error) => Ok(MilestoneThreeBrokenRadialRun {
             primitive_family,
             primitive,
-            topology_edit_digest: declaration.topology_edit_digest(),
-            naming_edit_continuity_matrix: declaration.naming_continuity_matrix(),
+            topology_mutation_digest: declaration.topology_mutation_digest(),
+            naming_mutation_continuity_matrix: declaration.naming_continuity_matrix(),
             step_rows: vec![rejected_step_row_for_declaration(0, &declaration, &error)],
             baseline_materialized_topology_digest,
             final_materialized_topology_digest: None,
             outcome_class: MilestoneThreeHostileOutcomeClass::Rejected,
             rejection_class: error.rejection_class(),
-            rejected_edit_scope_report: error.rejected_declaration_scope_report(&declaration),
+            rejected_mutation_scope_report: error.rejected_declaration_scope_report(&declaration),
             derived_validation_report: None,
             derived_materialization_fallback_class: None,
             witness,

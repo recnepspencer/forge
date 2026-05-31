@@ -1,17 +1,17 @@
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
-use super::super::support::{
-    current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
-};
 use super::successor_runtime_support::{
     cross_loop_successor_declaration, find_half_edge, single_successor_fixture,
     two_half_edge_span_fixture,
+};
+use crate::certification::support::declaration_runtime::{
+    current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
 };
 use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
-fn current_head_runtime_executes_single_successor_program_batch_through_declaration_entry() {
+fn current_head_runtime_executes_single_successor_program_declaration_through_declaration_entry() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     let seeded = seed_milestone_one_primitive(
         &mut runtime,
@@ -118,6 +118,6 @@ fn current_head_runtime_rejects_cross_loop_successor_program_before_any_declarat
 
     assert_eq!(
         current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
-        vec![crate::facade::TopologyEditFamily::RewireLoopSuccessor]
+        vec![crate::facade::TopologyMutationFamily::RewireLoopSuccessor]
     );
 }

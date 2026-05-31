@@ -183,7 +183,7 @@ fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
             .read_basis()
             .authority
             .truth_basis_identity
-            .mutation_batch_digest_hex
+            .mutation_digest_hex
     );
     assert_eq!(
         snapshot.equivalence_contract.touched_aspect_count,

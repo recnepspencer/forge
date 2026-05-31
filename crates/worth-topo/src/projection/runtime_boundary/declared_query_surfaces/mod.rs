@@ -175,7 +175,7 @@ fn ensure_snapshot_matches_read_basis(
         != read_basis
             .authority
             .truth_basis_identity
-            .mutation_batch_digest_hex
+            .mutation_digest_hex
     {
         return Err(TopologyQuerySurfaceError::new(
             "query-derived snapshot truth basis digest diverged from requested read basis",

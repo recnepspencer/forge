@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `topology::facade::TopologyEditContract`
- --> src/certification/public_facade_contracts/compile_fail/public_topology_edit_contract_not_exported.rs:1:5
-  |
-1 | use topology::facade::TopologyEditContract;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyEditContract` in `facade`

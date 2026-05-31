@@ -12,7 +12,10 @@ use schema::facade::platform::entities::TopologyEntityKind;
 
 use super::super::shared::canonical_entity_reference_entry;
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-use crate::topology_operators::{ShellOrWireMembershipKind, TopologyEditContract};
+use crate::topology_operators::{
+    ShellOrWireMembershipKind, TopologyDeclaredMutationSequence,
+    TopologyDeclaredMutationSequenceBuilder,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TopologyShellRehomeFaceMember {
@@ -83,32 +86,25 @@ impl TopologyRehomeAllOwnedFacesToNewShellDeclaration {
         &self.members
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        let mut contracts = vec![
-            TopologyEditContract::create_topology_entity(
-                self.shell_create_key.clone(),
-                TopologyEntityKind::Shell,
-            ),
-            TopologyEditContract::attach_shell_or_wire_membership(
-                self.region_relation_create_key,
-                ShellOrWireMembershipKind::RegionOwnsShell,
-                self.region_id,
-                EntityReference::Created(CreateKey::new(self.shell_create_key.clone())),
-            ),
-        ];
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        builder.create_topology_entity(self.shell_create_key.clone(), TopologyEntityKind::Shell);
+        builder.attach_shell_or_wire_membership(
+            self.region_relation_create_key,
+            ShellOrWireMembershipKind::RegionOwnsShell,
+            self.region_id,
+            EntityReference::Created(CreateKey::new(self.shell_create_key.clone())),
+        );
         for member in self.members {
-            contracts.push(TopologyEditContract::attach_shell_or_wire_membership(
+            builder.attach_shell_or_wire_membership(
                 member.relation_create_key,
                 ShellOrWireMembershipKind::ShellOwnsFace,
                 EntityReference::Created(CreateKey::new(self.shell_create_key.clone())),
                 member.face_id,
-            ));
+            );
         }
-        contracts.push(TopologyEditContract::retire_topology_entity(
-            self.retired_shell_id,
-            TopologyEntityKind::Shell,
-        ));
-        contracts
+        builder.retire_topology_entity(self.retired_shell_id, TopologyEntityKind::Shell);
+        builder.finish()
     }
 }
 
@@ -217,10 +213,11 @@ mod tests {
     use schema::facade::platform::entities::TopologyEntityKind;
 
     use super::{TopologyRehomeAllOwnedFacesToNewShellDeclaration, TopologyShellRehomeFaceMember};
-    use crate::topology_operators::TopologyEditContract;
+    use crate::topology_operators::application::TopologyDeclarationMutationPayload;
+    use crate::topology_operators::TopologyDeclaredMutationSequenceBuilder;
 
     #[test]
-    fn declaration_reauthors_to_the_expected_shell_rehome_batch() {
+    fn declaration_reauthors_to_the_expected_shell_rehome_mutation_sequence() {
         let declaration = TopologyRehomeAllOwnedFacesToNewShellDeclaration::new(
             "query-native.rehome-shell.new-shell",
             "query-native.rehome-shell.region-member",
@@ -237,43 +234,53 @@ mod tests {
                 ),
             ],
         );
+        let sequence = declaration.into_mutation_sequence();
+        let actual_contracts = sequence
+            .members()
+            .map(|member| member.record().clone())
+            .collect::<Vec<_>>();
+        let mut expected = TopologyDeclaredMutationSequenceBuilder::builder();
+        expected
+            .create_topology_entity(
+                "query-native.rehome-shell.new-shell",
+                TopologyEntityKind::Shell,
+            )
+            .attach_shell_or_wire_membership(
+                "query-native.rehome-shell.region-member",
+                crate::topology_operators::ShellOrWireMembershipKind::RegionOwnsShell,
+                EntityId::new(PartitionId::main(), 3, 1),
+                schema::facade::topology_authoring::created_ref(
+                    "query-native.rehome-shell.new-shell",
+                ),
+            )
+            .attach_shell_or_wire_membership(
+                "query-native.rehome-shell.face-1",
+                crate::topology_operators::ShellOrWireMembershipKind::ShellOwnsFace,
+                schema::facade::topology_authoring::created_ref(
+                    "query-native.rehome-shell.new-shell",
+                ),
+                EntityId::new(PartitionId::main(), 10, 1),
+            )
+            .attach_shell_or_wire_membership(
+                "query-native.rehome-shell.face-2",
+                crate::topology_operators::ShellOrWireMembershipKind::ShellOwnsFace,
+                schema::facade::topology_authoring::created_ref(
+                    "query-native.rehome-shell.new-shell",
+                ),
+                EntityId::new(PartitionId::main(), 11, 1),
+            )
+            .retire_topology_entity(
+                EntityId::new(PartitionId::main(), 4, 1),
+                TopologyEntityKind::Shell,
+            );
 
         assert_eq!(
-            declaration.clone().into_contracts(),
-            vec![
-                TopologyEditContract::create_topology_entity(
-                    "query-native.rehome-shell.new-shell",
-                    TopologyEntityKind::Shell,
-                ),
-                TopologyEditContract::attach_shell_or_wire_membership(
-                    "query-native.rehome-shell.region-member",
-                    crate::topology_operators::ShellOrWireMembershipKind::RegionOwnsShell,
-                    EntityId::new(PartitionId::main(), 3, 1),
-                    schema::facade::topology_authoring::created_ref(
-                        "query-native.rehome-shell.new-shell",
-                    ),
-                ),
-                TopologyEditContract::attach_shell_or_wire_membership(
-                    "query-native.rehome-shell.face-1",
-                    crate::topology_operators::ShellOrWireMembershipKind::ShellOwnsFace,
-                    schema::facade::topology_authoring::created_ref(
-                        "query-native.rehome-shell.new-shell",
-                    ),
-                    EntityId::new(PartitionId::main(), 10, 1),
-                ),
-                TopologyEditContract::attach_shell_or_wire_membership(
-                    "query-native.rehome-shell.face-2",
-                    crate::topology_operators::ShellOrWireMembershipKind::ShellOwnsFace,
-                    schema::facade::topology_authoring::created_ref(
-                        "query-native.rehome-shell.new-shell",
-                    ),
-                    EntityId::new(PartitionId::main(), 11, 1),
-                ),
-                TopologyEditContract::retire_topology_entity(
-                    EntityId::new(PartitionId::main(), 4, 1),
-                    TopologyEntityKind::Shell,
-                ),
-            ]
+            actual_contracts,
+            expected
+                .finish()
+                .members()
+                .map(|member| member.record().clone())
+                .collect::<Vec<_>>()
         );
     }
 }

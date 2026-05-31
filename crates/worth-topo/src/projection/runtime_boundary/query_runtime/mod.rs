@@ -1,7 +1,7 @@
 mod adapters;
 mod contracts;
-mod edit_support;
-mod edit_support_rows;
+mod mutation_support;
+mod mutation_support_rows;
 mod operator_bindings;
 mod operator_post_write;
 mod read_support;
@@ -15,10 +15,10 @@ use forge_query::facade::{ForgeQueryRuntime, ForgeQueryWorkspace};
 
 pub(crate) use contracts::workspace_requires_historical_basis_context;
 pub use contracts::{TopologyRuntimeAdapters, TopologyRuntimeFailure, TopologyRuntimeSupport};
-pub use edit_support::{
-    TopologyQueryEditFamilySupportStatus, TopologyQueryEditLane,
-    TopologyQueryEditLaneExecutionShape, TopologyQueryEditLaneSupportStatus,
-    TopologyRuntimeEditFamilySupportRow, TopologyRuntimeEditLaneSupportRow,
+pub use mutation_support::{
+    TopologyQueryMutationFamilySupportStatus, TopologyQueryMutationLane,
+    TopologyQueryMutationLaneExecutionShape, TopologyQueryMutationLaneSupportStatus,
+    TopologyRuntimeMutationFamilySupportRow, TopologyRuntimeMutationLaneSupportRow,
 };
 pub(crate) use operator_bindings::TopologyQueryBindingIndex;
 pub(crate) use operator_post_write::load_post_write_materialized_topology;

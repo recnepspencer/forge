@@ -1,14 +1,14 @@
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
-use super::super::declaration_runtime_support::current_head_unsupported_declaration_families;
 use super::super::query_runtime_support::QueryRuntimeSupport;
-use super::span_batch::{
+use super::successor_span_declaration::{
     successor_span_relocation_declaration, two_half_edge_span_relocation_declaration,
 };
+use crate::certification::support::declaration_runtime::current_head_unsupported_declaration_families;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::topology_operators::TopologyEditFamily;
+use crate::topology_operators::TopologyMutationFamily;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
@@ -16,14 +16,14 @@ fn current_head_runtime_denies_cross_loop_two_half_edge_span_relocation_program(
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.query-edit-rewire-successor-span-cross-loop",
+        ".current-head.query-mutation-rewire-successor-span-cross-loop",
         &MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(
         adapters,
-        ".current-head.query-edit-rewire-successor-span-cross-loop",
+        ".current-head.query-mutation-rewire-successor-span-cross-loop",
     )
     .expect("workspace");
     let surfaces =
@@ -42,7 +42,7 @@ fn current_head_runtime_denies_cross_loop_two_half_edge_span_relocation_program(
     );
     assert_eq!(
         current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
-        vec![TopologyEditFamily::RewireLoopSuccessor]
+        vec![TopologyMutationFamily::RewireLoopSuccessor]
     );
 }
 
@@ -51,14 +51,14 @@ fn current_head_runtime_denies_degenerate_two_half_edge_span_relocation_before_c
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.query-edit-rewire-successor-span-degenerate",
+        ".current-head.query-mutation-rewire-successor-span-degenerate",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(
         adapters,
-        ".current-head.query-edit-rewire-successor-span-degenerate",
+        ".current-head.query-mutation-rewire-successor-span-degenerate",
     )
     .expect("workspace");
     let surfaces =
@@ -80,7 +80,7 @@ fn current_head_runtime_denies_degenerate_two_half_edge_span_relocation_before_c
     );
     assert_eq!(
         current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
-        vec![TopologyEditFamily::RewireLoopSuccessor]
+        vec![TopologyMutationFamily::RewireLoopSuccessor]
     );
 }
 
@@ -89,14 +89,14 @@ fn current_head_runtime_denies_three_half_edge_span_relocation_before_internal_m
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.query-edit-rewire-successor-three-span-internal",
+        ".current-head.query-mutation-rewire-successor-three-span-internal",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(
         adapters,
-        ".current-head.query-edit-rewire-successor-three-span-internal",
+        ".current-head.query-mutation-rewire-successor-three-span-internal",
     )
     .expect("workspace");
     let surfaces =
@@ -120,6 +120,6 @@ fn current_head_runtime_denies_three_half_edge_span_relocation_before_internal_m
 
     assert_eq!(
         current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
-        vec![TopologyEditFamily::RewireLoopSuccessor]
+        vec![TopologyMutationFamily::RewireLoopSuccessor]
     );
 }

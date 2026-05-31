@@ -2,7 +2,7 @@ use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::super::super::operator_family_proof::MilestoneThreePrimitiveFamilyClosureRow;
 use crate::certification::DeterministicDigest;
-use crate::topology_operators::{TopologyEditDigest, TopologyEditFamily};
+use crate::topology_operators::{TopologyMutationDigest, TopologyMutationFamily};
 
 impl MilestoneThreePrimitiveFamilyClosureRow {
     pub fn primitive_family(&self) -> &str {
@@ -13,12 +13,12 @@ impl MilestoneThreePrimitiveFamilyClosureRow {
         &self.primitive
     }
 
-    pub fn edit_families(&self) -> &[TopologyEditFamily] {
-        self.edit_families.as_slice()
+    pub fn mutation_families(&self) -> &[TopologyMutationFamily] {
+        self.mutation_families.as_slice()
     }
 
-    pub fn topology_edit_digest(&self) -> &TopologyEditDigest {
-        &self.topology_edit_digest
+    pub fn topology_mutation_digest(&self) -> &TopologyMutationDigest {
+        &self.topology_mutation_digest
     }
 
     pub fn replay_verified(&self) -> bool {

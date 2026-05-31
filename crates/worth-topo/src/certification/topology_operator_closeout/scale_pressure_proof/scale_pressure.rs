@@ -5,7 +5,7 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use serde_json::Value;
 
-use super::super::edit_sequence_support::aggregate_topology_edit_digest_for_declarations;
+use super::super::mutation_sequence_support::aggregate_topology_mutation_digest_for_declarations;
 use super::super::report::MilestoneThreeHostileSuiteReport;
 use super::super::shared::{
     derived_validation_report_from_materialized, first_source_identity_for_relation_kind,
@@ -27,11 +27,11 @@ use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclar
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::topology_operators::application::TopologyDeclarationContractPayload;
+use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
-    ShellOrWireMembershipKind, TopologyEditDigest, TopologyEditFamily,
-    TopologyRehomeAllOwnedFacesToNewShellDeclaration, TopologyRewireLoopEndpointDeclaration,
-    TopologyRewireLoopSuccessorProgramDeclaration,
+    ShellOrWireMembershipKind, TopologyDeclaredMutationSequence, TopologyMutationDigest,
+    TopologyMutationFamily, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
+    TopologyRewireLoopEndpointDeclaration, TopologyRewireLoopSuccessorProgramDeclaration,
 };
 
 #[derive(Debug, Clone)]
@@ -45,8 +45,8 @@ struct ScaleRewireCase {
 
 struct ScaleRewireExecution {
     primitive_family: String,
-    topology_edit_digest: TopologyEditDigest,
-    edit_families: Vec<TopologyEditFamily>,
+    topology_mutation_digest: TopologyMutationDigest,
+    mutation_families: Vec<TopologyMutationFamily>,
     final_state_digest: String,
     derived_validation_row_count: usize,
 }
@@ -59,7 +59,7 @@ enum ScaleRewireDeclaration {
 }
 
 impl ScaleRewireDeclaration {
-    fn semantic_families(&self) -> Vec<TopologyEditFamily> {
+    fn semantic_families(&self) -> Vec<TopologyMutationFamily> {
         match self {
             Self::LoopSuccessor(declaration) => declaration.semantic_families(),
             Self::LoopEndpoint(declaration) => declaration.semantic_families(),
@@ -68,14 +68,14 @@ impl ScaleRewireDeclaration {
     }
 }
 
-impl TopologyDeclarationContractPayload for ScaleRewireDeclaration {
+impl TopologyDeclarationMutationPayload for ScaleRewireDeclaration {
     const SEMANTIC_FAMILY_KEY: &'static str = "topology.scale_rewire_declaration";
 
-    fn into_contracts(self) -> Vec<crate::topology_operators::TopologyEditContract> {
+    fn into_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
         match self {
-            Self::LoopSuccessor(declaration) => declaration.into_contracts(),
-            Self::LoopEndpoint(declaration) => declaration.into_contracts(),
-            Self::ShellRehome(declaration) => declaration.into_contracts(),
+            Self::LoopSuccessor(declaration) => declaration.into_mutation_sequence(),
+            Self::LoopEndpoint(declaration) => declaration.into_mutation_sequence(),
+            Self::ShellRehome(declaration) => declaration.into_mutation_sequence(),
         }
     }
 }
@@ -128,9 +128,9 @@ pub(in crate::certification::topology_operator_closeout) fn ensure_scale_pressur
     }
     for row in &report.scale_pressure_rows {
         if !row.replay_verified
-            || row.topology_edit_digest.contract_count == 0
+            || row.topology_mutation_digest.mutation_record_count == 0
             || row.workload_size == 0
-            || row.edit_step_count == 0
+            || row.mutation_step_count == 0
             || row.final_state_digest != row.replay_final_state_digest
         {
             return Err(scale_pressure_error(&format!(
@@ -170,7 +170,7 @@ where
 {
     let left = execute_scale_rewire(runtime_factory, stem, &case)?;
     let replay = execute_scale_rewire(runtime_factory, stem, &case)?;
-    let replay_verified = left.topology_edit_digest == replay.topology_edit_digest
+    let replay_verified = left.topology_mutation_digest == replay.topology_mutation_digest
         && left.final_state_digest == replay.final_state_digest
         && left.derived_validation_row_count == replay.derived_validation_row_count;
     Ok(MilestoneThreeScalePressureRow {
@@ -178,10 +178,10 @@ where
         primitive_family: left.primitive_family,
         primitive: case.primitive,
         workload_size: case.workload_size,
-        edit_step_count: left.topology_edit_digest.contract_count,
-        edit_families: left.edit_families,
+        mutation_step_count: left.topology_mutation_digest.mutation_record_count,
+        mutation_families: left.mutation_families,
         branch_local: false,
-        topology_edit_digest: left.topology_edit_digest,
+        topology_mutation_digest: left.topology_mutation_digest,
         replay_verified,
         final_state_digest: left.final_state_digest.clone(),
         replay_final_state_digest: replay.final_state_digest,
@@ -297,9 +297,9 @@ fn scale_rewire_execution(
     surfaces: &TopologyDeclaredQuerySurfaces,
     declarations: Vec<ScaleRewireDeclaration>,
 ) -> Result<ScaleRewireExecution, TopologyCertificationError> {
-    let topology_edit_digest =
-        aggregate_topology_edit_digest_for_declarations(declarations.clone());
-    let edit_families = declarations
+    let topology_mutation_digest =
+        aggregate_topology_mutation_digest_for_declarations(declarations.clone());
+    let mutation_families = declarations
         .iter()
         .flat_map(ScaleRewireDeclaration::semantic_families)
         .collect();
@@ -315,8 +315,8 @@ fn scale_rewire_execution(
     let validation = derived_validation_report_from_materialized(&final_materialized)?;
     Ok(ScaleRewireExecution {
         primitive_family,
-        topology_edit_digest,
-        edit_families,
+        topology_mutation_digest,
+        mutation_families,
         final_state_digest,
         derived_validation_row_count: validation.rows.len(),
     })

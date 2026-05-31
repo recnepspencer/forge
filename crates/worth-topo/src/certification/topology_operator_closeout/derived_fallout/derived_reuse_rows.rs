@@ -1,7 +1,7 @@
 use crate::certification::DeterministicDigest;
 use serde::{Deserialize, Serialize};
 
-use super::super::report::{MilestoneThreeEditFalloutClass, MilestoneThreeHostileScenario};
+use super::super::report::{MilestoneThreeHostileScenario, MilestoneThreeMutationFalloutClass};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MilestoneThreeDerivedReuseLegalityRow {
@@ -10,7 +10,7 @@ pub struct MilestoneThreeDerivedReuseLegalityRow {
     pub(crate) equivalence_contract_required: bool,
     pub(crate) replay_materialized_topology_equivalent: bool,
     pub(crate) fallback_count: usize,
-    pub(crate) fallout_class: MilestoneThreeEditFalloutClass,
+    pub(crate) fallout_class: MilestoneThreeMutationFalloutClass,
     pub(crate) derived_validation_digest: Option<DeterministicDigest>,
     pub(crate) row_digest: String,
 }

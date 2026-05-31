@@ -9,7 +9,9 @@ use forge_query::facade::{
 use forge_relational::facade::identity::{EntityId, RelationId};
 
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-use crate::topology_operators::{LoopSuccessorKind, TopologyEditContract};
+use crate::topology_operators::{
+    LoopSuccessorKind, TopologyDeclaredMutationSequence, TopologyDeclaredMutationSequenceBuilder,
+};
 
 use super::super::shared::{canonical_entity_id, canonical_relation_id};
 
@@ -67,18 +69,17 @@ impl TopologyRewireLoopSuccessorProgramDeclaration {
         &self.rewires
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        self.rewires
-            .into_iter()
-            .map(|rewire| {
-                TopologyEditContract::rewire_loop_successor(
-                    rewire.relation_id,
-                    rewire.kind,
-                    rewire.half_edge_id,
-                    rewire.successor_half_edge_id,
-                )
-            })
-            .collect()
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        for rewire in self.rewires {
+            builder.rewire_loop_successor(
+                rewire.relation_id,
+                rewire.kind,
+                rewire.half_edge_id,
+                rewire.successor_half_edge_id,
+            );
+        }
+        builder.finish()
     }
 }
 
@@ -183,10 +184,11 @@ mod tests {
     use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 
     use super::{TopologyLoopSuccessorRewireMember, TopologyRewireLoopSuccessorProgramDeclaration};
-    use crate::topology_operators::{LoopSuccessorKind, TopologyEditContract};
+    use crate::topology_operators::application::TopologyDeclarationMutationPayload;
+    use crate::topology_operators::{LoopSuccessorKind, TopologyDeclaredMutationSequenceBuilder};
 
     #[test]
-    fn declaration_reauthors_to_the_expected_successor_program_batch() {
+    fn declaration_reauthors_to_the_expected_successor_program_mutation_sequence() {
         let declaration = TopologyRewireLoopSuccessorProgramDeclaration::new(vec![
             TopologyLoopSuccessorRewireMember::new(
                 RelationId::new(PartitionId::main(), 20, 1),
@@ -201,23 +203,33 @@ mod tests {
                 EntityId::new(PartitionId::main(), 9, 1),
             ),
         ]);
+        let sequence = declaration.into_mutation_sequence();
+        let actual_contracts = sequence
+            .members()
+            .map(|member| member.record().clone())
+            .collect::<Vec<_>>();
+        let mut expected = TopologyDeclaredMutationSequenceBuilder::builder();
+        expected
+            .rewire_loop_successor(
+                RelationId::new(PartitionId::main(), 20, 1),
+                LoopSuccessorKind::Next,
+                EntityId::new(PartitionId::main(), 10, 1),
+                EntityId::new(PartitionId::main(), 11, 1),
+            )
+            .rewire_loop_successor(
+                RelationId::new(PartitionId::main(), 21, 1),
+                LoopSuccessorKind::Prev,
+                EntityId::new(PartitionId::main(), 10, 1),
+                EntityId::new(PartitionId::main(), 9, 1),
+            );
 
         assert_eq!(
-            declaration.clone().into_contracts(),
-            vec![
-                TopologyEditContract::rewire_loop_successor(
-                    RelationId::new(PartitionId::main(), 20, 1),
-                    LoopSuccessorKind::Next,
-                    EntityId::new(PartitionId::main(), 10, 1),
-                    EntityId::new(PartitionId::main(), 11, 1),
-                ),
-                TopologyEditContract::rewire_loop_successor(
-                    RelationId::new(PartitionId::main(), 21, 1),
-                    LoopSuccessorKind::Prev,
-                    EntityId::new(PartitionId::main(), 10, 1),
-                    EntityId::new(PartitionId::main(), 9, 1),
-                ),
-            ]
+            actual_contracts,
+            expected
+                .finish()
+                .members()
+                .map(|member| member.record().clone())
+                .collect::<Vec<_>>()
         );
     }
 }

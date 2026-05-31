@@ -2,36 +2,34 @@ use crate::topology_operators::declaration_entry::TopologyRehomeAllOwnedFacesToN
 use crate::topology_operators::local_rewrites::sheet_wire_laminar::parse_shell_face_rehome_program;
 
 use super::super::super::{
-    TopologyDeclaredMutationArtifact, TopologyEditApplicationMode, TopologyEditFamily,
-    TopologyOperatorExecutionError, TopologyOperatorRunner, TopologyQueryBindingIndex,
+    TopologyDeclaredMutationArtifact, TopologyMutationApplicationError,
+    TopologyMutationApplicationMode, TopologyMutationApplicationRunner, TopologyMutationFamily,
+    TopologyQueryBindingIndex,
 };
-use super::super::contract_payload::TopologyDeclarationContractPayload;
+use super::super::mutation_payload::TopologyDeclarationMutationPayload;
 use super::super::orchestration_boundary::orchestrate_topology_declaration_entry;
 
-impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
+impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
     pub(crate) fn apply_rehome_all_owned_faces_to_new_shell_declaration(
         &mut self,
         declaration: TopologyRehomeAllOwnedFacesToNewShellDeclaration,
         bindings: &TopologyQueryBindingIndex,
-        mode: TopologyEditApplicationMode,
-    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
+        mode: TopologyMutationApplicationMode,
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
         orchestrate_topology_declaration_entry(
-            TopologyEditFamily::AttachShellOrWireMembership,
+            TopologyMutationFamily::AttachShellOrWireMembership,
             declaration.clone(),
         )?;
 
-        let contracts = declaration.clone().into_contracts();
-        let program = parse_shell_face_rehome_program(&contracts).expect(
+        let sequence = declaration.clone().into_mutation_sequence();
+        let program = parse_shell_face_rehome_program(&sequence).expect(
             "canonical shell rehome declaration should lower to a parseable composed shell program",
         );
-        let receipt = self.compose_shell_rehome_program(program, &contracts, bindings)?;
+        let receipt = self.compose_shell_rehome_program(program, &sequence, bindings)?;
         self.finish_composed_membership_execution(
             mode,
             TopologyRehomeAllOwnedFacesToNewShellDeclaration::SEMANTIC_FAMILY_KEY,
-            declaration.semantic_families(),
-            declaration.topology_edit_digest(),
-            declaration.naming_continuity_matrix(),
-            declaration.naming_report(),
+            &sequence,
             receipt,
         )
     }

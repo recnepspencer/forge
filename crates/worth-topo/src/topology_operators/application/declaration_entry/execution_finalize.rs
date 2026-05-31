@@ -1,8 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::topology_operators::{
-    NamingEditContinuityMatrix, TopologyEditDigest, TopologyEditFamily, TopologyEditNamingReport,
-};
+use crate::topology_operators::TopologyDeclaredMutationSequence;
 use forge_query::facade::{
     ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection, ForgeQueryInspection,
     ForgeQueryMutationBatchBuilder,
@@ -11,55 +9,48 @@ use schema::facade::platform::entities::TopologyEntityKind;
 
 use super::super::{
     load_post_write_materialized_topology, TopologyDeclaredMutationArtifact,
-    TopologyEditApplicationMode, TopologyEditContract, TopologyOperatorExecutionError,
-    TopologyOperatorRunner, TopologyQueryBindingIndex,
+    TopologyMutationApplicationError, TopologyMutationApplicationMode,
+    TopologyMutationApplicationRunner, TopologyQueryBindingIndex,
 };
 
-pub(super) fn lower_contracts(
-    runner: &TopologyOperatorRunner<'_, '_>,
-    contracts: &[TopologyEditContract],
+pub(super) fn lower_mutation_sequence(
+    runner: &TopologyMutationApplicationRunner<'_, '_>,
+    sequence: &TopologyDeclaredMutationSequence,
     bindings: &TopologyQueryBindingIndex,
     created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
-) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
-    contracts.iter().try_fold(
-        ForgeQueryMutationBatchBuilder::new(),
-        |builder, contract| {
-            runner.lower_contract(builder, bindings, created_entity_kinds, contract)
-        },
-    )
+) -> Result<ForgeQueryMutationBatchBuilder, TopologyMutationApplicationError> {
+    sequence
+        .members()
+        .try_fold(ForgeQueryMutationBatchBuilder::new(), |builder, member| {
+            runner.lower_mutation_member(builder, bindings, created_entity_kinds, member)
+        })
 }
 
-pub(super) fn finalize_lowered_batch(
-    runner: &mut TopologyOperatorRunner<'_, '_>,
-    lowered_batch: ForgeQueryMutationBatchBuilder,
+pub(super) fn finalize_lowered_mutations(
+    runner: &mut TopologyMutationApplicationRunner<'_, '_>,
+    lowered_mutations: ForgeQueryMutationBatchBuilder,
     semantic_family_key: &'static str,
-    _mode: TopologyEditApplicationMode,
-    families: Vec<TopologyEditFamily>,
-    topology_edit_digest: TopologyEditDigest,
-    naming_continuity_matrix: NamingEditContinuityMatrix,
-    naming_report: TopologyEditNamingReport,
-) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
-    let receipt = runner.workspace.batch(|_| lowered_batch)?;
-    let inspection = load_batch_write_receipt_inspection(runner, &receipt)?;
+    _mode: TopologyMutationApplicationMode,
+    sequence: &TopologyDeclaredMutationSequence,
+) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
+    let receipt = runner.workspace.batch(|_| lowered_mutations)?;
+    let inspection = load_mutation_receipt_inspection(runner, &receipt)?;
     let materialized = load_post_write_materialized_topology(runner.workspace, runner.surfaces)?;
-    Ok(TopologyDeclaredMutationArtifact {
+    Ok(TopologyDeclaredMutationArtifact::from_receipt(
         semantic_family_key,
-        families,
+        sequence,
         receipt,
         inspection,
         materialized,
-        topology_edit_digest,
-        naming_continuity_matrix,
-        naming_report,
-    })
+    ))
 }
 
-fn load_batch_write_receipt_inspection(
-    runner: &mut TopologyOperatorRunner<'_, '_>,
+fn load_mutation_receipt_inspection(
+    runner: &mut TopologyMutationApplicationRunner<'_, '_>,
     receipt: &ForgeQueryBatchWriteReceipt,
-) -> Result<ForgeQueryBatchWriteReceiptInspection, TopologyOperatorExecutionError> {
+) -> Result<ForgeQueryBatchWriteReceiptInspection, TopologyMutationApplicationError> {
     match runner.workspace.inspect(receipt)? {
         ForgeQueryInspection::BatchWriteReceipt(inspection) => Ok(inspection),
-        _ => Err(TopologyOperatorExecutionError::UnexpectedInspectionFamily),
+        _ => Err(TopologyMutationApplicationError::UnexpectedInspectionFamily),
     }
 }

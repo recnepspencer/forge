@@ -11,7 +11,7 @@ use crate::topology_operators::application::bindings::{
     query_entity_binding, query_relation_binding,
 };
 use crate::topology_operators::application::{
-    TopologyOperatorExecutionError, TopologyOperatorRunner,
+    TopologyMutationApplicationError, TopologyMutationApplicationRunner,
 };
 use crate::topology_operators::local_rewrites::boundary_wiring::adjacency_support::single_incoming_relation_source_identity;
 use crate::topology_operators::topology_relation_dependency_path;
@@ -29,7 +29,7 @@ pub(crate) struct ResolvedLoopSuccessorRewire {
     pub(crate) dependency_path: Option<&'static str>,
 }
 
-impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
+impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
     pub(crate) fn resolve_loop_successor_rewire(
         &self,
         bindings: &TopologyQueryBindingIndex,
@@ -37,13 +37,13 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
         kind: LoopSuccessorKind,
         half_edge_id: EntityId,
         successor_half_edge_id: EntityId,
-    ) -> Result<ResolvedLoopSuccessorRewire, TopologyOperatorExecutionError> {
+    ) -> Result<ResolvedLoopSuccessorRewire, TopologyMutationApplicationError> {
         let relation_kind = kind.relation_kind();
         let relation_binding = query_relation_binding(bindings, relation_id)?
-            .ok_or(TopologyOperatorExecutionError::MissingExistingRelationBinding(relation_id))?;
+            .ok_or(TopologyMutationApplicationError::MissingExistingRelationBinding(relation_id))?;
         if relation_binding.kind != relation_kind {
             return Err(
-                TopologyOperatorExecutionError::ExistingRelationKindMismatch {
+                TopologyMutationApplicationError::ExistingRelationKindMismatch {
                     relation_id,
                     expected: relation_kind,
                     actual: relation_binding.kind,
@@ -51,17 +51,19 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
             );
         }
         let source_half_edge_binding = query_entity_binding(bindings, half_edge_id)?
-            .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(half_edge_id))?;
+            .ok_or(TopologyMutationApplicationError::MissingExistingEntityBinding(half_edge_id))?;
         if source_half_edge_binding.kind != TopologyEntityKind::HalfEdge {
-            return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {
-                entity_id: half_edge_id,
-                expected: TopologyEntityKind::HalfEdge,
-                actual: source_half_edge_binding.kind,
-            });
+            return Err(
+                TopologyMutationApplicationError::ExistingEntityKindMismatch {
+                    entity_id: half_edge_id,
+                    expected: TopologyEntityKind::HalfEdge,
+                    actual: source_half_edge_binding.kind,
+                },
+            );
         }
         if relation_binding.source_query_identity != source_half_edge_binding.query_identity {
             return Err(
-                TopologyOperatorExecutionError::ExistingRelationSourceMismatch {
+                TopologyMutationApplicationError::ExistingRelationSourceMismatch {
                     relation_id,
                     expected_source_entity_id: half_edge_id,
                     actual_source_identity: relation_binding.source_query_identity,
@@ -70,16 +72,18 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
         }
         let target_half_edge_binding = query_entity_binding(bindings, successor_half_edge_id)?
             .ok_or(
-                TopologyOperatorExecutionError::MissingExistingEntityBinding(
+                TopologyMutationApplicationError::MissingExistingEntityBinding(
                     successor_half_edge_id,
                 ),
             )?;
         if target_half_edge_binding.kind != TopologyEntityKind::HalfEdge {
-            return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {
-                entity_id: successor_half_edge_id,
-                expected: TopologyEntityKind::HalfEdge,
-                actual: target_half_edge_binding.kind,
-            });
+            return Err(
+                TopologyMutationApplicationError::ExistingEntityKindMismatch {
+                    entity_id: successor_half_edge_id,
+                    expected: TopologyEntityKind::HalfEdge,
+                    actual: target_half_edge_binding.kind,
+                },
+            );
         }
         let source_loop_identity = single_incoming_relation_source_identity(
             bindings,
@@ -95,7 +99,7 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
         )?;
         if source_loop_identity != target_loop_identity {
             return Err(
-                TopologyOperatorExecutionError::ExistingHalfEdgesNotOnSameLoop {
+                TopologyMutationApplicationError::ExistingHalfEdgesNotOnSameLoop {
                     relation_id,
                     source_half_edge_id: half_edge_id,
                     target_half_edge_id: successor_half_edge_id,
@@ -134,7 +138,7 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
         kind: LoopSuccessorKind,
         half_edge_id: EntityId,
         successor_half_edge_id: EntityId,
-    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyMutationApplicationError> {
         let resolved = self.resolve_loop_successor_rewire(
             bindings,
             relation_id,
@@ -183,12 +187,12 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
         endpoint: LoopEndpointKind,
         half_edge_id: EntityId,
         vertex_id: EntityId,
-    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyMutationApplicationError> {
         let relation_binding = query_relation_binding(bindings, relation_id)?
-            .ok_or(TopologyOperatorExecutionError::MissingExistingRelationBinding(relation_id))?;
+            .ok_or(TopologyMutationApplicationError::MissingExistingRelationBinding(relation_id))?;
         if relation_binding.kind != endpoint.relation_kind() {
             return Err(
-                TopologyOperatorExecutionError::ExistingRelationKindMismatch {
+                TopologyMutationApplicationError::ExistingRelationKindMismatch {
                     relation_id,
                     expected: endpoint.relation_kind(),
                     actual: relation_binding.kind,
@@ -196,17 +200,19 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
             );
         }
         let half_edge_binding = query_entity_binding(bindings, half_edge_id)?
-            .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(half_edge_id))?;
+            .ok_or(TopologyMutationApplicationError::MissingExistingEntityBinding(half_edge_id))?;
         if half_edge_binding.kind != TopologyEntityKind::HalfEdge {
-            return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {
-                entity_id: half_edge_id,
-                expected: TopologyEntityKind::HalfEdge,
-                actual: half_edge_binding.kind,
-            });
+            return Err(
+                TopologyMutationApplicationError::ExistingEntityKindMismatch {
+                    entity_id: half_edge_id,
+                    expected: TopologyEntityKind::HalfEdge,
+                    actual: half_edge_binding.kind,
+                },
+            );
         }
         if relation_binding.source_query_identity != half_edge_binding.query_identity {
             return Err(
-                TopologyOperatorExecutionError::ExistingRelationSourceMismatch {
+                TopologyMutationApplicationError::ExistingRelationSourceMismatch {
                     relation_id,
                     expected_source_entity_id: half_edge_id,
                     actual_source_identity: relation_binding.source_query_identity,
@@ -214,13 +220,15 @@ impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
             );
         }
         let vertex_binding = query_entity_binding(bindings, vertex_id)?
-            .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(vertex_id))?;
+            .ok_or(TopologyMutationApplicationError::MissingExistingEntityBinding(vertex_id))?;
         if vertex_binding.kind != TopologyEntityKind::Vertex {
-            return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {
-                entity_id: vertex_id,
-                expected: TopologyEntityKind::Vertex,
-                actual: vertex_binding.kind,
-            });
+            return Err(
+                TopologyMutationApplicationError::ExistingEntityKindMismatch {
+                    entity_id: vertex_id,
+                    expected: TopologyEntityKind::Vertex,
+                    actual: vertex_binding.kind,
+                },
+            );
         }
         let binding = self.workspace.bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(

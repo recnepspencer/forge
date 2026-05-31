@@ -12,7 +12,10 @@ use schema::facade::platform::entities::TopologyEntityKind;
 
 use super::super::shared::canonical_entity_reference_entry;
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-use crate::topology_operators::{ShellOrWireMembershipKind, TopologyEditContract};
+use crate::topology_operators::{
+    ShellOrWireMembershipKind, TopologyDeclaredMutationSequence,
+    TopologyDeclaredMutationSequenceBuilder,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TopologyWireRehomeHalfEdgeMember {
@@ -69,24 +72,19 @@ impl TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration {
         &self.members
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        let mut contracts = vec![TopologyEditContract::create_topology_entity(
-            self.wire_create_key.clone(),
-            TopologyEntityKind::Wire,
-        )];
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        builder.create_topology_entity(self.wire_create_key.clone(), TopologyEntityKind::Wire);
         for member in self.members {
-            contracts.push(TopologyEditContract::attach_shell_or_wire_membership(
+            builder.attach_shell_or_wire_membership(
                 member.relation_create_key,
                 ShellOrWireMembershipKind::WireOwnsHalfEdge,
                 EntityReference::Created(CreateKey::new(self.wire_create_key.clone())),
                 member.half_edge_id,
-            ));
+            );
         }
-        contracts.push(TopologyEditContract::retire_topology_entity(
-            self.retired_wire_id,
-            TopologyEntityKind::Wire,
-        ));
-        contracts
+        builder.retire_topology_entity(self.retired_wire_id, TopologyEntityKind::Wire);
+        builder.finish()
     }
 }
 
@@ -186,10 +184,11 @@ mod tests {
     use super::{
         TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyWireRehomeHalfEdgeMember,
     };
-    use crate::topology_operators::TopologyEditContract;
+    use crate::topology_operators::application::TopologyDeclarationMutationPayload;
+    use crate::topology_operators::TopologyDeclaredMutationSequenceBuilder;
 
     #[test]
-    fn declaration_reauthors_to_the_expected_wire_rehome_batch() {
+    fn declaration_reauthors_to_the_expected_wire_rehome_mutation_sequence() {
         let declaration = TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration::new(
             "query-native.rehome-wire.new-wire",
             EntityId::new(PartitionId::main(), 5, 1),
@@ -204,35 +203,45 @@ mod tests {
                 ),
             ],
         );
+        let sequence = declaration.into_mutation_sequence();
+        let actual_contracts = sequence
+            .members()
+            .map(|member| member.record().clone())
+            .collect::<Vec<_>>();
+        let mut expected = TopologyDeclaredMutationSequenceBuilder::builder();
+        expected
+            .create_topology_entity(
+                "query-native.rehome-wire.new-wire",
+                TopologyEntityKind::Wire,
+            )
+            .attach_shell_or_wire_membership(
+                "query-native.rehome-wire.member-1",
+                crate::topology_operators::ShellOrWireMembershipKind::WireOwnsHalfEdge,
+                schema::facade::topology_authoring::created_ref(
+                    "query-native.rehome-wire.new-wire",
+                ),
+                EntityId::new(PartitionId::main(), 10, 1),
+            )
+            .attach_shell_or_wire_membership(
+                "query-native.rehome-wire.member-2",
+                crate::topology_operators::ShellOrWireMembershipKind::WireOwnsHalfEdge,
+                schema::facade::topology_authoring::created_ref(
+                    "query-native.rehome-wire.new-wire",
+                ),
+                EntityId::new(PartitionId::main(), 11, 1),
+            )
+            .retire_topology_entity(
+                EntityId::new(PartitionId::main(), 5, 1),
+                TopologyEntityKind::Wire,
+            );
 
         assert_eq!(
-            declaration.clone().into_contracts(),
-            vec![
-                TopologyEditContract::create_topology_entity(
-                    "query-native.rehome-wire.new-wire",
-                    TopologyEntityKind::Wire,
-                ),
-                TopologyEditContract::attach_shell_or_wire_membership(
-                    "query-native.rehome-wire.member-1",
-                    crate::topology_operators::ShellOrWireMembershipKind::WireOwnsHalfEdge,
-                    schema::facade::topology_authoring::created_ref(
-                        "query-native.rehome-wire.new-wire",
-                    ),
-                    EntityId::new(PartitionId::main(), 10, 1),
-                ),
-                TopologyEditContract::attach_shell_or_wire_membership(
-                    "query-native.rehome-wire.member-2",
-                    crate::topology_operators::ShellOrWireMembershipKind::WireOwnsHalfEdge,
-                    schema::facade::topology_authoring::created_ref(
-                        "query-native.rehome-wire.new-wire",
-                    ),
-                    EntityId::new(PartitionId::main(), 11, 1),
-                ),
-                TopologyEditContract::retire_topology_entity(
-                    EntityId::new(PartitionId::main(), 5, 1),
-                    TopologyEntityKind::Wire,
-                ),
-            ]
+            actual_contracts,
+            expected
+                .finish()
+                .members()
+                .map(|member| member.record().clone())
+                .collect::<Vec<_>>()
         );
     }
 }

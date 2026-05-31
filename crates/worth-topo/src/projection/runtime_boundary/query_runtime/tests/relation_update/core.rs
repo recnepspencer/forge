@@ -2,13 +2,13 @@ use forge_query::facade::{ForgeQueryExistingRelationTarget, ForgeQueryExistingTr
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
-use super::super::declaration_runtime_support::execute_current_head_topology_declaration;
 use super::super::query_runtime_support::{query_entity_id_from_row, query_relation_id_from_row};
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    LoopEndpointKind, TopologyEditFamily, TopologyRewireLoopEndpointDeclaration,
+    LoopEndpointKind, TopologyMutationFamily, TopologyRewireLoopEndpointDeclaration,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
@@ -108,17 +108,17 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
 }
 
 #[test]
-fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_operator_runner() {
+fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_mutation_application() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.query-edit-rewire-endpoint",
+        ".current-head.query-mutation-rewire-endpoint",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace =
-        topology_runtime(adapters, ".current-head.query-edit-rewire-endpoint").expect("workspace");
+    let mut workspace = topology_runtime(adapters, ".current-head.query-mutation-rewire-endpoint")
+        .expect("workspace");
     let surfaces =
         crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
             &mut workspace,
@@ -179,12 +179,11 @@ fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_operator_
 
     assert_eq!(
         execution.families,
-        vec![TopologyEditFamily::RewireLoopEndpoint]
+        vec![TopologyMutationFamily::RewireLoopEndpoint]
     );
     assert_eq!(
         execution
-            .receipt
-            .batch_mutation_evidence()
+            .mutation_evidence()
             .backend_verified_update_count(),
         1
     );

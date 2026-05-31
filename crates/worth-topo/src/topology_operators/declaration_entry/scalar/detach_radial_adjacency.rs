@@ -9,7 +9,9 @@ use forge_query::facade::{
 use forge_relational::facade::identity::RelationId;
 
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-use crate::topology_operators::TopologyEditContract;
+use crate::topology_operators::{
+    TopologyDeclaredMutationSequence, TopologyDeclaredMutationSequenceBuilder,
+};
 
 use super::super::shared::canonical_relation_id;
 
@@ -27,10 +29,10 @@ impl TopologyDetachRadialAdjacencyDeclaration {
         self.relation_id
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        vec![TopologyEditContract::detach_radial_adjacency(
-            self.relation_id,
-        )]
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        builder.detach_radial_adjacency(self.relation_id);
+        builder.finish()
     }
 }
 

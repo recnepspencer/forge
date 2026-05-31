@@ -7,25 +7,25 @@ use crate::topology_operators::application::bindings::{
     query_entity_binding, query_entity_id_by_identity, query_incoming_relation_ids,
     query_outgoing_relation_target_identities, query_relation_binding,
 };
-use crate::topology_operators::TopologyEditContract;
+use crate::topology_operators::TopologyDeclaredMutationSequence;
 
 #[cfg(test)]
 pub(crate) fn supports_admitted_shell_or_wire_create_program(
     bindings: &TopologyQueryBindingIndex,
-    contracts: &[TopologyEditContract],
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> bool {
-    supports_owned_half_edge_set_wire_rehome_program(bindings, contracts)
-        || resolve_wire_split_program(bindings, contracts).is_some()
-        || resolve_single_face_two_face_shell_split_program(bindings, contracts).is_some()
-        || supports_owned_face_set_shell_rehome_program(bindings, contracts)
+    supports_owned_half_edge_set_wire_rehome_program(bindings, sequence)
+        || resolve_wire_split_program(bindings, sequence).is_some()
+        || resolve_single_face_two_face_shell_split_program(bindings, sequence).is_some()
+        || supports_owned_face_set_shell_rehome_program(bindings, sequence)
 }
 
 #[cfg(test)]
 fn supports_owned_half_edge_set_wire_rehome_program(
     bindings: &TopologyQueryBindingIndex,
-    contracts: &[TopologyEditContract],
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> bool {
-    let Some(program) = parse_wire_rehome_program(contracts) else {
+    let Some(program) = parse_wire_rehome_program(sequence) else {
         return false;
     };
     let Some(retired_wire_binding) = query_entity_binding(bindings, program.retired_wire_id)
@@ -63,9 +63,9 @@ fn supports_owned_half_edge_set_wire_rehome_program(
 #[cfg(test)]
 fn supports_owned_face_set_shell_rehome_program(
     bindings: &TopologyQueryBindingIndex,
-    contracts: &[TopologyEditContract],
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> bool {
-    let Some(program) = parse_shell_face_rehome_program(contracts) else {
+    let Some(program) = parse_shell_face_rehome_program(sequence) else {
         return false;
     };
     let Some(retired_shell_binding) = query_entity_binding(bindings, program.retired_shell_id)

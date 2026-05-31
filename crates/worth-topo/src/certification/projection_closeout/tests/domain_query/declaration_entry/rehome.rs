@@ -10,9 +10,8 @@ use schema::facade::topology_authoring::{
 };
 use std::collections::BTreeSet;
 
-use super::super::support::{
-    current_head_query_handle, execute_current_head_topology_declaration, snapshot_query_handle,
-};
+use super::super::support::{current_head_query_handle, snapshot_query_handle};
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::facade::{
     topology_runtime, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyRuntimeAdapters,
@@ -110,7 +109,7 @@ fn snapshot_handle_does_not_envelope_wire_rehome_declaration() {
 }
 
 #[test]
-fn current_head_runtime_executes_canonical_wire_rehome_batch_through_declaration_entry() {
+fn current_head_runtime_executes_canonical_wire_rehome_declaration_through_declaration_entry() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     let verified = seed_milestone_one_primitive(
         &mut runtime,
@@ -143,7 +142,7 @@ fn current_head_runtime_executes_canonical_wire_rehome_batch_through_declaration
     );
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
-            .expect("canonical wire rehome batch should execute through declaration entry");
+            .expect("canonical wire rehome declaration should execute through declaration entry");
 
     assert_eq!(
         execution.semantic_family_key(),
@@ -274,7 +273,7 @@ fn snapshot_handle_does_not_envelope_shell_rehome_declaration() {
 }
 
 #[test]
-fn current_head_runtime_executes_canonical_shell_rehome_batch_through_declaration_entry() {
+fn current_head_runtime_executes_canonical_shell_rehome_declaration_through_declaration_entry() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     let verified = seed_milestone_one_primitive(
         &mut runtime,
@@ -310,7 +309,7 @@ fn current_head_runtime_executes_canonical_shell_rehome_batch_through_declaratio
     );
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
-            .expect("canonical shell rehome batch should execute through declaration entry");
+            .expect("canonical shell rehome declaration should execute through declaration entry");
 
     assert_eq!(
         execution.semantic_family_key(),

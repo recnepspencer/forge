@@ -4,15 +4,15 @@ use forge_query::facade::{
 };
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
-use super::super::declaration_runtime_support::execute_current_head_topology_declaration;
 use super::super::query_runtime_support::QueryRuntimeSupport;
-use super::span_batch::{
+use super::successor_span_declaration::{
     successor_span_relocation_declaration, two_half_edge_span_relocation_declaration,
 };
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::topology_operators::TopologyEditFamily;
+use crate::topology_operators::TopologyMutationFamily;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
@@ -20,14 +20,16 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.query-edit-rewire-successor-span",
+        ".current-head.query-mutation-rewire-successor-span",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace =
-        topology_runtime(adapters, ".current-head.query-edit-rewire-successor-span")
-            .expect("workspace");
+    let mut workspace = topology_runtime(
+        adapters,
+        ".current-head.query-mutation-rewire-successor-span",
+    )
+    .expect("workspace");
     let surfaces =
         crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
             &mut workspace,
@@ -64,11 +66,10 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
     assert!(execution
         .families
         .iter()
-        .all(|family| *family == TopologyEditFamily::RewireLoopSuccessor));
+        .all(|family| *family == TopologyMutationFamily::RewireLoopSuccessor));
     assert_eq!(
         execution
-            .receipt
-            .batch_mutation_evidence()
+            .mutation_evidence()
             .backend_verified_update_count(),
         6
     );
@@ -142,14 +143,14 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.query-edit-rewire-successor-three-span",
+        ".current-head.query-mutation-rewire-successor-three-span",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(
         adapters,
-        ".current-head.query-edit-rewire-successor-three-span",
+        ".current-head.query-mutation-rewire-successor-three-span",
     )
     .expect("workspace");
     let surfaces =
@@ -191,11 +192,10 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
     assert!(execution
         .families
         .iter()
-        .all(|family| *family == TopologyEditFamily::RewireLoopSuccessor));
+        .all(|family| *family == TopologyMutationFamily::RewireLoopSuccessor));
     assert_eq!(
         execution
-            .receipt
-            .batch_mutation_evidence()
+            .mutation_evidence()
             .backend_verified_update_count(),
         6
     );

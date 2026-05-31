@@ -83,8 +83,8 @@ fn runtime_closeout_reports_current_head_completion_and_snapshot_blockers_honest
         TopologyRuntimeCloseoutStatus::Satisfied
     );
     for family in [
-        TopologyRuntimeCloseoutFamily::QueryNativeTopologyEditFamilies,
-        TopologyRuntimeCloseoutFamily::QueryNativeGraphComposedEditLanes,
+        TopologyRuntimeCloseoutFamily::QueryNativeTopologyMutationFamilies,
+        TopologyRuntimeCloseoutFamily::QueryNativeGraphComposedMutationLanes,
     ] {
         assert_eq!(
             snapshot.closeout().status(family),

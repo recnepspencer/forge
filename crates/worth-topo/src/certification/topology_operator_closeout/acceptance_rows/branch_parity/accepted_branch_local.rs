@@ -1,23 +1,23 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 
 use super::super::super::report::{
-    MilestoneThreeEditBranchLocalParityRow, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario,
+    MilestoneThreeHostileScenarioReport, MilestoneThreeMutationBranchLocalParityRow,
 };
-use super::accepted_branch_execution::edit_digest_shape_matches;
+use super::accepted_branch_execution::mutation_digest_shape_matches;
 use super::accepted_branch_scenarios::{
     execute_ambiguous_rewire_branch, execute_cancellation_chain_branch,
     execute_split_collapse_branch,
 };
 use crate::certification::error::TopologyCertificationError;
 
-pub(in crate::certification::topology_operator_closeout) fn certify_accepted_branch_local_edit_parity_rows<
+pub(in crate::certification::topology_operator_closeout) fn certify_accepted_branch_local_mutation_parity_rows<
     F,
 >(
     runtime_factory: &mut F,
     stem: &str,
     scenario_reports: &[MilestoneThreeHostileScenarioReport],
-) -> Result<Vec<MilestoneThreeEditBranchLocalParityRow>, TopologyCertificationError>
+) -> Result<Vec<MilestoneThreeMutationBranchLocalParityRow>, TopologyCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
@@ -32,7 +32,7 @@ fn accepted_branch_local_row<F>(
     runtime_factory: &mut F,
     stem: &str,
     report: &MilestoneThreeHostileScenarioReport,
-) -> Result<MilestoneThreeEditBranchLocalParityRow, TopologyCertificationError>
+) -> Result<MilestoneThreeMutationBranchLocalParityRow, TopologyCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
@@ -53,30 +53,30 @@ where
             )));
         }
     };
-    let topology_edit_digest = execution.topology_edit_digest.clone();
-    let naming_edit_continuity_matrix = execution.naming_edit_continuity_matrix.clone();
-    let edit_families = execution.edit_families.clone();
+    let topology_mutation_digest = execution.topology_mutation_digest.clone();
+    let naming_mutation_continuity_matrix = execution.naming_mutation_continuity_matrix.clone();
+    let mutation_families = execution.mutation_families.clone();
 
-    if !edit_digest_shape_matches(&topology_edit_digest, &report.topology_edit_digest)
-        || naming_edit_continuity_matrix != report.naming_edit_continuity_matrix
-        || edit_families != report.edit_families
+    if !mutation_digest_shape_matches(&topology_mutation_digest, &report.topology_mutation_digest)
+        || naming_mutation_continuity_matrix != report.naming_mutation_continuity_matrix
+        || mutation_families != report.mutation_families
     {
         return Err(TopologyCertificationError::Query(format!(
-            "accepted branch-local row for `{}` drifted from scenario edit shape",
+            "accepted branch-local row for `{}` drifted from scenario mutation shape",
             report.scenario.as_str()
         )));
     }
 
-    Ok(MilestoneThreeEditBranchLocalParityRow {
+    Ok(MilestoneThreeMutationBranchLocalParityRow {
         scenario: Some(report.scenario),
         branch_label: execution.branch_label.clone(),
         branch_id: execution.branch_id,
         mutation_origin: "branch_local_application".to_string(),
         outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
         rejection_class: None,
-        edit_families,
-        topology_edit_digest,
-        naming_edit_continuity_matrix,
+        mutation_families,
+        topology_mutation_digest,
+        naming_mutation_continuity_matrix,
         branch_head_diverged_from_main: execution.branch_head_diverged_from_main,
         branch_head_unchanged_after_rejection: false,
         branch_truth_digest: Some(execution.branch_truth_digest),
@@ -84,7 +84,7 @@ where
             "branch={};origin=branch_local_application;outcome=accepted;projection=authority_branch_projection;scenario={};families={};diverged_from_main={}",
             execution.branch_label,
             report.scenario.as_str(),
-            report.edit_families.len(),
+            report.mutation_families.len(),
             execution.branch_head_diverged_from_main
         ),
     })

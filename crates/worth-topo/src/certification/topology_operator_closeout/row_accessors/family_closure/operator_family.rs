@@ -1,8 +1,8 @@
 use super::super::super::operator_family_proof::MilestoneThreeOperatorFamilyClosureRow;
-use crate::topology_operators::TopologyEditFamily;
+use crate::topology_operators::TopologyMutationFamily;
 
 impl MilestoneThreeOperatorFamilyClosureRow {
-    pub fn family(&self) -> TopologyEditFamily {
+    pub fn family(&self) -> TopologyMutationFamily {
         self.family
     }
 

@@ -1,30 +1,30 @@
 use crate::certification::ReplayParityStatus;
 use crate::topology_operators::{
-    NamingEditContinuityMatrix, RejectedEditScopeReport, TopologyDerivedRegion,
-    TopologyEditChangedScope, TopologyEditDerivedFallbackPolicy, TopologyEditDigest,
-    TopologyEditFamily, TopologyEditNamingOutcome, TopologyEditNamingScope,
-    TopologyEditRejectionClass,
+    NamingMutationContinuityMatrix, RejectedMutationScopeReport, TopologyDerivedRegion,
+    TopologyMutationChangedScope, TopologyMutationDerivedFallbackPolicy, TopologyMutationDigest,
+    TopologyMutationFamily, TopologyMutationNamingOutcome, TopologyMutationNamingScope,
+    TopologyMutationRejectionClass,
 };
 
 use super::super::report::{
     MilestoneThreeChangedScopeCoverageRow, MilestoneThreeDerivedRegionCoverageRow,
     MilestoneThreeDeterminismRuleKind, MilestoneThreeDeterminismRuleRow,
-    MilestoneThreeEditBranchLocalParityRow, MilestoneThreeEditBreadthCounterRow,
-    MilestoneThreeEditFalloutBreadthRow, MilestoneThreeEditFalloutClass,
-    MilestoneThreeEditReplayParityRow, MilestoneThreeFailureLocalityRow,
-    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario,
-    MilestoneThreeNamingContinuityMatrixRow, MilestoneThreeRejectedEditScopeReportRow,
-    MilestoneThreeTopologyEditDigestRow, MilestoneThreeValidatorFamily,
+    MilestoneThreeFailureLocalityRow, MilestoneThreeHostileOutcomeClass,
+    MilestoneThreeHostileScenario, MilestoneThreeMutationBranchLocalParityRow,
+    MilestoneThreeMutationBreadthCounterRow, MilestoneThreeMutationFalloutBreadthRow,
+    MilestoneThreeMutationFalloutClass, MilestoneThreeMutationReplayParityRow,
+    MilestoneThreeNamingContinuityMatrixRow, MilestoneThreeRejectedMutationScopeReportRow,
+    MilestoneThreeTopologyMutationDigestRow, MilestoneThreeValidatorFamily,
     MilestoneThreeValidatorFamilyCoverageRow,
 };
 
-impl MilestoneThreeTopologyEditDigestRow {
+impl MilestoneThreeTopologyMutationDigestRow {
     pub fn scenario(&self) -> MilestoneThreeHostileScenario {
         self.scenario
     }
 
-    pub fn topology_edit_digest(&self) -> &TopologyEditDigest {
-        &self.topology_edit_digest
+    pub fn topology_mutation_digest(&self) -> &TopologyMutationDigest {
+        &self.topology_mutation_digest
     }
 
     pub fn row_digest(&self) -> &str {
@@ -37,15 +37,15 @@ impl MilestoneThreeNamingContinuityMatrixRow {
         self.scenario
     }
 
-    pub fn naming_edit_continuity_matrix(&self) -> &NamingEditContinuityMatrix {
-        &self.naming_edit_continuity_matrix
+    pub fn naming_mutation_continuity_matrix(&self) -> &NamingMutationContinuityMatrix {
+        &self.naming_mutation_continuity_matrix
     }
 
-    pub fn continuity_outcome_class(&self) -> TopologyEditNamingOutcome {
+    pub fn continuity_outcome_class(&self) -> TopologyMutationNamingOutcome {
         self.continuity_outcome_class
     }
 
-    pub fn continuity_rejection_class(&self) -> Option<TopologyEditRejectionClass> {
+    pub fn continuity_rejection_class(&self) -> Option<TopologyMutationRejectionClass> {
         self.continuity_rejection_class
     }
 
@@ -54,17 +54,17 @@ impl MilestoneThreeNamingContinuityMatrixRow {
     }
 }
 
-impl MilestoneThreeRejectedEditScopeReportRow {
+impl MilestoneThreeRejectedMutationScopeReportRow {
     pub fn scenario(&self) -> MilestoneThreeHostileScenario {
         self.scenario
     }
 
-    pub fn rejection_class(&self) -> TopologyEditRejectionClass {
+    pub fn rejection_class(&self) -> TopologyMutationRejectionClass {
         self.rejection_class
     }
 
-    pub fn rejected_edit_scope_report(&self) -> &RejectedEditScopeReport {
-        &self.rejected_edit_scope_report
+    pub fn rejected_mutation_scope_report(&self) -> &RejectedMutationScopeReport {
+        &self.rejected_mutation_scope_report
     }
 
     pub fn row_digest(&self) -> &str {
@@ -72,7 +72,7 @@ impl MilestoneThreeRejectedEditScopeReportRow {
     }
 }
 
-impl MilestoneThreeEditReplayParityRow {
+impl MilestoneThreeMutationReplayParityRow {
     pub fn scenario(&self) -> MilestoneThreeHostileScenario {
         self.scenario
     }
@@ -102,7 +102,7 @@ impl MilestoneThreeEditReplayParityRow {
     }
 }
 
-impl MilestoneThreeEditBranchLocalParityRow {
+impl MilestoneThreeMutationBranchLocalParityRow {
     pub fn scenario(&self) -> Option<MilestoneThreeHostileScenario> {
         self.scenario
     }
@@ -123,20 +123,20 @@ impl MilestoneThreeEditBranchLocalParityRow {
         self.outcome_class
     }
 
-    pub fn rejection_class(&self) -> Option<TopologyEditRejectionClass> {
+    pub fn rejection_class(&self) -> Option<TopologyMutationRejectionClass> {
         self.rejection_class
     }
 
-    pub fn edit_families(&self) -> &[TopologyEditFamily] {
-        &self.edit_families
+    pub fn mutation_families(&self) -> &[TopologyMutationFamily] {
+        &self.mutation_families
     }
 
-    pub fn topology_edit_digest(&self) -> &TopologyEditDigest {
-        &self.topology_edit_digest
+    pub fn topology_mutation_digest(&self) -> &TopologyMutationDigest {
+        &self.topology_mutation_digest
     }
 
-    pub fn naming_edit_continuity_matrix(&self) -> &NamingEditContinuityMatrix {
-        &self.naming_edit_continuity_matrix
+    pub fn naming_mutation_continuity_matrix(&self) -> &NamingMutationContinuityMatrix {
+        &self.naming_mutation_continuity_matrix
     }
 
     pub fn branch_head_diverged_from_main(&self) -> bool {
@@ -157,7 +157,7 @@ impl MilestoneThreeEditBranchLocalParityRow {
 }
 
 impl MilestoneThreeChangedScopeCoverageRow {
-    pub fn changed_scope(&self) -> TopologyEditChangedScope {
+    pub fn changed_scope(&self) -> TopologyMutationChangedScope {
         self.changed_scope
     }
 
@@ -187,8 +187,8 @@ impl MilestoneThreeValidatorFamilyCoverageRow {
         &self.validator_names
     }
 
-    pub fn edit_family_count(&self) -> usize {
-        self.edit_family_count
+    pub fn mutation_family_count(&self) -> usize {
+        self.mutation_family_count
     }
 
     pub fn changed_scope_count(&self) -> usize {
@@ -264,13 +264,13 @@ impl MilestoneThreeDeterminismRuleRow {
     }
 }
 
-impl MilestoneThreeEditBreadthCounterRow {
+impl MilestoneThreeMutationBreadthCounterRow {
     pub fn scenario(&self) -> MilestoneThreeHostileScenario {
         self.scenario
     }
 
-    pub fn contract_count(&self) -> usize {
-        self.contract_count
+    pub fn mutation_record_count(&self) -> usize {
+        self.mutation_record_count
     }
 
     pub fn family_count(&self) -> usize {
@@ -302,16 +302,16 @@ impl MilestoneThreeEditBreadthCounterRow {
     }
 }
 
-impl MilestoneThreeEditFalloutBreadthRow {
+impl MilestoneThreeMutationFalloutBreadthRow {
     pub fn scenario(&self) -> MilestoneThreeHostileScenario {
         self.scenario
     }
 
-    pub fn fallout_class(&self) -> MilestoneThreeEditFalloutClass {
+    pub fn fallout_class(&self) -> MilestoneThreeMutationFalloutClass {
         self.fallout_class
     }
 
-    pub fn fallback_policy(&self) -> TopologyEditDerivedFallbackPolicy {
+    pub fn fallback_policy(&self) -> TopologyMutationDerivedFallbackPolicy {
         self.fallback_policy
     }
 
@@ -319,7 +319,7 @@ impl MilestoneThreeEditFalloutBreadthRow {
         self.fallback_policy_exceeded
     }
 
-    pub fn fallback_rejection_class(&self) -> Option<TopologyEditRejectionClass> {
+    pub fn fallback_rejection_class(&self) -> Option<TopologyMutationRejectionClass> {
         self.fallback_rejection_class
     }
 
@@ -349,7 +349,7 @@ impl MilestoneThreeFailureLocalityRow {
         self.scenario
     }
 
-    pub fn rejection_class(&self) -> TopologyEditRejectionClass {
+    pub fn rejection_class(&self) -> TopologyMutationRejectionClass {
         self.rejection_class
     }
 
@@ -357,15 +357,15 @@ impl MilestoneThreeFailureLocalityRow {
         self.scope_row_count
     }
 
-    pub fn families(&self) -> &[TopologyEditFamily] {
+    pub fn families(&self) -> &[TopologyMutationFamily] {
         &self.families
     }
 
-    pub fn changed_scopes(&self) -> &[TopologyEditChangedScope] {
+    pub fn changed_scopes(&self) -> &[TopologyMutationChangedScope] {
         &self.changed_scopes
     }
 
-    pub fn naming_scopes(&self) -> &[TopologyEditNamingScope] {
+    pub fn naming_scopes(&self) -> &[TopologyMutationNamingScope] {
         &self.naming_scopes
     }
 

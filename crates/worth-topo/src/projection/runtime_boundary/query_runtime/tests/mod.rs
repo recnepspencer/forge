@@ -1,10 +1,9 @@
 mod bridge_verification;
 mod core;
-mod declaration_runtime_support;
 mod doc_freshness;
 mod domain_query;
-mod edit_execution;
-mod edit_support;
+mod mutation_application;
+mod mutation_support;
 mod query_runtime_support;
 mod relation_update;
 mod runtime_closeout;

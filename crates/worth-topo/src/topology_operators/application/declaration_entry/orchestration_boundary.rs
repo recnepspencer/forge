@@ -6,14 +6,14 @@ use forge_query::facade::{
 use crate::facade::{topology_current_head_authoritative_context, topology_query_domain_entry};
 
 use super::super::{
-    TopologyDeclarationEntryRefusalClass, TopologyDeclarationEntryStopClass, TopologyEditFamily,
-    TopologyOperatorExecutionError,
+    TopologyDeclarationEntryRefusalClass, TopologyDeclarationEntryStopClass,
+    TopologyMutationApplicationError, TopologyMutationFamily,
 };
 
 pub(super) fn orchestrate_topology_declaration_entry<I>(
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
     declaration: I,
-) -> Result<(), TopologyOperatorExecutionError>
+) -> Result<(), TopologyMutationApplicationError>
 where
     I: ForgeQueryDeclarationInput<crate::facade::TopologyQueryDomain> + Clone,
 {
@@ -35,18 +35,18 @@ pub(super) fn topology_current_head_declaration_entry_facade() -> ForgeQueryAppl
 }
 
 fn declaration_entry_error<I>(
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
     error: ForgeQueryDeclarationEntryOrchestrationTerminalError<
         crate::facade::TopologyQueryDomain,
         I,
     >,
-) -> TopologyOperatorExecutionError
+) -> TopologyMutationApplicationError
 where
     I: ForgeQueryDeclarationInput<crate::facade::TopologyQueryDomain>,
 {
     match error {
         ForgeQueryDeclarationEntryOrchestrationTerminalError::Deferred(outcome) => {
-            TopologyOperatorExecutionError::DeclarationEntry {
+            TopologyMutationApplicationError::DeclarationEntry {
                 family,
                 stop_class: TopologyDeclarationEntryStopClass::Deferred,
                 stop_stage: outcome.stop_stage(),
@@ -55,7 +55,7 @@ where
             }
         }
         ForgeQueryDeclarationEntryOrchestrationTerminalError::Denied(outcome) => {
-            TopologyOperatorExecutionError::DeclarationEntry {
+            TopologyMutationApplicationError::DeclarationEntry {
                 family,
                 stop_class: TopologyDeclarationEntryStopClass::Denied,
                 stop_stage: outcome.stop_stage(),
@@ -64,7 +64,7 @@ where
             }
         }
         ForgeQueryDeclarationEntryOrchestrationTerminalError::Stale(outcome) => {
-            TopologyOperatorExecutionError::DeclarationEntry {
+            TopologyMutationApplicationError::DeclarationEntry {
                 family,
                 stop_class: TopologyDeclarationEntryStopClass::Stale,
                 stop_stage: outcome.stop_stage(),
@@ -73,7 +73,7 @@ where
             }
         }
         ForgeQueryDeclarationEntryOrchestrationTerminalError::RebindRequired(outcome) => {
-            TopologyOperatorExecutionError::DeclarationEntry {
+            TopologyMutationApplicationError::DeclarationEntry {
                 family,
                 stop_class: TopologyDeclarationEntryStopClass::RebindRequired,
                 stop_stage: outcome.stop_stage(),
@@ -82,7 +82,7 @@ where
             }
         }
         ForgeQueryDeclarationEntryOrchestrationTerminalError::Failed(outcome) => {
-            TopologyOperatorExecutionError::DeclarationEntry {
+            TopologyMutationApplicationError::DeclarationEntry {
                 family,
                 stop_class: TopologyDeclarationEntryStopClass::Failed,
                 stop_stage: outcome.stop_stage(),
@@ -91,7 +91,7 @@ where
             }
         }
         ForgeQueryDeclarationEntryOrchestrationTerminalError::Refused(outcome) => {
-            TopologyOperatorExecutionError::DeclarationEntry {
+            TopologyMutationApplicationError::DeclarationEntry {
                 family,
                 stop_class: TopologyDeclarationEntryStopClass::Refused,
                 stop_stage: outcome.stop_stage(),
@@ -111,7 +111,8 @@ mod tests {
     use super::topology_current_head_declaration_entry_facade;
 
     #[test]
-    fn declaration_entry_root_admits_the_capabilities_required_by_query_native_operator_batches() {
+    fn declaration_entry_root_admits_the_capabilities_required_by_query_native_mutation_orchestration(
+    ) {
         let support = topology_current_head_declaration_entry_facade().support_report();
 
         assert!(support

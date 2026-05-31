@@ -33,7 +33,7 @@ pub(crate) fn certify_milestone_two_verified_commit_traced_impl(
             },
         )?;
     if let Some(replay_commit_id) = verified
-        .commits
+        .commits()
         .last()
         .map(|commit| commit.outcome.commit.commit_id.clone())
     {
@@ -164,7 +164,7 @@ fn certify_milestone_two_query_read_basis(
         replay_basis
             .authority
             .truth_basis_identity
-            .mutation_batch_digest_hex
+            .mutation_digest_hex
             .clone(),
         replay_basis
             .authority
@@ -211,11 +211,11 @@ fn certify_milestone_two_query_read_basis(
         truth_digest_match: read_basis
             .authority
             .truth_basis_identity
-            .mutation_batch_digest_hex
+            .mutation_digest_hex
             == replay_basis
                 .authority
                 .truth_basis_identity
-                .mutation_batch_digest_hex,
+                .mutation_digest_hex,
         validation_digest_match: replay_comparison.derived_validation_digest_match,
     };
     let report = MilestoneTwoDerivedReadReport {

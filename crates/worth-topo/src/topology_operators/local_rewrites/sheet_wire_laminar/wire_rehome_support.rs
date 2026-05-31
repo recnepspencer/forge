@@ -8,8 +8,9 @@ use crate::topology_operators::application::bindings::{
     query_entity_binding, query_entity_id_by_identity, query_incoming_relation_ids,
     query_outgoing_relation_target_identities, query_relation_binding,
 };
-use crate::topology_operators::TopologyEditContract;
-use crate::topology_operators::{ShellOrWireMembershipKind, TopologyEditAction};
+use crate::topology_operators::{
+    ShellOrWireMembershipKind, TopologyDeclaredMutationActionRef, TopologyDeclaredMutationSequence,
+};
 
 pub(crate) struct WireRehomeProgram {
     pub(super) create_key: String,
@@ -18,22 +19,22 @@ pub(crate) struct WireRehomeProgram {
 }
 
 pub(crate) fn parse_wire_rehome_program(
-    contracts: &[TopologyEditContract],
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> Option<WireRehomeProgram> {
-    let [create, attaches @ .., retire] = contracts else {
+    let members = sequence.members().collect::<Vec<_>>();
+    let [create, attaches @ .., retire] = members.as_slice() else {
         return None;
     };
     let (
-        TopologyEditAction::CreateTopologyEntity {
+        TopologyDeclaredMutationActionRef::CreateTopologyEntity {
             create_key,
             kind: TopologyEntityKind::Wire,
-            ..
         },
-        TopologyEditAction::RetireTopologyEntity {
+        TopologyDeclaredMutationActionRef::RetireTopologyEntity {
             entity_id: retired_wire_id,
             kind: TopologyEntityKind::Wire,
         },
-    ) = (&create.action, &retire.action)
+    ) = (create.action_ref(), retire.action_ref())
     else {
         return None;
     };
@@ -43,24 +44,23 @@ pub(crate) fn parse_wire_rehome_program(
     let mut half_edge_ids = Vec::with_capacity(attaches.len());
     let mut seen_half_edge_ids = BTreeSet::new();
     for attach in attaches {
-        let TopologyEditAction::AttachShellOrWireMembership {
+        let TopologyDeclaredMutationActionRef::AttachShellOrWireMembership {
             kind: ShellOrWireMembershipKind::WireOwnsHalfEdge,
             owner: EntityReference::Created(owner_key),
             member: EntityReference::Existing(half_edge_id),
-            ..
-        } = &attach.action
+        } = attach.action_ref()
         else {
             return None;
         };
-        if owner_key.as_str() != create_key.as_str() || !seen_half_edge_ids.insert(*half_edge_id) {
+        if owner_key.as_str() != create_key || !seen_half_edge_ids.insert(*half_edge_id) {
             return None;
         }
         half_edge_ids.push(*half_edge_id);
     }
     Some(WireRehomeProgram {
-        create_key: create_key.as_str().to_string(),
+        create_key: create_key.to_string(),
         half_edge_ids,
-        retired_wire_id: *retired_wire_id,
+        retired_wire_id,
     })
 }
 
@@ -71,16 +71,16 @@ pub(crate) struct WireSplitProgram {
 }
 
 pub(crate) fn parse_wire_split_program(
-    contracts: &[TopologyEditContract],
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> Option<WireSplitProgram> {
-    let [create, attaches @ ..] = contracts else {
+    let members = sequence.members().collect::<Vec<_>>();
+    let [create, attaches @ ..] = members.as_slice() else {
         return None;
     };
-    let TopologyEditAction::CreateTopologyEntity {
+    let TopologyDeclaredMutationActionRef::CreateTopologyEntity {
         create_key,
         kind: TopologyEntityKind::Wire,
-        ..
-    } = &create.action
+    } = create.action_ref()
     else {
         return None;
     };
@@ -90,22 +90,21 @@ pub(crate) fn parse_wire_split_program(
     let mut half_edge_ids = Vec::with_capacity(attaches.len());
     let mut seen_half_edge_ids = BTreeSet::new();
     for attach in attaches {
-        let TopologyEditAction::AttachShellOrWireMembership {
+        let TopologyDeclaredMutationActionRef::AttachShellOrWireMembership {
             kind: ShellOrWireMembershipKind::WireOwnsHalfEdge,
             owner: EntityReference::Created(owner_key),
             member: EntityReference::Existing(half_edge_id),
-            ..
-        } = &attach.action
+        } = attach.action_ref()
         else {
             return None;
         };
-        if owner_key.as_str() != create_key.as_str() || !seen_half_edge_ids.insert(*half_edge_id) {
+        if owner_key.as_str() != create_key || !seen_half_edge_ids.insert(*half_edge_id) {
             return None;
         }
         half_edge_ids.push(*half_edge_id);
     }
     Some(WireSplitProgram {
-        create_key: create_key.as_str().to_string(),
+        create_key: create_key.to_string(),
         half_edge_ids,
         retained_wire_id: None,
     })
@@ -113,9 +112,9 @@ pub(crate) fn parse_wire_split_program(
 
 pub(crate) fn resolve_wire_split_program(
     bindings: &TopologyQueryBindingIndex,
-    contracts: &[TopologyEditContract],
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> Option<WireSplitProgram> {
-    let mut program = parse_wire_split_program(contracts)?;
+    let mut program = parse_wire_split_program(sequence)?;
     let retained_wire_id = shared_existing_wire_owner_id(bindings, &program.half_edge_ids)?;
     program.retained_wire_id = Some(retained_wire_id);
     let retained_wire_binding = query_entity_binding(bindings, retained_wire_id)

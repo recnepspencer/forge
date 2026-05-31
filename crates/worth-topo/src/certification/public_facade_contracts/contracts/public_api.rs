@@ -3,6 +3,7 @@ use forge_query::facade::{
 };
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::snapshots::SnapshotHandle;
+use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent, TopologyMutation};
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use schema::facade::{QueryAspectPath, QueryCollection, QuerySchemaBasis};
 use topology::facade::BoundaryFailure;
@@ -45,15 +46,15 @@ use topology::facade::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
     TopologyQueryBoundaryCleanupArea, TopologyQueryBoundaryCleanupCloseoutReport,
     TopologyQueryBoundaryCleanupRow, TopologyQueryBoundaryCleanupStatus, TopologyQueryDomain,
-    TopologyQueryEditFamilySupportStatus, TopologyQueryEditLane,
-    TopologyQueryEditLaneExecutionShape, TopologyQueryEditLaneSupportStatus,
-    TopologyQueryMutationEvidence, TopologyQueryReadFamilySupportStatus,
+    TopologyQueryMutationEvidence, TopologyQueryMutationFamilySupportStatus,
+    TopologyQueryMutationLane, TopologyQueryMutationLaneExecutionShape,
+    TopologyQueryMutationLaneSupportStatus, TopologyQueryReadFamilySupportStatus,
     TopologyRadialSpliceMember, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyRetireTopologyEntityDeclaration,
     TopologyRewireLoopEndpointDeclaration, TopologyRewireLoopSuccessorProgramDeclaration,
     TopologyRuntimeAdapters, TopologyRuntimeCloseout, TopologyRuntimeCloseoutFamily,
-    TopologyRuntimeCloseoutStatus, TopologyRuntimeEditFamilySupportRow,
-    TopologyRuntimeEditLaneSupportRow, TopologyRuntimeFailure, TopologyRuntimePostureCapability,
+    TopologyRuntimeCloseoutStatus, TopologyRuntimeFailure, TopologyRuntimeMutationFamilySupportRow,
+    TopologyRuntimeMutationLaneSupportRow, TopologyRuntimePostureCapability,
     TopologyRuntimePostureRow, TopologyRuntimePostureStatus, TopologyRuntimeReadFamilySupportRow,
     TopologyRuntimeSupport, TopologyShellRehomeFaceMember,
     TopologySnapshotReadOnlyConfiguredDomainHandle,
@@ -95,6 +96,16 @@ fn _m2_commit_cert_contract(
     verified: &TopologyCommittedArtifact,
 ) -> Result<TracedMilestoneTwoDerivedReadReport, BoundaryFailure<MilestoneOneCertificationError>> {
     certify_milestone_two_verified_topology_commit_traced(runtime, verified)
+}
+
+fn _committed_artifact_contracts(verified: &TopologyCommittedArtifact) {
+    let _: fn(&TopologyCommittedArtifact) -> &[TopologyMutation] =
+        TopologyCommittedArtifact::mutations;
+    let _: fn(&TopologyCommittedArtifact) -> MutationOrigin =
+        TopologyCommittedArtifact::mutation_origin;
+    let _: fn(&TopologyCommittedArtifact) -> RawTopologyIntent =
+        TopologyCommittedArtifact::raw_intent;
+    let _: &[TopologyMutation] = verified.mutations();
 }
 
 fn _vocab_live_query_declaration_contract() {

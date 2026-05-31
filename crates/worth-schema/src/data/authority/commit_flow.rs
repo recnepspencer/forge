@@ -82,15 +82,6 @@ pub enum TopologyMutation {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct TopologyMutationBatch {
-    pub mutations: Vec<TopologyMutation>,
-    pub touched_aspects: BTreeSet<Aspect>,
-    pub mutation_origin: MutationOrigin,
-    pub precision_fallbacks: Vec<PrecisionFallbackRecord>,
-    pub precision_budget_fallbacks: Vec<PrecisionBudgetFallbackRecord>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RawTopologyIntent {
     pub mutations: Vec<TopologyMutation>,
     pub mutation_origin: MutationOrigin,
@@ -99,21 +90,24 @@ pub struct RawTopologyIntent {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct CanonicalTopologyMutationBatch {
-    pub batch: TopologyMutationBatch,
+pub struct TopologyCommittedMutationSet {
+    pub mutations: Vec<TopologyMutation>,
+    pub touched_aspects: BTreeSet<Aspect>,
+    pub mutation_origin: MutationOrigin,
+    pub precision_fallbacks: Vec<PrecisionFallbackRecord>,
+    pub precision_budget_fallbacks: Vec<PrecisionBudgetFallbackRecord>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct PersistedTopologyTruthBatch {
-    pub batch: TopologyMutationBatch,
+pub struct PersistedTopologyTruth {
+    pub committed_mutation_set: TopologyCommittedMutationSet,
     pub snapshot: SnapshotHandle,
     pub branch_id: BranchId,
-    pub mutation_origin: MutationOrigin,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DerivedTruthBasisIdentity {
-    pub mutation_batch_digest_hex: String,
+    pub mutation_digest_hex: String,
     pub touched_aspect_count: usize,
 }
 
@@ -174,7 +168,7 @@ impl RawTopologyIntent {
     }
 }
 
-impl TopologyMutationBatch {
+impl TopologyCommittedMutationSet {
     pub fn from_raw_intent(intent: RawTopologyIntent, touched_aspects: BTreeSet<Aspect>) -> Self {
         Self {
             mutations: intent.mutations,
@@ -184,24 +178,49 @@ impl TopologyMutationBatch {
             precision_budget_fallbacks: intent.precision_budget_fallbacks,
         }
     }
+
+    pub fn raw_intent(&self) -> RawTopologyIntent {
+        RawTopologyIntent {
+            mutations: self.mutations.clone(),
+            mutation_origin: self.mutation_origin,
+            precision_fallbacks: self.precision_fallbacks.clone(),
+            precision_budget_fallbacks: self.precision_budget_fallbacks.clone(),
+        }
+    }
 }
 
 impl DerivedTopologyReadBasis {
-    pub fn from_persisted_truth(batch: &PersistedTopologyTruthBatch) -> Self {
+    pub fn from_persisted_truth(persisted_truth: &PersistedTopologyTruth) -> Self {
         Self {
             authority: AuthoritativeTopologySnapshot {
-                snapshot: batch.snapshot.clone(),
-                branch_id: batch.branch_id.clone(),
-                touched_aspects: batch.batch.touched_aspects.clone(),
-                authoritative_mutation_origin: batch.mutation_origin,
+                snapshot: persisted_truth.snapshot.clone(),
+                branch_id: persisted_truth.branch_id.clone(),
+                touched_aspects: persisted_truth
+                    .committed_mutation_set
+                    .touched_aspects
+                    .clone(),
+                authoritative_mutation_origin: persisted_truth
+                    .committed_mutation_set
+                    .mutation_origin,
                 truth_basis_identity: DerivedTruthBasisIdentity {
-                    mutation_batch_digest_hex: mutation_batch_digest_hex(&batch.batch),
-                    touched_aspect_count: batch.batch.touched_aspects.len(),
+                    mutation_digest_hex: mutation_digest_hex(
+                        &persisted_truth.committed_mutation_set,
+                    ),
+                    touched_aspect_count: persisted_truth
+                        .committed_mutation_set
+                        .touched_aspects
+                        .len(),
                 },
             },
-            derivation_origin: batch.mutation_origin,
-            precision_fallbacks: batch.batch.precision_fallbacks.clone(),
-            precision_budget_fallbacks: batch.batch.precision_budget_fallbacks.clone(),
+            derivation_origin: persisted_truth.committed_mutation_set.mutation_origin,
+            precision_fallbacks: persisted_truth
+                .committed_mutation_set
+                .precision_fallbacks
+                .clone(),
+            precision_budget_fallbacks: persisted_truth
+                .committed_mutation_set
+                .precision_budget_fallbacks
+                .clone(),
         }
     }
 
@@ -278,7 +297,7 @@ impl CertifiedTopologyInterpretation {
     }
 }
 
-fn mutation_batch_digest_hex(batch: &TopologyMutationBatch) -> String {
+fn mutation_digest_hex(committed_mutation_set: &TopologyCommittedMutationSet) -> String {
     let mut state: u64 = 0xcbf29ce484222325;
     fn write_str(state: &mut u64, value: &str) {
         for byte in value.as_bytes() {
@@ -287,17 +306,20 @@ fn mutation_batch_digest_hex(batch: &TopologyMutationBatch) -> String {
         }
     }
 
-    write_str(&mut state, &format!("{:?}", batch.mutation_origin));
-    for aspect in &batch.touched_aspects {
+    write_str(
+        &mut state,
+        &format!("{:?}", committed_mutation_set.mutation_origin),
+    );
+    for aspect in &committed_mutation_set.touched_aspects {
         write_str(&mut state, &format!("{aspect:?}"));
     }
-    for mutation in &batch.mutations {
+    for mutation in &committed_mutation_set.mutations {
         write_str(&mut state, &format!("{mutation:?}"));
     }
-    for fallback in &batch.precision_fallbacks {
+    for fallback in &committed_mutation_set.precision_fallbacks {
         write_str(&mut state, &format!("{fallback:?}"));
     }
-    for fallback in &batch.precision_budget_fallbacks {
+    for fallback in &committed_mutation_set.precision_budget_fallbacks {
         write_str(&mut state, &format!("{fallback:?}"));
     }
 

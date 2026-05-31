@@ -4,12 +4,12 @@ use super::support::{
     shell_split_declaration_for_fixture, shell_split_fixture, wire_split_declaration_for_fixture,
     wire_split_fixture,
 };
-use crate::certification::projection_closeout::tests::domain_query::support::current_head_unsupported_declaration_families;
+use crate::certification::support::declaration_runtime::current_head_unsupported_declaration_families;
 use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
-fn current_head_runtime_rejects_disconnected_wire_split_batch_before_any_declaration_entry_execution(
+fn current_head_runtime_rejects_disconnected_wire_split_declaration_before_any_declaration_entry_execution(
 ) {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     let verified = seed_milestone_one_primitive(
@@ -35,12 +35,12 @@ fn current_head_runtime_rejects_disconnected_wire_split_batch_before_any_declara
     );
     assert!(
         current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration)
-            .contains(&crate::facade::TopologyEditFamily::AttachShellOrWireMembership)
+            .contains(&crate::facade::TopologyMutationFamily::AttachShellOrWireMembership)
     );
 }
 
 #[test]
-fn current_head_runtime_rejects_three_face_shell_split_batch_before_any_declaration_entry_execution(
+fn current_head_runtime_rejects_three_face_shell_split_declaration_before_any_declaration_entry_execution(
 ) {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     let verified = seed_milestone_one_primitive(
@@ -69,6 +69,6 @@ fn current_head_runtime_rejects_three_face_shell_split_batch_before_any_declarat
     );
     assert!(
         current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration)
-            .contains(&crate::facade::TopologyEditFamily::AttachShellOrWireMembership)
+            .contains(&crate::facade::TopologyMutationFamily::AttachShellOrWireMembership)
     );
 }

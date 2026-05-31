@@ -1,9 +1,9 @@
 use forge_relational::facade::schema::{RelationPayloadClass, SchemaId, SchemaVersionId};
 
-use crate::data::entities::EntityKind;
-use crate::data::relations::RelationKind;
 use super::registry::bootstrap_schema_registry;
 use super::schema_identity::{SCHEMA_ID, SCHEMA_VERSION_ID};
+use crate::data::entities::EntityKind;
+use crate::data::relations::RelationKind;
 
 #[test]
 fn bootstrap_schema_registry_registers_all_bootstrap_kinds() {

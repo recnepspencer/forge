@@ -10,7 +10,9 @@ use forge_relational::facade::identity::EntityId;
 use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-use crate::topology_operators::TopologyEditContract;
+use crate::topology_operators::{
+    TopologyDeclaredMutationSequence, TopologyDeclaredMutationSequenceBuilder,
+};
 
 use super::super::shared::canonical_entity_id;
 
@@ -33,11 +35,10 @@ impl TopologyRetireTopologyEntityDeclaration {
         self.kind
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        vec![TopologyEditContract::retire_topology_entity(
-            self.entity_id,
-            self.kind,
-        )]
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        builder.retire_topology_entity(self.entity_id, self.kind);
+        builder.finish()
     }
 }
 

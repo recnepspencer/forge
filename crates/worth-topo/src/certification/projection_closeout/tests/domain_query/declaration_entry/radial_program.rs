@@ -5,9 +5,8 @@ use forge_query::facade::{
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
-use super::super::support::{
-    current_head_query_handle, execute_current_head_topology_declaration, snapshot_query_handle,
-};
+use super::super::support::{current_head_query_handle, snapshot_query_handle};
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::facade::{topology_runtime, TopologyDeclaredQuerySurfaces, TopologyRuntimeAdapters};
 use crate::projection::{query_entity_id_from_row, query_relation_id_from_row};
 use crate::topology_operators::{

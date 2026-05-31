@@ -9,9 +9,9 @@ use forge_query::facade::{
 use forge_relational::facade::identity::{EntityId, RelationId};
 
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-#[cfg(test)]
-use crate::topology_operators::TopologyEditAction;
-use crate::topology_operators::TopologyEditContract;
+use crate::topology_operators::{
+    TopologyDeclaredMutationSequence, TopologyDeclaredMutationSequenceBuilder,
+};
 
 use super::super::shared::{canonical_entity_id, canonical_relation_id};
 
@@ -47,12 +47,14 @@ impl TopologySpliceRadialAdjacencyDeclaration {
         self.radial_next_half_edge_id
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        vec![TopologyEditContract::splice_radial_adjacency(
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        builder.splice_radial_adjacency(
             self.relation_id,
             self.half_edge_id,
             self.radial_next_half_edge_id,
-        )]
+        );
+        builder.finish()
     }
 }
 
@@ -139,69 +141,39 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain> for TopologySpliceRadialAdj
 }
 
 #[cfg(test)]
-pub(crate) fn declaration_for_canonical_single_splice_radial_contracts(
-    contracts: &[TopologyEditContract],
-) -> Option<TopologySpliceRadialAdjacencyDeclaration> {
-    let [contract] = contracts else {
-        return None;
-    };
-    let TopologyEditAction::SpliceRadialAdjacency {
-        relation_id,
-        half_edge_id,
-        radial_next_half_edge_id,
-    } = contract.action
-    else {
-        return None;
-    };
-    let declaration = TopologySpliceRadialAdjacencyDeclaration::new(
-        relation_id,
-        half_edge_id,
-        radial_next_half_edge_id,
-    );
-    let canonical_contracts = declaration.clone().into_contracts();
-    (contracts == canonical_contracts.as_slice()).then_some(declaration)
-}
-
-#[cfg(test)]
 mod tests {
     use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 
-    use super::{
-        declaration_for_canonical_single_splice_radial_contracts,
-        TopologySpliceRadialAdjacencyDeclaration,
-    };
-    use crate::topology_operators::{TopologyEditContract, TopologyEditDerivedFallbackPolicy};
+    use super::TopologySpliceRadialAdjacencyDeclaration;
+    use crate::topology_operators::application::TopologyDeclarationMutationPayload;
+    use crate::topology_operators::TopologyDeclaredMutationSequenceBuilder;
 
     #[test]
-    fn canonical_single_splice_radial_contracts_promote_to_query_declaration() {
-        let contracts = vec![TopologyEditContract::splice_radial_adjacency(
+    fn declaration_reauthors_to_expected_splice_radial_mutation_sequence() {
+        let declaration = TopologySpliceRadialAdjacencyDeclaration::new(
             RelationId::new(PartitionId::main(), 7, 1),
             EntityId::new(PartitionId::main(), 8, 1),
             EntityId::new(PartitionId::main(), 9, 1),
-        )];
-
-        let declaration = declaration_for_canonical_single_splice_radial_contracts(&contracts)
-            .expect("canonical radial splice contracts should promote");
+        );
+        let actual_contracts = declaration
+            .into_mutation_sequence()
+            .members()
+            .map(|member| member.record().clone())
+            .collect::<Vec<_>>();
+        let mut expected = TopologyDeclaredMutationSequenceBuilder::builder();
+        expected.splice_radial_adjacency(
+            RelationId::new(PartitionId::main(), 7, 1),
+            EntityId::new(PartitionId::main(), 8, 1),
+            EntityId::new(PartitionId::main(), 9, 1),
+        );
 
         assert_eq!(
-            declaration,
-            TopologySpliceRadialAdjacencyDeclaration::new(
-                RelationId::new(PartitionId::main(), 7, 1),
-                EntityId::new(PartitionId::main(), 8, 1),
-                EntityId::new(PartitionId::main(), 9, 1),
-            )
+            actual_contracts,
+            expected
+                .finish()
+                .members()
+                .map(|member| member.record().clone())
+                .collect::<Vec<_>>()
         );
-    }
-
-    #[test]
-    fn non_canonical_splice_radial_contracts_stay_off_query_declaration_promotion() {
-        let contracts = vec![TopologyEditContract::splice_radial_adjacency(
-            RelationId::new(PartitionId::main(), 7, 1),
-            EntityId::new(PartitionId::main(), 8, 1),
-            EntityId::new(PartitionId::main(), 9, 1),
-        )
-        .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback)];
-
-        assert!(declaration_for_canonical_single_splice_radial_contracts(&contracts).is_none());
     }
 }

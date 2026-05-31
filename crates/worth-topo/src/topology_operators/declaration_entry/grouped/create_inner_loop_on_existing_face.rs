@@ -11,9 +11,10 @@ use schema::facade::platform::entities::TopologyEntityKind;
 
 use super::super::shared::canonical_entity_reference_entry;
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-#[cfg(test)]
-use crate::topology_operators::TopologyEditAction;
-use crate::topology_operators::{BoundaryMembershipKind, TopologyEditContract};
+use crate::topology_operators::{
+    BoundaryMembershipKind, TopologyDeclaredMutationSequence,
+    TopologyDeclaredMutationSequenceBuilder,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TopologyCreateInnerLoopOnExistingFaceDeclaration {
@@ -47,19 +48,16 @@ impl TopologyCreateInnerLoopOnExistingFaceDeclaration {
         &self.face
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        vec![
-            TopologyEditContract::create_topology_entity(
-                self.loop_create_key.clone(),
-                TopologyEntityKind::Loop,
-            ),
-            TopologyEditContract::attach_boundary_membership(
-                self.relation_create_key,
-                BoundaryMembershipKind::FaceInnerLoop,
-                self.face,
-                EntityReference::Created(CreateKey::new(self.loop_create_key)),
-            ),
-        ]
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        builder.create_topology_entity(self.loop_create_key.clone(), TopologyEntityKind::Loop);
+        builder.attach_boundary_membership(
+            self.relation_create_key,
+            BoundaryMembershipKind::FaceInnerLoop,
+            self.face,
+            EntityReference::Created(CreateKey::new(self.loop_create_key)),
+        );
+        builder.finish()
     }
 }
 
@@ -141,103 +139,45 @@ impl ForgeQueryDeclarationInput<TopologyQueryDomain>
 }
 
 #[cfg(test)]
-pub(crate) fn declaration_for_canonical_create_inner_loop_on_existing_face_contracts(
-    contracts: &[TopologyEditContract],
-) -> Option<TopologyCreateInnerLoopOnExistingFaceDeclaration> {
-    let [create, attach] = contracts else {
-        return None;
-    };
-    let (
-        TopologyEditAction::CreateTopologyEntity {
-            create_key,
-            kind: TopologyEntityKind::Loop,
-            ..
-        },
-        TopologyEditAction::AttachBoundaryMembership {
-            create_key: relation_create_key,
-            kind: BoundaryMembershipKind::FaceInnerLoop,
-            owner,
-            member: EntityReference::Created(member_key),
-        },
-    ) = (&create.action, &attach.action)
-    else {
-        return None;
-    };
-    if create_key.as_str() != member_key.as_str() {
-        return None;
-    }
-    let declaration = TopologyCreateInnerLoopOnExistingFaceDeclaration::new(
-        create_key.as_str().to_string(),
-        relation_create_key.as_str().to_string(),
-        owner.clone(),
-    );
-    let canonical_contracts = declaration.clone().into_contracts();
-    (contracts == canonical_contracts.as_slice()).then_some(declaration)
-}
-
-#[cfg(test)]
 mod tests {
     use forge_relational::facade::identity::{EntityId, PartitionId};
-    use schema::facade::platform::authority::{CreateKey, EntityReference};
     use schema::facade::platform::entities::TopologyEntityKind;
 
-    use super::{
-        declaration_for_canonical_create_inner_loop_on_existing_face_contracts,
-        TopologyCreateInnerLoopOnExistingFaceDeclaration,
-    };
+    use super::TopologyCreateInnerLoopOnExistingFaceDeclaration;
+    use crate::topology_operators::application::TopologyDeclarationMutationPayload;
     use crate::topology_operators::{
-        BoundaryMembershipKind, TopologyEditContract, TopologyEditDerivedFallbackPolicy,
+        BoundaryMembershipKind, TopologyDeclaredMutationSequenceBuilder,
     };
 
     #[test]
-    fn canonical_inner_loop_contracts_promote_to_grouped_query_declaration() {
-        let contracts = vec![
-            TopologyEditContract::create_topology_entity(
-                "query-native.inner-loop.loop",
-                TopologyEntityKind::Loop,
-            ),
-            TopologyEditContract::attach_boundary_membership(
+    fn declaration_reauthors_to_expected_inner_loop_mutation_sequence() {
+        let declaration = TopologyCreateInnerLoopOnExistingFaceDeclaration::new(
+            "query-native.inner-loop.loop",
+            "query-native.inner-loop.relation",
+            EntityId::new(PartitionId::main(), 1, 1),
+        );
+        let sequence = declaration.into_mutation_sequence();
+        let actual_contracts = sequence
+            .members()
+            .map(|member| member.record().clone())
+            .collect::<Vec<_>>();
+        let mut expected = TopologyDeclaredMutationSequenceBuilder::builder();
+        expected
+            .create_topology_entity("query-native.inner-loop.loop", TopologyEntityKind::Loop)
+            .attach_boundary_membership(
                 "query-native.inner-loop.relation",
                 BoundaryMembershipKind::FaceInnerLoop,
                 EntityId::new(PartitionId::main(), 1, 1),
-                EntityReference::Created(CreateKey::new("query-native.inner-loop.loop")),
-            ),
-        ];
-
-        let declaration =
-            declaration_for_canonical_create_inner_loop_on_existing_face_contracts(&contracts)
-                .expect("canonical inner-loop contracts should promote");
+                schema::facade::topology_authoring::created_ref("query-native.inner-loop.loop"),
+            );
 
         assert_eq!(
-            declaration,
-            TopologyCreateInnerLoopOnExistingFaceDeclaration::new(
-                "query-native.inner-loop.loop",
-                "query-native.inner-loop.relation",
-                EntityId::new(PartitionId::main(), 1, 1),
-            )
-        );
-    }
-
-    #[test]
-    fn non_canonical_inner_loop_contracts_stay_off_query_declaration_promotion() {
-        let contracts = vec![
-            TopologyEditContract::create_topology_entity(
-                "query-native.inner-loop.loop",
-                TopologyEntityKind::Loop,
-            ),
-            TopologyEditContract::attach_boundary_membership(
-                "query-native.inner-loop.relation",
-                BoundaryMembershipKind::FaceInnerLoop,
-                EntityId::new(PartitionId::main(), 1, 1),
-                EntityReference::Created(CreateKey::new("query-native.inner-loop.loop")),
-            )
-            .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback),
-        ];
-
-        assert!(
-            declaration_for_canonical_create_inner_loop_on_existing_face_contracts(&contracts)
-                .is_none(),
-            "non-canonical grouped inner-loop contracts should not be silently re-authored as a query declaration"
+            actual_contracts,
+            expected
+                .finish()
+                .members()
+                .map(|member| member.record().clone())
+                .collect::<Vec<_>>()
         );
     }
 }

@@ -1,12 +1,13 @@
-use forge_relational::facade::identity::EntityId;
 use forge_relational::facade::history::BranchId;
+use forge_relational::facade::identity::EntityId;
 use forge_relational::facade::snapshots::SnapshotHandle;
 use forge_relational::facade::transactions::CommitResult;
 use serde::{Deserialize, Serialize};
 
+use crate::data::authority::gateway::VerifiedTopologyCommit;
 use crate::data::authority::{
-    CanonicalTopologyMutationBatch, CertifiedTopologyInterpretation, DerivedTopologyReadBasis,
-    PersistedTopologyTruthBatch, TopologyReadArtifact,
+    CertifiedTopologyInterpretation, DerivedTopologyReadBasis, PersistedTopologyTruth,
+    TopologyCommittedMutationSet, TopologyReadArtifact,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -24,7 +25,7 @@ pub struct MinimalTopologySeed {
     pub edge: EntityId,
     pub vertex: EntityId,
     pub persistent_name_ids: Vec<EntityId>,
-    persisted_truth: PersistedTopologyTruthBatch,
+    persisted_truth: PersistedTopologyTruth,
     read_basis: DerivedTopologyReadBasis,
     read_artifact: TopologyReadArtifact,
     certified_interpretation: CertifiedTopologyInterpretation,
@@ -32,11 +33,11 @@ pub struct MinimalTopologySeed {
 
 #[derive(Debug, Clone)]
 pub struct SeededTopologyCommit {
-    canonical_batch: CanonicalTopologyMutationBatch,
+    committed_mutation_set: TopologyCommittedMutationSet,
     branch_id: BranchId,
     commits: Vec<CommitResult>,
     snapshot: SnapshotHandle,
-    persisted_truth: PersistedTopologyTruthBatch,
+    persisted_truth: PersistedTopologyTruth,
     read_basis: DerivedTopologyReadBasis,
 }
 
@@ -56,7 +57,7 @@ impl MinimalTopologySeed {
         edge: EntityId,
         vertex: EntityId,
         persistent_name_ids: Vec<EntityId>,
-        persisted_truth: PersistedTopologyTruthBatch,
+        persisted_truth: PersistedTopologyTruth,
         read_basis: DerivedTopologyReadBasis,
         read_artifact: TopologyReadArtifact,
         certified_interpretation: CertifiedTopologyInterpretation,
@@ -82,7 +83,7 @@ impl MinimalTopologySeed {
         }
     }
 
-    pub fn persisted_truth(&self) -> &PersistedTopologyTruthBatch {
+    pub fn persisted_truth(&self) -> &PersistedTopologyTruth {
         &self.persisted_truth
     }
 
@@ -100,26 +101,19 @@ impl MinimalTopologySeed {
 }
 
 impl SeededTopologyCommit {
-    pub(crate) fn from_parts(
-        canonical_batch: CanonicalTopologyMutationBatch,
-        branch_id: BranchId,
-        commits: Vec<CommitResult>,
-        snapshot: SnapshotHandle,
-        persisted_truth: PersistedTopologyTruthBatch,
-        read_basis: DerivedTopologyReadBasis,
-    ) -> Self {
+    pub(crate) fn from_verified_commit(verified: VerifiedTopologyCommit) -> Self {
         Self {
-            canonical_batch,
-            branch_id,
-            commits,
-            snapshot,
-            persisted_truth,
-            read_basis,
+            committed_mutation_set: verified.committed_mutation_set,
+            branch_id: verified.branch_id,
+            snapshot: verified.persisted_truth.snapshot.clone(),
+            commits: verified.commits,
+            persisted_truth: verified.persisted_truth,
+            read_basis: verified.read_basis,
         }
     }
 
-    pub fn canonical_batch(&self) -> &CanonicalTopologyMutationBatch {
-        &self.canonical_batch
+    pub fn committed_mutation_set(&self) -> &TopologyCommittedMutationSet {
+        &self.committed_mutation_set
     }
 
     pub fn branch_id(&self) -> &BranchId {
@@ -134,7 +128,7 @@ impl SeededTopologyCommit {
         &self.snapshot
     }
 
-    pub fn persisted_truth(&self) -> &PersistedTopologyTruthBatch {
+    pub fn persisted_truth(&self) -> &PersistedTopologyTruth {
         &self.persisted_truth
     }
 
@@ -145,15 +139,15 @@ impl SeededTopologyCommit {
     pub fn into_parts(
         self,
     ) -> (
-        CanonicalTopologyMutationBatch,
+        TopologyCommittedMutationSet,
         BranchId,
         Vec<CommitResult>,
         SnapshotHandle,
-        PersistedTopologyTruthBatch,
+        PersistedTopologyTruth,
         DerivedTopologyReadBasis,
     ) {
         (
-            self.canonical_batch,
+            self.committed_mutation_set,
             self.branch_id,
             self.commits,
             self.snapshot,

@@ -3,64 +3,59 @@ use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use schema::facade::platform::authority::{CreateKey, EntityReference, TopologyMutation};
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
-use schema::facade::topology_authoring::{created_ref, DerivedTopologyReadBasis};
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
+use super::super::super::mutation_sequence_support::{
+    closeout_mutation_plan_for_declaration_and_mutations, lowered_mutations_for_declaration,
+    TopologyCloseoutMutationPlan,
+};
 use crate::certification::error::TopologyCertificationError;
 use crate::topology_operators::{
-    ShellOrWireMembershipKind, TopologyEditAction, TopologyEditContract,
+    TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
+    TopologyRewireLoopSuccessorProgramDeclaration,
+    TopologySplitConnectedHalfEdgeSetToNewWireDeclaration, TopologyWireRehomeHalfEdgeMember,
 };
 
-pub(super) fn collapse_split_wire_contracts(
+pub(super) fn collapse_split_wire_declaration(
     collapse_wire_key: &str,
     retired_wire_id: EntityId,
     moved_half_edge_ids: &[EntityId],
-) -> Vec<TopologyEditContract> {
-    let mut contracts = vec![TopologyEditContract::create_topology_entity(
+) -> TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration {
+    TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration::new(
         collapse_wire_key,
-        TopologyEntityKind::Wire,
-    )];
-    for (index, half_edge_id) in moved_half_edge_ids.iter().enumerate() {
-        contracts.push(TopologyEditContract::attach_shell_or_wire_membership(
-            format!("{collapse_wire_key}.owns_half_edge_{}", index + 1),
-            ShellOrWireMembershipKind::WireOwnsHalfEdge,
-            created_ref(collapse_wire_key),
-            *half_edge_id,
-        ));
-    }
-    contracts.push(TopologyEditContract::retire_topology_entity(
         retired_wire_id,
-        TopologyEntityKind::Wire,
-    ));
-    contracts
+        moved_half_edge_ids
+            .iter()
+            .enumerate()
+            .map(|(index, half_edge_id)| {
+                TopologyWireRehomeHalfEdgeMember::new(
+                    format!("{collapse_wire_key}.owns_half_edge_{}", index + 1),
+                    *half_edge_id,
+                )
+            })
+            .collect(),
+    )
 }
 
-pub(super) fn authority_expanded_split_mutations(
-    contracts: &[TopologyEditContract],
+pub(super) fn authority_expanded_split_plan(
+    declaration: TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
     moved_relation_ids: &[RelationId],
-) -> Vec<TopologyMutation> {
-    moved_relation_ids
+) -> TopologyCloseoutMutationPlan {
+    let mutations = moved_relation_ids
         .iter()
         .map(|relation_id| TopologyMutation::RemoveRelation {
             relation_id: *relation_id,
         })
-        .chain(contracts.iter().flat_map(|contract| {
-            contract
-                .lowered_mutations()
-                .iter()
-                .cloned()
-                .collect::<Vec<_>>()
-        }))
-        .collect()
+        .chain(lowered_mutations_for_declaration(&declaration))
+        .collect();
+    closeout_mutation_plan_for_declaration_and_mutations(declaration, mutations)
 }
 
-pub(super) fn authority_expanded_collapse_mutations(
-    contracts: &[TopologyEditContract],
+pub(super) fn authority_expanded_collapse_plan(
+    declaration: TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
     split_relation_ids: &[RelationId],
-) -> Vec<TopologyMutation> {
-    let mut mutations = contracts
-        .iter()
-        .flat_map(|contract| contract.lowered_mutations().iter().cloned())
-        .collect::<Vec<_>>();
+) -> TopologyCloseoutMutationPlan {
+    let mut mutations = lowered_mutations_for_declaration(&declaration);
     let retire_index = mutations
         .iter()
         .position(|mutation| matches!(mutation, TopologyMutation::RemoveEntity { .. }))
@@ -73,35 +68,29 @@ pub(super) fn authority_expanded_collapse_mutations(
             },
         );
     }
-    mutations
+    closeout_mutation_plan_for_declaration_and_mutations(declaration, mutations)
 }
 
-pub(super) fn authority_expanded_rewire_mutations(
-    contracts: &[TopologyEditContract],
+pub(super) fn authority_expanded_rewire_plan(
+    declaration: TopologyRewireLoopSuccessorProgramDeclaration,
     create_key_prefix: &str,
-) -> Result<Vec<TopologyMutation>, TopologyCertificationError> {
+) -> Result<TopologyCloseoutMutationPlan, TopologyCertificationError> {
     let mut mutations = Vec::new();
-    for (index, contract) in contracts.iter().enumerate() {
-        let TopologyEditAction::RewireLoopSuccessor {
-            relation_id,
-            kind,
-            half_edge_id,
-            successor_half_edge_id,
-        } = contract.action
-        else {
-            return Err(TopologyCertificationError::Query(
-                "branch-local rewire projection expected only successor contracts".into(),
-            ));
-        };
-        mutations.push(TopologyMutation::RemoveRelation { relation_id });
+    for (index, rewire) in declaration.rewires().iter().enumerate() {
+        mutations.push(TopologyMutation::RemoveRelation {
+            relation_id: rewire.relation_id(),
+        });
         mutations.push(TopologyMutation::CreateRelation {
             create_key: CreateKey::new(format!("{create_key_prefix}.rewire_{}", index + 1)),
-            kind: RelationKind::Topology(kind.relation_kind()),
-            source: EntityReference::Existing(half_edge_id),
-            target: EntityReference::Existing(successor_half_edge_id),
+            kind: RelationKind::Topology(rewire.kind().relation_kind()),
+            source: EntityReference::Existing(rewire.half_edge_id()),
+            target: EntityReference::Existing(rewire.successor_half_edge_id()),
         });
     }
-    Ok(mutations)
+    Ok(closeout_mutation_plan_for_declaration_and_mutations(
+        declaration,
+        mutations,
+    ))
 }
 
 pub(super) fn seeded_wire_and_half_edges(

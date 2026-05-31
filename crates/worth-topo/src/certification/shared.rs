@@ -1,4 +1,4 @@
-use schema::facade::platform::authority::{TopologyMutation, TopologyMutationBatch};
+use schema::facade::platform::authority::TopologyMutation;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use crate::certification::support::reporting::{
@@ -154,12 +154,12 @@ pub(crate) fn digest_rows(rows: impl Iterator<Item = String>) -> DeterministicDi
     }
 }
 
-pub(crate) fn count_batch_mutations(batch: &TopologyMutationBatch) -> (usize, usize, usize) {
+pub(crate) fn count_topology_mutations(mutations: &[TopologyMutation]) -> (usize, usize, usize) {
     let mut entity_upserts = 0usize;
     let mut relation_upserts = 0usize;
     let mut relation_removes = 0usize;
 
-    for mutation in &batch.mutations {
+    for mutation in mutations {
         match mutation {
             TopologyMutation::CreateEntity { kind, .. }
             | TopologyMutation::UpsertEntity { kind, .. }

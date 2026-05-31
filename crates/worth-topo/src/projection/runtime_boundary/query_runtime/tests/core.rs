@@ -1,7 +1,7 @@
 use crate::projection::runtime_boundary::query_runtime::{
-    topology_runtime, TopologyQueryEditFamilySupportStatus, TopologyQueryEditLane,
-    TopologyQueryEditLaneSupportStatus, TopologyRuntimeAdapters, TopologyRuntimePostureCapability,
-    TopologyRuntimePostureStatus,
+    topology_runtime, TopologyQueryMutationFamilySupportStatus, TopologyQueryMutationLane,
+    TopologyQueryMutationLaneSupportStatus, TopologyRuntimeAdapters,
+    TopologyRuntimePostureCapability, TopologyRuntimePostureStatus,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::{ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus};
@@ -33,55 +33,55 @@ fn current_head_runtime_support_reports_authoritative_current_head_posture() {
         );
     }
     assert!(support
-        .query_edit_lane_support_rows()
+        .query_mutation_lane_support_rows()
         .iter()
-        .any(|row| row.status() == TopologyQueryEditLaneSupportStatus::Admitted));
+        .any(|row| row.status() == TopologyQueryMutationLaneSupportStatus::Admitted));
     assert_eq!(
-        support.query_edit_family_support_status(
-            crate::topology_operators::TopologyEditFamily::AttachBoundaryMembership
+        support.query_mutation_family_support_status(
+            crate::topology_operators::TopologyMutationFamily::AttachBoundaryMembership
         ),
-        TopologyQueryEditFamilySupportStatus::PartiallyAdmittedByLane
+        TopologyQueryMutationFamilySupportStatus::PartiallyAdmittedByLane
     );
     assert_eq!(
-        support.query_edit_family_support_status(
-            crate::topology_operators::TopologyEditFamily::AttachShellOrWireMembership
+        support.query_mutation_family_support_status(
+            crate::topology_operators::TopologyMutationFamily::AttachShellOrWireMembership
         ),
-        TopologyQueryEditFamilySupportStatus::PartiallyAdmittedByLane
+        TopologyQueryMutationFamilySupportStatus::PartiallyAdmittedByLane
     );
     assert_eq!(
-        support.query_edit_family_support_status(
-            crate::topology_operators::TopologyEditFamily::RewireLoopSuccessor
+        support.query_mutation_family_support_status(
+            crate::topology_operators::TopologyMutationFamily::RewireLoopSuccessor
         ),
-        TopologyQueryEditFamilySupportStatus::PartiallyAdmittedByLane
+        TopologyQueryMutationFamilySupportStatus::PartiallyAdmittedByLane
     );
     for lane in [
-        TopologyQueryEditLane::RelocateHalfEdgeBeforeSuccessor,
-        TopologyQueryEditLane::RelocateHalfEdgeSpanBeforeSuccessor,
-        TopologyQueryEditLane::CreateInnerLoopOnExistingFace,
-        TopologyQueryEditLane::RehomeAllOwnedHalfEdgesToNewWire,
-        TopologyQueryEditLane::SplitConnectedHalfEdgeSetIntoNewWire,
-        TopologyQueryEditLane::SplitSingleFaceFromTwoFaceShellToNewShell,
-        TopologyQueryEditLane::RehomeAllOwnedFacesToNewShell,
-        TopologyQueryEditLane::RewireLoopEndpoint,
-        TopologyQueryEditLane::SpliceRadialAdjacency,
+        TopologyQueryMutationLane::RelocateHalfEdgeBeforeSuccessor,
+        TopologyQueryMutationLane::RelocateHalfEdgeSpanBeforeSuccessor,
+        TopologyQueryMutationLane::CreateInnerLoopOnExistingFace,
+        TopologyQueryMutationLane::RehomeAllOwnedHalfEdgesToNewWire,
+        TopologyQueryMutationLane::SplitConnectedHalfEdgeSetIntoNewWire,
+        TopologyQueryMutationLane::SplitSingleFaceFromTwoFaceShellToNewShell,
+        TopologyQueryMutationLane::RehomeAllOwnedFacesToNewShell,
+        TopologyQueryMutationLane::RewireLoopEndpoint,
+        TopologyQueryMutationLane::SpliceRadialAdjacency,
     ] {
         assert_eq!(
-            support.query_edit_lane_support_status(lane),
-            TopologyQueryEditLaneSupportStatus::Admitted
+            support.query_mutation_lane_support_status(lane),
+            TopologyQueryMutationLaneSupportStatus::Admitted
         );
     }
     for family in [
-        crate::topology_operators::TopologyEditFamily::CreateTopologyEntity,
-        crate::topology_operators::TopologyEditFamily::DetachBoundaryMembership,
-        crate::topology_operators::TopologyEditFamily::DetachRadialAdjacency,
-        crate::topology_operators::TopologyEditFamily::DetachShellOrWireMembership,
-        crate::topology_operators::TopologyEditFamily::RetireTopologyEntity,
-        crate::topology_operators::TopologyEditFamily::RewireLoopEndpoint,
-        crate::topology_operators::TopologyEditFamily::SpliceRadialAdjacency,
+        crate::topology_operators::TopologyMutationFamily::CreateTopologyEntity,
+        crate::topology_operators::TopologyMutationFamily::DetachBoundaryMembership,
+        crate::topology_operators::TopologyMutationFamily::DetachRadialAdjacency,
+        crate::topology_operators::TopologyMutationFamily::DetachShellOrWireMembership,
+        crate::topology_operators::TopologyMutationFamily::RetireTopologyEntity,
+        crate::topology_operators::TopologyMutationFamily::RewireLoopEndpoint,
+        crate::topology_operators::TopologyMutationFamily::SpliceRadialAdjacency,
     ] {
         assert_eq!(
-            support.query_edit_family_support_status(family),
-            TopologyQueryEditFamilySupportStatus::Admitted
+            support.query_mutation_family_support_status(family),
+            TopologyQueryMutationFamilySupportStatus::Admitted
         );
     }
 }
@@ -199,9 +199,9 @@ fn snapshot_read_only_runtime_support_reports_historical_read_only_posture() {
         TopologyRuntimePostureStatus::Admitted
     );
     assert!(support
-        .query_edit_lane_support_rows()
+        .query_mutation_lane_support_rows()
         .iter()
-        .all(|row| row.status() == TopologyQueryEditLaneSupportStatus::Denied));
+        .all(|row| row.status() == TopologyQueryMutationLaneSupportStatus::Denied));
 
     let support_profile = support.support_profile();
     let live_support = support_profile

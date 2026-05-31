@@ -6,12 +6,12 @@ use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
 
-use super::super::contracts::TopologyEditFamily;
+use super::super::mutation_records::TopologyMutationFamily;
 #[derive(Debug)]
-pub enum TopologyOperatorExecutionError {
-    UnsupportedFamilies(Vec<TopologyEditFamily>),
+pub enum TopologyMutationApplicationError {
+    UnsupportedFamilies(Vec<TopologyMutationFamily>),
     DeclarationEntry {
-        family: TopologyEditFamily,
+        family: TopologyMutationFamily,
         stop_class: TopologyDeclarationEntryStopClass,
         stop_stage: ForgeQueryDeclarationEntryOrchestrationStage,
         refusal_class: Option<TopologyDeclarationEntryRefusalClass>,
@@ -144,12 +144,12 @@ impl From<ForgeQueryDeclarationEntryOrchestrationRefusalClass>
     }
 }
 
-impl std::fmt::Display for TopologyOperatorExecutionError {
+impl std::fmt::Display for TopologyMutationApplicationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UnsupportedFamilies(families) => write!(
                 f,
-                "topology query edit execution does not admit families `{families:?}` yet"
+                "topology query mutation application does not admit families `{families:?}` yet"
             ),
             Self::DeclarationEntry {
                 family,
@@ -170,15 +170,15 @@ impl std::fmt::Display for TopologyOperatorExecutionError {
             }
             Self::MissingCreatedEntityReference(create_key) => write!(
                 f,
-                "topology query edit execution is missing same-batch created entity `{create_key}`"
+                "topology query mutation application is missing same-mutation-set created entity `{create_key}`"
             ),
             Self::MissingExistingEntityBinding(entity_id) => write!(
                 f,
-                "topology query edit execution is missing live query binding for authoritative entity `{entity_id:?}`"
+                "topology query mutation application is missing live query binding for authoritative entity `{entity_id:?}`"
             ),
             Self::MissingExistingRelationBinding(relation_id) => write!(
                 f,
-                "topology query edit execution is missing live query binding for authoritative relation `{relation_id:?}`"
+                "topology query mutation application is missing live query binding for authoritative relation `{relation_id:?}`"
             ),
             Self::CreatedEntityKindMismatch {
                 create_key,
@@ -186,7 +186,7 @@ impl std::fmt::Display for TopologyOperatorExecutionError {
                 actual,
             } => write!(
                 f,
-                "topology query edit execution expected created entity `{create_key}` to be `{}`, found `{}`",
+                "topology query mutation application expected created entity `{create_key}` to be `{}`, found `{}`",
                 expected.kind_name(),
                 actual.kind_name()
             ),
@@ -196,7 +196,7 @@ impl std::fmt::Display for TopologyOperatorExecutionError {
                 actual,
             } => write!(
                 f,
-                "topology query edit execution expected authoritative entity `{entity_id:?}` to be `{}`, found `{}`",
+                "topology query mutation application expected authoritative entity `{entity_id:?}` to be `{}`, found `{}`",
                 expected.kind_name(),
                 actual.kind_name()
             ),
@@ -206,7 +206,7 @@ impl std::fmt::Display for TopologyOperatorExecutionError {
                 actual,
             } => write!(
                 f,
-                "topology query edit execution expected authoritative relation `{relation_id:?}` to be `{}`, found `{}`",
+                "topology query mutation application expected authoritative relation `{relation_id:?}` to be `{}`, found `{}`",
                 expected.kind_name(),
                 actual.kind_name()
             ),
@@ -216,7 +216,7 @@ impl std::fmt::Display for TopologyOperatorExecutionError {
                 actual_source_identity,
             } => write!(
                 f,
-                "topology query edit execution expected authoritative relation `{relation_id:?}` to originate from halfedge `{expected_source_entity_id:?}`, found query source identity `{actual_source_identity}`"
+                "topology query mutation application expected authoritative relation `{relation_id:?}` to originate from halfedge `{expected_source_entity_id:?}`, found query source identity `{actual_source_identity}`"
             ),
             Self::ExistingEntityOutgoingRelationCountMismatch {
                 entity_id,
@@ -225,7 +225,7 @@ impl std::fmt::Display for TopologyOperatorExecutionError {
                 actual,
             } => write!(
                 f,
-                "topology query edit execution expected authoritative entity `{entity_id:?}` to have exactly {expected} outgoing `{}` relation(s), found {actual}",
+                "topology query mutation application expected authoritative entity `{entity_id:?}` to have exactly {expected} outgoing `{}` relation(s), found {actual}",
                 relation_kind.kind_name()
             ),
             Self::ExistingEntityIncomingRelationCountMismatch {
@@ -235,7 +235,7 @@ impl std::fmt::Display for TopologyOperatorExecutionError {
                 actual,
             } => write!(
                 f,
-                "topology query edit execution expected authoritative entity `{entity_id:?}` to have exactly {expected} incoming `{}` relation(s), found {actual}",
+                "topology query mutation application expected authoritative entity `{entity_id:?}` to have exactly {expected} incoming `{}` relation(s), found {actual}",
                 relation_kind.kind_name()
             ),
             Self::ExistingHalfEdgesNotOnSameEdge {
@@ -246,7 +246,7 @@ impl std::fmt::Display for TopologyOperatorExecutionError {
                 target_edge_identity,
             } => write!(
                 f,
-                "topology query edit execution expected radial splice relation `{relation_id:?}` to keep halfedges `{source_half_edge_id:?}` and `{target_half_edge_id:?}` on the same edge, found source edge `{source_edge_identity}` and target edge `{target_edge_identity}`"
+                "topology query mutation application expected radial splice relation `{relation_id:?}` to keep halfedges `{source_half_edge_id:?}` and `{target_half_edge_id:?}` on the same edge, found source edge `{source_edge_identity}` and target edge `{target_edge_identity}`"
             ),
             Self::ExistingHalfEdgesNotOnSameLoop {
                 relation_id,
@@ -256,27 +256,27 @@ impl std::fmt::Display for TopologyOperatorExecutionError {
                 target_loop_identity,
             } => write!(
                 f,
-                "topology query edit execution expected loop-successor relation `{relation_id:?}` to keep halfedges `{source_half_edge_id:?}` and `{target_half_edge_id:?}` on the same loop, found source loop `{source_loop_identity}` and target loop `{target_loop_identity}`"
+                "topology query mutation application expected loop-successor relation `{relation_id:?}` to keep halfedges `{source_half_edge_id:?}` and `{target_half_edge_id:?}` on the same loop, found source loop `{source_loop_identity}` and target loop `{target_loop_identity}`"
             ),
             Self::Query(error) => write!(f, "{error}"),
             Self::MaterializedDecode(message) => write!(f, "{message}"),
             Self::UnexpectedInspectionFamily => write!(
                 f,
-                "topology query edit execution expected batch-write receipt inspection"
+                "topology query mutation application expected declaration-write receipt inspection"
             ),
         }
     }
 }
 
-impl std::error::Error for TopologyOperatorExecutionError {}
+impl std::error::Error for TopologyMutationApplicationError {}
 
-impl From<ForgeQueryRuntimeError> for TopologyOperatorExecutionError {
+impl From<ForgeQueryRuntimeError> for TopologyMutationApplicationError {
     fn from(value: ForgeQueryRuntimeError) -> Self {
         Self::Query(value)
     }
 }
 
-impl From<ForgeQueryWorkspaceError> for TopologyOperatorExecutionError {
+impl From<ForgeQueryWorkspaceError> for TopologyMutationApplicationError {
     fn from(value: ForgeQueryWorkspaceError) -> Self {
         Self::Query(ForgeQueryRuntimeError::Workspace(value))
     }

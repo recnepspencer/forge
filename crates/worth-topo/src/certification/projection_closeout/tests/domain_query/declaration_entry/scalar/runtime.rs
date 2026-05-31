@@ -4,8 +4,8 @@ use schema::facade::topology_authoring::{
     seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
 };
 
-use super::super::super::support::execute_current_head_topology_declaration;
 use super::support::{endpoint_rewire_fixture, radial_splice_fixture, seeded_relation_id};
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::facade::{
     topology_runtime, BoundaryMembershipKind, LoopEndpointKind, ShellOrWireMembershipKind,
     TopologyDetachBoundaryMembershipDeclaration, TopologyDetachRadialAdjacencyDeclaration,
@@ -13,11 +13,11 @@ use crate::facade::{
     TopologyRewireLoopEndpointDeclaration, TopologyRuntimeAdapters,
     TopologySpliceRadialAdjacencyDeclaration,
 };
-use crate::topology_operators::TopologyOperatorExecutionError;
+use crate::topology_operators::application::TopologyMutationApplicationError;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
-fn current_head_runtime_executes_remaining_scalar_batches_through_declaration_entry() {
+fn current_head_runtime_executes_remaining_scalar_declarations_through_declaration_entry() {
     retire_runtime_case();
     detach_boundary_runtime_case();
     rewire_endpoint_runtime_case();
@@ -58,7 +58,7 @@ fn current_head_runtime_keeps_invalid_scalar_splice_on_typed_denial_boundary() {
 
     assert!(matches!(
         error,
-        TopologyOperatorExecutionError::ExistingRelationSourceMismatch { .. }
+        TopologyMutationApplicationError::ExistingRelationSourceMismatch { .. }
     ));
 }
 
@@ -78,7 +78,7 @@ fn retire_runtime_case() {
         &surfaces,
         TopologyRetireTopologyEntityDeclaration::new(seeded.vertex, TopologyEntityKind::Vertex),
     )
-    .expect("retire batch should execute through declaration entry");
+    .expect("retire declaration should execute through declaration entry");
 
     assert_eq!(
         execution.semantic_family_key(),
@@ -117,7 +117,7 @@ fn detach_boundary_runtime_case() {
             BoundaryMembershipKind::LoopOwnsHalfEdge,
         ),
     )
-    .expect("detach boundary batch should execute through declaration entry");
+    .expect("detach boundary declaration should execute through declaration entry");
 
     assert_eq!(
         execution.semantic_family_key(),
@@ -161,7 +161,7 @@ fn rewire_endpoint_runtime_case() {
             target_vertex_id,
         ),
     )
-    .expect("rewire endpoint batch should execute through declaration entry");
+    .expect("rewire endpoint declaration should execute through declaration entry");
 
     assert_eq!(
         execution.semantic_family_key(),
@@ -202,7 +202,7 @@ fn detach_shell_or_wire_runtime_case() {
             ShellOrWireMembershipKind::WireOwnsHalfEdge,
         ),
     )
-    .expect("detach shell-or-wire batch should execute through declaration entry");
+    .expect("detach shell-or-wire declaration should execute through declaration entry");
 
     assert_eq!(
         execution.semantic_family_key(),
@@ -245,7 +245,7 @@ fn splice_radial_runtime_case() {
             radial_next_half_edge_id,
         ),
     )
-    .expect("splice radial batch should execute through declaration entry");
+    .expect("splice radial declaration should execute through declaration entry");
 
     assert_eq!(
         execution.semantic_family_key(),
@@ -286,7 +286,7 @@ fn detach_radial_runtime_case() {
         &surfaces,
         TopologyDetachRadialAdjacencyDeclaration::new(relation_id),
     )
-    .expect("detach radial batch should execute through declaration entry");
+    .expect("detach radial declaration should execute through declaration entry");
 
     assert_eq!(
         execution.semantic_family_key(),

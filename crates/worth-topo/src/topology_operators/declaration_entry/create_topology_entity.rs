@@ -9,7 +9,9 @@ use forge_query::facade::{
 use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
-use crate::topology_operators::TopologyEditContract;
+use crate::topology_operators::{
+    TopologyDeclaredMutationSequence, TopologyDeclaredMutationSequenceBuilder,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TopologyCreateTopologyEntityDeclaration {
@@ -33,11 +35,10 @@ impl TopologyCreateTopologyEntityDeclaration {
         self.kind
     }
 
-    pub(crate) fn into_contracts(self) -> Vec<TopologyEditContract> {
-        vec![TopologyEditContract::create_topology_entity(
-            self.create_key,
-            self.kind,
-        )]
+    pub(crate) fn declared_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        let mut builder = TopologyDeclaredMutationSequenceBuilder::builder();
+        builder.create_topology_entity(self.create_key, self.kind);
+        builder.finish()
     }
 }
 

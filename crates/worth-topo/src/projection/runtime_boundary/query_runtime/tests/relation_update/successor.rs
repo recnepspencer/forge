@@ -5,14 +5,14 @@ use forge_query::facade::{
 };
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
-use super::super::declaration_runtime_support::{
+use super::super::query_runtime_support::QueryRuntimeSupport;
+use crate::certification::support::declaration_runtime::{
     current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
 };
-use super::super::query_runtime_support::QueryRuntimeSupport;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::topology_operators::{LoopSuccessorKind, TopologyEditFamily};
+use crate::topology_operators::{LoopSuccessorKind, TopologyMutationFamily};
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
@@ -20,13 +20,13 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.query-edit-rewire-successor",
+        ".current-head.query-mutation-rewire-successor",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 5 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace =
-        topology_runtime(adapters, ".current-head.query-edit-rewire-successor").expect("workspace");
+    let mut workspace = topology_runtime(adapters, ".current-head.query-mutation-rewire-successor")
+        .expect("workspace");
     let surfaces =
         crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
             &mut workspace,
@@ -63,11 +63,10 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     assert!(execution
         .families
         .iter()
-        .all(|family| *family == TopologyEditFamily::RewireLoopSuccessor));
+        .all(|family| *family == TopologyMutationFamily::RewireLoopSuccessor));
     assert_eq!(
         execution
-            .receipt
-            .batch_mutation_evidence()
+            .mutation_evidence()
             .backend_verified_update_count(),
         6
     );
@@ -182,14 +181,14 @@ fn current_head_runtime_denies_cross_loop_successor_relocation_program() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.query-edit-rewire-successor-cross-loop",
+        ".current-head.query-mutation-rewire-successor-cross-loop",
         &MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(
         adapters,
-        ".current-head.query-edit-rewire-successor-cross-loop",
+        ".current-head.query-mutation-rewire-successor-cross-loop",
     )
     .expect("workspace");
     let surfaces =
@@ -208,7 +207,7 @@ fn current_head_runtime_denies_cross_loop_successor_relocation_program() {
     );
     assert_eq!(
         current_head_unsupported_declaration_families(&mut workspace, &surfaces, &declaration),
-        vec![TopologyEditFamily::RewireLoopSuccessor]
+        vec![TopologyMutationFamily::RewireLoopSuccessor]
     );
 }
 

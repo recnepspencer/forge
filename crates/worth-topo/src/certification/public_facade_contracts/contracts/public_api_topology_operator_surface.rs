@@ -280,18 +280,18 @@ fn _topology_operator_surface_contracts() {
         TopologyRuntimeAdapters::support;
     let _: fn(
         &TopologyRuntimeSupport,
-        topology::facade::TopologyEditFamily,
-    ) -> TopologyQueryEditFamilySupportStatus =
-        TopologyRuntimeSupport::query_edit_family_support_status;
-    let _: fn(&TopologyRuntimeSupport) -> &[TopologyRuntimeEditFamilySupportRow] =
-        TopologyRuntimeSupport::query_edit_family_support_rows;
-    let _: fn(&TopologyRuntimeSupport) -> &[TopologyRuntimeEditLaneSupportRow] =
-        TopologyRuntimeSupport::query_edit_lane_support_rows;
+        topology::facade::TopologyMutationFamily,
+    ) -> TopologyQueryMutationFamilySupportStatus =
+        TopologyRuntimeSupport::query_mutation_family_support_status;
+    let _: fn(&TopologyRuntimeSupport) -> &[TopologyRuntimeMutationFamilySupportRow] =
+        TopologyRuntimeSupport::query_mutation_family_support_rows;
+    let _: fn(&TopologyRuntimeSupport) -> &[TopologyRuntimeMutationLaneSupportRow] =
+        TopologyRuntimeSupport::query_mutation_lane_support_rows;
     let _: fn(
         &TopologyRuntimeSupport,
-        TopologyQueryEditLane,
-    ) -> TopologyQueryEditLaneSupportStatus =
-        TopologyRuntimeSupport::query_edit_lane_support_status;
+        TopologyQueryMutationLane,
+    ) -> TopologyQueryMutationLaneSupportStatus =
+        TopologyRuntimeSupport::query_mutation_lane_support_status;
     let _: fn(&TopologyRuntimeSupport) -> &[TopologyRuntimePostureRow] =
         TopologyRuntimeSupport::runtime_posture_rows;
     let _: fn(
@@ -311,7 +311,7 @@ fn _topology_operator_surface_contracts() {
         &TopologyRuntimeCloseout,
         TopologyRuntimeCloseoutFamily,
     ) -> TopologyRuntimeCloseoutStatus = TopologyRuntimeCloseout::status;
-    let _: fn(TopologyQueryEditLane) -> &'static str = TopologyQueryEditLane::as_str;
-    let _: Option<TopologyQueryEditLaneExecutionShape> = None;
+    let _: fn(TopologyQueryMutationLane) -> &'static str = TopologyQueryMutationLane::as_str;
+    let _: Option<TopologyQueryMutationLaneExecutionShape> = None;
 }
 

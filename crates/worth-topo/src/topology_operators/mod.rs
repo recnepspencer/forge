@@ -1,27 +1,16 @@
 pub(crate) mod application;
-mod contract_sequence;
-mod contracts;
 mod declaration_entry;
+mod declared_mutation_sequence_builder;
 mod facade;
 mod local_rewrites;
+mod mutation_digest;
+pub(crate) mod mutation_records;
+mod mutation_sequence;
 mod naming_continuity;
 mod rejection_locality;
-mod replay;
 
 pub(crate) use application::topology_relation_dependency_path;
-pub(crate) use application::TopologyOperatorExecutionError;
-pub(crate) use application::TopologyOperatorRunner;
 pub use application::{TopologyDeclarationEntryRefusalClass, TopologyDeclarationEntryStopClass};
-pub(crate) use contract_sequence::{
-    naming_edit_continuity_matrix_for_contracts, topology_edit_digest_for_contracts,
-    topology_edit_families_for_contracts, topology_edit_naming_report_for_contracts,
-};
-pub use contracts::{
-    BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, ShellOrWireMembershipKind,
-    TopologyDerivedRegion, TopologyEditAction, TopologyEditChangedScope, TopologyEditContract,
-    TopologyEditDerivedFallbackPolicy, TopologyEditFamily, TopologyEditNamingOutcome,
-    TopologyEditNamingReport, TopologyEditNamingRow, TopologyEditNamingScope,
-};
 pub use declaration_entry::{
     TopologyAttachBoundaryMembershipDeclaration, TopologyAttachBoundaryMembershipFamily,
     TopologyAttachShellOrWireMembershipDeclaration, TopologyAttachShellOrWireMembershipFamily,
@@ -45,9 +34,21 @@ pub use declaration_entry::{
     TopologySplitSingleFaceFromTwoFaceShellToNewShellFamily, TopologyWireRehomeHalfEdgeMember,
     TopologyWireSplitHalfEdgeMember,
 };
-pub use facade::TopologyEditApplicationMode;
-pub use naming_continuity::NamingEditContinuityMatrix;
-pub use rejection_locality::{
-    RejectedEditScopeReport, RejectedEditScopeRow, TopologyEditRejectionClass,
+pub(crate) use declared_mutation_sequence_builder::TopologyDeclaredMutationSequenceBuilder;
+pub use facade::TopologyMutationApplicationMode;
+pub use mutation_digest::{TopologyMutationDigest, TopologyMutationSequenceDigest};
+pub(crate) use mutation_records::TopologyDeclaredMutationActionRef;
+pub use mutation_records::{
+    BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, ShellOrWireMembershipKind,
+    TopologyDerivedRegion, TopologyMutationChangedScope, TopologyMutationDerivedFallbackPolicy,
+    TopologyMutationFamily, TopologyMutationNamingOutcome, TopologyMutationNamingReport,
+    TopologyMutationNamingRow, TopologyMutationNamingScope,
 };
-pub use replay::{TopologyEditDigest, TopologyOperatorDigest};
+#[cfg(test)]
+pub(crate) use mutation_sequence::topology_mutation_digest_for_records;
+pub(crate) use mutation_sequence::TopologyDeclaredMutationMember;
+pub(crate) use mutation_sequence::TopologyDeclaredMutationSequence;
+pub use naming_continuity::NamingMutationContinuityMatrix;
+pub use rejection_locality::{
+    RejectedMutationScopeReport, RejectedMutationScopeRow, TopologyMutationRejectionClass,
+};

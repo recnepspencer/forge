@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `topology::facade::TopologyOperatorRunner`
- --> src/certification/public_facade_contracts/compile_fail/public_topology_operator_runner_not_exported.rs:1:5
-  |
-1 | use topology::facade::TopologyOperatorRunner;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyOperatorRunner` in `facade`

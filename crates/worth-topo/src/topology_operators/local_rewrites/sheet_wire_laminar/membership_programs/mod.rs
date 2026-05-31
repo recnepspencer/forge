@@ -7,37 +7,32 @@ use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQueryInspection};
 
 use crate::projection::runtime_boundary::query_runtime::load_post_write_materialized_topology;
 use crate::topology_operators::application::{
-    TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError, TopologyOperatorRunner,
+    TopologyDeclaredMutationArtifact, TopologyMutationApplicationError,
+    TopologyMutationApplicationRunner,
 };
 use crate::topology_operators::{
-    NamingEditContinuityMatrix, TopologyEditApplicationMode, TopologyEditDigest, TopologyEditFamily,
+    TopologyDeclaredMutationSequence, TopologyMutationApplicationMode,
 };
 
-impl<'workspace, 'surfaces> TopologyOperatorRunner<'workspace, 'surfaces> {
+impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
     pub(crate) fn finish_composed_membership_execution(
         &mut self,
-        _mode: TopologyEditApplicationMode,
+        _mode: TopologyMutationApplicationMode,
         semantic_family_key: &'static str,
-        families: Vec<TopologyEditFamily>,
-        topology_edit_digest: TopologyEditDigest,
-        naming_continuity_matrix: NamingEditContinuityMatrix,
-        naming_report: crate::topology_operators::TopologyEditNamingReport,
+        sequence: &TopologyDeclaredMutationSequence,
         receipt: ForgeQueryBatchWriteReceipt,
-    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
         let inspection = match self.workspace.inspect(&receipt)? {
             ForgeQueryInspection::BatchWriteReceipt(inspection) => inspection,
-            _ => return Err(TopologyOperatorExecutionError::UnexpectedInspectionFamily),
+            _ => return Err(TopologyMutationApplicationError::UnexpectedInspectionFamily),
         };
         let materialized = load_post_write_materialized_topology(self.workspace, self.surfaces)?;
-        Ok(TopologyDeclaredMutationArtifact {
+        Ok(TopologyDeclaredMutationArtifact::from_receipt(
             semantic_family_key,
-            families,
+            sequence,
             receipt,
             inspection,
             materialized,
-            topology_edit_digest,
-            naming_continuity_matrix,
-            naming_report,
-        })
+        ))
     }
 }

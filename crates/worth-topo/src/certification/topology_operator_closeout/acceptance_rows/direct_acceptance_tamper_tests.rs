@@ -1,5 +1,5 @@
 use crate::facade::certify_milestone_three_hostile_suite;
-use crate::topology_operators::TopologyEditRejectionClass;
+use crate::topology_operators::TopologyMutationRejectionClass;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 use super::direct_acceptance::ensure_direct_acceptance_proof_rows;
@@ -13,11 +13,11 @@ fn direct_acceptance_rejects_derived_fallback_policy_exceeded_rows() {
     let fallout_row = explicit_fallback_row(&mut report);
     fallout_row.fallback_policy_exceeded = true;
     fallout_row.fallback_rejection_class =
-        Some(TopologyEditRejectionClass::DerivedFallbackExceeded);
+        Some(TopologyMutationRejectionClass::DerivedFallbackExceeded);
 
     assert!(
         ensure_direct_acceptance_proof_rows(&report).is_err(),
-        "closeout must reject fallback rows that exceed the declared edit fallback policy"
+        "closeout must reject fallback rows that exceed the declared mutation fallback policy"
     );
 }
 
@@ -30,7 +30,7 @@ fn direct_acceptance_rejects_forged_derived_fallback_rejection_rows() {
     let fallout_row = explicit_fallback_row(&mut report);
     fallout_row.fallback_policy_exceeded = false;
     fallout_row.fallback_rejection_class =
-        Some(TopologyEditRejectionClass::DerivedFallbackExceeded);
+        Some(TopologyMutationRejectionClass::DerivedFallbackExceeded);
 
     assert!(
         ensure_direct_acceptance_proof_rows(&report).is_err(),
@@ -99,9 +99,10 @@ fn certified_hostile_suite_before_tamper(
 
 fn explicit_fallback_row(
     report: &mut crate::certification::topology_operator_closeout::MilestoneThreeHostileSuiteReport,
-) -> &mut crate::certification::topology_operator_closeout::MilestoneThreeEditFalloutBreadthRow {
+) -> &mut crate::certification::topology_operator_closeout::MilestoneThreeMutationFalloutBreadthRow
+{
     report
-        .edit_fallout_breadth_rows
+        .mutation_fallout_breadth_rows
         .iter_mut()
         .find(|row| row.fallback_count > 0)
         .expect("hostile suite should include explicit fallback evidence")

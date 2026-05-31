@@ -1,0 +1,11 @@
+error[E0599]: no method named `query_mutation_lane_supported` found for struct `TopologyRuntimeSupport` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/public_runtime_removed_mutation_lane_string_support_not_exported.rs:5:21
+  |
+5 |     let _ = support.query_mutation_lane_supported("CreateInnerLoopOnExistingFace");
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `query_mutation_lane_support_rows` with a similar name, but with different arguments
+ --> src/projection/runtime_boundary/query_runtime/mutation_support.rs
+  |
+  |     pub fn query_mutation_lane_support_rows(&self) -> &[TopologyRuntimeMutationLaneSupportRow] {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

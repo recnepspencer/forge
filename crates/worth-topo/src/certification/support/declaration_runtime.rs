@@ -1,12 +1,15 @@
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{
-    TopologyDeclarationContractPayload, TopologyDeclaredMutationArtifact, TopologyOperatorRunner,
+    TopologyDeclarationMutationPayload, TopologyDeclaredMutationArtifact,
+    TopologyMutationApplicationError, TopologyMutationApplicationRunner,
 };
+#[cfg(test)]
+use crate::topology_operators::TopologyMutationFamily;
 use crate::topology_operators::{
     TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyCreateTopologyEntityDeclaration,
     TopologyDetachBoundaryMembershipDeclaration, TopologyDetachRadialAdjacencyDeclaration,
-    TopologyDetachShellOrWireMembershipDeclaration, TopologyOperatorExecutionError,
+    TopologyDetachShellOrWireMembershipDeclaration,
     TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyRetireTopologyEntityDeclaration,
     TopologyRewireLoopEndpointDeclaration, TopologyRewireLoopSuccessorProgramDeclaration,
@@ -19,7 +22,7 @@ use forge_query::facade::ForgeQueryWorkspace;
 pub(crate) fn current_operator_bindings(
     workspace: &mut ForgeQueryWorkspace,
     surfaces: &TopologyDeclaredQuerySurfaces,
-) -> Result<TopologyQueryBindingIndex, TopologyOperatorExecutionError> {
+) -> Result<TopologyQueryBindingIndex, TopologyMutationApplicationError> {
     TopologyQueryBindingIndex::from_query_rows(
         &workspace.read(surfaces.entities()),
         &workspace.read(surfaces.relations()),
@@ -30,51 +33,66 @@ pub(crate) fn execute_current_head_topology_declaration<D>(
     workspace: &mut ForgeQueryWorkspace,
     surfaces: &TopologyDeclaredQuerySurfaces,
     declaration: D,
-) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError>
+) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError>
 where
     D: TopologyCurrentHeadRuntimeDeclaration,
 {
     let bindings = current_operator_bindings(workspace, surfaces)?;
-    let mut runner = TopologyOperatorRunner::new(workspace, surfaces);
+    let mut runner = TopologyMutationApplicationRunner::new(workspace, surfaces);
     declaration.execute_on_runner(&mut runner, &bindings)
 }
 
+#[cfg(test)]
+pub(crate) fn current_head_unsupported_declaration_families<D>(
+    workspace: &mut ForgeQueryWorkspace,
+    surfaces: &TopologyDeclaredQuerySurfaces,
+    declaration: &D,
+) -> Vec<TopologyMutationFamily>
+where
+    D: TopologyDeclarationMutationPayload,
+{
+    let bindings = current_operator_bindings(workspace, surfaces)
+        .expect("current-head unsupported-family review should decode");
+    let support = TopologyRuntimeSupport::current_head_authoritative();
+    unsupported_declaration_families(&support, &bindings, declaration)
+}
+
 pub(crate) trait TopologyCurrentHeadRuntimeDeclaration:
-    Clone + TopologyDeclarationContractPayload
+    Clone + TopologyDeclarationMutationPayload
 {
     fn execute_on_runner(
         self,
-        runner: &mut TopologyOperatorRunner<'_, '_>,
+        runner: &mut TopologyMutationApplicationRunner<'_, '_>,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError>;
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError>;
 }
 
 impl TopologyCurrentHeadRuntimeDeclaration for TopologyCreateInnerLoopOnExistingFaceDeclaration {
     fn execute_on_runner(
         self,
-        runner: &mut TopologyOperatorRunner<'_, '_>,
+        runner: &mut TopologyMutationApplicationRunner<'_, '_>,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
         runner.apply_create_inner_loop_on_existing_face_declaration(
             self,
             bindings,
-            crate::facade::TopologyEditApplicationMode::Mainline,
+            crate::facade::TopologyMutationApplicationMode::Mainline,
         )
     }
 }
 
 macro_rules! impl_single_family_runtime_declaration {
-    ($ty:ty, $family:path, $method:ident) => {
+    ($ty:ty, $method:ident) => {
         impl TopologyCurrentHeadRuntimeDeclaration for $ty {
             fn execute_on_runner(
                 self,
-                runner: &mut TopologyOperatorRunner<'_, '_>,
+                runner: &mut TopologyMutationApplicationRunner<'_, '_>,
                 bindings: &TopologyQueryBindingIndex,
-            ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
+            ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
                 runner.$method(
                     self,
                     bindings,
-                    crate::facade::TopologyEditApplicationMode::Mainline,
+                    crate::facade::TopologyMutationApplicationMode::Mainline,
                 )
             }
         }
@@ -83,44 +101,38 @@ macro_rules! impl_single_family_runtime_declaration {
 
 impl_single_family_runtime_declaration!(
     TopologyDetachBoundaryMembershipDeclaration,
-    TopologyEditFamily::DetachBoundaryMembership,
     apply_detach_boundary_membership_declaration
 );
 impl_single_family_runtime_declaration!(
     TopologyDetachShellOrWireMembershipDeclaration,
-    TopologyEditFamily::DetachShellOrWireMembership,
     apply_detach_shell_or_wire_membership_declaration
 );
 impl_single_family_runtime_declaration!(
     TopologyDetachRadialAdjacencyDeclaration,
-    TopologyEditFamily::DetachRadialAdjacency,
     apply_detach_radial_adjacency_declaration
 );
 impl_single_family_runtime_declaration!(
     TopologyRetireTopologyEntityDeclaration,
-    TopologyEditFamily::RetireTopologyEntity,
     apply_retire_topology_entity_declaration
 );
 impl_single_family_runtime_declaration!(
     TopologyRewireLoopEndpointDeclaration,
-    TopologyEditFamily::RewireLoopEndpoint,
     apply_rewire_loop_endpoint_declaration
 );
 impl_single_family_runtime_declaration!(
     TopologySpliceRadialAdjacencyDeclaration,
-    TopologyEditFamily::SpliceRadialAdjacency,
     apply_splice_radial_adjacency_declaration
 );
 
 impl TopologyCurrentHeadRuntimeDeclaration for TopologyCreateTopologyEntityDeclaration {
     fn execute_on_runner(
         self,
-        runner: &mut TopologyOperatorRunner<'_, '_>,
+        runner: &mut TopologyMutationApplicationRunner<'_, '_>,
         _bindings: &TopologyQueryBindingIndex,
-    ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
         runner.apply_create_topology_entity_declaration(
             self,
-            crate::facade::TopologyEditApplicationMode::Mainline,
+            crate::facade::TopologyMutationApplicationMode::Mainline,
         )
     }
 }
@@ -130,13 +142,13 @@ macro_rules! impl_grouped_runtime_declaration {
         impl TopologyCurrentHeadRuntimeDeclaration for $ty {
             fn execute_on_runner(
                 self,
-                runner: &mut TopologyOperatorRunner<'_, '_>,
+                runner: &mut TopologyMutationApplicationRunner<'_, '_>,
                 bindings: &TopologyQueryBindingIndex,
-            ) -> Result<TopologyDeclaredMutationArtifact, TopologyOperatorExecutionError> {
+            ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
                 runner.$method(
                     self,
                     bindings,
-                    crate::facade::TopologyEditApplicationMode::Mainline,
+                    crate::facade::TopologyMutationApplicationMode::Mainline,
                 )
             }
         }
@@ -167,3 +179,7 @@ impl_grouped_runtime_declaration!(
     TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
     apply_split_single_face_from_two_face_shell_to_new_shell_declaration
 );
+#[cfg(test)]
+use crate::projection::runtime_boundary::query_runtime::TopologyRuntimeSupport;
+#[cfg(test)]
+use crate::topology_operators::application::admission::unsupported_declaration_families;

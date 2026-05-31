@@ -3,14 +3,14 @@ use crate::certification::{ReplayParityStatus, TopologyCertificationError};
 
 use super::super::milestone_three_required_scenarios;
 use super::super::report::{
-    MilestoneThreeEditFalloutBreadthRow, MilestoneThreeHostileScenarioReport,
-    MilestoneThreeHostileSuiteReport,
+    MilestoneThreeHostileScenarioReport, MilestoneThreeHostileSuiteReport,
+    MilestoneThreeMutationFalloutBreadthRow,
 };
 use super::derived_reuse_rows::MilestoneThreeDerivedReuseLegalityRow;
 
 pub(in crate::certification::topology_operator_closeout) fn build_derived_reuse_legality_rows(
     reports: &[MilestoneThreeHostileScenarioReport],
-    fallout_rows: &[MilestoneThreeEditFalloutBreadthRow],
+    fallout_rows: &[MilestoneThreeMutationFalloutBreadthRow],
 ) -> Vec<MilestoneThreeDerivedReuseLegalityRow> {
     reports
         .iter()
@@ -19,7 +19,7 @@ pub(in crate::certification::topology_operator_closeout) fn build_derived_reuse_
                 .iter()
                 .find(|row| row.scenario == report.scenario)
                 .expect("fallout row should exist for every hostile scenario");
-            let replay = &report.edit_replay_parity_report;
+            let replay = &report.mutation_replay_parity_report;
             let replay_materialized_topology_equivalent = replay.parity_status
                 == ReplayParityStatus::Match
                 && replay.final_materialized_topology_digest

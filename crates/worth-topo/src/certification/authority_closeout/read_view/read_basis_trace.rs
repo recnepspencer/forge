@@ -14,7 +14,7 @@ impl MilestoneOneCertificationHarness {
     pub(crate) fn certify_read_basis_with_runtime_traced(
         runtime: &mut RelationalRuntime,
         read_basis: DerivedTopologyReadBasis,
-        authority_batch: Option<&TopologyMutationBatch>,
+        authority_mutations: Option<&[TopologyMutation]>,
         replay_history_length: usize,
     ) -> Result<
         TracedMilestoneOneCertificationReport,
@@ -214,7 +214,7 @@ impl MilestoneOneCertificationHarness {
                 && topology_validation_digest == replay_topology_validation_digest,
         };
         let counters = build_counter_report(
-            authority_batch,
+            authority_mutations,
             &snapshot.validation,
             &naming_attachment_report,
             &primitive_family_coverage_matrix,
@@ -284,7 +284,7 @@ impl MilestoneOneCertificationHarness {
         let traced = Self::certify_read_basis_with_runtime_traced(
             runtime,
             verified.read_basis().clone(),
-            Some(&verified.canonical_batch().batch),
+            Some(verified.mutations()),
             verified.commits().len(),
         )?;
         let mut report = traced.primary_result().clone();

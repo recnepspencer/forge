@@ -2,29 +2,30 @@ use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
 use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
-use super::super::declaration_runtime_support::execute_current_head_topology_declaration;
 use super::super::query_runtime_support::{query_relation_id_from_row, QueryRuntimeSupport};
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::topology_operators::application::TopologyMutationApplicationError;
 use crate::topology_operators::{
-    TopologyEditFamily, TopologyEditRejectionClass, TopologyOperatorExecutionError,
+    TopologyMutationFamily, TopologyMutationRejectionClass,
     TopologySpliceRadialAdjacencyDeclaration,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
-fn current_head_runtime_executes_splice_radial_adjacency_through_topology_operator_runner() {
+fn current_head_runtime_executes_splice_radial_adjacency_through_topology_mutation_application() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.query-edit-splice-radial",
+        ".current-head.query-mutation-splice-radial",
         &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace =
-        topology_runtime(adapters, ".current-head.query-edit-splice-radial").expect("workspace");
+    let mut workspace = topology_runtime(adapters, ".current-head.query-mutation-splice-radial")
+        .expect("workspace");
     let surfaces =
         crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
             &mut workspace,
@@ -73,7 +74,7 @@ fn current_head_runtime_executes_splice_radial_adjacency_through_topology_operat
 
     assert_eq!(
         execution.families,
-        vec![TopologyEditFamily::SpliceRadialAdjacency]
+        vec![TopologyMutationFamily::SpliceRadialAdjacency]
     );
     assert_eq!(
         execution.inspection.component_operations()[0].family(),
@@ -85,8 +86,7 @@ fn current_head_runtime_executes_splice_radial_adjacency_through_topology_operat
     );
     assert_eq!(
         execution
-            .receipt
-            .batch_mutation_evidence()
+            .mutation_evidence()
             .backend_verified_update_count(),
         1
     );
@@ -115,14 +115,14 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.query-edit-splice-radial-source-mismatch",
+        ".current-head.query-mutation-splice-radial-source-mismatch",
         &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(
         adapters,
-        ".current-head.query-edit-splice-radial-source-mismatch",
+        ".current-head.query-mutation-splice-radial-source-mismatch",
     )
     .expect("workspace");
     let surfaces =
@@ -173,7 +173,7 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
 
     assert!(matches!(
         error,
-        TopologyOperatorExecutionError::ExistingRelationSourceMismatch {
+        TopologyMutationApplicationError::ExistingRelationSourceMismatch {
             relation_id,
             expected_source_entity_id,
             ..
@@ -182,7 +182,7 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
     ));
     assert_eq!(
         error.rejection_class(),
-        Some(TopologyEditRejectionClass::InvariantBlocked)
+        Some(TopologyMutationRejectionClass::InvariantBlocked)
     );
     let report = error
         .rejected_declaration_scope_report(&declaration)
@@ -190,15 +190,15 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
     assert_eq!(report.rows.len(), 1);
     assert_eq!(
         report.rows[0].rejection_class,
-        TopologyEditRejectionClass::InvariantBlocked
+        TopologyMutationRejectionClass::InvariantBlocked
     );
     assert_eq!(
         report.rows[0].family,
-        TopologyEditFamily::SpliceRadialAdjacency
+        TopologyMutationFamily::SpliceRadialAdjacency
     );
     assert!(report.rows[0]
         .changed_scopes
-        .contains(&crate::topology_operators::TopologyEditChangedScope::RadialNeighborhood));
+        .contains(&crate::topology_operators::TopologyMutationChangedScope::RadialNeighborhood));
     assert!(report.rows[0]
         .derived_regions
         .contains(&crate::topology_operators::TopologyDerivedRegion::RadialNeighborhoodRegion));
@@ -209,14 +209,16 @@ fn current_head_runtime_denies_splice_radial_adjacency_across_different_edges() 
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.query-edit-splice-radial-mismatch",
+        ".current-head.query-mutation-splice-radial-mismatch",
         &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace =
-        topology_runtime(adapters, ".current-head.query-edit-splice-radial-mismatch")
-            .expect("workspace");
+    let mut workspace = topology_runtime(
+        adapters,
+        ".current-head.query-mutation-splice-radial-mismatch",
+    )
+    .expect("workspace");
     let surfaces =
         crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
             &mut workspace,
@@ -255,7 +257,7 @@ fn current_head_runtime_denies_splice_radial_adjacency_across_different_edges() 
 
     assert!(matches!(
         error,
-        TopologyOperatorExecutionError::ExistingHalfEdgesNotOnSameEdge {
+        TopologyMutationApplicationError::ExistingHalfEdgesNotOnSameEdge {
             source_half_edge_id,
             target_half_edge_id,
             ..

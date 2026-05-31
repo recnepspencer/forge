@@ -5,19 +5,18 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::seed_milestone_one_primitive;
 use serde_json::Value;
 
-use super::super::super::edit_sequence_support::TopologyCloseoutDeclaration;
+use super::super::super::mutation_sequence_support::TopologyCloseoutDeclaration;
 use super::super::super::scenario_programs::successor_relocation_declaration;
 use super::super::super::shared::first_source_identity_for_relation_kind;
 use super::accepted_branch_authority_projection::{
-    authority_expanded_collapse_mutations, authority_expanded_rewire_mutations,
-    authority_expanded_split_mutations, collapse_split_wire_contracts, entity_id_by_label,
+    authority_expanded_collapse_plan, authority_expanded_rewire_plan,
+    authority_expanded_split_plan, collapse_split_wire_declaration, entity_id_by_label,
     first_entity_id, owned_half_edge_relation_ids, owned_half_edges, read_snapshot,
     relation_id_by_shape, seeded_wire_and_half_edges,
 };
 use super::accepted_branch_execution::{
-    apply_branch_declaration, apply_branch_mutations, create_branch,
-    execution_from_verified_contract_sets, execution_from_verified_declarations,
-    AcceptedBranchExecution,
+    apply_branch_declaration, apply_branch_plan, create_branch,
+    execution_from_verified_declarations, execution_from_verified_plans, AcceptedBranchExecution,
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
@@ -56,7 +55,7 @@ where
     );
     let verified_one =
         apply_branch_declaration(&mut runtime, &branch.branch_id, create_inner_loop.clone())?;
-    let after_attach = read_snapshot(&runtime, &verified_one.read_basis)?;
+    let after_attach = read_snapshot(&runtime, verified_one.read_basis())?;
     let loop_id = entity_id_by_label(&after_attach, loop_key.as_str(), TopologyEntityKind::Loop)?;
     let inner_loop_relation_id = relation_id_by_shape(
         &after_attach,
@@ -116,15 +115,11 @@ where
             })
             .collect(),
     );
-    let split_contracts = split_declaration.clone().into_contracts();
     let moved_relation_ids =
         owned_half_edge_relation_ids(&seeded_read, wire_id, &half_edge_ids[2..])?;
-    let verified_split = apply_branch_mutations(
-        &mut runtime,
-        &branch.branch_id,
-        authority_expanded_split_mutations(&split_contracts, &moved_relation_ids),
-    )?;
-    let after_split = read_snapshot(&runtime, &verified_split.read_basis)?;
+    let split_plan = authority_expanded_split_plan(split_declaration.clone(), &moved_relation_ids);
+    let verified_split = apply_branch_plan(&mut runtime, &branch.branch_id, &split_plan)?;
+    let after_split = read_snapshot(&runtime, verified_split.read_basis())?;
     let split_wire_id = entity_id_by_label(
         &after_split,
         split_wire_key.as_str(),
@@ -134,20 +129,19 @@ where
     let split_relation_ids =
         owned_half_edge_relation_ids(&after_split, split_wire_id, &split_half_edge_ids)?;
     let collapse_wire_key = CreateKey::new(format!("{stem}.split_collapse_churn.collapse_wire"));
-    let collapse_contracts = collapse_split_wire_contracts(
-        collapse_wire_key.as_str(),
-        split_wire_id,
-        &split_half_edge_ids,
+    let collapse_plan = authority_expanded_collapse_plan(
+        collapse_split_wire_declaration(
+            collapse_wire_key.as_str(),
+            split_wire_id,
+            &split_half_edge_ids,
+        ),
+        &split_relation_ids,
     );
-    let verified_collapse = apply_branch_mutations(
-        &mut runtime,
-        &branch.branch_id,
-        authority_expanded_collapse_mutations(&collapse_contracts, &split_relation_ids),
-    )?;
-    execution_from_verified_contract_sets(
+    let verified_collapse = apply_branch_plan(&mut runtime, &branch.branch_id, &collapse_plan)?;
+    execution_from_verified_plans(
         &runtime,
         branch,
-        vec![split_contracts, collapse_contracts],
+        vec![split_plan, collapse_plan],
         vec![verified_split, verified_collapse],
     )
 }
@@ -166,22 +160,10 @@ where
     let _seeded = seed_milestone_one_primitive(&mut runtime, &seed_stem, &primitive)?;
     let declaration = ambiguous_rewire_declaration(runtime_factory, stem)?;
     let branch = create_branch(&mut runtime, stem, "accepted.ambiguous_rewire")?;
-    let verified = apply_branch_mutations(
-        &mut runtime,
-        &branch.branch_id,
-        authority_expanded_rewire_mutations(
-            &declaration.clone().into_contracts(),
-            &format!("{stem}.branch_local.ambiguous"),
-        )?,
-    )?;
-    execution_from_verified_declarations(
-        &runtime,
-        branch,
-        vec![TopologyCloseoutDeclaration::RewireLoopSuccessorProgram(
-            declaration,
-        )],
-        vec![verified],
-    )
+    let plan =
+        authority_expanded_rewire_plan(declaration, &format!("{stem}.branch_local.ambiguous"))?;
+    let verified = apply_branch_plan(&mut runtime, &branch.branch_id, &plan)?;
+    execution_from_verified_plans(&runtime, branch, vec![plan], vec![verified])
 }
 
 fn ambiguous_rewire_declaration<F>(
