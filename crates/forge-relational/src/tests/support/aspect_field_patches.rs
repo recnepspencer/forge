@@ -27,7 +27,7 @@ pub(crate) fn aspect_field_patch_from_values(
         .into_iter()
         .map(|(aspect_key, field, value)| {
             (
-                crate::transactions::data::AspectFieldPatchTarget::single(aspect_key, field),
+                crate::transactions::data::planned_single_field_locator(aspect_key, field),
                 value,
             )
         })

@@ -1,4 +1,4 @@
-use forge_foundational::facade::{AspectValue, FieldKey};
+use forge_foundational::facade::{AspectFieldLocator, AspectValue, FieldKey};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -20,8 +20,8 @@ use crate::storage::data::{
     entity_authoritative_aspect_field_comparison_key,
 };
 use crate::transactions::data::{
-    AspectFieldPatch, AspectFieldPatchTarget, EntityMutationIntent, MutationIntent,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    AspectFieldPatch, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent,
+    WorkerIntentBatch,
 };
 
 #[cfg(test)]
@@ -74,7 +74,7 @@ pub struct ReplicaConvergenceOutput {
 }
 
 struct PlannedReplicaFieldPatch {
-    target: AspectFieldPatchTarget,
+    target: AspectFieldLocator,
     desired_value: AspectValue,
     fields: AspectFieldPatch,
 }
@@ -216,7 +216,7 @@ impl ReplicaConvergenceStrategy {
         let replicas = FieldKey::new("replicas").expect("static field key must be valid");
         let aspect_key =
             Self::require_lowered_entity_scalar_field(observation, existing, &replicas)?;
-        let target = AspectFieldPatchTarget::single(aspect_key, replicas);
+        let target = crate::transactions::data::planned_single_field_locator(aspect_key, replicas);
         let desired_value = AspectValue::UInt64(desired_replicas);
         let fields =
             AspectFieldPatch::new(BTreeMap::from([(target.clone(), desired_value.clone())]));
@@ -255,7 +255,7 @@ impl CommitStrategyExecutor for ReplicaConvergenceStrategy {
 
         let (action, mutation_program) = if entity_authoritative_aspect_field_comparison_key(
             &existing,
-            replica_field_patch.target.locator(),
+            &replica_field_patch.target,
         ) == Some(desired_replicas_comparison_key)
         {
             (

@@ -498,14 +498,14 @@ fn create_entity_with_summary_title(
                 client_key: crate::symbols::data::ClientKey::raw(client_key),
                 fields: AspectFieldPatch::new(std::collections::BTreeMap::from([
                     (
-                        crate::transactions::data::AspectFieldPatchTarget::single(
+                        crate::transactions::data::planned_single_field_locator(
                             aspect_key("name"),
                             field_key("name"),
                         ),
                         string_aspect_value(client_key),
                     ),
                     (
-                        crate::transactions::data::AspectFieldPatchTarget::single(
+                        crate::transactions::data::planned_single_field_locator(
                             aspect_key("summary"),
                             field_key("title"),
                         ),

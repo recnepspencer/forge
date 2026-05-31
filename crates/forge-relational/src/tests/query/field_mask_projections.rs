@@ -263,21 +263,21 @@ fn create_entity_with_summary_fields(
                 client_key: crate::symbols::data::ClientKey::raw(client_key),
                 fields: AspectFieldPatch::new(std::collections::BTreeMap::from([
                     (
-                        crate::transactions::data::AspectFieldPatchTarget::single(
+                        crate::transactions::data::planned_single_field_locator(
                             aspect_key("name"),
                             field_key("name"),
                         ),
                         string_aspect_value(client_key),
                     ),
                     (
-                        crate::transactions::data::AspectFieldPatchTarget::single(
+                        crate::transactions::data::planned_single_field_locator(
                             aspect_key("summary"),
                             field_key("title"),
                         ),
                         string_aspect_value(summary_title),
                     ),
                     (
-                        crate::transactions::data::AspectFieldPatchTarget::single(
+                        crate::transactions::data::planned_single_field_locator(
                             aspect_key("summary"),
                             field_key("status"),
                         ),
@@ -309,14 +309,14 @@ fn create_relation_with_summary_fields(
                 target: crate::transactions::data::EntityReference::Existing(target),
                 fields: AspectFieldPatch::new(std::collections::BTreeMap::from([
                     (
-                        crate::transactions::data::AspectFieldPatchTarget::single(
+                        crate::transactions::data::planned_single_field_locator(
                             aspect_key("relation.summary"),
                             field_key("title"),
                         ),
                         string_aspect_value(summary_title),
                     ),
                     (
-                        crate::transactions::data::AspectFieldPatchTarget::single(
+                        crate::transactions::data::planned_single_field_locator(
                             aspect_key("relation.summary"),
                             field_key("status"),
                         ),

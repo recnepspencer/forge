@@ -1,10 +1,11 @@
 use forge_foundational::facade::{
-    AspectLocator, AspectValue, BoundarySourceLocator, FieldKey, LocatorAuthority,
+    AspectFieldLocator, AspectLocator, AspectValue, BoundarySourceLocator, FieldKey,
+    LocatorAuthority,
 };
 
 use crate::schema::data::{LoweredAspectBinding, LoweredAspectPlan};
 use crate::transactions::data::{
-    AspectFieldPatchTarget, AspectFieldTargetRejectionReason, EntityAuthoritativeAspectStateDenial,
+    AspectFieldTargetRejectionReason, EntityAuthoritativeAspectStateDenial,
 };
 
 pub(super) enum EntityCreationFieldTarget<'a> {
@@ -17,7 +18,7 @@ pub(super) enum EntityCreationFieldTarget<'a> {
 
 pub(super) fn resolve_creation_field_target<'a>(
     lowered_plan: &'a LoweredAspectPlan,
-    target: &AspectFieldPatchTarget,
+    target: &AspectFieldLocator,
 ) -> Result<EntityCreationFieldTarget<'a>, EntityAuthoritativeAspectStateDenial> {
     let Some(field) = single_creation_field(target) else {
         return Err(unsupported_target(
@@ -29,7 +30,7 @@ pub(super) fn resolve_creation_field_target<'a>(
         .executable_bindings
         .iter()
         .enumerate()
-        .find(|(_, binding)| binding.contract.key() == target.aspect_key())
+        .find(|(_, binding)| binding.contract.key() == target.aspect().aspect_key())
     else {
         return Err(unsupported_target(
             target,
@@ -52,8 +53,8 @@ pub(super) fn resolve_creation_field_target<'a>(
     ))
 }
 
-pub(super) fn source_locator_for_target(target: &AspectFieldPatchTarget) -> BoundarySourceLocator {
-    BoundarySourceLocator::aspect_field(target.locator().clone())
+pub(super) fn source_locator_for_target(target: &AspectFieldLocator) -> BoundarySourceLocator {
+    BoundarySourceLocator::aspect_field(target.clone())
 }
 
 pub(super) fn source_locator_for_aspect_binding(
@@ -65,7 +66,7 @@ pub(super) fn source_locator_for_aspect_binding(
     ))
 }
 
-fn single_creation_field(target: &AspectFieldPatchTarget) -> Option<&FieldKey> {
+fn single_creation_field(target: &AspectFieldLocator) -> Option<&FieldKey> {
     match target.field_path().fields() {
         [field] => Some(field),
         _ => None,
@@ -73,7 +74,7 @@ fn single_creation_field(target: &AspectFieldPatchTarget) -> Option<&FieldKey> {
 }
 
 fn unsupported_target(
-    target: &AspectFieldPatchTarget,
+    target: &AspectFieldLocator,
     reason: AspectFieldTargetRejectionReason,
 ) -> EntityAuthoritativeAspectStateDenial {
     EntityAuthoritativeAspectStateDenial::UnsupportedAspectFieldTarget {

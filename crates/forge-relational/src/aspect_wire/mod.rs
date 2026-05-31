@@ -10,8 +10,9 @@ pub(crate) use aspect_locator_canonical_codec::{
     encode_boundary_source_locator,
 };
 pub(crate) use aspect_locator_canonical_codec::{
-    serde_canonical_aspect_field_locator, serde_canonical_aspect_value_locator,
-    serde_canonical_boundary_source_locator, serde_optional_canonical_aspect_field_locator,
+    serde_canonical_aspect_field_locator, serde_canonical_aspect_field_locator_arc_slice,
+    serde_canonical_aspect_value_locator, serde_canonical_boundary_source_locator,
+    serde_optional_canonical_aspect_field_locator,
 };
 pub(crate) use aspect_value_canonical_codec::{
     decode_aspect_value, encode_aspect_value, encode_length_prefixed_aspect_value, encode_string,
@@ -19,8 +20,7 @@ pub(crate) use aspect_value_canonical_codec::{
 };
 pub use field_patch_canonical_codec::AspectFieldPatchCodecError;
 pub(crate) use field_patch_canonical_codec::{
-    decode_aspect_field_patch_canonical_bytes, decode_aspect_field_patch_target_canonical_bytes,
-    encode_aspect_field_patch_canonical_bytes, encode_aspect_field_patch_target_canonical_bytes,
+    decode_aspect_field_patch_canonical_bytes, encode_aspect_field_patch_canonical_bytes,
 };
 
 #[cfg(test)]

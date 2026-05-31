@@ -10,7 +10,7 @@ use crate::schema::data::{
     RelationalSchemaRegistry,
 };
 use crate::symbols::data::StringInterner;
-use crate::transactions::data::{AspectDeltaFailureFields, AspectFieldPatchTarget};
+use crate::transactions::data::AspectDeltaFailureFields;
 
 use super::super::data::CanonicalAspectDeltaEvidence;
 use super::super::{canonical_delta_for_mutation, CanonicalDeltaError};
@@ -21,7 +21,7 @@ use super::support::{
 
 #[test]
 fn entity_field_patch_evidence_denial_carries_typed_target() {
-    let target = AspectFieldPatchTarget::single(
+    let target = crate::transactions::data::planned_single_field_locator(
         FoundationalAspectKey::new("name").expect("valid aspect key"),
         forge_foundational::facade::FieldKey::new("name").expect("valid field key"),
     );

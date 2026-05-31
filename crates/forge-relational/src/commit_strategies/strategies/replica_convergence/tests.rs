@@ -1,4 +1,4 @@
-use forge_foundational::facade::AspectValue;
+use forge_foundational::facade::{AspectFieldLocator, AspectValue};
 
 use super::{
     ReplicaConvergenceAction, ReplicaConvergenceInput, ReplicaConvergenceOutput,
@@ -9,7 +9,6 @@ use crate::logic::builder::RelationalRuntimeBuilder;
 use crate::tests::support::{
     entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect, AspectSchemaFixture,
 };
-use crate::transactions::data::AspectFieldPatchTarget;
 
 fn strategy_registry() -> crate::schema::data::RelationalSchemaRegistry {
     AspectSchemaFixture {
@@ -29,8 +28,8 @@ fn strategy_registry() -> crate::schema::data::RelationalSchemaRegistry {
     .build_registry()
 }
 
-fn replicas_patch_target() -> AspectFieldPatchTarget {
-    AspectFieldPatchTarget::single(
+fn replicas_patch_target() -> AspectFieldLocator {
+    crate::transactions::data::planned_single_field_locator(
         crate::tests::support::aspect_key("replicas"),
         crate::tests::support::field_key("replicas"),
     )
@@ -109,7 +108,7 @@ fn replica_convergence_strategy_noops_when_authoritative_replicas_match() {
                 crate::transactions::data::EntityMutationIntent::UpdateFields(
                     crate::transactions::data::UpdateEntityFieldsIntent {
                         entity_id: entity,
-                        fields: crate::transactions::data::AspectFieldPatch::from_target(
+                        fields: crate::transactions::data::AspectFieldPatch::from_locator(
                             replicas_patch_target(),
                             AspectValue::UInt64(5),
                         ),

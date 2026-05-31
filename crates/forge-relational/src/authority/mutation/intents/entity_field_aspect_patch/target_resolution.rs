@@ -1,7 +1,7 @@
-use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
+use forge_foundational::facade::{AspectFieldLocator, CanonicalFieldPath, FieldKey};
 
 use crate::schema::data::{LoweredAspectBinding, LoweredAspectPlan};
-use crate::transactions::data::{AspectFieldPatchTarget, EntityFieldAspectPatchDenial};
+use crate::transactions::data::EntityFieldAspectPatchDenial;
 
 pub(super) enum EntityFieldPatchTarget<'a> {
     Scalar(&'a LoweredAspectBinding),
@@ -13,17 +13,17 @@ pub(super) enum EntityFieldPatchTarget<'a> {
 
 pub(super) fn resolve_entity_field_patch_target<'a>(
     lowered_plan: &'a LoweredAspectPlan,
-    target: &AspectFieldPatchTarget,
+    target: &AspectFieldLocator,
 ) -> Result<EntityFieldPatchTarget<'a>, EntityFieldAspectPatchDenial> {
     let field_key = single_field_path_key(target.field_path())?;
     let Some((binding_index, binding)) = lowered_plan
         .executable_bindings
         .iter()
         .enumerate()
-        .find(|(_, binding)| binding.contract.key() == target.aspect_key())
+        .find(|(_, binding)| binding.contract.key() == target.aspect().aspect_key())
     else {
         return Err(EntityFieldAspectPatchDenial::UndeclaredEntityAspectTarget {
-            field_locator: target.locator().clone(),
+            field_locator: target.clone(),
         });
     };
 
@@ -38,7 +38,7 @@ pub(super) fn resolve_entity_field_patch_target<'a>(
     }
     Err(
         EntityFieldAspectPatchDenial::EntityAspectFieldPathMismatch {
-            field_locator: target.locator().clone(),
+            field_locator: target.clone(),
         },
     )
 }

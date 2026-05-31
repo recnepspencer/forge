@@ -12,7 +12,6 @@ use crate::tests::support::{
     create_entity, entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect,
     AspectSchemaFixture,
 };
-use crate::transactions::data::AspectFieldPatchTarget;
 use forge_foundational::facade::{
     AspectFieldLocator, AspectKey, CanonicalFieldPath, FieldKey, LocatorAuthority,
 };
@@ -60,8 +59,8 @@ fn field_locator(aspect_key: AspectKey, field_key: FieldKey) -> AspectFieldLocat
     )
 }
 
-fn replicas_patch_target() -> AspectFieldPatchTarget {
-    AspectFieldPatchTarget::single(
+fn replicas_patch_target() -> AspectFieldLocator {
+    crate::transactions::data::planned_single_field_locator(
         crate::tests::support::aspect_key("replicas"),
         crate::tests::support::field_key("replicas"),
     )

@@ -18,7 +18,7 @@ use crate::storage::data::{
     authoritative_aspect_value_field_comparison_key,
     entity_authoritative_aspect_field_comparison_key,
 };
-use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
+use crate::transactions::data::AspectFieldPatch;
 use crate::transactions::data::{
     EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
@@ -221,8 +221,8 @@ impl CommitStrategyExecutor for AspectFieldReconciliationStrategy {
                 MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                     UpdateEntityFieldsIntent {
                         entity_id: input.entity_id,
-                        fields: AspectFieldPatch::from_target(
-                            AspectFieldPatchTarget::single(
+                        fields: AspectFieldPatch::from_locator(
+                            crate::transactions::data::planned_single_field_locator(
                                 input.field_locator.aspect().aspect_key().clone(),
                                 field_key,
                             ),

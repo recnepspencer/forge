@@ -12,7 +12,7 @@ use crate::facade::schema::{
     RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::facade::transactions::{
-    AspectFieldPatchTarget, CreateIntent, EntityMutationIntent, MutationIntent, TransactionId,
+    AspectFieldLocator, CreateIntent, EntityMutationIntent, MutationIntent, TransactionId,
 };
 use crate::tests::support::{
     create_branch_from_main, create_entity, create_entity_outcome_on_branch, entity_field_aspect,
@@ -21,8 +21,8 @@ use crate::tests::support::{
 };
 use forge_foundational::facade::{AspectKey, AspectValue, InternedString};
 
-fn test_patch_target(aspect: &str, field: &str) -> AspectFieldPatchTarget {
-    AspectFieldPatchTarget::single(
+fn test_patch_target(aspect: &str, field: &str) -> AspectFieldLocator {
+    crate::transactions::data::planned_single_field_locator(
         crate::tests::support::aspect_key(aspect),
         crate::tests::support::field_key(field),
     )

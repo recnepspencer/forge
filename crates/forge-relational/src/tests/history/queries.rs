@@ -471,7 +471,7 @@ fn aspect_history_projection_filter_matches_field_level_patch_locus() {
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("summary-record"),
                 fields: AspectFieldPatch::new(std::collections::BTreeMap::from([(
-                    crate::transactions::data::AspectFieldPatchTarget::single(
+                    crate::transactions::data::planned_single_field_locator(
                         aspect_key("summary"),
                         field_key("title"),
                     ),
@@ -487,8 +487,8 @@ fn aspect_history_projection_filter_matches_field_level_patch_locus() {
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(
             UpdateEntityFieldsIntent {
                 entity_id: entity,
-                fields: AspectFieldPatch::from_target(
-                    crate::transactions::data::AspectFieldPatchTarget::single(
+                fields: AspectFieldPatch::from_locator(
+                    crate::transactions::data::planned_single_field_locator(
                         aspect_key("summary"),
                         field_key("status"),
                     ),

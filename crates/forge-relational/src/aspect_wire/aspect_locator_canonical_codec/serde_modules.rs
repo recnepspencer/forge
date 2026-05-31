@@ -1,5 +1,6 @@
 use forge_foundational::facade::{AspectFieldLocator, AspectValueLocator, BoundarySourceLocator};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::sync::Arc;
 
 use super::reading::{
     decode_aspect_field_locator, decode_aspect_value_locator, decode_boundary_source_locator,
@@ -82,6 +83,39 @@ pub(crate) mod serde_optional_canonical_aspect_field_locator {
             .as_deref()
             .map(decode_aspect_field_locator)
             .transpose()
+            .map_err(D::Error::custom)
+    }
+}
+
+pub(crate) mod serde_canonical_aspect_field_locator_arc_slice {
+    use super::*;
+    use serde::de::Error;
+
+    pub(crate) fn serialize<S>(
+        locators: &Arc<[AspectFieldLocator]>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        locators
+            .iter()
+            .map(encode_aspect_field_locator)
+            .collect::<Vec<_>>()
+            .serialize(serializer)
+    }
+
+    pub(crate) fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<Arc<[AspectFieldLocator]>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Vec::<Vec<u8>>::deserialize(deserializer)?
+            .iter()
+            .map(|bytes| decode_aspect_field_locator(bytes))
+            .collect::<Result<Vec<_>, _>>()
+            .map(Arc::from)
             .map_err(D::Error::custom)
     }
 }

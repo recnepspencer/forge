@@ -1,8 +1,8 @@
 use super::*;
 use crate::aspect_field_authoring::{
     aspect_field_patch_from_json_values, aspect_key, entity_string_field_aspect, field_key,
-    lower_json_scalar_to_aspect_value, project_aspect_value_to_workspace_json,
-    terminal_field_label,
+    lower_json_scalar_to_aspect_value, planned_single_field_locator,
+    project_aspect_value_to_workspace_json, terminal_field_label,
 };
 use crate::runtime::ForgeQueryAspectValue;
 use forge_foundational::facade::ContractValidatedAspectValueView;
@@ -275,7 +275,7 @@ impl ForgeQueryMemoryWorkspace {
         for aspect in aspects {
             let declared = self.declared_aspect_for_path(aspect.aspect_path())?;
             targets.insert(
-                forge_relational::facade::transactions::AspectFieldPatchTarget::single(
+                planned_single_field_locator(
                     aspect_key(declared.label()).map_err(ForgeQueryWorkspaceError::new)?,
                     field_key(
                         terminal_field_label(declared.payload_path())

@@ -17,7 +17,7 @@ use crate::commit_strategies::data::{
     encode_aspect_field_patch as encode_native_aspect_field_patch,
     encode_aspect_value as encode_native_aspect_value, NativeCodecReader,
 };
-use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
+use crate::transactions::data::AspectFieldPatch;
 
 #[test]
 fn native_strategy_codec_uses_canonical_aspect_value_bytes() {
@@ -66,7 +66,7 @@ fn aspect_field_patch_canonical_bytes_use_shared_aspect_value_bodies() {
 
     encode_u32(&mut expected_bytes, patch.len() as u32);
     for (target, value) in patch.iter() {
-        let target_bytes = encode_aspect_field_locator(target.locator());
+        let target_bytes = encode_aspect_field_locator(target);
         encode_u32(&mut expected_bytes, target_bytes.len() as u32);
         expected_bytes.extend_from_slice(&target_bytes);
         encode_length_prefixed_aspect_value(&mut expected_bytes, value).unwrap();
@@ -80,26 +80,28 @@ fn aspect_field_patch_canonical_bytes_use_shared_aspect_value_bodies() {
 }
 
 #[test]
-fn aspect_field_patch_target_bytes_are_canonical_planned_field_locator_bytes() {
-    let target = AspectFieldPatchTarget::single(
+fn aspect_field_patch_locator_bytes_are_canonical_planned_field_locator_bytes() {
+    let locator = crate::transactions::data::planned_single_field_locator(
         AspectKey::new("strategy.spec").expect("valid aspect key"),
         FieldKey::new("replicas").expect("valid field key"),
     );
 
-    assert_eq!(
-        target.to_canonical_bytes(),
-        encode_aspect_field_locator(target.locator())
-    );
+    let locator_bytes = encode_aspect_field_locator(&locator);
+    assert!(!locator_bytes.is_empty());
 
     let non_planned_locator = AspectFieldLocator::new(
         LocatorAuthority::Derived,
-        target.aspect_key().clone(),
-        target.field_path().clone(),
+        locator.aspect().aspect_key().clone(),
+        locator.field_path().clone(),
     );
-    let error = AspectFieldPatchTarget::from_canonical_bytes(&encode_aspect_field_locator(
-        &non_planned_locator,
-    ))
-    .unwrap_err();
+    let mut patch_bytes = Vec::new();
+    encode_u32(&mut patch_bytes, 1);
+    let locator_bytes = encode_aspect_field_locator(&non_planned_locator);
+    encode_u32(&mut patch_bytes, locator_bytes.len() as u32);
+    patch_bytes.extend_from_slice(&locator_bytes);
+    encode_length_prefixed_aspect_value(&mut patch_bytes, &AspectValue::Bool(true)).unwrap();
+
+    let error = AspectFieldPatch::from_canonical_bytes(&patch_bytes).unwrap_err();
 
     assert!(error.detail().contains("planned authority"));
 }
@@ -221,7 +223,10 @@ fn patch_from_samples(samples: &[AspectValue]) -> AspectFieldPatch {
             .map(|(index, value)| {
                 let field = FieldKey::new(format!("field_{index}")).expect("valid test field key");
                 (
-                    AspectFieldPatchTarget::single(aspect_key.clone(), field),
+                    crate::transactions::data::planned_single_field_locator(
+                        aspect_key.clone(),
+                        field,
+                    ),
                     value.clone(),
                 )
             })

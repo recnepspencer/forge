@@ -70,7 +70,7 @@ fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
         probe
             .field("topology.kind")
             .expect("topology.kind should be present")
-            .value_json(),
+            .external_value_json(),
         "\".vertex\""
     );
     workspace
@@ -156,7 +156,7 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
         probe
             .field("topology.kind")
             .expect("topology.kind should be present")
-            .value_json(),
+            .external_value_json(),
         "\".loop_owns_half_edge\""
     );
     workspace

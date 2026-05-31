@@ -1,14 +1,12 @@
 use forge_foundational::facade::{
-    aspects, validate_aspect_value, AspectValue, ContractValidatedAspectArtifact,
-    ContractValidationInput, FieldKey,
+    aspects, validate_aspect_value, AspectFieldLocator, AspectValue,
+    ContractValidatedAspectArtifact, ContractValidationInput, FieldKey,
 };
 use forge_proof::TransitionOutcome;
 use std::collections::BTreeMap;
 
 use crate::schema::data::{LoweredAspectBinding, LoweredAspectPlan};
-use crate::transactions::data::{
-    AspectFieldPatch, AspectFieldPatchTarget, EntityAuthoritativeAspectStateDenial,
-};
+use crate::transactions::data::{AspectFieldPatch, EntityAuthoritativeAspectStateDenial};
 
 use super::field_classification::{
     resolve_creation_field_target, source_locator_for_aspect_binding, source_locator_for_target,
@@ -50,7 +48,7 @@ pub(super) fn validate_entity_creation_fields(
 
 fn validate_scalar_creation_value(
     binding: &LoweredAspectBinding,
-    target: &AspectFieldPatchTarget,
+    target: &AspectFieldLocator,
     value: &AspectValue,
 ) -> Result<ContractValidatedAspectArtifact, EntityAuthoritativeAspectStateDenial> {
     match validate_aspect_value(

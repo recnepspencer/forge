@@ -1,5 +1,7 @@
 use serde::{de::Error as DeError, Deserialize, Deserializer, Serialize};
 
+use forge_foundational::facade::AspectFieldLocator;
+
 use crate::config::data::RelationalRuntimeConfig;
 use crate::history::data::CommitId;
 use crate::identity::data::VersionId;
@@ -7,7 +9,7 @@ use crate::schema::data::{
     schema_authority_snapshot_digest_bytes, DescriptorCanonicalBasisVersion,
     DescriptorSemanticsVersion,
 };
-use crate::transactions::data::{AspectFieldPatchTarget, CommitValidationSummary};
+use crate::transactions::data::CommitValidationSummary;
 use std::sync::Arc;
 
 use super::canonical_digest::{
@@ -91,7 +93,8 @@ pub struct StrategyMergeDescriptor {
     version: CommitStrategyVersion,
     intent_name: StrategyIntentName,
     intent_scope_digest: StrategyIntentScopeDigest,
-    intent_scope_targets: Arc<[AspectFieldPatchTarget]>,
+    #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator_arc_slice")]
+    intent_scope_targets: Arc<[AspectFieldLocator]>,
     merge_semantics: StrategyMergeSemantics,
     lowering_summary_digest: [u8; 32],
 }
@@ -143,7 +146,7 @@ impl StrategyMergeDescriptor {
         self.intent_scope_digest
     }
 
-    pub fn intent_scope_targets(&self) -> &[AspectFieldPatchTarget] {
+    pub fn intent_scope_targets(&self) -> &[AspectFieldLocator] {
         &self.intent_scope_targets
     }
 
@@ -670,7 +673,7 @@ fn strategy_intent_scope_digest(
 fn strategy_intent_scope_targets(
     descriptor: &CommitStrategyDescriptor,
     lowered: &LoweredStrategyCommitPlan,
-) -> Arc<[AspectFieldPatchTarget]> {
+) -> Arc<[AspectFieldLocator]> {
     semantic_intent_scope_targets(descriptor, lowered)
         .unwrap_or_default()
         .into()
@@ -686,7 +689,7 @@ fn semantic_intent_scope_digest(
 fn semantic_intent_scope_targets(
     descriptor: &CommitStrategyDescriptor,
     lowered: &LoweredStrategyCommitPlan,
-) -> Option<Vec<AspectFieldPatchTarget>> {
+) -> Option<Vec<AspectFieldLocator>> {
     native_strategy_intent_scope_targets(descriptor, lowered)
 }
 
@@ -716,9 +719,7 @@ mod tests {
     use crate::identity::data::{EntityId, KindId, PartitionId};
     use crate::logic::builder::RelationalRuntimeBuilder;
     use crate::symbols::data::ClientKey;
-    use crate::transactions::data::{
-        AspectFieldPatch, AspectFieldPatchTarget, CommitValidationSummary, EntitySpec,
-    };
+    use crate::transactions::data::{AspectFieldPatch, CommitValidationSummary, EntitySpec};
     use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedString};
     use std::sync::Arc;
 
@@ -769,8 +770,8 @@ mod tests {
                 partition_id: PartitionId(1),
                 kind_id: KindId(1),
                 client_key: ClientKey::from("deployment-a"),
-                fields: AspectFieldPatch::from_target(
-                    AspectFieldPatchTarget::single(
+                fields: AspectFieldPatch::from_locator(
+                    crate::transactions::data::planned_single_field_locator(
                         AspectKey::new("name").expect("valid name aspect key"),
                         FieldKey::new("name").expect("valid name field key"),
                     ),
@@ -917,11 +918,11 @@ mod tests {
     #[test]
     fn strategy_intent_scope_targets_preserve_aspect_identity() {
         let field = FieldKey::new("replicas").expect("valid field");
-        let desired_target = AspectFieldPatchTarget::single(
+        let desired_target = crate::transactions::data::planned_single_field_locator(
             AspectKey::new("deployment.desired").expect("valid desired aspect"),
             field.clone(),
         );
-        let observed_target = AspectFieldPatchTarget::single(
+        let observed_target = crate::transactions::data::planned_single_field_locator(
             AspectKey::new("deployment.observed").expect("valid observed aspect"),
             field,
         );
@@ -942,7 +943,7 @@ mod tests {
     #[test]
     fn strategy_merge_descriptor_carries_typed_intent_scope_targets() {
         let field = FieldKey::new("replicas").expect("valid field");
-        let target = AspectFieldPatchTarget::single(
+        let target = crate::transactions::data::planned_single_field_locator(
             AspectKey::new("deployment.desired").expect("valid aspect"),
             field,
         );

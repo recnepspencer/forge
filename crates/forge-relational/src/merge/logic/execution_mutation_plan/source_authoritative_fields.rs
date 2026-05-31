@@ -6,7 +6,7 @@ use crate::capabilities::AspectPlanSource;
 use crate::merge::data::{AdoptSourceRecordPlan, MergeExecutionMutationPlanError};
 use crate::schema::data::AspectBinding;
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
-use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
+use crate::transactions::data::AspectFieldPatch;
 
 pub(super) fn entity_create_fields_from_authoritative_state(
     runtime: &crate::logic::runtime::RelationalRuntime,
@@ -50,7 +50,10 @@ pub(super) fn entity_create_fields_from_authoritative_state(
                     });
                 };
                 fields.insert(
-                    AspectFieldPatchTarget::single(aspect_key.clone(), field.clone()),
+                    crate::transactions::data::planned_single_field_locator(
+                        aspect_key.clone(),
+                        field.clone(),
+                    ),
                     value.clone(),
                 );
             }
@@ -70,7 +73,10 @@ pub(super) fn entity_create_fields_from_authoritative_state(
                 }
                 for (field, value) in struct_value.fields() {
                     fields.insert(
-                        AspectFieldPatchTarget::single(aspect_key.clone(), field.clone()),
+                        crate::transactions::data::planned_single_field_locator(
+                            aspect_key.clone(),
+                            field.clone(),
+                        ),
                         value.clone(),
                     );
                 }
@@ -113,7 +119,10 @@ pub(super) fn relation_create_fields_from_authoritative_state(
                 ContractValidatedAspectValueView::Scalar(value),
             ) => {
                 fields.insert(
-                    AspectFieldPatchTarget::single(aspect_key.clone(), field.clone()),
+                    crate::transactions::data::planned_single_field_locator(
+                        aspect_key.clone(),
+                        field.clone(),
+                    ),
                     value.clone(),
                 );
             }
@@ -124,7 +133,10 @@ pub(super) fn relation_create_fields_from_authoritative_state(
             ) => {
                 for (field, value) in struct_value.fields() {
                     fields.insert(
-                        AspectFieldPatchTarget::single(aspect_key.clone(), field.clone()),
+                        crate::transactions::data::planned_single_field_locator(
+                            aspect_key.clone(),
+                            field.clone(),
+                        ),
                         value.clone(),
                     );
                 }

@@ -1,4 +1,6 @@
-use forge_foundational::facade::{AspectValue, ContractValidatedAspectValueView};
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectValue, ContractValidatedAspectValueView,
+};
 
 use crate::merge::data::{
     materialized_value_aspect_key, MaterializedAspectValue, MaterializedAspectValueEvidence,
@@ -6,7 +8,6 @@ use crate::merge::data::{
 };
 use crate::schema::data::{AspectBinding, LoweredAspectBinding};
 use crate::storage::data::EntityReadRecord;
-use crate::transactions::data::AspectFieldPatchTarget;
 
 pub(super) fn resolved_entity_field_patch_value(
     plan: &ReconcileRecordPlan,
@@ -15,7 +16,7 @@ pub(super) fn resolved_entity_field_patch_value(
     binding: &LoweredAspectBinding,
     aspect_key: &forge_foundational::facade::AspectKey,
     resolved_value: &MaterializedAspectValue,
-) -> Result<Option<(AspectFieldPatchTarget, AspectValue)>, MergeExecutionMutationPlanError> {
+) -> Result<Option<(AspectFieldLocator, AspectValue)>, MergeExecutionMutationPlanError> {
     match (&binding.target, binding.contract.shape()) {
         (
             AspectBinding::EntityField { field },
@@ -35,7 +36,10 @@ pub(super) fn resolved_entity_field_patch_value(
                 return Ok(None);
             }
             Ok(Some((
-                AspectFieldPatchTarget::single(aspect_key.clone(), field.clone()),
+                crate::transactions::data::planned_single_field_locator(
+                    aspect_key.clone(),
+                    field.clone(),
+                ),
                 resolved_value,
             )))
         }

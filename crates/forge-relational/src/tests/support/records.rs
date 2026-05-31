@@ -17,8 +17,8 @@ pub(crate) fn batch_create(name: &str) -> WorkerIntentBatch {
 }
 
 pub(crate) fn name_field_patch(name: &str) -> AspectFieldPatch {
-    AspectFieldPatch::from_target(
-        crate::transactions::data::AspectFieldPatchTarget::single(
+    AspectFieldPatch::from_locator(
+        crate::transactions::data::planned_single_field_locator(
             AspectKey::new("name").expect("valid name aspect key"),
             forge_foundational::facade::FieldKey::new("name").expect("valid name field key"),
         ),
@@ -29,8 +29,8 @@ pub(crate) fn name_field_patch(name: &str) -> AspectFieldPatch {
 }
 
 pub(crate) fn relation_label_field_patch(label: &str) -> AspectFieldPatch {
-    AspectFieldPatch::from_target(
-        crate::transactions::data::AspectFieldPatchTarget::single(
+    AspectFieldPatch::from_locator(
+        crate::transactions::data::planned_single_field_locator(
             AspectKey::new("label").expect("valid relation label aspect key"),
             forge_foundational::facade::FieldKey::new("label").expect("valid label field key"),
         ),

@@ -3,11 +3,11 @@ use smallvec::SmallVec;
 use crate::identity::data::EntityId;
 use crate::publication::patch::data::RecordStructuralChange;
 use crate::schema::data::AspectPlanRevision;
+use crate::transactions::data::RecordRef;
 use crate::transactions::data::{
     AspectDeltaFailureFields, AspectDeltaPatchConstructionDenial, AspectDeltaPatchValueDenial,
     AspectDeltaRecordClass, CommitConflict, ConflictClass,
 };
-use crate::transactions::data::{AspectFieldPatchTarget, RecordRef};
 use forge_foundational::facade::{AspectFieldLocator, AspectKey, AspectValueLocator, FieldKey};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -196,7 +196,7 @@ pub(crate) enum CanonicalDeltaError {
         detail: String,
     },
     EntityFieldBindingRequiresAuthoritativePatchEvidence {
-        target: AspectFieldPatchTarget,
+        target: AspectFieldLocator,
     },
     FoundationalPatchValueValidation {
         target: RecordRef,
@@ -231,7 +231,7 @@ impl CanonicalDeltaError {
             Self::AspectValueMaterialization { detail, .. } => detail.clone(),
             Self::EntityFieldBindingRequiresAuthoritativePatchEvidence { target } => format!(
                 "entity aspect field target {} requires authoritative patch evidence during canonical delta evaluation",
-                hex_bytes(&target.to_canonical_bytes())
+                hex_bytes(&crate::aspect_wire::encode_aspect_field_locator(target))
             ),
             Self::FoundationalPatchValueValidation {
                 target,

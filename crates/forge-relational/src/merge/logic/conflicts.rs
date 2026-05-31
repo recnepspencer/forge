@@ -324,7 +324,7 @@ fn strategy_descriptors_for_delta(
         (
             [u8; 32],
             [u8; 32],
-            Vec<crate::transactions::data::AspectFieldPatchTarget>,
+            Vec<forge_foundational::facade::AspectFieldLocator>,
         ),
         crate::commit_strategies::data::StrategyMergeDescriptor,
     >::new();

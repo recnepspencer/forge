@@ -1,6 +1,6 @@
-use forge_foundational::facade::{BoundarySourceLocator, CanonicalFieldPath, FieldKey};
-
-use crate::transactions::data::AspectFieldPatchTarget;
+use forge_foundational::facade::{
+    AspectFieldLocator, BoundarySourceLocator, CanonicalFieldPath, FieldKey,
+};
 
 pub(super) fn source_locator_aspect_label(locator: &BoundarySourceLocator) -> String {
     match locator {
@@ -21,8 +21,8 @@ pub(super) fn source_locator_field_label(locator: &BoundarySourceLocator) -> Opt
     }
 }
 
-pub(super) fn aspect_field_patch_target_field_label(target: &AspectFieldPatchTarget) -> String {
-    field_path_presentation_label(target.field_path())
+pub(super) fn aspect_field_locator_field_label(locator: &AspectFieldLocator) -> String {
+    field_path_presentation_label(locator.field_path())
 }
 
 fn field_path_presentation_label(path: &CanonicalFieldPath) -> String {

@@ -2,7 +2,7 @@ use sha2::{Digest, Sha256};
 
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
 use crate::symbols::data::ClientKey;
-use crate::transactions::data::AspectFieldPatchTarget;
+use forge_foundational::facade::AspectFieldLocator;
 
 pub(super) struct StrategyDigestBytes {
     bytes: Vec<u8>,
@@ -111,7 +111,7 @@ impl StrategyDigestBytes {
         }
     }
 
-    pub(super) fn aspect_field_patch_target(&mut self, target: &AspectFieldPatchTarget) {
-        self.bytes(&target.to_canonical_bytes());
+    pub(super) fn aspect_field_locator(&mut self, locator: &AspectFieldLocator) {
+        self.bytes(&crate::aspect_wire::encode_aspect_field_locator(locator));
     }
 }

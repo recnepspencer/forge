@@ -1574,7 +1574,7 @@ fn string_aspect_field_patch_for_target(
     value: &str,
 ) -> crate::transactions::data::AspectFieldPatch {
     crate::transactions::data::AspectFieldPatch::from(std::collections::BTreeMap::from([(
-        crate::transactions::data::AspectFieldPatchTarget::single(aspect_key, field_key),
+        crate::transactions::data::planned_single_field_locator(aspect_key, field_key),
         crate::tests::support::string_aspect_value(value),
     )]))
 }
@@ -1653,7 +1653,7 @@ fn aspect_fields_with_identity_name(
         .map(|(target, value)| (target.clone(), value.clone()))
         .collect::<std::collections::BTreeMap<_, _>>();
     targets
-        .entry(crate::transactions::data::AspectFieldPatchTarget::single(
+        .entry(crate::transactions::data::planned_single_field_locator(
             AspectKey::new("name").expect("valid identity aspect key"),
             forge_foundational::facade::FieldKey::new("name").expect("valid identity field key"),
         ))

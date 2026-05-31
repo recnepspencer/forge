@@ -1,10 +1,9 @@
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId};
 use crate::schema::data::{DescriptorSemanticsVersion, SchemaId, SchemaVersionId};
 use crate::transactions::data::{
-    AspectFieldPatchTarget, AspectFieldTargetRejectionReason, BulkImportRowDomain, BulkImportStage,
-    ConflictClass, EntityAuthoritativeAspectStateDenial, EntityFieldAspectPatchDenial,
-    EntityUpdateMissingState, RelationAuthoritativeAspectStateDenial,
-    RelationEndpointUpdateMissingState,
+    AspectFieldTargetRejectionReason, BulkImportRowDomain, BulkImportStage, ConflictClass,
+    EntityAuthoritativeAspectStateDenial, EntityFieldAspectPatchDenial, EntityUpdateMissingState,
+    RelationAuthoritativeAspectStateDenial, RelationEndpointUpdateMissingState,
 };
 use forge_foundational::facade::{
     AspectFieldLocator, AspectKey, AspectLocator, AuthoritativePatchApplicationDenial,
@@ -139,11 +138,11 @@ fn entity_field_patch_application_denial_carries_contract_field_locator() {
 
 #[test]
 fn authoritative_aspect_state_conflicts_carry_typed_target_rejections() {
-    let entity_target = AspectFieldPatchTarget::single(
+    let entity_target = crate::transactions::data::planned_single_field_locator(
         crate::tests::support::aspect_key("profile.summary"),
         crate::tests::support::field_key("summary"),
     );
-    let relation_target = AspectFieldPatchTarget::single(
+    let relation_target = crate::transactions::data::planned_single_field_locator(
         crate::tests::support::aspect_key("edge.label"),
         crate::tests::support::field_key("label"),
     );
@@ -213,16 +212,14 @@ fn relation_endpoint_contract_denial_carries_whole_aspect_locator() {
     assert!(!conflict.detail().contains("source_endpoint"));
 }
 
-fn entity_denial_target(denial: &EntityAuthoritativeAspectStateDenial) -> &AspectFieldPatchTarget {
+fn entity_denial_target(denial: &EntityAuthoritativeAspectStateDenial) -> &AspectFieldLocator {
     match denial {
         EntityAuthoritativeAspectStateDenial::UnsupportedAspectFieldTarget { target, .. } => target,
         other => panic!("expected unsupported entity authoritative aspect denial, got {other:?}"),
     }
 }
 
-fn relation_denial_target(
-    denial: &RelationAuthoritativeAspectStateDenial,
-) -> &AspectFieldPatchTarget {
+fn relation_denial_target(denial: &RelationAuthoritativeAspectStateDenial) -> &AspectFieldLocator {
     match denial {
         RelationAuthoritativeAspectStateDenial::UnsupportedAspectFieldTarget { target, .. } => {
             target

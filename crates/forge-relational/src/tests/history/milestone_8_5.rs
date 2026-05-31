@@ -25,7 +25,7 @@ use crate::tests::support::{
     entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect, read_entity_name,
     unique_test_store_path, AspectSchemaFixture,
 };
-use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
+use crate::transactions::data::AspectFieldPatch;
 use forge_foundational::facade::{
     AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, InternedString,
     LocatorAuthority,
@@ -122,14 +122,14 @@ impl CommitStrategyExecutor for DeterministicFailureExecutor {
 fn strategy_name_and_replicas_patch(name: &str, replicas: u64) -> AspectFieldPatch {
     AspectFieldPatch::from(std::collections::BTreeMap::from([
         (
-            AspectFieldPatchTarget::single(
+            crate::transactions::data::planned_single_field_locator(
                 AspectKey::new("name").expect("valid name aspect key"),
                 FieldKey::new("name").expect("valid name field key"),
             ),
             AspectValue::String(InternedString::Raw(name.to_string())),
         ),
         (
-            AspectFieldPatchTarget::single(
+            crate::transactions::data::planned_single_field_locator(
                 AspectKey::new("replicas").expect("valid replicas aspect key"),
                 FieldKey::new("replicas").expect("valid replicas field key"),
             ),
@@ -596,8 +596,8 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         &mut runtime,
         IntentReconciliationInput {
             entity_id: controller_sequence_entity,
-            desired_fields: crate::transactions::data::AspectFieldPatch::from_target(
-                crate::transactions::data::AspectFieldPatchTarget::single(
+            desired_fields: crate::transactions::data::AspectFieldPatch::from_locator(
+                crate::transactions::data::planned_single_field_locator(
                     forge_foundational::facade::AspectKey::new("name")
                         .expect("valid test aspect key"),
                     forge_foundational::facade::FieldKey::new("name")

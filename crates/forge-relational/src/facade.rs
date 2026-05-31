@@ -352,16 +352,18 @@ pub mod symbols {
 }
 
 pub mod transactions {
+    pub use forge_foundational::facade::AspectFieldLocator;
+
     pub use crate::transactions::data::{
         AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow, AspectFieldPatch,
-        AspectFieldPatchTarget, AspectLifecycleTransitionClass, AspectTagAccuracyReport,
-        AspectTraceEvidence, AspectTracePatchOperation, AspectTracePatchSetValue,
-        AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkMutationLineagePlan,
-        BulkMutationLocalityFootprint, BulkMutationNamingPlan, BulkMutationProvenancePlan,
-        BulkMutationScope, BulkRelationCreateIntent, CommitAspectSummary, CommitAuthority,
-        CommitChangeSummary, CommitConflict, CommitHistorySummary, CommitLog, CommitOutcome,
-        CommitPatchBudgetSummary, CommitPhase, CommitPhaseTiming, CommitPublicationSummary,
-        CommitResult, CommitSchemaSummary, CommitStructuralSummary, CommitSummary, CommitTopology,
+        AspectLifecycleTransitionClass, AspectTagAccuracyReport, AspectTraceEvidence,
+        AspectTracePatchOperation, AspectTracePatchSetValue, AuthoritativeApplyPlan, AuthorityMode,
+        BulkEntityCreateIntent, BulkMutationLineagePlan, BulkMutationLocalityFootprint,
+        BulkMutationNamingPlan, BulkMutationProvenancePlan, BulkMutationScope,
+        BulkRelationCreateIntent, CommitAspectSummary, CommitAuthority, CommitChangeSummary,
+        CommitConflict, CommitHistorySummary, CommitLog, CommitOutcome, CommitPatchBudgetSummary,
+        CommitPhase, CommitPhaseTiming, CommitPublicationSummary, CommitResult,
+        CommitSchemaSummary, CommitStructuralSummary, CommitSummary, CommitTopology,
         CommitTraceEvent, ConflictClass, CreateIntent, CreatedEntityRef, CrossContextEndpointClass,
         DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, EntityReference,
         EntitySpec, LineageSafeBulkMutationBatch, MergeCommitMutationPlan, MergeExecutionOutcome,

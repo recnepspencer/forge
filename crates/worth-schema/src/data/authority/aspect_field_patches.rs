@@ -1,15 +1,16 @@
 use forge_foundational::facade::{
-    AspectValue, AuthoritativeRecordAspectState, ContractValidatedAspectValueView, InternedString,
+    AspectFieldLocator, AspectKey, AspectValue, AuthoritativeRecordAspectState, CanonicalFieldPath,
+    ContractValidatedAspectValueView, FieldKey, InternedString, LocatorAuthority,
 };
 use forge_relational::facade::runtime::EntityReadRecord;
-use forge_relational::facade::transactions::{AspectFieldPatch, AspectFieldPatchTarget};
+use forge_relational::facade::transactions::AspectFieldPatch;
 
 use crate::data::aspects::{entity_domain_aspect, entity_domain_field, field_key};
 use crate::data::entities::EntityKind;
 
 pub fn entity_create_fields(kind: EntityKind, label: &str) -> AspectFieldPatch {
-    AspectFieldPatch::from_target(
-        AspectFieldPatchTarget::single(
+    AspectFieldPatch::from_locator(
+        planned_single_field_locator(
             entity_domain_aspect(kind).aspect_key(),
             field_key(entity_domain_field(kind)),
         ),
@@ -24,18 +25,15 @@ pub fn relation_create_fields() -> AspectFieldPatch {
 pub fn entity_record_label<'a>(record: &'a EntityReadRecord, kind: EntityKind) -> Option<&'a str> {
     scalar_string_aspect(
         record.authoritative_aspect_state.as_ref()?,
-        &AspectFieldPatchTarget::single(
-            entity_domain_aspect(kind).aspect_key(),
-            field_key(entity_domain_field(kind)),
-        ),
+        &entity_domain_aspect(kind).aspect_key(),
     )
 }
 
 fn scalar_string_aspect<'a>(
     state: &'a AuthoritativeRecordAspectState,
-    target: &AspectFieldPatchTarget,
+    aspect_key: &AspectKey,
 ) -> Option<&'a str> {
-    match state.get(target.aspect_key())?.view() {
+    match state.get(aspect_key)?.view() {
         ContractValidatedAspectValueView::Scalar(AspectValue::String(value)) => match value {
             InternedString::Raw(raw) => Some(raw.as_str()),
             InternedString::Symbol(_) => None,
@@ -43,4 +41,12 @@ fn scalar_string_aspect<'a>(
         ContractValidatedAspectValueView::Scalar(_)
         | ContractValidatedAspectValueView::Struct(_) => None,
     }
+}
+
+fn planned_single_field_locator(aspect_key: AspectKey, field_key: FieldKey) -> AspectFieldLocator {
+    AspectFieldLocator::new(
+        LocatorAuthority::Planned,
+        aspect_key,
+        CanonicalFieldPath::single(field_key),
+    )
 }

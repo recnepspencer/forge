@@ -6,7 +6,7 @@ mod source_authoritative_fields;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use forge_foundational::facade::AspectValue;
+use forge_foundational::facade::{AspectFieldLocator, AspectValue};
 
 use crate::capabilities::AspectPlanSource;
 use crate::merge::data::{
@@ -14,7 +14,7 @@ use crate::merge::data::{
     MergeExecutionMutationPlanError, PreparedMergeExecution, ReconcileRecordPlan,
 };
 use crate::storage::data::EntityReadRecord;
-use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
+use crate::transactions::data::AspectFieldPatch;
 use crate::transactions::data::{
     CreateIntent, EntityMutationIntent, EntitySpec, MergeCommitMutationPlan,
     MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan, MutationIntent,
@@ -238,7 +238,7 @@ impl<'runtime> MergeAccess<'runtime> {
                     detail: "target entity kind has no executable aspect plan",
                 },
             )?;
-        let mut resolved_fields = BTreeMap::<AspectFieldPatchTarget, AspectValue>::new();
+        let mut resolved_fields = BTreeMap::<AspectFieldLocator, AspectValue>::new();
 
         for aspect_plan in plan.aspect_plan.iter() {
             let ExecutableAspectPlan::ReconcileValue {

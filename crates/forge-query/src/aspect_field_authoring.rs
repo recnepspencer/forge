@@ -1,10 +1,11 @@
 use std::collections::BTreeMap;
 
 use forge_foundational::facade::{
-    aspects, AspectIdentity, AspectKey, AspectValue, CanonicalF64, FieldKey, ScalarAspectType,
+    aspects, AspectFieldLocator, AspectIdentity, AspectKey, AspectValue, CanonicalF64,
+    CanonicalFieldPath, FieldKey, LocatorAuthority, ScalarAspectType,
 };
 use forge_relational::facade::schema::{AspectBinding, DeclaredAspect};
-use forge_relational::facade::transactions::{AspectFieldPatch, AspectFieldPatchTarget};
+use forge_relational::facade::transactions::AspectFieldPatch;
 use serde_json::Value;
 
 pub(crate) fn entity_string_field_aspect(
@@ -73,7 +74,7 @@ pub(crate) fn aspect_field_patch_from_json_values<'a>(
     let mut targets = BTreeMap::new();
     for (aspect_label, field_label, value) in values {
         targets.insert(
-            AspectFieldPatchTarget::single(aspect_key(aspect_label)?, field_key(field_label)?),
+            planned_single_field_locator(aspect_key(aspect_label)?, field_key(field_label)?),
             lower_json_scalar_to_aspect_value(value)?,
         );
     }
@@ -124,6 +125,17 @@ pub(crate) fn aspect_key(label: &str) -> Result<AspectKey, String> {
 
 pub(crate) fn field_key(label: &str) -> Result<FieldKey, String> {
     FieldKey::new(label).ok_or_else(|| format!("`{label}` is not a foundational field key"))
+}
+
+pub(crate) fn planned_single_field_locator(
+    aspect_key: AspectKey,
+    field_key: FieldKey,
+) -> AspectFieldLocator {
+    AspectFieldLocator::new(
+        LocatorAuthority::Planned,
+        aspect_key,
+        CanonicalFieldPath::single(field_key),
+    )
 }
 
 pub(crate) fn terminal_field_label(path: &str) -> Result<&str, String> {

@@ -145,7 +145,7 @@ fn update_entity_fields_rejects_undeclared_aspect_targets() {
                     entity_id: entity,
                     fields: crate::transactions::data::AspectFieldPatch::from(
                         std::collections::BTreeMap::from([(
-                            crate::transactions::data::AspectFieldPatchTarget::single(
+                            crate::transactions::data::planned_single_field_locator(
                                 forge_foundational::facade::AspectKey::new("undeclared")
                                     .expect("valid test aspect key"),
                                 forge_foundational::facade::FieldKey::new("undeclared").unwrap(),
@@ -221,8 +221,8 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
             EntityMutationIntent::UpdateFields(
                 crate::transactions::data::UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::transactions::data::AspectFieldPatch::from_target(
-                        crate::transactions::data::AspectFieldPatchTarget::single(
+                    fields: crate::transactions::data::AspectFieldPatch::from_locator(
+                        crate::transactions::data::planned_single_field_locator(
                             forge_foundational::facade::AspectKey::new("name")
                                 .expect("valid test aspect key"),
                             FieldKey::new("name").expect("valid test field key"),
@@ -321,8 +321,8 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
             EntityMutationIntent::UpdateFields(
                 crate::transactions::data::UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::transactions::data::AspectFieldPatch::from_target(
-                        crate::transactions::data::AspectFieldPatchTarget::single(
+                    fields: crate::transactions::data::AspectFieldPatch::from_locator(
+                        crate::transactions::data::planned_single_field_locator(
                             forge_foundational::facade::AspectKey::new("summary")
                                 .expect("valid test aspect key"),
                             FieldKey::new("title").expect("valid test field key"),
@@ -434,8 +434,8 @@ fn update_entity_fields_rejects_explicit_aspect_field_path_mismatch() {
             EntityMutationIntent::UpdateFields(
                 crate::transactions::data::UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::transactions::data::AspectFieldPatch::from_target(
-                        crate::transactions::data::AspectFieldPatchTarget::single(
+                    fields: crate::transactions::data::AspectFieldPatch::from_locator(
+                        crate::transactions::data::planned_single_field_locator(
                             forge_foundational::facade::AspectKey::new("title.scalar")
                                 .expect("valid test aspect key"),
                             FieldKey::new("status").expect("valid test field key"),
@@ -476,8 +476,8 @@ fn update_entity_fields_validation_denial_carries_aspect_field_path() {
             EntityMutationIntent::UpdateFields(
                 crate::transactions::data::UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::transactions::data::AspectFieldPatch::from_target(
-                        crate::transactions::data::AspectFieldPatchTarget::single(
+                    fields: crate::transactions::data::AspectFieldPatch::from_locator(
+                        crate::transactions::data::planned_single_field_locator(
                             forge_foundational::facade::AspectKey::new("name")
                                 .expect("valid test aspect key"),
                             FieldKey::new("name").expect("valid test field key"),
@@ -524,14 +524,14 @@ fn create_entity_with_summary_fields(
 ) -> EntityId {
     let mut fields = std::collections::BTreeMap::from([
         (
-            crate::transactions::data::AspectFieldPatchTarget::single(
+            crate::transactions::data::planned_single_field_locator(
                 AspectKey::new("summary").expect("valid summary aspect key"),
                 FieldKey::new("title").expect("valid title field key"),
             ),
             AspectValue::String(summary_title.into()),
         ),
         (
-            crate::transactions::data::AspectFieldPatchTarget::single(
+            crate::transactions::data::planned_single_field_locator(
                 AspectKey::new("summary").expect("valid summary aspect key"),
                 FieldKey::new("status").expect("valid status field key"),
             ),
@@ -540,7 +540,7 @@ fn create_entity_with_summary_fields(
     ]);
     if include_name {
         fields.insert(
-            crate::transactions::data::AspectFieldPatchTarget::single(
+            crate::transactions::data::planned_single_field_locator(
                 AspectKey::new("name").expect("valid name aspect key"),
                 FieldKey::new("name").expect("valid name field key"),
             ),
@@ -549,7 +549,7 @@ fn create_entity_with_summary_fields(
     }
     if include_scalar_title {
         fields.insert(
-            crate::transactions::data::AspectFieldPatchTarget::single(
+            crate::transactions::data::planned_single_field_locator(
                 AspectKey::new("title.scalar").expect("valid scalar title aspect key"),
                 FieldKey::new("title").expect("valid title field key"),
             ),

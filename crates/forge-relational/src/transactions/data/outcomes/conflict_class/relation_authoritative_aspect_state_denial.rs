@@ -1,11 +1,10 @@
 use forge_foundational::facade::{
-    AuthoritativePatchApplicationDenial, AuthoritativePatchConstructionDenial,
+    AspectFieldLocator, AuthoritativePatchApplicationDenial, AuthoritativePatchConstructionDenial,
     AuthoritativeStateAdmissionDenial, BoundarySourceLocator, ContractValidationDenial,
 };
 use serde::{Deserialize, Serialize};
 
 use super::AspectFieldTargetRejectionReason;
-use crate::transactions::data::AspectFieldPatchTarget;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RelationAuthoritativeAspectStateDenial {
@@ -24,7 +23,8 @@ pub enum RelationAuthoritativeAspectStateDenial {
         denial: AuthoritativePatchApplicationDenial,
     },
     UnsupportedAspectFieldTarget {
-        target: AspectFieldPatchTarget,
+        #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator")]
+        target: AspectFieldLocator,
         reason: AspectFieldTargetRejectionReason,
     },
     StructValueConstructionDenied {

@@ -8,7 +8,10 @@ mod mutation_planning;
 mod outcomes;
 mod primitives;
 
-pub use aspect_field_patch::{AspectFieldPatch, AspectFieldPatchTarget};
+pub(crate) use aspect_field_patch::validate_planned_aspect_field_locator;
+pub use aspect_field_patch::{
+    planned_aspect_field_locator, planned_single_field_locator, AspectFieldPatch,
+};
 pub use aspect_reports::{AspectTagAccuracyReport, PatchVsTruthDeltaReport};
 pub use aspect_traces::{
     AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow,

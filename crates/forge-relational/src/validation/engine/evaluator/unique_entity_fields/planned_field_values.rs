@@ -1,8 +1,8 @@
 use forge_foundational::facade::{AspectFieldLocator, AspectValue};
 
 use crate::transactions::data::{
-    AspectFieldPatch, AspectFieldPatchTarget, CreateIntent, EntityMutationIntent, MergedCommitPlan,
-    MutationIntent, ReplaceEntityIntent,
+    AspectFieldPatch, CreateIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent,
+    ReplaceEntityIntent,
 };
 use crate::validation::data::UniqueEntityAspectField;
 
@@ -74,7 +74,7 @@ fn planned_patch_aspect_field_value(
     field_locator: &AspectFieldLocator,
 ) -> Option<PlannedEntityAspectFieldValue> {
     patch
-        .get(&AspectFieldPatchTarget::new(
+        .get(&crate::transactions::data::planned_aspect_field_locator(
             field_locator.aspect().aspect_key().clone(),
             field_locator.field_path().clone(),
         ))

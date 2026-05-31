@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::data::DiagnosticCode;
-use crate::transactions::data::{AspectFieldPatchTarget, RecordRef};
-use forge_foundational::facade::AspectKey;
+use crate::transactions::data::RecordRef;
+use forge_foundational::facade::{AspectFieldLocator, AspectKey};
 use forge_foundational::facade::{AuthoritativePatchConstructionDenial, ContractValidationDenial};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,7 +22,8 @@ pub enum AspectDeltaFailureFields {
         detail: String,
     },
     EntityFieldBindingRequiresAuthoritativePatchEvidence {
-        target: AspectFieldPatchTarget,
+        #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator")]
+        target: AspectFieldLocator,
     },
     FoundationalPatchValueValidation {
         target: RecordRef,

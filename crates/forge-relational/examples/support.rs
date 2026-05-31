@@ -15,9 +15,9 @@ use forge_relational::facade::{
     },
     symbols::ClientKey,
     transactions::{
-        AspectFieldPatch, AspectFieldPatchTarget, CreateIntent, DeleteEntityIntent,
-        EntityMutationIntent, EntityReference, EntitySpec, MutationIntent, RelationSpec,
-        TransactionOptions, UpdateEntityFieldsIntent, WorkerIntentBatch,
+        AspectFieldPatch, CreateIntent, DeleteEntityIntent, EntityMutationIntent, EntityReference,
+        EntitySpec, MutationIntent, RelationSpec, TransactionOptions, UpdateEntityFieldsIntent,
+        WorkerIntentBatch,
     },
 };
 
@@ -189,7 +189,11 @@ pub fn aspect_field_locator(label: &str) -> AspectFieldLocator {
 fn string_field_patch(aspect_key: AspectKey, field_key: FieldKey, value: &str) -> AspectFieldPatch {
     let mut fields = BTreeMap::new();
     fields.insert(
-        AspectFieldPatchTarget::single(aspect_key, field_key),
+        AspectFieldLocator::new(
+            LocatorAuthority::Planned,
+            aspect_key,
+            CanonicalFieldPath::single(field_key),
+        ),
         AspectValue::String(value.to_string().into()),
     );
     AspectFieldPatch::from(fields)

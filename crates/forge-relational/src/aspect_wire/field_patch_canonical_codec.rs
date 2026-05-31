@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 
-use forge_foundational::facade::AspectValue;
+use forge_foundational::facade::{AspectFieldLocator, AspectValue};
 
 use super::{
     decode_aspect_field_locator, decode_aspect_value, encode_aspect_field_locator,
     encode_length_prefixed_aspect_value, encode_u32, AspectValueCanonicalCodecError,
 };
-use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
+use crate::transactions::data::{validate_planned_aspect_field_locator, AspectFieldPatch};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AspectFieldPatchCodecError {
@@ -44,8 +44,8 @@ pub(crate) fn encode_aspect_field_patch_canonical_bytes(
 ) -> Result<Vec<u8>, AspectFieldPatchCodecError> {
     let mut bytes = Vec::new();
     encode_u32(&mut bytes, patch.len() as u32);
-    for (target, value) in patch.iter() {
-        encode_length_prefixed_aspect_field_patch_target(&mut bytes, target);
+    for (locator, value) in patch.iter() {
+        encode_length_prefixed_aspect_field_locator(&mut bytes, locator);
         encode_length_prefixed_aspect_value(&mut bytes, value)?;
     }
     Ok(bytes)
@@ -56,47 +56,32 @@ pub(crate) fn decode_aspect_field_patch_canonical_bytes(
 ) -> Result<AspectFieldPatch, AspectFieldPatchCodecError> {
     let mut reader = AspectFieldPatchReader::new(bytes);
     let field_count = reader.read_u32()? as usize;
-    let mut targets = BTreeMap::new();
+    let mut locators = BTreeMap::new();
     for _ in 0..field_count {
-        let target = reader.read_target()?;
+        let locator = reader.read_locator()?;
         let value = reader.read_length_prefixed_aspect_value()?;
-        targets.insert(target, value);
+        locators.insert(locator, value);
     }
     reader.finish()?;
-    Ok(AspectFieldPatch::new(targets))
+    Ok(AspectFieldPatch::new(locators))
 }
 
-pub(crate) fn encode_aspect_field_patch_target_canonical_bytes(
-    target: &AspectFieldPatchTarget,
-) -> Vec<u8> {
-    encode_aspect_field_locator(target.locator())
-}
-
-pub(crate) fn decode_aspect_field_patch_target_canonical_bytes(
-    bytes: &[u8],
-) -> Result<AspectFieldPatchTarget, AspectFieldPatchCodecError> {
-    decode_aspect_field_patch_target(bytes)
-}
-
-fn encode_length_prefixed_aspect_field_patch_target(
-    bytes: &mut Vec<u8>,
-    target: &AspectFieldPatchTarget,
-) {
-    let locator_bytes = encode_aspect_field_locator(target.locator());
+fn encode_length_prefixed_aspect_field_locator(bytes: &mut Vec<u8>, locator: &AspectFieldLocator) {
+    let locator_bytes = encode_aspect_field_locator(locator);
     encode_u32(bytes, locator_bytes.len() as u32);
     bytes.extend_from_slice(&locator_bytes);
 }
 
-fn decode_aspect_field_patch_target(
+fn decode_planned_aspect_field_locator(
     bytes: &[u8],
-) -> Result<AspectFieldPatchTarget, AspectFieldPatchCodecError> {
+) -> Result<AspectFieldLocator, AspectFieldPatchCodecError> {
     let locator = decode_aspect_field_locator(bytes).map_err(|error| {
         AspectFieldPatchCodecError::new(format!(
-            "aspect field patch target locator decode failed: {}",
+            "aspect field patch locator decode failed: {}",
             error
         ))
     })?;
-    AspectFieldPatchTarget::from_locator(locator)
+    validate_planned_aspect_field_locator(locator)
 }
 
 struct AspectFieldPatchReader<'a> {
@@ -120,10 +105,10 @@ impl<'a> AspectFieldPatchReader<'a> {
         }
     }
 
-    fn read_target(&mut self) -> Result<AspectFieldPatchTarget, AspectFieldPatchCodecError> {
+    fn read_locator(&mut self) -> Result<AspectFieldLocator, AspectFieldPatchCodecError> {
         let length = self.read_u32()? as usize;
         let bytes = self.read_exact(length)?;
-        decode_aspect_field_patch_target(bytes)
+        decode_planned_aspect_field_locator(bytes)
     }
 
     fn read_u32(&mut self) -> Result<u32, AspectFieldPatchCodecError> {

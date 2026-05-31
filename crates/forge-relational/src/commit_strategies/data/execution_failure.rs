@@ -16,11 +16,9 @@ pub enum StrategyExecutorFailureEvidence {
         #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator")]
         locator: forge_foundational::facade::AspectFieldLocator,
     },
-    AspectFieldPatchTarget {
-        target: crate::transactions::data::AspectFieldPatchTarget,
-    },
-    AspectFieldPatchTargetMismatch {
-        target: crate::transactions::data::AspectFieldPatchTarget,
+    AspectFieldLocatorMismatch {
+        #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator")]
+        locator: forge_foundational::facade::AspectFieldLocator,
         expected_aspect_key: forge_foundational::facade::AspectKey,
     },
 }

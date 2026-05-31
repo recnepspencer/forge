@@ -214,24 +214,24 @@ impl EntityReplacementReconciliationStrategy {
         existing: &crate::storage::data::EntityReadRecord,
         desired_fields: &AspectFieldPatch,
     ) -> Result<AspectFieldPatch, StrategyExecutorFailure> {
-        for target in desired_fields.targets() {
+        for target in desired_fields.locators() {
             let [field] = target.field_path().fields() else {
                 return Err(StrategyExecutorFailure::with_evidence(
                     StrategyExecutorFailureClass::DomainRejection,
                     "entity replacement reconciliation target field path is not a single foundational field path",
-                    StrategyExecutorFailureEvidence::AspectFieldPatchTarget {
-                        target: target.clone(),
+                    StrategyExecutorFailureEvidence::AspectFieldLocator {
+                        locator: target.clone(),
                     },
                 ));
             };
             let aspect_key =
                 Self::require_lowered_entity_scalar_field(observation, existing, field)?;
-            if &aspect_key != target.aspect_key() {
+            if &aspect_key != target.aspect().aspect_key() {
                 return Err(StrategyExecutorFailure::with_evidence(
                     StrategyExecutorFailureClass::DomainRejection,
                     "entity replacement reconciliation target does not match lowered scalar aspect",
-                    StrategyExecutorFailureEvidence::AspectFieldPatchTargetMismatch {
-                        target: target.clone(),
+                    StrategyExecutorFailureEvidence::AspectFieldLocatorMismatch {
+                        locator: target.clone(),
                         expected_aspect_key: aspect_key,
                     },
                 ));
@@ -249,7 +249,7 @@ impl EntityReplacementReconciliationStrategy {
                 return false;
             };
             let desired_comparison_key = authoritative_aspect_value_field_comparison_key(value);
-            entity_authoritative_aspect_field_comparison_key(existing, target.locator())
+            entity_authoritative_aspect_field_comparison_key(existing, target)
                 == Some(desired_comparison_key)
         })
     }

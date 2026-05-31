@@ -1,5 +1,7 @@
-use forge_foundational::facade::{AspectKey, AspectValue};
-use forge_relational::facade::transactions::{AspectFieldPatch, AspectFieldPatchTarget};
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
+};
+use forge_relational::facade::transactions::AspectFieldPatch;
 use schema::facade::{entity_domain_aspect, entity_domain_field, Aspect, EntityKind, NamingAspect};
 
 use super::field_key;
@@ -21,8 +23,16 @@ pub(crate) fn persistent_name_create_fields(persistent_name: &str) -> AspectFiel
 }
 
 fn entity_string_field_patch(aspect_key: AspectKey, field: &str, value: &str) -> AspectFieldPatch {
-    AspectFieldPatch::from_target(
-        AspectFieldPatchTarget::single(aspect_key, field_key(field)),
+    AspectFieldPatch::from_locator(
+        planned_single_field_locator(aspect_key, field_key(field)),
         AspectValue::String(value.to_string().into()),
+    )
+}
+
+fn planned_single_field_locator(aspect_key: AspectKey, field_key: FieldKey) -> AspectFieldLocator {
+    AspectFieldLocator::new(
+        LocatorAuthority::Planned,
+        aspect_key,
+        CanonicalFieldPath::single(field_key),
     )
 }

@@ -4,10 +4,9 @@ use crate::commit_strategies::data::{
     StrategyLoweringSummary, StrategyPreviewValidationCostSummary,
 };
 use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
-use crate::transactions::data::{
-    AspectFieldPatchTarget, CommitValidationSummary, ExistingRecordTarget,
-};
+use crate::transactions::data::{CommitValidationSummary, ExistingRecordTarget};
 use crate::validation::data::InvariantCatalog;
+use forge_foundational::facade::AspectFieldLocator;
 
 pub(crate) fn lowering_summary_digest(summary: &StrategyLoweringSummary) -> [u8; 32] {
     commit_strategy_digest("strategy-lowering-summary-v1", |bytes| {
@@ -87,7 +86,7 @@ pub(crate) fn runtime_execution_model_digest(model: RelationalExecutionModel) ->
 
 pub(crate) fn native_entity_fields_scope_digest(
     entity_id: crate::identity::data::EntityId,
-    targets: &[AspectFieldPatchTarget],
+    targets: &[AspectFieldLocator],
 ) -> [u8; 32] {
     commit_strategy_digest("strategy-native-entity-fields-scope-v2", |bytes| {
         bytes.entity_id(entity_id);
@@ -98,7 +97,7 @@ pub(crate) fn native_entity_fields_scope_digest(
 pub(crate) fn native_entity_replacement_scope_digest(
     entity_id: crate::identity::data::EntityId,
     replacement_client_key: &str,
-    targets: &[AspectFieldPatchTarget],
+    targets: &[AspectFieldLocator],
 ) -> [u8; 32] {
     commit_strategy_digest("strategy-native-entity-replacement-scope-v2", |bytes| {
         bytes.entity_id(entity_id);
@@ -126,13 +125,13 @@ pub(crate) fn fallback_intent_scope_digest(
     })
 }
 
-fn write_sorted_scope_targets(bytes: &mut StrategyDigestBytes, targets: &[AspectFieldPatchTarget]) {
+fn write_sorted_scope_targets(bytes: &mut StrategyDigestBytes, targets: &[AspectFieldLocator]) {
     let mut targets = targets.to_vec();
     targets.sort();
     targets.dedup();
     bytes.usize(targets.len());
     for target in targets {
-        bytes.aspect_field_patch_target(&target);
+        bytes.aspect_field_locator(&target);
     }
 }
 

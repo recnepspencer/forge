@@ -1,7 +1,7 @@
 use forge_foundational::facade::BoundarySourceLocator;
 
 use super::authoritative_aspect_source_locator::{
-    aspect_field_patch_target_field_label, source_locator_aspect_label, source_locator_field_label,
+    aspect_field_locator_field_label, source_locator_aspect_label, source_locator_field_label,
 };
 use super::RelationAuthoritativeAspectStateDenial;
 
@@ -33,8 +33,8 @@ pub(super) fn relation_authoritative_aspect_state_denial_detail(
         RelationAuthoritativeAspectStateDenial::UnsupportedAspectFieldTarget { target, reason } => {
             format!(
                 "relation field '{}' / {} is not a supported relation aspect target: {}",
-                aspect_field_patch_target_field_label(target),
-                target.aspect_key().as_str(),
+                aspect_field_locator_field_label(target),
+                target.aspect().aspect_key().as_str(),
                 reason.label()
             )
         }

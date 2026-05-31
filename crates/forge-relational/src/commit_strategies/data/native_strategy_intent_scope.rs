@@ -1,5 +1,7 @@
 use std::collections::BTreeSet;
 
+use forge_foundational::facade::AspectFieldLocator;
+
 use super::canonical_digest::{
     native_entity_fields_scope_digest, native_entity_replacement_scope_digest,
 };
@@ -8,18 +10,18 @@ use super::{
     decode_string, CommitStrategyDescriptor, LoweredStrategyCommitPlan, NativeCodecReader,
 };
 use crate::identity::data::EntityId;
-use crate::transactions::data::{AspectFieldPatchTarget, EntityMutationIntent, MutationIntent};
+use crate::transactions::data::{EntityMutationIntent, MutationIntent};
 
 #[derive(Debug)]
 enum NativeStrategyIntentScope {
     EntityFields {
         entity_id: EntityId,
-        targets: Vec<AspectFieldPatchTarget>,
+        targets: Vec<AspectFieldLocator>,
     },
     EntityReplacement {
         entity_id: EntityId,
         replacement_client_key: String,
-        targets: Vec<AspectFieldPatchTarget>,
+        targets: Vec<AspectFieldLocator>,
     },
 }
 
@@ -44,7 +46,7 @@ pub(super) fn native_strategy_intent_scope_digest(
 pub(super) fn native_strategy_intent_scope_targets(
     descriptor: &CommitStrategyDescriptor,
     lowered: &LoweredStrategyCommitPlan,
-) -> Option<Vec<AspectFieldPatchTarget>> {
+) -> Option<Vec<AspectFieldLocator>> {
     let scope = native_strategy_intent_scope(descriptor, lowered)?;
     let mut targets = match scope {
         NativeStrategyIntentScope::EntityFields { targets, .. }
@@ -109,7 +111,7 @@ fn native_intent_reconciliation_scope(
     Some(NativeStrategyIntentScope::EntityFields {
         entity_id,
         targets: lowered_entity_patch_targets(lowered, entity_id)
-            .unwrap_or_else(|| desired_fields.targets().cloned().collect()),
+            .unwrap_or_else(|| desired_fields.locators().cloned().collect()),
     })
 }
 
@@ -126,26 +128,26 @@ fn native_entity_replacement_scope(
         entity_id,
         replacement_client_key,
         targets: lowered_entity_patch_targets(lowered, entity_id)
-            .unwrap_or_else(|| desired_fields.targets().cloned().collect()),
+            .unwrap_or_else(|| desired_fields.locators().cloned().collect()),
     })
 }
 
 fn lowered_entity_patch_targets(
     lowered: &LoweredStrategyCommitPlan,
     entity_id: EntityId,
-) -> Option<Vec<AspectFieldPatchTarget>> {
+) -> Option<Vec<AspectFieldLocator>> {
     let mut targets = BTreeSet::new();
     for intent in &lowered.merged_plan().merged_intents {
         match intent {
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(update))
                 if update.entity_id == entity_id =>
             {
-                targets.extend(update.fields.targets().cloned());
+                targets.extend(update.fields.locators().cloned());
             }
             MutationIntent::Entity(EntityMutationIntent::Replace(replacement))
                 if replacement.entity_id == entity_id =>
             {
-                targets.extend(replacement.replacement.fields.targets().cloned());
+                targets.extend(replacement.replacement.fields.locators().cloned());
             }
             _ => {}
         }

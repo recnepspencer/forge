@@ -130,7 +130,7 @@ mod tests {
         changed_entities, entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect,
         read_entity_name, unique_test_store_path, AspectSchemaFixture,
     };
-    use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
+    use crate::transactions::data::AspectFieldPatch;
     use crate::transactions::data::{EntitySpec, TransactionCommitError};
     use forge_foundational::facade::{
         AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, InternedString,
@@ -158,14 +158,14 @@ mod tests {
     fn strategy_name_and_replicas_patch(name: &str, replicas: u64) -> AspectFieldPatch {
         AspectFieldPatch::from(std::collections::BTreeMap::from([
             (
-                AspectFieldPatchTarget::single(
+                crate::transactions::data::planned_single_field_locator(
                     AspectKey::new("name").expect("valid name aspect key"),
                     FieldKey::new("name").expect("valid name field key"),
                 ),
                 AspectValue::String(InternedString::Raw(name.to_string())),
             ),
             (
-                AspectFieldPatchTarget::single(
+                crate::transactions::data::planned_single_field_locator(
                     AspectKey::new("replicas").expect("valid replicas aspect key"),
                     FieldKey::new("replicas").expect("valid replicas field key"),
                 ),
@@ -305,8 +305,8 @@ mod tests {
             .canonicalize_request(
                 &IntentReconciliationInput {
                     entity_id: entity,
-                    desired_fields: crate::transactions::data::AspectFieldPatch::from_target(
-                        AspectFieldPatchTarget::single(
+                    desired_fields: crate::transactions::data::AspectFieldPatch::from_locator(
+                        crate::transactions::data::planned_single_field_locator(
                             forge_foundational::facade::AspectKey::new("name")
                                 .expect("valid test aspect key"),
                             FieldKey::new("name").expect("valid test field key"),
@@ -389,8 +389,8 @@ mod tests {
         let batch = WorkerIntentBatch::new("reconcile-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                fields: crate::transactions::data::AspectFieldPatch::from_target(
-                    AspectFieldPatchTarget::single(
+                fields: crate::transactions::data::AspectFieldPatch::from_locator(
+                    crate::transactions::data::planned_single_field_locator(
                         AspectKey::new("name").expect("valid name aspect key"),
                         FieldKey::new("name").expect("valid name field key"),
                     ),
@@ -691,8 +691,8 @@ mod tests {
             .canonicalize_request(
                 &IntentReconciliationInput {
                     entity_id: entity,
-                    desired_fields: crate::transactions::data::AspectFieldPatch::from_target(
-                        AspectFieldPatchTarget::single(
+                    desired_fields: crate::transactions::data::AspectFieldPatch::from_locator(
+                        crate::transactions::data::planned_single_field_locator(
                             forge_foundational::facade::AspectKey::new("name")
                                 .expect("valid test aspect key"),
                             FieldKey::new("name").expect("valid test field key"),
@@ -934,8 +934,8 @@ mod tests {
                 .canonicalize_request(
                     &IntentReconciliationInput {
                         entity_id: entity,
-                        desired_fields: AspectFieldPatch::from_target(
-                            AspectFieldPatchTarget::single(
+                        desired_fields: AspectFieldPatch::from_locator(
+                            crate::transactions::data::planned_single_field_locator(
                                 forge_foundational::facade::AspectKey::new("name")
                                     .expect("valid test aspect key"),
                                 FieldKey::new("name").expect("valid test field key"),

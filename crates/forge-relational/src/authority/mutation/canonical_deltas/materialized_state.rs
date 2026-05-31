@@ -11,7 +11,6 @@ use super::data::{
     LifecycleTransitionClass,
 };
 use super::lifecycle_transition_evidence::lifecycle_transition;
-use crate::transactions::data::AspectFieldPatchTarget;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum MaterializedAspectState {
@@ -318,6 +317,9 @@ fn entity_field_binding_requires_authoritative_patch(
     field: &forge_foundational::facade::FieldKey,
 ) -> CanonicalDeltaError {
     CanonicalDeltaError::EntityFieldBindingRequiresAuthoritativePatchEvidence {
-        target: AspectFieldPatchTarget::single(aspect_key.clone(), field.clone()),
+        target: crate::transactions::data::planned_single_field_locator(
+            aspect_key.clone(),
+            field.clone(),
+        ),
     }
 }
