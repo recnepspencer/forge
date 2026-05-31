@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 
 use serde::ser::{SerializeMap, SerializeSeq};
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(untagged)]
 pub(super) enum ExternalSerdeDiagnosticProjectionValue {
     Null,
     Bool(bool),

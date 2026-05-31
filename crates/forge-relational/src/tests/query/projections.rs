@@ -156,6 +156,30 @@ fn projection_record_refuses_aspect_reads_outside_declared_scope() {
 }
 
 #[test]
+fn dynamic_projection_scope_reads_aspects_without_raw_record_escape() {
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let entity_id = create_entity(&mut runtime, "scope-carried");
+    let view = runtime
+        .read_truth()
+        .project_version(runtime.current_version_id());
+    let name_key = AspectKey::new("name").unwrap();
+
+    let projected = view.entity_records_with_projection_scope(
+        KindId(1),
+        ProjectionAspectScope::whole_aspects([name_key.clone()]),
+        |record| {
+            let AspectValue::String(name) = record.aspect_value(&name_key)? else {
+                return None;
+            };
+            Some((record.entity_id(), raw_interned_string(name)?.to_string()))
+        },
+    );
+
+    assert_eq!(projected, vec![(entity_id, "scope-carried".to_string())]);
+}
+
+#[test]
 fn snapshot_projection_uses_authoritative_published_binding_version() {
     let mut runtime =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);

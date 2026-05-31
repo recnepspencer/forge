@@ -5,10 +5,11 @@ use crate::aspect_field_authoring::{
     project_aspect_value_to_workspace_json, terminal_field_label,
 };
 use crate::runtime::ForgeQueryAspectValue;
-use forge_foundational::facade::{AspectValue, ContractValidatedAspectValueView};
+use forge_foundational::facade::AspectValue;
 use forge_relational::facade::config::RelationalRuntimeProfile;
 use forge_relational::facade::identity::PartitionId;
 use forge_relational::facade::runtime::RelationalRuntimeApi;
+use forge_relational::facade::runtime::{EntityProjectionRecord, ProjectionAspectScope};
 use forge_relational::facade::schema::{
     EntityKindRegistration, KindAspectDeclarations, RelationalSchemaRegistry, SchemaId,
     SchemaVersionId,
@@ -182,23 +183,19 @@ impl ForgeQueryMemoryWorkspace {
         else {
             return Vec::new();
         };
+        let projection_scope = self.workspace_projection_scope();
         self.runtime
             .read_truth()
             .project_version(version_id)
-            .unmasked_entity_records(self.kind_id)
-            .into_iter()
-            .filter_map(|record| {
-                let (aspect_values, external_projection) = self
-                    .aspect_projection_from_authoritative_aspect_state(
-                        record.authoritative_aspect_state.as_ref()?,
-                    );
+            .entity_records_with_projection_scope(self.kind_id, projection_scope, |record| {
+                let (aspect_values, external_projection) =
+                    self.aspect_projection_from_projection_record(record);
                 Some(ForgeQueryEntity::from_aspect_projection(
-                    super::helpers::entity_identity(record.entity_id),
+                    super::helpers::entity_identity(record.entity_id()),
                     aspect_values,
                     external_projection,
                 ))
             })
-            .collect()
     }
 
     pub fn snapshot_token(&self) -> String {
@@ -217,7 +214,9 @@ impl ForgeQueryMemoryWorkspace {
         self.runtime
             .read_truth()
             .project_version(version_id)
-            .unmasked_entity_record(entity_id)
+            .entity_record_with_projection_scope(entity_id, ProjectionAspectScope::empty(), |_| {
+                Some(())
+            })
             .ok_or_else(|| ForgeQueryWorkspaceError::new("entity not found"))?;
         Ok(())
     }
@@ -293,9 +292,17 @@ impl ForgeQueryMemoryWorkspace {
         Ok(forge_relational::facade::transactions::AspectFieldPatch::from(targets))
     }
 
-    fn aspect_projection_from_authoritative_aspect_state(
+    fn workspace_projection_scope(&self) -> ProjectionAspectScope {
+        ProjectionAspectScope::whole_aspects(
+            self.aspects
+                .iter()
+                .filter_map(|aspect| aspect_key(aspect.label()).ok()),
+        )
+    }
+
+    fn aspect_projection_from_projection_record(
         &self,
-        state: &forge_foundational::facade::AuthoritativeRecordAspectState,
+        record: EntityProjectionRecord<'_>,
     ) -> (std::collections::BTreeMap<String, AspectValue>, Value) {
         let mut aspect_values = std::collections::BTreeMap::new();
         let mut external_projection = Value::Object(serde_json::Map::new());
@@ -303,10 +310,7 @@ impl ForgeQueryMemoryWorkspace {
             let Ok(key) = aspect_key(aspect.label()) else {
                 continue;
             };
-            let Some(validated) = state.get(&key) else {
-                continue;
-            };
-            let ContractValidatedAspectValueView::Scalar(value) = validated.view() else {
+            let Some(value) = record.aspect_value(&key) else {
                 continue;
             };
             aspect_values.insert(aspect.label().to_string(), value.clone());

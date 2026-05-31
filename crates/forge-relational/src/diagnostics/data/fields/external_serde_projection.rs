@@ -1,4 +1,4 @@
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::aspect_value_diagnostic_terms::{
     aspect_value_diagnostic_value, struct_aspect_value_diagnostic_value,
@@ -26,6 +26,17 @@ where
     S: Serializer,
 {
     project_diagnostic_value_for_external_serde(fields.root()).serialize(serializer)
+}
+
+pub(super) fn deserialize_native_projection_diagnostic_fields<'de, D>(
+    deserializer: D,
+) -> Result<RelationalDiagnosticFields, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    ExternalSerdeDiagnosticProjectionValue::deserialize(deserializer)
+        .map(external_serde_projection_value_to_diagnostic_tree)
+        .map(RelationalDiagnosticFields::from)
 }
 
 pub(super) fn typed_external_serde_projection_tree(
