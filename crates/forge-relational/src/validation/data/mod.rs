@@ -32,9 +32,9 @@ pub use descriptor::{
 #[allow(unused_imports)]
 pub use execution::InvariantWitnessBasis;
 pub use execution::{
-    InvariantAspectValueWitnessBasis, InvariantCheckResult, InvariantClass, InvariantDecisionKind,
-    InvariantDecisionRecord, InvariantExecutionPoint, InvariantFailureEffect,
-    InvariantReportedRule, InvariantVerdict, InvariantWitnessKey,
+    InvariantCheckResult, InvariantClass, InvariantDecisionKind, InvariantDecisionRecord,
+    InvariantExecutionPoint, InvariantFailureEffect, InvariantReportedRule, InvariantVerdict,
+    InvariantWitnessKey,
 };
 pub use groups::{InvariantCostClass, InvariantGroup, InvariantGroupSet};
 pub use results::{

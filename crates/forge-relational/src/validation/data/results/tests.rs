@@ -7,7 +7,7 @@ use crate::diagnostics::data::DiagnosticCode;
 use crate::identity::data::{KindId, PartitionId, VersionId};
 use crate::transactions::data::{CreatedEntityRef, EntityReference};
 use crate::validation::data::InvariantClass;
-use crate::validation::data::{InvariantAspectValueWitnessBasis, InvariantWitnessBasis};
+use crate::validation::data::InvariantWitnessBasis;
 use forge_foundational::facade::{
     AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
 };
@@ -84,15 +84,12 @@ fn unique_entity_field_violation_uses_foundational_field_and_value_carriers() {
             field_locator: witness_field_locator,
             value: witness_value,
             field_locator_canonical_bytes,
-            value_basis,
+            value_canonical_bytes,
         } => {
             assert_eq!(witness_field_locator, &field_locator);
             assert_eq!(witness_value, &value);
             assert!(!field_locator_canonical_bytes.is_empty());
-            assert!(matches!(
-                value_basis,
-                InvariantAspectValueWitnessBasis::CanonicalBytes(bytes) if !bytes.is_empty()
-            ));
+            assert!(!value_canonical_bytes.is_empty());
         }
         basis => panic!("expected typed unique entity aspect-field witness basis, got {basis:?}"),
     }

@@ -95,12 +95,6 @@ pub enum InvariantReportedRule {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum InvariantAspectValueWitnessBasis {
-    CanonicalBytes(Vec<u8>),
-    UnsupportedValueFamily(String),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InvariantWitnessBasis {
     StringOnly,
     Pass,
@@ -108,7 +102,7 @@ pub enum InvariantWitnessBasis {
         field_locator: forge_foundational::facade::AspectFieldLocator,
         value: forge_foundational::facade::AspectValue,
         field_locator_canonical_bytes: Vec<u8>,
-        value_basis: InvariantAspectValueWitnessBasis,
+        value_canonical_bytes: Vec<u8>,
     },
 }
 
@@ -145,7 +139,7 @@ impl InvariantWitnessKey {
         field_locator: forge_foundational::facade::AspectFieldLocator,
         aspect_value: forge_foundational::facade::AspectValue,
         field_locator_canonical_bytes: Vec<u8>,
-        value_basis: InvariantAspectValueWitnessBasis,
+        value_canonical_bytes: Vec<u8>,
     ) -> Self {
         Self {
             value: value.into(),
@@ -153,7 +147,7 @@ impl InvariantWitnessKey {
                 field_locator,
                 value: aspect_value,
                 field_locator_canonical_bytes,
-                value_basis,
+                value_canonical_bytes,
             },
         }
     }

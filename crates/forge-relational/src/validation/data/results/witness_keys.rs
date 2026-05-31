@@ -1,7 +1,7 @@
 use crate::aspect_wire::{encode_aspect_field_locator, encode_length_prefixed_aspect_value};
 use crate::diagnostics::data::DiagnosticCode;
 use crate::schema::data::{EndpointDeletionIntegrityMode, SymmetryMode, UniquenessScope};
-use crate::validation::data::{InvariantAspectValueWitnessBasis, InvariantWitnessKey};
+use crate::validation::data::InvariantWitnessKey;
 
 use super::{InvariantViolationFields, RelationCardinalityBoundary, RelationEndpointBoundary};
 
@@ -193,43 +193,28 @@ fn unique_entity_aspect_field_witness_key(
     value: &forge_foundational::facade::AspectValue,
 ) -> InvariantWitnessKey {
     let field_locator_canonical_bytes = encode_aspect_field_locator(field_locator);
-    let value_basis = canonical_aspect_value_witness_basis(value);
+    let value_canonical_bytes = canonical_aspect_value_witness_basis(value);
     let key = format!(
         "unique_entity_aspect_field:{code:?}:{}:{}",
         hex_bytes(&field_locator_canonical_bytes),
-        canonical_aspect_value_witness_fragment(&value_basis)
+        hex_bytes(&value_canonical_bytes)
     );
     InvariantWitnessKey::unique_entity_aspect_field(
         key,
         field_locator.clone(),
         value.clone(),
         field_locator_canonical_bytes,
-        value_basis,
+        value_canonical_bytes,
     )
 }
 
 fn canonical_aspect_value_witness_basis(
     value: &forge_foundational::facade::AspectValue,
-) -> InvariantAspectValueWitnessBasis {
+) -> Vec<u8> {
     let mut bytes = Vec::new();
-    match encode_length_prefixed_aspect_value(&mut bytes, value) {
-        Ok(()) => InvariantAspectValueWitnessBasis::CanonicalBytes(bytes),
-        Err(_) => InvariantAspectValueWitnessBasis::UnsupportedValueFamily(format!(
-            "{:?}",
-            value.value_family()
-        )),
-    }
-}
-
-fn canonical_aspect_value_witness_fragment(
-    value_basis: &InvariantAspectValueWitnessBasis,
-) -> String {
-    match value_basis {
-        InvariantAspectValueWitnessBasis::CanonicalBytes(bytes) => hex_bytes(bytes),
-        InvariantAspectValueWitnessBasis::UnsupportedValueFamily(family) => {
-            format!("unsupported:{family}")
-        }
-    }
+    encode_length_prefixed_aspect_value(&mut bytes, value)
+        .expect("shared AspectValue witness codec must cover every AspectValue family");
+    bytes
 }
 
 fn hex_bytes(bytes: &[u8]) -> String {
