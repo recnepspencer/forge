@@ -4,7 +4,6 @@ use crate::transactions::data::{
     AspectFieldPatch, CreateIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent,
     ReplaceEntityIntent,
 };
-use crate::validation::data::UniqueEntityAspectField;
 
 use super::super::super::context::InvariantExecutionContext;
 
@@ -16,14 +15,11 @@ pub(super) struct PlannedEntityAspectFieldValue {
 pub(super) fn planned_entity_aspect_field_values(
     _context: &InvariantExecutionContext<'_>,
     merged_plan: &MergedCommitPlan,
-    target: &UniqueEntityAspectField,
+    field_locator: &AspectFieldLocator,
 ) -> Vec<PlannedEntityAspectFieldValue> {
     let mut values = Vec::new();
     for intent in &merged_plan.merged_intents {
-        values.extend(planned_intent_aspect_field_values(
-            intent,
-            target.field_locator(),
-        ));
+        values.extend(planned_intent_aspect_field_values(intent, field_locator));
     }
     values
 }

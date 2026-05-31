@@ -112,7 +112,7 @@ impl InvariantRule {
             Self::MaxMergedIntents(_)
             | Self::RelationIntegrityScopeBudget(_)
             | Self::MaxSnapshotEntities(_)
-            | Self::UniqueEntityAspectField(_)
+            | Self::UniqueEntityAspectField { .. }
             | Self::EndpointKindContract(_)
             | Self::CardinalityMaximumContract(_)
             | Self::CardinalityMinimumContract(_)

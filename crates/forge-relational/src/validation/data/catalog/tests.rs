@@ -1,4 +1,6 @@
-use forge_foundational::facade::{AspectKey, FieldKey};
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectKey, CanonicalFieldPath, FieldKey, LocatorAuthority,
+};
 
 use super::registration_examples::InvariantRegistrationContract;
 use super::{InvariantCatalog, InvariantRegistration};
@@ -100,9 +102,11 @@ fn every_invariant_variant_supports_at_least_one_execution_point_and_can_registe
 fn catalog_for_unique_field(aspect_key: AspectKey, field_key: FieldKey) -> InvariantCatalog {
     InvariantCatalog {
         registrations: vec![InvariantRegistration::commit_boundary_blocking(
-            InvariantRule::UniqueEntityAspectField(
-                crate::validation::data::UniqueEntityAspectField::single(aspect_key, field_key),
-            ),
+            InvariantRule::unique_entity_aspect_field_locator(AspectFieldLocator::new(
+                LocatorAuthority::Planned,
+                aspect_key,
+                CanonicalFieldPath::single(field_key),
+            )),
         )],
     }
 }

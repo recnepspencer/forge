@@ -236,7 +236,7 @@ pub mod runtime {
         InvariantCheckResult, InvariantClass, InvariantCostClass, InvariantDecisionKind,
         InvariantDecisionRecord, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
         InvariantGroupSet, InvariantRegistration, InvariantRule, PlannedRelationEndpointUpdate,
-        StructuralRelationRecord, StructuralRelationView, UniqueEntityAspectField,
+        StructuralRelationRecord, StructuralRelationView,
     };
     pub use crate::visibility::authority::VisibilityAuthority as SnapshotAuthority;
     pub use crate::visibility::materialization::read_records::{

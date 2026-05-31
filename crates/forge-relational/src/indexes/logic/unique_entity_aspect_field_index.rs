@@ -130,10 +130,10 @@ fn tracked_unique_entity_aspect_fields(
 ) -> BTreeSet<AspectFieldLocator> {
     let mut fields = BTreeSet::new();
     for registration in &runtime.config.schema.invariant_catalog.registrations {
-        if let crate::validation::data::InvariantRule::UniqueEntityAspectField(target) =
+        if let crate::validation::data::InvariantRule::UniqueEntityAspectField { field_locator } =
             &registration.rule
         {
-            fields.insert(target.field_locator().clone());
+            fields.insert(field_locator.clone());
         }
     }
     fields

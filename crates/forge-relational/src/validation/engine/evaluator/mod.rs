@@ -58,9 +58,9 @@ pub(crate) fn evaluate_rule(
         InvariantRule::MaxSnapshotEntities(limit) => {
             single_violation(evaluate_snapshot_entity_limit_rule(context, class, *limit))
         }
-        InvariantRule::UniqueEntityAspectField(target) => {
-            single_violation(evaluate_unique_entity_aspect_field(context, class, target))
-        }
+        InvariantRule::UniqueEntityAspectField { field_locator } => single_violation(
+            evaluate_unique_entity_aspect_field(context, class, field_locator),
+        ),
         InvariantRule::EndpointKindContract(contract) => {
             evaluate_endpoint_kind_contract(context, class, contract)
         }

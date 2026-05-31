@@ -11,7 +11,6 @@ use crate::storage::data::{
 };
 use crate::validation::data::{
     InvariantClass, InvariantViolation, InvariantViolationFields, StorageInconsistencyScan,
-    UniqueEntityAspectField,
 };
 
 use super::super::context::InvariantExecutionContext;
@@ -22,10 +21,12 @@ use planned_field_values::{planned_entity_aspect_field_values, PlannedEntityAspe
 pub(super) fn evaluate_unique_entity_aspect_field(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
-    target: &UniqueEntityAspectField,
+    field_locator: &AspectFieldLocator,
 ) -> Option<InvariantViolation> {
-    let field = target.single_field()?;
-    if let Some(violation) = planned_unique_entity_aspect_field_violation(context, class, target) {
+    let field = single_field(field_locator)?;
+    if let Some(violation) =
+        planned_unique_entity_aspect_field_violation(context, class, field_locator)
+    {
         return Some(violation);
     }
 
@@ -33,21 +34,21 @@ pub(super) fn evaluate_unique_entity_aspect_field(
         return touched_unique_entity_aspect_field_violation(
             context,
             class,
-            target.field_locator(),
+            field_locator,
             touched_entity_ids,
         );
     }
 
-    visible_unique_entity_aspect_field_violation(context, class, target.field_locator(), field)
+    visible_unique_entity_aspect_field_violation(context, class, field_locator, field)
 }
 
 fn planned_unique_entity_aspect_field_violation(
     context: &InvariantExecutionContext<'_>,
     class: InvariantClass,
-    target: &UniqueEntityAspectField,
+    field_locator: &AspectFieldLocator,
 ) -> Option<InvariantViolation> {
     let planned_values =
-        planned_entity_aspect_field_values(context, context.merged_plan()?, target);
+        planned_entity_aspect_field_values(context, context.merged_plan()?, field_locator);
     let mut planned_value_to_entity = HashMap::<
         AuthoritativeFieldComparisonKey,
         Option<crate::identity::data::EntityId>,
@@ -59,27 +60,26 @@ fn planned_unique_entity_aspect_field_violation(
             planned_value_to_entity.insert(comparison_key.clone(), entity_id)
         {
             if existing_entity_id != entity_id || entity_id.is_none() {
-                return Some(duplicate_field_violation(
-                    class,
-                    target.field_locator(),
-                    value,
-                ));
+                return Some(duplicate_field_violation(class, field_locator, value));
             }
         }
         if committed_entity_value_conflicts_with_planned_value(
             context,
-            target.field_locator(),
+            field_locator,
             &comparison_key,
             entity_id,
         ) {
-            return Some(duplicate_field_violation(
-                class,
-                target.field_locator(),
-                value,
-            ));
+            return Some(duplicate_field_violation(class, field_locator, value));
         }
     }
     None
+}
+
+fn single_field(field_locator: &AspectFieldLocator) -> Option<&FieldKey> {
+    match field_locator.field_path().fields() {
+        [field] => Some(field),
+        _ => None,
+    }
 }
 
 fn touched_unique_entity_aspect_field_violation(

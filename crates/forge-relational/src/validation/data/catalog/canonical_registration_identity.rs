@@ -103,11 +103,10 @@ impl RegistrationIdentityBytes {
                 self.tag(4);
                 self.usize(*limit);
             }
-            InvariantRule::UniqueEntityAspectField(target) => {
+            InvariantRule::UniqueEntityAspectField { field_locator } => {
                 self.tag(5);
-                let locator = target.field_locator();
-                self.string(locator.aspect().aspect_key().as_str());
-                self.field_path(locator.field_path().fields());
+                self.string(field_locator.aspect().aspect_key().as_str());
+                self.field_path(field_locator.field_path().fields());
             }
             InvariantRule::EndpointKindContract(contract) => {
                 self.tag(6);
