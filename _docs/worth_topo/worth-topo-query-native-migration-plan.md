@@ -1,13 +1,24 @@
 # Worth Topo Query-Native Migration Plan
 
-`worth-topo` already uses `forge-query` heavily, but it still exposes local
-entry, assembly, and orchestration surfaces that sit beside Query rather than
-beginning in Query. The target state is a clean break: serious topology reads
-and workflow entry begin only from Query-owned typed domain entry, configured
-handles, declaration orchestration, contribution composition, and recovery. Old
-topology-owned entry systems are not to remain as secondary, internal, adapter,
-or fallback peers in live code. If a surface has been replaced, it must be
-deleted from live code rather than merely deprioritized.
+`worth-topo` already uses `forge-query` heavily, but it still teaches too much
+generic substrate instead of the full Query DX and product story. The target
+state is a clean break: serious topology reads and workflow entry begin only
+from Query-owned typed domain entry, configured handles, helper lanes, grouped
+products, contribution composition, ordinary outcomes, recovery, retained
+artifacts, and continuation workflows.
+
+This document is not just a migration checklist. It is the precedent-setting
+plan for how future kernel work should use Query. That means:
+
+- if Query has a richer public helper, chooser, workflow, contribution,
+  grouped, outcome, recovery, retained-artifact, or continuation surface for a
+  job, `worth-topo` must target that surface
+- direct use of generic substrate is allowed only as internal implementation
+  detail underneath the preferred public lane
+- no backward-compatibility lane is allowed in production code, support code,
+  certification code, docs, or tests
+- if a surface has been replaced, it must be deleted from live code rather than
+  merely deprioritized
 
 ## Scope
 
@@ -19,7 +30,39 @@ The migration plan covers these public and semi-public subsystem surfaces:
 - public projection and truth-surface declarations
 - query assembly and snapshot materialization
 - bridge and invalidation registration classification
-- committed artifact alignment with Query receipts and envelopes
+- committed artifact alignment with Query receipts, envelopes, recovery, and
+  retained-artifact workflows
+
+## Global Query References
+
+These Query docs are the shared reference set for the plan:
+
+- `crates/forge-query/docs/domain-capabilities/platform-entry.md`
+- `crates/forge-query/docs/domain-capabilities/configured-domain-handles.md`
+- `crates/forge-query/docs/domain-capabilities/typed-binding-pipeline.md`
+- `crates/forge-query/docs/domain-capabilities/ordinary-outcomes.md`
+- `crates/forge-query/docs/domain-capabilities/recovery-boundary.md`
+- `crates/forge-query/docs/domain-capabilities/continuation-pipeline.md`
+- `crates/forge-query/docs/domain-capabilities/contribution-composed-orchestration.md`
+- `crates/forge-query/docs/domain-capabilities/family-helpers.md`
+- `crates/forge-query/docs/domain-capabilities/grouped-authoring.md`
+- `crates/forge-query/docs/domain-capabilities/grouped-products.md`
+- `crates/forge-query/docs/domain-capabilities/grouped-contributions.md`
+- `crates/forge-query/docs/domain-capabilities/grouped-support-readiness.md`
+- `crates/forge-query/docs/domain-capabilities/orchestration-inventory.md`
+- `crates/forge-query/docs/domain-capabilities/declaration-entry-orchestration.md`
+- `crates/forge-query/docs/domain-capabilities/declaration-boundary-receipts.md`
+- `crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md`
+- `crates/forge-query/docs/domain-capabilities/declaration-bridge-continuation-routing.md`
+- `crates/forge-query/docs/domain-capabilities/workflow/single-declaration-to-envelope.md`
+- `crates/forge-query/docs/domain-capabilities/workflow/grouped-neighborhood-workflow.md`
+- `crates/forge-query/docs/domain-capabilities/workflow/retained-artifact-to-next-step.md`
+- `crates/forge-query/docs/domain-capabilities/workflow/envelope-to-signal-or-continuation.md`
+- `crates/forge-query/docs/domain-capabilities/workflow/stop-to-recovery.md`
+- `crates/forge-query/docs/domain-capabilities/recipes/author-a-grouped-neighborhood-with-contributions.md`
+- `crates/forge-query/docs/domain-capabilities/choosing/binding-vs-orchestration-vs-helpers.md`
+- `crates/forge-query/docs/domain-capabilities/choosing/grouped-authoring-vs-grouped-products-vs-grouped-contributions.md`
+- `crates/forge-query/docs/domain-capabilities/choosing/inspection-vs-readiness-vs-recovery.md`
 
 ## Subsystem Plan
 
@@ -39,29 +82,30 @@ Target Query surfaces to reference:
 - `ForgeQueryDomainEntryRoot`
 - `ForgeQueryDomainEntryChecked`
 - `ForgeQueryDomainEntryProofRoot`
-- `ForgeQueryConfiguredDomainHandleDraft`
 - `ForgeQueryConfiguredDomainHandleChecked`
 - `ForgeQueryAdmittedConfiguredDomainHandle`
 - `ForgeQueryDomainOperatingContext`
+- `platform-entry.md`
+- `configured-domain-handles.md`
 
 Required migration:
 
-- add one typed topology domain marker
-- add typed operating contexts for current-head authoritative work
-- add typed operating contexts for snapshot read-only work
+- keep one typed topology domain marker
+- keep typed operating contexts for current-head authoritative work
+- keep typed operating contexts for snapshot read-only work
 - route public topology entry only through Query domain entry
-- remove local assembly-first entry as a live topology entry model
+- prune projection-first and broad facade-root entry stories from the live API
 
 Phase-completion rule:
 
 - phase 1 is not complete while `TopologyQueryAssembly`, projection-first
   entry, or any other topology-owned root remains in live code as a topology
   entry option
-- phase 1 is complete only when Query domain entry is the only topology entry
-  model in live code
+- phase 1 is complete only when Query domain entry and admitted configured
+  handles are the only topology entry model in live code
 - the only allowed remaining references to replaced phase-1 entry surfaces are
   historical engineering docs or intentionally archived material, not
-  production code, certification code, or active support code
+  production code, certification code, tests, or active support code
 
 ### 2. Read Helpers
 
@@ -74,14 +118,19 @@ Current `worth-topo` surfaces:
 Target Query surfaces to reference:
 
 - admitted configured domain handles
-- declaration entry seam readiness and inspection helpers where useful
-- handle-owned helper APIs rather than raw workspace seams
+- handle-bound read sessions and handle-owned helper entry
+- `configured-domain-handles.md`
+- `platform-entry.md`
+- read-facing workflow and chooser guidance rather than declaration-entry seam
+  vocabulary
 
 Required migration:
 
 - rehang the current read kernels under admitted-handle helper entry
 - remove raw workspace-taking entry points from live topology read code
 - remove query-object-root read entry as a live topology read model
+- keep topology read DX centered on handle-bound sessions rather than local
+  workspace seams
 
 Phase-completion rule:
 
@@ -90,9 +139,8 @@ Phase-completion rule:
   as a topology read option
 - phase 2 is complete only when admitted configured handles and handle-bound
   read sessions are the only topology read model in live code
-- documentation, compile-fail proofs, public API certification, and active
-  certification support code must all agree on that boundary before phase 2 is
-  called done
+- documentation, compile-fail proofs, public API certification, support code,
+  and tests must all agree on that boundary before phase 2 is called done
 
 ### 3. Edit And Declaration Workflow
 
@@ -105,25 +153,46 @@ Current `worth-topo` surfaces:
 
 Target Query surfaces to reference:
 
-- `ForgeQueryDeclarationInput`
-- `ForgeQueryDeclarationFamilyMarker`
-- `ForgeQueryDeclarationEntryOrchestrationChecked`
-- `ForgeQueryDeclarationEnvelope`
-- ordinary, checked, and proof orchestration lanes
+- canonical substrate:
+  - `ForgeQueryDeclarationInput`
+  - `ForgeQueryDeclarationFamilyMarker`
+  - `ForgeQueryDeclarationEntryOrchestrationChecked`
+  - `ForgeQueryDeclarationEnvelope`
+- preferred precedent-setting public lanes:
+  - `family-helpers.md`
+  - `grouped-authoring.md`
+  - `grouped-products.md`
+  - `grouped-contributions.md`
+  - `grouped-support-readiness.md`
+  - `workflow/grouped-neighborhood-workflow.md`
+  - `recipes/author-a-grouped-neighborhood-with-contributions.md`
+  - `ordinary-outcomes.md`
+  - `recovery-boundary.md`
+  - `choosing/binding-vs-orchestration-vs-helpers.md`
+  - `choosing/grouped-authoring-vs-grouped-products-vs-grouped-contributions.md`
 
 Required migration:
 
 - recast topology edits as Query declarations
 - remove direct mutation-batch lowering as a live operator workflow seam
-- expose ordinary, checked, proof, and recovery lanes instead of one local
-  execution product
+- remove the precedent that generic `orchestrate_declaration_entry(...)` is the
+  main caller-facing topology edit story when a richer helper or grouped lane
+  exists
+- for scalar families, generic declaration entry may remain the underlying
+  substrate where no richer family-native lane exists yet
+- for grouped topology families, target grouped authoring, grouped products,
+  grouped contributions, grouped readiness, ordinary outcomes, and recovery as
+  the intended public lane
+- tests and certification must use the same intended DX/product lane instead of
+  bypassing it through generic orchestration-only entry
 
 Phase-completion rule:
 
 - phase 3 is not complete when one topology edit family has been migrated
 - phase 3 is complete only when every public topology operator family currently
   exposed through `TopologyEditBatch`, `TopologyEditContract`, and the
-  topology-operator facade has moved onto Query declaration entry orchestration
+  topology-operator facade has moved onto Query declaration entry
+  infrastructure and the best available Query DX/product lane for that family
 - migrating one narrow family first is allowed only as the opening
   implementation slice inside phase 3, not as the definition of phase-3
   completion
@@ -144,10 +213,11 @@ Current `worth-topo` surfaces:
 
 Target Query surfaces to reference:
 
-- declaration entry contribution composition
-- contribution-composed orchestration
-- ordinary outcome surfaces
-- recovery boundary
+- `contribution-composed-orchestration.md`
+- `ordinary-outcomes.md`
+- `recovery-boundary.md`
+- `workflow/stop-to-recovery.md`
+- `choosing/inspection-vs-readiness-vs-recovery.md`
 
 Required migration:
 
@@ -155,6 +225,10 @@ Required migration:
   contributions
 - use declaration-plus-contribution orchestration where topology semantics
   extend bare declaration entry
+- keep stop handling on Query ordinary outcomes and Query recovery instead of
+  topo-local stop translation sidecars
+- require tests and support flows to use the same contribution and recovery
+  lane
 
 Phase-completion rule:
 
@@ -162,8 +236,8 @@ Phase-completion rule:
   on local sidecars for continuity, fallback, or explanation
 - phase 4 is complete only when every operator family that requires
   topology-specific continuity, aftermath, or explanation semantics carries
-  those semantics on Query contribution surfaces rather than local execution
-  sidecars
+  those semantics on Query contribution and recovery surfaces rather than local
+  execution sidecars
 
 ### 5. Construction
 
@@ -176,15 +250,23 @@ Current `worth-topo` surfaces:
 
 Target Query surfaces to reference:
 
-- typed domain entry
-- configured handles
-- declaration workflows for write and inspect families
-- Query-owned envelopes and receipts where construction crosses authority
+- `platform-entry.md`
+- `configured-domain-handles.md`
+- `declaration-entry-orchestration.md`
+- `declaration-boundary-receipts.md`
+- `declaration-boundary-envelopes.md`
+- `workflow/single-declaration-to-envelope.md`
+- `grouped-authoring.md`
+- `workflow/grouped-neighborhood-workflow.md` where construction jobs are
+  neighborhood-shaped
 
 Required migration:
 
 - treat construction as a first-class Query-native migration target
 - remove the local construction-first planning story from live code
+- keep construction entry and authority-crossing outputs aligned with the same
+  handle, receipt, envelope, outcome, and recovery story as the rest of
+  `worth-topo`
 
 Completion rule:
 
@@ -193,7 +275,8 @@ Completion rule:
   a downstream tool
 - it is complete only when construction entry, execution planning, and
   authority-crossing outputs are aligned with the same Query-native domain
-  entry, handle, and envelope story as the rest of `worth-topo`
+  entry, handle, receipt, envelope, and grouped/helper story as the rest of
+  `worth-topo`
 
 ### 6. Projection And Truth Surfaces
 
@@ -206,8 +289,12 @@ Current `worth-topo` surfaces:
 
 Target Query surfaces to reference:
 
-- Query live-view and computed declarations
-- typed entry and handle-owned helpers at the public boundary
+- `typed-binding-pipeline.md`
+- `choosing/binding-vs-orchestration-vs-helpers.md`
+- `configured-domain-handles.md`
+- `ordinary-outcomes.md`
+- handle-owned helper or orchestration lanes at the public boundary rather than
+  raw maintainer/declaration exports
 
 Required migration:
 
@@ -215,7 +302,8 @@ Required migration:
   implementation detail
 - remove raw declaration and maintainer exports from the live topology-facing
   API
-- make the Query-native topology entry the only public front door
+- make the Query-native topology entry, binding, and handle-owned helper story
+  the only public front door
 
 Completion rule:
 
@@ -223,8 +311,8 @@ Completion rule:
   live views, computed surfaces, or maintainers directly as a topology entry
   workflow
 - it is complete only when those low-level projection surfaces are absent from
-  the live topology-facing API and the topology Query-native entry is the only
-  public front door
+  the live topology-facing API and the topology Query-native entry and
+  handle-owned workflow lane are the only public front door
 
 ### 7. Query Assembly And Historical Materialization
 
@@ -236,9 +324,11 @@ Current `worth-topo` surfaces:
 
 Target Query surfaces to reference:
 
-- domain entry and configured handles
-- retained artifact and next-step workflow surfaces
-- Query-owned historical and progressed-truth handling
+- `workflow/retained-artifact-to-next-step.md`
+- `declaration-boundary-envelopes.md`
+- `continuation-pipeline.md`
+- `workflow/envelope-to-signal-or-continuation.md`
+- Query-owned retained artifact, historical truth, and continuation handling
 
 Required migration:
 
@@ -246,15 +336,17 @@ Required migration:
   semantics
 - remove local assembly-owned historical entry once Query-owned historical
   handling exists
+- forbid topo-local reconstruction of missing progression or historical basis
+  when retained artifacts or continuation workflows can carry the truth
 
 Completion rule:
 
 - this subsystem is not complete while historical correctness still depends on
   `worth-topo` reconstructing missing basis or materialization truth locally in
   live code
-- it is complete only when Query-owned retained-artifact and historical-truth
-  handling are the only authority and local assembly-owned historical entry has
-  been removed from live code
+- it is complete only when Query-owned retained-artifact, historical-truth,
+  and continuation handling are the only authority and local assembly-owned
+  historical entry has been removed from live code
 
 ### 8. Bridge Registration
 
@@ -266,14 +358,17 @@ Current `worth-topo` surfaces:
 
 Target Query surfaces to reference:
 
+- `declaration-bridge-continuation-routing.md`
+- `platform-entry.md`
+- `configured-domain-handles.md`
 - Query-native topology entry as the caller-facing front door
 - lower bridge seams only as adapter infrastructure
 
 Required migration:
 
 - remove bridge registration from the live topology-facing entry story
-- keep only the minimum internal bridge machinery still required by the Query
-  native boundary
+- keep only the minimum internal bridge machinery still required by the
+  Query-native boundary
 
 Completion rule:
 
@@ -290,20 +385,26 @@ Current `worth-topo` surfaces:
 
 Target Query surfaces to reference:
 
-- declaration receipts
-- declaration envelopes
-- retained artifact to next-step workflow
+- `declaration-boundary-receipts.md`
+- `declaration-boundary-envelopes.md`
+- `workflow/retained-artifact-to-next-step.md`
+- `ordinary-outcomes.md`
+- `recovery-boundary.md`
 
 Required migration:
 
 - reconcile local committed artifacts with Query-owned receipt and envelope
   truth so downstream workflows are not split across two artifact stories
+- treat `TopologyCommittedArtifact` as acceptable only if it becomes a thin
+  topo-owned projection over Query receipt/envelope truth or is deleted
+- forbid tests and support code from teaching a parallel local artifact story
+  once Query-owned retained artifacts are available
 
 Completion rule:
 
 - committed-artifact alignment is not complete while downstream workflows in
   live code still need to choose between a local topology artifact story and a
-  Query receipt or envelope story
+  Query receipt, envelope, outcome, recovery, or retained-artifact story
 - it is complete only when there is one authoritative artifact progression for
   downstream topology workflows
 
@@ -311,12 +412,13 @@ Completion rule:
 
 1. Add topology domain entry and operating contexts.
 2. Rehang read families under admitted-handle helper entry.
-3. Open phase 3 by routing one narrow topology edit family through declaration
-   entry orchestration, then continue until every public topology operator
-   family has moved.
-4. Attach topology-specific contribution-composed workflow, starting with the
-   first migrated family and continuing until the full operator surface is on
-   the contribution-capable path where required.
+3. Open phase 3 by routing one narrow topology edit family through Query
+   declaration entry infrastructure, then revise that family onto the richest
+   available helper/grouped/product lane before treating it as precedent.
+4. Attach topology-specific contribution-composed workflow, ordinary outcomes,
+   and recovery, starting with the first migrated family and continuing until
+   the full operator surface is on the contribution-capable path where
+   required.
 5. Widen to grouped topology workflows and remove the old direct
    mutation-batch path from live code rather than leaving mixed execution
    stories in place.
@@ -331,18 +433,33 @@ This plan follows a clean-break rule, not a compatibility-migration rule.
 - replaced topology read surfaces must be removed from live code
 - replaced topology operator authoring and execution surfaces must be removed
   from live code
+- replaced surfaces must not survive in tests, certification harnesses,
+  support code, or active docs as "temporary" precedent lanes
 - "internal only", "secondary", "adapter-only", "reduced", "still available",
   or similar coexistence language is not sufficient completion for any phase
 - the only acceptable surviving references to replaced surfaces are old
   engineering docs or intentionally archived historical material
 
+## Precedent Rule
+
+This migration is supposed to teach future kernel work how to use Query.
+
+- if Query has a chooser, helper, grouped, workflow, contribution, ordinary
+  outcome, recovery, retained-artifact, or continuation surface for the job,
+  that is the surface the migration should target
+- generic substrate is not the desired public precedent when a richer public
+  Query lane exists
+- tests are part of the precedent surface and must use the same intended DX and
+  product lane as production code
+
 ## Query Bug Rule
 
-If a query-related bug blocks this migration, fix the surface in `forge-query`
+If a Query-related bug blocks this migration, fix the surface in `forge-query`
 rather than painting a workaround in `worth-topo`.
 
 ## Query Notes
 
-- A prior broken merge temporarily left `forge-query` in a partially landed
-  state. That issue has been corrected. Any future Query regression discovered
-  during this migration should be fixed at the Query surface itself.
+- a prior broken merge temporarily left `forge-query` in a partially landed
+  state. That issue has been corrected.
+- any future Query regression discovered during this migration should be fixed
+  at the Query surface itself.

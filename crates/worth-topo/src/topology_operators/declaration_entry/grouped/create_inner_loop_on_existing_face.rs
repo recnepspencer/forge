@@ -10,7 +10,7 @@ use schema::facade::platform::authority::{CreateKey, EntityReference};
 use schema::facade::platform::entities::TopologyEntityKind;
 
 use super::super::shared::canonical_entity_reference_entry;
-use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
+use crate::query_domain::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
 use crate::topology_operators::{
     BoundaryMembershipKind, TopologyDeclaredMutationSequence,
     TopologyDeclaredMutationSequenceBuilder,

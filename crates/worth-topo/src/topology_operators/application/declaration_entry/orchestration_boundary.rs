@@ -3,7 +3,9 @@ use forge_query::facade::{
     ForgeQueryDeclarationInput,
 };
 
-use crate::facade::{topology_current_head_authoritative_context, topology_query_domain_entry};
+use crate::query_domain::{
+    topology_current_head_authoritative_context, topology_query_domain_entry, TopologyQueryDomain,
+};
 
 use super::super::{
     TopologyDeclarationEntryRefusalClass, TopologyDeclarationEntryStopClass,
@@ -15,7 +17,7 @@ pub(super) fn orchestrate_topology_declaration_entry<I>(
     declaration: I,
 ) -> Result<(), TopologyMutationApplicationError>
 where
-    I: ForgeQueryDeclarationInput<crate::facade::TopologyQueryDomain> + Clone,
+    I: ForgeQueryDeclarationInput<TopologyQueryDomain> + Clone,
 {
     let facade = topology_current_head_declaration_entry_facade();
     let handle = topology_query_domain_entry(&facade)
@@ -36,13 +38,10 @@ pub(super) fn topology_current_head_declaration_entry_facade() -> ForgeQueryAppl
 
 fn declaration_entry_error<I>(
     family: TopologyMutationFamily,
-    error: ForgeQueryDeclarationEntryOrchestrationTerminalError<
-        crate::facade::TopologyQueryDomain,
-        I,
-    >,
+    error: ForgeQueryDeclarationEntryOrchestrationTerminalError<TopologyQueryDomain, I>,
 ) -> TopologyMutationApplicationError
 where
-    I: ForgeQueryDeclarationInput<crate::facade::TopologyQueryDomain>,
+    I: ForgeQueryDeclarationInput<TopologyQueryDomain>,
 {
     match error {
         ForgeQueryDeclarationEntryOrchestrationTerminalError::Deferred(outcome) => {

@@ -11,7 +11,8 @@ use super::support::{
 
 fn assert_current_head_envelopes<I>(declaration: I)
 where
-    I: Clone + forge_query::facade::ForgeQueryDeclarationInput<crate::facade::TopologyQueryDomain>,
+    I: Clone
+        + forge_query::facade::ForgeQueryDeclarationInput<crate::query_domain::TopologyQueryDomain>,
 {
     let handle = current_head_query_handle();
     let ordinary = handle
@@ -36,7 +37,8 @@ where
 
 fn assert_snapshot_rebind_required<I>(declaration: I)
 where
-    I: Clone + forge_query::facade::ForgeQueryDeclarationInput<crate::facade::TopologyQueryDomain>,
+    I: Clone
+        + forge_query::facade::ForgeQueryDeclarationInput<crate::query_domain::TopologyQueryDomain>,
 {
     let handle = snapshot_query_handle();
 

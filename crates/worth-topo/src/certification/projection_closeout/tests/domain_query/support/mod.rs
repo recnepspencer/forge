@@ -1,12 +1,13 @@
 use crate::facade::TopologyQueryMutationEvidence;
-use crate::facade::{
-    topology_current_head_authoritative_context, topology_query_domain_entry, topology_runtime,
-    topology_snapshot_read_only_context, TopologyCurrentHeadConfiguredDomainHandle,
-    TopologyRuntimeAdapters, TopologySnapshotReadOnlyConfiguredDomainHandle,
-};
+use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 use crate::projection::runtime_boundary::read_stage::open_topology_read_view;
 use crate::projection::TopologyQueryRowLookup;
+use crate::query_domain::{
+    topology_current_head_authoritative_context, topology_query_domain_entry,
+    topology_snapshot_read_only_context, TopologyCurrentHeadConfiguredDomainHandle,
+    TopologySnapshotReadOnlyConfiguredDomainHandle,
+};
 use crate::validation::reference_integrity::milestone_one_runtime_builder;
 use forge_query::facade::ForgeQueryApplicationFacade;
 use forge_query::facade::ForgeQueryEntity;

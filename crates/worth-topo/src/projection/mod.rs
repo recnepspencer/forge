@@ -1,6 +1,5 @@
 pub(crate) mod derived_surfaces;
 pub(crate) mod diagnostic_surfaces;
-mod domain_entry;
 pub(crate) mod read_views;
 pub(crate) mod runtime_boundary;
 pub(crate) mod truth_surfaces;
@@ -17,16 +16,6 @@ pub use diagnostic_surfaces::query_diagnostics::{
     equivalence_contract_from_diagnostics_rows, topology_diagnostics_computed_declaration,
     topology_equivalence_contract_computed_declaration, TopologyDiagnosticsMaintainer,
     TopologyEquivalenceContractMaintainer, TopologyQueryMutationEvidence,
-};
-pub(crate) use domain_entry::TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY;
-pub use domain_entry::{
-    topology_current_head_authoritative_context, topology_query_domain,
-    topology_query_domain_entry, topology_query_domain_entry_checked,
-    topology_query_domain_proof_root, topology_snapshot_read_only_context,
-    TopologyCurrentHeadAuthoritativeContext, TopologyCurrentHeadConfiguredDomainHandle,
-    TopologyCurrentHeadConfiguredDomainHandleChecked, TopologyQueryDomain,
-    TopologySnapshotReadOnlyConfiguredDomainHandle,
-    TopologySnapshotReadOnlyConfiguredDomainHandleChecked, TopologySnapshotReadOnlyContext,
 };
 pub(crate) use read_views::domain::parity::{
     build_domain_query_view_parity_artifact, TopologyDomainQueryViewParityArtifact,

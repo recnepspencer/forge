@@ -1,4 +1,4 @@
-use topology::facade::{
+use topology::query_domain::{
     TopologyCurrentHeadAuthoritativeContext, TopologyQueryDomain,
     TopologySnapshotReadOnlyContext,
 };

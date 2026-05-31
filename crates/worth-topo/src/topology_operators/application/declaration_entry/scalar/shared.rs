@@ -50,7 +50,7 @@ pub(super) fn apply_scalar_declaration<D>(
 where
     D: ScalarDeclarationFamily
         + TopologyDeclarationMutationPayload
-        + forge_query::facade::ForgeQueryDeclarationInput<crate::facade::TopologyQueryDomain>
+        + forge_query::facade::ForgeQueryDeclarationInput<crate::query_domain::TopologyQueryDomain>
         + Clone,
 {
     orchestrate_topology_declaration_entry(D::FAMILY, declaration.clone())?;

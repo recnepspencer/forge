@@ -9,7 +9,7 @@ use forge_query::facade::{
 use schema::facade::platform::authority::EntityReference;
 
 use super::shared::canonical_entity_reference_entry;
-use crate::facade::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
+use crate::query_domain::{TopologyQueryDomain, TOPOLOGY_SNAPSHOT_READ_ONLY_CONTEXT_IDENTITY};
 use crate::topology_operators::{
     ShellOrWireMembershipKind, TopologyDeclaredMutationSequence,
     TopologyDeclaredMutationSequenceBuilder,

@@ -9,7 +9,7 @@ use super::{
     TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,
     TopologyLoopCycleView, TopologyReadLedger,
 };
-use crate::projection::domain_entry::{
+use crate::query_domain::{
     TopologyCurrentHeadConfiguredDomainHandle, TopologyQueryDomain,
     TopologySnapshotReadOnlyConfiguredDomainHandle,
 };
@@ -25,10 +25,10 @@ pub struct TopologyConfiguredDomainReadSession<
 
 pub type TopologyCurrentHeadReadSession<'a> = TopologyConfiguredDomainReadSession<
     'a,
-    crate::projection::TopologyCurrentHeadAuthoritativeContext,
+    crate::query_domain::TopologyCurrentHeadAuthoritativeContext,
 >;
 pub type TopologySnapshotReadOnlyReadSession<'a> =
-    TopologyConfiguredDomainReadSession<'a, crate::projection::TopologySnapshotReadOnlyContext>;
+    TopologyConfiguredDomainReadSession<'a, crate::query_domain::TopologySnapshotReadOnlyContext>;
 
 impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
     TopologyConfiguredDomainReadSession<'a, C>

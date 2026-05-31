@@ -6,6 +6,7 @@ use forge_relational::facade::snapshots::SnapshotHandle;
 use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent, TopologyMutation};
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use schema::facade::{QueryAspectPath, QueryCollection, QuerySchemaBasis};
+use topology::facade::topology_runtime;
 use topology::facade::BoundaryFailure;
 use topology::facade::{
     build_topology_construction_fact_report, certify_milestone_one_read_basis_traced,
@@ -18,9 +19,6 @@ use topology::facade::{
     lower_primitive_construction_birth_plan, naming_attachment_report_from_query_input,
     persistent_name_live_view_declaration, prepare_primitive_construction_certification,
     prepare_primitive_construction_execution, topology_construction_authority,
-    topology_current_head_authoritative_context, topology_query_domain,
-    topology_query_domain_entry, topology_query_domain_entry_checked,
-    topology_query_domain_proof_root, topology_runtime, topology_snapshot_read_only_context,
     MilestoneOneCertificationError, TopologyAttachBoundaryMembershipDeclaration,
     TopologyAttachShellOrWireMembershipDeclaration, TopologyCommittedArtifact,
     TopologyConstructionAuthority, TopologyConstructionCertificationPlan,
@@ -30,41 +28,47 @@ use topology::facade::{
     TopologyConstructionInspectionSurface, TopologyConstructionLoweringError,
     TopologyConstructionLoweringPlan, TopologyConstructionMutationSurface,
     TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyCreateTopologyEntityDeclaration,
-    TopologyCurrentHeadAuthoritativeContext, TopologyCurrentHeadConfiguredDomainHandle,
-    TopologyCurrentHeadConfiguredDomainHandleChecked, TopologyCurrentHeadReadHandleExt,
-    TopologyCurrentHeadReadSession, TopologyDetachBoundaryMembershipDeclaration,
-    TopologyDetachRadialAdjacencyDeclaration, TopologyDetachShellOrWireMembershipDeclaration,
-    TopologyDomainQueryAggregateReport, TopologyDomainQueryCloseoutReport,
-    TopologyDomainQueryCloseoutRow, TopologyDomainQueryCloseoutStatus,
-    TopologyDomainQueryExecutionEngine, TopologyDomainQueryFallbackPosture,
-    TopologyDomainQueryParityAggregateReport, TopologyDomainQueryPhaseThreeBlocker,
-    TopologyDomainQueryPhaseThreeBlockerRow, TopologyDomainQueryPhaseThreeBlockerStatus,
-    TopologyDomainQueryProofReport, TopologyDomainQueryRequestFamily,
-    TopologyDomainQueryRequestReport, TopologyHalfEdgeRadialNeighborhoodView,
-    TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,
-    TopologyLoopCycleView, TopologyLoopSuccessorRewireMember, TopologyNamingAttachmentInput,
-    TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
-    TopologyQueryBoundaryCleanupArea, TopologyQueryBoundaryCleanupCloseoutReport,
-    TopologyQueryBoundaryCleanupRow, TopologyQueryBoundaryCleanupStatus, TopologyQueryDomain,
-    TopologyQueryMutationEvidence, TopologyQueryMutationFamilySupportStatus,
-    TopologyQueryMutationLane, TopologyQueryMutationLaneExecutionShape,
-    TopologyQueryMutationLaneSupportStatus, TopologyQueryReadFamilySupportStatus,
-    TopologyRadialSpliceMember, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
+    TopologyCurrentHeadReadHandleExt, TopologyCurrentHeadReadSession,
+    TopologyDetachBoundaryMembershipDeclaration, TopologyDetachRadialAdjacencyDeclaration,
+    TopologyDetachShellOrWireMembershipDeclaration, TopologyDomainQueryAggregateReport,
+    TopologyDomainQueryCloseoutReport, TopologyDomainQueryCloseoutRow,
+    TopologyDomainQueryCloseoutStatus, TopologyDomainQueryExecutionEngine,
+    TopologyDomainQueryFallbackPosture, TopologyDomainQueryParityAggregateReport,
+    TopologyDomainQueryPhaseThreeBlocker, TopologyDomainQueryPhaseThreeBlockerRow,
+    TopologyDomainQueryPhaseThreeBlockerStatus, TopologyDomainQueryProofReport,
+    TopologyDomainQueryRequestFamily, TopologyDomainQueryRequestReport,
+    TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
+    TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView, TopologyLoopSuccessorRewireMember,
+    TopologyNamingAttachmentInput, TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow,
+    TopologyNoNPlusOneContractStatus, TopologyQueryBoundaryCleanupArea,
+    TopologyQueryBoundaryCleanupCloseoutReport, TopologyQueryBoundaryCleanupRow,
+    TopologyQueryBoundaryCleanupStatus, TopologyQueryMutationEvidence,
+    TopologyQueryMutationFamilySupportStatus, TopologyQueryMutationLane,
+    TopologyQueryMutationLaneExecutionShape, TopologyQueryMutationLaneSupportStatus,
+    TopologyQueryReadFamilySupportStatus, TopologyRadialSpliceMember,
+    TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyRetireTopologyEntityDeclaration,
     TopologyRewireLoopEndpointDeclaration, TopologyRewireLoopSuccessorProgramDeclaration,
     TopologyRuntimeAdapters, TopologyRuntimeCloseout, TopologyRuntimeCloseoutFamily,
     TopologyRuntimeCloseoutStatus, TopologyRuntimeFailure, TopologyRuntimeMutationFamilySupportRow,
     TopologyRuntimeMutationLaneSupportRow, TopologyRuntimePostureCapability,
     TopologyRuntimePostureRow, TopologyRuntimePostureStatus, TopologyRuntimeReadFamilySupportRow,
-    TopologyRuntimeSupport, TopologyShellRehomeFaceMember,
-    TopologySnapshotReadOnlyConfiguredDomainHandle,
-    TopologySnapshotReadOnlyConfiguredDomainHandleChecked, TopologySnapshotReadOnlyContext,
-    TopologySnapshotReadOnlyReadHandleExt, TopologySnapshotReadOnlyReadSession,
-    TopologySpliceRadialAdjacencyDeclaration, TopologySpliceRadialAdjacencyProgramDeclaration,
+    TopologyRuntimeSupport, TopologyShellRehomeFaceMember, TopologySnapshotReadOnlyReadHandleExt,
+    TopologySnapshotReadOnlyReadSession, TopologySpliceRadialAdjacencyDeclaration,
+    TopologySpliceRadialAdjacencyProgramDeclaration,
     TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
     TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration, TopologyWireRehomeHalfEdgeMember,
     TopologyWireSplitHalfEdgeMember, TracedMilestoneOneCertificationReport,
     TracedMilestoneTwoDerivedReadReport,
+};
+use topology::query_domain::{
+    topology_current_head_authoritative_context, topology_query_domain,
+    topology_query_domain_entry, topology_query_domain_entry_checked,
+    topology_query_domain_proof_root, topology_snapshot_read_only_context,
+    TopologyCurrentHeadAuthoritativeContext, TopologyCurrentHeadConfiguredDomainHandle,
+    TopologyCurrentHeadConfiguredDomainHandleChecked, TopologyQueryDomain,
+    TopologySnapshotReadOnlyConfiguredDomainHandle,
+    TopologySnapshotReadOnlyConfiguredDomainHandleChecked, TopologySnapshotReadOnlyContext,
 };
 use worth_spatial::facade::SpatialConstructionBirthPlan;
 
@@ -128,6 +132,7 @@ fn _vocab_computed_query_declaration_contract() {
         .unwrap();
 }
 
+include!("query_domain/entry.rs");
 include!("public_api_topology_operator_surface.rs");
 include!("public_api_topology_operator_scalar_surface.rs");
 include!("public_api_topology_operator_grouped_rehome_surface.rs");
@@ -284,6 +289,7 @@ fn topo_public_traced_boundaries_compile_with_envelope_contracts() {
     let _ = _m2_commit_cert_contract;
     let _ = _vocab_live_query_declaration_contract;
     let _ = _vocab_computed_query_declaration_contract;
+    let _ = _topology_query_domain_entry_contracts;
     let _ = _topology_operator_surface_contracts;
     let _ = _topology_operator_scalar_surface_contracts;
     let _ = _topology_operator_grouped_rehome_surface_contracts;

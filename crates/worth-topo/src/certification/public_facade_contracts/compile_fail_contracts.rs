@@ -73,6 +73,12 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_topology_query_domain_entry_constructors_not_exported.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/public_topology_query_domain_entry_not_exported_from_facade.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_query_domain_entry_not_exported_from_projection.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/public_domain_query_workspace_methods_not_exported.rs"
     ));
 }
