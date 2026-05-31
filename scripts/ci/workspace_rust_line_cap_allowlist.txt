@@ -145,7 +145,6 @@ crates/forge-relational/src/storage/overlay/working_state.rs
 crates/forge-relational/src/storage/substrate/record_arena/arena.rs
 crates/forge-relational/src/tests/complexity/contracts/commit_budgets.rs
 crates/forge-relational/src/tests/complexity/contracts/visibility_budgets.rs
-crates/forge-relational/src/tests/history/milestone_7c_phase_g.rs
 crates/forge-relational/src/tests/history/milestone_7d_phase_b.rs
 crates/forge-relational/src/tests/performance_profiles.rs
 crates/forge-relational/src/transactions/data/outcomes.rs
