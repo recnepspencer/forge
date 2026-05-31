@@ -148,7 +148,6 @@ crates/forge-relational/src/tests/complexity/contracts/visibility_budgets.rs
 crates/forge-relational/src/tests/history/milestone_7c_phase_a.rs
 crates/forge-relational/src/tests/history/milestone_7c_phase_g.rs
 crates/forge-relational/src/tests/history/milestone_7d_phase_b.rs
-crates/forge-relational/src/tests/history/queries.rs
 crates/forge-relational/src/tests/performance_profiles.rs
 crates/forge-relational/src/transactions/data/outcomes.rs
 crates/forge-relational/src/transactions/logic/mod.rs
