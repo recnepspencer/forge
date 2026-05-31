@@ -3,6 +3,7 @@ use forge_foundational::facade::{
     LocatorAuthority,
 };
 
+use crate::canonical_basis_terms::foundational_canonical_basis_terms;
 use crate::diagnostics::data::{DiagnosticCode, RelationalDiagnosticValue};
 use crate::identity::data::{EntityId, PartitionId, RelationId, VersionId};
 use crate::logic::planning::RelationalExecutionModel;
@@ -138,7 +139,7 @@ fn failure_projection_emits_aspect_field_diagnostic_fields() {
     assert!(matches!(
         typed_aspect_field.get("canonical_diagnostic_mask_basis"),
         Some(RelationalDiagnosticValue::CanonicalBasis(basis)) if {
-            let canonical_basis_terms = basis.payload();
+            let canonical_basis_terms = foundational_canonical_basis_terms(basis);
             canonical_basis_terms.entries().len() == 1
                 && canonical_basis_terms.version().as_str()
                     == "forge.relational.invariant.diagnostic_mask.v1"
