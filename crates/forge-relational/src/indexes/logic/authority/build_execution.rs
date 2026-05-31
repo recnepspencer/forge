@@ -7,7 +7,7 @@ use crate::authority::commit::preparation::planning::strategy::{
 use crate::indexes::data::{DerivedIndexEntries, DerivedIndexId, DerivedIndexKind};
 use crate::logic::runtime::{RelationalRuntime, VisibilityProjectionView};
 
-use super::super::observed_field_indexes::{
+use super::super::projected_field_values::{
     build_entity_aspect_field_index, build_relation_aspect_field_index,
 };
 
@@ -52,6 +52,7 @@ pub(super) fn record_index_preparation_strategy_counters(
 }
 
 pub(super) fn execute_index_packets(
+    runtime: &RelationalRuntime,
     projection: &VisibilityProjectionView<'_>,
     packets: &[IndexPreparationPacket],
     selected_mode: PreparationStrategySelection,
@@ -66,73 +67,65 @@ pub(super) fn execute_index_packets(
         .collect::<Vec<_>>();
 
     let entity_streams = match selected_mode {
-        PreparationStrategySelection::StagedParallel => {
-            let records = projection.all_unmasked_entity_records();
-            entity_packets
-                .par_iter()
-                .map(|(reduction_key, index_id, field_locator)| {
-                    singleton_result_stream(
-                        reduction_key.clone(),
-                        *index_id,
-                        DerivedIndexEntries::EntityField(build_entity_aspect_field_index(
-                            &records,
-                            field_locator,
-                        )),
-                    )
-                })
-                .collect::<Vec<_>>()
-        }
-        PreparationStrategySelection::Serial => {
-            let records = projection.all_unmasked_entity_records();
-            entity_packets
-                .iter()
-                .map(|(reduction_key, index_id, field_locator)| {
-                    singleton_result_stream(
-                        reduction_key.clone(),
-                        *index_id,
-                        DerivedIndexEntries::EntityField(build_entity_aspect_field_index(
-                            &records,
-                            field_locator,
-                        )),
-                    )
-                })
-                .collect::<Vec<_>>()
-        }
+        PreparationStrategySelection::StagedParallel => entity_packets
+            .par_iter()
+            .map(|(reduction_key, index_id, field_locator)| {
+                singleton_result_stream(
+                    reduction_key.clone(),
+                    *index_id,
+                    DerivedIndexEntries::EntityField(build_entity_aspect_field_index(
+                        runtime,
+                        projection,
+                        field_locator,
+                    )),
+                )
+            })
+            .collect::<Vec<_>>(),
+        PreparationStrategySelection::Serial => entity_packets
+            .iter()
+            .map(|(reduction_key, index_id, field_locator)| {
+                singleton_result_stream(
+                    reduction_key.clone(),
+                    *index_id,
+                    DerivedIndexEntries::EntityField(build_entity_aspect_field_index(
+                        runtime,
+                        projection,
+                        field_locator,
+                    )),
+                )
+            })
+            .collect::<Vec<_>>(),
     };
 
     let relation_streams = match selected_mode {
-        PreparationStrategySelection::StagedParallel => {
-            let records = projection.all_unmasked_relation_records();
-            relation_packets
-                .par_iter()
-                .map(|(reduction_key, index_id, field_locator)| {
-                    singleton_result_stream(
-                        reduction_key.clone(),
-                        *index_id,
-                        DerivedIndexEntries::RelationField(build_relation_aspect_field_index(
-                            &records,
-                            field_locator,
-                        )),
-                    )
-                })
-                .collect::<Vec<_>>()
-        }
-        PreparationStrategySelection::Serial => {
-            let records = projection.all_unmasked_relation_records();
-            relation_packets
-                .iter()
-                .map(|(reduction_key, index_id, field_locator)| {
-                    singleton_result_stream(
-                        reduction_key.clone(),
-                        *index_id,
-                        DerivedIndexEntries::RelationField(build_relation_aspect_field_index(
-                            &records,
-                            field_locator,
-                        )),
-                    )
-                })
-                .collect::<Vec<_>>()
-        }
+        PreparationStrategySelection::StagedParallel => relation_packets
+            .par_iter()
+            .map(|(reduction_key, index_id, field_locator)| {
+                singleton_result_stream(
+                    reduction_key.clone(),
+                    *index_id,
+                    DerivedIndexEntries::RelationField(build_relation_aspect_field_index(
+                        runtime,
+                        projection,
+                        field_locator,
+                    )),
+                )
+            })
+            .collect::<Vec<_>>(),
+        PreparationStrategySelection::Serial => relation_packets
+            .iter()
+            .map(|(reduction_key, index_id, field_locator)| {
+                singleton_result_stream(
+                    reduction_key.clone(),
+                    *index_id,
+                    DerivedIndexEntries::RelationField(build_relation_aspect_field_index(
+                        runtime,
+                        projection,
+                        field_locator,
+                    )),
+                )
+            })
+            .collect::<Vec<_>>(),
     };
 
     crate::authority::commit::preparation::reduction::merge::canonical_merge_streams(

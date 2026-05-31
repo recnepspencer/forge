@@ -147,6 +147,11 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
             .unmasked_entity_record_at_version(entity_id, self.version_id)
     }
 
+    pub(crate) fn entity_record_kind_id(&self, entity_id: EntityId) -> Option<KindId> {
+        self.unmasked_entity_record(entity_id)
+            .map(|record| record.kind.kind_id)
+    }
+
     pub(crate) fn all_unmasked_entity_records(&self) -> Vec<EntityReadRecord> {
         let records = self
             .reader()

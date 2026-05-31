@@ -12,9 +12,9 @@ use crate::query::data::{
 
 use self::execution::execute_index_backed_query_from_generation;
 use self::routing::{admissible_access_path, should_verify_sampled_parity};
-pub(crate) use self::scratch::purge_index_query_scratch_hints;
 #[cfg(test)]
-pub(crate) use self::scratch::{index_query_scratch_hint_count, index_query_scratch_hint_exists};
+pub(crate) use self::scratch::index_query_scratch_hint_exists;
+pub(crate) use self::scratch::purge_index_query_scratch_hints;
 
 pub struct IndexAccess<'runtime> {
     runtime: &'runtime RelationalRuntime,

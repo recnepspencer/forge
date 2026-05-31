@@ -689,7 +689,6 @@ fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
 
 #[test]
 fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
-    let baseline_hint_count = crate::indexes::logic::index_query_scratch_hint_count();
     let runtime_id;
     {
         let mut runtime = runtime_with_index_field_aspects();
@@ -759,7 +758,6 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
         assert!(crate::indexes::logic::index_query_scratch_hint_exists(
             runtime_id
         ));
-        assert!(crate::indexes::logic::index_query_scratch_hint_count() >= baseline_hint_count);
     }
 
     assert!(

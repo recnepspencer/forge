@@ -75,14 +75,6 @@ pub(crate) fn purge_index_query_scratch_hints(runtime_id: u64) {
 }
 
 #[cfg(test)]
-pub(crate) fn index_query_scratch_hint_count() -> usize {
-    index_query_scratch_hints()
-        .lock()
-        .expect("index query scratch hints lock poisoned")
-        .len()
-}
-
-#[cfg(test)]
 pub(crate) fn index_query_scratch_hint_exists(runtime_id: u64) -> bool {
     index_query_scratch_hints()
         .lock()

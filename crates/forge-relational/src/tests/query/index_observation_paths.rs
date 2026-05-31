@@ -199,6 +199,88 @@ fn derived_index_build_materializes_latest_visible_entity_field_values() {
     }
 }
 
+#[test]
+fn derived_index_build_materializes_declared_struct_field_through_field_projection_scope() {
+    let mut runtime = AspectSchemaFixture {
+        entity_aspects: vec![
+            entity_field_aspect(aspect_key("name"), field_key("name")),
+            entity_summary_struct_aspect(aspect_key("summary"), field_key("summary")),
+        ],
+        ..AspectSchemaFixture::default()
+    }
+    .build_runtime();
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("batch-alpha").push(MutationIntent::Create(CreateIntent::Entity(
+            crate::transactions::data::EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: crate::symbols::data::ClientKey::raw("alpha"),
+                fields: AspectFieldPatch::new(std::collections::BTreeMap::from([
+                    (
+                        crate::transactions::data::planned_single_field_locator(
+                            aspect_key("name"),
+                            field_key("name"),
+                        ),
+                        string_aspect_value("alpha"),
+                    ),
+                    (
+                        crate::transactions::data::planned_single_field_locator(
+                            aspect_key("summary"),
+                            field_key("title"),
+                        ),
+                        string_aspect_value("projected-title"),
+                    ),
+                    (
+                        crate::transactions::data::planned_single_field_locator(
+                            aspect_key("summary"),
+                            field_key("status"),
+                        ),
+                        string_aspect_value("hidden-status"),
+                    ),
+                ])),
+            },
+        ))),
+    );
+    let outcome = txn.commit().expect("entity create succeeds");
+    let alpha = changed_entities(&outcome)[0];
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
+        index_id: DerivedIndexId(0),
+        name: "entity.summary.title".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field_locator: aspect_field_locator(aspect_key("summary"), field_key("title")),
+        },
+        branch_scoped: true,
+    });
+
+    let build = runtime
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
+            source_commit_id: outcome.commit.commit_id,
+            branch_id: BranchId("main".to_string()),
+            index_ids: vec![index.index_id],
+        });
+    let index_access = runtime.index_access();
+    let generation = index_access
+        .latest_generation(index.index_id, &BranchId("main".to_string()))
+        .expect("latest generation");
+
+    assert!(build.failed_indexes.is_empty());
+    match &generation.entries {
+        crate::indexes::data::DerivedIndexEntries::EntityField(entries) => {
+            assert_eq!(
+                entries
+                    .get(&field_comparison_key("projected-title"))
+                    .cloned()
+                    .unwrap_or_default(),
+                vec![alpha]
+            );
+            assert!(!entries.contains_key(&field_comparison_key("hidden-status")));
+        }
+        other => panic!("expected entity field entries, got {other:?}"),
+    }
+}
+
 fn field_comparison_key(value: &str) -> AuthoritativeFieldComparisonKey {
     AuthoritativeFieldComparisonKey::from_aspect_value(&string_aspect_value(value))
 }
