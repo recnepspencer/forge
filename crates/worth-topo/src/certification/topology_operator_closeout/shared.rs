@@ -23,13 +23,13 @@ pub(super) fn first_source_identity_for_relation_kind(
     relation_rows
         .iter()
         .find_map(|row| {
-            (row.payload
+            (row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
                 == Some(relation_kind.kind_name()))
             .then(|| {
-                row.payload
+                row.external_row()
                     .get("topology")
                     .and_then(|value| value.get("source_identity"))
                     .and_then(|value| value.as_str())
@@ -227,29 +227,3 @@ pub(super) fn replay_checked_rejected(
         returned_to_baseline: Some(true),
     }
 }
-<<<<<<< HEAD
-
-fn contract_digest_row(contract: &TopologyEditContract) -> String {
-    serde_json::to_string(contract).expect(" topology edit contracts should serialize")
-}
-
-fn digest_rows(rows: impl IntoIterator<Item = String>) -> TopologyOperatorDigest {
-    let mut count = 0usize;
-    let mut hash = 0xcbf29ce484222325u64;
-    for row in rows {
-        count += 1;
-        for byte in row.as_bytes() {
-            hash ^= u64::from(*byte);
-            hash = hash.wrapping_mul(0x100000001b3);
-        }
-        hash ^= u64::from(b'\n');
-        hash = hash.wrapping_mul(0x100000001b3);
-    }
-    TopologyOperatorDigest {
-        algorithm: "fnv1a64".to_string(),
-        digest_hex: format!("{hash:016x}"),
-        row_count: count,
-    }
-}
-=======
->>>>>>> origin/master

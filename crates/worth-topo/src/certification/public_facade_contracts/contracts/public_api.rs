@@ -3,15 +3,10 @@ use forge_query::facade::{
 };
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::snapshots::SnapshotHandle;
-<<<<<<< HEAD
-use schema::facade::topology_authoring::DerivedTopologyReadBasis;
-use schema::facade::{QueryAspectPath, QueryCollection, QuerySchemaBasis};
-=======
 use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent, TopologyMutation};
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use schema::facade::{QueryAspectPath, QueryCollection, QuerySchemaBasis};
 use topology::facade::topology_runtime;
->>>>>>> origin/master
 use topology::facade::BoundaryFailure;
 use topology::facade::{
     build_topology_construction_fact_report, certify_milestone_one_read_basis_traced,
@@ -23,27 +18,6 @@ use topology::facade::{
     declare_topology_relation_live_view, declare_topology_validation_surface,
     lower_primitive_construction_birth_plan, naming_attachment_report_from_query_input,
     persistent_name_live_view_declaration, prepare_primitive_construction_certification,
-<<<<<<< HEAD
-    prepare_primitive_construction_execution, topology_construction_authority, topology_runtime,
-    MilestoneOneCertificationError, TopologyCommittedArtifact, TopologyConstructionAuthority,
-    TopologyConstructionCertificationPlan, TopologyConstructionCertificationReadSurface,
-    TopologyConstructionExecutionError, TopologyConstructionExecutionPlan,
-    TopologyConstructionFactKind, TopologyConstructionFactProvenance,
-    TopologyConstructionFactReport, TopologyConstructionInspectionSurface,
-    TopologyConstructionLoweringError, TopologyConstructionLoweringPlan,
-    TopologyConstructionMutationSurface, TopologyDomainQuery, TopologyDomainQueryAggregateReport,
-    TopologyDomainQueryCloseoutReport, TopologyDomainQueryCloseoutRow,
-    TopologyDomainQueryCloseoutStatus, TopologyDomainQueryExecutionEngine,
-    TopologyDomainQueryParityAggregateReport, TopologyDomainQueryPhaseThreeBlocker,
-    TopologyDomainQueryPhaseThreeBlockerRow, TopologyDomainQueryPhaseThreeBlockerStatus,
-    TopologyDomainQueryProofReport, TopologyDomainQueryRequestFamily,
-    TopologyDomainQueryRequestReport, TopologyEditApplicationMode, TopologyEditBatch,
-    TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
-    TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView, TopologyNamingAttachmentInput,
-    TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
-    TopologyOperatorExecution, TopologyOperatorExecutionError, TopologyQueryAppliedIntent,
-    TopologyQueryApplyError, TopologyQueryAssembly, TopologyQueryBoundaryCleanupArea,
-=======
     prepare_primitive_construction_execution, topology_construction_authority,
     MilestoneOneCertificationError, TopologyAttachBoundaryMembershipDeclaration,
     TopologyAttachShellOrWireMembershipDeclaration, TopologyCommittedArtifact,
@@ -57,7 +31,6 @@ use topology::facade::{
     TopologyDetachBoundaryMembershipDeclaration, TopologyDetachRadialAdjacencyDeclaration,
     TopologyDetachShellOrWireMembershipDeclaration, TopologyLoopSuccessorRewireMember,
     TopologyNamingAttachmentInput, TopologyQueryBoundaryCleanupArea,
->>>>>>> origin/master
     TopologyQueryBoundaryCleanupCloseoutReport, TopologyQueryBoundaryCleanupRow,
     TopologyQueryBoundaryCleanupStatus, TopologyQueryMutationEvidence,
     TopologyQueryMutationFamilySupportStatus, TopologyQueryMutationLane,
@@ -70,15 +43,11 @@ use topology::facade::{
     TopologyRuntimeCloseoutStatus, TopologyRuntimeFailure, TopologyRuntimeMutationFamilySupportRow,
     TopologyRuntimeMutationLaneSupportRow, TopologyRuntimePostureCapability,
     TopologyRuntimePostureRow, TopologyRuntimePostureStatus, TopologyRuntimeReadFamilySupportRow,
-<<<<<<< HEAD
-    TopologyRuntimeSupport, TracedMilestoneOneCertificationReport,
-=======
     TopologyRuntimeSupport, TopologyShellRehomeFaceMember,
     TopologySpliceRadialAdjacencyDeclaration, TopologySpliceRadialAdjacencyProgramDeclaration,
     TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
     TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration, TopologyWireRehomeHalfEdgeMember,
     TopologyWireSplitHalfEdgeMember, TracedMilestoneOneCertificationReport,
->>>>>>> origin/master
     TracedMilestoneTwoDerivedReadReport,
 };
 use topology::query_domain::{

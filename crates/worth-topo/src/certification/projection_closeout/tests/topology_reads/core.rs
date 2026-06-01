@@ -285,21 +285,12 @@ fn snapshot_topology_read_uses_historical_basis_context_receipt() {
         &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 5 },
     )
     .expect("seed primitive");
-<<<<<<< HEAD:crates/worth-topo/src/certification/projection_closeout/tests/domain_query/core.rs
-    let (mut workspace, assembly) = snapshot_basis_workspace(
-=======
     let (mut workspace, surfaces) = snapshot_basis_workspace(
->>>>>>> origin/master:crates/worth-topo/src/certification/projection_closeout/tests/topology_reads/core.rs
         &runtime,
         &format!("{stem}.snapshot"),
         &verified.read_basis(),
     );
-<<<<<<< HEAD:crates/worth-topo/src/certification/projection_closeout/tests/domain_query/core.rs
-    let domain_query = TopologyDomainQuery::load();
-    let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
-=======
     let lookup_rows = current_lookup_rows(&mut workspace, &surfaces);
->>>>>>> origin/master:crates/worth-topo/src/certification/projection_closeout/tests/topology_reads/core.rs
     let start_identity = lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)

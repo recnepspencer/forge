@@ -18,8 +18,8 @@ pub fn index_imported_entities(
 ) -> Result<BTreeMap<EntityId, ImportedTopologyEntity>, TopologyQueryApplyError> {
     let mut entities = BTreeMap::new();
     for row in rows {
-        let Some(provenance) = row
-            .payload
+        let external_row = row.external_row();
+        let Some(provenance) = external_row
             .get("lineage")
             .and_then(|value| value.get("provenance"))
         else {
@@ -32,8 +32,7 @@ pub fn index_imported_entities(
                 )),
             ))
         })?;
-        let kind_name = row
-            .payload
+        let kind_name = external_row
             .get("topology")
             .and_then(|value| value.get("kind"))
             .and_then(Value::as_str)
@@ -49,7 +48,7 @@ pub fn index_imported_entities(
         entities.insert(
             entity_id,
             ImportedTopologyEntity {
-                query_identity: row.identity,
+                query_identity: row.identity().to_string(),
                 kind,
             },
         );
@@ -62,8 +61,8 @@ pub fn index_imported_relations(
 ) -> Result<BTreeMap<RelationId, ImportedTopologyRelation>, TopologyQueryApplyError> {
     let mut relations = BTreeMap::new();
     for row in rows {
-        let Some(provenance) = row
-            .payload
+        let external_row = row.external_row();
+        let Some(provenance) = external_row
             .get("lineage")
             .and_then(|value| value.get("provenance"))
         else {
@@ -77,8 +76,7 @@ pub fn index_imported_relations(
                     )),
                 ))
             })?;
-        let kind_name = row
-            .payload
+        let kind_name = external_row
             .get("topology")
             .and_then(|value| value.get("kind"))
             .and_then(Value::as_str)
@@ -94,10 +92,10 @@ pub fn index_imported_relations(
         relations.insert(
             relation_id,
             ImportedTopologyRelation {
-                query_identity: row.identity,
+                query_identity: row.identity().to_string(),
                 kind,
                 source_query_identity: row
-                    .payload
+                    .external_row()
                     .get("topology")
                     .and_then(|value| value.get("source_identity"))
                     .and_then(Value::as_str)
@@ -106,7 +104,7 @@ pub fn index_imported_relations(
                     ))?
                     .to_string(),
                 target_query_identity: row
-                    .payload
+                    .external_row()
                     .get("topology")
                     .and_then(|value| value.get("target_identity"))
                     .and_then(Value::as_str)

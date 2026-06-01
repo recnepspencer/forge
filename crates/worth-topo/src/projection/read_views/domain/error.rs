@@ -52,8 +52,4 @@ impl std::fmt::Display for TopologyReadError {
     }
 }
 
-<<<<<<< HEAD
-impl std::error::Error for TopologyDomainQueryError {}
-=======
 impl std::error::Error for TopologyReadError {}
->>>>>>> origin/master

@@ -197,10 +197,3 @@ mod boundary_tests;
 mod snapshot_tests;
 #[cfg(test)]
 mod tests;
-<<<<<<< HEAD:crates/worth-topo/src/projection/runtime_boundary/query_assembly/mod.rs
-#[cfg(test)]
-mod upsert_assertion_support;
-#[cfg(test)]
-mod upsert_assertion_tests;
-=======
->>>>>>> origin/master:crates/worth-topo/src/projection/runtime_boundary/declared_query_surfaces/mod.rs

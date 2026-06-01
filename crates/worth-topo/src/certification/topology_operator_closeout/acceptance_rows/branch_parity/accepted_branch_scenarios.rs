@@ -2,11 +2,7 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
-<<<<<<< HEAD
-use schema::facade::topology_authoring::{created_ref, seed_milestone_one_primitive};
-=======
 use schema::facade::topology_authoring::seed_milestone_one_primitive;
->>>>>>> origin/master
 use serde_json::Value;
 
 use super::super::super::mutation_sequence_support::TopologyCloseoutDeclaration;

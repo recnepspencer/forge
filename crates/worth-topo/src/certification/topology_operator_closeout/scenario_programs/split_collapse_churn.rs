@@ -4,11 +4,7 @@ use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::topology_authoring::{
-<<<<<<< HEAD
-    created_ref, seed_milestone_one_primitive, DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
-=======
     seed_milestone_one_primitive, DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
->>>>>>> origin/master
 };
 
 use super::super::mutation_sequence_support::{

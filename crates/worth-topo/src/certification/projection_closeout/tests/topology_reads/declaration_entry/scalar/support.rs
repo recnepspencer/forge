@@ -120,7 +120,7 @@ pub(super) fn endpoint_rewire_fixture(
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.payload
+            row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
@@ -130,13 +130,13 @@ pub(super) fn endpoint_rewire_fixture(
         })
         .expect("seeded topology should contain an endpoint relation");
     let current_target_identity = relation
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("target_identity"))
         .and_then(|value| value.as_str())
         .expect("endpoint relation should expose topology.target_identity");
     let source_identity = relation
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("source_identity"))
         .and_then(|value| value.as_str())
@@ -144,18 +144,18 @@ pub(super) fn endpoint_rewire_fixture(
     let target_vertex_id = entity_rows
         .iter()
         .find(|row| {
-            row.payload
+            row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
                 .is_some_and(|kind_name| kind_name == ".vertex")
-                && row.identity != current_target_identity
+                && row.identity() != current_target_identity
         })
         .map(|row| query_entity_id_from_row(row).expect("entity id should decode"))
         .expect("seeded disk should provide an alternate vertex");
     let half_edge_id = entity_rows
         .iter()
-        .find(|row| row.identity == source_identity)
+        .find(|row| row.identity() == source_identity)
         .map(|row| query_entity_id_from_row(row).expect("entity id should decode"))
         .expect("endpoint source identity should resolve to a half-edge");
     (
@@ -175,7 +175,7 @@ pub(super) fn radial_splice_fixture(
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.payload
+            row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
@@ -185,7 +185,7 @@ pub(super) fn radial_splice_fixture(
         })
         .expect("seeded topology should contain a radial relation");
     let source_identity = relation
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("source_identity"))
         .and_then(|value| value.as_str())
@@ -203,12 +203,12 @@ pub(super) fn radial_splice_fixture(
         .expect("seeded edge fan should provide an alternate same-edge half-edge");
     let half_edge_id = entity_rows
         .iter()
-        .find(|row| row.identity == source_identity)
+        .find(|row| row.identity() == source_identity)
         .map(|row| query_entity_id_from_row(row).expect("entity id should decode"))
         .expect("source identity should resolve to a half-edge");
     let alternate_half_edge_id = entity_rows
         .iter()
-        .find(|row| row.identity == alternate_identity)
+        .find(|row| row.identity() == alternate_identity)
         .map(|row| query_entity_id_from_row(row).expect("entity id should decode"))
         .expect("alternate identity should resolve to a half-edge");
     (

@@ -3,9 +3,6 @@ use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 use crate::projection::runtime_boundary::read_stage::open_topology_read_view;
 use crate::projection::TopologyQueryRowLookup;
-<<<<<<< HEAD:crates/worth-topo/src/certification/projection_closeout/tests/domain_query/support.rs
-use crate::validation::reference_integrity::milestone_one_runtime_builder;
-=======
 use crate::query_domain::{
     topology_current_head_authoritative_context, topology_query_domain_entry,
     topology_snapshot_read_only_context, TopologyCurrentHeadConfiguredDomainHandle,
@@ -13,7 +10,6 @@ use crate::query_domain::{
 };
 use crate::validation::reference_integrity::milestone_one_runtime_builder;
 use forge_query::facade::ForgeQueryApplicationFacade;
->>>>>>> origin/master:crates/worth-topo/src/certification/projection_closeout/tests/topology_reads/support/mod.rs
 use forge_query::facade::ForgeQueryEntity;
 use forge_query::facade::ForgeQueryWorkspace;
 use forge_relational::facade::runtime::RelationalRuntime;
@@ -103,8 +99,6 @@ pub(in crate::certification::projection_closeout::tests) fn current_lookup_rows(
         relation_rows: workspace.read::<Value>(surfaces.relations()),
     }
 }
-<<<<<<< HEAD:crates/worth-topo/src/certification/projection_closeout/tests/domain_query/support.rs
-=======
 
 pub(in crate::certification::projection_closeout::tests) fn current_head_query_handle(
 ) -> TopologyCurrentHeadConfiguredDomainHandle {
@@ -127,4 +121,3 @@ pub(in crate::certification::projection_closeout::tests) fn snapshot_query_handl
         .admit()
         .expect("snapshot context should admit")
 }
->>>>>>> origin/master:crates/worth-topo/src/certification/projection_closeout/tests/topology_reads/support/mod.rs

@@ -67,8 +67,6 @@ fn topology_query_source_comments_do_not_keep_naming_purge_artifacts() {
         assert!(!source.contains("the -owned"));
     }
 }
-<<<<<<< HEAD
-=======
 
 #[test]
 fn runtime_mutation_lowering_sources_do_not_regress_to_batch_first_vocabulary() {
@@ -83,4 +81,3 @@ fn runtime_mutation_lowering_sources_do_not_regress_to_batch_first_vocabulary() 
         assert!(!source.contains("batch_mutation_evidence()"));
     }
 }
->>>>>>> origin/master

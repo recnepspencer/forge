@@ -111,11 +111,3 @@ pub use tracing::{
     BridgeTraceAnchor, DecisionTrace, DerivedTraceAnchor, DerivedTraceEvidence, IntegrityMarkers,
     NamedCounter, PerformanceAccounting, TraceAvailability, TraceWarning,
 };
-<<<<<<< HEAD
-pub use tracing::{
-    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure,
-    BridgeTraceAnchor, DecisionTrace, DerivedTraceAnchor, DerivedTraceEvidence, IntegrityMarkers,
-    NamedCounter, PerformanceAccounting, TraceAvailability, TraceWarning,
-};
-=======
->>>>>>> origin/master

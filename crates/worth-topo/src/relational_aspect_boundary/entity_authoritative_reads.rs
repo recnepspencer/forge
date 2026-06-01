@@ -3,11 +3,14 @@ use forge_foundational::facade::{
     InternedString,
 };
 use forge_relational::facade::runtime::EntityReadRecord;
-use schema::facade::{entity_domain_aspect, entity_domain_field, Aspect, EntityKind, NamingAspect};
+use schema::facade::platform::aspects::{
+    entity_domain_aspect, entity_domain_field, Aspect, NamingAspect,
+};
+use schema::facade::platform::entities::{EntityKind, NamingEntityKind};
 
 pub(crate) fn entity_record_domain_label(record: &EntityReadRecord) -> Option<String> {
     let kind = EntityKind::from_kind_id(record.kind.kind_id)?;
-    if kind == EntityKind::Naming(schema::facade::NamingEntityKind::PersistentName) {
+    if kind == EntityKind::Naming(NamingEntityKind::PersistentName) {
         return entity_record_string_aspect(
             record,
             &Aspect::Naming(NamingAspect::PersistentName),

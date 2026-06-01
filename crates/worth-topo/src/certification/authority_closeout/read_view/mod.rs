@@ -7,13 +7,7 @@ use forge_relational::facade::replay::{
 };
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::aspects::Aspect;
-<<<<<<< HEAD
-use schema::facade::platform::authority::{
-    FallbackDisposition, MutationOrigin, TopologyMutationBatch,
-};
-=======
 use schema::facade::platform::authority::{FallbackDisposition, MutationOrigin, TopologyMutation};
->>>>>>> origin/master
 use schema::facade::platform::authority::{ShellInterpretationClass, WireInterpretationClass};
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 

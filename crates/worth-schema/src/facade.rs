@@ -32,7 +32,8 @@ pub mod platform {
         //! descriptor assembly.
 
         pub use crate::data::aspects::{
-            Aspect, DiagnosticsAspect, GeometryAspect, LineageAspect, NamingAspect, TopologyAspect,
+            entity_domain_aspect, entity_domain_field, Aspect, DiagnosticsAspect, GeometryAspect,
+            LineageAspect, NamingAspect, TopologyAspect,
         };
     }
 
@@ -65,11 +66,6 @@ pub mod platform {
 
 pub mod topology_authoring {
     pub use crate::data::authority::commit_flow::{
-<<<<<<< HEAD
-        AuthoritativeTopologySnapshot, CanonicalTopologyMutationBatch,
-        CertifiedTopologyInterpretation, DerivedTopologyReadBasis, DerivedTruthBasisIdentity,
-        PersistedTopologyTruthBatch, TopologyReadArtifact,
-=======
         AuthoritativeTopologySnapshot, CertifiedTopologyInterpretation, DerivedTopologyReadBasis,
         DerivedTruthBasisIdentity, PersistedTopologyTruth, TopologyCommittedMutationSet,
         TopologyReadArtifact,
@@ -86,49 +82,13 @@ pub mod topology_authoring {
         MilestoneOnePrimitiveCase, MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
         MilestoneOnePrimitiveScenario, MinimalTopologySeed, SeededTopologyCommit,
         TopologyCreateBatchBuilder, TopologyIntentCommitError, TopologyMutationSetCommitError,
->>>>>>> origin/master
-    };
-    pub use crate::topology_authoring::{
-        build_milestone_one_primitive_intent, build_minimal_topology_intent, created_ref,
-        milestone_one_admitted_range_sweep_out_of_class_scenarios,
-        milestone_one_admitted_range_sweep_scenarios, milestone_one_default_primitive_corpus,
-        milestone_one_heavy_branch_local_sweep_scenarios, seed_milestone_one_primitive,
-        seed_milestone_one_primitive_on_branch, seed_minimal_topology,
-        seed_minimal_topology_commit, MilestoneOnePrimitiveAuthoringError,
-        MilestoneOnePrimitiveCase, MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
-        MilestoneOnePrimitiveScenario, MinimalTopologySeed, SeededTopologyCommit,
-        TopologyCreateBatchBuilder,
     };
 }
 
-pub use crate::data::aspects::{
-    entity_domain_aspect, entity_domain_field, relation_domain_aspect, Aspect, DiagnosticsAspect,
-    GeometryAspect, LineageAspect, NamingAspect, TopologyAspect,
-};
-pub use crate::data::authority::{
-    milestone_two_invalidation_declarations, AuthoritativeTopologySnapshot,
-    CanonicalTopologyMutationBatch, CertifiedTopologyInterpretation, CoedgeCurveKind, CreateKey,
-    CurveBindingKind, CurveProvenanceKind, DerivedInvalidationTarget, DerivedTopologyReadBasis,
-    DerivedTruthBasisIdentity, DerivedTruthSurfaceKind, EntityReference, FallbackDisposition,
-    FallbackProofClass, MutationOrigin, PersistedTopologyTruthBatch, PrecisionBudgetFallbackRecord,
-    PrecisionEscalationCause, PrecisionFallbackRecord, PrecisionRegime, RawTopologyIntent,
-    ShellInterpretationClass, ShellInterpretationRecord, SurfaceBindingKind, SurfaceRelationKind,
-    TopologyAuthorityError, TopologyClass, TopologyInterpretationRecordSet, TopologyMutation,
-    TopologyMutationBatch, TopologyReadArtifact, TruthToDerivedInvalidationDeclaration,
-    VerifiedTopologyCommit, VertexGeometryProvenanceKind, VertexToleranceRegime,
-    WireInterpretationClass, WireInterpretationRecord,
-};
 pub use crate::data::bootstrap::{
     bootstrap_schema_registry, SchemaBuildError, SchemaBuilder, SCHEMA_ID, SCHEMA_VERSION_ID,
-};
-pub use crate::data::entities::{
-    DiagnosticsEntityKind, EntityKind, GeometryEntityKind, NamingEntityKind, TopologyEntityKind,
 };
 pub use crate::data::query::{
     query_aspect_path_strings, query_aspect_paths, query_aspect_paths_from_set, QueryAspectFamily,
     QueryAspectPath, QueryCollection, QueryLiveField, QuerySchemaBasis,
-};
-pub use crate::data::relations::{
-    DiagnosticsRelationKind, GeometryRelationKind, NamingRelationKind, RelationKind,
-    TopologyRelationKind,
 };

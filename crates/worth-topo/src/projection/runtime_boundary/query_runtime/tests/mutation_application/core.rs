@@ -3,11 +3,7 @@ use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::topology_authoring::{
-<<<<<<< HEAD:crates/worth-topo/src/projection/runtime_boundary/query_runtime/tests/edit_execution/core.rs
-    created_ref, seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
-=======
     seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
->>>>>>> origin/master:crates/worth-topo/src/projection/runtime_boundary/query_runtime/tests/mutation_application/core.rs
 };
 
 use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;

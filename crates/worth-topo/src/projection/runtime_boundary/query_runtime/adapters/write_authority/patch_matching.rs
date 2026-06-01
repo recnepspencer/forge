@@ -2,10 +2,10 @@ use std::collections::BTreeSet;
 use std::sync::{Arc, RwLock};
 
 use forge_relational::facade::identity::VersionId;
-use forge_relational::facade::publication::PatchRecord;
+use forge_relational::facade::publication::PublishedAuthoritativeRecordPatch;
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::RecordRef;
-use schema::facade::{Aspect, NamingAspect};
+use schema::facade::platform::aspects::{Aspect, NamingAspect};
 
 use super::super::write_support::{record_identity, target_collection_for_patch};
 use crate::relational_aspect_boundary::{entity_record_domain_label, entity_record_string_aspect};
@@ -30,7 +30,7 @@ impl LoweredPatchMatch {
         &self,
         runtime: &Arc<RwLock<RelationalRuntime>>,
         version_id: VersionId,
-        patch: &[PatchRecord],
+        patch: &[PublishedAuthoritativeRecordPatch],
         used_indexes: &BTreeSet<usize>,
     ) -> Vec<usize> {
         let runtime = runtime
@@ -51,9 +51,9 @@ impl LoweredPatchMatch {
         &self,
         runtime: &RelationalRuntime,
         version_id: VersionId,
-        record: &PatchRecord,
+        record: &PublishedAuthoritativeRecordPatch,
     ) -> bool {
-        let projection = runtime.read_truth().project_version(version_id);
+        let read_view = runtime.read_truth().read_version(version_id);
         match self {
             Self::TopologyEntityInsert {
                 structure_label,
@@ -62,7 +62,7 @@ impl LoweredPatchMatch {
                 match target_collection_for_patch(runtime, version_id, &record.target).as_deref() {
                     Some("TopologyEntity") => match record.target {
                         RecordRef::Entity(entity_id) => {
-                            projection.entity_record(entity_id).is_some_and(|entity| {
+                            read_view.get_entity(entity_id).is_some_and(|entity| {
                                 entity_record_domain_label(&entity)
                                     .is_some_and(|label| label == *structure_label)
                             })
@@ -71,7 +71,7 @@ impl LoweredPatchMatch {
                     },
                     Some("PersistentName") => match record.target {
                         RecordRef::Entity(entity_id) => {
-                            projection.entity_record(entity_id).is_some_and(|entity| {
+                            read_view.get_entity(entity_id).is_some_and(|entity| {
                                 entity_record_string_aspect(
                                     &entity,
                                     &Aspect::Naming(NamingAspect::PersistentName),
@@ -98,7 +98,7 @@ impl LoweredPatchMatch {
                 let RecordRef::Relation(relation_id) = record.target else {
                     return false;
                 };
-                let Some(relation) = projection.relation_record(relation_id) else {
+                let Some(relation) = read_view.get_relation(relation_id) else {
                     return false;
                 };
                 schema::facade::platform::relations::RelationKind::from_kind_id(
@@ -139,8 +139,8 @@ fn entity_matches_identity(
     };
     runtime
         .read_truth()
-        .project_version(version_id)
-        .entity_record(entity_id)
+        .read_version(version_id)
+        .get_entity(entity_id)
         .is_some_and(|entity| {
             entity_record_domain_label(&entity).is_some_and(|label| label == created_label)
         })

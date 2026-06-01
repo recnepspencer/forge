@@ -2,14 +2,11 @@ use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 
 use super::super::super::super::error::TopologyCertificationError;
-<<<<<<< HEAD
-=======
 use super::super::super::mutation_sequence_support::{
     aggregate_naming_mutation_continuity_matrix_for_plans,
     aggregate_topology_mutation_digest_for_plans, closeout_mutation_plan_for_declaration,
     topology_mutation_families_for_declarations, TopologyCloseoutMutationPlan,
 };
->>>>>>> origin/master
 use crate::certification::shared::digest_rows;
 use crate::committed_artifact::TopologyCommittedArtifact;
 use crate::test_support::topology_commit::commit_topology_intent_on_branch;

@@ -59,8 +59,6 @@ fn supports_owned_half_edge_set_wire_rehome_program(
             ids.into_iter().collect::<std::collections::BTreeSet<_>>() == expected_half_edge_ids
         })
 }
-<<<<<<< HEAD
-=======
 
 #[cfg(test)]
 fn supports_owned_face_set_shell_rehome_program(
@@ -122,4 +120,3 @@ fn supports_owned_face_set_shell_rehome_program(
             ids.into_iter().collect::<std::collections::BTreeSet<_>>() == expected_face_ids
         })
 }
->>>>>>> origin/master

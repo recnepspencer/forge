@@ -21,6 +21,7 @@ fn topology_crate_skeleton_keeps_the_domain_story() {
             "construction".to_string(),
             "derived_topology".to_string(),
             "projection".to_string(),
+            "relational_aspect_boundary".to_string(),
             "test_support".to_string(),
             "topology_operators".to_string(),
             "validation".to_string(),
@@ -196,6 +197,7 @@ fn broad_direct_file_clusters_stay_explicitly_reviewed() {
         "projection/runtime_boundary/declared_query_surfaces",
         "projection/runtime_boundary/query_runtime",
         "projection/runtime_boundary/query_runtime/tests",
+        "certification/topology_operator_closeout",
         "topology_operators/mutation_records",
         "validation/reference_integrity",
     ];

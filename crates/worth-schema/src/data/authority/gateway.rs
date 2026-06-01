@@ -1,8 +1,3 @@
-mod failure_envelopes;
-#[cfg(test)]
-mod tests;
-mod touched_aspect_scope;
-
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::history::BranchId;
@@ -15,6 +10,9 @@ use forge_relational::facade::transactions::{
     RelationMutationIntent, RelationSpec, TransactionCommitError,
 };
 
+use crate::data::aspects::{
+    Aspect, DiagnosticsAspect, GeometryAspect, NamingAspect, TopologyAspect,
+};
 use crate::data::authority::aspect_field_patches::{
     entity_create_fields, entity_record_label, relation_create_fields,
 };
@@ -22,26 +20,16 @@ use crate::data::authority::{
     CreateKey, DerivedTopologyReadBasis, EntityReference, PersistedTopologyTruth,
     RawTopologyIntent, TopologyCommittedMutationSet, TopologyMutation,
 };
-<<<<<<< HEAD
-use crate::data::entities::EntityKind;
-use crate::data::relations::RelationKind;
-=======
 use crate::data::entities::{DiagnosticsEntityKind, EntityKind};
 use crate::data::mutation_commit::commit_topology_mutation_set_on_branch_internal;
 use crate::data::relations::{
     DiagnosticsRelationKind, GeometryRelationKind, NamingRelationKind, RelationKind,
     TopologyRelationKind,
 };
->>>>>>> origin/master
 use crate::data::tracing::{
     AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure, DecisionTrace,
+    IntegrityMarkers, PerformanceAccounting,
 };
-
-use failure_envelopes::{
-    authority_failure_for_batch, authority_failure_for_intent,
-    integrity_markers_for_verified_commit,
-};
-use touched_aspect_scope::touched_aspects_for_intent;
 
 #[derive(Debug)]
 pub enum TopologyAuthorityError {
@@ -272,9 +260,6 @@ impl<'a> TopologyAuthority<'a> {
     }
 }
 
-<<<<<<< HEAD
-fn batch_name(origin: crate::data::authority::MutationOrigin) -> &'static str {
-=======
 fn authority_failure_for_intent(
     error: TopologyAuthorityError,
     branch_id: &BranchId,
@@ -362,42 +347,7 @@ fn integrity_markers_for_verified_commit(commit: &VerifiedTopologyCommit) -> Int
     )
 }
 
-fn entity_create_payload(kind: EntityKind, label: &str) -> serde_json::Value {
-    match kind {
-        EntityKind::Topology(_) => json!({
-            "label": label,
-            "structure": label,
-            "topology": {
-                "structure": label,
-            }
-        }),
-        EntityKind::Geometry(_) => json!({
-            "label": label,
-            "binding": label,
-            "geometry": {
-                "binding": label,
-            }
-        }),
-        EntityKind::Naming(_) => json!({
-            "label": label,
-            "persistent_name": label,
-            "naming": {
-                "persistent_name": label,
-            }
-        }),
-        EntityKind::Diagnostics(DiagnosticsEntityKind::WireInterpretation)
-        | EntityKind::Diagnostics(DiagnosticsEntityKind::ShellInterpretation) => json!({
-            "label": label,
-            "interpretations": label,
-            "diagnostics": {
-                "interpretations": label,
-            }
-        }),
-    }
-}
-
 fn mutation_set_transaction_label(origin: crate::data::authority::MutationOrigin) -> &'static str {
->>>>>>> origin/master
     match origin {
         crate::data::authority::MutationOrigin::Seed => "topology-mutation-seed",
         crate::data::authority::MutationOrigin::LocalEdit => "topology-mutation-local-edit",
@@ -518,8 +468,6 @@ fn live_entity_label_exists(
             .is_some_and(|existing| existing == label)
     })
 }
-<<<<<<< HEAD
-=======
 
 fn touched_aspects_for_intent(
     read: Option<&forge_relational::facade::runtime::RelationalReadView>,
@@ -720,11 +668,8 @@ mod tests {
             read.entities()
                 .iter()
                 .filter(|record| {
-                    record
-                        .payload
-                        .as_json()
-                        .and_then(|json| json.get("label"))
-                        .and_then(|value| value.as_str())
+                    EntityKind::from_kind_id(record.kind.kind_id)
+                        .and_then(|kind| entity_record_label(record, kind))
                         .is_some_and(|label| label.starts_with("create."))
                 })
                 .count(),
@@ -963,11 +908,8 @@ mod tests {
             "authority-create-after-seed.added_vertex",
         ] {
             assert!(read.entities().iter().any(|record| {
-                record
-                    .payload
-                    .as_json()
-                    .and_then(|json| json.get("label"))
-                    .and_then(|value| value.as_str())
+                EntityKind::from_kind_id(record.kind.kind_id)
+                    .and_then(|kind| entity_record_label(record, kind))
                     .is_some_and(|entity_label| entity_label == label)
             }));
         }
@@ -1010,4 +952,3 @@ mod tests {
         ));
     }
 }
->>>>>>> origin/master

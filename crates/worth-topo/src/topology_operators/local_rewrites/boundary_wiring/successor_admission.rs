@@ -267,8 +267,6 @@ fn matches_admitted_contiguous_span_relocation_program(
         candidate.end_half_edge_id,
     )
 }
-<<<<<<< HEAD
-=======
 
 fn matches_expected_rewire(
     bindings: &TopologyQueryBindingIndex,
@@ -378,4 +376,3 @@ struct ContiguousSpanCandidate {
     end_half_edge_id: EntityId,
     span_half_edge_ids: Vec<EntityId>,
 }
->>>>>>> origin/master

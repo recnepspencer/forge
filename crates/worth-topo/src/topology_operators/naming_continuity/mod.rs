@@ -35,30 +35,3 @@ impl NamingMutationContinuityMatrix {
         }
     }
 }
-<<<<<<< HEAD
-
-impl TopologyEditBatch {
-    pub fn naming_edit_continuity_matrix(&self) -> NamingEditContinuityMatrix {
-        let rows = self.naming_report().rows;
-        let preserved_count = rows
-            .iter()
-            .filter(|row| row.outcome == TopologyEditNamingOutcome::Preserved)
-            .count();
-        let ambiguous_count = rows
-            .iter()
-            .filter(|row| row.outcome == TopologyEditNamingOutcome::Ambiguous)
-            .count();
-        let rejected_count = rows
-            .iter()
-            .filter(|row| row.outcome == TopologyEditNamingOutcome::Rejected)
-            .count();
-        NamingEditContinuityMatrix {
-            rows,
-            preserved_count,
-            ambiguous_count,
-            rejected_count,
-        }
-    }
-}
-=======
->>>>>>> origin/master

@@ -248,13 +248,13 @@ fn query_native_assembly_retains_both_live_and_desired_relation_aspect_families_
     let source_id = decode_entity_id(
         entity_rows
             .iter()
-            .find(|row| row.identity == imported.source_query_identity)
+            .find(|row| row.identity() == imported.source_query_identity)
             .expect("source row should exist"),
     );
     let target_id = decode_entity_id(
         entity_rows
             .iter()
-            .find(|row| row.identity == imported.target_query_identity)
+            .find(|row| row.identity() == imported.target_query_identity)
             .expect("target row should exist"),
     );
     let desired_kind = RelationKind::Topology(TopologyRelationKind::HalfEdgeStartsAtVertex);

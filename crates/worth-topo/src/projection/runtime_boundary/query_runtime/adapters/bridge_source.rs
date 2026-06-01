@@ -195,10 +195,10 @@ impl TruthSnapshotReader for TopologySnapshotReader {
                     let runtime = runtime
                         .read()
                         .expect("topology bridge source lock poisoned");
-                    let projection = runtime.read_truth().project_version(*version_id);
+                    let read_view = runtime.read_truth().read_version(*version_id);
                     match record_ref {
                         RecordRef::Entity(entity_id) => {
-                            let record = projection.entity_record(entity_id).ok_or_else(|| {
+                            let record = read_view.get_entity(entity_id).ok_or_else(|| {
                                 missing_record_error(
                                     "entity",
                                     read.entity_identity(),
@@ -216,14 +216,13 @@ impl TruthSnapshotReader for TopologySnapshotReader {
                                 })?
                         }
                         RecordRef::Relation(relation_id) => {
-                            let record =
-                                projection.relation_record(relation_id).ok_or_else(|| {
-                                    missing_record_error(
-                                        "relation",
-                                        read.entity_identity(),
-                                        &self.snapshot_identity,
-                                    )
-                                })?;
+                            let record = read_view.get_relation(relation_id).ok_or_else(|| {
+                                missing_record_error(
+                                    "relation",
+                                    read.entity_identity(),
+                                    &self.snapshot_identity,
+                                )
+                            })?;
                             snapshot_bytes_for_relation_aspect(&record, read.aspect_label())
                                 .ok_or_else(|| {
                                     missing_aspect_error(

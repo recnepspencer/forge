@@ -122,7 +122,7 @@ fn relation_id_for_source_kind(
     let relation_identity = relation_rows
         .iter()
         .find(|row| row_matches_source_kind(row, source_identity, relation_kind))
-        .map(|row| row.identity.as_str())
+        .map(|row| row.identity())
         .ok_or_else(|| scale_pressure_span_error("span rewire relation id should resolve"))?;
     relation_id_from_query_identity(relation_identity)
 }
@@ -136,7 +136,7 @@ fn relation_target_identity_for_source_kind(
         .iter()
         .find(|row| row_matches_source_kind(row, source_identity, relation_kind))
         .and_then(|row| {
-            row.payload
+            row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("target_identity"))
                 .and_then(|value| value.as_str())
@@ -150,13 +150,13 @@ fn row_matches_source_kind(
     source_identity: &str,
     relation_kind: TopologyRelationKind,
 ) -> bool {
-    row.payload
+    row.external_row()
         .get("topology")
         .and_then(|value| value.get("kind"))
         .and_then(|value| value.as_str())
         == Some(relation_kind.kind_name())
         && row
-            .payload
+            .external_row()
             .get("topology")
             .and_then(|value| value.get("source_identity"))
             .and_then(|value| value.as_str())

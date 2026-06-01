@@ -52,7 +52,3 @@ pub use naming_continuity::NamingMutationContinuityMatrix;
 pub use rejection_locality::{
     RejectedMutationScopeReport, RejectedMutationScopeRow, TopologyMutationRejectionClass,
 };
-<<<<<<< HEAD
-pub use replay::{TopologyEditDigest, TopologyOperatorDigest};
-=======
->>>>>>> origin/master

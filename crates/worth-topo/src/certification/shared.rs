@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-use schema::facade::platform::authority::{TopologyMutation, TopologyMutationBatch};
-=======
 use schema::facade::platform::authority::TopologyMutation;
->>>>>>> origin/master
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use crate::certification::support::reporting::{

@@ -14,13 +14,13 @@ fn row(
     relations: serde_json::Value,
     relation_ids: serde_json::Value,
 ) -> ForgeQueryEntity {
-    ForgeQueryEntity {
-        identity: identity.to_string(),
-        payload: json!({
+    ForgeQueryEntity::from_external_projection(
+        identity,
+        json!({
             "relations": relations,
             "relation_identities": relation_ids,
         }),
-    }
+    )
 }
 
 #[test]

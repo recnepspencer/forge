@@ -36,15 +36,15 @@ impl MaterializationEntityRow {
     pub(crate) fn from_query_row(
         row: &ForgeQueryEntity,
     ) -> Result<Self, TopologyMaterializationError> {
-        let entity_id = parse_entity_identity(&row.identity)?;
-        let kind = parse_entity_kind(required_text(&row.payload, "topology.kind")?)?;
-        let label = row
-            .payload
+        let external_row = row.external_row();
+        let entity_id = parse_entity_identity(row.identity())?;
+        let kind = parse_entity_kind(required_text(external_row, "topology.kind")?)?;
+        let label = external_row
             .get("topology")
             .and_then(|value| value.get("structure"))
             .and_then(serde_json::Value::as_str)
             .or_else(|| {
-                row.payload
+                external_row
                     .get("naming")
                     .and_then(|value| value.get("persistent_name"))
                     .and_then(serde_json::Value::as_str)
@@ -73,13 +73,13 @@ impl MaterializationRelationRow {
         row: &ForgeQueryEntity,
     ) -> Result<Self, TopologyMaterializationError> {
         Ok(Self {
-            kind: parse_relation_kind(required_text(&row.payload, "topology.kind")?)?,
+            kind: parse_relation_kind(required_text(row.external_row(), "topology.kind")?)?,
             source: parse_entity_identity(required_text(
-                &row.payload,
+                row.external_row(),
                 "topology.source_identity",
             )?)?,
             target: parse_entity_identity(required_text(
-                &row.payload,
+                row.external_row(),
                 "topology.target_identity",
             )?)?,
         })

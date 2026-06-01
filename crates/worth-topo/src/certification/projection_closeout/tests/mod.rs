@@ -24,7 +24,4 @@ mod derived_chain;
 mod failures;
 mod materialization;
 mod row_lookup;
-<<<<<<< HEAD
-=======
 mod topology_reads;
->>>>>>> origin/master

@@ -1,10 +1,6 @@
 use schema::facade::platform::aspects::Aspect;
 use schema::facade::platform::authority::{
-<<<<<<< HEAD
-    CreateKey, EntityReference, MutationOrigin, RawTopologyIntent, TopologyMutationBatch,
-=======
     CreateKey, EntityReference, MutationOrigin, RawTopologyIntent,
->>>>>>> origin/master
 };
 use schema::facade::platform::entities::EntityKind;
 use schema::facade::platform::relations::RelationKind;

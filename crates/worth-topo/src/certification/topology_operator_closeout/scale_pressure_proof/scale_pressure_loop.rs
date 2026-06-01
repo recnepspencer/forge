@@ -57,7 +57,7 @@ fn endpoint_rewire_declaration(
             scale_pressure_loop_error("endpoint rewire alternate vertex should resolve")
         })?;
     Ok(TopologyRewireLoopEndpointDeclaration::new(
-        relation_id_from_query_identity(relation.identity.as_str())?,
+        relation_id_from_query_identity(relation.identity())?,
         LoopEndpointKind::Start,
         entity_id_from_query_identity(source_identity)?,
         entity_id_from_query_identity(&alternate_target_identity)?,
@@ -71,7 +71,7 @@ fn row_matches_source_kind(
 ) -> bool {
     self::relation_kind(row) == Some(relation_kind.kind_name())
         && row
-            .payload
+            .external_row()
             .get("topology")
             .and_then(|value| value.get("source_identity"))
             .and_then(|value| value.as_str())
@@ -79,14 +79,14 @@ fn row_matches_source_kind(
 }
 
 fn relation_kind(row: &ForgeQueryEntity) -> Option<&str> {
-    row.payload
+    row.external_row()
         .get("topology")
         .and_then(|value| value.get("kind"))
         .and_then(|value| value.as_str())
 }
 
 fn relation_target_identity(row: &ForgeQueryEntity) -> Option<String> {
-    row.payload
+    row.external_row()
         .get("topology")
         .and_then(|value| value.get("target_identity"))
         .and_then(|value| value.as_str())

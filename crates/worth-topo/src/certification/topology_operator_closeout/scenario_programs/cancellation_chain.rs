@@ -1,13 +1,7 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::TopologyEntityKind;
-<<<<<<< HEAD
-use schema::facade::topology_authoring::{
-    created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
-};
-=======
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
->>>>>>> origin/master
 
 use super::super::mutation_sequence_support::{
     aggregate_naming_mutation_continuity_matrix_for_declarations,

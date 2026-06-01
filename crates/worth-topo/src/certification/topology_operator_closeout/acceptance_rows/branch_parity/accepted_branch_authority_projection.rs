@@ -3,11 +3,7 @@ use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use schema::facade::platform::authority::{CreateKey, EntityReference, TopologyMutation};
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
-<<<<<<< HEAD
-use schema::facade::topology_authoring::{created_ref, DerivedTopologyReadBasis};
-=======
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
->>>>>>> origin/master
 
 use super::super::super::mutation_sequence_support::{
     closeout_mutation_plan_for_declaration_and_mutations, lowered_mutations_for_declaration,

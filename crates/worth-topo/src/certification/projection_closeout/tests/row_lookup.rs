@@ -36,7 +36,7 @@ fn row_lookup_finds_half_edge_neighbors_for_edge_fan_witnesses() {
 
     let same_edge = entity_rows
         .iter()
-        .map(|row| row.identity.as_str())
+        .map(|row| row.identity())
         .filter(|identity| {
             lookup
                 .edge_identity_of_half_edge(identity)
@@ -45,7 +45,7 @@ fn row_lookup_finds_half_edge_neighbors_for_edge_fan_witnesses() {
         .collect::<Vec<_>>();
     let different_edge = entity_rows
         .iter()
-        .map(|row| row.identity.as_str())
+        .map(|row| row.identity())
         .filter(|identity| {
             lookup
                 .edge_identity_of_half_edge(identity)
@@ -69,7 +69,7 @@ fn row_lookup_finds_half_edge_neighbors_for_edge_fan_witnesses() {
     }));
     let sharing_vertex = entity_rows
         .iter()
-        .map(|row| row.identity.as_str())
+        .map(|row| row.identity())
         .filter(|identity| *identity != source_identity)
         .filter(|identity| {
             lookup

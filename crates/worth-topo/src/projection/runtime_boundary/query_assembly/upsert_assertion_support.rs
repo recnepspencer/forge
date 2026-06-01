@@ -43,7 +43,7 @@ pub(super) fn seeded_current_head_workspace(
 
 pub(super) fn decode_entity_id(row: &ForgeQueryEntity) -> EntityId {
     serde_json::from_value(
-        row.payload
+        row.external_row()
             .get("lineage")
             .and_then(|value| value.get("provenance"))
             .cloned()
@@ -54,7 +54,7 @@ pub(super) fn decode_entity_id(row: &ForgeQueryEntity) -> EntityId {
 
 pub(super) fn decode_relation_id(row: &ForgeQueryEntity) -> RelationId {
     serde_json::from_value(
-        row.payload
+        row.external_row()
             .get("lineage")
             .and_then(|value| value.get("provenance"))
             .cloned()
@@ -65,7 +65,7 @@ pub(super) fn decode_relation_id(row: &ForgeQueryEntity) -> RelationId {
 
 pub(super) fn decode_entity_kind(row: &ForgeQueryEntity) -> EntityKind {
     let kind_name = row
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("kind"))
         .and_then(serde_json::Value::as_str)
@@ -78,7 +78,7 @@ pub(super) fn decode_entity_kind(row: &ForgeQueryEntity) -> EntityKind {
 
 pub(super) fn decode_relation_kind(row: &ForgeQueryEntity) -> RelationKind {
     let kind_name = row
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("kind"))
         .and_then(serde_json::Value::as_str)
@@ -94,13 +94,13 @@ pub(super) fn decode_relation_endpoints(
     entity_rows: &[ForgeQueryEntity],
 ) -> (EntityId, EntityId) {
     let source_identity = relation_row
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("source_identity"))
         .and_then(serde_json::Value::as_str)
         .expect("source identity");
     let target_identity = relation_row
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("target_identity"))
         .and_then(serde_json::Value::as_str)
@@ -108,13 +108,13 @@ pub(super) fn decode_relation_endpoints(
     let source_id = decode_entity_id(
         entity_rows
             .iter()
-            .find(|row| row.identity == source_identity)
+            .find(|row| row.identity() == source_identity)
             .expect("source row should exist"),
     );
     let target_id = decode_entity_id(
         entity_rows
             .iter()
-            .find(|row| row.identity == target_identity)
+            .find(|row| row.identity() == target_identity)
             .expect("target row should exist"),
     );
     (source_id, target_id)

@@ -23,7 +23,7 @@ pub fn register_topology_schema(
             kind_name: kind.kind_name().to_string(),
             schema_id: schema_id(),
             schema_version_id: schema_version_id(),
-            aspect_declarations: entity_aspects(kind),
+            aspect_contract_declarations: entity_aspects(kind),
         })?;
     }
 
@@ -35,7 +35,7 @@ pub fn register_topology_schema(
             schema_version_id: schema_version_id(),
             cross_context_policy: CrossContextPolicy::Forbid,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-            aspect_declarations: relation_aspects(kind),
+            aspect_contract_declarations: relation_aspects(kind),
             relation_integrity: relation_integrity(kind),
         })?;
     }
@@ -52,7 +52,7 @@ pub fn register_geometry_schema(
             kind_name: kind.kind_name().to_string(),
             schema_id: schema_id(),
             schema_version_id: schema_version_id(),
-            aspect_declarations: entity_aspects(kind),
+            aspect_contract_declarations: entity_aspects(kind),
         })?;
     }
 
@@ -64,7 +64,7 @@ pub fn register_geometry_schema(
             schema_version_id: schema_version_id(),
             cross_context_policy: CrossContextPolicy::Forbid,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-            aspect_declarations: relation_aspects(kind),
+            aspect_contract_declarations: relation_aspects(kind),
             relation_integrity: relation_integrity(kind),
         })?;
     }
@@ -87,7 +87,7 @@ pub fn register_naming_schema(
             kind_name: kind.kind_name().to_string(),
             schema_id: schema_id(),
             schema_version_id: schema_version_id(),
-            aspect_declarations: entity_aspects(kind),
+            aspect_contract_declarations: entity_aspects(kind),
         })?;
     }
 
@@ -99,7 +99,7 @@ pub fn register_naming_schema(
             schema_version_id: schema_version_id(),
             cross_context_policy: CrossContextPolicy::Forbid,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-            aspect_declarations: relation_aspects(kind),
+            aspect_contract_declarations: relation_aspects(kind),
             relation_integrity: relation_integrity(kind),
         })?;
     }
@@ -116,7 +116,7 @@ pub fn register_diagnostics_schema(
             kind_name: kind.kind_name().to_string(),
             schema_id: schema_id(),
             schema_version_id: schema_version_id(),
-            aspect_declarations: entity_aspects(kind),
+            aspect_contract_declarations: entity_aspects(kind),
         })?;
     }
 
@@ -128,7 +128,7 @@ pub fn register_diagnostics_schema(
             schema_version_id: schema_version_id(),
             cross_context_policy: CrossContextPolicy::Forbid,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-            aspect_declarations: relation_aspects(kind),
+            aspect_contract_declarations: relation_aspects(kind),
             relation_integrity: relation_integrity(kind),
         })?;
     }

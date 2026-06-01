@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::EntityId;
 use forge_relational::facade::runtime::{EntityReadRecord, RelationReadRecord};
+use schema::facade::platform::aspects::{Aspect, NamingAspect};
 use schema::facade::platform::entities::{EntityKind, NamingEntityKind};
 use schema::facade::platform::relations::{NamingRelationKind, RelationKind};
 use serde_json::Value;
@@ -84,7 +85,7 @@ fn topology_entity_persistent_name_map(
             .then(|| {
                 let name = entity_record_string_aspect(
                     &entity,
-                    &schema::facade::Aspect::Naming(schema::facade::NamingAspect::PersistentName),
+                    &Aspect::Naming(NamingAspect::PersistentName),
                     "persistent_name",
                 )?;
                 Some((entity.entity_id, name))
@@ -120,9 +121,9 @@ fn entity_row(
     }
     let structure =
         entity_record_domain_label(entity).unwrap_or_else(|| kind.kind_name().to_string());
-    Some(ForgeQueryEntity {
-        identity: entity_identity(entity.entity_id),
-        payload: serde_json::json!({
+    Some(ForgeQueryEntity::from_external_projection(
+        entity_identity(entity.entity_id),
+        serde_json::json!({
             "topology": {
                 "kind": kind.kind_name(),
                 "structure": structure
@@ -152,7 +153,7 @@ fn entity_row(
                 .flatten()
                 .unwrap_or_else(|| serde_json::json!({}))
         }),
-    })
+    ))
 }
 
 fn topology_entity_relation_map(
@@ -207,7 +208,7 @@ fn persistent_name_row(
     }
     let persistent_name = entity_record_string_aspect(
         entity,
-        &schema::facade::Aspect::Naming(schema::facade::NamingAspect::PersistentName),
+        &Aspect::Naming(NamingAspect::PersistentName),
         "persistent_name",
     )
     .map(Value::String)
@@ -222,10 +223,10 @@ fn persistent_name_row(
     if let Some(target_identity) = targets.get(&entity.entity_id) {
         row["naming"]["target_identity"] = Value::String(target_identity.clone());
     }
-    Some(ForgeQueryEntity {
-        identity: entity_identity(entity.entity_id),
-        payload: row,
-    })
+    Some(ForgeQueryEntity::from_external_projection(
+        entity_identity(entity.entity_id),
+        row,
+    ))
 }
 
 fn relation_row(
@@ -250,10 +251,10 @@ fn relation_row(
         let (section, field) = path.split_once('.').expect("topology dependency path");
         payload[section][field] = Value::String(kind.kind_name().to_string());
     }
-    Some(ForgeQueryEntity {
-        identity: relation_identity(relation.relation_id),
+    Some(ForgeQueryEntity::from_external_projection(
+        relation_identity(relation.relation_id),
         payload,
-    })
+    ))
 }
 
 fn entity_identity(entity: EntityId) -> String {

@@ -2,7 +2,10 @@ use forge_foundational::facade::{
     AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
 };
 use forge_relational::facade::transactions::AspectFieldPatch;
-use schema::facade::{entity_domain_aspect, entity_domain_field, Aspect, EntityKind, NamingAspect};
+use schema::facade::platform::aspects::{
+    entity_domain_aspect, entity_domain_field, Aspect, NamingAspect,
+};
+use schema::facade::platform::entities::EntityKind;
 
 use super::field_key;
 

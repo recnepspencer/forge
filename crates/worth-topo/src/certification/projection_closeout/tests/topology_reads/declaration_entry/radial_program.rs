@@ -189,14 +189,14 @@ fn first_source_identity_for_relation_kind(
     relation_rows
         .iter()
         .find(|row| {
-            row.payload
+            row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
                 == Some(relation_kind.kind_name())
         })
         .and_then(|row| {
-            row.payload
+            row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("source_identity"))
                 .and_then(|value| value.as_str())
@@ -236,7 +236,7 @@ fn relation_target_identity_for_source_kind(
         .iter()
         .find(|row| row_matches_source_kind(row, source_identity, relation_kind))
         .and_then(|row| {
-            row.payload
+            row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("target_identity"))
                 .and_then(|value| value.as_str())
@@ -267,13 +267,13 @@ fn row_matches_source_kind(
     source_identity: &str,
     relation_kind: TopologyRelationKind,
 ) -> bool {
-    row.payload
+    row.external_row()
         .get("topology")
         .and_then(|value| value.get("kind"))
         .and_then(|value| value.as_str())
         == Some(relation_kind.kind_name())
         && row
-            .payload
+            .external_row()
             .get("topology")
             .and_then(|value| value.get("source_identity"))
             .and_then(|value| value.as_str())
@@ -286,7 +286,7 @@ fn entity_id_for_identity(
 ) -> forge_relational::facade::identity::EntityId {
     let row = entity_rows
         .iter()
-        .find(|row| row.identity == identity)
+        .find(|row| row.identity() == identity)
         .expect("entity identity should resolve");
     query_entity_id_from_row(row).expect("entity id should decode")
 }

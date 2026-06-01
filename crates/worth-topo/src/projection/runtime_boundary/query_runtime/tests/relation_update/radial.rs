@@ -36,7 +36,7 @@ fn current_head_runtime_executes_splice_radial_adjacency_through_topology_mutati
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.payload
+            row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
@@ -46,13 +46,13 @@ fn current_head_runtime_executes_splice_radial_adjacency_through_topology_mutati
         })
         .expect("seeded topology should contain a radial relation");
     let source_identity = relation
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("source_identity"))
         .and_then(|value| value.as_str())
         .expect("radial relation should expose topology.source_identity");
     let current_target_identity = relation
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("target_identity"))
         .and_then(|value| value.as_str())
@@ -135,7 +135,7 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.payload
+            row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
@@ -145,13 +145,13 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
         })
         .expect("seeded topology should contain a radial relation");
     let source_identity = relation
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("source_identity"))
         .and_then(|value| value.as_str())
         .expect("radial relation should expose topology.source_identity");
     let current_target_identity = relation
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("target_identity"))
         .and_then(|value| value.as_str())
@@ -229,7 +229,7 @@ fn current_head_runtime_denies_splice_radial_adjacency_across_different_edges() 
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.payload
+            row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
@@ -239,7 +239,7 @@ fn current_head_runtime_denies_splice_radial_adjacency_across_different_edges() 
         })
         .expect("seeded topology should contain a radial relation");
     let source_identity = relation
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("source_identity"))
         .and_then(|value| value.as_str())

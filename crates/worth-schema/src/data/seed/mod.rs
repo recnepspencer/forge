@@ -11,12 +11,9 @@ pub use crate::data::mutation_commit::{
     TopologyMutationSetCommitError,
 };
 pub use authoring::{created_ref, TopologyCreateBatchBuilder};
-<<<<<<< HEAD
-=======
 pub use intent_commit::{
     commit_topology_intent, commit_topology_intent_on_branch, TopologyIntentCommitError,
 };
->>>>>>> origin/master
 pub use minimal_topology::{
     build_minimal_topology_intent, seed_minimal_topology, seed_minimal_topology_commit,
 };

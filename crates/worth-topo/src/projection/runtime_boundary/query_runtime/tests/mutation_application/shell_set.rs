@@ -6,13 +6,7 @@ use forge_query::facade::{
 };
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
-<<<<<<< HEAD:crates/worth-topo/src/projection/runtime_boundary/query_runtime/tests/edit_execution/shell_set.rs
-use schema::facade::topology_authoring::{
-    created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
-};
-=======
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
->>>>>>> origin/master:crates/worth-topo/src/projection/runtime_boundary/query_runtime/tests/mutation_application/shell_set.rs
 
 use crate::certification::support::declaration_runtime::{
     current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
