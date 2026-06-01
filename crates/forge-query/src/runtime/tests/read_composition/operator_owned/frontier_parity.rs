@@ -90,7 +90,7 @@ fn compose_read_frontier_detail_matches_open_coded_anchored_detail_query_semanti
         })
         .expect("open-coded anchored detail should execute");
 
-    assert_eq!(operator_owned.payload(), open_coded.payload());
+    assert_eq!(operator_owned.rows(), open_coded.rows());
     assert_eq!(
         operator_owned.receipt().scope_class(),
         &ForgeQueryReadScopeClass::AnchoredExpansion
@@ -208,7 +208,7 @@ fn compose_read_frontier_collection_matches_open_coded_anchored_collection_query
         })
         .expect("open-coded anchored collection should execute");
 
-    assert_eq!(operator_owned.payload(), open_coded.payload());
+    assert_eq!(operator_owned.rows(), open_coded.rows());
     assert_collection_receipt(&operator_owned, ForgeQueryReadScopeClass::AnchoredExpansion);
     assert_eq!(
         operator_owned.receipt().query_digest(),

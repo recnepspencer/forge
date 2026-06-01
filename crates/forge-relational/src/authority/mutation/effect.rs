@@ -1,9 +1,8 @@
 use crate::diagnostics::data::RelationalDiagnosticsEntry;
 use crate::identity::data::{EntityId, RelationId};
-use crate::publication::data::diff::PatchRecord;
 use crate::transactions::data::RecordRef;
 
-use super::canonical_deltas::CanonicalRecordAspectDelta;
+use super::canonical_deltas::{CanonicalRecordAspectDelta, FoundationalPatchFragment};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AdjacencyDeltaKind {
@@ -21,7 +20,7 @@ pub(crate) struct AdjacencyDelta {
 pub(crate) struct MutationPublicationEffect {
     pub(crate) changed_records: Vec<RecordRef>,
     pub(crate) canonical_deltas: Vec<CanonicalRecordAspectDelta>,
-    pub(crate) patch_records: Vec<PatchRecord>,
+    pub(crate) patch_fragments: Vec<FoundationalPatchFragment>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -47,7 +46,7 @@ impl MutationEffect {
             publication: MutationPublicationEffect {
                 changed_records: Vec::with_capacity(change_count),
                 canonical_deltas: Vec::with_capacity(change_count),
-                patch_records: Vec::with_capacity(change_count),
+                patch_fragments: Vec::with_capacity(change_count),
             },
             diagnostics: MutationDiagnosticsEffect {
                 entries: Vec::with_capacity(diagnostic_count),
@@ -66,8 +65,8 @@ impl MutationEffect {
             .canonical_deltas
             .extend(child.publication.canonical_deltas);
         self.publication
-            .patch_records
-            .extend(child.publication.patch_records);
+            .patch_fragments
+            .extend(child.publication.patch_fragments);
         self.diagnostics.entries.extend(child.diagnostics.entries);
         self.adjacency.deltas.extend(child.adjacency.deltas);
     }

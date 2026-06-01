@@ -1,8 +1,8 @@
 use crate::diagnostics::data::DiagnosticCode;
 use crate::history::data::CommitId;
 use crate::logic::planning::RelationalExecutionModel;
-use crate::publication::data::diff::PatchStreamPosition;
-use crate::publication::data::PublicationStage;
+use crate::publication::bundle::PublicationStage;
+use crate::publication::patch::data::PatchStreamPosition;
 use crate::snapshots::data::SnapshotId;
 use crate::validation::data::{InvariantExecutionPoint, InvariantGroupSet};
 use crate::validation::engine::{
@@ -11,10 +11,9 @@ use crate::validation::engine::{
 use serde::{Deserialize, Serialize};
 
 use crate::authority::commit::preparation::planning::strategy::{
-    ParallelLegality, ParallelProfitability, PreparationFallbackReason,
-    PreparationStrategySelection,
+    ParallelLegality, ParallelProfitability, PreparationStrategySelection, SerialPreparationReason,
 };
-use crate::publication::patch::data::CanonicalAspectSet;
+use forge_foundational::facade::AspectKey;
 
 use super::CommitStructuralSummary;
 
@@ -56,8 +55,8 @@ pub struct CommitChangeSummary {
 pub struct CommitAspectSummary {
     pub changed_entity_aspect_count: usize,
     pub changed_relation_aspect_count: usize,
-    pub touched_aspects: CanonicalAspectSet,
-    pub opaque_precision_delta_count: usize,
+    pub touched_aspects: Vec<AspectKey>,
+    pub opaque_aspect_delta_count: usize,
     pub zero_aspect_structural_delta_count: usize,
 }
 
@@ -85,7 +84,7 @@ pub enum CommitTraceEvent {
         preparation_selected_mode: Option<PreparationStrategySelection>,
         preparation_parallel_legality: Option<ParallelLegality>,
         preparation_parallel_profitability: Option<ParallelProfitability>,
-        preparation_fallback_reason: Option<PreparationFallbackReason>,
+        preparation_serial_selection_reason: Option<SerialPreparationReason>,
         consumed_groups: InvariantGroupSet,
         applicable_groups: InvariantGroupSet,
         result_count: usize,
@@ -292,9 +291,9 @@ impl CommitLog {
             preparation_parallel_profitability: metadata
                 .preparation_strategy()
                 .map(|strategy| strategy.parallel_profitability),
-            preparation_fallback_reason: metadata
+            preparation_serial_selection_reason: metadata
                 .preparation_strategy()
-                .and_then(|strategy| strategy.fallback_reason),
+                .and_then(|strategy| strategy.serial_selection_reason),
             consumed_groups: metadata.consumed_groups(),
             applicable_groups: metadata.applicable_groups(),
             result_count,

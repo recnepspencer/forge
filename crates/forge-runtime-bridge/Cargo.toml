@@ -9,6 +9,7 @@ keywords = ["bridge", "runtime", "invalidation", "snapshot", "facade"]
 categories = ["data-structures", "science"]
 
 [dependencies]
+forge-foundational.workspace = true
 forge-harness.workspace = true
 serde_json.workspace = true
 sha2 = "0.10"

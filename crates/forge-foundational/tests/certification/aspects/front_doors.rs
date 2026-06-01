@@ -120,6 +120,19 @@ fn aspect_front_doors_cover_scalar_struct_mask_and_patch_progression() {
 }
 
 #[test]
+fn vocabulary_field_paths_fail_closed_on_multi_segment_common_path_authoring() {
+    let denial = aspects()
+        .vocabulary()
+        .field_path(["parent", "child"])
+        .expect_err("front-door field paths are single-field Milestone 1 targeting");
+
+    assert_eq!(
+        denial,
+        forge_foundational::AspectFrontDoorConstructionDenial::FieldPathMustTargetSingleField
+    );
+}
+
+#[test]
 fn aspect_front_doors_keep_scalar_validation_and_whole_patch_first_class() {
     let vocabulary = aspects().vocabulary();
     let retries_key = vocabulary.key("retry.count").expect("valid aspect key");
@@ -166,10 +179,85 @@ fn aspect_front_doors_keep_scalar_validation_and_whole_patch_first_class() {
             AbsenceLaw::Required,
             AspectEquivalenceBasis::OpaqueIdentity,
             AspectEvolutionPolicy::ExplicitBreakRequired,
-        );
+        )
+        .expect("opaque contract");
 
     assert_eq!(
         opaque_contract.masks(),
         &aspects().mask_contract().opaque_diagnostic_only()
+    );
+}
+
+#[test]
+fn authoritative_state_front_door_rejects_empty_admission_requests() {
+    let outcome = aspects().authoritative_state().admit([]);
+
+    assert_eq!(
+        outcome,
+        TransitionOutcome::Denied(
+            forge_foundational::AuthoritativeStateAdmissionDenial::EmptyAdmission
+        )
+    );
+}
+
+#[test]
+fn opaque_front_door_rejects_non_diagnostic_mask_contracts() {
+    let vocabulary = aspects().vocabulary();
+
+    let denial = aspects()
+        .contract()
+        .for_key(vocabulary.key("opaque.trace").expect("valid opaque key"))
+        .identified_by(vocabulary.identity(8))
+        .at_revision(vocabulary.revision(1))
+        .opaque_with(
+            OpaqueAspectType::Token,
+            aspects().mask_contract().scalar(),
+            AbsenceLaw::Required,
+            AspectEquivalenceBasis::OpaqueIdentity,
+            AspectEvolutionPolicy::ExplicitBreakRequired,
+        )
+        .expect_err("opaque contracts must preserve diagnostic-only mask law");
+
+    assert_eq!(
+        denial,
+        forge_foundational::AspectFrontDoorConstructionDenial::OpaqueMaskContractMustBeDiagnosticOnly
+    );
+}
+
+#[test]
+fn patch_front_door_rejects_empty_field_level_patch_requests() {
+    let vocabulary = aspects().vocabulary();
+    let contract = aspects()
+        .contract()
+        .for_key(vocabulary.key("task.summary").expect("valid aspect key"))
+        .identified_by(vocabulary.identity(81))
+        .at_revision(vocabulary.revision(1))
+        .struct_with(
+            aspects()
+                .struct_fields()
+                .required("title", ScalarAspectType::String)
+                .optional("note", ScalarAspectType::String)
+                .finish()
+                .expect("struct shape"),
+            aspects().mask_contract().struct_fields(),
+            AbsenceLaw::Required,
+            AspectEquivalenceBasis::DeclaredStructFields,
+            AspectEvolutionPolicy::AdditiveFieldsAllowed,
+        );
+    let mutation_mask = aspects()
+        .mutation_mask()
+        .fields(["note"])
+        .expect("mutation mask");
+
+    let outcome = aspects()
+        .patch()
+        .field_level(&contract, &mutation_mask)
+        .finish();
+
+    assert_eq!(
+        outcome,
+        TransitionOutcome::Denied(
+            forge_foundational::AuthoritativePatchConstructionDenial::EmptyFieldPatch
+        )
     );
 }

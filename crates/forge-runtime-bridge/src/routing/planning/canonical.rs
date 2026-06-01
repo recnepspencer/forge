@@ -36,7 +36,7 @@ pub(super) fn canonical_read_packet(
     for slice in subscription_slices {
         deduped.insert((
             slice.entity_identity().to_owned(),
-            slice.aspect_label().to_owned(),
+            slice.aspect_key().clone(),
             slice.surface_label().to_owned(),
             slice.slice_kind().clone(),
         ));
@@ -44,16 +44,14 @@ pub(super) fn canonical_read_packet(
 
     let mut reads = deduped
         .into_iter()
-        .map(
-            |(entity_identity, aspect_label, surface_label, slice_kind)| {
-                SnapshotReadRequest::for_subscription_slice(
-                    entity_identity,
-                    aspect_label,
-                    surface_label,
-                    slice_kind,
-                )
-            },
-        )
+        .map(|(entity_identity, aspect_key, surface_label, slice_kind)| {
+            SnapshotReadRequest::for_subscription_slice(
+                entity_identity,
+                aspect_key,
+                surface_label,
+                slice_kind,
+            )
+        })
         .collect::<Vec<_>>();
     reads.sort_by(canonical_snapshot_request_order);
     SnapshotReadPacket::new(reads)
@@ -64,14 +62,14 @@ fn canonical_coarse_read_packet(entries: &[EligibleRouteEntry]) -> SnapshotReadP
     for entry in entries {
         deduped.insert((
             entry.item().entity_identity().to_owned(),
-            entry.item().aspect_label().to_owned(),
+            entry.item().aspect_key().clone(),
         ));
     }
 
     let mut reads = deduped
         .into_iter()
-        .map(|(entity_identity, aspect_label)| {
-            SnapshotReadRequest::for_coarse(entity_identity, aspect_label)
+        .map(|(entity_identity, aspect_key)| {
+            SnapshotReadRequest::for_coarse(entity_identity, aspect_key)
         })
         .collect::<Vec<_>>();
     reads.sort_by(canonical_snapshot_request_order);
@@ -91,7 +89,7 @@ pub(super) fn canonical_subscription_slices(
 
                 deduped.insert(BridgeSubscriptionSlice::new(
                     entry.normalized_surface().entity_identity(),
-                    entry.normalized_surface().aspect_label(),
+                    entry.normalized_surface().aspect_key().clone(),
                     entry.normalized_surface().surface_label(),
                     slice_kind.clone(),
                     entry.fine_grained_match().status(),

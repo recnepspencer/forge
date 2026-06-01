@@ -15,8 +15,8 @@ fn main() {
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field_locator: support::aspect_field_locator("name"),
         },
         branch_scoped: true,
     });

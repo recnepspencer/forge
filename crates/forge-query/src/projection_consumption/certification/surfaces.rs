@@ -225,7 +225,7 @@ pub fn traceability_for(
         }
         ProjectionFactKind::Membership => "grouped_membership_guard",
         ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
-            "payload_or_visibility_guard"
+            "row_or_visibility_guard"
         }
     };
     let rule = match (surface, fact_kind) {
@@ -244,7 +244,7 @@ pub fn traceability_for(
         (_, ProjectionFactKind::Membership) => "grouped_projection_membership_only",
         (_, ProjectionFactKind::RelationEndpoint) => "grouped_or_writeback_endpoint_only",
         (_, ProjectionFactKind::DisplayField) | (_, ProjectionFactKind::DerivedScalarField) => {
-            "field_fact_support_follows_visibility_or_payload_posture"
+            "field_fact_support_follows_visibility_or_row_posture"
         }
         _ => "support_row_derived_from_executable_support_for_kind",
     };

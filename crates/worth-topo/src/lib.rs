@@ -14,6 +14,7 @@ mod construction;
 mod derived_topology;
 mod projection;
 pub mod query_domain;
+mod relational_aspect_boundary;
 pub mod runtime_support;
 mod test_support;
 mod topology_operators;

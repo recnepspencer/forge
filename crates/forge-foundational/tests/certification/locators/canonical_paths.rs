@@ -49,9 +49,9 @@ fn field_value_and_source_locators_share_the_same_structural_locus() {
         key("task.summary"),
         field_path.clone(),
     );
-    let value_locator = AspectValueLocator::StructField(field_locator.clone());
-    let source_locator = BoundarySourceLocator::AspectField(field_locator.clone());
-    let mismatch_locator = BoundaryMismatchLocator::AspectField(field_locator.clone());
+    let value_locator = AspectValueLocator::struct_field(field_locator.clone());
+    let source_locator = BoundarySourceLocator::aspect_field(field_locator.clone());
+    let mismatch_locator = BoundaryMismatchLocator::aspect_field(field_locator.clone());
 
     assert!(matches!(
         value_locator,
@@ -61,11 +61,11 @@ fn field_value_and_source_locators_share_the_same_structural_locus() {
     ));
     assert_eq!(
         source_locator,
-        BoundarySourceLocator::AspectField(field_locator.clone())
+        BoundarySourceLocator::aspect_field(field_locator.clone())
     );
     assert_eq!(
         mismatch_locator,
-        BoundaryMismatchLocator::AspectField(field_locator)
+        BoundaryMismatchLocator::aspect_field(field_locator)
     );
 }
 
@@ -73,13 +73,13 @@ fn field_value_and_source_locators_share_the_same_structural_locus() {
 fn artifact_locators_preserve_artifact_field_category() {
     let artifact_locator =
         BoundaryArtifactLocator::new(BoundaryArtifactId::new(42), BoundaryArtifactField::Payload);
-    let source_locator = BoundarySourceLocator::BoundaryArtifact(artifact_locator);
+    let source_locator = BoundarySourceLocator::boundary_artifact(artifact_locator);
 
     assert_eq!(artifact_locator.artifact_id(), BoundaryArtifactId::new(42));
     assert_eq!(artifact_locator.field(), BoundaryArtifactField::Payload);
     assert_eq!(
         source_locator,
-        BoundarySourceLocator::BoundaryArtifact(artifact_locator)
+        BoundarySourceLocator::boundary_artifact(artifact_locator)
     );
 }
 

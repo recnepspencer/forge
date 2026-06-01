@@ -33,7 +33,7 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.payload
+            row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
@@ -43,14 +43,14 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
         })
         .expect("seeded topology should contain half-edge successor relation");
     let source_identity = relation
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("source_identity"))
         .and_then(|value| value.as_str())
         .expect("seeded relation should expose topology.source_identity")
         .to_string();
     let target_vertex_identity = relation
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("target_identity"))
         .and_then(|value| value.as_str())
@@ -60,7 +60,7 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
         .bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
                 format!("{:?}", query_relation_id_from_row(relation)),
-                relation.identity.clone(),
+                relation.identity().to_string(),
             )
             .expect("non-empty relation binding identity")
             .in_target_collection("TopologyRelation")
@@ -99,7 +99,7 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
         .expect("relation should remain visible after denied update");
     assert_eq!(
         original_relation
-            .payload
+            .external_row()
             .get("topology")
             .and_then(|value| value.get("target_identity"))
             .and_then(|value| value.as_str()),
@@ -129,7 +129,7 @@ fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_mutation_
     let relation = relation_rows
         .iter()
         .find(|row| {
-            row.payload
+            row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
@@ -139,13 +139,13 @@ fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_mutation_
         })
         .expect("seeded topology should contain an endpoint relation");
     let current_target_identity = relation
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("target_identity"))
         .and_then(|value| value.as_str())
         .expect("endpoint relation should expose topology.target_identity");
     let source_identity = relation
-        .payload
+        .external_row()
         .get("topology")
         .and_then(|value| value.get("source_identity"))
         .and_then(|value| value.as_str())
@@ -153,18 +153,18 @@ fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_mutation_
     let target_vertex_id = entity_rows
         .iter()
         .find(|row| {
-            row.payload
+            row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
                 .is_some_and(|kind_name| kind_name == ".vertex")
-                && row.identity != current_target_identity
+                && row.identity() != current_target_identity
         })
         .map(query_entity_id_from_row)
         .expect("seeded sheet disk should provide an alternate vertex");
     let half_edge_id = entity_rows
         .iter()
-        .find(|row| row.identity == source_identity)
+        .find(|row| row.identity() == source_identity)
         .map(query_entity_id_from_row)
         .expect("relation source identity should resolve to a halfedge");
     let declaration = TopologyRewireLoopEndpointDeclaration::new(

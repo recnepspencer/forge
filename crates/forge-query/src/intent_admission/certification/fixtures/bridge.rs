@@ -41,7 +41,8 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for CertificationBridgeS
             TruthBranchIdentity::new("main"),
             vec![BridgeCommittedPatchItem::new(
                 "certification-entity",
-                "certification-aspect",
+                forge_foundational::facade::AspectKey::new("certification-aspect")
+                    .expect("valid bridge patch aspect key"),
                 "value",
             )],
         ))

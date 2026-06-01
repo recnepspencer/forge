@@ -33,8 +33,12 @@ fn historical_lineage_resolution_follows_replace_events() {
                 replacement: crate::transactions::data::EntitySpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(1),
-                    client_key: InternedString::Raw("replacement".to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name":"replacement"})),
+                    client_key: crate::symbols::data::ClientKey::raw("replacement"),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "replacement",
+                    ),
                 },
             }),
         )),
@@ -109,8 +113,12 @@ fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
                 replacement: crate::transactions::data::EntitySpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(1),
-                    client_key: InternedString::Raw("replacement".to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name":"replacement"})),
+                    client_key: crate::symbols::data::ClientKey::raw("replacement"),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "replacement",
+                    ),
                 },
             }),
         )),
@@ -160,8 +168,12 @@ fn lineage_aspect_history_keeps_origin_events_and_marks_resolution_context() {
                 replacement: crate::transactions::data::EntitySpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(1),
-                    client_key: InternedString::Raw("replacement".to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name":"replacement"})),
+                    client_key: crate::symbols::data::ClientKey::raw("replacement"),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "replacement",
+                    ),
                 },
             }),
         )),

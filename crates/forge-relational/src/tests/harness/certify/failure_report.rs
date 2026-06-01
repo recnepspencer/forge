@@ -1,11 +1,11 @@
-use crate::facade::publication::RelationalPatchRecord;
+use crate::facade::publication::PublishedAuthoritativePatchEnvelope;
 use crate::tests::harness::observe::subscriber_stream::SubscriberView;
 
 pub(super) fn render_window_matrix_failure(
     context: &str,
     window_size: usize,
-    expected: &[RelationalPatchRecord],
-    actual: &[RelationalPatchRecord],
+    expected: &[PublishedAuthoritativePatchEnvelope],
+    actual: &[PublishedAuthoritativePatchEnvelope],
 ) -> String {
     format!(
         "{context}: window size {window_size} diverged; expected {} patches with tail {:?}, got {} patches with tail {:?}",
@@ -19,7 +19,7 @@ pub(super) fn render_window_matrix_failure(
 pub(super) fn render_multi_subscriber_failure(
     context: &str,
     view: &SubscriberView,
-    expected: &[RelationalPatchRecord],
+    expected: &[PublishedAuthoritativePatchEnvelope],
 ) -> String {
     format!(
         "{context}: subscriber checkpoint {:?} window {} diverged; expected {} patches with tail {:?}, got {} patches with tail {:?}",

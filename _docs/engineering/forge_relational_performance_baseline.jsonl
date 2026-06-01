@@ -130,8 +130,8 @@
 {"suite":"geometry_kernel_matrix","case":"topology_bridge_connectivity_wave_zero_diagnostics","metric":"diagnostic_artifact_count","samples":3,"mean":23.0,"median":23,"min":23,"max":23}
 {"suite":"geometry_kernel_matrix","case":"topology_bridge_connectivity_wave_zero_diagnostics","metric":"detailed_trace_entries","samples":3,"mean":0.0,"median":0,"min":0,"max":0}
 {"suite":"harness_measurement_matrix","case":"post_measurement_metrics_do_not_pollute_elapsed","samples":3,"mean_elapsed_micros":0.0,"median_elapsed_micros":0,"min_elapsed_micros":0,"max_elapsed_micros":0}
-{"suite":"harness_measurement_matrix","case":"post_measurement_metrics_do_not_pollute_elapsed","metric":"payload_build_micros","samples":3,"mean":5748.333333333333,"median":5372,"min":4504,"max":7369}
-{"suite":"harness_measurement_matrix","case":"post_measurement_metrics_do_not_pollute_elapsed","metric":"payload_item_count","samples":3,"mean":20000.0,"median":20000,"min":20000,"max":20000}
+{"suite":"harness_measurement_matrix","case":"post_measurement_metrics_do_not_pollute_elapsed","metric":"measurement_build_micros","samples":3,"mean":5748.333333333333,"median":5372,"min":4504,"max":7369}
+{"suite":"harness_measurement_matrix","case":"post_measurement_metrics_do_not_pollute_elapsed","metric":"measurement_item_count","samples":3,"mean":20000.0,"median":20000,"min":20000,"max":20000}
 {"suite":"hot_cold_path_matrix","case":"geometry_hot_commit_vs_replay_reconstruction","samples":3,"mean_elapsed_micros":2399.3333333333335,"median_elapsed_micros":2280,"min_elapsed_micros":2206,"max_elapsed_micros":2712}
 {"suite":"hot_cold_path_matrix","case":"geometry_hot_commit_vs_replay_reconstruction","metric":"hot_commit_micros","samples":3,"mean":667.3333333333334,"median":700,"min":599,"max":703}
 {"suite":"hot_cold_path_matrix","case":"geometry_hot_commit_vs_replay_reconstruction","metric":"hot_query_micros","samples":3,"mean":14.0,"median":14,"min":13,"max":15}

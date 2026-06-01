@@ -131,15 +131,15 @@ pub(crate) fn certify_milestone_one_bridge_proof(
         proved_families.push(family);
         source_branch = Some(branch_id);
         source_commit = Some(commit_id);
-        source_snapshot = Some(evaluation.snapshot_identity().as_str().to_string());
+        source_snapshot = Some(evaluation.snapshot_identity().to_string());
 
         route_rows.extend(route_records.iter().map(|record| {
-            route_identities.push(record.route_identity().as_str().to_string());
-            invalidation_identities.push(record.invalidation_identity().as_str().to_string());
+            route_identities.push(record.route_identity().to_string());
+            invalidation_identities.push(record.invalidation_identity().to_string());
             snapshot_identities.push(record.source_snapshot().as_str().to_string());
             format!(
                 "route:{}:{}:{}:{}:{}",
-                record.route_identity().as_str(),
+                record.route_identity(),
                 record.source_branch().as_str(),
                 record.source_commit().as_str(),
                 record.source_snapshot().as_str(),
@@ -147,7 +147,7 @@ pub(crate) fn certify_milestone_one_bridge_proof(
             )
         }));
         historical_rows.extend(historical_records.iter().map(|record| {
-            historical_record_identities.push(record.record_identity().as_str().to_string());
+            historical_record_identities.push(record.record_identity().to_string());
             snapshot_identities.push(
                 record
                     .decision_log()
@@ -157,10 +157,10 @@ pub(crate) fn certify_milestone_one_bridge_proof(
             );
             format!(
                 "historical:{}:{}:{}:{}:{:?}",
-                record.record_identity().as_str(),
-                record.decision_log().branch_identity().as_str(),
-                record.decision_log().commit_identity().as_str(),
-                record.decision_log().snapshot_identity().as_str(),
+                record.record_identity(),
+                record.decision_log().branch_identity(),
+                record.decision_log().commit_identity(),
+                record.decision_log().snapshot_identity(),
                 record.decision_log().materialization_path()
             )
         }));

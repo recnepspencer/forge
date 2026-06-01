@@ -1,30 +1,31 @@
 use crate::identity::data::{EntityId, KindId, RelationId};
-use crate::payloads::data::RecordPayload;
+use forge_foundational::facade::AuthoritativeRecordAspectState;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum RecordMutation {
     EntityCreated {
         entity_id: EntityId,
         kind_id: KindId,
-        payload: RecordPayload,
+        authoritative_patch: Option<forge_foundational::facade::AuthoritativeRecordAspectPatch>,
     },
     EntityUpdated {
         entity_id: EntityId,
         kind_id: KindId,
-        old_payload: RecordPayload,
-        new_payload: RecordPayload,
+        old_authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
+        new_authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
+        authoritative_patch: Option<forge_foundational::facade::AuthoritativeRecordAspectPatch>,
     },
     EntityDeleted {
         entity_id: EntityId,
         kind_id: KindId,
-        payload: RecordPayload,
+        authoritative_patch: Option<forge_foundational::facade::AuthoritativeRecordAspectPatch>,
     },
     RelationCreated {
         relation_id: RelationId,
         kind_id: KindId,
         source: EntityId,
         target: EntityId,
-        payload: Option<RecordPayload>,
+        authoritative_patch: Option<forge_foundational::facade::AuthoritativeRecordAspectPatch>,
     },
     RelationUpdated {
         relation_id: RelationId,
@@ -33,20 +34,21 @@ pub(crate) enum RecordMutation {
         old_target: EntityId,
         new_source: EntityId,
         new_target: EntityId,
-        payload: Option<RecordPayload>,
+        old_authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
+        new_authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
     },
     RelationDeleted {
         relation_id: RelationId,
         kind_id: KindId,
         source: EntityId,
         target: EntityId,
-        payload: Option<RecordPayload>,
+        authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
     },
     RelationRetainedForAudit {
         relation_id: RelationId,
         kind_id: KindId,
         source: EntityId,
         target: EntityId,
-        payload: Option<RecordPayload>,
+        authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
     },
 }

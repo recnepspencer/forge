@@ -1,0 +1,134 @@
+use crate::diagnostics::data::DiagnosticCode;
+use crate::storage::data::RecordLifecycleState;
+use crate::storage::logic::state::{EntityRecordKind, RecordKind, RelationRecordKind, SlotView};
+use crate::validation::data::{
+    InvariantClass, InvariantViolation, InvariantViolationFields, RecordKindTag,
+    StorageInconsistencyScan,
+};
+
+use super::super::super::context::InvariantExecutionContext;
+use super::super::common::{storage_inconsistency_violation, StorageInconsistencyContext};
+
+pub(super) fn evaluate_live_record_sidecar_rule(
+    context: &InvariantExecutionContext<'_>,
+    class: InvariantClass,
+    kind: &RecordKindTag,
+) -> Option<InvariantViolation> {
+    match kind {
+        RecordKindTag::Entity => evaluate_live_record_sidecar::<EntityRecordKind>(
+            context,
+            class,
+            |state, partition_id| state.touched_entity_slots(partition_id),
+            |slot_view| slot_view.kind_id().is_some(),
+            "kind id",
+            |context, slots| context.metrics().count_entity_slot_scans(slots),
+        ),
+        RecordKindTag::Relation => evaluate_live_record_sidecar::<RelationRecordKind>(
+            context,
+            class,
+            |state, partition_id| state.touched_relation_slots(partition_id),
+            |slot_view| slot_view.extra().endpoints.is_some(),
+            "endpoints",
+            |context, slots| context.metrics().count_relation_slot_scans(slots),
+        ),
+    }
+}
+
+fn evaluate_live_record_sidecar<K: RecordKind>(
+    context: &InvariantExecutionContext<'_>,
+    class: InvariantClass,
+    touched_slots: impl Fn(
+        &dyn crate::logic::runtime::PartitionAccess,
+        crate::identity::data::PartitionId,
+    ) -> Option<Vec<usize>>,
+    has_required_sidecar: impl Fn(&SlotView<'_, K>) -> bool,
+    missing_label: &str,
+    count_scans: impl Fn(&InvariantExecutionContext<'_>, usize),
+) -> Option<InvariantViolation> {
+    let partition_ids = context.partition_access().partition_ids();
+    let touched_by_partition = partition_ids
+        .iter()
+        .copied()
+        .map(|partition_id| {
+            (
+                partition_id,
+                touched_slots(context.partition_access(), partition_id),
+            )
+        })
+        .collect::<Vec<_>>();
+    let has_touched_surface = touched_by_partition
+        .iter()
+        .any(|(_, slots)| slots.is_some());
+
+    for (partition_id, touched_slots_for_partition) in touched_by_partition {
+        let Some(partition) = context.partition_access().get_partition(partition_id) else {
+            return Some(storage_inconsistency_violation(
+                class,
+                format!(
+                    "partition {:?} missing during invariant sidecar scan",
+                    partition_id
+                ),
+                StorageInconsistencyContext::default()
+                    .with_partition_id(partition_id)
+                    .with_scan(StorageInconsistencyScan::LiveRecordSidecar),
+            ));
+        };
+        if let Some(slots) = touched_slots_for_partition {
+            count_scans(context, slots.len());
+            for slot in slots {
+                if let Some(violation) = sidecar_violation_for_slot(
+                    class,
+                    partition,
+                    slot,
+                    &has_required_sidecar,
+                    missing_label,
+                ) {
+                    return Some(violation);
+                }
+            }
+        } else if !has_touched_surface {
+            let arena = K::arena(partition);
+            count_scans(context, arena.slot_count());
+            for slot in 0..arena.slot_count() {
+                if let Some(violation) = sidecar_violation_for_slot(
+                    class,
+                    partition,
+                    slot,
+                    &has_required_sidecar,
+                    missing_label,
+                ) {
+                    return Some(violation);
+                }
+            }
+        }
+    }
+    None
+}
+
+fn sidecar_violation_for_slot<K: RecordKind>(
+    class: InvariantClass,
+    partition: &crate::storage::logic::state::PartitionState,
+    slot: usize,
+    has_required_sidecar: &impl Fn(&SlotView<'_, K>) -> bool,
+    missing_label: &str,
+) -> Option<InvariantViolation> {
+    let slot_view = K::arena(partition).get_slot(slot)?;
+    if slot_view.lifecycle() == RecordLifecycleState::Live && !has_required_sidecar(&slot_view) {
+        return Some(InvariantViolation {
+            class,
+            code: DiagnosticCode::SidecarConsistencyFailure,
+            detail: format!(
+                "live slot {} in partition {} missing {}",
+                slot,
+                partition.partition_id.as_u32(),
+                missing_label
+            ),
+            fields: InvariantViolationFields::SidecarConsistency {
+                partition_id: partition.partition_id,
+                slot,
+                missing_label: missing_label.to_string(),
+            },
+        });
+    }
+    None
+}

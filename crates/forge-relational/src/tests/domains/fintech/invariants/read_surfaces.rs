@@ -1,9 +1,9 @@
-use crate::facade::payloads::RecordPayload;
 use crate::facade::runtime::RelationalReadView;
+use crate::tests::support::{field_key, read_entity_field};
 
 use super::super::fixture::{LEDGER_PARTITION, MARKET_PARTITION, RISK_PARTITION};
 
-pub(crate) fn assert_partitioned_payloads(read: &RelationalReadView) {
+pub(crate) fn assert_partitioned_aspect_state(read: &RelationalReadView) {
     let mut saw_ledger = false;
     let mut saw_market = false;
     let mut saw_risk = false;
@@ -17,16 +17,16 @@ pub(crate) fn assert_partitioned_payloads(read: &RelationalReadView) {
             RISK_PARTITION => saw_risk = true,
             _ => {}
         }
-        if let RecordPayload::StructuredJson(value) = &entity.payload {
-            match value.get("entity_type").and_then(|kind| kind.as_str()) {
-                Some("instrument") => saw_instrument = true,
-                Some("settlement") => saw_settlement = true,
-                Some("limit") => saw_limit = true,
+        if let Some(entity_type) = read_entity_field(entity, field_key("entity_type")) {
+            match entity_type.as_ref() {
+                "instrument" => saw_instrument = true,
+                "settlement" => saw_settlement = true,
+                "limit" => saw_limit = true,
                 _ => {}
             }
         }
         if entity.entity_id.partition_id == MARKET_PARTITION {
-            assert!(matches!(entity.payload, RecordPayload::StructuredJson(_)));
+            assert!(entity.authoritative_aspect_state.is_some());
         }
     }
     assert!(saw_ledger && saw_market && saw_risk);

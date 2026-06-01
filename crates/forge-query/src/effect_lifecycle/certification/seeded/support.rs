@@ -2,17 +2,15 @@ use forge_relational::facade::commit_strategies::{
     CommitStrategyId, CommitStrategyRegistration, IntentReconciliationStrategy,
 };
 use forge_relational::facade::history::BranchId;
-use forge_relational::facade::payloads::RecordPayload;
 use forge_relational::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use forge_relational::facade::schema::{
-    AspectBinding, AspectComparator, AspectKey, AspectPrecision, DeclaredAspect,
-    EntityKindRegistration, KindAspectDeclarations, RelationalSchemaRegistry, SchemaId,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationalSchemaRegistry, SchemaId,
     SchemaVersionId,
 };
 use forge_relational::facade::transactions::{
     CreateIntent, EntitySpec, MutationIntent, RecordRef, TransactionOptions, WorkerIntentBatch,
 };
-use forge_relational::facade::{identity::KindId, identity::PartitionId, symbols::InternedString};
+use forge_relational::facade::{identity::KindId, identity::PartitionId, symbols::ClientKey};
 use forge_runtime_bridge::facade::{
     BridgeCommittedPatchItem, BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration,
     CoarseRoutingMode, CommittedPatchSource, InvalidationSink, MappingSelector,
@@ -22,6 +20,11 @@ use forge_runtime_bridge::facade::{
     TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
     TruthSnapshotIdentity, TruthSnapshotReader, TruthWritebackAuthority,
     TruthWritebackAuthorityError, TruthWritebackReceipt, TruthWritebackRequest,
+};
+
+use crate::aspect_field_authoring::{
+    entity_string_field_aspect, lifecycle_string_aspect,
+    single_aspect_field_patch_from_external_json,
 };
 
 pub(super) fn relational_runtime_with_intent_strategy() -> RelationalRuntime {
@@ -51,8 +54,13 @@ pub(super) fn create_entity(
             CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
-                client_key: InternedString::Raw(name.to_string()),
-                payload: RecordPayload::StructuredJson(serde_json::json!({ "name": name })),
+                client_key: ClientKey::raw(name),
+                fields: single_aspect_field_patch_from_external_json(
+                    "name",
+                    "name",
+                    serde_json::json!(name),
+                )
+                .expect("seed name aspect patch"),
             }),
         )),
     );
@@ -102,21 +110,9 @@ fn test_schema_registry() -> RelationalSchemaRegistry {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![
-                DeclaredAspect {
-                    key: AspectKey(InternedString::Raw("name".to_string())),
-                    binding: AspectBinding::EntityPayloadField {
-                        field: InternedString::Raw("name".to_string()),
-                    },
-                    comparator: AspectComparator::JsonScalarEquality,
-                    precision: AspectPrecision::Structured,
-                },
-                DeclaredAspect {
-                    key: AspectKey(InternedString::Raw("lifecycle".to_string())),
-                    binding: AspectBinding::LifecycleTransition,
-                    comparator: AspectComparator::LifecycleTransitionEquality,
-                    precision: AspectPrecision::Structured,
-                },
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                entity_string_field_aspect("name", "name").expect("name aspect"),
+                lifecycle_string_aspect("lifecycle").expect("lifecycle aspect"),
             ]),
         })
         .expect("test entity kind should register")
@@ -135,7 +131,12 @@ impl CommittedPatchSource for TestBridgeSource {
             TruthPatchIdentity::new(format!("patch:{}", request.commit_identity())),
             TruthSnapshotIdentity::new("external-snapshot"),
             TruthBranchIdentity::new("main"),
-            vec![BridgeCommittedPatchItem::new("entity", "aspect", "field")],
+            vec![BridgeCommittedPatchItem::new(
+                "entity",
+                forge_foundational::facade::AspectKey::new("aspect")
+                    .expect("valid bridge patch aspect key"),
+                "field",
+            )],
         ))
     }
 }

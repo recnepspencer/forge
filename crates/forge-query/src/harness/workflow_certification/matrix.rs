@@ -829,7 +829,7 @@ fn rejection_row(
                 binding.basis_digest(),
                 MutationLoweringInput::IntentReconciliation {
                     entity_id: EntityId::new(PartitionId(1), 41, 0),
-                    desired_payload: json!({"name":"after"}),
+                    desired_aspect_fields_external_json: json!({"name":"after"}),
                 },
             )
             .expect("mutation lowering should succeed");

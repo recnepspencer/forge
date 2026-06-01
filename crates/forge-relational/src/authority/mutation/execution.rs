@@ -1,5 +1,5 @@
 use crate::config::data::MutationConfig;
-use crate::schema::data::{AspectPlanCatalog, RelationalSchemaRegistry};
+use crate::schema::data::{AspectContractPlanCatalog, RelationalSchemaRegistry};
 use crate::storage::overlay::WorkingState;
 use crate::symbols::data::StringInterner;
 use crate::transactions::data::{AuthoritativeApplyPlan, CommitConflict};
@@ -20,7 +20,7 @@ pub(crate) fn apply_plan_to_working_state(
     apply_plan: &AuthoritativeApplyPlan,
     config: &MutationConfig,
     schema_registry: &RelationalSchemaRegistry,
-    aspect_plans: &AspectPlanCatalog,
+    aspect_plans: &AspectContractPlanCatalog,
     symbols: &mut StringInterner,
     branch_local_delete_allowance: BranchLocalDeleteAllowance,
 ) -> Result<MutationApplyOutcome, CommitConflict> {
@@ -61,7 +61,7 @@ fn estimated_mutation_effect_shape(
     for intent in intents {
         match intent {
             MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {
-                change_count += spec.payloads.len();
+                change_count += spec.field_patches.len();
                 event_count += 1;
             }
             MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
@@ -70,7 +70,6 @@ fn estimated_mutation_effect_shape(
             }
             MutationIntent::Create(CreateIntent::Entity(_))
             | MutationIntent::Create(CreateIntent::Relation(_))
-            | MutationIntent::Entity(EntityMutationIntent::Update(_))
             | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
             | MutationIntent::Entity(EntityMutationIntent::Delete(_))
             | MutationIntent::Entity(EntityMutationIntent::Replace(_))

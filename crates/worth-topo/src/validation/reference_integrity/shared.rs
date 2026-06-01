@@ -84,14 +84,14 @@ impl RuntimeTopologyGraph {
             &planned_entity_deletes,
         );
         for create in planned_entity_creates {
-            if topology_kind_ids.contains(&create.kind_id) {
+            if topology_kind_ids.contains(&create.kind_id()) {
                 topology_entities.insert(
                     RuntimeEntityRef::Planned(CreatedEntityRef {
-                        partition_id: create.partition_id,
-                        kind_id: create.kind_id,
-                        client_key: create.client_key.clone(),
+                        partition_id: create.partition_id(),
+                        kind_id: create.kind_id(),
+                        client_key: create.client_key().clone(),
                     }),
-                    create.kind_id,
+                    create.kind_id(),
                 );
             }
         }
@@ -104,12 +104,12 @@ impl RuntimeTopologyGraph {
             .iter()
             .map(|update| {
                 (
-                    update.relation_id,
+                    update.relation_id(),
                     RuntimeRelationRecord {
-                        relation_id: Some(update.relation_id),
-                        kind_id: update.kind_id,
-                        source: runtime_entity_reference(&update.source),
-                        target: runtime_entity_reference(&update.target),
+                        relation_id: Some(update.relation_id()),
+                        kind_id: update.kind_id(),
+                        source: runtime_entity_reference(update.source()),
+                        target: runtime_entity_reference(update.target()),
                     },
                 )
             })
@@ -142,20 +142,20 @@ impl RuntimeTopologyGraph {
             if let Some(record) = relations.relation(relation_id) {
                 let updated = planned_relation_endpoint_updates
                     .iter()
-                    .find(|update| update.relation_id == relation_id);
+                    .find(|update| update.relation_id() == relation_id);
                 push_runtime_relation(
                     &mut outgoing_by_entity,
                     &mut incoming_by_entity,
                     RuntimeRelationRecord {
                         relation_id: Some(relation_id),
-                        kind_id: updated.map_or(record.kind_id, |update| update.kind_id),
+                        kind_id: updated.map_or(record.kind_id, |update| update.kind_id()),
                         source: updated.map_or_else(
                             || RuntimeEntityRef::Existing(record.source),
-                            |update| runtime_entity_reference(&update.source),
+                            |update| runtime_entity_reference(update.source()),
                         ),
                         target: updated.map_or_else(
                             || RuntimeEntityRef::Existing(record.target),
-                            |update| runtime_entity_reference(&update.target),
+                            |update| runtime_entity_reference(update.target()),
                         ),
                     },
                 );
@@ -168,9 +168,9 @@ impl RuntimeTopologyGraph {
                 &mut incoming_by_entity,
                 RuntimeRelationRecord {
                     relation_id: None,
-                    kind_id: relation.kind_id,
-                    source: runtime_entity_reference(&relation.source),
-                    target: runtime_entity_reference(&relation.target),
+                    kind_id: relation.kind_id(),
+                    source: runtime_entity_reference(relation.source()),
+                    target: runtime_entity_reference(relation.target()),
                 },
             );
         }

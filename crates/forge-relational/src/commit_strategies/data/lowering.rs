@@ -75,8 +75,8 @@ pub struct StrategyLoweringSummary {
     cross_partition_relation_count: usize,
     normalized_client_key_count: usize,
     lineage_transition_count: usize,
-    entity_record_reads: usize,
-    relation_record_reads: usize,
+    projected_entity_record_reads: usize,
+    projected_relation_record_reads: usize,
     projected_partition_reads: usize,
 }
 
@@ -88,8 +88,8 @@ impl StrategyLoweringSummary {
         cross_partition_relation_count: usize,
         normalized_client_key_count: usize,
         lineage_transition_count: usize,
-        entity_record_reads: usize,
-        relation_record_reads: usize,
+        projected_entity_record_reads: usize,
+        projected_relation_record_reads: usize,
         projected_partition_reads: usize,
     ) -> Self {
         Self {
@@ -99,8 +99,8 @@ impl StrategyLoweringSummary {
             cross_partition_relation_count,
             normalized_client_key_count,
             lineage_transition_count,
-            entity_record_reads,
-            relation_record_reads,
+            projected_entity_record_reads,
+            projected_relation_record_reads,
             projected_partition_reads,
         }
     }
@@ -129,12 +129,12 @@ impl StrategyLoweringSummary {
         self.lineage_transition_count
     }
 
-    pub fn entity_record_reads(&self) -> usize {
-        self.entity_record_reads
+    pub fn projected_entity_record_reads(&self) -> usize {
+        self.projected_entity_record_reads
     }
 
-    pub fn relation_record_reads(&self) -> usize {
-        self.relation_record_reads
+    pub fn projected_relation_record_reads(&self) -> usize {
+        self.projected_relation_record_reads
     }
 
     pub fn projected_partition_reads(&self) -> usize {

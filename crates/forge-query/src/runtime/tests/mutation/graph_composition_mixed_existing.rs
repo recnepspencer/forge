@@ -149,11 +149,11 @@ fn compose_graph_supports_mixed_symbolic_create_and_existing_target_lifecycle() 
     assert_eq!(task_rows.len(), 1);
     assert_eq!(relation_rows.len(), 1);
     assert_eq!(
-        relation_rows[0].payload["identity"]["id"].as_str(),
+        relation_rows[0].external_row()["identity"]["id"].as_str(),
         Some("rel-update")
     );
     assert_eq!(
-        relation_rows[0].payload["status"]["value"].as_str(),
+        relation_rows[0].external_row()["status"]["value"].as_str(),
         Some("closed")
     );
 

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use forge_foundational::facade::AspectKey;
 use sha2::{Digest, Sha256};
 
 use crate::diagnostics::BridgeRouteRecord;
@@ -16,7 +17,7 @@ use super::BridgeContinuityAuthorityBasis;
 pub struct PriorSubscriptionSlice {
     prior_subscription_slice_identity: BridgeSubscriptionSliceIdentity,
     entity_identity: Arc<str>,
-    aspect_label: Arc<str>,
+    aspect_key: AspectKey,
     surface_label: Arc<str>,
     slice_kind: SubscriptionSliceKind,
     match_status: FineGrainedMatchStatus,
@@ -26,7 +27,7 @@ impl PriorSubscriptionSlice {
     pub fn from_parts(
         prior_subscription_slice_identity: BridgeSubscriptionSliceIdentity,
         entity_identity: impl Into<Arc<str>>,
-        aspect_label: impl Into<Arc<str>>,
+        aspect_key: AspectKey,
         surface_label: impl Into<Arc<str>>,
         slice_kind: SubscriptionSliceKind,
         match_status: FineGrainedMatchStatus,
@@ -34,7 +35,7 @@ impl PriorSubscriptionSlice {
         Self {
             prior_subscription_slice_identity,
             entity_identity: entity_identity.into(),
-            aspect_label: aspect_label.into(),
+            aspect_key,
             surface_label: surface_label.into(),
             slice_kind,
             match_status,
@@ -48,7 +49,7 @@ impl PriorSubscriptionSlice {
         Self::from_parts(
             prior_subscription_slice_identity,
             slice.entity_identity(),
-            slice.aspect_label(),
+            slice.aspect_key().clone(),
             slice.surface_label(),
             slice.slice_kind().clone(),
             slice.match_status(),
@@ -64,7 +65,11 @@ impl PriorSubscriptionSlice {
     }
 
     pub fn aspect_label(&self) -> &str {
-        self.aspect_label.as_ref()
+        self.aspect_key.as_str()
+    }
+
+    pub fn aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
     }
 
     pub fn surface_label(&self) -> &str {

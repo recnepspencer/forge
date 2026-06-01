@@ -50,8 +50,7 @@ impl InvariantPlanContract {
                     .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence))
                     .union(InvariantGroupSet::of(InvariantGroup::VersionVisibility))
             }
-            MutationIntent::Entity(EntityMutationIntent::Update(_))
-            | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {
+            MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {
                 InvariantGroupSet::of(InvariantGroup::IdentityCoherence)
                     .union(InvariantGroupSet::of(InvariantGroup::SchemaCompliance))
             }
@@ -104,23 +103,22 @@ impl InvariantPlanContract {
 mod tests {
     use super::InvariantPlanContract;
     use crate::identity::data::{EntityId, Generation, KindId, LocalSlot, PartitionId};
-    use crate::payloads::data::RecordPayload;
-    use crate::symbols::data::InternedString;
+    use crate::symbols::data::ClientKey;
     use crate::transactions::data::{
         BulkEntityCreateIntent, CreateIntent, DeleteEntityIntent, EntityMutationIntent, EntitySpec,
         MergedCommitPlan, MutationIntent, ReplaceEntityIntent, TransactionId,
     };
 
     #[test]
-    fn contract_marks_entity_create_as_entity_payload_and_uniqueness_sensitive() {
+    fn contract_marks_entity_create_as_aspect_patch_and_uniqueness_sensitive() {
         let plan = MergedCommitPlan {
             transaction_id: TransactionId(1),
             merged_intents: vec![MutationIntent::Create(CreateIntent::BulkEntities(
                 BulkEntityCreateIntent {
                     partition_id: PartitionId(7),
                     kind_id: KindId(9),
-                    client_keys: vec![InternedString::Raw("a".to_string())],
-                    payloads: vec![RecordPayload::OpaqueBytes(vec![1])],
+                    client_keys: vec![ClientKey::raw("a")],
+                    field_patches: vec![crate::transactions::data::AspectFieldPatch::default()],
                 },
             ))],
         };
@@ -133,7 +131,7 @@ mod tests {
     }
 
     #[test]
-    fn contract_marks_entity_delete_without_payload_or_uniqueness_surface() {
+    fn contract_marks_entity_delete_without_field_patch_or_uniqueness_surface() {
         let plan = MergedCommitPlan {
             transaction_id: TransactionId(2),
             merged_intents: vec![MutationIntent::Entity(EntityMutationIntent::Delete(
@@ -162,8 +160,8 @@ mod tests {
                     replacement: EntitySpec {
                         partition_id: PartitionId(1),
                         kind_id: KindId(9),
-                        client_key: InternedString::Raw("replacement".to_string()),
-                        payload: RecordPayload::OpaqueBytes(vec![2]),
+                        client_key: ClientKey::raw("replacement"),
+                        fields: crate::transactions::data::AspectFieldPatch::default(),
                     },
                 },
             ))],
@@ -179,13 +177,13 @@ mod tests {
     }
 
     #[test]
-    fn contract_keeps_entity_update_out_of_snapshot_publication_groups() {
+    fn contract_keeps_entity_field_update_out_of_snapshot_publication_groups() {
         let plan = MergedCommitPlan {
             transaction_id: TransactionId(4),
-            merged_intents: vec![MutationIntent::Entity(EntityMutationIntent::Update(
-                crate::transactions::data::UpdateEntityIntent {
+            merged_intents: vec![MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                crate::transactions::data::UpdateEntityFieldsIntent {
                     entity_id: EntityId::new(PartitionId(1), LocalSlot(0).0, Generation(1).0),
-                    payload: RecordPayload::OpaqueBytes(vec![3]),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
                 },
             ))],
         };

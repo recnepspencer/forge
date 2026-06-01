@@ -1,5 +1,4 @@
 use std::fs;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -9,6 +8,9 @@ use crate::durability::data::{
     DurabilityError, DurableCheckpoint, DurableCheckpointId, DurableIntegrityStatus,
     DurableSegmentId, DurableSegmentManifest, DurableStore, DurableStoreLayout,
     RecoveryFailureClass,
+};
+use crate::durability::log::native_file_codec::{
+    read_segment_file, read_store_manifest_file, write_segment_file, write_store_manifest_file,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -67,7 +69,7 @@ pub(crate) fn load_store_from_disk(
 
 pub(crate) fn persist_store_manifest(store: &DurableStore) -> Result<(), DurabilityError> {
     ensure_store_dirs(&store.layout)?;
-    write_json(
+    write_store_manifest_file(
         &manifest_path(&store.layout),
         &DurableStoreManifestFile {
             store: store.clone(),
@@ -88,7 +90,7 @@ pub(crate) fn current_segment_ids(store: Option<&DurableStore>) -> Vec<DurableSe
 }
 
 pub(crate) fn manifest_path(layout: &DurableStoreLayout) -> PathBuf {
-    layout.root_path.join("manifest.json")
+    layout.root_path.join("manifest.forge-store")
 }
 
 pub(crate) fn segment_file_path(
@@ -98,7 +100,7 @@ pub(crate) fn segment_file_path(
     layout
         .root_path
         .join("segments")
-        .join(format!("segment-{}.json", segment_id.0))
+        .join(format!("segment-{}.forge-segment", segment_id.0))
 }
 
 pub(crate) fn checkpoint_file_path(
@@ -108,7 +110,7 @@ pub(crate) fn checkpoint_file_path(
     layout
         .root_path
         .join("checkpoints")
-        .join(format!("checkpoint-{}.json", checkpoint_id.0))
+        .join(format!("checkpoint-{}.forge-checkpoint", checkpoint_id.0))
 }
 
 pub(crate) fn ensure_store_dirs(layout: &DurableStoreLayout) -> Result<(), DurabilityError> {
@@ -123,16 +125,14 @@ pub(crate) fn load_or_initialize_store(
     ensure_store_dirs(&layout)?;
     let manifest = manifest_path(&layout);
     if manifest.exists() {
-        return refresh_store_segments_from_disk(
-            read_json::<DurableStoreManifestFile>(&manifest)?.store,
-        );
+        return refresh_store_segments_from_disk(read_store_manifest_file(&manifest)?.store);
     }
     let store = DurableStore {
         layout: layout.clone(),
         segments: Vec::new(),
         checkpoints: Vec::new(),
     };
-    write_json(
+    write_store_manifest_file(
         &manifest,
         &DurableStoreManifestFile {
             store: store.clone(),
@@ -149,7 +149,7 @@ fn refresh_store_segments_from_disk(
         .map_err(io_error)?
         .filter_map(|entry| entry.ok())
         .map(|entry| entry.path())
-        .filter(|path| path.extension().is_some_and(|ext| ext == "json"))
+        .filter(|path| path.extension().is_some_and(|ext| ext == "forge-segment"))
         .filter_map(|path| {
             let stem = path.file_stem()?.to_str()?;
             let suffix = stem.strip_prefix("segment-")?;
@@ -209,41 +209,10 @@ fn refresh_store_segments_from_disk(
     Ok(store)
 }
 
-pub(crate) fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T, DurabilityError> {
-    let bytes = fs::read(path).map_err(io_error)?;
-    serde_json::from_slice(&bytes).map_err(|error| {
-        DurabilityError::new(
-            RecoveryFailureClass::CorruptCheckpoint,
-            format!("failed to deserialize {}: {error}", path.display()),
-        )
-    })
-}
-
 pub(crate) fn read_segment_entries(
     path: &Path,
 ) -> Result<Vec<crate::replay::data::CanonicalCommitEnvelope>, DurabilityError> {
-    let bytes = fs::read(path).map_err(io_error)?;
-    if bytes.is_empty() {
-        return Ok(Vec::new());
-    }
-    if let Ok(file) = serde_json::from_slice::<DurableSegmentFile>(&bytes) {
-        return Ok(file.entries);
-    }
-
-    bytes
-        .split(|byte| *byte == b'\n')
-        .filter(|line| !line.is_empty())
-        .map(|line| {
-            serde_json::from_slice::<crate::replay::data::CanonicalCommitEnvelope>(line).map_err(
-                |error| {
-                    DurabilityError::new(
-                        RecoveryFailureClass::CorruptCheckpoint,
-                        format!("failed to deserialize {}: {error}", path.display()),
-                    )
-                },
-            )
-        })
-        .collect()
+    read_segment_file(path).map(|file| file.entries)
 }
 
 pub(crate) fn append_segment_entry(
@@ -259,31 +228,7 @@ pub(crate) fn append_segment_entry(
         Vec::new()
     };
     entries.push(envelope.clone());
-    write_json(path, &DurableSegmentFile { entries })
-}
-
-pub(crate) fn segment_uses_legacy_wrapper(path: &Path) -> Result<bool, DurabilityError> {
-    let mut file = fs::File::open(path).map_err(io_error)?;
-    let mut prefix = [0u8; 128];
-    let bytes_read = file.read(&mut prefix).map_err(io_error)?;
-    let prefix = std::str::from_utf8(&prefix[..bytes_read]).unwrap_or("");
-    Ok(prefix.contains("\"entries\""))
-}
-
-pub(crate) fn write_json<T: Serialize>(path: &Path, value: &T) -> Result<(), DurabilityError> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(io_error)?;
-    }
-    let temp_path = path.with_extension("tmp");
-    let bytes = serde_json::to_vec(value).map_err(|error| {
-        DurabilityError::new(
-            RecoveryFailureClass::DurableIoFailure,
-            format!("failed to serialize {}: {error}", path.display()),
-        )
-    })?;
-    fs::write(&temp_path, bytes).map_err(io_error)?;
-    fs::rename(&temp_path, path).map_err(io_error)?;
-    Ok(())
+    write_segment_file(path, &DurableSegmentFile { entries })
 }
 
 pub(crate) fn io_error(error: std::io::Error) -> DurabilityError {

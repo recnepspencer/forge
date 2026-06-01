@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use forge_foundational::facade::AspectKey;
 use sha2::{Digest, Sha256};
 
 use crate::adapter::BridgeHistoricalLineageTopology;
@@ -203,7 +204,7 @@ fn classify_continuity(
             BridgeContinuityOutcomeClass::ContinuesAsSingleSuccessor,
             vec![successor_slice_from_record_key(
                 successor_record_keys[0],
-                prior_slice.aspect_label(),
+                prior_slice.aspect_key().clone(),
                 prior_slice.surface_label(),
                 prior_slice.slice_kind(),
                 prior_slice.match_status(),
@@ -213,7 +214,7 @@ fn classify_continuity(
             BridgeContinuityOutcomeClass::ContinuesViaTruthLoweredCanonicalMergeSuccessor,
             vec![successor_slice_from_record_key(
                 successor_record_keys[0],
-                prior_slice.aspect_label(),
+                prior_slice.aspect_key().clone(),
                 prior_slice.surface_label(),
                 prior_slice.slice_kind(),
                 prior_slice.match_status(),
@@ -226,7 +227,7 @@ fn classify_continuity(
                 .map(|record_key| {
                     successor_slice_from_record_key(
                         record_key,
-                        prior_slice.aspect_label(),
+                        prior_slice.aspect_key().clone(),
                         prior_slice.surface_label(),
                         prior_slice.slice_kind(),
                         prior_slice.match_status(),
@@ -243,14 +244,14 @@ fn classify_continuity(
 
 fn successor_slice_from_record_key(
     record_key: &str,
-    aspect_label: &str,
+    aspect_key: AspectKey,
     surface_label: &str,
     slice_kind: SubscriptionSliceKind,
     match_status: FineGrainedMatchStatus,
 ) -> BridgeSubscriptionSlice {
     BridgeSubscriptionSlice::new(
         record_key,
-        aspect_label,
+        aspect_key,
         surface_label,
         slice_kind,
         match_status,
@@ -274,13 +275,14 @@ mod tests {
     use crate::continuity::PriorSubscriptionSlice;
     use crate::mapping::SubscriptionSliceKind;
     use crate::routing::{BridgeSubscriptionSliceIdentity, FineGrainedMatchStatus};
+    use forge_foundational::facade::AspectKey;
 
     #[test]
     fn resolution_rejects_no_authoritative_successor_when_lineage_is_empty() {
         let prior_slice = PriorSubscriptionSlice::from_parts(
             BridgeSubscriptionSliceIdentity::new("slice-set:test"),
             "entity:0:1:1",
-            "profile.name",
+            aspect_key("profile.name"),
             "name",
             SubscriptionSliceKind::SignalField,
             FineGrainedMatchStatus::Matched,
@@ -303,7 +305,7 @@ mod tests {
         let prior_slice = PriorSubscriptionSlice::from_parts(
             BridgeSubscriptionSliceIdentity::new("slice-set:test"),
             "entity:0:1:1",
-            "profile.name",
+            aspect_key("profile.name"),
             "name",
             SubscriptionSliceKind::SignalField,
             FineGrainedMatchStatus::Matched,
@@ -326,7 +328,7 @@ mod tests {
         let prior_slice = PriorSubscriptionSlice::from_parts(
             BridgeSubscriptionSliceIdentity::new("slice-set:test"),
             "entity:0:1:1",
-            "profile.name",
+            aspect_key("profile.name"),
             "name",
             SubscriptionSliceKind::SignalField,
             FineGrainedMatchStatus::Matched,
@@ -349,7 +351,7 @@ mod tests {
         let prior_slice = PriorSubscriptionSlice::from_parts(
             BridgeSubscriptionSliceIdentity::new("slice-set:test"),
             "entity:0:1:1",
-            "profile.name",
+            aspect_key("profile.name"),
             "name",
             SubscriptionSliceKind::SignalField,
             FineGrainedMatchStatus::Matched,
@@ -365,5 +367,9 @@ mod tests {
             crate::continuity::BridgeContinuityOutcomeClass::RejectedAmbiguousSuccessor
         );
         assert!(successor_slices.is_empty());
+    }
+
+    fn aspect_key(value: &str) -> AspectKey {
+        AspectKey::new(value).expect("valid continuity test aspect key")
     }
 }

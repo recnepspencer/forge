@@ -2,18 +2,19 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::{EntityId, RelationId};
-use forge_relational::facade::payloads::RecordPayload;
 use forge_relational::facade::runtime::RelationalRuntime;
-use forge_relational::facade::symbols::InternedString;
+use forge_relational::facade::symbols::ClientKey;
 use forge_relational::facade::transactions::{
     CreateIntent, CreatedEntityRef, DeleteEntityIntent, DeleteRelationIntent,
     EntityReference as RelationalEntityReference, EntitySpec, MutationIntent,
     RelationMutationIntent, RelationSpec, TransactionCommitError,
 };
-use serde_json::json;
 
 use crate::data::aspects::{
     Aspect, DiagnosticsAspect, GeometryAspect, NamingAspect, TopologyAspect,
+};
+use crate::data::authority::aspect_field_patches::{
+    entity_create_fields, entity_record_label, relation_create_fields,
 };
 use crate::data::authority::{
     CreateKey, DerivedTopologyReadBasis, EntityReference, PersistedTopologyTruth,
@@ -200,7 +201,7 @@ impl<'a> TopologyAuthority<'a> {
                         CreatedEntityRef {
                             partition_id: forge_relational::facade::identity::PartitionId::main(),
                             kind_id: kind.kind_id(),
-                            client_key: InternedString::Raw(create_key.as_str().to_string()),
+                            client_key: ClientKey::raw(create_key.as_str()),
                         },
                     );
                 }
@@ -222,11 +223,8 @@ impl<'a> TopologyAuthority<'a> {
                     lowered.push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
                         partition_id: forge_relational::facade::identity::PartitionId::main(),
                         kind_id: kind.kind_id(),
-                        client_key: InternedString::Raw(create_key.as_str().to_string()),
-                        payload: RecordPayload::StructuredJson(entity_create_payload(
-                            *kind,
-                            create_key.as_str(),
-                        )),
+                        client_key: ClientKey::raw(create_key.as_str()),
+                        fields: entity_create_fields(*kind, create_key.as_str()),
                     })));
                 }
                 TopologyMutation::CreateRelation {
@@ -239,10 +237,10 @@ impl<'a> TopologyAuthority<'a> {
                         RelationSpec {
                             partition_id: forge_relational::facade::identity::PartitionId::main(),
                             kind_id: kind.kind_id(),
-                            client_key: InternedString::Raw(create_key.as_str().to_string()),
+                            client_key: ClientKey::raw(create_key.as_str()),
                             source: resolve_entity_reference(source, &created_entities)?,
                             target: resolve_entity_reference(target, &created_entities)?,
-                            payload: None,
+                            fields: relation_create_fields(),
                         },
                     )));
                 }
@@ -347,40 +345,6 @@ fn integrity_markers_for_verified_commit(commit: &VerifiedTopologyCommit) -> Int
             .precision_budget_fallbacks
             .len(),
     )
-}
-
-fn entity_create_payload(kind: EntityKind, label: &str) -> serde_json::Value {
-    match kind {
-        EntityKind::Topology(_) => json!({
-            "label": label,
-            "structure": label,
-            "topology": {
-                "structure": label,
-            }
-        }),
-        EntityKind::Geometry(_) => json!({
-            "label": label,
-            "binding": label,
-            "geometry": {
-                "binding": label,
-            }
-        }),
-        EntityKind::Naming(_) => json!({
-            "label": label,
-            "persistent_name": label,
-            "naming": {
-                "persistent_name": label,
-            }
-        }),
-        EntityKind::Diagnostics(DiagnosticsEntityKind::WireInterpretation)
-        | EntityKind::Diagnostics(DiagnosticsEntityKind::ShellInterpretation) => json!({
-            "label": label,
-            "interpretations": label,
-            "diagnostics": {
-                "interpretations": label,
-            }
-        }),
-    }
 }
 
 fn mutation_set_transaction_label(origin: crate::data::authority::MutationOrigin) -> &'static str {
@@ -499,11 +463,8 @@ fn live_entity_label_exists(
     label: &str,
 ) -> bool {
     read.entities().iter().any(|record| {
-        record
-            .payload
-            .as_json()
-            .and_then(|json| json.get("label"))
-            .and_then(|value| value.as_str())
+        EntityKind::from_kind_id(record.kind.kind_id)
+            .and_then(|kind| entity_record_label(record, kind))
             .is_some_and(|existing| existing == label)
     })
 }
@@ -707,11 +668,8 @@ mod tests {
             read.entities()
                 .iter()
                 .filter(|record| {
-                    record
-                        .payload
-                        .as_json()
-                        .and_then(|json| json.get("label"))
-                        .and_then(|value| value.as_str())
+                    EntityKind::from_kind_id(record.kind.kind_id)
+                        .and_then(|kind| entity_record_label(record, kind))
                         .is_some_and(|label| label.starts_with("create."))
                 })
                 .count(),
@@ -950,11 +908,8 @@ mod tests {
             "authority-create-after-seed.added_vertex",
         ] {
             assert!(read.entities().iter().any(|record| {
-                record
-                    .payload
-                    .as_json()
-                    .and_then(|json| json.get("label"))
-                    .and_then(|value| value.as_str())
+                EntityKind::from_kind_id(record.kind.kind_id)
+                    .and_then(|kind| entity_record_label(record, kind))
                     .is_some_and(|entity_label| entity_label == label)
             }));
         }

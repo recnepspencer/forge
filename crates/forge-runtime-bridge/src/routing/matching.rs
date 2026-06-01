@@ -105,6 +105,8 @@ pub(crate) fn classify_truth_delta_surface(
 
 #[cfg(test)]
 mod tests {
+    use forge_foundational::facade::AspectKey;
+
     use crate::mapping::{
         BridgeAspectRegistration, BridgeAspectRegistrationId, FrozenAspectMappingRegistry,
         MappingSelector, SliceFallbackPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind,
@@ -122,7 +124,7 @@ mod tests {
     fn classify_surface_as_suppressed_when_no_registration_matches() {
         let surface = TruthDeltaSurface::new(
             "user",
-            "profile",
+            aspect_key("profile"),
             "name",
             TruthDeltaSurfaceKind::EntityField,
         );
@@ -141,7 +143,7 @@ mod tests {
     fn classify_surface_as_matched_when_direct_registration_exists() {
         let surface = TruthDeltaSurface::new(
             "user",
-            "profile",
+            aspect_key("profile"),
             "name",
             TruthDeltaSurfaceKind::EntityField,
         );
@@ -170,7 +172,7 @@ mod tests {
     fn classify_surface_as_fallback_when_registration_admits_widening() {
         let surface = TruthDeltaSurface::new(
             "user",
-            "profile",
+            aspect_key("profile"),
             "name",
             TruthDeltaSurfaceKind::EntityField,
         );
@@ -196,5 +198,9 @@ mod tests {
             classification.subscription_slice_kind(),
             Some(&SubscriptionSliceKind::RegisteredCoarseFallback)
         );
+    }
+
+    fn aspect_key(value: &str) -> AspectKey {
+        AspectKey::new(value).expect("valid truth delta surface aspect key")
     }
 }

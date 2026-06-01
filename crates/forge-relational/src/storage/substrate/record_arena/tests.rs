@@ -1,11 +1,10 @@
 #[cfg(test)]
 mod tests {
     use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
-    use crate::payloads::data::RecordPayload;
     use crate::storage::data::RecordLifecycleState;
     use crate::symbols::data::Symbol;
 
-    use super::super::{EntityArena, EntityExtra, RelationArena, RelationEndpoints};
+    use super::super::{EntityArena, EntityExtra, RelationArena, RelationEndpoints, RelationExtra};
 
     #[test]
     fn reusing_entity_slot_clears_entity_sidecars_and_increments_generation() {
@@ -13,12 +12,10 @@ mod tests {
         let partition_id = PartitionId(7);
         let version_one = VersionId(1);
         let version_two = VersionId(2);
-        let payload = RecordPayload::OpaqueBytes(vec![1, 2, 3]);
 
         let (slot, generation, _) = arena.push_slot(super::super::SlotInit {
             partition_id,
             kind_id: KindId(11),
-            payload: Some(payload.clone()),
             version_id: version_one,
             extra: EntityExtra::default(),
         });
@@ -29,6 +26,7 @@ mod tests {
                 value: 42,
             }),
             lineage_id: Some(crate::identity::data::LineageId(12)),
+            authoritative_aspect_state: None,
         };
         arena.retire(slot, version_two);
         arena.lifecycle[slot] = RecordLifecycleState::Reusable;
@@ -37,7 +35,6 @@ mod tests {
         let (_, reused_generation, reused) = arena.push_slot(super::super::SlotInit {
             partition_id,
             kind_id: KindId(12),
-            payload: Some(payload),
             version_id: VersionId(3),
             extra: EntityExtra::default(),
         });
@@ -45,6 +42,7 @@ mod tests {
         assert_eq!(reused_generation, 2);
         assert!(arena.extra[slot].structural_fingerprint.is_none());
         assert!(arena.extra[slot].lineage_id.is_none());
+        assert!(arena.extra[slot].authoritative_aspect_state.is_none());
     }
 
     #[test]
@@ -63,9 +61,11 @@ mod tests {
         let (slot, generation, _) = arena.push_slot(super::super::SlotInit {
             partition_id,
             kind_id: KindId(21),
-            payload: Some(RecordPayload::OpaqueBytes(vec![9])),
             version_id: VersionId(1),
-            extra: Some(first),
+            extra: RelationExtra {
+                endpoints: Some(first),
+                authoritative_aspect_state: None,
+            },
         });
         assert_eq!(generation, 1);
         arena.retire(slot, VersionId(2));
@@ -75,13 +75,16 @@ mod tests {
         let (_, reused_generation, reused) = arena.push_slot(super::super::SlotInit {
             partition_id,
             kind_id: KindId(22),
-            payload: None,
             version_id: VersionId(3),
-            extra: Some(second.clone()),
+            extra: RelationExtra {
+                endpoints: Some(second.clone()),
+                authoritative_aspect_state: None,
+            },
         });
         assert!(reused);
         assert_eq!(reused_generation, 2);
-        assert_eq!(arena.extra[slot], Some(second));
+        assert_eq!(arena.extra[slot].endpoints, Some(second));
+        assert!(arena.extra[slot].authoritative_aspect_state.is_none());
     }
 
     #[test]
@@ -92,12 +95,14 @@ mod tests {
         let (slot, generation, _) = arena.push_slot(super::super::SlotInit {
             partition_id,
             kind_id: KindId(21),
-            payload: Some(RecordPayload::OpaqueBytes(vec![9])),
             version_id: VersionId(1),
-            extra: Some(RelationEndpoints {
-                source: EntityId::new(partition_id, 1, 1),
-                target: EntityId::new(partition_id, 2, 1),
-            }),
+            extra: RelationExtra {
+                endpoints: Some(RelationEndpoints {
+                    source: EntityId::new(partition_id, 1, 1),
+                    target: EntityId::new(partition_id, 2, 1),
+                }),
+                authoritative_aspect_state: None,
+            },
         });
 
         let wrong_partition_id = RelationId::new(other_partition_id, slot as u64, generation);

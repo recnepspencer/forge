@@ -3,7 +3,14 @@ mod projection;
 mod reader;
 mod visibility;
 
-pub use projection::{EntityRecordProjection, RelationRecordProjection, VisibilityProjectionView};
+pub(crate) use projection::{
+    entity_query_locus_comparison_key, relation_query_locus_comparison_key,
+};
+pub use projection::{
+    EntityProjectionRecord, EntityRecordProjection, ProjectionAspectFilter,
+    ProjectionAspectFilterMode, ProjectionAspectRequirement, ProjectionAspectScope,
+    RelationProjectionRecord, RelationRecordProjection, VisibilityProjectionView,
+};
 pub use reader::VisibilityReadContext;
 
 use crate::logic::runtime::RelationalRuntime;

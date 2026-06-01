@@ -26,14 +26,25 @@ Common path:
 - `aspects().vocabulary().field_path(...)`
 - `AspectLocator::new(...)`
 - `AspectFieldLocator::new(...)`
+- `AspectFieldLocator::from_aspect(...)`
 - `AspectValueLocator`
+- `AspectValueLocator::whole_aspect(...)`
+- `AspectValueLocator::struct_field(...)`
 - `AspectContractLocator::new(...)`
 - `AspectMaskLocator::projection(...)`
 - `AspectMaskLocator::mutation(...)`
 - `AspectMaskLocator::diagnostic(...)`
+- `BoundarySourceLocator::aspect(...)`
+- `BoundarySourceLocator::aspect_field(...)`
+- `BoundarySourceLocator::boundary_artifact(...)`
+- `BoundaryMismatchLocator::aspect(...)`
+- `BoundaryMismatchLocator::aspect_field(...)`
+- `BoundaryMismatchLocator::boundary_artifact(...)`
 - `BoundaryArtifactLocator`
 - `BoundarySourceLocator`
 - `BoundaryMismatchLocator`
+- canonical basis preparation for value and boundary locators through the named
+  locator-specific canonicalization basis entry points
 
 Lower lane:
 
@@ -55,6 +66,9 @@ Good to know:
 
 - ids and locators are part of Milestone 1 meaning, not helper clutter.
 - field paths are shared between struct law, masks, patches, and locators.
+- `aspects().vocabulary().field_path(...)` is the single-field common path for
+  Milestone 1 struct targeting; broader canonical field paths remain lower-lane
+  locator vocabulary.
 
 ## Core Mental Model
 
@@ -72,6 +86,7 @@ Milestone 1 also keeps several locator families distinct on purpose:
 - mask locators for projection, mutation, or diagnostic scope
 - boundary source locators for where external input came from
 - boundary mismatch locators for where parity or admission failed
+- value locators for whole-aspect versus struct-field semantic value addressing
 
 ## How It Executes
 
@@ -84,6 +99,12 @@ The normal flow is:
    needs blind-consumer-readable addressing
 5. pass those locators and ids into compatibility, canonicalization, support,
    or later milestone surfaces
+
+For locator work, this means there are two honest levels of field-path surface:
+
+- common-path `field_path(...)` for one declared struct field
+- lower-lane `CanonicalFieldPath::new(...)` when a locator or canonical basis
+  lane needs a broader typed path vocabulary
 
 ## Small Example
 
@@ -111,9 +132,10 @@ let aspect = AspectLocator::new(
 );
 let path = vocabulary.field_path(["label"])?;
 
-let field_locator = AspectFieldLocator::new(aspect.clone(), path.clone());
+let field_locator = AspectFieldLocator::from_aspect(aspect.clone(), path.clone());
+let mask = aspects().diagnostic_mask().fields(["label"])?;
 let diagnostic_mask_locator =
-    AspectMaskLocator::diagnostic(aspect.aspect_key().clone(), vec![path]);
+    AspectMaskLocator::diagnostic(aspect.authority(), aspect.aspect_key().clone(), &mask);
 
 assert_eq!(field_locator.aspect(), &aspect);
 assert_eq!(diagnostic_mask_locator.aspect_key(), aspect.aspect_key());

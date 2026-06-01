@@ -1,9 +1,12 @@
 pub use crate::artifact::{AttachmentKind, AttachmentRecord, BlobDescriptor};
 pub use crate::capture::{
-    BinaryValue, DiagnosticsLevel, DiagnosticsRecord, EventCategory, EventRecord,
-    EventStreamRecord, ExecutionMode, ExplanationRecord, ObservationStatus, ProvenanceRecord,
-    RecordSchemaVersion, RunOutcome, RunRecord, RunStatus, ScenarioRecord, SnapshotObservation,
-    SnapshotPayload, SnapshotRecord, StructuredValue, TargetStatusRecord,
+    emit_external_record_line, engineering_external_record_lines_path, read_external_record_lines,
+    record_summary_from_serializable, record_summary_into_deserializable, BinaryValue,
+    DiagnosticsLevel, DiagnosticsRecord, EventCategory, EventRecord, EventStreamRecord,
+    ExecutionMode, ExplanationRecord, HarnessRecordSummaryValue, HarnessRecordSummaryView,
+    HarnessSummaryProjection, ObservationStatus, ProvenanceRecord, RecordSchemaVersion, RunOutcome,
+    RunRecord, RunStatus, ScenarioRecord, SnapshotObservation, SnapshotPayload, SnapshotRecord,
+    StructuredValue, TargetStatusRecord,
 };
 pub use crate::comparison::{
     compare_run_records, compare_snapshot_records, numbers_within_tolerance, ComparisonMismatch,

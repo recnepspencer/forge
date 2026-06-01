@@ -22,7 +22,9 @@
 #![forbid(unsafe_code)]
 #![deny(unreachable_patterns)]
 
+mod aspect_wire;
 mod authority;
+mod canonical_basis_ready_sequence;
 mod capabilities;
 mod commit_strategies;
 mod config;
@@ -37,7 +39,6 @@ mod inspection;
 mod lineage;
 mod logic;
 mod merge;
-mod payloads;
 mod performance;
 mod presentation;
 mod publication;

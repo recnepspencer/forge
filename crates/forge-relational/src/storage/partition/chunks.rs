@@ -64,7 +64,7 @@ pub(crate) fn plan_read_explicit_query_packet(
         match target {
             RecordRef::Entity(entity_id) => {
                 let chunk_index = slot_chunk_index(
-                    entity_id.local_slot.0 as usize,
+                    entity_id.slot_index(),
                     runtime.config.storage.layout.entity_chunk_size,
                 );
                 if !entity_chunk_indexes.contains(&chunk_index) {
@@ -73,7 +73,7 @@ pub(crate) fn plan_read_explicit_query_packet(
             }
             RecordRef::Relation(relation_id) => {
                 let chunk_index = slot_chunk_index(
-                    relation_id.local_slot.0 as usize,
+                    relation_id.slot_index(),
                     runtime.config.storage.layout.relation_chunk_size,
                 );
                 if !relation_chunk_indexes.contains(&chunk_index) {

@@ -63,6 +63,14 @@ The normal flow is:
 3. finish the patch and inspect any construction denial
 4. apply the patch to authoritative state through the state front door
 
+Field-level construction is intentionally stricter than the generic whole-aspect
+lane:
+
+- an empty `AuthoritativeRecordAspectPatch::empty()` is still the canonical
+  whole-patch no-op surface
+- a field-level patch request with no admitted sets and no admitted clears is
+  denied, because it does not express any mutation under field-mask law
+
 ## Small Example
 
 ```rust
@@ -137,6 +145,8 @@ suspecting state corruption.
 - Do not treat whole-aspect and field-level patches as the same operation with
   optional flags.
 - Do not bypass mutation-mask law for field-level updates.
+- Do not build empty field-level patch requests and expect them to stand in for
+  a no-op whole patch.
 - Do not treat patch construction as if it automatically applied the change.
 
 ## Current Limits

@@ -1,13 +1,15 @@
 use crate::facade::identity::EntityId;
-use crate::facade::runtime::{RelationReadRecord, RelationRecordProjection};
+use crate::facade::runtime::{
+    ProjectionAspectScope, RelationProjectionRecord, RelationRecordProjection,
+};
 use crate::tests::support::*;
 use std::sync::OnceLock;
 
-fn relation_label_aspects() -> &'static [AspectKey] {
+fn relation_label_aspects() -> Vec<AspectKey> {
     static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();
     ASPECTS
-        .get_or_init(|| vec![AspectKey(InternedString::Raw("label".to_string()))])
-        .as_slice()
+        .get_or_init(|| vec![AspectKey::new("label").unwrap()])
+        .clone()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,15 +22,15 @@ struct EdgeProjection {
 impl RelationRecordProjection for EdgeProjection {
     const KIND: KindId = KindId(2);
 
-    fn required_aspects() -> &'static [AspectKey] {
-        relation_label_aspects()
+    fn projection_scope() -> ProjectionAspectScope {
+        ProjectionAspectScope::whole_aspects(relation_label_aspects())
     }
 
-    fn from_record(record: &RelationReadRecord) -> Option<Self> {
+    fn from_record(record: RelationProjectionRecord<'_>) -> Option<Self> {
         Some(Self {
-            relation_id: record.relation_id,
-            source: record.source,
-            target: record.target,
+            relation_id: record.relation_id(),
+            source: record.source(),
+            target: record.target(),
         })
     }
 }
@@ -106,7 +108,40 @@ fn relation_kind_scans_are_deterministic_across_equivalent_insert_order() {
 }
 
 #[test]
-fn relation_aspects_at_version_follow_declared_contract_not_payload_shape() {
+fn all_authoritative_relation_records_use_canonical_relation_order_not_creation_order() {
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let left = create_entity(&mut runtime, "left");
+    let middle = create_entity(&mut runtime, "middle");
+    let right = create_entity(&mut runtime, "right");
+    let _earlier_created_but_canonically_second =
+        create_relation(&mut runtime, middle, right, "middle-right");
+    let _later_created_but_canonically_first =
+        create_relation(&mut runtime, left, middle, "left-middle");
+
+    let projected = runtime
+        .read_truth()
+        .project_version(runtime.current_version_id())
+        .relations::<EdgeProjection>();
+    let all_records = runtime
+        .read_truth()
+        .project_version(runtime.current_version_id())
+        .all_authoritative_relation_records();
+
+    assert_eq!(
+        all_records
+            .iter()
+            .map(|record| (record.source.local_slot.0, record.target.local_slot.0))
+            .collect::<Vec<_>>(),
+        projected
+            .iter()
+            .map(|record| (record.source.local_slot.0, record.target.local_slot.0))
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn relation_aspects_at_version_follow_declared_contract_shape() {
     let mut runtime =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let left = create_entity(&mut runtime, "left");
@@ -122,10 +157,10 @@ fn relation_aspects_at_version_follow_declared_contract_not_payload_shape() {
     assert_eq!(
         aspects,
         vec![
-            AspectKey(InternedString::Raw("label".to_string())),
-            AspectKey(InternedString::Raw("lifecycle".to_string())),
-            AspectKey(InternedString::Raw("source".to_string())),
-            AspectKey(InternedString::Raw("target".to_string())),
+            AspectKey::new("label").unwrap(),
+            AspectKey::new("lifecycle").unwrap(),
+            AspectKey::new("source").unwrap(),
+            AspectKey::new("target").unwrap(),
         ]
     );
 }

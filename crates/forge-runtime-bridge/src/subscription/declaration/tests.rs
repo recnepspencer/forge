@@ -214,3 +214,33 @@ fn slice_intent_rejects_empty_identity_bearing_fields() {
         NormalizedSubscriptionSliceIntentErrorKind::EmptyEntityIdentity
     );
 }
+
+#[test]
+fn slice_intent_rejects_invalid_aspect_key_before_routing() {
+    let error = NormalizedSubscriptionSliceIntent::try_new(
+        "entity-1",
+        "not a canonical aspect key",
+        "name",
+        SubscriptionSliceKind::SignalField,
+    )
+    .expect_err("subscription intent should reject non-foundational aspect keys");
+
+    assert_eq!(
+        error.kind(),
+        NormalizedSubscriptionSliceIntentErrorKind::InvalidAspectKey
+    );
+}
+
+#[test]
+fn slice_intent_exposes_foundational_aspect_key() {
+    let intent = NormalizedSubscriptionSliceIntent::try_new(
+        "entity-1",
+        "profile.name",
+        "name",
+        SubscriptionSliceKind::SignalField,
+    )
+    .expect("valid aspect key should admit");
+
+    assert_eq!(intent.aspect_key().as_str(), "profile.name");
+    assert_eq!(intent.aspect_label(), "profile.name");
+}

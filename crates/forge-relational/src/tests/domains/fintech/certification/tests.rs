@@ -53,11 +53,8 @@ fn workflow_certification_runner_proves_relational_fintech_analysis_baseline() {
         })
         .unwrap();
     assert_eq!(
-        budget
-            .payload
-            .get("all_passed")
-            .and_then(|value| value.as_bool()),
-        Some(true)
+        budget.metadata.get("budget_all_passed").map(String::as_str),
+        Some("true")
     );
 }
 
@@ -116,14 +113,19 @@ fn workflow_certification_runner_proves_relational_fintech_intraday_risk() {
         .session_data
         .named_replays
         .contains_key("analysis_intraday_replay"));
-    assert!(report.session.artifacts.iter().any(|artifact| {
-        artifact.surface == ArtifactSurface::ReplayRecoveryTruthState
-            && artifact
-                .payload
-                .get("analysis_intraday_replay")
-                .and_then(|payload| payload.get("lineage_authority_digest_mode"))
-                .is_some()
-    }));
+    assert!(report
+        .session
+        .artifacts
+        .iter()
+        .any(|artifact| { artifact.surface == ArtifactSurface::ReplayRecoveryTruthState }));
+    assert!(report
+        .session
+        .session_data
+        .named_replays
+        .get("analysis_intraday_replay")
+        .and_then(|replay| replay.lineage_authority_basis.as_ref())
+        .map(|basis| basis.digest_mode())
+        .is_some());
 }
 
 #[test]
@@ -144,12 +146,17 @@ fn workflow_certification_runner_proves_relational_fintech_settlement_repair() {
         .session_data
         .named_replays
         .contains_key("analysis_repair_replay"));
-    assert!(report.session.artifacts.iter().any(|artifact| {
-        artifact.surface == ArtifactSurface::ReplayRecoveryTruthState
-            && artifact
-                .payload
-                .get("analysis_repair_replay")
-                .and_then(|payload| payload.get("lineage_authority_basis_kind"))
-                .is_some()
-    }));
+    assert!(report
+        .session
+        .artifacts
+        .iter()
+        .any(|artifact| { artifact.surface == ArtifactSurface::ReplayRecoveryTruthState }));
+    assert!(report
+        .session
+        .session_data
+        .named_replays
+        .get("analysis_repair_replay")
+        .and_then(|replay| replay.lineage_authority_basis.as_ref())
+        .map(|basis| basis.kind())
+        .is_some());
 }

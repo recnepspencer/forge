@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::publication::patch::data::CanonicalAspectSet;
+use forge_foundational::facade::AspectKey;
 
 use super::RecordRef;
 
@@ -12,7 +12,7 @@ pub struct PatchVsTruthDeltaReport {
     pub mismatched_targets: Vec<RecordRef>,
     pub structural_mismatches: u64,
     pub aspect_mismatches: u64,
-    pub degraded_precision_mismatches: u64,
+    pub opaque_aspect_mismatches: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -20,6 +20,6 @@ pub struct PatchVsTruthDeltaReport {
 pub struct AspectTagAccuracyReport {
     pub records_checked: u64,
     pub correctly_tagged_records: u64,
-    pub touched_aspects: CanonicalAspectSet,
-    pub degraded_precision_record_count: u64,
+    pub touched_aspects: Vec<AspectKey>,
+    pub opaque_aspect_record_count: u64,
 }

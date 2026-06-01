@@ -1,9 +1,8 @@
 #[cfg(test)]
 mod validator_tests {
     use forge_relational::facade::identity::PartitionId;
-    use forge_relational::facade::payloads::RecordPayload;
     use forge_relational::facade::runtime::RelationalRuntimeApi;
-    use forge_relational::facade::symbols::InternedString;
+    use forge_relational::facade::symbols::ClientKey;
     use forge_relational::facade::transactions::{CreateIntent, EntitySpec, MutationIntent};
     use schema::facade::bootstrap_schema_registry;
     use schema::facade::topology_authoring::{commit_topology_mutation_set, seed_minimal_topology};
@@ -13,6 +12,7 @@ mod validator_tests {
         validate_interpreted_topology, validate_named_topology_truth, validate_topology_view,
         TopologyMaterializer,
     };
+    use crate::relational_aspect_boundary::topology_entity_create_fields;
     use crate::test_support::hostile_neighborhoods::validation_neighborhoods::{
         base_seeded_view, closed_shell_view, connected_wire_branch_view, edge, entity, half_edge,
         half_edge_with_links, open_sheet_patch_view, open_shell_nmt_fan_view, open_wire_chain_view,
@@ -70,10 +70,13 @@ mod validator_tests {
                     schema::facade::platform::entities::TopologyEntityKind::Vertex,
                 )
                 .kind_id(),
-                client_key: InternedString::Raw("missing-name.vertex".to_string()),
-                payload: RecordPayload::StructuredJson(serde_json::json!({
-                    "label": "missing-name.vertex"
-                })),
+                client_key: ClientKey::raw("missing-name.vertex"),
+                fields: topology_entity_create_fields(
+                    schema::facade::platform::entities::EntityKind::Topology(
+                        schema::facade::platform::entities::TopologyEntityKind::Vertex,
+                    ),
+                    "missing-name.vertex",
+                ),
             }))],
         )
         .expect("validation mutation set should commit");

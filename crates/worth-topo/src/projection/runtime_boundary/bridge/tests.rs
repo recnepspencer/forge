@@ -163,11 +163,11 @@ fn bridge_trace_anchor_tracks_real_runtime_diagnostics() {
     let anchor = BridgeTraceAnchor::new(
         route_records
             .iter()
-            .map(|record| record.route_identity().as_str().to_string())
+            .map(|record| record.route_identity().to_string())
             .collect(),
         route_records
             .iter()
-            .map(|record| record.invalidation_identity().as_str().to_string())
+            .map(|record| record.invalidation_identity().to_string())
             .collect(),
         route_records
             .iter()
@@ -182,7 +182,7 @@ fn bridge_trace_anchor_tracks_real_runtime_diagnostics() {
             .collect(),
         historical_records
             .iter()
-            .map(|record| record.record_identity().as_str().to_string())
+            .map(|record| record.record_identity().to_string())
             .collect(),
     );
     assert_eq!(anchor.route_identities.len(), 1);

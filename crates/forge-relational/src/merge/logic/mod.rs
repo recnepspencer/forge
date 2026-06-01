@@ -1,12 +1,16 @@
+mod aspect_components;
 mod aspect_plan_lookup;
+mod aspect_witness_digest;
 mod causal;
 mod conflicts;
 mod execution;
 mod execution_diagnostics;
 mod execution_mutation_plan;
 mod identity;
+mod identity_digest;
+mod identity_records;
+mod identity_target_index;
 mod lowering;
-mod naming;
 mod planning;
 mod planning_artifact;
 mod policy;

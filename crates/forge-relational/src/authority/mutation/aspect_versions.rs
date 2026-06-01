@@ -19,16 +19,7 @@ pub(super) fn write_aspect_versions_for_delta(
             let partition = staged.get_partition_mut(partition_of::<EntityRecordKind>(&entity_id));
             let versions = &mut partition.entity_arena.aspect_versions[slot];
             for aspect in delta.changed_aspects.iter() {
-                match &aspect.0 {
-                    crate::symbols::data::InternedString::Raw(raw) => {
-                        versions.insert(symbols.intern(raw), version_id.0);
-                    }
-                    crate::symbols::data::InternedString::Symbol(_) => {
-                        return Err(CanonicalDeltaError::CanonicalAspectKeyRequiresRawString {
-                            aspect_key: aspect.clone(),
-                        });
-                    }
-                }
+                versions.insert(symbols.intern(aspect.as_str()), version_id.0);
             }
         }
         RecordRef::Relation(relation_id) => {
@@ -37,16 +28,7 @@ pub(super) fn write_aspect_versions_for_delta(
                 staged.get_partition_mut(partition_of::<RelationRecordKind>(&relation_id));
             let versions = &mut partition.relation_arena.aspect_versions[slot];
             for aspect in delta.changed_aspects.iter() {
-                match &aspect.0 {
-                    crate::symbols::data::InternedString::Raw(raw) => {
-                        versions.insert(symbols.intern(raw), version_id.0);
-                    }
-                    crate::symbols::data::InternedString::Symbol(_) => {
-                        return Err(CanonicalDeltaError::CanonicalAspectKeyRequiresRawString {
-                            aspect_key: aspect.clone(),
-                        });
-                    }
-                }
+                versions.insert(symbols.intern(aspect.as_str()), version_id.0);
             }
         }
     }
@@ -60,18 +42,17 @@ mod tests {
     use crate::authority::mutation::canonical_deltas::CanonicalRecordAspectDelta;
     use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
     use crate::identity::data::{EntityId, KindId, PartitionId, VersionId};
-    use crate::publication::patch::data::{AspectKey, CanonicalAspectSet, RecordStructuralChange};
-    use crate::schema::data::AspectPlanRevision;
+    use crate::publication::patch::data::{ordered_aspect_keys, RecordStructuralChange};
+    use crate::schema::data::AspectContractPlanRevision;
     use crate::storage::overlay::WorkingState;
     use crate::storage::substrate::{EntityRecordKind, SlotInit};
-    use crate::symbols::data::{InternedString, StringInterner, Symbol};
+    use crate::symbols::data::StringInterner;
     use crate::transactions::data::RecordRef;
+    use forge_foundational::facade::AspectKey;
 
     use super::write_aspect_versions_for_delta;
-    use crate::authority::mutation::canonical_deltas::CanonicalDeltaError;
-
     #[test]
-    fn symbolic_canonical_aspect_keys_fail_closed() {
+    fn foundational_aspect_keys_are_interned_for_version_storage() {
         let mut state = WorkingState::new(
             BTreeMap::new(),
             AdjacencyPolicy {
@@ -86,7 +67,6 @@ mod tests {
                 .push_slot(SlotInit::<EntityRecordKind> {
                     partition_id: PartitionId(1),
                     kind_id: KindId(1),
-                    payload: None,
                     version_id: VersionId(1),
                     extra: Default::default(),
                 });
@@ -95,21 +75,22 @@ mod tests {
         let delta = CanonicalRecordAspectDelta {
             target: RecordRef::Entity(EntityId::new(PartitionId(1), 0, 1)),
             kind_id: KindId(1),
-            plan_revision: AspectPlanRevision(1),
+            plan_revision: AspectContractPlanRevision(1),
             structural_change: RecordStructuralChange::Created,
-            changed_aspects: CanonicalAspectSet::new([AspectKey(InternedString::Symbol(Symbol(
-                9,
-            )))]),
+            changed_aspects: ordered_aspect_keys([AspectKey::new("name").unwrap()]),
             evaluated_bindings: smallvec::SmallVec::new(),
-            contains_degraded_precision: false,
+            contains_opaque_aspect: false,
         };
 
-        let error = write_aspect_versions_for_delta(&mut state, &delta, VersionId(2), &mut symbols)
-            .unwrap_err();
+        write_aspect_versions_for_delta(&mut state, &delta, VersionId(2), &mut symbols)
+            .expect("foundational aspect keys should be interned for version storage");
 
-        assert!(matches!(
-            error,
-            CanonicalDeltaError::CanonicalAspectKeyRequiresRawString { .. }
-        ));
+        let recorded = state
+            .get_partition_mut(PartitionId(1))
+            .entity_arena
+            .aspect_versions_at(0)
+            .expect("entity slot versions");
+        let name_symbol = symbols.intern("name");
+        assert_eq!(recorded.get(&name_symbol), Some(&2));
     }
 }

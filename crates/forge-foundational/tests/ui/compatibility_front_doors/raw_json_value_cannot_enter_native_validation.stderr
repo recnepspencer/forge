@@ -15,11 +15,11 @@ help: the following other types implement trait `From<T>`
    | impl From<StructAspectValue> for ContractValidationInput {
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `ContractValidationInput` implements `From<StructAspectValue>`
    = note: required for `serde_json::Value` to implement `Into<ContractValidationInput>`
-note: required by a bound in `AspectValidationInputStep::<'a>::value`
-  --> src/aspects/front_doors/validation.rs
+note: required by a bound in `forge_foundational::aspects::front_doors::validation::value_admission::<impl AspectValidationInputStep<'a>>::value`
+  --> src/aspects/front_doors/validation/value_admission.rs
    |
    |     pub fn value(
    |            ----- required by a bound in this associated function
    |         self,
    |         input: impl Into<ContractValidationInput>,
-   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `AspectValidationInputStep::<'a>::value`
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `forge_foundational::aspects::front_doors::validation::value_admission::<impl AspectValidationInputStep<'a>>::value`

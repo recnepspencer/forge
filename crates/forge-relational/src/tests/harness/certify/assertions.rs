@@ -1,12 +1,12 @@
 use super::failure_report::{render_multi_subscriber_failure, render_window_matrix_failure};
-use crate::facade::publication::{RelationalPatchRecord, SubscriberCheckpoint};
+use crate::facade::publication::{PublishedAuthoritativePatchEnvelope, SubscriberCheckpoint};
 use crate::tests::harness::model::truth_model::VisibleTruthSummary;
 use crate::tests::harness::observe::subscriber_stream::SubscriberView;
 
 pub(crate) fn assert_window_matrix_matches(
     context: &str,
-    expected: &[RelationalPatchRecord],
-    matrix: &[(usize, Vec<RelationalPatchRecord>)],
+    expected: &[PublishedAuthoritativePatchEnvelope],
+    matrix: &[(usize, Vec<PublishedAuthoritativePatchEnvelope>)],
 ) {
     for (window_size, patches) in matrix {
         assert!(
@@ -20,7 +20,7 @@ pub(crate) fn assert_window_matrix_matches(
 pub(crate) fn assert_multi_subscriber_converges(
     context: &str,
     views: &[SubscriberView],
-    expected_from_head: &[RelationalPatchRecord],
+    expected_from_head: &[PublishedAuthoritativePatchEnvelope],
 ) {
     for view in views {
         let expected = match &view.checkpoint {
@@ -47,9 +47,9 @@ pub(crate) fn assert_visible_truth_matches(
 }
 
 fn suffix_after_checkpoint(
-    patches: &[RelationalPatchRecord],
+    patches: &[PublishedAuthoritativePatchEnvelope],
     checkpoint: &SubscriberCheckpoint,
-) -> Vec<RelationalPatchRecord> {
+) -> Vec<PublishedAuthoritativePatchEnvelope> {
     patches
         .iter()
         .filter(|patch| patch.position.0 > checkpoint.position().0)

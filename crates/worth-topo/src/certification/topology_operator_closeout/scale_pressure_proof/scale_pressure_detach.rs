@@ -171,13 +171,13 @@ fn first_relation_id_for_kind(
     let relation_identity = relation_rows
         .iter()
         .find(|row| relation_kind_label(row) == Some(relation_kind.kind_name()))
-        .map(|row| row.identity.as_str())
+        .map(|row| row.identity())
         .ok_or_else(|| scale_pressure_detach_error("detach pressure relation should resolve"))?;
     relation_id_from_query_identity(relation_identity)
 }
 
 fn relation_kind_label(row: &ForgeQueryEntity) -> Option<&str> {
-    row.payload
+    row.external_row()
         .get("topology")
         .and_then(|value| value.get("kind"))
         .and_then(|value| value.as_str())

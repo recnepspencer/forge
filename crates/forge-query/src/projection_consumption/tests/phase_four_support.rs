@@ -13,10 +13,11 @@ use crate::runtime::{
     ForgeQueryContinuityOutcomeClass, ForgeQueryMutationTargetClass, ForgeQueryReadExecutionEngine,
     ForgeQueryReadReceipt, ForgeQueryReadResult, ForgeQueryWriteReceipt,
 };
+use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_relational::facade::grouped_truth::{
-    materialize_relational_authoritative_row_set, project_relational_grouped_truth,
-    GroupedProjectionContract, RelationalAuthoritativeRowSetArtifact,
-    RelationalGroupedProjectionArtifact,
+    encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
+    project_relational_grouped_truth, GroupedProjectionContract,
+    RelationalAuthoritativeRowSetArtifact, RelationalGroupedProjectionArtifact,
 };
 use forge_runtime_bridge::facade::{
     SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
@@ -96,22 +97,64 @@ pub(super) fn admitted(
 
 pub(super) fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
     let packet = SnapshotReadPacket::new(vec![
-        SnapshotReadRequest::for_coarse("entity-1", "identity.id"),
-        SnapshotReadRequest::for_coarse("entity-1", "status.lane"),
-        SnapshotReadRequest::for_coarse("entity-1", "profile.display_name"),
-        SnapshotReadRequest::for_coarse("entity-2", "identity.id"),
-        SnapshotReadRequest::for_coarse("entity-2", "status.lane"),
-        SnapshotReadRequest::for_coarse("entity-2", "profile.display_name"),
+        SnapshotReadRequest::for_coarse(
+            "entity-1",
+            forge_foundational::facade::AspectKey::new("identity.id")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            "entity-1",
+            forge_foundational::facade::AspectKey::new("status.lane")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            "entity-1",
+            forge_foundational::facade::AspectKey::new("profile.display_name")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            "entity-2",
+            forge_foundational::facade::AspectKey::new("identity.id")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            "entity-2",
+            forge_foundational::facade::AspectKey::new("status.lane")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            "entity-2",
+            forge_foundational::facade::AspectKey::new("profile.display_name")
+                .expect("valid snapshot aspect key"),
+        ),
     ]);
     let result = SnapshotReadPacketResult::new(
         TruthSnapshotIdentity::new("snapshot-a"),
         vec![
-            SnapshotReadRecord::new("entity-1:identity.id", b"task-1".to_vec()),
-            SnapshotReadRecord::new("entity-1:status.lane", b"todo".to_vec()),
-            SnapshotReadRecord::new("entity-1:profile.display_name", b"Task One".to_vec()),
-            SnapshotReadRecord::new("entity-2:identity.id", b"task-2".to_vec()),
-            SnapshotReadRecord::new("entity-2:status.lane", b"doing".to_vec()),
-            SnapshotReadRecord::new("entity-2:profile.display_name", b"Task Two".to_vec()),
+            SnapshotReadRecord::new(
+                "entity-1:identity.id",
+                aspect_bytes(AspectValue::String("task-1".into())),
+            ),
+            SnapshotReadRecord::new(
+                "entity-1:status.lane",
+                aspect_bytes(AspectValue::String("todo".into())),
+            ),
+            SnapshotReadRecord::new(
+                "entity-1:profile.display_name",
+                aspect_bytes(AspectValue::String("Task One".into())),
+            ),
+            SnapshotReadRecord::new(
+                "entity-2:identity.id",
+                aspect_bytes(AspectValue::String("task-2".into())),
+            ),
+            SnapshotReadRecord::new(
+                "entity-2:status.lane",
+                aspect_bytes(AspectValue::String("doing".into())),
+            ),
+            SnapshotReadRecord::new(
+                "entity-2:profile.display_name",
+                aspect_bytes(AspectValue::String("Task Two".into())),
+            ),
         ],
     );
     materialize_relational_authoritative_row_set(&packet, &result).unwrap()
@@ -120,9 +163,29 @@ pub(super) fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
 pub(super) fn relational_grouped_projection() -> RelationalGroupedProjectionArtifact {
     project_relational_grouped_truth(
         &relational_row_set(),
-        GroupedProjectionContract::new("status", "identity.id", "status.lane"),
+        grouped_projection_contract("status", "identity.id", "status.lane"),
     )
     .expect("grouped projection")
+}
+
+fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+    encode_snapshot_aspect_read_value(&value)
+}
+
+fn grouped_projection_contract(
+    grouping_aspect: &str,
+    identity_binding_aspect: &str,
+    grouping_binding_aspect: &str,
+) -> GroupedProjectionContract {
+    GroupedProjectionContract::new(
+        aspect_key(grouping_aspect),
+        aspect_key(identity_binding_aspect),
+        aspect_key(grouping_binding_aspect),
+    )
+}
+
+fn aspect_key(label: &str) -> AspectKey {
+    AspectKey::new(label).expect("test aspect key must be foundational")
 }
 
 pub(super) fn write_receipt() -> ForgeQueryWriteReceipt {
@@ -168,20 +231,20 @@ pub(super) fn write_receipt_without_source_references() -> ForgeQueryWriteReceip
 pub(super) fn read_result() -> ForgeQueryReadResult {
     ForgeQueryReadResult::test_only(
         vec![
-            ForgeQueryEntity {
-                identity: "task-1".to_string(),
-                payload: json!({
+            ForgeQueryEntity::from_external_projection(
+                "task-1",
+                json!({
                     "profile": { "display_name": "Task One" },
                     "metrics": { "priority": 1 }
                 }),
-            },
-            ForgeQueryEntity {
-                identity: "task-2".to_string(),
-                payload: json!({
+            ),
+            ForgeQueryEntity::from_external_projection(
+                "task-2",
+                json!({
                     "profile": { "display_name": "Task Two" },
                     "metrics": { "priority": 2 }
                 }),
-            },
+            ),
         ],
         ForgeQueryReadReceipt::test_only(
             "read-graph:test",

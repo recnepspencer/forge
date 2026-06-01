@@ -167,7 +167,8 @@ fn causal_envelope_source_materialization_lookup_cost_ignores_unrelated_records(
             let packet =
                 SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
                     format!("entity-noise-{index}"),
-                    "profile",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid snapshot aspect key"),
                 )]);
             let observation = runtime
                 .materialize_source_packet(&contract, packet)

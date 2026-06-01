@@ -4,8 +4,9 @@ use super::scalar_wrappers::{
     CanonicalBigInt, CanonicalDate, CanonicalDecimal, CanonicalF32, CanonicalF64,
     CanonicalRational, CanonicalTime, CanonicalTimestamp, CanonicalTimestampTz, InternedString,
 };
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum AspectValue {
     Null,
     Bool(bool),

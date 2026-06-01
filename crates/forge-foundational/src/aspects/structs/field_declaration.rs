@@ -1,8 +1,9 @@
 use crate::aspects::contracts::AbsenceLaw;
 use crate::aspects::evolution::AspectEvolutionPolicy;
 use crate::values::ScalarAspectType;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct FieldKey(String);
 
 impl FieldKey {

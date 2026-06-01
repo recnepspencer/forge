@@ -1,10 +1,7 @@
-use serde_json::json;
-
 use crate::facade::history::BranchId;
-use crate::facade::payloads::RecordPayload;
 use crate::facade::transactions::{
-    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions, UpdateEntityIntent,
-    WorkerIntentBatch,
+    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions,
+    UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 use super::super::fixture::FintechWorld;
@@ -19,15 +16,35 @@ pub(crate) fn shock_market_on_branch(
     });
     for (idx, market_point) in world.market.market_points.iter().enumerate() {
         txn.push_batch(WorkerIntentBatch::new(format!("shock-market-{idx}")).push(
-            MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id: *market_point,
-                payload: RecordPayload::StructuredJson(json!({
-                    "entity_type": "market_point",
-                    "curve_bucket": idx,
-                    "mid": 102_00 + (idx as i64 * 40),
-                    "stress_regime": "intraday-shock",
-                })),
-            })),
+            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                UpdateEntityFieldsIntent {
+                    entity_id: *market_point,
+                    fields: crate::tests::support::aspect_field_patch_from_values([
+                        (
+                            crate::tests::support::aspect_key("entity_type"),
+                            crate::tests::support::field_key("entity_type"),
+                            crate::tests::support::string_aspect_value("market_point"),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("curve_bucket"),
+                            crate::tests::support::field_key("curve_bucket"),
+                            crate::tests::support::usize_aspect_value(idx),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("mid"),
+                            crate::tests::support::field_key("mid"),
+                            crate::tests::support::fixture_i64_number_aspect_value(
+                                102_00 + (idx as i64 * 40),
+                            ),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("stress_regime"),
+                            crate::tests::support::field_key("stress_regime"),
+                            crate::tests::support::string_aspect_value("intraday-shock"),
+                        ),
+                    ]),
+                },
+            )),
         ));
     }
     txn.commit().unwrap()
@@ -39,17 +56,38 @@ pub(crate) fn refresh_risk_views(world: &mut FintechWorld, branch_id: BranchId) 
         ..TransactionOptions::default()
     });
     for (idx, risk_view) in world.risk.risk_views.iter().enumerate() {
-        txn.push_batch(WorkerIntentBatch::new(format!("refresh-risk-{idx}")).push(
-            MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id: *risk_view,
-                payload: RecordPayload::StructuredJson(json!({
-                    "entity_type": "risk_view",
-                    "scenario": "intraday-shock",
-                    "trade_index": idx,
-                    "refreshed": true,
-                })),
-            })),
-        ));
+        txn.push_batch(
+            WorkerIntentBatch::new(format!("refresh-risk-{idx}")).push(
+                MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                    UpdateEntityFieldsIntent {
+                        entity_id: *risk_view,
+                        fields: crate::tests::support::aspect_field_patch_from_values([
+                            (
+                                crate::tests::support::aspect_key("entity_type"),
+                                crate::tests::support::field_key("entity_type"),
+                                crate::tests::support::string_aspect_value("risk_view"),
+                            ),
+                            (
+                                crate::tests::support::aspect_key("scenario"),
+                                crate::tests::support::field_key("scenario"),
+                                crate::tests::support::string_aspect_value("intraday-shock"),
+                            ),
+                            (
+                                crate::tests::support::aspect_key("trade_index"),
+                                crate::tests::support::field_key("trade_index"),
+                                crate::tests::support::usize_aspect_value(idx),
+                            ),
+                            (
+                                crate::tests::support::aspect_key("refreshed"),
+                                crate::tests::support::field_key("refreshed"),
+                                crate::tests::support::bool_aspect_value(true),
+                            ),
+                        ]),
+                    },
+                ))
+                .into(),
+            ),
+        );
     }
     txn.commit().unwrap()
 }
@@ -64,58 +102,138 @@ pub(crate) fn stress_seeded_intraday_risk(
         ..TransactionOptions::default()
     });
     txn.push_batch(
-        WorkerIntentBatch::new("stress-intraday-market").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id: case.market_point,
-                payload: RecordPayload::StructuredJson(json!({
-                    "entity_type": "market_point",
-                    "case": "intraday-risk",
-                    "curve_bucket": 2,
-                    "mid": 103_75,
-                    "stress_regime": "intraday-shock",
-                })),
-            }),
-        )),
+        WorkerIntentBatch::new("stress-intraday-market")
+            .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                UpdateEntityFieldsIntent {
+                    entity_id: case.market_point,
+                    fields: crate::tests::support::aspect_field_patch_from_values([
+                        (
+                            crate::tests::support::aspect_key("entity_type"),
+                            crate::tests::support::field_key("entity_type"),
+                            crate::tests::support::string_aspect_value("market_point"),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("case"),
+                            crate::tests::support::field_key("case"),
+                            crate::tests::support::string_aspect_value("intraday-risk"),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("curve_bucket"),
+                            crate::tests::support::field_key("curve_bucket"),
+                            crate::tests::support::u64_aspect_value(2),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("mid"),
+                            crate::tests::support::field_key("mid"),
+                            crate::tests::support::u64_aspect_value(103_75),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("stress_regime"),
+                            crate::tests::support::field_key("stress_regime"),
+                            crate::tests::support::string_aspect_value("intraday-shock"),
+                        ),
+                    ]),
+                },
+            )))
+            .into(),
     );
     txn.push_batch(
-        WorkerIntentBatch::new("stress-intraday-risk").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id: case.risk_view,
-                payload: RecordPayload::StructuredJson(json!({
-                    "entity_type": "risk_view",
-                    "case": "intraday-risk",
-                    "scenario": "intraday-shock",
-                    "limit_status": "breached",
-                    "refreshed": true,
-                })),
-            }),
-        )),
+        WorkerIntentBatch::new("stress-intraday-risk")
+            .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                UpdateEntityFieldsIntent {
+                    entity_id: case.risk_view,
+                    fields: crate::tests::support::aspect_field_patch_from_values([
+                        (
+                            crate::tests::support::aspect_key("entity_type"),
+                            crate::tests::support::field_key("entity_type"),
+                            crate::tests::support::string_aspect_value("risk_view"),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("case"),
+                            crate::tests::support::field_key("case"),
+                            crate::tests::support::string_aspect_value("intraday-risk"),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("scenario"),
+                            crate::tests::support::field_key("scenario"),
+                            crate::tests::support::string_aspect_value("intraday-shock"),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("limit_status"),
+                            crate::tests::support::field_key("limit_status"),
+                            crate::tests::support::string_aspect_value("breached"),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("refreshed"),
+                            crate::tests::support::field_key("refreshed"),
+                            crate::tests::support::bool_aspect_value(true),
+                        ),
+                    ]),
+                },
+            )))
+            .into(),
     );
     txn.push_batch(
-        WorkerIntentBatch::new("stress-intraday-limit").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id: case.limit,
-                payload: RecordPayload::StructuredJson(json!({
-                    "entity_type": "limit",
-                    "case": "intraday-risk",
-                    "threshold_bps": 140,
-                    "breach_state": "open",
-                })),
-            }),
-        )),
+        WorkerIntentBatch::new("stress-intraday-limit")
+            .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                UpdateEntityFieldsIntent {
+                    entity_id: case.limit,
+                    fields: crate::tests::support::aspect_field_patch_from_values([
+                        (
+                            crate::tests::support::aspect_key("entity_type"),
+                            crate::tests::support::field_key("entity_type"),
+                            crate::tests::support::string_aspect_value("limit"),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("case"),
+                            crate::tests::support::field_key("case"),
+                            crate::tests::support::string_aspect_value("intraday-risk"),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("threshold_bps"),
+                            crate::tests::support::field_key("threshold_bps"),
+                            crate::tests::support::u64_aspect_value(140),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("breach_state"),
+                            crate::tests::support::field_key("breach_state"),
+                            crate::tests::support::string_aspect_value("open"),
+                        ),
+                    ]),
+                },
+            )))
+            .into(),
     );
     txn.push_batch(
-        WorkerIntentBatch::new("stress-intraday-breach").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id: case.breach,
-                payload: RecordPayload::StructuredJson(json!({
-                    "entity_type": "limit_breach",
-                    "case": "intraday-risk",
-                    "status": "open",
-                    "severity": "critical",
-                })),
-            }),
-        )),
+        WorkerIntentBatch::new("stress-intraday-breach")
+            .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                UpdateEntityFieldsIntent {
+                    entity_id: case.breach,
+                    fields: crate::tests::support::string_aspect_field_patch([
+                        (
+                            crate::tests::support::aspect_key("entity_type"),
+                            crate::tests::support::field_key("entity_type"),
+                            "limit_breach",
+                        ),
+                        (
+                            crate::tests::support::aspect_key("case"),
+                            crate::tests::support::field_key("case"),
+                            "intraday-risk",
+                        ),
+                        (
+                            crate::tests::support::aspect_key("status"),
+                            crate::tests::support::field_key("status"),
+                            "open",
+                        ),
+                        (
+                            crate::tests::support::aspect_key("severity"),
+                            crate::tests::support::field_key("severity"),
+                            "critical",
+                        ),
+                    ]),
+                },
+            )))
+            .into(),
     );
     txn.commit().unwrap()
 }

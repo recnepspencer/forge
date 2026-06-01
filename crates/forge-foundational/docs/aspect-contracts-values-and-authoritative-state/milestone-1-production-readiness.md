@@ -120,6 +120,8 @@ This is the named boundary later work is allowed to depend on.
 
 - [Grouped Public Lanes And Common-Path Usage](./grouped-public-lanes-and-common-path-usage.md)
   explains the hardened `aspects()` and `compatibility()` public journeys.
+- [Digest Preparation And Canonical Basis](./digest-preparation-and-canonical-basis.md)
+  explains the separate public surface frozen here as `digest_preparation`.
 - the other docs in this folder describe the surfaces the readiness report
   freezes.
 
@@ -151,10 +153,13 @@ to the exact inventory here.
 
 - The readiness artifact freezes Milestone 1 itself, not later profile,
   transition, or diagnostics ontology.
+- This page tells you what is frozen. It is not the detailed API guide for each
+  frozen surface.
 - Compatibility lowering is still explicit debt for adopting crates, not the
   ideal forever shape.
 
 ## Related Docs
 
 - [Grouped Public Lanes And Common-Path Usage](./grouped-public-lanes-and-common-path-usage.md)
+- [Digest Preparation And Canonical Basis](./digest-preparation-and-canonical-basis.md)
 - [Compatibility Lowering And JSON Bridges](./compatibility-lowering-and-json-bridges.md)

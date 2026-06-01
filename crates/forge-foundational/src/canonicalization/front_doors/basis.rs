@@ -4,6 +4,11 @@ use crate::aspects::{
     AspectContract, AspectKey, AspectMask, AuthoritativeRecordAspectPatch,
     AuthoritativeRecordAspectStateArtifact,
 };
+use crate::locators::{
+    AspectContractLocator, AspectFieldLocator, AspectLocator, AspectValueLocator,
+    BoundaryArtifactLocator, BoundaryMismatchLocator, BoundarySourceLocator,
+    FoundationalTransitionLocator,
+};
 
 use super::super::{
     prepare_aspect_contract_for_canonical_basis, prepare_aspect_mask_for_canonical_basis,
@@ -74,10 +79,71 @@ impl CanonicalBasisVersionStep {
         prepare_identity_for_canonical_basis(self.version, identity)
     }
 
-    pub fn from_locator(
+    pub fn from_aspect_locator(
         self,
-        locator: CanonicalLocatorInput,
+        locator: AspectLocator,
     ) -> TransitionOutcome<CanonicalBasisReadyArtifact, CanonicalBasisConstructionDenial> {
-        prepare_locator_for_canonical_basis(self.version, locator)
+        prepare_locator_for_canonical_basis(self.version, CanonicalLocatorInput::Aspect(locator))
+    }
+
+    pub fn from_aspect_field_locator(
+        self,
+        locator: AspectFieldLocator,
+    ) -> TransitionOutcome<CanonicalBasisReadyArtifact, CanonicalBasisConstructionDenial> {
+        prepare_locator_for_canonical_basis(
+            self.version,
+            CanonicalLocatorInput::AspectField(locator),
+        )
+    }
+
+    pub fn from_aspect_contract_locator(
+        self,
+        locator: AspectContractLocator,
+    ) -> TransitionOutcome<CanonicalBasisReadyArtifact, CanonicalBasisConstructionDenial> {
+        prepare_locator_for_canonical_basis(
+            self.version,
+            CanonicalLocatorInput::AspectContract(locator),
+        )
+    }
+
+    pub fn from_value_locator(
+        self,
+        locator: AspectValueLocator,
+    ) -> TransitionOutcome<CanonicalBasisReadyArtifact, CanonicalBasisConstructionDenial> {
+        prepare_locator_for_canonical_basis(self.version, CanonicalLocatorInput::Value(locator))
+    }
+
+    pub fn from_source_locator(
+        self,
+        locator: BoundarySourceLocator,
+    ) -> TransitionOutcome<CanonicalBasisReadyArtifact, CanonicalBasisConstructionDenial> {
+        prepare_locator_for_canonical_basis(self.version, CanonicalLocatorInput::Source(locator))
+    }
+
+    pub fn from_mismatch_locator(
+        self,
+        locator: BoundaryMismatchLocator,
+    ) -> TransitionOutcome<CanonicalBasisReadyArtifact, CanonicalBasisConstructionDenial> {
+        prepare_locator_for_canonical_basis(self.version, CanonicalLocatorInput::Mismatch(locator))
+    }
+
+    pub fn from_transition_locator(
+        self,
+        locator: FoundationalTransitionLocator,
+    ) -> TransitionOutcome<CanonicalBasisReadyArtifact, CanonicalBasisConstructionDenial> {
+        prepare_locator_for_canonical_basis(
+            self.version,
+            CanonicalLocatorInput::Transition(locator),
+        )
+    }
+
+    pub fn from_boundary_artifact_locator(
+        self,
+        locator: BoundaryArtifactLocator,
+    ) -> TransitionOutcome<CanonicalBasisReadyArtifact, CanonicalBasisConstructionDenial> {
+        prepare_locator_for_canonical_basis(
+            self.version,
+            CanonicalLocatorInput::BoundaryArtifact(locator),
+        )
     }
 }

@@ -1,3 +1,4 @@
+use forge_foundational::facade::AspectKey;
 use forge_relational::facade::grouped_truth::{
     project_relational_grouped_truth, GroupedProjectionContract,
 };
@@ -142,7 +143,7 @@ fn grouped_extraction_rejects_source_identity_mismatch() {
     .bind_contract();
     let mismatched = project_relational_grouped_truth(
         &relational_row_set(),
-        GroupedProjectionContract::new("status", "identity.id", "profile.display_name"),
+        grouped_projection_contract("status", "identity.id", "profile.display_name"),
     )
     .unwrap();
 
@@ -153,6 +154,22 @@ fn grouped_extraction_rejects_source_identity_mismatch() {
         error,
         ProjectionFactExtractionError::SourceIdentityMismatch { .. }
     ));
+}
+
+fn grouped_projection_contract(
+    grouping_aspect: &str,
+    identity_binding_aspect: &str,
+    grouping_binding_aspect: &str,
+) -> GroupedProjectionContract {
+    GroupedProjectionContract::new(
+        aspect_key(grouping_aspect),
+        aspect_key(identity_binding_aspect),
+        aspect_key(grouping_binding_aspect),
+    )
+}
+
+fn aspect_key(label: &str) -> AspectKey {
+    AspectKey::new(label).expect("test aspect key must be foundational")
 }
 
 #[test]

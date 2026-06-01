@@ -1,7 +1,7 @@
 use forge_foundational::{
     admit_authoritative_record_aspect_state, canonicalization, validate_aspect_value,
-    AspectLocator, AspectValue, BoundarySourceLocator, CanonicalBasisDomain, CanonicalBasisLocus,
-    CanonicalBasisValue, CanonicalEquivalenceBasis, CanonicalIntegerWidth, CanonicalLocatorInput,
+    AspectLocator, AspectValue, AspectValueLocator, BoundarySourceLocator, CanonicalBasisDomain,
+    CanonicalBasisLocus, CanonicalBasisValue, CanonicalEquivalenceBasis, CanonicalIntegerWidth,
     CanonicalMilestone2PhaseGate, CanonicalMismatchKind, CanonicalProducerShape,
     CanonicalizationRuleVersion, LocatorAuthority, ScalarAspectType,
 };
@@ -123,19 +123,16 @@ fn canonicalization_basis_front_door_prepares_state_and_locator_surfaces() {
         TransitionOutcome::Success(ready) => ready,
         _ => panic!("state basis should be ready"),
     };
-    let locator_ready =
-        match canonicalization()
-            .basis()
-            .at(version())
-            .from_locator(CanonicalLocatorInput::Source(
-                BoundarySourceLocator::Aspect(AspectLocator::new(
-                    LocatorAuthority::SupportOnly,
-                    key("task.count"),
-                )),
-            )) {
-            TransitionOutcome::Success(ready) => ready,
-            _ => panic!("locator basis should be ready"),
-        };
+    let locator_ready = match canonicalization()
+        .basis()
+        .at(version())
+        .from_source_locator(BoundarySourceLocator::aspect(AspectLocator::new(
+            LocatorAuthority::SupportOnly,
+            key("task.count"),
+        ))) {
+        TransitionOutcome::Success(ready) => ready,
+        _ => panic!("locator basis should be ready"),
+    };
 
     assert_eq!(
         state_ready.payload().domain(),
@@ -155,6 +152,32 @@ fn canonicalization_basis_front_door_prepares_state_and_locator_surfaces() {
     );
     assert!(locator_ready.payload().entries().iter().any(|entry| {
         entry.locus() == &CanonicalBasisLocus::Named("source.aspect.aspect_key".into())
+            && entry.value() == &CanonicalBasisValue::ExactText("task.count".into())
+    }));
+}
+
+#[test]
+fn canonicalization_basis_front_door_prepares_value_locator_surfaces() {
+    let locator_ready = match canonicalization().basis().at(version()).from_value_locator(
+        AspectValueLocator::whole_aspect(AspectLocator::new(
+            LocatorAuthority::Authoritative,
+            key("task.count"),
+        )),
+    ) {
+        TransitionOutcome::Success(ready) => ready,
+        _ => panic!("value locator basis should be ready"),
+    };
+
+    assert_eq!(
+        locator_ready.payload().domain(),
+        CanonicalBasisDomain::Locator
+    );
+    assert!(locator_ready.payload().entries().iter().any(|entry| {
+        entry.locus() == &CanonicalBasisLocus::Named("value.kind".into())
+            && entry.value() == &CanonicalBasisValue::ExactText("whole_aspect".into())
+    }));
+    assert!(locator_ready.payload().entries().iter().any(|entry| {
+        entry.locus() == &CanonicalBasisLocus::Named("value.whole_aspect.aspect_key".into())
             && entry.value() == &CanonicalBasisValue::ExactText("task.count".into())
     }));
 }

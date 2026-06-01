@@ -261,8 +261,8 @@ No profile drift against the comparison baseline.
 | geometry_kernel_matrix | topology_identity_survival_recovery_round_trip | resolved_lineage_count | 1.00 | 1 | 0.00 | 0.00 | 3 |
 | geometry_kernel_matrix | topology_identity_survival_recovery_round_trip | traversed_event_count | 0.00 | 0 | 0.00 | 0.00 | 3 |
 | geometry_kernel_matrix | topology_identity_survival_recovery_round_trip | update_commit_micros | 942.67 | 872 | -374.33 | -445.00 | 3 |
-| harness_measurement_matrix | post_measurement_metrics_do_not_pollute_elapsed | payload_build_micros | 5748.33 | 5372 | -1284.67 | -1661.00 | 3 |
-| harness_measurement_matrix | post_measurement_metrics_do_not_pollute_elapsed | payload_item_count | 20000.00 | 20000 | 0.00 | 0.00 | 3 |
+| harness_measurement_matrix | post_measurement_metrics_do_not_pollute_elapsed | measurement_build_micros | 5748.33 | 5372 | -1284.67 | -1661.00 | 3 |
+| harness_measurement_matrix | post_measurement_metrics_do_not_pollute_elapsed | measurement_item_count | 20000.00 | 20000 | 0.00 | 0.00 | 3 |
 | hot_cold_path_matrix | chip_hot_compile_vs_recovery_compile | checkpoint_micros | 1680.00 | 1496 | +214.00 | +30.00 | 3 |
 | hot_cold_path_matrix | chip_hot_compile_vs_recovery_compile | cold_compile_micros | 5.00 | 5 | -2.00 | -2.00 | 3 |
 | hot_cold_path_matrix | chip_hot_compile_vs_recovery_compile | hot_commit_micros | 689.33 | 668 | +26.33 | +5.00 | 3 |

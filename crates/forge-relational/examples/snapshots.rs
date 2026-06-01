@@ -20,13 +20,13 @@ fn main() {
         .read_snapshot(&snapshot)
         .expect("snapshot read");
 
-    let payload = snap_read
+    let authoritative_aspect_state = snap_read
         .get_entity(entity_id)
         .expect("snapshot entity")
-        .payload
+        .authoritative_aspect_state
         .clone();
     println!("snapshot diagnostics entries={}", read_path.entries.len());
-    println!("snapshot preserved payload={payload:?}");
+    println!("snapshot preserved authoritative aspect state={authoritative_aspect_state:?}");
 
     assert!(runtime.snapshots().release_snapshot(&snapshot));
 }

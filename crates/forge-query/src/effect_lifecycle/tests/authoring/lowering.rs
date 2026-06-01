@@ -53,7 +53,7 @@ fn admitted_mutation_plan_lowers_into_one_executable_effect_artifact() {
     );
     assert_eq!(
         lowered.strategy_identity_target(),
-        EffectStrategyIdentityTarget::RawStrategyCommitRequest
+        EffectStrategyIdentityTarget::NativeStrategyCommitRequest
     );
     assert_eq!(lowered.counters().lowered_effect_count(), 1);
     assert!(!lowered.lowered_effect_execution_plan_digest().is_empty());

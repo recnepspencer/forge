@@ -1,10 +1,13 @@
 use std::collections::BTreeMap;
 
-use serde_json::{json, Value};
-
 use crate::facade::identity::VersionId;
-use crate::facade::payloads::RecordPayload;
+use crate::facade::runtime::EntityReadRecord;
 use crate::facade::snapshots::SnapshotHandle;
+use crate::tests::support::{field_key, read_entity_field};
+use forge_foundational::facade::{
+    AspectContractRevision, AspectKey, AuthoritativeRecordAspectState,
+    ContractValidatedAspectValueView, FieldKey,
+};
 
 use super::super::fixture::{FintechCaseRole, FintechWorld};
 
@@ -27,7 +30,20 @@ pub(crate) struct CaseTruthProbe {
     pub(crate) repaired_settlement_count: usize,
     pub(crate) open_breach_count: usize,
     pub(crate) audit_record_count: usize,
-    pub(crate) payload_fingerprints: BTreeMap<String, Value>,
+    pub(crate) aspect_state_fingerprints: BTreeMap<String, Vec<AspectStateFingerprint>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct AspectStateFingerprint {
+    aspect_key: AspectKey,
+    contract_revision: AspectContractRevision,
+    value: AspectStateValueFingerprint,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum AspectStateValueFingerprint {
+    Scalar(Vec<u8>),
+    Struct(Vec<(FieldKey, Vec<u8>)>),
 }
 
 pub(crate) fn capture_case_truth_probe(
@@ -56,47 +72,34 @@ pub(crate) fn read_snapshot_probe(
         corrected_trade_count: result
             .entities
             .iter()
-            .filter(|entity| {
-                payload_has(&entity.payload, "corrected", |value| {
-                    value.as_bool() == Some(true)
-                })
-            })
+            .filter(|entity| field_is(entity, field_key("corrected"), "true"))
             .count(),
         repaired_settlement_count: result
             .entities
             .iter()
             .filter(|entity| {
-                payload_type_is(&entity.payload, "settlement")
-                    && payload_has(&entity.payload, "status", |value| {
-                        value.as_str() == Some("repaired")
-                    })
+                field_is(entity, field_key("entity_type"), "settlement")
+                    && field_is(entity, field_key("status"), "repaired")
             })
             .count(),
         open_breach_count: result
             .entities
             .iter()
             .filter(|entity| {
-                payload_type_is(&entity.payload, "limit_breach")
-                    && payload_has(&entity.payload, "status", |value| {
-                        value.as_str() == Some("open")
-                    })
+                field_is(entity, field_key("entity_type"), "limit_breach")
+                    && field_is(entity, field_key("status"), "open")
             })
             .count(),
         audit_record_count: result
             .entities
             .iter()
-            .filter(|entity| payload_type_is(&entity.payload, "audit_record"))
+            .filter(|entity| field_is(entity, field_key("entity_type"), "audit_record"))
             .count(),
-        payload_fingerprints: result
+        aspect_state_fingerprints: result
             .entities
             .iter()
             .enumerate()
-            .map(|(idx, entity)| {
-                (
-                    format!("entity-{idx}"),
-                    serde_json::to_value(&entity.payload).unwrap_or_else(|_| json!(null)),
-                )
-            })
+            .map(|(idx, entity)| (format!("entity-{idx}"), aspect_state_fingerprint(entity)))
             .collect(),
     }
 }
@@ -134,56 +137,74 @@ pub(crate) fn read_version_probe(
         relation_count: relations.len(),
         corrected_trade_count: entities
             .iter()
-            .filter(|entity| {
-                payload_has(&entity.payload, "corrected", |value| {
-                    value.as_bool() == Some(true)
-                })
-            })
+            .filter(|entity| field_is(entity, field_key("corrected"), "true"))
             .count(),
         repaired_settlement_count: entities
             .iter()
             .filter(|entity| {
-                payload_type_is(&entity.payload, "settlement")
-                    && payload_has(&entity.payload, "status", |value| {
-                        value.as_str() == Some("repaired")
-                    })
+                field_is(entity, field_key("entity_type"), "settlement")
+                    && field_is(entity, field_key("status"), "repaired")
             })
             .count(),
         open_breach_count: entities
             .iter()
             .filter(|entity| {
-                payload_type_is(&entity.payload, "limit_breach")
-                    && payload_has(&entity.payload, "status", |value| {
-                        value.as_str() == Some("open")
-                    })
+                field_is(entity, field_key("entity_type"), "limit_breach")
+                    && field_is(entity, field_key("status"), "open")
             })
             .count(),
         audit_record_count: entities
             .iter()
-            .filter(|entity| payload_type_is(&entity.payload, "audit_record"))
+            .filter(|entity| field_is(entity, field_key("entity_type"), "audit_record"))
             .count(),
-        payload_fingerprints: entities
+        aspect_state_fingerprints: entities
             .iter()
             .enumerate()
-            .map(|(idx, entity)| {
-                (
-                    format!("entity-{idx}"),
-                    serde_json::to_value(&entity.payload).unwrap_or_else(|_| json!(null)),
-                )
-            })
+            .map(|(idx, entity)| (format!("entity-{idx}"), aspect_state_fingerprint(entity)))
             .collect(),
     }
 }
 
-fn payload_has(payload: &RecordPayload, key: &str, predicate: impl Fn(&Value) -> bool) -> bool {
-    match payload {
-        RecordPayload::StructuredJson(value) => value.get(key).is_some_and(predicate),
-        _ => false,
-    }
+fn aspect_state_fingerprint(entity: &EntityReadRecord) -> Vec<AspectStateFingerprint> {
+    entity
+        .authoritative_aspect_state
+        .as_ref()
+        .map(fingerprint_authoritative_aspect_state)
+        .unwrap_or_default()
 }
 
-fn payload_type_is(payload: &RecordPayload, expected: &str) -> bool {
-    payload_has(payload, "entity_type", |value| {
-        value.as_str() == Some(expected)
-    })
+fn fingerprint_authoritative_aspect_state(
+    state: &AuthoritativeRecordAspectState,
+) -> Vec<AspectStateFingerprint> {
+    state
+        .aspects()
+        .entries()
+        .map(|(aspect_key, validated_value)| AspectStateFingerprint {
+            aspect_key: aspect_key.clone(),
+            contract_revision: validated_value.contract_revision(),
+            value: match validated_value.view() {
+                ContractValidatedAspectValueView::Scalar(value) => {
+                    AspectStateValueFingerprint::Scalar(encode_aspect_value(value))
+                }
+                ContractValidatedAspectValueView::Struct(value) => {
+                    AspectStateValueFingerprint::Struct(
+                        value
+                            .fields()
+                            .map(|(field_key, field_value)| {
+                                (field_key.clone(), encode_aspect_value(field_value))
+                            })
+                            .collect(),
+                    )
+                }
+            },
+        })
+        .collect()
+}
+
+fn encode_aspect_value(value: &forge_foundational::facade::AspectValue) -> Vec<u8> {
+    crate::aspect_wire::encode_aspect_value(value)
+}
+
+fn field_is(entity: &EntityReadRecord, field: FieldKey, expected: &str) -> bool {
+    read_entity_field(entity, field) == Some(expected.to_string())
 }

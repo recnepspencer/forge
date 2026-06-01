@@ -6,12 +6,16 @@ use forge_query::facade::{
     ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
 };
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
-use forge_relational::facade::publication::{PatchRecord, RecordStructuralChange};
+use forge_relational::facade::publication::{
+    PublishedAuthoritativeRecordPatch, RecordStructuralChange,
+};
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{CommitResult, RecordRef};
 use schema::facade::platform::entities::{EntityKind, NamingEntityKind};
 use schema::facade::platform::relations::RelationKind;
 use serde_json::Value;
+
+use crate::relational_aspect_boundary::entity_record_domain_label;
 
 pub(super) fn mutation_deltas_from_commit(
     runtime: &Arc<RwLock<RelationalRuntime>>,
@@ -31,7 +35,7 @@ pub(super) fn mutation_deltas_from_commit(
 pub(super) fn mutation_deltas_from_patch_records(
     runtime: &Arc<RwLock<RelationalRuntime>>,
     version_id: forge_relational::facade::identity::VersionId,
-    patch_records: &[PatchRecord],
+    patch_records: &[PublishedAuthoritativeRecordPatch],
     declared_aspect_paths: &[String],
     fallback_collection: Option<&str>,
 ) -> Result<Vec<ForgeQueryMutationDelta>, ForgeQueryWorkspaceError> {
@@ -177,8 +181,8 @@ pub(super) fn ensure_live_entity_exists(
         })?;
     if runtime
         .read_truth()
-        .project_version(version_id)
-        .entity_record(entity_id)
+        .read_version(version_id)
+        .get_entity(entity_id)
         .is_none()
     {
         return Err(ForgeQueryWorkspaceError::new(format!(
@@ -202,18 +206,14 @@ pub(super) fn live_entity_label_exists(
     else {
         return false;
     };
-    let projection = runtime.read_truth().project_version(version_id);
+    let read_view = runtime.read_truth().read_version(version_id);
     EntityKind::ALL.into_iter().any(|kind| {
-        projection
-            .entity_records(kind.kind_id())
-            .into_iter()
+        read_view
+            .entities()
+            .iter()
+            .filter(|record| record.kind.kind_id == kind.kind_id())
             .any(|record| {
-                record
-                    .payload
-                    .as_json()
-                    .and_then(|payload| payload.get("label"))
-                    .and_then(Value::as_str)
-                    .is_some_and(|existing| existing == label)
+                entity_record_domain_label(&record).is_some_and(|existing| existing == label)
             })
     })
 }
@@ -245,10 +245,10 @@ pub(super) fn target_collection_for_patch(
     version_id: forge_relational::facade::identity::VersionId,
     target: &RecordRef,
 ) -> Option<String> {
-    let projection = runtime.read_truth().project_version(version_id);
+    let read_view = runtime.read_truth().read_version(version_id);
     match target {
         RecordRef::Entity(entity_id) => {
-            let record = projection.entity_record(*entity_id)?;
+            let record = read_view.get_entity(*entity_id)?;
             let kind = EntityKind::from_kind_id(record.kind.kind_id)?;
             if kind.is_topological() {
                 Some("TopologyEntity".to_string())
@@ -259,7 +259,7 @@ pub(super) fn target_collection_for_patch(
             }
         }
         RecordRef::Relation(relation_id) => {
-            let record = projection.relation_record(*relation_id)?;
+            let record = read_view.get_relation(*relation_id)?;
             match RelationKind::from_kind_id(record.kind.kind_id)? {
                 RelationKind::Topology(_) => Some("TopologyRelation".to_string()),
                 _ => None,

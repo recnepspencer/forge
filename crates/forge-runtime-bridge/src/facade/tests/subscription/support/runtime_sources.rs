@@ -44,7 +44,12 @@ impl crate::adapter::CommittedPatchSource for MisbindingSource {
             TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
             TruthSnapshotIdentity::new("snapshot-a"),
             TruthBranchIdentity::new("analysis"),
-            vec![BridgeCommittedPatchItem::new("entity-1", "profile", "name")],
+            vec![BridgeCommittedPatchItem::new(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid bridge patch aspect key"),
+                "name",
+            )],
         ))
     }
 }
@@ -75,7 +80,12 @@ impl crate::adapter::TruthBranchHeadSource for MisbindingSource {
             TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
             TruthSnapshotIdentity::new("snapshot-a"),
             branch_identity.clone(),
-            vec![BridgeCommittedPatchItem::new("entity-1", "profile", "name")],
+            vec![BridgeCommittedPatchItem::new(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid bridge patch aspect key"),
+                "name",
+            )],
         ))
     }
 }
@@ -90,7 +100,12 @@ impl crate::adapter::CommittedPatchSource for WrongBranchHeadSource {
             TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
             TruthSnapshotIdentity::new("snapshot-a"),
             TruthBranchIdentity::new("analysis"),
-            vec![BridgeCommittedPatchItem::new("entity-1", "profile", "name")],
+            vec![BridgeCommittedPatchItem::new(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid bridge patch aspect key"),
+                "name",
+            )],
         ))
     }
 }
@@ -121,7 +136,12 @@ impl crate::adapter::TruthBranchHeadSource for WrongBranchHeadSource {
             TruthPatchIdentity::new("patch-wrong"),
             TruthSnapshotIdentity::new("snapshot-a"),
             TruthBranchIdentity::new("wrong-branch"),
-            vec![BridgeCommittedPatchItem::new("entity-1", "profile", "name")],
+            vec![BridgeCommittedPatchItem::new(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid bridge patch aspect key"),
+                "name",
+            )],
         ))
     }
 }

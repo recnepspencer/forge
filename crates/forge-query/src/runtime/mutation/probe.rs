@@ -181,22 +181,23 @@ impl ForgeQueryExistingTruthProbeRequest {
 pub struct ForgeQueryExistingTruthProbeField {
     aspect_path: String,
     value: Value,
-    value_json: String,
+    external_value_json: String,
     value_digest: String,
 }
 
 impl ForgeQueryExistingTruthProbeField {
     fn new(aspect_path: String, value: Value) -> Self {
-        let value_json = serde_json::to_string(&value).unwrap_or_else(|_| value.to_string());
+        let external_value_json =
+            serde_json::to_string(&value).unwrap_or_else(|_| value.to_string());
         let value_digest = hash_parts(&[
             "forge_query_existing_truth_probe_field_v1".to_string(),
             format!("aspect:{aspect_path}"),
-            format!("value:{value_json}"),
+            format!("value:{external_value_json}"),
         ]);
         Self {
             aspect_path,
             value,
-            value_json,
+            external_value_json,
             value_digest,
         }
     }
@@ -209,8 +210,8 @@ impl ForgeQueryExistingTruthProbeField {
         &self.value
     }
 
-    pub fn value_json(&self) -> &str {
-        &self.value_json
+    pub fn external_value_json(&self) -> &str {
+        &self.external_value_json
     }
 
     pub fn value_digest(&self) -> &str {

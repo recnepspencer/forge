@@ -40,3 +40,13 @@ fn authoritative_state_admission_rejects_duplicate_aspect_keys() {
         )))
     );
 }
+
+#[test]
+fn authoritative_state_admission_rejects_empty_validated_entry_sets() {
+    let outcome = admit_authoritative_record_aspect_state([]);
+
+    assert_eq!(
+        outcome,
+        TransitionOutcome::Denied(AuthoritativeStateAdmissionDenial::EmptyAdmission)
+    );
+}

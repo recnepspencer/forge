@@ -1,6 +1,7 @@
 mod casebook;
 mod entity_seeding;
 mod relation_seeding;
+mod schema_declarations;
 mod seed_catalog;
 
 use crate::facade::config::RelationalRuntimeProfile;
@@ -15,9 +16,10 @@ use crate::query::data::PlannedQueryPacket;
 use self::casebook::{build_casebook, build_workflow_cases};
 use self::entity_seeding::seed_entities;
 use self::relation_seeding::seed_relations;
+use self::schema_declarations::fintech_schema_registry;
 use self::seed_catalog::seeded_trade_cases;
 use super::scales::FintechScale;
-use crate::tests::support::{test_schema_registry, unique_test_store_path};
+use crate::tests::support::unique_test_store_path;
 
 pub(super) const LEDGER_PARTITION: PartitionId = PartitionId(10);
 pub(super) const MARKET_PARTITION: PartitionId = PartitionId(20);
@@ -265,7 +267,7 @@ impl FintechWorld {
     fn build(scale: FintechScale, persisted: bool) -> Self {
         let mut builder = RelationalRuntimeApi::builder()
             .profile(RelationalRuntimeProfile::AiWorkflow)
-            .schema_registry(test_schema_registry());
+            .schema_registry(fintech_schema_registry());
         if persisted {
             builder = builder
                 .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)

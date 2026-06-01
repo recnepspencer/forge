@@ -5,6 +5,7 @@
 //! surface; public consumers should reach it through
 //! `worth_schema::facade::platform::authority`.
 
+pub(crate) mod aspect_field_patches;
 pub(crate) mod commit_flow;
 pub(crate) mod derived_invalidation;
 pub(crate) mod gateway;
@@ -26,7 +27,7 @@ pub use derived_invalidation::{
     TruthToDerivedInvalidationDeclaration,
 };
 #[allow(unused_imports)]
-pub(crate) use gateway::{TopologyAuthority, TopologyAuthorityError, VerifiedTopologyCommit};
+pub use gateway::{TopologyAuthority, TopologyAuthorityError, VerifiedTopologyCommit};
 #[allow(unused_imports)]
 pub use geometry_binding::{
     CoedgeCurveKind, CurveBindingKind, CurveProvenanceKind, SurfaceBindingKind,

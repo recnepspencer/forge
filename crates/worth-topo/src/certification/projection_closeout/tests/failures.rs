@@ -3,25 +3,29 @@ use crate::derived_topology::materialized_graph::TopologyQueryMaterializationInp
 
 #[test]
 fn query_materializer_rejects_malformed_relation_endpoints() {
-    let entity_rows = vec![forge_query::facade::ForgeQueryEntity {
-        identity: "entity:0:1:0".to_string(),
-        payload: json!({
-            "topology": {
-                "kind": TopologyEntityKind::Model.kind_name(),
-                "structure": "model-a",
-            }
-        }),
-    }];
-    let relation_rows = vec![forge_query::facade::ForgeQueryEntity {
-        identity: "entity:0:9:0".to_string(),
-        payload: json!({
-            "topology": {
-                "kind": TopologyRelationKind::ModelOwnsBody.kind_name(),
-                "source_identity": "bad-source",
-                "target_identity": "entity:0:2:0",
-            }
-        }),
-    }];
+    let entity_rows = vec![
+        forge_query::facade::ForgeQueryEntity::from_external_projection(
+            "entity:0:1:0",
+            json!({
+                "topology": {
+                    "kind": TopologyEntityKind::Model.kind_name(),
+                    "structure": "model-a",
+                }
+            }),
+        ),
+    ];
+    let relation_rows = vec![
+        forge_query::facade::ForgeQueryEntity::from_external_projection(
+            "entity:0:9:0",
+            json!({
+                "topology": {
+                    "kind": TopologyRelationKind::ModelOwnsBody.kind_name(),
+                    "source_identity": "bad-source",
+                    "target_identity": "entity:0:2:0",
+                }
+            }),
+        ),
+    ];
 
     let input = TopologyQueryMaterializationInput::decode(&entity_rows, &relation_rows)
         .expect_err("malformed query rows must fail closed");

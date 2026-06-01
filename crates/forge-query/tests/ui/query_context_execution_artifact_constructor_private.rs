@@ -5,7 +5,7 @@ fn main() {
         query_digest: String::new(),
         basis_digest: String::new(),
         result_digest: String::new(),
-        payload: Vec::new(),
+        rows: Vec::new(),
         family: unsafe { std::mem::zeroed() },
         cost_class: unsafe { std::mem::zeroed() },
         budget_class: unsafe { std::mem::zeroed() },

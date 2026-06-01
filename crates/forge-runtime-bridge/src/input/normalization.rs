@@ -35,7 +35,7 @@ pub(crate) fn canonical_patch_item_order(
 ) -> std::cmp::Ordering {
     left.entity_identity()
         .cmp(right.entity_identity())
-        .then_with(|| left.aspect_label().cmp(right.aspect_label()))
+        .then_with(|| left.aspect_key().cmp(right.aspect_key()))
         .then_with(|| left.surface_label().cmp(right.surface_label()))
 }
 
@@ -57,7 +57,7 @@ fn digest_basis(
         basis.push_str("|item=");
         basis.push_str(item.entity_identity());
         basis.push(':');
-        basis.push_str(item.aspect_label());
+        basis.push_str(item.aspect_key().as_str());
         basis.push(':');
         basis.push_str(item.surface_label());
     }
@@ -67,6 +67,8 @@ fn digest_basis(
 
 #[cfg(test)]
 mod tests {
+    use forge_foundational::facade::AspectKey;
+
     use crate::input::envelope::{
         BridgeCommittedPatchItem, RawCommittedPatchEnvelope, TruthBranchIdentity,
         TruthCommitIdentity, TruthPatchIdentity,
@@ -83,9 +85,9 @@ mod tests {
             TruthSnapshotIdentity::new("snapshot"),
             TruthBranchIdentity::new("branch"),
             vec![
-                BridgeCommittedPatchItem::new("user", "profile", "name"),
-                BridgeCommittedPatchItem::new("user", "profile", "avatar"),
-                BridgeCommittedPatchItem::new("user", "profile", "name"),
+                BridgeCommittedPatchItem::new("user", aspect_key("profile"), "name"),
+                BridgeCommittedPatchItem::new("user", aspect_key("profile"), "avatar"),
+                BridgeCommittedPatchItem::new("user", aspect_key("profile"), "name"),
             ],
         ));
 
@@ -99,5 +101,9 @@ mod tests {
             normalized.patch_body().canonical_items()[1].surface_label(),
             "name"
         );
+    }
+
+    fn aspect_key(value: &str) -> AspectKey {
+        AspectKey::new(value).expect("valid bridge patch aspect key")
     }
 }

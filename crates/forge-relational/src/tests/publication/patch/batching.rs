@@ -49,3 +49,28 @@ fn patch_stream_rejects_unknown_resume_position() {
         PatchStreamReadErrorClass::UnknownResumePosition
     );
 }
+
+#[test]
+fn patch_stream_uses_durable_canonical_history_when_retained_envelope_is_missing() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let first = create_entity_outcome(&mut runtime, "a");
+    runtime.durability_authority().checkpoint().unwrap();
+    let _second = create_entity_outcome(&mut runtime, "b");
+    let _third = create_entity_outcome(&mut runtime, "c");
+
+    assert!(runtime
+        .history_authority()
+        .remove_commit_envelope_preserving_patch_stream_position_for_test(first.commit.commit_id));
+
+    let batch = runtime
+        .publication()
+        .read_patch_stream(PatchStreamRequest {
+            after_position: None,
+            max_commits: 8,
+        })
+        .unwrap();
+
+    assert_eq!(batch.patches.len(), 3);
+    assert_eq!(batch.patches[0].position, PatchStreamPosition(1));
+    assert_eq!(batch.next_position, Some(PatchStreamPosition(3)));
+}

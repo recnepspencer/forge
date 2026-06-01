@@ -2,6 +2,8 @@ mod aspect_versions;
 mod canonical_deltas;
 mod effect;
 mod effect_assembly;
+mod effect_diagnostics;
+mod effect_publication;
 mod execution;
 mod intents;
 mod mutation_context;
@@ -11,9 +13,10 @@ mod record_changes;
 mod stale_targets;
 mod workspace;
 
-pub(crate) use canonical_deltas::CanonicalRecordAspectDelta;
+pub(crate) use canonical_deltas::{CanonicalRecordAspectDelta, FoundationalPatchFragment};
 pub(crate) use effect::{AdjacencyDelta, AdjacencyDeltaKind, MutationEffect};
 pub(crate) use execution::{apply_plan_to_working_state, MutationApplyOutcome};
+pub(crate) use intents::plan_entity_field_aspect_patch;
 pub(crate) use record_changes::apply_adjacency_deltas;
 pub(crate) use workspace::{
     BranchLocalDeleteAllowance, MutationPreparationTelemetry, MutationWorkspace,

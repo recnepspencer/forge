@@ -1,4 +1,4 @@
-use crate::history::data::{AspectFilter, BranchId};
+use crate::history::data::BranchId;
 use crate::inspection::data::{
     HistoricalAspectObservation, HistoricalAvailabilityObservation, HistoricalInspectionMode,
     HistoricalOpenResult, HistoricalRecordInspection, HistoricalRecordObservation,
@@ -16,9 +16,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         version_id: crate::identity::data::VersionId,
         mode: HistoricalInspectionMode,
     ) -> HistoricalOpenResult {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.inspection_historical_view_opens += 1;
-        });
+        self.count_historical_view_open();
         let direct_available = version_id == self.runtime.current_version_id()
             || cached_state_for_version(self.runtime, version_id).is_some();
         match mode {
@@ -31,7 +29,9 @@ impl<'runtime> InspectionAccess<'runtime> {
             },
             HistoricalInspectionMode::RetainedOnly
             | HistoricalInspectionMode::AllowCanonicalReconstruction => {
-                let read_view = self.runtime.read_truth().read_version(version_id);
+                let read_view = self
+                    .read_view_for_scope(&InspectionScope::Version(version_id))
+                    .expect("version scope should always open a read view");
                 let availability = if direct_available {
                     InspectionAvailability::Direct
                 } else {
@@ -102,33 +102,20 @@ impl<'runtime> InspectionAccess<'runtime> {
             },
         };
         let lineage_resolution_context = match record_observation.target {
-            RecordRef::Entity(entity_id) => self.runtime.lineage_access().resolve_record_history(
-                crate::facade::lineage::RecordHistoryRequest {
-                    branch_id: branch_id.clone(),
-                    entity_id,
-                    boundedness_basis:
-                        crate::facade::lineage::HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
-                },
-            ),
+            RecordRef::Entity(entity_id) => {
+                self.resolve_lineage_record_history(branch_id, entity_id)
+            }
             RecordRef::Relation(_) => None,
         };
         let aspect_history_observation = match record_observation.target {
             RecordRef::Entity(entity_id) => Some(HistoricalAspectObservation {
-                query_result: self.runtime.history().entity_aspect_history_with_trace(
-                    branch_id,
-                    entity_id,
-                    None::<&AspectFilter>,
-                ),
+                query_result: self.entity_aspect_history_with_trace(branch_id, entity_id, None),
                 origin: InspectionOrigin::CanonicalCommitStorage,
                 access_path: InspectionAccessPath::CommitIndexRead,
                 availability: InspectionAvailability::Direct,
             }),
             RecordRef::Relation(relation_id) => Some(HistoricalAspectObservation {
-                query_result: self.runtime.history().relation_aspect_history_with_trace(
-                    branch_id,
-                    relation_id,
-                    None::<&AspectFilter>,
-                ),
+                query_result: self.relation_aspect_history_with_trace(branch_id, relation_id, None),
                 origin: InspectionOrigin::CanonicalCommitStorage,
                 access_path: InspectionAccessPath::CommitIndexRead,
                 availability: InspectionAvailability::Direct,

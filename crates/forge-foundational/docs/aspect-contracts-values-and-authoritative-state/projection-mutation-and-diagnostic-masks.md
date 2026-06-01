@@ -43,6 +43,8 @@ Good to know:
 - masks are contract law, not presentation sugar.
 - the common path keeps mask categories separate so projection, mutation, and
   diagnostic semantics do not blur together.
+- the common path authors field masks as sets of single declared fields; it is
+  not a nested-path mask authoring API.
 
 ## Core Mental Model
 
@@ -67,6 +69,18 @@ The normal flow is:
 3. admit that mask against the aspect contract
 4. reuse the admitted mutation mask for field-level patching or the admitted
    diagnostic mask for explicit diagnostic targeting
+
+At the front door, field masks are intentionally single-field-path masks built
+from declared field keys. If you need a broader canonical path vocabulary for
+later locator or digest work, use the lower lane instead of widening the mask
+authoring contract.
+
+Opaque aspects are stricter than the other shape families:
+
+- the common path exposes `opaque_diagnostic_only()` as the canonical opaque
+  mask contract
+- opaque contract authoring now fails closed if a caller tries to pair an
+  opaque shape with a non-diagnostic mask contract
 
 ## Small Example
 
@@ -144,6 +158,8 @@ If a field-level operation fails later, confirm the mutation mask first.
 - Do not treat projection, mutation, and diagnostic masks as one generic list.
 - Do not make field-level patch legality independent from mutation-mask law.
 - Do not leave mask behavior implicit for opaque or struct-shaped aspects.
+- Do not pair opaque contracts with scalar-style projection or mutation mask
+  contracts just because the mask booleans fit mechanically.
 
 ## Current Limits
 

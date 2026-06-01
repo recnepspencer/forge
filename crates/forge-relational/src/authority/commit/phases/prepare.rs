@@ -63,17 +63,11 @@ fn sparse_entity_slots_for_plan(
     let mut slots_by_partition = BTreeMap::new();
     for intent in &merged_plan.merged_intents {
         match intent {
-            MutationIntent::Entity(EntityMutationIntent::Update(spec)) => {
-                slots_by_partition
-                    .entry(spec.entity_id.partition_id)
-                    .or_insert_with(BTreeSet::new)
-                    .insert(spec.entity_id.local_slot.0 as usize);
-            }
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(spec)) => {
                 slots_by_partition
                     .entry(spec.entity_id.partition_id)
                     .or_insert_with(BTreeSet::new)
-                    .insert(spec.entity_id.local_slot.0 as usize);
+                    .insert(spec.entity_id.slot_index());
             }
             MutationIntent::Create(_)
                 if matches!(clone_mode, PartitionCloneMode::GraphSparseEntities) => {}
@@ -110,7 +104,6 @@ fn sparse_relation_overlay_partitions_for_plan(
             }
             MutationIntent::Create(CreateIntent::Entity(_))
             | MutationIntent::Create(CreateIntent::BulkEntities(_))
-            | MutationIntent::Entity(EntityMutationIntent::Update(_))
             | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {}
             _ => return None,
         }
@@ -295,9 +288,9 @@ pub(crate) fn record_mutation_counters(
 #[cfg(test)]
 mod tests {
     use crate::identity::data::{EntityId, PartitionId};
-    use crate::payloads::data::RecordPayload;
     use crate::transactions::data::{
-        EntityMutationIntent, MergedCommitPlan, MutationIntent, TransactionId, UpdateEntityIntent,
+        AspectFieldPatch, EntityMutationIntent, MergedCommitPlan, MutationIntent, TransactionId,
+        UpdateEntityFieldsIntent,
     };
 
     use super::{
@@ -306,10 +299,12 @@ mod tests {
     };
 
     fn update_intent(partition: u32, slot: u64) -> MutationIntent {
-        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            entity_id: EntityId::new(PartitionId(partition), slot, 1),
-            payload: RecordPayload::StructuredJson(serde_json::json!({"slot": slot})),
-        }))
+        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+            UpdateEntityFieldsIntent {
+                entity_id: EntityId::new(PartitionId(partition), slot, 1),
+                fields: AspectFieldPatch::default(),
+            },
+        ))
     }
 
     fn merged_plan(intents: Vec<MutationIntent>) -> MergedCommitPlan {

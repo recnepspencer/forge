@@ -1,61 +1,80 @@
 use smallvec::SmallVec;
 
-use crate::diagnostics::data::DiagnosticCode;
 use crate::identity::data::EntityId;
-use crate::payloads::data::RecordPayload;
-use crate::publication::patch::data::{AspectKey, CanonicalAspectSet, RecordStructuralChange};
-use crate::schema::data::{AspectPlanRevision, AspectPrecision};
-use crate::transactions::data::CommitConflict;
-use crate::transactions::data::ConflictClass;
+use crate::publication::patch::data::RecordStructuralChange;
+use crate::schema::data::AspectContractPlanRevision;
 use crate::transactions::data::RecordRef;
+use crate::transactions::data::{
+    AspectDeltaFailureFields, AspectDeltaPatchConstructionDenial, AspectDeltaPatchValueDenial,
+    AspectDeltaRecordClass, CommitConflict, ConflictClass,
+};
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectKey, AspectValueLocator, ContractValidatedAspectValue,
+    FieldLevelAspectPatch,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CanonicalRecordAspectDelta {
     pub(crate) target: RecordRef,
     pub(crate) kind_id: crate::identity::data::KindId,
-    pub(crate) plan_revision: AspectPlanRevision,
+    pub(crate) plan_revision: AspectContractPlanRevision,
     pub(crate) structural_change: RecordStructuralChange,
-    pub(crate) changed_aspects: CanonicalAspectSet,
+    pub(crate) changed_aspects: Vec<AspectKey>,
     pub(crate) evaluated_bindings: SmallVec<[EvaluatedAspectBinding; 4]>,
-    pub(crate) contains_degraded_precision: bool,
+    pub(crate) contains_opaque_aspect: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct EvaluatedAspectBinding {
     pub(crate) aspect_key: AspectKey,
+    pub(crate) contract: forge_foundational::AspectContract,
     pub(crate) changed: bool,
-    pub(crate) precision: AspectPrecision,
-    pub(crate) evidence: BindingEvidence,
+    pub(crate) aspect_shape: forge_foundational::AspectShape,
+    pub(crate) evidence: CanonicalAspectDeltaEvidence,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum BindingEvidence {
-    JsonFieldPresenceOrValue {
+pub(crate) enum CanonicalAspectDeltaEvidence {
+    ScalarAspectValueTransition {
+        locator: AspectValueLocator,
         old_present: bool,
         new_present: bool,
-        old_canonical_json: Option<String>,
-        new_canonical_json: Option<String>,
+        old_value: Option<forge_foundational::facade::AspectValue>,
+        new_value: Option<forge_foundational::facade::AspectValue>,
+    },
+    StructAspectValueTransition {
+        locator: AspectValueLocator,
+        old_present: bool,
+        new_present: bool,
+        old_value: Option<forge_foundational::facade::StructAspectValue>,
+        new_value: Option<forge_foundational::facade::StructAspectValue>,
     },
     EndpointIdentity {
+        locator: AspectValueLocator,
         old: Option<EntityId>,
         new: Option<EntityId>,
     },
     Lifecycle {
+        locator: AspectValueLocator,
         transition: LifecycleTransitionClass,
     },
-    OpaquePayloadDigest {
-        old_present: bool,
-        new_present: bool,
-        old_diagnostic_digest: Option<u128>,
-        new_diagnostic_digest: Option<u128>,
+    AuthoritativePatch {
+        locator: AspectValueLocator,
+        operation: AuthoritativePatchDeltaOperation,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum AuthoritativePatchDeltaOperation {
+    WholeAspectSet { value: ContractValidatedAspectValue },
+    WholeAspectClear { aspect_key: AspectKey },
+    FieldLevelPatch { patch: FieldLevelAspectPatch },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum LifecycleTransitionClass {
     NoTransition,
     Create,
-    Update,
     Delete,
     RetainForAudit,
 }
@@ -64,13 +83,17 @@ pub(crate) enum LifecycleTransitionClass {
 pub(crate) enum BindingEvaluationContext<'a> {
     Entity {
         structural_change: RecordStructuralChange,
-        old_payload: Option<&'a RecordPayload>,
-        new_payload: Option<&'a RecordPayload>,
+        old_authoritative_state:
+            Option<&'a forge_foundational::facade::AuthoritativeRecordAspectState>,
+        new_authoritative_state:
+            Option<&'a forge_foundational::facade::AuthoritativeRecordAspectState>,
     },
     Relation {
         structural_change: RecordStructuralChange,
-        old_payload: Option<&'a RecordPayload>,
-        new_payload: Option<&'a RecordPayload>,
+        old_authoritative_state:
+            Option<&'a forge_foundational::facade::AuthoritativeRecordAspectState>,
+        new_authoritative_state:
+            Option<&'a forge_foundational::facade::AuthoritativeRecordAspectState>,
         old_source: Option<EntityId>,
         new_source: Option<EntityId>,
         old_target: Option<EntityId>,
@@ -90,15 +113,33 @@ impl<'a> BindingEvaluationContext<'a> {
         }
     }
 
-    pub(crate) fn old_payload(self) -> Option<&'a RecordPayload> {
+    pub(crate) fn old_authoritative_state(
+        self,
+    ) -> Option<&'a forge_foundational::facade::AuthoritativeRecordAspectState> {
         match self {
-            Self::Entity { old_payload, .. } | Self::Relation { old_payload, .. } => old_payload,
+            Self::Entity {
+                old_authoritative_state,
+                ..
+            } => old_authoritative_state,
+            Self::Relation {
+                old_authoritative_state,
+                ..
+            } => old_authoritative_state,
         }
     }
 
-    pub(crate) fn new_payload(self) -> Option<&'a RecordPayload> {
+    pub(crate) fn new_authoritative_state(
+        self,
+    ) -> Option<&'a forge_foundational::facade::AuthoritativeRecordAspectState> {
         match self {
-            Self::Entity { new_payload, .. } | Self::Relation { new_payload, .. } => new_payload,
+            Self::Entity {
+                new_authoritative_state,
+                ..
+            } => new_authoritative_state,
+            Self::Relation {
+                new_authoritative_state,
+                ..
+            } => new_authoritative_state,
         }
     }
 
@@ -135,16 +176,21 @@ pub(crate) enum CanonicalDeltaError {
         aspect_key: AspectKey,
         detail: String,
     },
-    SymbolicLoweredFieldName {
-        aspect_key: AspectKey,
-        field: crate::symbols::data::InternedString,
-    },
-    JsonEvidenceSerialization {
+    AspectValueMaterialization {
         aspect_key: AspectKey,
         detail: String,
     },
-    CanonicalAspectKeyRequiresRawString {
+    EntityFieldBindingRequiresAuthoritativePatchEvidence {
+        target: AspectFieldLocator,
+    },
+    FoundationalPatchValueValidation {
+        target: RecordRef,
         aspect_key: AspectKey,
+        denial: AspectDeltaPatchValueDenial,
+    },
+    FoundationalPatchConstruction {
+        target: RecordRef,
+        denial: AspectDeltaPatchConstructionDenial,
     },
 }
 
@@ -152,7 +198,7 @@ impl CanonicalDeltaError {
     pub(crate) fn to_commit_conflict(&self) -> CommitConflict {
         CommitConflict::new(ConflictClass::AspectDeltaFailure {
             detail: self.detail(),
-            fields: self.fields(),
+            fields: self.failure_fields(),
         })
     }
 
@@ -167,45 +213,83 @@ impl CanonicalDeltaError {
                 kind_id.0
             ),
             Self::InvalidLoweredBindingForRecordClass { detail, .. } => detail.clone(),
-            Self::SymbolicLoweredFieldName { aspect_key, .. } => format!(
-                "lowered aspect binding {:?} carried a symbolic field name into canonical delta evaluation",
-                aspect_key
+            Self::AspectValueMaterialization { detail, .. } => detail.clone(),
+            Self::EntityFieldBindingRequiresAuthoritativePatchEvidence { target } => format!(
+                "entity aspect field target {} requires authoritative patch evidence during canonical delta evaluation",
+                hex_bytes(&crate::aspect_wire::encode_aspect_field_locator(target))
             ),
-            Self::JsonEvidenceSerialization { detail, .. } => detail.clone(),
-            Self::CanonicalAspectKeyRequiresRawString { aspect_key } => format!(
-                "canonical aspect key {:?} must remain raw when writing aspect versions",
-                aspect_key
+            Self::FoundationalPatchValueValidation {
+                target,
+                aspect_key,
+                denial,
+            } => format!(
+                "failed to validate foundational patch value for aspect {:?} on {:?}: {:?}",
+                aspect_key, target, denial
+            ),
+            Self::FoundationalPatchConstruction { target, denial } => format!(
+                "failed to materialize foundational patch fragment for {:?}: {:?}",
+                target, denial
             ),
         }
     }
 
-    fn fields(&self) -> serde_json::Value {
+    fn failure_fields(&self) -> AspectDeltaFailureFields {
         match self {
-            Self::MissingEntityAspectPlan { kind_id } => serde_json::json!({
-                "kind_id": kind_id.0,
-                "record_class": "entity",
-                "code": DiagnosticCode::AspectDeltaFailure,
-            }),
-            Self::MissingRelationAspectPlan { kind_id } => serde_json::json!({
-                "kind_id": kind_id.0,
-                "record_class": "relation",
-                "code": DiagnosticCode::AspectDeltaFailure,
-            }),
-            Self::InvalidLoweredBindingForRecordClass { aspect_key, detail } => serde_json::json!({
-                "aspect_key": aspect_key,
-                "detail": detail,
-            }),
-            Self::SymbolicLoweredFieldName { aspect_key, field } => serde_json::json!({
-                "aspect_key": aspect_key,
-                "field": field,
-            }),
-            Self::JsonEvidenceSerialization { aspect_key, detail } => serde_json::json!({
-                "aspect_key": aspect_key,
-                "detail": detail,
-            }),
-            Self::CanonicalAspectKeyRequiresRawString { aspect_key } => serde_json::json!({
-                "aspect_key": aspect_key,
-            }),
+            Self::MissingEntityAspectPlan { kind_id } => {
+                AspectDeltaFailureFields::MissingAspectPlan {
+                    kind_id: *kind_id,
+                    record_class: AspectDeltaRecordClass::Entity,
+                    code: crate::diagnostics::data::DiagnosticCode::AspectDeltaFailure,
+                }
+            }
+            Self::MissingRelationAspectPlan { kind_id } => {
+                AspectDeltaFailureFields::MissingAspectPlan {
+                    kind_id: *kind_id,
+                    record_class: AspectDeltaRecordClass::Relation,
+                    code: crate::diagnostics::data::DiagnosticCode::AspectDeltaFailure,
+                }
+            }
+            Self::InvalidLoweredBindingForRecordClass { aspect_key, detail } => {
+                AspectDeltaFailureFields::InvalidLoweredBindingForRecordClass {
+                    aspect_key: aspect_key.clone(),
+                    detail: detail.clone(),
+                }
+            }
+            Self::AspectValueMaterialization { aspect_key, detail } => {
+                AspectDeltaFailureFields::AspectValueMaterialization {
+                    aspect_key: aspect_key.clone(),
+                    detail: detail.clone(),
+                }
+            }
+            Self::EntityFieldBindingRequiresAuthoritativePatchEvidence { target } => {
+                AspectDeltaFailureFields::EntityFieldBindingRequiresAuthoritativePatchEvidence {
+                    target: target.clone(),
+                }
+            }
+            Self::FoundationalPatchValueValidation {
+                target,
+                aspect_key,
+                denial,
+            } => AspectDeltaFailureFields::FoundationalPatchValueValidation {
+                target: target.clone(),
+                aspect_key: aspect_key.clone(),
+                denial: denial.clone(),
+            },
+            Self::FoundationalPatchConstruction { target, denial } => {
+                AspectDeltaFailureFields::FoundationalPatchConstruction {
+                    target: target.clone(),
+                    denial: denial.clone(),
+                }
+            }
         }
     }
+}
+
+fn hex_bytes(bytes: &[u8]) -> String {
+    let mut encoded = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        use std::fmt::Write;
+        write!(&mut encoded, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    encoded
 }

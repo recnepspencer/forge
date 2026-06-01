@@ -9,8 +9,8 @@ error: cannot construct `QueryContextExecutionArtifact` with struct literal synt
    |         --------------------------- private field
  7 |         result_digest: String::new(),
    |         ---------------------------- private field
- 8 |         payload: Vec::new(),
-   |         ------------------- private field
+ 8 |         rows: Vec::new(),
+   |         ---------------- private field
  9 |         family: unsafe { std::mem::zeroed() },
    |         ------------------------------------- private field
 10 |         cost_class: unsafe { std::mem::zeroed() },

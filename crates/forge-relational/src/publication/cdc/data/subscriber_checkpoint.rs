@@ -61,26 +61,26 @@ impl SubscriberCheckpoint {
             schema_version,
             subscriber_contract_id,
             normalized_continuation_proof: continuation_assessment
-                .normalized_continuation_proof
+                .normalized_continuation_proof()
                 .clone(),
-            continuation_summary: continuation_assessment.continuation_summary.clone(),
+            continuation_summary: continuation_assessment.continuation_summary().clone(),
             descriptor_semantics_version,
             authoritative_boundary_fingerprint: continuation_assessment
-                .boundary_assessments
+                .boundary_assessments()
                 .last()
-                .map(|assessment| assessment.boundary_fingerprint),
+                .map(|assessment| assessment.boundary_fingerprint()),
             authoritative_descriptor_continuation: continuation_assessment
-                .boundary_assessments
+                .boundary_assessments()
                 .last()
-                .map(|assessment| assessment.descriptor_continuation),
+                .map(|assessment| assessment.descriptor_continuation()),
             authoritative_subscriber_outcome: continuation_assessment
-                .boundary_assessments
+                .boundary_assessments()
                 .last()
-                .map(|assessment| assessment.subscriber_outcome),
+                .map(|assessment| assessment.subscriber_outcome()),
             authoritative_contract_consumes_boundary: continuation_assessment
-                .boundary_assessments
+                .boundary_assessments()
                 .last()
-                .is_some_and(|assessment| assessment.contract_consumes_boundary),
+                .is_some_and(|assessment| assessment.contract_consumes_boundary()),
         }
     }
 

@@ -9,7 +9,7 @@ pub(super) fn build_topology_localization_report_from_query_rows(
         .map(|row| {
             Ok(TopologyLocalizationEntityRow {
                 entity_id: serde_json::from_value(required_payload_value(
-                    &row.payload,
+                    &row.external_row(),
                     "lineage.provenance",
                 )?)
                 .map_err(|error| {
@@ -17,7 +17,7 @@ pub(super) fn build_topology_localization_report_from_query_rows(
                         "query certification entity lineage provenance failed to decode: {error}"
                     ))
                 })?,
-                kind_name: required_payload_text(&row.payload, "topology.kind")?.to_string(),
+                kind_name: required_payload_text(&row.external_row(), "topology.kind")?.to_string(),
             })
         })
         .collect::<Result<Vec<_>, MilestoneOneCertificationError>>()?;
@@ -26,7 +26,7 @@ pub(super) fn build_topology_localization_report_from_query_rows(
         .map(|row| {
             Ok(TopologyLocalizationRelationRow {
                 relation_id: serde_json::from_value(required_payload_value(
-                    &row.payload,
+                    &row.external_row(),
                     "lineage.provenance",
                 )?)
                 .map_err(|error| {
@@ -34,7 +34,7 @@ pub(super) fn build_topology_localization_report_from_query_rows(
                         "query certification relation lineage provenance failed to decode: {error}"
                     ))
                 })?,
-                kind_name: required_payload_text(&row.payload, "topology.kind")?.to_string(),
+                kind_name: required_payload_text(&row.external_row(), "topology.kind")?.to_string(),
             })
         })
         .collect::<Result<Vec<_>, MilestoneOneCertificationError>>()?;

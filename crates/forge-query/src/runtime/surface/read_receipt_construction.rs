@@ -90,9 +90,11 @@ impl ForgeQueryReadReceipt {
                 execution_read_operation_count: context_execution
                     .counters()
                     .context_execution_count(),
-                execution_records_examined_count: context_execution.counters().payload_row_count(),
+                execution_records_examined_count: context_execution
+                    .counters()
+                    .materialized_row_count(),
                 execution_records_emitted_count: rows.len(),
-                execution_page_width: context_execution.counters().payload_row_count(),
+                execution_page_width: context_execution.counters().materialized_row_count(),
                 execution_page_truncation_count: 0,
                 execution_cursor_advance_count: 0,
                 execution_materialized_relation_count: rows.len(),

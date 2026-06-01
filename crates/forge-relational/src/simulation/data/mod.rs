@@ -9,8 +9,8 @@ pub enum TopologyFreezeMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum CompiledArtifactCompatibility {
-    Compatible,
+pub enum CompiledArtifactAuthorityStatus {
+    Authoritative,
     StaleVersion,
     MissingSourceCommit,
     CompiledLaneDisabled,
@@ -18,7 +18,7 @@ pub enum CompiledArtifactCompatibility {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompiledArtifactError {
-    pub compatibility: CompiledArtifactCompatibility,
+    pub authority_status: CompiledArtifactAuthorityStatus,
     pub detail: String,
 }
 

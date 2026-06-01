@@ -54,11 +54,11 @@ fn subscriber_cdc_is_snapshot_stable_under_hot_rewrite_pressure() {
 
     assert_eq!(
         read_entity_name(pinned_snapshot_read.get_entity(pinned_entity).unwrap()),
-        Some("baseline")
+        Some("baseline".into())
     );
     assert_eq!(
         read_entity_name(pinned_latest_read.get_entity(pinned_entity).unwrap()),
-        Some("rewrite-4")
+        Some("rewrite-4".into())
     );
 
     let retention = pinned_runtime.retention().inspect_plan();

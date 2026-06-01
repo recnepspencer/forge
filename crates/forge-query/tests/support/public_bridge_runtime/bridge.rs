@@ -21,7 +21,12 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for PublicBridgeSource {
             TruthPatchIdentity::new(format!("patch:{}", request.commit_identity())),
             TruthSnapshotIdentity::new("public-bridge-snapshot"),
             TruthBranchIdentity::new("main"),
-            vec![BridgeCommittedPatchItem::new("entity", "aspect", "value")],
+            vec![BridgeCommittedPatchItem::new(
+                "entity",
+                forge_foundational::facade::AspectKey::new("aspect")
+                    .expect("valid bridge patch aspect key"),
+                "value",
+            )],
         ))
     }
 }

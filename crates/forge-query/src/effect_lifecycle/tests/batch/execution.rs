@@ -1,7 +1,7 @@
 use forge_relational::facade::history::BranchId;
-use forge_relational::facade::payloads::RecordPayload;
 use serde_json::json;
 
+use crate::aspect_field_authoring::aspect_key;
 use crate::effect_lifecycle::{
     effect_batch, EffectAuthoringBasis, EffectBatchExecutionDenialKind, EffectExecutionAuthority,
     EffectExecutionDenialKind,
@@ -80,14 +80,10 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
     let names = read_view
         .entities()
         .iter()
-        .map(|record| record.payload.clone())
+        .filter_map(entity_name)
         .collect::<Vec<_>>();
-    assert!(names.contains(&RecordPayload::StructuredJson(
-        json!({ "name": "left-batched" })
-    )));
-    assert!(names.contains(&RecordPayload::StructuredJson(
-        json!({ "name": "right-batched" })
-    )));
+    assert!(names.contains(&"left-batched".to_string()));
+    assert!(names.contains(&"right-batched".to_string()));
 }
 
 #[test]
@@ -223,4 +219,17 @@ fn lowered_branch_batch_does_not_deny_when_only_another_branch_moves() {
         .expect("batch should retain one aggregate mutation commit");
     assert_ne!(aggregate.outcome.commit.commit_id, main_head_before);
     assert_eq!(aggregate.outcome.commit.parents.len(), 1);
+}
+
+fn entity_name(record: &forge_relational::facade::runtime::EntityReadRecord) -> Option<String> {
+    let state = record.authoritative_aspect_state.as_ref()?;
+    let value = state.get(&aspect_key("name").ok()?)?;
+    match value.view() {
+        forge_foundational::facade::ContractValidatedAspectValueView::Scalar(
+            forge_foundational::facade::AspectValue::String(
+                forge_foundational::facade::InternedString::Raw(actual),
+            ),
+        ) => Some(actual.clone()),
+        _ => None,
+    }
 }

@@ -22,7 +22,7 @@ impl<'a> RetainedTopologyRows<'a> {
     ) -> Result<RetainedTopologyRow<'a>, TopologyReadError> {
         self.rows
             .iter()
-            .find(|row| row.identity == identity)
+            .find(|row| row.identity() == identity)
             .map(|row| RetainedTopologyRow { row })
             .ok_or_else(|| {
                 TopologyReadError::read_family_execution_denied(format!(
@@ -32,7 +32,7 @@ impl<'a> RetainedTopologyRows<'a> {
     }
 
     pub(crate) fn identities(&self) -> impl Iterator<Item = &'a str> {
-        self.rows.iter().map(|row| row.identity.as_str())
+        self.rows.iter().map(|row| row.identity())
     }
 }
 
@@ -48,7 +48,7 @@ impl<'a> RetainedTopologyRow<'a> {
         label: &str,
     ) -> Result<&'a str, TopologyReadError> {
         relation_target_identity_from_payload(
-            self.row.payload.get("relations"),
+            self.row.external_row().get("relations"),
             relation,
             label,
             "relation materialization",
@@ -61,7 +61,7 @@ impl<'a> RetainedTopologyRow<'a> {
         label: &str,
     ) -> Result<&'a str, TopologyReadError> {
         relation_target_identity_from_payload(
-            self.row.payload.get("relation_identities"),
+            self.row.external_row().get("relation_identities"),
             relation,
             label,
             "relation identity materialization",

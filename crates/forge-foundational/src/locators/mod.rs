@@ -1,7 +1,7 @@
 mod artifact_locator;
 mod aspect_locator;
 mod authority;
-mod source_locator;
+mod boundary_locator;
 mod transition_locator;
 
 pub use artifact_locator::{BoundaryArtifactField, BoundaryArtifactLocator};
@@ -9,7 +9,7 @@ pub use aspect_locator::{
     AspectContractLocator, AspectFieldLocator, AspectLocator, AspectMaskLocator, AspectValueLocator,
 };
 pub use authority::LocatorAuthority;
-pub use source_locator::{BoundaryMismatchLocator, BoundarySourceLocator};
+pub use boundary_locator::{BoundaryMismatchLocator, BoundarySourceLocator};
 pub use transition_locator::{
     FoundationalBranchCandidateLocator, FoundationalCommitParentageLocator,
     FoundationalCommittedDeltaLocator, FoundationalMergeConflictLocator,

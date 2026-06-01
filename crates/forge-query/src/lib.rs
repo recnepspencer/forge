@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 
 mod application;
+mod aspect_field_authoring;
 mod authoring;
 mod authorized_projection;
 mod basis;

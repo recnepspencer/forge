@@ -47,9 +47,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         &self,
         request: &ConnectivityInspectionRequest,
     ) -> ConnectivityInspectionSummary {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.inspection_connectivity_summary_requests += 1;
-        });
+        self.count_connectivity_summary_request();
         if matches!(request.scope, InspectionScope::Current) {
             return self.current_connectivity_summary(request);
         }
@@ -148,7 +146,7 @@ impl<'runtime> InspectionAccess<'runtime> {
                     availability: self.scope_availability(&request.scope, version_id),
                     degradations: summary_degradations(request.include_members, None),
                 };
-                self.count_connectivity_work(&work);
+                self.record_connectivity_work(&work);
                 summary
             }
             Err((work, degradation)) => {
@@ -162,22 +160,13 @@ impl<'runtime> InspectionAccess<'runtime> {
         scope: InspectionScope,
         entity_id: EntityId,
     ) -> NeighborInspectionResult {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.inspection_neighbor_requests += 1;
-        });
+        self.count_neighbor_request();
         let version_id = self.scope_version_id(&scope);
-        let relation_ids = self
-            .runtime
-            .storage_access()
-            .all_relations_for_entity(entity_id, version_id);
+        let relation_ids = self.scoped_relation_ids_for_entity(&scope, entity_id);
         let (outgoing_relation_ids, incoming_relation_ids): (Vec<_>, Vec<_>) =
             relation_ids.into_iter().partition(|relation_id| {
-                self.runtime
-                    .storage_access()
-                    .partition_state(relation_id.partition_id)
-                    .and_then(|partition| partition.relation_arena.get(relation_id))
-                    .and_then(|slot_view| slot_view.extra().clone())
-                    .is_some_and(|endpoints| endpoints.source == entity_id)
+                self.scoped_relation_endpoints(&scope, *relation_id)
+                    .is_some_and(|(source, _)| source == entity_id)
             });
         NeighborInspectionResult {
             entity_id,
@@ -200,12 +189,11 @@ impl<'runtime> InspectionAccess<'runtime> {
         let mut entities = Vec::new();
         let mut work = ConnectivityWork::default();
 
-        for partition_id in self.runtime.storage_access().partition_ids() {
+        for partition_id in self.current_partition_ids() {
             if !partition_scope.allows(partition_id) {
                 continue;
             }
-            let Some(partition) = self.runtime.storage_access().partition_state(partition_id)
-            else {
+            let Some(partition) = self.current_partition_state(partition_id) else {
                 continue;
             };
             for slot in partition.entity_arena.live_bitset.iter_set_slots() {
@@ -243,10 +231,8 @@ impl<'runtime> InspectionAccess<'runtime> {
 
         for entity in &entities {
             adjacency.entry(*entity).or_default();
-            for relation_id in self
-                .runtime
-                .storage_access()
-                .all_relations_for_entity(*entity, self.runtime.current_version_id())
+            for relation_id in
+                self.scoped_relation_ids_for_entity(&InspectionScope::Current, *entity)
             {
                 if !seen_relations.insert(relation_id) {
                     continue;
@@ -268,35 +254,24 @@ impl<'runtime> InspectionAccess<'runtime> {
                         InspectionDegradation::RelationBudgetExceeded,
                     );
                 }
-                let Some(partition) = self
-                    .runtime
-                    .storage_access()
-                    .partition_state(relation_id.partition_id)
+                let Some(record) = self
+                    .scoped_authoritative_relation_record(&InspectionScope::Current, relation_id)
                 else {
                     continue;
                 };
-                let Some(slot_view) = partition.relation_arena.get(&relation_id) else {
-                    continue;
-                };
-                let Some(kind_id) = slot_view.kind_id() else {
-                    continue;
-                };
+                let kind_id = record.kind.kind_id;
                 if !relation_kind_scope.allows(kind_id) {
                     continue;
                 }
-                let Some(endpoints) = slot_view.extra().clone() else {
-                    continue;
-                };
-                if entity_set.contains(&endpoints.source) && entity_set.contains(&endpoints.target)
-                {
+                if entity_set.contains(&record.source) && entity_set.contains(&record.target) {
                     adjacency
-                        .entry(endpoints.source)
+                        .entry(record.source)
                         .or_default()
-                        .insert(endpoints.target);
+                        .insert(record.target);
                     adjacency
-                        .entry(endpoints.target)
+                        .entry(record.target)
                         .or_default()
-                        .insert(endpoints.source);
+                        .insert(record.source);
                 }
             }
         }
@@ -327,7 +302,7 @@ impl<'runtime> InspectionAccess<'runtime> {
                     availability: InspectionAvailability::Direct,
                     degradations: summary_degradations(request.include_members, None),
                 };
-                self.count_connectivity_work(&work);
+                self.record_connectivity_work(&work);
                 summary
             }
             Err((work, degradation)) => self.connectivity_budget_refusal(
@@ -396,21 +371,17 @@ impl<'runtime> InspectionAccess<'runtime> {
         work: ConnectivityWork,
         degradation: InspectionDegradation,
     ) -> ConnectivityInspectionSummary {
-        self.count_connectivity_work(&work);
-        self.runtime
-            .performance_access()
-            .count_inspection_budget_refusal();
+        self.record_connectivity_work(&work);
+        self.count_budget_refusal();
         self.budget_exceeded_connectivity_summary(request, version_id, degradation)
     }
 
-    fn count_connectivity_work(&self, work: &ConnectivityWork) {
-        self.runtime
-            .performance_access()
-            .count_inspection_connectivity_work(
-                work.entity_scans,
-                work.relation_scans,
-                work.frontier_expansions,
-                work.components_evaluated,
-            );
+    fn record_connectivity_work(&self, work: &ConnectivityWork) {
+        self.count_connectivity_work(
+            work.entity_scans,
+            work.relation_scans,
+            work.frontier_expansions,
+            work.components_evaluated,
+        );
     }
 }

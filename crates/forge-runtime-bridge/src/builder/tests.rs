@@ -27,6 +27,7 @@ use crate::snapshot::{
 use crate::source::{
     BridgeSourceCapability, BridgeSourceCapabilitySet, SourceDeclaration, SourceDeclarationIdentity,
 };
+use forge_foundational::facade::AspectKey;
 
 struct TestSource;
 
@@ -200,6 +201,10 @@ fn source_declaration(
     )
 }
 
+fn aspect_key(value: &str) -> AspectKey {
+    AspectKey::new(value).expect("valid builder test aspect key")
+}
+
 #[test]
 fn build_freezes_mapping_registry_before_runtime_construction() {
     let runtime = RuntimeBridgeBuilder::new()
@@ -258,7 +263,7 @@ fn build_accepts_optional_continuity_lineage_source() {
             crate::continuity::PriorSubscriptionSlice::from_parts(
                 crate::routing::BridgeSubscriptionSliceIdentity::new("slice:test"),
                 "entity:test",
-                "aspect:test",
+                aspect_key("aspect.test"),
                 "surface:test",
                 crate::mapping::SubscriptionSliceKind::SignalField,
                 crate::routing::FineGrainedMatchStatus::Matched,
@@ -306,7 +311,7 @@ fn continuity_lineage_source_can_return_typed_unsupported_class_failure() {
             crate::continuity::PriorSubscriptionSlice::from_parts(
                 crate::routing::BridgeSubscriptionSliceIdentity::new("slice:test"),
                 "relation:test",
-                "aspect:test",
+                aspect_key("aspect.test"),
                 "surface:test",
                 crate::mapping::SubscriptionSliceKind::SignalField,
                 crate::routing::FineGrainedMatchStatus::Matched,

@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CanonicalDecimal(pub String);
 
 impl CanonicalDecimal {
@@ -11,7 +13,7 @@ impl CanonicalDecimal {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CanonicalBigInt(pub String);
 
 impl CanonicalBigInt {
@@ -24,7 +26,7 @@ impl CanonicalBigInt {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CanonicalRational {
     pub numerator: CanonicalBigInt,
     pub denominator: CanonicalBigInt,

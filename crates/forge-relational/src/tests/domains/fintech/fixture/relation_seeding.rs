@@ -1,12 +1,10 @@
 use crate::facade::identity::{EntityId, KindId, PartitionId, RelationId};
-use crate::facade::payloads::RecordPayload;
 use crate::facade::runtime::RelationalRuntime;
-use crate::facade::symbols::InternedString;
 use crate::facade::transactions::{
-    BulkRelationCreateIntent, CommitResult, CreateIntent, MutationIntent, RecordRef,
-    TransactionOptions, WorkerIntentBatch,
+    AspectFieldPatch, BulkRelationCreateIntent, CommitResult, CreateIntent, MutationIntent,
+    RecordRef, TransactionOptions, WorkerIntentBatch,
 };
-use serde_json::json;
+use crate::tests::support::single_string_aspect_field_patch;
 
 use super::entity_seeding::SeededEntityState;
 use super::seed_catalog::FintechCaseSeed;
@@ -39,7 +37,7 @@ pub(super) fn seed_relations(
                         )
                         .expect("desk exists"),
                 ),
-                json!({ "role": "owned_by_desk" }),
+                relation_role_patch("owned_by_desk"),
             )
         }),
     ));
@@ -51,7 +49,7 @@ pub(super) fn seed_relations(
             (
                 format!("trade-account-{:?}", case.role),
                 (case.trade, case.account),
-                json!({ "role": "book_owner" }),
+                relation_role_patch("book_owner"),
             )
         }),
     ));
@@ -63,7 +61,7 @@ pub(super) fn seed_relations(
             (
                 format!("trade-book-{:?}", case.role),
                 (case.trade, case.book),
-                json!({ "role": "booked_in" }),
+                relation_role_patch("booked_in"),
             )
         }),
     ));
@@ -75,7 +73,7 @@ pub(super) fn seed_relations(
             (
                 format!("trade-counterparty-{:?}", case.role),
                 (case.trade, case.counterparty),
-                json!({ "role": "facing" }),
+                relation_role_patch("facing"),
             )
         }),
     ));
@@ -87,7 +85,7 @@ pub(super) fn seed_relations(
             (
                 format!("trade-settlement-{:?}", case.role),
                 (case.trade, case.settlement),
-                json!({ "role": "settles_via" }),
+                relation_role_patch("settles_via"),
             )
         }),
     ));
@@ -99,7 +97,7 @@ pub(super) fn seed_relations(
             (
                 format!("settlement-cash-event-{:?}", case.role),
                 (case.settlement, case.cash_event),
-                json!({ "role": "funded_by" }),
+                relation_role_patch("funded_by"),
             )
         }),
     ));
@@ -111,7 +109,7 @@ pub(super) fn seed_relations(
             (
                 format!("trade-audit-{:?}", case.role),
                 (case.trade, case.audit_record),
-                json!({ "role": "audited_by" }),
+                relation_role_patch("audited_by"),
             )
         }),
     ));
@@ -123,7 +121,7 @@ pub(super) fn seed_relations(
             (
                 format!("trade-instrument-{:?}", case.role),
                 (case.trade, case.instrument),
-                json!({ "role": "references_instrument" }),
+                relation_role_patch("references_instrument"),
             )
         }),
     ));
@@ -135,7 +133,7 @@ pub(super) fn seed_relations(
             (
                 format!("trade-market-{:?}", case.role),
                 (case.trade, case.market_point),
-                json!({ "role": "marks" }),
+                relation_role_patch("marks"),
             )
         }),
     ));
@@ -147,7 +145,7 @@ pub(super) fn seed_relations(
             (
                 format!("trade-risk-{:?}", case.role),
                 (case.trade, case.risk_view),
-                json!({ "role": "derived_risk" }),
+                relation_role_patch("derived_risk"),
             )
         }),
     ));
@@ -159,7 +157,7 @@ pub(super) fn seed_relations(
             (
                 format!("risk-limit-{:?}", case.role),
                 (case.risk_view, case.limit),
-                json!({ "role": "checked_against" }),
+                relation_role_patch("checked_against"),
             )
         }),
     ));
@@ -171,7 +169,7 @@ pub(super) fn seed_relations(
             (
                 format!("limit-breach-{:?}", case.role),
                 (case.limit, case.breach),
-                json!({ "role": "breach_state" }),
+                relation_role_patch("breach_state"),
             )
         }),
     ));
@@ -185,18 +183,18 @@ pub(super) fn bulk_create_relations<I>(
     specs: I,
 ) -> Vec<RelationId>
 where
-    I: IntoIterator<Item = (String, (EntityId, EntityId), serde_json::Value)>,
+    I: IntoIterator<Item = (String, (EntityId, EntityId), AspectFieldPatch)>,
 {
     let mut client_keys = Vec::new();
     let mut endpoints = Vec::new();
-    let mut payloads = Vec::new();
-    for (key, (source, target), payload) in specs {
-        client_keys.push(InternedString::Raw(key));
+    let mut field_patches = Vec::new();
+    for (key, (source, target), fields) in specs {
+        client_keys.push(crate::facade::symbols::ClientKey::raw(key));
         endpoints.push((
             crate::transactions::data::EntityReference::Existing(source),
             crate::transactions::data::EntityReference::Existing(target),
         ));
-        payloads.push(Some(RecordPayload::StructuredJson(payload)));
+        field_patches.push(fields);
     }
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
@@ -206,11 +204,19 @@ where
                 kind_id: KindId(2),
                 client_keys,
                 endpoints,
-                payloads,
+                field_patches,
             }),
         )),
     );
     changed_relations(&txn.commit().unwrap())
+}
+
+fn relation_role_patch(role: &str) -> AspectFieldPatch {
+    single_string_aspect_field_patch(
+        crate::tests::support::aspect_key("role"),
+        crate::tests::support::field_key("role"),
+        role,
+    )
 }
 
 fn changed_relations(outcome: &CommitResult) -> Vec<RelationId> {

@@ -89,7 +89,7 @@ fn compose_read_shared_attachment_detail_matches_open_coded_local_detail_query_s
         })
         .expect("open-coded local detail should execute");
 
-    assert_eq!(operator_owned.payload(), open_coded.payload());
+    assert_eq!(operator_owned.rows(), open_coded.rows());
     assert_eq!(
         operator_owned.receipt().scope_class(),
         &ForgeQueryReadScopeClass::LocalNeighborhood
@@ -206,7 +206,7 @@ fn compose_read_shared_attachment_collection_matches_open_coded_local_collection
         })
         .expect("open-coded local collection should execute");
 
-    assert_eq!(operator_owned.payload(), open_coded.payload());
+    assert_eq!(operator_owned.rows(), open_coded.rows());
     assert_collection_receipt(&operator_owned, ForgeQueryReadScopeClass::LocalNeighborhood);
     assert_eq!(
         operator_owned.receipt().query_digest(),

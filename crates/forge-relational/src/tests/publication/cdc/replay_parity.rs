@@ -59,3 +59,30 @@ fn durable_source_subscriber_stream_matches_recovered_runtime_patch_stream() {
 
     assert_eq!(subscriber_batch.patches, recovered_patch_batch.patches);
 }
+
+#[test]
+fn subscriber_stream_keeps_patch_parity_when_later_retained_envelope_is_missing() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let _first = create_entity_outcome(&mut runtime, "a");
+    runtime.durability_authority().checkpoint().unwrap();
+    let second = create_entity_outcome(&mut runtime, "b");
+    let _third = create_entity_outcome(&mut runtime, "c");
+
+    assert!(runtime
+        .history_authority()
+        .remove_commit_envelope_preserving_patch_stream_position_for_test(second.commit.commit_id));
+
+    let patch_batch = runtime
+        .publication()
+        .read_patch_stream(PatchStreamRequest {
+            after_position: None,
+            max_commits: 8,
+        })
+        .unwrap();
+    let subscriber_batch = runtime
+        .publication()
+        .read_subscriber_stream(SubscriberResumeRequest::from_head(8))
+        .unwrap();
+
+    assert_eq!(subscriber_batch.patches, patch_batch.patches);
+}

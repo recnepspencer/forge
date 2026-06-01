@@ -47,10 +47,16 @@ impl TopologyRuntimeBinding {
                 else {
                     return Vec::new();
                 };
-                let projection = runtime.read_truth().project_version(version_id);
+                let read_view = runtime.read_truth().read_version(version_id);
                 schema::facade::platform::entities::EntityKind::ALL
                     .into_iter()
-                    .flat_map(|kind| projection.entity_records(kind.kind_id()))
+                    .flat_map(|kind| {
+                        read_view
+                            .entities()
+                            .iter()
+                            .filter(move |record| record.kind.kind_id == kind.kind_id())
+                            .cloned()
+                    })
                     .collect()
             }
             Self::SnapshotReadOnly { read_view, .. } => read_view.entities().to_vec(),
@@ -70,10 +76,16 @@ impl TopologyRuntimeBinding {
                 else {
                     return Vec::new();
                 };
-                let projection = runtime.read_truth().project_version(version_id);
+                let read_view = runtime.read_truth().read_version(version_id);
                 schema::facade::platform::relations::RelationKind::ALL
                     .into_iter()
-                    .flat_map(|kind| projection.relation_records(kind.kind_id()))
+                    .flat_map(|kind| {
+                        read_view
+                            .relations()
+                            .iter()
+                            .filter(move |record| record.kind.kind_id == kind.kind_id())
+                            .cloned()
+                    })
                     .collect()
             }
             Self::SnapshotReadOnly { read_view, .. } => read_view.relations().to_vec(),

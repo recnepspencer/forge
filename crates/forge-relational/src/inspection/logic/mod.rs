@@ -6,4 +6,7 @@ mod historical;
 mod retention;
 mod structural_identity;
 
+#[cfg(test)]
+mod tests;
+
 pub use access::InspectionAccess;

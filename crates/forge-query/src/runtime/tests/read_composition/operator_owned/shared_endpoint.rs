@@ -50,7 +50,7 @@ fn compose_read_executes_operator_owned_shared_endpoint_detail() {
         })
         .expect("operator-owned shared endpoint detail should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_eq!(
         result.receipt().scope_class(),
         &ForgeQueryReadScopeClass::LocalNeighborhood
@@ -120,7 +120,7 @@ fn compose_read_executes_operator_owned_shared_endpoint_collection() {
         })
         .expect("operator-owned shared endpoint collection should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_collection_receipt(&result, ForgeQueryReadScopeClass::LocalNeighborhood);
     assert_eq!(
         result.receipt().built_in_operator_coverage(),

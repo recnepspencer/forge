@@ -8,25 +8,25 @@ pub(crate) enum CanonicalIntentKey {
     CreateEntity {
         partition_id: crate::identity::data::PartitionId,
         kind_id: crate::identity::data::KindId,
-        client_key: crate::symbols::data::InternedString,
+        client_key: crate::symbols::data::ClientKey,
     },
     BulkCreateEntities {
         partition_id: crate::identity::data::PartitionId,
         kind_id: crate::identity::data::KindId,
-        client_keys: Vec<crate::symbols::data::InternedString>,
+        client_keys: Vec<crate::symbols::data::ClientKey>,
     },
-    UpdateEntity(EntityId),
     UpdateEntityFields(EntityId),
     ReplaceEntity {
         entity_id: EntityId,
         replacement_partition_id: crate::identity::data::PartitionId,
         replacement_kind_id: crate::identity::data::KindId,
-        replacement_client_key: crate::symbols::data::InternedString,
+        replacement_client_key: crate::symbols::data::ClientKey,
     },
     CreateRelation(RelationCreateKey),
     BulkCreateRelations {
         partition_id: crate::identity::data::PartitionId,
         kind_id: crate::identity::data::KindId,
+        client_keys: Vec<crate::symbols::data::ClientKey>,
         endpoints: Vec<(EntityReference, EntityReference)>,
     },
     UpdateRelationEndpoints(RelationId),
@@ -40,7 +40,7 @@ pub(crate) struct RelationCreateKey {
     pub(crate) kind_id: crate::identity::data::KindId,
     pub(crate) source: EntityReference,
     pub(crate) target: EntityReference,
-    pub(crate) client_key: crate::symbols::data::InternedString,
+    pub(crate) client_key: crate::symbols::data::ClientKey,
 }
 
 pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKey {
@@ -56,9 +56,6 @@ pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKe
                 kind_id: spec.kind_id,
                 client_keys: spec.client_keys.clone(),
             }
-        }
-        MutationIntent::Entity(EntityMutationIntent::Update(spec)) => {
-            CanonicalIntentKey::UpdateEntity(spec.entity_id)
         }
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(spec)) => {
             CanonicalIntentKey::UpdateEntityFields(spec.entity_id)
@@ -87,6 +84,7 @@ pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKe
             CanonicalIntentKey::BulkCreateRelations {
                 partition_id: spec.partition_id,
                 kind_id: spec.kind_id,
+                client_keys: spec.client_keys.clone(),
                 endpoints: spec.endpoints.clone(),
             }
         }
@@ -96,5 +94,39 @@ pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKe
         MutationIntent::Relation(RelationMutationIntent::Delete(spec)) => {
             CanonicalIntentKey::DeleteRelation(spec.relation_id)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::canonical_intent_key;
+    use crate::identity::data::{EntityId, KindId, PartitionId};
+    use crate::symbols::data::ClientKey;
+    use crate::transactions::data::AspectFieldPatch;
+    use crate::transactions::data::{
+        BulkRelationCreateIntent, CreateIntent, EntityReference, MutationIntent,
+    };
+
+    #[test]
+    fn bulk_relation_canonical_keys_preserve_client_key_identity() {
+        let source = EntityReference::Existing(EntityId::new(PartitionId::main(), 1, 1));
+        let target = EntityReference::Existing(EntityId::new(PartitionId::main(), 2, 1));
+
+        let alpha = MutationIntent::Create(CreateIntent::BulkRelations(BulkRelationCreateIntent {
+            partition_id: PartitionId::main(),
+            kind_id: KindId(2),
+            client_keys: vec![ClientKey::raw("edge-alpha")],
+            endpoints: vec![(source.clone(), target.clone())],
+            field_patches: vec![AspectFieldPatch::default()],
+        }));
+        let beta = MutationIntent::Create(CreateIntent::BulkRelations(BulkRelationCreateIntent {
+            partition_id: PartitionId::main(),
+            kind_id: KindId(2),
+            client_keys: vec![ClientKey::raw("edge-beta")],
+            endpoints: vec![(source, target)],
+            field_patches: vec![AspectFieldPatch::default()],
+        }));
+
+        assert_ne!(canonical_intent_key(&alpha), canonical_intent_key(&beta));
     }
 }

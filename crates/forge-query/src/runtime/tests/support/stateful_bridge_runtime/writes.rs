@@ -10,12 +10,12 @@ pub(super) fn apply_command(
 ) -> Result<ForgeQueryMutationKind, ForgeQueryWorkspaceError> {
     match command.mutation_family() {
         ForgeQueryMutationFamily::Insert => {
-            let payload = payload_from_command(state, command)?;
+            let external_row = external_row_from_command(state, command)?;
             state
                 .rows_by_collection
                 .entry(collection.to_string())
                 .or_default()
-                .insert(entity_identity.to_string(), payload);
+                .insert(entity_identity.to_string(), external_row);
             state
                 .collection_by_identity
                 .insert(entity_identity.to_string(), collection.to_string());
@@ -38,7 +38,7 @@ pub(super) fn apply_command(
                         "stateful bridge update could not find `{entity_identity}` in `{collection}`"
                     ))
                 })?;
-            apply_aspects(row, &resolved_aspects)?;
+            apply_aspects_to_external_row(row, &resolved_aspects)?;
             Ok(ForgeQueryMutationKind::Updated)
         }
         ForgeQueryMutationFamily::Delete => {
@@ -54,11 +54,11 @@ pub(super) fn apply_command(
     }
 }
 
-fn payload_from_command(
+fn external_row_from_command(
     state: &StatefulBridgeState,
     command: &ForgeQueryWriteCommand,
 ) -> Result<Value, ForgeQueryWorkspaceError> {
-    payload_from_aspects(&resolved_aspects(state, command)?)
+    external_row_from_aspects(&resolved_aspects(state, command)?)
 }
 
 fn resolved_aspects(
@@ -85,30 +85,30 @@ fn resolved_aspects(
     Ok(aspects)
 }
 
-fn payload_from_aspects(
+fn external_row_from_aspects(
     aspects: &[ForgeQueryAspectValue],
 ) -> Result<Value, ForgeQueryWorkspaceError> {
-    let mut payload = Value::Object(serde_json::Map::new());
-    apply_aspects(&mut payload, aspects)?;
-    Ok(payload)
+    let mut external_row = Value::Object(serde_json::Map::new());
+    apply_aspects_to_external_row(&mut external_row, aspects)?;
+    Ok(external_row)
 }
 
-fn apply_aspects(
-    payload: &mut Value,
+fn apply_aspects_to_external_row(
+    external_row: &mut Value,
     aspects: &[ForgeQueryAspectValue],
 ) -> Result<(), ForgeQueryWorkspaceError> {
     for aspect in aspects {
-        set_payload_path(payload, aspect.aspect_path(), aspect.value().clone())?;
+        set_external_row_path(external_row, aspect.aspect_path(), aspect.value().clone())?;
     }
     Ok(())
 }
 
-fn set_payload_path(
-    payload: &mut Value,
+fn set_external_row_path(
+    external_row: &mut Value,
     dotted_path: &str,
     value: Value,
 ) -> Result<(), ForgeQueryWorkspaceError> {
-    let mut current = payload;
+    let mut current = external_row;
     let mut parts = dotted_path.split('.').peekable();
     while let Some(part) = parts.next() {
         if parts.peek().is_none() {
@@ -118,7 +118,7 @@ fn set_payload_path(
                     Ok(())
                 }
                 _ => Err(ForgeQueryWorkspaceError::new(format!(
-                    "stateful bridge payload path `{dotted_path}` crossed a non-object boundary"
+                    "stateful bridge external row path `{dotted_path}` crossed a non-object boundary"
                 ))),
             };
         }
@@ -128,16 +128,16 @@ fn set_payload_path(
                 .or_insert_with(|| Value::Object(serde_json::Map::new())),
             _ => {
                 return Err(ForgeQueryWorkspaceError::new(format!(
-                    "stateful bridge payload path `{dotted_path}` crossed a non-object boundary"
-                )))
+                "stateful bridge external row path `{dotted_path}` crossed a non-object boundary"
+            )))
             }
         };
     }
     Ok(())
 }
 
-pub(super) fn payload_text(payload: &Value, dotted_path: &str) -> Option<String> {
-    let mut current = payload;
+pub(super) fn external_row_text(external_row: &Value, dotted_path: &str) -> Option<String> {
+    let mut current = external_row;
     for part in dotted_path.split('.') {
         current = current.get(part)?;
     }

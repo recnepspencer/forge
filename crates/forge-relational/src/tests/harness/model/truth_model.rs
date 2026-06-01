@@ -23,7 +23,7 @@ impl VisibleTruthSummary {
         let mut entity_names = read
             .entities()
             .iter()
-            .filter_map(|record| read_entity_name(record).map(ToOwned::to_owned))
+            .filter_map(read_entity_name)
             .collect::<Vec<_>>();
         entity_names.sort();
 
@@ -33,12 +33,10 @@ impl VisibleTruthSummary {
             .filter_map(|relation| {
                 let source = read
                     .get_entity(relation.source)
-                    .and_then(read_entity_name)
-                    .map(ToOwned::to_owned)?;
+                    .and_then(read_entity_name)?;
                 let target = read
                     .get_entity(relation.target)
-                    .and_then(read_entity_name)
-                    .map(ToOwned::to_owned)?;
+                    .and_then(read_entity_name)?;
                 Some(VisibleRelationSummary {
                     partition: relation.relation_id.partition_id,
                     source_name: source,

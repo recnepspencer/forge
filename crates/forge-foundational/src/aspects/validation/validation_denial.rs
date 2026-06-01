@@ -1,7 +1,8 @@
 use crate::aspects::structs::FieldKey;
 use crate::values::ScalarAspectType;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ContractValidationDenial {
     ScalarTypeMismatch {
         expected: ScalarAspectType,

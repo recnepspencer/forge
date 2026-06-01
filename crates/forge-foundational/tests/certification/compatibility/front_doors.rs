@@ -10,7 +10,7 @@ use super::json_lowering_fixtures::task_summary_contract;
 #[test]
 fn compatibility_front_doors_keep_json_lowering_explicit_and_parity_honest() {
     let contract = task_summary_contract();
-    let source = BoundarySourceLocator::Aspect(AspectLocator::new(
+    let source = BoundarySourceLocator::aspect(AspectLocator::new(
         LocatorAuthority::SupportOnly,
         aspects()
             .vocabulary()
@@ -66,7 +66,7 @@ fn compatibility_front_doors_lower_scalar_values_without_becoming_native_authori
         .identified_by(aspects().vocabulary().identity(9))
         .at_revision(aspects().vocabulary().revision(1))
         .scalar(ScalarAspectType::Int64);
-    let source = BoundarySourceLocator::Aspect(AspectLocator::new(
+    let source = BoundarySourceLocator::aspect(AspectLocator::new(
         LocatorAuthority::SupportOnly,
         contract.key().clone(),
     ));
@@ -80,4 +80,18 @@ fn compatibility_front_doors_lower_scalar_values_without_becoming_native_authori
     };
 
     assert_eq!(lowered.payload().key(), contract.key());
+}
+
+#[test]
+fn compatibility_front_doors_reject_empty_state_lowering_requests() {
+    let outcome = compatibility().json().lower_state([]);
+
+    assert_eq!(
+        outcome,
+        TransitionOutcome::Denied(
+            forge_foundational::JsonCompatibilityLoweringDenial::StateAdmissionDenied(
+                forge_foundational::AuthoritativeStateAdmissionDenial::EmptyAdmission
+            )
+        )
+    );
 }

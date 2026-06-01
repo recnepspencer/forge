@@ -1,0 +1,10 @@
+mod boundary_collection;
+mod boundary_visibility;
+mod checkpoint_windows;
+mod continuity_without_boundaries;
+mod contract_identity;
+mod contract_upgrade_boundaries;
+mod fixtures;
+mod latest_checkpoint;
+mod mixed_boundaries;
+mod normalized_proof;

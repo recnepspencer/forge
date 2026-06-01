@@ -44,14 +44,14 @@ fn probe_existing_returns_backend_verified_values_for_entity_targets() {
         probe
             .field("identity.id")
             .expect("identity field should exist")
-            .value_json(),
+            .external_value_json(),
         "\"task-1\""
     );
     assert_eq!(
         probe
             .field("title.value")
             .expect("title field should exist")
-            .value_json(),
+            .external_value_json(),
         "\"Seed title\""
     );
     assert!(!probe.probe_digest().is_empty());
@@ -102,7 +102,7 @@ fn probe_existing_returns_backend_verified_values_for_relation_targets() {
         probe
             .field("kind.value")
             .expect("kind field should exist")
-            .value_json(),
+            .external_value_json(),
         "\"depends_on\""
     );
 }

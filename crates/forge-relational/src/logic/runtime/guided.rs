@@ -3,7 +3,7 @@ use crate::history::logic::HistoryAccess;
 use crate::inspection::logic::InspectionAccess;
 use crate::logic::runtime::RelationalRuntime;
 use crate::merge::logic::MergeAccess;
-use crate::publication::logic::PublicationAccess;
+use crate::publication::logic::PublicationSurface;
 use crate::replay::logic::ReplayAccess;
 use crate::simulation::logic::{SimulationAccess, SimulationAuthority};
 use crate::validation::logic::InvariantAccess;
@@ -48,7 +48,7 @@ impl RelationalRuntime {
         self.replay_access()
     }
 
-    pub fn publication(&self) -> PublicationAccess<'_> {
+    pub fn publication(&self) -> PublicationSurface<'_> {
         self.publication_access()
     }
 

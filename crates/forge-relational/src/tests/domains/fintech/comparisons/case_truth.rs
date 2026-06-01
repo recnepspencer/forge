@@ -23,8 +23,8 @@ pub(crate) fn compare_case_truth(left: &CaseTruthProbe, right: &CaseTruthProbe) 
     if left.audit_record_count != right.audit_record_count {
         mismatches.push("audit_record_count".to_string());
     }
-    if left.payload_fingerprints != right.payload_fingerprints {
-        mismatches.push("payload_fingerprints".to_string());
+    if left.aspect_state_fingerprints != right.aspect_state_fingerprints {
+        mismatches.push("aspect_state_fingerprints".to_string());
     }
     mismatches
 }

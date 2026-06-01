@@ -10,10 +10,9 @@ pub(crate) use policies::MutationConfig;
 pub use policies::{
     AdjacencyBackend, AdjacencyPolicy, CascadeDeletePolicy, CheckpointPolicy, CompiledLanePolicy,
     CrossContextPolicy, DiagnosticsBoundary, DurabilityPolicy, DurableLogPolicy,
-    DurableLogRetentionMode, MvccConfig, PatchSurfacePolicy, PublicationConfig,
-    RelationalRuntimeProfile, RetentionBackend, RetentionPolicy, RuntimeExecutionLane,
-    RuntimeProfileBoundaryPolicy, SnapshotReleasePolicy, StorageLayoutConfig,
-    VisibilityCachePolicy,
+    DurableLogRetentionMode, MvccConfig, PublicationConfig, RelationalRuntimeProfile,
+    RetentionBackend, RetentionPolicy, RuntimeExecutionLane, RuntimeProfileBoundaryPolicy,
+    SnapshotReleasePolicy, StorageLayoutConfig, VisibilityCachePolicy,
 };
 pub use provenance::{ConfigProvenance, ConfigProvenanceEntry, ConfigValueSource};
 pub use runtime_config::RelationalRuntimeConfig;

@@ -1,11 +1,11 @@
 use forge_relational::facade::history::BranchId;
-use forge_relational::facade::payloads::RecordPayload;
 use forge_relational::facade::runtime::RelationalRuntimeApi;
-use forge_relational::facade::symbols::InternedString;
+use forge_relational::facade::symbols::ClientKey;
 use forge_relational::facade::transactions::{CreateIntent, EntitySpec, MutationIntent};
 use math::predicates::orient2d;
 
 use crate::data::aspects::{Aspect, DiagnosticsAspect, NamingAspect, TopologyAspect};
+use crate::data::authority::aspect_field_patches::entity_create_fields;
 use crate::data::authority::{
     CertifiedTopologyInterpretation, DerivedTopologyReadBasis, MutationOrigin,
     PersistedTopologyTruth, PrecisionFallbackRecord, RawTopologyIntent,
@@ -66,12 +66,13 @@ fn topology_mutation_set_commit_helpers_publish_on_main_and_branch() {
                 crate::data::entities::TopologyEntityKind::Vertex,
             )
             .kind_id(),
-            client_key: InternedString::Raw("mutation-main.vertex".to_string()),
-            payload: RecordPayload::StructuredJson(serde_json::json!({
-                "label": "mutation-main.vertex",
-                "structure": "mutation-main.vertex",
-                "topology": { "structure": "mutation-main.vertex" }
-            })),
+            client_key: ClientKey::raw("mutation-main.vertex"),
+            fields: entity_create_fields(
+                crate::data::entities::EntityKind::Topology(
+                    crate::data::entities::TopologyEntityKind::Vertex,
+                ),
+                "mutation-main.vertex",
+            ),
         }))],
     )
     .expect("main mutation set should commit");
@@ -87,12 +88,13 @@ fn topology_mutation_set_commit_helpers_publish_on_main_and_branch() {
                 crate::data::entities::TopologyEntityKind::Vertex,
             )
             .kind_id(),
-            client_key: InternedString::Raw("mutation-branch.vertex".to_string()),
-            payload: RecordPayload::StructuredJson(serde_json::json!({
-                "label": "mutation-branch.vertex",
-                "structure": "mutation-branch.vertex",
-                "topology": { "structure": "mutation-branch.vertex" }
-            })),
+            client_key: ClientKey::raw("mutation-branch.vertex"),
+            fields: entity_create_fields(
+                crate::data::entities::EntityKind::Topology(
+                    crate::data::entities::TopologyEntityKind::Vertex,
+                ),
+                "mutation-branch.vertex",
+            ),
         }))],
     )
     .expect("branch-local mutation set should commit");

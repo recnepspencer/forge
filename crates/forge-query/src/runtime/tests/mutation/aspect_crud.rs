@@ -289,7 +289,7 @@ fn workspace_update_clear_supports_typed_reset_without_waking_unrelated_surfaces
         other => panic!("expected write receipt inspection, got {other:?}"),
     }
     assert_eq!(
-        rows[0].payload["title"]["value"],
+        rows[0].external_row()["title"]["value"],
         Value::Null,
         "typed clear currently lowers to explicit null while the JSON substrate is still underneath"
     );

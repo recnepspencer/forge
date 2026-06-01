@@ -107,7 +107,7 @@ fn graph_composition_public_bridge_supports_existing_target_retarget_lifecycle()
         ForgeQueryGraphCompositionLifecycleOutcomeKind::RetargetedIdentityPreserved
     );
     assert_eq!(
-        workspace.read(&relations)[0].payload["target"]["id"].as_str(),
+        workspace.read(&relations)[0].external_row()["target"]["id"].as_str(),
         Some("loop-c")
     );
 

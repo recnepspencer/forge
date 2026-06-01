@@ -1,7 +1,6 @@
 use crate::facade::identity::PartitionId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
 pub(crate) enum ScenarioOperation {
     CreateEntity {
         partition: PartitionId,

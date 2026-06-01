@@ -1,9 +1,6 @@
+use crate::facade::transactions::{CreatedEntityRef, EntityReference, EntitySpec};
 use crate::tests::support::*;
 use crate::transactions::data::ConflictClass;
-use crate::{
-    facade::transactions::{CreatedEntityRef, EntityReference, EntitySpec},
-    payloads::data::RecordPayload,
-};
 
 #[test]
 fn relation_endpoint_update_preserves_relation_identity_and_rewrites_endpoints() {
@@ -96,7 +93,7 @@ fn relation_endpoint_update_accepts_same_batch_created_target() {
     let created_target = CreatedEntityRef {
         partition_id: PartitionId(1),
         kind_id: KindId(1),
-        client_key: InternedString::Raw("same-batch-target".to_string()),
+        client_key: crate::symbols::data::ClientKey::raw("same-batch-target"),
     };
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
@@ -106,7 +103,7 @@ fn relation_endpoint_update_accepts_same_batch_created_target() {
                 partition_id: created_target.partition_id,
                 kind_id: created_target.kind_id,
                 client_key: created_target.client_key.clone(),
-                payload: RecordPayload::OpaqueBytes(Vec::new()),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             })))
             .push(MutationIntent::Relation(
                 RelationMutationIntent::UpdateEndpoints(UpdateRelationEndpointsIntent {
@@ -149,7 +146,7 @@ fn relation_endpoint_update_to_same_batch_created_target_survives_old_target_ret
     let created_target = CreatedEntityRef {
         partition_id: PartitionId(1),
         kind_id: KindId(1),
-        client_key: InternedString::Raw("rewired-target".to_string()),
+        client_key: crate::symbols::data::ClientKey::raw("rewired-target"),
     };
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
@@ -159,7 +156,7 @@ fn relation_endpoint_update_to_same_batch_created_target_survives_old_target_ret
                 partition_id: created_target.partition_id,
                 kind_id: created_target.kind_id,
                 client_key: created_target.client_key.clone(),
-                payload: RecordPayload::OpaqueBytes(Vec::new()),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             })))
             .push(MutationIntent::Relation(
                 RelationMutationIntent::UpdateEndpoints(UpdateRelationEndpointsIntent {
@@ -218,7 +215,7 @@ fn relation_endpoint_update_to_same_batch_created_source_survives_old_source_ret
     let created_source = CreatedEntityRef {
         partition_id: PartitionId(1),
         kind_id: KindId(1),
-        client_key: InternedString::Raw("rewired-source".to_string()),
+        client_key: crate::symbols::data::ClientKey::raw("rewired-source"),
     };
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
@@ -228,7 +225,7 @@ fn relation_endpoint_update_to_same_batch_created_source_survives_old_source_ret
                 partition_id: created_source.partition_id,
                 kind_id: created_source.kind_id,
                 client_key: created_source.client_key.clone(),
-                payload: RecordPayload::OpaqueBytes(Vec::new()),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             })))
             .push(MutationIntent::Relation(
                 RelationMutationIntent::UpdateEndpoints(UpdateRelationEndpointsIntent {

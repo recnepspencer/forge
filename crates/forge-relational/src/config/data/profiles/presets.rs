@@ -5,12 +5,11 @@ use crate::durability::data::DurabilityMode;
 use crate::history::data::{BranchId, HistoryRetentionClass, VersionGraphPolicy};
 use crate::logic::commit::CommitAuthorityContract;
 use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
-use crate::payloads::data::{PayloadClass, PayloadPolicy};
 use crate::schema::data::{
-    runtime_descriptor_canonicalization_policy, runtime_descriptor_semantics_policy,
+    runtime_descriptor_canonical_basis_policy, runtime_descriptor_semantics_policy,
     RelationalSchemaRegistry,
 };
-use crate::symbols::data::{StringInterner, SymbolPolicy};
+use crate::symbols::data::{ClientKeySymbolPolicy, StringInterner};
 use crate::validation::data::InvariantCatalog;
 
 pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntimeConfig {
@@ -20,8 +19,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 mvcc: MvccConfig,
                 retention_policy: RetentionPolicy,
                 storage_layout: StorageLayoutConfig,
-                payload_policy: PayloadPolicy,
-                symbol_policy: SymbolPolicy,
+                client_key_symbol_policy: ClientKeySymbolPolicy,
                 visibility_cache_policy: VisibilityCachePolicy,
                 durability: DurabilityPolicy,
                 adjacency_policy: AdjacencyPolicy,
@@ -53,13 +51,13 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
             registry: RelationalSchemaRegistry::default(),
             invariant_catalog: InvariantCatalog::default(),
             descriptor_semantics_policy: runtime_descriptor_semantics_policy(),
-            descriptor_canonicalization_policy: runtime_descriptor_canonicalization_policy(),
+            descriptor_canonical_basis_policy: runtime_descriptor_canonical_basis_policy(),
         },
         commit_strategies: CommitStrategiesConfig {
             registrations: Vec::<CommitStrategyRegistration>::new(),
         },
         identity: IdentityConfig {
-            symbol_policy,
+            client_key_symbol_policy,
             symbol_table: StringInterner::default().snapshot(),
         },
         storage: StorageConfig {
@@ -68,7 +66,6 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
             mvcc,
             retention: retention_policy,
             layout: storage_layout,
-            payload_policy,
             adjacency_policy,
             cross_context_policy,
             cascade_delete_policy,
@@ -108,8 +105,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 relation_chunk_size: 1024,
                 scan_packet_size: 512,
             },
-            PayloadPolicy::default(),
-            SymbolPolicy::PreferInterned,
+            ClientKeySymbolPolicy::PreferInterned,
             VisibilityCachePolicy {
                 enabled: true,
                 protect_branch_heads: true,
@@ -139,7 +135,6 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 coherent_publication_required: true,
                 max_patch_records_per_commit: 4096,
                 max_published_snapshot_handles: 256,
-                patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
             },
             CompiledLanePolicy::Disabled,
             RelationIntegrityScopeBudget {
@@ -172,11 +167,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 relation_chunk_size: 2048,
                 scan_packet_size: 1024,
             },
-            PayloadPolicy {
-                default_class: PayloadClass::OpaqueBytes,
-                allow_opaque_bytes: true,
-            },
-            SymbolPolicy::PreferInterned,
+            ClientKeySymbolPolicy::PreferInterned,
             VisibilityCachePolicy {
                 enabled: true,
                 protect_branch_heads: true,
@@ -206,7 +197,6 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 coherent_publication_required: true,
                 max_patch_records_per_commit: 8192,
                 max_published_snapshot_handles: 64,
-                patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
             },
             CompiledLanePolicy::Disabled,
             RelationIntegrityScopeBudget {
@@ -239,11 +229,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 relation_chunk_size: 4096,
                 scan_packet_size: 2048,
             },
-            PayloadPolicy {
-                default_class: PayloadClass::OpaqueBytes,
-                allow_opaque_bytes: true,
-            },
-            SymbolPolicy::RequireInterned,
+            ClientKeySymbolPolicy::RequireInterned,
             VisibilityCachePolicy {
                 enabled: true,
                 protect_branch_heads: true,
@@ -273,7 +259,6 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 coherent_publication_required: true,
                 max_patch_records_per_commit: 16384,
                 max_published_snapshot_handles: 64,
-                patch_surface_policy: PatchSurfacePolicy::DensePatchSurface,
             },
             CompiledLanePolicy::DerivedCompiledLane,
             RelationIntegrityScopeBudget {
@@ -306,11 +291,7 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 relation_chunk_size: 1024,
                 scan_packet_size: 1024,
             },
-            PayloadPolicy {
-                default_class: PayloadClass::StructuredJson,
-                allow_opaque_bytes: true,
-            },
-            SymbolPolicy::PreferInterned,
+            ClientKeySymbolPolicy::PreferInterned,
             VisibilityCachePolicy {
                 enabled: true,
                 protect_branch_heads: true,
@@ -340,7 +321,6 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
                 coherent_publication_required: true,
                 max_patch_records_per_commit: 8192,
                 max_published_snapshot_handles: 128,
-                patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
             },
             CompiledLanePolicy::Disabled,
             RelationIntegrityScopeBudget {

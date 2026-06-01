@@ -821,25 +821,29 @@ fn branch_record_extension(
 
 fn remap_target_packet() -> crate::facade::SnapshotReadPacket {
     crate::facade::SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-        "entity-1", "profile",
+        "entity-1",
+        forge_foundational::facade::AspectKey::new("profile").expect("valid snapshot aspect key"),
     )])
 }
 
 fn identity_conflict_packet() -> crate::facade::SnapshotReadPacket {
     crate::facade::SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-        "entity-2", "profile",
+        "entity-2",
+        forge_foundational::facade::AspectKey::new("profile").expect("valid snapshot aspect key"),
     )])
 }
 
 fn no_safe_match_packet() -> crate::facade::SnapshotReadPacket {
     crate::facade::SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-        "entity-3", "profile",
+        "entity-3",
+        forge_foundational::facade::AspectKey::new("profile").expect("valid snapshot aspect key"),
     )])
 }
 
 fn branch_packet() -> crate::facade::SnapshotReadPacket {
     crate::facade::SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-        "entity-1", "profile",
+        "entity-1",
+        forge_foundational::facade::AspectKey::new("profile").expect("valid snapshot aspect key"),
     )])
 }
 

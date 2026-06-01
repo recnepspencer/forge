@@ -111,7 +111,7 @@ pub(crate) fn reconstruct_state(
     version_id: crate::identity::data::VersionId,
     allow_recent_admission: bool,
 ) -> Option<SnapshotState> {
-    if version_id.0 == 0 || version_id.0 > runtime.current_version_id().0 {
+    if version_id.is_zero() || version_id.as_u64() > runtime.current_version_id().as_u64() {
         return None;
     }
     if let Some(state) = cached_state_for_version(runtime, version_id) {

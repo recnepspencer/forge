@@ -6,10 +6,11 @@ use crate::authority::commit::publication::diagnostics_summary_artifact;
 use crate::diagnostics::data::RelationalDiagnosticsEntry;
 use crate::diagnostics::data::{DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::history::data::CommitReference;
-use crate::publication::data::diff::RelationalPatchRecord;
+use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
 use crate::transactions::data::{
     AspectEmissionTrace, AspectEvaluationTrace, CommitAspectSummary, CommitChangeSummary,
-    CommitPublicationSummary, MergedCommitPlan, RecordRef, TransactionCommitError,
+    CommitPublicationSummary, MergedCommitPlan, PublishedMergeExecutionAuthority, RecordRef,
+    TransactionCommitError,
 };
 use std::collections::BTreeMap;
 
@@ -33,7 +34,7 @@ pub(crate) struct PublicationFinalizeArtifacts {
 pub(crate) fn prepare_publication_artifacts(
     runtime: &mut crate::logic::runtime::RelationalRuntime,
     working_state: &mut crate::logic::runtime::WorkingState,
-    patch: RelationalPatchRecord,
+    patch: PublishedAuthoritativePatchEnvelope,
     commit_reference: &CommitReference,
     branch_id: &crate::history::data::BranchId,
     version_id: crate::identity::data::VersionId,
@@ -41,6 +42,7 @@ pub(crate) fn prepare_publication_artifacts(
     merge_base_commits: &[crate::history::data::CommitId],
     merged_plan: &MergedCommitPlan,
     strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
+    merge_execution_authority: Option<PublishedMergeExecutionAuthority>,
     schema_continuity: &SchemaContinuityPlan,
     effect: crate::authority::mutation::MutationEffect,
     additional_diagnostics_entries: Vec<RelationalDiagnosticsEntry>,
@@ -72,7 +74,7 @@ pub(crate) fn prepare_publication_artifacts(
     let aspect_emission_traces = if capture_patch_publication_traces {
         derive_aspect_emission_traces(
             patch.position,
-            &patch.records,
+            &patch.authoritative_record_patches,
             &effect.publication.canonical_deltas,
         )
     } else {
@@ -97,14 +99,14 @@ pub(crate) fn prepare_publication_artifacts(
         branch_id,
         crate::replay::data::CanonicalCommitAuthorityKind::VersionedTransaction,
         strategy_artifacts,
+        merge_execution_authority,
         merge_parent_branches,
         merge_base_commits,
         merged_plan,
         patch.clone(),
         diagnostics_summary.clone(),
         lineage_artifact,
-        Vec::new(),
-        Vec::new(),
+        crate::indexes::data::DerivedIndexArtifacts::default(),
         schema_continuity,
     )?;
     let mut changed_records = effect.publication.changed_records;
@@ -116,7 +118,7 @@ pub(crate) fn prepare_publication_artifacts(
     };
     let aspect_summary = summarize_commit_aspects(&effect.publication.canonical_deltas);
     let summary = CommitPublicationSummary {
-        patch_record_count: patch.records.len(),
+        patch_record_count: patch.authoritative_record_patches.len(),
         diagnostics_entry_count: artifacts.bundle.diagnostics_summary.entries.len(),
         lineage_event_count,
         patch_position: Some(patch.position),
@@ -140,8 +142,8 @@ pub(crate) fn prepare_publication_artifacts(
 }
 
 fn derive_aspect_emission_traces(
-    patch_position: crate::publication::data::diff::PatchStreamPosition,
-    patch_records: &[crate::publication::data::diff::PatchRecord],
+    patch_position: crate::publication::patch::data::PatchStreamPosition,
+    patch_records: &[crate::publication::patch::data::PublishedAuthoritativeRecordPatch],
     deltas: &[crate::authority::mutation::CanonicalRecordAspectDelta],
 ) -> Vec<AspectEmissionTrace> {
     let delta_index = deltas
@@ -164,7 +166,7 @@ fn derive_aspect_emission_traces(
                 patch_record_index: patch_record_index as u64,
                 structural_change: delta.structural_change,
                 changed_aspects: delta.changed_aspects.clone(),
-                contains_degraded_precision: delta.contains_degraded_precision,
+                contains_opaque_aspect: delta.contains_opaque_aspect,
             }
         })
         .collect()
@@ -175,55 +177,55 @@ mod tests {
     use super::derive_aspect_emission_traces;
     use crate::authority::mutation::CanonicalRecordAspectDelta;
     use crate::identity::data::{EntityId, KindId, PartitionId};
-    use crate::publication::data::diff::{
-        AspectKey, CanonicalAspectSet, PatchDetail, PatchRecord, PatchRecordKind,
-        PatchStreamPosition, RecordStructuralChange,
+    use crate::publication::patch::data::{
+        ordered_aspect_keys, PatchDetail, PatchStreamPosition, PublishedAuthoritativeRecordPatch,
+        RecordStructuralChange,
     };
-    use crate::schema::data::AspectPlanRevision;
-    use crate::symbols::data::InternedString;
+    use crate::schema::data::AspectContractPlanRevision;
     use crate::transactions::data::RecordRef;
+    use forge_foundational::facade::AspectKey;
 
     #[test]
     fn aspect_emission_traces_use_indexed_target_lookup() {
         let target_a = RecordRef::Entity(EntityId::new(PartitionId(3), 1, 1));
         let target_b = RecordRef::Entity(EntityId::new(PartitionId(3), 2, 1));
-        let aspect_a = AspectKey(InternedString::from("a"));
-        let aspect_b = AspectKey(InternedString::from("b"));
+        let aspect_a = AspectKey::new("a").unwrap();
+        let aspect_b = AspectKey::new("b").unwrap();
         let deltas = vec![
             CanonicalRecordAspectDelta {
                 target: target_a.clone(),
                 kind_id: KindId(7),
-                plan_revision: AspectPlanRevision(1),
+                plan_revision: AspectContractPlanRevision(1),
                 structural_change: RecordStructuralChange::Updated,
-                changed_aspects: CanonicalAspectSet::new([aspect_a.clone()]),
+                changed_aspects: ordered_aspect_keys([aspect_a.clone()]),
                 evaluated_bindings: Default::default(),
-                contains_degraded_precision: false,
+                contains_opaque_aspect: false,
             },
             CanonicalRecordAspectDelta {
                 target: target_b.clone(),
                 kind_id: KindId(7),
-                plan_revision: AspectPlanRevision(1),
+                plan_revision: AspectContractPlanRevision(1),
                 structural_change: RecordStructuralChange::Created,
-                changed_aspects: CanonicalAspectSet::new([aspect_b.clone()]),
+                changed_aspects: ordered_aspect_keys([aspect_b.clone()]),
                 evaluated_bindings: Default::default(),
-                contains_degraded_precision: true,
+                contains_opaque_aspect: true,
             },
         ];
         let patch_records = vec![
-            PatchRecord {
-                kind: PatchRecordKind::Created,
+            PublishedAuthoritativeRecordPatch {
                 target: target_b.clone(),
                 structural_change: RecordStructuralChange::Created,
-                aspects: CanonicalAspectSet::new([aspect_b.clone()]),
-                contains_degraded_precision: true,
+                authoritative_patch:
+                    crate::publication::patch::data::PublishedAuthoritativePatch::empty(),
+                contains_opaque_aspect: true,
                 detail: PatchDetail::DenseBitset(Vec::new()),
             },
-            PatchRecord {
-                kind: PatchRecordKind::Updated,
+            PublishedAuthoritativeRecordPatch {
                 target: target_a.clone(),
                 structural_change: RecordStructuralChange::Updated,
-                aspects: CanonicalAspectSet::new([aspect_a.clone()]),
-                contains_degraded_precision: false,
+                authoritative_patch:
+                    crate::publication::patch::data::PublishedAuthoritativePatch::empty(),
+                contains_opaque_aspect: false,
                 detail: PatchDetail::DenseBitset(Vec::new()),
             },
         ];
@@ -231,17 +233,11 @@ mod tests {
         let traces = derive_aspect_emission_traces(PatchStreamPosition(9), &patch_records, &deltas);
         assert_eq!(traces.len(), 2);
         assert_eq!(traces[0].target, target_b);
-        assert_eq!(
-            traces[0].changed_aspects,
-            CanonicalAspectSet::new([aspect_b])
-        );
-        assert!(traces[0].contains_degraded_precision);
+        assert_eq!(traces[0].changed_aspects, ordered_aspect_keys([aspect_b]));
+        assert!(traces[0].contains_opaque_aspect);
         assert_eq!(traces[1].target, target_a);
-        assert_eq!(
-            traces[1].changed_aspects,
-            CanonicalAspectSet::new([aspect_a])
-        );
-        assert!(!traces[1].contains_degraded_precision);
+        assert_eq!(traces[1].changed_aspects, ordered_aspect_keys([aspect_a]));
+        assert!(!traces[1].contains_opaque_aspect);
     }
 }
 
@@ -251,7 +247,7 @@ fn summarize_commit_aspects(
     let mut changed_entity_aspect_count = 0;
     let mut changed_relation_aspect_count = 0;
     let mut touched_aspects = Vec::new();
-    let mut opaque_precision_delta_count = 0;
+    let mut opaque_aspect_delta_count = 0;
     let mut zero_aspect_structural_delta_count = 0;
 
     for delta in deltas {
@@ -261,8 +257,8 @@ fn summarize_commit_aspects(
             RecordRef::Relation(_) => changed_relation_aspect_count += aspect_count,
         }
         touched_aspects.extend(delta.changed_aspects.iter().cloned());
-        if delta.contains_degraded_precision {
-            opaque_precision_delta_count += 1;
+        if delta.contains_opaque_aspect {
+            opaque_aspect_delta_count += 1;
         }
         if delta.changed_aspects.is_empty() {
             zero_aspect_structural_delta_count += 1;
@@ -272,8 +268,8 @@ fn summarize_commit_aspects(
     CommitAspectSummary {
         changed_entity_aspect_count,
         changed_relation_aspect_count,
-        touched_aspects: crate::publication::data::diff::CanonicalAspectSet::new(touched_aspects),
-        opaque_precision_delta_count,
+        touched_aspects: crate::publication::patch::data::ordered_aspect_keys(touched_aspects),
+        opaque_aspect_delta_count,
         zero_aspect_structural_delta_count,
     }
 }

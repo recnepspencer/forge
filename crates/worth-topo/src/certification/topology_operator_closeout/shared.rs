@@ -23,13 +23,13 @@ pub(super) fn first_source_identity_for_relation_kind(
     relation_rows
         .iter()
         .find_map(|row| {
-            (row.payload
+            (row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
                 == Some(relation_kind.kind_name()))
             .then(|| {
-                row.payload
+                row.external_row()
                     .get("topology")
                     .and_then(|value| value.get("source_identity"))
                     .and_then(|value| value.as_str())

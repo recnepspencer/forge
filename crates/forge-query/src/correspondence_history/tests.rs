@@ -15,7 +15,7 @@ use crate::historical::{
 };
 
 #[test]
-fn success_envelope_preserves_payload_and_metadata_together() {
+fn success_envelope_preserves_rows_and_metadata_together() {
     let execution =
         execute_preflight_bundle(&detail_preflight_bundle()).expect("execution should succeed");
     let correspondence =
@@ -58,7 +58,7 @@ fn success_envelope_preserves_payload_and_metadata_together() {
         .result_view()
         .expect("success envelope should expose metadata-preserving view");
 
-    assert_eq!(view.payload(), execution.payload());
+    assert_eq!(view.rows(), execution.rows());
     assert_eq!(view.correspondence_family_name(), "lineage_continuity");
     assert_eq!(
         view.materialization_metadata()

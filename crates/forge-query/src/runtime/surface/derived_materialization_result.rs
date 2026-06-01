@@ -5,13 +5,13 @@ use super::ForgeQueryDerivedMaterializationReceipt;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryDerivedMaterializationResult {
-    payload: Vec<serde_json::Value>,
+    rows: Vec<serde_json::Value>,
     receipt: ForgeQueryDerivedMaterializationReceipt,
 }
 
 impl ForgeQueryDerivedMaterializationResult {
     pub fn rows(&self) -> &[serde_json::Value] {
-        &self.payload
+        &self.rows
     }
 
     pub fn receipt(&self) -> &ForgeQueryDerivedMaterializationReceipt {
@@ -19,10 +19,10 @@ impl ForgeQueryDerivedMaterializationResult {
     }
 
     pub(in crate::runtime) fn new(
-        payload: Vec<serde_json::Value>,
+        rows: Vec<serde_json::Value>,
         receipt: ForgeQueryDerivedMaterializationReceipt,
     ) -> Self {
-        Self { payload, receipt }
+        Self { rows, receipt }
     }
 
     pub(in crate::runtime) fn attach_intent_admission_evidence(

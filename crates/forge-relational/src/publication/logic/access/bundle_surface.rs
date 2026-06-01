@@ -1,0 +1,19 @@
+use crate::logic::runtime::RelationalReplayRecord;
+use crate::publication::bundle::PublicationBundle;
+use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
+
+use super::PublicationArtifactsAccess;
+
+impl<'runtime> PublicationArtifactsAccess<'runtime> {
+    pub fn latest_bundle(&self) -> Option<&PublicationBundle<RelationalReplayRecord>> {
+        self.runtime.publication.latest_bundle.as_ref()
+    }
+
+    pub fn latest_patch(&self) -> Option<&PublishedAuthoritativePatchEnvelope> {
+        self.latest_bundle().map(|bundle| &bundle.patch)
+    }
+
+    pub fn latest_replay(&self) -> Option<&RelationalReplayRecord> {
+        self.latest_bundle().map(|bundle| &bundle.replay)
+    }
+}

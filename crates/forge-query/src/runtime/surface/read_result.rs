@@ -7,17 +7,13 @@ use super::ForgeQueryReadReceipt;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryReadResult {
-    payload: Vec<ForgeQueryEntity>,
+    rows: Vec<ForgeQueryEntity>,
     receipt: ForgeQueryReadReceipt,
 }
 
 impl ForgeQueryReadResult {
-    pub fn payload(&self) -> &[ForgeQueryEntity] {
-        &self.payload
-    }
-
     pub fn rows(&self) -> &[ForgeQueryEntity] {
-        &self.payload
+        &self.rows
     }
 
     pub fn receipt(&self) -> &ForgeQueryReadReceipt {
@@ -25,18 +21,15 @@ impl ForgeQueryReadResult {
     }
 
     pub(in crate::runtime) fn new(
-        payload: Vec<ForgeQueryEntity>,
+        rows: Vec<ForgeQueryEntity>,
         receipt: ForgeQueryReadReceipt,
     ) -> Self {
-        Self { payload, receipt }
+        Self { rows, receipt }
     }
 
     #[cfg(test)]
-    pub(crate) fn test_only(
-        payload: Vec<ForgeQueryEntity>,
-        receipt: ForgeQueryReadReceipt,
-    ) -> Self {
-        Self { payload, receipt }
+    pub(crate) fn test_only(rows: Vec<ForgeQueryEntity>, receipt: ForgeQueryReadReceipt) -> Self {
+        Self { rows, receipt }
     }
 
     pub(in crate::runtime) fn attach_intent_admission_evidence(

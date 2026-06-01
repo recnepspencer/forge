@@ -1,5 +1,5 @@
 use crate::facade::publication::{
-    RelationalPatchRecord, SubscriberCheckpoint, SubscriberResumeRequest,
+    PublishedAuthoritativePatchEnvelope, SubscriberCheckpoint, SubscriberResumeRequest,
 };
 use crate::facade::runtime::RelationalRuntime;
 use crate::tests::support::{checkpoint_for_schema_version, SchemaVersionId};
@@ -8,14 +8,14 @@ use crate::tests::support::{checkpoint_for_schema_version, SchemaVersionId};
 pub(crate) struct SubscriberView {
     pub(crate) checkpoint: Option<SubscriberCheckpoint>,
     pub(crate) window_size: usize,
-    pub(crate) patches: Vec<RelationalPatchRecord>,
+    pub(crate) patches: Vec<PublishedAuthoritativePatchEnvelope>,
 }
 
 pub(crate) fn collect_subscriber_patches(
     runtime: &RelationalRuntime,
     checkpoint: SubscriberCheckpoint,
     window_size: usize,
-) -> Vec<RelationalPatchRecord> {
+) -> Vec<PublishedAuthoritativePatchEnvelope> {
     collect_subscriber_patches_from_request(
         runtime,
         SubscriberResumeRequest::resume_after(checkpoint, window_size),
@@ -25,7 +25,7 @@ pub(crate) fn collect_subscriber_patches(
 pub(crate) fn collect_subscriber_patches_from_head(
     runtime: &RelationalRuntime,
     window_size: usize,
-) -> Vec<RelationalPatchRecord> {
+) -> Vec<PublishedAuthoritativePatchEnvelope> {
     collect_subscriber_patches_from_request(
         runtime,
         SubscriberResumeRequest::from_head(window_size),
@@ -33,9 +33,9 @@ pub(crate) fn collect_subscriber_patches_from_head(
 }
 
 pub(crate) fn expected_patch_suffix_after_checkpoint(
-    patches: &[RelationalPatchRecord],
+    patches: &[PublishedAuthoritativePatchEnvelope],
     checkpoint: &SubscriberCheckpoint,
-) -> Vec<RelationalPatchRecord> {
+) -> Vec<PublishedAuthoritativePatchEnvelope> {
     patches
         .iter()
         .filter(|patch| patch.position.0 > checkpoint.position().0)
@@ -44,7 +44,7 @@ pub(crate) fn expected_patch_suffix_after_checkpoint(
 }
 
 pub(crate) fn sampled_checkpoints_from_patches(
-    patches: &[RelationalPatchRecord],
+    patches: &[PublishedAuthoritativePatchEnvelope],
     samples: usize,
 ) -> Vec<SubscriberCheckpoint> {
     if patches.is_empty() || samples == 0 {
@@ -62,7 +62,7 @@ pub(crate) fn sampled_checkpoints_from_patches(
 }
 
 pub(crate) fn random_checkpoints_from_patches(
-    patches: &[RelationalPatchRecord],
+    patches: &[PublishedAuthoritativePatchEnvelope],
     seed: u64,
     samples: usize,
 ) -> Vec<SubscriberCheckpoint> {
@@ -111,7 +111,7 @@ pub(crate) fn collect_multi_subscriber_views(
 
 pub(crate) fn collect_fuzzed_subscriber_views(
     runtime: &RelationalRuntime,
-    patches_from_head: &[RelationalPatchRecord],
+    patches_from_head: &[PublishedAuthoritativePatchEnvelope],
     seed: u64,
 ) -> Vec<SubscriberView> {
     let checkpoints = random_checkpoints_from_patches(patches_from_head, seed ^ 0xA11CE5EED, 16);
@@ -142,7 +142,7 @@ pub(crate) fn fuzz_window_sizes(seed: u64) -> Vec<usize> {
 fn collect_subscriber_patches_from_request(
     runtime: &RelationalRuntime,
     mut request: SubscriberResumeRequest,
-) -> Vec<RelationalPatchRecord> {
+) -> Vec<PublishedAuthoritativePatchEnvelope> {
     let mut collected = Vec::new();
 
     loop {

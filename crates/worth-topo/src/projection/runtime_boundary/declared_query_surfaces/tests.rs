@@ -93,7 +93,7 @@ fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
         sorted_naming_attachments(&certified_runtime_report.naming_attachment_report)
     );
     assert!(persistent_name_rows.iter().all(|row| {
-        row.payload
+        row.external_row()
             .get("lineage")
             .and_then(|value| value.get("provenance"))
             .is_some()

@@ -1,12 +1,13 @@
 use std::collections::BTreeMap;
 
+use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_runtime_bridge::facade::{
     SnapshotReadPacket, SnapshotReadPacketResult, TruthSnapshotIdentity,
 };
-use serde_json::Value;
-use sha2::{Digest, Sha256};
 
+use super::canonical_digest::row_set_digest;
 use super::grouped_projection::RelationalGroupedTruthError;
+use super::snapshot_aspect_reads::decode_snapshot_aspect_read_value;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RelationalRowIdentity(String);
@@ -21,32 +22,6 @@ impl RelationalRowIdentity {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct RelationalFieldBindingKey(String);
-
-impl RelationalFieldBindingKey {
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-
-    pub(crate) fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct RelationalFieldValue(Value);
-
-impl RelationalFieldValue {
-    pub fn value(&self) -> &Value {
-        &self.0
-    }
-
-    pub(crate) fn new(value: Value) -> Self {
-        Self(value)
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelationalRowSetDigest(String);
 
@@ -55,17 +30,49 @@ impl RelationalRowSetDigest {
         &self.0
     }
 
-    pub(crate) fn new(parts: &[String]) -> Self {
-        let canonical = parts.join("|");
-        let digest = Sha256::digest(canonical.as_bytes());
-        Self(format!("relational-row-set:sha256:{digest:x}"))
+    pub(crate) fn from_canonical_bytes(bytes: &[u8]) -> Self {
+        Self(super::canonical_digest::digest_with_prefix(
+            "relational-row-set",
+            bytes,
+        ))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RelationalProjectedAspectValueSet {
+    values: BTreeMap<AspectKey, AspectValue>,
+}
+
+impl RelationalProjectedAspectValueSet {
+    pub fn get(&self, aspect_key: &AspectKey) -> Option<&AspectValue> {
+        self.values.get(aspect_key)
+    }
+
+    pub fn contains_key(&self, aspect_key: &AspectKey) -> bool {
+        self.values.contains_key(aspect_key)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&AspectKey, &AspectValue)> {
+        self.values.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.values.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.values.is_empty()
+    }
+
+    fn from_projected_values(values: BTreeMap<AspectKey, AspectValue>) -> Self {
+        Self { values }
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RelationalAuthoritativeRowArtifact {
     row_identity: RelationalRowIdentity,
-    fields: BTreeMap<RelationalFieldBindingKey, RelationalFieldValue>,
+    projected_aspect_values: RelationalProjectedAspectValueSet,
 }
 
 impl RelationalAuthoritativeRowArtifact {
@@ -73,8 +80,8 @@ impl RelationalAuthoritativeRowArtifact {
         &self.row_identity
     }
 
-    pub fn fields(&self) -> &BTreeMap<RelationalFieldBindingKey, RelationalFieldValue> {
-        &self.fields
+    pub fn projected_aspect_values(&self) -> &RelationalProjectedAspectValueSet {
+        &self.projected_aspect_values
     }
 }
 
@@ -107,68 +114,38 @@ pub fn materialize_relational_authoritative_row_set(
         return Err(RelationalGroupedTruthError::PacketResultShapeMismatch);
     }
 
-    let mut rows: BTreeMap<String, BTreeMap<RelationalFieldBindingKey, RelationalFieldValue>> =
+    let mut rows: BTreeMap<RelationalRowIdentity, BTreeMap<AspectKey, AspectValue>> =
         BTreeMap::new();
     for (read, record) in packet.reads().iter().zip(result.records().iter()) {
-        let value = decode_record_value(record.request_key(), record.payload())?;
-        rows.entry(read.entity_identity().to_string())
+        let aspect_read = decode_snapshot_aspect_read_value(record)?;
+        rows.entry(RelationalRowIdentity::new(read.entity_identity()))
             .or_default()
-            .insert(
-                RelationalFieldBindingKey::new(read.aspect_label()),
-                RelationalFieldValue::new(value),
-            );
+            .insert(read.aspect_key().clone(), aspect_read.value().clone());
     }
 
-    let rows = rows
-        .into_iter()
-        .map(
-            |(row_identity, fields)| RelationalAuthoritativeRowArtifact {
-                row_identity: RelationalRowIdentity::new(row_identity),
-                fields,
-            },
-        )
-        .collect::<Vec<_>>();
+    let rows =
+        rows.into_iter()
+            .map(
+                |(row_identity, aspect_values)| RelationalAuthoritativeRowArtifact {
+                    row_identity,
+                    projected_aspect_values:
+                        RelationalProjectedAspectValueSet::from_projected_values(aspect_values),
+                },
+            )
+            .collect::<Vec<_>>();
 
-    let mut digest_parts = vec![format!("snapshot:{}", result.snapshot_identity().as_str())];
-    for row in &rows {
-        digest_parts.push(format!("row:{}", row.row_identity().as_str()));
-        for (field, value) in row.fields() {
-            digest_parts.push(format!(
-                "field:{}={}",
-                field.as_str(),
-                canonical_json(value.value())
-            ));
-        }
-    }
+    let digest = row_set_digest(result.snapshot_identity(), &rows);
 
     Ok(RelationalAuthoritativeRowSetArtifact {
         snapshot_identity: result.snapshot_identity().clone(),
         rows,
-        digest: RelationalRowSetDigest::new(&digest_parts),
+        digest,
     })
-}
-
-fn decode_record_value(
-    request_key: &str,
-    payload: &[u8],
-) -> Result<Value, RelationalGroupedTruthError> {
-    if let Ok(value) = serde_json::from_slice::<Value>(payload) {
-        return Ok(value);
-    }
-    let text = std::str::from_utf8(payload).map_err(|_| {
-        RelationalGroupedTruthError::PayloadDecodeFailure {
-            request_key: request_key.to_string(),
-        }
-    })?;
-    Ok(Value::String(text.to_string()))
-}
-
-fn canonical_json(value: &Value) -> String {
-    serde_json::to_string(value).unwrap_or_else(|_| "<invalid-json>".to_string())
 }
 
 #[cfg(test)]
 mod tests {
+    use forge_foundational::facade::{AspectKey, AspectValue, InternedString, Symbol};
     use forge_runtime_bridge::facade::{
         SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
         TruthSnapshotIdentity,
@@ -177,20 +154,32 @@ mod tests {
     use super::materialize_relational_authoritative_row_set;
 
     #[test]
-    fn relational_row_set_preserves_row_identity_and_fields() {
+    fn relational_row_set_preserves_row_identity_and_aspect_values() {
         let packet = SnapshotReadPacket::new(vec![
-            SnapshotReadRequest::for_coarse("entity-1", "identity.id"),
-            SnapshotReadRequest::for_coarse("entity-1", "status.lane"),
-            SnapshotReadRequest::for_coarse("entity-2", "identity.id"),
-            SnapshotReadRequest::for_coarse("entity-2", "status.lane"),
+            SnapshotReadRequest::for_coarse("entity-1", aspect_key("identity.id")),
+            SnapshotReadRequest::for_coarse("entity-1", aspect_key("status.lane")),
+            SnapshotReadRequest::for_coarse("entity-2", aspect_key("identity.id")),
+            SnapshotReadRequest::for_coarse("entity-2", aspect_key("status.lane")),
         ]);
         let result = SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
             vec![
-                SnapshotReadRecord::new("entity-1:identity.id", b"task-1".to_vec()),
-                SnapshotReadRecord::new("entity-1:status.lane", b"todo".to_vec()),
-                SnapshotReadRecord::new("entity-2:identity.id", b"task-2".to_vec()),
-                SnapshotReadRecord::new("entity-2:status.lane", b"doing".to_vec()),
+                SnapshotReadRecord::new(
+                    "entity-1:identity.id",
+                    aspect_bytes(AspectValue::String("task-1".into())),
+                ),
+                SnapshotReadRecord::new(
+                    "entity-1:status.lane",
+                    aspect_bytes(AspectValue::String("todo".into())),
+                ),
+                SnapshotReadRecord::new(
+                    "entity-2:identity.id",
+                    aspect_bytes(AspectValue::String("task-2".into())),
+                ),
+                SnapshotReadRecord::new(
+                    "entity-2:status.lane",
+                    aspect_bytes(AspectValue::String("doing".into())),
+                ),
             ],
         );
 
@@ -199,7 +188,74 @@ mod tests {
         assert_eq!(row_set.rows().len(), 2);
         assert_eq!(row_set.rows()[0].row_identity().as_str(), "entity-1");
         assert!(row_set.rows()[0]
-            .fields()
-            .contains_key(&super::RelationalFieldBindingKey::new("identity.id")));
+            .projected_aspect_values()
+            .contains_key(&AspectKey::new("identity.id").unwrap()));
+        assert_eq!(
+            row_set.rows()[0]
+                .projected_aspect_values()
+                .get(&AspectKey::new("identity.id").unwrap()),
+            Some(&AspectValue::String("task-1".into()))
+        );
+    }
+
+    #[test]
+    fn relational_row_set_rejects_malformed_aspect_bytes_at_snapshot_boundary() {
+        let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
+            "entity-1",
+            aspect_key("identity.id"),
+        )]);
+        let result = SnapshotReadPacketResult::new(
+            TruthSnapshotIdentity::new("snapshot-a"),
+            vec![SnapshotReadRecord::new(
+                "entity-1:identity.id",
+                b"bad".to_vec(),
+            )],
+        );
+
+        let error = materialize_relational_authoritative_row_set(&packet, &result)
+            .expect_err("malformed snapshot aspect bytes must fail grouped truth materialization");
+
+        assert_eq!(
+            error,
+            super::RelationalGroupedTruthError::AspectValueDecodeFailure {
+                request_key: "entity-1:identity.id".to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn relational_row_set_digest_preserves_interned_string_family() {
+        let raw = row_set_with_identity_value(AspectValue::String(InternedString::Raw(
+            "symbol:7".to_string(),
+        )));
+        let symbol =
+            row_set_with_identity_value(AspectValue::String(InternedString::Symbol(Symbol(7))));
+
+        assert_ne!(raw.digest(), symbol.digest());
+    }
+
+    fn row_set_with_identity_value(
+        value: AspectValue,
+    ) -> super::RelationalAuthoritativeRowSetArtifact {
+        let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
+            "entity-1",
+            aspect_key("identity.id"),
+        )]);
+        let result = SnapshotReadPacketResult::new(
+            TruthSnapshotIdentity::new("snapshot-a"),
+            vec![SnapshotReadRecord::new(
+                "entity-1:identity.id",
+                aspect_bytes(value),
+            )],
+        );
+        materialize_relational_authoritative_row_set(&packet, &result).unwrap()
+    }
+
+    fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+        crate::aspect_wire::encode_aspect_value(&value)
+    }
+
+    fn aspect_key(value: &str) -> AspectKey {
+        AspectKey::new(value).expect("valid test aspect key")
     }
 }

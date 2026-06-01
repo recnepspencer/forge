@@ -1,11 +1,11 @@
-use crate::capabilities::{SchemaSource, StorageRead};
+use crate::authority::mutation::plan_entity_field_aspect_patch;
+use crate::capabilities::{AspectPlanSource, SchemaSource, StorageRead};
 use crate::identity::data::VersionId;
 use crate::logic::runtime::RelationalRuntime;
-use crate::schema::data::{AspectBinding, AspectComparator};
-use crate::symbols::data::InternedString;
 use crate::transactions::data::{
-    CommitConflict, ConflictClass, CreateIntent, EntityMutationIntent, MutationIntent,
-    UpdateEntityFieldsIntent,
+    CommitConflict, ConflictClass, CreateIntent, EntityFieldAspectPatchDenial,
+    EntityFieldIntentValidationMissingState, EntityMutationIntent, MutationIntent,
+    MutationStateInconsistencyEvidence, UpdateEntityFieldsIntent,
 };
 
 use super::record_lookup::{entity_exists_in_state, entity_exists_in_version_basis};
@@ -28,16 +28,6 @@ pub(super) fn validate_entity_intent(
             .resolve_entity(spec.kind_id)
             .map(|_| ())
             .map_err(schema_error_to_commit_conflict),
-        MutationIntent::Entity(EntityMutationIntent::Update(spec)) => {
-            validate_existing_entity_intent(
-                runtime,
-                state,
-                schema_source,
-                branch_basis_version_id,
-                spec.entity_id,
-                intent,
-            )
-        }
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(spec)) => {
             validate_existing_entity_intent(
                 runtime,
@@ -102,85 +92,71 @@ fn validate_existing_entity_intent(
             .map(|_| ())
             .map_err(schema_error_to_commit_conflict),
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(spec)) => {
-            validate_update_entity_fields_intent(state, schema_source, spec)
+            validate_update_entity_fields_intent(runtime, state, spec)
         }
         MutationIntent::Create(_)
-        | MutationIntent::Entity(EntityMutationIntent::Update(_))
         | MutationIntent::Entity(EntityMutationIntent::Delete(_))
         | MutationIntent::Relation(_) => Ok(()),
     }
 }
 
 fn validate_update_entity_fields_intent(
+    runtime: &RelationalRuntime,
     state: &impl StorageRead,
-    schema_source: &impl SchemaSource,
     spec: &UpdateEntityFieldsIntent,
 ) -> Result<(), CommitConflict> {
     let partition = state
         .get_partition(spec.entity_id.partition_id)
         .ok_or_else(|| {
-            CommitConflict::new(ConflictClass::MutationStateInconsistency {
-                detail: "entity field update validation requires an existing partition".to_string(),
-                fields: serde_json::json!({
-                    "record_class": "entity",
-                    "entity_id": spec.entity_id,
-                    "phase": "intent_validation",
-                    "missing": "partition",
-                }),
-            })
+            entity_field_validation_missing(
+                spec.entity_id,
+                EntityFieldIntentValidationMissingState::Partition,
+                "entity field update validation requires an existing partition",
+            )
         })?;
     let slot = partition
         .entity_arena
-        .get_slot(spec.entity_id.local_slot.0 as usize)
+        .get_slot(spec.entity_id.slot_index())
         .ok_or_else(|| {
-            CommitConflict::new(ConflictClass::MutationStateInconsistency {
-                detail: "entity field update validation requires an existing slot".to_string(),
-                fields: serde_json::json!({
-                    "record_class": "entity",
-                    "entity_id": spec.entity_id,
-                    "phase": "intent_validation",
-                    "missing": "slot",
-                }),
-            })
+            entity_field_validation_missing(
+                spec.entity_id,
+                EntityFieldIntentValidationMissingState::Slot,
+                "entity field update validation requires an existing slot",
+            )
         })?;
     let kind_id = slot.kind_id().ok_or_else(|| {
-        CommitConflict::new(ConflictClass::MutationStateInconsistency {
-            detail: "entity field update validation requires a retained kind id".to_string(),
-            fields: serde_json::json!({
-                "record_class": "entity",
-                "entity_id": spec.entity_id,
-                "phase": "intent_validation",
-                "missing": "kind_id",
-            }),
+        entity_field_validation_missing(
+            spec.entity_id,
+            EntityFieldIntentValidationMissingState::KindId,
+            "entity field update validation requires a retained kind id",
+        )
+    })?;
+    let lowered_plan = runtime.entity_aspect_plan(kind_id).ok_or_else(|| {
+        CommitConflict::new(ConflictClass::EntityFieldAspectPatchDenied {
+            entity_id: spec.entity_id,
+            denial: EntityFieldAspectPatchDenial::MissingAspectPlan { kind_id },
         })
     })?;
-    let registration = schema_source
-        .schema_registry()
-        .entity_registration(kind_id)
-        .map_err(schema_error_to_commit_conflict)?;
-    let declared_scalar_fields = registration
-        .aspect_declarations
-        .aspects
-        .iter()
-        .filter_map(|aspect| match (&aspect.binding, aspect.comparator) {
-            (AspectBinding::EntityPayloadField { field }, AspectComparator::JsonScalarEquality) => {
-                match field {
-                    InternedString::Raw(raw) => Some(raw.as_str()),
-                    _ => None,
-                }
-            }
-            _ => None,
+    plan_entity_field_aspect_patch(kind_id, Some(lowered_plan), &spec.fields)
+        .map(|_| ())
+        .map_err(|denial| {
+            CommitConflict::new(ConflictClass::EntityFieldAspectPatchDenied {
+                entity_id: spec.entity_id,
+                denial,
+            })
         })
-        .collect::<std::collections::BTreeSet<_>>();
-    for key in spec.fields.keys() {
-        if !declared_scalar_fields.contains(key.as_str()) {
-            return Err(CommitConflict::new(ConflictClass::KindSchemaMismatch {
-                detail: format!(
-                    "entity field update key '{}' is not a declared scalar entity aspect on kind {:?}",
-                    key, kind_id
-                ),
-            }));
-        }
-    }
-    Ok(())
+}
+
+fn entity_field_validation_missing(
+    entity_id: crate::identity::data::EntityId,
+    missing: EntityFieldIntentValidationMissingState,
+    detail: impl Into<String>,
+) -> CommitConflict {
+    CommitConflict::new(ConflictClass::MutationStateInconsistency {
+        detail: detail.into(),
+        evidence: MutationStateInconsistencyEvidence::EntityFieldIntentValidation {
+            entity_id,
+            missing,
+        },
+    })
 }

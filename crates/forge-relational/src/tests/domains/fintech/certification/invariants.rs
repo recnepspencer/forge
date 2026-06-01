@@ -30,53 +30,30 @@ fn run_check(
             )
         }
         ["read_nonempty", alias] => {
-            let count = session
-                .named_reads
-                .get(*alias)
-                .and_then(|value| value.get("entity_count"))
-                .and_then(|value| value.as_u64())
-                .unwrap_or_default();
+            let count = read_summary(session, alias)?.entity_count();
             (
                 count > 0,
                 format!("read `{alias}` should contain at least one entity"),
             )
         }
         ["read_has_corrected_trade", alias] => {
-            let count = session
-                .named_reads
-                .get(*alias)
-                .and_then(|value| value.get("corrected_trade_count"))
-                .and_then(|value| value.as_u64())
-                .unwrap_or_default();
+            let count = read_summary(session, alias)?.corrected_trade_count();
             (
                 count > 0,
                 format!("read `{alias}` should expose the corrected trade"),
             )
         }
         ["read_has_audit_truth", alias] => {
-            let count = session
-                .named_reads
-                .get(*alias)
-                .and_then(|value| value.get("audit_record_count"))
-                .and_then(|value| value.as_u64())
-                .unwrap_or_default();
+            let count = read_summary(session, alias)?.audit_record_count();
             (
                 count > 0,
                 format!("read `{alias}` should expose audit truth"),
             )
         }
-        ["read_matches_case", alias, case_role] => {
-            let actual = session
-                .named_reads
-                .get(*alias)
-                .and_then(|value| value.get("case_role"))
-                .and_then(|value| value.as_str())
-                .unwrap_or_default();
-            (
-                actual == *case_role,
-                format!("read `{alias}` should target case `{case_role}`"),
-            )
-        }
+        ["read_matches_case", alias, case_role] => (
+            read_summary(session, alias)?.matches_case_role(case_role),
+            format!("read `{alias}` should target case `{case_role}`"),
+        ),
         ["lineage_promotion_succeeded", alias] => {
             let resolution = session
                 .named_lineage_resolutions
@@ -89,62 +66,30 @@ fn run_check(
             )
         }
         ["read_has_repaired_settlement", alias] => {
-            let count = session
-                .named_reads
-                .get(*alias)
-                .and_then(|value| value.get("repaired_settlement_count"))
-                .and_then(|value| value.as_u64())
-                .unwrap_or_default();
+            let count = read_summary(session, alias)?.repaired_settlement_count();
             (
                 count > 0,
                 format!("read `{alias}` should expose a repaired settlement"),
             )
         }
         ["case_correction_truth_visible", alias] => {
-            let count = session
-                .named_reads
-                .get(*alias)
-                .and_then(|value| value.get("corrected_trade_count"))
-                .and_then(|value| value.as_u64())
-                .unwrap_or_default();
-            let audit = session
-                .named_reads
-                .get(*alias)
-                .and_then(|value| value.get("audit_record_count"))
-                .and_then(|value| value.as_u64())
-                .unwrap_or_default();
+            let summary = read_summary(session, alias)?;
             (
-                count > 0 && audit > 0,
+                summary.corrected_trade_count() > 0 && summary.audit_record_count() > 0,
                 format!("case read `{alias}` should expose correction truth and audit truth"),
             )
         }
         ["read_has_open_breach", alias] => {
-            let count = session
-                .named_reads
-                .get(*alias)
-                .and_then(|value| value.get("open_breach_count"))
-                .and_then(|value| value.as_u64())
-                .unwrap_or_default();
+            let count = read_summary(session, alias)?.open_breach_count();
             (
                 count > 0,
                 format!("read `{alias}` should expose an open risk breach"),
             )
         }
         ["case_settlement_repair_visible", alias] => {
-            let repaired = session
-                .named_reads
-                .get(*alias)
-                .and_then(|value| value.get("repaired_settlement_count"))
-                .and_then(|value| value.as_u64())
-                .unwrap_or_default();
-            let audit = session
-                .named_reads
-                .get(*alias)
-                .and_then(|value| value.get("audit_record_count"))
-                .and_then(|value| value.as_u64())
-                .unwrap_or_default();
+            let summary = read_summary(session, alias)?;
             (
-                repaired > 0 && audit > 0,
+                summary.repaired_settlement_count() > 0 && summary.audit_record_count() > 0,
                 format!("case read `{alias}` should expose repaired settlement and audit truth"),
             )
         }
@@ -225,4 +170,14 @@ fn run_check(
         detail,
         fields: BTreeMap::new(),
     })
+}
+
+fn read_summary<'session>(
+    session: &'session CertifiedRelationalFintechSession,
+    alias: &str,
+) -> Result<&'session super::read_summaries::CertifiedFintechReadSummary, String> {
+    session
+        .named_reads
+        .get(alias)
+        .ok_or_else(|| format!("unknown certified fintech read alias `{alias}`"))
 }

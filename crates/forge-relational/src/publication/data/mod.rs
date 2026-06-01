@@ -1,8 +1,7 @@
-pub mod diff;
+mod artifact_snapshot;
+mod observation_snapshot;
 mod publication_error;
 
-#[allow(unused_imports)]
-pub use self::diff::*;
-#[allow(unused_imports)]
-pub use crate::publication::bundle::*;
-pub use publication_error::*;
+pub use artifact_snapshot::{PublicationArtifactSnapshot, PublicationDiagnosticsSnapshot};
+pub use observation_snapshot::PublicationObservationSnapshot;
+pub use publication_error::PublicationError;

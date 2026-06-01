@@ -1,0 +1,27 @@
+use crate::storage::data::EntityReadRecord;
+use crate::storage::overlay::PartitionAccess;
+
+pub(super) fn current_entity_snapshot(
+    runtime: &crate::logic::runtime::RelationalRuntime,
+    entity_id: crate::identity::data::EntityId,
+) -> Option<EntityReadRecord> {
+    let current_state = runtime.storage_access().current_state();
+    let partition = current_state.get_partition(entity_id.partition_id)?;
+    let slot = partition.entity_arena.get(&entity_id)?;
+    let kind_id = slot.kind_id()?;
+    let kind = runtime
+        .config
+        .schema
+        .registry
+        .resolve_entity(kind_id)
+        .ok()?;
+    Some(EntityReadRecord {
+        entity_id,
+        lineage_id: None,
+        kind,
+        lifecycle: slot.lifecycle(),
+        created_at_version: partition.entity_arena.created_at[entity_id.local_slot.0 as usize],
+        retired_at_version: slot.retired_at(),
+        authoritative_aspect_state: slot.extra().authoritative_aspect_state.clone(),
+    })
+}

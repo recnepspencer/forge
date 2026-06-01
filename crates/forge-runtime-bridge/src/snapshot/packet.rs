@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use forge_foundational::facade::AspectKey;
 use sha2::{Digest, Sha256};
 
 use crate::error::BridgeMessageError;
@@ -15,7 +16,7 @@ pub type BridgeSnapshotReadError = BridgeMessageError<BridgeSnapshotReadErrorTag
 pub struct SnapshotReadRequest {
     request_key: Arc<str>,
     entity_identity: Arc<str>,
-    aspect_label: Arc<str>,
+    aspect_key: AspectKey,
     shape: SnapshotReadShape,
 }
 
@@ -29,40 +30,35 @@ enum SnapshotReadShape {
 }
 
 impl SnapshotReadRequest {
-    pub fn for_coarse(
-        entity_identity: impl Into<Arc<str>>,
-        aspect_label: impl Into<Arc<str>>,
-    ) -> Self {
+    pub fn for_coarse(entity_identity: impl Into<Arc<str>>, aspect_key: AspectKey) -> Self {
         let entity_identity = entity_identity.into();
-        let aspect_label = aspect_label.into();
         Self {
-            request_key: format!("{}:{}", entity_identity.as_ref(), aspect_label.as_ref()).into(),
+            request_key: format!("{}:{}", entity_identity.as_ref(), aspect_key.as_str()).into(),
             entity_identity,
-            aspect_label,
+            aspect_key,
             shape: SnapshotReadShape::Coarse,
         }
     }
 
     pub fn for_subscription_slice(
         entity_identity: impl Into<Arc<str>>,
-        aspect_label: impl Into<Arc<str>>,
+        aspect_key: AspectKey,
         surface_label: impl Into<Arc<str>>,
         slice_kind: SubscriptionSliceKind,
     ) -> Self {
         let entity_identity = entity_identity.into();
-        let aspect_label = aspect_label.into();
         let surface_label = surface_label.into();
         Self {
             request_key: format!(
                 "{}:{}:{}:{}",
                 entity_identity.as_ref(),
-                aspect_label.as_ref(),
+                aspect_key.as_str(),
                 canonical_subscription_slice_kind_label(&slice_kind),
                 surface_label.as_ref()
             )
             .into(),
             entity_identity,
-            aspect_label,
+            aspect_key,
             shape: SnapshotReadShape::SubscriptionSlice {
                 surface_label,
                 slice_kind,
@@ -78,8 +74,12 @@ impl SnapshotReadRequest {
         self.entity_identity.as_ref()
     }
 
+    pub fn aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
+    }
+
     pub fn aspect_label(&self) -> &str {
-        self.aspect_label.as_ref()
+        self.aspect_key.as_str()
     }
 
     pub fn surface_label(&self) -> Option<&str> {
@@ -160,14 +160,14 @@ impl SnapshotReadPacket {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SnapshotReadRecord {
     request_key: Arc<str>,
-    payload: Arc<[u8]>,
+    aspect_bytes: Arc<[u8]>,
 }
 
 impl SnapshotReadRecord {
-    pub fn new(request_key: impl Into<Arc<str>>, payload: impl Into<Arc<[u8]>>) -> Self {
+    pub fn new(request_key: impl Into<Arc<str>>, aspect_bytes: impl Into<Arc<[u8]>>) -> Self {
         Self {
             request_key: request_key.into(),
-            payload: payload.into(),
+            aspect_bytes: aspect_bytes.into(),
         }
     }
 
@@ -175,8 +175,8 @@ impl SnapshotReadRecord {
         self.request_key.as_ref()
     }
 
-    pub fn payload(&self) -> &[u8] {
-        self.payload.as_ref()
+    pub fn aspect_bytes(&self) -> &[u8] {
+        self.aspect_bytes.as_ref()
     }
 }
 
@@ -282,6 +282,8 @@ pub(crate) fn canonical_subscription_slice_kind_label(
 
 #[cfg(test)]
 mod tests {
+    use forge_foundational::facade::AspectKey;
+
     use crate::mapping::SubscriptionSliceKind;
     use crate::snapshot::{
         validate_snapshot_read_result_contract, BridgeSnapshotReadError, SnapshotReadPacket,
@@ -293,10 +295,10 @@ mod tests {
     #[test]
     fn packet_preserves_declared_read_order() {
         let packet = SnapshotReadPacket::new(vec![
-            SnapshotReadRequest::for_coarse("user-1", "profile"),
+            SnapshotReadRequest::for_coarse("user-1", aspect_key("profile")),
             SnapshotReadRequest::for_subscription_slice(
                 "user-2",
-                "profile",
+                aspect_key("profile"),
                 "name",
                 SubscriptionSliceKind::SignalField,
             ),
@@ -319,10 +321,14 @@ mod tests {
 
     #[test]
     fn packet_digest_changes_when_declared_reads_change() {
-        let left =
-            SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse("user-1", "profile")]);
-        let right =
-            SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse("user-2", "profile")]);
+        let left = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
+            "user-1",
+            aspect_key("profile"),
+        )]);
+        let right = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
+            "user-2",
+            aspect_key("profile"),
+        )]);
 
         assert_ne!(left.digest(), right.digest());
     }
@@ -341,8 +347,8 @@ mod tests {
     #[test]
     fn validation_rejects_missing_required_record() {
         let packet = SnapshotReadPacket::new(vec![
-            SnapshotReadRequest::for_coarse("user-1", "profile"),
-            SnapshotReadRequest::for_coarse("user-2", "profile"),
+            SnapshotReadRequest::for_coarse("user-1", aspect_key("profile")),
+            SnapshotReadRequest::for_coarse("user-2", aspect_key("profile")),
         ]);
 
         let error = validate_snapshot_read_result_contract(
@@ -360,8 +366,10 @@ mod tests {
 
     #[test]
     fn validation_rejects_duplicate_result_keys() {
-        let packet =
-            SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse("user-1", "profile")]);
+        let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
+            "user-1",
+            aspect_key("profile"),
+        )]);
 
         let error = validate_snapshot_read_result_contract(
             &packet,
@@ -376,5 +384,9 @@ mod tests {
         .expect_err("duplicate result keys must fail the bridge snapshot contract");
 
         assert!(error.to_string().contains("duplicate record"));
+    }
+
+    fn aspect_key(value: &str) -> AspectKey {
+        AspectKey::new(value).expect("valid test aspect key")
     }
 }

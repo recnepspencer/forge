@@ -3,7 +3,7 @@ use serde_json::Value;
 use super::scalar_lowering::required_u64;
 use super::JsonCompatibilityLoweringDenial;
 use crate::locators::BoundarySourceLocator;
-use crate::values::{AspectValue, ContentRefId, EntityId, PartitionId, ScalarAspectType};
+use crate::values::{AspectValue, EntityId, PartitionId, ScalarAspectType};
 
 pub(super) fn lower_json_entity_ref(
     source: &BoundarySourceLocator,
@@ -44,12 +44,4 @@ pub(super) fn lower_json_entity_ref(
         local_slot,
         generation as u32,
     )))
-}
-
-pub(super) fn lower_json_content_ref(
-    source: &BoundarySourceLocator,
-    value: &Value,
-) -> Result<AspectValue, JsonCompatibilityLoweringDenial> {
-    required_u64(Some(value), source, ScalarAspectType::ContentRef)
-        .map(|value| AspectValue::ContentRef(ContentRefId(value)))
 }

@@ -9,6 +9,7 @@ description = "Topology truth vocabulary, aspects, and invariant declarations"
 name = "schema"
 
 [dependencies]
+forge-foundational.workspace = true
 forge-query.workspace = true
 forge-relational.workspace = true
 forge-runtime-bridge.workspace = true

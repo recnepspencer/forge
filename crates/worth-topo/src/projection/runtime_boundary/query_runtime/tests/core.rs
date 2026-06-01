@@ -106,7 +106,7 @@ fn current_head_runtime_reads_seeded_topology_without_query_import() {
     assert!(!relation_rows.is_empty());
     assert!(!persistent_name_rows.is_empty());
     assert!(entity_rows.iter().any(|row| {
-        row.payload
+        row.external_row()
             .get("naming")
             .and_then(|value| value.get("persistent_name"))
             .and_then(|value| value.as_str())
@@ -140,7 +140,7 @@ fn current_head_runtime_writes_topology_through_real_runtime() {
     let materialized: crate::facade::MaterializedTopologyView =
         serde_json::from_value(materialized_rows[0].clone()).expect("materialized topology row");
     assert!(entity_rows.iter().any(|row| {
-        row.payload
+        row.external_row()
             .get("naming")
             .and_then(|value| value.get("persistent_name"))
             .and_then(|value| value.as_str())

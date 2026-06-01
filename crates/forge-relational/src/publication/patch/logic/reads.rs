@@ -1,4 +1,6 @@
+use crate::capabilities::PublicationBundleSource;
 use crate::logic::runtime::RelationalRuntime;
+use crate::publication::logic::{retained_canonical_envelopes_after, RetainedCanonicalEnvelopeGap};
 use crate::publication::patch::data::{
     PatchStreamBatch, PatchStreamReadError, PatchStreamReadErrorClass, PatchStreamRequest,
 };
@@ -16,9 +18,7 @@ pub(crate) fn read_patch_stream(
 
     let latest_position = runtime.history().latest_patch_stream_position();
     let latest_commit_id = runtime
-        .publication
-        .latest_bundle
-        .as_ref()
+        .latest_publication_bundle()
         .map(|bundle| bundle.commit.commit_id)
         .or_else(|| {
             runtime
@@ -39,9 +39,12 @@ pub(crate) fn read_patch_stream(
         }
     }
 
-    let patches = runtime
-        .history()
-        .patches_after(request.after_position, request.max_commits);
+    let patches: Vec<_> =
+        retained_canonical_envelopes_after(runtime, request.after_position, request.max_commits)
+            .map_err(retained_history_gap)?
+            .into_iter()
+            .map(|envelope| envelope.patch)
+            .collect();
 
     Ok(PatchStreamBatch {
         resumed_after: request.after_position,
@@ -50,4 +53,14 @@ pub(crate) fn read_patch_stream(
         latest_commit_id,
         patches,
     })
+}
+
+fn retained_history_gap(gap: RetainedCanonicalEnvelopeGap) -> PatchStreamReadError {
+    PatchStreamReadError {
+        class: PatchStreamReadErrorClass::RetainedHistoryGap,
+        detail: format!(
+            "patch stream position {} is retained for commit {} but has no retained canonical envelope or durable recovery coverage",
+            gap.position.0, gap.commit_id.0
+        ),
+    }
 }

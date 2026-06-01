@@ -213,14 +213,14 @@ fn query_context_support(
 ) -> ProjectionConsumptionSupportPosture {
     match fact_kind {
         ProjectionFactKind::SourceReference if has_source_reference => {
-            ProjectionConsumptionSupportPosture::AdmittedWithWarnings(
-                query_context_payload_warning(execution_posture),
-            )
+            ProjectionConsumptionSupportPosture::AdmittedWithWarnings(query_context_row_warning(
+                execution_posture,
+            ))
         }
         ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
-            ProjectionConsumptionSupportPosture::AdmittedWithWarnings(
-                query_context_payload_warning(execution_posture),
-            )
+            ProjectionConsumptionSupportPosture::AdmittedWithWarnings(query_context_row_warning(
+                execution_posture,
+            ))
         }
         ProjectionFactKind::EntityIdentity | ProjectionFactKind::ViewLocalIdentity => {
             match execution_posture {
@@ -244,7 +244,7 @@ fn query_context_support(
     }
 }
 
-fn query_context_payload_warning(
+fn query_context_row_warning(
     execution_posture: ProjectionSourceExecutionPosture,
 ) -> ProjectionConsumptionWarningKind {
     match execution_posture {
@@ -254,7 +254,7 @@ fn query_context_payload_warning(
         ProjectionSourceExecutionPosture::Current
         | ProjectionSourceExecutionPosture::Branch
         | ProjectionSourceExecutionPosture::Historical => {
-            ProjectionConsumptionWarningKind::QueryContextPayloadBound
+            ProjectionConsumptionWarningKind::QueryContextRowBound
         }
     }
 }

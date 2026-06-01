@@ -1,6 +1,6 @@
 use crate::inspection::data::{
-    InspectionDegradation, InspectionOrigin, InspectionRecordClass, InspectionScope,
-    StructuralIdentityComparison, StructuralIdentityComparisonVerdict, StructuralIdentityEvidence,
+    InspectionDegradation, InspectionRecordClass, InspectionScope, StructuralIdentityComparison,
+    StructuralIdentityComparisonVerdict, StructuralIdentityEvidence,
     StructuralIdentityQueryRequest,
 };
 use crate::transactions::data::RecordRef;
@@ -13,30 +13,18 @@ impl<'runtime> InspectionAccess<'runtime> {
         scope: InspectionScope,
         target: RecordRef,
     ) -> Option<StructuralIdentityEvidence> {
-        self.runtime
-            .services
-            .instrumentation
-            .count(|counters| counters.inspection_structural_identity_lookups += 1);
+        self.count_structural_identity_lookup();
         let version_id = self.scope_version_id(&scope);
         match target {
             RecordRef::Entity(entity_id) => {
-                let read = self.runtime.read_truth().entity_record_for_id_at_version(
-                    &self.runtime.storage_access().current_state(),
-                    entity_id,
-                    version_id,
-                )?;
-                let extra = self
-                    .runtime
-                    .storage_access()
-                    .partition_state(entity_id.partition_id)
-                    .and_then(|partition| partition.entity_arena.get(&entity_id))
-                    .map(|slot_view| slot_view.extra().clone())
-                    .unwrap_or_default();
+                let read = self.scoped_authoritative_entity_record(&scope, entity_id)?;
+                let (lineage_id, structural_fingerprint) =
+                    self.entity_structural_sidecars(entity_id);
                 let mut degradations = Vec::new();
-                if extra.structural_fingerprint.is_none() {
+                if structural_fingerprint.is_none() {
                     degradations.push(InspectionDegradation::MissingStructuralFingerprint);
                 }
-                if extra.lineage_id.is_none() {
+                if lineage_id.is_none() {
                     degradations.push(InspectionDegradation::MissingLineageIdentity);
                 }
                 Some(StructuralIdentityEvidence {
@@ -44,25 +32,18 @@ impl<'runtime> InspectionAccess<'runtime> {
                     record_class: InspectionRecordClass::Entity,
                     kind_id: read.kind.kind_id,
                     storage_identity: RecordRef::Entity(entity_id),
-                    lineage_id: extra.lineage_id,
-                    structural_fingerprint: extra.structural_fingerprint,
+                    lineage_id,
+                    structural_fingerprint,
                     observed_version: version_id,
                     lifecycle: read.lifecycle,
-                    origin: InspectionOrigin::CurrentTruth,
+                    origin: self.scope_origin(&scope),
                     access_path: self.scope_access_path(&scope, version_id),
                     availability: self.scope_availability(&scope, version_id),
                     degradations,
                 })
             }
             RecordRef::Relation(relation_id) => {
-                let read = self
-                    .runtime
-                    .read_truth()
-                    .relation_record_for_id_at_version(
-                        &self.runtime.storage_access().current_state(),
-                        relation_id,
-                        version_id,
-                    )?;
+                let read = self.scoped_authoritative_relation_record(&scope, relation_id)?;
                 Some(StructuralIdentityEvidence {
                     target,
                     record_class: InspectionRecordClass::Relation,
@@ -72,7 +53,7 @@ impl<'runtime> InspectionAccess<'runtime> {
                     structural_fingerprint: None,
                     observed_version: version_id,
                     lifecycle: read.lifecycle,
-                    origin: InspectionOrigin::CurrentTruth,
+                    origin: self.scope_origin(&scope),
                     access_path: self.scope_access_path(&scope, version_id),
                     availability: self.scope_availability(&scope, version_id),
                     degradations: vec![
@@ -122,9 +103,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         &self,
         request: &StructuralIdentityQueryRequest,
     ) -> Vec<StructuralIdentityEvidence> {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.inspection_structural_identity_query_scans += 1;
-        });
+        self.count_structural_identity_query_scan();
         let version_id = self.scope_version_id(&request.scope);
         let Some(read_view) = self.read_view_for_scope(&request.scope) else {
             return Vec::new();

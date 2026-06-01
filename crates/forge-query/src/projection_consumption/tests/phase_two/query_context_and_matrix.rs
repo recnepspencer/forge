@@ -121,7 +121,7 @@ fn historical_query_context_identity_requests_fail_as_source_mismatch() {
 }
 
 #[test]
-fn non_preview_query_context_display_fields_warn_as_payload_bound_not_preview_derived() {
+fn non_preview_query_context_display_fields_warn_as_row_bound_not_preview_derived() {
     let declaration = declare_projection_consumption(
         source_with_profile(
             ProjectionSourceFamily::QueryContextExecution,
@@ -138,10 +138,10 @@ fn non_preview_query_context_display_fields_warn_as_payload_bound_not_preview_de
         ProjectionConsumptionEligibility::AdmittedWithWarnings(_, warnings) => {
             assert_eq!(
                 warnings.warning_kinds(),
-                &[ProjectionConsumptionWarningKind::QueryContextPayloadBound]
+                &[ProjectionConsumptionWarningKind::QueryContextRowBound]
             );
         }
-        other => panic!("expected payload-bound warning, got {other:?}"),
+        other => panic!("expected row-bound warning, got {other:?}"),
     }
 }
 

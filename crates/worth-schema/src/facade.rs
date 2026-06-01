@@ -32,7 +32,8 @@ pub mod platform {
         //! descriptor assembly.
 
         pub use crate::data::aspects::{
-            Aspect, DiagnosticsAspect, GeometryAspect, LineageAspect, NamingAspect, TopologyAspect,
+            entity_domain_aspect, entity_domain_field, Aspect, DiagnosticsAspect, GeometryAspect,
+            LineageAspect, NamingAspect, TopologyAspect,
         };
     }
 

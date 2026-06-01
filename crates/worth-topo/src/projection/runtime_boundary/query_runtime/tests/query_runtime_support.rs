@@ -132,7 +132,7 @@ impl QueryRuntimeSupport {
             .find_entity_id_by_identity(
                 self.entity_rows
                     .iter()
-                    .map(|row| row.identity.as_str())
+                    .map(|row| row.identity())
                     .find(|identity| {
                         *identity != source_identity
                             && self
@@ -183,7 +183,7 @@ impl QueryRuntimeSupport {
         let half_edges = self
             .entity_rows
             .iter()
-            .map(|row| row.identity.as_str())
+            .map(|row| row.identity())
             .filter(|identity| {
                 self.lookup()
                     .incoming_source_identity(identity, TopologyRelationKind::LoopOwnsHalfEdge)

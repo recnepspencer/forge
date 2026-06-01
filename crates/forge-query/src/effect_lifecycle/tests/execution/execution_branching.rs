@@ -2,20 +2,22 @@ use forge_relational::facade::commit_strategies::{
     CommitStrategyId, CommitStrategyRegistration, IntentReconciliationStrategy,
 };
 use forge_relational::facade::history::BranchId;
-use forge_relational::facade::payloads::RecordPayload;
 use forge_relational::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use forge_relational::facade::schema::{
-    AspectBinding, AspectComparator, AspectKey, AspectPrecision, DeclaredAspect,
-    EntityKindRegistration, KindAspectDeclarations, RelationalSchemaRegistry, SchemaId,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationalSchemaRegistry, SchemaId,
     SchemaVersionId,
 };
 use forge_relational::facade::transactions::{
     CreateIntent, EntityMutationIntent, EntitySpec, MutationIntent, RecordRef, TransactionOptions,
-    UpdateEntityIntent, WorkerIntentBatch,
+    UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
-use forge_relational::facade::{identity::KindId, identity::PartitionId, symbols::InternedString};
+use forge_relational::facade::{identity::KindId, identity::PartitionId, symbols::ClientKey};
 use serde_json::json;
 
+use crate::aspect_field_authoring::{
+    aspect_key, entity_string_field_aspect, lifecycle_string_aspect,
+    single_aspect_field_patch_from_external_json,
+};
 use crate::effect_lifecycle::{
     scope_admitted_effect_plan, EffectExecutionAuthority, EffectExecutionDenialKind,
 };
@@ -90,10 +92,7 @@ fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
         .iter()
         .find(|record| record.entity_id == entity_id)
         .expect("entity should still exist after execution");
-    assert_eq!(
-        updated.payload,
-        RecordPayload::StructuredJson(json!({ "name": "authority-plan" }))
-    );
+    assert_entity_name(updated, "authority-plan");
 }
 
 #[test]
@@ -162,10 +161,7 @@ fn retained_lowered_mutation_denies_after_intervening_truth_change() {
         .iter()
         .find(|record| record.entity_id == entity_id)
         .expect("entity should still exist after stale denial");
-    assert_eq!(
-        updated.payload,
-        RecordPayload::StructuredJson(json!({ "name": "intervening" }))
-    );
+    assert_entity_name(updated, "intervening");
 }
 
 #[test]
@@ -240,8 +236,9 @@ fn create_entity(
             CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
-                client_key: InternedString::Raw(name.to_string()),
-                payload: RecordPayload::StructuredJson(json!({ "name": name })),
+                client_key: ClientKey::raw(name),
+                fields: single_aspect_field_patch_from_external_json("name", "name", json!(name))
+                    .expect("entity name aspect patch"),
             }),
         )),
     );
@@ -268,9 +265,10 @@ fn update_entity_name(
     });
     txn.push_batch(
         WorkerIntentBatch::new(format!("update-{name}")).push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                payload: RecordPayload::StructuredJson(json!({ "name": name })),
+                fields: single_aspect_field_patch_from_external_json("name", "name", json!(name))
+                    .expect("entity name aspect patch"),
             }),
         )),
     );
@@ -288,22 +286,31 @@ fn test_schema_registry() -> RelationalSchemaRegistry {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![
-                DeclaredAspect {
-                    key: AspectKey(InternedString::Raw("name".to_string())),
-                    binding: AspectBinding::EntityPayloadField {
-                        field: InternedString::Raw("name".to_string()),
-                    },
-                    comparator: AspectComparator::JsonScalarEquality,
-                    precision: AspectPrecision::Structured,
-                },
-                DeclaredAspect {
-                    key: AspectKey(InternedString::Raw("lifecycle".to_string())),
-                    binding: AspectBinding::LifecycleTransition,
-                    comparator: AspectComparator::LifecycleTransitionEquality,
-                    precision: AspectPrecision::Structured,
-                },
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                entity_string_field_aspect("name", "name").expect("name aspect"),
+                lifecycle_string_aspect("lifecycle").expect("lifecycle aspect"),
             ]),
         })
         .expect("test entity kind should register")
+}
+
+fn assert_entity_name(
+    record: &forge_relational::facade::runtime::EntityReadRecord,
+    expected_name: &str,
+) {
+    let state = record
+        .authoritative_aspect_state
+        .as_ref()
+        .expect("entity should carry authoritative aspect state");
+    let value = state
+        .get(&aspect_key("name").expect("valid aspect key"))
+        .expect("name aspect should be present");
+    match value.view() {
+        forge_foundational::facade::ContractValidatedAspectValueView::Scalar(
+            forge_foundational::facade::AspectValue::String(
+                forge_foundational::facade::InternedString::Raw(actual),
+            ),
+        ) => assert_eq!(actual, expected_name),
+        other => panic!("expected scalar string name aspect, got {other:?}"),
+    }
 }
