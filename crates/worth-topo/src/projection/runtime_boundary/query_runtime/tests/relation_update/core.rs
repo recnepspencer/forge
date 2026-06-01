@@ -3,13 +3,12 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
 use super::super::query_runtime_support::{query_entity_id_from_row, query_relation_id_from_row};
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::topology_operators::{
-    LoopEndpointKind, TopologyEditApplicationMode, TopologyEditBatch, TopologyEditContract,
-    TopologyEditFamily,
+    LoopEndpointKind, TopologyMutationFamily, TopologyRewireLoopEndpointDeclaration,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
@@ -25,8 +24,12 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, ".current-head.query-update-rewire-endpoint")
         .expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let relation_rows = workspace.read(assembly.relations());
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let relation_rows = workspace.read(surfaces.relations());
     let relation = relation_rows
         .iter()
         .find(|row| {
@@ -89,7 +92,7 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
         forge_query::facade::ForgeQueryExistingTruthBindingFamily::DirectRelationIdentity
     );
 
-    let relation_rows_after = workspace.read(assembly.relations());
+    let relation_rows_after = workspace.read(surfaces.relations());
     let original_relation = relation_rows_after
         .iter()
         .find(|row| query_relation_id_from_row(row) == query_relation_id_from_row(relation))
@@ -105,20 +108,24 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
 }
 
 #[test]
-fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_operator_runner() {
+fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_mutation_application() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.query-edit-rewire-endpoint",
+        ".current-head.query-mutation-rewire-endpoint",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace =
-        topology_runtime(adapters, ".current-head.query-edit-rewire-endpoint").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let relation_rows = workspace.read(assembly.relations());
-    let entity_rows = workspace.read(assembly.entities());
+    let mut workspace = topology_runtime(adapters, ".current-head.query-mutation-rewire-endpoint")
+        .expect("workspace");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let relation_rows = workspace.read(surfaces.relations());
+    let entity_rows = workspace.read(surfaces.entities());
     let relation = relation_rows
         .iter()
         .find(|row| {
@@ -160,26 +167,23 @@ fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_operator_
         .find(|row| row.identity == source_identity)
         .map(query_entity_id_from_row)
         .expect("relation source identity should resolve to a halfedge");
-    let batch = TopologyEditBatch::new(vec![TopologyEditContract::rewire_loop_endpoint(
+    let declaration = TopologyRewireLoopEndpointDeclaration::new(
         query_relation_id_from_row(relation),
         LoopEndpointKind::End,
         half_edge_id,
         target_vertex_id,
-    )])
-    .expect("non-empty edit batch");
-
-    let execution = assembly
-        .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-        .expect("endpoint rewire should execute through the admitted runtime family");
+    );
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+            .expect("endpoint rewire should execute through declaration entry");
 
     assert_eq!(
         execution.families,
-        vec![TopologyEditFamily::RewireLoopEndpoint]
+        vec![TopologyMutationFamily::RewireLoopEndpoint]
     );
     assert_eq!(
         execution
-            .receipt
-            .batch_mutation_evidence()
+            .mutation_evidence()
             .backend_verified_update_count(),
         1
     );

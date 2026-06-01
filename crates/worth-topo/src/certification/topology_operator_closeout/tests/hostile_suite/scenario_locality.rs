@@ -1,6 +1,6 @@
 use crate::facade::{
     MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario, ReplayParityStatus,
-    TopologyEditRejectionClass,
+    TopologyMutationRejectionClass,
 };
 
 use super::certify_hostile_suite_report;
@@ -9,7 +9,7 @@ use super::certify_hostile_suite_report;
 fn hostile_suite_validator_and_traversal_rows_localize_scenarios() {
     let report = certify_hostile_suite_report("m3.hostile_suite.locality");
 
-    assert!(report.edited_query_traversal_rows.iter().all(|row| {
+    assert!(report.mutation_query_traversal_rows.iter().all(|row| {
         row.scenario == MilestoneThreeHostileScenario::AmbiguousLocalRewireContinuity
             && row.parity_verified
             && row.left_view_digest == row.replay_view_digest
@@ -22,7 +22,7 @@ fn hostile_suite_validator_and_traversal_rows_localize_scenarios() {
     }));
     assert!(report.validator_family_coverage_rows.iter().all(|row| {
         !row.validator_names.is_empty()
-            && row.edit_family_count > 0
+            && row.mutation_family_count > 0
             && row.changed_scope_count > 0
             && row.naming_scope_count > 0
             && row.derived_region_count > 0
@@ -45,12 +45,12 @@ fn hostile_suite_validator_and_traversal_rows_localize_scenarios() {
         .changed_scope_coverage_rows
         .iter()
         .any(|row| row.changed_scope
-            == crate::topology_operators::TopologyEditChangedScope::LocalNeighborhood));
+            == crate::topology_operators::TopologyMutationChangedScope::LocalNeighborhood));
     assert!(report
         .derived_region_coverage_rows
         .iter()
         .any(|row| row.derived_region
-            == crate::topology_operators::TopologyDerivedRegion::EditLocalNeighborhoodRegion));
+            == crate::topology_operators::TopologyDerivedRegion::MutationLocalNeighborhoodRegion));
 }
 
 #[test]
@@ -114,13 +114,13 @@ fn hostile_suite_determinism_rows_cover_order_digest_and_tie_breaks() {
             .determinism_rule_rows
             .iter()
             .filter(|row| row.rule_kind
-                == crate::facade::MilestoneThreeDeterminismRuleKind::StableEditOrder
+                == crate::facade::MilestoneThreeDeterminismRuleKind::StableMutationOrder
                 && row.row_digest.contains("order_policy=sequence_preserving"))
             .count(),
         report.required_scenario_count
     );
     assert!(report.determinism_rule_rows.iter().all(|row| {
-        row.rule_kind != crate::facade::MilestoneThreeDeterminismRuleKind::StableEditDigest
+        row.rule_kind != crate::facade::MilestoneThreeDeterminismRuleKind::StableMutationDigest
             || (!row.diagnostic_classification_stable && !row.tie_break_evidence_stable)
     }));
     assert!(report.determinism_rule_rows.iter().any(|row| {
@@ -142,11 +142,14 @@ fn assert_rejected_scope_row_exists(
     report: &crate::facade::MilestoneThreeHostileSuiteReport,
     scenario: MilestoneThreeHostileScenario,
 ) {
-    assert!(report.rejected_edit_scope_report_rows.iter().any(|row| {
-        row.scenario == scenario
-            && row.rejection_class == TopologyEditRejectionClass::InvariantBlocked
-            && !row.rejected_edit_scope_report.rows.is_empty()
-    }));
+    assert!(report
+        .rejected_mutation_scope_report_rows
+        .iter()
+        .any(|row| {
+            row.scenario == scenario
+                && row.rejection_class == TopologyMutationRejectionClass::InvariantBlocked
+                && !row.rejected_mutation_scope_report.rows.is_empty()
+        }));
 }
 
 fn assert_failure_locality_row_exists(
@@ -155,7 +158,7 @@ fn assert_failure_locality_row_exists(
 ) {
     assert!(report.failure_locality_rows.iter().any(|row| {
         row.scenario == scenario
-            && row.rejection_class == TopologyEditRejectionClass::InvariantBlocked
+            && row.rejection_class == TopologyMutationRejectionClass::InvariantBlocked
             && row.scope_row_count > 0
             && !row.changed_scopes.is_empty()
             && !row.derived_regions.is_empty()

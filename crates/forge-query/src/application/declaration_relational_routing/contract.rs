@@ -1,7 +1,9 @@
 use crate::application::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryCapabilityFamily,
-    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext,
+    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationAspectFit,
+    ForgeQueryDeclarationAuthorityAspectMismatch, ForgeQueryDeclarationInput,
+    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
 };
 
 const WORKFLOW_ONLY: &[ForgeQueryCapabilityFamily] =
@@ -57,12 +59,13 @@ impl ForgeQueryDeclarationRelationalAuthorityFamily {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDeclarationRelationalTruthContract {
     truth_claim: ForgeQueryDeclarationRelationalTruthClaim,
     authority_family: ForgeQueryDeclarationRelationalAuthorityFamily,
     required_capability_families: &'static [ForgeQueryCapabilityFamily],
     required_config_sections: &'static [ForgeQueryConfigSectionFamily],
+    required_aspects: ForgeQueryDeclarationAspectContract,
     reason: &'static str,
 }
 
@@ -73,6 +76,7 @@ impl ForgeQueryDeclarationRelationalTruthContract {
             authority_family: ForgeQueryDeclarationRelationalAuthorityFamily::Runtime,
             required_capability_families: WORKFLOW_ONLY,
             required_config_sections: RELATIONAL_SECTION_ONLY,
+            required_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason: "the declaration lowers into authoritative relational runtime truth",
         }
     }
@@ -83,6 +87,7 @@ impl ForgeQueryDeclarationRelationalTruthContract {
             authority_family: ForgeQueryDeclarationRelationalAuthorityFamily::GroupedTruth,
             required_capability_families: WORKFLOW_ONLY,
             required_config_sections: RELATIONAL_SECTION_ONLY,
+            required_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason: "the declaration lowers into grouped relational truth materialization",
         }
     }
@@ -93,6 +98,7 @@ impl ForgeQueryDeclarationRelationalTruthContract {
             authority_family: ForgeQueryDeclarationRelationalAuthorityFamily::History,
             required_capability_families: HISTORY_ONLY,
             required_config_sections: RELATIONAL_SECTION_ONLY,
+            required_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason: "the declaration lowers into relational historical truth evaluation",
         }
     }
@@ -103,6 +109,7 @@ impl ForgeQueryDeclarationRelationalTruthContract {
             authority_family: ForgeQueryDeclarationRelationalAuthorityFamily::CommitStrategies,
             required_capability_families: WORKFLOW_ONLY,
             required_config_sections: RELATIONAL_SECTION_ONLY,
+            required_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason: "the declaration lowers into relational commit strategy authority",
         }
     }
@@ -113,28 +120,41 @@ impl ForgeQueryDeclarationRelationalTruthContract {
             authority_family: ForgeQueryDeclarationRelationalAuthorityFamily::BridgeSource,
             required_capability_families: WORKFLOW_ONLY,
             required_config_sections: RELATIONAL_SECTION_ONLY,
+            required_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason: "the declaration lowers into a bridge-consumable relational source binding",
         }
     }
 
-    pub fn truth_claim(self) -> ForgeQueryDeclarationRelationalTruthClaim {
+    pub fn truth_claim(&self) -> ForgeQueryDeclarationRelationalTruthClaim {
         self.truth_claim
     }
 
-    pub fn authority_family(self) -> ForgeQueryDeclarationRelationalAuthorityFamily {
+    pub fn authority_family(&self) -> ForgeQueryDeclarationRelationalAuthorityFamily {
         self.authority_family
     }
 
-    pub fn required_capability_families(self) -> &'static [ForgeQueryCapabilityFamily] {
+    pub fn required_capability_families(&self) -> &'static [ForgeQueryCapabilityFamily] {
         self.required_capability_families
     }
 
-    pub fn required_config_sections(self) -> &'static [ForgeQueryConfigSectionFamily] {
+    pub fn required_config_sections(&self) -> &'static [ForgeQueryConfigSectionFamily] {
         self.required_config_sections
     }
 
-    pub fn reason(self) -> &'static str {
+    pub fn reason(&self) -> &'static str {
         self.reason
+    }
+
+    pub fn required_aspects(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.required_aspects
+    }
+
+    pub fn with_required_aspects(
+        mut self,
+        required_aspects: ForgeQueryDeclarationAspectContract,
+    ) -> Self {
+        self.required_aspects = required_aspects;
+        self
     }
 }
 
@@ -159,6 +179,10 @@ impl ForgeQueryDeclarationRelationalTruthRoutingSupportStatus {
 pub struct ForgeQueryDeclarationRelationalRoutingSupportRow {
     truth_claim: ForgeQueryDeclarationRelationalTruthClaim,
     authority_family: ForgeQueryDeclarationRelationalAuthorityFamily,
+    required_aspect_slice: ForgeQueryDeclarationAspectContract,
+    available_aspect_slice: ForgeQueryDeclarationAspectCoverage,
+    aspect_fit: ForgeQueryDeclarationAspectFit,
+    aspect_mismatch: Option<ForgeQueryDeclarationAuthorityAspectMismatch>,
     status: ForgeQueryDeclarationRelationalTruthRoutingSupportStatus,
     reason: &'static str,
 }
@@ -167,12 +191,20 @@ impl ForgeQueryDeclarationRelationalRoutingSupportRow {
     pub(crate) fn new(
         truth_claim: ForgeQueryDeclarationRelationalTruthClaim,
         authority_family: ForgeQueryDeclarationRelationalAuthorityFamily,
+        required_aspect_slice: ForgeQueryDeclarationAspectContract,
+        available_aspect_slice: ForgeQueryDeclarationAspectCoverage,
+        aspect_fit: ForgeQueryDeclarationAspectFit,
+        aspect_mismatch: Option<ForgeQueryDeclarationAuthorityAspectMismatch>,
         status: ForgeQueryDeclarationRelationalTruthRoutingSupportStatus,
         reason: &'static str,
     ) -> Self {
         Self {
             truth_claim,
             authority_family,
+            required_aspect_slice,
+            available_aspect_slice,
+            aspect_fit,
+            aspect_mismatch,
             status,
             reason,
         }
@@ -184,6 +216,22 @@ impl ForgeQueryDeclarationRelationalRoutingSupportRow {
 
     pub fn authority_family(&self) -> ForgeQueryDeclarationRelationalAuthorityFamily {
         self.authority_family
+    }
+
+    pub fn required_aspect_slice(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.required_aspect_slice
+    }
+
+    pub fn available_aspect_slice(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        &self.available_aspect_slice
+    }
+
+    pub fn aspect_fit(&self) -> ForgeQueryDeclarationAspectFit {
+        self.aspect_fit
+    }
+
+    pub fn aspect_mismatch(&self) -> Option<ForgeQueryDeclarationAuthorityAspectMismatch> {
+        self.aspect_mismatch
     }
 
     pub fn status(&self) -> ForgeQueryDeclarationRelationalTruthRoutingSupportStatus {

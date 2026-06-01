@@ -18,24 +18,7 @@ pub use diagnostic_surfaces::query_diagnostics::{
     TopologyEquivalenceContractMaintainer, TopologyQueryMutationEvidence,
 };
 pub(crate) use read_views::domain::parity::{
-    build_domain_query_view_parity_artifact, TopologyDomainQueryViewParityArtifact,
-    TopologyDomainQueryViewRef,
-};
-pub use read_views::domain::{
-    TopologyDomainQuery, TopologyDomainQueryAggregateReport, TopologyDomainQueryCloseoutReport,
-    TopologyDomainQueryCloseoutRow, TopologyDomainQueryCloseoutStatus, TopologyDomainQueryDebtRow,
-    TopologyDomainQueryError, TopologyDomainQueryErrorKind,
-    TopologyDomainQueryExecutionAggregateRow, TopologyDomainQueryExecutionEngine,
-    TopologyDomainQueryFallbackPosture, TopologyDomainQueryFamilyAggregateRow,
-    TopologyDomainQueryLoweringPosture, TopologyDomainQueryParityAggregateReport,
-    TopologyDomainQueryParityAggregateRow, TopologyDomainQueryParityKind,
-    TopologyDomainQueryPhaseThreeBlocker, TopologyDomainQueryPhaseThreeBlockerRow,
-    TopologyDomainQueryPhaseThreeBlockerStatus, TopologyDomainQueryProofReport,
-    TopologyDomainQueryRelationshipProofPosture, TopologyDomainQueryRequestFamily,
-    TopologyDomainQueryRequestReport, TopologyHalfEdgeRadialNeighborhoodView,
-    TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,
-    TopologyLoopCycleView, TopologyLoopNeighborEvidence, TopologyNoNPlusOneContract,
-    TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
+    build_topology_read_view_parity_artifact, TopologyReadViewParityArtifact, TopologyReadViewRef,
 };
 pub(crate) use runtime_boundary::query_support::{
     parse_entity_identity, parse_relation_identity, query_entity_identity, required_text,

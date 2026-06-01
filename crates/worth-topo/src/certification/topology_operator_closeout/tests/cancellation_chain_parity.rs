@@ -1,7 +1,7 @@
 use crate::facade::{
     certify_milestone_three_cancellation_chain_parity, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileScenario, ReplayParityStatus, TopologyEditFamily,
-    TopologyEditNamingOutcome, TopologyEditRejectionClass,
+    MilestoneThreeHostileScenario, ReplayParityStatus, TopologyMutationFamily,
+    TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
@@ -24,12 +24,12 @@ fn milestone_three_cancellation_chain_parity_replays_and_returns_to_baseline() {
         MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 }
     );
     assert_eq!(
-        report.edit_families,
+        report.mutation_families,
         vec![
-            TopologyEditFamily::CreateTopologyEntity,
-            TopologyEditFamily::AttachBoundaryMembership,
-            TopologyEditFamily::DetachBoundaryMembership,
-            TopologyEditFamily::RetireTopologyEntity,
+            TopologyMutationFamily::CreateTopologyEntity,
+            TopologyMutationFamily::AttachBoundaryMembership,
+            TopologyMutationFamily::DetachBoundaryMembership,
+            TopologyMutationFamily::RetireTopologyEntity,
         ]
     );
     assert!(report.bowtie_adjacent_witness.is_none());
@@ -38,43 +38,46 @@ fn milestone_three_cancellation_chain_parity_replays_and_returns_to_baseline() {
         MilestoneThreeHostileOutcomeClass::Accepted
     );
     assert!(report.rejection_class.is_none());
-    assert!(report.rejected_edit_scope_report.is_none());
-    assert_eq!(report.topology_edit_digest.contract_count, 4);
-    assert_eq!(report.naming_edit_continuity_matrix.rows.len(), 4);
+    assert!(report.rejected_mutation_scope_report.is_none());
+    assert_eq!(report.topology_mutation_digest.mutation_record_count, 4);
+    assert_eq!(report.naming_mutation_continuity_matrix.rows.len(), 4);
     assert_eq!(
         report.continuity_outcome_class,
-        TopologyEditNamingOutcome::Rejected
+        TopologyMutationNamingOutcome::Rejected
     );
     assert_eq!(
         report.continuity_rejection_class,
-        Some(TopologyEditRejectionClass::NamingContinuityRejected)
+        Some(TopologyMutationRejectionClass::NamingContinuityRejected)
     );
-    assert!(report.edit_replay_parity_report.replay_checked);
+    assert!(report.mutation_replay_parity_report.replay_checked);
     assert_eq!(
-        report.edit_replay_parity_report.parity_status,
+        report.mutation_replay_parity_report.parity_status,
         ReplayParityStatus::Match
     );
-    assert_eq!(report.edit_replay_parity_report.mismatch_count, 0);
-    assert_eq!(report.edit_replay_parity_report.step_rows.len(), 3);
-    assert_eq!(report.edit_replay_parity_report.replay_step_rows.len(), 3);
+    assert_eq!(report.mutation_replay_parity_report.mismatch_count, 0);
+    assert_eq!(report.mutation_replay_parity_report.step_rows.len(), 3);
     assert_eq!(
-        report.edit_replay_parity_report.returned_to_baseline,
+        report.mutation_replay_parity_report.replay_step_rows.len(),
+        3
+    );
+    assert_eq!(
+        report.mutation_replay_parity_report.returned_to_baseline,
         Some(true)
     );
     assert_eq!(
         report
-            .edit_replay_parity_report
+            .mutation_replay_parity_report
             .baseline_materialized_topology_digest,
         report
-            .edit_replay_parity_report
+            .mutation_replay_parity_report
             .final_materialized_topology_digest
     );
     assert_eq!(
         report
-            .edit_replay_parity_report
+            .mutation_replay_parity_report
             .final_materialized_topology_digest,
         report
-            .edit_replay_parity_report
+            .mutation_replay_parity_report
             .replay_final_materialized_topology_digest
     );
 }
@@ -93,13 +96,16 @@ fn milestone_three_cancellation_chain_report_is_deterministic_for_same_seeded_hi
     .expect("right cancellation-chain certification should succeed");
 
     assert_eq!(left.outcome_class, right.outcome_class);
-    assert_eq!(left.topology_edit_digest, right.topology_edit_digest);
     assert_eq!(
-        left.naming_edit_continuity_matrix,
-        right.naming_edit_continuity_matrix
+        left.topology_mutation_digest,
+        right.topology_mutation_digest
     );
     assert_eq!(
-        left.edit_replay_parity_report,
-        right.edit_replay_parity_report
+        left.naming_mutation_continuity_matrix,
+        right.naming_mutation_continuity_matrix
+    );
+    assert_eq!(
+        left.mutation_replay_parity_report,
+        right.mutation_replay_parity_report
     );
 }

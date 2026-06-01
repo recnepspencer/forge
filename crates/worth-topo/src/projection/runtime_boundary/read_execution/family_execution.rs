@@ -9,12 +9,12 @@ use super::query_shape::{
     identity_anchor_predicate, identity_ordering, identity_result_field, identity_selector,
     topology_kind_result_field, topology_kind_selector, TOPOLOGY_ENTITY_ROOT,
 };
-use crate::projection::diagnostic_surfaces::read_proof::report::TopologyDomainQueryRequestReport;
-use crate::projection::read_views::domain::error::TopologyDomainQueryError;
-use crate::projection::read_views::domain::request::TopologyDomainQueryRequest;
-use crate::projection::runtime_boundary::read_lowering::lower_topology_domain_query;
+use crate::projection::diagnostic_surfaces::read_proof::report::TopologyReadRequestReport;
+use crate::projection::read_views::domain::error::TopologyReadError;
+use crate::projection::read_views::domain::request::TopologyReadRequest;
+use crate::projection::runtime_boundary::read_lowering::lower_topology_read;
 use crate::projection::runtime_boundary::read_lowering::schema::{
-    topology_domain_query_schema_view, TopologyDomainTraversalRelation,
+    topology_read_schema_view, TopologyDomainTraversalRelation,
 };
 
 #[derive(Clone, Copy)]
@@ -25,21 +25,20 @@ pub(crate) enum SharedNeighborhoodReadKind {
 
 pub(crate) struct ExecutedTopologyReadFamily {
     pub(crate) result: ForgeQueryReadResult,
-    pub(crate) report: TopologyDomainQueryRequestReport,
+    pub(crate) report: TopologyReadRequestReport,
 }
 
 pub(crate) fn execute_shared_neighborhood_read(
     workspace: &mut ForgeQueryWorkspace,
-    request: &TopologyDomainQueryRequest,
+    request: &TopologyReadRequest,
     family_name: String,
     relations: [RelationName; 2],
     read_kind: SharedNeighborhoodReadKind,
     anchor_identity: &str,
-) -> Result<ExecutedTopologyReadFamily, TopologyDomainQueryError> {
-    let lowering_artifact = lower_topology_domain_query(request)?;
-    let schema_view = topology_domain_query_schema_view().map_err(|error| {
-        TopologyDomainQueryError::canonical_lowering_resolution(error.to_string())
-    })?;
+) -> Result<ExecutedTopologyReadFamily, TopologyReadError> {
+    let lowering_artifact = lower_topology_read(request)?;
+    let schema_view = topology_read_schema_view()
+        .map_err(|error| TopologyReadError::canonical_lowering_resolution(error.to_string()))?;
     let family = workspace
         .define_read_family(family_name, |read| match read_kind {
             SharedNeighborhoodReadKind::SharedEndpoint => read.local_shared_endpoint_collection(
@@ -64,14 +63,13 @@ pub(crate) fn execute_shared_neighborhood_read(
 
 pub(crate) fn execute_loop_cycle_read(
     workspace: &mut ForgeQueryWorkspace,
-    request: &TopologyDomainQueryRequest,
+    request: &TopologyReadRequest,
     start_identity: &str,
     cycle_depth: usize,
-) -> Result<ExecutedTopologyReadFamily, TopologyDomainQueryError> {
-    let lowering_artifact = lower_topology_domain_query(request)?;
-    let schema_view = topology_domain_query_schema_view().map_err(|error| {
-        TopologyDomainQueryError::canonical_lowering_resolution(error.to_string())
-    })?;
+) -> Result<ExecutedTopologyReadFamily, TopologyReadError> {
+    let lowering_artifact = lower_topology_read(request)?;
+    let schema_view = topology_read_schema_view()
+        .map_err(|error| TopologyReadError::canonical_lowering_resolution(error.to_string()))?;
     let family = workspace
         .define_read_family(
             format!("topology.loop_cycle_neighborhood:{start_identity}:{cycle_depth}"),
@@ -102,14 +100,13 @@ pub(crate) fn execute_loop_cycle_read(
 
 pub(crate) fn execute_local_rewire_read(
     workspace: &mut ForgeQueryWorkspace,
-    request: &TopologyDomainQueryRequest,
+    request: &TopologyReadRequest,
     moved_identity: &str,
     cycle_depth: usize,
-) -> Result<ExecutedTopologyReadFamily, TopologyDomainQueryError> {
-    let lowering_artifact = lower_topology_domain_query(request)?;
-    let schema_view = topology_domain_query_schema_view().map_err(|error| {
-        TopologyDomainQueryError::canonical_lowering_resolution(error.to_string())
-    })?;
+) -> Result<ExecutedTopologyReadFamily, TopologyReadError> {
+    let lowering_artifact = lower_topology_read(request)?;
+    let schema_view = topology_read_schema_view()
+        .map_err(|error| TopologyReadError::canonical_lowering_resolution(error.to_string()))?;
     let family = workspace
         .define_read_family(
             format!("topology.local_rewire_neighborhood:{moved_identity}:{cycle_depth}"),
@@ -182,9 +179,9 @@ fn identity_topology_result_shape(
 fn execute_debt_free_family(
     workspace: &mut ForgeQueryWorkspace,
     family: &ForgeQueryReadFamily,
-    lowering_artifact: crate::projection::runtime_boundary::read_lowering::TopologyDomainQueryLoweringArtifact,
+    lowering_artifact: crate::projection::runtime_boundary::read_lowering::TopologyReadLoweringArtifact,
     read_surface: &str,
-) -> Result<ExecutedTopologyReadFamily, TopologyDomainQueryError> {
+) -> Result<ExecutedTopologyReadFamily, TopologyReadError> {
     let result = match TopologyReadBasisExecutionMode::for_workspace(workspace, family)? {
         TopologyReadBasisExecutionMode::CurrentHead => workspace.execute_read_family(family),
         TopologyReadBasisExecutionMode::HistoricalSnapshot { context } => {
@@ -195,7 +192,7 @@ fn execute_debt_free_family(
     let receipt = result.receipt();
     require_no_query_fallback(receipt.fallback_class(), read_surface)?;
     Ok(ExecutedTopologyReadFamily {
-        report: TopologyDomainQueryRequestReport::query_execution_without_fallback_debt(
+        report: TopologyReadRequestReport::query_execution_without_fallback_debt(
             lowering_artifact,
             receipt,
         ),
@@ -230,18 +227,16 @@ pub(crate) fn prev_relation_name() -> RelationName {
 fn require_no_query_fallback(
     fallback_class: &ForgeQueryReadFallbackClass,
     read_surface: &str,
-) -> Result<(), TopologyDomainQueryError> {
+) -> Result<(), TopologyReadError> {
     if fallback_class != &ForgeQueryReadFallbackClass::None {
-        return Err(TopologyDomainQueryError::read_family_execution_denied(
-            format!(
-                "{read_surface} read family unexpectedly executed with fallback `{:?}`",
-                fallback_class
-            ),
-        ));
+        return Err(TopologyReadError::read_family_execution_denied(format!(
+            "{read_surface} read family unexpectedly executed with fallback `{:?}`",
+            fallback_class
+        )));
     }
     Ok(())
 }
 
-fn map_read_family_execution_error(error: ForgeQueryRuntimeError) -> TopologyDomainQueryError {
-    TopologyDomainQueryError::read_family_execution_denied(format!("{error:?}"))
+fn map_read_family_execution_error(error: ForgeQueryRuntimeError) -> TopologyReadError {
+    TopologyReadError::read_family_execution_denied(format!("{error:?}"))
 }

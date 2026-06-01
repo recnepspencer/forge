@@ -1,12 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+pub(super) use crate::validation::reference_integrity::{
+    milestone_one_invariant_registrations, milestone_one_runtime_builder,
+};
 use forge_relational::facade::identity::PartitionId;
 pub(super) use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::symbols::ClientKey;
 pub(super) use forge_relational::facade::transactions::TransactionCommitError;
 use forge_relational::facade::transactions::{
     CreateIntent, CreatedEntityRef, EntityReference as RelationalEntityReference, EntitySpec,
-    MutationIntent, RelationSpec, TransactionOptions, WorkerIntentBatch,
+    MutationIntent, RelationSpec,
 };
 pub(super) use schema::facade::platform::authority::{
     CreateKey, EntityReference, MutationOrigin, RawTopologyIntent, TopologyMutation,
@@ -17,6 +20,7 @@ pub(super) use schema::facade::platform::entities::{
 pub(super) use schema::facade::platform::relations::{
     NamingRelationKind, RelationKind, TopologyRelationKind,
 };
+<<<<<<< HEAD
 pub(super) use schema::facade::topology_authoring::seed_minimal_topology;
 
 use crate::relational_aspect_boundary::{
@@ -25,6 +29,11 @@ use crate::relational_aspect_boundary::{
 pub(super) use crate::validation::reference_integrity::{
     milestone_one_invariant_registrations, milestone_one_runtime_builder,
 };
+=======
+use schema::facade::topology_authoring::commit_topology_mutation_set;
+pub(super) use schema::facade::topology_authoring::seed_minimal_topology;
+use serde_json::json;
+>>>>>>> origin/master
 
 mod bootstrap_boundary;
 mod disconnected_wire_creation;
@@ -102,7 +111,7 @@ fn commit_raw_intent(
         }
     }
 
-    let lowered = intent
+    let lowered_mutations = intent
         .mutations
         .into_iter()
         .map(|mutation| match mutation {
@@ -110,8 +119,16 @@ fn commit_raw_intent(
                 MutationIntent::Create(CreateIntent::Entity(EntitySpec {
                     partition_id: PartitionId::main(),
                     kind_id: kind.kind_id(),
+<<<<<<< HEAD
                     client_key: ClientKey::raw(create_key.as_str().to_string()),
                     fields: entity_create_fields(kind, create_key.as_str()),
+=======
+                    client_key: InternedString::Raw(create_key.as_str().to_string()),
+                    payload: RecordPayload::StructuredJson(entity_payload(
+                        kind,
+                        create_key.as_str(),
+                    )),
+>>>>>>> origin/master
                 }))
             }
             TopologyMutation::CreateRelation {
@@ -131,14 +148,27 @@ fn commit_raw_intent(
                 "reference-integrity tests only support create-only raw intents, got {other:?}"
             ),
         })
-        .fold(
-            WorkerIntentBatch::new("reference-integrity-raw-intent"),
-            |batch, intent| batch.push(intent),
-        );
+        .collect::<Vec<_>>();
 
-    let mut tx = runtime.begin_transaction(TransactionOptions::default());
-    tx.push_batch(lowered);
-    tx.commit().map(|_| ())
+    commit_create_only_mutation_set(
+        runtime,
+        "reference-integrity-create-only-mutation-set",
+        lowered_mutations,
+    )
+}
+
+fn commit_create_only_mutation_set(
+    runtime: &mut RelationalRuntime,
+    transaction_label: &'static str,
+    mutations: impl IntoIterator<Item = MutationIntent>,
+) -> Result<(), TransactionCommitError> {
+    commit_topology_mutation_set(runtime, transaction_label, mutations)
+        .map(|_| ())
+        .map_err(|error| match error {
+            schema::facade::topology_authoring::TopologyMutationSetCommitError::Commit(error) => {
+                error
+            }
+        })
 }
 
 fn lower_entity_reference(
@@ -163,12 +193,27 @@ fn entity_create_fields(
     create_key: &str,
 ) -> forge_relational::facade::transactions::AspectFieldPatch {
     match kind {
+<<<<<<< HEAD
         EntityKind::Topology(_) => topology_entity_create_fields(kind, create_key),
         EntityKind::Naming(NamingEntityKind::PersistentName) => {
             persistent_name_create_fields(create_key)
         }
         other => {
             panic!("reference-integrity test helper does not support `{other:?}` entity fields")
+=======
+        EntityKind::Topology(_) => json!({
+            "label": create_key,
+            "structure": create_key,
+            "topology": { "structure": create_key }
+        }),
+        EntityKind::Naming(NamingEntityKind::PersistentName) => json!({
+            "label": create_key,
+            "persistent_name": create_key,
+            "naming": { "persistent_name": create_key }
+        }),
+        other => {
+            panic!("reference-integrity test helper does not support `{other:?}` entity payloads")
+>>>>>>> origin/master
         }
     }
 }

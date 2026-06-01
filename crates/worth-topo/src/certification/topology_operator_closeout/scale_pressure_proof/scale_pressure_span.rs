@@ -1,19 +1,22 @@
 use forge_query::facade::{ForgeQueryEntity, ForgeQueryWorkspace};
-use forge_relational::facade::identity::{EntityId, RelationId};
+use forge_relational::facade::identity::EntityId;
 use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::super::shared::{entity_id_from_query_identity, relation_id_from_query_identity};
 use crate::certification::error::TopologyCertificationError;
-use crate::projection::TopologyDomainQuery;
-use crate::topology_operators::{LoopSuccessorKind, TopologyEditBatch, TopologyEditContract};
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
+use crate::topology_operators::{
+    LoopSuccessorKind, TopologyLoopSuccessorRewireMember,
+    TopologyRewireLoopSuccessorProgramDeclaration,
+};
 
-pub(super) fn scaled_successor_span_batch(
+pub(super) fn scaled_successor_span_declaration(
     workspace: &mut ForgeQueryWorkspace,
     relation_rows: &[ForgeQueryEntity],
     moved_start_identity: &str,
-) -> Result<TopologyEditBatch, TopologyCertificationError> {
+) -> Result<TopologyRewireLoopSuccessorProgramDeclaration, TopologyCertificationError> {
     let span_length = 4;
-    let cycle = TopologyDomainQuery::load()
+    let cycle = TopologyReadProofHarness::new()
         .loop_cycle(workspace, moved_start_identity, 7)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?
         .cycle_identities()
@@ -32,8 +35,8 @@ pub(super) fn scaled_successor_span_batch(
     let new_predecessor_id = entity_id_from_query_identity(&new_predecessor_identity)?;
     let new_successor_id = entity_id_from_query_identity(new_successor_identity)?;
 
-    TopologyEditBatch::new(vec![
-        rewire_contract(
+    Ok(TopologyRewireLoopSuccessorProgramDeclaration::new(vec![
+        rewire_member(
             relation_rows,
             moved_start_identity,
             TopologyRelationKind::HalfEdgePrev,
@@ -41,7 +44,7 @@ pub(super) fn scaled_successor_span_batch(
             moved_start_id,
             new_predecessor_id,
         )?,
-        rewire_contract(
+        rewire_member(
             relation_rows,
             moved_end_identity,
             TopologyRelationKind::HalfEdgeNext,
@@ -49,7 +52,7 @@ pub(super) fn scaled_successor_span_batch(
             moved_end_id,
             new_successor_id,
         )?,
-        rewire_contract(
+        rewire_member(
             relation_rows,
             &old_predecessor_identity,
             TopologyRelationKind::HalfEdgeNext,
@@ -57,7 +60,7 @@ pub(super) fn scaled_successor_span_batch(
             old_predecessor_id,
             old_successor_id,
         )?,
-        rewire_contract(
+        rewire_member(
             relation_rows,
             old_successor_identity,
             TopologyRelationKind::HalfEdgePrev,
@@ -65,7 +68,7 @@ pub(super) fn scaled_successor_span_batch(
             old_successor_id,
             old_predecessor_id,
         )?,
-        rewire_contract(
+        rewire_member(
             relation_rows,
             &new_predecessor_identity,
             TopologyRelationKind::HalfEdgeNext,
@@ -73,7 +76,7 @@ pub(super) fn scaled_successor_span_batch(
             new_predecessor_id,
             moved_start_id,
         )?,
-        rewire_contract(
+        rewire_member(
             relation_rows,
             new_successor_identity,
             TopologyRelationKind::HalfEdgePrev,
@@ -81,19 +84,18 @@ pub(super) fn scaled_successor_span_batch(
             new_successor_id,
             moved_end_id,
         )?,
-    ])
-    .map_err(|error| TopologyCertificationError::Query(error.to_string()))
+    ]))
 }
 
-fn rewire_contract(
+fn rewire_member(
     relation_rows: &[ForgeQueryEntity],
     source_identity: &str,
     relation_kind: TopologyRelationKind,
     successor_kind: LoopSuccessorKind,
     source_id: EntityId,
     target_id: EntityId,
-) -> Result<TopologyEditContract, TopologyCertificationError> {
-    Ok(TopologyEditContract::rewire_loop_successor(
+) -> Result<TopologyLoopSuccessorRewireMember, TopologyCertificationError> {
+    Ok(TopologyLoopSuccessorRewireMember::new(
         relation_id_for_source_kind(relation_rows, source_identity, relation_kind)?,
         successor_kind,
         source_id,
@@ -116,7 +118,7 @@ fn relation_id_for_source_kind(
     relation_rows: &[ForgeQueryEntity],
     source_identity: &str,
     relation_kind: TopologyRelationKind,
-) -> Result<RelationId, TopologyCertificationError> {
+) -> Result<forge_relational::facade::identity::RelationId, TopologyCertificationError> {
     let relation_identity = relation_rows
         .iter()
         .find(|row| row_matches_source_kind(row, source_identity, relation_kind))

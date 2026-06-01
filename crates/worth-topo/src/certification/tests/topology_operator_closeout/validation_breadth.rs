@@ -12,7 +12,7 @@ fn closeout_exposes_validation_breadth_for_every_hostile_scenario() {
     assert!(report.validation_breadth_rows.iter().all(|row| {
         row.validator_family_count() >= 3
             && row.validator_name_count() >= 3
-            && row.edit_family_count() > 0
+            && row.mutation_family_count() > 0
             && row.changed_scope_count() > 0
             && row.naming_scope_count() > 0
             && row.derived_region_count() > 0

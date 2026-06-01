@@ -2,16 +2,16 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::derived_topology::materialized_graph::MaterializationFallbackClass;
 use crate::topology_operators::{
-    TopologyDerivedRegion, TopologyEditChangedScope, TopologyEditDerivedFallbackPolicy,
-    TopologyEditFamily, TopologyEditRejectionClass,
+    TopologyDerivedRegion, TopologyMutationChangedScope, TopologyMutationDerivedFallbackPolicy,
+    TopologyMutationFamily, TopologyMutationRejectionClass,
 };
 
 use super::super::report::{
     MilestoneThreeChangedScopeCoverageRow, MilestoneThreeDerivedRegionCoverageRow,
-    MilestoneThreeDeterminismRuleRow, MilestoneThreeEditBreadthCounterRow,
-    MilestoneThreeEditFalloutBreadthRow, MilestoneThreeEditFalloutClass,
-    MilestoneThreeFailureLocalityRow, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
+    MilestoneThreeDeterminismRuleRow, MilestoneThreeFailureLocalityRow,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario,
+    MilestoneThreeHostileScenarioReport, MilestoneThreeMutationBreadthCounterRow,
+    MilestoneThreeMutationFalloutBreadthRow, MilestoneThreeMutationFalloutClass,
 };
 use super::determinism_rules::build_determinism_rule_rows;
 
@@ -20,8 +20,8 @@ pub(super) struct MilestoneThreeAggregateAcceptanceRows {
     pub changed_scope_coverage_rows: Vec<MilestoneThreeChangedScopeCoverageRow>,
     pub derived_region_coverage_rows: Vec<MilestoneThreeDerivedRegionCoverageRow>,
     pub determinism_rule_rows: Vec<MilestoneThreeDeterminismRuleRow>,
-    pub edit_breadth_counter_rows: Vec<MilestoneThreeEditBreadthCounterRow>,
-    pub edit_fallout_breadth_rows: Vec<MilestoneThreeEditFalloutBreadthRow>,
+    pub mutation_breadth_counter_rows: Vec<MilestoneThreeMutationBreadthCounterRow>,
+    pub mutation_fallout_breadth_rows: Vec<MilestoneThreeMutationFalloutBreadthRow>,
     pub failure_locality_rows: Vec<MilestoneThreeFailureLocalityRow>,
 }
 
@@ -32,8 +32,8 @@ pub(super) fn build_aggregate_acceptance_rows(
         changed_scope_coverage_rows: build_changed_scope_coverage_rows(reports),
         derived_region_coverage_rows: build_derived_region_coverage_rows(reports),
         determinism_rule_rows: build_determinism_rule_rows(reports),
-        edit_breadth_counter_rows: build_edit_breadth_counter_rows(reports),
-        edit_fallout_breadth_rows: build_edit_fallout_breadth_rows(reports),
+        mutation_breadth_counter_rows: build_mutation_breadth_counter_rows(reports),
+        mutation_fallout_breadth_rows: build_mutation_fallout_breadth_rows(reports),
         failure_locality_rows: build_failure_locality_rows(reports),
     }
 }
@@ -41,7 +41,8 @@ pub(super) fn build_aggregate_acceptance_rows(
 fn build_changed_scope_coverage_rows(
     reports: &[MilestoneThreeHostileScenarioReport],
 ) -> Vec<MilestoneThreeChangedScopeCoverageRow> {
-    let mut rows = BTreeMap::<TopologyEditChangedScope, Vec<MilestoneThreeHostileScenario>>::new();
+    let mut rows =
+        BTreeMap::<TopologyMutationChangedScope, Vec<MilestoneThreeHostileScenario>>::new();
     for report in reports {
         for scope in changed_scopes_from_report(report) {
             rows.entry(scope).or_default().push(report.scenario);
@@ -90,29 +91,29 @@ fn build_derived_region_coverage_rows(
         .collect()
 }
 
-fn build_edit_breadth_counter_rows(
+fn build_mutation_breadth_counter_rows(
     reports: &[MilestoneThreeHostileScenarioReport],
-) -> Vec<MilestoneThreeEditBreadthCounterRow> {
+) -> Vec<MilestoneThreeMutationBreadthCounterRow> {
     reports
         .iter()
-        .map(|report| MilestoneThreeEditBreadthCounterRow {
+        .map(|report| MilestoneThreeMutationBreadthCounterRow {
             scenario: report.scenario,
-            contract_count: report.topology_edit_digest.contract_count,
-            family_count: report.topology_edit_digest.family_count,
-            changed_scope_count: report.topology_edit_digest.changed_scope_count,
-            naming_scope_count: report.topology_edit_digest.naming_scope_count,
-            derived_region_count: report.topology_edit_digest.derived_region_count,
-            replay_step_count: report.edit_replay_parity_report.step_rows.len(),
-            replay_checked: report.edit_replay_parity_report.replay_checked,
+            mutation_record_count: report.topology_mutation_digest.mutation_record_count,
+            family_count: report.topology_mutation_digest.family_count,
+            changed_scope_count: report.topology_mutation_digest.changed_scope_count,
+            naming_scope_count: report.topology_mutation_digest.naming_scope_count,
+            derived_region_count: report.topology_mutation_digest.derived_region_count,
+            replay_step_count: report.mutation_replay_parity_report.step_rows.len(),
+            replay_checked: report.mutation_replay_parity_report.replay_checked,
             row_digest: format!(
-                "scenario={};contracts={};families={};changed_scopes={};naming_scopes={};derived_regions={};replay_steps={}",
+                "scenario={};mutation_records={};families={};changed_scopes={};naming_scopes={};derived_regions={};replay_steps={}",
                 report.scenario.as_str(),
-                report.topology_edit_digest.contract_count,
-                report.topology_edit_digest.family_count,
-                report.topology_edit_digest.changed_scope_count,
-                report.topology_edit_digest.naming_scope_count,
-                report.topology_edit_digest.derived_region_count,
-                report.edit_replay_parity_report.step_rows.len()
+                report.topology_mutation_digest.mutation_record_count,
+                report.topology_mutation_digest.family_count,
+                report.topology_mutation_digest.changed_scope_count,
+                report.topology_mutation_digest.naming_scope_count,
+                report.topology_mutation_digest.derived_region_count,
+                report.mutation_replay_parity_report.step_rows.len()
             ),
         })
         .collect()
@@ -125,7 +126,7 @@ fn build_failure_locality_rows(
         .iter()
         .filter_map(|report| {
             let rejection_class = report.rejection_class?;
-            let rejected_scope = report.rejected_edit_scope_report.as_ref()?;
+            let rejected_scope = report.rejected_mutation_scope_report.as_ref()?;
             let families = rejected_scope
                 .rows
                 .iter()
@@ -174,9 +175,9 @@ fn build_failure_locality_rows(
         .collect()
 }
 
-pub(super) fn build_edit_fallout_breadth_rows(
+pub(super) fn build_mutation_fallout_breadth_rows(
     reports: &[MilestoneThreeHostileScenarioReport],
-) -> Vec<MilestoneThreeEditFalloutBreadthRow> {
+) -> Vec<MilestoneThreeMutationFalloutBreadthRow> {
     reports
         .iter()
         .map(|report| {
@@ -185,18 +186,18 @@ pub(super) fn build_edit_fallout_breadth_rows(
                 .derived_validation_report
                 .as_ref()
                 .map_or(0, |validation| validation.rows.len());
-            let fallout_class = edit_fallout_class(report);
+            let fallout_class = mutation_fallout_class(report);
             let fallback_count = usize::from(matches!(
                 fallout_class,
-                MilestoneThreeEditFalloutClass::WholeViewFallback
-                    | MilestoneThreeEditFalloutClass::WholeHistoryFallback
+                MilestoneThreeMutationFalloutClass::WholeViewFallback
+                    | MilestoneThreeMutationFalloutClass::WholeHistoryFallback
             ));
             let fallback_policy = fallback_policy_from_report(report);
             let fallback_policy_exceeded =
                 fallback_policy_exceeded(fallback_policy, fallback_count);
             let fallback_rejection_class = fallback_policy_exceeded
-                .then_some(TopologyEditRejectionClass::DerivedFallbackExceeded);
-            MilestoneThreeEditFalloutBreadthRow {
+                .then_some(TopologyMutationRejectionClass::DerivedFallbackExceeded);
+            MilestoneThreeMutationFalloutBreadthRow {
                 scenario: report.scenario,
                 fallout_class,
                 fallback_policy,
@@ -219,48 +220,54 @@ pub(super) fn build_edit_fallout_breadth_rows(
 
 fn fallback_policy_from_report(
     report: &MilestoneThreeHostileScenarioReport,
-) -> TopologyEditDerivedFallbackPolicy {
-    if report.topology_edit_digest.fallback_rejection_policy_count > 0 {
-        TopologyEditDerivedFallbackPolicy::RejectAnyFallback
+) -> TopologyMutationDerivedFallbackPolicy {
+    if report
+        .topology_mutation_digest
+        .fallback_rejection_policy_count
+        > 0
+    {
+        TopologyMutationDerivedFallbackPolicy::RejectAnyFallback
     } else {
-        TopologyEditDerivedFallbackPolicy::AllowExplicitFallback
+        TopologyMutationDerivedFallbackPolicy::AllowExplicitFallback
     }
 }
 
 fn fallback_policy_exceeded(
-    policy: TopologyEditDerivedFallbackPolicy,
+    policy: TopologyMutationDerivedFallbackPolicy,
     fallback_count: usize,
 ) -> bool {
-    policy == TopologyEditDerivedFallbackPolicy::RejectAnyFallback && fallback_count > 0
+    policy == TopologyMutationDerivedFallbackPolicy::RejectAnyFallback && fallback_count > 0
 }
 
-fn edit_fallout_class(
+fn mutation_fallout_class(
     report: &MilestoneThreeHostileScenarioReport,
-) -> MilestoneThreeEditFalloutClass {
+) -> MilestoneThreeMutationFalloutClass {
     match report.outcome_class {
         MilestoneThreeHostileOutcomeClass::Rejected => {
-            MilestoneThreeEditFalloutClass::RejectedBeforeDerivedWork
+            MilestoneThreeMutationFalloutClass::RejectedBeforeDerivedWork
         }
         MilestoneThreeHostileOutcomeClass::Accepted
             if report.derived_materialization_fallback_class
                 == Some(MaterializationFallbackClass::WholeViewRebuild) =>
         {
-            MilestoneThreeEditFalloutClass::WholeViewFallback
+            MilestoneThreeMutationFalloutClass::WholeViewFallback
         }
-        MilestoneThreeHostileOutcomeClass::Accepted => MilestoneThreeEditFalloutClass::Localized,
+        MilestoneThreeHostileOutcomeClass::Accepted => {
+            MilestoneThreeMutationFalloutClass::Localized
+        }
     }
 }
 
 fn changed_scopes_from_report(
     report: &MilestoneThreeHostileScenarioReport,
-) -> BTreeSet<TopologyEditChangedScope> {
+) -> BTreeSet<TopologyMutationChangedScope> {
     let mut scopes = BTreeSet::new();
-    if let Some(rejected_scope) = report.rejected_edit_scope_report.as_ref() {
+    if let Some(rejected_scope) = report.rejected_mutation_scope_report.as_ref() {
         for row in &rejected_scope.rows {
             scopes.extend(row.changed_scopes.iter().copied());
         }
     }
-    for row in &report.naming_edit_continuity_matrix.rows {
+    for row in &report.naming_mutation_continuity_matrix.rows {
         scopes.extend(changed_scopes_for_family(row.family));
     }
     scopes
@@ -270,37 +277,39 @@ fn derived_regions_from_report(
     report: &MilestoneThreeHostileScenarioReport,
 ) -> BTreeSet<TopologyDerivedRegion> {
     let mut regions = BTreeSet::new();
-    if let Some(rejected_scope) = report.rejected_edit_scope_report.as_ref() {
+    if let Some(rejected_scope) = report.rejected_mutation_scope_report.as_ref() {
         for row in &rejected_scope.rows {
             regions.extend(row.derived_regions.iter().copied());
         }
     }
-    for row in &report.naming_edit_continuity_matrix.rows {
+    for row in &report.naming_mutation_continuity_matrix.rows {
         regions.extend(derived_regions_for_family(row.family));
     }
     regions
 }
 
-fn changed_scopes_for_family(family: TopologyEditFamily) -> &'static [TopologyEditChangedScope] {
-    use TopologyEditChangedScope as Scope;
+fn changed_scopes_for_family(
+    family: TopologyMutationFamily,
+) -> &'static [TopologyMutationChangedScope] {
+    use TopologyMutationChangedScope as Scope;
     match family {
-        TopologyEditFamily::CreateTopologyEntity | TopologyEditFamily::RetireTopologyEntity => {
-            &[Scope::Entity, Scope::Naming]
-        }
-        TopologyEditFamily::AttachBoundaryMembership
-        | TopologyEditFamily::DetachBoundaryMembership
-        | TopologyEditFamily::RewireLoopSuccessor
-        | TopologyEditFamily::RewireLoopEndpoint => {
+        TopologyMutationFamily::CreateTopologyEntity
+        | TopologyMutationFamily::RetireTopologyEntity => &[Scope::Entity, Scope::Naming],
+        TopologyMutationFamily::AttachBoundaryMembership
+        | TopologyMutationFamily::DetachBoundaryMembership
+        | TopologyMutationFamily::RewireLoopSuccessor
+        | TopologyMutationFamily::RewireLoopEndpoint => {
             &[Scope::Relation, Scope::Loop, Scope::LocalNeighborhood]
         }
-        TopologyEditFamily::AttachShellOrWireMembership
-        | TopologyEditFamily::DetachShellOrWireMembership => &[
+        TopologyMutationFamily::AttachShellOrWireMembership
+        | TopologyMutationFamily::DetachShellOrWireMembership => &[
             Scope::Relation,
             Scope::Wire,
             Scope::Shell,
             Scope::LocalNeighborhood,
         ],
-        TopologyEditFamily::SpliceRadialAdjacency | TopologyEditFamily::DetachRadialAdjacency => &[
+        TopologyMutationFamily::SpliceRadialAdjacency
+        | TopologyMutationFamily::DetachRadialAdjacency => &[
             Scope::Relation,
             Scope::RadialNeighborhood,
             Scope::LocalNeighborhood,
@@ -308,28 +317,30 @@ fn changed_scopes_for_family(family: TopologyEditFamily) -> &'static [TopologyEd
     }
 }
 
-fn derived_regions_for_family(family: TopologyEditFamily) -> &'static [TopologyDerivedRegion] {
+fn derived_regions_for_family(family: TopologyMutationFamily) -> &'static [TopologyDerivedRegion] {
     use TopologyDerivedRegion as Region;
     match family {
-        TopologyEditFamily::CreateTopologyEntity | TopologyEditFamily::RetireTopologyEntity => &[
+        TopologyMutationFamily::CreateTopologyEntity
+        | TopologyMutationFamily::RetireTopologyEntity => &[
             Region::NamingContinuityRegion,
-            Region::EditLocalNeighborhoodRegion,
+            Region::MutationLocalNeighborhoodRegion,
         ],
-        TopologyEditFamily::AttachBoundaryMembership
-        | TopologyEditFamily::DetachBoundaryMembership
-        | TopologyEditFamily::RewireLoopSuccessor
-        | TopologyEditFamily::RewireLoopEndpoint => {
-            &[Region::LoopRegion, Region::EditLocalNeighborhoodRegion]
+        TopologyMutationFamily::AttachBoundaryMembership
+        | TopologyMutationFamily::DetachBoundaryMembership
+        | TopologyMutationFamily::RewireLoopSuccessor
+        | TopologyMutationFamily::RewireLoopEndpoint => {
+            &[Region::LoopRegion, Region::MutationLocalNeighborhoodRegion]
         }
-        TopologyEditFamily::AttachShellOrWireMembership
-        | TopologyEditFamily::DetachShellOrWireMembership => &[
+        TopologyMutationFamily::AttachShellOrWireMembership
+        | TopologyMutationFamily::DetachShellOrWireMembership => &[
             Region::WireRegion,
             Region::ShellRegion,
-            Region::EditLocalNeighborhoodRegion,
+            Region::MutationLocalNeighborhoodRegion,
         ],
-        TopologyEditFamily::SpliceRadialAdjacency | TopologyEditFamily::DetachRadialAdjacency => &[
+        TopologyMutationFamily::SpliceRadialAdjacency
+        | TopologyMutationFamily::DetachRadialAdjacency => &[
             Region::RadialNeighborhoodRegion,
-            Region::EditLocalNeighborhoodRegion,
+            Region::MutationLocalNeighborhoodRegion,
         ],
     }
 }

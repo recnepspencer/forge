@@ -4,31 +4,32 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use serde_json::Value;
 
+use super::super::super::mutation_sequence_support::aggregate_topology_mutation_digest_for_declarations;
 use super::super::super::shared::{
-    aggregate_topology_edit_digest, derived_validation_report_from_materialized,
-    entity_id_from_query_identity, first_source_identity_for_relation_kind,
-    relation_id_from_query_identity,
+    derived_validation_report_from_materialized, entity_id_from_query_identity,
+    first_source_identity_for_relation_kind, relation_id_from_query_identity,
 };
 use super::super::scale_pressure_types::{
     MilestoneThreeScalePressureRow, MilestoneThreeScalePressureSweep,
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::certification::support::parity::digest_materialized_topology_view;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::projection::TopologyDomainQuery;
+use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
-    TopologyEditApplicationMode, TopologyEditBatch, TopologyEditContract, TopologyEditDigest,
-    TopologyEditFamily,
+    TopologyMutationDigest, TopologyMutationFamily, TopologyRadialSpliceMember,
+    TopologySpliceRadialAdjacencyProgramDeclaration,
 };
 
 struct RadialSpliceExecution {
     primitive_family: String,
-    topology_edit_digest: TopologyEditDigest,
-    edit_families: Vec<TopologyEditFamily>,
+    topology_mutation_digest: TopologyMutationDigest,
+    mutation_families: Vec<TopologyMutationFamily>,
     final_state_digest: String,
     derived_validation_row_count: usize,
 }
@@ -45,9 +46,9 @@ where
     let primitive = MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 };
     let left = execute_radial_splice_pressure(runtime_factory, stem, primitive.clone())?;
     let replay = execute_radial_splice_pressure(runtime_factory, stem, primitive.clone())?;
-    let replay_verified = left.topology_edit_digest == replay.topology_edit_digest
+    let replay_verified = left.topology_mutation_digest == replay.topology_mutation_digest
         && left.final_state_digest == replay.final_state_digest
-        && left.edit_families == replay.edit_families
+        && left.mutation_families == replay.mutation_families
         && left.derived_validation_row_count == replay.derived_validation_row_count;
 
     Ok(MilestoneThreeScalePressureRow {
@@ -55,10 +56,10 @@ where
         primitive_family: left.primitive_family,
         primitive,
         workload_size: 1,
-        edit_step_count: left.topology_edit_digest.contract_count,
-        edit_families: left.edit_families,
+        mutation_step_count: left.topology_mutation_digest.mutation_record_count,
+        mutation_families: left.mutation_families,
         branch_local: false,
-        topology_edit_digest: left.topology_edit_digest,
+        topology_mutation_digest: left.topology_mutation_digest,
         replay_verified,
         final_state_digest: left.final_state_digest.clone(),
         replay_final_state_digest: replay.final_state_digest,
@@ -88,50 +89,46 @@ where
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, format!("{stem}.scale_pressure.runtime"))
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let relation_rows = workspace.read::<Value>(assembly.relations());
+    let relation_rows = workspace.read::<Value>(surfaces.relations());
     let source_identity = first_source_identity_for_relation_kind(
         &relation_rows,
         TopologyRelationKind::HalfEdgeRadialNext,
     )?;
-    let _radial = TopologyDomainQuery::load()
+    let _radial = TopologyReadProofHarness::new()
         .radial_half_edge_neighborhood(&mut workspace, &source_identity)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let cycle = radial_cycle_identities(&relation_rows, &source_identity)?;
     let reordered_cycle = reorder_radial_cycle(&cycle)?;
-    let batch = radial_cycle_reorder_batch(&relation_rows, &cycle, &reordered_cycle)?;
-    let batches = vec![batch];
-    let topology_edit_digest = aggregate_topology_edit_digest(&batches);
-    let edit_families = batches.iter().flat_map(|batch| batch.families()).collect();
-    let mut final_materialized = None;
-    let mut final_state_digest = String::new();
-    for batch in batches {
-        let execution = assembly
-            .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
+    let declaration = radial_cycle_reorder_declaration(&relation_rows, &cycle, &reordered_cycle)?;
+    let topology_mutation_digest =
+        aggregate_topology_mutation_digest_for_declarations(vec![declaration.clone()]);
+    let mutation_families = declaration.semantic_families();
+    let execution =
+        execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-        final_state_digest = digest_materialized_topology_view(&execution.materialized).digest_hex;
-        final_materialized = Some(execution.materialized);
-    }
-    let final_materialized = final_materialized.ok_or_else(|| {
-        radial_splice_pressure_error("radial splice pressure executed no batches")
-    })?;
+    let final_state_digest = digest_materialized_topology_view(&execution.materialized).digest_hex;
+    let final_materialized = execution.materialized;
     let validation = derived_validation_report_from_materialized(&final_materialized)?;
     Ok(RadialSpliceExecution {
         primitive_family,
-        topology_edit_digest,
-        edit_families,
+        topology_mutation_digest,
+        mutation_families,
         final_state_digest,
         derived_validation_row_count: validation.rows.len(),
     })
 }
 
-fn radial_cycle_reorder_batch(
+fn radial_cycle_reorder_declaration(
     relation_rows: &[ForgeQueryEntity],
     current_cycle: &[String],
     reordered_cycle: &[String],
-) -> Result<TopologyEditBatch, TopologyCertificationError> {
-    let contracts = reordered_cycle
+) -> Result<TopologySpliceRadialAdjacencyProgramDeclaration, TopologyCertificationError> {
+    let members = reordered_cycle
         .iter()
         .enumerate()
         .filter_map(|(index, source_identity)| {
@@ -140,19 +137,20 @@ fn radial_cycle_reorder_batch(
             (current_target != reordered_target).then_some((source_identity, reordered_target))
         })
         .map(|(source_identity, reordered_target)| {
-            radial_splice_contract(relation_rows, source_identity, reordered_target)
+            radial_splice_member(relation_rows, source_identity, reordered_target)
         })
         .collect::<Result<Vec<_>, _>>()?;
-    TopologyEditBatch::new(contracts)
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))
+    Ok(TopologySpliceRadialAdjacencyProgramDeclaration::new(
+        members,
+    ))
 }
 
-fn radial_splice_contract(
+fn radial_splice_member(
     relation_rows: &[ForgeQueryEntity],
     source_identity: &str,
     target_identity: &str,
-) -> Result<TopologyEditContract, TopologyCertificationError> {
-    Ok(TopologyEditContract::splice_radial_adjacency(
+) -> Result<TopologyRadialSpliceMember, TopologyCertificationError> {
+    Ok(TopologyRadialSpliceMember::new(
         relation_id_for_source_kind(
             relation_rows,
             source_identity,

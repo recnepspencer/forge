@@ -1,6 +1,6 @@
 use forge_query::facade::{ForgeQueryEntity, RelationName};
 
-use crate::projection::read_views::domain::error::TopologyDomainQueryError;
+use crate::projection::read_views::domain::error::TopologyReadError;
 
 use super::super::row_decode::{cycle_identities_from_successors, RetainedTopologyRows};
 
@@ -10,7 +10,7 @@ pub(crate) fn decode_loop_cycle(
     count: usize,
     successor_relation: &RelationName,
     label: &str,
-) -> Result<Vec<String>, TopologyDomainQueryError> {
+) -> Result<Vec<String>, TopologyReadError> {
     cycle_identities_from_successors(
         &RetainedTopologyRows::new(rows),
         start_identity,

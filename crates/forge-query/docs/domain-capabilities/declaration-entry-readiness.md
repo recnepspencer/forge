@@ -65,6 +65,10 @@ Readiness row inspection:
 - `crossing_row()`
 - `status()`
 - `reason()`
+- `envelope_aspect_publication()`
+- `relational_authority_summary()`
+- `bridge_authority_summary()`
+- `signal_authority_summary()`
 - `readiness_digest()`
 
 Readiness statuses:
@@ -87,28 +91,50 @@ That means:
 2. the readiness report adds family-level admitted/deferred/unsupported
    posture to those same rows
 3. the narrower relational, bridge, and signal support helpers should agree
-   with the matching readiness rows
-4. optional declaration-scoped `9.3.7` contribution evidence may be attached
-   explicitly, but readiness remains the source of entry-phase seam truth
+   with the matching readiness rows, including status instead of only sharing a
+   descriptive reason string
+4. optional declaration-scoped contribution evidence may be attached
+   explicitly, but readiness remains the source of declaration-entry seam truth
 5. when contribution evidence should be reconciled against one concrete
    retained declaration crossing, attach a retained seam subject explicitly so
    readiness can fail closed on wrong-handle, wrong-world, or mismatched
    declaration digest posture
-6. stronger admitted-plan-bound and lower-runtime-bound contribution categories
+6. retained-subject-aware readiness now carries the retained envelope
+   publication plus relational, bridge, and signal authority summaries on the
+   matching rows, but it still does not pretend those lower-authority surfaces
+   executed successfully
+7. if a retained envelope publication is missing, conflicting, or only
+   partially maps the required lower-authority slice, the matching readiness
+   row no longer stays `Admitted` just because the family and config posture
+   were broadly available
+8. bridge rows now also fail closed when the retained envelope publication is
+   broadly available but the narrower mapped continuation slice is only
+   partial, missing, or conflicting
+9. stronger admitted-plan-bound and lower-runtime-bound contribution categories
    require matching retained downstream proof explicitly; readiness does not
    infer that proof from family posture alone
-7. the narrower relational, bridge, and signal support helpers remain
-   entry-phase-only seam projections; declaration-entry readiness is the
+10. the narrower relational, bridge, and signal support helpers remain
+   declaration-entry seam projections; declaration-entry readiness is the
    composed public support surface when contribution evidence matters
 
 Readiness is not a substitute for retained inspection of a concrete declaration
 artifact. It answers family-level seam posture, not concrete legality or
 progression outcomes for one already-authored declaration.
 
+Readiness is also not the recovery surface for one concrete failed run. If an
+ordinary, checked, or proof-visible declaration-entry lane already stopped and
+you need the next supported repair step, use the recovery boundary instead of
+trying to infer a fix from family-level readiness rows.
+
+Readiness also is not an orchestration transcript surface. It answers which
+declaration-entry seam rows are structurally available for a family in one
+admitted world. It does not describe which stages one specific orchestration
+run crossed.
+
 ## Small Example
 
 ```rust
-let readiness = handle.declaration_entry_readiness::<SplitEdgeAtMidpoint>();
+let readiness = handle.declaration_entry_readiness::<ReclassifyBoundaryLoop>();
 
 for row in readiness.rows() {
     let _ = row.crossing_row().entrypoint_key();
@@ -123,7 +149,7 @@ for row in readiness.rows() {
 let request = ForgeQueryDeclarationEntryReadinessRequest::base()
     .with_contribution_evidence(evidence);
 
-let readiness = handle.try_declaration_entry_readiness::<SplitEdgeAtMidpoint>(request)?;
+let readiness = handle.try_declaration_entry_readiness::<ReclassifyBoundaryLoop>(request)?;
 
 let _ = readiness.contribution_composition();
 let _ = readiness.readiness_digest();
@@ -137,10 +163,15 @@ let request = ForgeQueryDeclarationEntryReadinessRequest::base()
     )
     .with_admitted_plan_scope(admitted_plan);
 
-let readiness = handle.try_declaration_entry_readiness::<SplitEdgeAtMidpoint>(request)?;
+let readiness = handle.try_declaration_entry_readiness::<AttachFaceMaterialAssignment>(request)?;
 
 let _ = readiness.contribution_composition();
 let _ = readiness.readiness_digest();
+let _ = readiness
+    .rows()
+    .iter()
+    .find(|row| row.crossing_row().bridge_continuation_family().is_some())
+    .and_then(|row| row.bridge_authority_summary());
 ```
 
 ```rust
@@ -150,7 +181,7 @@ let request = ForgeQueryDeclarationEntryReadinessRequest::base()
         ForgeQueryDeclarationEntryRetainedSubjectInput::envelope_checked(checked_envelope),
     );
 
-let readiness = handle.try_declaration_entry_readiness::<SplitEdgeAtMidpoint>(request)?;
+let readiness = handle.try_declaration_entry_readiness::<PublishRevisionWithToleranceProfile>(request)?;
 
 let _ = readiness.contribution_composition();
 let _ = readiness.readiness_digest();
@@ -163,6 +194,13 @@ Use readiness when you need to know:
 - which seam rows exist for this family
 - which lower owner crate each row belongs to
 - whether a seam row is admitted, deferred, unsupported, or invalid here
+- which envelope-published slice and authority-specific mismatch posture the
+  retained subject currently implies for each row
+- whether a row became unsupported because the retained semantic slice was
+  missing or conflicting, rather than because the broad family/config support
+  was absent
+- whether a bridge row became unsupported because the retained envelope slice
+  existed broadly but did not map cleanly into the narrower continuation slice
 - whether the narrower support helpers still match the shared seam ledger
 - whether explicit declaration-scoped contribution evidence should travel with
   the family-level readiness answer
@@ -178,6 +216,7 @@ Use readiness when you need to know:
   crossed a lower seam
 - do not use readiness to replace route, receipt, envelope, or signal
   inspection on a retained declaration artifact
+- do not use readiness to explain one proof-visible orchestration transcript
 - do not assume `declaration_entry_readiness::<I>()` discovers domain
   contributions automatically; use the explicit request path when you need
   composition
@@ -198,7 +237,7 @@ Use readiness when you need to know:
   a retained declaration-entry subject and matching retained lower-runtime
   boundary proof are attached
 - it does not replace retained route, receipt, envelope, or signal inspection
-- later orchestration and recovery remain separate phases
+- later orchestration and recovery remain separate surfaces
 
 ## Related Docs
 
@@ -206,3 +245,4 @@ Use readiness when you need to know:
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
+- [Recovery Boundary](./recovery-boundary.md)

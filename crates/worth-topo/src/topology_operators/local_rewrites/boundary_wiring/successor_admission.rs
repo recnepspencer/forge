@@ -1,20 +1,24 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use forge_relational::facade::identity::EntityId;
+use forge_relational::facade::identity::{EntityId, RelationId};
+use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::platform::relations::TopologyRelationKind::*;
 
-use super::successor_support::{
-    live_relation_for_source, matches_expected_rewire, same_loop, ContiguousSpanCandidate,
-    DesiredLoopSuccessorProgram, DesiredLoopSuccessorRewire,
-};
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
-use crate::topology_operators::{LoopSuccessorKind, TopologyEditAction, TopologyEditContract};
+use crate::topology_operators::application::bindings::{
+    query_entity_binding, query_entity_id_by_identity, query_incoming_relation_ids,
+    query_incoming_relation_source_identities, query_outgoing_relation_target_identities,
+    query_relation_binding,
+};
+use crate::topology_operators::{
+    LoopSuccessorKind, TopologyDeclaredMutationActionRef, TopologyDeclaredMutationSequence,
+};
 
 pub(crate) fn supports_admitted_loop_successor_program(
     bindings: &TopologyQueryBindingIndex,
-    contracts: &[TopologyEditContract],
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> bool {
-    let Some(program) = desired_successor_program(contracts) else {
+    let Some(program) = desired_successor_program(sequence) else {
         return false;
     };
     single_half_edge_candidates(&program)
@@ -34,20 +38,20 @@ pub(crate) fn supports_admitted_loop_successor_program(
 }
 
 fn desired_successor_program(
-    contracts: &[TopologyEditContract],
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> Option<DesiredLoopSuccessorProgram> {
-    if contracts.len() != 6 {
+    if sequence.families().len() != 6 {
         return None;
     }
     let mut next = BTreeMap::new();
     let mut prev = BTreeMap::new();
-    for contract in contracts {
-        let TopologyEditAction::RewireLoopSuccessor {
+    for contract in sequence.members() {
+        let TopologyDeclaredMutationActionRef::RewireLoopSuccessor {
             relation_id,
             kind,
             half_edge_id,
             successor_half_edge_id,
-        } = contract.action
+        } = contract.action_ref()
         else {
             return None;
         };
@@ -263,3 +267,115 @@ fn matches_admitted_contiguous_span_relocation_program(
         candidate.end_half_edge_id,
     )
 }
+<<<<<<< HEAD
+=======
+
+fn matches_expected_rewire(
+    bindings: &TopologyQueryBindingIndex,
+    desired: Option<&DesiredLoopSuccessorRewire>,
+    source_half_edge_id: EntityId,
+    relation_kind: TopologyRelationKind,
+    expected_target_half_edge_id: EntityId,
+) -> bool {
+    let Some(desired) = desired else {
+        return false;
+    };
+    let Some(live) = live_relation_for_source(bindings, source_half_edge_id, relation_kind) else {
+        return false;
+    };
+    desired.relation_id == live.relation_id
+        && desired.target_half_edge_id == expected_target_half_edge_id
+}
+
+fn live_relation_for_source(
+    bindings: &TopologyQueryBindingIndex,
+    source_half_edge_id: EntityId,
+    relation_kind: TopologyRelationKind,
+) -> Option<LiveLoopSuccessorRelation> {
+    let source_binding = query_entity_binding(bindings, source_half_edge_id).ok()??;
+    let targets = query_outgoing_relation_target_identities(
+        bindings,
+        &source_binding.query_identity,
+        relation_kind,
+    )
+    .ok()?;
+    if targets.len() != 1 {
+        return None;
+    }
+    let target_half_edge_id = query_entity_id_by_identity(bindings, &targets[0]).ok()??;
+    let incoming_relation_ids =
+        query_incoming_relation_ids(bindings, &targets[0], relation_kind).ok()?;
+    let relation_id = incoming_relation_ids.into_iter().find(|relation_id| {
+        query_relation_binding(bindings, *relation_id)
+            .ok()
+            .flatten()
+            .is_some_and(|binding| {
+                binding.kind == relation_kind
+                    && binding.source_query_identity == source_binding.query_identity
+                    && binding.target_query_identity == targets[0]
+            })
+    });
+    let Some(relation_id) = relation_id else {
+        return None;
+    };
+    Some(LiveLoopSuccessorRelation {
+        relation_id,
+        target_half_edge_id,
+    })
+}
+
+fn same_loop(
+    bindings: &TopologyQueryBindingIndex,
+    left_half_edge_id: EntityId,
+    right_half_edge_id: EntityId,
+) -> bool {
+    let Some(left_binding) = query_entity_binding(bindings, left_half_edge_id)
+        .ok()
+        .flatten()
+    else {
+        return false;
+    };
+    let Some(right_binding) = query_entity_binding(bindings, right_half_edge_id)
+        .ok()
+        .flatten()
+    else {
+        return false;
+    };
+    let Ok(left_loops) = query_incoming_relation_source_identities(
+        bindings,
+        &left_binding.query_identity,
+        LoopOwnsHalfEdge,
+    ) else {
+        return false;
+    };
+    let Ok(right_loops) = query_incoming_relation_source_identities(
+        bindings,
+        &right_binding.query_identity,
+        LoopOwnsHalfEdge,
+    ) else {
+        return false;
+    };
+    left_loops.len() == 1 && right_loops.len() == 1 && left_loops[0] == right_loops[0]
+}
+
+struct DesiredLoopSuccessorProgram {
+    next: BTreeMap<EntityId, DesiredLoopSuccessorRewire>,
+    prev: BTreeMap<EntityId, DesiredLoopSuccessorRewire>,
+}
+
+struct DesiredLoopSuccessorRewire {
+    relation_id: RelationId,
+    target_half_edge_id: EntityId,
+}
+
+struct LiveLoopSuccessorRelation {
+    relation_id: RelationId,
+    target_half_edge_id: EntityId,
+}
+
+struct ContiguousSpanCandidate {
+    start_half_edge_id: EntityId,
+    end_half_edge_id: EntityId,
+    span_half_edge_ids: Vec<EntityId>,
+}
+>>>>>>> origin/master

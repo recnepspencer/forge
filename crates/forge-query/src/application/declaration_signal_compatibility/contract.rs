@@ -1,7 +1,9 @@
 use crate::application::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryCapabilityFamily,
-    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext,
+    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationAspectFit,
+    ForgeQueryDeclarationAuthorityAspectMismatch, ForgeQueryDeclarationInput,
+    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
 };
 use crate::basis_lifecycle::BasisFamily;
 
@@ -41,12 +43,14 @@ impl ForgeQueryDeclarationSignalExecutionFamily {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDeclarationSignalCompatibilityContract {
     execution_family: ForgeQueryDeclarationSignalExecutionFamily,
     required_basis_families: &'static [BasisFamily],
     required_capability_families: &'static [ForgeQueryCapabilityFamily],
     required_config_sections: &'static [ForgeQueryConfigSectionFamily],
+    dependency_aspects: ForgeQueryDeclarationAspectContract,
+    produced_aspects: ForgeQueryDeclarationAspectContract,
     reason: &'static str,
 }
 
@@ -57,6 +61,8 @@ impl ForgeQueryDeclarationSignalCompatibilityContract {
             required_basis_families: CURRENT_HEAD,
             required_capability_families: SIGNAL_AND_QUERY,
             required_config_sections: SIGNAL_ONLY_CONFIG,
+            dependency_aspects: ForgeQueryDeclarationAspectContract::empty(),
+            produced_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason:
                 "the declaration can later continue into Signal-backed runtime derived execution",
         }
@@ -69,6 +75,8 @@ impl ForgeQueryDeclarationSignalCompatibilityContract {
             required_basis_families: HISTORICAL_SNAPSHOT,
             required_capability_families: SIGNAL_AND_HISTORY,
             required_config_sections: SIGNAL_ONLY_CONFIG,
+            dependency_aspects: ForgeQueryDeclarationAspectContract::empty(),
+            produced_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason:
                 "the declaration can later continue into Signal-backed historical derived execution",
         }
@@ -80,29 +88,49 @@ impl ForgeQueryDeclarationSignalCompatibilityContract {
             required_basis_families: PREVIEW_DERIVED,
             required_capability_families: SIGNAL_AND_PREVIEW,
             required_config_sections: SIGNAL_ONLY_CONFIG,
+            dependency_aspects: ForgeQueryDeclarationAspectContract::empty(),
+            produced_aspects: ForgeQueryDeclarationAspectContract::empty(),
             reason:
                 "the declaration can later continue into Signal-backed preview derived execution",
         }
     }
 
-    pub fn execution_family(self) -> ForgeQueryDeclarationSignalExecutionFamily {
+    pub fn execution_family(&self) -> ForgeQueryDeclarationSignalExecutionFamily {
         self.execution_family
     }
 
-    pub fn required_basis_families(self) -> &'static [BasisFamily] {
+    pub fn required_basis_families(&self) -> &'static [BasisFamily] {
         self.required_basis_families
     }
 
-    pub fn required_capability_families(self) -> &'static [ForgeQueryCapabilityFamily] {
+    pub fn required_capability_families(&self) -> &'static [ForgeQueryCapabilityFamily] {
         self.required_capability_families
     }
 
-    pub fn required_config_sections(self) -> &'static [ForgeQueryConfigSectionFamily] {
+    pub fn required_config_sections(&self) -> &'static [ForgeQueryConfigSectionFamily] {
         self.required_config_sections
     }
 
-    pub fn reason(self) -> &'static str {
+    pub fn reason(&self) -> &'static str {
         self.reason
+    }
+
+    pub fn dependency_aspects(&self) -> ForgeQueryDeclarationAspectContract {
+        self.dependency_aspects.clone()
+    }
+
+    pub fn produced_aspects(&self) -> ForgeQueryDeclarationAspectContract {
+        self.produced_aspects.clone()
+    }
+
+    pub fn with_aspects(
+        mut self,
+        dependency_aspects: ForgeQueryDeclarationAspectContract,
+        produced_aspects: ForgeQueryDeclarationAspectContract,
+    ) -> Self {
+        self.dependency_aspects = dependency_aspects;
+        self.produced_aspects = produced_aspects;
+        self
     }
 }
 
@@ -129,6 +157,11 @@ impl ForgeQueryDeclarationSignalCompatibilitySupportStatus {
 pub struct ForgeQueryDeclarationSignalCompatibilitySupportRow {
     execution_family: ForgeQueryDeclarationSignalExecutionFamily,
     basis_family: BasisFamily,
+    required_dependency_aspects: ForgeQueryDeclarationAspectContract,
+    produced_aspects: ForgeQueryDeclarationAspectContract,
+    available_aspect_slice: ForgeQueryDeclarationAspectCoverage,
+    aspect_fit: ForgeQueryDeclarationAspectFit,
+    aspect_mismatch: Option<ForgeQueryDeclarationAuthorityAspectMismatch>,
     status: ForgeQueryDeclarationSignalCompatibilitySupportStatus,
     reason: &'static str,
 }
@@ -137,12 +170,22 @@ impl ForgeQueryDeclarationSignalCompatibilitySupportRow {
     pub(crate) fn new(
         execution_family: ForgeQueryDeclarationSignalExecutionFamily,
         basis_family: BasisFamily,
+        required_dependency_aspects: ForgeQueryDeclarationAspectContract,
+        produced_aspects: ForgeQueryDeclarationAspectContract,
+        available_aspect_slice: ForgeQueryDeclarationAspectCoverage,
+        aspect_fit: ForgeQueryDeclarationAspectFit,
+        aspect_mismatch: Option<ForgeQueryDeclarationAuthorityAspectMismatch>,
         status: ForgeQueryDeclarationSignalCompatibilitySupportStatus,
         reason: &'static str,
     ) -> Self {
         Self {
             execution_family,
             basis_family,
+            required_dependency_aspects,
+            produced_aspects,
+            available_aspect_slice,
+            aspect_fit,
+            aspect_mismatch,
             status,
             reason,
         }
@@ -154,6 +197,26 @@ impl ForgeQueryDeclarationSignalCompatibilitySupportRow {
 
     pub fn basis_family(&self) -> BasisFamily {
         self.basis_family
+    }
+
+    pub fn required_dependency_aspects(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.required_dependency_aspects
+    }
+
+    pub fn produced_aspects(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.produced_aspects
+    }
+
+    pub fn available_aspect_slice(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        &self.available_aspect_slice
+    }
+
+    pub fn aspect_fit(&self) -> ForgeQueryDeclarationAspectFit {
+        self.aspect_fit
+    }
+
+    pub fn aspect_mismatch(&self) -> Option<ForgeQueryDeclarationAuthorityAspectMismatch> {
+        self.aspect_mismatch
     }
 
     pub fn status(&self) -> ForgeQueryDeclarationSignalCompatibilitySupportStatus {

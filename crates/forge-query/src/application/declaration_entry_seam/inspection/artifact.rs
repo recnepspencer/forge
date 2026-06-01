@@ -1,11 +1,13 @@
 use crate::application::{
+    ForgeQueryDeclarationAspectPublication, ForgeQueryDeclarationBridgeAuthorityAspectSummary,
     ForgeQueryDeclarationBridgeContinuationFamily, ForgeQueryDeclarationBridgeContinuationMode,
     ForgeQueryDeclarationBridgeRoutingClass, ForgeQueryDeclarationBridgeRoutingDenialCause,
     ForgeQueryDeclarationBridgeTruthContext, ForgeQueryDeclarationEnvelopeClass,
     ForgeQueryDeclarationEnvelopeEvidenceOrigin, ForgeQueryDeclarationInput,
-    ForgeQueryDeclarationReceiptDenialCause, ForgeQueryDeclarationRelationalAuthorityFamily,
-    ForgeQueryDeclarationRelationalRoutingClass, ForgeQueryDeclarationRelationalRoutingDenialCause,
-    ForgeQueryDeclarationRelationalTruthClaim, ForgeQueryDeclarationRoutePlanDenialCause,
+    ForgeQueryDeclarationReceiptDenialCause, ForgeQueryDeclarationRelationalAuthorityAspectSummary,
+    ForgeQueryDeclarationRelationalAuthorityFamily, ForgeQueryDeclarationRelationalRoutingClass,
+    ForgeQueryDeclarationRelationalRoutingDenialCause, ForgeQueryDeclarationRelationalTruthClaim,
+    ForgeQueryDeclarationRoutePlanDenialCause, ForgeQueryDeclarationSignalAuthorityAspectSummary,
     ForgeQueryDeclarationSignalCompatibilityClass,
     ForgeQueryDeclarationSignalCompatibilityDenialCause,
     ForgeQueryDeclarationSignalExecutionFamily, ForgeQueryDomainEntryMarker,
@@ -23,8 +25,9 @@ use super::super::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDeclarationEntryInspectionRelationalPosture {
     pub(crate) class: ForgeQueryDeclarationRelationalRoutingClass,
-    pub(crate) truth_claim: ForgeQueryDeclarationRelationalTruthClaim,
-    pub(crate) authority_family: ForgeQueryDeclarationRelationalAuthorityFamily,
+    pub(crate) truth_claim: Option<ForgeQueryDeclarationRelationalTruthClaim>,
+    pub(crate) authority_family: Option<ForgeQueryDeclarationRelationalAuthorityFamily>,
+    pub(crate) authority_aspect_summary: ForgeQueryDeclarationRelationalAuthorityAspectSummary,
     pub(crate) routing_digest: String,
     pub(crate) denial_cause: Option<ForgeQueryDeclarationRelationalRoutingDenialCause>,
 }
@@ -32,9 +35,10 @@ pub struct ForgeQueryDeclarationEntryInspectionRelationalPosture {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDeclarationEntryInspectionBridgePosture {
     pub(crate) class: ForgeQueryDeclarationBridgeRoutingClass,
-    pub(crate) continuation_mode: ForgeQueryDeclarationBridgeContinuationMode,
-    pub(crate) truth_context: ForgeQueryDeclarationBridgeTruthContext,
-    pub(crate) continuation_family: ForgeQueryDeclarationBridgeContinuationFamily,
+    pub(crate) continuation_mode: Option<ForgeQueryDeclarationBridgeContinuationMode>,
+    pub(crate) truth_context: Option<ForgeQueryDeclarationBridgeTruthContext>,
+    pub(crate) continuation_family: Option<ForgeQueryDeclarationBridgeContinuationFamily>,
+    pub(crate) authority_aspect_summary: ForgeQueryDeclarationBridgeAuthorityAspectSummary,
     pub(crate) routing_digest: String,
     pub(crate) denial_cause: Option<ForgeQueryDeclarationBridgeRoutingDenialCause>,
 }
@@ -42,8 +46,9 @@ pub struct ForgeQueryDeclarationEntryInspectionBridgePosture {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDeclarationEntryInspectionSignalPosture {
     pub(crate) class: ForgeQueryDeclarationSignalCompatibilityClass,
-    pub(crate) execution_family: ForgeQueryDeclarationSignalExecutionFamily,
+    pub(crate) execution_family: Option<ForgeQueryDeclarationSignalExecutionFamily>,
     pub(crate) basis_families: Vec<BasisFamily>,
+    pub(crate) authority_aspect_summary: ForgeQueryDeclarationSignalAuthorityAspectSummary,
     pub(crate) compatibility_digest: String,
     pub(crate) denial_cause: Option<ForgeQueryDeclarationSignalCompatibilityDenialCause>,
 }
@@ -61,6 +66,7 @@ pub struct ForgeQueryDeclarationEntryInspection<
     pub(crate) receipt_digest: Option<String>,
     pub(crate) envelope_digest: String,
     pub(crate) envelope_class: ForgeQueryDeclarationEnvelopeClass,
+    pub(crate) envelope_aspect_publication: ForgeQueryDeclarationAspectPublication,
     pub(crate) evidence_origin: ForgeQueryDeclarationEnvelopeEvidenceOrigin,
     pub(crate) route_denial_cause: Option<ForgeQueryDeclarationRoutePlanDenialCause>,
     pub(crate) receipt_denial_cause: Option<ForgeQueryDeclarationReceiptDenialCause>,
@@ -105,6 +111,9 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     pub fn envelope_class(&self) -> ForgeQueryDeclarationEnvelopeClass {
         self.envelope_class
     }
+    pub fn envelope_aspect_publication(&self) -> &ForgeQueryDeclarationAspectPublication {
+        &self.envelope_aspect_publication
+    }
     pub fn evidence_origin(&self) -> ForgeQueryDeclarationEnvelopeEvidenceOrigin {
         self.evidence_origin
     }
@@ -144,6 +153,88 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
     pub fn inspection_digest(&self) -> &str {
         &self.inspection_digest
+    }
+}
+
+impl ForgeQueryDeclarationEntryInspectionRelationalPosture {
+    pub fn class(&self) -> ForgeQueryDeclarationRelationalRoutingClass {
+        self.class
+    }
+
+    pub fn truth_claim(&self) -> Option<ForgeQueryDeclarationRelationalTruthClaim> {
+        self.truth_claim
+    }
+
+    pub fn authority_family(&self) -> Option<ForgeQueryDeclarationRelationalAuthorityFamily> {
+        self.authority_family
+    }
+
+    pub fn routing_digest(&self) -> &str {
+        &self.routing_digest
+    }
+
+    pub fn denial_cause(&self) -> Option<ForgeQueryDeclarationRelationalRoutingDenialCause> {
+        self.denial_cause
+    }
+
+    pub fn aspect_summary(&self) -> &ForgeQueryDeclarationRelationalAuthorityAspectSummary {
+        &self.authority_aspect_summary
+    }
+}
+
+impl ForgeQueryDeclarationEntryInspectionBridgePosture {
+    pub fn class(&self) -> ForgeQueryDeclarationBridgeRoutingClass {
+        self.class
+    }
+
+    pub fn continuation_mode(&self) -> Option<ForgeQueryDeclarationBridgeContinuationMode> {
+        self.continuation_mode
+    }
+
+    pub fn truth_context(&self) -> Option<ForgeQueryDeclarationBridgeTruthContext> {
+        self.truth_context
+    }
+
+    pub fn continuation_family(&self) -> Option<ForgeQueryDeclarationBridgeContinuationFamily> {
+        self.continuation_family
+    }
+
+    pub fn routing_digest(&self) -> &str {
+        &self.routing_digest
+    }
+
+    pub fn denial_cause(&self) -> Option<ForgeQueryDeclarationBridgeRoutingDenialCause> {
+        self.denial_cause
+    }
+
+    pub fn aspect_summary(&self) -> &ForgeQueryDeclarationBridgeAuthorityAspectSummary {
+        &self.authority_aspect_summary
+    }
+}
+
+impl ForgeQueryDeclarationEntryInspectionSignalPosture {
+    pub fn class(&self) -> ForgeQueryDeclarationSignalCompatibilityClass {
+        self.class
+    }
+
+    pub fn execution_family(&self) -> Option<ForgeQueryDeclarationSignalExecutionFamily> {
+        self.execution_family
+    }
+
+    pub fn basis_families(&self) -> &[BasisFamily] {
+        &self.basis_families
+    }
+
+    pub fn compatibility_digest(&self) -> &str {
+        &self.compatibility_digest
+    }
+
+    pub fn denial_cause(&self) -> Option<ForgeQueryDeclarationSignalCompatibilityDenialCause> {
+        self.denial_cause
+    }
+
+    pub fn aspect_summary(&self) -> &ForgeQueryDeclarationSignalAuthorityAspectSummary {
+        &self.authority_aspect_summary
     }
 }
 

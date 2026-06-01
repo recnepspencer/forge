@@ -1,8 +1,7 @@
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
-    topology_runtime, TopologyQueryEditFamilySupportStatus, TopologyQueryEditLane,
-    TopologyQueryEditLaneSupportStatus, TopologyRuntimeAdapters, TopologyRuntimePostureCapability,
-    TopologyRuntimePostureStatus,
+    topology_runtime, TopologyQueryMutationFamilySupportStatus, TopologyQueryMutationLane,
+    TopologyQueryMutationLaneSupportStatus, TopologyRuntimeAdapters,
+    TopologyRuntimePostureCapability, TopologyRuntimePostureStatus,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::{ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus};
@@ -34,55 +33,55 @@ fn current_head_runtime_support_reports_authoritative_current_head_posture() {
         );
     }
     assert!(support
-        .query_edit_lane_support_rows()
+        .query_mutation_lane_support_rows()
         .iter()
-        .any(|row| row.status() == TopologyQueryEditLaneSupportStatus::Admitted));
+        .any(|row| row.status() == TopologyQueryMutationLaneSupportStatus::Admitted));
     assert_eq!(
-        support.query_edit_family_support_status(
-            crate::topology_operators::TopologyEditFamily::AttachBoundaryMembership
+        support.query_mutation_family_support_status(
+            crate::topology_operators::TopologyMutationFamily::AttachBoundaryMembership
         ),
-        TopologyQueryEditFamilySupportStatus::PartiallyAdmittedByLane
+        TopologyQueryMutationFamilySupportStatus::PartiallyAdmittedByLane
     );
     assert_eq!(
-        support.query_edit_family_support_status(
-            crate::topology_operators::TopologyEditFamily::AttachShellOrWireMembership
+        support.query_mutation_family_support_status(
+            crate::topology_operators::TopologyMutationFamily::AttachShellOrWireMembership
         ),
-        TopologyQueryEditFamilySupportStatus::PartiallyAdmittedByLane
+        TopologyQueryMutationFamilySupportStatus::PartiallyAdmittedByLane
     );
     assert_eq!(
-        support.query_edit_family_support_status(
-            crate::topology_operators::TopologyEditFamily::RewireLoopSuccessor
+        support.query_mutation_family_support_status(
+            crate::topology_operators::TopologyMutationFamily::RewireLoopSuccessor
         ),
-        TopologyQueryEditFamilySupportStatus::PartiallyAdmittedByLane
+        TopologyQueryMutationFamilySupportStatus::PartiallyAdmittedByLane
     );
     for lane in [
-        TopologyQueryEditLane::RelocateHalfEdgeBeforeSuccessor,
-        TopologyQueryEditLane::RelocateHalfEdgeSpanBeforeSuccessor,
-        TopologyQueryEditLane::CreateInnerLoopOnExistingFace,
-        TopologyQueryEditLane::RehomeAllOwnedHalfEdgesToNewWire,
-        TopologyQueryEditLane::SplitConnectedHalfEdgeSetIntoNewWire,
-        TopologyQueryEditLane::SplitSingleFaceFromTwoFaceShellToNewShell,
-        TopologyQueryEditLane::RehomeAllOwnedFacesToNewShell,
-        TopologyQueryEditLane::RewireLoopEndpoint,
-        TopologyQueryEditLane::SpliceRadialAdjacency,
+        TopologyQueryMutationLane::RelocateHalfEdgeBeforeSuccessor,
+        TopologyQueryMutationLane::RelocateHalfEdgeSpanBeforeSuccessor,
+        TopologyQueryMutationLane::CreateInnerLoopOnExistingFace,
+        TopologyQueryMutationLane::RehomeAllOwnedHalfEdgesToNewWire,
+        TopologyQueryMutationLane::SplitConnectedHalfEdgeSetIntoNewWire,
+        TopologyQueryMutationLane::SplitSingleFaceFromTwoFaceShellToNewShell,
+        TopologyQueryMutationLane::RehomeAllOwnedFacesToNewShell,
+        TopologyQueryMutationLane::RewireLoopEndpoint,
+        TopologyQueryMutationLane::SpliceRadialAdjacency,
     ] {
         assert_eq!(
-            support.query_edit_lane_support_status(lane),
-            TopologyQueryEditLaneSupportStatus::Admitted
+            support.query_mutation_lane_support_status(lane),
+            TopologyQueryMutationLaneSupportStatus::Admitted
         );
     }
     for family in [
-        crate::topology_operators::TopologyEditFamily::CreateTopologyEntity,
-        crate::topology_operators::TopologyEditFamily::DetachBoundaryMembership,
-        crate::topology_operators::TopologyEditFamily::DetachRadialAdjacency,
-        crate::topology_operators::TopologyEditFamily::DetachShellOrWireMembership,
-        crate::topology_operators::TopologyEditFamily::RetireTopologyEntity,
-        crate::topology_operators::TopologyEditFamily::RewireLoopEndpoint,
-        crate::topology_operators::TopologyEditFamily::SpliceRadialAdjacency,
+        crate::topology_operators::TopologyMutationFamily::CreateTopologyEntity,
+        crate::topology_operators::TopologyMutationFamily::DetachBoundaryMembership,
+        crate::topology_operators::TopologyMutationFamily::DetachRadialAdjacency,
+        crate::topology_operators::TopologyMutationFamily::DetachShellOrWireMembership,
+        crate::topology_operators::TopologyMutationFamily::RetireTopologyEntity,
+        crate::topology_operators::TopologyMutationFamily::RewireLoopEndpoint,
+        crate::topology_operators::TopologyMutationFamily::SpliceRadialAdjacency,
     ] {
         assert_eq!(
-            support.query_edit_family_support_status(family),
-            TopologyQueryEditFamilySupportStatus::Admitted
+            support.query_mutation_family_support_status(family),
+            TopologyQueryMutationFamilySupportStatus::Admitted
         );
     }
 }
@@ -93,11 +92,15 @@ fn current_head_runtime_reads_seeded_topology_without_query_import() {
     seed_minimal_topology(&mut runtime, "query-runtime").expect("seed topology");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, ".current-head.runtime").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
 
-    let entity_rows = workspace.read(assembly.entities());
-    let relation_rows = workspace.read(assembly.relations());
-    let persistent_name_rows = workspace.read(assembly.persistent_names());
+    let entity_rows = workspace.read(surfaces.entities());
+    let relation_rows = workspace.read(surfaces.relations());
+    let persistent_name_rows = workspace.read(surfaces.persistent_names());
 
     assert!(!entity_rows.is_empty());
     assert!(!relation_rows.is_empty());
@@ -117,7 +120,11 @@ fn current_head_runtime_writes_topology_through_real_runtime() {
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.authoritative").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
 
     let receipt = workspace
         .insert("TopologyEntity", |builder| {
@@ -128,8 +135,8 @@ fn current_head_runtime_writes_topology_through_real_runtime() {
         })
         .expect("entity create should commit");
 
-    let entity_rows = workspace.read(assembly.entities());
-    let materialized_rows = workspace.materialize(assembly.materialized());
+    let entity_rows = workspace.read(surfaces.entities());
+    let materialized_rows = workspace.materialize(surfaces.materialized());
     let materialized: crate::facade::MaterializedTopologyView =
         serde_json::from_value(materialized_rows[0].clone()).expect("materialized topology row");
     assert!(entity_rows.iter().any(|row| {
@@ -141,7 +148,7 @@ fn current_head_runtime_writes_topology_through_real_runtime() {
     }));
     assert!(receipt
         .affected_derived_view_ids()
-        .contains(&assembly.materialized().name().to_string()));
+        .contains(&surfaces.materialized().name().to_string()));
     assert!(!materialized.topology().vertices.is_empty());
 }
 
@@ -192,9 +199,9 @@ fn snapshot_read_only_runtime_support_reports_historical_read_only_posture() {
         TopologyRuntimePostureStatus::Admitted
     );
     assert!(support
-        .query_edit_lane_support_rows()
+        .query_mutation_lane_support_rows()
         .iter()
-        .all(|row| row.status() == TopologyQueryEditLaneSupportStatus::Denied));
+        .all(|row| row.status() == TopologyQueryMutationLaneSupportStatus::Denied));
 
     let support_profile = support.support_profile();
     let live_support = support_profile
@@ -240,9 +247,13 @@ fn snapshot_read_only_runtime_reads_seeded_topology_and_denies_writes() {
     let adapters = TopologyRuntimeAdapters::snapshot_read_only(read_view, seeded.snapshot);
     let mut workspace =
         topology_runtime(adapters, ".snapshot-read-only.runtime").expect("workspace");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
 
-    assert!(!workspace.read(assembly.entities()).is_empty());
+    assert!(!workspace.read(surfaces.entities()).is_empty());
 
     let error = workspace
         .insert("TopologyEntity", |builder| {

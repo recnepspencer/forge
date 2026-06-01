@@ -7,14 +7,18 @@ use forge_relational::facade::replay::{
 };
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::aspects::Aspect;
+<<<<<<< HEAD
 use schema::facade::platform::authority::{
     FallbackDisposition, MutationOrigin, TopologyMutationBatch,
 };
+=======
+use schema::facade::platform::authority::{FallbackDisposition, MutationOrigin, TopologyMutation};
+>>>>>>> origin/master
 use schema::facade::platform::authority::{ShellInterpretationClass, WireInterpretationClass};
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::error::MilestoneOneCertificationError;
-use crate::certification::shared::{count_batch_mutations, coverage_entry, digest_rows};
+use crate::certification::shared::{count_topology_mutations, coverage_entry, digest_rows};
 use crate::certification::support::reporting::{
     BranchLocalTopologyReport, MilestoneOneCertificationReport, MilestoneOneCounters,
     NamingAttachmentReport, PrimitiveFamilyCoverageMatrix, ReplayParityReport, ReplayParityStatus,
@@ -29,7 +33,6 @@ use crate::facade::{
     build_derived_equivalence_contract, build_topology_read_artifact, certify_topology_view,
     compare_derived_equivalence_contracts, validate_named_topology_truth,
 };
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };

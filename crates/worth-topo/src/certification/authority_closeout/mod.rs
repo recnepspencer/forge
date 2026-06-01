@@ -67,7 +67,7 @@ where
         MilestoneOneCertificationHarness::certify_read_basis_with_runtime_traced(
             &mut baseline_runtime,
             seeded.read_basis().clone(),
-            Some(&seeded.persisted_truth().batch),
+            Some(&seeded.persisted_truth().committed_mutation_set.mutations),
             1,
         )
         .map_err(BoundaryFailure::into_error)?

@@ -1,7 +1,5 @@
-use std::collections::{BTreeMap, BTreeSet};
-use std::fmt;
-
 use forge_relational::facade::history::BranchId;
+<<<<<<< HEAD
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use forge_relational::facade::symbols::ClientKey;
@@ -23,8 +21,14 @@ use schema::facade::platform::relations::{
     DiagnosticsRelationKind, GeometryRelationKind, NamingRelationKind, RelationKind,
     TopologyRelationKind,
 };
+=======
+use forge_relational::facade::runtime::RelationalRuntime;
+use schema::facade::platform::authority::RawTopologyIntent;
+pub(crate) use schema::facade::topology_authoring::TopologyIntentCommitError;
+>>>>>>> origin/master
 use schema::facade::topology_authoring::{
-    CanonicalTopologyMutationBatch, DerivedTopologyReadBasis, PersistedTopologyTruthBatch,
+    commit_topology_intent as commit_seeded_topology_intent,
+    commit_topology_intent_on_branch as commit_seeded_topology_intent_on_branch,
 };
 
 use crate::committed_artifact::TopologyCommittedArtifact;
@@ -32,88 +36,12 @@ use crate::relational_aspect_boundary::{
     entity_record_domain_label, topology_entity_create_fields,
 };
 
-#[derive(Debug)]
-pub(crate) enum TopologyIntentCommitError {
-    DuplicateCreateKey(CreateKey),
-    DuplicateLiveEntityLabel(CreateKey),
-    MissingCreatedEntity(CreateKey),
-    UnsupportedIdentityEntityMutation(EntityId),
-    UnsupportedIdentityRelationMutation(RelationId),
-    MissingEntity(EntityId),
-    MissingRelation(RelationId),
-    EntityKindMismatch {
-        entity_id: EntityId,
-        expected: EntityKind,
-        found: EntityKind,
-    },
-    RelationShapeMismatch {
-        relation_id: RelationId,
-        expected_kind: RelationKind,
-        found_kind: RelationKind,
-        expected_source: EntityId,
-        found_source: EntityId,
-        expected_target: EntityId,
-        found_target: EntityId,
-    },
-    ReadSnapshot(String),
-    Commit(TransactionCommitError),
-}
-
-impl From<TransactionCommitError> for TopologyIntentCommitError {
-    fn from(value: TransactionCommitError) -> Self {
-        Self::Commit(value)
-    }
-}
-
-impl fmt::Display for TopologyIntentCommitError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::DuplicateCreateKey(key) => write!(f, "duplicate create key `{}`", key.as_str()),
-            Self::DuplicateLiveEntityLabel(key) => {
-                write!(f, "duplicate live entity label `{}`", key.as_str())
-            }
-            Self::MissingCreatedEntity(key) => {
-                write!(f, "missing created entity reference `{}`", key.as_str())
-            }
-            Self::UnsupportedIdentityEntityMutation(entity_id) => {
-                write!(f, "unsupported identity entity mutation for `{entity_id:?}`")
-            }
-            Self::UnsupportedIdentityRelationMutation(relation_id) => {
-                write!(f, "unsupported identity relation mutation for `{relation_id:?}`")
-            }
-            Self::MissingEntity(entity_id) => write!(f, "missing entity `{entity_id:?}`"),
-            Self::MissingRelation(relation_id) => write!(f, "missing relation `{relation_id:?}`"),
-            Self::EntityKindMismatch {
-                entity_id,
-                expected,
-                found,
-            } => write!(
-                f,
-                "entity kind mismatch for `{entity_id:?}`: expected `{expected:?}`, found `{found:?}`"
-            ),
-            Self::RelationShapeMismatch {
-                relation_id,
-                expected_kind,
-                found_kind,
-                expected_source,
-                found_source,
-                expected_target,
-                found_target,
-            } => write!(
-                f,
-                "relation shape mismatch for `{relation_id:?}`: expected kind `{expected_kind:?}` source `{expected_source:?}` target `{expected_target:?}`, found kind `{found_kind:?}` source `{found_source:?}` target `{found_target:?}`"
-            ),
-            Self::ReadSnapshot(message) => f.write_str(message),
-            Self::Commit(error) => write!(f, "{error:?}"),
-        }
-    }
-}
-
 pub(crate) fn commit_topology_intent(
     runtime: &mut RelationalRuntime,
     intent: RawTopologyIntent,
 ) -> Result<TopologyCommittedArtifact, TopologyIntentCommitError> {
-    commit_topology_intent_on_branch(runtime, intent, BranchId("main".to_string()))
+    let seeded = commit_seeded_topology_intent(runtime, intent)?;
+    Ok(TopologyCommittedArtifact::from_seeded_commit(seeded))
 }
 
 pub(crate) fn commit_topology_intent_on_branch(
@@ -121,6 +49,7 @@ pub(crate) fn commit_topology_intent_on_branch(
     intent: RawTopologyIntent,
     branch_id: BranchId,
 ) -> Result<TopologyCommittedArtifact, TopologyIntentCommitError> {
+<<<<<<< HEAD
     let snapshot = runtime.snapshots().snapshot();
     let read = runtime.read_truth().read_snapshot(&snapshot);
     let touched_aspects = touched_aspects_for_intent(read.as_ref(), &intent)?;
@@ -488,4 +417,8 @@ fn batch_name(origin: MutationOrigin) -> &'static str {
         MutationOrigin::Replay => "topology-replay",
         MutationOrigin::BranchLocalApplication => "topology-branch-local",
     }
+=======
+    let seeded = commit_seeded_topology_intent_on_branch(runtime, intent, branch_id)?;
+    Ok(TopologyCommittedArtifact::from_seeded_commit(seeded))
+>>>>>>> origin/master
 }

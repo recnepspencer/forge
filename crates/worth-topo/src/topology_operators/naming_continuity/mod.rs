@@ -1,40 +1,41 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    TopologyEditBatch, TopologyEditNamingOutcome, TopologyEditNamingRow, TopologyEditRejectionClass,
+    TopologyMutationNamingOutcome, TopologyMutationNamingRow, TopologyMutationRejectionClass,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct NamingEditContinuityMatrix {
-    pub rows: Vec<TopologyEditNamingRow>,
+pub struct NamingMutationContinuityMatrix {
+    pub rows: Vec<TopologyMutationNamingRow>,
     pub preserved_count: usize,
     pub ambiguous_count: usize,
     pub rejected_count: usize,
 }
 
-impl NamingEditContinuityMatrix {
-    pub fn outcome_class(&self) -> TopologyEditNamingOutcome {
+impl NamingMutationContinuityMatrix {
+    pub fn outcome_class(&self) -> TopologyMutationNamingOutcome {
         if self.rejected_count > 0 {
-            TopologyEditNamingOutcome::Rejected
+            TopologyMutationNamingOutcome::Rejected
         } else if self.ambiguous_count > 0 {
-            TopologyEditNamingOutcome::Ambiguous
+            TopologyMutationNamingOutcome::Ambiguous
         } else {
-            TopologyEditNamingOutcome::Preserved
+            TopologyMutationNamingOutcome::Preserved
         }
     }
 
-    pub fn rejection_class(&self) -> Option<TopologyEditRejectionClass> {
+    pub fn rejection_class(&self) -> Option<TopologyMutationRejectionClass> {
         match self.outcome_class() {
-            TopologyEditNamingOutcome::Preserved => None,
-            TopologyEditNamingOutcome::Ambiguous => {
-                Some(TopologyEditRejectionClass::NamingContinuityAmbiguous)
+            TopologyMutationNamingOutcome::Preserved => None,
+            TopologyMutationNamingOutcome::Ambiguous => {
+                Some(TopologyMutationRejectionClass::NamingContinuityAmbiguous)
             }
-            TopologyEditNamingOutcome::Rejected => {
-                Some(TopologyEditRejectionClass::NamingContinuityRejected)
+            TopologyMutationNamingOutcome::Rejected => {
+                Some(TopologyMutationRejectionClass::NamingContinuityRejected)
             }
         }
     }
 }
+<<<<<<< HEAD
 
 impl TopologyEditBatch {
     pub fn naming_edit_continuity_matrix(&self) -> NamingEditContinuityMatrix {
@@ -59,3 +60,5 @@ impl TopologyEditBatch {
         }
     }
 }
+=======
+>>>>>>> origin/master

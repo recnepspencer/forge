@@ -1,5 +1,5 @@
 use super::super::*;
-use crate::facade::{MilestoneThreeHostileScenario, TopologyEditNamingOutcome};
+use crate::facade::{MilestoneThreeHostileScenario, TopologyMutationNamingOutcome};
 
 #[test]
 fn milestone_three_closeout_requires_naming_continuity_breadth_rows() {
@@ -26,13 +26,13 @@ fn milestone_three_closeout_requires_naming_continuity_breadth_rows() {
     }));
     assert!(report.naming_continuity_breadth_rows.iter().any(|row| {
         row.scenario() == MilestoneThreeHostileScenario::AmbiguousLocalRewireContinuity
-            && row.outcome_class() == TopologyEditNamingOutcome::Ambiguous
+            && row.outcome_class() == TopologyMutationNamingOutcome::Ambiguous
             && row.ambiguous_count() > 0
             && row.preserved_count() == 0
     }));
     assert!(report.naming_continuity_breadth_rows.iter().any(|row| {
         row.scenario() == MilestoneThreeHostileScenario::SplitCollapseChurn
-            && row.outcome_class() == TopologyEditNamingOutcome::Rejected
+            && row.outcome_class() == TopologyMutationNamingOutcome::Rejected
             && row.rejected_count() > 0
     }));
 }

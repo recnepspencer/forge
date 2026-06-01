@@ -15,11 +15,19 @@ pub(crate) mod precision_fallback;
 pub(crate) mod topology_class;
 
 #[allow(unused_imports)]
+<<<<<<< HEAD
 pub use commit_flow::{
     AuthoritativeTopologySnapshot, CanonicalTopologyMutationBatch, CertifiedTopologyInterpretation,
     CreateKey, DerivedTopologyReadBasis, DerivedTruthBasisIdentity, EntityReference,
     MutationOrigin, PersistedTopologyTruthBatch, RawTopologyIntent, TopologyMutation,
     TopologyMutationBatch, TopologyReadArtifact,
+=======
+pub(crate) use commit_flow::{
+    AuthoritativeTopologySnapshot, CertifiedTopologyInterpretation, CreateKey,
+    DerivedTopologyReadBasis, DerivedTruthBasisIdentity, EntityReference, MutationOrigin,
+    PersistedTopologyTruth, RawTopologyIntent, TopologyCommittedMutationSet, TopologyMutation,
+    TopologyReadArtifact,
+>>>>>>> origin/master
 };
 #[allow(unused_imports)]
 pub use derived_invalidation::{

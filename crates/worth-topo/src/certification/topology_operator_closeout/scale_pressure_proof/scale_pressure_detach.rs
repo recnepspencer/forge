@@ -4,21 +4,56 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use serde_json::Value;
 
-use super::super::shared::{aggregate_topology_edit_digest, relation_id_from_query_identity};
+use super::super::shared::relation_id_from_query_identity;
 use super::scale_pressure_types::{
     MilestoneThreeScalePressureRow, MilestoneThreeScalePressureSweep,
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::certification::support::parity::digest_materialized_topology_view;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
-    ShellOrWireMembershipKind, TopologyEditApplicationMode, TopologyEditBatch,
-    TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
+    ShellOrWireMembershipKind, TopologyDeclaredMutationSequence,
+    TopologyDetachRadialAdjacencyDeclaration, TopologyDetachShellOrWireMembershipDeclaration,
+    TopologyMutationDigest, TopologyMutationFamily,
 };
+
+#[derive(Clone)]
+enum DetachPressureDeclaration {
+    ShellOrWire(TopologyDetachShellOrWireMembershipDeclaration),
+    Radial(TopologyDetachRadialAdjacencyDeclaration),
+}
+
+impl DetachPressureDeclaration {
+    fn new(
+        relation_id: forge_relational::facade::identity::RelationId,
+        detach_kind: DetachPressureKind,
+    ) -> Self {
+        match detach_kind {
+            DetachPressureKind::ShellOrWire(kind) => Self::ShellOrWire(
+                TopologyDetachShellOrWireMembershipDeclaration::new(relation_id, kind),
+            ),
+            DetachPressureKind::Radial => {
+                Self::Radial(TopologyDetachRadialAdjacencyDeclaration::new(relation_id))
+            }
+        }
+    }
+}
+
+impl TopologyDeclarationMutationPayload for DetachPressureDeclaration {
+    const SEMANTIC_FAMILY_KEY: &'static str = "topology.detach_pressure_declaration";
+
+    fn into_mutation_sequence(self) -> TopologyDeclaredMutationSequence {
+        match self {
+            Self::ShellOrWire(declaration) => declaration.into_mutation_sequence(),
+            Self::Radial(declaration) => declaration.into_mutation_sequence(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub(super) enum DetachPressureKind {
@@ -28,8 +63,8 @@ pub(super) enum DetachPressureKind {
 
 struct DetachPressureExecution {
     primitive_family: String,
-    topology_edit_digest: TopologyEditDigest,
-    edit_families: Vec<TopologyEditFamily>,
+    topology_mutation_digest: TopologyMutationDigest,
+    mutation_families: Vec<TopologyMutationFamily>,
     final_state_digest: String,
 }
 
@@ -60,18 +95,18 @@ where
         relation_kind,
         detach_kind,
     )?;
-    let replay_verified = left.topology_edit_digest == replay.topology_edit_digest
+    let replay_verified = left.topology_mutation_digest == replay.topology_mutation_digest
         && left.final_state_digest == replay.final_state_digest
-        && left.edit_families == replay.edit_families;
+        && left.mutation_families == replay.mutation_families;
     Ok(MilestoneThreeScalePressureRow {
         sweep,
         primitive_family: left.primitive_family,
         primitive,
         workload_size: 1,
-        edit_step_count: left.topology_edit_digest.contract_count,
-        edit_families: left.edit_families,
+        mutation_step_count: left.topology_mutation_digest.mutation_record_count,
+        mutation_families: left.mutation_families,
         branch_local: false,
-        topology_edit_digest: left.topology_edit_digest,
+        topology_mutation_digest: left.topology_mutation_digest,
         replay_verified,
         final_state_digest: left.final_state_digest.clone(),
         replay_final_state_digest: replay.final_state_digest,
@@ -101,32 +136,30 @@ where
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, format!("{stem}.scale_pressure.runtime"))
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let relation_rows = workspace.read::<Value>(assembly.relations());
+    let relation_rows = workspace.read::<Value>(surfaces.relations());
     let relation_id = first_relation_id_for_kind(&relation_rows, relation_kind)?;
-    let detach_contract = match detach_kind {
-        DetachPressureKind::ShellOrWire(kind) => {
-            TopologyEditContract::detach_shell_or_wire_membership(relation_id, kind)
+    let declaration = DetachPressureDeclaration::new(relation_id, detach_kind);
+    let topology_mutation_digest = declaration.topology_mutation_digest();
+    let mutation_families = declaration.semantic_families();
+    let execution = match declaration {
+        DetachPressureDeclaration::ShellOrWire(declaration) => {
+            execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
         }
-        DetachPressureKind::Radial => TopologyEditContract::detach_radial_adjacency(relation_id),
-    };
-    let batch = TopologyEditBatch::new(vec![detach_contract])
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let batches = vec![batch];
-    let topology_edit_digest = aggregate_topology_edit_digest(&batches);
-    let edit_families = batches.iter().flat_map(|batch| batch.families()).collect();
-    let mut final_state_digest = String::new();
-    for batch in batches {
-        let execution = assembly
-            .apply_edit(&mut workspace, batch, TopologyEditApplicationMode::Mainline)
-            .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-        final_state_digest = digest_materialized_topology_view(&execution.materialized).digest_hex;
+        DetachPressureDeclaration::Radial(declaration) => {
+            execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
+        }
     }
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let final_state_digest = digest_materialized_topology_view(&execution.materialized).digest_hex;
     Ok(DetachPressureExecution {
         primitive_family,
-        topology_edit_digest,
-        edit_families,
+        topology_mutation_digest,
+        mutation_families,
         final_state_digest,
     })
 }

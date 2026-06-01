@@ -2,23 +2,23 @@ use super::super::report::{MilestoneThreeHostileOutcomeClass, MilestoneThreeHost
 use super::operator_family_closure_types::MilestoneThreeOperatorFamilyClosureRow;
 use crate::certification::error::TopologyCertificationError;
 use crate::projection::runtime_boundary::query_runtime::TopologyRuntimeSupport;
-use crate::topology_operators::TopologyEditFamily;
+use crate::topology_operators::TopologyMutationFamily;
 
 pub(in crate::certification::topology_operator_closeout) fn build_operator_family_closure_rows(
     report: &MilestoneThreeHostileSuiteReport,
 ) -> Vec<MilestoneThreeOperatorFamilyClosureRow> {
     let current_head_support = TopologyRuntimeSupport::current_head_authoritative();
     let snapshot_support = TopologyRuntimeSupport::snapshot_read_only();
-    TopologyEditFamily::ALL
+    TopologyMutationFamily::ALL
         .into_iter()
         .map(|family| {
             let current_head_row = current_head_support
-                .query_edit_family_support_rows()
+                .query_mutation_family_support_rows()
                 .iter()
                 .find(|row| row.family() == family)
                 .expect("current-head support should cover every family");
             let snapshot_row = snapshot_support
-                .query_edit_family_support_rows()
+                .query_mutation_family_support_rows()
                 .iter()
                 .find(|row| row.family() == family)
                 .expect("snapshot support should cover every family");
@@ -93,7 +93,7 @@ pub(in crate::certification::topology_operator_closeout) fn build_operator_famil
 pub(in crate::certification::topology_operator_closeout) fn ensure_operator_family_closure_rows(
     report: &MilestoneThreeHostileSuiteReport,
 ) -> Result<(), TopologyCertificationError> {
-    for family in TopologyEditFamily::ALL {
+    for family in TopologyMutationFamily::ALL {
         let row = report
             .operator_family_closure_rows
             .iter()
@@ -135,7 +135,7 @@ pub(in crate::certification::topology_operator_closeout) fn operator_family_clos
         .map(|row| format!("operator_family_closure={:?}", row.family))
         .collect::<Vec<_>>();
     evidence_labels.sort();
-    let gap_labels = TopologyEditFamily::ALL
+    let gap_labels = TopologyMutationFamily::ALL
         .iter()
         .filter(|family| {
             !report
@@ -150,19 +150,19 @@ pub(in crate::certification::topology_operator_closeout) fn operator_family_clos
 
 fn direct_scenario_labels(
     report: &MilestoneThreeHostileSuiteReport,
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
 ) -> Vec<String> {
     report
         .scenario_reports
         .iter()
-        .filter(|scenario| scenario.edit_families.contains(&family))
+        .filter(|scenario| scenario.mutation_families.contains(&family))
         .map(|scenario| scenario.scenario.as_str().to_string())
         .collect()
 }
 
 fn hostile_evidence_labels(
     report: &MilestoneThreeHostileSuiteReport,
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
 ) -> Vec<String> {
     let mut labels = direct_scenario_labels(report, family)
         .into_iter()
@@ -174,14 +174,14 @@ fn hostile_evidence_labels(
 
 fn replay_evidence_labels(
     report: &MilestoneThreeHostileSuiteReport,
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
 ) -> Vec<String> {
     let mut labels = report
         .scenario_reports
         .iter()
         .filter(|scenario| {
-            scenario.edit_families.contains(&family)
-                && scenario.edit_replay_parity_report.replay_checked
+            scenario.mutation_families.contains(&family)
+                && scenario.mutation_replay_parity_report.replay_checked
         })
         .map(|scenario| format!("scenario_replay={}", scenario.scenario.as_str()))
         .collect::<Vec<_>>();
@@ -189,18 +189,18 @@ fn replay_evidence_labels(
         report
             .primitive_family_closure_rows
             .iter()
-            .filter(|row| row.edit_families.contains(&family) && row.replay_verified)
+            .filter(|row| row.mutation_families.contains(&family) && row.replay_verified)
             .map(|row| format!("primitive_family_replay={}", row.primitive_family)),
     );
     labels.extend(
         report
             .scale_pressure_rows
             .iter()
-            .filter(|row| row.edit_families.contains(&family) && row.replay_verified)
+            .filter(|row| row.mutation_families.contains(&family) && row.replay_verified)
             .map(|row| format!("scale_pressure_replay={}", row.sweep.as_str())),
     );
-    if report.edit_branch_local_parity_rows.iter().any(|row| {
-        row.edit_families.contains(&family)
+    if report.mutation_branch_local_parity_rows.iter().any(|row| {
+        row.mutation_families.contains(&family)
             && row.outcome_class == MilestoneThreeHostileOutcomeClass::Accepted
     }) {
         labels.push("branch_local_replay=accepted_history".to_string());
@@ -210,13 +210,13 @@ fn replay_evidence_labels(
 
 fn accepted_execution_evidence_count(
     report: &MilestoneThreeHostileSuiteReport,
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
 ) -> usize {
     report
         .scenario_reports
         .iter()
         .filter(|scenario| {
-            scenario.edit_families.contains(&family)
+            scenario.mutation_families.contains(&family)
                 && scenario.outcome_class == MilestoneThreeHostileOutcomeClass::Accepted
         })
         .count()
@@ -224,13 +224,13 @@ fn accepted_execution_evidence_count(
 
 fn accepted_execution_evidence_labels(
     report: &MilestoneThreeHostileSuiteReport,
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
 ) -> Vec<String> {
     let mut labels = report
         .scenario_reports
         .iter()
         .filter(|scenario| {
-            scenario.edit_families.contains(&family)
+            scenario.mutation_families.contains(&family)
                 && scenario.outcome_class == MilestoneThreeHostileOutcomeClass::Accepted
         })
         .map(|scenario| format!("accepted_scenario={}", scenario.scenario.as_str()))
@@ -239,14 +239,14 @@ fn accepted_execution_evidence_labels(
         report
             .primitive_family_closure_rows
             .iter()
-            .filter(|row| row.edit_families.contains(&family) && row.replay_verified)
+            .filter(|row| row.mutation_families.contains(&family) && row.replay_verified)
             .map(|row| format!("accepted_primitive_family={}", row.primitive_family)),
     );
     labels.extend(
         report
             .scale_pressure_rows
             .iter()
-            .filter(|row| row.edit_families.contains(&family) && row.replay_verified)
+            .filter(|row| row.mutation_families.contains(&family) && row.replay_verified)
             .map(|row| format!("accepted_scale_pressure={}", row.sweep.as_str())),
     );
     labels
@@ -254,40 +254,40 @@ fn accepted_execution_evidence_labels(
 
 fn primitive_family_evidence_count(
     report: &MilestoneThreeHostileSuiteReport,
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
 ) -> usize {
     report
         .primitive_family_closure_rows
         .iter()
-        .filter(|row| row.edit_families.contains(&family) && row.replay_verified)
+        .filter(|row| row.mutation_families.contains(&family) && row.replay_verified)
         .count()
 }
 
 fn scale_pressure_evidence_count(
     report: &MilestoneThreeHostileSuiteReport,
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
 ) -> usize {
     report
         .scale_pressure_rows
         .iter()
-        .filter(|row| row.edit_families.contains(&family) && row.replay_verified)
+        .filter(|row| row.mutation_families.contains(&family) && row.replay_verified)
         .count()
 }
 
 fn branch_local_evidence_count(
     report: &MilestoneThreeHostileSuiteReport,
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
 ) -> usize {
     report
-        .edit_branch_local_parity_rows
+        .mutation_branch_local_parity_rows
         .iter()
-        .filter(|row| row.edit_families.contains(&family))
+        .filter(|row| row.mutation_families.contains(&family))
         .count()
 }
 
 fn localized_rejection_evidence_count(
     report: &MilestoneThreeHostileSuiteReport,
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
 ) -> usize {
     report
         .failure_locality_rows
@@ -298,15 +298,15 @@ fn localized_rejection_evidence_count(
 
 fn derived_breadth_evidence_count(
     report: &MilestoneThreeHostileSuiteReport,
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
 ) -> usize {
     let scenario_count = report
         .scenario_reports
         .iter()
-        .filter(|scenario| scenario.edit_families.contains(&family))
+        .filter(|scenario| scenario.mutation_families.contains(&family))
         .filter(|scenario| {
             report
-                .edit_fallout_breadth_rows
+                .mutation_fallout_breadth_rows
                 .iter()
                 .any(|row| row.scenario == scenario.scenario)
         })
@@ -316,35 +316,35 @@ fn derived_breadth_evidence_count(
             .primitive_family_closure_rows
             .iter()
             .filter(|row| {
-                row.edit_families.contains(&family) && row.derived_validation_row_count > 0
+                row.mutation_families.contains(&family) && row.derived_validation_row_count > 0
             })
             .count()
         + report
             .scale_pressure_rows
             .iter()
-            .filter(|row| row.edit_families.contains(&family) && row.replay_verified)
+            .filter(|row| row.mutation_families.contains(&family) && row.replay_verified)
             .count()
 }
 
 fn rejected_execution_evidence_labels(
     report: &MilestoneThreeHostileSuiteReport,
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
 ) -> Vec<String> {
     let mut labels = report
         .scenario_reports
         .iter()
         .filter(|scenario| {
-            scenario.edit_families.contains(&family)
+            scenario.mutation_families.contains(&family)
                 && scenario.outcome_class == MilestoneThreeHostileOutcomeClass::Rejected
         })
         .map(|scenario| format!("rejected_scenario={}", scenario.scenario.as_str()))
         .collect::<Vec<_>>();
     labels.extend(
         report
-            .edit_branch_local_parity_rows
+            .mutation_branch_local_parity_rows
             .iter()
             .filter(|row| {
-                row.edit_families.contains(&family)
+                row.mutation_families.contains(&family)
                     && row.outcome_class == MilestoneThreeHostileOutcomeClass::Rejected
             })
             .map(|row| format!("branch_local_rejection={}", row.branch_label)),
@@ -353,7 +353,7 @@ fn rejected_execution_evidence_labels(
 }
 
 fn row_digest(
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
     legal_evidence_labels: &[String],
     hostile_evidence_labels: &[String],
     replay_evidence_labels: &[String],

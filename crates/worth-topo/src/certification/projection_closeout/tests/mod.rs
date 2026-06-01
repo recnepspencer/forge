@@ -21,7 +21,10 @@ const DIAGNOSTICS_TOPOLOGY_SURFACE: &str = ".topology.diagnostics";
 const EQUIVALENCE_TOPOLOGY_SURFACE: &str = ".topology.equivalence_contract";
 
 mod derived_chain;
-mod domain_query;
 mod failures;
 mod materialization;
 mod row_lookup;
+<<<<<<< HEAD
+=======
+mod topology_reads;
+>>>>>>> origin/master

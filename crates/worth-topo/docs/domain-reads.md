@@ -3,14 +3,29 @@
 The topology crate owns the topology-facing read facade on top of the generic
 `forge-query` read-composition kernel.
 
-The public executed-read boundary is `TopologyDomainQuery`. External
-callers can:
+The public executed-read boundary is the admitted-handle read session built
+from:
 
-- build a fresh request-only domain-query facade with `TopologyDomainQuery::load()`
-- issue topology-neighborhood reads through the typed family methods
+- `topology_query_domain_entry(&query)`
+- `topology_current_head_authoritative_context()`
+- `topology_snapshot_read_only_context()`
+- `TopologyCurrentHeadReadHandleExt::topology_reads(...)`
+- `TopologySnapshotReadOnlyReadHandleExt::topology_reads(...)`
+
+Certification-owned proof aggregation is a separate internal support concern.
+When a proof needs cross-workspace replay or branch-local accumulation, it may
+use the certification harness in `crate::certification::support`. That harness
+is not part of the topology read facade and must not replace admitted-handle
+sessions for ordinary single-workspace read execution or proof authoring.
+
+External callers can:
+
+- admit a typed topology configured handle through Query domain entry
+- open a handle-bound read session against a `ForgeQueryWorkspace`
+- issue topology-neighborhood reads through the typed session methods
 - inspect per-request execution reports from the returned views
-- inspect aggregate, proof, and closeout posture through
-  `aggregate_report()`, `proof_report()`, and `closeout_report()`
+- inspect aggregate, proof, and closeout posture through the session
+  `aggregate_report()`, `proof_report()`, and `closeout_report()` surfaces
 
 The public closeout report now exposes:
 
@@ -77,7 +92,7 @@ The two public surfaces still answer different questions:
 
 - `TopologyRuntimeSupport` answers whether a family is admitted on a
   runtime posture
-- `TopologyDomainQuery` answers what execution, proof, parity, and
+- `TopologyConfiguredDomainReadSession` answers what execution, proof, parity, and
   closeout facts were actually observed on executed topology reads
 
 ## Current Posture
@@ -104,9 +119,9 @@ Those request reports should expose:
 - executed snapshot token: the read-only runtime snapshot token
 - fallback count: `0`
 
-`TopologyDomainQuery::load()` is now request-only. It does not preload
-whole-view topology state, and the active topology families no longer depend on
-a hidden bootstrap authority before they can decode their final views.
+The handle-bound read session remains request-only and does not preload
+whole-view topology state. The active topology families no longer depend on a
+separate query-root object before they can decode their final views.
 
 For the two local half-edge adjacency families:
 

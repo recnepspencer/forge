@@ -6,11 +6,11 @@ Declaration signal compatibility is the Query-owned boundary that turns one
 retained declaration envelope into one retained compatibility artifact for
 later Signal-backed derived execution.
 
-This phase freezes whether later derived execution is structurally admitted,
+This surface freezes whether later derived execution is structurally admitted,
 explicitly deferred, denied, or failed without pretending Query already
 executed through `forge-signal`.
 
-Phase 14 is envelope-backed only on the public lane. It does not start from
+The public lane is envelope-backed only. It does not start from
 raw declarations, canonical declarations, legality evidence, foundational
 evidence, route plans, or receipts alone.
 
@@ -26,7 +26,7 @@ evidence, route plans, or receipts alone.
 - get one signal-compatibility digest that converges when retained truth
   matches and diverges when world, basis family, authority posture, or denial
   topology changes
-- hand later phases one stable compatibility artifact so they do not reopen
+- hand later consumers one stable compatibility artifact so they do not reopen
   route, receipt, envelope, relational, or bridge meaning
 
 ## Stable Entry Points
@@ -53,6 +53,10 @@ evidence, route plans, or receipts alone.
 - `ForgeQueryAdmittedConfiguredDomainHandle::signal_compatibility_from_progressed_with_intent(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::signal_compatibility_support::<I>()`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_signal_compatibility(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_signal_compatibility_outcome(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_signal_compatibility_checked(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_signal_compatibility_proof(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declaration_entry_crossing_inventory::<I>()`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declaration_entry_readiness::<I>()`
 - `ForgeQueryAdmittedConfiguredDomainHandle::inspect_declaration_entry(...)`
@@ -63,7 +67,7 @@ Good to know:
 - common-lane helpers exist only for structurally signal-compatible
   declaration families
 - deferred and incompatible families remain support-visible and checked-visible
-- Phase 14 freezes compatibility only; it does not execute, invalidate,
+- this surface freezes compatibility only; it does not execute, invalidate,
   recompute, or schedule Signal work
 
 ## API Reference
@@ -113,6 +117,11 @@ Support-report inspection:
 - `ForgeQueryDeclarationSignalCompatibilitySupportReport::support_digest()`
 - `ForgeQueryDeclarationSignalCompatibilitySupportRow::execution_family()`
 - `ForgeQueryDeclarationSignalCompatibilitySupportRow::basis_family()`
+- `ForgeQueryDeclarationSignalCompatibilitySupportRow::required_dependency_aspects()`
+- `ForgeQueryDeclarationSignalCompatibilitySupportRow::produced_aspects()`
+- `ForgeQueryDeclarationSignalCompatibilitySupportRow::available_aspect_slice()`
+- `ForgeQueryDeclarationSignalCompatibilitySupportRow::aspect_fit()`
+- `ForgeQueryDeclarationSignalCompatibilitySupportRow::aspect_mismatch()`
 - `ForgeQueryDeclarationSignalCompatibilitySupportRow::status()`
 - `ForgeQueryDeclarationSignalCompatibilitySupportRow::reason()`
 
@@ -145,6 +154,11 @@ invalidation surface. It is the proof-bearing Query artifact that says whether
 later Signal execution is structurally admitted and which basis-family
 requirements that later execution must respect.
 
+The important shift is that signal compatibility now classifies from
+the envelope's published semantic slice plus the declaration family's signal
+contract. A structurally signal-capable family does not automatically satisfy
+the dependency aspects later derived execution would need.
+
 Later seam-ledger surfaces then use that retained compatibility artifact in
 two different ways:
 
@@ -163,6 +177,8 @@ The advanced lane executes in this order:
    - verifies the envelope belongs to the current admitted handle and world
    - verifies the retained envelope still represents covered crossing truth
    - reads the declaration family's signal-compatibility posture and contract
+   - checks the envelope publication against the dependency aspect slice that
+     later Signal-backed execution would require
    - derives one execution family and one required basis-family set from
      retained proof plus the family contract
    - checks the admitted-handle support snapshot for required capability and
@@ -194,7 +210,7 @@ use forge_query::facade::{
 
 let envelope = handle.envelope_routes_from_progressed(
     handle.declare_review_and_progress(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        geometry_session.prepare_preview_for_active_face_selection()?,
     )?,
 )?;
 
@@ -221,7 +237,7 @@ execution already happened.
 ```rust
 let compatibility = handle
     .declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        geometry_session.prepare_preview_for_active_face_selection()?,
     )?;
 
 assert_eq!(
@@ -241,19 +257,55 @@ What this example is showing:
   play later
 - the returned artifact says which basis families later Signal execution must
   respect
+- the returned artifact freezes dependency and produced-aspect posture instead
+  of leaving later execution to rediscover it from envelope identity alone
 - the returned digest is separate from the envelope digest because basis
   posture and signal compatibility are distinct retained facts
+
+## Aspect Semantics
+
+Signal compatibility speaks in dependency aspects, produced aspects, and
+basis-sensitive aspect requirements rather than only family-level compatibility
+posture.
+
+This surface preserves a real semantic-slice compatibility artifact so later
+execution and binding surfaces can reuse retained signal meaning instead of
+approximating it locally.
+
+The compatibility artifact and support rows expose:
+
+- `aspect_contract()`
+- `aspect_coverage()`
+- `aspect_coverage_basis()`
+- `aspect_fit()`
+- `dependency_aspects()`
+- `produced_aspects()`
+
+That lets you distinguish "this family is signal-aware" from "this retained
+envelope is missing the dependency slice and will report an
+`AuthorityAspectGap`."
+
+That contract now also stays honest in declaration-entry inspection: when a
+denied compatibility artifact did not actually prove one execution family or
+basis-family set, the inspection posture leaves those accessors empty instead
+of filling them from broad signal family posture.
 
 ## How It Relates To Other Features
 
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md) are
-  the required public input to Phase 14
+  the required public input to this surface
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
   still owns relational truth binding; signal compatibility does not replace
   it
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
   still owns bridge continuation binding and truth-context-sensitive bridge
   request selection
+- [Continuation Pipeline](./continuation-pipeline.md) carries retained signal
+  posture forward when Query prepares one continuation artifact for later
+  explicit execution
+- [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
+  composes this retained compatibility truth into one signal-facing next-step
+  result that can stop at `Compatible` or advance into `Prepared`
 - [Configured Domain Handles](./configured-domain-handles.md) still own the
   support snapshot and admitted-world identity that compatibility classification
   must not rediscover
@@ -273,6 +325,12 @@ Use these surfaces when inspecting a compatibility artifact:
 - `execution_family()`
 - `primary_authority_family()`
 - `basis_families()`
+- `aspect_contract()`
+- `aspect_coverage()`
+- `aspect_coverage_basis()`
+- `aspect_fit()`
+- `dependency_aspects()`
+- `produced_aspects()`
 - `declaration_family_key()`
 - `handle_identity_digest()`
 - `operating_context_identity_digest()`
@@ -328,11 +386,20 @@ The retained compatibility artifact tells you whether later Signal-backed
 execution is structurally in play. It does not claim that derived execution
 already ran.
 
+When you want Query to reuse that retained signal posture while preparing one
+explicit continuation artifact for lower bridge execution, move to
+[Continuation Pipeline](./continuation-pipeline.md).
+
+When you want one public signal-facing orchestration lane that can stop at
+retained compatibility or advance into prepared continuation, move to
+[Signal Compatibility Orchestration](./signal-compatibility-orchestration.md).
+
 ## Related Docs
 
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
+- [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)

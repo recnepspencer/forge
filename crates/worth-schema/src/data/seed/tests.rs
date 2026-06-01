@@ -1,14 +1,19 @@
 use forge_relational::facade::history::BranchId;
+use forge_relational::facade::payloads::RecordPayload;
 use forge_relational::facade::runtime::RelationalRuntimeApi;
+use forge_relational::facade::symbols::InternedString;
+use forge_relational::facade::transactions::{CreateIntent, EntitySpec, MutationIntent};
 use math::predicates::orient2d;
 
 use crate::data::aspects::{Aspect, DiagnosticsAspect, NamingAspect, TopologyAspect};
 use crate::data::authority::{
     CertifiedTopologyInterpretation, DerivedTopologyReadBasis, MutationOrigin,
-    PersistedTopologyTruthBatch, PrecisionFallbackRecord, RawTopologyIntent, TopologyMutationBatch,
+    PersistedTopologyTruth, PrecisionFallbackRecord, RawTopologyIntent,
+    TopologyCommittedMutationSet,
 };
 use crate::data::bootstrap::bootstrap_schema_registry;
 use crate::data::seed::{
+    commit_topology_mutation_set, commit_topology_mutation_set_on_branch,
     milestone_one_admitted_range_sweep_out_of_class_scenarios,
     milestone_one_admitted_range_sweep_scenarios, seed_minimal_topology,
 };
@@ -47,6 +52,57 @@ fn seed_minimal_topology_commits_a_readable_bootstrap_snapshot() {
 }
 
 #[test]
+fn topology_mutation_set_commit_helpers_publish_on_main_and_branch() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
+        .build();
+
+    let main_commit = commit_topology_mutation_set(
+        &mut runtime,
+        "schema-topology-mutation-main",
+        [MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+            partition_id: forge_relational::facade::identity::PartitionId::main(),
+            kind_id: crate::data::entities::EntityKind::Topology(
+                crate::data::entities::TopologyEntityKind::Vertex,
+            )
+            .kind_id(),
+            client_key: InternedString::Raw("mutation-main.vertex".to_string()),
+            payload: RecordPayload::StructuredJson(serde_json::json!({
+                "label": "mutation-main.vertex",
+                "structure": "mutation-main.vertex",
+                "topology": { "structure": "mutation-main.vertex" }
+            })),
+        }))],
+    )
+    .expect("main mutation set should commit");
+    assert_eq!(main_commit.envelope().commit.branch_id.0, "main");
+
+    let branch_commit = commit_topology_mutation_set_on_branch(
+        &mut runtime,
+        BranchId("schema-mutation-branch".to_string()),
+        "schema-topology-mutation-branch",
+        [MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+            partition_id: forge_relational::facade::identity::PartitionId::main(),
+            kind_id: crate::data::entities::EntityKind::Topology(
+                crate::data::entities::TopologyEntityKind::Vertex,
+            )
+            .kind_id(),
+            client_key: InternedString::Raw("mutation-branch.vertex".to_string()),
+            payload: RecordPayload::StructuredJson(serde_json::json!({
+                "label": "mutation-branch.vertex",
+                "structure": "mutation-branch.vertex",
+                "topology": { "structure": "mutation-branch.vertex" }
+            })),
+        }))],
+    )
+    .expect("branch-local mutation set should commit");
+    assert_eq!(
+        branch_commit.envelope().commit.branch_id.0,
+        "schema-mutation-branch"
+    );
+}
+
+#[test]
 fn precision_fallback_record_threads_through_authority_flow() {
     let (_sign, escalation) =
         orient2d([0.0, 0.0], [1.0, 0.0], [0.5, 1e-30]).expect("predicate evaluation");
@@ -60,16 +116,19 @@ fn precision_fallback_record_threads_through_authority_flow() {
 
     let raw = RawTopologyIntent::new(Vec::new(), MutationOrigin::Seed)
         .with_precision_fallback(fallback.clone());
-    let batch = TopologyMutationBatch::from_raw_intent(raw, touched_aspects.clone());
+    let committed_mutation_set =
+        TopologyCommittedMutationSet::from_raw_intent(raw, touched_aspects.clone());
 
-    assert_eq!(batch.precision_fallbacks, vec![fallback.clone()]);
-    assert!(batch.precision_budget_fallbacks.is_empty());
+    assert_eq!(
+        committed_mutation_set.precision_fallbacks,
+        vec![fallback.clone()]
+    );
+    assert!(committed_mutation_set.precision_budget_fallbacks.is_empty());
 
-    let persisted = PersistedTopologyTruthBatch {
-        batch,
+    let persisted = PersistedTopologyTruth {
+        committed_mutation_set,
         snapshot: forge_relational::facade::snapshots::SnapshotHandle::new(1, 1),
         branch_id: BranchId("main".to_string()),
-        mutation_origin: MutationOrigin::Seed,
     };
     let read_basis = DerivedTopologyReadBasis::from_persisted_truth(&persisted);
     let certified = CertifiedTopologyInterpretation::from_read_basis(read_basis.clone());
@@ -98,7 +157,7 @@ fn precision_fallback_record_threads_through_authority_flow() {
     assert!(!read_basis
         .authority
         .truth_basis_identity
-        .mutation_batch_digest_hex
+        .mutation_digest_hex
         .is_empty());
 }
 

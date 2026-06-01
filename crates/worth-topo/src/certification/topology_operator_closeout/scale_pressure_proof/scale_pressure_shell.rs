@@ -2,46 +2,42 @@ use forge_relational::facade::identity::EntityId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+<<<<<<< HEAD
 use schema::facade::topology_authoring::created_ref;
+=======
+>>>>>>> origin/master
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::error::TopologyCertificationError;
 use crate::topology_operators::{
-    ShellOrWireMembershipKind, TopologyEditBatch, TopologyEditContract,
+    TopologyRehomeAllOwnedFacesToNewShellDeclaration, TopologyShellRehomeFaceMember,
 };
 
-pub(super) fn high_face_count_shell_rehome_batch(
+pub(super) fn high_face_count_shell_rehome_declaration(
     runtime: &RelationalRuntime,
     read_basis: &DerivedTopologyReadBasis,
     stem: &str,
     workload_size: usize,
-) -> Result<TopologyEditBatch, TopologyCertificationError> {
+) -> Result<TopologyRehomeAllOwnedFacesToNewShellDeclaration, TopologyCertificationError> {
     let (region_id, shell_id, face_ids) =
         seeded_solid_shell_membership(runtime, read_basis, workload_size)?;
     let shell_key = format!("{stem}.high_face_count_shell.rehome_shell.{workload_size}");
-    let mut contracts = vec![
-        TopologyEditContract::create_topology_entity(&shell_key, TopologyEntityKind::Shell),
-        TopologyEditContract::attach_shell_or_wire_membership(
-            format!("{shell_key}.region_owns_shell"),
-            ShellOrWireMembershipKind::RegionOwnsShell,
-            region_id,
-            created_ref(&shell_key),
-        ),
-    ];
-    contracts.extend(face_ids.iter().enumerate().map(|(index, face_id)| {
-        TopologyEditContract::attach_shell_or_wire_membership(
-            format!("{shell_key}.shell_owns_face.{index:02}"),
-            ShellOrWireMembershipKind::ShellOwnsFace,
-            created_ref(&shell_key),
-            *face_id,
-        )
-    }));
-    contracts.push(TopologyEditContract::retire_topology_entity(
+    Ok(TopologyRehomeAllOwnedFacesToNewShellDeclaration::new(
+        shell_key.clone(),
+        format!("{shell_key}.region_owns_shell"),
+        region_id,
         shell_id,
-        TopologyEntityKind::Shell,
-    ));
-    TopologyEditBatch::new(contracts)
-        .map_err(|error| TopologyCertificationError::Query(error.to_string()))
+        face_ids
+            .into_iter()
+            .enumerate()
+            .map(|(index, face_id)| {
+                TopologyShellRehomeFaceMember::new(
+                    format!("{shell_key}.shell_owns_face.{index:02}"),
+                    face_id,
+                )
+            })
+            .collect(),
+    ))
 }
 
 fn seeded_solid_shell_membership(

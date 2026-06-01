@@ -1,4 +1,4 @@
-use topology::facade::{
+use topology::query_domain::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow,
     TopologyNoNPlusOneContractStatus,
 };
@@ -11,7 +11,3 @@ fn main() {
         row_digest: String::new(),
     };
 }
-
-
-
-

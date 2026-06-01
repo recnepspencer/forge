@@ -50,7 +50,7 @@ impl TopologyQueryMutationEvidence {
             truth_basis_digest_hex: read_basis
                 .authority
                 .truth_basis_identity
-                .mutation_batch_digest_hex
+                .mutation_digest_hex
                 .clone(),
             touched_aspect_paths: query_aspect_paths_from_set(read_basis.touched_aspects())
                 .into_iter()

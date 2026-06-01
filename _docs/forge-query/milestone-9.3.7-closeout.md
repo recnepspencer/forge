@@ -92,6 +92,8 @@ Phase 1 closed with:
 - sealed stronger forms and compile-fail boundaries preventing direct minting
 - target-family typing across declaration-bound, admitted-plan-bound, and
   lower-runtime-bound contribution lanes
+- the first shipped Query-owned target-binding substrate slice that later
+  `9.3.8` phases should generalize rather than duplicate
 
 Phase 2 closed with:
 
@@ -163,6 +165,26 @@ The runtime API public stabilization gate now inherits:
   report that the stabilization gate can consume directly
 - one categorized crate-doc surface that teaches the same ordinary, checked,
   proof, and raw lanes the code and certification actually export
+- one typed contribution target-binding seam that later `9.3.8` declaration,
+  orchestration, continuation, and ergonomic phases should broaden into the
+  shared Query binding substrate rather than re-solving locally
+- the first of those broadenings is now the immediate post-Phase-24 shared
+  retained target-binding extraction rather than a distant cleanup, followed by
+  the explicit declaration-entry aspect-contract/granularity addendum and the
+  now-shipped Phase 25 typed binding / extractor / resolver pipeline, the
+  now-shipped Phase 26 denial-preserving ordinary outcome layer, and the
+  now-shipped Phase 27 prepared/executed continuation pipeline, the
+  now-shipped Phase 28 signal-compatibility orchestration seam, and the
+  now-shipped Phase 29 contribution-composed orchestration seam, the
+  now-shipped Phase 30 orchestration inventory / anti-drift audit seam, and
+  the now-shipped Phase 31 denial-and-recovery boundary, and the now-shipped
+  Phase 32 family-helper projection seam, and the now-shipped Phase 33
+  grouped-authoring seam, and the now-shipped Phase 34 public-doc-coverage
+  seam, and the now-shipped Phase 35 platform-entry closeout seam; later
+  widening should extend those shipped seams
+  phase by phase with in-flight feature-doc
+  synchronization and inventory/certification synchronization rather than as
+  one final documentation pass
 
 The stabilization gate must not reopen 9.3.7's category-coverage, public-lane,
 or certification-honesty questions. It should consume the shipped

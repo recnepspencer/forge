@@ -22,7 +22,7 @@ use super::write_lowering::{
 };
 
 pub(super) struct LoweredWriteCommand {
-    pub(super) batch_label: String,
+    pub(super) mutation_label: &'static str,
     pub(super) intents: Vec<MutationIntent>,
     pub(super) declared_aspect_paths: Vec<String>,
     pub(super) expected_observable_patch_count: usize,
@@ -127,7 +127,7 @@ fn lower_entity_insert_command(
         created_entities.insert(reference.symbol().to_string(), created_entity_ref);
     }
     Ok(LoweredWriteCommand {
-        batch_label: "query-runtime-batch-insert-entity".to_string(),
+        mutation_label: "query-runtime-mutation-insert-entity",
         intents,
         declared_aspect_paths,
         expected_observable_patch_count: 2,
@@ -158,7 +158,7 @@ fn lower_relation_insert_command(
         created_entities,
     )?;
     Ok(LoweredWriteCommand {
-        batch_label: "query-runtime-batch-insert-relation".to_string(),
+        mutation_label: "query-runtime-mutation-insert-relation",
         intents: vec![MutationIntent::Create(CreateIntent::Relation(
             relation.clone(),
         ))],
@@ -196,7 +196,7 @@ fn lower_existing_delete_command(
         }
     };
     Ok(existing_target_command(
-        "query-runtime-batch-delete",
+        "query-runtime-mutation-delete",
         binding.resolved_target_identity(),
         vec![intent],
         touched_aspect_paths,
@@ -231,7 +231,7 @@ fn lower_existing_relation_update_command(
         }
     };
     Ok(existing_target_command(
-        "query-runtime-batch-update",
+        "query-runtime-mutation-update",
         binding.resolved_target_identity(),
         vec![intent],
         declared_aspect_paths,
@@ -240,14 +240,14 @@ fn lower_existing_relation_update_command(
 }
 
 fn existing_target_command(
-    batch_label: &str,
+    mutation_label: &'static str,
     resolved_target_identity: &str,
     intents: Vec<MutationIntent>,
     declared_aspect_paths: Vec<String>,
     collection: String,
 ) -> LoweredWriteCommand {
     LoweredWriteCommand {
-        batch_label: batch_label.to_string(),
+        mutation_label,
         intents,
         declared_aspect_paths,
         expected_observable_patch_count: 1,

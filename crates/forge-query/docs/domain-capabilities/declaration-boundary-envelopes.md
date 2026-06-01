@@ -52,6 +52,8 @@ This keeps the public story honest:
 - `ForgeQueryAdmittedConfiguredDomainHandle::envelope_routes_checked(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::envelope_routes_from_progressed(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::envelope_routes_from_progressed_with_intent(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_envelope_from_progressed(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_envelope_from_progressed_with_intent(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declare_review_progress_describe_plan_receipt_and_envelope(...)`
 
 Good to know:
@@ -80,7 +82,37 @@ Admitted-handle envelope entry points:
 - `envelope_routes_checked(subject) -> ForgeQueryDeclarationEnvelopeChecked<D, I>`
 - `envelope_routes_from_progressed(progressed) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
 - `envelope_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `orchestrate_envelope_from_progressed(progressed) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `orchestrate_envelope_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `bind_continuation_request_from_context(request) -> ForgeQueryBindingOutcome<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_request_from_context_checked(request) -> ForgeQueryBindingChecked<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_request_from_context_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_from_target(request) -> ForgeQueryBindingOutcome<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_from_target_checked(request) -> ForgeQueryBindingChecked<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_from_target_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryContinuationBindingInput<D, I>>`
 - `declare_review_progress_describe_plan_receipt_and_envelope(input) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEntryEnvelopeError<D, I>>`
+
+Envelope inspection:
+
+- `class() -> ForgeQueryDeclarationEnvelopeClass`
+- `declaration_family_key() -> &'static str`
+- `handle_identity_digest() -> &str`
+- `operating_context_identity_digest() -> &str`
+- `declaration_digest() -> &str`
+- `progression_digest() -> &str`
+- `route_plan_digest() -> &str`
+- `receipt_digest() -> &CanonicalDerivedDigest`
+- `envelope_digest() -> &CanonicalDerivedDigest`
+- `binding_target() -> ForgeQueryDeclarationEnvelopeBindingTarget`
+- `foundational_evidence() -> &ForgeQueryDeclarationFoundationalEvidence<D, I>`
+- `receipt() -> &ForgeQueryDeclarationReceipt<D, I>`
+- `route_plan() -> &ForgeQueryDeclarationRoutePlan<D, I>`
+- `route_denial_cause() -> Option<ForgeQueryDeclarationRoutePlanDenialCause>`
+- `receipt_denial_cause() -> Option<ForgeQueryDeclarationReceiptDenialCause>`
+- `evidence_origin() -> ForgeQueryDeclarationEnvelopeEvidenceOrigin`
+- `aspect_contract() -> &ForgeQueryDeclarationAspectContract`
+- `aspect_publication() -> &ForgeQueryDeclarationAspectPublication`
+- `explain() -> &ForgeQueryDeclarationEnvelopeExplanation`
 
 Checked envelope outcomes:
 
@@ -122,7 +154,33 @@ over already-proved declaration truth:
    receipt-backed truth
 
 That means envelopes do not invent new route or receipt meaning. They preserve
-and present retained meaning that earlier phases already proved.
+and present retained meaning that earlier declaration-entry surfaces already
+proved.
+
+The retained envelope artifact is also now one shared binding target. Later
+relational-routing, bridge-continuation, signal-compatibility, and grouped
+binding work should bind from this envelope identity rather than reopening the
+declaration-entry seam.
+
+That public seam is explicitly aspect-scoped:
+
+- `aspect_contract()` tells later consumers which semantic crossing contract
+  the envelope is actually publishing
+- `aspect_publication()` tells them which slices are visible and which remain
+  masked at the public boundary
+- the envelope inherits that truth from the retained receipt instead of
+  widening it from foundational evidence on its own
+
+Declaration-entry orchestration, inspection, and readiness now consume that
+published slice directly. They may summarize later relational, bridge, and
+signal posture as retained consequence, but they do not treat those summaries
+as proof that lower-authority routing already ran.
+
+That also means later surfaces must stay honest about absence. If the retained
+envelope alone does not prove one concrete lower-authority truth claim,
+continuation family, or signal execution family, downstream inspection and
+readiness surfaces may summarize the public slice but must not fabricate those
+more specific facts.
 
 ## How It Executes
 
@@ -137,6 +195,8 @@ The advanced lane executes in this order:
    - reuses retained foundational evidence through the receipt
    - reuses retained route explanation or route denial through the receipt
    - reuses retained receipt explanation or receipt denial directly
+   - preserves the receipt-scoped aspect publication instead of widening the
+     public story back to broader declaration semantics
    - derives one envelope digest from retained proof and denial topology
 6. Query returns one enveloped, deferred, denied, or failed envelope artifact
 
@@ -160,7 +220,7 @@ use forge_query::facade::{
 
 let receipt = handle.receipt_routes_from_progressed(
     handle.declare_review_and_progress(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        geometry_session.reclassify_active_boundary_loop_as_structural_opening()?,
     )?,
 )?;
 
@@ -189,7 +249,9 @@ use forge_query::facade::{
 };
 
 let progressed = handle.progress_declaration(
-    handle.declare_and_review(SplitEdgeAtMidpoint { edge_ref: "edge:42" })?,
+    handle.declare_and_review(
+        geometry_session.attach_material_for_active_face_selection()?,
+    )?,
 )?;
 
 let evidence = handle.describe_foundational(
@@ -214,7 +276,10 @@ match handle.envelope_routes_checked(
     ForgeQueryDeclarationEnvelopeInput::issued(receipt),
 ) {
     ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope) => {
-        assert_eq!(envelope.declaration_family_key(), "split-edge");
+        assert_eq!(
+            envelope.declaration_family_key(),
+            "attach-face-material-assignment"
+        );
         let _ = envelope.evidence_origin();
         let _ = envelope.route_plan_digest();
         let _ = envelope.receipt_digest();
@@ -240,6 +305,13 @@ What this example is showing:
 - foundational evidence origin is still visible on the public story
 - route posture and receipt posture stay distinct
 - the envelope digest is separate from the receipt digest
+- richer orchestration publication may expose more metadata, but it does not
+  change the retained envelope truth being published
+
+The main DX point is that the caller is still working from active geometry
+context. Any canonical loop, face, or material identifiers stay inside the
+retained declaration artifact instead of becoming the primary public targeting
+story.
 
 ## How It Relates To Other Features
 
@@ -259,7 +331,11 @@ retained evidence, route truth, and receipt truth together for later
 inspection or recovery work. Use
 [Declaration Entry Orchestration](./declaration-entry-orchestration.md) when
 you want Query to own the full declaration-entry lowering path through the
-current envelope ceiling. Use
+current envelope ceiling and produce a Query-owned orchestration plan,
+outcome, or proof-visible transcript over that same retained envelope
+boundary. Orchestration may stop honestly at `RoutePlanned` or
+`ReceiptIssued` before any envelope is produced; use direct envelope surfaces
+when you already know you want the receipt-backed crossing artifact itself. Use
 [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 when that same public crossing story needs to bind into relational truth
 authority. Use
@@ -268,6 +344,11 @@ when it needs to bind into bridge continuation authority. Use
 [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 when you need to freeze whether that retained crossing story can later
 continue into Signal-backed derived execution.
+
+Use [Typed Binding Pipeline](./typed-binding-pipeline.md) when you already have
+current-envelope context or one retained envelope target and want Query to
+prepare the next continuation-ready input without pretending continuation
+already executed.
 
 ## Inspection And Debugging
 
@@ -282,6 +363,7 @@ Use these surfaces when inspecting an envelope:
 - `route_plan_digest()`
 - `receipt_digest()`
 - `envelope_digest()`
+- `binding_target()`
 - `foundational_evidence()`
 - `receipt()`
 - `route_plan()`
@@ -306,6 +388,17 @@ These surfaces help answer:
   posture
 - whether route denial or receipt denial is the real public blocker
 - whether the public envelope preserved the same retained truth as the receipt
+- which retained public crossing identity later continuation-oriented features
+  should bind from directly
+
+## Aspect Semantics
+
+Envelopes publish one self-describing aspect-scoped crossing story. Continuation
+and grouped-authoring surfaces should be
+able to bind from what the envelope really published, including what it masked,
+without reopening the lower receipt or route artifacts just to rediscover the
+semantic slice that crossed. The envelope surface exposes
+`aspect_contract()` and `aspect_publication()` for that purpose.
 
 ## Anti-Patterns
 
@@ -313,6 +406,7 @@ These surfaces help answer:
 - attempting envelope construction from foundational evidence alone
 - rebuilding route or receipt meaning from family labels or payload folklore
 - treating envelopes as if they were allowed to hide denial topology
+- treating envelopes and orchestration transcripts as interchangeable artifacts
 - using public crossing-story APIs as if they were allowed to return free-form
   text or no artifact at all
 
@@ -323,8 +417,10 @@ over retained receipt truth. They still do not provide:
 
 - direct construction from foundational evidence or route plans on the public
   lane
-- relational truth routing on their own; that begins in the next boundary
-- bridge continuation routing on their own; that begins in the next boundary
+- relational truth routing on their own; use the dedicated relational-routing
+  surface when the envelope needs to bind into lower relational truth
+- bridge continuation routing on their own; use the dedicated bridge-routing
+  surface when the envelope needs to bind into lower continuation authority
 - grouped declaration envelopes
 - lower-authority execution internals beyond the retained route and receipt
   artifacts they compose
@@ -332,6 +428,7 @@ over retained receipt truth. They still do not provide:
 ## Related Docs
 
 - [Configured Domain Handles](./configured-domain-handles.md)
+- [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)

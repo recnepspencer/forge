@@ -6,38 +6,27 @@ use crate::projection::runtime_boundary::query_runtime::{
     load_post_write_materialized_topology, TopologyQueryBindingIndex,
 };
 use crate::topology_operators::application::{
-    TopologyOperatorExecution, TopologyOperatorExecutionError, TopologyOperatorRunner,
+    TopologyDeclaredMutationArtifact, TopologyMutationApplicationError,
+    TopologyMutationApplicationRunner,
 };
-use crate::topology_operators::local_rewrites::boundary_wiring::{
-    supports_admitted_loop_successor_program, ResolvedLoopSuccessorRewire,
-};
+use crate::topology_operators::local_rewrites::boundary_wiring::ResolvedLoopSuccessorRewire;
 use crate::topology_operators::{
-    NamingEditContinuityMatrix, TopologyEditAction, TopologyEditApplicationMode,
-    TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
+    TopologyDeclaredMutationActionRef, TopologyDeclaredMutationSequence,
+    TopologyMutationApplicationMode, TopologyMutationFamily,
 };
 
-pub(crate) fn supports_composed_loop_successor_program(
-    bindings: &TopologyQueryBindingIndex,
-    contracts: &[TopologyEditContract],
-) -> bool {
-    supports_admitted_loop_successor_program(bindings, contracts)
-}
-
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
-    pub(crate) fn apply_composed_loop_successor_program(
+impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
+    pub(crate) fn execute_composed_loop_successor_program(
         &mut self,
-        mode: TopologyEditApplicationMode,
-        families: Vec<TopologyEditFamily>,
-        topology_edit_digest: TopologyEditDigest,
-        naming_continuity_matrix: NamingEditContinuityMatrix,
-        naming_report: crate::topology_operators::TopologyEditNamingReport,
-        contracts: &[TopologyEditContract],
+        semantic_family_key: &'static str,
+        _mode: TopologyMutationApplicationMode,
+        sequence: TopologyDeclaredMutationSequence,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
-        let rewires = contracts
-            .iter()
-            .map(|contract| match contract.action {
-                TopologyEditAction::RewireLoopSuccessor {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
+        let rewires = sequence
+            .members()
+            .map(|contract| match contract.action_ref() {
+                TopologyDeclaredMutationActionRef::RewireLoopSuccessor {
                     relation_id,
                     kind,
                     half_edge_id,
@@ -49,12 +38,11 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     half_edge_id,
                     successor_half_edge_id,
                 ),
-                _ => Err(TopologyOperatorExecutionError::UnsupportedFamilies(vec![
-                    TopologyEditFamily::RewireLoopSuccessor,
+                _ => Err(TopologyMutationApplicationError::UnsupportedFamilies(vec![
+                    TopologyMutationFamily::RewireLoopSuccessor,
                 ])),
             })
             .collect::<Result<Vec<_>, _>>()?;
-
         let receipt: ForgeQueryBatchWriteReceipt = self.workspace.compose_graph(|graph| {
             for rewire in &rewires {
                 add_verified_successor_retarget(graph, rewire)?;
@@ -64,19 +52,16 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         let inspection: ForgeQueryBatchWriteReceiptInspection =
             match self.workspace.inspect(&receipt)? {
                 ForgeQueryInspection::BatchWriteReceipt(inspection) => inspection,
-                _ => return Err(TopologyOperatorExecutionError::UnexpectedInspectionFamily),
+                _ => return Err(TopologyMutationApplicationError::UnexpectedInspectionFamily),
             };
-        let materialized = load_post_write_materialized_topology(self.workspace, self.assembly)?;
-        Ok(TopologyOperatorExecution {
-            mode,
-            families,
+        let materialized = load_post_write_materialized_topology(self.workspace, self.surfaces)?;
+        Ok(TopologyDeclaredMutationArtifact::from_receipt(
+            semantic_family_key,
+            &sequence,
             receipt,
             inspection,
             materialized,
-            topology_edit_digest,
-            naming_continuity_matrix,
-            naming_report,
-        })
+        ))
     }
 }
 

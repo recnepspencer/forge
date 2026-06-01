@@ -3,6 +3,7 @@ use forge_foundational::facade::CanonicalDerivedDigest;
 use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
 
 mod artifact;
+mod authority_posture;
 mod subject;
 
 pub use artifact::{
@@ -15,12 +16,12 @@ pub use subject::{
     ForgeQueryDeclarationEntryInspectionInput, ForgeQueryDeclarationEntryRetainedSubjectInput,
 };
 
+pub(crate) use authority_posture::{
+    envelope_bridge_summary, envelope_relational_summary, envelope_signal_summary,
+};
 pub(crate) use subject::{normalize_retained_subject, normalized_subject};
 
-use super::{
-    digest::derive_inspection_digest, inventory::forge_query_declaration_entry_crossing_inventory,
-    row::ForgeQueryDeclarationEntryCrossingSurface,
-};
+use super::{digest::derive_inspection_digest, row::ForgeQueryDeclarationEntryCrossingSurface};
 
 pub(crate) fn forge_query_declaration_entry_inspection_on_handle<
     D: ForgeQueryDomainEntryMarker,
@@ -40,10 +41,27 @@ pub(crate) fn forge_query_declaration_entry_inspection_on_handle<
             contribution_evidence.as_ref(),
             Some(subject.envelope.declaration_digest()),
             subject.subject_strength,
+            Some(&super::support::ReadinessRetainedPosture {
+                envelope_aspect_publication: subject.envelope.aspect_publication().clone(),
+                relational_authority_summary: subject
+                    .relational
+                    .as_ref()
+                    .map(|posture| posture.aspect_summary().clone())
+                    .unwrap_or_else(|| envelope_relational_summary(&subject.envelope)),
+                bridge_authority_summary: subject
+                    .bridge
+                    .as_ref()
+                    .map(|posture| posture.aspect_summary().clone())
+                    .unwrap_or_else(|| envelope_bridge_summary(&subject.envelope)),
+                signal_authority_summary: subject
+                    .signal
+                    .as_ref()
+                    .map(|posture| posture.aspect_summary().clone())
+                    .unwrap_or_else(|| envelope_signal_summary(&subject.envelope)),
+            }),
             &contribution_scope,
         )
         .map_err(ForgeQueryDeclarationEntryInspectionError::ContributionComposition)?;
-    let inventory = forge_query_declaration_entry_crossing_inventory::<D, C, I>(handle);
     if subject.envelope.handle_identity_digest() != handle.handle_identity_digest()
         || subject.envelope.operating_context_identity_digest()
             != handle.operating_context_identity_digest()
@@ -55,11 +73,11 @@ pub(crate) fn forge_query_declaration_entry_inspection_on_handle<
     }
     let contribution_composition = readiness.contribution_composition().cloned();
 
-    let matching_row_digests = inventory
+    let matching_row_digests = readiness
         .rows()
         .iter()
-        .filter(|row| row_matches_subject(row, &subject))
-        .map(|row| row.row_digest().to_string())
+        .filter(|row| row_matches_subject(row.crossing_row(), &subject))
+        .map(|row| row.readiness_digest().to_string())
         .collect::<Vec<_>>();
     let mut digest_parts = vec![
         format!("family:{}", subject.envelope.declaration_family_key()),
@@ -91,6 +109,13 @@ pub(crate) fn forge_query_declaration_entry_inspection_on_handle<
                 .map(|value| value.compatibility_digest.as_str())
                 .unwrap_or("none")
         ),
+        format!(
+            "envelope_publication:{:?}",
+            subject.envelope.aspect_publication()
+        ),
+        format!("relational_posture:{:?}", subject.relational),
+        format!("bridge_posture:{:?}", subject.bridge),
+        format!("signal_posture:{:?}", subject.signal),
         format!("rows:{}", matching_row_digests.join("|")),
         format!("readiness:{}", readiness.readiness_digest()),
     ];
@@ -121,6 +146,7 @@ pub(crate) fn forge_query_declaration_entry_inspection_on_handle<
         receipt_digest: Some(canonical_digest_token(subject.envelope.receipt_digest())),
         envelope_digest: canonical_digest_token(subject.envelope.envelope_digest()),
         envelope_class: subject.envelope.class(),
+        envelope_aspect_publication: subject.envelope.aspect_publication().clone(),
         evidence_origin: subject.envelope.evidence_origin(),
         route_denial_cause: subject.envelope.route_denial_cause(),
         receipt_denial_cause: subject.envelope.receipt_denial_cause(),
@@ -165,11 +191,13 @@ fn row_matches_subject<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationI
             matches!(
                 row.surface(),
                 ForgeQueryDeclarationEntryCrossingSurface::SignalCompatibility
-            ) && row.signal_execution_family() == Some(signal.execution_family)
-                && signal
-                    .basis_families
-                    .iter()
-                    .all(|basis| row.basis_families().contains(basis))
+            ) && signal.execution_family().is_some_and(|execution_family| {
+                row.signal_execution_family() == Some(execution_family)
+                    && signal
+                        .basis_families
+                        .iter()
+                        .all(|basis| row.basis_families().contains(basis))
+            })
         })
 }
 

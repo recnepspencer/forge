@@ -14,7 +14,7 @@ impl MilestoneOneCertificationHarness {
     pub(crate) fn certify_read_basis_with_runtime_traced(
         runtime: &mut RelationalRuntime,
         read_basis: DerivedTopologyReadBasis,
-        authority_batch: Option<&TopologyMutationBatch>,
+        authority_mutations: Option<&[TopologyMutation]>,
         replay_history_length: usize,
     ) -> Result<
         TracedMilestoneOneCertificationReport,
@@ -49,18 +49,22 @@ impl MilestoneOneCertificationHarness {
                     replay_history_length,
                 )
             })?;
-        let assembly = TopologyQueryAssembly::declare(&mut workspace).map_err(|error| {
-            traced_certification_failure(
-                MilestoneOneCertificationError::Query(error.to_string()),
-                &read_basis,
-                None,
-                replay_history_length,
+        let surfaces =
+            crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+                &mut workspace,
             )
-        })?;
-        let entity_rows = workspace.read(assembly.entities());
-        let relation_rows = workspace.read(assembly.relations());
-        let persistent_name_rows = workspace.read(assembly.persistent_names());
-        let validation_state = workspace.state(assembly.validation()).map_err(|error| {
+            .map_err(|error| {
+                traced_certification_failure(
+                    MilestoneOneCertificationError::Query(error.to_string()),
+                    &read_basis,
+                    None,
+                    replay_history_length,
+                )
+            })?;
+        let entity_rows = workspace.read(surfaces.entities());
+        let relation_rows = workspace.read(surfaces.relations());
+        let persistent_name_rows = workspace.read(surfaces.persistent_names());
+        let validation_state = workspace.state(surfaces.validation()).map_err(|error| {
             traced_certification_failure(
                 MilestoneOneCertificationError::Query(error.to_string()),
                 &read_basis,
@@ -73,7 +77,7 @@ impl MilestoneOneCertificationHarness {
         })?;
         let equivalence_state =
             workspace
-                .state(assembly.equivalence_contract())
+                .state(surfaces.equivalence_contract())
                 .map_err(|error| {
                     traced_certification_failure(
                         MilestoneOneCertificationError::Query(error.to_string()),
@@ -87,7 +91,7 @@ impl MilestoneOneCertificationHarness {
         )?;
         let validation_inspection = derived_query_inspection(
             &mut workspace,
-            assembly.validation(),
+            surfaces.validation(),
             ".topology.validation",
         )
         .map_err(|error| {
@@ -95,13 +99,13 @@ impl MilestoneOneCertificationHarness {
         })?;
         let equivalence_inspection = derived_query_inspection(
             &mut workspace,
-            assembly.equivalence_contract(),
+            surfaces.equivalence_contract(),
             ".topology.equivalence_contract",
         )
         .map_err(|error| {
             traced_certification_failure(error, &read_basis, None, replay_history_length)
         })?;
-        let snapshot = assembly
+        let snapshot = surfaces
             .snapshot_for_read_basis(&mut workspace, &read_basis)
             .map_err(|error| {
                 traced_certification_failure(error.into(), &read_basis, None, replay_history_length)
@@ -210,7 +214,7 @@ impl MilestoneOneCertificationHarness {
                 && topology_validation_digest == replay_topology_validation_digest,
         };
         let counters = build_counter_report(
-            authority_batch,
+            authority_mutations,
             &snapshot.validation,
             &naming_attachment_report,
             &primitive_family_coverage_matrix,
@@ -280,7 +284,7 @@ impl MilestoneOneCertificationHarness {
         let traced = Self::certify_read_basis_with_runtime_traced(
             runtime,
             verified.read_basis().clone(),
-            Some(&verified.canonical_batch().batch),
+            Some(verified.mutations()),
             verified.commits().len(),
         )?;
         let mut report = traced.primary_result().clone();

@@ -1,9 +1,9 @@
+use super::domain::TopologyReadRequestReport;
 use super::models::{
     TopologyAdjacentHalfEdgeEvidence, TopologyHalfEdgeRadialNeighborhoodView,
     TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,
     TopologyLoopCycleView, TopologyLoopNeighborEvidence, TopologyRadialCandidateEvidence,
 };
-use crate::projection::TopologyDomainQueryRequestReport;
 
 impl TopologyAdjacentHalfEdgeEvidence {
     pub fn half_edge_identity(&self) -> &str {
@@ -52,7 +52,7 @@ impl TopologyLoopNeighborEvidence {
 }
 
 impl TopologyHalfEdgeSharedVertexNeighborhoodView {
-    pub fn request_report(&self) -> &TopologyDomainQueryRequestReport {
+    pub fn request_report(&self) -> &TopologyReadRequestReport {
         &self.request_report
     }
 
@@ -83,7 +83,7 @@ impl TopologyHalfEdgeSharedVertexNeighborhoodView {
 }
 
 impl TopologyHalfEdgeRadialNeighborhoodView {
-    pub fn request_report(&self) -> &TopologyDomainQueryRequestReport {
+    pub fn request_report(&self) -> &TopologyReadRequestReport {
         &self.request_report
     }
 
@@ -121,7 +121,7 @@ impl TopologyHalfEdgeRadialNeighborhoodView {
 }
 
 impl TopologyLoopCycleView {
-    pub fn request_report(&self) -> &TopologyDomainQueryRequestReport {
+    pub fn request_report(&self) -> &TopologyReadRequestReport {
         &self.request_report
     }
 
@@ -135,7 +135,7 @@ impl TopologyLoopCycleView {
 }
 
 impl TopologyLocalRewireNeighborhoodView {
-    pub fn request_report(&self) -> &TopologyDomainQueryRequestReport {
+    pub fn request_report(&self) -> &TopologyReadRequestReport {
         &self.request_report
     }
 

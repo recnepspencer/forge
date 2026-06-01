@@ -150,6 +150,7 @@ pub(super) fn snapshot_bytes_for_entity_aspect(
     };
     serde_json::to_vec(&value).ok()
 }
+<<<<<<< HEAD
 
 pub(super) fn snapshot_bytes_for_relation_aspect(
     record: &RelationReadRecord,
@@ -185,3 +186,5 @@ fn relation_identity(relation_id: RelationId) -> String {
         relation_id.partition_id.0, relation_id.local_slot.0, relation_id.generation.0
     )
 }
+=======
+>>>>>>> origin/master

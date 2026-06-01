@@ -1,15 +1,14 @@
 use forge_query::facade::{ForgeQueryReadBuiltInOperator, ForgeQueryReadScopeClass};
 
-use super::fallback::TopologyDomainQueryFallbackPosture;
+use super::fallback::TopologyReadFallbackPosture;
 use super::report::{
-    TopologyDomainQueryAggregateReport, TopologyDomainQueryDebtRow,
-    TopologyDomainQueryExecutionAggregateRow, TopologyDomainQueryExecutionEngine,
-    TopologyDomainQueryFamilyAggregateRow, TopologyDomainQueryRequestFamily,
-    TopologyDomainQueryRequestReport,
+    TopologyReadAggregateReport, TopologyReadDebtRow, TopologyReadExecutionAggregateRow,
+    TopologyReadExecutionEngine, TopologyReadFamilyAggregateRow, TopologyReadRequestFamily,
+    TopologyReadRequestReport,
 };
-use crate::projection::runtime_boundary::read_lowering::TopologyDomainQueryRelationshipProofPosture;
+use crate::projection::runtime_boundary::read_lowering::TopologyReadRelationshipProofPosture;
 
-impl TopologyDomainQueryExecutionEngine {
+impl TopologyReadExecutionEngine {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::QueryRuntimeCurrent => "query_runtime_current",
@@ -20,7 +19,7 @@ impl TopologyDomainQueryExecutionEngine {
     }
 }
 
-impl TopologyDomainQueryRequestFamily {
+impl TopologyReadRequestFamily {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::HalfEdgeSharedVertexNeighborhood => "half_edge_shared_vertex_neighborhood",
@@ -31,12 +30,12 @@ impl TopologyDomainQueryRequestFamily {
     }
 }
 
-impl TopologyDomainQueryRequestReport {
-    pub fn request_family(&self) -> TopologyDomainQueryRequestFamily {
+impl TopologyReadRequestReport {
+    pub fn request_family(&self) -> TopologyReadRequestFamily {
         self.request_family
     }
 
-    pub fn execution_engine(&self) -> TopologyDomainQueryExecutionEngine {
+    pub fn execution_engine(&self) -> TopologyReadExecutionEngine {
         self.execution_engine
     }
 
@@ -64,7 +63,7 @@ impl TopologyDomainQueryRequestReport {
         self.executed_built_in_operator_coverage.as_slice()
     }
 
-    pub fn fallback_posture(&self) -> TopologyDomainQueryFallbackPosture {
+    pub fn fallback_posture(&self) -> TopologyReadFallbackPosture {
         self.fallback_posture
     }
 
@@ -76,7 +75,7 @@ impl TopologyDomainQueryRequestReport {
         self.lowered_traversal_count
     }
 
-    pub fn relationship_proof_posture(&self) -> TopologyDomainQueryRelationshipProofPosture {
+    pub fn relationship_proof_posture(&self) -> TopologyReadRelationshipProofPosture {
         self.lowering_artifact.relationship_proof_posture()
     }
 
@@ -109,8 +108,8 @@ impl TopologyDomainQueryRequestReport {
     }
 }
 
-impl TopologyDomainQueryFamilyAggregateRow {
-    pub fn request_family(&self) -> TopologyDomainQueryRequestFamily {
+impl TopologyReadFamilyAggregateRow {
+    pub fn request_family(&self) -> TopologyReadRequestFamily {
         self.request_family
     }
 
@@ -143,8 +142,8 @@ impl TopologyDomainQueryFamilyAggregateRow {
     }
 }
 
-impl TopologyDomainQueryDebtRow {
-    pub fn request_family(&self) -> TopologyDomainQueryRequestFamily {
+impl TopologyReadDebtRow {
+    pub fn request_family(&self) -> TopologyReadRequestFamily {
         self.request_family
     }
 
@@ -152,17 +151,17 @@ impl TopologyDomainQueryDebtRow {
         self.request_count
     }
 
-    pub fn fallback_posture(&self) -> TopologyDomainQueryFallbackPosture {
+    pub fn fallback_posture(&self) -> TopologyReadFallbackPosture {
         self.fallback_posture
     }
 
-    pub fn relationship_proof_posture(&self) -> TopologyDomainQueryRelationshipProofPosture {
+    pub fn relationship_proof_posture(&self) -> TopologyReadRelationshipProofPosture {
         self.relationship_proof_posture
     }
 }
 
-impl TopologyDomainQueryExecutionAggregateRow {
-    pub fn request_family(&self) -> TopologyDomainQueryRequestFamily {
+impl TopologyReadExecutionAggregateRow {
+    pub fn request_family(&self) -> TopologyReadRequestFamily {
         self.request_family
     }
 
@@ -174,15 +173,15 @@ impl TopologyDomainQueryExecutionAggregateRow {
         self.executed_scope_class.clone()
     }
 
-    pub fn execution_engine(&self) -> TopologyDomainQueryExecutionEngine {
+    pub fn execution_engine(&self) -> TopologyReadExecutionEngine {
         self.execution_engine
     }
 
-    pub fn fallback_posture(&self) -> TopologyDomainQueryFallbackPosture {
+    pub fn fallback_posture(&self) -> TopologyReadFallbackPosture {
         self.fallback_posture
     }
 
-    pub fn relationship_proof_posture(&self) -> TopologyDomainQueryRelationshipProofPosture {
+    pub fn relationship_proof_posture(&self) -> TopologyReadRelationshipProofPosture {
         self.relationship_proof_posture
     }
 
@@ -215,7 +214,7 @@ impl TopologyDomainQueryExecutionAggregateRow {
     }
 }
 
-impl TopologyDomainQueryAggregateReport {
+impl TopologyReadAggregateReport {
     pub fn request_count(&self) -> usize {
         self.request_count
     }
@@ -268,15 +267,15 @@ impl TopologyDomainQueryAggregateReport {
         self.repeated_rediscovery_denied_count
     }
 
-    pub fn family_rows(&self) -> &[TopologyDomainQueryFamilyAggregateRow] {
+    pub fn family_rows(&self) -> &[TopologyReadFamilyAggregateRow] {
         self.family_rows.as_slice()
     }
 
-    pub fn debt_rows(&self) -> &[TopologyDomainQueryDebtRow] {
+    pub fn debt_rows(&self) -> &[TopologyReadDebtRow] {
         self.debt_rows.as_slice()
     }
 
-    pub fn execution_rows(&self) -> &[TopologyDomainQueryExecutionAggregateRow] {
+    pub fn execution_rows(&self) -> &[TopologyReadExecutionAggregateRow] {
         self.execution_rows.as_slice()
     }
 }

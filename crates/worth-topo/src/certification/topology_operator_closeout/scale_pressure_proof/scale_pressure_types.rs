@@ -1,4 +1,4 @@
-use crate::topology_operators::{TopologyEditDigest, TopologyEditFamily};
+use crate::topology_operators::{TopologyMutationDigest, TopologyMutationFamily};
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde::{Deserialize, Serialize};
 
@@ -31,10 +31,10 @@ pub struct MilestoneThreeScalePressureRow {
     pub(crate) primitive_family: String,
     pub(crate) primitive: MilestoneOnePrimitiveCase,
     pub(crate) workload_size: usize,
-    pub(crate) edit_step_count: usize,
-    pub(crate) edit_families: Vec<TopologyEditFamily>,
+    pub(crate) mutation_step_count: usize,
+    pub(crate) mutation_families: Vec<TopologyMutationFamily>,
     pub(crate) branch_local: bool,
-    pub(crate) topology_edit_digest: TopologyEditDigest,
+    pub(crate) topology_mutation_digest: TopologyMutationDigest,
     pub(crate) replay_verified: bool,
     pub(crate) final_state_digest: String,
     pub(crate) replay_final_state_digest: String,

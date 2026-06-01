@@ -1,11 +1,11 @@
 use schema::facade::platform::authority::{
-    CanonicalTopologyMutationBatch, CertifiedTopologyInterpretation, DerivedTopologyReadBasis,
-    DerivedTruthBasisIdentity, PersistedTopologyTruthBatch, TopologyReadArtifact,
+    CertifiedTopologyInterpretation, DerivedTopologyReadBasis, DerivedTruthBasisIdentity,
+    PersistedTopologyTruth, TopologyCommittedMutationSet, TopologyReadArtifact,
 };
 
 fn main() {
-    let _ = std::mem::size_of::<CanonicalTopologyMutationBatch>();
-    let _ = std::mem::size_of::<PersistedTopologyTruthBatch>();
+    let _ = std::mem::size_of::<TopologyCommittedMutationSet>();
+    let _ = std::mem::size_of::<PersistedTopologyTruth>();
     let _ = std::mem::size_of::<DerivedTopologyReadBasis>();
     let _ = std::mem::size_of::<DerivedTruthBasisIdentity>();
     let _ = std::mem::size_of::<TopologyReadArtifact>();

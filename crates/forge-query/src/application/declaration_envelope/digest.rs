@@ -7,6 +7,7 @@ use forge_foundational::facade::{
 use forge_proof::TransitionOutcome;
 
 use crate::application::{
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectPublication,
     ForgeQueryDeclarationReceiptDenialCause, ForgeQueryDeclarationRoutePlanDenialCause,
 };
 
@@ -27,6 +28,8 @@ pub(crate) fn derive_envelope_digest(
     evidence_origin: ForgeQueryDeclarationEnvelopeEvidenceOrigin,
     route_cause: Option<ForgeQueryDeclarationRoutePlanDenialCause>,
     receipt_cause: Option<ForgeQueryDeclarationReceiptDenialCause>,
+    published_aspect_contract: &ForgeQueryDeclarationAspectContract,
+    published_aspect_publication: &ForgeQueryDeclarationAspectPublication,
 ) -> CanonicalDerivedDigest {
     let mut entries = vec![
         text_entry("envelope.handle", handle_identity_digest),
@@ -55,6 +58,14 @@ pub(crate) fn derive_envelope_digest(
     {
         entries.push(entry);
     }
+    entries.push(text_entry(
+        "envelope.published_aspect_contract",
+        &format!("{published_aspect_contract:?}"),
+    ));
+    entries.push(text_entry(
+        "envelope.published_aspect_publication",
+        &format!("{published_aspect_publication:?}"),
+    ));
 
     let ready = canonical_basis_from_entries(version.clone(), entries);
     let bundle = match prepare_canonical_basis_bundle(version, [ready]) {

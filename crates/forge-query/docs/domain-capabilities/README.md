@@ -1,29 +1,186 @@
 # Domain Capabilities
 
-`forge-query` domain capabilities let downstream domains contribute semantic
-runtime posture through Query-owned public surfaces while Query keeps canonical
-artifact authority.
+These docs cover the public `forge-query` surfaces you use when a downstream
+domain wants Query to own the artifact, orchestration, grouping, and recovery
+model instead of rebuilding a domain-local copy.
 
-This docs tree is organized by capability area so you can start from the kind
-of domain work you are trying to do:
+The goal of this tree is simple: start from the kind of domain work you are
+trying to do, not from the internal module name you happen to remember.
+
+## Table Of Contents
+
+- [Start Here](#start-here)
+  Fastest entry points for most domain work.
+- [Choosing The Right Surface](#choosing-the-right-surface)
+  Cross-surface chooser docs when several Query lanes seem close together.
+- [Workflow Guides](#workflow-guides)
+  Task-first multi-surface guides.
+- [Recipes](#recipes)
+  Short copy-oriented examples.
+- [Core Domain Work](#core-domain-work)
+  Handle entry, binding, ordinary outcomes, and recovery.
+- [Helpers And Grouped Work](#helpers-and-grouped-work)
+  Family-native helper surfaces and grouped neighborhood work.
+- [Declaration Pipeline](#declaration-pipeline)
+  Canonical declaration, progression, route, receipt, envelope, and entry docs.
+- [Lower-Authority And Continuation](#lower-authority-and-continuation)
+  Relational, bridge, signal, and continuation-facing next steps.
+- [Composition, Support, And Certification](#composition-support-and-certification)
+  Contributions, inventory, coverage, support, workflow satellites, and certification.
+- [Reading Order](#reading-order)
+  Shortest suggested path through the tree.
+- [Related Docs](#related-docs)
+  Nearby doc roots and high-value neighbors.
+
+## Start Here
+
+- [Configured Domain Handles](./configured-domain-handles.md)
+  Enter one admitted operating world and get the public handle most domain work
+  starts from.
+- [Typed Binding Pipeline](./typed-binding-pipeline.md)
+  Turn current context or one retained artifact into the next explicit Query
+  input.
+- [Ordinary Outcomes](./ordinary-outcomes.md)
+  Use the compact result lane shared by binding, orchestration, and
+  continuation-facing surfaces.
+- [Recovery Boundary](./recovery-boundary.md)
+  Get one machine-readable answer for what stopped, who owns the fix, and what
+  to do next.
+- [Choosing The Right Surface](./choosing/README.md)
+  Start here when neighboring Query docs feel close together and you want the
+  shortest chooser path.
+
+## Choosing The Right Surface
+
+- [Choosing The Right Surface](./choosing/README.md)
+  Landing page for cross-surface chooser docs.
+- [Binding Vs Orchestration Vs Helpers](./choosing/binding-vs-orchestration-vs-helpers.md)
+  Choose between selecting the next input, lowering a declaration, and using a
+  family-native helper.
+- [Inspection Vs Readiness Vs Recovery](./choosing/inspection-vs-readiness-vs-recovery.md)
+  Choose between support posture, retained truth inspection, and next-step
+  repair guidance.
+- [Grouped Authoring Vs Grouped Products Vs Grouped Contributions](./choosing/grouped-authoring-vs-grouped-products-vs-grouped-contributions.md)
+  Choose between defining one grouped meaning, reading grouped artifacts, and
+  composing grouped contributions.
+- [Signal Compatibility Vs Continuation Pipeline](./choosing/signal-compatibility-vs-continuation-pipeline.md)
+  Choose between freezing signal-facing eligibility and preparing the next
+  continuation step.
+
+## Workflow Guides
+
+- [Workflow Guides](./workflow/README.md)
+  Landing page for task-first multi-surface Query jobs.
+- [Single Declaration To Envelope](./workflow/single-declaration-to-envelope.md)
+  Shortest path from one declaration input to one public envelope artifact.
+- [Retained Artifact To Next Step](./workflow/retained-artifact-to-next-step.md)
+  Move progression, route, receipt, or envelope truth forward without
+  rebuilding earlier declaration work.
+- [Envelope To Signal Or Continuation](./workflow/envelope-to-signal-or-continuation.md)
+  Choose the next runtime-facing step after envelope truth exists.
+- [Grouped Neighborhood Workflow](./workflow/grouped-neighborhood-workflow.md)
+  Run one neighborhood-shaped job across grouped authoring, products, and
+  contributions.
+- [Stop To Recovery](./workflow/stop-to-recovery.md)
+  Turn one stop into one next-step repair answer.
+
+## Recipes
+
+- [Recipes](./recipes/README.md)
+  Copy-oriented examples for common Query jobs.
+- [Prepare Preview From An Active Face Selection](./recipes/prepare-preview-from-active-face-selection.md)
+  Progress one active-face declaration and ask Query for the preview-facing
+  next step.
+- [Attach Material With Declaration-Scoped Contributions](./recipes/attach-material-with-declaration-scoped-contributions.md)
+  Run one material-attachment declaration plus contribution meaning in one
+  helper-driven call.
+- [Author A Grouped Neighborhood With Contributions](./recipes/author-a-grouped-neighborhood-with-contributions.md)
+  Build one neighborhood-shaped operation with shared and member-local grouped
+  meaning.
+- [Turn A Stop Into A Recovery Action](./recipes/turn-a-stop-into-a-recovery-action.md)
+  Convert one stop into a typed repair answer.
+
+## Core Domain Work
 
 - [Platform Entry](./platform-entry.md)
+  Typed domain front door and admission posture.
 - [Configured Domain Handles](./configured-domain-handles.md)
+  One admitted operating world plus the public handle-centered entry points.
+- [Typed Binding Pipeline](./typed-binding-pipeline.md)
+  Candidate selection and retained-target binding for the next explicit input.
+- [Ordinary Outcomes](./ordinary-outcomes.md)
+  Compact result vocabulary over checked topology.
+- [Recovery Boundary](./recovery-boundary.md)
+  Next-step action planning after ordinary, checked, or proof-visible stops.
+
+## Helpers And Grouped Work
+
+- [Family Helpers](./family-helpers.md)
+  Family-native ergonomics that still lower onto canonical Query lanes.
+- [Grouped Authoring](./grouped-authoring.md)
+  Define one grouped neighborhood meaning when the group itself is part of the
+  operation.
+- [Grouped Products](./grouped-products.md)
+  Read grouped route, receipt, and envelope truth.
+- [Grouped Contributions](./grouped-contributions.md)
+  Compose shared and member-local contributions over grouped meaning.
+- [Grouped Support And Readiness](./grouped-support-readiness.md)
+  Check whether an admitted grouped declaration can support stronger grouped
+  claims before later grouped execution or projection.
+
+## Declaration Pipeline
+
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
+  Author one Query-owned declaration artifact.
 - [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
+  Understand how Query classifies domain declaration families.
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
+  Family-level support and capability posture.
 - [Declaration Legality](./declaration-legality.md)
+  Structural legality review for one admitted declaration.
 - [Declaration Progression](./declaration-progression.md)
+  Carry legality-cleared declarations into proof-bearing admitted progression.
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+  Describe retained truth through shared foundational evidence.
 - [Declaration Route Plans](./declaration-route-plan.md)
+  Build one route plan over progression and foundational evidence.
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+  Materialize the crossing artifact that records what followed from route
+  truth.
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
-- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
-- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
-- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
+  Carry retained evidence, route truth, and receipt truth forward together.
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
+  Lower one declaration input through the declaration-entry pipeline.
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
+  Read retained seam truth after a run.
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)
+  Check family-level seam posture before one concrete run.
+
+## Lower-Authority And Continuation
+
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+  Bind envelope-backed truth into one relational authority lane.
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+  Bind envelope-backed truth into one bridge continuation lane.
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
+  Freeze later Signal-backed eligibility from retained declaration truth.
+- [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
+  Answer the next signal-facing question directly: `Compatible`, `Prepared`, or
+  one typed stop.
+- [Continuation Pipeline](./continuation-pipeline.md)
+  Prepare one continuation artifact and optionally execute it.
+
+## Composition, Support, And Certification
+
+- [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
+  Lower one declaration plus declaration-scoped contributions in one public
+  call.
+- [Orchestration Inventory](./orchestration-inventory.md)
+  Registry of public orchestration and helper surfaces.
+- [Public Doc Coverage](./public-doc-coverage.md)
+  Registry of feature-page, README, golden, and journey coverage.
+- [Platform Entry Closeout](./platform-entry-closeout.md)
+  Machine-checkable certification bundle over the public product surface.
 - `admission/`
   - [Advisory And Violation Contributions](./admission/advisory-and-violation-contributions.md)
   - [Declaration Vs Admitted-Plan Targets](./admission/declaration-vs-admitted-plan-targets.md)
@@ -35,6 +192,20 @@ of domain work you are trying to do:
   - [Registering Domain Invariants Through Query](./invariants/registering-domain-invariants-through-query.md)
   - [Capability Gaps And Invariant Denials](./invariants/capability-gaps-and-invariant-denials.md)
 - `workflow/`
+  - [Workflow Guides](./workflow/README.md)
+    Task-first entry point for common multi-surface Query jobs.
+  - [Single Declaration To Envelope](./workflow/single-declaration-to-envelope.md)
+    Shortest path from one declaration input to one public envelope artifact.
+  - [Retained Artifact To Next Step](./workflow/retained-artifact-to-next-step.md)
+    Move progression, route, receipt, or envelope truth forward without
+    rebuilding earlier declaration work.
+  - [Envelope To Signal Or Continuation](./workflow/envelope-to-signal-or-continuation.md)
+    Choose the next runtime-facing step after envelope truth exists.
+  - [Grouped Neighborhood Workflow](./workflow/grouped-neighborhood-workflow.md)
+    Run one neighborhood-shaped job across grouped authoring, products, and
+    contributions.
+  - [Stop To Recovery](./workflow/stop-to-recovery.md)
+    Turn one stop into one next-step repair answer.
   - [Preview Inspection And Mutation Planning](./workflow/preview-inspection-and-mutation-planning.md)
   - [Runtime-Preflight Workflow Contributions](./workflow/runtime-preflight-workflow-contributions.md)
   - [Workflow Lanes: Common, Checked, Proof, And Raw](./workflow/workflow-lanes-common-checked-proof-raw.md)
@@ -51,196 +222,18 @@ of domain work you are trying to do:
   - [Certification Surface And Closeout Bundle](./certification/certification-surface-and-closeout-bundle.md)
   - [Goldens, Boundaries, And Hostile Certification](./certification/goldens-boundaries-and-hostile-certification.md)
 
-Use these docs when you are building domain-specific behavior on top of the
-public Query runtime, especially when your domain needs typed admission,
-support, workflow, continuity, projection aftermath, or explanation artifacts
-without rebuilding a pseudo-Query layer locally.
+## Reading Order
 
-Start with [Platform Entry](./platform-entry.md) when you need the typed
-facade-first domain front door where the downstream domain supplies its own
-marker type rather than relying on separate string-authored contribution
-surfaces.
+1. [Configured Domain Handles](./configured-domain-handles.md)
+2. [Choosing The Right Surface](./choosing/README.md)
+3. [Typed Binding Pipeline](./typed-binding-pipeline.md)
+4. [Ordinary Outcomes](./ordinary-outcomes.md)
+5. [Recovery Boundary](./recovery-boundary.md)
+6. the one feature page that matches your task
 
-Move next to [Configured Domain Handles](./configured-domain-handles.md) when
-you need an admitted operating world, then to
-[Canonical Domain Declarations](./canonical-domain-declarations.md) when that
-admitted world needs to express declaration-local meaning through one retained
-Query-owned declaration artifact. Use
-[Declaration Family Taxonomy](./declaration-family-taxonomy.md) when you need
-to understand how Query classifies downstream declaration families and carries
-that classification forward without owning the family nouns themselves. Use
-[Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
-when you need family-scoped support reports, checked family admission, or
-structural witness surfaces on canonical declarations. Use
-[Declaration Legality](./declaration-legality.md) when you need to review an
-already admitted canonical declaration for structural legality inside one
-admitted operating world. Use
-[Declaration Progression](./declaration-progression.md) when you need to carry
-that legality-cleared declaration into a proof-bearing admitted progression or
-one typed deferred/denied/stale/rebind/failed outcome. Use
-[Declaration Foundational Evidence](./declaration-foundational-evidence.md)
-when you need to describe retained legality or progression truth through shared
-foundational provenance, support, receipt, and attachment-bundle artifacts.
-Use [Declaration Route Plans](./declaration-route-plan.md) when you need one
-Query-owned route plan over admitted progression proof plus matching
-foundational evidence, with explicit route sets, typed caller route intent,
-and plan-local explanations. Use
-[Declaration Boundary Receipts](./declaration-boundary-receipts.md) when you
-need the Query-owned operational crossing artifact that records what followed
-from that route truth. Use
-[Declaration Boundary Envelopes](./declaration-boundary-envelopes.md) when you
-need the one public artifact that carries retained evidence, route truth, and
-receipt truth forward together. Use
-[Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
-when that public crossing story needs to bind into one real relational
-truth-authority family. Use
-[Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
-when that same public crossing story needs to bind into one real bridge
-continuation family. Use
-[Declaration Signal Compatibility](./declaration-signal-compatibility.md)
-when you need to freeze whether that retained declaration story is later
-eligible for Signal-backed derived execution.
-[Declaration Entry Orchestration](./declaration-entry-orchestration.md)
-when you want one admitted-handle front door over the declaration-entry
-pipeline through the current envelope ceiling.
-[Declaration Entry Inspection](./declaration-entry-inspection.md)
-when you need one unified read surface over that retained seam story. Use
-[Declaration Entry Readiness](./declaration-entry-readiness.md) when you need
-family-level seam support posture and executable crossing inventory rows.
+## Related Docs
 
-## Declaration Pipeline Surface Map
-
-The declaration-side public lane is handle-centered and progresses in this
-order:
-
-- configured-handle admission:
-  - `with_operating_context(...)`
-  - `validate()`
-  - `admit()`
-- family support and declaration authoring:
-  - `family_support::<F>()`
-  - `family_support_checked::<F>()`
-  - `declare(...)`
-  - `declare_checked(...)`
-  - `declare_with_version(...)`
-- legality review:
-  - `review_legality(...)`
-  - `review_legality_checked(...)`
-  - `declare_and_review(...)`
-- proof-bearing progression:
-  - `declaration_progression_recipe(...)`
-  - `progress_declaration(...)`
-  - `progress_declaration_checked(...)`
-  - `progress_declaration_recipe(...)`
-  - `progress_declaration_recipe_checked(...)`
-  - `declare_review_and_progress(...)`
-- foundational description:
-  - `describe_foundational(...)`
-  - `describe_foundational_checked(...)`
-  - `describe_foundational_with_profile(...)`
-- route planning:
-  - `plan_routes(...)`
-  - `plan_routes_checked(...)`
-  - `plan_routes_from_progressed(...)`
-  - `plan_routes_from_progressed_with_intent(...)`
-  - `declare_review_progress_describe_and_plan(...)`
-- boundary receipts:
-  - `receipt_routes(...)`
-  - `receipt_routes_checked(...)`
-  - `receipt_routes_from_progressed(...)`
-  - `receipt_routes_from_progressed_with_intent(...)`
-  - `declare_review_progress_describe_plan_and_receipt(...)`
-- boundary envelopes:
-  - `envelope_routes(...)`
-  - `envelope_routes_checked(...)`
-  - `envelope_routes_from_progressed(...)`
-  - `envelope_routes_from_progressed_with_intent(...)`
-  - `declare_review_progress_describe_plan_receipt_and_envelope(...)`
-- relational truth routing:
-  - `route_relational_truth(...)`
-  - `route_relational_truth_checked(...)`
-  - `route_relational_truth_from_progressed(...)`
-  - `route_relational_truth_from_progressed_with_intent(...)`
-  - `declare_review_progress_describe_plan_receipt_envelope_and_route_relational_truth(...)`
-  - `relational_truth_support::<I>()`
-- bridge continuation routing:
-  - `route_bridge_continuation(...)`
-  - `route_bridge_continuation_checked(...)`
-  - `route_bridge_continuation_from_progressed(...)`
-  - `route_bridge_continuation_from_progressed_with_intent(...)`
-  - `declare_review_progress_describe_plan_receipt_envelope_and_route_bridge_continuation(...)`
-  - `bridge_continuation_support::<I>()`
-- signal compatibility:
-  - `signal_compatibility(...)`
-  - `signal_compatibility_checked(...)`
-  - `signal_compatibility_from_progressed(...)`
-  - `signal_compatibility_from_progressed_with_intent(...)`
-  - `declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(...)`
-  - `signal_compatibility_support::<I>()`
-- declaration-entry orchestration:
-  - `orchestrate_declaration_entry(...)`
-  - `orchestrate_declaration_entry_checked(...)`
-  - `orchestrate_declaration_entry_proof(...)`
-- seam-ledger projections:
-  - `declaration_entry_crossing_inventory::<I>()`
-  - `declaration_entry_readiness::<I>()`
-  - `inspect_declaration_entry(...)`
-
-The main retained public artifacts introduced along that path are:
-
-- `ForgeQueryCanonicalDeclarationArtifact`
-- `ForgeQueryDeclarationLegalityEvidence`
-- `ForgeQueryAdmittedDeclarationProgression`
-- `ForgeQueryDeclarationFoundationalEvidence`
-- `ForgeQueryDeclarationRoutePlan`
-- `ForgeQueryDeclarationReceipt`
-- `ForgeQueryDeclarationEnvelope`
-- `ForgeQueryDeclarationRelationalRouting`
-- `ForgeQueryDeclarationBridgeRouting`
-- `ForgeQueryDeclarationSignalCompatibility`
-- `ForgeQueryDeclarationEntryOrchestrationChecked`
-- `ForgeQueryDeclarationEntryOrchestrationProof`
-- `ForgeQueryDeclarationEntryCrossingInventory`
-- `ForgeQueryDeclarationEntryInspection`
-- `ForgeQueryDeclarationEntryReadinessReport`
-
-The main checked and denied families are:
-
-- `ForgeQueryDeclaredFamilyChecked`
-- `ForgeQueryDeclarationAdmissionError`
-- `ForgeQueryDeclarationLegalityChecked`
-- `ForgeQueryDeclarationLegalityDenial`
-- `ForgeQueryDeclarationAdmissionOrLegalityError`
-- `ForgeQueryDeclarationProgressionChecked`
-- `ForgeQueryDeclarationProgressionTerminalError`
-- `ForgeQueryDeclarationEntryProgressionError`
-- `ForgeQueryDeclarationFoundationalEvidenceChecked`
-- `ForgeQueryDeclarationFoundationalEvidenceDenial`
-- `ForgeQueryDeclarationRoutePlanChecked`
-- `ForgeQueryDeclarationRoutePlanTerminalError`
-- `ForgeQueryDeclarationEntryRoutePlanError`
-- `ForgeQueryDeclarationReceiptChecked`
-- `ForgeQueryDeclarationReceiptTerminalError`
-- `ForgeQueryDeclarationEntryReceiptError`
-- `ForgeQueryDeclarationEnvelopeChecked`
-- `ForgeQueryDeclarationEnvelopeTerminalError`
-- `ForgeQueryDeclarationEntryEnvelopeError`
-- `ForgeQueryDeclarationRelationalRoutingChecked`
-- `ForgeQueryDeclarationRelationalRoutingTerminalError`
-- `ForgeQueryDeclarationEntryRelationalRoutingError`
-- `ForgeQueryDeclarationBridgeRoutingChecked`
-- `ForgeQueryDeclarationBridgeRoutingTerminalError`
-- `ForgeQueryDeclarationEntryBridgeRoutingError`
-- `ForgeQueryDeclarationSignalCompatibilityChecked`
-- `ForgeQueryDeclarationSignalCompatibilityTerminalError`
-- `ForgeQueryDeclarationEntrySignalCompatibilityError`
-- `ForgeQueryDeclarationEntryOrchestrationTerminalError`
-
-Start here if:
-
-- you need ordinary Query-facing invariants: [Registering Domain Invariants Through Query](./invariants/registering-domain-invariants-through-query.md)
-- you need declaration-preview workflow planning: [Preview Inspection And Mutation Planning](./workflow/preview-inspection-and-mutation-planning.md)
-- you need successor truth across topology changes: [Continuity Contributions And Authoritative Successors](./continuity/continuity-contributions-and-authoritative-successors.md)
-- you need lower-runtime causal explanation: [Lower-Runtime Explanation Contributions](./explanation/lower-runtime-explanation-contributions.md)
-- you need projection aftermath contracts: [Projection Contract Consumption](./aftermath/projection-contract-consumption.md)
-- you need to audit the proof surface itself: [Certification Surface And Closeout Bundle](./certification/certification-surface-and-closeout-bundle.md)
+- [Forge Query Docs Home](../README.md)
+- [Family Helpers](./family-helpers.md)
+- [Grouped Authoring](./grouped-authoring.md)
+- [Continuation Pipeline](./continuation-pipeline.md)

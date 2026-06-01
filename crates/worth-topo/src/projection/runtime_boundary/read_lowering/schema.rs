@@ -4,7 +4,7 @@ use forge_query::facade::{
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::{QueryCollection, QueryLiveField, QuerySchemaBasis};
 
-pub(crate) const TOPOLOGY_DOMAIN_QUERY_MAX_CYCLE_DEPTH: u8 = 64;
+pub(crate) const TOPOLOGY_READ_MAX_CYCLE_DEPTH: u8 = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum TopologyDomainTraversalRelation {
@@ -49,14 +49,13 @@ impl TopologyDomainTraversalRelation {
             | Self::HalfEdgeUsesEdge
             | Self::HalfEdgeRadialNext
             | Self::HalfEdgePrev => 1,
-            Self::HalfEdgeNext => TOPOLOGY_DOMAIN_QUERY_MAX_CYCLE_DEPTH,
+            Self::HalfEdgeNext => TOPOLOGY_READ_MAX_CYCLE_DEPTH,
         }
     }
 }
 
-pub(crate) fn topology_domain_query_schema_view() -> Result<QuerySchemaView, ForgeQueryRuntimeError>
-{
-    let mut builder = ForgeQueryLiveViewBuilder::surface(".topology.domain_query.schema")
+pub(crate) fn topology_read_schema_view() -> Result<QuerySchemaView, ForgeQueryRuntimeError> {
+    let mut builder = ForgeQueryLiveViewBuilder::surface(".topology.topology_read.schema")
         .from(QueryCollection::TopologyEntity.as_str())
         .schema_basis(QuerySchemaBasis::TopologyDomainQuery.as_str())
         .select([

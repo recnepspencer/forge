@@ -1,6 +1,9 @@
 use crate::application::{
-    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDeclarationAspectPublication,
+    ForgeQueryDeclarationBridgeAuthorityAspectSummary, ForgeQueryDeclarationFamilyMarker,
+    ForgeQueryDeclarationInput, ForgeQueryDeclarationRelationalAuthorityAspectSummary,
+    ForgeQueryDeclarationSignalAuthorityAspectSummary, ForgeQueryDomainEntryMarker,
+    ForgeQueryDomainOperatingContext,
 };
 
 use super::{
@@ -13,7 +16,10 @@ use super::{
         ForgeQueryDeclarationEntryRetainedSubjectStrength,
     },
     digest::derive_readiness_digest,
-    inspection::{normalize_retained_subject, ForgeQueryDeclarationEntryRetainedSubjectInput},
+    inspection::{
+        envelope_bridge_summary, envelope_relational_summary, envelope_signal_summary,
+        normalize_retained_subject, ForgeQueryDeclarationEntryRetainedSubjectInput,
+    },
     readiness_projection::readiness_row_for_crossing,
     row::{crossing_rows_for_family, ForgeQueryDeclarationEntryCrossingRow},
 };
@@ -42,6 +48,10 @@ pub struct ForgeQueryDeclarationEntryReadinessRow {
     crossing_row: ForgeQueryDeclarationEntryCrossingRow,
     status: ForgeQueryDeclarationEntryReadinessStatus,
     reason: &'static str,
+    envelope_aspect_publication: Option<ForgeQueryDeclarationAspectPublication>,
+    relational_authority_summary: Option<ForgeQueryDeclarationRelationalAuthorityAspectSummary>,
+    bridge_authority_summary: Option<ForgeQueryDeclarationBridgeAuthorityAspectSummary>,
+    signal_authority_summary: Option<ForgeQueryDeclarationSignalAuthorityAspectSummary>,
     readiness_digest: String,
 }
 
@@ -50,16 +60,28 @@ impl ForgeQueryDeclarationEntryReadinessRow {
         crossing_row: ForgeQueryDeclarationEntryCrossingRow,
         status: ForgeQueryDeclarationEntryReadinessStatus,
         reason: &'static str,
+        envelope_aspect_publication: Option<ForgeQueryDeclarationAspectPublication>,
+        relational_authority_summary: Option<ForgeQueryDeclarationRelationalAuthorityAspectSummary>,
+        bridge_authority_summary: Option<ForgeQueryDeclarationBridgeAuthorityAspectSummary>,
+        signal_authority_summary: Option<ForgeQueryDeclarationSignalAuthorityAspectSummary>,
     ) -> Self {
         let readiness_digest = derive_readiness_digest(&[
             format!("row:{}", crossing_row.row_digest()),
             format!("status:{}", status.as_str()),
             format!("reason:{reason}"),
+            format!("envelope_publication:{envelope_aspect_publication:?}"),
+            format!("relational_summary:{relational_authority_summary:?}"),
+            format!("bridge_summary:{bridge_authority_summary:?}"),
+            format!("signal_summary:{signal_authority_summary:?}"),
         ]);
         Self {
             crossing_row,
             status,
             reason,
+            envelope_aspect_publication,
+            relational_authority_summary,
+            bridge_authority_summary,
+            signal_authority_summary,
             readiness_digest,
         }
     }
@@ -72,6 +94,24 @@ impl ForgeQueryDeclarationEntryReadinessRow {
     }
     pub fn reason(&self) -> &'static str {
         self.reason
+    }
+    pub fn envelope_aspect_publication(&self) -> Option<&ForgeQueryDeclarationAspectPublication> {
+        self.envelope_aspect_publication.as_ref()
+    }
+    pub fn relational_authority_summary(
+        &self,
+    ) -> Option<&ForgeQueryDeclarationRelationalAuthorityAspectSummary> {
+        self.relational_authority_summary.as_ref()
+    }
+    pub fn bridge_authority_summary(
+        &self,
+    ) -> Option<&ForgeQueryDeclarationBridgeAuthorityAspectSummary> {
+        self.bridge_authority_summary.as_ref()
+    }
+    pub fn signal_authority_summary(
+        &self,
+    ) -> Option<&ForgeQueryDeclarationSignalAuthorityAspectSummary> {
+        self.signal_authority_summary.as_ref()
     }
     pub fn readiness_digest(&self) -> &str {
         &self.readiness_digest
@@ -230,6 +270,7 @@ pub(crate) fn forge_query_declaration_entry_readiness_report_with_request<
         contribution_evidence.as_ref(),
         reconciliation.declaration_digest.as_deref(),
         reconciliation.subject_strength,
+        reconciliation.retained_posture.as_ref(),
         &contribution_scope,
     )
 }
@@ -243,6 +284,7 @@ pub(crate) fn forge_query_declaration_entry_readiness_report_with_context<
     contribution_evidence: Option<&ForgeQueryDeclarationEntryContributionEvidenceSet>,
     declaration_digest: Option<&str>,
     subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength,
+    retained_posture: Option<&ReadinessRetainedPosture>,
     contribution_scope: &ForgeQueryDeclarationEntryContributionProofScope,
 ) -> Result<
     ForgeQueryDeclarationEntryReadinessReport<D, I>,
@@ -250,7 +292,7 @@ pub(crate) fn forge_query_declaration_entry_readiness_report_with_context<
 > {
     let rows = crossing_rows_for_family::<D, C, I>(handle)
         .into_iter()
-        .map(|row| readiness_row_for_crossing::<D, C, I>(row, handle))
+        .map(|row| readiness_row_for_crossing::<D, C, I>(row, handle, retained_posture))
         .collect::<Vec<_>>();
     let contribution_composition = reconcile_contribution_evidence::<D, I>(
         ForgeQueryDeclarationEntryContributionReconciliationContext {
@@ -293,6 +335,15 @@ pub(crate) fn forge_query_declaration_entry_readiness_report_with_context<
 struct ReadinessReconciliation {
     declaration_digest: Option<String>,
     subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength,
+    retained_posture: Option<ReadinessRetainedPosture>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ReadinessRetainedPosture {
+    pub(crate) envelope_aspect_publication: ForgeQueryDeclarationAspectPublication,
+    pub(crate) relational_authority_summary: ForgeQueryDeclarationRelationalAuthorityAspectSummary,
+    pub(crate) bridge_authority_summary: ForgeQueryDeclarationBridgeAuthorityAspectSummary,
+    pub(crate) signal_authority_summary: ForgeQueryDeclarationSignalAuthorityAspectSummary,
 }
 
 fn readiness_reconciliation_context<
@@ -307,6 +358,7 @@ fn readiness_reconciliation_context<
         return Ok(ReadinessReconciliation {
             declaration_digest: None,
             subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Envelope,
+            retained_posture: None,
         });
     };
     let normalized = normalize_retained_subject(retained_subject);
@@ -321,8 +373,27 @@ fn readiness_reconciliation_context<
             "declaration-entry readiness requires retained seam subjects from the same admitted handle and world",
         ));
     }
+    let retained_posture = ReadinessRetainedPosture {
+        envelope_aspect_publication: normalized.envelope.aspect_publication().clone(),
+        relational_authority_summary: normalized
+            .relational
+            .as_ref()
+            .map(|posture| posture.aspect_summary().clone())
+            .unwrap_or_else(|| envelope_relational_summary(&normalized.envelope)),
+        bridge_authority_summary: normalized
+            .bridge
+            .as_ref()
+            .map(|posture| posture.aspect_summary().clone())
+            .unwrap_or_else(|| envelope_bridge_summary(&normalized.envelope)),
+        signal_authority_summary: normalized
+            .signal
+            .as_ref()
+            .map(|posture| posture.aspect_summary().clone())
+            .unwrap_or_else(|| envelope_signal_summary(&normalized.envelope)),
+    };
     Ok(ReadinessReconciliation {
         declaration_digest: Some(normalized.envelope.declaration_digest().to_string()),
         subject_strength: normalized.subject_strength,
+        retained_posture: Some(retained_posture),
     })
 }

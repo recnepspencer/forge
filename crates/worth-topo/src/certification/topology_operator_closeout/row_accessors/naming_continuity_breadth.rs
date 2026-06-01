@@ -1,4 +1,4 @@
-use crate::topology_operators::TopologyEditNamingOutcome;
+use crate::topology_operators::TopologyMutationNamingOutcome;
 
 use super::super::naming_continuity_breadth_row::MilestoneThreeNamingContinuityBreadthRow;
 use super::super::report::MilestoneThreeHostileScenario;
@@ -36,7 +36,7 @@ impl MilestoneThreeNamingContinuityBreadthRow {
         self.replay_checked
     }
 
-    pub fn outcome_class(&self) -> TopologyEditNamingOutcome {
+    pub fn outcome_class(&self) -> TopologyMutationNamingOutcome {
         self.outcome_class
     }
 

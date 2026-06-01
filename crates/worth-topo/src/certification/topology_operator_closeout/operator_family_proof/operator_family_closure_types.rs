@@ -1,9 +1,9 @@
-use crate::topology_operators::TopologyEditFamily;
+use crate::topology_operators::TopologyMutationFamily;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MilestoneThreeOperatorFamilyClosureRow {
-    pub(crate) family: TopologyEditFamily,
+    pub(crate) family: TopologyMutationFamily,
     pub(crate) admitted_lane_labels: Vec<String>,
     pub(crate) legal_evidence_labels: Vec<String>,
     pub(crate) hostile_evidence_labels: Vec<String>,

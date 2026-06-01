@@ -144,7 +144,7 @@ pub(crate) fn build_primitive_family_coverage_matrix(
 }
 
 pub(crate) fn build_counter_report(
-    authority_batch: Option<&TopologyMutationBatch>,
+    authority_mutations: Option<&[TopologyMutation]>,
     topology_validation_report: &crate::validation::TopologyValidationReport,
     naming_attachment_report: &NamingAttachmentReport,
     primitive_family_coverage_matrix: &PrimitiveFamilyCoverageMatrix,
@@ -155,8 +155,8 @@ pub(crate) fn build_counter_report(
         topology_entity_upsert_count,
         topology_relation_upsert_count,
         topology_relation_remove_count,
-    ) = authority_batch
-        .map(count_batch_mutations)
+    ) = authority_mutations
+        .map(count_topology_mutations)
         .unwrap_or((0, 0, 0));
     let derived_topology_full_fallback_count = read_basis
         .precision_fallbacks

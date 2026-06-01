@@ -9,7 +9,7 @@ use crate::facade::{
     DerivedInvalidationAggregateReport, DerivedRebuildAggregateReport,
     DerivedValidatorCoverageReport, DeterministicDigest, FailureLocalityReport,
     MilestoneOneCloseoutReport, MilestoneOneCounters, MilestoneThreeDeterminismRuleKind,
-    MilestoneThreeEditFalloutClass, MilestoneTwoCloseoutReport, MilestoneTwoCounters,
+    MilestoneThreeMutationFalloutClass, MilestoneTwoCloseoutReport, MilestoneTwoCounters,
     PrimitiveCorpusCoverageMatrix, PrimitiveCorpusParityReport,
 };
 use forge_relational::facade::history::BranchId;
@@ -36,6 +36,7 @@ use crate::test_support::primitive_corpus::validated_topology::{
 mod closeout;
 mod parameter_sweeps;
 mod primitive_corpus;
+mod public_facade_contracts;
 mod query_runtime;
 mod read_surfaces;
 mod support;

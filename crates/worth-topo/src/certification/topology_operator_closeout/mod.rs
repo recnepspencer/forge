@@ -1,8 +1,9 @@
 mod acceptance_rows;
-#[cfg(test)]
-mod contract_tests;
 mod derived_fallout;
 mod hostile_categories;
+mod mutation_sequence_support;
+#[cfg(test)]
+mod mutation_tests;
 mod naming_continuity_breadth_row;
 mod operator_family_proof;
 mod query_traversal_proof;
@@ -36,24 +37,25 @@ pub use operator_family_proof::{
     MilestoneThreeOperatorFamilyClosureRow, MilestoneThreePrimitiveFamilyClosureRow,
 };
 pub use query_traversal_proof::{
-    MilestoneThreeEditedTopologyQueryTraversalRow, MilestoneThreeEditedTopologyQueryTraversalView,
+    MilestoneThreeMutationTopologyQueryTraversalRow,
+    MilestoneThreeMutationTopologyQueryTraversalView,
 };
 pub use replay_branch_breadth_row::MilestoneThreeReplayBranchBreadthRow;
 pub use report::{
     MilestoneThreeAmbiguousLocalRewireWitness, MilestoneThreeBowtieAdjacentWitness,
     MilestoneThreeBrokenRadialWitness, MilestoneThreeChangedScopeCoverageRow,
     MilestoneThreeDerivedRegionCoverageRow, MilestoneThreeDeterminismRuleKind,
-    MilestoneThreeDeterminismRuleRow, MilestoneThreeEditBranchLocalParityRow,
-    MilestoneThreeEditBreadthCounterRow, MilestoneThreeEditFalloutBreadthRow,
-    MilestoneThreeEditFalloutClass, MilestoneThreeEditReplayParityReport,
-    MilestoneThreeEditReplayParityRow, MilestoneThreeEditReplayStepRow,
-    MilestoneThreeFailureLocalityRow, MilestoneThreeHostileCoverageRow,
-    MilestoneThreeHostileFamilyCoverageRow, MilestoneThreeHostileNamingDistributionRow,
-    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileRejectionDistributionRow,
-    MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
-    MilestoneThreeHostileSuiteReport, MilestoneThreeNamingContinuityMatrixRow,
-    MilestoneThreeRejectedEditScopeReportRow, MilestoneThreeSplitCollapseChurnWitness,
-    MilestoneThreeTopologyEditDigestRow, MilestoneThreeValidatorFamily,
+    MilestoneThreeDeterminismRuleRow, MilestoneThreeFailureLocalityRow,
+    MilestoneThreeHostileCoverageRow, MilestoneThreeHostileFamilyCoverageRow,
+    MilestoneThreeHostileNamingDistributionRow, MilestoneThreeHostileOutcomeClass,
+    MilestoneThreeHostileRejectionDistributionRow, MilestoneThreeHostileScenario,
+    MilestoneThreeHostileScenarioReport, MilestoneThreeHostileSuiteReport,
+    MilestoneThreeMutationBranchLocalParityRow, MilestoneThreeMutationBreadthCounterRow,
+    MilestoneThreeMutationFalloutBreadthRow, MilestoneThreeMutationFalloutClass,
+    MilestoneThreeMutationReplayParityReport, MilestoneThreeMutationReplayParityRow,
+    MilestoneThreeMutationReplayStepRow, MilestoneThreeNamingContinuityMatrixRow,
+    MilestoneThreeRejectedMutationScopeReportRow, MilestoneThreeSplitCollapseChurnWitness,
+    MilestoneThreeTopologyMutationDigestRow, MilestoneThreeValidatorFamily,
     MilestoneThreeValidatorFamilyCoverageRow,
 };
 pub use scale_pressure_proof::{MilestoneThreeScalePressureRow, MilestoneThreeScalePressureSweep};

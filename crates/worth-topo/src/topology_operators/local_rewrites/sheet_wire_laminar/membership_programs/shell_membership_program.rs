@@ -7,25 +7,27 @@ use super::shared::{
 };
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{
-    TopologyOperatorExecutionError, TopologyOperatorRunner,
+    TopologyMutationApplicationError, TopologyMutationApplicationRunner,
 };
-use crate::topology_operators::topology_relation_dependency_path;
-use crate::topology_operators::TopologyEditContract;
+use crate::topology_operators::{
+    topology_relation_dependency_path, TopologyDeclaredMutationSequence,
+};
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
-    pub(super) fn compose_shell_rehome_program(
+impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
+    pub(crate) fn compose_shell_rehome_program(
         &mut self,
         program: super::super::shell_face_rehome_support::ShellFaceRehomeProgram,
-        contracts: &[TopologyEditContract],
+        sequence: &TopologyDeclaredMutationSequence,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyOperatorExecutionError> {
+    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyMutationApplicationError> {
+        let members = sequence.members().collect::<Vec<_>>();
         let retired_shell_binding =
             crate::topology_operators::application::bindings::query_entity_binding(
                 bindings,
                 program.retired_shell_id,
             )?
             .ok_or(
-                TopologyOperatorExecutionError::MissingExistingEntityBinding(
+                TopologyMutationApplicationError::MissingExistingEntityBinding(
                     program.retired_shell_id,
                 ),
             )?;
@@ -35,7 +37,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 program.region_id,
             )?
             .ok_or(
-                TopologyOperatorExecutionError::MissingExistingEntityBinding(program.region_id),
+                TopologyMutationApplicationError::MissingExistingEntityBinding(program.region_id),
             )?;
         let incoming_region_relation_ids =
             crate::topology_operators::application::bindings::query_incoming_relation_ids(
@@ -45,7 +47,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             )?;
         let [region_relation_id] = incoming_region_relation_ids.as_slice() else {
             return Err(
-                TopologyOperatorExecutionError::ExistingEntityIncomingRelationCountMismatch {
+                TopologyMutationApplicationError::ExistingEntityIncomingRelationCountMismatch {
                     entity_id: program.retired_shell_id,
                     relation_kind: TopologyRelationKind::RegionOwnsShell,
                     expected: 1,
@@ -59,7 +61,9 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 *region_relation_id,
             )?
             .ok_or(
-                TopologyOperatorExecutionError::MissingExistingRelationBinding(*region_relation_id),
+                TopologyMutationApplicationError::MissingExistingRelationBinding(
+                    *region_relation_id,
+                ),
             )?;
         let face_dependency_path = topology_relation_dependency_path(
             schema::facade::platform::relations::RelationKind::Topology(
@@ -73,7 +77,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         );
         let created_shell_key = program.create_key.clone();
         let retired_shell_identity = retired_shell_binding.query_identity.clone();
-        let retire_contract = contracts
+        let retire_contract = members
             .last()
             .expect("shell rehome program always ends with retire contract");
         let region_handle = bind_existing_relation_handle(
@@ -93,7 +97,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 crate::topology_operators::application::bindings::query_entity_binding(
                     bindings, *face_id,
                 )?
-                .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(*face_id))?;
+                .ok_or(TopologyMutationApplicationError::MissingExistingEntityBinding(*face_id))?;
             let incoming_face_relation_ids =
                 crate::topology_operators::application::bindings::query_incoming_relation_ids(
                     bindings,
@@ -102,7 +106,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 )?;
             let [face_relation_id] = incoming_face_relation_ids.as_slice() else {
                 return Err(
-                    TopologyOperatorExecutionError::ExistingEntityIncomingRelationCountMismatch {
+                    TopologyMutationApplicationError::ExistingEntityIncomingRelationCountMismatch {
                         entity_id: *face_id,
                         relation_kind: TopologyRelationKind::ShellOwnsFace,
                         expected: 1,
@@ -116,7 +120,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     *face_relation_id,
                 )?
                 .ok_or(
-                    TopologyOperatorExecutionError::MissingExistingRelationBinding(
+                    TopologyMutationApplicationError::MissingExistingRelationBinding(
                         *face_relation_id,
                     ),
                 )?;
@@ -232,18 +236,18 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     retired_shell_handle.clone(),
                     "TopologyEntity",
                     TopologyEntityKind::Shell.kind_name(),
-                    retire_contract,
+                    *retire_contract,
                 )?;
                 Ok(())
             })
             .map_err(Into::into)
     }
 
-    pub(super) fn compose_shell_split_program(
+    pub(crate) fn compose_shell_split_program(
         &mut self,
         program: super::super::shell_face_rehome_support::ShellFaceSplitProgram,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyOperatorExecutionError> {
+    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyMutationApplicationError> {
         let retained_shell_id = program
             .retained_shell_id
             .expect("resolved shell split program always sets retained shell id");
@@ -253,13 +257,13 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 program.region_id,
             )?
             .ok_or(
-                TopologyOperatorExecutionError::MissingExistingEntityBinding(program.region_id),
+                TopologyMutationApplicationError::MissingExistingEntityBinding(program.region_id),
             )?;
         let face_binding = crate::topology_operators::application::bindings::query_entity_binding(
             bindings,
             program.face_id,
         )?
-        .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(program.face_id))?;
+        .ok_or(TopologyMutationApplicationError::MissingExistingEntityBinding(program.face_id))?;
         let incoming_face_relation_ids =
             crate::topology_operators::application::bindings::query_incoming_relation_ids(
                 bindings,
@@ -268,7 +272,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             )?;
         let [face_relation_id] = incoming_face_relation_ids.as_slice() else {
             return Err(
-                TopologyOperatorExecutionError::ExistingEntityIncomingRelationCountMismatch {
+                TopologyMutationApplicationError::ExistingEntityIncomingRelationCountMismatch {
                     entity_id: program.face_id,
                     relation_kind: TopologyRelationKind::ShellOwnsFace,
                     expected: 1,
@@ -282,7 +286,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 *face_relation_id,
             )?
             .ok_or(
-                TopologyOperatorExecutionError::MissingExistingRelationBinding(*face_relation_id),
+                TopologyMutationApplicationError::MissingExistingRelationBinding(*face_relation_id),
             )?;
         let retained_shell_binding =
             crate::topology_operators::application::bindings::query_entity_binding(
@@ -290,7 +294,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 retained_shell_id,
             )?
             .ok_or(
-                TopologyOperatorExecutionError::MissingExistingEntityBinding(retained_shell_id),
+                TopologyMutationApplicationError::MissingExistingEntityBinding(retained_shell_id),
             )?;
         let created_shell_key = program.create_key.clone();
         let face_dependency_path = topology_relation_dependency_path(

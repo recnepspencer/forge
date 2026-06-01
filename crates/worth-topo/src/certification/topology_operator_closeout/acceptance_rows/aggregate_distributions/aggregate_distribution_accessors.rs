@@ -1,5 +1,5 @@
 use crate::topology_operators::{
-    TopologyEditFamily, TopologyEditNamingOutcome, TopologyEditRejectionClass,
+    TopologyMutationFamily, TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
 };
 
 use super::super::super::report::{
@@ -8,7 +8,7 @@ use super::super::super::report::{
 };
 
 impl MilestoneThreeHostileFamilyCoverageRow {
-    pub fn family(&self) -> TopologyEditFamily {
+    pub fn family(&self) -> TopologyMutationFamily {
         self.family
     }
 
@@ -26,7 +26,7 @@ impl MilestoneThreeHostileFamilyCoverageRow {
 }
 
 impl MilestoneThreeHostileRejectionDistributionRow {
-    pub fn rejection_class(&self) -> TopologyEditRejectionClass {
+    pub fn rejection_class(&self) -> TopologyMutationRejectionClass {
         self.rejection_class
     }
 
@@ -44,7 +44,7 @@ impl MilestoneThreeHostileRejectionDistributionRow {
 }
 
 impl MilestoneThreeHostileNamingDistributionRow {
-    pub fn continuity_outcome_class(&self) -> TopologyEditNamingOutcome {
+    pub fn continuity_outcome_class(&self) -> TopologyMutationNamingOutcome {
         self.continuity_outcome_class
     }
 

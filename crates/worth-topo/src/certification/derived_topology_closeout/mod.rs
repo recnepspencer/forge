@@ -34,7 +34,7 @@ use crate::certification::support::reporting::{
 };
 use crate::facade::{
     build_topology_read_artifact, certify_topology_view, compare_derived_equivalence_contracts,
-    validate_named_topology_truth, ReplayParityStatus, TopologyQueryAssembly,
+    validate_named_topology_truth, ReplayParityStatus,
 };
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,

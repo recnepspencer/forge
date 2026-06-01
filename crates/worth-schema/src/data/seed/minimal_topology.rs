@@ -1,13 +1,13 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::TransactionCommitError;
 
-use crate::data::authority::{MutationOrigin, RawTopologyIntent, TopologyAuthority};
+use crate::data::authority::{MutationOrigin, RawTopologyIntent};
 use crate::data::entities::{EntityKind, NamingEntityKind, TopologyEntityKind};
 use crate::data::relations::{RelationKind, TopologyRelationKind};
 use crate::data::seed::labels::MinimalTopologyLabels;
 use crate::data::seed::lookup::find_seeded_entity;
 use crate::data::seed::types::{MinimalTopologySeed, SeededTopologyCommit};
-use crate::data::seed::{created_ref, TopologyCreateBatchBuilder};
+use crate::data::seed::{commit_topology_intent, created_ref, TopologyCreateBatchBuilder};
 
 pub fn seed_minimal_topology(
     runtime: &mut RelationalRuntime,
@@ -91,21 +91,12 @@ pub fn seed_minimal_topology_commit(
     runtime: &mut RelationalRuntime,
     stem: &str,
 ) -> Result<SeededTopologyCommit, TransactionCommitError> {
-    let verified = TopologyAuthority::new(runtime)
-        .apply_topology_intent_traced(build_minimal_topology_intent(stem))
-        .map(|traced| traced.into_primary_result())
-        .map_err(|error| match error.into_error() {
-            crate::data::authority::TopologyAuthorityError::Commit(error) => error,
+    commit_topology_intent(runtime, build_minimal_topology_intent(stem)).map_err(
+        |error| match error {
+            crate::data::seed::TopologyIntentCommitError::Commit(error) => error,
             other => panic!(" minimal topology seed should author successfully: {other:?}"),
-        })?;
-    Ok(SeededTopologyCommit::from_parts(
-        verified.canonical_batch,
-        verified.branch_id,
-        verified.commits,
-        verified.persisted_truth.snapshot.clone(),
-        verified.persisted_truth,
-        verified.read_basis,
-    ))
+        },
+    )
 }
 
 pub fn build_minimal_topology_intent(stem: &str) -> RawTopologyIntent {

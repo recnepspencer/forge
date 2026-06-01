@@ -187,7 +187,7 @@ fn lower_relation_endpoint(
             .cloned()
             .ok_or_else(|| {
                 ForgeQueryWorkspaceError::new(format!(
-                    "topology production runtime could not resolve same-batch created entity `{}` for relation `{label}` endpoint",
+                    "topology production runtime could not resolve same-mutation-set created entity `{}` for relation `{label}` endpoint",
                     reference.reference().symbol()
                 ))
             });

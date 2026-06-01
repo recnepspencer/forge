@@ -40,27 +40,27 @@ fn replay_branch_breadth_row(
     report: &MilestoneThreeHostileSuiteReport,
 ) -> MilestoneThreeReplayBranchBreadthRow {
     let replay_checked_scenario_count = report
-        .edit_replay_parity_rows
+        .mutation_replay_parity_rows
         .iter()
         .filter(|row| row.replay_checked && row.parity_status == ReplayParityStatus::Match)
         .count();
     let replay_step_count = report
-        .edit_replay_parity_rows
+        .mutation_replay_parity_rows
         .iter()
         .map(|row| row.step_count)
         .sum();
     let replay_comparison_step_count = report
-        .edit_replay_parity_rows
+        .mutation_replay_parity_rows
         .iter()
         .map(|row| row.replay_step_count)
         .sum();
     let replay_mismatch_count = report
-        .edit_replay_parity_rows
+        .mutation_replay_parity_rows
         .iter()
         .map(|row| row.mismatch_count)
         .sum();
     let accepted_branch_local_scenarios = report
-        .edit_branch_local_parity_rows
+        .mutation_branch_local_parity_rows
         .iter()
         .filter(|row| {
             row.outcome_class == MilestoneThreeHostileOutcomeClass::Accepted
@@ -73,7 +73,7 @@ fn replay_branch_breadth_row(
         .collect::<BTreeSet<_>>();
     let accepted_branch_local_row_count = accepted_branch_local_scenarios.len();
     let rejected_branch_local_scenarios = report
-        .edit_branch_local_parity_rows
+        .mutation_branch_local_parity_rows
         .iter()
         .filter_map(|row| {
             (row.outcome_class == MilestoneThreeHostileOutcomeClass::Rejected
@@ -86,12 +86,12 @@ fn replay_branch_breadth_row(
         .collect::<BTreeSet<_>>();
     let rejected_branch_local_row_count = rejected_branch_local_scenarios.len();
     let branch_truth_digest_count = report
-        .edit_branch_local_parity_rows
+        .mutation_branch_local_parity_rows
         .iter()
         .filter(|row| row.branch_truth_digest.is_some())
         .count();
     let unchanged_rejected_branch_count = report
-        .edit_branch_local_parity_rows
+        .mutation_branch_local_parity_rows
         .iter()
         .filter(|row| {
             row.outcome_class == MilestoneThreeHostileOutcomeClass::Rejected
@@ -102,7 +102,7 @@ fn replay_branch_breadth_row(
     let required_rejected_branch_local_count = milestone_three_rejected_scenarios().len();
     let required_accepted_branch_local_count =
         required_scenario_count - required_rejected_branch_local_count;
-    let branch_local_row_count = report.edit_branch_local_parity_rows.len();
+    let branch_local_row_count = report.mutation_branch_local_parity_rows.len();
 
     MilestoneThreeReplayBranchBreadthRow {
         required_scenario_count,
@@ -173,7 +173,7 @@ mod tests {
         let mut report = certified_report("m3.replay_branch_breadth.replay_drift");
 
         let replay_row = report
-            .edit_replay_parity_rows
+            .mutation_replay_parity_rows
             .first_mut()
             .expect("hostile suite should include replay rows");
         replay_row.mismatch_count = 1;
@@ -189,7 +189,7 @@ mod tests {
         let mut report = certified_report("m3.replay_branch_breadth.missing_accepted_branch");
 
         report
-            .edit_branch_local_parity_rows
+            .mutation_branch_local_parity_rows
             .retain(|row| row.outcome_class != super::MilestoneThreeHostileOutcomeClass::Accepted);
 
         assert!(
@@ -203,7 +203,7 @@ mod tests {
         let mut report = certified_report("m3.replay_branch_breadth.partial_accepted_branch");
 
         let mut removed = false;
-        report.edit_branch_local_parity_rows.retain(|row| {
+        report.mutation_branch_local_parity_rows.retain(|row| {
             if !removed && row.outcome_class == super::MilestoneThreeHostileOutcomeClass::Accepted {
                 removed = true;
                 false
@@ -223,13 +223,13 @@ mod tests {
         let mut report = certified_report("m3.replay_branch_breadth.duplicate_accepted_scenario");
 
         let duplicate = report
-            .edit_branch_local_parity_rows
+            .mutation_branch_local_parity_rows
             .iter()
             .find(|row| row.outcome_class == super::MilestoneThreeHostileOutcomeClass::Accepted)
             .expect("accepted branch-local evidence")
             .clone();
         let mut removed = false;
-        report.edit_branch_local_parity_rows.retain(|row| {
+        report.mutation_branch_local_parity_rows.retain(|row| {
             if !removed && row.scenario != duplicate.scenario {
                 removed = row.outcome_class == super::MilestoneThreeHostileOutcomeClass::Accepted;
                 !removed
@@ -237,7 +237,7 @@ mod tests {
                 true
             }
         });
-        report.edit_branch_local_parity_rows.push(duplicate);
+        report.mutation_branch_local_parity_rows.push(duplicate);
 
         assert!(
             ensure_replay_branch_breadth_rows(&report).is_err(),
@@ -250,7 +250,7 @@ mod tests {
         let mut report = certified_report("m3.replay_branch_breadth.missing_rejected_branch");
 
         report
-            .edit_branch_local_parity_rows
+            .mutation_branch_local_parity_rows
             .retain(|row| row.outcome_class != super::MilestoneThreeHostileOutcomeClass::Rejected);
 
         assert!(

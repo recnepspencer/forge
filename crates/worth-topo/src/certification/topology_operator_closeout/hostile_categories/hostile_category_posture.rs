@@ -2,12 +2,12 @@ use std::collections::BTreeSet;
 
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::ReplayParityStatus;
-use crate::topology_operators::TopologyEditFamily;
+use crate::topology_operators::TopologyMutationFamily;
 
 use super::super::operator_family_proof::{
     operator_family_closure_labels, primitive_family_closure_labels,
 };
-use super::super::query_traversal_proof::required_edited_query_traversal_views;
+use super::super::query_traversal_proof::required_mutation_query_traversal_views;
 use super::super::report::{MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileSuiteReport};
 use super::super::scale_pressure_proof::scale_pressure_labels;
 use super::hostile_category_requirements::{
@@ -87,12 +87,12 @@ fn mutation_pipeline_integrity_row(
         vec![
             format!("coverage_rows={}", report.coverage_rows.len()),
             format!(
-                "topology_edit_digest_rows={}",
-                report.topology_edit_digest_rows.len()
+                "topology_mutation_digest_rows={}",
+                report.topology_mutation_digest_rows.len()
             ),
             format!(
                 "naming_continuity_rows={}",
-                report.naming_edit_continuity_matrix_rows.len()
+                report.naming_mutation_continuity_matrix_rows.len()
             ),
         ],
         Vec::new(),
@@ -134,26 +134,31 @@ fn operator_brutality_row(
 fn query_traversal_brutality_row(
     report: &MilestoneThreeHostileSuiteReport,
 ) -> MilestoneThreeHostileCertificationCategoryRow {
-    let required_views = required_edited_query_traversal_views();
+    let required_views = required_mutation_query_traversal_views();
     let gap_labels = required_views
         .iter()
         .filter(|view| {
             !report
-                .edited_query_traversal_rows
+                .mutation_query_traversal_rows
                 .iter()
                 .any(|row| row.view == **view && row.parity_verified)
         })
-        .map(|view| format!("missing_edited_topology_query_traversal={}", view.as_str()))
+        .map(|view| {
+            format!(
+                "missing_mutation_topology_query_traversal={}",
+                view.as_str()
+            )
+        })
         .collect::<Vec<_>>();
     let edited_evidence_labels = report
-        .edited_query_traversal_rows
+        .mutation_query_traversal_rows
         .iter()
         .filter(|row| row.parity_verified)
-        .map(|row| format!("edited_topology_query_traversal={}", row.view.as_str()));
+        .map(|row| format!("mutation_topology_query_traversal={}", row.view.as_str()));
     category_row(
         MilestoneThreeHostileCertificationCategory::QueryTraversalBrutality,
         category_status_from_gaps(&gap_labels),
-        report.edited_query_traversal_rows.len(),
+        report.mutation_query_traversal_rows.len(),
         vec![
             format!(
                 "domain_read_requests={}",
@@ -174,7 +179,7 @@ fn query_traversal_brutality_row(
         gap_labels,
         report.side_quest_closeout_report.replay_verified_count
             + report
-                .edited_query_traversal_rows
+                .mutation_query_traversal_rows
                 .iter()
                 .filter(|row| row.parity_verified)
                 .count(),
@@ -190,8 +195,8 @@ fn non_manifold_radial_brutality_row(
         .iter()
         .filter(|scenario| {
             scenario
-                .edit_families
-                .contains(&TopologyEditFamily::SpliceRadialAdjacency)
+                .mutation_families
+                .contains(&TopologyMutationFamily::SpliceRadialAdjacency)
         })
         .count();
     category_row(
@@ -203,8 +208,8 @@ fn non_manifold_radial_brutality_row(
             .iter()
             .filter(|scenario| {
                 scenario
-                    .edit_families
-                    .contains(&TopologyEditFamily::SpliceRadialAdjacency)
+                    .mutation_families
+                    .contains(&TopologyMutationFamily::SpliceRadialAdjacency)
             })
             .map(|scenario| format!("radial_scenario={}", scenario.scenario.as_str()))
             .collect(),
@@ -329,7 +334,7 @@ fn category_status_from_gaps(gap_labels: &[String]) -> MilestoneThreeHostileCert
 
 fn replay_verified_count(report: &MilestoneThreeHostileSuiteReport) -> usize {
     report
-        .edit_replay_parity_rows
+        .mutation_replay_parity_rows
         .iter()
         .filter(|row| row.replay_checked && row.parity_status == ReplayParityStatus::Match)
         .count()

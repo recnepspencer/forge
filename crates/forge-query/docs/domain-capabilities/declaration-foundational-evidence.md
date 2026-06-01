@@ -98,6 +98,10 @@ Foundational evidence inspection:
 - `attachment_bundle() -> &FoundationalMaterializedBoundaryEvidenceAttachmentBundle`
 - `attachment_bundle_digest() -> &CanonicalDerivedDigest`
 - `materialization_profile() -> FoundationalBoundaryEvidenceMaterializationProfile`
+- `aspect_contract() -> &ForgeQueryDeclarationAspectContract`
+- `aspect_coverage() -> &ForgeQueryDeclarationAspectCoverage`
+- `aspect_coverage_basis() -> ForgeQueryDeclarationAspectCoverageBasis`
+- `aspect_publication() -> &ForgeQueryDeclarationAspectPublication`
 - `subject() -> &ForgeQueryDeclarationFoundationalEvidenceInput<D, I>`
 
 Construction-denial inspection:
@@ -118,6 +122,13 @@ Materialization profiles:
 - `FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness`
 - `FoundationalBoundaryEvidenceMaterializationProfile::ElideDiagnostics`
 - `FoundationalBoundaryEvidenceMaterializationProfile::ElideSupportAndDiagnostics`
+
+Aspect-publication inspection:
+
+- `aspect_publication().present()`
+- `aspect_publication().widened()`
+- `aspect_publication().elided()`
+- `aspect_publication().masked()`
 
 ## Core Mental Model
 
@@ -152,10 +163,38 @@ foundational evidence should stay observably different.
    - one materialized attachment bundle and bundle digest
 6. Query returns one evidence wrapper or one typed construction denial
 
-The ordinary lane uses
-`FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness`.
-Use `describe_foundational_with_profile(...)` when you want the same retained
-truth with a leaner materialized bundle.
+`describe_foundational(...)` uses the default full descriptive bundle for this
+direct feature. Use `describe_foundational_with_profile(...)` when you want the
+same retained truth with a leaner materialized bundle or when another surface,
+such as declaration-entry orchestration, has already chosen the lean
+foundational default for you.
+
+Those profiles now carry explicit semantic
+publication meaning:
+
+- `ElideSupportAndDiagnostics` publishes only the required semantic slices that
+  were visibly covered
+- `ElideDiagnostics` may widen publication to preserved support-relevant slices
+- `FullDescriptiveRichness` may widen publication again to intentionally
+  published descriptive slices
+- masked or conflicting slices stay masked rather than silently counting as
+  present
+
+`aspect_coverage_basis()` keeps that publication honest:
+
+- `ReviewedRetainedCoverage` means the evidence is publishing slices backed by
+  legality/progression review
+- `SupportReportedCoverage` means the evidence is publishing support-reported
+  coverage on a denied legality path rather than pretending review succeeded
+
+That distinction matters in practice:
+
+- admitted progression and legality-admitted evidence can publish reviewed
+  retained coverage
+- legality-denied evidence may still describe support-reported slices, but it
+  must not claim the same review basis as retained admitted proof
+- conflicting slices remain masked even on full descriptive publication rather
+  than being upgraded into visible truth
 
 ## Small Example
 
@@ -168,12 +207,14 @@ use forge_query::facade::{
 match handle.describe_foundational_checked(
     ForgeQueryDeclarationFoundationalEvidenceInput::progression_checked(
         handle.progress_declaration_checked(
-            handle.declare_and_review(SplitEdgeAtMidpoint { edge_ref: "edge:42" })?,
+            handle.declare_and_review(
+                geometry_session.attach_face_material_for_active_selection()?,
+            )?,
         ),
     ),
 ) {
     ForgeQueryDeclarationFoundationalEvidenceChecked::Described(evidence) => {
-        assert_eq!(evidence.declaration_family_key(), "split-edge");
+        assert_eq!(evidence.declaration_family_key(), "attach-face-material");
     }
     ForgeQueryDeclarationFoundationalEvidenceChecked::ConstructionDenied(denial) => {
         panic!("unexpected evidence denial: {}", denial.reason());
@@ -182,6 +223,11 @@ match handle.describe_foundational_checked(
 ```
 
 ## Real Example
+
+This is a low-level retained-shape example. The app-facing DX should still be
+dynamic context such as "attach material for the active face selection." The
+explicit refs below are just the canonical declaration content Query retains
+after your session already decided what that intent means.
 
 ```rust
 use forge_foundational::facade::FoundationalBoundaryEvidenceMaterializationProfile;
@@ -226,15 +272,15 @@ impl ForgeQueryDomainOperatingContext<GeometryDomain> for CollaborativeWorld {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct SplitEdge;
+struct AttachFaceMaterial;
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "attach-face-material"
     }
 
     fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
@@ -250,15 +296,22 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct SplitEdgeAtMidpoint {
-    edge_ref: &'static str,
+struct AttachFaceMaterialAssignment {
+    face_ref: &'static str,
+    material_profile_ref: &'static str,
 }
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeAtMidpoint {
-    type Family = SplitEdge;
+impl ForgeQueryDeclarationInput<GeometryDomain> for AttachFaceMaterialAssignment {
+    type Family = AttachFaceMaterial;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref)]
+        vec![
+            ForgeQueryDeclarationCanonicalEntry::text("face_ref", self.face_ref),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "material_profile_ref",
+                self.material_profile_ref,
+            ),
+        ]
     }
 }
 
@@ -269,8 +322,9 @@ let handle = query
     .validate()?
     .admit()?;
 
-let progressed = handle.declare_review_and_progress(SplitEdgeAtMidpoint {
-    edge_ref: "edge:42",
+let progressed = handle.declare_review_and_progress(AttachFaceMaterialAssignment {
+    face_ref: "face:loading-bay-west",
+    material_profile_ref: "material-profile:fire-rated-primer",
 })?;
 
 let evidence = handle.describe_foundational(
@@ -281,7 +335,7 @@ assert_eq!(
     evidence.class(),
     ForgeQueryDeclarationFoundationalEvidenceClass::ProgressionAdmitted,
 );
-assert_eq!(evidence.declaration_family_key(), "split-edge");
+assert_eq!(evidence.declaration_family_key(), "attach-face-material");
 assert_eq!(evidence.operating_context_identity_digest(), "geometry.collaborative");
 assert!(evidence.progression_digest().is_some());
 assert!(evidence.support_attachment().is_some());
@@ -289,8 +343,9 @@ assert!(evidence.receipt().is_some());
 
 let lean = handle.describe_foundational_with_profile(
     ForgeQueryDeclarationFoundationalEvidenceInput::admitted_progression(
-        handle.declare_review_and_progress(SplitEdgeAtMidpoint {
-            edge_ref: "edge:42",
+        handle.declare_review_and_progress(AttachFaceMaterialAssignment {
+            face_ref: "face:loading-bay-west",
+            material_profile_ref: "material-profile:fire-rated-primer",
         })?,
     ),
     FoundationalBoundaryEvidenceMaterializationProfile::ElideSupportAndDiagnostics,
@@ -308,6 +363,18 @@ What this example is showing:
 - the evidence wrapper preserves admitted-world identity and declaration truth
 - materialization profile changes the bundle shape without changing the retained
   declaration truth being described
+- `aspect_publication()` is where later route and orchestration surfaces learn
+  which semantic slices were actually present, widened, elided, or masked
+
+## Aspect Semantics
+
+Foundational evidence is the first publication-oriented aspect
+surface in the declaration-entry pipeline. Profiles such as lean,
+support-ready, and richer publication are no longer allowed to mean only
+"different descriptive richness." They must also describe which semantic
+slices are present, widened, elided, or masked so later route/materialization/
+orchestration surfaces can stay semantically honest without rediscovering that
+publication breadth themselves.
 
 ## How It Relates To Other Features
 
@@ -343,6 +410,10 @@ Use these surfaces when reviewing foundational evidence:
 - `evidence.receipt()`
 - `evidence.support_attachment()`
 - `evidence.attachment_bundle_digest()`
+- `evidence.aspect_contract()`
+- `evidence.aspect_coverage()`
+- `evidence.aspect_coverage_basis()`
+- `evidence.aspect_publication()`
 
 Use them to answer:
 
@@ -352,6 +423,8 @@ Use them to answer:
   evidence bundle digest
 - whether a difference came from world identity, legality truth, or progression
   outcome rather than from formatting or local callback behavior
+- whether lean, support-ready, and full-descriptive publication changed the
+  semantic slices honestly without changing the retained declaration truth
 
 ## Anti-Patterns
 

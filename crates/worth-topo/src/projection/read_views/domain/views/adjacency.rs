@@ -1,8 +1,8 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
-use super::super::error::TopologyDomainQueryError;
-use super::super::request::TopologyDomainQueryRequest;
-use super::super::topology::TopologyDomainQuery;
+use super::super::error::TopologyReadError;
+use super::super::request::TopologyReadRequest;
+use super::super::TopologyReadLedger;
 use crate::projection::read_views::{
     TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
 };
@@ -12,13 +12,13 @@ use crate::projection::runtime_boundary::read_execution::{
     uses_edge_relation_name, ExecutedTopologyReadFamily, SharedNeighborhoodReadKind,
 };
 
-impl TopologyDomainQuery {
-    pub fn shared_vertex_half_edge_neighborhood(
+impl TopologyReadLedger {
+    pub(crate) fn shared_vertex_half_edge_neighborhood(
         &self,
         workspace: &mut ForgeQueryWorkspace,
         source_identity: &str,
-    ) -> Result<TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyDomainQueryError> {
-        let request = TopologyDomainQueryRequest::HalfEdgeSharedVertexNeighborhood {
+    ) -> Result<TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyReadError> {
+        let request = TopologyReadRequest::HalfEdgeSharedVertexNeighborhood {
             source_half_edge_identity: source_identity.to_string(),
         };
         let executed = self.execute_shared_vertex_read(workspace, &request, source_identity)?;
@@ -46,12 +46,12 @@ impl TopologyDomainQuery {
         })
     }
 
-    pub fn radial_half_edge_neighborhood(
+    pub(crate) fn radial_half_edge_neighborhood(
         &self,
         workspace: &mut ForgeQueryWorkspace,
         source_identity: &str,
-    ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyDomainQueryError> {
-        let request = TopologyDomainQueryRequest::HalfEdgeRadialNeighborhood {
+    ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyReadError> {
+        let request = TopologyReadRequest::HalfEdgeRadialNeighborhood {
             source_half_edge_identity: source_identity.to_string(),
         };
         let executed = self.execute_radial_read(workspace, &request, source_identity)?;
@@ -79,9 +79,9 @@ impl TopologyDomainQuery {
     fn execute_shared_vertex_read(
         &self,
         workspace: &mut ForgeQueryWorkspace,
-        request: &TopologyDomainQueryRequest,
+        request: &TopologyReadRequest,
         source_identity: &str,
-    ) -> Result<ExecutedTopologyReadFamily, TopologyDomainQueryError> {
+    ) -> Result<ExecutedTopologyReadFamily, TopologyReadError> {
         execute_shared_neighborhood_read(
             workspace,
             request,
@@ -98,9 +98,9 @@ impl TopologyDomainQuery {
     fn execute_radial_read(
         &self,
         workspace: &mut ForgeQueryWorkspace,
-        request: &TopologyDomainQueryRequest,
+        request: &TopologyReadRequest,
         source_identity: &str,
-    ) -> Result<ExecutedTopologyReadFamily, TopologyDomainQueryError> {
+    ) -> Result<ExecutedTopologyReadFamily, TopologyReadError> {
         execute_shared_neighborhood_read(
             workspace,
             request,

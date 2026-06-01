@@ -1,0 +1,17 @@
+error[E0451]: field `_sealed` of struct `TopologyQueryDomain` is private
+ --> src/certification/public_facade_contracts/compile_fail/public_topology_query_domain_entry_constructors_not_exported.rs:7:35
+  |
+7 |     let _ = TopologyQueryDomain { _sealed: () };
+  |                                   ^^^^^^^ private field
+
+error[E0451]: field `_sealed` of struct `TopologyCurrentHeadAuthoritativeContext` is private
+ --> src/certification/public_facade_contracts/compile_fail/public_topology_query_domain_entry_constructors_not_exported.rs:8:55
+  |
+8 |     let _ = TopologyCurrentHeadAuthoritativeContext { _sealed: () };
+  |                                                       ^^^^^^^ private field
+
+error[E0451]: field `_sealed` of struct `TopologySnapshotReadOnlyContext` is private
+ --> src/certification/public_facade_contracts/compile_fail/public_topology_query_domain_entry_constructors_not_exported.rs:9:47
+  |
+9 |     let _ = TopologySnapshotReadOnlyContext { _sealed: () };
+  |                                               ^^^^^^^ private field

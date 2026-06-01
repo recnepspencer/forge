@@ -5,41 +5,41 @@ use schema::facade::topology_authoring::{seed_milestone_one_primitive, Milestone
 use serde_json::Value;
 
 use super::super::report::{
-    MilestoneThreeBowtieAdjacentWitness, MilestoneThreeEditReplayStepRow,
-    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario,
-    MilestoneThreeHostileScenarioReport,
+    MilestoneThreeBowtieAdjacentWitness, MilestoneThreeHostileOutcomeClass,
+    MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
+    MilestoneThreeMutationReplayStepRow,
 };
 use super::super::shared::{
-    accepted_step_row, aggregate_naming_edit_continuity_matrix, aggregate_topology_edit_digest,
-    derived_validation_report_from_materialized, entity_id_from_query_identity,
-    first_source_identity_for_relation_kind, rejected_step_row, relation_id_from_query_identity,
-    replay_checked, replay_checked_rejected,
+    accepted_step_row_for_declaration, derived_validation_report_from_materialized,
+    entity_id_from_query_identity, first_source_identity_for_relation_kind,
+    rejected_step_row_for_declaration, relation_id_from_query_identity, replay_checked,
+    replay_checked_rejected,
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::certification::support::parity::digest_materialized_topology_view;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::projection::TopologyDomainQuery;
 use crate::topology_operators::{
-    NamingEditContinuityMatrix, RejectedEditScopeReport, TopologyEditApplicationMode,
-    TopologyEditBatch, TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
-    TopologyEditRejectionClass,
+    application::TopologyDeclarationMutationPayload, NamingMutationContinuityMatrix,
+    RejectedMutationScopeReport, TopologyMutationDigest, TopologyMutationFamily,
+    TopologyMutationRejectionClass, TopologySpliceRadialAdjacencyDeclaration,
 };
 
 struct MilestoneThreeBowtieAdjacentRun {
     primitive_family: String,
     primitive: MilestoneOnePrimitiveCase,
-    topology_edit_digest: TopologyEditDigest,
-    naming_edit_continuity_matrix: NamingEditContinuityMatrix,
-    step_rows: Vec<MilestoneThreeEditReplayStepRow>,
+    topology_mutation_digest: TopologyMutationDigest,
+    naming_mutation_continuity_matrix: NamingMutationContinuityMatrix,
+    step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
     baseline_materialized_topology_digest: crate::certification::DeterministicDigest,
     final_materialized_topology_digest: Option<crate::certification::DeterministicDigest>,
     outcome_class: MilestoneThreeHostileOutcomeClass,
-    rejection_class: Option<TopologyEditRejectionClass>,
-    rejected_edit_scope_report: Option<RejectedEditScopeReport>,
+    rejection_class: Option<TopologyMutationRejectionClass>,
+    rejected_mutation_scope_report: Option<RejectedMutationScopeReport>,
     derived_validation_report: Option<crate::validation::DerivedTopologyValidationReport>,
     derived_materialization_fallback_class:
         Option<crate::derived_topology::materialized_graph::MaterializationFallbackClass>,
@@ -88,21 +88,21 @@ where
         scenario: MilestoneThreeHostileScenario::BowtieAdjacentRewire,
         primitive_family: left.primitive_family,
         primitive: left.primitive,
-        edit_families: vec![TopologyEditFamily::SpliceRadialAdjacency],
+        mutation_families: vec![TopologyMutationFamily::SpliceRadialAdjacency],
         bowtie_adjacent_witness: Some(left.witness),
         ambiguous_local_rewire_witness: None,
         split_collapse_churn_witness: None,
         broken_radial_witness: None,
-        topology_edit_digest: left.topology_edit_digest,
-        naming_edit_continuity_matrix: left.naming_edit_continuity_matrix.clone(),
-        continuity_outcome_class: left.naming_edit_continuity_matrix.outcome_class(),
-        continuity_rejection_class: left.naming_edit_continuity_matrix.rejection_class(),
+        topology_mutation_digest: left.topology_mutation_digest,
+        naming_mutation_continuity_matrix: left.naming_mutation_continuity_matrix.clone(),
+        continuity_outcome_class: left.naming_mutation_continuity_matrix.outcome_class(),
+        continuity_rejection_class: left.naming_mutation_continuity_matrix.rejection_class(),
         outcome_class: left.outcome_class,
         rejection_class: left.rejection_class,
-        rejected_edit_scope_report: left.rejected_edit_scope_report,
+        rejected_mutation_scope_report: left.rejected_mutation_scope_report,
         derived_validation_report: left.derived_validation_report,
         derived_materialization_fallback_class: left.derived_materialization_fallback_class,
-        edit_replay_parity_report: replay_report,
+        mutation_replay_parity_report: replay_report,
         detail: left.detail,
     })
 }
@@ -122,38 +122,36 @@ where
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, &format!("{stem}.bowtie_adjacent.runtime"))
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let baseline_snapshot = assembly
+    let baseline_snapshot = surfaces
         .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
         digest_materialized_topology_view(&baseline_snapshot.materialized);
-    let domain_query = TopologyDomainQuery::load();
-    let relation_rows = workspace.read::<Value>(assembly.relations());
+    let topology_read = TopologyReadProofHarness::new();
+    let relation_rows = workspace.read::<Value>(surfaces.relations());
     let source_identity = first_source_identity_for_relation_kind(
         &relation_rows,
         TopologyRelationKind::HalfEdgeRadialNext,
     )?;
     let source_half_edge_id = entity_id_from_query_identity(&source_identity)?;
     let bowtie_adjacent_witness =
-        build_bowtie_adjacent_witness(&domain_query, &mut workspace, &source_identity)?;
-    let radial = domain_query
+        build_bowtie_adjacent_witness(&topology_read, &mut workspace, &source_identity)?;
+    let radial = topology_read
         .radial_half_edge_neighborhood(&mut workspace, &source_identity)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let batch = TopologyEditBatch::new(vec![TopologyEditContract::splice_radial_adjacency(
+    let declaration = TopologySpliceRadialAdjacencyDeclaration::new(
         relation_id_from_query_identity(radial.source_radial_next_relation_identity())?,
         source_half_edge_id,
         entity_id_from_query_identity(bowtie_adjacent_witness.target_half_edge_identity.as_str())?,
-    )])
-    .expect("milestone three hostile batches are non-empty");
-    let batches = vec![batch.clone()];
+    );
 
-    match assembly.apply_edit(
-        &mut workspace,
-        batch.clone(),
-        TopologyEditApplicationMode::Mainline,
-    ) {
+    match execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration.clone())
+    {
         Ok(execution) => {
             let final_materialized_topology_digest =
                 digest_materialized_topology_view(&execution.materialized);
@@ -162,14 +160,18 @@ where
             Ok(MilestoneThreeBowtieAdjacentRun {
                 primitive_family,
                 primitive,
-                topology_edit_digest: aggregate_topology_edit_digest(&batches),
-                naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix(&batches),
-                step_rows: vec![accepted_step_row(0, &batch, &execution)],
+                topology_mutation_digest: declaration.topology_mutation_digest(),
+                naming_mutation_continuity_matrix: declaration.naming_continuity_matrix(),
+                step_rows: vec![accepted_step_row_for_declaration(
+                    0,
+                    &declaration,
+                    &execution,
+                )],
                 baseline_materialized_topology_digest,
                 final_materialized_topology_digest: Some(final_materialized_topology_digest),
                 outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
                 rejection_class: None,
-                rejected_edit_scope_report: None,
+                rejected_mutation_scope_report: None,
                 derived_validation_report: Some(derived_validation_report),
                 derived_materialization_fallback_class: execution
                     .materialized
@@ -184,14 +186,14 @@ where
         Err(error) => Ok(MilestoneThreeBowtieAdjacentRun {
             primitive_family,
             primitive,
-            topology_edit_digest: aggregate_topology_edit_digest(&batches),
-            naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix(&batches),
-            step_rows: vec![rejected_step_row(0, &batch, &error)],
+            topology_mutation_digest: declaration.topology_mutation_digest(),
+            naming_mutation_continuity_matrix: declaration.naming_continuity_matrix(),
+            step_rows: vec![rejected_step_row_for_declaration(0, &declaration, &error)],
             baseline_materialized_topology_digest,
             final_materialized_topology_digest: None,
             outcome_class: MilestoneThreeHostileOutcomeClass::Rejected,
             rejection_class: error.rejection_class(),
-            rejected_edit_scope_report: error.rejected_edit_scope_report(&batch),
+            rejected_mutation_scope_report: error.rejected_declaration_scope_report(&declaration),
             derived_validation_report: None,
             derived_materialization_fallback_class: None,
             witness: bowtie_adjacent_witness,
@@ -201,11 +203,11 @@ where
 }
 
 fn build_bowtie_adjacent_witness(
-    domain_query: &TopologyDomainQuery,
+    topology_read: &TopologyReadProofHarness,
     workspace: &mut ForgeQueryWorkspace,
     source_identity: &str,
 ) -> Result<MilestoneThreeBowtieAdjacentWitness, TopologyCertificationError> {
-    let neighborhood = domain_query
+    let neighborhood = topology_read
         .shared_vertex_half_edge_neighborhood(workspace, source_identity)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let target = neighborhood

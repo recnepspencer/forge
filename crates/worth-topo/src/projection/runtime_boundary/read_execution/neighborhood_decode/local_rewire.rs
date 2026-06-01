@@ -1,6 +1,6 @@
 use forge_query::facade::{ForgeQueryEntity, RelationName};
 
-use crate::projection::read_views::domain::error::TopologyDomainQueryError;
+use crate::projection::read_views::domain::error::TopologyReadError;
 use crate::projection::read_views::TopologyLoopNeighborEvidence;
 
 use super::super::row_decode::{cycle_identities_from_successors, RetainedTopologyRows};
@@ -20,7 +20,7 @@ pub(crate) fn decode_local_rewire_neighborhood(
     successor_relation: &RelationName,
     previous_relation: &RelationName,
     label: &str,
-) -> Result<DecodedLocalRewireNeighborhood, TopologyDomainQueryError> {
+) -> Result<DecodedLocalRewireNeighborhood, TopologyReadError> {
     let rows = RetainedTopologyRows::new(rows);
     let moved_row = rows.row(moved_identity, label)?;
     let old_successor_identity = moved_row
@@ -52,7 +52,7 @@ fn build_loop_neighbor_evidence(
     successor_relation: &RelationName,
     previous_relation: &RelationName,
     label: &str,
-) -> Result<Vec<TopologyLoopNeighborEvidence>, TopologyDomainQueryError> {
+) -> Result<Vec<TopologyLoopNeighborEvidence>, TopologyReadError> {
     cycle_identities
         .iter()
         .map(|identity| {

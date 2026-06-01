@@ -1,7 +1,7 @@
-use super::super::error::TopologyDomainQueryError;
-use super::super::request::TopologyDomainQueryRequest;
-use super::super::topology::TopologyDomainQuery;
-use crate::projection::diagnostic_surfaces::read_proof::report::TopologyDomainQueryRequestFamily;
+use super::super::error::TopologyReadError;
+use super::super::request::TopologyReadRequest;
+use super::super::TopologyReadLedger;
+use crate::projection::diagnostic_surfaces::read_proof::report::TopologyReadRequestFamily;
 use crate::projection::read_views::TopologyLocalRewireNeighborhoodView;
 use crate::projection::runtime_boundary::read_execution::{
     decode_local_rewire_neighborhood, execute_local_rewire_read, prev_relation_name,
@@ -9,20 +9,20 @@ use crate::projection::runtime_boundary::read_execution::{
 };
 use forge_query::facade::ForgeQueryWorkspace;
 
-impl TopologyDomainQuery {
-    pub fn local_rewire_neighborhood(
+impl TopologyReadLedger {
+    pub(crate) fn local_rewire_neighborhood(
         &self,
         workspace: &mut ForgeQueryWorkspace,
         moved_identity: &str,
         cycle_count: usize,
-    ) -> Result<TopologyLocalRewireNeighborhoodView, TopologyDomainQueryError> {
-        let request = TopologyDomainQueryRequest::LocalRewireNeighborhood {
+    ) -> Result<TopologyLocalRewireNeighborhoodView, TopologyReadError> {
+        let request = TopologyReadRequest::LocalRewireNeighborhood {
             moved_half_edge_identity: moved_identity.to_string(),
             cycle_depth: u8::try_from(cycle_count)
                 .expect("supported traversal depth must fit in u8"),
         };
         Self::require_supported_traversal_depth(
-            TopologyDomainQueryRequestFamily::LocalRewireNeighborhood,
+            TopologyReadRequestFamily::LocalRewireNeighborhood,
             cycle_count,
         )?;
         let executed = execute_local_rewire_read(workspace, &request, moved_identity, cycle_count)?;

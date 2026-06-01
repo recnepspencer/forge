@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::certification::error::TopologyCertificationError;
 use crate::topology_operators::{
-    TopologyEditFamily, TopologyEditNamingOutcome, TopologyEditRejectionClass,
+    TopologyMutationFamily, TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
 };
 
 use super::super::super::report::{
@@ -14,9 +14,9 @@ use super::super::super::report::{
 pub(in crate::certification::topology_operator_closeout) fn build_family_coverage_rows(
     reports: &[MilestoneThreeHostileScenarioReport],
 ) -> Vec<MilestoneThreeHostileFamilyCoverageRow> {
-    let mut rows = BTreeMap::<TopologyEditFamily, Vec<MilestoneThreeHostileScenario>>::new();
+    let mut rows = BTreeMap::<TopologyMutationFamily, Vec<MilestoneThreeHostileScenario>>::new();
     for report in reports {
-        for family in &report.edit_families {
+        for family in &report.mutation_families {
             rows.entry(*family).or_default().push(report.scenario);
         }
     }
@@ -38,8 +38,8 @@ pub(in crate::certification::topology_operator_closeout) fn build_rejection_dist
     reports: &[MilestoneThreeHostileScenarioReport],
 ) -> Vec<MilestoneThreeHostileRejectionDistributionRow> {
     let mut rows =
-        BTreeMap::<TopologyEditRejectionClass, Vec<MilestoneThreeHostileScenario>>::new();
-    for rejection_class in TopologyEditRejectionClass::ALL {
+        BTreeMap::<TopologyMutationRejectionClass, Vec<MilestoneThreeHostileScenario>>::new();
+    for rejection_class in TopologyMutationRejectionClass::ALL {
         rows.entry(rejection_class).or_default();
     }
     for report in reports {
@@ -66,7 +66,8 @@ pub(in crate::certification::topology_operator_closeout) fn build_rejection_dist
 pub(in crate::certification::topology_operator_closeout) fn build_naming_distribution_rows(
     reports: &[MilestoneThreeHostileScenarioReport],
 ) -> Vec<MilestoneThreeHostileNamingDistributionRow> {
-    let mut rows = BTreeMap::<TopologyEditNamingOutcome, Vec<MilestoneThreeHostileScenario>>::new();
+    let mut rows =
+        BTreeMap::<TopologyMutationNamingOutcome, Vec<MilestoneThreeHostileScenario>>::new();
     for report in reports {
         rows.entry(report.continuity_outcome_class)
             .or_default()
@@ -116,8 +117,8 @@ fn ensure_rejection_distribution_rows(
             "rejection distribution rows do not match scenario evidence",
         ));
     }
-    if report.rejection_distribution_rows.len() != TopologyEditRejectionClass::ALL.len()
-        || !TopologyEditRejectionClass::ALL
+    if report.rejection_distribution_rows.len() != TopologyMutationRejectionClass::ALL.len()
+        || !TopologyMutationRejectionClass::ALL
             .into_iter()
             .all(|rejection_class| {
                 report.rejection_distribution_rows.iter().any(|row| {
@@ -136,7 +137,7 @@ fn ensure_rejection_distribution_rows(
         ));
     }
     if !report.rejection_distribution_rows.iter().any(|row| {
-        row.rejection_class == TopologyEditRejectionClass::InvariantBlocked
+        row.rejection_class == TopologyMutationRejectionClass::InvariantBlocked
             && row.case_count == row.scenarios.len()
             && row.case_count >= 2
             && row.row_digest
@@ -159,8 +160,8 @@ fn ensure_naming_distribution_rows(
         ));
     }
     for outcome in [
-        TopologyEditNamingOutcome::Ambiguous,
-        TopologyEditNamingOutcome::Rejected,
+        TopologyMutationNamingOutcome::Ambiguous,
+        TopologyMutationNamingOutcome::Rejected,
     ] {
         let verified = report.naming_distribution_rows.iter().any(|row| {
             row.continuity_outcome_class == outcome
@@ -178,7 +179,7 @@ fn ensure_naming_distribution_rows(
 }
 
 fn family_coverage_row_digest(
-    family: TopologyEditFamily,
+    family: TopologyMutationFamily,
     scenarios: &[MilestoneThreeHostileScenario],
 ) -> String {
     format!(
@@ -189,7 +190,7 @@ fn family_coverage_row_digest(
 }
 
 fn rejection_distribution_row_digest(
-    rejection_class: TopologyEditRejectionClass,
+    rejection_class: TopologyMutationRejectionClass,
     scenarios: &[MilestoneThreeHostileScenario],
 ) -> String {
     format!(
@@ -200,7 +201,7 @@ fn rejection_distribution_row_digest(
 }
 
 fn naming_distribution_row_digest(
-    outcome: TopologyEditNamingOutcome,
+    outcome: TopologyMutationNamingOutcome,
     scenarios: &[MilestoneThreeHostileScenario],
 ) -> String {
     format!(
@@ -227,7 +228,7 @@ fn distribution_error(reason: &str) -> TopologyCertificationError {
 #[cfg(test)]
 mod tests {
     use crate::facade::certify_milestone_three_hostile_suite;
-    use crate::topology_operators::TopologyEditRejectionClass;
+    use crate::topology_operators::TopologyMutationRejectionClass;
     use crate::validation::reference_integrity::build_milestone_one_runtime;
 
     use super::ensure_hostile_distribution_rows;
@@ -259,7 +260,7 @@ mod tests {
         .expect("milestone three hostile suite should certify before tampering");
 
         report.rejection_distribution_rows.retain(|row| {
-            row.rejection_class != TopologyEditRejectionClass::DerivedFallbackExceeded
+            row.rejection_class != TopologyMutationRejectionClass::DerivedFallbackExceeded
         });
 
         assert!(

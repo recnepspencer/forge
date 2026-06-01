@@ -7,13 +7,10 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
     t.compile_fail(format!("{compile_fail}/mint_boundary_envelope.rs"));
     t.compile_fail(format!("{compile_fail}/mint_boundary_failure.rs"));
     t.compile_fail(format!(
-        "{compile_fail}/public_query_assembly_not_forgeable.rs"
-    ));
-    t.compile_fail(format!(
         "{compile_fail}/public_runtime_adapters_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_topology_operator_runner_not_exported.rs"
+        "{compile_fail}/public_topology_mutation_application_runner_not_exported.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_milestone_one_read_view_cert_not_exported.rs"
@@ -23,9 +20,6 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_runtime_constructor_requires_adapters.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_query_import_not_exported.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_query_row_materializer_not_exported.rs"
@@ -40,19 +34,16 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_runtime_read_family_support_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_runtime_edit_family_support_row_not_forgeable.rs"
+        "{compile_fail}/public_runtime_mutation_family_support_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_runtime_edit_lane_support_row_not_forgeable.rs"
+        "{compile_fail}/public_runtime_mutation_lane_support_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_runtime_posture_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_runtime_removed_edit_execution_supported_not_exported.rs"
-    ));
-    t.compile_fail(format!(
-        "{compile_fail}/public_runtime_removed_edit_lane_string_support_not_exported.rs"
+        "{compile_fail}/public_runtime_removed_mutation_lane_string_support_not_exported.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_runtime_removed_current_head_live_reads_supported_not_exported.rs"
@@ -64,18 +55,36 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_runtime_closeout_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_domain_query_request_report_not_forgeable.rs"
+        "{compile_fail}/public_topology_read_request_report_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_domain_query_closeout_report_not_forgeable.rs"
+        "{compile_fail}/public_topology_read_closeout_report_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_domain_query_closeout_row_not_forgeable.rs"
+        "{compile_fail}/public_topology_read_closeout_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_no_n_plus_one_contract_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_milestone_three_topology_edit_digest_row_not_forgeable.rs"
+        "{compile_fail}/public_milestone_three_topology_mutation_digest_row_not_forgeable.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_query_domain_entry_constructors_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_query_domain_entry_not_exported_from_facade.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_query_domain_entry_not_exported_from_projection.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_read_workspace_methods_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_reads_not_exported_from_facade.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_removed_domain_query_read_names_not_exported.rs"
     ));
 }

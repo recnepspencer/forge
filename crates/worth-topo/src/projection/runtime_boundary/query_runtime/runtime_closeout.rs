@@ -1,7 +1,7 @@
 use super::contracts::TopologyRuntimeSupport;
-use super::edit_support::{
-    TopologyQueryEditLaneExecutionShape, TopologyRuntimeEditFamilySupportRow,
-    TopologyRuntimeEditLaneSupportRow,
+use super::mutation_support::{
+    TopologyQueryMutationLaneExecutionShape, TopologyRuntimeMutationFamilySupportRow,
+    TopologyRuntimeMutationLaneSupportRow,
 };
 use super::read_support::TopologyRuntimeReadFamilySupportRow;
 
@@ -9,8 +9,8 @@ use super::read_support::TopologyRuntimeReadFamilySupportRow;
 pub enum TopologyRuntimeCloseoutFamily {
     BridgeBackedRuntimePath,
     QueryNativeTopologyReadFamilies,
-    QueryNativeTopologyEditFamilies,
-    QueryNativeGraphComposedEditLanes,
+    QueryNativeTopologyMutationFamilies,
+    QueryNativeGraphComposedMutationLanes,
     MirrorReadDeletion,
 }
 
@@ -18,8 +18,8 @@ impl TopologyRuntimeCloseoutFamily {
     pub const ALL: [Self; 5] = [
         Self::BridgeBackedRuntimePath,
         Self::QueryNativeTopologyReadFamilies,
-        Self::QueryNativeTopologyEditFamilies,
-        Self::QueryNativeGraphComposedEditLanes,
+        Self::QueryNativeTopologyMutationFamilies,
+        Self::QueryNativeGraphComposedMutationLanes,
         Self::MirrorReadDeletion,
     ];
 }
@@ -123,21 +123,21 @@ impl TopologyRuntimeSupport {
 
 pub(super) fn runtime_closeout_from_support_rows(
     read_family_support_rows: &[TopologyRuntimeReadFamilySupportRow],
-    edit_family_support_rows: &[TopologyRuntimeEditFamilySupportRow],
-    edit_lane_support_rows: &[TopologyRuntimeEditLaneSupportRow],
+    mutation_family_support_rows: &[TopologyRuntimeMutationFamilySupportRow],
+    mutation_lane_support_rows: &[TopologyRuntimeMutationLaneSupportRow],
 ) -> TopologyRuntimeCloseout {
     let all_read_families_admitted = read_family_support_rows
         .iter()
         .all(|row| row.status().is_admitted());
-    let all_edit_families_supported = edit_family_support_rows
+    let all_mutation_families_supported = mutation_family_support_rows
         .iter()
         .all(|row| row.status().is_supported());
-    let all_graph_composed_edit_lanes_admitted = edit_lane_support_rows
+    let all_graph_composed_mutation_lanes_admitted = mutation_lane_support_rows
         .iter()
         .filter(|row| {
             matches!(
                 row.execution_shape(),
-                TopologyQueryEditLaneExecutionShape::GraphComposition
+                TopologyQueryMutationLaneExecutionShape::GraphComposition
             )
         })
         .all(|row| row.status().is_admitted());
@@ -148,8 +148,8 @@ pub(super) fn runtime_closeout_from_support_rows(
                 runtime_closeout_row(
                     family,
                     all_read_families_admitted,
-                    all_edit_families_supported,
-                    all_graph_composed_edit_lanes_admitted,
+                    all_mutation_families_supported,
+                    all_graph_composed_mutation_lanes_admitted,
                 )
             })
             .collect(),
@@ -159,8 +159,8 @@ pub(super) fn runtime_closeout_from_support_rows(
 fn runtime_closeout_row(
     family: TopologyRuntimeCloseoutFamily,
     all_read_families_admitted: bool,
-    all_edit_families_supported: bool,
-    all_graph_composed_edit_lanes_admitted: bool,
+    all_mutation_families_supported: bool,
+    all_graph_composed_mutation_lanes_admitted: bool,
 ) -> TopologyRuntimeCloseoutRow {
     match family {
         TopologyRuntimeCloseoutFamily::BridgeBackedRuntimePath => {
@@ -182,29 +182,29 @@ fn runtime_closeout_row(
                 )
             }
         }
-        TopologyRuntimeCloseoutFamily::QueryNativeTopologyEditFamilies => {
-            if all_edit_families_supported {
+        TopologyRuntimeCloseoutFamily::QueryNativeTopologyMutationFamilies => {
+            if all_mutation_families_supported {
                 TopologyRuntimeCloseoutRow::satisfied(
                     family,
-                    "the public topology-domain edit families are admitted or lane-backed on this runtime posture",
+                    "the public topology-domain mutation families are admitted or lane-backed on this runtime posture",
                 )
             } else {
                 TopologyRuntimeCloseoutRow::blocked(
                     family,
-                    "one or more public topology-domain edit families remain outside the admitted runtime posture",
+                    "one or more public topology-domain mutation families remain outside the admitted runtime posture",
                 )
             }
         }
-        TopologyRuntimeCloseoutFamily::QueryNativeGraphComposedEditLanes => {
-            if all_graph_composed_edit_lanes_admitted {
+        TopologyRuntimeCloseoutFamily::QueryNativeGraphComposedMutationLanes => {
+            if all_graph_composed_mutation_lanes_admitted {
                 TopologyRuntimeCloseoutRow::satisfied(
                     family,
-                    "the composed public topology edit lanes are admitted on this runtime posture",
+                    "the composed public topology mutation lanes are admitted on this runtime posture",
                 )
             } else {
                 TopologyRuntimeCloseoutRow::blocked(
                     family,
-                    "one or more composed public topology edit lanes remain outside the admitted runtime posture",
+                    "one or more composed public topology mutation lanes remain outside the admitted runtime posture",
                 )
             }
         }

@@ -3,18 +3,18 @@ use topology::facade::{
     certify_milestone_three_closeout, MilestoneThreeChangedScopeCoverageRow,
     MilestoneThreeDerivedFallbackPolicyDenialRow, MilestoneThreeDerivedRegionCoverageRow,
     MilestoneThreeDerivedReuseLegalityRow, MilestoneThreeDerivedWorkBreadthRow,
-    MilestoneThreeDeterminismRuleRow, MilestoneThreeEditBranchLocalParityRow,
-    MilestoneThreeEditBreadthCounterRow, MilestoneThreeEditFalloutBreadthRow,
-    MilestoneThreeEditedTopologyQueryTraversalRow, MilestoneThreeFailureLocalityRow,
+    MilestoneThreeDeterminismRuleRow, MilestoneThreeFailureLocalityRow,
     MilestoneThreeHostileCertificationCategoryRow, MilestoneThreeHostileFamilyCoverageRow,
     MilestoneThreeHostileNamingDistributionRow, MilestoneThreeHostileRejectionDistributionRow,
-    MilestoneThreeHostileSuiteReport, MilestoneThreeNamingContinuityBreadthRow,
+    MilestoneThreeHostileSuiteReport, MilestoneThreeMutationBranchLocalParityRow,
+    MilestoneThreeMutationBreadthCounterRow, MilestoneThreeMutationFalloutBreadthRow,
+    MilestoneThreeMutationTopologyQueryTraversalRow, MilestoneThreeNamingContinuityBreadthRow,
     MilestoneThreeNamingContinuityMatrixRow, MilestoneThreeOperatorFamilyClosureRow,
-    MilestoneThreePrimitiveFamilyClosureRow, MilestoneThreeRejectedEditScopeReportRow,
+    MilestoneThreePrimitiveFamilyClosureRow, MilestoneThreeRejectedMutationScopeReportRow,
     MilestoneThreeReplayBranchBreadthRow, MilestoneThreeReturnGateBlockerRow,
     MilestoneThreeScalePressureRow, MilestoneThreeSideQuestBlockerRow,
     MilestoneThreeSideQuestCloseoutReport, MilestoneThreeSideQuestContractRow,
-    MilestoneThreeSplitCollapseChurnWitness, MilestoneThreeTopologyEditDigestRow,
+    MilestoneThreeSplitCollapseChurnWitness, MilestoneThreeTopologyMutationDigestRow,
     MilestoneThreeValidationBreadthRow, MilestoneThreeValidatorFamilyCoverageRow,
     TopologyCertificationError,
 };
@@ -52,26 +52,29 @@ fn _milestone_three_side_quest_report_contract(report: &MilestoneThreeHostileSui
     let _: &[MilestoneThreePrimitiveFamilyClosureRow] =
         report.primitive_family_closure_rows.as_slice();
     let _: &[MilestoneThreeScalePressureRow] = report.scale_pressure_rows.as_slice();
-    let _: &[MilestoneThreeTopologyEditDigestRow] = report.topology_edit_digest_rows.as_slice();
+    let _: &[MilestoneThreeTopologyMutationDigestRow] =
+        report.topology_mutation_digest_rows.as_slice();
     let _: &[MilestoneThreeNamingContinuityMatrixRow] =
-        report.naming_edit_continuity_matrix_rows.as_slice();
+        report.naming_mutation_continuity_matrix_rows.as_slice();
     let _: &[MilestoneThreeNamingContinuityBreadthRow] =
         report.naming_continuity_breadth_rows.as_slice();
-    let _: &[MilestoneThreeRejectedEditScopeReportRow] =
-        report.rejected_edit_scope_report_rows.as_slice();
-    let _: &[topology::facade::MilestoneThreeEditReplayParityRow] =
-        report.edit_replay_parity_rows.as_slice();
-    let _: &[MilestoneThreeEditBranchLocalParityRow] =
-        report.edit_branch_local_parity_rows.as_slice();
+    let _: &[MilestoneThreeRejectedMutationScopeReportRow] =
+        report.rejected_mutation_scope_report_rows.as_slice();
+    let _: &[topology::facade::MilestoneThreeMutationReplayParityRow] =
+        report.mutation_replay_parity_rows.as_slice();
+    let _: &[MilestoneThreeMutationBranchLocalParityRow] =
+        report.mutation_branch_local_parity_rows.as_slice();
     let _: &[MilestoneThreeReplayBranchBreadthRow] = report.replay_branch_breadth_rows.as_slice();
-    let _: &[MilestoneThreeEditedTopologyQueryTraversalRow] =
-        report.edited_query_traversal_rows.as_slice();
+    let _: &[MilestoneThreeMutationTopologyQueryTraversalRow] =
+        report.mutation_query_traversal_rows.as_slice();
     let _: &[MilestoneThreeChangedScopeCoverageRow] = report.changed_scope_coverage_rows.as_slice();
     let _: &[MilestoneThreeDerivedRegionCoverageRow] =
         report.derived_region_coverage_rows.as_slice();
     let _: &[MilestoneThreeDeterminismRuleRow] = report.determinism_rule_rows.as_slice();
-    let _: &[MilestoneThreeEditBreadthCounterRow] = report.edit_breadth_counter_rows.as_slice();
-    let _: &[MilestoneThreeEditFalloutBreadthRow] = report.edit_fallout_breadth_rows.as_slice();
+    let _: &[MilestoneThreeMutationBreadthCounterRow] =
+        report.mutation_breadth_counter_rows.as_slice();
+    let _: &[MilestoneThreeMutationFalloutBreadthRow] =
+        report.mutation_fallout_breadth_rows.as_slice();
     let _: &[MilestoneThreeDerivedFallbackPolicyDenialRow] =
         report.derived_fallback_policy_denial_rows.as_slice();
     let _: &[MilestoneThreeDerivedReuseLegalityRow] = report.derived_reuse_legality_rows.as_slice();
@@ -110,14 +113,14 @@ fn _milestone_three_return_gate_blocker_row_contract(
 
 fn _milestone_three_direct_acceptance_row_contracts(
     category_row: &MilestoneThreeHostileCertificationCategoryRow,
-    digest_row: &MilestoneThreeTopologyEditDigestRow,
+    digest_row: &MilestoneThreeTopologyMutationDigestRow,
     naming_row: &MilestoneThreeNamingContinuityMatrixRow,
     naming_breadth_row: &MilestoneThreeNamingContinuityBreadthRow,
-    rejection_row: &MilestoneThreeRejectedEditScopeReportRow,
-    replay_row: &topology::facade::MilestoneThreeEditReplayParityRow,
-    branch_row: &MilestoneThreeEditBranchLocalParityRow,
+    rejection_row: &MilestoneThreeRejectedMutationScopeReportRow,
+    replay_row: &topology::facade::MilestoneThreeMutationReplayParityRow,
+    branch_row: &MilestoneThreeMutationBranchLocalParityRow,
     replay_branch_breadth_row: &MilestoneThreeReplayBranchBreadthRow,
-    traversal_row: &MilestoneThreeEditedTopologyQueryTraversalRow,
+    traversal_row: &MilestoneThreeMutationTopologyQueryTraversalRow,
     operator_family_row: &MilestoneThreeOperatorFamilyClosureRow,
     primitive_row: &MilestoneThreePrimitiveFamilyClosureRow,
     scale_row: &MilestoneThreeScalePressureRow,
@@ -132,16 +135,16 @@ fn _milestone_three_direct_acceptance_row_contracts(
     let _: &[String] = category_row.gap_labels();
     let _: &str = category_row.row_digest();
     let _: topology::facade::MilestoneThreeHostileScenario = digest_row.scenario();
-    let _: &topology::facade::TopologyEditDigest = digest_row.topology_edit_digest();
-    let _: usize = digest_row.topology_edit_digest().fallback_policy_count;
+    let _: &topology::facade::TopologyMutationDigest = digest_row.topology_mutation_digest();
+    let _: usize = digest_row.topology_mutation_digest().fallback_policy_count;
     let _: usize = digest_row
-        .topology_edit_digest()
+        .topology_mutation_digest()
         .fallback_rejection_policy_count;
     let _: &str = digest_row.row_digest();
-    let _: &topology::facade::NamingEditContinuityMatrix =
-        naming_row.naming_edit_continuity_matrix();
-    let _: topology::facade::TopologyEditNamingOutcome = naming_row.continuity_outcome_class();
-    let _: Option<topology::facade::TopologyEditRejectionClass> =
+    let _: &topology::facade::NamingMutationContinuityMatrix =
+        naming_row.naming_mutation_continuity_matrix();
+    let _: topology::facade::TopologyMutationNamingOutcome = naming_row.continuity_outcome_class();
+    let _: Option<topology::facade::TopologyMutationRejectionClass> =
         naming_row.continuity_rejection_class();
     let _: topology::facade::MilestoneThreeHostileScenario = naming_breadth_row.scenario();
     let _: usize = naming_breadth_row.continuity_row_count();
@@ -151,10 +154,11 @@ fn _milestone_three_direct_acceptance_row_contracts(
     let _: usize = naming_breadth_row.naming_scope_count();
     let _: usize = naming_breadth_row.replay_step_count();
     let _: bool = naming_breadth_row.replay_checked();
-    let _: topology::facade::TopologyEditNamingOutcome = naming_breadth_row.outcome_class();
+    let _: topology::facade::TopologyMutationNamingOutcome = naming_breadth_row.outcome_class();
     let _: &str = naming_breadth_row.row_digest();
-    let _: &topology::facade::RejectedEditScopeReport = rejection_row.rejected_edit_scope_report();
-    let _: topology::facade::TopologyEditRejectionClass = rejection_row.rejection_class();
+    let _: &topology::facade::RejectedMutationScopeReport =
+        rejection_row.rejected_mutation_scope_report();
+    let _: topology::facade::TopologyMutationRejectionClass = rejection_row.rejection_class();
     let _: bool = replay_row.replay_checked();
     let _: topology::facade::ReplayParityStatus = replay_row.parity_status();
     let _: usize = replay_row.mismatch_count();
@@ -164,11 +168,11 @@ fn _milestone_three_direct_acceptance_row_contracts(
     let _: &str = branch_row.branch_id();
     let _: &str = branch_row.mutation_origin();
     let _: topology::facade::MilestoneThreeHostileOutcomeClass = branch_row.outcome_class();
-    let _: Option<topology::facade::TopologyEditRejectionClass> = branch_row.rejection_class();
-    let _: &[topology::facade::TopologyEditFamily] = branch_row.edit_families();
-    let _: &topology::facade::TopologyEditDigest = branch_row.topology_edit_digest();
-    let _: &topology::facade::NamingEditContinuityMatrix =
-        branch_row.naming_edit_continuity_matrix();
+    let _: Option<topology::facade::TopologyMutationRejectionClass> = branch_row.rejection_class();
+    let _: &[topology::facade::TopologyMutationFamily] = branch_row.mutation_families();
+    let _: &topology::facade::TopologyMutationDigest = branch_row.topology_mutation_digest();
+    let _: &topology::facade::NamingMutationContinuityMatrix =
+        branch_row.naming_mutation_continuity_matrix();
     let _: bool = branch_row.branch_head_diverged_from_main();
     let _: bool = branch_row.branch_head_unchanged_after_rejection();
     let _: Option<&topology::facade::DeterministicDigest> = branch_row.branch_truth_digest();
@@ -187,7 +191,8 @@ fn _milestone_three_direct_acceptance_row_contracts(
     let _: usize = replay_branch_breadth_row.unchanged_rejected_branch_count();
     let _: &str = replay_branch_breadth_row.row_digest();
     let _: topology::facade::MilestoneThreeHostileScenario = traversal_row.scenario();
-    let _: topology::facade::MilestoneThreeEditedTopologyQueryTraversalView = traversal_row.view();
+    let _: topology::facade::MilestoneThreeMutationTopologyQueryTraversalView =
+        traversal_row.view();
     let _: &str = traversal_row.left_view_digest();
     let _: &str = traversal_row.replay_view_digest();
     let _: bool = traversal_row.parity_verified();
@@ -195,7 +200,7 @@ fn _milestone_three_direct_acceptance_row_contracts(
     let _: usize = traversal_row.relationship_proof_admission_count();
     let _: usize = traversal_row.traversal_count();
     let _: &str = traversal_row.row_digest();
-    let _: topology::facade::TopologyEditFamily = operator_family_row.family();
+    let _: topology::facade::TopologyMutationFamily = operator_family_row.family();
     let _: &[String] = operator_family_row.admitted_lane_labels();
     let _: &[String] = operator_family_row.legal_evidence_labels();
     let _: &[String] = operator_family_row.hostile_evidence_labels();
@@ -215,8 +220,8 @@ fn _milestone_three_direct_acceptance_row_contracts(
     let _: &str = primitive_row.primitive_family();
     let _: &schema::facade::topology_authoring::MilestoneOnePrimitiveCase =
         primitive_row.primitive();
-    let _: &[topology::facade::TopologyEditFamily] = primitive_row.edit_families();
-    let _: &topology::facade::TopologyEditDigest = primitive_row.topology_edit_digest();
+    let _: &[topology::facade::TopologyMutationFamily] = primitive_row.mutation_families();
+    let _: &topology::facade::TopologyMutationDigest = primitive_row.topology_mutation_digest();
     let _: bool = primitive_row.replay_verified();
     let _: &topology::facade::DeterministicDigest =
         primitive_row.final_materialized_topology_digest();
@@ -229,9 +234,9 @@ fn _milestone_three_direct_acceptance_row_contracts(
     let _: &str = scale_row.primitive_family();
     let _: &schema::facade::topology_authoring::MilestoneOnePrimitiveCase = scale_row.primitive();
     let _: usize = scale_row.workload_size();
-    let _: usize = scale_row.edit_step_count();
+    let _: usize = scale_row.mutation_step_count();
     let _: bool = scale_row.branch_local();
-    let _: &topology::facade::TopologyEditDigest = scale_row.topology_edit_digest();
+    let _: &topology::facade::TopologyMutationDigest = scale_row.topology_mutation_digest();
     let _: bool = scale_row.replay_verified();
     let _: &str = scale_row.final_state_digest();
     let _: &str = scale_row.replay_final_state_digest();
@@ -246,8 +251,8 @@ fn _milestone_three_aggregate_acceptance_row_contracts(
     scope_row: &MilestoneThreeChangedScopeCoverageRow,
     region_row: &MilestoneThreeDerivedRegionCoverageRow,
     determinism_row: &MilestoneThreeDeterminismRuleRow,
-    breadth_row: &MilestoneThreeEditBreadthCounterRow,
-    fallout_row: &MilestoneThreeEditFalloutBreadthRow,
+    breadth_row: &MilestoneThreeMutationBreadthCounterRow,
+    fallout_row: &MilestoneThreeMutationFalloutBreadthRow,
     fallback_denial_row: &MilestoneThreeDerivedFallbackPolicyDenialRow,
     reuse_row: &MilestoneThreeDerivedReuseLegalityRow,
     derived_work_row: &MilestoneThreeDerivedWorkBreadthRow,
@@ -255,22 +260,22 @@ fn _milestone_three_aggregate_acceptance_row_contracts(
     validator_row: &MilestoneThreeValidatorFamilyCoverageRow,
     validation_breadth_row: &MilestoneThreeValidationBreadthRow,
 ) {
-    let _: topology::facade::TopologyEditFamily = family_row.family();
+    let _: topology::facade::TopologyMutationFamily = family_row.family();
     let _: usize = family_row.scenario_count();
     let _: &[topology::facade::MilestoneThreeHostileScenario] = family_row.scenarios();
     let _: &str = family_row.row_digest();
-    let _: topology::facade::TopologyEditRejectionClass =
+    let _: topology::facade::TopologyMutationRejectionClass =
         rejection_distribution_row.rejection_class();
     let _: usize = rejection_distribution_row.case_count();
     let _: &[topology::facade::MilestoneThreeHostileScenario] =
         rejection_distribution_row.scenarios();
     let _: &str = rejection_distribution_row.row_digest();
-    let _: topology::facade::TopologyEditNamingOutcome =
+    let _: topology::facade::TopologyMutationNamingOutcome =
         naming_distribution_row.continuity_outcome_class();
     let _: usize = naming_distribution_row.case_count();
     let _: &[topology::facade::MilestoneThreeHostileScenario] = naming_distribution_row.scenarios();
     let _: &str = naming_distribution_row.row_digest();
-    let _: topology::facade::TopologyEditChangedScope = scope_row.changed_scope();
+    let _: topology::facade::TopologyMutationChangedScope = scope_row.changed_scope();
     let _: usize = scope_row.scenario_count();
     let _: &[topology::facade::MilestoneThreeHostileScenario] = scope_row.scenarios();
     let _: &str = scope_row.row_digest();
@@ -285,14 +290,14 @@ fn _milestone_three_aggregate_acceptance_row_contracts(
     let _: bool = determinism_row.tie_break_evidence_stable();
     let _: &str = determinism_row.row_digest();
     let _: topology::facade::MilestoneThreeHostileScenario = breadth_row.scenario();
-    let _: usize = breadth_row.contract_count();
+    let _: usize = breadth_row.mutation_record_count();
     let _: usize = breadth_row.changed_scope_count();
     let _: bool = breadth_row.replay_checked();
-    let _: topology::facade::MilestoneThreeEditFalloutClass = fallout_row.fallout_class();
+    let _: topology::facade::MilestoneThreeMutationFalloutClass = fallout_row.fallout_class();
     let _: topology::facade::MilestoneThreeHostileScenario = fallout_row.scenario();
-    let _: topology::facade::TopologyEditDerivedFallbackPolicy = fallout_row.fallback_policy();
+    let _: topology::facade::TopologyMutationDerivedFallbackPolicy = fallout_row.fallback_policy();
     let _: bool = fallout_row.fallback_policy_exceeded();
-    let _: Option<topology::facade::TopologyEditRejectionClass> =
+    let _: Option<topology::facade::TopologyMutationRejectionClass> =
         fallout_row.fallback_rejection_class();
     let _: usize = fallout_row.declared_derived_region_count();
     let _: usize = fallout_row.derived_validation_row_count();
@@ -300,12 +305,12 @@ fn _milestone_three_aggregate_acceptance_row_contracts(
     let _: bool = fallout_row.locality_claim_mismatch();
     let _: &str = fallout_row.row_digest();
     let _: topology::facade::MilestoneThreeHostileScenario = fallback_denial_row.scenario();
-    let _: topology::facade::TopologyEditDerivedFallbackPolicy =
+    let _: topology::facade::TopologyMutationDerivedFallbackPolicy =
         fallback_denial_row.strict_fallback_policy();
-    let _: topology::facade::MilestoneThreeEditFalloutClass =
+    let _: topology::facade::MilestoneThreeMutationFalloutClass =
         fallback_denial_row.observed_fallout_class();
     let _: usize = fallback_denial_row.observed_fallback_count();
-    let _: topology::facade::TopologyEditRejectionClass =
+    let _: topology::facade::TopologyMutationRejectionClass =
         fallback_denial_row.denied_rejection_class();
     let _: bool = fallback_denial_row.policy_exceeded();
     let _: &str = fallback_denial_row.row_digest();
@@ -314,7 +319,7 @@ fn _milestone_three_aggregate_acceptance_row_contracts(
     let _: bool = reuse_row.equivalence_contract_required();
     let _: bool = reuse_row.replay_materialized_topology_equivalent();
     let _: usize = reuse_row.fallback_count();
-    let _: topology::facade::MilestoneThreeEditFalloutClass = reuse_row.fallout_class();
+    let _: topology::facade::MilestoneThreeMutationFalloutClass = reuse_row.fallout_class();
     let _: Option<&topology::facade::DeterministicDigest> = reuse_row.derived_validation_digest();
     let _: &str = reuse_row.row_digest();
     let _: topology::facade::MilestoneThreeHostileScenario = derived_work_row.scenario();
@@ -329,14 +334,14 @@ fn _milestone_three_aggregate_acceptance_row_contracts(
     let _: bool = derived_work_row.locality_claimed();
     let _: bool = derived_work_row.locality_claim_mismatch();
     let _: &str = derived_work_row.row_digest();
-    let _: topology::facade::TopologyEditRejectionClass = locality_row.rejection_class();
-    let _: &[topology::facade::TopologyEditFamily] = locality_row.families();
-    let _: &[topology::facade::TopologyEditChangedScope] = locality_row.changed_scopes();
+    let _: topology::facade::TopologyMutationRejectionClass = locality_row.rejection_class();
+    let _: &[topology::facade::TopologyMutationFamily] = locality_row.families();
+    let _: &[topology::facade::TopologyMutationChangedScope] = locality_row.changed_scopes();
     let _: &[topology::facade::TopologyDerivedRegion] = locality_row.derived_regions();
     let _: topology::facade::MilestoneThreeHostileScenario = validator_row.scenario();
     let _: topology::facade::MilestoneThreeValidatorFamily = validator_row.validator_family();
     let _: &[String] = validator_row.validator_names();
-    let _: usize = validator_row.edit_family_count();
+    let _: usize = validator_row.mutation_family_count();
     let _: usize = validator_row.changed_scope_count();
     let _: usize = validator_row.naming_scope_count();
     let _: usize = validator_row.derived_region_count();
@@ -348,7 +353,7 @@ fn _milestone_three_aggregate_acceptance_row_contracts(
         validation_breadth_row.outcome_class();
     let _: usize = validation_breadth_row.validator_family_count();
     let _: usize = validation_breadth_row.validator_name_count();
-    let _: usize = validation_breadth_row.edit_family_count();
+    let _: usize = validation_breadth_row.mutation_family_count();
     let _: usize = validation_breadth_row.changed_scope_count();
     let _: usize = validation_breadth_row.naming_scope_count();
     let _: usize = validation_breadth_row.derived_region_count();

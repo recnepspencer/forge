@@ -1,6 +1,7 @@
 use crate::application::{
     derive_bridge_routing_support_report, forge_query_checked_declaration_bridge_routing_on_handle,
-    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDeclarationBridgeRouting,
+    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDeclarationAspectFit,
+    ForgeQueryDeclarationAuthorityAspectMismatch, ForgeQueryDeclarationBridgeRouting,
     ForgeQueryDeclarationBridgeRoutingChecked, ForgeQueryDeclarationBridgeRoutingInput,
     ForgeQueryDeclarationBridgeRoutingSupportReport,
     ForgeQueryDeclarationBridgeRoutingSupportStatus,
@@ -43,7 +44,27 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
             .bridge_continuation_support::<I>()
             .rows()
             .first()
-            .map(|row| row.status())
+            .map(|row| {
+                if row.status() == ForgeQueryDeclarationBridgeRoutingSupportStatus::Unsupported
+                    && (matches!(
+                        row.aspect_mismatch(),
+                        Some(
+                            ForgeQueryDeclarationAuthorityAspectMismatch::MissingRequiredAspect
+                                | ForgeQueryDeclarationAuthorityAspectMismatch::AspectConflict
+                                | ForgeQueryDeclarationAuthorityAspectMismatch::AuthorityAspectGap
+                                | ForgeQueryDeclarationAuthorityAspectMismatch::AuthorityAspectAmbiguity
+                        )
+                    ) || !matches!(
+                        row.mapping_fit(),
+                        ForgeQueryDeclarationAspectFit::Exact
+                            | ForgeQueryDeclarationAspectFit::CompatibleSuperset
+                    ))
+                {
+                    ForgeQueryDeclarationBridgeRoutingSupportStatus::Admitted
+                } else {
+                    row.status()
+                }
+            })
             .unwrap_or(ForgeQueryDeclarationBridgeRoutingSupportStatus::Unsupported);
         forge_query_checked_declaration_bridge_routing_on_handle(
             self.handle_identity_digest(),

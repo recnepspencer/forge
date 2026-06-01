@@ -3,23 +3,23 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::seed_milestone_one_primitive;
 
 use super::super::super::report::{
-    MilestoneThreeEditBranchLocalParityRow, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileScenarioReport,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenarioReport,
+    MilestoneThreeMutationBranchLocalParityRow,
 };
-use super::accepted_branch_local::certify_accepted_branch_local_edit_parity_rows;
+use super::accepted_branch_local::certify_accepted_branch_local_mutation_parity_rows;
 use crate::certification::error::TopologyCertificationError;
 
-pub(in crate::certification::topology_operator_closeout) fn certify_milestone_three_branch_local_edit_parity_impl<
+pub(in crate::certification::topology_operator_closeout) fn certify_milestone_three_branch_local_mutation_parity_impl<
     F,
 >(
     mut runtime_factory: F,
     stem: &str,
     scenario_reports: &[MilestoneThreeHostileScenarioReport],
-) -> Result<Vec<MilestoneThreeEditBranchLocalParityRow>, TopologyCertificationError>
+) -> Result<Vec<MilestoneThreeMutationBranchLocalParityRow>, TopologyCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
-    let mut rows = certify_accepted_branch_local_edit_parity_rows(
+    let mut rows = certify_accepted_branch_local_mutation_parity_rows(
         &mut runtime_factory,
         stem,
         scenario_reports,
@@ -36,7 +36,7 @@ fn certify_rejected_branch_local_diagnostic_parity<F>(
     runtime_factory: &mut F,
     stem: &str,
     scenario_reports: &[MilestoneThreeHostileScenarioReport],
-) -> Result<Vec<MilestoneThreeEditBranchLocalParityRow>, TopologyCertificationError>
+) -> Result<Vec<MilestoneThreeMutationBranchLocalParityRow>, TopologyCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
@@ -51,7 +51,7 @@ fn rejected_branch_local_row<F>(
     runtime_factory: &mut F,
     stem: &str,
     report: &MilestoneThreeHostileScenarioReport,
-) -> Result<MilestoneThreeEditBranchLocalParityRow, TopologyCertificationError>
+) -> Result<MilestoneThreeMutationBranchLocalParityRow, TopologyCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
@@ -87,16 +87,16 @@ where
             report.scenario.as_str()
         ))
     })?;
-    Ok(MilestoneThreeEditBranchLocalParityRow {
+    Ok(MilestoneThreeMutationBranchLocalParityRow {
         scenario: Some(report.scenario),
         branch_label: branch_label.clone(),
         branch_id: branch_label.clone(),
         mutation_origin: "branch_local_application".to_string(),
         outcome_class: MilestoneThreeHostileOutcomeClass::Rejected,
         rejection_class: Some(rejection_class),
-        edit_families: report.edit_families.clone(),
-        topology_edit_digest: report.topology_edit_digest.clone(),
-        naming_edit_continuity_matrix: report.naming_edit_continuity_matrix.clone(),
+        mutation_families: report.mutation_families.clone(),
+        topology_mutation_digest: report.topology_mutation_digest.clone(),
+        naming_mutation_continuity_matrix: report.naming_mutation_continuity_matrix.clone(),
         branch_head_diverged_from_main: false,
         branch_head_unchanged_after_rejection: branch_head_before_rejection
             == branch_head_after_rejection,

@@ -1,13 +1,19 @@
 use schema::facade::platform::aspects::Aspect;
 use schema::facade::platform::authority::{
+<<<<<<< HEAD
     CreateKey, EntityReference, MutationOrigin, RawTopologyIntent, TopologyMutationBatch,
+=======
+    CreateKey, EntityReference, MutationOrigin, RawTopologyIntent,
+>>>>>>> origin/master
 };
 use schema::facade::platform::entities::EntityKind;
 use schema::facade::platform::relations::RelationKind;
 use schema::facade::topology_authoring::{
-    milestone_one_default_primitive_corpus, CanonicalTopologyMutationBatch,
+    commit_topology_intent, commit_topology_intent_on_branch, commit_topology_mutation_set,
+    commit_topology_mutation_set_on_branch, milestone_one_default_primitive_corpus,
     CertifiedTopologyInterpretation, DerivedTopologyReadBasis, DerivedTruthBasisIdentity,
-    MilestoneOnePrimitiveScenario, PersistedTopologyTruthBatch, SeededTopologyCommit,
+    MilestoneOnePrimitiveScenario, PersistedTopologyTruth, SeededTopologyCommit,
+    TopologyCommittedMutationSet, TopologyIntentCommitError, TopologyMutationSetCommitError,
     TopologyReadArtifact,
 };
 use schema::facade::{
@@ -42,7 +48,7 @@ fn _truth_vocab_contract(
     entity_reference: EntityReference,
     mutation_origin: MutationOrigin,
     intent: RawTopologyIntent,
-    batch: TopologyMutationBatch,
+    committed_mutation_set: TopologyCommittedMutationSet,
 ) {
     let _ = (
         aspect,
@@ -52,7 +58,7 @@ fn _truth_vocab_contract(
         entity_reference,
         mutation_origin,
         intent,
-        batch,
+        committed_mutation_set,
     );
 }
 
@@ -80,23 +86,44 @@ struct QueryLiveSurfaceContract {
 
 fn _topology_authoring_support_contract(
     seeded: SeededTopologyCommit,
-    canonical: CanonicalTopologyMutationBatch,
-    persisted: PersistedTopologyTruthBatch,
+    committed_mutation_set: TopologyCommittedMutationSet,
+    persisted: PersistedTopologyTruth,
     read_basis: DerivedTopologyReadBasis,
     read_artifact: TopologyReadArtifact,
     certified: CertifiedTopologyInterpretation,
     truth_basis: DerivedTruthBasisIdentity,
 ) {
+    let _: fn(
+        &mut forge_relational::facade::runtime::RelationalRuntime,
+        &'static str,
+        Vec<forge_relational::facade::transactions::MutationIntent>,
+    ) -> Result<
+        forge_relational::facade::transactions::CommitResult,
+        TopologyMutationSetCommitError,
+    > = commit_topology_mutation_set;
+    let _: fn(
+        &mut forge_relational::facade::runtime::RelationalRuntime,
+        forge_relational::facade::history::BranchId,
+        &'static str,
+        Vec<forge_relational::facade::transactions::MutationIntent>,
+    ) -> Result<
+        forge_relational::facade::transactions::CommitResult,
+        TopologyMutationSetCommitError,
+    > = commit_topology_mutation_set_on_branch;
     let _ = (
+        commit_topology_intent,
+        commit_topology_intent_on_branch,
         seeded.snapshot(),
         seeded.branch_id(),
         seeded.commits(),
-        canonical,
+        committed_mutation_set,
         persisted,
         read_basis,
         read_artifact,
         certified,
         truth_basis,
+        std::mem::size_of::<TopologyIntentCommitError>(),
+        std::mem::size_of::<TopologyMutationSetCommitError>(),
     );
 }
 

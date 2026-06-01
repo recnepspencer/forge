@@ -41,7 +41,7 @@ fn hostile_suite_category_posture_is_certified_and_gapless() {
     assert_category_has_evidence(
         &report,
         "primitive_topology_family_closure",
-        "primitive_family_edit_closure=WireClosed(n)",
+        "primitive_family_mutation_closure=WireClosed(n)",
     );
     assert_category_has_evidence(
         &report,
@@ -51,7 +51,7 @@ fn hostile_suite_category_posture_is_certified_and_gapless() {
     assert_category_has_evidence(
         &report,
         "query_traversal_brutality",
-        "edited_topology_query_traversal=post_edit_loop_cycle_view",
+        "mutation_topology_query_traversal=post_mutation_loop_cycle_view",
     );
     assert_category_has_evidence(
         &report,

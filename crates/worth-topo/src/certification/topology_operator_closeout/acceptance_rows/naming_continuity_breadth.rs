@@ -10,16 +10,16 @@ pub(in crate::certification::topology_operator_closeout) fn build_naming_continu
     reports
         .iter()
         .map(|report| {
-            let matrix = &report.naming_edit_continuity_matrix;
+            let matrix = &report.naming_mutation_continuity_matrix;
             MilestoneThreeNamingContinuityBreadthRow {
                 scenario: report.scenario,
                 continuity_row_count: matrix.rows.len(),
                 preserved_count: matrix.preserved_count,
                 ambiguous_count: matrix.ambiguous_count,
                 rejected_count: matrix.rejected_count,
-                naming_scope_count: report.topology_edit_digest.naming_scope_count,
-                replay_step_count: report.edit_replay_parity_report.step_rows.len(),
-                replay_checked: report.edit_replay_parity_report.replay_checked,
+                naming_scope_count: report.topology_mutation_digest.naming_scope_count,
+                replay_step_count: report.mutation_replay_parity_report.step_rows.len(),
+                replay_checked: report.mutation_replay_parity_report.replay_checked,
                 outcome_class: report.continuity_outcome_class,
                 row_digest: format!(
                     "scenario={};continuity_rows={};preserved={};ambiguous={};rejected={};naming_scopes={};replay_steps={};replay_checked={}",
@@ -28,9 +28,9 @@ pub(in crate::certification::topology_operator_closeout) fn build_naming_continu
                     matrix.preserved_count,
                     matrix.ambiguous_count,
                     matrix.rejected_count,
-                    report.topology_edit_digest.naming_scope_count,
-                    report.edit_replay_parity_report.step_rows.len(),
-                    report.edit_replay_parity_report.replay_checked
+                    report.topology_mutation_digest.naming_scope_count,
+                    report.mutation_replay_parity_report.step_rows.len(),
+                    report.mutation_replay_parity_report.replay_checked
                 ),
             }
         })

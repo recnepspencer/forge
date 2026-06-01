@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn runtime_invariants_block_create_batches_missing_persistent_names() {
+fn runtime_invariants_block_create_mutations_missing_persistent_names() {
     let mut runtime = milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();

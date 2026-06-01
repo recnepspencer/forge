@@ -3,7 +3,8 @@ use std::marker::PhantomData;
 use crate::application::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryApplicationFacade,
     ForgeQueryBridgeContinuationAuthority, ForgeQueryCapabilityFamily, ForgeQueryConfig,
-    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationBridgeContinuationContract,
+    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationBridgeContinuationContract,
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationEnvelope,
     ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationRelationalTruthContract,
@@ -126,6 +127,93 @@ define_family!(
     Some(ForgeQueryDeclarationSignalCompatibilityContract::preview_derived_execution())
 );
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct AuthorityRichFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AuthorityRichFamily {
+    type PrimaryAuthority = ForgeQueryMixedAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "AuthorityRichFamily"
+    }
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::relational_and_bridge()
+    }
+    fn relational_truth_contract() -> Option<ForgeQueryDeclarationRelationalTruthContract> {
+        Some(
+            ForgeQueryDeclarationRelationalTruthContract::grouped_truth().with_required_aspects(
+                ForgeQueryDeclarationAspectContract::from_slices(
+                    &["selection.active_face"],
+                    &["selection.neighborhood"],
+                    &[],
+                    &[],
+                    &[],
+                ),
+            ),
+        )
+    }
+    fn bridge_continuation_contract() -> Option<ForgeQueryDeclarationBridgeContinuationContract> {
+        Some(
+            ForgeQueryDeclarationBridgeContinuationContract::preview_session()
+                .with_required_aspects(ForgeQueryDeclarationAspectContract::from_slices(
+                    &["continuation.preview_ready"],
+                    &[],
+                    &[],
+                    &[],
+                    &[],
+                )),
+        )
+    }
+    fn signal_compatibility_contract() -> Option<ForgeQueryDeclarationSignalCompatibilityContract> {
+        Some(
+            ForgeQueryDeclarationSignalCompatibilityContract::preview_derived_execution()
+                .with_aspects(
+                    ForgeQueryDeclarationAspectContract::from_slices(
+                        &["signal.material_edit"],
+                        &[],
+                        &[],
+                        &[],
+                        &[],
+                    ),
+                    ForgeQueryDeclarationAspectContract::from_slices(
+                        &["signal.preview_patch"],
+                        &[],
+                        &[],
+                        &[],
+                        &[],
+                    ),
+                ),
+        )
+    }
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        ForgeQueryDeclarationAspectContract::from_slices(
+            &["selection.active_face"],
+            &["selection.neighborhood"],
+            &["continuation.preview_ready", "signal.material_edit"],
+            &["selection.private_authority"],
+            &[],
+        )
+    }
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        ForgeQueryDeclarationAspectCoverage::from_slices(
+            &[
+                "selection.active_face",
+                "selection.neighborhood",
+                "continuation.preview_ready",
+                "signal.material_edit",
+                "selection.private_authority",
+            ],
+            &["selection.private_authority"],
+            &[],
+        )
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Input<F>(pub &'static str, pub PhantomData<F>);
 impl<F> Input<F> {
@@ -148,7 +236,8 @@ impl_input!(
     RelationalFamily,
     BridgeSignalFamily,
     DeferredSignalFamily,
-    MixedFamily
+    MixedFamily,
+    AuthorityRichFamily
 );
 
 pub fn handle(
@@ -210,6 +299,21 @@ pub fn bridge_signal_envelope<C: ForgeQueryDomainOperatingContext<GeometryDomain
 ) -> ForgeQueryDeclarationEnvelope<GeometryDomain, Input<BridgeSignalFamily>> {
     let progressed =
         match handle.declare_review_and_progress(Input::<BridgeSignalFamily>::new(edge_ref)) {
+            Ok(progressed) => progressed,
+            Err(_) => panic!("progression should succeed"),
+        };
+    match handle.envelope_routes_from_progressed(progressed) {
+        Ok(envelope) => envelope,
+        Err(_) => panic!("envelope should succeed"),
+    }
+}
+
+pub fn authority_rich_envelope<C: ForgeQueryDomainOperatingContext<GeometryDomain>>(
+    handle: &ForgeQueryAdmittedConfiguredDomainHandle<GeometryDomain, C>,
+    edge_ref: &'static str,
+) -> ForgeQueryDeclarationEnvelope<GeometryDomain, Input<AuthorityRichFamily>> {
+    let progressed =
+        match handle.declare_review_and_progress(Input::<AuthorityRichFamily>::new(edge_ref)) {
             Ok(progressed) => progressed,
             Err(_) => panic!("progression should succeed"),
         };

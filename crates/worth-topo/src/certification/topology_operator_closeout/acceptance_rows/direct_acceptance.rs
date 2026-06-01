@@ -1,5 +1,5 @@
 use crate::certification::error::TopologyCertificationError;
-use crate::topology_operators::TopologyEditNamingOutcome;
+use crate::topology_operators::TopologyMutationNamingOutcome;
 
 use super::super::derived_fallout::MilestoneThreeDerivedFallbackPolicyDenialRow;
 use super::super::derived_fallout::MilestoneThreeDerivedReuseLegalityRow;
@@ -17,12 +17,12 @@ use super::super::naming_continuity_breadth_row::MilestoneThreeNamingContinuityB
 use super::super::report::{
     MilestoneThreeChangedScopeCoverageRow, MilestoneThreeDerivedRegionCoverageRow,
     MilestoneThreeDeterminismRuleKind, MilestoneThreeDeterminismRuleRow,
-    MilestoneThreeEditBreadthCounterRow, MilestoneThreeEditFalloutBreadthRow,
-    MilestoneThreeEditFalloutClass, MilestoneThreeEditReplayParityRow,
     MilestoneThreeFailureLocalityRow, MilestoneThreeHostileScenario,
     MilestoneThreeHostileScenarioReport, MilestoneThreeHostileSuiteReport,
-    MilestoneThreeNamingContinuityMatrixRow, MilestoneThreeRejectedEditScopeReportRow,
-    MilestoneThreeTopologyEditDigestRow,
+    MilestoneThreeMutationBreadthCounterRow, MilestoneThreeMutationFalloutBreadthRow,
+    MilestoneThreeMutationFalloutClass, MilestoneThreeMutationReplayParityRow,
+    MilestoneThreeNamingContinuityMatrixRow, MilestoneThreeRejectedMutationScopeReportRow,
+    MilestoneThreeTopologyMutationDigestRow,
 };
 use super::super::{milestone_three_rejected_scenarios, milestone_three_required_scenarios};
 use super::aggregate_acceptance::build_aggregate_acceptance_rows;
@@ -32,16 +32,16 @@ use super::naming_continuity_breadth::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::certification::topology_operator_closeout) struct MilestoneThreeDirectAcceptanceRows {
-    pub topology_edit_digest_rows: Vec<MilestoneThreeTopologyEditDigestRow>,
-    pub naming_edit_continuity_matrix_rows: Vec<MilestoneThreeNamingContinuityMatrixRow>,
+    pub topology_mutation_digest_rows: Vec<MilestoneThreeTopologyMutationDigestRow>,
+    pub naming_mutation_continuity_matrix_rows: Vec<MilestoneThreeNamingContinuityMatrixRow>,
     pub naming_continuity_breadth_rows: Vec<MilestoneThreeNamingContinuityBreadthRow>,
-    pub rejected_edit_scope_report_rows: Vec<MilestoneThreeRejectedEditScopeReportRow>,
-    pub edit_replay_parity_rows: Vec<MilestoneThreeEditReplayParityRow>,
+    pub rejected_mutation_scope_report_rows: Vec<MilestoneThreeRejectedMutationScopeReportRow>,
+    pub mutation_replay_parity_rows: Vec<MilestoneThreeMutationReplayParityRow>,
     pub changed_scope_coverage_rows: Vec<MilestoneThreeChangedScopeCoverageRow>,
     pub derived_region_coverage_rows: Vec<MilestoneThreeDerivedRegionCoverageRow>,
     pub determinism_rule_rows: Vec<MilestoneThreeDeterminismRuleRow>,
-    pub edit_breadth_counter_rows: Vec<MilestoneThreeEditBreadthCounterRow>,
-    pub edit_fallout_breadth_rows: Vec<MilestoneThreeEditFalloutBreadthRow>,
+    pub mutation_breadth_counter_rows: Vec<MilestoneThreeMutationBreadthCounterRow>,
+    pub mutation_fallout_breadth_rows: Vec<MilestoneThreeMutationFalloutBreadthRow>,
     pub derived_fallback_policy_denial_rows: Vec<MilestoneThreeDerivedFallbackPolicyDenialRow>,
     pub derived_reuse_legality_rows: Vec<MilestoneThreeDerivedReuseLegalityRow>,
     pub derived_work_breadth_rows: Vec<MilestoneThreeDerivedWorkBreadthRow>,
@@ -53,22 +53,24 @@ pub(in crate::certification::topology_operator_closeout) fn build_direct_accepta
 ) -> MilestoneThreeDirectAcceptanceRows {
     let aggregate_rows = build_aggregate_acceptance_rows(reports);
     let derived_reuse_legality_rows =
-        build_derived_reuse_legality_rows(reports, &aggregate_rows.edit_fallout_breadth_rows);
+        build_derived_reuse_legality_rows(reports, &aggregate_rows.mutation_fallout_breadth_rows);
     let derived_work_breadth_rows =
-        build_derived_work_breadth_rows(reports, &aggregate_rows.edit_fallout_breadth_rows);
+        build_derived_work_breadth_rows(reports, &aggregate_rows.mutation_fallout_breadth_rows);
     let derived_fallback_policy_denial_rows =
-        build_fallback_policy_denial_rows(&aggregate_rows.edit_fallout_breadth_rows);
+        build_fallback_policy_denial_rows(&aggregate_rows.mutation_fallout_breadth_rows);
     MilestoneThreeDirectAcceptanceRows {
-        topology_edit_digest_rows: build_topology_edit_digest_rows(reports),
-        naming_edit_continuity_matrix_rows: build_naming_edit_continuity_matrix_rows(reports),
+        topology_mutation_digest_rows: build_topology_mutation_digest_rows(reports),
+        naming_mutation_continuity_matrix_rows: build_naming_mutation_continuity_matrix_rows(
+            reports,
+        ),
         naming_continuity_breadth_rows: build_naming_continuity_breadth_rows(reports),
-        rejected_edit_scope_report_rows: build_rejected_edit_scope_report_rows(reports),
-        edit_replay_parity_rows: build_edit_replay_parity_rows(reports),
+        rejected_mutation_scope_report_rows: build_rejected_mutation_scope_report_rows(reports),
+        mutation_replay_parity_rows: build_mutation_replay_parity_rows(reports),
         changed_scope_coverage_rows: aggregate_rows.changed_scope_coverage_rows,
         derived_region_coverage_rows: aggregate_rows.derived_region_coverage_rows,
         determinism_rule_rows: aggregate_rows.determinism_rule_rows,
-        edit_breadth_counter_rows: aggregate_rows.edit_breadth_counter_rows,
-        edit_fallout_breadth_rows: aggregate_rows.edit_fallout_breadth_rows,
+        mutation_breadth_counter_rows: aggregate_rows.mutation_breadth_counter_rows,
+        mutation_fallout_breadth_rows: aggregate_rows.mutation_fallout_breadth_rows,
         derived_fallback_policy_denial_rows,
         derived_reuse_legality_rows,
         derived_work_breadth_rows,
@@ -95,7 +97,7 @@ pub(in crate::certification::topology_operator_closeout) fn ensure_direct_accept
             "missing derived-region vocabulary coverage rows",
         ));
     }
-    ensure_edit_fallout_breadth_rows(report)?;
+    ensure_mutation_fallout_breadth_rows(report)?;
     ensure_naming_continuity_breadth_rows(report)?;
     ensure_fallback_policy_denial_rows(report)?;
     ensure_derived_reuse_legality_rows(report)?;
@@ -108,43 +110,43 @@ fn ensure_required_scenario_rows(
     report: &MilestoneThreeHostileSuiteReport,
     scenario: MilestoneThreeHostileScenario,
 ) -> Result<(), TopologyCertificationError> {
-    if !report
-        .topology_edit_digest_rows
-        .iter()
-        .any(|row| row.scenario == scenario && row.topology_edit_digest.contract_count > 0)
-    {
+    if !report.topology_mutation_digest_rows.iter().any(|row| {
+        row.scenario == scenario && row.topology_mutation_digest.mutation_record_count > 0
+    }) {
         return Err(closeout_requirement_error(&format!(
-            "missing topology edit digest row for {}",
+            "missing topology mutation digest row for {}",
             scenario.as_str()
         )));
     }
     if !report
-        .naming_edit_continuity_matrix_rows
+        .naming_mutation_continuity_matrix_rows
         .iter()
-        .any(|row| row.scenario == scenario && !row.naming_edit_continuity_matrix.rows.is_empty())
+        .any(|row| {
+            row.scenario == scenario && !row.naming_mutation_continuity_matrix.rows.is_empty()
+        })
     {
         return Err(closeout_requirement_error(&format!(
-            "missing naming edit continuity matrix row for {}",
+            "missing naming mutation continuity matrix row for {}",
             scenario.as_str()
         )));
     }
     if !report
-        .edit_replay_parity_rows
+        .mutation_replay_parity_rows
         .iter()
         .any(|row| row.scenario == scenario)
     {
         return Err(closeout_requirement_error(&format!(
-            "missing edit replay parity row for {}",
+            "missing mutation replay parity row for {}",
             scenario.as_str()
         )));
     }
     if !report
-        .edit_breadth_counter_rows
+        .mutation_breadth_counter_rows
         .iter()
-        .any(|row| row.scenario == scenario && row.contract_count > 0)
+        .any(|row| row.scenario == scenario && row.mutation_record_count > 0)
     {
         return Err(closeout_requirement_error(&format!(
-            "missing edit breadth counter row for {}",
+            "missing mutation breadth counter row for {}",
             scenario.as_str()
         )));
     }
@@ -156,12 +158,12 @@ fn ensure_rejected_scenario_rows(
     scenario: MilestoneThreeHostileScenario,
 ) -> Result<(), TopologyCertificationError> {
     if !report
-        .rejected_edit_scope_report_rows
+        .rejected_mutation_scope_report_rows
         .iter()
-        .any(|row| row.scenario == scenario && !row.rejected_edit_scope_report.rows.is_empty())
+        .any(|row| row.scenario == scenario && !row.rejected_mutation_scope_report.rows.is_empty())
     {
         return Err(closeout_requirement_error(&format!(
-            "missing rejected edit scope report row for {}",
+            "missing rejected mutation scope report row for {}",
             scenario.as_str()
         )));
     }
@@ -176,43 +178,42 @@ fn ensure_rejected_scenario_rows(
     Ok(())
 }
 
-fn ensure_edit_fallout_breadth_rows(
+fn ensure_mutation_fallout_breadth_rows(
     report: &MilestoneThreeHostileSuiteReport,
 ) -> Result<(), TopologyCertificationError> {
     for scenario in milestone_three_required_scenarios() {
         let row = report
-            .edit_fallout_breadth_rows
+            .mutation_fallout_breadth_rows
             .iter()
             .find(|row| row.scenario == *scenario)
             .ok_or_else(|| {
                 closeout_requirement_error(&format!(
-                    "missing edit fallout breadth row for {}",
+                    "missing mutation fallout breadth row for {}",
                     scenario.as_str()
                 ))
             })?;
         let has_honest_fallout_class = match row.fallout_class {
-            MilestoneThreeEditFalloutClass::Localized | MilestoneThreeEditFalloutClass::Widened => {
-                row.fallback_count == 0
-            }
-            MilestoneThreeEditFalloutClass::WholeViewFallback
-            | MilestoneThreeEditFalloutClass::WholeHistoryFallback => row.fallback_count > 0,
-            MilestoneThreeEditFalloutClass::RejectedBeforeDerivedWork => {
+            MilestoneThreeMutationFalloutClass::Localized
+            | MilestoneThreeMutationFalloutClass::Widened => row.fallback_count == 0,
+            MilestoneThreeMutationFalloutClass::WholeViewFallback
+            | MilestoneThreeMutationFalloutClass::WholeHistoryFallback => row.fallback_count > 0,
+            MilestoneThreeMutationFalloutClass::RejectedBeforeDerivedWork => {
                 row.derived_validation_row_count == 0 && row.fallback_count == 0
             }
         };
         if !has_honest_fallout_class || row.locality_claim_mismatch {
             return Err(closeout_requirement_error(&format!(
-                "edit fallout breadth row is not basis-honest for {}",
+                "mutation fallout breadth row is not basis-honest for {}",
                 scenario.as_str()
             )));
         }
         let fallback_rejection_matches_policy = row.fallback_rejection_class
             == row.fallback_policy_exceeded.then_some(
-                crate::topology_operators::TopologyEditRejectionClass::DerivedFallbackExceeded,
+                crate::topology_operators::TopologyMutationRejectionClass::DerivedFallbackExceeded,
             );
         if row.fallback_policy_exceeded || !fallback_rejection_matches_policy {
             return Err(closeout_requirement_error(&format!(
-                "edit fallout breadth row exceeded fallback policy for {}",
+                "mutation fallout breadth row exceeded fallback policy for {}",
                 scenario.as_str()
             )));
         }
@@ -226,26 +227,26 @@ fn ensure_determinism_rule_rows(
     for scenario in milestone_three_required_scenarios() {
         let stable_order = report.determinism_rule_rows.iter().any(|row| {
             row.scenario == *scenario
-                && row.rule_kind == MilestoneThreeDeterminismRuleKind::StableEditOrder
+                && row.rule_kind == MilestoneThreeDeterminismRuleKind::StableMutationOrder
                 && row.replay_verified
                 && row.evidence_count > 0
                 && row.row_digest.contains("order_policy=sequence_preserving")
         });
         if !stable_order {
             return Err(closeout_requirement_error(&format!(
-                "missing stable edit order determinism row for {}",
+                "missing stable mutation order determinism row for {}",
                 scenario.as_str()
             )));
         }
         let stable_digest = report.determinism_rule_rows.iter().any(|row| {
             row.scenario == *scenario
-                && row.rule_kind == MilestoneThreeDeterminismRuleKind::StableEditDigest
+                && row.rule_kind == MilestoneThreeDeterminismRuleKind::StableMutationDigest
                 && row.replay_verified
                 && row.evidence_count > 0
         });
         if !stable_digest {
             return Err(closeout_requirement_error(&format!(
-                "missing stable edit digest determinism row for {}",
+                "missing stable mutation digest determinism row for {}",
                 scenario.as_str()
             )));
         }
@@ -277,74 +278,74 @@ fn ensure_determinism_rule_rows(
     Ok(())
 }
 
-fn build_topology_edit_digest_rows(
+fn build_topology_mutation_digest_rows(
     reports: &[MilestoneThreeHostileScenarioReport],
-) -> Vec<MilestoneThreeTopologyEditDigestRow> {
+) -> Vec<MilestoneThreeTopologyMutationDigestRow> {
     reports
         .iter()
-        .map(|report| MilestoneThreeTopologyEditDigestRow {
+        .map(|report| MilestoneThreeTopologyMutationDigestRow {
             scenario: report.scenario,
-            topology_edit_digest: report.topology_edit_digest.clone(),
+            topology_mutation_digest: report.topology_mutation_digest.clone(),
             row_digest: format!(
-                "scenario={};topology_edit_digest={}",
+                "scenario={};topology_mutation_digest={}",
                 report.scenario.as_str(),
-                report.topology_edit_digest.digest.digest_hex
+                report.topology_mutation_digest.digest.digest_hex
             ),
         })
         .collect()
 }
 
-fn build_naming_edit_continuity_matrix_rows(
+fn build_naming_mutation_continuity_matrix_rows(
     reports: &[MilestoneThreeHostileScenarioReport],
 ) -> Vec<MilestoneThreeNamingContinuityMatrixRow> {
     reports
         .iter()
         .map(|report| MilestoneThreeNamingContinuityMatrixRow {
             scenario: report.scenario,
-            naming_edit_continuity_matrix: report.naming_edit_continuity_matrix.clone(),
+            naming_mutation_continuity_matrix: report.naming_mutation_continuity_matrix.clone(),
             continuity_outcome_class: report.continuity_outcome_class,
             continuity_rejection_class: report.continuity_rejection_class,
             row_digest: format!(
                 "scenario={};naming_outcome={};rows={}",
                 report.scenario.as_str(),
                 naming_outcome_label(report.continuity_outcome_class),
-                report.naming_edit_continuity_matrix.rows.len()
+                report.naming_mutation_continuity_matrix.rows.len()
             ),
         })
         .collect()
 }
 
-fn build_rejected_edit_scope_report_rows(
+fn build_rejected_mutation_scope_report_rows(
     reports: &[MilestoneThreeHostileScenarioReport],
-) -> Vec<MilestoneThreeRejectedEditScopeReportRow> {
+) -> Vec<MilestoneThreeRejectedMutationScopeReportRow> {
     reports
         .iter()
         .filter_map(|report| {
             let rejection_class = report.rejection_class?;
-            let rejected_edit_scope_report = report.rejected_edit_scope_report.clone()?;
-            Some(MilestoneThreeRejectedEditScopeReportRow {
+            let rejected_mutation_scope_report = report.rejected_mutation_scope_report.clone()?;
+            Some(MilestoneThreeRejectedMutationScopeReportRow {
                 scenario: report.scenario,
                 rejection_class,
                 row_digest: format!(
                     "scenario={};rejection_class={:?};scope_rows={}",
                     report.scenario.as_str(),
                     rejection_class,
-                    rejected_edit_scope_report.rows.len()
+                    rejected_mutation_scope_report.rows.len()
                 ),
-                rejected_edit_scope_report,
+                rejected_mutation_scope_report,
             })
         })
         .collect()
 }
 
-fn build_edit_replay_parity_rows(
+fn build_mutation_replay_parity_rows(
     reports: &[MilestoneThreeHostileScenarioReport],
-) -> Vec<MilestoneThreeEditReplayParityRow> {
+) -> Vec<MilestoneThreeMutationReplayParityRow> {
     reports
         .iter()
         .map(|report| {
-            let replay = &report.edit_replay_parity_report;
-            MilestoneThreeEditReplayParityRow {
+            let replay = &report.mutation_replay_parity_report;
+            MilestoneThreeMutationReplayParityRow {
                 scenario: report.scenario,
                 replay_checked: replay.replay_checked,
                 parity_status: replay.parity_status,
@@ -363,11 +364,11 @@ fn build_edit_replay_parity_rows(
         .collect()
 }
 
-fn naming_outcome_label(outcome: TopologyEditNamingOutcome) -> &'static str {
+fn naming_outcome_label(outcome: TopologyMutationNamingOutcome) -> &'static str {
     match outcome {
-        TopologyEditNamingOutcome::Preserved => "preserved",
-        TopologyEditNamingOutcome::Ambiguous => "ambiguous",
-        TopologyEditNamingOutcome::Rejected => "rejected",
+        TopologyMutationNamingOutcome::Preserved => "preserved",
+        TopologyMutationNamingOutcome::Ambiguous => "ambiguous",
+        TopologyMutationNamingOutcome::Rejected => "rejected",
     }
 }
 

@@ -82,6 +82,8 @@ Legality evidence inspection:
 - `canonical_declaration() -> &ForgeQueryCanonicalDeclarationArtifact<D, I>`
 - `support_report() -> &ForgeQueryDeclarationFamilySupportReport<D, I::Family>`
 - `legality_contract() -> ForgeQueryDeclarationLegalityContract`
+- `aspect_contract() -> &ForgeQueryDeclarationAspectContract`
+- `reviewed_aspect_coverage() -> &ForgeQueryDeclarationAspectCoverage`
 - `declaration_family_key() -> &'static str`
 - `operating_context_identity_digest() -> &str`
 - `role_claim_category() -> FoundationalBoundaryArtifactCategory`
@@ -146,6 +148,7 @@ rejection.
    - canonical declaration artifact
    - admitted family support report
    - the family legality contract
+   - the retained aspect coverage carried by that family support report
 5. Query evaluates:
    - boundary role claim legality
    - boundary surface disposition legality
@@ -154,6 +157,17 @@ rejection.
 The convenience lane `declare_and_review(...)` preserves the same split. It
 still performs admission first and legality second.
 
+Important:
+
+- legality now carries semantic aspect coverage, not raw declaration field names
+- if a declaration uses a canonical field like `face_ref`, that remains part of
+  canonical declaration identity, but the legality proof handed to later
+  consumers
+  is the semantic slice coverage retained from family support
+- reviewed aspect coverage is allowed to preserve masked slices explicitly; a
+  legality success does not silently promote masked support into visible
+  semantic presence
+
 ## Small Example
 
 ```rust
@@ -161,13 +175,13 @@ use forge_query::facade::{
     ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationLegalityChecked,
 };
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "attach-face-material"
     }
 
     fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
@@ -175,9 +189,7 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
     }
 }
 
-match handle.review_legality_checked(handle.declare(SplitEdgeAtMidpoint {
-    edge_ref: "edge:42",
-})?) {
+match handle.review_legality_checked(handle.declare(AttachMaterialForActiveFaceSelection)?) {
     ForgeQueryDeclarationLegalityChecked::Legal(legal) => {
         assert!(legal.is_structurally_legal());
     }
@@ -235,15 +247,15 @@ impl ForgeQueryDomainOperatingContext<GeometryDomain> for CollaborativeWorld {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct SplitEdge;
+struct AttachFaceMaterial;
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "attach-face-material"
     }
 
     fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
@@ -252,15 +264,22 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct SplitEdgeAtMidpoint {
-    edge_ref: &'static str,
-}
+struct AttachMaterialForActiveFaceSelection;
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeAtMidpoint {
-    type Family = SplitEdge;
+impl ForgeQueryDeclarationInput<GeometryDomain> for AttachMaterialForActiveFaceSelection {
+    type Family = AttachFaceMaterial;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref)]
+        vec![
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "selection_scope",
+                "active-face-selection",
+            ),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "legality_focus",
+                "current-selection-material-attachment",
+            ),
+        ]
     }
 }
 
@@ -271,9 +290,9 @@ let handle = query
     .validate()?
     .admit()?;
 
-match handle.declare_and_review(SplitEdgeAtMidpoint { edge_ref: "edge:42" }) {
+match handle.declare_and_review(AttachMaterialForActiveFaceSelection) {
     Ok(legal) => {
-        assert_eq!(legal.declaration_family_key(), "split-edge");
+        assert_eq!(legal.declaration_family_key(), "attach-face-material");
         assert!(legal.is_structurally_legal());
     }
     Err(ForgeQueryDeclarationAdmissionOrLegalityError::Admission(admission)) => {
@@ -292,6 +311,16 @@ What this example is showing:
   declaration boundary
 - the legality evidence artifact retains both the canonical declaration and the
   legality contract
+- the primary geometry mental model is active context, while the canonicalized
+  declaration entries are internal retained evidence
+
+## Aspect Semantics
+
+Legality records which semantic slices were actually
+reviewed. A future legality success is no longer allowed to mean only "the
+broad declaration artifact passed." It must also say which aspect-qualified
+structural scope was cleared so progression and later route/binding surfaces do
+not over-trust a coarse legality success.
 
 ## How It Relates To Other Features
 

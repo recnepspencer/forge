@@ -1,0 +1,38 @@
+error: cannot construct `ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy` with struct literal syntax due to private fields
+  --> tests/ui/domain_declaration/boundaries/construction/orchestration/policy/orchestration_materialization_policy_private.rs:10:13
+   |
+10 |       let _ = ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy {
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11 | /         foundational_evidence_profile:
+12 | |             FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness,
+   | |_______________________________________________________________________________________- private field
+13 |           receipt_tier: ForgeQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady,
+   |           -------------------------------------------------------------------------------------- private field
+14 |           envelope_tier: ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive,
+   |           ------------------------------------------------------------------------------------------ private field
+15 |           support_rich_publication_admitted: true,
+   |           --------------------------------------- private field
+16 |           diagnostic_rich_publication_admitted: true,
+   |           ------------------------------------------ private field
+17 |           cost_posture: ForgeQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyRich,
+   |           -------------------------------------------------------------------------------- private field
+18 | /         materialization_gate:
+19 | |             ForgeQueryDeclarationEntryOrchestrationMaterializationGate::AdmittedByDefault,
+   | |_________________________________________________________________________________________- private field
+   |
+   = note: ...and other private fields `foundational_aspect_publication`, `receipt_aspect_publication` and `envelope_aspect_publication` that were not provided
+help: you might have meant to use the `default_for_lane` associated function
+   |
+10 -     let _ = ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy {
+11 -         foundational_evidence_profile:
+12 -             FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness,
+13 -         receipt_tier: ForgeQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady,
+14 -         envelope_tier: ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive,
+15 -         support_rich_publication_admitted: true,
+16 -         diagnostic_rich_publication_admitted: true,
+17 -         cost_posture: ForgeQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyRich,
+18 -         materialization_gate:
+19 -             ForgeQueryDeclarationEntryOrchestrationMaterializationGate::AdmittedByDefault,
+20 -     };
+10 +     let _ = ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy::default_for_lane(_, _, _, _);
+   |

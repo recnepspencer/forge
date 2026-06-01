@@ -42,7 +42,7 @@ pub fn build_derived_equivalence_contract(
         read_basis
             .authority
             .truth_basis_identity
-            .mutation_batch_digest_hex
+            .mutation_digest_hex
             .clone(),
         read_basis
             .authority

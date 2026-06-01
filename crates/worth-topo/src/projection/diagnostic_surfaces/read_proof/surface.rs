@@ -1,20 +1,18 @@
-use super::closeout::TopologyDomainQueryCloseoutReport;
+use super::closeout::TopologyReadCloseoutReport;
 use super::closeout::{
-    TopologyDomainQueryCloseoutRow, TopologyDomainQueryCloseoutStatus,
-    TopologyDomainQueryPhaseThreeBlocker, TopologyDomainQueryPhaseThreeBlockerRow,
-    TopologyDomainQueryPhaseThreeBlockerStatus,
+    TopologyReadCloseoutRow, TopologyReadCloseoutStatus, TopologyReadPhaseThreeBlocker,
+    TopologyReadPhaseThreeBlockerRow, TopologyReadPhaseThreeBlockerStatus,
 };
-use super::ledger::TopologyDomainQueryProofReport;
+use super::ledger::TopologyReadProofReport;
 use super::no_n_plus_one::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
 };
 use super::parity::{
-    TopologyDomainQueryParityAggregateReport, TopologyDomainQueryParityAggregateRow,
-    TopologyDomainQueryParityKind,
+    TopologyReadParityAggregateReport, TopologyReadParityAggregateRow, TopologyReadParityKind,
 };
-use super::report::{TopologyDomainQueryAggregateReport, TopologyDomainQueryRequestFamily};
+use super::report::{TopologyReadAggregateReport, TopologyReadRequestFamily};
 
-impl TopologyDomainQueryParityKind {
+impl TopologyReadParityKind {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Replay => "replay",
@@ -23,12 +21,12 @@ impl TopologyDomainQueryParityKind {
     }
 }
 
-impl TopologyDomainQueryParityAggregateRow {
-    pub fn parity_kind(&self) -> TopologyDomainQueryParityKind {
+impl TopologyReadParityAggregateRow {
+    pub fn parity_kind(&self) -> TopologyReadParityKind {
         self.parity_kind
     }
 
-    pub fn request_family(&self) -> TopologyDomainQueryRequestFamily {
+    pub fn request_family(&self) -> TopologyReadRequestFamily {
         self.request_family
     }
 
@@ -41,9 +39,9 @@ impl TopologyDomainQueryParityAggregateRow {
     }
 }
 
-impl TopologyDomainQueryParityAggregateReport {
-    pub fn domain_query_parity_count(&self) -> usize {
-        self.domain_query_parity_count
+impl TopologyReadParityAggregateReport {
+    pub fn topology_read_parity_count(&self) -> usize {
+        self.topology_read_parity_count
     }
 
     pub fn view_determinism_checked_count(&self) -> usize {
@@ -70,23 +68,23 @@ impl TopologyDomainQueryParityAggregateReport {
         self.branch_local_verified_count
     }
 
-    pub fn parity_rows(&self) -> &[TopologyDomainQueryParityAggregateRow] {
+    pub fn parity_rows(&self) -> &[TopologyReadParityAggregateRow] {
         self.parity_rows.as_slice()
     }
 }
 
-impl TopologyDomainQueryProofReport {
-    pub fn request_aggregate(&self) -> &TopologyDomainQueryAggregateReport {
+impl TopologyReadProofReport {
+    pub fn request_aggregate(&self) -> &TopologyReadAggregateReport {
         &self.request_aggregate
     }
 
-    pub fn parity_aggregate(&self) -> &TopologyDomainQueryParityAggregateReport {
+    pub fn parity_aggregate(&self) -> &TopologyReadParityAggregateReport {
         &self.parity_aggregate
     }
 }
 
-impl TopologyDomainQueryCloseoutReport {
-    pub fn proof_report(&self) -> &TopologyDomainQueryProofReport {
+impl TopologyReadCloseoutReport {
+    pub fn proof_report(&self) -> &TopologyReadProofReport {
         &self.proof_report
     }
 
@@ -118,37 +116,34 @@ impl TopologyDomainQueryCloseoutReport {
         self.repeated_rediscovery_denied_count
     }
 
-    pub fn family_rows(&self) -> &[TopologyDomainQueryCloseoutRow] {
+    pub fn family_rows(&self) -> &[TopologyReadCloseoutRow] {
         self.family_rows.as_slice()
     }
 
-    pub fn status(
-        &self,
-        request_family: TopologyDomainQueryRequestFamily,
-    ) -> TopologyDomainQueryCloseoutStatus {
+    pub fn status(&self, request_family: TopologyReadRequestFamily) -> TopologyReadCloseoutStatus {
         self.family_rows
             .iter()
             .find(|row| row.request_family == request_family)
-            .map(TopologyDomainQueryCloseoutRow::status)
+            .map(TopologyReadCloseoutRow::status)
             .unwrap_or_else(|| {
-                panic!("domain query closeout rows should cover every declared request family")
+                panic!("topology read closeout rows should cover every declared request family")
             })
     }
 
-    pub fn phase_three_blocker_rows(&self) -> &[TopologyDomainQueryPhaseThreeBlockerRow] {
+    pub fn phase_three_blocker_rows(&self) -> &[TopologyReadPhaseThreeBlockerRow] {
         self.phase_three_blocker_rows.as_slice()
     }
 
     pub fn phase_three_blocker_status(
         &self,
-        blocker: TopologyDomainQueryPhaseThreeBlocker,
-    ) -> TopologyDomainQueryPhaseThreeBlockerStatus {
+        blocker: TopologyReadPhaseThreeBlocker,
+    ) -> TopologyReadPhaseThreeBlockerStatus {
         self.phase_three_blocker_rows
             .iter()
             .find(|row| row.blocker == blocker)
-            .map(TopologyDomainQueryPhaseThreeBlockerRow::status)
+            .map(TopologyReadPhaseThreeBlockerRow::status)
             .unwrap_or_else(|| {
-                panic!("domain query closeout blocker rows should cover every declared blocker")
+                panic!("topology read closeout blocker rows should cover every declared blocker")
             })
     }
 
@@ -165,7 +160,7 @@ impl TopologyDomainQueryCloseoutReport {
             .find(|row| row.contract == contract)
             .map(TopologyNoNPlusOneContractRow::status)
             .unwrap_or_else(|| {
-                panic!("domain query no-N-plus-one rows should cover every declared contract")
+                panic!("topology read no-N-plus-one rows should cover every declared contract")
             })
     }
 
@@ -174,7 +169,7 @@ impl TopologyDomainQueryCloseoutReport {
     }
 }
 
-impl TopologyDomainQueryCloseoutStatus {
+impl TopologyReadCloseoutStatus {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Unobserved => "unobserved",
@@ -185,12 +180,12 @@ impl TopologyDomainQueryCloseoutStatus {
     }
 }
 
-impl TopologyDomainQueryCloseoutRow {
-    pub fn request_family(&self) -> TopologyDomainQueryRequestFamily {
+impl TopologyReadCloseoutRow {
+    pub fn request_family(&self) -> TopologyReadRequestFamily {
         self.request_family
     }
 
-    pub fn status(&self) -> TopologyDomainQueryCloseoutStatus {
+    pub fn status(&self) -> TopologyReadCloseoutStatus {
         self.status
     }
 
@@ -231,7 +226,7 @@ impl TopologyDomainQueryCloseoutRow {
     }
 }
 
-impl TopologyDomainQueryPhaseThreeBlocker {
+impl TopologyReadPhaseThreeBlocker {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::NoObservedRequests => "no_observed_requests",
@@ -246,7 +241,7 @@ impl TopologyDomainQueryPhaseThreeBlocker {
     }
 }
 
-impl TopologyDomainQueryPhaseThreeBlockerStatus {
+impl TopologyReadPhaseThreeBlockerStatus {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Clear => "clear",
@@ -255,12 +250,12 @@ impl TopologyDomainQueryPhaseThreeBlockerStatus {
     }
 }
 
-impl TopologyDomainQueryPhaseThreeBlockerRow {
-    pub fn blocker(&self) -> TopologyDomainQueryPhaseThreeBlocker {
+impl TopologyReadPhaseThreeBlockerRow {
+    pub fn blocker(&self) -> TopologyReadPhaseThreeBlocker {
         self.blocker
     }
 
-    pub fn status(&self) -> TopologyDomainQueryPhaseThreeBlockerStatus {
+    pub fn status(&self) -> TopologyReadPhaseThreeBlockerStatus {
         self.status
     }
 

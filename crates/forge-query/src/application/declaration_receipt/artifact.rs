@@ -4,10 +4,12 @@ use forge_foundational::facade::{
 };
 
 use crate::application::{
-    ForgeQueryDeclarationFoundationalEvidence, ForgeQueryDeclarationInput,
-    ForgeQueryDeclarationRoutePlan, ForgeQueryDeclarationRoutePlanDenialCause,
-    ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryDeclarationAspectPublication, ForgeQueryDeclarationFoundationalEvidence,
+    ForgeQueryDeclarationInput, ForgeQueryDeclarationRoutePlan,
+    ForgeQueryDeclarationRoutePlanDenialCause, ForgeQueryDomainEntryMarker,
 };
+use crate::target_binding::ForgeQueryDeclarationReceiptBindingTarget;
 
 use super::explain::ForgeQueryDeclarationReceiptExplanation;
 
@@ -52,6 +54,9 @@ pub struct ForgeQueryDeclarationReceipt<
     evidence_owner: ForgeQueryDeclarationReceiptEvidenceOwner<D, I>,
     route_denial_cause: Option<ForgeQueryDeclarationRoutePlanDenialCause>,
     explanation: ForgeQueryDeclarationReceiptExplanation,
+    crossing_aspect_contract: ForgeQueryDeclarationAspectContract,
+    crossing_aspect_coverage: ForgeQueryDeclarationAspectCoverage,
+    crossing_aspect_publication: ForgeQueryDeclarationAspectPublication,
     descriptive_receipt: Option<FoundationalBoundaryEvidenceCompletedReceiptArtifact>,
     boundary_receipt: FoundationalMaterializedBoundaryArtifact<FoundationalBoundaryReceiptSurface>,
     receipt_digest: CanonicalDerivedDigest,
@@ -68,6 +73,9 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         foundational_evidence: Option<ForgeQueryDeclarationFoundationalEvidence<D, I>>,
         route_denial_cause: Option<ForgeQueryDeclarationRoutePlanDenialCause>,
         explanation: ForgeQueryDeclarationReceiptExplanation,
+        crossing_aspect_contract: ForgeQueryDeclarationAspectContract,
+        crossing_aspect_coverage: ForgeQueryDeclarationAspectCoverage,
+        crossing_aspect_publication: ForgeQueryDeclarationAspectPublication,
         descriptive_receipt: Option<FoundationalBoundaryEvidenceCompletedReceiptArtifact>,
         boundary_receipt: FoundationalMaterializedBoundaryArtifact<
             FoundationalBoundaryReceiptSurface,
@@ -112,6 +120,9 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             evidence_owner,
             route_denial_cause,
             explanation,
+            crossing_aspect_contract,
+            crossing_aspect_coverage,
+            crossing_aspect_publication,
             descriptive_receipt,
             boundary_receipt,
             receipt_digest,
@@ -154,6 +165,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         &self.receipt_digest
     }
 
+    pub fn binding_target(&self) -> ForgeQueryDeclarationReceiptBindingTarget {
+        ForgeQueryDeclarationReceiptBindingTarget::for_receipt(self)
+    }
+
     pub fn foundational_evidence(&self) -> &ForgeQueryDeclarationFoundationalEvidence<D, I> {
         match &self.evidence_owner {
             ForgeQueryDeclarationReceiptEvidenceOwner::Planned(plan) => {
@@ -176,6 +191,18 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn explain(&self) -> &ForgeQueryDeclarationReceiptExplanation {
         &self.explanation
+    }
+
+    pub fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.crossing_aspect_contract
+    }
+
+    pub fn aspect_coverage(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        &self.crossing_aspect_coverage
+    }
+
+    pub fn aspect_publication(&self) -> &ForgeQueryDeclarationAspectPublication {
+        &self.crossing_aspect_publication
     }
 
     pub fn descriptive_receipt(

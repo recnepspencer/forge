@@ -2,7 +2,7 @@ use forge_foundational::facade::FoundationalBoundaryEvidenceMaterializationProfi
 
 use crate::application::ForgeQueryDeclarationFoundationalEvidenceInput;
 
-use super::helpers::{
+use super::domain::{
     admitted_handle, digest_text, AdmittedFamily, Declaration, DeniedFamily,
     DescriptiveDeferredSignalFamily,
 };

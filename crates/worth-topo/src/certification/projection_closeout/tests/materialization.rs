@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 use super::domain_query::support::seeded_sheet_disk_workspace;
+=======
+use super::topology_reads::support::seeded_sheet_disk_workspace;
+>>>>>>> origin/master
 use crate::projection::runtime_boundary::read_stage::{
     open_topology_read_view, stage_topology_read_from_view,
 };
@@ -20,9 +24,9 @@ fn query_materializer_rebuilds_minimal_topology_from_production_runtime_rows() {
         &open_topology_read_view(&runtime, &verified.read_basis()).expect("read view should open"),
     )
     .expect("read stage should succeed");
-    let (mut workspace, assembly, read_basis) =
+    let (mut workspace, surfaces, read_basis) =
         seeded_sheet_disk_workspace("query-materializer-minimal");
-    let snapshot = assembly
+    let snapshot = surfaces
         .snapshot_for_read_basis(&mut workspace, &read_basis)
         .expect("query snapshot should decode");
     let materialized_view = snapshot.materialized;

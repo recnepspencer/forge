@@ -11,7 +11,7 @@ use super::super::report::{
 use super::super::{milestone_three_rejected_scenarios, milestone_three_required_scenarios};
 
 const ALWAYS_REQUIRED_VALIDATOR_FAMILIES: &[MilestoneThreeValidatorFamily] = &[
-    MilestoneThreeValidatorFamily::EditLocalContinuity,
+    MilestoneThreeValidatorFamily::MutationLocalContinuity,
     MilestoneThreeValidatorFamily::NamingContinuity,
 ];
 
@@ -79,24 +79,24 @@ fn validator_family_coverage_row(
         scenario: report.scenario,
         validator_family,
         validator_names: validator_names_for_family(report, validator_family),
-        edit_family_count: report.edit_families.len(),
-        changed_scope_count: report.topology_edit_digest.changed_scope_count,
-        naming_scope_count: report.topology_edit_digest.naming_scope_count,
-        derived_region_count: report.topology_edit_digest.derived_region_count,
+        mutation_family_count: report.mutation_families.len(),
+        changed_scope_count: report.topology_mutation_digest.changed_scope_count,
+        naming_scope_count: report.topology_mutation_digest.naming_scope_count,
+        derived_region_count: report.topology_mutation_digest.derived_region_count,
         derived_validation_row_count: report
             .derived_validation_report
             .as_ref()
             .map_or(0, |validation_report| validation_report.rows.len()),
         localized_rejection_boundary,
         row_digest: format!(
-            "scenario={};validator_family={};validators={};edit_families={};changed_scopes={};naming_scopes={};derived_regions={};derived_validation_rows={};localized_rejection_boundary={}",
+            "scenario={};validator_family={};validators={};mutation_families={};changed_scopes={};naming_scopes={};derived_regions={};derived_validation_rows={};localized_rejection_boundary={}",
             report.scenario.as_str(),
             validator_family.as_str(),
             validator_names_for_family(report, validator_family).join("|"),
-            report.edit_families.len(),
-            report.topology_edit_digest.changed_scope_count,
-            report.topology_edit_digest.naming_scope_count,
-            report.topology_edit_digest.derived_region_count,
+            report.mutation_families.len(),
+            report.topology_mutation_digest.changed_scope_count,
+            report.topology_mutation_digest.naming_scope_count,
+            report.topology_mutation_digest.derived_region_count,
             report
                 .derived_validation_report
                 .as_ref()
@@ -111,13 +111,13 @@ fn validator_names_for_family(
     validator_family: MilestoneThreeValidatorFamily,
 ) -> Vec<String> {
     match validator_family {
-        MilestoneThreeValidatorFamily::EditLocalContinuity => vec![
+        MilestoneThreeValidatorFamily::MutationLocalContinuity => vec![
             "changed_scope_vocabulary".to_string(),
             "naming_scope_vocabulary".to_string(),
             "derived_region_vocabulary".to_string(),
         ],
         MilestoneThreeValidatorFamily::NamingContinuity => {
-            vec!["naming_edit_continuity_matrix".to_string()]
+            vec!["naming_mutation_continuity_matrix".to_string()]
         }
         MilestoneThreeValidatorFamily::DerivedValidationInspection => report
             .derived_validation_report
@@ -131,14 +131,14 @@ fn validator_names_for_family(
             })
             .unwrap_or_default(),
         MilestoneThreeValidatorFamily::RejectionLocality => {
-            vec!["rejected_edit_scope_report".to_string()]
+            vec!["rejected_mutation_scope_report".to_string()]
         }
     }
 }
 
 fn localized_rejection_boundary(report: &MilestoneThreeHostileScenarioReport) -> bool {
     report
-        .rejected_edit_scope_report
+        .rejected_mutation_scope_report
         .as_ref()
         .is_some_and(|scope_report| !scope_report.rows.is_empty())
 }
