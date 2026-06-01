@@ -13,7 +13,8 @@ pub use source_locator::{BoundaryMismatchLocator, BoundarySourceLocator};
 pub use transition_locator::{
     FoundationalBranchCandidateLocator, FoundationalCommitParentageLocator,
     FoundationalCommittedDeltaLocator, FoundationalMergeConflictLocator,
-    FoundationalTransitionLocator,
+    FoundationalMergeScopeLocator, FoundationalSelectedAspectScopeLocator,
+    FoundationalSelectedNodeScopeLocator, FoundationalTransitionLocator,
 };
 
 use crate::facade::ResponsibilityArea;

@@ -99,8 +99,14 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
       currentItems,
     );
     const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-    materialization.binding.valueSignal.set(nextValue);
-    return createCollectionPatchOutcome("item", patch.itemId, null, valueChanged);
+    return createCollectionPatchOutcome(
+      "item",
+      patch.itemId,
+      null,
+      valueChanged,
+      null,
+      nextValue,
+    );
   }
   const aspectDefinitions = patchRecord.reconcile.aspects?.definitions ?? null;
   if (aspectDefinitions === null || !(patch.aspect in aspectDefinitions)) {
@@ -120,13 +126,13 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
     currentItems,
   );
   const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-  materialization.binding.valueSignal.set(nextValue);
   return createCollectionPatchOutcome(
     "aspect",
     patch.itemId,
     patch.aspect,
     valueChanged,
     aspectDefinition.jsonPathProof ?? null,
+    nextValue,
   );
 }
 
@@ -178,13 +184,13 @@ function applyDirectItemScopedPatch(
     nextItem,
   );
   const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-  materialization.binding.valueSignal.set(nextValue);
   return createCollectionPatchOutcome(
     patch.kind === "item" ? "item" : "aspect",
     patch.itemId,
     patch.kind === "item" ? null : patch.aspect,
     valueChanged,
     aspectPatch?.jsonPathProof ?? null,
+    nextValue,
   );
 }
 
@@ -217,8 +223,14 @@ function applyCollectionInsertPatch(
     : [...currentItems, patch.nextItem];
   const nextValue = patchRecord.reconcile.replaceItems(currentValue, nextItems);
   const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-  materialization.binding.valueSignal.set(nextValue);
-  return createCollectionPatchOutcome("item", patch.itemId, null, valueChanged);
+  return createCollectionPatchOutcome(
+    "item",
+    patch.itemId,
+    null,
+    valueChanged,
+    null,
+    nextValue,
+  );
 }
 
 function applyDirectCollectionInsertPatch(
@@ -251,8 +263,14 @@ function applyDirectCollectionInsertPatch(
     : [...currentItems, patch.nextItem];
   const nextValue = patchRecord.reconcile.replaceItems(currentValue, nextItems);
   const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-  materialization.binding.valueSignal.set(nextValue);
-  return createCollectionPatchOutcome("item", patch.itemId, null, valueChanged);
+  return createCollectionPatchOutcome(
+    "item",
+    patch.itemId,
+    null,
+    valueChanged,
+    null,
+    nextValue,
+  );
 }
 
 function tryApplyTopologySpecificInsertPatch(
@@ -272,8 +290,14 @@ function tryApplyTopologySpecificInsertPatch(
     return null;
   }
   const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-  materialization.binding.valueSignal.set(nextValue);
-  return createCollectionPatchOutcome("item", patch.itemId, null, valueChanged);
+  return createCollectionPatchOutcome(
+    "item",
+    patch.itemId,
+    null,
+    valueChanged,
+    null,
+    nextValue,
+  );
 }
 
 function requireIdentityPreservingInsertPatch(patchRecord, patch) {
@@ -291,8 +315,10 @@ function createCollectionPatchOutcome(
   aspect,
   valueChanged,
   jsonPathProof = null,
+  nextValue = undefined,
 ) {
   return Object.freeze({
+    nextValue,
     result: Object.freeze({
       kind: "narrowed",
       scope,

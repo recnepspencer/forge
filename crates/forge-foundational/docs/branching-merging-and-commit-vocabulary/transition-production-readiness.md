@@ -2,10 +2,11 @@
 
 ## What This Feature Is
 
-This feature is the machine-checkable closeout surface for Milestone 5.
+This feature is the machine-checkable closeout surface for transition
+vocabulary milestones.
 
 It gives you a proof-bearing readiness artifact and an inspectable report that
-freeze the exact closure contract for the transition language:
+freeze the exact closure contract for a named transition scope:
 
 - certified surfaces
 - hostile pressures
@@ -22,6 +23,7 @@ freeze the exact closure contract for the transition language:
 Use this surface when you need to:
 
 - verify what Milestone 5 actually certifies
+- verify what Milestone 9 scoped merge and cherry-pick vocabulary certifies
 - understand what later diagnostics and provenance work may assume
 - see the exact hostile pressures that adoption work still has to respect
 - confirm the exact `forge-proof` lane that shipped
@@ -31,9 +33,12 @@ artifact that tells you what is frozen and what is still deferred.
 
 ## Stable Entry Points
 
+- `foundational_transition_milestone5_readiness_report()`
 - `certify_foundational_transition_milestone5_production_test_readiness()`
 - `require_foundational_transition_milestone5_production_test_readiness(...)`
-- `foundational_transition_milestone5_readiness_report()`
+- `foundational_transition_milestone9_scoped_merge_readiness_report()`
+- `certify_foundational_transition_milestone9_scoped_merge_production_test_readiness()`
+- `require_foundational_transition_milestone9_scoped_merge_production_test_readiness(...)`
 
 Important types:
 
@@ -48,7 +53,8 @@ Important types:
 
 ## Core Mental Model
 
-Readiness here means exact closure, not "good enough summary."
+Readiness here means exact closure for a named scope, not "good enough
+summary."
 
 This report exists so later work does not have to infer:
 
@@ -59,6 +65,9 @@ This report exists so later work does not have to infer:
 - which plain transition surfaces are explicitly forbidden from becoming local
   proof substrates
 - which downstream gaps are still explicitly deferred
+
+The report carries a `scope()` so consumers can distinguish the original
+Milestone 5 transition closeout from the Milestone 9 scoped merge closeout.
 
 ## How It Executes
 
@@ -71,7 +80,7 @@ The readiness path:
 5. inventories assumptions, non-assumptions, residual debt, and phase gates
 6. certifies the final artifact through the readiness authority lane
 
-The currently frozen certified surfaces are:
+The Milestone 5 frozen certified surfaces are:
 
 - `BranchLocalSeparation`
 - `MergeVerdictLaw`
@@ -80,7 +89,7 @@ The currently frozen certified surfaces are:
 - `CanonicalBasisAndLocatorIntegration`
 - `ProfileRichnessAndCurrentBasisBehavior`
 
-The currently frozen hostile pressures are:
+The Milestone 5 frozen hostile pressures are:
 
 - `AuthoritySeparation`
 - `MergeTopologyHonesty`
@@ -94,7 +103,7 @@ The currently frozen hostile pressures are:
 - `GenericTransitionResultBagRejection`
 - `CheapConvenienceBypassRejection`
 
-The currently frozen compile-fail boundaries are:
+The Milestone 5 frozen compile-fail boundaries are:
 
 - `BranchLocalSurfacesCannotSatisfyAuthorityApis`
 - `MergeAdmissionSurfacesRemainNonAuthoritative`
@@ -104,14 +113,14 @@ The currently frozen compile-fail boundaries are:
 - `TransitionReadinessRequiresCertifiedArtifact`
 - `TransitionReadinessAuthorityCannotBeMinted`
 
-The currently frozen forbidden `forge-proof` surfaces are:
+The Milestone 5 frozen forbidden `forge-proof` surfaces are:
 
 - `PlainBranchLocalVocabulary`
 - `PlainMergeVerdictVocabulary`
 - `PlainReceiptAndBundleVocabulary`
 - `PlainCanonicalBasisAndLocatorVocabulary`
 
-The current linear phase gates are:
+The Milestone 5 linear phase gates are:
 
 1. `BranchLocalSeparation`
 2. `MergeVerdictLaw`
@@ -119,6 +128,20 @@ The current linear phase gates are:
 4. `CommitReceiptsAndBundles`
 5. `CanonicalBasisLocatorAndProfileIntegration`
 6. `ProductionReadiness`
+
+The Milestone 9 scoped merge readiness scope additionally certifies:
+
+- `ScopedMergeRequestVocabulary`
+- `ScopedMergeAdmissionEvidence`
+- `ScopedMergeDenialUnavailableTopology`
+- `ScopedMergeCanonicalLocatorDiagnostics`
+- `ScopedMergeAdoptionContract`
+
+Its hostile pressures cover category substitution, producer diversity,
+denial/unavailable honesty, canonical locator stability, and runtime boundary
+honesty. Its residual debt names adopting-crate scoped merge execution, native
+cherry-pick execution, and runtime conflict materialization as deferred rather
+than silently solved here.
 
 ## Small Example
 
@@ -132,6 +155,26 @@ let artifact = certify_foundational_transition_milestone5_production_test_readin
 let report = require_foundational_transition_milestone5_production_test_readiness(&artifact);
 
 assert!(report.passes_readiness_checklist());
+```
+
+For scoped merge vocabulary:
+
+```rust
+use forge_foundational::{
+    certify_foundational_transition_milestone9_scoped_merge_production_test_readiness,
+    require_foundational_transition_milestone9_scoped_merge_production_test_readiness,
+};
+
+let artifact =
+    certify_foundational_transition_milestone9_scoped_merge_production_test_readiness();
+let report =
+    require_foundational_transition_milestone9_scoped_merge_production_test_readiness(&artifact);
+
+assert!(report.passes_readiness_checklist());
+assert_eq!(
+    report.scope().milestone(),
+    "forge-foundational.milestone-9.scoped-merge",
+);
 ```
 
 ## Real Example
@@ -158,10 +201,29 @@ let _ = (
 );
 ```
 
+Use the scoped merge report before adopting-runtime work:
+
+```rust
+use forge_foundational::{
+    foundational_transition_milestone9_scoped_merge_readiness_report,
+    FoundationalTransitionCertifiedSurface,
+};
+
+let report = foundational_transition_milestone9_scoped_merge_readiness_report();
+
+assert!(report
+    .certified_surfaces()
+    .iter()
+    .any(|surface| *surface == FoundationalTransitionCertifiedSurface::ScopedMergeAdoptionContract));
+assert!(report.passes_readiness_checklist());
+```
+
 ## How It Relates To Other Features
 
 - Every other Milestone 5 doc in this folder describes a capability whose exact
   closure status is frozen here.
+- The scoped merge doc describes Milestone 9 vocabulary whose exact closure
+  status is frozen by the scoped merge readiness report.
 - This readiness surface is the handoff target for Milestone 6 diagnostics and
   later provenance work.
 
@@ -181,21 +243,23 @@ Check these first:
 - `residual_debt()`
 - `phase_gates()`
 
-If a later runtime or milestone depends on something not named here, that
-dependency is not part of the frozen Milestone 5 contract yet.
+If a later runtime or milestone depends on something not named in the relevant
+readiness scope, that dependency is not part of the frozen contract yet.
 
 ## Anti-Patterns
 
-- Do not treat this report as a prose-only closeout replacement.
+- Do not treat these reports as prose-only closeout replacements.
 - Do not use it to imply that downstream runtime lowering parity is already
   solved.
 - Do not add inventory entries without matching evidence.
 - Do not overstate the `forge-proof` lane beyond what the report names.
+- Do not consume a Milestone 9 readiness artifact through a Milestone 5-named
+  require helper.
 
 ## Current Limits
 
-- This surface freezes the machine-facing closure contract.
-- It does not replace runtime adoption work or Milestone 6+ ontology work.
+- These surfaces freeze machine-facing closure contracts.
+- They do not replace runtime adoption work or Milestone 6+ ontology work.
 
 The current residual debt is intentionally narrow:
 
@@ -204,7 +268,15 @@ The current residual debt is intentionally narrow:
 - strategy registries and execution engines are still runtime-owned
 - full lineage support beyond transition rows is still deferred
 
+Milestone 9 scoped merge debt is also explicit:
+
+- adopting-crate scoped merge execution is still deferred
+- native cherry-pick execution is still deferred
+- runtime conflict materialization is still deferred
+
 ## Related Docs
 
 - [Committed Authority Transitions](./committed-authority-transitions.md)
-- [_docs/forge-foundational/milestone-5-closeout.md](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/_docs/forge-foundational/milestone-5-closeout.md)
+- [Scoped Merge And Cherry-Pick Vocabulary](../scoped-merge-adoption.md)
+- [_docs/forge-foundational/milestone-5-closeout.md](../../../../_docs/forge-foundational/milestone-5-closeout.md)
+- [_docs/forge-foundational/milestone-9.md](../../../../_docs/forge-foundational/milestone-9.md)

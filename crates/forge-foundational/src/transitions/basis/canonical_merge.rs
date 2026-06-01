@@ -4,6 +4,7 @@ use crate::transitions::{
     FoundationalTransitionStrategyOwnershipClass,
 };
 
+use super::canonical_scope::admitted_scope_entries;
 use super::canonical_shared::{bool_entry, text_entry, u64_entry};
 
 pub(super) fn merge_verdict_entries<T>(
@@ -31,6 +32,10 @@ pub(super) fn merge_verdict_entries<T>(
             verdict.structural_summary().conflict_check_width(),
         ),
     ];
+    entries.extend(admitted_scope_entries(
+        "merge.scope_evidence",
+        verdict.scope_evidence(),
+    ));
     append_strategy_and_basis_entries("merge", verdict, &mut entries);
     append_conflict_entries(verdict.conflict_loci(), &mut entries);
     entries.push(bool_entry(

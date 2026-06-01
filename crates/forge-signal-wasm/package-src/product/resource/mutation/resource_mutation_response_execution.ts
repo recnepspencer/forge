@@ -15,6 +15,7 @@ import {
 import {
   executePreparedMutationResponseIdentityMigration,
 } from "./identity/resource_mutation_response_identity_migration.js";
+import { readLineBindingState } from "../lines/state/line_binding_state.js";
 
 function prepareMutationResponsePlanIfDeclared(
   lineIdentity,
@@ -88,7 +89,8 @@ function executePreparedMutationResponsePlan(plan) {
       result.kind !== "applied"
       && !(
         result.kind === "duplicateIgnored"
-        && execution.targetMaterialization.binding.diagnosticsSignal().lastDeliveryPacketId
+        && readLineBindingState(execution.targetMaterialization.binding)
+          .diagnostics.lastDeliveryPacketId
           === execution.delivery.packetId
       )
     ) {
@@ -96,7 +98,9 @@ function executePreparedMutationResponsePlan(plan) {
         `mutation response exact reconciliation for ${execution.targetId} did not apply: ${result.kind}`,
       );
     }
-    const diagnostics = execution.targetMaterialization.binding.diagnosticsSignal();
+    const diagnostics = readLineBindingState(
+      execution.targetMaterialization.binding,
+    ).diagnostics;
     const effect = diagnostics.lastEffect ?? null;
     executedArtifacts.push(Object.freeze({
       ...plannedArtifact,

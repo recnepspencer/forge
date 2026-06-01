@@ -1,22 +1,20 @@
-use super::inventory::{
-    certified_surface_evidence, certified_surfaces, compile_fail_boundaries, compile_fail_evidence,
-    forge_proof_api_appendix, forge_proof_api_evidence, forge_proof_forbidden_surfaces,
-    forge_proof_required_surfaces, phase_gates, residual_debt, runtime_assumptions,
-    runtime_non_assumptions, synthetic_pressure_evidence, synthetic_pressures,
-};
+use super::inventory;
+use super::scoped_inventory;
 use super::vocabulary::{
     FoundationalTransitionCertifiedSurface, FoundationalTransitionCertifiedSurfaceEvidence,
     FoundationalTransitionCompileFailBoundary, FoundationalTransitionCompileFailEvidence,
     FoundationalTransitionForgeProofApi, FoundationalTransitionForgeProofApiEvidence,
     FoundationalTransitionForgeProofForbiddenSurface, FoundationalTransitionForgeProofSurface,
     FoundationalTransitionMilestone5PhaseGate, FoundationalTransitionPhaseGateEvidence,
-    FoundationalTransitionResidualDebt, FoundationalTransitionRuntimeAssumption,
-    FoundationalTransitionRuntimeNonAssumption, FoundationalTransitionSyntheticPressureEvidence,
+    FoundationalTransitionProductionReadinessScope, FoundationalTransitionResidualDebt,
+    FoundationalTransitionRuntimeAssumption, FoundationalTransitionRuntimeNonAssumption,
+    FoundationalTransitionSyntheticPressureEvidence,
     FoundationalTransitionSyntheticRuntimePressure,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FoundationalTransitionProductionReadinessReport {
+    scope: FoundationalTransitionProductionReadinessScope,
     certified_surfaces: Vec<FoundationalTransitionCertifiedSurface>,
     certified_surface_evidence: Vec<FoundationalTransitionCertifiedSurfaceEvidence>,
     synthetic_pressures: Vec<FoundationalTransitionSyntheticRuntimePressure>,
@@ -34,23 +32,48 @@ pub struct FoundationalTransitionProductionReadinessReport {
 }
 
 impl FoundationalTransitionProductionReadinessReport {
-    pub(super) fn new() -> Self {
+    pub(super) fn milestone_5() -> Self {
         Self {
-            certified_surfaces: certified_surfaces(),
-            certified_surface_evidence: certified_surface_evidence(),
-            synthetic_pressures: synthetic_pressures(),
-            synthetic_pressure_evidence: synthetic_pressure_evidence(),
-            compile_fail_boundaries: compile_fail_boundaries(),
-            compile_fail_evidence: compile_fail_evidence(),
-            forge_proof_required_surfaces: forge_proof_required_surfaces(),
-            forge_proof_api_appendix: forge_proof_api_appendix(),
-            forge_proof_api_evidence: forge_proof_api_evidence(),
-            forge_proof_forbidden_surfaces: forge_proof_forbidden_surfaces(),
-            assumptions: runtime_assumptions(),
-            non_assumptions: runtime_non_assumptions(),
-            residual_debt: residual_debt(),
-            phase_gates: phase_gates(),
+            scope: FoundationalTransitionProductionReadinessScope::milestone_5(),
+            certified_surfaces: inventory::certified_surfaces(),
+            certified_surface_evidence: inventory::certified_surface_evidence(),
+            synthetic_pressures: inventory::synthetic_pressures(),
+            synthetic_pressure_evidence: inventory::synthetic_pressure_evidence(),
+            compile_fail_boundaries: inventory::compile_fail_boundaries(),
+            compile_fail_evidence: inventory::compile_fail_evidence(),
+            forge_proof_required_surfaces: inventory::forge_proof_required_surfaces(),
+            forge_proof_api_appendix: inventory::forge_proof_api_appendix(),
+            forge_proof_api_evidence: inventory::forge_proof_api_evidence(),
+            forge_proof_forbidden_surfaces: inventory::forge_proof_forbidden_surfaces(),
+            assumptions: inventory::runtime_assumptions(),
+            non_assumptions: inventory::runtime_non_assumptions(),
+            residual_debt: inventory::residual_debt(),
+            phase_gates: inventory::phase_gates(),
         }
+    }
+
+    pub(super) fn milestone_9_scoped_merge() -> Self {
+        Self {
+            scope: FoundationalTransitionProductionReadinessScope::milestone_9_scoped_merge(),
+            certified_surfaces: scoped_inventory::certified_surfaces(),
+            certified_surface_evidence: scoped_inventory::certified_surface_evidence(),
+            synthetic_pressures: scoped_inventory::synthetic_pressures(),
+            synthetic_pressure_evidence: scoped_inventory::synthetic_pressure_evidence(),
+            compile_fail_boundaries: scoped_inventory::compile_fail_boundaries(),
+            compile_fail_evidence: scoped_inventory::compile_fail_evidence(),
+            forge_proof_required_surfaces: scoped_inventory::forge_proof_required_surfaces(),
+            forge_proof_api_appendix: scoped_inventory::forge_proof_api_appendix(),
+            forge_proof_api_evidence: scoped_inventory::forge_proof_api_evidence(),
+            forge_proof_forbidden_surfaces: scoped_inventory::forge_proof_forbidden_surfaces(),
+            assumptions: scoped_inventory::runtime_assumptions(),
+            non_assumptions: scoped_inventory::runtime_non_assumptions(),
+            residual_debt: scoped_inventory::residual_debt(),
+            phase_gates: scoped_inventory::phase_gates(),
+        }
+    }
+
+    pub const fn scope(&self) -> FoundationalTransitionProductionReadinessScope {
+        self.scope
     }
 
     pub fn certified_surfaces(&self) -> &[FoundationalTransitionCertifiedSurface] {
@@ -114,177 +137,198 @@ impl FoundationalTransitionProductionReadinessReport {
     }
 
     pub fn passes_readiness_checklist(&self) -> bool {
-        self.has_all_certified_surfaces()
-            && self.has_evidence_for_each_certified_surface()
-            && self.has_all_synthetic_pressures()
-            && self.has_evidence_for_each_synthetic_pressure()
-            && self.has_all_compile_fail_boundaries()
-            && self.has_evidence_for_each_compile_fail_boundary()
-            && self.has_all_required_forge_proof_surfaces()
-            && self.has_named_forge_proof_api_appendix()
-            && self.has_evidence_for_each_forge_proof_api()
-            && self.has_all_forbidden_forge_proof_surfaces()
-            && self.has_runtime_assumption_boundary()
-            && self.has_named_residual_debt()
-            && self.has_linear_phase_gates()
-    }
-
-    fn has_all_certified_surfaces(&self) -> bool {
-        [
-            FoundationalTransitionCertifiedSurface::BranchLocalSeparation,
-            FoundationalTransitionCertifiedSurface::MergeVerdictLaw,
-            FoundationalTransitionCertifiedSurface::CommittedAuthorityTransitions,
-            FoundationalTransitionCertifiedSurface::CommitReceiptsAndBundles,
-            FoundationalTransitionCertifiedSurface::CanonicalBasisAndLocatorIntegration,
-            FoundationalTransitionCertifiedSurface::ProfileRichnessAndCurrentBasisBehavior,
-        ]
-        .iter()
-        .all(|surface| self.certified_surfaces.contains(surface))
-    }
-
-    fn has_evidence_for_each_certified_surface(&self) -> bool {
-        self.certified_surfaces.iter().all(|surface| {
-            self.certified_surface_evidence
+        has_exact_inventory(
+            &self.certified_surfaces,
+            &required_certified_surfaces(self.scope),
+        ) && has_one_evidence_per_surface(
+            &self.certified_surfaces,
+            &self.certified_surface_evidence,
+        ) && has_exact_inventory(
+            &self.synthetic_pressures,
+            &required_synthetic_pressures(self.scope),
+        ) && has_one_evidence_per_pressure(
+            &self.synthetic_pressures,
+            &self.synthetic_pressure_evidence,
+        ) && has_exact_inventory(
+            &self.compile_fail_boundaries,
+            &required_compile_fail_boundaries(self.scope),
+        ) && has_one_evidence_per_boundary(
+            &self.compile_fail_boundaries,
+            &self.compile_fail_evidence,
+        ) && has_exact_inventory(
+            &self.forge_proof_required_surfaces,
+            &required_forge_proof_surfaces(self.scope),
+        ) && has_exact_inventory(
+            &self.forge_proof_api_appendix,
+            &required_forge_proof_api(self.scope),
+        ) && has_one_evidence_per_forge_proof_api(
+            &self.forge_proof_api_appendix,
+            &self.forge_proof_api_evidence,
+        ) && has_exact_inventory(
+            &self.forge_proof_forbidden_surfaces,
+            &required_forbidden_forge_proof_surfaces(self.scope),
+        ) && has_exact_inventory(&self.assumptions, &required_runtime_assumptions(self.scope))
+            && has_exact_inventory(
+                &self.non_assumptions,
+                &required_runtime_non_assumptions(self.scope),
+            )
+            && has_exact_inventory(&self.residual_debt, &required_residual_debt(self.scope))
+            && self
+                .phase_gates
                 .iter()
-                .filter(|evidence| evidence.surface() == *surface)
+                .map(|evidence| evidence.gate())
+                .eq(required_phase_gates(self.scope))
+    }
+}
+
+fn has_exact_inventory<T: PartialEq>(actual: &[T], required: &[T]) -> bool {
+    actual.len() == required.len() && required.iter().all(|value| actual.contains(value))
+}
+
+fn has_one_evidence_per_surface(
+    surfaces: &[FoundationalTransitionCertifiedSurface],
+    evidence: &[FoundationalTransitionCertifiedSurfaceEvidence],
+) -> bool {
+    evidence.len() == surfaces.len()
+        && surfaces.iter().all(|surface| {
+            evidence
+                .iter()
+                .filter(|row| row.surface() == *surface)
                 .count()
                 == 1
         })
-    }
+}
 
-    fn has_all_synthetic_pressures(&self) -> bool {
-        [
-            FoundationalTransitionSyntheticRuntimePressure::AuthoritySeparation,
-            FoundationalTransitionSyntheticRuntimePressure::MergeTopologyHonesty,
-            FoundationalTransitionSyntheticRuntimePressure::NoOpVersusCommitClassification,
-            FoundationalTransitionSyntheticRuntimePressure::ReceiptIssuanceBoundary,
-            FoundationalTransitionSyntheticRuntimePressure::ReplayInterpretationBoundary,
-            FoundationalTransitionSyntheticRuntimePressure::ReducedRichnessPreservation,
-            FoundationalTransitionSyntheticRuntimePressure::AmbientBasisChoiceHostility,
-            FoundationalTransitionSyntheticRuntimePressure::HiddenStrategyInfluenceHostility,
-            FoundationalTransitionSyntheticRuntimePressure::ThinReceiptRejection,
-            FoundationalTransitionSyntheticRuntimePressure::GenericTransitionResultBagRejection,
-            FoundationalTransitionSyntheticRuntimePressure::CheapConvenienceBypassRejection,
-        ]
-        .iter()
-        .all(|pressure| self.synthetic_pressures.contains(pressure))
-    }
-
-    fn has_evidence_for_each_synthetic_pressure(&self) -> bool {
-        self.synthetic_pressures.iter().all(|pressure| {
-            self.synthetic_pressure_evidence
+fn has_one_evidence_per_pressure(
+    pressures: &[FoundationalTransitionSyntheticRuntimePressure],
+    evidence: &[FoundationalTransitionSyntheticPressureEvidence],
+) -> bool {
+    evidence.len() == pressures.len()
+        && pressures.iter().all(|pressure| {
+            evidence
                 .iter()
-                .filter(|evidence| evidence.pressure() == *pressure)
+                .filter(|row| row.pressure() == *pressure)
                 .count()
                 == 1
         })
-    }
+}
 
-    fn has_all_compile_fail_boundaries(&self) -> bool {
-        [
-            FoundationalTransitionCompileFailBoundary::BranchLocalSurfacesCannotSatisfyAuthorityApis,
-            FoundationalTransitionCompileFailBoundary::MergeAdmissionSurfacesRemainNonAuthoritative,
-            FoundationalTransitionCompileFailBoundary::CommittedAuthorityRequiresProofBearingAdmission,
-            FoundationalTransitionCompileFailBoundary::ReceiptAndCloseoutPreserveAuthoritySeparation,
-            FoundationalTransitionCompileFailBoundary::Phase5BasisAndCurrentBasisRequireStrengthenedArtifacts,
-            FoundationalTransitionCompileFailBoundary::TransitionReadinessRequiresCertifiedArtifact,
-            FoundationalTransitionCompileFailBoundary::TransitionReadinessAuthorityCannotBeMinted,
-        ]
-        .iter()
-        .all(|boundary| self.compile_fail_boundaries.contains(boundary))
-    }
-
-    fn has_evidence_for_each_compile_fail_boundary(&self) -> bool {
-        self.compile_fail_boundaries.iter().all(|boundary| {
-            self.compile_fail_evidence
+fn has_one_evidence_per_boundary(
+    boundaries: &[FoundationalTransitionCompileFailBoundary],
+    evidence: &[FoundationalTransitionCompileFailEvidence],
+) -> bool {
+    evidence.len() == boundaries.len()
+        && boundaries.iter().all(|boundary| {
+            evidence
                 .iter()
-                .filter(|evidence| evidence.boundary() == *boundary)
+                .filter(|row| row.boundary() == *boundary)
                 .count()
                 == 1
         })
-    }
+}
 
-    fn has_all_required_forge_proof_surfaces(&self) -> bool {
-        [
-            FoundationalTransitionForgeProofSurface::TransitionOutcomeAdmissionLane,
-            FoundationalTransitionForgeProofSurface::AuthorityWitnessScopedAdmission,
-            FoundationalTransitionForgeProofSurface::ProofBearingCommittedAuthorityArtifact,
-            FoundationalTransitionForgeProofSurface::ProofBearingCommitReceiptArtifact,
-            FoundationalTransitionForgeProofSurface::CurrentBasisArtifactConstructor,
-            FoundationalTransitionForgeProofSurface::BoundaryBridgeTrustBoundary,
-            FoundationalTransitionForgeProofSurface::BoundaryReadmitWithAuthority,
-            FoundationalTransitionForgeProofSurface::ProductionReadinessCertificationArtifact,
-        ]
+fn has_one_evidence_per_forge_proof_api(
+    apis: &[FoundationalTransitionForgeProofApi],
+    evidence: &[FoundationalTransitionForgeProofApiEvidence],
+) -> bool {
+    evidence.len() == apis.len()
+        && apis
+            .iter()
+            .all(|api| evidence.iter().filter(|row| row.api() == *api).count() == 1)
+}
+
+fn required_certified_surfaces(
+    scope: FoundationalTransitionProductionReadinessScope,
+) -> Vec<FoundationalTransitionCertifiedSurface> {
+    if scope == FoundationalTransitionProductionReadinessScope::milestone_9_scoped_merge() {
+        return scoped_inventory::certified_surfaces();
+    }
+    inventory::certified_surfaces()
+}
+
+fn required_synthetic_pressures(
+    scope: FoundationalTransitionProductionReadinessScope,
+) -> Vec<FoundationalTransitionSyntheticRuntimePressure> {
+    if scope == FoundationalTransitionProductionReadinessScope::milestone_9_scoped_merge() {
+        return scoped_inventory::synthetic_pressures();
+    }
+    inventory::synthetic_pressures()
+}
+
+fn required_compile_fail_boundaries(
+    scope: FoundationalTransitionProductionReadinessScope,
+) -> Vec<FoundationalTransitionCompileFailBoundary> {
+    if scope == FoundationalTransitionProductionReadinessScope::milestone_9_scoped_merge() {
+        return scoped_inventory::compile_fail_boundaries();
+    }
+    inventory::compile_fail_boundaries()
+}
+
+fn required_forge_proof_surfaces(
+    scope: FoundationalTransitionProductionReadinessScope,
+) -> Vec<FoundationalTransitionForgeProofSurface> {
+    if scope == FoundationalTransitionProductionReadinessScope::milestone_9_scoped_merge() {
+        return scoped_inventory::forge_proof_required_surfaces();
+    }
+    inventory::forge_proof_required_surfaces()
+}
+
+fn required_forge_proof_api(
+    scope: FoundationalTransitionProductionReadinessScope,
+) -> Vec<FoundationalTransitionForgeProofApi> {
+    if scope == FoundationalTransitionProductionReadinessScope::milestone_9_scoped_merge() {
+        return scoped_inventory::forge_proof_api_appendix();
+    }
+    inventory::forge_proof_api_appendix()
+}
+
+fn required_forbidden_forge_proof_surfaces(
+    scope: FoundationalTransitionProductionReadinessScope,
+) -> Vec<FoundationalTransitionForgeProofForbiddenSurface> {
+    if scope == FoundationalTransitionProductionReadinessScope::milestone_9_scoped_merge() {
+        return scoped_inventory::forge_proof_forbidden_surfaces();
+    }
+    inventory::forge_proof_forbidden_surfaces()
+}
+
+fn required_runtime_assumptions(
+    scope: FoundationalTransitionProductionReadinessScope,
+) -> Vec<FoundationalTransitionRuntimeAssumption> {
+    if scope == FoundationalTransitionProductionReadinessScope::milestone_9_scoped_merge() {
+        return scoped_inventory::runtime_assumptions();
+    }
+    inventory::runtime_assumptions()
+}
+
+fn required_runtime_non_assumptions(
+    scope: FoundationalTransitionProductionReadinessScope,
+) -> Vec<FoundationalTransitionRuntimeNonAssumption> {
+    if scope == FoundationalTransitionProductionReadinessScope::milestone_9_scoped_merge() {
+        return scoped_inventory::runtime_non_assumptions();
+    }
+    inventory::runtime_non_assumptions()
+}
+
+fn required_residual_debt(
+    scope: FoundationalTransitionProductionReadinessScope,
+) -> Vec<FoundationalTransitionResidualDebt> {
+    if scope == FoundationalTransitionProductionReadinessScope::milestone_9_scoped_merge() {
+        return scoped_inventory::residual_debt();
+    }
+    inventory::residual_debt()
+}
+
+fn required_phase_gates(
+    scope: FoundationalTransitionProductionReadinessScope,
+) -> Vec<FoundationalTransitionMilestone5PhaseGate> {
+    if scope == FoundationalTransitionProductionReadinessScope::milestone_9_scoped_merge() {
+        return scoped_inventory::phase_gates()
+            .iter()
+            .map(|evidence| evidence.gate())
+            .collect();
+    }
+    inventory::phase_gates()
         .iter()
-        .all(|surface| self.forge_proof_required_surfaces.contains(surface))
-    }
-
-    fn has_named_forge_proof_api_appendix(&self) -> bool {
-        [
-            FoundationalTransitionForgeProofApi::TransitionOutcomeStructuredCategories,
-            FoundationalTransitionForgeProofApi::AuthorityWitnessFromAuthorityMarker,
-            FoundationalTransitionForgeProofApi::ProofFromAuthorityWitness,
-            FoundationalTransitionForgeProofApi::ArtifactWithProofsAndCurrentBasis,
-            FoundationalTransitionForgeProofApi::ArtifactWithCurrentBasis,
-            FoundationalTransitionForgeProofApi::ArtifactBridgeTrustBoundary,
-            FoundationalTransitionForgeProofApi::ArtifactReadmitWithAuthority,
-        ]
-        .iter()
-        .all(|api| self.forge_proof_api_appendix.contains(api))
-    }
-
-    fn has_evidence_for_each_forge_proof_api(&self) -> bool {
-        self.forge_proof_api_appendix.iter().all(|api| {
-            self.forge_proof_api_evidence
-                .iter()
-                .filter(|evidence| evidence.api() == *api)
-                .count()
-                == 1
-        })
-    }
-
-    fn has_all_forbidden_forge_proof_surfaces(&self) -> bool {
-        [
-            FoundationalTransitionForgeProofForbiddenSurface::PlainBranchLocalVocabulary,
-            FoundationalTransitionForgeProofForbiddenSurface::PlainMergeVerdictVocabulary,
-            FoundationalTransitionForgeProofForbiddenSurface::PlainReceiptAndBundleVocabulary,
-            FoundationalTransitionForgeProofForbiddenSurface::PlainCanonicalBasisAndLocatorVocabulary,
-        ]
-        .iter()
-        .all(|surface| self.forge_proof_forbidden_surfaces.contains(surface))
-    }
-
-    fn has_runtime_assumption_boundary(&self) -> bool {
-        self.assumptions.contains(
-            &FoundationalTransitionRuntimeAssumption::Milestone2CanonicalizationRemainsAuthorityForTransitionBasisReadiness,
-        ) && self.assumptions.contains(
-            &FoundationalTransitionRuntimeAssumption::StrongerCommittedAuthorityAndReceiptClaimsUseForgeProof,
-        ) && self.non_assumptions.contains(
-            &FoundationalTransitionRuntimeNonAssumption::AdoptingRuntimeMergeStrategyParityAlreadyProven,
-        ) && self.non_assumptions.contains(
-            &FoundationalTransitionRuntimeNonAssumption::BoundaryCrossingPreservesCurrentBasisWithoutReadmission,
-        )
-    }
-
-    fn has_named_residual_debt(&self) -> bool {
-        [
-            FoundationalTransitionResidualDebt::AdoptingRuntimeParityDeferred,
-            FoundationalTransitionResidualDebt::LaterDiagnosticsAndProvenanceOntologyDeferred,
-            FoundationalTransitionResidualDebt::RuntimeStrategyRegistryAndExecutionDeferred,
-            FoundationalTransitionResidualDebt::FullLineageSupportBeyondTransitionRowsDeferred,
-        ]
-        .iter()
-        .all(|debt| self.residual_debt.contains(debt))
-    }
-
-    fn has_linear_phase_gates(&self) -> bool {
-        self.phase_gates.iter().map(|evidence| evidence.gate()).eq([
-            FoundationalTransitionMilestone5PhaseGate::BranchLocalSeparation,
-            FoundationalTransitionMilestone5PhaseGate::MergeVerdictLaw,
-            FoundationalTransitionMilestone5PhaseGate::CommittedAuthorityTransitionLaw,
-            FoundationalTransitionMilestone5PhaseGate::CommitReceiptsAndBundles,
-            FoundationalTransitionMilestone5PhaseGate::CanonicalBasisLocatorAndProfileIntegration,
-            FoundationalTransitionMilestone5PhaseGate::ProductionReadiness,
-        ])
-    }
+        .map(|evidence| evidence.gate())
+        .collect()
 }

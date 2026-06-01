@@ -1078,13 +1078,130 @@ Why it belongs here:
   not normalize weaker JS-side resource effect machinery while native signal
   branches already exist
 
-## Milestone 11: Resource Mutation Response Reconciliation And Detail Lenses
+## Milestone 11: Branch Merge Materialization And Aspect Policy Foundation
+
+Engineering spec:
+[branch_merge_materialization_foundation_plan.md](./branch_merge_materialization_foundation_plan.md)
+
+Predecessor milestone:
+[resource_response_lens_contracts_plan.md](./resource_response_lens_contracts_plan.md)
+
+Successor milestone:
+[resource_mutation_response_reconciliation_plan.md](./resource_mutation_response_reconciliation_plan.md)
+
+### Goal
+
+Make branch merge execution a real web-product foundation: native merge proof
+decides semantic merge truth, and `forge-signal-wasm` materializes that truth
+into web-visible state through declared, proof-bearing materialization
+strategies.
+
+This milestone exists because Milestone 10 closed the branch-native resource
+effect model and claimed product exposure for native branch/merge controls.
+The native runtime already has much of the policy substrate, but it does not
+yet expose scoped merge/cherry-pick as request-level merge proof, wasm/product
+merge requests do not expose every needed policy dimension yet, and wasm
+branch-local store materialization can still adopt source values where a
+declared materialization strategy is required.
+
+This milestone also depends on `forge-foundational` Milestone 9 so scoped merge
+and cherry-pick have shared transition vocabulary before `forge-signal` and
+`forge-signal-wasm` adopt them.
+
+### Must Ship
+
+- native `forge-signal` scoped merge/cherry-pick request, plan, result, denial,
+  and counter proof for selected nodes and selected aspects, lowered into
+  `forge-foundational` scoped merge vocabulary
+- wasm and product merge request support for source-only policy, aspect policy
+  bindings, and native scoped merge request fields
+- executable merge intent with source/target basis checking
+- forwarding of requested policy into native merge preview and execution
+- materialization strategy planning between native merge result proof and wasm
+  store mutation
+- first admitted materialization strategy for plain object aspect fields
+- selected-node and selected-aspect materialization for admitted v1 shapes
+- typed unavailable posture for unsupported materialization shapes such as
+  controller contracts, resource lines, collections, deletion, tombstones,
+  identity correspondence, and partial merge topologies not admitted in v1
+- native/wasm explicit branch fork basis API for creating children from a
+  declared branch and snapshot basis
+- named proof families for policy boundary, executable intent, materialization
+  planning, object aspect materialization, disjoint merge, same-aspect
+  conflicts, fork basis, native scoped merge, partial merge honesty, and demo
+  no-shortcut verification
+
+### Must Preserve
+
+- native `forge-signal` remains the authority for merge policy and scoped
+  merge/cherry-pick execution semantics, while `forge-foundational` owns the
+  shared boundary vocabulary
+- wasm translates requests and materializes branch-local web store snapshots;
+  it does not invent merge policy
+- wasm does not implement cherry-pick by filtering native merge records after
+  native planning
+- existing whole-value materialization remains valid when native proof admits it
+- unsupported topologies do not silently downgrade to source adoption
+- `setWithAspects(...)` remains the authoring surface for aspect-scoped writes
+- UI and demos may render merge proof but may not compute merged truth
+
+### Explicit Boundary
+
+Milestone 11 includes native scoped merge/cherry-pick authority, merge policy
+exposure, executable merge intent, materialization strategy planning, plain
+object aspect materialization, explicit branch fork basis, stale merge intent
+denial, partial merge materialization posture, and product/demo readiness for
+honest merge proof.
+
+Milestone 11 does not include generic aspect-capacity rewrite, full nested
+object merge inference, arbitrary user-supplied merge functions,
+mutation-response reconciliation, network transport, UI toast/banner/modal
+execution, wasm-only cherry-pick filtering, or Three.js visual work.
+
+### Acceptance Evidence
+
+This milestone is complete only when the wasm product surface can prove:
+
+- merge policy dimensions are accepted, validated, forwarded, and proof-visible
+  through merge preview and execution
+- native selected-node and selected-aspect merge scopes are proof-visible
+  through merge preview and execution
+- executable merge intents deny stale source or target bases before side effects
+- store mutation consumes a lowered materialization plan
+- disjoint aspect edits on one object node preserve source and target changes
+  after merge
+- same-aspect edits conflict unless explicitly resolved by admitted policy
+- explicit branch fork basis creates children from the declared branch/snapshot
+  rather than the active branch by accident
+- scoped merge executes only through native scope proof and admitted wasm
+  materialization strategy
+- unsupported materialization emits typed unavailable posture rather than broad
+  replacement or silent source adoption
+- lookup, strategy-selection, reconstruction, and downstream invalidation
+  breadth are visible in proof or cost artifacts
+- the landing-page gear demo can consume runtime branch/aspect truth without a
+  React-side merge compositor
+
+Why it belongs here:
+
+- it comes immediately after Milestone 10 because it closes a discovered gap in
+  branch/merge policy exposure and branch-local materialization that Milestone
+  10 needs
+- it comes before mutation-response reconciliation because create/update/remove
+  reconciliation will depend on branch-native merge, rollback, replay, and
+  diagnostics truth that must not lose disjoint changes or rely on local merge
+  folklore
+- it belongs before roadmap completion because demos, resource effects, and
+  later write reconciliation must not normalize local merge engines beside the
+  native branch substrate
+
+## Milestone 12: Resource Mutation Response Reconciliation And Detail Lenses
 
 Engineering spec:
 [resource_mutation_response_reconciliation_plan.md](./resource_mutation_response_reconciliation_plan.md)
 
 Predecessor milestone:
-[resource_response_lens_contracts_plan.md](./resource_response_lens_contracts_plan.md)
+[branch_merge_materialization_foundation_plan.md](./branch_merge_materialization_foundation_plan.md)
 
 ### Goal
 
@@ -1094,8 +1211,9 @@ migration, and multi-family reconciliation are as explicit and ergonomic as the
 collection response lane.
 
 This milestone exists because Milestone 10 correctly closed the branch-native
-effect substrate and advanced response topology lowering, but it left an
-important consumer-facing asymmetry: collections have strong ergonomic
+effect substrate and advanced response topology lowering, and Milestone 11
+closes the discovered branch merge materialization gap. The remaining
+consumer-facing asymmetry is still real: collections have strong ergonomic
 topology, while writes and detail resources still ask application code to
 compose lower-level primitives.
 
@@ -1144,12 +1262,12 @@ compose lower-level primitives.
 
 ### Explicit Boundary
 
-Milestone 11 includes mutation response reconciliation, granular detail lenses,
+Milestone 12 includes mutation response reconciliation, granular detail lenses,
 create placement, remove deletion, identity migration, partial response
 mapping, multi-family target convergence, and explicit refetch/delivery
 fallback posture.
 
-Milestone 11 does not include network transport ownership, service-worker
+Milestone 12 does not include network transport ownership, service-worker
 synchronization, UI toast/banner/modal execution, arbitrary topology
 inference, arbitrary item identity inference, framework-specific cache
 integration, or native branch/merge semantics that belong in core
@@ -1180,9 +1298,9 @@ This milestone is complete only when the wasm product surface can prove:
 
 Why it belongs here:
 
-- it comes immediately after Milestone 10 because it depends on branch-native
-  effects, response-lens proof, rollback, diagnostics/history, and merge/rebase
-  posture that Milestone 10 made real
+- it comes after Milestone 11 because it depends on branch-native effects,
+  response-lens proof, rollback, diagnostics/history, merge/rebase posture, and
+  honest aspect-aware branch store execution
 - it closes the product asymmetry exposed by workflow/editor writes: collection
   topology is elegant, but details, creates, updates, removes, and canonical
   write-result reconciliation still need first-class product treatment
@@ -1204,6 +1322,8 @@ This roadmap is complete only when:
 - branch-native resource effects let local patch, delivery, optimistic write,
   rollback, rebase, and advanced response topology consume signal branch truth
   without manual route patch plumbing or a second optimistic cache
+- branch merge materialization turns native merge proof into web-visible branch
+  truth through declared strategies instead of UI merge folklore
 - mutation response reconciliation lets create, update, remove, canonical
   server responses, granular detail effects, identity migration, placement,
   deletion, partial responses, and multi-family target updates converge without

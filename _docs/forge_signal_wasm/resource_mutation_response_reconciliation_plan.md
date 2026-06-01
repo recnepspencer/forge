@@ -5,6 +5,9 @@
 > **Roadmap parent:** [wasm_product_roadmap.md](./wasm_product_roadmap.md)
 >
 > **Prerequisite milestone:**
+> [branch_merge_materialization_foundation_plan.md](./branch_merge_materialization_foundation_plan.md)
+>
+> **Branch-native substrate milestone:**
 > [resource_response_lens_contracts_plan.md](./resource_response_lens_contracts_plan.md)
 >
 > **Predecessor feature closeouts:**
@@ -20,8 +23,11 @@ migration, and multi-family reconciliation are as explicit and ergonomic as the
 collection response lane.
 
 Milestone 10 correctly made resource effects branch-native and made response
-lenses lower topology into proof-bearing effect loci. It did not finish the
-consumer-facing product story for writes and large details.
+lenses lower topology into proof-bearing effect loci. The branch merge
+materialization foundation then closes the discovered runtime/product gap
+around merge policy exposure, executable merge intent, branch-local
+materialization, and explicit fork basis. Those foundations still do not finish
+the consumer-facing product story for writes and large details.
 
 This milestone closes that gap.
 
@@ -53,8 +59,8 @@ model that collections already use.
 
 ## Why This Milestone Exists
 
-The completed branch-native resource effects milestone shipped a strong
-substrate:
+The completed branch-native resource effects milestone and branch merge
+materialization foundation ship a strong substrate:
 
 - one canonical resource effect envelope
 - branch-native optimistic lifecycle
@@ -63,6 +69,10 @@ substrate:
 - JSON item aspects
 - advanced collection topology loci
 - whole-response detail and summary replacement
+- proof-bearing merge policy exposure
+- branch-local materialization planning
+- aspect-aware plain object materialization
+- explicit branch fork basis
 
 But real application code still feels an asymmetry:
 

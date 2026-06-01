@@ -19,6 +19,10 @@ import {
   createInvalidatedFreshness,
 } from "../state/line_freshness_value.js";
 import { createFulfilledLineStatus } from "../state/line_status_value.js";
+import {
+  patchLineBindingState,
+  readLineBindingState,
+} from "../state/line_binding_state.js";
 
 function executeLineDelivery(materialization, packet) {
   const packetValue = requireResourceDelivery(
@@ -45,7 +49,8 @@ function executeLineDelivery(materialization, packet) {
       actualBasisId: packetValue.basisId,
     });
   }
-  const currentValue = materialization.binding.valueSignal();
+  const previousState = readLineBindingState(materialization.binding);
+  const currentValue = previousState.value;
   if (currentValue === null) {
     throw new TypeError(
       `${materialization.patch.familyKind} resource lines do not admit deliver(...) before visible value exists`,
@@ -82,7 +87,7 @@ function executeLineDelivery(materialization, packet) {
     const effectPlan = createDeliveryEffectPlan(
       materialization,
       stagedBasis.descriptor,
-      materialization.binding.diagnosticsSignal(),
+      previousState.diagnostics,
       deliveryEffectSummary,
     );
     deliveryState.remember(packetValue.packetId);
@@ -123,7 +128,7 @@ function executeLineDelivery(materialization, packet) {
   if (packetValue.kind === "invalidate") {
     const status = createFulfilledLineStatus("delivery");
     const freshness = createInvalidatedFreshness("deliveryInvalidate");
-    const priorDiagnostics = materialization.binding.diagnosticsSignal();
+    const priorDiagnostics = previousState.diagnostics;
     const previousDiagnostics = createInvalidatedDiagnostics(
       priorDiagnostics,
       "deliveryInvalidate",
@@ -150,9 +155,11 @@ function executeLineDelivery(materialization, packet) {
         effectEnvelope,
       }),
     );
-    materialization.binding.statusSignal.set(status);
-    materialization.binding.freshnessSignal.set(freshness);
-    materialization.binding.diagnosticsSignal.set(diagnostics);
+    patchLineBindingState(materialization.binding, {
+      status,
+      freshness,
+      diagnostics,
+    });
     applied = Object.freeze({
       kind: "applied",
       deliveryKind: "invalidate",
@@ -166,13 +173,13 @@ function executeLineDelivery(materialization, packet) {
     const effectPlan = createDeliveryEffectPlan(
       materialization,
       materialization.requestState.readDescriptor(),
-      materialization.binding.diagnosticsSignal(),
+      previousState.diagnostics,
       packetValue,
     );
     const patchOutcome = applyPatchValue(materialization, patchValue, currentValue);
     const status = createFulfilledLineStatus("delivery");
     const freshness = createFreshnessFromPolicy(materialization.reload.policy);
-    const previousDiagnostics = materialization.binding.diagnosticsSignal();
+    const previousDiagnostics = previousState.diagnostics;
     const deliveryEffectSummary = createPatchDeliveryEffectSummary(
       packetValue,
       patchValue,
@@ -191,9 +198,12 @@ function executeLineDelivery(materialization, packet) {
         effectEnvelope,
       }),
     );
-    materialization.binding.statusSignal.set(status);
-    materialization.binding.freshnessSignal.set(freshness);
-    materialization.binding.diagnosticsSignal.set(diagnostics);
+    patchLineBindingState(materialization.binding, {
+      value: patchOutcome.nextValue,
+      status,
+      freshness,
+      diagnostics,
+    });
     applied = Object.freeze({
       kind: "applied",
       deliveryKind: packetValue.kind,

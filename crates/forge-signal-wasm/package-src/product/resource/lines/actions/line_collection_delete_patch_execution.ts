@@ -50,16 +50,28 @@ function applyCollectionDeletePatch(
       topologyDeleteValue,
       currentValue,
     );
-    materialization.binding.valueSignal.set(topologyDeleteValue);
-    return createCollectionPatchOutcome("item", patch.itemId, null, valueChanged);
+    return createCollectionPatchOutcome(
+      "item",
+      patch.itemId,
+      null,
+      valueChanged,
+      null,
+      topologyDeleteValue,
+    );
   }
   const [itemIndex] = matchingIndexes;
   const nextItems = [...currentItems];
   nextItems.splice(itemIndex, 1);
   const nextValue = patchRecord.reconcile.replaceItems(currentValue, nextItems);
   const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-  materialization.binding.valueSignal.set(nextValue);
-  return createCollectionPatchOutcome("item", patch.itemId, null, valueChanged);
+  return createCollectionPatchOutcome(
+    "item",
+    patch.itemId,
+    null,
+    valueChanged,
+    null,
+    nextValue,
+  );
 }
 
 function applyDirectCollectionDeletePatch(
@@ -86,8 +98,14 @@ function applyDirectCollectionDeletePatch(
       topologyDeleteValue,
       currentValue,
     );
-    materialization.binding.valueSignal.set(topologyDeleteValue);
-    return createCollectionPatchOutcome("item", patch.itemId, null, valueChanged);
+    return createCollectionPatchOutcome(
+      "item",
+      patch.itemId,
+      null,
+      valueChanged,
+      null,
+      topologyDeleteValue,
+    );
   }
   if (locatedItem?.found !== true) {
     throw new RangeError(
@@ -100,8 +118,14 @@ function applyDirectCollectionDeletePatch(
   );
   const nextValue = patchRecord.reconcile.replaceItems(currentValue, nextItems);
   const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-  materialization.binding.valueSignal.set(nextValue);
-  return createCollectionPatchOutcome("item", patch.itemId, null, valueChanged);
+  return createCollectionPatchOutcome(
+    "item",
+    patch.itemId,
+    null,
+    valueChanged,
+    null,
+    nextValue,
+  );
 }
 
 function assertCollectionDeleteTopologyAdmitted(patchRecord) {

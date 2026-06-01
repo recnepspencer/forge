@@ -1,14 +1,18 @@
 import { readLineHistoryAvailability } from "./line_history_availability_read.js";
+import { createDeferredReactiveHistoryAvailability } from "../history/line_history_availability.js";
 import {
   readMutationResponseSummaryDigest,
 } from "../../mutation/resource_mutation_response_diagnostics_projection.js";
 
-function readLineDiagnosticsSummary(materialization) {
+function readLineDiagnosticsSummary(materialization, options = undefined) {
   const diagnostics = materialization.binding.diagnosticsSignal();
   const status = materialization.binding.statusSignal();
   const freshness = materialization.binding.freshnessSignal();
   const visibleValue = materialization.binding.valueSignal();
-  const history = readLineHistoryAvailability(materialization);
+  const includeExplainability = options?.includeExplainability !== false;
+  const history = includeExplainability
+    ? readLineHistoryAvailability(materialization)
+    : { availability: createDeferredReactiveHistoryAvailability() };
   const mutationResponseSummaryDigest =
     readMutationResponseSummaryDigest(diagnostics);
   const current = {

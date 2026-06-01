@@ -1,4 +1,6 @@
 use super::builder::FoundationalMergeCandidate;
+use super::scope_evidence::FoundationalAdmittedMergeScopeEvidence;
+use super::scoped::FoundationalMergeScope;
 use super::strategy::{
     FoundationalMergeBaseSelectionBasis, FoundationalMergeBasis, FoundationalStrategyBasis,
     FoundationalTransitionCorrespondenceBasis, FoundationalTransitionRemapBasis,
@@ -15,6 +17,7 @@ use crate::transitions::FoundationalBranchId;
 pub struct FoundationalMergeVerdict<T> {
     candidate: FoundationalMergeCandidate<T>,
     kind: FoundationalMergeVerdictKind,
+    scope_evidence: FoundationalAdmittedMergeScopeEvidence,
     conflict_loci: Vec<FoundationalMergeConflictLocus>,
     superseded_by_branch: Option<FoundationalBranchId>,
 }
@@ -23,12 +26,14 @@ impl<T> FoundationalMergeVerdict<T> {
     pub(crate) fn new(
         candidate: FoundationalMergeCandidate<T>,
         kind: FoundationalMergeVerdictKind,
+        scope_evidence: FoundationalAdmittedMergeScopeEvidence,
         conflict_loci: Vec<FoundationalMergeConflictLocus>,
         superseded_by_branch: Option<FoundationalBranchId>,
     ) -> Self {
         Self {
             candidate,
             kind,
+            scope_evidence,
             conflict_loci,
             superseded_by_branch,
         }
@@ -66,6 +71,14 @@ impl<T> FoundationalMergeVerdict<T> {
 
     pub const fn structural_summary(&self) -> FoundationalMergeStructuralSummary {
         self.candidate.structural_summary()
+    }
+
+    pub fn scope(&self) -> &FoundationalMergeScope {
+        self.candidate.scope()
+    }
+
+    pub fn scope_evidence(&self) -> &FoundationalAdmittedMergeScopeEvidence {
+        &self.scope_evidence
     }
 
     pub const fn merge_base_selection_basis(&self) -> FoundationalMergeBaseSelectionBasis {

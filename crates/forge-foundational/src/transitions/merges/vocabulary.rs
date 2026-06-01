@@ -95,15 +95,28 @@ pub enum FoundationalBranchBasisDriftKind {
     ParentBasisUnavailable,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FoundationalBranchBasisDrift {
     kind: FoundationalBranchBasisDriftKind,
     reason: &'static str,
+    scope_unavailable: Option<FoundationalScopedMergeUnavailablePosture>,
 }
 
 impl FoundationalBranchBasisDrift {
     pub const fn new(kind: FoundationalBranchBasisDriftKind, reason: &'static str) -> Self {
-        Self { kind, reason }
+        Self {
+            kind,
+            reason,
+            scope_unavailable: None,
+        }
+    }
+
+    pub fn scope_unavailable(posture: FoundationalScopedMergeUnavailablePosture) -> Self {
+        Self {
+            kind: FoundationalBranchBasisDriftKind::ParentBasisUnavailable,
+            reason: posture.reason().reason(),
+            scope_unavailable: Some(posture),
+        }
     }
 
     pub const fn kind(&self) -> FoundationalBranchBasisDriftKind {
@@ -112,6 +125,10 @@ impl FoundationalBranchBasisDrift {
 
     pub const fn reason(&self) -> &'static str {
         self.reason
+    }
+
+    pub fn scope_unavailable_posture(&self) -> Option<&FoundationalScopedMergeUnavailablePosture> {
+        self.scope_unavailable.as_ref()
     }
 
     pub const fn verdict_kind(&self) -> FoundationalMergeVerdictKind {
@@ -135,15 +152,37 @@ pub enum FoundationalMergeConstructionDenial {
     MissingStrategyDescriptorDigest,
     MissingStrategyContractBasis,
     MissingStrategyBasis,
+    EmptySelectedNodeLocus,
+    EmptySelectedAspectLocus,
+    EmptySelectedNodeScope,
+    EmptySelectedAspectScope,
+    DuplicateSelectedNodeLocus,
+    DuplicateSelectedAspectLocus,
+    DuplicateSelectedNoOpLocus,
+    ScopedEvidenceOutsideRequestedScope,
+    ScopedEvidenceLocusHasMultipleOutcomes,
+    ScopedEvidenceMissingSelectedOutcome,
+    FullBranchScopeCannotSkipOutOfScope,
+    ScopedDenialLocusMismatch,
+    ScopedUnavailableReasonScopeMismatch,
     SourceAndTargetBranchMustDiffer,
     MergeBasisSourceBranchMismatch,
     MergeBasisTargetBranchMismatch,
     ComparisonBasisTargetBranchMismatch,
 }
 
+use super::scope_non_success::{
+    FoundationalScopedMergeDenialEvidence, FoundationalScopedMergeUnavailablePosture,
+};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FoundationalMergeAdmissionDenial {
     EmptyConflictLoci,
+    ScopedEvidenceScopeMismatch,
+    ScopedEvidenceSourceBranchMismatch,
+    ScopedEvidenceTargetBranchMismatch,
+    ScopedEvidenceConflictWidthMismatch,
+    ScopedSelectionDenied(FoundationalScopedMergeDenialEvidence),
     PolicyDenied { reason: &'static str },
 }
 
@@ -153,48 +192,93 @@ impl FoundationalMergeAdmissionDenial {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FoundationalMergeAdmissionDeferred {
     reason: &'static str,
+    scope_unavailable: Option<FoundationalScopedMergeUnavailablePosture>,
 }
 
 impl FoundationalMergeAdmissionDeferred {
     pub const fn new(reason: &'static str) -> Self {
-        Self { reason }
+        Self {
+            reason,
+            scope_unavailable: None,
+        }
+    }
+
+    pub fn scope_unavailable(posture: FoundationalScopedMergeUnavailablePosture) -> Self {
+        Self {
+            reason: posture.reason().reason(),
+            scope_unavailable: Some(posture),
+        }
     }
 
     pub const fn reason(&self) -> &'static str {
         self.reason
     }
+
+    pub fn scope_unavailable_posture(&self) -> Option<&FoundationalScopedMergeUnavailablePosture> {
+        self.scope_unavailable.as_ref()
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FoundationalMergeAdmissionRebindRequired {
     reason: &'static str,
+    scope_unavailable: Option<FoundationalScopedMergeUnavailablePosture>,
 }
 
 impl FoundationalMergeAdmissionRebindRequired {
     pub const fn new(reason: &'static str) -> Self {
-        Self { reason }
+        Self {
+            reason,
+            scope_unavailable: None,
+        }
+    }
+
+    pub fn scope_unavailable(posture: FoundationalScopedMergeUnavailablePosture) -> Self {
+        Self {
+            reason: posture.reason().reason(),
+            scope_unavailable: Some(posture),
+        }
     }
 
     pub const fn reason(&self) -> &'static str {
         self.reason
     }
+
+    pub fn scope_unavailable_posture(&self) -> Option<&FoundationalScopedMergeUnavailablePosture> {
+        self.scope_unavailable.as_ref()
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FoundationalMergeAdmissionFailure {
     reason: &'static str,
+    scope_unavailable: Option<FoundationalScopedMergeUnavailablePosture>,
 }
 
 impl FoundationalMergeAdmissionFailure {
     pub const fn new(reason: &'static str) -> Self {
-        Self { reason }
+        Self {
+            reason,
+            scope_unavailable: None,
+        }
+    }
+
+    pub fn scope_unavailable(posture: FoundationalScopedMergeUnavailablePosture) -> Self {
+        Self {
+            reason: posture.reason().reason(),
+            scope_unavailable: Some(posture),
+        }
     }
 
     pub const fn reason(&self) -> &'static str {
         self.reason
+    }
+
+    pub fn scope_unavailable_posture(&self) -> Option<&FoundationalScopedMergeUnavailablePosture> {
+        self.scope_unavailable.as_ref()
     }
 }
 

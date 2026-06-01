@@ -1,18 +1,13 @@
-use forge_proof::TransitionOutcome;
-
+use super::scoped::FoundationalMergeScope;
 use super::strategy::{
     FoundationalMergeBaseSelectionBasis, FoundationalMergeBasis, FoundationalStrategyBasis,
     FoundationalTransitionCorrespondenceBasis, FoundationalTransitionRemapBasis,
     FoundationalTransitionStrategyContractBasis, FoundationalTransitionStrategyDescriptorDigest,
     FoundationalTransitionStrategyIdentity,
 };
-use super::verdict::FoundationalMergeVerdict;
 use super::vocabulary::{
-    FoundationalBranchBasisDrift, FoundationalMergeAdmissionDeferred,
-    FoundationalMergeAdmissionDenial, FoundationalMergeAdmissionFailure,
-    FoundationalMergeAdmissionOutcome, FoundationalMergeAdmissionRebindRequired,
-    FoundationalMergeConflictLocus, FoundationalMergeConstructionDenial, FoundationalMergeIntent,
-    FoundationalMergeStructuralSummary, FoundationalMergeVerdictKind,
+    FoundationalMergeConstructionDenial, FoundationalMergeIntent,
+    FoundationalMergeStructuralSummary,
 };
 use crate::transitions::{FoundationalBranchId, FoundationalStagedBranchArtifact};
 
@@ -22,6 +17,7 @@ pub struct FoundationalMergeBuilder<T> {
     target_branch: Option<FoundationalBranchId>,
     intent: Option<FoundationalMergeIntent>,
     summary: Option<FoundationalMergeStructuralSummary>,
+    scope: Option<FoundationalMergeScope>,
     merge_basis: Option<FoundationalMergeBasis>,
     merge_base_selection_basis: Option<FoundationalMergeBaseSelectionBasis>,
     strategy_identity: Option<FoundationalTransitionStrategyIdentity>,
@@ -40,6 +36,7 @@ pub fn foundational_merge<T>(
         target_branch: None,
         intent: None,
         summary: None,
+        scope: None,
         merge_basis: None,
         merge_base_selection_basis: None,
         strategy_identity: None,
@@ -57,6 +54,7 @@ pub struct FoundationalMergeCandidate<T> {
     target_branch: FoundationalBranchId,
     intent: FoundationalMergeIntent,
     summary: FoundationalMergeStructuralSummary,
+    scope: FoundationalMergeScope,
     merge_basis: FoundationalMergeBasis,
     merge_base_selection_basis: FoundationalMergeBaseSelectionBasis,
     strategy_identity: FoundationalTransitionStrategyIdentity,
@@ -80,6 +78,11 @@ impl<T> FoundationalMergeBuilder<T> {
 
     pub fn with_structural_summary(mut self, summary: FoundationalMergeStructuralSummary) -> Self {
         self.summary = Some(summary);
+        self
+    }
+
+    pub fn with_scope(mut self, scope: FoundationalMergeScope) -> Self {
+        self.scope = Some(scope);
         self
     }
 
@@ -170,6 +173,9 @@ impl<T> FoundationalMergeBuilder<T> {
             summary: self
                 .summary
                 .ok_or(FoundationalMergeConstructionDenial::MissingStructuralSummary)?,
+            scope: self
+                .scope
+                .unwrap_or_else(FoundationalMergeScope::full_branch),
             merge_basis,
             merge_base_selection_basis: self
                 .merge_base_selection_basis
@@ -207,6 +213,10 @@ impl<T> FoundationalMergeCandidate<T> {
 
     pub const fn structural_summary(&self) -> FoundationalMergeStructuralSummary {
         self.summary
+    }
+
+    pub fn scope(&self) -> &FoundationalMergeScope {
+        &self.scope
     }
 
     pub fn merge_basis(&self) -> &FoundationalMergeBasis {
@@ -249,94 +259,5 @@ impl<T> FoundationalMergeCandidate<T> {
 
     pub fn staged_branch(&self) -> &FoundationalStagedBranchArtifact<T> {
         &self.source
-    }
-
-    pub fn admit_as_accepted(
-        self,
-    ) -> FoundationalMergeAdmissionOutcome<FoundationalMergeVerdict<T>> {
-        TransitionOutcome::success(FoundationalMergeVerdict::new(
-            self,
-            FoundationalMergeVerdictKind::Accepted,
-            Vec::new(),
-            None,
-        ))
-    }
-
-    pub fn admit_as_advisory(
-        self,
-    ) -> FoundationalMergeAdmissionOutcome<FoundationalMergeVerdict<T>> {
-        TransitionOutcome::success(FoundationalMergeVerdict::new(
-            self,
-            FoundationalMergeVerdictKind::Advisory,
-            Vec::new(),
-            None,
-        ))
-    }
-
-    pub fn admit_as_conflict(
-        self,
-        conflict_loci: Vec<FoundationalMergeConflictLocus>,
-    ) -> FoundationalMergeAdmissionOutcome<FoundationalMergeVerdict<T>> {
-        if conflict_loci.is_empty() {
-            return TransitionOutcome::denied(FoundationalMergeAdmissionDenial::EmptyConflictLoci);
-        }
-        TransitionOutcome::success(FoundationalMergeVerdict::new(
-            self,
-            FoundationalMergeVerdictKind::Conflict,
-            conflict_loci,
-            None,
-        ))
-    }
-
-    pub fn admit_as_superseded(
-        self,
-        superseded_by_branch: FoundationalBranchId,
-    ) -> FoundationalMergeAdmissionOutcome<FoundationalMergeVerdict<T>> {
-        TransitionOutcome::success(FoundationalMergeVerdict::new(
-            self,
-            FoundationalMergeVerdictKind::Superseded,
-            Vec::new(),
-            Some(superseded_by_branch),
-        ))
-    }
-
-    pub fn deny(
-        self,
-        reason: &'static str,
-    ) -> FoundationalMergeAdmissionOutcome<FoundationalMergeVerdict<T>> {
-        let _ = self;
-        TransitionOutcome::denied(FoundationalMergeAdmissionDenial::PolicyDenied { reason })
-    }
-
-    pub fn stale(
-        self,
-        drift: FoundationalBranchBasisDrift,
-    ) -> FoundationalMergeAdmissionOutcome<FoundationalMergeVerdict<T>> {
-        let _ = self;
-        TransitionOutcome::stale(drift)
-    }
-
-    pub fn defer(
-        self,
-        reason: &'static str,
-    ) -> FoundationalMergeAdmissionOutcome<FoundationalMergeVerdict<T>> {
-        let _ = self;
-        TransitionOutcome::deferred(FoundationalMergeAdmissionDeferred::new(reason))
-    }
-
-    pub fn require_rebind(
-        self,
-        reason: &'static str,
-    ) -> FoundationalMergeAdmissionOutcome<FoundationalMergeVerdict<T>> {
-        let _ = self;
-        TransitionOutcome::rebind_required(FoundationalMergeAdmissionRebindRequired::new(reason))
-    }
-
-    pub fn fail(
-        self,
-        reason: &'static str,
-    ) -> FoundationalMergeAdmissionOutcome<FoundationalMergeVerdict<T>> {
-        let _ = self;
-        TransitionOutcome::failed(FoundationalMergeAdmissionFailure::new(reason))
     }
 }

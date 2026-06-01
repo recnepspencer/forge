@@ -77,17 +77,16 @@ later.
 ## Small Example
 
 ```ts
-const taskFields = signals.resource.detailFields({
-  status: {
-    read: (value) => value.status,
-    write: (value, status) => ({ ...value, status }),
-  },
-});
-
-const taskDetail = api.url("/tasks/:taskId").detail({
-  reconcile: taskFields,
-  load: ({ taskId }) => ({ id: taskId, status: "draft" }),
-});
+const taskDetail = api.url("/tasks/:taskId")
+  .response(signals.resource.response.detail<{
+    id: string;
+    status: string;
+  }>()({
+    status: "status",
+  }))
+  .detail({
+    load: ({ taskId }) => ({ id: taskId, status: "draft" }),
+  });
 
 const taskList = api.url("/tasks")
   .response(signals.resource.response.collection({
@@ -148,6 +147,10 @@ mutation responses different from ordinary writes:
 
 - one write can target more than one read family
 - the runtime keeps partial results explicit instead of silently guessing
+
+Notice that the detail read family uses the same response-owned detail field
+lane as the mutation response. That keeps the common top-level field contract
+declared once, then reused across the read line and the write-response plan.
 
 ## Save And Replace Detail Lines
 

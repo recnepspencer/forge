@@ -301,6 +301,61 @@ fn transition_locator_entries(locator: FoundationalTransitionLocator) -> Vec<Can
                 locator.delta_locus().detail(),
             ),
         ],
+        FoundationalTransitionLocator::MergeScope(locator) => vec![
+            transition_locator_text_entry("transition.merge_scope.kind", "merge-scope"),
+            transition_locator_text_entry(
+                "transition.merge_scope.source_branch",
+                locator.source_branch().as_str(),
+            ),
+            transition_locator_text_entry(
+                "transition.merge_scope.target_branch",
+                locator.target_branch().as_str(),
+            ),
+            transition_locator_text_entry(
+                "transition.merge_scope.family",
+                merge_scope_family_name(locator.scope_family()),
+            ),
+        ],
+        FoundationalTransitionLocator::SelectedNodeScope(locator) => vec![
+            transition_locator_text_entry(
+                "transition.selected_node_scope.kind",
+                "selected-node-scope",
+            ),
+            transition_locator_text_entry(
+                "transition.selected_node_scope.source_branch",
+                locator.source_branch().as_str(),
+            ),
+            transition_locator_text_entry(
+                "transition.selected_node_scope.target_branch",
+                locator.target_branch().as_str(),
+            ),
+            transition_locator_text_entry(
+                "transition.selected_node_scope.node",
+                locator.selected_node().as_str(),
+            ),
+        ],
+        FoundationalTransitionLocator::SelectedAspectScope(locator) => vec![
+            transition_locator_text_entry(
+                "transition.selected_aspect_scope.kind",
+                "selected-aspect-scope",
+            ),
+            transition_locator_text_entry(
+                "transition.selected_aspect_scope.source_branch",
+                locator.source_branch().as_str(),
+            ),
+            transition_locator_text_entry(
+                "transition.selected_aspect_scope.target_branch",
+                locator.target_branch().as_str(),
+            ),
+            transition_locator_text_entry(
+                "transition.selected_aspect_scope.node",
+                locator.selected_aspect().node().as_str(),
+            ),
+            transition_locator_text_entry(
+                "transition.selected_aspect_scope.aspect",
+                locator.selected_aspect().aspect().as_str(),
+            ),
+        ],
     }
 }
 
@@ -333,4 +388,14 @@ fn parent_basis_locator_entry(
     basis: FoundationalCommitParentBasis,
 ) -> CanonicalBasisEntry {
     transition_locator_integer_entry(locus, u128::from(basis.basis_id().get()))
+}
+
+fn merge_scope_family_name(
+    family: crate::transitions::FoundationalMergeScopeFamily,
+) -> &'static str {
+    match family {
+        crate::transitions::FoundationalMergeScopeFamily::FullBranch => "full-branch",
+        crate::transitions::FoundationalMergeScopeFamily::SelectedNodes => "selected-nodes",
+        crate::transitions::FoundationalMergeScopeFamily::SelectedAspects => "selected-aspects",
+    }
 }

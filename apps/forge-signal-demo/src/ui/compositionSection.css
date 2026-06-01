@@ -1,0 +1,68 @@
+.composition-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.composition-code-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.composition-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.composition-card h3 {
+  margin: 0;
+  color: #f5f7fb;
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  letter-spacing: -0.035em;
+}
+
+.composition-code-block {
+  overflow-x: auto;
+  min-height: 100%;
+  margin: 0;
+  padding: 0.95rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: #060708;
+  color: #d9e0ea;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.composition-code-line {
+  min-height: 1.6em;
+  white-space: pre;
+}
+
+.composition-card-forge .composition-code-block {
+  border-color: color-mix(in srgb, var(--section-accent) 22%, rgba(255, 255, 255, 0.07));
+}
+
+.composition-glue-row {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.95rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--section-accent) 20%, rgba(255, 255, 255, 0.08));
+  background: rgba(255, 156, 183, 0.06);
+}
+
+.composition-glue-row span {
+  color: var(--section-accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.composition-glue-row p {
+  margin: 0;
+  color: rgba(223, 228, 236, 0.76);
+  line-height: 1.65;
+}

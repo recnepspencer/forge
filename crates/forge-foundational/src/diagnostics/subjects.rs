@@ -110,6 +110,25 @@ impl FoundationalDiagnosticLocator {
                     locator.commit_id().handle().get(),
                     locator.delta_locus().detail()
                 ),
+                FoundationalTransitionLocator::MergeScope(locator) => format!(
+                    "locator.transition.merge_scope:{}:{}:{}",
+                    diagnostic_fragment_part(locator.source_branch().as_str()),
+                    diagnostic_fragment_part(locator.target_branch().as_str()),
+                    merge_scope_family_name(locator.scope_family())
+                ),
+                FoundationalTransitionLocator::SelectedNodeScope(locator) => format!(
+                    "locator.transition.selected_node_scope:{}:{}:{}",
+                    diagnostic_fragment_part(locator.source_branch().as_str()),
+                    diagnostic_fragment_part(locator.target_branch().as_str()),
+                    diagnostic_fragment_part(locator.selected_node().as_str())
+                ),
+                FoundationalTransitionLocator::SelectedAspectScope(locator) => format!(
+                    "locator.transition.selected_aspect_scope:{}:{}:{}:{}",
+                    diagnostic_fragment_part(locator.source_branch().as_str()),
+                    diagnostic_fragment_part(locator.target_branch().as_str()),
+                    diagnostic_fragment_part(locator.selected_aspect().node().as_str()),
+                    diagnostic_fragment_part(locator.selected_aspect().aspect().as_str())
+                ),
             },
             Self::BoundaryArtifact(locator) => format!(
                 "locator.boundary_artifact:{}:{}",
@@ -230,6 +249,20 @@ fn boundary_artifact_field_name(field: BoundaryArtifactField) -> &'static str {
         BoundaryArtifactField::Payload => "payload",
         BoundaryArtifactField::Proofs => "proofs",
         BoundaryArtifactField::Basis => "basis",
+    }
+}
+
+fn diagnostic_fragment_part(value: &str) -> String {
+    format!("{}#{value}", value.len())
+}
+
+fn merge_scope_family_name(
+    family: crate::transitions::FoundationalMergeScopeFamily,
+) -> &'static str {
+    match family {
+        crate::transitions::FoundationalMergeScopeFamily::FullBranch => "full-branch",
+        crate::transitions::FoundationalMergeScopeFamily::SelectedNodes => "selected-nodes",
+        crate::transitions::FoundationalMergeScopeFamily::SelectedAspects => "selected-aspects",
     }
 }
 

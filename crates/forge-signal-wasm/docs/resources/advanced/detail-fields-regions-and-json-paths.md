@@ -15,6 +15,7 @@ Use it when broad replacement is too coarse and you want to declare:
 
 ## Stable Entry Points
 
+- `signals.resource.response.detail<T>()({...})`
 - `signals.resource.detailFields(...)`
 - `signals.resource.detailRegions(...)`
 - `signals.resource.detailJsonPaths(...)`
@@ -28,7 +29,10 @@ detail sub-values the runtime can patch honestly.
 
 ## How It Executes
 
-Field declarations provide `read(...)` and `write(...)`.
+Response-owned detail field declarations map exposed field names to top-level
+object fields.
+
+Explicit field declarations provide `read(...)` and `write(...)`.
 Region declarations provide `read(...)`, `write(...)`, plus:
 
 - `identityBoundary`
@@ -40,7 +44,37 @@ Json-path declarations provide:
 - optional `presence`
 - proof-carrying `read(...)` and `write(...)`
 
+## Choose The Right Lane
+
+Use these lanes in order:
+
+- `response.detail<T>()({...})` for ordinary top-level object fields
+- `detailFields(...)` when field reads or writes need custom logic
+- `detailRegions(...)` for named subtree replacement
+- `detailJsonPaths(...)` for nested JSON-path slices
+
+The response-owned detail lane is the default because it keeps the field
+contract reusable across reads, writes, and mutation-response reconciliation.
+
 ## Small Example
+
+```ts
+const profile = signals.api({}).url("/profiles/:id")
+  .response(signals.resource.response.detail<{
+    id: string;
+    title: string;
+  }>()({
+    title: "title",
+  }))
+  .detail({
+    load: ({ id }) => ({ id, title: "Loaded" }),
+  });
+```
+
+## Real Example
+
+Use the explicit lane when the field behavior is not just "read this object
+property and write it back immutably."
 
 ```ts
 const profile = signals.resource.detail({
@@ -56,7 +90,7 @@ const profile = signals.resource.detail({
 });
 ```
 
-## Real Example
+Use the other explicit lanes when you need structured narrow writes:
 
 ```ts
 const profile = signals.resource.detail({
@@ -97,8 +131,9 @@ Inspect:
 
 ## Current Limits
 
-The raw detail lane is explicit because the runtime needs proof-bearing narrow
-write behavior, not just read convenience.
+The explicit detail lanes still matter because the runtime needs proof-bearing
+narrow write behavior, not just read convenience. The response-owned field lane
+is the common path only for ordinary top-level object fields.
 
 ## Related Docs
 

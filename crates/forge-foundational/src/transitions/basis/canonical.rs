@@ -4,6 +4,8 @@ mod canonical_branch;
 mod canonical_commit;
 #[path = "canonical_merge.rs"]
 mod canonical_merge;
+#[path = "canonical_scope.rs"]
+mod canonical_scope;
 #[path = "canonical_shared.rs"]
 mod canonical_shared;
 
@@ -14,8 +16,10 @@ use crate::canonicalization::{
     CanonicalBasisEntry, CanonicalBasisReadyArtifact, CanonicalizationRuleVersion,
 };
 use crate::transitions::{
-    FoundationalBranchCandidateArtifact, FoundationalCommitReceiptArtifact,
-    FoundationalCommittedAuthorityArtifact, FoundationalMergeVerdict,
+    FoundationalAdmittedMergeScopeEvidence, FoundationalBranchCandidateArtifact,
+    FoundationalCommitReceiptArtifact, FoundationalCommittedAuthorityArtifact,
+    FoundationalMergeScope, FoundationalMergeVerdict, FoundationalScopedMergeDenialEvidence,
+    FoundationalScopedMergeUnavailablePosture,
 };
 
 pub fn prepare_branch_candidate_for_canonical_basis<T>(
@@ -48,6 +52,50 @@ pub fn prepare_merge_verdict_for_canonical_basis<T>(
         version,
         CanonicalBasisDomain::Transition,
         canonical_merge::merge_verdict_entries(verdict),
+    )
+}
+
+pub fn prepare_merge_scope_for_canonical_basis(
+    version: CanonicalizationRuleVersion,
+    scope: &FoundationalMergeScope,
+) -> TransitionOutcome<CanonicalBasisReadyArtifact, CanonicalBasisConstructionDenial> {
+    prepare_canonical_basis_sequence(
+        version,
+        CanonicalBasisDomain::Transition,
+        canonical_scope::merge_scope_entries("merge.scope", scope),
+    )
+}
+
+pub fn prepare_admitted_merge_scope_for_canonical_basis(
+    version: CanonicalizationRuleVersion,
+    evidence: &FoundationalAdmittedMergeScopeEvidence,
+) -> TransitionOutcome<CanonicalBasisReadyArtifact, CanonicalBasisConstructionDenial> {
+    prepare_canonical_basis_sequence(
+        version,
+        CanonicalBasisDomain::Transition,
+        canonical_scope::admitted_scope_entries("merge.scope_evidence", evidence),
+    )
+}
+
+pub fn prepare_scoped_merge_denial_for_canonical_basis(
+    version: CanonicalizationRuleVersion,
+    evidence: &FoundationalScopedMergeDenialEvidence,
+) -> TransitionOutcome<CanonicalBasisReadyArtifact, CanonicalBasisConstructionDenial> {
+    prepare_canonical_basis_sequence(
+        version,
+        CanonicalBasisDomain::Transition,
+        canonical_scope::scoped_denial_entries("merge.scope_denial", evidence),
+    )
+}
+
+pub fn prepare_scoped_merge_unavailable_for_canonical_basis(
+    version: CanonicalizationRuleVersion,
+    posture: &FoundationalScopedMergeUnavailablePosture,
+) -> TransitionOutcome<CanonicalBasisReadyArtifact, CanonicalBasisConstructionDenial> {
+    prepare_canonical_basis_sequence(
+        version,
+        CanonicalBasisDomain::Transition,
+        canonical_scope::scoped_unavailable_entries("merge.scope_unavailable", posture),
     )
 }
 

@@ -10,6 +10,11 @@ import { createLineBackingRef } from "../../lines/state/line_backing_ref.js";
 import { createLineRegistryEntry } from "../../lines/state/line_registry_entry.js";
 import { createLineDeliveryState } from "../../lines/state/line_delivery_state.js";
 import { createIdentityMigratedDiagnostics } from "../../lines/state/line_diagnostics_value.js";
+import {
+  patchLineBindingState,
+  readLineBindingState,
+  replaceLineBindingState,
+} from "../../lines/state/line_binding_state.js";
 import { createLineRequestState } from "../../requests/line_request_state.js";
 import { recordMutationResponsePlanIfPresent } from "../../mutation/resource_mutation_response_execution.js";
 import { createBinding } from "./materialized_family_binding.js";
@@ -48,10 +53,11 @@ function createMaterializedLine(
 
   function snapshotContinuity(materialization) {
     try {
+      const state = readLineBindingState(materialization.binding);
       return Object.freeze({
-        status: materialization.binding.statusSignal(),
-        freshness: materialization.binding.freshnessSignal(),
-        diagnostics: materialization.binding.diagnosticsSignal(),
+        status: state.status,
+        freshness: state.freshness,
+        diagnostics: state.diagnostics,
       });
     } catch {
       return null;
@@ -62,9 +68,11 @@ function createMaterializedLine(
     if (continuitySnapshot === null) {
       return;
     }
-    materialization.binding.statusSignal.set(continuitySnapshot.status);
-    materialization.binding.freshnessSignal.set(continuitySnapshot.freshness);
-    materialization.binding.diagnosticsSignal.set(continuitySnapshot.diagnostics);
+    patchLineBindingState(materialization.binding, {
+      status: continuitySnapshot.status,
+      freshness: continuitySnapshot.freshness,
+      diagnostics: continuitySnapshot.diagnostics,
+    });
   }
 
   function createReplacementMaterialization(
@@ -137,7 +145,7 @@ function createMaterializedLine(
     );
     const previousCanonicalKey = currentCanonicalKey;
     const previousRuntimeLineId = currentMaterialization.lineIdentity.runtimeLineId;
-    const previousVisibleValue = currentMaterialization.binding.valueSignal();
+    const previousVisibleValue = readLineBindingState(currentMaterialization.binding).value;
     currentCanonicalParamIdentity = nextCanonicalParamIdentity;
     currentCanonicalKey = nextCanonicalKey;
     linesByCanonicalKey.delete(previousCanonicalKey);
@@ -147,7 +155,9 @@ function createMaterializedLine(
       requestStateOverride: null,
     });
     if (previousVisibleValue !== null) {
-      migratedMaterialization.binding.valueSignal.set(previousVisibleValue);
+      patchLineBindingState(migratedMaterialization.binding, {
+        value: previousVisibleValue,
+      });
     }
     sharedRequestState = migratedMaterialization.requestState;
     const identityMigration = Object.freeze({
@@ -159,12 +169,12 @@ function createMaterializedLine(
       requestPath:
         migratedMaterialization.requestState.readDescriptor().target.requestPath,
     });
-    migratedMaterialization.binding.diagnosticsSignal.set(
-      createIdentityMigratedDiagnostics(
-        migratedMaterialization.binding.diagnosticsSignal(),
+    patchLineBindingState(migratedMaterialization.binding, {
+      diagnostics: createIdentityMigratedDiagnostics(
+        readLineBindingState(migratedMaterialization.binding).diagnostics,
         identityMigration,
       ),
-    );
+    });
     recordLineHistoryEntry(
       migratedMaterialization.lifecycleHistory,
       migratedMaterialization.binding,
@@ -207,7 +217,7 @@ function createMaterializedLine(
     materialization.binding,
     "materialized",
   );
-  const diagnostics = materialization.binding.diagnosticsSignal();
+  const diagnostics = readLineBindingState(materialization.binding).diagnostics;
   recordMutationResponsePlanIfPresent(
     materialization.lifecycleHistory,
     materialization.binding,

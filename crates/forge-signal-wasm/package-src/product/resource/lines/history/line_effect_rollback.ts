@@ -3,6 +3,10 @@ import { recordLineHistoryEntry } from "./record_line_history_entry.js";
 import { applyPatchValue } from "../actions/line_patch_execution.js";
 import { createInverseRollbackDiagnostics } from "../state/line_diagnostics_value.js";
 import { createFulfilledLineStatus } from "../state/line_status_value.js";
+import {
+  patchLineBindingState,
+  readLineBindingState,
+} from "../state/line_binding_state.js";
 
 function executeLineEffectRollback(materialization, historyRead) {
   const basis = historyRead.basis;
@@ -101,8 +105,9 @@ function executeCompactInverseRollback(
   effectId,
   rollback,
 ) {
-  const previousDiagnostics = materialization.binding.diagnosticsSignal();
-  const currentValue = materialization.binding.valueSignal();
+  const previousState = readLineBindingState(materialization.binding);
+  const previousDiagnostics = previousState.diagnostics;
+  const currentValue = previousState.value;
   if (currentValue === null) {
     return createUnavailableRollbackResult({
       reason: "rollbackUnavailable",
@@ -118,14 +123,17 @@ function executeCompactInverseRollback(
     rollback.inverse.patch,
     currentValue,
   );
-  materialization.binding.statusSignal.set(createFulfilledLineStatus("restore"));
-  materialization.binding.diagnosticsSignal.set(
-    createInverseRollbackDiagnostics(
-      previousDiagnostics,
-      rollback,
-      inverseOutcome.diagnostics,
-    ),
+  const status = createFulfilledLineStatus("restore");
+  const diagnostics = createInverseRollbackDiagnostics(
+    previousDiagnostics,
+    rollback,
+    inverseOutcome.diagnostics,
   );
+  patchLineBindingState(materialization.binding, {
+    value: inverseOutcome.nextValue,
+    status,
+    diagnostics,
+  });
   recordLineHistoryEntry(
     materialization.lifecycleHistory,
     materialization.binding,
@@ -140,13 +148,13 @@ function executeCompactInverseRollback(
     basisCurrentId: basis.currentBasisId,
     basisAdvanceCount: basis.advanceCount,
     rollback,
-    reloadStatus: materialization.binding.statusSignal(),
+    reloadStatus: status,
   });
 }
 
 function readLastEffect(materialization) {
   try {
-    return materialization.binding.diagnosticsSignal().lastEffect ?? null;
+    return readLineBindingState(materialization.binding).diagnostics.lastEffect ?? null;
   } catch {
     return null;
   }

@@ -1,6 +1,8 @@
 use crate::transitions::{
     FoundationalBranchCandidateId, FoundationalBranchId, FoundationalCommitId,
     FoundationalCommitParentBasis, FoundationalCommittedDeltaLocus, FoundationalMergeConflictLocus,
+    FoundationalMergeScopeFamily, FoundationalSelectedAspectRequestEntry,
+    FoundationalSelectedNodeLocus,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -114,10 +116,112 @@ impl FoundationalCommittedDeltaLocator {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct FoundationalMergeScopeLocator {
+    source_branch: FoundationalBranchId,
+    target_branch: FoundationalBranchId,
+    scope_family: FoundationalMergeScopeFamily,
+}
+
+impl FoundationalMergeScopeLocator {
+    pub fn new(
+        source_branch: FoundationalBranchId,
+        target_branch: FoundationalBranchId,
+        scope_family: FoundationalMergeScopeFamily,
+    ) -> Self {
+        Self {
+            source_branch,
+            target_branch,
+            scope_family,
+        }
+    }
+
+    pub fn source_branch(&self) -> &FoundationalBranchId {
+        &self.source_branch
+    }
+
+    pub fn target_branch(&self) -> &FoundationalBranchId {
+        &self.target_branch
+    }
+
+    pub const fn scope_family(&self) -> FoundationalMergeScopeFamily {
+        self.scope_family
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct FoundationalSelectedNodeScopeLocator {
+    source_branch: FoundationalBranchId,
+    target_branch: FoundationalBranchId,
+    selected_node: FoundationalSelectedNodeLocus,
+}
+
+impl FoundationalSelectedNodeScopeLocator {
+    pub fn new(
+        source_branch: FoundationalBranchId,
+        target_branch: FoundationalBranchId,
+        selected_node: FoundationalSelectedNodeLocus,
+    ) -> Self {
+        Self {
+            source_branch,
+            target_branch,
+            selected_node,
+        }
+    }
+
+    pub fn source_branch(&self) -> &FoundationalBranchId {
+        &self.source_branch
+    }
+
+    pub fn target_branch(&self) -> &FoundationalBranchId {
+        &self.target_branch
+    }
+
+    pub fn selected_node(&self) -> &FoundationalSelectedNodeLocus {
+        &self.selected_node
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct FoundationalSelectedAspectScopeLocator {
+    source_branch: FoundationalBranchId,
+    target_branch: FoundationalBranchId,
+    selected_aspect: FoundationalSelectedAspectRequestEntry,
+}
+
+impl FoundationalSelectedAspectScopeLocator {
+    pub fn new(
+        source_branch: FoundationalBranchId,
+        target_branch: FoundationalBranchId,
+        selected_aspect: FoundationalSelectedAspectRequestEntry,
+    ) -> Self {
+        Self {
+            source_branch,
+            target_branch,
+            selected_aspect,
+        }
+    }
+
+    pub fn source_branch(&self) -> &FoundationalBranchId {
+        &self.source_branch
+    }
+
+    pub fn target_branch(&self) -> &FoundationalBranchId {
+        &self.target_branch
+    }
+
+    pub fn selected_aspect(&self) -> &FoundationalSelectedAspectRequestEntry {
+        &self.selected_aspect
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FoundationalTransitionLocator {
     BranchCandidate(FoundationalBranchCandidateLocator),
     MergeConflict(FoundationalMergeConflictLocator),
     CommitParentage(FoundationalCommitParentageLocator),
     CommittedDelta(FoundationalCommittedDeltaLocator),
+    MergeScope(FoundationalMergeScopeLocator),
+    SelectedNodeScope(FoundationalSelectedNodeScopeLocator),
+    SelectedAspectScope(FoundationalSelectedAspectScopeLocator),
 }

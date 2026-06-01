@@ -217,7 +217,10 @@ function createLineHandle(lineBacking) {
     const materialization = requireCurrentMaterialization(lineBacking);
     const handle = createResourceViewHandle(
       materialization.lineScope.computed(
-        () => readLineSummary(requireCurrentMaterialization(lineBacking)),
+        () => readLineSummary(
+          requireCurrentMaterialization(lineBacking),
+          { includeExplainability: false },
+        ),
         {
           debugName: "resourceLineSummary",
         },

@@ -276,37 +276,68 @@ useEffect(() => {
   },
   {
     id: 6,
-    title: "History Branching & Replay",
-    purpose: "Show the most advanced differentiator in the sequence with time travel.",
+    title: "Branching 3D State",
+    purpose: "Show a real Three.js gear whose parameters live in Forge runtime branches, snapshots, restores, and merges.",
     difficulty: "Advanced",
-    primaryMessage: "Forge treats time, history, and revisitation as first-class structured behavior.",
-    forgeCode: `const history = runtime.history();
+    primaryMessage: "Forge treats history as runtime authority, not a reducer you hand-roll beside your UI.",
+    forgeCode: `const signals = await createSignals();
+const history = signals.history();
 
-// Create isolated feature branch for safe prototyping
-const featureBranch = history.createBranch("what-if");
-history.switchBranch(featureBranch.id);
+const gear = {
+  innerRadius: signals.input(0.62, { debugName: "gear.innerRadius" }),
+  outerRadius: signals.input(1.78, { debugName: "gear.outerRadius" }),
+  thickness: signals.input(0.58, { debugName: "gear.thickness" }),
+  teeth: signals.input(18, { debugName: "gear.teeth" }),
+};
 
-// Edit values safely without mutating the main branch!
-titleInput.set("Prototyped Design");
+// Sliders debounce here, then cross one real runtime commit boundary.
+signals.batch((tx) => {
+  tx.set(gear.teeth, 24);
+  tx.set(gear.thickness, 0.82);
+});
 
-// Replay history or switch back to main instantly
-history.switchBranch(mainBranch.id);`,
+const branch = history.create_branch("tooth-experiment");
+history.switch_branch(branch.id);
+gear.teeth.set(30);
+
+const snapshot = history.branch_snapshot(branch.id);
+history.restore_exact_branch_snapshot(branch.id, snapshot);
+
+const plan = history.plan_merge_branches(branch.id, 0);
+const result = history.merge_branches_with_proof(branch.id, 0);
+
+renderThreeGear({
+  teeth: gear.teeth(),
+  thickness: gear.thickness(),
+  innerRadius: gear.innerRadius(),
+  outerRadius: gear.outerRadius(),
+});`,
     alternativeName: "Hand-rolled Undo Redo Reducer",
-    alternativeCode: `// Reducer tracking list arrays of past states
-const undoRedoReducer = (state, action) => {
-  switch (action.type) {
-    case "UNDO":
-      return { ...state, past: state.past.slice(0, -1), current: state.past[state.past.length - 1] };
-    // Extremely complex logic to handle branch forking!
-  }
-};`,
-    explanationAlternative: "Hand-rolled history trackers consume vast memory and lack isolation. Zero capabilities to dry-run or verify conflicts when merging forks.",
-    explanationForge: "Maintains a full timeline registry at the compiler level inside WASM. Easily fork branches, revert history, and generate conflict plans mathematically.",
+    alternativeCode: `const [gear, setGear] = useState(initialGear);
+const [branches, setBranches] = useState([{ id: "main", states: [initialGear] }]);
+const [activeBranchId, setActiveBranchId] = useState("main");
+
+// App code now owns:
+// - snapshot retention
+// - undo/redo stacks
+// - branch checkout
+// - merge planning
+// - conflict classification
+// - proof/diagnostic output
+function mergeBranch(sourceId, targetId) {
+  const source = findHead(sourceId);
+  const target = findHead(targetId);
+  const base = findForkBase(sourceId, targetId);
+  return mergeGearObjectsByHand(base, source, target);
+}`,
+    explanationAlternative: "A reducer can draw a timeline, but the app must invent branch authority, snapshot retention, conflict rules, merge previews, proof output, and replay semantics.",
+    explanationForge: "The gear is ordinary Three.js, but the state lifecycle is real Forge runtime state. Branches, exact restores, merge plans, merge proofs, and replay tails all come from history().",
     whatYouGet: [
-      "Git-style multi-branch state management",
-      "Interactive time-travel scrubbing",
-      "State diffing and visual conflict mapping",
-      "Verified conflict-free branch merges"
+      "Three.js rendering driven by Forge signal handles",
+      "Debounced slider commits through one batch boundary",
+      "Runtime branch checkout and exact snapshot restore",
+      "Merge planning and proof-backed merge execution",
+      "Replay and branch-state proof surfaces"
     ],
     relatedDocsPath: "resources/branch-native-effects"
   }

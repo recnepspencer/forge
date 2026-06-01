@@ -874,6 +874,57 @@ replace and prove that the shared vocabulary actually converges the stack.
 - documented debt inventory for any remaining non-foundational dialects that
   still survive by necessity
 
+## Milestone 9: Scoped Merge Selection And Cherry-Pick Vocabulary
+
+Detailed spec: [`milestone-9.md`](milestone-9.md)
+
+### Goal
+
+Extend the Milestone 5 branch/merge/commit transition language with shared
+scoped merge and cherry-pick vocabulary before adopting runtimes implement
+selected-node or selected-aspect merge execution.
+
+### Must Ship
+
+- full-branch, selected-node, and selected-aspect merge scope request
+  vocabulary
+- admitted scope evidence, selected no-op evidence, and compact
+  skipped-out-of-scope evidence
+- typed scope denial and scope-unavailable posture for unknown, ambiguous,
+  deleted, unsupported, or non-adoptable selected loci
+- scope breadth counters for selected nodes, selected aspects, skipped
+  candidates, no-op selections, and conflict checks
+- merge candidate/verdict integration without turning `forge-foundational`
+  into a merge executor
+- canonical basis and locator participation for scoped merge evidence
+- compile-fail and hostile producer-diversity certification
+
+### Semantic Guarantees
+
+- cherry-pick means selected merge scope, not consumer-side filtering of a
+  broader merge result
+- full-branch merge remains a named scope rather than absence of scope meaning
+- selected-node and selected-aspect scopes are not substitutable
+- skipped and no-op selected work remain visible enough for blind consumers to
+  explain what happened
+- unsupported scoped merge families deny or become unavailable explicitly
+
+### Representation Boundaries
+
+- adopting crates keep local node ids, journals, aspect sets, and merge
+  planners
+- `forge-foundational` standardizes boundary meaning only
+- runtime execution, source/target storage mutation, and materialization remain
+  adopting-crate responsibilities
+
+### Acceptance Evidence
+
+- scoped merge request vocabulary tests
+- scoped merge admission evidence tests
+- scoped merge denial topology tests
+- scoped merge canonical-basis and locator tests
+- compile-fail coverage for raw selected loci and category substitution
+
 ## Outstanding Future Debt
 
 - shared certification harness substrate once enough foundational vocabulary has
