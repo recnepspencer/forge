@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use forge_relational::facade::identity::EntityId;
-use schema::facade::EntityKind;
+use schema::facade::platform::entities::EntityKind;
 
 use crate::derived_topology::materialized_graph::input_rows::MaterializationEntityRow;
 

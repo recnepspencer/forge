@@ -1580,7 +1580,10 @@ fn execute_feedback_loop_certification(
         crate::facade::TruthSnapshotIdentity::new(original_commit.snapshot_identity().as_str()),
         crate::facade::TruthBranchIdentity::new(original_commit.branch_identity().as_str()),
         vec![crate::facade::BridgeCommittedPatchItem::new(
-            "user", "profile", "name",
+            "user",
+            forge_foundational::facade::AspectKey::new("profile")
+                .expect("valid bridge patch aspect key"),
+            "name",
         )],
     );
     runtime.source.insert_committed_patch(ordinary_commit);
@@ -3549,7 +3552,10 @@ fn bridge_feedback_patch(
         crate::facade::TruthSnapshotIdentity::new(snapshot_identity),
         crate::facade::TruthBranchIdentity::new(branch_identity),
         vec![crate::facade::BridgeCommittedPatchItem::new(
-            "user", "profile", "name",
+            "user",
+            forge_foundational::facade::AspectKey::new("profile")
+                .expect("valid bridge patch aspect key"),
+            "name",
         )],
     )
 }

@@ -1,5 +1,3 @@
-#![allow(unused_imports)]
-
 mod catalog;
 mod contracts;
 mod custom_rule;
@@ -10,28 +8,29 @@ mod results;
 mod rule_id;
 mod rules;
 
-pub(crate) use catalog::{payload_schema_registration, relation_integrity_registrations_for_plan};
+pub(crate) use catalog::relation_integrity_registrations_for_plan;
 pub use catalog::{InvariantCatalog, InvariantRegistration};
 pub use contracts::InvariantPlanContract;
+#[cfg(test)]
+pub use custom_rule::TouchedStructuralSet;
 pub use custom_rule::{
-    BoundedStructuralTraversal, CustomInvariantExecutionContext, CustomInvariantExecutionError,
+    CustomInvariantExecutionContext, CustomInvariantExecutionError,
     CustomInvariantPreparationError, CustomInvariantProvenance, CustomInvariantRegistration,
     CustomInvariantRegistrationError, CustomInvariantRule, CustomInvariantScopePlanner,
-    CustomInvariantTouchedSummary, CustomInvariantTraversalError, CustomInvariantTraversalSummary,
-    CustomInvariantVerdict, PlannedEntityCreate, PlannedRelationCreate,
-    PlannedRelationEndpointUpdate, StructuralCountView, StructuralPayloadView,
-    StructuralRelationRecord, StructuralRelationView, StructuralTraversalResult,
-    TouchedStructuralSet,
+    CustomInvariantTouchedSummary, CustomInvariantTraversalSummary, CustomInvariantVerdict,
+    PlannedRelationEndpointUpdate, StructuralCountView, StructuralRelationRecord,
+    StructuralRelationView,
 };
 pub(crate) use custom_rule::{
     CustomInvariantFailure, CustomInvariantFailureKind, CustomInvariantRuntimePhase,
-    ErasedCustomInvariantRule, PreparedCustomInvariantExecution,
-    PreparedCustomInvariantExecutionOutcome,
+    PreparedCustomInvariantExecution, PreparedCustomInvariantExecutionOutcome,
 };
 pub use descriptor::{
     CustomInvariantDescriptor, CustomInvariantOperationalMetadata, InvariantRuleDescriptor,
     InvariantSemanticsClass, SupportedExecutionPoints,
 };
+#[allow(unused_imports)]
+pub use execution::InvariantWitnessBasis;
 pub use execution::{
     InvariantCheckResult, InvariantClass, InvariantDecisionKind, InvariantDecisionRecord,
     InvariantExecutionPoint, InvariantFailureEffect, InvariantReportedRule, InvariantVerdict,
@@ -39,8 +38,10 @@ pub use execution::{
 };
 pub use groups::{InvariantCostClass, InvariantGroup, InvariantGroupSet};
 pub use results::{
-    InvariantAdvisory, InvariantViolation, InvariantViolationFields, RelationCardinalityBoundary,
-    RelationEndpointBoundary,
+    CustomInvariantFailureIdentity, CustomInvariantFailureKind as ResultCustomInvariantFailureKind,
+    CustomInvariantFailurePhase, InvariantViolation, InvariantViolationFields,
+    RelationCardinalityBoundary, RelationEndpointBoundary, StorageInconsistencyFailure,
+    StorageInconsistencyLookup, StorageInconsistencyScan,
 };
 pub use rule_id::{
     CustomInvariantRuleId, CustomInvariantSemanticIdentity, CustomInvariantSemanticVersion,

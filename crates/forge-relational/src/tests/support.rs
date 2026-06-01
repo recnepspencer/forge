@@ -1,18 +1,14 @@
 pub(super) use forge_harness::facade::{
-    DiagnosticsHarnessAdapter, ExecutionProfile, ExecutionRequest, HarnessAdapter, MutationBatch,
-    ReplayHarnessAdapter, ReplayRequest, ScenarioPlan,
+    DiagnosticsHarnessAdapter, HarnessAdapter, ReplayHarnessAdapter,
 };
-use serde::Serialize;
-pub(super) use serde_json::json;
-use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub(super) use crate::config::data::PublicationConfig;
 pub(super) use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 pub(super) use crate::config::data::{DurableLogPolicy, DurableLogRetentionMode};
-pub(super) use crate::config::data::{PatchSurfacePolicy, PublicationConfig};
 pub(super) use crate::facade::config::{
     RelationalRuntimeProfile, StorageLayoutConfig, VisibilityCachePolicy,
 };
@@ -22,8 +18,8 @@ pub(super) use crate::facade::diagnostics::{
 pub(super) use crate::facade::durability::{DurabilityMode, DurableStoreLayout};
 pub(super) use crate::facade::harness::RelationalHarnessAdapter;
 pub(super) use crate::facade::history::{
-    AspectFilter, AspectFilterMode, AspectHistoryCommitSpan, AspectHistoryEntry,
-    AspectResolutionContext, BranchId, HistoryAspectQueryTarget, RequestedAspectSet,
+    AspectHistoryCommitSpan, AspectHistoryEntry, AspectResolutionContext, BranchId,
+    HistoryAspectQueryTarget,
 };
 pub(super) use crate::facade::identity::{KindId, LineageId, PartitionId, RelationId};
 pub(super) use crate::facade::publication::{
@@ -31,33 +27,33 @@ pub(super) use crate::facade::publication::{
     SubscriberResumeRequest, SubscriberStreamFailureClass,
 };
 pub(super) use crate::facade::query::{
-    DeterministicQueryPlanKey, PlannedQueryPacket, QueryExecutionShape, QueryFallbackContract,
+    DeterministicQueryPlanKey, PlannedQueryPacket, QueryAccessContract, QueryExecutionShape,
     QueryLocalityClass, QueryOrderingContract, QueryParallelLegality, QueryParallelProfitability,
     QueryPlanEvidenceBasis, QueryScope, QuerySerialReason, ReductionDiscipline,
 };
 pub(super) use crate::facade::runtime::{
     EntityReadRecord, InvariantCatalog, InvariantClass, InvariantRegistration, InvariantRule,
-    RelationalRuntime, RelationalRuntimeApi,
+    ProjectionAspectFilter, ProjectionAspectFilterMode, ProjectionAspectScope, RelationalRuntime,
+    RelationalRuntimeApi,
 };
 pub(super) use crate::facade::schema::{
-    AspectBinding, AspectComparator, AspectKey, AspectPrecision, DeclaredAspect,
-    EntityKindRegistration, KindAspectDeclarations, RelationIntegrityDeclarations,
-    RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
+    AspectBinding, DeclaredAspectContractBinding, EntityKindRegistration,
+    KindAspectContractDeclarations, RelationIntegrityDeclarations, RelationKindRegistration,
+    RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 pub(super) use crate::facade::transactions::{
-    BulkEntityCreateIntent, CommitResult, CreateIntent, DeleteEntityIntent, DeleteRelationIntent,
-    EntityMutationIntent, MutationIntent, PatchVsTruthDeltaReport, RecordRef,
+    AspectFieldPatch, BulkEntityCreateIntent, CommitResult, CreateIntent, DeleteEntityIntent,
+    DeleteRelationIntent, EntityMutationIntent, MutationIntent, PatchVsTruthDeltaReport, RecordRef,
     RelationMutationIntent, ReplaceEntityIntent, TransactionCommitError, TransactionOptions,
-    UpdateEntityIntent, UpdateRelationEndpointsIntent, WorkerIntentBatch,
+    UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent, WorkerIntentBatch,
 };
-pub(super) use crate::payloads::data::RecordPayload;
 pub(super) use crate::publication::cdc::planning::checkpoint_for_schema_version;
-pub(super) use crate::publication::data::diff::{
-    CanonicalAspectSet, PatchCompatibilityClass, PatchDetail, RecordStructuralChange,
+pub(super) use crate::publication::patch::data::{
+    ordered_aspect_keys, PatchDetail, RecordStructuralChange,
 };
-pub(super) use crate::schema::data::RelationPayloadClass;
-pub(super) use crate::symbols::data::{InternedString, SymbolPolicy};
+pub(super) use crate::symbols::data::ClientKeySymbolPolicy;
 use crate::tests::harness::model::truth_model::VisibleTruthSummary;
+pub(super) use forge_foundational::facade::AspectKey;
 
 // Test helper index:
 // - `schema`: baseline schema builders plus declared-aspect fixtures
@@ -71,6 +67,8 @@ use crate::tests::harness::model::truth_model::VisibleTruthSummary;
 // - `lineage`: generic lineage-specific helpers and candidate builders
 //
 // Prefer reusing these helpers before introducing new ad hoc setup in test files.
+#[path = "support/aspect_field_patches.rs"]
+mod aspect_field_patches;
 #[path = "support/durability.rs"]
 mod durability;
 #[path = "support/history.rs"]
@@ -90,6 +88,7 @@ mod savepoint;
 #[path = "support/schema.rs"]
 mod schema;
 
+pub(crate) use aspect_field_patches::*;
 pub(crate) use durability::*;
 pub(crate) use history::*;
 pub(crate) use inspection::*;
@@ -100,16 +99,29 @@ pub(crate) use runtime::*;
 pub(crate) use savepoint::*;
 pub(crate) use schema::*;
 
-pub(super) fn certification_digest<T: Serialize>(value: &T) -> String {
-    let bytes = serde_json::to_vec(value).expect("certification serialization");
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+pub(crate) fn diagnostic_field<'a>(
+    entry: &'a crate::facade::diagnostics::RelationalDiagnosticsEntry,
+    field: &str,
+) -> &'a crate::diagnostics::data::RelationalDiagnosticValue {
+    diagnostic_field_optional(entry, field)
+        .unwrap_or_else(|| panic!("diagnostic field '{field}' missing from {entry:?}"))
+}
+
+pub(crate) fn diagnostic_field_optional<'a>(
+    entry: &'a crate::facade::diagnostics::RelationalDiagnosticsEntry,
+    field: &str,
+) -> Option<&'a crate::diagnostics::data::RelationalDiagnosticValue> {
+    let crate::diagnostics::data::RelationalDiagnosticValue::Object(fields) = entry.fields.root()
+    else {
+        panic!("diagnostic entry fields are not an object: {entry:?}");
+    };
+    fields.get(field)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct AspectTruthBundle {
     pub visible_truth: VisibleTruthSummary,
-    pub latest_patch: Option<crate::facade::publication::RelationalPatchRecord>,
+    pub latest_patch: Option<crate::facade::publication::PublishedAuthoritativePatchEnvelope>,
     pub latest_replay: Option<crate::facade::runtime::RelationalReplayRecord>,
     pub diagnostics: crate::facade::diagnostics::RelationalDiagnosticsFacade,
     pub entity_history_digests: Vec<(
@@ -131,9 +143,9 @@ pub(super) fn capture_aspect_truth_bundle(
 ) -> AspectTruthBundle {
     AspectTruthBundle {
         visible_truth: VisibleTruthSummary::capture(runtime),
-        latest_patch: runtime.publication().latest_patch().cloned(),
-        latest_replay: runtime.publication().latest_replay().cloned(),
-        diagnostics: runtime.publication().diagnostics().clone(),
+        latest_patch: runtime.publication().artifacts().latest_patch().cloned(),
+        latest_replay: runtime.publication().artifacts().latest_replay().cloned(),
+        diagnostics: runtime.publication().diagnostics(),
         entity_history_digests: entity_ids
             .iter()
             .map(|entity_id| {

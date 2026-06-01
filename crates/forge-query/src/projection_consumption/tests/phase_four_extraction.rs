@@ -1,4 +1,7 @@
-use forge_relational::facade::grouped_truth::materialize_relational_authoritative_row_set;
+use forge_foundational::facade::AspectValue;
+use forge_relational::facade::grouped_truth::{
+    encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
+};
 use forge_runtime_bridge::facade::{
     SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
     TruthSnapshotIdentity,
@@ -100,14 +103,28 @@ fn extraction_rejects_missing_field_evidence_and_family_mismatch() {
 
     let missing_identity_row_set = materialize_relational_authoritative_row_set(
         &SnapshotReadPacket::new(vec![
-            SnapshotReadRequest::for_coarse("entity-1", "profile.display_name"),
-            SnapshotReadRequest::for_coarse("entity-2", "profile.display_name"),
+            SnapshotReadRequest::for_coarse(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile.display_name")
+                    .expect("valid snapshot aspect key"),
+            ),
+            SnapshotReadRequest::for_coarse(
+                "entity-2",
+                forge_foundational::facade::AspectKey::new("profile.display_name")
+                    .expect("valid snapshot aspect key"),
+            ),
         ]),
         &SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
             vec![
-                SnapshotReadRecord::new("entity-1:profile.display_name", b"Task One".to_vec()),
-                SnapshotReadRecord::new("entity-2:profile.display_name", b"Task Two".to_vec()),
+                SnapshotReadRecord::new(
+                    "entity-1:profile.display_name",
+                    aspect_bytes(AspectValue::String("Task One".into())),
+                ),
+                SnapshotReadRecord::new(
+                    "entity-2:profile.display_name",
+                    aspect_bytes(AspectValue::String("Task Two".into())),
+                ),
             ],
         ),
     )
@@ -130,6 +147,10 @@ fn extraction_rejects_missing_field_evidence_and_family_mismatch() {
     ));
 
     let _ = ProjectionSourceFamily::BridgeTruthViewRowSet;
+}
+
+fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+    encode_snapshot_aspect_read_value(&value)
 }
 
 #[test]

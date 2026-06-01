@@ -329,10 +329,14 @@ fn materialize_source_batch_record(
             &contract,
             vec![
                 SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                    "entity-1", "profile",
+                    "entity-1",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid snapshot aspect key"),
                 )]),
                 SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                    "entity-2", "profile",
+                    "entity-2",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid snapshot aspect key"),
                 )]),
             ],
         )

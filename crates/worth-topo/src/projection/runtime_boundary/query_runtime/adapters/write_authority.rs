@@ -8,9 +8,10 @@ use forge_relational::facade::bridge::bridge_snapshot_identity_for_commit;
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{
     CreateIntent, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, EntityReference,
-    MutationIntent, RelationMutationIntent, TransactionOptions, WorkerIntentBatch,
+    MutationIntent, RelationMutationIntent,
 };
 use forge_runtime_bridge::facade::RuntimeBridge;
+use schema::facade::topology_authoring::commit_topology_mutation_set;
 
 mod command_lowering;
 mod patch_matching;
@@ -24,12 +25,12 @@ use super::write_support::{
 };
 use super::TopologyRuntimeBinding;
 
-pub(crate) struct TopologyRuntimeWriteAuthority {
+pub struct TopologyRuntimeWriteAuthority {
     binding: TopologyRuntimeBinding,
 }
 
 impl TopologyRuntimeWriteAuthority {
-    pub(crate) fn new(binding: TopologyRuntimeBinding) -> Self {
+    pub fn new(binding: TopologyRuntimeBinding) -> Self {
         Self { binding }
     }
 }
@@ -82,26 +83,13 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
             authored_commands.push(command);
         }
 
-        let commit = {
-            let runtime_handle = self.runtime()?;
-            let mut runtime = runtime_handle
-                .write()
-                .expect("topology runtime write authority lock poisoned");
-            let mut tx = runtime.begin_transaction(TransactionOptions::default());
-            let batch = lowered
+        let commit = self.commit_mutation_intents(
+            "query-runtime-mutation-group",
+            lowered
                 .iter()
                 .flat_map(|command| command.intents.iter().cloned())
-                .fold(
-                    WorkerIntentBatch::new("query-runtime-atomic-batch"),
-                    |batch, intent| batch.push(intent),
-                );
-            tx.push_batch(batch);
-            tx.commit().map_err(|error| {
-                ForgeQueryWorkspaceError::new(format!(
-                    "topology production runtime write commit failed: {error:?}"
-                ))
-            })?
-        };
+                .collect(),
+        )?;
 
         let snapshot_token = bridge_snapshot_identity_for_commit(
             commit.envelope().commit.commit_id,
@@ -125,7 +113,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
                     return Err(ForgeQueryWorkspaceError::new(format!(
                         "topology production runtime expected {} observable patch records for `{}`, observed {}",
                         command.expected_observable_patch_count,
-                        command.batch_label,
+                        command.mutation_label,
                         matched_indexes.len(),
                     )));
                 }
@@ -146,7 +134,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
                 .map_err(|error| {
                     ForgeQueryWorkspaceError::new(format!(
                         "topology production runtime could not derive observable query deltas for `{}`: {}",
-                        command.batch_label, error
+                        command.mutation_label, error
                     ))
                 })?;
                 let mutation_receipt = ForgeQueryMutationReceipt {
@@ -178,6 +166,23 @@ impl TopologyRuntimeWriteAuthority {
         })
     }
 
+    fn commit_mutation_intents(
+        &self,
+        transaction_label: &'static str,
+        intents: Vec<MutationIntent>,
+    ) -> Result<forge_relational::facade::transactions::CommitResult, ForgeQueryWorkspaceError>
+    {
+        let runtime_handle = self.runtime()?;
+        let mut runtime = runtime_handle
+            .write()
+            .expect("topology runtime write authority lock poisoned");
+        commit_topology_mutation_set(&mut runtime, transaction_label, intents).map_err(|error| {
+            ForgeQueryWorkspaceError::new(format!(
+                "topology production runtime write commit failed: {error}"
+            ))
+        })
+    }
+
     fn write_insert(
         &mut self,
         collection: String,
@@ -201,23 +206,7 @@ impl TopologyRuntimeWriteAuthority {
             }
         };
 
-        let commit = {
-            let runtime_handle = self.runtime()?;
-            let mut runtime = runtime_handle
-                .write()
-                .expect("topology runtime write authority lock poisoned");
-            let mut tx = runtime.begin_transaction(TransactionOptions::default());
-            let batch = intents.into_iter().fold(
-                WorkerIntentBatch::new("query-runtime-insert"),
-                |batch, intent| batch.push(intent),
-            );
-            tx.push_batch(batch);
-            tx.commit().map_err(|error| {
-                ForgeQueryWorkspaceError::new(format!(
-                    "topology production runtime write commit failed: {error:?}"
-                ))
-            })?
-        };
+        let commit = self.commit_mutation_intents("query-runtime-mutation-insert", intents)?;
 
         let deltas = mutation_deltas_from_commit(&runtime, &commit, &declared_aspect_paths, None)?;
         Ok(ForgeQueryMutationReceipt {
@@ -265,19 +254,7 @@ impl TopologyRuntimeWriteAuthority {
             }
         };
 
-        let commit = {
-            let runtime_handle = self.runtime()?;
-            let mut runtime = runtime_handle
-                .write()
-                .expect("topology runtime write authority lock poisoned");
-            let mut tx = runtime.begin_transaction(TransactionOptions::default());
-            tx.push_batch(WorkerIntentBatch::new("query-runtime-delete").push(intent));
-            tx.commit().map_err(|error| {
-                ForgeQueryWorkspaceError::new(format!(
-                    "topology production runtime delete commit failed: {error:?}"
-                ))
-            })?
-        };
+        let commit = self.commit_mutation_intents("query-runtime-mutation-delete", vec![intent])?;
 
         let deltas = mutation_deltas_from_commit(
             &runtime,
@@ -316,23 +293,8 @@ impl TopologyRuntimeWriteAuthority {
             },
         )?;
         let declared_aspect_paths = lowered.declared_aspect_paths.clone();
-        let commit = {
-            let runtime_handle = self.runtime()?;
-            let mut runtime = runtime_handle
-                .write()
-                .expect("topology runtime write authority lock poisoned");
-            let mut tx = runtime.begin_transaction(TransactionOptions::default());
-            let batch = lowered.intents.into_iter().fold(
-                WorkerIntentBatch::new("query-runtime-update"),
-                |batch, intent| batch.push(intent),
-            );
-            tx.push_batch(batch);
-            tx.commit().map_err(|error| {
-                ForgeQueryWorkspaceError::new(format!(
-                    "topology production runtime update commit failed: {error:?}"
-                ))
-            })?
-        };
+        let commit =
+            self.commit_mutation_intents("query-runtime-mutation-update", lowered.intents)?;
 
         let deltas = mutation_deltas_from_commit(
             &runtime,

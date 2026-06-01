@@ -563,7 +563,7 @@ fn execution_is_deterministic_for_same_preflight_bundle() {
         first.report().result_digest(),
         second.report().result_digest()
     );
-    assert_eq!(first.payload(), second.payload());
+    assert_eq!(first.rows(), second.rows());
     assert_eq!(first.counters(), second.counters());
     assert_eq!(first.counters().executor_semantic_rediscovery_count(), 0);
 }
@@ -668,7 +668,7 @@ fn cdc_collection_execution_emits_distinct_payload_and_cdc_counters() {
     let envelope = execute_preflight_bundle(&preflight).unwrap();
 
     assert!(envelope
-        .payload()
+        .rows()
         .iter()
         .all(|entry| entry.starts_with("cdc:")));
     assert_eq!(envelope.counters().cursor_advance_count(), 1);
@@ -695,7 +695,7 @@ fn aggregate_rollup_execution_emits_distinct_payload_and_rollup_counters() {
     let envelope = execute_preflight_bundle(&preflight).unwrap();
 
     assert!(envelope
-        .payload()
+        .rows()
         .iter()
         .all(|entry| entry.starts_with("aggregate:count_rows:")));
     assert_eq!(envelope.counters().cursor_advance_count(), 1);
@@ -722,7 +722,7 @@ fn derived_field_execution_emits_distinct_payload_and_shape_counts() {
     let envelope = execute_preflight_bundle(&preflight).unwrap();
 
     assert!(envelope
-        .payload()
+        .rows()
         .iter()
         .all(|entry| entry.starts_with("derived:display_label:")));
     assert_eq!(envelope.counters().cursor_advance_count(), 1);

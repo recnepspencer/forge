@@ -1,4 +1,4 @@
-use schema::facade::{
+use topology::facade::{
     BoundaryFailure, DecisionTrace, IntegrityMarkers, PerformanceAccounting,
 };
 

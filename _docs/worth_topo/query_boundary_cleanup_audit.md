@@ -1,5 +1,13 @@
 # Worth-Topo Query Boundary Cleanup Audit
 
+> Historical audit note: this document records the earlier query-boundary
+> cleanup wave. It is not the current public topology read-entry contract.
+> Phase 1 and Phase 2 of the query-native migration supersede its older
+> `TopologyDomainQuery`/facade-centered read language with the dedicated
+> `worth_topo::query_domain` entry and handle-bound `TopologyRead*` surfaces.
+> Some referenced pre-migration seams, including `TopologyQueryAssembly`, were
+> later deleted as merge residue rather than retained as active cleanup targets.
+
 ## Purpose
 
 This document captures the post-`forge-query 9.3.x` cleanup work that should
@@ -99,10 +107,12 @@ For `worth-topo`, the most important consequence is simple:
 Before listing the remaining cleanup work, it is important to say what has
 already changed in `worth-topo`.
 
-The crate no longer lives in the purely pre-`9.3.x` world. It now has a real
-Query-owned domain-read and runtime-support story:
+The crate no longer lives in the purely pre-`9.3.x` world. At the time of this
+audit it had a real Query-owned domain-read and runtime-support story; the
+current public read story has since been narrowed further under
+`worth_topo::query_domain`:
 
-- `TopologyDomainQuery` is the public executed-read boundary for topology reads
+- `query_domain` is the public executed-read boundary for topology reads
 - topology read requests now lower through canonical Query lowering rather than
   ad hoc row joins
 - the bridge-backed runtime now exposes typed runtime posture, read support,
@@ -230,7 +240,7 @@ Files:
 Evidence:
 
 - Shared-vertex, radial, local-rewire, and loop-cycle views all execute through
-  `TopologyDomainQuery` and Query-owned lowering/execution first.
+  the Query-owned topology read lowering/execution path first.
 - But after the Query-backed read returns, the final domain views still use
   `row_payload`, `relation_identity`, `relation_record_identity`, and
   `relation_identities`.
@@ -713,7 +723,7 @@ Must introduce:
 - a thinner basis adapter surface with explicit justification for any remaining
   manual steps
 - less support-matrix and evidence-token inference in topology code
-- a cleaned public facade that foregrounds `TopologyDomainQuery`,
+- a cleaned public surface that foregrounds `query_domain`,
   `TopologyRuntimeSupport`, and typed topology-facing seams over row helpers
 
 Allowed boundary survivors:

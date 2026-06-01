@@ -1,30 +1,36 @@
 use forge_query::facade::{ForgeQueryEntity, ForgeQueryWorkspace};
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::super::shared::{entity_id_from_query_identity, relation_id_from_query_identity};
-use super::scale_pressure_span::scaled_successor_span_batch;
+use super::scale_pressure_span::scaled_successor_span_declaration;
 use crate::certification::error::TopologyCertificationError;
-use crate::topology_operators::{LoopEndpointKind, TopologyEditBatch, TopologyEditContract};
+use crate::topology_operators::{
+    LoopEndpointKind, TopologyRewireLoopEndpointDeclaration,
+    TopologyRewireLoopSuccessorProgramDeclaration,
+};
 
-pub(super) fn high_cardinality_loop_batches(
+pub(super) fn high_cardinality_loop_declarations(
     workspace: &mut ForgeQueryWorkspace,
     relation_rows: &[ForgeQueryEntity],
     moved_half_edge_identity: &str,
-) -> Result<Vec<TopologyEditBatch>, TopologyCertificationError> {
-    let successor_span_batch =
-        scaled_successor_span_batch(workspace, relation_rows, moved_half_edge_identity)?;
-    let endpoint_batch = TopologyEditBatch::new(vec![endpoint_rewire_contract(
-        relation_rows,
-        moved_half_edge_identity,
-    )?])
-    .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    Ok(vec![successor_span_batch, endpoint_batch])
+) -> Result<
+    (
+        TopologyRewireLoopSuccessorProgramDeclaration,
+        TopologyRewireLoopEndpointDeclaration,
+    ),
+    TopologyCertificationError,
+> {
+    let successor_span_declaration =
+        scaled_successor_span_declaration(workspace, relation_rows, moved_half_edge_identity)?;
+    let endpoint_declaration =
+        endpoint_rewire_declaration(relation_rows, moved_half_edge_identity)?;
+    Ok((successor_span_declaration, endpoint_declaration))
 }
 
-fn endpoint_rewire_contract(
+fn endpoint_rewire_declaration(
     relation_rows: &[ForgeQueryEntity],
     source_identity: &str,
-) -> Result<TopologyEditContract, TopologyCertificationError> {
+) -> Result<TopologyRewireLoopEndpointDeclaration, TopologyCertificationError> {
     let relation = relation_rows
         .iter()
         .find(|row| {
@@ -50,8 +56,8 @@ fn endpoint_rewire_contract(
         .ok_or_else(|| {
             scale_pressure_loop_error("endpoint rewire alternate vertex should resolve")
         })?;
-    Ok(TopologyEditContract::rewire_loop_endpoint(
-        relation_id_from_query_identity(relation.identity.as_str())?,
+    Ok(TopologyRewireLoopEndpointDeclaration::new(
+        relation_id_from_query_identity(relation.identity())?,
         LoopEndpointKind::Start,
         entity_id_from_query_identity(source_identity)?,
         entity_id_from_query_identity(&alternate_target_identity)?,
@@ -65,7 +71,7 @@ fn row_matches_source_kind(
 ) -> bool {
     self::relation_kind(row) == Some(relation_kind.kind_name())
         && row
-            .payload
+            .external_row()
             .get("topology")
             .and_then(|value| value.get("source_identity"))
             .and_then(|value| value.as_str())
@@ -73,14 +79,14 @@ fn row_matches_source_kind(
 }
 
 fn relation_kind(row: &ForgeQueryEntity) -> Option<&str> {
-    row.payload
+    row.external_row()
         .get("topology")
         .and_then(|value| value.get("kind"))
         .and_then(|value| value.as_str())
 }
 
 fn relation_target_identity(row: &ForgeQueryEntity) -> Option<String> {
-    row.payload
+    row.external_row()
         .get("topology")
         .and_then(|value| value.get("target_identity"))
         .and_then(|value| value.as_str())

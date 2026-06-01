@@ -1,10 +1,7 @@
-use serde_json::json;
-
 use crate::facade::history::BranchId;
-use crate::facade::payloads::RecordPayload;
 use crate::facade::transactions::{
-    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions, UpdateEntityIntent,
-    WorkerIntentBatch,
+    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions,
+    UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 use super::super::fixture::{FintechCaseRole, FintechWorld};
@@ -22,15 +19,33 @@ pub(crate) fn emit_case_audit_record(
     });
     txn.push_batch(
         WorkerIntentBatch::new(format!("audit-{}", event.replace(' ', "-"))).push(
-            MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id: case.audit_record,
-                payload: RecordPayload::StructuredJson(json!({
-                    "entity_type": "audit_record",
-                    "case": format!("{:?}", case.role),
-                    "event": event,
-                    "recorded_by": "fintech-domain-workflow",
-                })),
-            })),
+            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                UpdateEntityFieldsIntent {
+                    entity_id: case.audit_record,
+                    fields: crate::tests::support::aspect_field_patch_from_values([
+                        (
+                            crate::tests::support::aspect_key("entity_type"),
+                            crate::tests::support::field_key("entity_type"),
+                            crate::tests::support::string_aspect_value("audit_record"),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("case"),
+                            crate::tests::support::field_key("case"),
+                            crate::tests::support::string_aspect_value(&format!("{:?}", case.role)),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("event"),
+                            crate::tests::support::field_key("event"),
+                            crate::tests::support::string_aspect_value(event),
+                        ),
+                        (
+                            crate::tests::support::aspect_key("recorded_by"),
+                            crate::tests::support::field_key("recorded_by"),
+                            crate::tests::support::string_aspect_value("fintech-domain-workflow"),
+                        ),
+                    ]),
+                },
+            )),
         ),
     );
     txn.commit().unwrap()

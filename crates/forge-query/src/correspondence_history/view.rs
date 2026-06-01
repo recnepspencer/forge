@@ -9,7 +9,7 @@ use crate::historical::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MetadataPreservingHistoricalResultView<'a> {
-    payload: &'a [String],
+    rows: &'a [String],
     execution_counters: &'a ExecutionCounters,
     correspondence_family_name: &'static str,
     correspondence_cost_posture: &'a CorrespondenceCostPosture,
@@ -20,8 +20,8 @@ pub struct MetadataPreservingHistoricalResultView<'a> {
 }
 
 impl<'a> MetadataPreservingHistoricalResultView<'a> {
-    pub fn payload(&self) -> &[String] {
-        self.payload
+    pub fn rows(&self) -> &[String] {
+        self.rows
     }
 
     pub fn execution_counters(&self) -> &ExecutionCounters {
@@ -60,7 +60,7 @@ pub(crate) fn build_result_view<'a>(
     historical: &'a HistoricalPathResolved,
 ) -> MetadataPreservingHistoricalResultView<'a> {
     MetadataPreservingHistoricalResultView {
-        payload: execution.payload(),
+        rows: execution.rows(),
         execution_counters: execution.counters(),
         correspondence_family_name: correspondence.outcome().family_name(),
         correspondence_cost_posture: correspondence.cost_posture(),

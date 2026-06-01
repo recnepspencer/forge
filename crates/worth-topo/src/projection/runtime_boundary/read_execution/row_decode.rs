@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use forge_query::facade::{ForgeQueryEntity, RelationName};
 use serde_json::Value;
 
-use crate::projection::read_views::domain::error::TopologyDomainQueryError;
+use crate::projection::read_views::domain::error::TopologyReadError;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RetainedTopologyRows<'a> {
@@ -19,20 +19,20 @@ impl<'a> RetainedTopologyRows<'a> {
         &self,
         identity: &str,
         label: &str,
-    ) -> Result<RetainedTopologyRow<'a>, TopologyDomainQueryError> {
+    ) -> Result<RetainedTopologyRow<'a>, TopologyReadError> {
         self.rows
             .iter()
-            .find(|row| row.identity == identity)
+            .find(|row| row.identity() == identity)
             .map(|row| RetainedTopologyRow { row })
             .ok_or_else(|| {
-                TopologyDomainQueryError::read_family_execution_denied(format!(
+                TopologyReadError::read_family_execution_denied(format!(
                     "{label} rows did not retain anchor `{identity}`"
                 ))
             })
     }
 
     pub(crate) fn identities(&self) -> impl Iterator<Item = &'a str> {
-        self.rows.iter().map(|row| row.identity.as_str())
+        self.rows.iter().map(|row| row.identity())
     }
 }
 
@@ -46,9 +46,9 @@ impl<'a> RetainedTopologyRow<'a> {
         &self,
         relation: &RelationName,
         label: &str,
-    ) -> Result<&'a str, TopologyDomainQueryError> {
+    ) -> Result<&'a str, TopologyReadError> {
         relation_target_identity_from_payload(
-            self.row.payload.get("relations"),
+            self.row.external_row().get("relations"),
             relation,
             label,
             "relation materialization",
@@ -59,9 +59,9 @@ impl<'a> RetainedTopologyRow<'a> {
         &self,
         relation: &RelationName,
         label: &str,
-    ) -> Result<&'a str, TopologyDomainQueryError> {
+    ) -> Result<&'a str, TopologyReadError> {
         relation_target_identity_from_payload(
-            self.row.payload.get("relation_identities"),
+            self.row.external_row().get("relation_identities"),
             relation,
             label,
             "relation identity materialization",
@@ -72,7 +72,7 @@ impl<'a> RetainedTopologyRow<'a> {
         &self,
         relations: &[RelationName],
         label: &str,
-    ) -> Result<Vec<String>, TopologyDomainQueryError> {
+    ) -> Result<Vec<String>, TopologyReadError> {
         relations
             .iter()
             .map(|relation| {
@@ -89,12 +89,12 @@ fn relation_target_identity_from_payload<'a>(
     relation: &RelationName,
     label: &str,
     materialization_label: &str,
-) -> Result<&'a str, TopologyDomainQueryError> {
+) -> Result<&'a str, TopologyReadError> {
     payload
         .and_then(|relations| relations.get(relation.as_str()))
         .and_then(Value::as_str)
         .ok_or_else(|| {
-            TopologyDomainQueryError::read_family_execution_denied(format!(
+            TopologyReadError::read_family_execution_denied(format!(
                 "{label} rows did not retain `{}` {materialization_label}",
                 relation.as_str()
             ))
@@ -107,7 +107,7 @@ pub(crate) fn adjacent_row_identities_sharing_targets(
     source_target_identities: &[String],
     relations: &[RelationName],
     label: &str,
-) -> Result<Vec<String>, TopologyDomainQueryError> {
+) -> Result<Vec<String>, TopologyReadError> {
     rows.identities()
         .filter(|identity| *identity != source_identity)
         .try_fold(BTreeSet::new(), |mut identities, identity| {
@@ -131,7 +131,7 @@ pub(crate) fn filter_row_identities_by_edge_match(
     edge_relation: &RelationName,
     same_edge: bool,
     label: &str,
-) -> Result<Vec<String>, TopologyDomainQueryError> {
+) -> Result<Vec<String>, TopologyReadError> {
     rows.identities()
         .filter(|identity| *identity != source_identity)
         .try_fold(BTreeSet::new(), |mut identities, identity| {
@@ -151,7 +151,7 @@ pub(crate) fn filter_identities_by_edge_mismatch(
     source_edge_identity: &str,
     edge_relation: &RelationName,
     label: &str,
-) -> Result<Vec<String>, TopologyDomainQueryError> {
+) -> Result<Vec<String>, TopologyReadError> {
     candidate_identities
         .iter()
         .try_fold(BTreeSet::new(), |mut identities, identity| {
@@ -171,7 +171,7 @@ pub(crate) fn cycle_identities_from_successors(
     count: usize,
     successor_relation: &RelationName,
     label: &str,
-) -> Result<Vec<String>, TopologyDomainQueryError> {
+) -> Result<Vec<String>, TopologyReadError> {
     let mut cycle = Vec::with_capacity(count);
     let mut current = start_identity;
     for _ in 0..count {
@@ -188,7 +188,7 @@ pub(crate) fn edge_identity_by_row(
     identity: &str,
     edge_relation: &RelationName,
     label: &str,
-) -> Result<String, TopologyDomainQueryError> {
+) -> Result<String, TopologyReadError> {
     rows.row(identity, label)?
         .relation_target_identity(edge_relation, label)
         .map(str::to_string)

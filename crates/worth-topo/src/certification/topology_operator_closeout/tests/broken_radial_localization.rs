@@ -1,8 +1,8 @@
 use crate::facade::{
     certify_milestone_three_broken_radial_localization, MilestoneThreeHostileOutcomeClass,
     MilestoneThreeHostileScenario, ReplayParityStatus, TopologyDerivedRegion,
-    TopologyEditChangedScope, TopologyEditFamily, TopologyEditNamingOutcome,
-    TopologyEditRejectionClass,
+    TopologyMutationChangedScope, TopologyMutationFamily, TopologyMutationNamingOutcome,
+    TopologyMutationRejectionClass,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
@@ -25,8 +25,8 @@ fn milestone_three_broken_radial_localization_certifies_exact_radial_rejection_a
         MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 }
     );
     assert_eq!(
-        report.edit_families,
-        vec![TopologyEditFamily::SpliceRadialAdjacency]
+        report.mutation_families,
+        vec![TopologyMutationFamily::SpliceRadialAdjacency]
     );
     assert_eq!(
         report.outcome_class,
@@ -34,15 +34,15 @@ fn milestone_three_broken_radial_localization_certifies_exact_radial_rejection_a
     );
     assert_eq!(
         report.rejection_class,
-        Some(TopologyEditRejectionClass::InvariantBlocked)
+        Some(TopologyMutationRejectionClass::InvariantBlocked)
     );
     assert_eq!(
         report.continuity_outcome_class,
-        TopologyEditNamingOutcome::Ambiguous
+        TopologyMutationNamingOutcome::Ambiguous
     );
     assert_eq!(
         report.continuity_rejection_class,
-        Some(TopologyEditRejectionClass::NamingContinuityAmbiguous)
+        Some(TopologyMutationRejectionClass::NamingContinuityAmbiguous)
     );
     let witness = report
         .broken_radial_witness
@@ -60,29 +60,32 @@ fn milestone_three_broken_radial_localization_certifies_exact_radial_rejection_a
         witness.illegal_target_edge_identity
     );
     let rejected = report
-        .rejected_edit_scope_report
+        .rejected_mutation_scope_report
         .expect("typed radial rejection should expose exact rejected scope report");
     assert_eq!(rejected.rows.len(), 1);
     assert_eq!(
         rejected.rows[0].family,
-        TopologyEditFamily::SpliceRadialAdjacency
+        TopologyMutationFamily::SpliceRadialAdjacency
     );
     assert!(rejected.rows[0]
         .changed_scopes
-        .contains(&TopologyEditChangedScope::RadialNeighborhood));
+        .contains(&TopologyMutationChangedScope::RadialNeighborhood));
     assert!(rejected.rows[0]
         .derived_regions
         .contains(&TopologyDerivedRegion::RadialNeighborhoodRegion));
-    assert!(report.edit_replay_parity_report.replay_checked);
+    assert!(report.mutation_replay_parity_report.replay_checked);
     assert_eq!(
-        report.edit_replay_parity_report.parity_status,
+        report.mutation_replay_parity_report.parity_status,
         ReplayParityStatus::Match
     );
-    assert_eq!(report.edit_replay_parity_report.mismatch_count, 0);
-    assert_eq!(report.edit_replay_parity_report.step_rows.len(), 1);
-    assert_eq!(report.edit_replay_parity_report.replay_step_rows.len(), 1);
+    assert_eq!(report.mutation_replay_parity_report.mismatch_count, 0);
+    assert_eq!(report.mutation_replay_parity_report.step_rows.len(), 1);
     assert_eq!(
-        report.edit_replay_parity_report.returned_to_baseline,
+        report.mutation_replay_parity_report.replay_step_rows.len(),
+        1
+    );
+    assert_eq!(
+        report.mutation_replay_parity_report.returned_to_baseline,
         Some(true)
     );
 }
@@ -102,18 +105,21 @@ fn milestone_three_broken_radial_localization_report_is_deterministic_for_same_s
 
     assert_eq!(left.outcome_class, right.outcome_class);
     assert_eq!(left.rejection_class, right.rejection_class);
-    assert_eq!(left.topology_edit_digest, right.topology_edit_digest);
     assert_eq!(
-        left.naming_edit_continuity_matrix,
-        right.naming_edit_continuity_matrix
+        left.topology_mutation_digest,
+        right.topology_mutation_digest
+    );
+    assert_eq!(
+        left.naming_mutation_continuity_matrix,
+        right.naming_mutation_continuity_matrix
     );
     assert_eq!(left.broken_radial_witness, right.broken_radial_witness);
     assert_eq!(
-        left.rejected_edit_scope_report,
-        right.rejected_edit_scope_report
+        left.rejected_mutation_scope_report,
+        right.rejected_mutation_scope_report
     );
     assert_eq!(
-        left.edit_replay_parity_report,
-        right.edit_replay_parity_report
+        left.mutation_replay_parity_report,
+        right.mutation_replay_parity_report
     );
 }

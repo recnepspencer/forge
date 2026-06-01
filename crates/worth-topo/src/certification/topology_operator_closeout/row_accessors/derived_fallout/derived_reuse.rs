@@ -1,7 +1,9 @@
 use crate::certification::DeterministicDigest;
 
 use super::super::super::derived_fallout::MilestoneThreeDerivedReuseLegalityRow;
-use super::super::super::report::{MilestoneThreeEditFalloutClass, MilestoneThreeHostileScenario};
+use super::super::super::report::{
+    MilestoneThreeHostileScenario, MilestoneThreeMutationFalloutClass,
+};
 
 impl MilestoneThreeDerivedReuseLegalityRow {
     pub fn scenario(&self) -> MilestoneThreeHostileScenario {
@@ -24,7 +26,7 @@ impl MilestoneThreeDerivedReuseLegalityRow {
         self.fallback_count
     }
 
-    pub fn fallout_class(&self) -> MilestoneThreeEditFalloutClass {
+    pub fn fallout_class(&self) -> MilestoneThreeMutationFalloutClass {
         self.fallout_class
     }
 

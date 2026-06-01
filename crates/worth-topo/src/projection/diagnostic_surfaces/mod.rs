@@ -5,10 +5,11 @@ pub(crate) mod read_proof;
 
 const QUERY_SURFACE_FAILURE_ROW_KEY: &str = "query_surface_error";
 
-use schema::facade::{
-    milestone_two_invalidation_declarations, Aspect, DerivedInvalidationTarget,
-    DerivedTopologyReadBasis,
+use schema::facade::platform::aspects::Aspect;
+use schema::facade::platform::authority::{
+    milestone_two_invalidation_declarations, DerivedInvalidationTarget,
 };
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::support::parity::{
     build_derived_equivalence_contract, DerivedEquivalenceContractReport,
@@ -146,20 +147,20 @@ pub(crate) fn triggered_invalidation_targets_from_aspects(
     for aspect in touched_aspects {
         match aspect {
             Aspect::Topology(topology) => match topology {
-                schema::facade::TopologyAspect::Structure => {
+                schema::facade::platform::aspects::TopologyAspect::Structure => {
                     push_unique_target(&mut targets, DerivedInvalidationTarget::TopologyStructure);
                 }
-                schema::facade::TopologyAspect::Ownership => {
+                schema::facade::platform::aspects::TopologyAspect::Ownership => {
                     push_unique_target(&mut targets, DerivedInvalidationTarget::TopologyOwnership);
                 }
-                schema::facade::TopologyAspect::Boundary => {
+                schema::facade::platform::aspects::TopologyAspect::Boundary => {
                     push_unique_target(&mut targets, DerivedInvalidationTarget::TopologyBoundary);
                 }
-                schema::facade::TopologyAspect::Radial => {
+                schema::facade::platform::aspects::TopologyAspect::Radial => {
                     push_unique_target(&mut targets, DerivedInvalidationTarget::TopologyRadial);
                 }
             },
-            Aspect::Naming(schema::facade::NamingAspect::PersistentName) => {
+            Aspect::Naming(schema::facade::platform::aspects::NamingAspect::PersistentName) => {
                 push_unique_target(
                     &mut targets,
                     DerivedInvalidationTarget::NamingPersistentName,
@@ -233,9 +234,10 @@ mod tests {
     };
 
     use crate::facade::{
-        build_derived_read_diagnostics, interpret_topology_view, milestone_one_runtime_builder,
-        validate_interpreted_topology, TopologyMaterializer,
+        build_derived_read_diagnostics, interpret_topology_view, validate_interpreted_topology,
+        TopologyMaterializer,
     };
+    use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
     #[test]
     fn derived_diagnostics_reports_are_explicit_and_deterministic() {
@@ -250,7 +252,7 @@ mod tests {
         .expect("verified primitive");
         let read_view = runtime
             .read_truth()
-            .read_snapshot(&verified.persisted_truth.snapshot)
+            .read_snapshot(&verified.persisted_truth().snapshot)
             .expect("snapshot read");
         let materialized =
             TopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
@@ -259,7 +261,7 @@ mod tests {
             validate_interpreted_topology(&materialized, &interpreted).expect("validation");
 
         let diagnostics = build_derived_read_diagnostics(
-            &verified.read_basis,
+            &verified.read_basis(),
             &materialized,
             &interpreted,
             &validation,
@@ -271,18 +273,16 @@ mod tests {
             .invalidation_report
             .rows
             .iter()
-            .any(
-                |row| row.target == schema::facade::DerivedInvalidationTarget::TopologyStructure
-                    && row.triggered
-            ));
+            .any(|row| row.target
+                == schema::facade::platform::authority::DerivedInvalidationTarget::TopologyStructure
+                && row.triggered));
         assert!(diagnostics
             .invalidation_report
             .rows
             .iter()
-            .any(
-                |row| row.target == schema::facade::DerivedInvalidationTarget::TopologyBoundary
-                    && row.triggered
-            ));
+            .any(|row| row.target
+                == schema::facade::platform::authority::DerivedInvalidationTarget::TopologyBoundary
+                && row.triggered));
         assert!(diagnostics.rebuild_report.whole_view_rebuild);
         assert_eq!(
             diagnostics.rebuild_report.validation_row_count,

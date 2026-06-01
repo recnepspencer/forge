@@ -4,12 +4,13 @@ use forge_query::facade::{
     ForgeQueryAspectMutationBuilder, ForgeQueryMutationBatchBuilder,
     ForgeQuerySymbolicTargetReference,
 };
-use schema::facade::{EntityReference, TopologyEntityKind};
+use schema::facade::platform::authority::EntityReference;
+use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{query_entity_binding, QueryEntityBinding};
 use crate::topology_operators::application::{
-    TopologyOperatorExecutionError, TopologyOperatorRunner,
+    TopologyMutationApplicationError, TopologyMutationApplicationRunner,
 };
 use crate::topology_operators::ShellOrWireMembershipKind;
 
@@ -18,7 +19,7 @@ enum LoweredEntityReference {
     Created { create_key: String },
 }
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
+impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
     pub(crate) fn lower_attach_shell_or_wire_membership(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
@@ -27,7 +28,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         kind: ShellOrWireMembershipKind,
         owner: &EntityReference,
         member: &EntityReference,
-    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyMutationApplicationError> {
         let (expected_owner_kind, expected_member_kind) = match kind {
             ShellOrWireMembershipKind::RegionOwnsShell => {
                 (TopologyEntityKind::Region, TopologyEntityKind::Shell)
@@ -56,12 +57,12 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         builder: ForgeQueryMutationBatchBuilder,
         bindings: &TopologyQueryBindingIndex,
         created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
-        relation_kind: schema::facade::TopologyRelationKind,
+        relation_kind: schema::facade::platform::relations::TopologyRelationKind,
         source: &EntityReference,
         expected_source_kind: TopologyEntityKind,
         target: &EntityReference,
         expected_target_kind: TopologyEntityKind,
-    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyMutationApplicationError> {
         let source =
             lower_entity_reference(bindings, created_entity_kinds, source, expected_source_kind)?;
         let target =
@@ -82,34 +83,39 @@ fn lower_entity_reference(
     created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
     reference: &EntityReference,
     expected_kind: TopologyEntityKind,
-) -> Result<LoweredEntityReference, TopologyOperatorExecutionError> {
+) -> Result<LoweredEntityReference, TopologyMutationApplicationError> {
     match reference {
         EntityReference::Existing(entity_id) => {
-            let binding = query_entity_binding(bindings, *entity_id)?
-                .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(*entity_id))?;
+            let binding = query_entity_binding(bindings, *entity_id)?.ok_or(
+                TopologyMutationApplicationError::MissingExistingEntityBinding(*entity_id),
+            )?;
             if binding.kind != expected_kind {
-                return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {
-                    entity_id: *entity_id,
-                    expected: expected_kind,
-                    actual: binding.kind,
-                });
+                return Err(
+                    TopologyMutationApplicationError::ExistingEntityKindMismatch {
+                        entity_id: *entity_id,
+                        expected: expected_kind,
+                        actual: binding.kind,
+                    },
+                );
             }
             Ok(LoweredEntityReference::Existing(binding))
         }
         EntityReference::Created(create_key) => {
             let Some(actual_kind) = created_entity_kinds.get(create_key.as_str()).copied() else {
                 return Err(
-                    TopologyOperatorExecutionError::MissingCreatedEntityReference(
+                    TopologyMutationApplicationError::MissingCreatedEntityReference(
                         create_key.as_str().to_string(),
                     ),
                 );
             };
             if actual_kind != expected_kind {
-                return Err(TopologyOperatorExecutionError::CreatedEntityKindMismatch {
-                    create_key: create_key.as_str().to_string(),
-                    expected: expected_kind,
-                    actual: actual_kind,
-                });
+                return Err(
+                    TopologyMutationApplicationError::CreatedEntityKindMismatch {
+                        create_key: create_key.as_str().to_string(),
+                        expected: expected_kind,
+                        actual: actual_kind,
+                    },
+                );
             }
             Ok(LoweredEntityReference::Created {
                 create_key: create_key.as_str().to_string(),

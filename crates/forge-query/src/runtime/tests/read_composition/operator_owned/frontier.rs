@@ -48,7 +48,7 @@ fn compose_read_executes_operator_owned_frontier_detail() {
         })
         .expect("operator-owned frontier detail should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_eq!(
         result.receipt().scope_class(),
         &ForgeQueryReadScopeClass::AnchoredExpansion
@@ -119,7 +119,7 @@ fn compose_read_executes_operator_owned_frontier_collection() {
         })
         .expect("operator-owned frontier collection should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_collection_receipt(&result, ForgeQueryReadScopeClass::AnchoredExpansion);
     assert_eq!(
         result.receipt().built_in_operator_coverage(),

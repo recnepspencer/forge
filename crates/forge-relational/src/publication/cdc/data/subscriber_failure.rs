@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 pub enum SubscriberStreamFailureClass {
     UnknownCheckpoint,
     RetainedHistoryUnavailable,
-    SchemaIncompatible,
+    SchemaUnsupported,
     InvalidBatchSize,
     DurableCoverageGap,
     SubscriberContractMismatch,

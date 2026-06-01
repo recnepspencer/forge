@@ -1,6 +1,6 @@
 use crate::facade::{
     certify_milestone_three_hostile_suite, MilestoneThreeHostileScenario,
-    TopologyEditNamingOutcome, TopologyEditRejectionClass,
+    TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
@@ -23,7 +23,7 @@ fn hostile_suite_aggregate_distribution_rows_bind_to_scenario_sets() {
     let rejection_row = report
         .rejection_distribution_rows
         .iter()
-        .find(|row| row.rejection_class() == TopologyEditRejectionClass::InvariantBlocked)
+        .find(|row| row.rejection_class() == TopologyMutationRejectionClass::InvariantBlocked)
         .expect("invariant-blocked rejection distribution should be emitted");
     assert_eq!(
         rejection_row.scenarios(),
@@ -38,10 +38,10 @@ fn hostile_suite_aggregate_distribution_rows_bind_to_scenario_sets() {
     );
     assert_eq!(
         report.rejection_distribution_rows.len(),
-        TopologyEditRejectionClass::ALL.len(),
+        TopologyMutationRejectionClass::ALL.len(),
         "the rejection distribution must expose every closed taxonomy class, even when a class has zero hostile cases"
     );
-    for rejection_class in TopologyEditRejectionClass::ALL {
+    for rejection_class in TopologyMutationRejectionClass::ALL {
         let row = rejection_distribution_row(&report, rejection_class);
         assert_eq!(row.case_count(), row.scenarios().len());
         assert_eq!(
@@ -61,18 +61,21 @@ fn hostile_suite_aggregate_distribution_rows_bind_to_scenario_sets() {
     assert_eq!(
         rejection_distribution_row(
             &report,
-            TopologyEditRejectionClass::ScopeLocalizationUnavailable
+            TopologyMutationRejectionClass::ScopeLocalizationUnavailable
         )
         .case_count(),
         0
     );
     assert_eq!(
-        rejection_distribution_row(&report, TopologyEditRejectionClass::DerivedFallbackExceeded)
-            .case_count(),
+        rejection_distribution_row(
+            &report,
+            TopologyMutationRejectionClass::DerivedFallbackExceeded
+        )
+        .case_count(),
         0
     );
 
-    let ambiguous_row = naming_distribution_row(&report, TopologyEditNamingOutcome::Ambiguous);
+    let ambiguous_row = naming_distribution_row(&report, TopologyMutationNamingOutcome::Ambiguous);
     assert_eq!(
         ambiguous_row.scenarios(),
         &[
@@ -86,7 +89,7 @@ fn hostile_suite_aggregate_distribution_rows_bind_to_scenario_sets() {
         "naming_outcome=Ambiguous;case_count=3;scenarios=BowtieAdjacentRewire|AmbiguousLocalRewireContinuity|BrokenRadialLocalization"
     );
 
-    let rejected_row = naming_distribution_row(&report, TopologyEditNamingOutcome::Rejected);
+    let rejected_row = naming_distribution_row(&report, TopologyMutationNamingOutcome::Rejected);
     assert_eq!(
         rejected_row.scenarios(),
         &[
@@ -102,7 +105,7 @@ fn hostile_suite_aggregate_distribution_rows_bind_to_scenario_sets() {
 
 fn rejection_distribution_row(
     report: &crate::facade::MilestoneThreeHostileSuiteReport,
-    rejection_class: TopologyEditRejectionClass,
+    rejection_class: TopologyMutationRejectionClass,
 ) -> &crate::facade::MilestoneThreeHostileRejectionDistributionRow {
     report
         .rejection_distribution_rows
@@ -113,7 +116,7 @@ fn rejection_distribution_row(
 
 fn naming_distribution_row(
     report: &crate::facade::MilestoneThreeHostileSuiteReport,
-    outcome: TopologyEditNamingOutcome,
+    outcome: TopologyMutationNamingOutcome,
 ) -> &crate::facade::MilestoneThreeHostileNamingDistributionRow {
     report
         .naming_distribution_rows

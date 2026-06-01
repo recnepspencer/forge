@@ -24,7 +24,7 @@ pub(crate) fn execute_subscriber_stream(
         .and_then(|patch| checkpoint_basis_from_patch_position(runtime, patch.position));
     let next_checkpoint = next_checkpoint.map(|basis| {
         let descriptor_semantics_version = continuation_assessment
-            .normalized_continuation_proof
+            .normalized_continuation_proof()
             .descriptor_semantics_version();
         SubscriberCheckpoint::from_basis_with_assessment(
             basis,
@@ -44,10 +44,7 @@ pub(crate) fn execute_subscriber_stream(
         latest_available_checkpoint: plan.latest_available_checkpoint,
         recovery_decision: plan.decision,
         latest_commit_id,
-        crossed_boundaries: continuation_assessment.crossed_boundaries.clone(),
-        continuation_outcome: continuation_assessment.continuation_outcome,
-        continuation_summary: continuation_assessment.continuation_summary.clone(),
-        contract_upgrade_applied: continuation_assessment.contract_upgrade_applied,
+        continuation: continuation_assessment.clone(),
         patches,
         diagnostics,
     })

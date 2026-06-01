@@ -1,40 +1,46 @@
 use std::collections::BTreeMap;
 
 use forge_query::facade::ForgeQueryMutationBatchBuilder;
-use schema::facade::{EntityReference, TopologyEntityKind};
+use schema::facade::platform::authority::EntityReference;
+use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{
-    TopologyOperatorExecutionError, TopologyOperatorRunner,
+    TopologyMutationApplicationError, TopologyMutationApplicationRunner,
 };
-use crate::topology_operators::{BoundaryMembershipKind, TopologyEditAction, TopologyEditContract};
+use crate::topology_operators::BoundaryMembershipKind;
+#[cfg(test)]
+use crate::topology_operators::TopologyDeclaredMutationActionRef;
+#[cfg(test)]
+use crate::topology_operators::TopologyDeclaredMutationSequence;
 
+#[cfg(test)]
 pub(crate) fn supports_admitted_relation_create_program(
-    contracts: &[TopologyEditContract],
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> bool {
-    let [create, attach] = contracts else {
-        return false;
-    };
-    let (
-        TopologyEditAction::CreateTopologyEntity {
-            create_key,
-            kind: TopologyEntityKind::Loop,
-            ..
-        },
-        TopologyEditAction::AttachBoundaryMembership {
-            kind: BoundaryMembershipKind::FaceInnerLoop,
-            owner: EntityReference::Existing(_),
-            member: EntityReference::Created(member_key),
-            ..
-        },
-    ) = (&create.action, &attach.action)
+    let mut members = sequence.members();
+    let (Some(create), Some(attach), None) = (members.next(), members.next(), members.next())
     else {
         return false;
     };
-    create_key.as_str() == member_key.as_str()
+    let (
+        TopologyDeclaredMutationActionRef::CreateTopologyEntity {
+            create_key,
+            kind: TopologyEntityKind::Loop,
+        },
+        TopologyDeclaredMutationActionRef::AttachBoundaryMembership {
+            kind: BoundaryMembershipKind::FaceInnerLoop,
+            owner: EntityReference::Existing(_),
+            member: EntityReference::Created(member_key),
+        },
+    ) = (create.action_ref(), attach.action_ref())
+    else {
+        return false;
+    };
+    create_key == member_key.as_str()
 }
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
+impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
     pub(crate) fn lower_attach_boundary_membership(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
@@ -43,7 +49,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         kind: BoundaryMembershipKind,
         owner: &EntityReference,
         member: &EntityReference,
-    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyMutationApplicationError> {
         let (expected_owner_kind, expected_member_kind) = match kind {
             BoundaryMembershipKind::FaceOuterLoop | BoundaryMembershipKind::FaceInnerLoop => {
                 (TopologyEntityKind::Face, TopologyEntityKind::Loop)

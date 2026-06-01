@@ -1,5 +1,6 @@
 use super::traced_reports::{traced_milestone_two_envelope, traced_milestone_two_failure};
 use super::*;
+use crate::committed_artifact::TopologyCommittedArtifact;
 
 pub(crate) fn certify_milestone_two_read_basis_runtime_traced_impl(
     runtime: &mut RelationalRuntime,
@@ -18,28 +19,28 @@ pub(crate) fn certify_milestone_two_read_basis_runtime_traced_impl(
 
 pub(crate) fn certify_milestone_two_verified_commit_traced_impl(
     runtime: &mut RelationalRuntime,
-    verified: &VerifiedTopologyCommit,
+    verified: &TopologyCommittedArtifact,
 ) -> Result<TracedMilestoneTwoDerivedReadReport, BoundaryFailure<MilestoneOneCertificationError>> {
     let mut certified =
-        certify_milestone_two_query_read_basis(runtime, verified.read_basis.clone()).map_err(
+        certify_milestone_two_query_read_basis(runtime, verified.read_basis().clone()).map_err(
             |error| {
                 traced_milestone_two_failure(
                     error,
-                    &verified.read_basis,
-                    Some(&verified.commits),
-                    verified.commits.len(),
+                    &verified.read_basis(),
+                    Some(verified.commits()),
+                    verified.commits().len(),
                 )
             },
         )?;
     if let Some(replay_commit_id) = verified
-        .commits
+        .commits()
         .last()
         .map(|commit| commit.outcome.commit.commit_id.clone())
     {
         let replay = runtime
             .replay_authority()
             .replay_commit(forge_relational::facade::replay::RelationalReplayRequest {
-                branch_id: verified.branch_id.clone(),
+                branch_id: verified.branch_id().clone(),
                 commit_id: replay_commit_id,
                 execution_mode:
                     forge_relational::facade::replay::ReplayExecutionMode::SerialDeterministic,
@@ -97,9 +98,9 @@ pub(crate) fn certify_milestone_two_verified_commit_traced_impl(
     Ok(traced_milestone_two_envelope(
         certified.report,
         certified.query_evidence,
-        &verified.read_basis,
-        Some(&verified.commits),
-        verified.commits.len(),
+        &verified.read_basis(),
+        Some(verified.commits()),
+        verified.commits().len(),
     ))
 }
 
@@ -128,27 +129,30 @@ fn certify_milestone_two_query_read_basis(
         TopologyRuntimeAdapters::snapshot_read_only(read_view, read_basis.snapshot().clone());
     let mut workspace = topology_runtime(adapters, ".milestone-two.certification")
         .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?;
     let validation_state = workspace
-        .state(assembly.validation())
+        .state(surfaces.validation())
         .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?;
     ensure_query_surface_ready(".topology.validation", &validation_state)?;
     let equivalence_state = workspace
-        .state(assembly.equivalence_contract())
+        .state(surfaces.equivalence_contract())
         .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?;
     ensure_query_surface_ready(".topology.equivalence_contract", &equivalence_state)?;
     let validation_inspection = derived_query_inspection(
         &mut workspace,
-        assembly.validation(),
+        surfaces.validation(),
         ".topology.validation",
     )?;
     let equivalence_inspection = derived_query_inspection(
         &mut workspace,
-        assembly.equivalence_contract(),
+        surfaces.equivalence_contract(),
         ".topology.equivalence_contract",
     )?;
-    let snapshot = assembly.snapshot_for_read_basis(&mut workspace, &read_basis)?;
+    let snapshot = surfaces.snapshot_for_read_basis(&mut workspace, &read_basis)?;
     let read_artifact = build_topology_read_artifact(&read_basis, &snapshot.interpreted);
     let certified_interpretation = certify_topology_view(read_basis.clone(), &snapshot.interpreted);
     let replay_basis = read_basis.replay_of();
@@ -160,7 +164,7 @@ fn certify_milestone_two_query_read_basis(
         replay_basis
             .authority
             .truth_basis_identity
-            .mutation_batch_digest_hex
+            .mutation_digest_hex
             .clone(),
         replay_basis
             .authority
@@ -181,7 +185,7 @@ fn certify_milestone_two_query_read_basis(
         mutation_origin: read_basis.derivation_origin(),
         branch_local: matches!(
             read_basis.derivation_origin(),
-            schema::facade::MutationOrigin::BranchLocalApplication
+            schema::facade::platform::authority::MutationOrigin::BranchLocalApplication
         ),
         branch_id: read_basis.branch_id().clone(),
         snapshot_id: read_basis.snapshot().snapshot_id.0,
@@ -191,7 +195,7 @@ fn certify_milestone_two_query_read_basis(
         mutation_origin: read_basis.derivation_origin(),
         replay_origin: matches!(
             read_basis.derivation_origin(),
-            schema::facade::MutationOrigin::Replay
+            schema::facade::platform::authority::MutationOrigin::Replay
         ),
         branch_id: read_basis.branch_id().clone(),
         parity_status: ReplayParityStatus::NotChecked,
@@ -207,11 +211,11 @@ fn certify_milestone_two_query_read_basis(
         truth_digest_match: read_basis
             .authority
             .truth_basis_identity
-            .mutation_batch_digest_hex
+            .mutation_digest_hex
             == replay_basis
                 .authority
                 .truth_basis_identity
-                .mutation_batch_digest_hex,
+                .mutation_digest_hex,
         validation_digest_match: replay_comparison.derived_validation_digest_match,
     };
     let report = MilestoneTwoDerivedReadReport {
@@ -248,7 +252,7 @@ fn certify_milestone_two_query_read_basis(
             replay_checked_count: 0,
             branch_local_case_count: usize::from(matches!(
                 read_basis.derivation_origin(),
-                schema::facade::MutationOrigin::BranchLocalApplication
+                schema::facade::platform::authority::MutationOrigin::BranchLocalApplication
             )),
         },
         read_artifact,

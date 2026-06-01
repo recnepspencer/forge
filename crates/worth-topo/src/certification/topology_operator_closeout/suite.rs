@@ -4,10 +4,10 @@ use super::acceptance_rows::{
     build_direct_acceptance_rows, build_family_coverage_rows, build_naming_distribution_rows,
     build_rejection_distribution_rows, build_replay_branch_breadth_rows,
     build_validation_breadth_rows, build_validator_family_coverage_rows,
-    certify_milestone_three_branch_local_edit_parity_impl, ensure_branch_local_edit_parity_rows,
-    ensure_direct_acceptance_proof_rows, ensure_hostile_distribution_rows,
-    ensure_replay_branch_breadth_rows, ensure_validation_breadth_rows,
-    ensure_validator_family_coverage_rows,
+    certify_milestone_three_branch_local_mutation_parity_impl,
+    ensure_branch_local_mutation_parity_rows, ensure_direct_acceptance_proof_rows,
+    ensure_hostile_distribution_rows, ensure_replay_branch_breadth_rows,
+    ensure_validation_breadth_rows, ensure_validator_family_coverage_rows,
 };
 use super::hostile_categories::{
     build_hostile_certification_category_rows, ensure_hostile_certification_category_rows,
@@ -17,7 +17,7 @@ use super::operator_family_proof::{
     ensure_operator_family_closure_rows, ensure_primitive_family_closure_rows,
 };
 use super::query_traversal_proof::{
-    certify_milestone_three_edited_query_traversal_impl, ensure_edited_query_traversal_rows,
+    certify_milestone_three_mutation_query_traversal_impl, ensure_mutation_query_traversal_rows,
 };
 use super::report::{
     MilestoneThreeHostileCoverageRow, MilestoneThreeHostileOutcomeClass,
@@ -80,17 +80,18 @@ where
     let validator_family_coverage_rows = build_validator_family_coverage_rows(&scenario_reports);
     let validation_breadth_rows =
         build_validation_breadth_rows(&scenario_reports, &validator_family_coverage_rows);
-    let edit_branch_local_parity_rows = certify_milestone_three_branch_local_edit_parity_impl(
-        &mut runtime_factory,
-        stem,
-        &scenario_reports,
-    )?;
+    let mutation_branch_local_parity_rows =
+        certify_milestone_three_branch_local_mutation_parity_impl(
+            &mut runtime_factory,
+            stem,
+            &scenario_reports,
+        )?;
     let primitive_family_closure_rows =
         certify_milestone_three_primitive_family_closure_impl(&mut runtime_factory, stem)?;
     let scale_pressure_rows =
         certify_milestone_three_scale_pressure_impl(&mut runtime_factory, stem)?;
-    let edited_query_traversal_rows =
-        certify_milestone_three_edited_query_traversal_impl(&mut runtime_factory, stem)?;
+    let mutation_query_traversal_rows =
+        certify_milestone_three_mutation_query_traversal_impl(&mut runtime_factory, stem)?;
     let side_quest_closeout_report =
         certify_milestone_three_side_quest_closeout_impl(&mut runtime_factory, stem)?;
     let implemented_scenarios = scenario_reports
@@ -120,22 +121,23 @@ where
         operator_family_closure_rows: Vec::new(),
         primitive_family_closure_rows,
         scale_pressure_rows,
-        topology_edit_digest_rows: direct_acceptance_rows.topology_edit_digest_rows,
-        naming_edit_continuity_matrix_rows: direct_acceptance_rows
-            .naming_edit_continuity_matrix_rows,
+        topology_mutation_digest_rows: direct_acceptance_rows.topology_mutation_digest_rows,
+        naming_mutation_continuity_matrix_rows: direct_acceptance_rows
+            .naming_mutation_continuity_matrix_rows,
         naming_continuity_breadth_rows: direct_acceptance_rows.naming_continuity_breadth_rows,
-        rejected_edit_scope_report_rows: direct_acceptance_rows.rejected_edit_scope_report_rows,
-        edit_replay_parity_rows: direct_acceptance_rows.edit_replay_parity_rows,
-        edit_branch_local_parity_rows,
+        rejected_mutation_scope_report_rows: direct_acceptance_rows
+            .rejected_mutation_scope_report_rows,
+        mutation_replay_parity_rows: direct_acceptance_rows.mutation_replay_parity_rows,
+        mutation_branch_local_parity_rows,
         replay_branch_breadth_rows: Vec::new(),
-        edited_query_traversal_rows,
+        mutation_query_traversal_rows,
         validator_family_coverage_rows,
         validation_breadth_rows,
         changed_scope_coverage_rows: direct_acceptance_rows.changed_scope_coverage_rows,
         derived_region_coverage_rows: direct_acceptance_rows.derived_region_coverage_rows,
         determinism_rule_rows: direct_acceptance_rows.determinism_rule_rows,
-        edit_breadth_counter_rows: direct_acceptance_rows.edit_breadth_counter_rows,
-        edit_fallout_breadth_rows: direct_acceptance_rows.edit_fallout_breadth_rows,
+        mutation_breadth_counter_rows: direct_acceptance_rows.mutation_breadth_counter_rows,
+        mutation_fallout_breadth_rows: direct_acceptance_rows.mutation_fallout_breadth_rows,
         derived_fallback_policy_denial_rows: direct_acceptance_rows
             .derived_fallback_policy_denial_rows,
         derived_reuse_legality_rows: direct_acceptance_rows.derived_reuse_legality_rows,
@@ -217,11 +219,11 @@ fn ensure_milestone_three_closeout_requirements(
     ensure_hostile_distribution_rows(report)?;
     ensure_direct_acceptance_proof_rows(report)?;
     ensure_operator_family_closure_rows(report)?;
-    ensure_branch_local_edit_parity_rows(report)?;
+    ensure_branch_local_mutation_parity_rows(report)?;
     ensure_replay_branch_breadth_rows(report)?;
     ensure_primitive_family_closure_rows(report)?;
     ensure_scale_pressure_rows(report)?;
-    ensure_edited_query_traversal_rows(report)?;
+    ensure_mutation_query_traversal_rows(report)?;
     ensure_validator_family_coverage_rows(report)?;
     ensure_validation_breadth_rows(report)?;
     ensure_hostile_certification_category_rows(report)?;
@@ -291,8 +293,8 @@ fn build_coverage_rows(
             rejection_class: report.rejection_class,
             continuity_outcome_class: report.continuity_outcome_class,
             continuity_rejection_class: report.continuity_rejection_class,
-            replay_checked: report.edit_replay_parity_report.replay_checked,
-            replay_parity_status: report.edit_replay_parity_report.parity_status,
+            replay_checked: report.mutation_replay_parity_report.replay_checked,
+            replay_parity_status: report.mutation_replay_parity_report.parity_status,
         })
         .collect()
 }

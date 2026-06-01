@@ -3,6 +3,8 @@ mod candidate_recording;
 #[cfg(test)]
 mod candidate_validation;
 mod commit_finalization;
+#[cfg(test)]
+mod diagnostic_fields;
 mod event_emission;
 #[cfg(test)]
 mod phase_types;

@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use forge_foundational::facade::AspectKey;
+
 use crate::error::{
     BridgeErrorContext, BridgePatchCoordinate, BridgeRouteError, BridgeRouteErrorKind,
 };
@@ -13,7 +15,7 @@ pub(crate) type TruthDeltaSurfaceIdentity = BridgeIdentity<TruthDeltaSurfaceIden
 pub struct TruthDeltaSurface {
     surface_identity: TruthDeltaSurfaceIdentity,
     entity_identity: Arc<str>,
-    aspect_label: Arc<str>,
+    aspect_key: AspectKey,
     surface_label: Arc<str>,
     surface_kind: TruthDeltaSurfaceKind,
 }
@@ -21,17 +23,16 @@ pub struct TruthDeltaSurface {
 impl TruthDeltaSurface {
     pub(crate) fn new(
         entity_identity: impl Into<Arc<str>>,
-        aspect_label: impl Into<Arc<str>>,
+        aspect_key: AspectKey,
         surface_label: impl Into<Arc<str>>,
         surface_kind: TruthDeltaSurfaceKind,
     ) -> Self {
         let entity_identity = entity_identity.into();
-        let aspect_label = aspect_label.into();
         let surface_label = surface_label.into();
         let surface_identity = TruthDeltaSurfaceIdentity::new(format!(
             "{}:{}:{}:{}",
             entity_identity.as_ref(),
-            aspect_label.as_ref(),
+            aspect_key.as_str(),
             surface_label.as_ref(),
             canonical_truth_surface_kind_label(surface_kind)
         ));
@@ -39,7 +40,7 @@ impl TruthDeltaSurface {
         Self {
             surface_identity,
             entity_identity,
-            aspect_label,
+            aspect_key,
             surface_label,
             surface_kind,
         }
@@ -50,7 +51,11 @@ impl TruthDeltaSurface {
     }
 
     pub(crate) fn aspect_label(&self) -> &str {
-        self.aspect_label.as_ref()
+        self.aspect_key.as_str()
+    }
+
+    pub(crate) fn aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
     }
 
     pub(crate) fn surface_label(&self) -> &str {
@@ -129,7 +134,7 @@ fn derive_surface(
     ) {
         return Ok(TruthDeltaSurface::new(
             item.entity_identity(),
-            item.aspect_label(),
+            item.aspect_key().clone(),
             normalized_surface_label,
             registration.truth_surface_kind(),
         ));
@@ -137,7 +142,7 @@ fn derive_surface(
 
     Ok(TruthDeltaSurface::new(
         item.entity_identity(),
-        item.aspect_label(),
+        item.aspect_key().clone(),
         normalized_surface_label,
         surface_kind,
     ))
@@ -218,6 +223,8 @@ impl FrozenAspectMappingRegistry {
 
 #[cfg(test)]
 mod tests {
+    use forge_foundational::facade::AspectKey;
+
     use crate::error::BridgeRouteErrorKind;
     use crate::input::envelope::{
         BridgeCommittedPatchBody, BridgeCommittedPatchDigest, BridgeCommittedPatchEnvelope,
@@ -255,7 +262,9 @@ mod tests {
     fn derives_default_field_surface_without_prefix() {
         let normalized = derive_normalized_truth_delta_surface_set(
             &envelope(vec![BridgeCommittedPatchItem::new(
-                "user", "profile", "name",
+                "user",
+                aspect_key("profile"),
+                "name",
             )]),
             &FrozenAspectMappingRegistry::default(),
         )
@@ -263,7 +272,9 @@ mod tests {
 
         assert_eq!(
             truth_delta_surface_count(&envelope(vec![BridgeCommittedPatchItem::new(
-                "user", "profile", "name"
+                "user",
+                aspect_key("profile"),
+                "name"
             )])),
             1
         );
@@ -278,7 +289,7 @@ mod tests {
         let normalized = derive_normalized_truth_delta_surface_set(
             &envelope(vec![BridgeCommittedPatchItem::new(
                 "user",
-                "profile",
+                aspect_key("profile"),
                 "region:viewport",
             )]),
             &FrozenAspectMappingRegistry::default(),
@@ -295,7 +306,7 @@ mod tests {
         let error = derive_normalized_truth_delta_surface_set(
             &envelope(vec![BridgeCommittedPatchItem::new(
                 "user",
-                "profile",
+                aspect_key("profile"),
                 "mystery:viewport",
             )]),
             &FrozenAspectMappingRegistry::default(),
@@ -325,7 +336,7 @@ mod tests {
         let normalized = derive_normalized_truth_delta_surface_set(
             &envelope(vec![BridgeCommittedPatchItem::new(
                 "user",
-                "profile",
+                aspect_key("profile"),
                 "region:viewport",
             )]),
             &registry,
@@ -343,8 +354,8 @@ mod tests {
     fn deduplicates_repeated_normalized_surfaces() {
         let normalized = derive_normalized_truth_delta_surface_set(
             &envelope(vec![
-                BridgeCommittedPatchItem::new("user", "profile", "field:name"),
-                BridgeCommittedPatchItem::new("user", "profile", "field:name"),
+                BridgeCommittedPatchItem::new("user", aspect_key("profile"), "field:name"),
+                BridgeCommittedPatchItem::new("user", aspect_key("profile"), "field:name"),
             ]),
             &FrozenAspectMappingRegistry::default(),
         )
@@ -355,5 +366,9 @@ mod tests {
             .surface_identity
             .as_str()
             .contains("name"));
+    }
+
+    fn aspect_key(value: &str) -> AspectKey {
+        AspectKey::new(value).expect("valid bridge patch aspect key")
     }
 }

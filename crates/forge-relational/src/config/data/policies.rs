@@ -137,12 +137,6 @@ pub struct AdjacencyPolicy {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PatchSurfacePolicy {
-    StructuredPatchSurface,
-    DensePatchSurface,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompiledLanePolicy {
     Disabled,
     DerivedCompiledLane,
@@ -196,7 +190,6 @@ pub enum CascadeDeletePolicy {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct MutationConfig {
-    pub(crate) patch_surface_policy: PatchSurfacePolicy,
     pub(crate) cascade_delete_policy: CascadeDeletePolicy,
     pub(crate) adjacency_policy: AdjacencyPolicy,
     pub(crate) cross_context_policy: CrossContextPolicy,
@@ -208,5 +201,4 @@ pub struct PublicationConfig {
     pub coherent_publication_required: bool,
     pub max_patch_records_per_commit: usize,
     pub max_published_snapshot_handles: usize,
-    pub patch_surface_policy: PatchSurfacePolicy,
 }

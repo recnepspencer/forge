@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
-use crate::publication::patch::data::AspectKey;
 use crate::transactions::data::RecordRef;
+use forge_foundational::facade::AspectKey;
+
+use super::MergeResolvedAspectValueStrategy;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CustomMergePolicyIdentity {
@@ -65,14 +66,6 @@ pub enum MergePolicyRejectClass {
     InvalidBuiltInPolicyValueShape,
     CustomPolicyRejected,
     MixedAspectRejectClasses,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MergeResolvedAspectValueStrategy {
-    SourceVisibleValue,
-    TargetVisibleValue,
-    BaseVisibleValue,
-    InlineCanonicalJson(Value),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

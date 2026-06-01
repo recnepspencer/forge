@@ -1,6 +1,6 @@
 use forge_query::facade::{ForgeQueryEntity, RelationName};
 
-use crate::projection::read_views::domain::error::TopologyDomainQueryError;
+use crate::projection::read_views::domain::error::TopologyReadError;
 use crate::projection::read_views::TopologyRadialCandidateEvidence;
 
 use super::super::row_decode::{
@@ -24,7 +24,7 @@ pub(crate) fn decode_radial_neighborhood(
     edge_relation: &RelationName,
     radial_next_relation: &RelationName,
     label: &str,
-) -> Result<DecodedRadialNeighborhood, TopologyDomainQueryError> {
+) -> Result<DecodedRadialNeighborhood, TopologyReadError> {
     let rows = RetainedTopologyRows::new(rows);
     let source_row = rows.row(source_identity, label)?;
     let source_edge_identity = source_row
@@ -80,7 +80,7 @@ fn build_radial_candidate_evidence(
     identities: &[String],
     edge_relation: &RelationName,
     label: &str,
-) -> Result<Vec<TopologyRadialCandidateEvidence>, TopologyDomainQueryError> {
+) -> Result<Vec<TopologyRadialCandidateEvidence>, TopologyReadError> {
     identities
         .iter()
         .map(|identity| {

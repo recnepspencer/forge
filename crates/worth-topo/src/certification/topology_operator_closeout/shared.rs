@@ -1,20 +1,20 @@
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::support::parity::digest_materialized_topology_view;
 use crate::certification::topology_operator_closeout::report::{
-    MilestoneThreeEditReplayParityReport, MilestoneThreeEditReplayStepRow,
-    MilestoneThreeHostileOutcomeClass,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeMutationReplayParityReport,
+    MilestoneThreeMutationReplayStepRow,
 };
 use crate::certification::{DeterministicDigest, ReplayParityStatus};
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::interpret_topology_view;
-use crate::topology_operators::{
-    NamingEditContinuityMatrix, TopologyEditBatch, TopologyEditContract, TopologyEditNamingOutcome,
-    TopologyOperatorDigest, TopologyOperatorExecution, TopologyOperatorExecutionError,
+use crate::topology_operators::application::TopologyMutationApplicationError;
+use crate::topology_operators::application::{
+    TopologyDeclarationMutationPayload, TopologyDeclaredMutationArtifact,
 };
 use crate::validation::{validate_interpreted_topology, DerivedTopologyValidationReport};
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 pub(super) fn first_source_identity_for_relation_kind(
     relation_rows: &[ForgeQueryEntity],
@@ -23,13 +23,13 @@ pub(super) fn first_source_identity_for_relation_kind(
     relation_rows
         .iter()
         .find_map(|row| {
-            (row.payload
+            (row.external_row()
                 .get("topology")
                 .and_then(|value| value.get("kind"))
                 .and_then(|value| value.as_str())
                 == Some(relation_kind.kind_name()))
             .then(|| {
-                row.payload
+                row.external_row()
                     .get("topology")
                     .and_then(|value| value.get("source_identity"))
                     .and_then(|value| value.as_str())
@@ -122,89 +122,19 @@ pub(super) fn find_loop_id_by_label(
         })
 }
 
-pub(super) fn aggregate_topology_edit_digest(
-    batches: &[TopologyEditBatch],
-) -> DeterministicDigestBackedEditDigest {
-    let rows = batches
-        .iter()
-        .flat_map(|batch| batch.contracts().iter().map(contract_digest_row));
-    let contract_count = batches.iter().map(|batch| batch.contracts().len()).sum();
-    let family_count = batches.iter().map(|batch| batch.families().len()).sum();
-    let changed_scope_count = batches
-        .iter()
-        .flat_map(|batch| batch.contracts().iter())
-        .map(|contract| contract.changed_scopes().len())
-        .sum();
-    let naming_scope_count = batches
-        .iter()
-        .flat_map(|batch| batch.contracts().iter())
-        .map(|contract| contract.naming_scopes().len())
-        .sum();
-    let derived_region_count = batches
-        .iter()
-        .flat_map(|batch| batch.contracts().iter())
-        .map(|contract| contract.derived_regions().len())
-        .sum();
-    let fallback_policy_count = batches.iter().map(|batch| batch.contracts().len()).sum();
-    let fallback_rejection_policy_count = batches
-        .iter()
-        .flat_map(|batch| batch.contracts().iter())
-        .filter(|contract| {
-            contract.derived_fallback_policy()
-                == crate::topology_operators::TopologyEditDerivedFallbackPolicy::RejectAnyFallback
-        })
-        .count();
-    DeterministicDigestBackedEditDigest {
-        digest: digest_rows(rows),
-        contract_count,
-        family_count,
-        changed_scope_count,
-        naming_scope_count,
-        derived_region_count,
-        fallback_policy_count,
-        fallback_rejection_policy_count,
-    }
-}
-
-pub(super) type DeterministicDigestBackedEditDigest = crate::topology_operators::TopologyEditDigest;
-
-pub(super) fn aggregate_naming_edit_continuity_matrix(
-    batches: &[TopologyEditBatch],
-) -> NamingEditContinuityMatrix {
-    let rows = batches
-        .iter()
-        .flat_map(|batch| batch.naming_edit_continuity_matrix().rows.into_iter())
-        .collect::<Vec<_>>();
-    let preserved_count = rows
-        .iter()
-        .filter(|row| row.outcome == TopologyEditNamingOutcome::Preserved)
-        .count();
-    let ambiguous_count = rows
-        .iter()
-        .filter(|row| row.outcome == TopologyEditNamingOutcome::Ambiguous)
-        .count();
-    let rejected_count = rows
-        .iter()
-        .filter(|row| row.outcome == TopologyEditNamingOutcome::Rejected)
-        .count();
-    NamingEditContinuityMatrix {
-        rows,
-        preserved_count,
-        ambiguous_count,
-        rejected_count,
-    }
-}
-
-pub(super) fn accepted_step_row(
+pub(super) fn accepted_step_row_for_declaration<D>(
     step_index: usize,
-    batch: &TopologyEditBatch,
-    execution: &TopologyOperatorExecution,
-) -> MilestoneThreeEditReplayStepRow {
-    MilestoneThreeEditReplayStepRow {
+    declaration: &D,
+    execution: &TopologyDeclaredMutationArtifact,
+) -> MilestoneThreeMutationReplayStepRow
+where
+    D: TopologyDeclarationMutationPayload,
+{
+    MilestoneThreeMutationReplayStepRow {
         step_index,
-        edit_families: batch.families(),
-        topology_edit_digest: execution.topology_edit_digest.clone(),
-        naming_edit_continuity_matrix: execution.naming_continuity_matrix.clone(),
+        mutation_families: declaration.semantic_families(),
+        topology_mutation_digest: declaration.topology_mutation_digest(),
+        naming_mutation_continuity_matrix: declaration.naming_continuity_matrix(),
         outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
         rejection_class: None,
         resulting_materialized_topology_digest: Some(digest_materialized_topology_view(
@@ -221,16 +151,19 @@ pub(super) fn derived_validation_report_from_materialized(
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))
 }
 
-pub(super) fn rejected_step_row(
+pub(super) fn rejected_step_row_for_declaration<D>(
     step_index: usize,
-    batch: &TopologyEditBatch,
-    error: &TopologyOperatorExecutionError,
-) -> MilestoneThreeEditReplayStepRow {
-    MilestoneThreeEditReplayStepRow {
+    declaration: &D,
+    error: &TopologyMutationApplicationError,
+) -> MilestoneThreeMutationReplayStepRow
+where
+    D: TopologyDeclarationMutationPayload,
+{
+    MilestoneThreeMutationReplayStepRow {
         step_index,
-        edit_families: batch.families(),
-        topology_edit_digest: batch.topology_edit_digest(),
-        naming_edit_continuity_matrix: batch.naming_edit_continuity_matrix(),
+        mutation_families: declaration.semantic_families(),
+        topology_mutation_digest: declaration.topology_mutation_digest(),
+        naming_mutation_continuity_matrix: declaration.naming_continuity_matrix(),
         outcome_class: MilestoneThreeHostileOutcomeClass::Rejected,
         rejection_class: error.rejection_class(),
         resulting_materialized_topology_digest: None,
@@ -238,12 +171,12 @@ pub(super) fn rejected_step_row(
 }
 
 pub(super) fn replay_checked(
-    step_rows: Vec<MilestoneThreeEditReplayStepRow>,
-    replay_step_rows: Vec<MilestoneThreeEditReplayStepRow>,
+    step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
+    replay_step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
     baseline_materialized_topology_digest: DeterministicDigest,
     final_materialized_topology_digest: DeterministicDigest,
     replay_final_materialized_topology_digest: DeterministicDigest,
-) -> MilestoneThreeEditReplayParityReport {
+) -> MilestoneThreeMutationReplayParityReport {
     let returned_to_baseline =
         final_materialized_topology_digest == baseline_materialized_topology_digest;
     let mut mismatch_count = 0usize;
@@ -258,7 +191,7 @@ pub(super) fn replay_checked(
     } else {
         ReplayParityStatus::Mismatch
     };
-    MilestoneThreeEditReplayParityReport {
+    MilestoneThreeMutationReplayParityReport {
         replay_checked: true,
         parity_status,
         mismatch_count,
@@ -272,17 +205,17 @@ pub(super) fn replay_checked(
 }
 
 pub(super) fn replay_checked_rejected(
-    step_rows: Vec<MilestoneThreeEditReplayStepRow>,
-    replay_step_rows: Vec<MilestoneThreeEditReplayStepRow>,
+    step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
+    replay_step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
     baseline_materialized_topology_digest: DeterministicDigest,
-) -> MilestoneThreeEditReplayParityReport {
+) -> MilestoneThreeMutationReplayParityReport {
     let mismatch_count = usize::from(step_rows != replay_step_rows);
     let parity_status = if mismatch_count == 0 {
         ReplayParityStatus::Match
     } else {
         ReplayParityStatus::Mismatch
     };
-    MilestoneThreeEditReplayParityReport {
+    MilestoneThreeMutationReplayParityReport {
         replay_checked: true,
         parity_status,
         mismatch_count,
@@ -292,28 +225,5 @@ pub(super) fn replay_checked_rejected(
         final_materialized_topology_digest: Some(baseline_materialized_topology_digest.clone()),
         replay_final_materialized_topology_digest: Some(baseline_materialized_topology_digest),
         returned_to_baseline: Some(true),
-    }
-}
-
-fn contract_digest_row(contract: &TopologyEditContract) -> String {
-    serde_json::to_string(contract).expect(" topology edit contracts should serialize")
-}
-
-fn digest_rows(rows: impl IntoIterator<Item = String>) -> TopologyOperatorDigest {
-    let mut count = 0usize;
-    let mut hash = 0xcbf29ce484222325u64;
-    for row in rows {
-        count += 1;
-        for byte in row.as_bytes() {
-            hash ^= u64::from(*byte);
-            hash = hash.wrapping_mul(0x100000001b3);
-        }
-        hash ^= u64::from(b'\n');
-        hash = hash.wrapping_mul(0x100000001b3);
-    }
-    TopologyOperatorDigest {
-        algorithm: "fnv1a64".to_string(),
-        digest_hex: format!("{hash:016x}"),
-        row_count: count,
     }
 }

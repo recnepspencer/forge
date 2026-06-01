@@ -9,7 +9,7 @@ error[E0308]: mismatched types
    = note: expected reference `&forge_foundational::AspectMask<ProjectionMask>`
               found reference `&forge_foundational::AspectMask<MutationMask>`
 note: method defined here
-  --> src/aspects/contracts/contract.rs
+  --> src/aspects/contracts/contract/mask_admission.rs
    |
    |     pub fn admits_projection_mask(
    |            ^^^^^^^^^^^^^^^^^^^^^^

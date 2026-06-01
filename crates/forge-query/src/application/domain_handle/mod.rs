@@ -15,9 +15,12 @@ pub use checked_outcome::{
     ForgeQueryConfiguredDomainHandleUnsupported,
 };
 pub use draft::ForgeQueryConfiguredDomainHandleDraft;
-pub use operating_context::ForgeQueryDomainOperatingContext;
+pub use operating_context::{
+    ForgeQueryContinuationExecutionReadmissionObservation, ForgeQueryDomainOperatingContext,
+};
 pub use validated_handle::ForgeQueryValidatedConfiguredDomainHandle;
 
+pub(crate) use admitted_handle::checked_route_plan_from_progressed_with_profile;
 pub(crate) use checked_outcome::forge_query_checked_configured_domain_handle;
 
 #[cfg(test)]

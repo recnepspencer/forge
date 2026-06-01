@@ -1,4 +1,4 @@
-use crate::facade::publication::{RelationalPatchRecord, SubscriberCheckpoint};
+use crate::facade::publication::{PublishedAuthoritativePatchEnvelope, SubscriberCheckpoint};
 use crate::facade::runtime::RelationalRuntime;
 use crate::tests::harness::observe::subscriber_stream::{
     collect_subscriber_patches as collect_subscriber_patches_impl,
@@ -43,26 +43,26 @@ pub(super) fn collect_subscriber_patches(
     runtime: &RelationalRuntime,
     checkpoint: SubscriberCheckpoint,
     window_size: usize,
-) -> Vec<RelationalPatchRecord> {
+) -> Vec<PublishedAuthoritativePatchEnvelope> {
     collect_subscriber_patches_impl(runtime, checkpoint, window_size)
 }
 
 pub(super) fn collect_subscriber_patches_from_head(
     runtime: &RelationalRuntime,
     window_size: usize,
-) -> Vec<RelationalPatchRecord> {
+) -> Vec<PublishedAuthoritativePatchEnvelope> {
     collect_subscriber_patches_from_head_impl(runtime, window_size)
 }
 
 pub(super) fn expected_patch_suffix_after_checkpoint(
-    patches: &[RelationalPatchRecord],
+    patches: &[PublishedAuthoritativePatchEnvelope],
     checkpoint: &SubscriberCheckpoint,
-) -> Vec<RelationalPatchRecord> {
+) -> Vec<PublishedAuthoritativePatchEnvelope> {
     expected_patch_suffix_after_checkpoint_impl(patches, checkpoint)
 }
 
 pub(super) fn sampled_checkpoints_from_patches(
-    patches: &[RelationalPatchRecord],
+    patches: &[PublishedAuthoritativePatchEnvelope],
     samples: usize,
 ) -> Vec<SubscriberCheckpoint> {
     sampled_checkpoints_from_patches_impl(patches, samples)

@@ -1,0 +1,39 @@
+error[E0432]: unresolved imports `topology::query_domain::TopologyDomainQueryAggregateReport`, `topology::query_domain::TopologyDomainQueryCloseoutReport`, `topology::query_domain::TopologyDomainQueryProofReport`, `topology::query_domain::TopologyDomainQueryRequestFamily`, `topology::query_domain::TopologyDomainQueryRequestReport`
+ --> src/certification/public_facade_contracts/compile_fail/public_removed_domain_query_read_names_not_exported.rs:2:5
+  |
+2 |     TopologyDomainQueryAggregateReport, TopologyDomainQueryCloseoutReport,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyDomainQueryCloseoutReport` in `query_domain`
+  |     |
+  |     no `TopologyDomainQueryAggregateReport` in `query_domain`
+3 |     TopologyDomainQueryProofReport, TopologyDomainQueryRequestFamily,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyDomainQueryRequestFamily` in `query_domain`
+  |     |
+  |     no `TopologyDomainQueryProofReport` in `query_domain`
+4 |     TopologyDomainQueryRequestReport,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `TopologyDomainQueryRequestReport` in `query_domain`
+  |
+help: a similar name exists in the module
+  |
+2 -     TopologyDomainQueryAggregateReport, TopologyDomainQueryCloseoutReport,
+2 +     TopologyReadParityAggregateReport, TopologyDomainQueryCloseoutReport,
+  |
+help: a similar name exists in the module
+  |
+2 -     TopologyDomainQueryAggregateReport, TopologyDomainQueryCloseoutReport,
+2 +     TopologyDomainQueryAggregateReport, TopologyReadCloseoutReport,
+  |
+help: a similar name exists in the module
+  |
+3 -     TopologyDomainQueryProofReport, TopologyDomainQueryRequestFamily,
+3 +     TopologyReadProofReport, TopologyDomainQueryRequestFamily,
+  |
+help: a similar name exists in the module
+  |
+3 -     TopologyDomainQueryProofReport, TopologyDomainQueryRequestFamily,
+3 +     TopologyDomainQueryProofReport, TopologyReadRequestFamily,
+  |
+help: a similar name exists in the module
+  |
+4 -     TopologyDomainQueryRequestReport,
+4 +     TopologyReadRequestReport,
+  |

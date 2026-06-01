@@ -20,11 +20,22 @@ pub enum PreparationStrategySelection {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PreparationFallbackReason {
+pub enum SerialPreparationReason {
     ExecutionModelSerial,
     ProofRequiresSerial,
     InsufficientPacketBreadth,
     ProfitabilityThreshold,
+}
+
+impl SerialPreparationReason {
+    pub const fn diagnostic_label(self) -> &'static str {
+        match self {
+            Self::ExecutionModelSerial => "execution_model_serial",
+            Self::ProofRequiresSerial => "proof_requires_serial",
+            Self::InsufficientPacketBreadth => "insufficient_packet_breadth",
+            Self::ProfitabilityThreshold => "profitability_threshold",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -32,16 +43,16 @@ pub struct PreparationStrategy {
     pub(crate) parallel_legality: ParallelLegality,
     pub(crate) parallel_profitability: ParallelProfitability,
     pub(crate) selected_mode: PreparationStrategySelection,
-    pub(crate) fallback_reason: Option<PreparationFallbackReason>,
+    pub(crate) serial_selection_reason: Option<SerialPreparationReason>,
 }
 
 impl PreparationStrategy {
-    pub(crate) fn serial(reason: PreparationFallbackReason) -> Self {
+    pub(crate) fn serial(reason: SerialPreparationReason) -> Self {
         Self {
             parallel_legality: ParallelLegality::RequiresSerial,
             parallel_profitability: ParallelProfitability::NotProfitable,
             selected_mode: PreparationStrategySelection::Serial,
-            fallback_reason: Some(reason),
+            serial_selection_reason: Some(reason),
         }
     }
 }
@@ -75,7 +86,7 @@ pub(crate) fn strategy_for_parallel_packets(
         execution_model,
         RelationalExecutionModel::StagedParallelPreparation
     ) {
-        return PreparationStrategy::serial(PreparationFallbackReason::ExecutionModelSerial);
+        return PreparationStrategy::serial(SerialPreparationReason::ExecutionModelSerial);
     }
 
     if !packet_width_is_profitable(packet_count, MIN_PARALLEL_PACKET_WIDTH) {
@@ -83,7 +94,7 @@ pub(crate) fn strategy_for_parallel_packets(
             parallel_legality: ParallelLegality::ProvenParallel,
             parallel_profitability: ParallelProfitability::NotProfitable,
             selected_mode: PreparationStrategySelection::Serial,
-            fallback_reason: Some(PreparationFallbackReason::InsufficientPacketBreadth),
+            serial_selection_reason: Some(SerialPreparationReason::InsufficientPacketBreadth),
         };
     }
 
@@ -91,6 +102,6 @@ pub(crate) fn strategy_for_parallel_packets(
         parallel_legality: ParallelLegality::ProvenParallel,
         parallel_profitability: ParallelProfitability::Profitable,
         selected_mode: PreparationStrategySelection::StagedParallel,
-        fallback_reason: None,
+        serial_selection_reason: None,
     }
 }

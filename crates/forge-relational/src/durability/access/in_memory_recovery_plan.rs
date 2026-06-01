@@ -1,0 +1,73 @@
+use crate::capabilities::{DurabilityRead, RuntimeConfigSource};
+use crate::durability::access::{
+    authority_continuity_for_envelopes, descriptor_semantics_version_for_envelopes,
+};
+use crate::durability::data::{
+    RecoveryCursor, RecoveryIntegrityReport, RecoveryPlan, RecoveryVerificationMode,
+};
+use crate::logic::runtime::RelationalRuntime;
+
+pub(super) fn in_memory_recovery_plan(
+    runtime: &RelationalRuntime,
+    verification_mode: RecoveryVerificationMode,
+) -> RecoveryPlan {
+    let checkpoint = runtime.durable_checkpoints().last().cloned();
+    let tail_log = tail_log_after_in_memory_checkpoint(runtime, checkpoint.as_ref());
+    let descriptor_semantics_version = descriptor_semantics_version_for_envelopes(
+        checkpoint
+            .as_ref()
+            .map(|checkpoint| checkpoint.envelopes.as_slice())
+            .unwrap_or(&[]),
+        &tail_log,
+    );
+    let recovery_authority_continuity = authority_continuity_for_envelopes(
+        runtime,
+        checkpoint
+            .as_ref()
+            .map(|checkpoint| checkpoint.envelopes.as_slice())
+            .unwrap_or(&[]),
+        &tail_log,
+    );
+    let restore_authoritative_envelope_commit_ids = tail_log
+        .iter()
+        .map(|entry| entry.commit.commit_id)
+        .collect();
+
+    RecoveryPlan::new(
+        runtime.runtime_config().clone(),
+        runtime.durable_store().cloned(),
+        None,
+        checkpoint,
+        tail_log,
+        RecoveryCursor {
+            checkpoint_id: None,
+            segment_ids: Vec::new(),
+        },
+        RecoveryIntegrityReport {
+            selected_checkpoint_id: None,
+            skipped_corrupt_checkpoints: Vec::new(),
+            verified_segment_ids: Vec::new(),
+            corrupt_segment_id: None,
+        },
+        recovery_authority_continuity,
+        verification_mode,
+        descriptor_semantics_version,
+        restore_authoritative_envelope_commit_ids,
+    )
+    .with_commit_strategy_executors(runtime.commit_strategy_executor_registry().clone())
+}
+
+fn tail_log_after_in_memory_checkpoint(
+    runtime: &RelationalRuntime,
+    checkpoint: Option<&crate::durability::data::DurableCheckpoint>,
+) -> Vec<crate::replay::data::CanonicalCommitEnvelope> {
+    match checkpoint.and_then(|checkpoint| checkpoint.coverage.up_to_commit.as_ref()) {
+        Some(up_to_commit) => runtime
+            .durable_log()
+            .iter()
+            .filter(|entry| entry.commit.commit_id > up_to_commit.commit_id)
+            .cloned()
+            .collect(),
+        None => runtime.durable_log().to_vec(),
+    }
+}

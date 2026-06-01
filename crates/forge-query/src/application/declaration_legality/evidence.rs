@@ -4,7 +4,8 @@ use forge_foundational::facade::{
 };
 
 use crate::application::{
-    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryDeclarationFamilySupportReport,
+    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationFamilySupportReport,
     ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
 };
 
@@ -17,6 +18,7 @@ pub struct ForgeQueryDeclarationLegalityEvidence<
     declaration: ForgeQueryCanonicalDeclarationArtifact<D, I>,
     support_report: ForgeQueryDeclarationFamilySupportReport<D, I::Family>,
     legality_contract: ForgeQueryDeclarationLegalityContract,
+    reviewed_aspect_coverage: ForgeQueryDeclarationAspectCoverage,
     operating_context_identity_digest: String,
     role_claim_category: FoundationalBoundaryArtifactCategory,
     role_claim_role: FoundationalBoundaryArtifactRole,
@@ -31,6 +33,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         declaration: ForgeQueryCanonicalDeclarationArtifact<D, I>,
         support_report: ForgeQueryDeclarationFamilySupportReport<D, I::Family>,
         legality_contract: ForgeQueryDeclarationLegalityContract,
+        reviewed_aspect_coverage: ForgeQueryDeclarationAspectCoverage,
         operating_context_identity_digest: String,
         role_claim_category: FoundationalBoundaryArtifactCategory,
         role_claim_role: FoundationalBoundaryArtifactRole,
@@ -41,6 +44,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             declaration,
             support_report,
             legality_contract,
+            reviewed_aspect_coverage,
             operating_context_identity_digest,
             role_claim_category,
             role_claim_role,
@@ -59,6 +63,14 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn legality_contract(&self) -> ForgeQueryDeclarationLegalityContract {
         self.legality_contract
+    }
+
+    pub fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
+        self.support_report.aspect_contract()
+    }
+
+    pub fn reviewed_aspect_coverage(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        &self.reviewed_aspect_coverage
     }
 
     pub fn declaration_family_key(&self) -> &'static str {
@@ -87,5 +99,23 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn is_structurally_legal(&self) -> bool {
         true
+    }
+}
+
+impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>> Clone
+    for ForgeQueryDeclarationLegalityEvidence<D, I>
+{
+    fn clone(&self) -> Self {
+        Self {
+            declaration: self.declaration.clone(),
+            support_report: self.support_report.clone(),
+            legality_contract: self.legality_contract,
+            reviewed_aspect_coverage: self.reviewed_aspect_coverage.clone(),
+            operating_context_identity_digest: self.operating_context_identity_digest.clone(),
+            role_claim_category: self.role_claim_category,
+            role_claim_role: self.role_claim_role,
+            surface_disposition: self.surface_disposition,
+            legality_digest: self.legality_digest.clone(),
+        }
     }
 }

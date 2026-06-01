@@ -1,0 +1,48 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/domain_declaration/boundaries/construction/signal_compatibility/signal_compatibility_constructor_is_private.rs:50:86
+   |
+50 |       let _ = ForgeQueryDeclarationSignalCompatibility::<ExampleDomain, ExampleInput>::new(
+   |                                                                                        ^^^ private associated function
+   |
+  ::: src/application/declaration_signal_compatibility/artifact.rs
+   |
+   | /     pub(crate) fn new(
+   | |         primary_authority_family: ForgeQueryDeclarationPrimaryAuthorityFamily,
+   | |         execution_family: ForgeQueryDeclarationSignalExecutionFamily,
+   | |         basis_families: Vec<BasisFamily>,
+...  |
+   | |         explanation: ForgeQueryDeclarationSignalCompatibilityExplanation,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0061]: this function takes 12 arguments but 6 arguments were supplied
+  --> tests/ui/domain_declaration/boundaries/construction/signal_compatibility/signal_compatibility_constructor_is_private.rs:50:13
+   |
+50 |       let _ = ForgeQueryDeclarationSignalCompatibility::<ExampleDomain, ExampleInput>::new(
+   |  _____________^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-
+51 | |         forge_query::facade::ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+52 | |         forge_query::facade::ForgeQueryDeclarationSignalExecutionFamily::RuntimeDerivedExecution,
+53 | |         Vec::new(),
+...  |
+56 | |         explanation,
+57 | |     );
+   | |_____- multiple arguments are missing
+   |
+note: associated function defined here
+  --> src/application/declaration_signal_compatibility/artifact.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
+help: provide the arguments
+   |
+50 |     let _ = ForgeQueryDeclarationSignalCompatibility::<ExampleDomain, ExampleInput>::new(
+...
+54 |         envelope,
+55 ~         /* ForgeQueryDeclarationAspectCoverage */,
+56 +         /* ForgeQueryDeclarationAspectCoverageBasis */,
+57 +         /* ForgeQueryDeclarationAspectFit */,
+58 +         /* ForgeQueryDeclarationAspectContract */,
+59 +         /* ForgeQueryDeclarationAspectContract */,
+60 +         /* ForgeQueryDeclarationEnvelope<ExampleDomain, ExampleInput> */,
+61 ~         "digest".to_string(),
+   |

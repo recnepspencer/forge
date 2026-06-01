@@ -111,7 +111,10 @@ fn preview_promotion_closeout_records_consumed_staging_without_preview_lane_muta
         .expect("live view should declare");
     let rows = runtime.read_live(&view);
     assert_eq!(rows.len(), 1);
-    assert_eq!(rows[0].payload["title"]["value"], "Promoted closeout task");
+    assert_eq!(
+        rows[0].external_row()["title"]["value"],
+        "Promoted closeout task"
+    );
 }
 
 #[test]

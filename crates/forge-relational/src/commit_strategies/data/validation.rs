@@ -21,8 +21,6 @@ pub struct ValidatedStrategyCommitPlan {
     preview_publication_invariants: InvariantExecutionResult,
     preview_validation_cost: StrategyPreviewValidationCostSummary,
     validation_summary: CommitValidationSummary,
-    #[allow(dead_code)]
-    pub(crate) proof_token: ValidatedStrategyCommitPlanToken,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -101,7 +99,6 @@ impl ValidatedStrategyCommitPlan {
             preview_publication_invariants,
             preview_validation_cost,
             validation_summary,
-            proof_token: ValidatedStrategyCommitPlanToken,
         }
     }
 
@@ -141,6 +138,3 @@ impl ValidatedStrategyCommitPlan {
         self.preview_validation_cost
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) struct ValidatedStrategyCommitPlanToken;

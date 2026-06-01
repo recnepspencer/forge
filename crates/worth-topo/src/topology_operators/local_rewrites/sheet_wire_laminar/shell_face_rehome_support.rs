@@ -1,192 +1,140 @@
 use std::collections::BTreeSet;
 
-use schema::facade::{EntityReference, TopologyEntityKind};
+use schema::facade::platform::authority::EntityReference;
+use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{
     query_entity_binding, query_entity_id_by_identity, query_incoming_relation_ids,
     query_outgoing_relation_target_identities,
 };
-use crate::topology_operators::TopologyEditContract;
-use crate::topology_operators::{ShellOrWireMembershipKind, TopologyEditAction};
+use crate::topology_operators::{
+    ShellOrWireMembershipKind, TopologyDeclaredMutationActionRef, TopologyDeclaredMutationSequence,
+};
 
-pub(super) struct ShellFaceRehomeProgram {
+pub(crate) struct ShellFaceRehomeProgram {
     pub(super) create_key: String,
     pub(super) region_id: forge_relational::facade::identity::EntityId,
     pub(super) face_ids: Vec<forge_relational::facade::identity::EntityId>,
     pub(super) retired_shell_id: forge_relational::facade::identity::EntityId,
 }
 
-pub(super) struct ShellFaceSplitProgram {
+pub(crate) struct ShellFaceSplitProgram {
     pub(super) create_key: String,
     pub(super) region_id: forge_relational::facade::identity::EntityId,
     pub(super) face_id: forge_relational::facade::identity::EntityId,
     pub(super) retained_shell_id: Option<forge_relational::facade::identity::EntityId>,
 }
 
-pub(super) fn parse_shell_face_rehome_program(
-    contracts: &[TopologyEditContract],
+pub(crate) fn parse_shell_face_rehome_program(
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> Option<ShellFaceRehomeProgram> {
-    let [create, attach_region, face_attaches @ .., retire] = contracts else {
+    let members = sequence.members().collect::<Vec<_>>();
+    let [create, attach_region, face_attaches @ .., retire] = members.as_slice() else {
         return None;
     };
     let (
-        TopologyEditAction::CreateTopologyEntity {
+        TopologyDeclaredMutationActionRef::CreateTopologyEntity {
             create_key,
             kind: TopologyEntityKind::Shell,
-            ..
         },
-        TopologyEditAction::AttachShellOrWireMembership {
+        TopologyDeclaredMutationActionRef::AttachShellOrWireMembership {
             kind: ShellOrWireMembershipKind::RegionOwnsShell,
             owner: EntityReference::Existing(region_id),
             member: EntityReference::Created(member_key),
-            ..
         },
-        TopologyEditAction::RetireTopologyEntity {
+        TopologyDeclaredMutationActionRef::RetireTopologyEntity {
             entity_id: retired_shell_id,
             kind: TopologyEntityKind::Shell,
         },
-    ) = (&create.action, &attach_region.action, &retire.action)
+    ) = (
+        create.action_ref(),
+        attach_region.action_ref(),
+        retire.action_ref(),
+    )
     else {
         return None;
     };
-    if create_key.as_str() != member_key.as_str() || face_attaches.is_empty() {
+    if create_key != member_key.as_str() || face_attaches.is_empty() {
         return None;
     }
     let mut face_ids = Vec::with_capacity(face_attaches.len());
     let mut seen_face_ids = BTreeSet::new();
     for attach in face_attaches {
-        let TopologyEditAction::AttachShellOrWireMembership {
+        let TopologyDeclaredMutationActionRef::AttachShellOrWireMembership {
             kind: ShellOrWireMembershipKind::ShellOwnsFace,
             owner: EntityReference::Created(owner_key),
             member: EntityReference::Existing(face_id),
-            ..
-        } = &attach.action
+        } = attach.action_ref()
         else {
             return None;
         };
-        if owner_key.as_str() != create_key.as_str() || !seen_face_ids.insert(*face_id) {
+        if owner_key.as_str() != create_key || !seen_face_ids.insert(*face_id) {
             return None;
         }
         face_ids.push(*face_id);
     }
     Some(ShellFaceRehomeProgram {
-        create_key: create_key.as_str().to_string(),
+        create_key: create_key.to_string(),
         region_id: *region_id,
         face_ids,
-        retired_shell_id: *retired_shell_id,
+        retired_shell_id,
     })
 }
 
-pub(super) fn parse_shell_face_split_program(
-    contracts: &[TopologyEditContract],
+pub(crate) fn parse_shell_face_split_program(
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> Option<ShellFaceSplitProgram> {
-    let [create, attach_region, attach_face] = contracts else {
+    let members = sequence.members().collect::<Vec<_>>();
+    let [create, attach_region, attach_face] = members.as_slice() else {
         return None;
     };
     let (
-        TopologyEditAction::CreateTopologyEntity {
+        TopologyDeclaredMutationActionRef::CreateTopologyEntity {
             create_key,
             kind: TopologyEntityKind::Shell,
-            ..
         },
-        TopologyEditAction::AttachShellOrWireMembership {
+        TopologyDeclaredMutationActionRef::AttachShellOrWireMembership {
             kind: ShellOrWireMembershipKind::RegionOwnsShell,
             owner: EntityReference::Existing(region_id),
             member: EntityReference::Created(member_key),
-            ..
         },
-        TopologyEditAction::AttachShellOrWireMembership {
+        TopologyDeclaredMutationActionRef::AttachShellOrWireMembership {
             kind: ShellOrWireMembershipKind::ShellOwnsFace,
             owner: EntityReference::Created(owner_key),
             member: EntityReference::Existing(face_id),
-            ..
         },
-    ) = (&create.action, &attach_region.action, &attach_face.action)
+    ) = (
+        create.action_ref(),
+        attach_region.action_ref(),
+        attach_face.action_ref(),
+    )
     else {
         return None;
     };
-    if create_key.as_str() != member_key.as_str() || create_key.as_str() != owner_key.as_str() {
+    if create_key != member_key.as_str() || create_key != owner_key.as_str() {
         return None;
     }
     Some(ShellFaceSplitProgram {
-        create_key: create_key.as_str().to_string(),
+        create_key: create_key.to_string(),
         region_id: *region_id,
         face_id: *face_id,
         retained_shell_id: None,
     })
 }
 
-pub(super) fn supports_owned_face_set_shell_rehome_program(
+pub(crate) fn resolve_single_face_two_face_shell_split_program(
     bindings: &TopologyQueryBindingIndex,
-    contracts: &[TopologyEditContract],
-) -> bool {
-    let Some(program) = parse_shell_face_rehome_program(contracts) else {
-        return false;
-    };
-    let Some(retired_shell_binding) = query_entity_binding(bindings, program.retired_shell_id)
-        .ok()
-        .flatten()
-    else {
-        return false;
-    };
-    let Ok(incoming_region_ids) = query_incoming_relation_ids(
-        bindings,
-        &retired_shell_binding.query_identity,
-        schema::facade::TopologyRelationKind::RegionOwnsShell,
-    ) else {
-        return false;
-    };
-    let Ok(outgoing_face_targets) = query_outgoing_relation_target_identities(
-        bindings,
-        &retired_shell_binding.query_identity,
-        schema::facade::TopologyRelationKind::ShellOwnsFace,
-    ) else {
-        return false;
-    };
-    let [incoming_region_relation_id] = incoming_region_ids.as_slice() else {
-        return false;
-    };
-    let Some(incoming_region_relation) =
-        crate::topology_operators::application::bindings::query_relation_binding(
-            bindings,
-            *incoming_region_relation_id,
-        )
-        .ok()
-        .flatten()
-    else {
-        return false;
-    };
-    let expected_face_ids = program.face_ids.iter().copied().collect::<BTreeSet<_>>();
-    let outgoing_face_ids = outgoing_face_targets
-        .iter()
-        .map(|identity| {
-            query_entity_id_by_identity(bindings, identity)
-                .ok()
-                .flatten()
-        })
-        .collect::<Option<Vec<_>>>();
-    query_entity_id_by_identity(bindings, &incoming_region_relation.source_query_identity)
-        .ok()
-        .flatten()
-        .is_some_and(|owned_region_id| owned_region_id == program.region_id)
-        && outgoing_face_targets.len() == program.face_ids.len()
-        && outgoing_face_ids
-            .is_some_and(|ids| ids.into_iter().collect::<BTreeSet<_>>() == expected_face_ids)
-}
-
-pub(super) fn resolve_single_face_two_face_shell_split_program(
-    bindings: &TopologyQueryBindingIndex,
-    contracts: &[TopologyEditContract],
+    sequence: &TopologyDeclaredMutationSequence,
 ) -> Option<ShellFaceSplitProgram> {
-    let mut program = parse_shell_face_split_program(contracts)?;
+    let mut program = parse_shell_face_split_program(sequence)?;
     let face_binding = query_entity_binding(bindings, program.face_id)
         .ok()
         .flatten()?;
     let incoming_shell_ids = query_incoming_relation_ids(
         bindings,
         &face_binding.query_identity,
-        schema::facade::TopologyRelationKind::ShellOwnsFace,
+        schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace,
     )
     .ok()?;
     let [shell_owns_face_relation_id] = incoming_shell_ids.as_slice() else {
@@ -209,7 +157,7 @@ pub(super) fn resolve_single_face_two_face_shell_split_program(
     let incoming_region_ids = query_incoming_relation_ids(
         bindings,
         &retained_shell_binding.query_identity,
-        schema::facade::TopologyRelationKind::RegionOwnsShell,
+        schema::facade::platform::relations::TopologyRelationKind::RegionOwnsShell,
     )
     .ok()?;
     let [region_owns_shell_relation_id] = incoming_region_ids.as_slice() else {
@@ -232,7 +180,7 @@ pub(super) fn resolve_single_face_two_face_shell_split_program(
     let outgoing_face_targets = query_outgoing_relation_target_identities(
         bindings,
         &retained_shell_binding.query_identity,
-        schema::facade::TopologyRelationKind::ShellOwnsFace,
+        schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace,
     )
     .ok()?;
     if outgoing_face_targets.len() != 2 {

@@ -1,5 +1,5 @@
 use crate::facade::config::AdjacencyBackend;
-use crate::facade::runtime::CompiledArtifactCompatibility;
+use crate::facade::runtime::CompiledArtifactAuthorityStatus;
 use crate::tests::support::*;
 
 #[test]
@@ -8,15 +8,11 @@ fn chip_profile_emits_dense_patch_surface_details() {
     let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
     let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
     let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
-    let publication = runtime.publication();
+    let publication = runtime.publication().artifacts();
     let patch = publication.latest_patch().unwrap();
 
-    assert_eq!(
-        patch.compatibility,
-        PatchCompatibilityClass::DenseCompatible
-    );
     assert!(patch
-        .records
+        .authoritative_record_patches
         .iter()
         .all(|record| matches!(record.detail, PatchDetail::DenseBitset(_))));
 }
@@ -73,8 +69,8 @@ fn chip_profile_compiled_artifacts_are_derived_from_committed_truth() {
     assert_eq!(
         runtime
             .compiled_artifacts()
-            .compiled_artifact_compatibility(artifact.artifact_id),
-        CompiledArtifactCompatibility::Compatible
+            .compiled_artifact_authority_status(artifact.artifact_id),
+        CompiledArtifactAuthorityStatus::Authoritative
     );
 }
 
@@ -91,8 +87,8 @@ fn compiled_artifact_rejects_stale_topology_after_later_commit() {
     assert_eq!(
         runtime
             .compiled_artifacts()
-            .compiled_artifact_compatibility(artifact.artifact_id),
-        CompiledArtifactCompatibility::StaleVersion
+            .compiled_artifact_authority_status(artifact.artifact_id),
+        CompiledArtifactAuthorityStatus::StaleVersion
     );
 }
 
@@ -150,8 +146,8 @@ fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_li
     assert_eq!(
         runtime
             .compiled_artifacts()
-            .compiled_artifact_compatibility(compiled.artifact_id),
-        CompiledArtifactCompatibility::StaleVersion
+            .compiled_artifact_authority_status(compiled.artifact_id),
+        CompiledArtifactAuthorityStatus::StaleVersion
     );
     assert_eq!(deleted.changed_records.len(), 4);
     for relation in relations {
@@ -164,7 +160,7 @@ fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_li
         assert_direct_history_origin_invariants(&history, RecordRef::Relation(relation));
         assert_eq!(
             history[0].origin.changed_aspects,
-            CanonicalAspectSet::new([
+            ordered_aspect_keys([
                 aspect_key("label"),
                 aspect_key("lifecycle"),
                 aspect_key("source"),
@@ -173,7 +169,7 @@ fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_li
         );
         assert_eq!(
             history[1].origin.changed_aspects,
-            CanonicalAspectSet::new([aspect_key("lifecycle")])
+            ordered_aspect_keys([aspect_key("lifecycle")])
         );
     }
 }
@@ -217,7 +213,7 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
     let main_view = runtime
         .read_truth()
         .project_version(main_commit.version_id)
-        .all_relation_records();
+        .all_authoritative_relation_records();
     let feature_commit = runtime
         .history()
         .branch_head(&BranchId("feature".to_string()))
@@ -226,7 +222,7 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
     let feature_view = runtime
         .read_truth()
         .project_version(feature_commit.version_id)
-        .all_relation_records();
+        .all_authoritative_relation_records();
     let feature_artifact = runtime
         .compiled_artifacts_authority()
         .compile_execution_artifact(
@@ -287,7 +283,7 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
     assert_direct_history_origin_invariants(&main_history, RecordRef::Relation(relation));
     assert_eq!(
         main_history[0].origin.changed_aspects,
-        CanonicalAspectSet::new([
+        ordered_aspect_keys([
             aspect_key("label"),
             aspect_key("lifecycle"),
             aspect_key("source"),
@@ -299,13 +295,13 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
     assert_eq!(
         runtime
             .compiled_artifacts()
-            .compiled_artifact_compatibility(main_artifact.artifact_id),
-        CompiledArtifactCompatibility::StaleVersion
+            .compiled_artifact_authority_status(main_artifact.artifact_id),
+        CompiledArtifactAuthorityStatus::StaleVersion
     );
     assert_eq!(
         runtime
             .compiled_artifacts()
-            .compiled_artifact_compatibility(feature_artifact.artifact_id),
-        CompiledArtifactCompatibility::Compatible
+            .compiled_artifact_authority_status(feature_artifact.artifact_id),
+        CompiledArtifactAuthorityStatus::Authoritative
     );
 }

@@ -1,3 +1,4 @@
+mod aspect_values;
 mod capabilities;
 mod contracts;
 mod counters;

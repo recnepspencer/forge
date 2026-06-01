@@ -8,12 +8,13 @@ use super::query_evidence::{
     traced_certification_envelope, traced_certification_failure,
 };
 use super::*;
+use crate::committed_artifact::TopologyCommittedArtifact;
 
 impl MilestoneOneCertificationHarness {
     pub(crate) fn certify_read_basis_with_runtime_traced(
         runtime: &mut RelationalRuntime,
         read_basis: DerivedTopologyReadBasis,
-        authority_batch: Option<&TopologyMutationBatch>,
+        authority_mutations: Option<&[TopologyMutation]>,
         replay_history_length: usize,
     ) -> Result<
         TracedMilestoneOneCertificationReport,
@@ -48,18 +49,22 @@ impl MilestoneOneCertificationHarness {
                     replay_history_length,
                 )
             })?;
-        let assembly = TopologyQueryAssembly::declare(&mut workspace).map_err(|error| {
-            traced_certification_failure(
-                MilestoneOneCertificationError::Query(error.to_string()),
-                &read_basis,
-                None,
-                replay_history_length,
+        let surfaces =
+            crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+                &mut workspace,
             )
-        })?;
-        let entity_rows = workspace.read(assembly.entities());
-        let relation_rows = workspace.read(assembly.relations());
-        let persistent_name_rows = workspace.read(assembly.persistent_names());
-        let validation_state = workspace.state(assembly.validation()).map_err(|error| {
+            .map_err(|error| {
+                traced_certification_failure(
+                    MilestoneOneCertificationError::Query(error.to_string()),
+                    &read_basis,
+                    None,
+                    replay_history_length,
+                )
+            })?;
+        let entity_rows = workspace.read(surfaces.entities());
+        let relation_rows = workspace.read(surfaces.relations());
+        let persistent_name_rows = workspace.read(surfaces.persistent_names());
+        let validation_state = workspace.state(surfaces.validation()).map_err(|error| {
             traced_certification_failure(
                 MilestoneOneCertificationError::Query(error.to_string()),
                 &read_basis,
@@ -72,7 +77,7 @@ impl MilestoneOneCertificationHarness {
         })?;
         let equivalence_state =
             workspace
-                .state(assembly.equivalence_contract())
+                .state(surfaces.equivalence_contract())
                 .map_err(|error| {
                     traced_certification_failure(
                         MilestoneOneCertificationError::Query(error.to_string()),
@@ -86,7 +91,7 @@ impl MilestoneOneCertificationHarness {
         )?;
         let validation_inspection = derived_query_inspection(
             &mut workspace,
-            assembly.validation(),
+            surfaces.validation(),
             ".topology.validation",
         )
         .map_err(|error| {
@@ -94,13 +99,13 @@ impl MilestoneOneCertificationHarness {
         })?;
         let equivalence_inspection = derived_query_inspection(
             &mut workspace,
-            assembly.equivalence_contract(),
+            surfaces.equivalence_contract(),
             ".topology.equivalence_contract",
         )
         .map_err(|error| {
             traced_certification_failure(error, &read_basis, None, replay_history_length)
         })?;
-        let snapshot = assembly
+        let snapshot = surfaces
             .snapshot_for_read_basis(&mut workspace, &read_basis)
             .map_err(|error| {
                 traced_certification_failure(error.into(), &read_basis, None, replay_history_length)
@@ -209,7 +214,7 @@ impl MilestoneOneCertificationHarness {
                 && topology_validation_digest == replay_topology_validation_digest,
         };
         let counters = build_counter_report(
-            authority_batch,
+            authority_mutations,
             &snapshot.validation,
             &naming_attachment_report,
             &primitive_family_coverage_matrix,
@@ -262,7 +267,7 @@ impl MilestoneOneCertificationHarness {
 
     pub fn certify_verified_commit(
         runtime: &mut RelationalRuntime,
-        verified: &VerifiedTopologyCommit,
+        verified: &TopologyCommittedArtifact,
     ) -> Result<MilestoneOneCertificationReport, MilestoneOneCertificationError> {
         Self::certify_verified_commit_traced(runtime, verified)
             .map(BoundaryEnvelope::into_primary_result)
@@ -271,29 +276,29 @@ impl MilestoneOneCertificationHarness {
 
     pub fn certify_verified_commit_traced(
         runtime: &mut RelationalRuntime,
-        verified: &VerifiedTopologyCommit,
+        verified: &TopologyCommittedArtifact,
     ) -> Result<
         TracedMilestoneOneCertificationReport,
         BoundaryFailure<MilestoneOneCertificationError>,
     > {
         let traced = Self::certify_read_basis_with_runtime_traced(
             runtime,
-            verified.read_basis.clone(),
-            Some(&verified.canonical_batch.batch),
-            verified.commits.len(),
+            verified.read_basis().clone(),
+            Some(verified.mutations()),
+            verified.commits().len(),
         )?;
         let mut report = traced.primary_result().clone();
         let Some(replay_commit_id) = verified
-            .commits
+            .commits()
             .last()
             .map(|commit| commit.outcome.commit.commit_id.clone())
         else {
             let integrity_markers =
-                certification_integrity_markers(&verified.read_basis, Some(&verified.commits));
+                certification_integrity_markers(&verified.read_basis(), Some(verified.commits()));
             let performance_accounting = certification_performance_accounting(
                 &report,
-                Some(&verified.commits),
-                verified.commits.len(),
+                Some(verified.commits()),
+                verified.commits().len(),
                 query_evidence_from_accounting(traced.performance_accounting()),
             );
             return Ok(traced
@@ -301,12 +306,12 @@ impl MilestoneOneCertificationHarness {
                 .map_decision_trace(|mut decision_trace| {
                     decision_trace.authority_anchor =
                         Some(AuthorityTraceAnchor::from_commit_results(
-                            verified.branch_id.clone(),
-                            &verified.commits,
+                            verified.branch_id().clone(),
+                            verified.commits(),
                         ));
                     decision_trace.authority = Some(AuthorityTraceEvidence::from_commit_results(
-                        verified.branch_id.clone(),
-                        &verified.commits,
+                        verified.branch_id().clone(),
+                        verified.commits(),
                     ));
                     decision_trace
                 })
@@ -316,7 +321,7 @@ impl MilestoneOneCertificationHarness {
         let replay = runtime
             .replay_authority()
             .replay_commit(RelationalReplayRequest {
-                branch_id: verified.branch_id.clone(),
+                branch_id: verified.branch_id().clone(),
                 commit_id: replay_commit_id,
                 execution_mode: ReplayExecutionMode::SerialDeterministic,
                 verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
@@ -353,23 +358,23 @@ impl MilestoneOneCertificationHarness {
         }
 
         let integrity_markers =
-            certification_integrity_markers(&verified.read_basis, Some(&verified.commits));
+            certification_integrity_markers(&verified.read_basis(), Some(verified.commits()));
         let performance_accounting = certification_performance_accounting(
             &report,
-            Some(&verified.commits),
-            verified.commits.len(),
+            Some(verified.commits()),
+            verified.commits().len(),
             query_evidence_from_accounting(traced.performance_accounting()),
         );
         Ok(traced
             .map_primary_result(|_| report)
             .map_decision_trace(|mut decision_trace| {
                 decision_trace.authority_anchor = Some(AuthorityTraceAnchor::from_commit_results(
-                    verified.branch_id.clone(),
-                    &verified.commits,
+                    verified.branch_id().clone(),
+                    verified.commits(),
                 ));
                 decision_trace.authority = Some(AuthorityTraceEvidence::from_commit_results(
-                    verified.branch_id.clone(),
-                    &verified.commits,
+                    verified.branch_id().clone(),
+                    verified.commits(),
                 ));
                 decision_trace
             })

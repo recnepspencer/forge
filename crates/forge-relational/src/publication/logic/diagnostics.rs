@@ -1,8 +1,6 @@
-use serde_json::Value;
-
 use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticsArtifactKind, DiagnosticsScope,
-    RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
+    RelationalDiagnosticArtifact, RelationalDiagnosticFields, RelationalDiagnosticsEntry,
 };
 use crate::logic::runtime::RelationalRuntime;
 
@@ -11,6 +9,27 @@ pub(crate) struct DiagnosticArtifactBuilder<'runtime> {
     scope: DiagnosticsScope,
     kind: DiagnosticsArtifactKind,
     entries: Vec<RelationalDiagnosticsEntry>,
+}
+
+pub(crate) fn emit_filtered_artifact(
+    runtime: &mut RelationalRuntime,
+    artifact: RelationalDiagnosticArtifact,
+) -> RelationalDiagnosticArtifact {
+    let profile = &runtime.config.diagnostics.profile;
+    let filtered = profile
+        .filter_artifact(artifact.clone())
+        .unwrap_or_else(|| {
+            RelationalDiagnosticArtifact::new(
+                artifact.scope,
+                artifact.kind,
+                artifact.determinism,
+                Vec::new(),
+            )
+        });
+    if !filtered.entries.is_empty() {
+        runtime.publication.diagnostics.push(filtered.clone());
+    }
+    filtered
 }
 
 impl<'runtime> DiagnosticArtifactBuilder<'runtime> {
@@ -48,13 +67,13 @@ impl<'runtime> DiagnosticArtifactBuilder<'runtime> {
         mut self,
         code: crate::diagnostics::data::DiagnosticCode,
         message: impl Into<String>,
-        fields: Value,
+        fields: impl Into<RelationalDiagnosticFields>,
     ) -> Self {
-        self.entries.push(RelationalDiagnosticsEntry {
+        self.entries.push(RelationalDiagnosticsEntry::new(
             code,
-            message: message.into(),
-            fields,
-        });
+            message,
+            fields.into(),
+        ));
         self
     }
 
@@ -70,30 +89,20 @@ impl<'runtime> DiagnosticArtifactBuilder<'runtime> {
         self,
         code: crate::diagnostics::data::DiagnosticCode,
         message: impl Into<String>,
-        fields: Value,
+        fields: impl Into<RelationalDiagnosticFields>,
     ) -> RelationalDiagnosticArtifact {
         self.entry(code, message, fields).emit()
     }
 
     pub(crate) fn emit(self) -> RelationalDiagnosticArtifact {
-        let profile = &self.runtime.config.diagnostics.profile;
-        let artifact = RelationalDiagnosticArtifact {
-            scope: self.scope,
-            kind: self.kind,
-            determinism: DeterminismExpectation::Required,
-            entries: self.entries,
-        };
-        let filtered = profile
-            .filter_artifact(artifact.clone())
-            .unwrap_or_else(|| RelationalDiagnosticArtifact {
-                scope: artifact.scope,
-                kind: artifact.kind,
-                determinism: artifact.determinism,
-                entries: Vec::new(),
-            });
-        if !filtered.entries.is_empty() {
-            self.runtime.publication.diagnostics.push(filtered.clone());
-        }
-        filtered
+        emit_filtered_artifact(
+            self.runtime,
+            RelationalDiagnosticArtifact::new(
+                self.scope,
+                self.kind,
+                DeterminismExpectation::Required,
+                self.entries,
+            ),
+        )
     }
 }

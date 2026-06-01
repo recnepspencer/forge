@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::collections::BTreeMap;
 
 use crate::identity::data::{KindId, PartitionId, RelationId};
-use crate::payloads::data::RecordPayload;
-use crate::symbols::data::InternedString;
+use crate::symbols::data::ClientKey;
+
+use super::super::AspectFieldPatch;
 
 use super::super::{EntityReference, EntitySpec, RelationSpec};
 
@@ -12,20 +11,14 @@ use super::super::{EntityReference, EntitySpec, RelationSpec};
 pub struct BulkEntityCreateIntent {
     pub partition_id: PartitionId,
     pub kind_id: KindId,
-    pub client_keys: Vec<InternedString>,
-    pub payloads: Vec<RecordPayload>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct UpdateEntityIntent {
-    pub entity_id: crate::identity::data::EntityId,
-    pub payload: RecordPayload,
+    pub client_keys: Vec<ClientKey>,
+    pub field_patches: Vec<AspectFieldPatch>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UpdateEntityFieldsIntent {
     pub entity_id: crate::identity::data::EntityId,
-    pub fields: BTreeMap<String, Value>,
+    pub fields: AspectFieldPatch,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -43,9 +36,9 @@ pub struct DeleteEntityIntent {
 pub struct BulkRelationCreateIntent {
     pub partition_id: PartitionId,
     pub kind_id: KindId,
-    pub client_keys: Vec<InternedString>,
+    pub client_keys: Vec<ClientKey>,
     pub endpoints: Vec<(EntityReference, EntityReference)>,
-    pub payloads: Vec<Option<RecordPayload>>,
+    pub field_patches: Vec<AspectFieldPatch>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -71,7 +64,6 @@ pub enum CreateIntent {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntityMutationIntent {
-    Update(UpdateEntityIntent),
     UpdateFields(UpdateEntityFieldsIntent),
     Replace(ReplaceEntityIntent),
     Delete(DeleteEntityIntent),

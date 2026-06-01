@@ -75,6 +75,7 @@ impl RecordKind for EntityRecordKind {
             generation,
             kind_id,
             lineage_id: extra.lineage_id,
+            authoritative_aspect_state: extra.authoritative_aspect_state.clone(),
         }
     }
 }
@@ -107,7 +108,7 @@ impl RecordKind for RelationRecordKind {
     }
 
     fn empty_extra() -> Self::Extra {
-        None
+        RelationExtra::default()
     }
 
     fn reserve_extra(extra: &mut Vec<Self::Extra>, additional: usize) {
@@ -129,7 +130,11 @@ impl RecordKind for RelationRecordKind {
             retired_at: None,
             generation,
             kind_id,
-            endpoints: extra.clone().expect("relation metadata requires endpoints"),
+            endpoints: extra
+                .endpoints
+                .clone()
+                .expect("relation metadata requires endpoints"),
+            authoritative_aspect_state: extra.authoritative_aspect_state.clone(),
         }
     }
 }
@@ -149,9 +154,9 @@ pub(crate) fn partition_of<K: RecordKind>(id: &RecordId<K::Domain>) -> Partition
 }
 
 pub(crate) fn slot_of<K: RecordKind>(id: &RecordId<K::Domain>) -> usize {
-    id.local_slot.0 as usize
+    id.slot_index()
 }
 
 pub(crate) fn generation_of<K: RecordKind>(id: &RecordId<K::Domain>) -> u32 {
-    id.generation.0
+    id.generation_value()
 }

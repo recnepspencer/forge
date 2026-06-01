@@ -1,8 +1,10 @@
 use crate::snapshots::data::{SnapshotHandle, SnapshotId};
 
+mod configuration;
+mod construction;
 mod guided;
-mod session;
 mod state;
+mod transactions;
 
 pub use crate::config::data::RelationalRuntimeConfig;
 pub use crate::durability::data::RecoveryOutcome;
@@ -11,47 +13,26 @@ pub use crate::performance::data::{
 };
 pub use crate::replay::data::{RelationalReplayRecord, ReplaySchemaVersion};
 pub use crate::simulation::data::{
-    CompiledArtifactCompatibility, CompiledArtifactError, CompiledExecutionArtifact,
+    CompiledArtifactAuthorityStatus, CompiledArtifactError, CompiledExecutionArtifact,
     TopologyFreezeMode,
 };
 pub use crate::simulation::logic::{SimulationAccess, SimulationAuthority};
-#[allow(unused_imports)]
-pub use crate::storage::data::{
-    ChunkDiagnostics, ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord,
-    PartitionStorageStats, RecordLifecycleState, RelationReadRecord, RelationalReadView,
-    RetentionPassOutcome, RetentionPlan, StorageStats,
-};
-#[allow(unused_imports)]
-pub use crate::validation::data::{
-    BoundedStructuralTraversal, CustomInvariantDescriptor, CustomInvariantExecutionContext,
-    CustomInvariantExecutionError, CustomInvariantOperationalMetadata,
-    CustomInvariantPreparationError, CustomInvariantProvenance, CustomInvariantRegistration,
-    CustomInvariantRegistrationError, CustomInvariantRule, CustomInvariantRuleId,
-    CustomInvariantScopePlanner, CustomInvariantSemanticIdentity, CustomInvariantSemanticVersion,
-    CustomInvariantTouchedSummary, CustomInvariantTraversalError, CustomInvariantTraversalSummary,
-    CustomInvariantVerdict, InvariantCatalog, InvariantCheckResult, InvariantClass,
-    InvariantDecisionKind, InvariantDecisionRecord, InvariantExecutionPoint,
-    InvariantFailureEffect, InvariantRegistration, InvariantRule, InvariantRuleDescriptor,
-    InvariantRuleId, InvariantSemanticsClass, InvariantViolation, NativeInvariantRuleId,
-    PlannedEntityCreate, PlannedRelationCreate, PlannedRelationEndpointUpdate, StructuralCountView,
-    StructuralPayloadView, StructuralRelationRecord, StructuralRelationView,
-    StructuralTraversalResult, SupportedExecutionPoints, TouchedStructuralSet,
-};
 #[cfg(test)]
 pub use crate::validation::engine::HarnessAuditMode;
 pub use crate::validation::logic::InvariantAccess;
 pub use crate::visibility::materialization::read_records::{
-    EntityRecordProjection, RelationRecordProjection, VisibilityProjectionView,
-    VisibilityReadContext,
+    EntityProjectionRecord, EntityRecordProjection, RelationProjectionRecord,
+    RelationRecordProjection, VisibilityProjectionView, VisibilityReadContext,
 };
 pub use crate::visibility::retention::VisibilityRetentionAuthority;
 
 pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
+pub(crate) use construction::RuntimeExtensions;
 pub use state::RelationalRuntime;
 pub(crate) use state::{
-    AspectSemanticsSubsystem, CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem,
-    IndexingSubsystem, LineageSubsystem, PublicationSubsystem, ReplayRetentionState,
-    RuntimeInstrumentation, RuntimeServices, RuntimeSubsystem, SnapshotHandleBinding,
+    CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
+    LineageSubsystem, PublicationSubsystem, ReplayRetentionState, RuntimeInstrumentation,
+    RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem, SnapshotHandleBinding,
     VisibilityResidency, VisibilitySubsystem,
 };
 

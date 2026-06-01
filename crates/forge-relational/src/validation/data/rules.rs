@@ -1,11 +1,15 @@
 use serde::{Deserialize, Serialize};
 
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectKey, CanonicalFieldPath, FieldKey, LocatorAuthority,
+};
+
 use crate::schema::data::{
     LoweredAcyclicityContract, LoweredCardinalityMaximumContract,
     LoweredCardinalityMinimumContract, LoweredConnectivityMinimumContract,
     LoweredEndpointDeletionIntegrityContract, LoweredEndpointKindContract,
-    LoweredPartitionIsolationContract, LoweredPayloadSchemaContract, LoweredSymmetryContract,
-    LoweredUniquenessContract, MinimumCardinalityEnforcement,
+    LoweredPartitionIsolationContract, LoweredSymmetryContract, LoweredUniquenessContract,
+    MinimumCardinalityEnforcement,
 };
 
 use super::descriptor::{
@@ -27,7 +31,10 @@ pub enum InvariantRule {
     MaxMergedIntents(usize),
     RelationIntegrityScopeBudget(usize),
     MaxSnapshotEntities(usize),
-    UniqueEntityPayloadField(String),
+    UniqueEntityAspectField {
+        #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator")]
+        field_locator: AspectFieldLocator,
+    },
     EndpointKindContract(LoweredEndpointKindContract),
     CardinalityMaximumContract(LoweredCardinalityMaximumContract),
     CardinalityMinimumContract(LoweredCardinalityMinimumContract),
@@ -35,7 +42,6 @@ pub enum InvariantRule {
     SymmetryContract(LoweredSymmetryContract),
     EndpointDeletionIntegrityContract(LoweredEndpointDeletionIntegrityContract),
     AcyclicityContract(LoweredAcyclicityContract),
-    PayloadSchemaContract(LoweredPayloadSchemaContract),
     PartitionIsolationContract(LoweredPartitionIsolationContract),
     ConnectivityMinimumContract(LoweredConnectivityMinimumContract),
 }
@@ -47,6 +53,18 @@ pub(crate) struct InvariantRuleMetadata {
 }
 
 impl InvariantRule {
+    pub fn unique_entity_aspect_field(aspect_key: AspectKey, field: FieldKey) -> Self {
+        Self::unique_entity_aspect_field_locator(AspectFieldLocator::new(
+            LocatorAuthority::Planned,
+            aspect_key,
+            CanonicalFieldPath::single(field),
+        ))
+    }
+
+    pub fn unique_entity_aspect_field_locator(field_locator: AspectFieldLocator) -> Self {
+        Self::UniqueEntityAspectField { field_locator }
+    }
+
     pub fn rule_id(&self) -> InvariantRuleId {
         InvariantRuleId::Native(match self {
             Self::LiveRecordRequiresSidecar(RecordKindTag::Entity) => {
@@ -60,7 +78,7 @@ impl InvariantRule {
                 NativeInvariantRuleId::RelationIntegrityScopeBudget
             }
             Self::MaxSnapshotEntities(_) => NativeInvariantRuleId::MaxSnapshotEntities,
-            Self::UniqueEntityPayloadField(_) => NativeInvariantRuleId::UniqueEntityPayloadField,
+            Self::UniqueEntityAspectField { .. } => NativeInvariantRuleId::UniqueEntityField,
             Self::EndpointKindContract(_) => NativeInvariantRuleId::EndpointKindContract,
             Self::CardinalityMaximumContract(_) => {
                 NativeInvariantRuleId::CardinalityMaximumContract
@@ -74,7 +92,6 @@ impl InvariantRule {
                 NativeInvariantRuleId::EndpointDeletionIntegrityContract
             }
             Self::AcyclicityContract(_) => NativeInvariantRuleId::AcyclicityContract,
-            Self::PayloadSchemaContract(_) => NativeInvariantRuleId::PayloadSchemaContract,
             Self::PartitionIsolationContract(_) => {
                 NativeInvariantRuleId::PartitionIsolationContract
             }
@@ -111,7 +128,7 @@ impl InvariantRule {
                 | Self::MaxMergedIntents(_)
                 | Self::RelationIntegrityScopeBudget(_)
                 | Self::MaxSnapshotEntities(_)
-                | Self::UniqueEntityPayloadField(_) => InvariantSemanticsClass::NativeAlwaysOn,
+                | Self::UniqueEntityAspectField { .. } => InvariantSemanticsClass::NativeAlwaysOn,
                 Self::EndpointKindContract(_)
                 | Self::CardinalityMaximumContract(_)
                 | Self::CardinalityMinimumContract(_)
@@ -119,7 +136,6 @@ impl InvariantRule {
                 | Self::SymmetryContract(_)
                 | Self::EndpointDeletionIntegrityContract(_)
                 | Self::AcyclicityContract(_)
-                | Self::PayloadSchemaContract(_)
                 | Self::PartitionIsolationContract(_)
                 | Self::ConnectivityMinimumContract(_) => {
                     InvariantSemanticsClass::NativeSchemaLowered
@@ -149,7 +165,7 @@ impl InvariantRule {
                     .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence)),
                 cost: InvariantCostClass::Global,
             },
-            Self::UniqueEntityPayloadField(_) => InvariantRuleMetadata {
+            Self::UniqueEntityAspectField { .. } => InvariantRuleMetadata {
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance)
                     .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence)),
                 cost: InvariantCostClass::Touched,
@@ -188,10 +204,6 @@ impl InvariantRule {
                     .union(InvariantGroupSet::of(InvariantGroup::RelationIntegrity)),
                 cost: InvariantCostClass::Global,
             },
-            Self::PayloadSchemaContract(_) => InvariantRuleMetadata {
-                groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
-                cost: InvariantCostClass::Touched,
-            },
             Self::PartitionIsolationContract(_) => InvariantRuleMetadata {
                 groups: InvariantGroupSet::of(InvariantGroup::RelationIntegrity)
                     .union(InvariantGroupSet::of(InvariantGroup::PublicationCoherence)),
@@ -229,7 +241,7 @@ impl InvariantRule {
             Self::RelationIntegrityScopeBudget(_) => {
                 execution_point == InvariantExecutionPoint::CommitBoundary
             }
-            Self::UniqueEntityPayloadField(_) => {
+            Self::UniqueEntityAspectField { .. } => {
                 execution_point == InvariantExecutionPoint::MutationSensitive
                     || execution_point == InvariantExecutionPoint::CommitBoundary
                     || execution_point == InvariantExecutionPoint::HarnessAudit
@@ -243,9 +255,7 @@ impl InvariantRule {
             | Self::EndpointDeletionIntegrityContract(_) => {
                 execution_point == InvariantExecutionPoint::CommitBoundary
             }
-            Self::AcyclicityContract(_)
-            | Self::PayloadSchemaContract(_)
-            | Self::PartitionIsolationContract(_) => {
+            Self::AcyclicityContract(_) | Self::PartitionIsolationContract(_) => {
                 execution_point == InvariantExecutionPoint::CommitBoundary
             }
             Self::CardinalityMaximumContract(_) => {
@@ -274,7 +284,7 @@ impl InvariantRule {
             (Self::MaxMergedIntents(_), Self::MaxMergedIntents(_))
             | (Self::RelationIntegrityScopeBudget(_), Self::RelationIntegrityScopeBudget(_))
             | (Self::MaxSnapshotEntities(_), Self::MaxSnapshotEntities(_))
-            | (Self::UniqueEntityPayloadField(_), Self::UniqueEntityPayloadField(_)) => true,
+            | (Self::UniqueEntityAspectField { .. }, Self::UniqueEntityAspectField { .. }) => true,
             (Self::EndpointKindContract(left), Self::EndpointKindContract(right)) => {
                 left.contract_id == right.contract_id
                     && left.relation_kind_id == right.relation_kind_id
@@ -305,11 +315,6 @@ impl InvariantRule {
             (Self::AcyclicityContract(left), Self::AcyclicityContract(right)) => {
                 left.contract_id == right.contract_id
                     && left.relation_kind_id == right.relation_kind_id
-            }
-            (Self::PayloadSchemaContract(left), Self::PayloadSchemaContract(right)) => {
-                left.contract_id == right.contract_id
-                    && left.kind_id == right.kind_id
-                    && left.record_kind == right.record_kind
             }
             (Self::PartitionIsolationContract(left), Self::PartitionIsolationContract(right)) => {
                 left.contract_id == right.contract_id

@@ -1,10 +1,11 @@
 use forge_proof::{Artifact, PhaseMarker};
+use serde::{Deserialize, Serialize};
 
 use super::{AuthoritativeStateAdmissionDenial, CanonicalAspectStateMap};
 use crate::aspects::keys::AspectKey;
 use crate::aspects::validation::ContractValidatedAspectValue;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthoritativeRecordAspectState {
     aspects: CanonicalAspectStateMap,
 }

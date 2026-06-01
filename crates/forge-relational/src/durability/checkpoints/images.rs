@@ -4,12 +4,12 @@ use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
 use crate::durability::data::{
     DurableBitSet, EntityCheckpointImageKind, EntityExtraImage, PartitionCheckpointImage,
     RecordArenaCheckpointImage, RecordArenaCheckpointKind, RelationCheckpointImageKind,
-    RelationEndpointsImage, VersionedEntityMetadataImage, VersionedPayloadImage,
+    RelationEndpointsImage, RelationExtraImage, VersionedEntityMetadataImage,
     VersionedRelationMetadataImage,
 };
 use crate::storage::logic::state::{
     AdjacencySet, DenseSlotBitSet, EntityExtra, EntityRecordKind, PartitionState, RecordArena,
-    RecordKind, RelationEndpoints, RelationRecordKind, VersionedEntityMetadata, VersionedPayload,
+    RecordKind, RelationEndpoints, RelationRecordKind, VersionedEntityMetadata,
     VersionedRelationMetadata,
 };
 
@@ -36,6 +36,7 @@ impl CheckpointArenaKind for EntityRecordKind {
         EntityExtraImage {
             structural_fingerprint: extra.structural_fingerprint,
             lineage_id: extra.lineage_id,
+            authoritative_aspect_state: extra.authoritative_aspect_state,
         }
     }
 
@@ -43,6 +44,7 @@ impl CheckpointArenaKind for EntityRecordKind {
         EntityExtra {
             structural_fingerprint: extra.structural_fingerprint,
             lineage_id: extra.lineage_id,
+            authoritative_aspect_state: extra.authoritative_aspect_state,
         }
     }
 
@@ -53,6 +55,7 @@ impl CheckpointArenaKind for EntityRecordKind {
             generation: meta.generation,
             kind_id: meta.kind_id,
             lineage_id: meta.lineage_id,
+            authoritative_aspect_state: meta.authoritative_aspect_state,
         }
     }
 
@@ -63,6 +66,7 @@ impl CheckpointArenaKind for EntityRecordKind {
             generation: meta.generation,
             kind_id: meta.kind_id,
             lineage_id: meta.lineage_id,
+            authoritative_aspect_state: meta.authoritative_aspect_state,
         }
     }
 }
@@ -70,18 +74,24 @@ impl CheckpointArenaKind for EntityRecordKind {
 impl CheckpointArenaKind for RelationRecordKind {
     type ImageKind = RelationCheckpointImageKind;
 
-    fn extra_to_image(extra: Self::Extra) -> Option<RelationEndpointsImage> {
-        extra.map(|endpoints| RelationEndpointsImage {
-            source: endpoints.source,
-            target: endpoints.target,
-        })
+    fn extra_to_image(extra: Self::Extra) -> RelationExtraImage {
+        RelationExtraImage {
+            endpoints: extra.endpoints.map(|endpoints| RelationEndpointsImage {
+                source: endpoints.source,
+                target: endpoints.target,
+            }),
+            authoritative_aspect_state: extra.authoritative_aspect_state,
+        }
     }
 
-    fn extra_from_image(extra: Option<RelationEndpointsImage>) -> Self::Extra {
-        extra.map(|endpoints| RelationEndpoints {
-            source: endpoints.source,
-            target: endpoints.target,
-        })
+    fn extra_from_image(extra: RelationExtraImage) -> Self::Extra {
+        crate::storage::logic::state::RelationExtra {
+            endpoints: extra.endpoints.map(|endpoints| RelationEndpoints {
+                source: endpoints.source,
+                target: endpoints.target,
+            }),
+            authoritative_aspect_state: extra.authoritative_aspect_state,
+        }
     }
 
     fn meta_to_image(meta: Self::Meta) -> VersionedRelationMetadataImage {
@@ -94,6 +104,7 @@ impl CheckpointArenaKind for RelationRecordKind {
                 source: meta.endpoints.source,
                 target: meta.endpoints.target,
             },
+            authoritative_aspect_state: meta.authoritative_aspect_state,
         }
     }
 
@@ -107,6 +118,7 @@ impl CheckpointArenaKind for RelationRecordKind {
                 source: meta.endpoints.source,
                 target: meta.endpoints.target,
             },
+            authoritative_aspect_state: meta.authoritative_aspect_state,
         }
     }
 }
@@ -118,22 +130,6 @@ fn arena_to_image<K: CheckpointArenaKind>(
         generations: arena.generations,
         lifecycle: arena.lifecycle,
         kind_ids: arena.kind_ids,
-        payloads: arena.payloads,
-        payload_history: arena
-            .payload_history
-            .into_iter()
-            .map(|entries| {
-                entries
-                    .into_iter()
-                    .map(|entry| VersionedPayloadImage {
-                        effective_at: entry.effective_at,
-                        retired_at: entry.retired_at,
-                        generation: entry.generation,
-                        value: entry.value,
-                    })
-                    .collect()
-            })
-            .collect(),
         metadata_history: arena
             .metadata_history
             .into_iter()
@@ -167,22 +163,6 @@ fn arena_from_image<K: CheckpointArenaKind>(
         generations: image.generations,
         lifecycle: image.lifecycle,
         kind_ids: image.kind_ids,
-        payloads: image.payloads,
-        payload_history: image
-            .payload_history
-            .into_iter()
-            .map(|entries| {
-                entries
-                    .into_iter()
-                    .map(|entry| VersionedPayload {
-                        effective_at: entry.effective_at,
-                        retired_at: entry.retired_at,
-                        generation: entry.generation,
-                        value: entry.value,
-                    })
-                    .collect()
-            })
-            .collect(),
         metadata_history: image
             .metadata_history
             .into_iter()

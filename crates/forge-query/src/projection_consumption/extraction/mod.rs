@@ -1,3 +1,4 @@
+mod aspect_value_projection;
 mod grouped;
 mod query_context;
 mod row_like;

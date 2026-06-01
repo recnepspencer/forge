@@ -38,6 +38,8 @@ instead of stopping at legality evidence.
 - `ForgeQueryAdmittedConfiguredDomainHandle::progress_declaration_recipe_checked(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declare_review_and_progress(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::describe_foundational(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::plan_routes_from_progressed(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::plan_routes_from_progressed_with_intent(...)`
 - `ForgeQueryDeclarationProgressionRecipe`
 - `ForgeQueryDeclarationProgressionChecked`
 - `ForgeQueryDeclarationProgressionTerminalError`
@@ -82,6 +84,23 @@ Foundational-evidence entry that can consume progression truth:
 
 - `describe_foundational(subject) -> Result<ForgeQueryDeclarationFoundationalEvidence<D, I>, ForgeQueryDeclarationFoundationalEvidenceDenial<D, I>>`
 
+Route-planning entries that can consume admitted progression truth:
+
+- `plan_routes_from_progressed(progressed) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
+- `plan_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
+- `bind_route_request_from_context(request) -> ForgeQueryBindingOutcome<ForgeQueryDeclarationRoutePlanInput<D, I>>`
+- `bind_route_request_from_context_checked(request) -> ForgeQueryBindingChecked<ForgeQueryDeclarationRoutePlanInput<D, I>>`
+- `bind_route_request_from_context_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryDeclarationRoutePlanInput<D, I>>`
+- `bind_route_from_target(request) -> ForgeQueryBindingOutcome<ForgeQueryDeclarationRoutePlanInput<D, I>>`
+- `bind_route_from_target_checked(request) -> ForgeQueryBindingChecked<ForgeQueryDeclarationRoutePlanInput<D, I>>`
+- `bind_route_from_target_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryDeclarationRoutePlanInput<D, I>>`
+- `bind_receipt_from_target(request) -> ForgeQueryBindingOutcome<ForgeQueryDeclarationReceiptInput<D, I>>`
+- `bind_receipt_from_target_checked(request) -> ForgeQueryBindingChecked<ForgeQueryDeclarationReceiptInput<D, I>>`
+- `bind_receipt_from_target_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryDeclarationReceiptInput<D, I>>`
+- `bind_envelope_from_target(request) -> ForgeQueryBindingOutcome<ForgeQueryDeclarationEnvelopeInput<D, I>>`
+- `bind_envelope_from_target_checked(request) -> ForgeQueryBindingChecked<ForgeQueryDeclarationEnvelopeInput<D, I>>`
+- `bind_envelope_from_target_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryDeclarationEnvelopeInput<D, I>>`
+
 Recipe inspection:
 
 - `stage() -> RecipeStageKind`
@@ -115,10 +134,13 @@ Admitted progression inspection:
 - `canonical_declaration() -> &ForgeQueryCanonicalDeclarationArtifact<D, I>`
 - `support_report() -> &ForgeQueryDeclarationFamilySupportReport<D, I::Family>`
 - `legality_contract() -> ForgeQueryDeclarationLegalityContract`
+- `aspect_contract() -> &ForgeQueryDeclarationAspectContract`
+- `reviewed_aspect_coverage() -> &ForgeQueryDeclarationAspectCoverage`
 - `declaration_family_key() -> &'static str`
 - `progression_digest() -> &str`
 - `outcome() -> ForgeQueryDeclarationProgressionOutcomeView`
 - `stage() -> RecipeStageKind`
+- `binding_target() -> ForgeQueryAdmittedDeclarationProgressionBindingTarget`
 
 Deferred, denied, and failed inspection:
 
@@ -178,6 +200,20 @@ If progression succeeds, you get one admitted declaration progression artifact.
 If it does not, you still get a typed progression truth rather than a generic
 failure.
 
+That admitted progression artifact is also now one shared retained binding
+target. Route, receipt, envelope, and progressed-entry orchestration surfaces
+can bind from it without inventing a second local binding story, and that same
+retained target seam is the one later continuation and grouped-authoring work
+must extend.
+
+That shared binding target now carries retained aspect contract and reviewed
+aspect coverage alongside progression identity so later consumers can prefer
+semantic fit before broader artifact precedence.
+
+Reviewed coverage is carried forward exactly as legality proved it. If a slice
+was masked at support or legality time, progression preserves that masking in
+its retained binding semantics instead of widening it into visible coverage.
+
 ## How It Executes
 
 1. define `progression_contract(...)` on the family marker when the default
@@ -211,7 +247,7 @@ use forge_proof::ProofOutcomeKind;
 use forge_query::facade::ForgeQueryDeclarationProgressionChecked;
 
 match handle.progress_declaration_checked(handle.declare_and_review(
-    SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+    AttachMaterialForActiveFaceSelection,
 )?) {
     ForgeQueryDeclarationProgressionChecked::Admitted(progressed) => {
         assert_eq!(progressed.outcome().kind(), ProofOutcomeKind::Success);
@@ -267,15 +303,15 @@ impl ForgeQueryDomainOperatingContext<GeometryDomain> for CollaborativeWorld {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct SplitEdge;
+struct AttachFaceMaterial;
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "attach-face-material"
     }
 
     fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
@@ -295,15 +331,22 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct SplitEdgeAtMidpoint {
-    edge_ref: &'static str,
-}
+struct AttachMaterialForActiveFaceSelection;
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeAtMidpoint {
-    type Family = SplitEdge;
+impl ForgeQueryDeclarationInput<GeometryDomain> for AttachMaterialForActiveFaceSelection {
+    type Family = AttachFaceMaterial;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref)]
+        vec![
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "selection_scope",
+                "active-face-selection",
+            ),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "progression_intent",
+                "material-attachment-from-current-selection",
+            ),
+        ]
     }
 }
 
@@ -314,7 +357,7 @@ let handle = query
     .validate()?
     .admit()?;
 
-let legal = handle.declare_and_review(SplitEdgeAtMidpoint { edge_ref: "edge:42" })?;
+let legal = handle.declare_and_review(AttachMaterialForActiveFaceSelection)?;
 let recipe = handle.declaration_progression_recipe(legal);
 assert_eq!(recipe.stage(), RecipeStageKind::Unresolved);
 
@@ -329,6 +372,16 @@ What this example is showing:
 - the lower-level recipe lane and the convenience lane describe the same
   proof-bearing boundary
 - world-sensitive progression posture is carried through an explicit contract
+- the public geometry story is current selection and current context, not raw
+  identifier passing
+
+## Aspect Semantics
+
+Progression is the first retained aspect-aware declaration-entry
+artifact later product binding can trust. `binding_target()` is no longer just
+about progression digest and family identity. It must carry aspect-qualified
+admissible truth so route, receipt, envelope, and orchestration surfaces can
+narrow semantically instead of reconstructing the same granularity locally.
 
 ## How It Relates To Other Features
 
@@ -341,6 +394,15 @@ What this example is showing:
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
   describes admitted, deferred, denied, stale, rebind, and failed progression
   truths through shared foundational artifacts
+- [Declaration Route Plans](./declaration-route-plan.md) consumes admitted
+  progression proof plus matching foundational evidence and turns that retained
+  declaration truth into one explicit lower-authority route set
+- [Configured Domain Handles](./configured-domain-handles.md) own the admitted
+  world that scopes progression binding targets and later retained artifact
+  binding
+- [Typed Binding Pipeline](./typed-binding-pipeline.md) turns current
+  progression context or a retained progression target into the next explicit
+  route/receipt/envelope input without reopening progression truth by hand
 
 ## Inspection And Debugging
 
@@ -354,6 +416,7 @@ Use these surfaces when reviewing progression:
 - `progressed.outcome().kind()`
 - `progressed.stage()`
 - `progressed.legality_evidence()`
+- `progressed.binding_target()`
 
 Use them to answer:
 
@@ -363,6 +426,8 @@ Use them to answer:
   progression digest
 - whether a world-sensitive family changed progression posture because the
   admitted operating world changed
+- which shared retained target identity later route/receipt/envelope and
+  orchestration consumers should bind from
 
 ## Anti-Patterns
 
@@ -379,9 +444,13 @@ Declaration progression now gives other Query declaration features a proof
 artifact over legality-cleared declarations. It still does not decide:
 
 - lower-authority route planning
+- Query boundary receipts
+- public Query boundary envelopes
+- public Query relational truth routing
+- public Query bridge continuation routing
+- public Query signal compatibility classification
 - grouped execution semantics
 - continuation execution
-- public Query receipts or envelopes
 
 ## Related Docs
 
@@ -389,5 +458,12 @@ artifact over legality-cleared declarations. It still does not decide:
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
 - [Declaration Legality](./declaration-legality.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- [Declaration Route Plans](./declaration-route-plan.md)
+- [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+- [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
+- [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Domain Capabilities](./README.md)

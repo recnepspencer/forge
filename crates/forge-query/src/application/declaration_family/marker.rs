@@ -1,8 +1,11 @@
 use crate::application::{
-    ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
+    ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationBridgeContinuationContract,
     ForgeQueryDeclarationGroupedPostureTag, ForgeQueryDeclarationLegalityContract,
     ForgeQueryDeclarationPrimaryAuthorityTag, ForgeQueryDeclarationProgressionContract,
-    ForgeQueryDeclarationSignalCompatibilityTag, ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationRelationalTruthContract, ForgeQueryDeclarationRouteContract,
+    ForgeQueryDeclarationSignalCompatibilityContract, ForgeQueryDeclarationSignalCompatibilityTag,
+    ForgeQueryDomainEntryMarker,
 };
 
 use super::taxonomy::ForgeQueryDeclarationFamilyTaxonomy;
@@ -22,6 +25,14 @@ pub trait ForgeQueryDeclarationFamilyMarker<D: ForgeQueryDomainEntryMarker> {
         &[]
     }
 
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        ForgeQueryDeclarationAspectContract::empty()
+    }
+
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        Self::aspect_contract().default_coverage()
+    }
+
     fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
         ForgeQueryDeclarationFamilyTaxonomy::from_type_tags::<
             Self::PrimaryAuthority,
@@ -37,5 +48,31 @@ pub trait ForgeQueryDeclarationFamilyMarker<D: ForgeQueryDomainEntryMarker> {
         _operating_context_identity_digest: &str,
     ) -> ForgeQueryDeclarationProgressionContract {
         ForgeQueryDeclarationProgressionContract::admitted_current()
+    }
+
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::deferred_auto()
+    }
+
+    fn bridge_continuation_contract() -> Option<ForgeQueryDeclarationBridgeContinuationContract> {
+        match Self::taxonomy().primary_authority_family() {
+            crate::application::ForgeQueryDeclarationPrimaryAuthorityFamily::BridgeContinuation => {
+                Some(ForgeQueryDeclarationBridgeContinuationContract::runtime_route_current())
+            }
+            _ => None,
+        }
+    }
+
+    fn relational_truth_contract() -> Option<ForgeQueryDeclarationRelationalTruthContract> {
+        match Self::taxonomy().primary_authority_family() {
+            crate::application::ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth => {
+                Some(ForgeQueryDeclarationRelationalTruthContract::authoritative_current_truth())
+            }
+            _ => None,
+        }
+    }
+
+    fn signal_compatibility_contract() -> Option<ForgeQueryDeclarationSignalCompatibilityContract> {
+        None
     }
 }

@@ -1,5 +1,5 @@
+use schema::facade::platform::authority::TopologyMutation;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
-use schema::facade::{TopologyMutation, TopologyMutationBatch};
 
 use crate::certification::support::reporting::{
     DeterministicDigest, PrimitiveCorpusCaseReport, PrimitiveCorpusCoverageEntry,
@@ -154,22 +154,28 @@ pub(crate) fn digest_rows(rows: impl Iterator<Item = String>) -> DeterministicDi
     }
 }
 
-pub(crate) fn count_batch_mutations(batch: &TopologyMutationBatch) -> (usize, usize, usize) {
+pub(crate) fn count_topology_mutations(mutations: &[TopologyMutation]) -> (usize, usize, usize) {
     let mut entity_upserts = 0usize;
     let mut relation_upserts = 0usize;
     let mut relation_removes = 0usize;
 
-    for mutation in &batch.mutations {
+    for mutation in mutations {
         match mutation {
             TopologyMutation::CreateEntity { kind, .. }
             | TopologyMutation::UpsertEntity { kind, .. }
-                if matches!(kind, schema::facade::EntityKind::Topology(_)) =>
+                if matches!(
+                    kind,
+                    schema::facade::platform::entities::EntityKind::Topology(_)
+                ) =>
             {
                 entity_upserts += 1;
             }
             TopologyMutation::CreateRelation { kind, .. }
             | TopologyMutation::UpsertRelation { kind, .. }
-                if matches!(kind, schema::facade::RelationKind::Topology(_)) =>
+                if matches!(
+                    kind,
+                    schema::facade::platform::relations::RelationKind::Topology(_)
+                ) =>
             {
                 relation_upserts += 1;
             }

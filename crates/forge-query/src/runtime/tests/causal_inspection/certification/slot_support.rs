@@ -264,8 +264,10 @@ fn retain_structural_remap_record_identity(runtime: &RuntimeBridge) -> String {
             )),
         ))
         .expect("structural declaration should admit");
-    let structural_read =
-        SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse("entity-1", "profile")]);
+    let structural_read = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
+        "entity-1",
+        forge_foundational::facade::AspectKey::new("profile").expect("valid snapshot aspect key"),
+    )]);
     let structural_planned = runtime
         .plan_structural_match_packet_set_from_read_packets(
             &structural_contract,

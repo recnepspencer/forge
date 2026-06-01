@@ -131,7 +131,11 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     let rows = self.runtime.backend.live_entities(&view_name);
                     outputs.push(ForgeQueryOperationOutput::new(
                         format!("preview-live:{view_name}"),
-                        Value::Array(rows.into_iter().map(|row| row.payload).collect()),
+                        Value::Array(
+                            rows.into_iter()
+                                .map(|row| row.into_external_row())
+                                .collect(),
+                        ),
                     ));
                     trace.record_replay_or_parity(format!("preview-read-live:{view_name}"));
                 }

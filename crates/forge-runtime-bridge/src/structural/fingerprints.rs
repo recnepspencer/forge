@@ -22,7 +22,7 @@ pub struct StructuralFingerprint {
     authority_digest: Arc<str>,
     equivalence_digest: Arc<str>,
     member_evidence: Arc<[Arc<str>]>,
-    record_payload_digest: Arc<str>,
+    record_aspect_bytes_digest: Arc<str>,
     canonical_basis: Arc<str>,
     digest: Arc<str>,
 }
@@ -37,17 +37,17 @@ impl StructuralFingerprint {
             .records()
             .iter()
             .map(|record| {
-                let payload_digest = Sha256::digest(record.payload());
+                let aspect_bytes_digest = Sha256::digest(record.aspect_bytes());
                 (
                     record.request_key().to_owned(),
-                    format!("{payload_digest:x}"),
+                    format!("{aspect_bytes_digest:x}"),
                 )
             })
             .collect::<Vec<_>>();
         canonical_records.sort();
         let equivalence_members = canonical_records
             .iter()
-            .map(|(_, payload_digest)| payload_digest.clone())
+            .map(|(_, aspect_bytes_digest)| aspect_bytes_digest.clone())
             .collect::<Vec<_>>();
         Ok(Self::from_validated_read(
             contract,
@@ -56,7 +56,9 @@ impl StructuralFingerprint {
             equivalence_members,
             canonical_records
                 .into_iter()
-                .map(|(request_key, payload_digest)| format!("{request_key}:{payload_digest}"))
+                .map(|(request_key, aspect_bytes_digest)| {
+                    format!("{request_key}:{aspect_bytes_digest}")
+                })
                 .collect::<Vec<_>>(),
         ))
     }
@@ -94,7 +96,7 @@ impl StructuralFingerprint {
                 .map(Arc::<str>::from)
                 .collect::<Vec<_>>(),
         );
-        let record_payload_digest: Arc<str> = {
+        let record_aspect_bytes_digest: Arc<str> = {
             let digest = Sha256::digest(
                 member_evidence
                     .iter()
@@ -103,7 +105,7 @@ impl StructuralFingerprint {
                     .join("|")
                     .as_bytes(),
             );
-            Arc::from(format!("structural-record-payload:sha256:{digest:x}"))
+            Arc::from(format!("structural-record-aspect-bytes:sha256:{digest:x}"))
         };
         let authority_digest: Arc<str> = {
             let digest = Sha256::digest(
@@ -147,7 +149,7 @@ impl StructuralFingerprint {
             snapshot_identity.as_ref(),
             authority_digest.as_ref(),
             equivalence_digest.as_ref(),
-            record_payload_digest.as_ref(),
+            record_aspect_bytes_digest.as_ref(),
             member_evidence
                 .iter()
                 .map(|member| member.as_ref())
@@ -175,7 +177,7 @@ impl StructuralFingerprint {
             authority_digest,
             equivalence_digest,
             member_evidence,
-            record_payload_digest,
+            record_aspect_bytes_digest,
             canonical_basis,
             digest: Arc::from(format!("structural-fingerprint:sha256:{digest:x}")),
         }
@@ -225,8 +227,8 @@ impl StructuralFingerprint {
         &self.member_evidence
     }
 
-    pub fn record_payload_digest(&self) -> &str {
-        self.record_payload_digest.as_ref()
+    pub fn record_aspect_bytes_digest(&self) -> &str {
+        self.record_aspect_bytes_digest.as_ref()
     }
 
     pub fn canonical_basis(&self) -> &str {

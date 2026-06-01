@@ -53,7 +53,7 @@ fn compose_read_executes_local_traversal_detail_with_attached_receipt() {
         })
         .expect("local traversal detail read should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_eq!(
         result.receipt().scope_class(),
         &ForgeQueryReadScopeClass::LocalNeighborhood
@@ -130,7 +130,7 @@ fn compose_read_executes_operator_owned_direct_edge_detail() {
         })
         .expect("operator-owned direct-edge detail should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_eq!(
         result.receipt().scope_class(),
         &ForgeQueryReadScopeClass::LocalNeighborhood
@@ -189,7 +189,7 @@ fn compose_read_executes_operator_owned_bounded_ancestor_detail() {
         })
         .expect("operator-owned bounded-ancestor detail should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_eq!(
         result.receipt().scope_class(),
         &ForgeQueryReadScopeClass::AnchoredExpansion
@@ -232,7 +232,7 @@ fn compose_read_marks_non_traversal_detail_as_not_requiring_relationship_proof()
         })
         .expect("local non-traversal detail read should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_relationship_proof_not_required(&result);
 }
 

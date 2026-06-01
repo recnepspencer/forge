@@ -1,0 +1,57 @@
+use crate::authority::commit::preparation::planning::strategy::{
+    packet_width_is_profitable, MIN_PARALLEL_PACKET_WIDTH,
+};
+use crate::diagnostics::data::{DiagnosticsArtifactKind, DiagnosticsScope};
+use crate::history::data::{BranchId, CommitId};
+use crate::logic::planning::RelationalExecutionModel;
+use crate::publication::logic::authority::post_commit_diagnostics::build_publication_diagnostic_entries;
+use crate::publication::logic::PublicationAuthority;
+use crate::snapshots::data::SnapshotId;
+
+impl<'runtime> PublicationAuthority<'runtime> {
+    pub(crate) fn consume_post_commit_artifacts(
+        &mut self,
+        commit_id: CommitId,
+        snapshot_id: SnapshotId,
+        branch_id: BranchId,
+        parents: &[CommitId],
+        merge_parent_branches: &[BranchId],
+        merge_base_commits: &[CommitId],
+    ) {
+        const PACKET_COUNT: usize = 1;
+        self.runtime
+            .performance_access()
+            .count_post_commit_consumer_shape(PACKET_COUNT, PACKET_COUNT, 1, 1);
+
+        let parallel_requested = matches!(
+            self.runtime.config.execution.execution_model,
+            RelationalExecutionModel::ParallelPostCommitConsumption
+        );
+        let should_parallelize = parallel_requested
+            && packet_width_is_profitable(PACKET_COUNT, MIN_PARALLEL_PACKET_WIDTH);
+
+        if should_parallelize {
+            self.runtime
+                .performance_access()
+                .count_post_commit_parallel_strategy();
+        } else {
+            self.runtime
+                .performance_access()
+                .count_post_commit_serial_strategy();
+        }
+
+        let entries = build_publication_diagnostic_entries(
+            commit_id,
+            snapshot_id,
+            &branch_id,
+            parents,
+            merge_parent_branches,
+            merge_base_commits,
+        );
+        self.push_bounded_diagnostic(
+            DiagnosticsScope::PatchPublication,
+            DiagnosticsArtifactKind::MinimalSummary,
+            entries,
+        );
+    }
+}

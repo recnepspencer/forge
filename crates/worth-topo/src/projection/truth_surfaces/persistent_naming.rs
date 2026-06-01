@@ -7,13 +7,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_query::facade::{
-    ForgeQueryEntity, ForgeQueryLiveView, ForgeQueryRuntimeError, ForgeQueryWorkspace,
-    ForgeQueryWorkspaceError, ForgeQueryWorkspaceLiveViewDeclaration,
+    ForgeQueryEntity, ForgeQueryLiveView, ForgeQueryLiveViewBuilder, ForgeQueryRuntimeError,
+    ForgeQueryWorkspace, ForgeQueryWorkspaceLiveViewDeclaration,
 };
-use schema::facade::{
-    EntityKind, NamingEntityKind, QueryAspectPath, QueryCollection, QueryDeclarationError,
-    QueryLiveDeclarationBuilder, QueryLiveField, QuerySchemaBasis, TopologyEntityKind,
-};
+use schema::facade::platform::entities::{EntityKind, NamingEntityKind, TopologyEntityKind};
+use schema::facade::{QueryAspectPath, QueryCollection, QueryLiveField, QuerySchemaBasis};
 
 use crate::facade::{NamingAttachmentReport, NamingAttachmentRow};
 use crate::projection::{parse_entity_identity, required_text};
@@ -48,20 +46,18 @@ impl<'a> TopologyNamingAttachmentInput<'a> {
 
 pub fn persistent_name_live_view_declaration(
     surface_name: impl Into<String>,
-) -> Result<ForgeQueryWorkspaceLiveViewDeclaration, QueryDeclarationError> {
-    QueryLiveDeclarationBuilder::new(
-        surface_name,
-        QueryCollection::PersistentName,
-        QuerySchemaBasis::PersistentNameLiveView,
-    )
-    .select_fields([
-        QueryLiveField::IdentityId,
-        QueryLiveField::LineageProvenance,
-        QueryAspectPath::NAMING_PERSISTENT_NAME.into(),
-        QueryLiveField::NamingTargetIdentity,
-    ])
-    .order_by_field(QueryLiveField::IdentityId)
-    .build()
+) -> Result<ForgeQueryWorkspaceLiveViewDeclaration, ForgeQueryRuntimeError> {
+    ForgeQueryLiveViewBuilder::surface(surface_name)
+        .select([
+            QueryLiveField::IdentityId.delivered_name(),
+            QueryLiveField::LineageProvenance.delivered_name(),
+            QueryAspectPath::NAMING_PERSISTENT_NAME.as_str(),
+            QueryLiveField::NamingTargetIdentity.delivered_name(),
+        ])
+        .order_by(QueryLiveField::IdentityId.delivered_name())
+        .from(QueryCollection::PersistentName.as_str())
+        .schema_basis(QuerySchemaBasis::PersistentNameLiveView.as_str())
+        .build()
 }
 
 pub fn declare_persistent_name_live_view<T>(
@@ -69,10 +65,7 @@ pub fn declare_persistent_name_live_view<T>(
     surface_name: impl Into<String>,
 ) -> Result<ForgeQueryLiveView<T>, ForgeQueryRuntimeError> {
     let surface_name = surface_name.into();
-    let declaration =
-        persistent_name_live_view_declaration(surface_name.clone()).map_err(|error| {
-            ForgeQueryRuntimeError::Workspace(ForgeQueryWorkspaceError::new(error.to_string()))
-        })?;
+    let declaration = persistent_name_live_view_declaration(surface_name.clone())?;
     let request = declaration.request().clone();
     let schema_view = declaration.schema_view().clone();
     workspace.live_view_request(surface_name, request, schema_view)
@@ -89,12 +82,12 @@ pub fn naming_attachment_report_from_query_input(
     let mut topology_entities = Vec::new();
     let mut topology_identities = BTreeMap::new();
     for row in input.entity_rows() {
-        let entity_id = parse_entity_identity(&row.identity)
+        let external_row = row.external_row();
+        let entity_id = parse_entity_identity(row.identity())
             .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
-        let kind_name = required_text(&row.payload, "topology.kind")
+        let kind_name = required_text(external_row, "topology.kind")
             .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
-        let entity_kind = row
-            .payload
+        let entity_kind = external_row
             .get("topology")
             .and_then(|value| value.get("kind"))
             .and_then(serde_json::Value::as_str)
@@ -102,7 +95,7 @@ pub fn naming_attachment_report_from_query_input(
         if !topology_kind_names.contains(entity_kind) {
             continue;
         }
-        topology_identities.insert(row.identity.clone(), entity_id);
+        topology_identities.insert(row.identity().to_string(), entity_id);
         topology_entities.push((entity_id, kind_name.to_string()));
     }
 
@@ -110,9 +103,10 @@ pub fn naming_attachment_report_from_query_input(
     let persistent_name_kind = EntityKind::Naming(NamingEntityKind::PersistentName);
     let mut orphan_persistent_name_ids = Vec::new();
     for row in input.persistent_name_rows() {
-        let persistent_name_id = parse_entity_identity(&row.identity)
+        let external_row = row.external_row();
+        let persistent_name_id = parse_entity_identity(row.identity())
             .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
-        let kind_name = required_text(&row.payload, "topology.kind")
+        let kind_name = required_text(external_row, "topology.kind")
             .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
         if kind_name != persistent_name_kind.kind_name() {
             return Err(TopologyQuerySurfaceError::new(format!(
@@ -120,21 +114,19 @@ pub fn naming_attachment_report_from_query_input(
                 persistent_name_kind.kind_name()
             )));
         }
-        required_text(&row.payload, "naming.persistent_name")
+        required_text(external_row, "naming.persistent_name")
             .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
-        if row
-            .payload
+        if external_row
             .get("lineage")
             .and_then(|value| value.get("provenance"))
             .is_none()
         {
             return Err(TopologyQuerySurfaceError::new(format!(
                 "query persistent-name row `{}` is missing lineage.provenance",
-                row.identity
+                row.identity()
             )));
         }
-        let target_identity = row
-            .payload
+        let target_identity = external_row
             .get("naming")
             .and_then(|value| value.get("target_identity"))
             .and_then(serde_json::Value::as_str);
@@ -143,7 +135,7 @@ pub fn naming_attachment_report_from_query_input(
                 let Some(target_entity_id) = topology_identities.get(identity) else {
                     return Err(TopologyQuerySurfaceError::new(format!(
                         "query persistent-name row `{}` targets unknown topology identity `{identity}`",
-                        row.identity
+                        row.identity()
                     )));
                 };
                 attachments
@@ -184,25 +176,25 @@ pub fn naming_attachment_report_from_query_input(
 
 #[cfg(test)]
 mod tests {
-    use schema::facade::TopologyEntityKind;
+    use schema::facade::platform::entities::TopologyEntityKind;
     use serde_json::json;
 
     use super::*;
 
     #[test]
     fn naming_attachment_report_rejects_unknown_query_target_identity() {
-        let entity_rows = vec![ForgeQueryEntity {
-            identity: "entity:0:1:0".to_string(),
-            payload: json!({
+        let entity_rows = vec![ForgeQueryEntity::from_external_projection(
+            "entity:0:1:0",
+            json!({
                 "topology": {
                     "kind": TopologyEntityKind::Vertex.kind_name(),
                     "structure": "vertex-a",
                 }
             }),
-        }];
-        let persistent_name_rows = vec![ForgeQueryEntity {
-            identity: "entity:0:2:0".to_string(),
-            payload: json!({
+        )];
+        let persistent_name_rows = vec![ForgeQueryEntity::from_external_projection(
+            "entity:0:2:0",
+            json!({
                 "topology": {
                     "kind": EntityKind::Naming(NamingEntityKind::PersistentName).kind_name(),
                 },
@@ -214,7 +206,7 @@ mod tests {
                     "target_identity": "entity:0:99:0",
                 }
             }),
-        }];
+        )];
 
         let error = naming_attachment_report_from_query_input(TopologyNamingAttachmentInput::new(
             &entity_rows,

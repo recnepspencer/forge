@@ -1,0 +1,46 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/domain_declaration/boundaries/construction/relational_routing/relational_routing_constructor_is_private.rs:53:53
+   |
+53 |       let _ = ForgeQueryDeclarationRelationalRouting::new(
+   |                                                       ^^^ private associated function
+   |
+  ::: src/application/declaration_relational_routing/artifact.rs
+   |
+   | /     pub(crate) fn new(
+   | |         class: ForgeQueryDeclarationRelationalRoutingClass,
+   | |         truth_claim: ForgeQueryDeclarationRelationalTruthClaim,
+   | |         authority_family: ForgeQueryDeclarationRelationalAuthorityFamily,
+...  |
+   | |         explanation: ForgeQueryDeclarationRelationalRoutingExplanation,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0061]: this function takes 11 arguments but 7 arguments were supplied
+  --> tests/ui/domain_declaration/boundaries/construction/relational_routing/relational_routing_constructor_is_private.rs:53:13
+   |
+53 |       let _ = ForgeQueryDeclarationRelationalRouting::new(
+   |  _____________^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-
+54 | |         ForgeQueryDeclarationRelationalRoutingClass::ExclusiveRelationalTruth,
+55 | |         ForgeQueryDeclarationRelationalTruthClaim::AuthoritativeCurrentTruth,
+56 | |         ForgeQueryDeclarationRelationalAuthorityFamily::Runtime,
+...  |
+60 | |         explanation,
+61 | |     );
+   | |_____- multiple arguments are missing
+   |
+note: associated function defined here
+  --> src/application/declaration_relational_routing/artifact.rs
+   |
+   |     pub(crate) fn new(
+   |                   ^^^
+help: provide the arguments
+   |
+53 |     let _ = ForgeQueryDeclarationRelationalRouting::new(
+...
+57 |         ForgeQueryDeclarationRelationalBinding::Runtime("forge_relational::facade::runtime"),
+58 ~         /* ForgeQueryDeclarationAspectContract */,
+59 +         /* ForgeQueryDeclarationAspectCoverage */,
+60 +         /* ForgeQueryDeclarationAspectCoverageBasis */,
+61 +         /* ForgeQueryDeclarationAspectFit */,
+62 ~         envelope,
+   |

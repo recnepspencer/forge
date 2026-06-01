@@ -6,7 +6,9 @@ use crate::authority::commit::preparation::planning::strategy::{
 use crate::config::data::MutationConfig;
 use crate::identity::data::VersionId;
 use crate::identity::data::{EntityId, RelationId};
-use crate::schema::data::{AspectPlanCatalog, LoweredAspectPlan, RelationalSchemaRegistry};
+use crate::schema::data::{
+    AspectContractPlanCatalog, LoweredAspectContractPlan, RelationalSchemaRegistry,
+};
 use crate::storage::overlay::WorkingState;
 use crate::symbols::data::StringInterner;
 use crate::transactions::data::{CreatedEntityRef, EntityReference};
@@ -36,7 +38,7 @@ pub(crate) struct MutationWorkspace<'a> {
     symbols: &'a mut StringInterner,
     config: &'a MutationConfig,
     schema: &'a RelationalSchemaRegistry,
-    aspect_plans: &'a AspectPlanCatalog,
+    aspect_plans: &'a AspectContractPlanCatalog,
     version_id: VersionId,
     branch_local_delete_allowance: BranchLocalDeleteAllowance,
     preparation_telemetry: MutationPreparationTelemetry,
@@ -49,7 +51,7 @@ impl<'a> MutationWorkspace<'a> {
         symbols: &'a mut StringInterner,
         config: &'a MutationConfig,
         schema: &'a RelationalSchemaRegistry,
-        aspect_plans: &'a AspectPlanCatalog,
+        aspect_plans: &'a AspectContractPlanCatalog,
         version_id: VersionId,
         branch_local_delete_allowance: BranchLocalDeleteAllowance,
     ) -> Self {
@@ -72,10 +74,6 @@ impl<'a> MutationWorkspace<'a> {
             symbols: self.symbols,
             schema: self.schema,
         })
-    }
-
-    pub(crate) fn patch_surface_policy(&self) -> crate::config::data::PatchSurfacePolicy {
-        self.config.patch_surface_policy
     }
 
     pub(crate) fn cascade_delete_policy(&self) -> crate::config::data::CascadeDeletePolicy {
@@ -101,14 +99,14 @@ impl<'a> MutationWorkspace<'a> {
     pub(crate) fn entity_aspect_plan(
         &self,
         kind_id: crate::identity::data::KindId,
-    ) -> Option<&LoweredAspectPlan> {
+    ) -> Option<&LoweredAspectContractPlan> {
         self.aspect_plans.entity_plans.get(&kind_id)
     }
 
     pub(crate) fn relation_aspect_plan(
         &self,
         kind_id: crate::identity::data::KindId,
-    ) -> Option<&LoweredAspectPlan> {
+    ) -> Option<&LoweredAspectContractPlan> {
         self.aspect_plans.relation_plans.get(&kind_id)
     }
 

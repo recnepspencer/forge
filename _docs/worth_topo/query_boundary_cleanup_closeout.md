@@ -1,5 +1,9 @@
 # Worth-Topo Query Boundary Cleanup Closeout
 
+> Historical closeout note: this closeout belongs to the earlier query-boundary
+> cleanup wave. The current public topology read-entry contract is now the
+> Phase 2 `query_domain` closeout, not the root facade.
+
 ## Status
 
 Closed.
@@ -39,16 +43,16 @@ Primary landing areas:
 
 Closed behavior:
 
-- query assembly no longer behaves like an ad hoc second Query runtime at the
+- declared query surfaces no longer behave like an ad hoc second Query runtime at the
   entry surface
 - current-head and historical snapshot row ownership are concentrated in the
-  designated `query_assembly` seam
+  designated `declared_query_surfaces` seam
 - materialization and naming ingestion now flow through narrower typed boundary
   contracts instead of row-shaped ordinary product entry points
 
 Primary landing areas:
 
-- `crates/worth-topo/src/projection/runtime_boundary/query_assembly/*`
+- `crates/worth-topo/src/projection/runtime_boundary/declared_query_surfaces/*`
 - `crates/worth-topo/src/derived_topology/materialized_graph/query_input.rs`
 - `crates/worth-topo/src/projection/truth_surfaces/persistent_naming.rs`
 
@@ -88,8 +92,8 @@ to delete them:
 
 - `crates/worth-topo/src/projection/runtime_boundary/query_runtime/*`
   This remains the designated topology-owned Query runtime adapter subtree.
-- `crates/worth-topo/src/projection/runtime_boundary/query_assembly/*`
-  This remains the designated current/historical snapshot assembly seam.
+- `crates/worth-topo/src/projection/runtime_boundary/declared_query_surfaces/*`
+  This remains the designated current/historical snapshot surface seam.
 - `crates/worth-topo/src/projection/runtime_boundary/read_execution/neighborhood_decode/*`
   This remains the designated retained-result decode seam for typed read facts.
 - `crates/worth-topo/src/projection/runtime_boundary/query_runtime/contracts.rs`
@@ -124,7 +128,7 @@ The cleanup is now backed by two layers of evidence:
 - query-assembly boundary tests
 - domain-view boundary tests
 - runtime posture tests
-- public facade compile-fail tests
+- public facade and `query_domain` compile-fail tests
 
 ### Unified cleanup closeout
 
@@ -162,7 +166,7 @@ That means:
 - public topology reads and edits now depend on typed Query facts and typed
   support/admission posture
 - historical basis compatibility is isolated to one documented adapter seam
-- the public facade teaches the post-`9.3.x` seam vocabulary instead of the old
-  row-shaped one
+- the public topology surface teaches the post-`9.3.x` seam vocabulary instead
+  of the old row-shaped one, with Phase 2 read entry now under `query_domain`
 
 This closes the cleanup spec, not all possible future worth-topo evolution.

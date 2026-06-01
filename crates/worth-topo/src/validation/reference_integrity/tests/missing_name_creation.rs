@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn runtime_invariants_block_create_batches_missing_persistent_names() {
+fn runtime_invariants_block_create_mutations_missing_persistent_names() {
     let mut runtime = milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();
@@ -26,12 +26,8 @@ fn runtime_invariants_block_create_batches_missing_persistent_names() {
         MutationOrigin::LocalEdit,
     );
 
-    let error = verify_topology_intent(&mut runtime, intent)
-        .expect_err("missing persistent-name coverage must block commit")
-        .into_error();
+    let error = commit_raw_intent(&mut runtime, intent)
+        .expect_err("missing persistent-name coverage must block commit");
 
-    assert!(matches!(
-        error,
-        TopologyAuthorityError::Commit(TransactionCommitError::Conflict { .. })
-    ));
+    assert!(matches!(error, TransactionCommitError::Conflict { .. }));
 }

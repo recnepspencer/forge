@@ -179,7 +179,7 @@ fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
         update_probe
             .field("title.value")
             .expect("probe should retain updated title")
-            .value_json(),
+            .external_value_json(),
         "\"Update merged\""
     );
     assert_ne!(update_probe.probe_digest(), mode_digest.as_str());

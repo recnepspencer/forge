@@ -48,7 +48,7 @@ fn compose_read_executes_operator_owned_bounded_descendant_detail() {
         })
         .expect("operator-owned bounded descendant detail should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_eq!(
         result.receipt().scope_class(),
         &ForgeQueryReadScopeClass::AnchoredExpansion
@@ -111,7 +111,7 @@ fn compose_read_executes_operator_owned_bounded_descendant_collection() {
         })
         .expect("operator-owned bounded descendant collection should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_collection_receipt(&result, ForgeQueryReadScopeClass::AnchoredExpansion);
     assert_eq!(
         result.receipt().built_in_operator_coverage(),

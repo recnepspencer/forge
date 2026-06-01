@@ -1,37 +1,43 @@
 use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQuerySymbolicTargetReference};
-use schema::facade::{TopologyEntityKind, TopologyRelationKind};
+use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::shared::{
     bind_existing_entity_handle, bind_existing_relation_handle, delete_existing_entity_from_graph,
 };
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
+use crate::topology_operators::application::{
+    TopologyMutationApplicationError, TopologyMutationApplicationRunner,
+};
 use crate::topology_operators::topology_relation_dependency_path;
-use crate::topology_operators::TopologyEditContract;
-use crate::topology_operators::{TopologyOperatorExecutionError, TopologyOperatorRunner};
+use crate::topology_operators::TopologyDeclaredMutationSequence;
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
-    pub(super) fn compose_wire_rehome_program(
+impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
+    pub(crate) fn compose_wire_rehome_program(
         &mut self,
         program: super::super::wire_rehome_support::WireRehomeProgram,
-        contracts: &[TopologyEditContract],
+        sequence: &TopologyDeclaredMutationSequence,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyOperatorExecutionError> {
+    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyMutationApplicationError> {
+        let members = sequence.members().collect::<Vec<_>>();
         let retired_wire_binding =
             crate::topology_operators::application::bindings::query_entity_binding(
                 bindings,
                 program.retired_wire_id,
             )?
             .ok_or(
-                TopologyOperatorExecutionError::MissingExistingEntityBinding(
+                TopologyMutationApplicationError::MissingExistingEntityBinding(
                     program.retired_wire_id,
                 ),
             )?;
         let dependency_path = topology_relation_dependency_path(
-            schema::facade::RelationKind::Topology(TopologyRelationKind::WireOwnsHalfEdge),
+            schema::facade::platform::relations::RelationKind::Topology(
+                TopologyRelationKind::WireOwnsHalfEdge,
+            ),
         );
         let created_wire_key = program.create_key.clone();
         let retired_wire_identity = retired_wire_binding.query_identity.clone();
-        let retire_contract = contracts
+        let retire_contract = members
             .last()
             .expect("wire rehome program always ends with retire contract");
         let retired_wire_handle = bind_existing_entity_handle(
@@ -48,7 +54,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     *half_edge_id,
                 )?
                 .ok_or(
-                    TopologyOperatorExecutionError::MissingExistingEntityBinding(*half_edge_id),
+                    TopologyMutationApplicationError::MissingExistingEntityBinding(*half_edge_id),
                 )?;
             let incoming_relation_ids =
                 crate::topology_operators::application::bindings::query_incoming_relation_ids(
@@ -58,7 +64,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 )?;
             let [relation_id] = incoming_relation_ids.as_slice() else {
                 return Err(
-                    TopologyOperatorExecutionError::ExistingEntityIncomingRelationCountMismatch {
+                    TopologyMutationApplicationError::ExistingEntityIncomingRelationCountMismatch {
                         entity_id: *half_edge_id,
                         relation_kind: TopologyRelationKind::WireOwnsHalfEdge,
                         expected: 1,
@@ -72,7 +78,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     *relation_id,
                 )?
                 .ok_or(
-                    TopologyOperatorExecutionError::MissingExistingRelationBinding(*relation_id),
+                    TopologyMutationApplicationError::MissingExistingRelationBinding(*relation_id),
                 )?;
             relation_rows_to_move.push((
                 bind_existing_relation_handle(
@@ -146,18 +152,18 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     retired_wire_handle.clone(),
                     "TopologyEntity",
                     TopologyEntityKind::Wire.kind_name(),
-                    retire_contract,
+                    *retire_contract,
                 )?;
                 Ok(())
             })
             .map_err(Into::into)
     }
 
-    pub(super) fn compose_wire_split_program(
+    pub(crate) fn compose_wire_split_program(
         &mut self,
         program: super::super::wire_rehome_support::WireSplitProgram,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyOperatorExecutionError> {
+    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyMutationApplicationError> {
         let retained_wire_id = program
             .retained_wire_id
             .expect("resolved wire split program always sets retained wire id");
@@ -167,10 +173,12 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 retained_wire_id,
             )?
             .ok_or(
-                TopologyOperatorExecutionError::MissingExistingEntityBinding(retained_wire_id),
+                TopologyMutationApplicationError::MissingExistingEntityBinding(retained_wire_id),
             )?;
         let dependency_path = topology_relation_dependency_path(
-            schema::facade::RelationKind::Topology(TopologyRelationKind::WireOwnsHalfEdge),
+            schema::facade::platform::relations::RelationKind::Topology(
+                TopologyRelationKind::WireOwnsHalfEdge,
+            ),
         );
         let created_wire_key = program.create_key.clone();
         let retained_wire_identity = retained_wire_binding.query_identity.clone();
@@ -182,7 +190,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     *half_edge_id,
                 )?
                 .ok_or(
-                    TopologyOperatorExecutionError::MissingExistingEntityBinding(*half_edge_id),
+                    TopologyMutationApplicationError::MissingExistingEntityBinding(*half_edge_id),
                 )?;
             let incoming_relation_ids =
                 crate::topology_operators::application::bindings::query_incoming_relation_ids(
@@ -192,7 +200,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 )?;
             let [relation_id] = incoming_relation_ids.as_slice() else {
                 return Err(
-                    TopologyOperatorExecutionError::ExistingEntityIncomingRelationCountMismatch {
+                    TopologyMutationApplicationError::ExistingEntityIncomingRelationCountMismatch {
                         entity_id: *half_edge_id,
                         relation_kind: TopologyRelationKind::WireOwnsHalfEdge,
                         expected: 1,
@@ -206,7 +214,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     *relation_id,
                 )?
                 .ok_or(
-                    TopologyOperatorExecutionError::MissingExistingRelationBinding(*relation_id),
+                    TopologyMutationApplicationError::MissingExistingRelationBinding(*relation_id),
                 )?;
             moved_relations.push((
                 bind_existing_relation_handle(

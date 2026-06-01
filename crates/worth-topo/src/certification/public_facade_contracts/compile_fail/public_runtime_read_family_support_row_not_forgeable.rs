@@ -1,11 +1,11 @@
 use topology::facade::{
-    TopologyDomainQueryRequestFamily, TopologyQueryReadFamilySupportStatus,
-    TopologyRuntimeReadFamilySupportRow,
+    TopologyQueryReadFamilySupportStatus, TopologyRuntimeReadFamilySupportRow,
 };
+use topology::query_domain::TopologyReadRequestFamily;
 
 fn main() {
     let _ = TopologyRuntimeReadFamilySupportRow {
-        family: TopologyDomainQueryRequestFamily::LoopCycleNeighborhood,
+        family: TopologyReadRequestFamily::LoopCycleNeighborhood,
         status: TopologyQueryReadFamilySupportStatus::Admitted,
         reason: String::new(),
         row_digest: String::new(),

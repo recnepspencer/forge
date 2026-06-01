@@ -1,22 +1,22 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
-use super::super::error::TopologyDomainQueryError;
-use super::super::request::TopologyDomainQueryRequest;
-use super::super::topology::TopologyDomainQuery;
+use super::super::error::TopologyReadError;
+use super::super::request::TopologyReadRequest;
+use super::super::TopologyReadLedger;
 use crate::projection::read_views::TopologyLoopCycleView;
 use crate::projection::runtime_boundary::read_execution::{
     decode_loop_cycle, execute_loop_cycle_read, successor_relation_name, ExecutedTopologyReadFamily,
 };
 
-impl TopologyDomainQuery {
+impl TopologyReadLedger {
     #[allow(dead_code)]
-    pub fn loop_cycle(
+    pub(crate) fn loop_cycle(
         &self,
         workspace: &mut ForgeQueryWorkspace,
         start_identity: &str,
         count: usize,
-    ) -> Result<TopologyLoopCycleView, TopologyDomainQueryError> {
-        let request = TopologyDomainQueryRequest::LoopCycleNeighborhood {
+    ) -> Result<TopologyLoopCycleView, TopologyReadError> {
+        let request = TopologyReadRequest::LoopCycleNeighborhood {
             start_half_edge_identity: start_identity.to_string(),
             depth: u8::try_from(count).expect("supported traversal depth must fit in u8"),
         };
@@ -41,10 +41,10 @@ impl TopologyDomainQuery {
     fn build_loop_cycle_read_report(
         &self,
         workspace: &mut ForgeQueryWorkspace,
-        request: &TopologyDomainQueryRequest,
+        request: &TopologyReadRequest,
         start_identity: &str,
         count: usize,
-    ) -> Result<ExecutedTopologyReadFamily, TopologyDomainQueryError> {
+    ) -> Result<ExecutedTopologyReadFamily, TopologyReadError> {
         execute_loop_cycle_read(workspace, request, start_identity, count)
     }
 }

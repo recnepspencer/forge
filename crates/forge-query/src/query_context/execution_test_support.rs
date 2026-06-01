@@ -11,17 +11,17 @@ impl QueryContextExecutionArtifact {
         basis_digest: &str,
         result_digest: &str,
         result_shape_digest: &str,
-        payload: Vec<String>,
+        rows: Vec<String>,
         materialization_path_identity: Option<&str>,
         preview_provenance_identity: Option<&str>,
     ) -> Self {
-        let payload_row_count = payload.len();
+        let materialized_row_count = rows.len();
         Self {
             query_digest: query_digest.to_string(),
             basis_digest: basis_digest.to_string(),
             result_digest: result_digest.to_string(),
             result_shape_digest: result_shape_digest.to_string(),
-            payload,
+            rows,
             family,
             cost_class: QueryContextCostClass::CurrentHeadNarrow,
             budget_class: QueryContextBudgetClass::NarrowSingleBasis,
@@ -38,7 +38,7 @@ impl QueryContextExecutionArtifact {
             preview_provenance_identity: preview_provenance_identity.map(str::to_string),
             counters: QueryContextExecutionCounters {
                 context_execution_count: 1,
-                payload_row_count,
+                materialized_row_count,
                 result_shape_width: 1,
                 executor_rediscovery_count: 0,
             },

@@ -1,23 +1,18 @@
-use serde::Serialize;
-use sha2::{Digest, Sha256};
-
 use crate::facade::schema::{
-    DescriptorCanonicalizationVersion, DescriptorSemanticsVersion, FreeFormSchemaDiffIntent,
+    DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion, FreeFormSchemaDiffIntent,
     HistoricalInterpretationSensitivity, ProposedSchemaTransition, SchemaDiffAtom,
     SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId, SchemaPublicationImpact,
     SchemaReconciliationClassification, SchemaReconciliationPolicy, SchemaStratum,
     SchemaSubscriberImpact, SchemaVersionId,
 };
+use crate::replay::data::{
+    digest_schema_transition_decision, digest_schema_transition_descriptor,
+    digest_subscriber_boundary_cdc_surface, digest_subscriber_continuation_summary,
+};
 use crate::schema::logic::{
     classify_schema_transition, lower_schema_transition, validate_schema_transition,
 };
 use crate::tests::support::*;
-
-fn certification_digest<T: Serialize>(value: &T) -> String {
-    let bytes = serde_json::to_vec(value).expect("certification serialization");
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
-}
 
 fn schema_transition_for_subscriber_impact(
     target_schema_version_id: SchemaVersionId,
@@ -44,7 +39,7 @@ fn schema_transition_for_subscriber_impact(
             subscriber_impact,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: "tag".into(),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some("null".into()),
             },
@@ -92,16 +87,19 @@ fn schema_evolution_cdc_contract_test() {
         ))
         .unwrap();
 
-    let schema_transition_digest =
-        certification_digest(committed.envelope().schema_transition.as_ref().unwrap());
-    let schema_boundary_cdc_digest = certification_digest(&(
+    let schema_transition_digest = digest_schema_transition_descriptor(
+        committed.envelope().schema_transition.as_ref().unwrap(),
+        committed.envelope().descriptor_semantics_version,
+    );
+    let schema_boundary_cdc_digest = digest_subscriber_boundary_cdc_surface(
         &live_batch.patches,
-        &live_batch.crossed_boundaries,
-        &live_batch.continuation_summary,
+        live_batch.continuation.crossed_boundaries(),
+        live_batch.continuation.continuation_summary(),
         &live_batch.recovery_decision,
-    ));
-    let subscriber_contract_matrix = certification_digest(&live_batch.continuation_summary);
-    let transition_decision_digest = certification_digest(&(
+    );
+    let subscriber_contract_matrix =
+        digest_subscriber_continuation_summary(live_batch.continuation.continuation_summary());
+    let transition_decision_digest = digest_schema_transition_decision(
         committed
             .envelope()
             .schema_continuation_descriptor
@@ -112,9 +110,9 @@ fn schema_evolution_cdc_contract_test() {
             .schema_reconciliation_descriptor
             .as_ref()
             .unwrap(),
-    ));
-    let descriptor_version_digest =
-        certification_digest(&committed.envelope().descriptor_semantics_version);
+        committed.envelope().descriptor_semantics_version,
+    );
+    let descriptor_semantics_version = committed.envelope().descriptor_semantics_version;
 
     let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
         let registry = AspectSchemaFixture {
@@ -148,24 +146,27 @@ fn schema_evolution_cdc_contract_test() {
 
     assert_eq!(
         schema_transition_digest,
-        certification_digest(recovered_envelope.schema_transition.as_ref().unwrap())
+        digest_schema_transition_descriptor(
+            recovered_envelope.schema_transition.as_ref().unwrap(),
+            recovered_envelope.descriptor_semantics_version,
+        )
     );
     assert_eq!(
         schema_boundary_cdc_digest,
-        certification_digest(&(
+        digest_subscriber_boundary_cdc_surface(
             &recovered_batch.patches,
-            &recovered_batch.crossed_boundaries,
-            &recovered_batch.continuation_summary,
+            recovered_batch.continuation.crossed_boundaries(),
+            recovered_batch.continuation.continuation_summary(),
             &recovered_batch.recovery_decision,
-        ))
+        )
     );
     assert_eq!(
         subscriber_contract_matrix,
-        certification_digest(&recovered_batch.continuation_summary)
+        digest_subscriber_continuation_summary(recovered_batch.continuation.continuation_summary())
     );
     assert_eq!(
         transition_decision_digest,
-        certification_digest(&(
+        digest_schema_transition_decision(
             recovered_envelope
                 .schema_continuation_descriptor
                 .as_ref()
@@ -174,11 +175,12 @@ fn schema_evolution_cdc_contract_test() {
                 .schema_reconciliation_descriptor
                 .as_ref()
                 .unwrap(),
-        ))
+            recovered_envelope.descriptor_semantics_version,
+        )
     );
     assert_eq!(
-        descriptor_version_digest,
-        certification_digest(&recovered_envelope.descriptor_semantics_version)
+        descriptor_semantics_version,
+        recovered_envelope.descriptor_semantics_version
     );
 }
 
@@ -196,7 +198,7 @@ fn schema_reconciliation_classification_test() {
         additive.clone(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
         DescriptorSemanticsVersion::default(),
-        DescriptorCanonicalizationVersion::default(),
+        DescriptorCanonicalBasisVersion::default(),
     );
 
     let narrowing = ProposedSchemaTransition {
@@ -220,7 +222,7 @@ fn schema_reconciliation_classification_test() {
             SchemaSubscriberImpact::RenegotiationRequired,
             HistoricalInterpretationSensitivity::SensitiveToPublicationMeaning,
             SchemaDiffDetail::RemovedField {
-                field_name: "obsolete_field".into(),
+                field: field_key("obsolete_field"),
             },
         )],
     };
@@ -234,7 +236,7 @@ fn schema_reconciliation_classification_test() {
         narrowing_validated.clone(),
         Some(SchemaReconciliationPolicy::PreserveInformation),
         DescriptorSemanticsVersion::default(),
-        DescriptorCanonicalizationVersion::default(),
+        DescriptorCanonicalBasisVersion::default(),
     );
 
     let type_conflict = classify_schema_transition(
@@ -259,8 +261,8 @@ fn schema_reconciliation_classification_test() {
                 SchemaSubscriberImpact::RenegotiationRequired,
                 HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
                 SchemaDiffDetail::TypeChanged {
-                    field_name: "timing_domain".into(),
-                    from_type: "enum<legacy>".into(),
+                    field: field_key("timing_domain"),
+                    from_type: "enum<previous>".into(),
                     to_type: "enum<expanded>".into(),
                 },
             )],
@@ -291,28 +293,14 @@ fn schema_reconciliation_classification_test() {
                 HistoricalInterpretationSensitivity::SensitiveToPublicationMeaning,
                 SchemaDiffDetail::FreeText {
                     detail: "projection semantics became ambiguous".into(),
-                    declared_intent: FreeFormSchemaDiffIntent::StructuralIncompatible,
+                    declared_intent: FreeFormSchemaDiffIntent::StructuralContinuityDenied,
                 },
             )],
         },
         Some(SchemaReconciliationPolicy::PreserveInformation),
     );
 
-    let schema_reconciliation_digest = certification_digest(&(
-        &additive_plan.reconciliation_descriptor,
-        &narrowing_plan.reconciliation_descriptor,
-        &type_conflict.reconciliation,
-        &structural_conflict.reconciliation,
-    ));
-    let schema_lineage_digest = certification_digest(&(
-        &additive_plan.reconciliation_descriptor.resulting_lineage,
-        &narrowing_plan.reconciliation_descriptor.resulting_lineage,
-    ));
-    let reconciliation_policy_matrix = certification_digest(&[
-        SchemaReconciliationPolicy::PreserveInformation,
-        SchemaReconciliationPolicy::RejectLossyNarrowing,
-    ]);
-    let schema_conflict_localization_report = certification_digest(&[
+    let schema_conflict_localization_report = [
         additive_plan.validated.proposed.diff_atoms[0]
             .element
             .element_name
@@ -329,27 +317,29 @@ fn schema_reconciliation_classification_test() {
             .element
             .element_name
             .to_string(),
-    ]);
-    let reconciliation_replay_digest = certification_digest(&(
-        additive_plan.reconciliation_descriptor.clone(),
+    ];
+    let replayed_additive_reconciliation = lower_schema_transition(
+        additive,
+        Some(SchemaReconciliationPolicy::PreserveInformation),
+        DescriptorSemanticsVersion::default(),
+        DescriptorCanonicalBasisVersion::default(),
+    )
+    .reconciliation_descriptor;
+    let descriptor_semantics_versions = [
         lower_schema_transition(
-            additive,
+            narrowing_validated.clone(),
             Some(SchemaReconciliationPolicy::PreserveInformation),
             DescriptorSemanticsVersion::default(),
-            DescriptorCanonicalizationVersion::default(),
+            DescriptorCanonicalBasisVersion::default(),
         )
-        .reconciliation_descriptor,
-    ));
-    let descriptor_version_digest = certification_digest(&(
+        .continuation_descriptor
+        .bridge
+        .semantics_version,
         additive_plan
             .continuation_descriptor
             .bridge
             .semantics_version,
-        narrowing_plan
-            .continuation_descriptor
-            .bridge
-            .semantics_version,
-    ));
+    ];
 
     assert!(narrowing_error
         .detail()
@@ -364,16 +354,43 @@ fn schema_reconciliation_classification_test() {
     );
     assert_eq!(
         type_conflict.reconciliation,
-        SchemaReconciliationClassification::TypeIncompatible
+        SchemaReconciliationClassification::TypeContinuityDenied
     );
     assert_eq!(
         structural_conflict.reconciliation,
-        SchemaReconciliationClassification::StructuralIncompatible
+        SchemaReconciliationClassification::StructuralContinuityDenied
     );
-    assert!(!schema_reconciliation_digest.is_empty());
-    assert!(!schema_lineage_digest.is_empty());
-    assert!(!reconciliation_policy_matrix.is_empty());
-    assert!(!schema_conflict_localization_report.is_empty());
-    assert!(!reconciliation_replay_digest.is_empty());
-    assert!(!descriptor_version_digest.is_empty());
+    assert_eq!(
+        additive_plan
+            .reconciliation_descriptor
+            .resulting_lineage
+            .resulting_schema_version_id,
+        SchemaVersionId(2)
+    );
+    assert_eq!(
+        narrowing_plan
+            .reconciliation_descriptor
+            .resulting_lineage
+            .resulting_schema_version_id,
+        SchemaVersionId(3)
+    );
+    assert_ne!(
+        SchemaReconciliationPolicy::PreserveInformation,
+        SchemaReconciliationPolicy::RejectLossyNarrowing
+    );
+    assert_eq!(
+        schema_conflict_localization_report,
+        ["tag", "obsolete_field", "timing_domain", "mass-properties"]
+    );
+    assert_eq!(
+        additive_plan.reconciliation_descriptor,
+        replayed_additive_reconciliation
+    );
+    assert_eq!(
+        descriptor_semantics_versions,
+        [
+            DescriptorSemanticsVersion::default(),
+            DescriptorSemanticsVersion::default()
+        ]
+    );
 }

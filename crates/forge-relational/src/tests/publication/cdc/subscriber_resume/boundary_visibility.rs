@@ -1,0 +1,91 @@
+use super::fixtures::{install_schema_version, transaction_options_for_subscriber_impact};
+use crate::publication::cdc::data::{
+    SubscriberContinuationClassSet, SubscriberContractDeclaration, SubscriberStrataSet,
+};
+use crate::schema::data::{
+    SchemaContinuationClassification, SchemaStratum, SchemaSubscriberImpact, SchemaVersionId,
+};
+use crate::tests::support::*;
+
+#[test]
+fn subscriber_stream_reports_crossed_schema_boundary_from_in_memory_history() {
+    let mut runtime = runtime_with_test_schema();
+    let _first = create_entity_outcome(&mut runtime, "a");
+
+    install_schema_version(&mut runtime, SchemaVersionId(2));
+    let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
+        SchemaVersionId(2),
+        SchemaSubscriberImpact::ConsumableSurfaceChanged,
+    ));
+    txn.push_batch(batch_create("b"));
+    txn.commit().unwrap();
+
+    let batch = runtime
+        .publication()
+        .read_subscriber_stream(SubscriberResumeRequest::from_head(10))
+        .unwrap();
+
+    assert_eq!(
+        batch.continuation.continuation_outcome(),
+        SchemaContinuationClassification::ContinueWithVisibleBridge
+    );
+    assert_eq!(batch.continuation.crossed_boundaries().len(), 1);
+    assert_eq!(
+        batch
+            .continuation
+            .continuation_summary()
+            .continuation_outcome,
+        SchemaContinuationClassification::ContinueWithVisibleBridge
+    );
+    assert_eq!(
+        batch
+            .continuation
+            .continuation_summary()
+            .crossed_boundary_count,
+        1
+    );
+    assert_eq!(
+        batch
+            .next_checkpoint
+            .unwrap()
+            .normalized_continuation_proof()
+            .normalized_boundary_count(),
+        1
+    );
+}
+
+#[test]
+fn subscriber_stream_treats_unconsumed_boundary_as_unchanged() {
+    let mut runtime = runtime_with_test_schema();
+    let _first = create_entity_outcome(&mut runtime, "a");
+
+    install_schema_version(&mut runtime, SchemaVersionId(2));
+    let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
+        SchemaVersionId(2),
+        SchemaSubscriberImpact::ConsumableSurfaceChanged,
+    ));
+    txn.push_batch(batch_create("b"));
+    txn.commit().unwrap();
+
+    let contract = SubscriberContractDeclaration {
+        contract_id: "subscriber.contract.identity-only.v1".to_string(),
+        consumable_strata: SubscriberStrataSet::new([SchemaStratum::EntityIdentitySemantics]),
+        accepted_continuation_classes: SubscriberContinuationClassSet::new([
+            SchemaContinuationClassification::ContinueUnchanged,
+        ]),
+        accepted_upgrade_classes: SubscriberContinuationClassSet::new([]),
+    };
+
+    let batch = runtime
+        .publication()
+        .read_subscriber_stream(
+            SubscriberResumeRequest::from_head(10).with_subscriber_contract(contract),
+        )
+        .unwrap();
+
+    assert_eq!(
+        batch.continuation.continuation_outcome(),
+        SchemaContinuationClassification::ContinueUnchanged
+    );
+    assert_eq!(batch.continuation.crossed_boundaries().len(), 1);
+}

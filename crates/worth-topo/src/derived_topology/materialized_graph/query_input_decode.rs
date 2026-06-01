@@ -1,5 +1,6 @@
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
-use schema::facade::{EntityKind, RelationKind};
+use schema::facade::platform::entities::EntityKind;
+use schema::facade::platform::relations::RelationKind;
 use serde_json::Value;
 
 use super::TopologyMaterializationError;

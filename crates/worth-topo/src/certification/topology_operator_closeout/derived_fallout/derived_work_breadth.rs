@@ -2,8 +2,8 @@ use crate::certification::TopologyCertificationError;
 
 use super::super::milestone_three_required_scenarios;
 use super::super::report::{
-    MilestoneThreeEditFalloutBreadthRow, MilestoneThreeEditFalloutClass,
     MilestoneThreeHostileScenarioReport, MilestoneThreeHostileSuiteReport,
+    MilestoneThreeMutationFalloutBreadthRow, MilestoneThreeMutationFalloutClass,
 };
 use super::derived_work_breadth_rows::{
     MilestoneThreeDerivedWorkBreadthClass, MilestoneThreeDerivedWorkBreadthRow,
@@ -11,7 +11,7 @@ use super::derived_work_breadth_rows::{
 
 pub(in crate::certification::topology_operator_closeout) fn build_derived_work_breadth_rows(
     reports: &[MilestoneThreeHostileScenarioReport],
-    fallout_rows: &[MilestoneThreeEditFalloutBreadthRow],
+    fallout_rows: &[MilestoneThreeMutationFalloutBreadthRow],
 ) -> Vec<MilestoneThreeDerivedWorkBreadthRow> {
     reports
         .iter()
@@ -60,7 +60,7 @@ pub(in crate::certification::topology_operator_closeout) fn ensure_derived_work_
 
 fn build_derived_work_breadth_row(
     report: &MilestoneThreeHostileScenarioReport,
-    fallout_rows: &[MilestoneThreeEditFalloutBreadthRow],
+    fallout_rows: &[MilestoneThreeMutationFalloutBreadthRow],
 ) -> MilestoneThreeDerivedWorkBreadthRow {
     let fallout = fallout_row_for_scenario(report, fallout_rows);
     let breadth_claim = classify_derived_work_breadth_claim(fallout);
@@ -69,7 +69,7 @@ fn build_derived_work_breadth_row(
         scenario: report.scenario,
         invalidation_breadth_class: breadth_claim.invalidation_breadth_class,
         rebuild_breadth_class: breadth_claim.rebuild_breadth_class,
-        declared_changed_scope_count: report.topology_edit_digest.changed_scope_count,
+        declared_changed_scope_count: report.topology_mutation_digest.changed_scope_count,
         declared_derived_region_count: fallout.declared_derived_region_count,
         actual_derived_validation_row_count: fallout.derived_validation_row_count,
         fallback_count: fallout.fallback_count,
@@ -88,7 +88,7 @@ struct DerivedWorkBreadthClaim {
 }
 
 fn classify_derived_work_breadth_claim(
-    fallout: &MilestoneThreeEditFalloutBreadthRow,
+    fallout: &MilestoneThreeMutationFalloutBreadthRow,
 ) -> DerivedWorkBreadthClaim {
     let invalidation_breadth_class = invalidation_breadth_class(fallout);
     let rebuild_breadth_class = rebuild_breadth_class(fallout);
@@ -107,8 +107,8 @@ fn classify_derived_work_breadth_claim(
 
 fn fallout_row_for_scenario<'a>(
     report: &MilestoneThreeHostileScenarioReport,
-    fallout_rows: &'a [MilestoneThreeEditFalloutBreadthRow],
-) -> &'a MilestoneThreeEditFalloutBreadthRow {
+    fallout_rows: &'a [MilestoneThreeMutationFalloutBreadthRow],
+) -> &'a MilestoneThreeMutationFalloutBreadthRow {
     fallout_rows
         .iter()
         .find(|row| row.scenario == report.scenario)
@@ -117,7 +117,7 @@ fn fallout_row_for_scenario<'a>(
 
 fn derived_work_breadth_row_digest(
     report: &MilestoneThreeHostileScenarioReport,
-    fallout: &MilestoneThreeEditFalloutBreadthRow,
+    fallout: &MilestoneThreeMutationFalloutBreadthRow,
     breadth_claim: DerivedWorkBreadthClaim,
 ) -> String {
     format!(
@@ -125,7 +125,7 @@ fn derived_work_breadth_row_digest(
         report.scenario.as_str(),
         breadth_claim.invalidation_breadth_class,
         breadth_claim.rebuild_breadth_class,
-        report.topology_edit_digest.changed_scope_count,
+        report.topology_mutation_digest.changed_scope_count,
         fallout.declared_derived_region_count,
         fallout.derived_validation_row_count,
         fallout.fallback_count,
@@ -134,10 +134,10 @@ fn derived_work_breadth_row_digest(
 }
 
 fn invalidation_breadth_class(
-    fallout: &MilestoneThreeEditFalloutBreadthRow,
+    fallout: &MilestoneThreeMutationFalloutBreadthRow,
 ) -> MilestoneThreeDerivedWorkBreadthClass {
     match fallout.fallout_class {
-        MilestoneThreeEditFalloutClass::RejectedBeforeDerivedWork => {
+        MilestoneThreeMutationFalloutClass::RejectedBeforeDerivedWork => {
             MilestoneThreeDerivedWorkBreadthClass::RejectedBeforeDerivedWork
         }
         _ => MilestoneThreeDerivedWorkBreadthClass::DeclaredRegions,
@@ -145,19 +145,20 @@ fn invalidation_breadth_class(
 }
 
 fn rebuild_breadth_class(
-    fallout: &MilestoneThreeEditFalloutBreadthRow,
+    fallout: &MilestoneThreeMutationFalloutBreadthRow,
 ) -> MilestoneThreeDerivedWorkBreadthClass {
     match fallout.fallout_class {
-        MilestoneThreeEditFalloutClass::Localized | MilestoneThreeEditFalloutClass::Widened => {
+        MilestoneThreeMutationFalloutClass::Localized
+        | MilestoneThreeMutationFalloutClass::Widened => {
             MilestoneThreeDerivedWorkBreadthClass::DeclaredRegions
         }
-        MilestoneThreeEditFalloutClass::WholeViewFallback => {
+        MilestoneThreeMutationFalloutClass::WholeViewFallback => {
             MilestoneThreeDerivedWorkBreadthClass::WholeViewFallback
         }
-        MilestoneThreeEditFalloutClass::WholeHistoryFallback => {
+        MilestoneThreeMutationFalloutClass::WholeHistoryFallback => {
             MilestoneThreeDerivedWorkBreadthClass::WholeHistoryFallback
         }
-        MilestoneThreeEditFalloutClass::RejectedBeforeDerivedWork => {
+        MilestoneThreeMutationFalloutClass::RejectedBeforeDerivedWork => {
             MilestoneThreeDerivedWorkBreadthClass::RejectedBeforeDerivedWork
         }
     }

@@ -8,19 +8,25 @@ use crate::facade::merge::{
 };
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::{
-    AspectKey, EntityKindRegistration, KindAspectDeclarations, RelationIntegrityDeclarations,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationIntegrityDeclarations,
     RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::facade::transactions::{
-    CreateIntent, EntityMutationIntent, MutationIntent, TransactionId, UpdateEntityIntent,
+    AspectFieldLocator, CreateIntent, EntityMutationIntent, MutationIntent, TransactionId,
 };
-use crate::schema::data::RelationPayloadClass;
-use crate::symbols::data::InternedString;
 use crate::tests::support::{
-    create_branch_from_main, create_entity, create_entity_outcome_on_branch, entity_payload_aspect,
+    create_branch_from_main, create_entity, create_entity_outcome_on_branch, entity_field_aspect,
     persisted_runtime_with_test_schema, runtime_with_test_schema, update_entity,
     CascadeDeletePolicy, CrossContextPolicy,
 };
+use forge_foundational::facade::{AspectKey, AspectValue, InternedString};
+
+fn test_patch_target(aspect: &str, field: &str) -> AspectFieldLocator {
+    crate::transactions::data::planned_single_field_locator(
+        crate::tests::support::aspect_key(aspect),
+        crate::tests::support::field_key(field),
+    )
+}
 
 #[test]
 fn derive_merge_commit_mutation_plan_emits_source_authorized_create_intent() {
@@ -55,8 +61,10 @@ fn derive_merge_commit_mutation_plan_emits_source_authorized_create_intent() {
         MutationIntent::Create(CreateIntent::Entity(spec)) => {
             assert_eq!(spec.kind_id, KindId(1));
             assert_eq!(
-                spec.payload.as_json().and_then(|json| json.get("name")),
-                Some(&serde_json::Value::String("feature-only".to_string()))
+                spec.fields.get(&test_patch_target("name", "name")),
+                Some(&AspectValue::String(InternedString::Raw(
+                    "feature-only".to_string()
+                )))
             );
         }
         other => panic!("expected entity create intent, got {other:?}"),
@@ -71,9 +79,12 @@ fn derive_merge_commit_mutation_plan_preserves_exact_shared_truth_without_mutati
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_payload_aspect(
-                "name", "name",
-            )]),
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
+            ]),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -81,10 +92,9 @@ fn derive_merge_commit_mutation_plan_preserves_exact_shared_truth_without_mutati
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })
@@ -122,17 +132,23 @@ fn derive_merge_commit_mutation_plan_preserves_exact_shared_truth_without_mutati
 
 #[test]
 fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_aspects() {
-    let name_key = AspectKey(InternedString::Raw("name".to_string()));
-    let status_key = AspectKey(InternedString::Raw("status".to_string()));
+    let name_key = AspectKey::new("name").unwrap();
+    let status_key = AspectKey::new("status").unwrap();
     let registry = RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(1),
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![
-                entity_payload_aspect("name", "name"),
-                entity_payload_aspect("status", "status"),
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("status"),
+                    crate::tests::support::field_key("status"),
+                ),
             ])
             .with_identity_declarations(vec![IdentityBasisDeclaration {
                 scope: IdentityBasisScope::AspectKey(name_key.clone()),
@@ -149,10 +165,9 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })
@@ -169,11 +184,11 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
                 crate::transactions::data::EntitySpec {
                     partition_id: crate::facade::identity::PartitionId::main(),
                     kind_id: KindId(1),
-                    client_key: InternedString::Raw("main-shared".to_string()),
-                    payload: crate::payloads::data::RecordPayload::StructuredJson(
-                        serde_json::json!({
-                            "name": "shared-name"
-                        }),
+                    client_key: crate::symbols::data::ClientKey::raw("main-shared"),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "shared-name",
                     ),
                 },
             )),
@@ -193,13 +208,19 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
                 crate::transactions::data::EntitySpec {
                     partition_id: crate::facade::identity::PartitionId::main(),
                     kind_id: KindId(1),
-                    client_key: InternedString::Raw("feature-shared".to_string()),
-                    payload: crate::payloads::data::RecordPayload::StructuredJson(
-                        serde_json::json!({
-                            "name": "shared-name",
-                            "status": "active"
-                        }),
-                    ),
+                    client_key: crate::symbols::data::ClientKey::raw("feature-shared"),
+                    fields: crate::tests::support::string_aspect_field_patch([
+                        (
+                            crate::tests::support::aspect_key("name"),
+                            crate::tests::support::field_key("name"),
+                            "shared-name",
+                        ),
+                        (
+                            crate::tests::support::aspect_key("status"),
+                            crate::tests::support::field_key("status"),
+                            "active",
+                        ),
+                    ]),
                 },
             )),
         ),
@@ -223,20 +244,14 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
     assert_eq!(plan.structural_summary.emitted_entity_update_count, 1);
     assert_eq!(plan.merged_plan.merged_intents.len(), 1);
     match &plan.merged_plan.merged_intents[0] {
-        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            payload,
-            ..
-        })) => {
+        MutationIntent::Entity(EntityMutationIntent::UpdateFields(intent)) => {
             assert_eq!(
-                payload.as_json().and_then(|json| json.get("name")),
-                Some(&serde_json::Value::String("shared-name".to_string()))
+                intent.fields.get(&test_patch_target("status", "status")),
+                Some(&AspectValue::String("active".into()))
             );
-            assert_eq!(
-                payload.as_json().and_then(|json| json.get("status")),
-                Some(&serde_json::Value::String("active".to_string()))
-            );
+            assert_eq!(intent.fields.get(&test_patch_target("name", "name")), None);
         }
-        other => panic!("expected entity update intent, got {other:?}"),
+        other => panic!("expected entity field update intent, got {other:?}"),
     }
 }
 

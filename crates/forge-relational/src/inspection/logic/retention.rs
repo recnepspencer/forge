@@ -37,13 +37,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         let version_id = self.runtime.current_version_id();
         match target {
             RecordRef::Entity(entity_id) => {
-                let surface = self
-                    .runtime
-                    .storage_access()
-                    .record_slot_surface::<crate::storage::logic::state::EntityRecordKind>(
-                    entity_id.partition_id,
-                    entity_id.local_slot.0 as usize,
-                )?;
+                let surface = self.current_entity_slot_surface(entity_id)?;
                 Some(self.record_retention_inspection(
                     RecordRef::Entity(entity_id),
                     surface.lifecycle,
@@ -54,13 +48,7 @@ impl<'runtime> InspectionAccess<'runtime> {
                 ))
             }
             RecordRef::Relation(relation_id) => {
-                let surface = self
-                    .runtime
-                    .storage_access()
-                    .record_slot_surface::<crate::storage::logic::state::RelationRecordKind>(
-                    relation_id.partition_id,
-                    relation_id.local_slot.0 as usize,
-                )?;
+                let surface = self.current_relation_slot_surface(relation_id)?;
                 Some(self.record_retention_inspection(
                     RecordRef::Relation(relation_id),
                     surface.lifecycle,
@@ -78,7 +66,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         handle: &crate::snapshots::data::SnapshotHandle,
     ) -> Option<SnapshotPinInspection> {
         Some(SnapshotPinInspection {
-            snapshot: self.runtime.read_truth().inspect_snapshot(handle)?,
+            snapshot: self.inspect_snapshot(handle)?,
             origin: InspectionOrigin::VisibilitySnapshot,
             access_path: InspectionAccessPath::SnapshotRead,
             availability: InspectionAvailability::Direct,
@@ -105,13 +93,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         replay_pins: u32,
         version_id: crate::identity::data::VersionId,
     ) -> RecordRetentionInspection {
-        let reclaim_eligibility = if !self
-            .runtime
-            .config
-            .storage
-            .mvcc
-            .auto_reclaim_deleted_records
-        {
+        let reclaim_eligibility = if !self.auto_reclaim_deleted_records() {
             ReclaimEligibility::BlockedByPolicy
         } else if snapshot_pins > 0 {
             ReclaimEligibility::BlockedBySnapshotPins
@@ -156,10 +138,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         InspectionAvailability,
         Vec<InspectionDegradation>,
     ) {
-        let retention_fence = self
-            .runtime
-            .visibility
-            .retention_fence_version(self.runtime.current_version_id());
+        let retention_fence = self.retention_fence_version();
         let mut branch_pinned_entities = 0;
         let mut replay_pinned_entities = 0;
         let mut snapshot_pinned_entities = 0;
@@ -171,7 +150,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         let mut entity_slot_scans = 0_u64;
         let mut relation_slot_scans = 0_u64;
         let mut work_units = 0_u64;
-        for partition_id in self.runtime.storage_access().partition_ids() {
+        for partition_id in self.current_partition_ids() {
             for slot in 0..self
                 .runtime
                 .storage_access()
@@ -181,12 +160,8 @@ impl<'runtime> InspectionAccess<'runtime> {
                 entity_slot_scans += 1;
                 work_units += 1;
                 if work_units > request.max_work_units {
-                    self.runtime
-                        .performance_access()
-                        .count_inspection_retention_work(entity_slot_scans, relation_slot_scans);
-                    self.runtime
-                        .performance_access()
-                        .count_inspection_budget_refusal();
+                    self.count_retention_work(entity_slot_scans, relation_slot_scans);
+                    self.count_budget_refusal();
                     return (
                         empty_retention_plan(retention_fence),
                         InspectionAvailability::UnavailableByBudget,
@@ -194,12 +169,8 @@ impl<'runtime> InspectionAccess<'runtime> {
                     );
                 }
                 if entity_slot_scans > request.max_entity_slots_scanned {
-                    self.runtime
-                        .performance_access()
-                        .count_inspection_retention_work(entity_slot_scans, relation_slot_scans);
-                    self.runtime
-                        .performance_access()
-                        .count_inspection_budget_refusal();
+                    self.count_retention_work(entity_slot_scans, relation_slot_scans);
+                    self.count_budget_refusal();
                     return (
                         empty_retention_plan(retention_fence),
                         InspectionAvailability::UnavailableByBudget,
@@ -236,12 +207,8 @@ impl<'runtime> InspectionAccess<'runtime> {
                 relation_slot_scans += 1;
                 work_units += 1;
                 if work_units > request.max_work_units {
-                    self.runtime
-                        .performance_access()
-                        .count_inspection_retention_work(entity_slot_scans, relation_slot_scans);
-                    self.runtime
-                        .performance_access()
-                        .count_inspection_budget_refusal();
+                    self.count_retention_work(entity_slot_scans, relation_slot_scans);
+                    self.count_budget_refusal();
                     return (
                         empty_retention_plan(retention_fence),
                         InspectionAvailability::UnavailableByBudget,
@@ -249,12 +216,8 @@ impl<'runtime> InspectionAccess<'runtime> {
                     );
                 }
                 if relation_slot_scans > request.max_relation_slots_scanned {
-                    self.runtime
-                        .performance_access()
-                        .count_inspection_retention_work(entity_slot_scans, relation_slot_scans);
-                    self.runtime
-                        .performance_access()
-                        .count_inspection_budget_refusal();
+                    self.count_retention_work(entity_slot_scans, relation_slot_scans);
+                    self.count_budget_refusal();
                     return (
                         empty_retention_plan(retention_fence),
                         InspectionAvailability::UnavailableByBudget,
@@ -283,13 +246,11 @@ impl<'runtime> InspectionAccess<'runtime> {
                 }
             }
         }
-        self.runtime
-            .performance_access()
-            .count_inspection_retention_work(entity_slot_scans, relation_slot_scans);
+        self.count_retention_work(entity_slot_scans, relation_slot_scans);
         (
             crate::storage::data::RetentionPlan {
                 retention_fence_version: retention_fence,
-                active_snapshot_count: self.runtime.visibility.active_snapshot_count(),
+                active_snapshot_count: self.active_snapshot_count(),
                 branch_pinned_entities,
                 replay_pinned_entities,
                 snapshot_pinned_entities,

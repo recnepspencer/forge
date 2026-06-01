@@ -1,0 +1,26 @@
+error[E0432]: unresolved imports `schema::facade::platform::authority::CertifiedTopologyInterpretation`, `schema::facade::platform::authority::DerivedTopologyReadBasis`, `schema::facade::platform::authority::DerivedTruthBasisIdentity`, `schema::facade::platform::authority::PersistedTopologyTruth`, `schema::facade::platform::authority::TopologyCommittedMutationSet`, `schema::facade::platform::authority::TopologyReadArtifact`
+ --> tests/compile_fail/removed_facade_exports/platform/removed_platform_authority_result_exports.rs:2:5
+  |
+2 |     CertifiedTopologyInterpretation, DerivedTopologyReadBasis, DerivedTruthBasisIdentity,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^ no `DerivedTruthBasisIdentity` in `facade::platform::authority`
+  |     |                                |
+  |     |                                no `DerivedTopologyReadBasis` in `facade::platform::authority`
+  |     no `CertifiedTopologyInterpretation` in `facade::platform::authority`
+3 |     PersistedTopologyTruth, TopologyCommittedMutationSet, TopologyReadArtifact,
+  |     ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^ no `TopologyReadArtifact` in `facade::platform::authority`
+  |     |                       |
+  |     |                       no `TopologyCommittedMutationSet` in `facade::platform::authority`
+  |     no `PersistedTopologyTruth` in `facade::platform::authority`
+  |
+  = help: consider importing this struct instead:
+          schema::facade::topology_authoring::CertifiedTopologyInterpretation
+  = help: consider importing this struct instead:
+          schema::facade::topology_authoring::DerivedTopologyReadBasis
+  = help: consider importing this struct instead:
+          schema::facade::topology_authoring::DerivedTruthBasisIdentity
+  = help: consider importing this struct instead:
+          schema::facade::topology_authoring::PersistedTopologyTruth
+  = help: consider importing this struct instead:
+          schema::facade::topology_authoring::TopologyCommittedMutationSet
+  = help: consider importing this struct instead:
+          schema::facade::topology_authoring::TopologyReadArtifact

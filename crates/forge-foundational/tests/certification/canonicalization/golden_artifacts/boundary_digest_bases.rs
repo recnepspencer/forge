@@ -36,7 +36,7 @@ fn contract_mask_patch_state_and_compatibility_digest_basis_golden_is_semantic()
     };
     let json_state = lower_json_record_aspect_state([JsonCompatibilityAspectInput::new(
         contract.clone(),
-        forge_foundational::BoundarySourceLocator::Aspect(AspectLocator::new(
+        forge_foundational::BoundarySourceLocator::aspect(AspectLocator::new(
             LocatorAuthority::SupportOnly,
             key("task.summary"),
         )),

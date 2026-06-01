@@ -1,6 +1,6 @@
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::query_rows::{
     query_entity_id_from_row, query_relation_id_from_row, relation_kind_name,
@@ -76,7 +76,7 @@ impl<'a> TopologyQueryRowLookup<'a> {
     ) -> Result<EntityId, TopologyQueryRowLookupError> {
         self.entity_rows
             .iter()
-            .find(|row| row.identity == identity)
+            .find(|row| row.identity() == identity)
             .ok_or_else(|| {
                 TopologyQueryRowLookupError::new(format!(
                     "query identity `{identity}` should resolve to one entity"
@@ -95,7 +95,7 @@ impl<'a> TopologyQueryRowLookup<'a> {
                 query_entity_id_from_row(row)
                     .ok()
                     .filter(|candidate| *candidate == entity_id)
-                    .map(|_| row.identity.clone())
+                    .map(|_| row.identity().to_string())
             })
             .ok_or_else(|| {
                 TopologyQueryRowLookupError::new(format!(

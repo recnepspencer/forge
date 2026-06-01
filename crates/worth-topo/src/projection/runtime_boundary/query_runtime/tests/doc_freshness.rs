@@ -14,9 +14,21 @@ const PROJECTION_MOD_RS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/src/projection/mod.rs"
 ));
-const QUERY_ASSEMBLY_MOD_RS: &str = include_str!(concat!(
+const DECLARED_QUERY_SURFACES_MOD_RS: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/src/projection/runtime_boundary/query_assembly/mod.rs"
+    "/src/projection/runtime_boundary/declared_query_surfaces/mod.rs"
+));
+const WRITE_AUTHORITY_RS: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/src/projection/runtime_boundary/query_runtime/adapters/write_authority.rs"
+));
+const WRITE_AUTHORITY_COMMAND_LOWERING_RS: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/src/projection/runtime_boundary/query_runtime/adapters/write_authority/command_lowering.rs"
+));
+const DECLARED_MUTATION_ARTIFACT_RS: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/src/topology_operators/application/declared_mutation_artifact.rs"
 ));
 
 #[test]
@@ -30,7 +42,7 @@ fn topology_query_docs_do_not_regress_snapshot_reads_to_deferred_fallback() {
         assert!(!lower.contains("not migrated yet and remains explicit"));
         assert!(!lower.contains("snapshot-index fallback"));
         assert!(!lower.contains("snapshot_index fallback"));
-        assert!(!doc.contains("WorthTopologyDomainQuery"));
+        assert!(!doc.contains("WorthTopologyRead"));
         assert!(!doc.contains("worth_topology_read_"));
         assert!(!doc.contains("crates/-topo"));
     }
@@ -44,9 +56,28 @@ fn topology_query_docs_do_not_regress_snapshot_reads_to_deferred_fallback() {
 
 #[test]
 fn topology_query_source_comments_do_not_keep_naming_purge_artifacts() {
-    for source in [LIB_RS, FACADE_RS, PROJECTION_MOD_RS, QUERY_ASSEMBLY_MOD_RS] {
+    for source in [
+        LIB_RS,
+        FACADE_RS,
+        PROJECTION_MOD_RS,
+        DECLARED_QUERY_SURFACES_MOD_RS,
+    ] {
         assert!(!source.contains("-topo"));
         assert!(!source.contains("for  without"));
         assert!(!source.contains("the -owned"));
+    }
+}
+
+#[test]
+fn runtime_mutation_lowering_sources_do_not_regress_to_batch_first_vocabulary() {
+    for source in [
+        WRITE_AUTHORITY_RS,
+        WRITE_AUTHORITY_COMMAND_LOWERING_RS,
+        DECLARED_MUTATION_ARTIFACT_RS,
+    ] {
+        assert!(!source.contains("query-runtime-batch"));
+        assert!(!source.contains("same-batch"));
+        assert!(!source.contains("batch_label"));
+        assert!(!source.contains("batch_mutation_evidence()"));
     }
 }

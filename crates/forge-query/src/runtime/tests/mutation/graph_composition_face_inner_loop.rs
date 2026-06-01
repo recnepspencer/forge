@@ -188,33 +188,33 @@ fn compose_graph_supports_face_inner_loop_insertion_with_full_resolution_map() {
     assert_eq!(loop_rows.len(), 1);
     assert_eq!(half_edge_rows.len(), 2);
     assert_eq!(
-        loop_rows[0].payload["identity"]["id"].as_str(),
+        loop_rows[0].external_row()["identity"]["id"].as_str(),
         Some("loop-inner-1")
     );
     assert_eq!(
-        half_edge_rows[0].payload["identity"]["id"].as_str(),
+        half_edge_rows[0].external_row()["identity"]["id"].as_str(),
         Some("he-inner-1")
     );
     assert_eq!(
-        half_edge_rows[1].payload["identity"]["id"].as_str(),
+        half_edge_rows[1].external_row()["identity"]["id"].as_str(),
         Some("he-inner-2")
     );
     assert_eq!(face_loop_rows.len(), 1);
     assert_eq!(
-        face_loop_rows[0].payload["loop"]["id"].as_str(),
+        face_loop_rows[0].external_row()["loop"]["id"].as_str(),
         Some(loop_identity.as_str())
     );
     assert_eq!(
-        face_loop_rows[0].payload["face"]["id"].as_str(),
+        face_loop_rows[0].external_row()["face"]["id"].as_str(),
         Some("face-1")
     );
     assert_eq!(loop_edge_rows.len(), 2);
     assert_eq!(
-        loop_edge_rows[0].payload["half_edge"]["id"].as_str(),
+        loop_edge_rows[0].external_row()["half_edge"]["id"].as_str(),
         Some(first_half_edge_identity.as_str())
     );
     assert_eq!(
-        loop_edge_rows[1].payload["half_edge"]["id"].as_str(),
+        loop_edge_rows[1].external_row()["half_edge"]["id"].as_str(),
         Some(second_half_edge_identity.as_str())
     );
 

@@ -22,12 +22,12 @@ impl TopologyExistingTruthVerificationAdapter {
         match binding.target_collection() {
             Some("TopologyEntity") => topology_entity_rows(&self.binding)
                 .into_iter()
-                .find(|row| row.identity == binding.resolved_target_identity())
-                .map(|row| row.payload),
+                .find(|row| row.identity() == binding.resolved_target_identity())
+                .map(|row| row.into_external_row()),
             Some("TopologyRelation") => topology_relation_rows(&self.binding)
                 .into_iter()
-                .find(|row| row.identity == binding.resolved_target_identity())
-                .map(|row| row.payload),
+                .find(|row| row.identity() == binding.resolved_target_identity())
+                .map(|row| row.into_external_row()),
             _ => None,
         }
     }

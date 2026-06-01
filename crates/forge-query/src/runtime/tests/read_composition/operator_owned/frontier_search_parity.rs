@@ -107,7 +107,7 @@ fn compose_read_frontier_search_detail_matches_open_coded_broad_search_detail_se
         })
         .expect("open-coded broad search detail should execute");
 
-    assert_eq!(operator_owned.payload(), open_coded.payload());
+    assert_eq!(operator_owned.rows(), open_coded.rows());
     assert_eq!(
         operator_owned.receipt().scope_class(),
         &ForgeQueryReadScopeClass::ExplicitBroadSearch
@@ -241,7 +241,7 @@ fn compose_read_frontier_search_collection_matches_open_coded_broad_search_colle
         })
         .expect("open-coded broad search collection should execute");
 
-    assert_eq!(operator_owned.payload(), open_coded.payload());
+    assert_eq!(operator_owned.rows(), open_coded.rows());
     assert_collection_receipt(
         &operator_owned,
         ForgeQueryReadScopeClass::ExplicitBroadSearch,

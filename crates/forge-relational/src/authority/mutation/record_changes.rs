@@ -2,34 +2,34 @@ use std::collections::BTreeSet;
 
 use crate::config::data::CascadeDeletePolicy;
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId};
-use crate::payloads::data::RecordPayload;
 use crate::schema::data::RelationalSchemaRegistry;
-use crate::storage::data::RecordLifecycleState;
 use crate::storage::logic::state::{
-    AdjacencySet, EntityRecordKind, PartitionAccess, PartitionState, RecordKind, RelationEndpoints,
-    RelationRecordKind,
+    AdjacencySet, EntityExtra, EntityRecordKind, PartitionAccess, PartitionState, RecordKind,
+    RelationEndpoints, RelationExtra, RelationRecordKind,
 };
 use crate::storage::overlay::WorkingState;
-use crate::transactions::data::{CommitConflict, ConflictClass};
+use crate::transactions::data::{
+    CommitConflict, ConflictClass, EntityCascadeDeleteMissingState,
+    MutationStateInconsistencyEvidence,
+};
 
+use super::intents::entity_authoritative_deletion_patch::plan_entity_authoritative_deletion_patch;
 use super::outcomes::{MutationOutcome, RecordMutation};
 use super::{AdjacencyDelta, AdjacencyDeltaKind};
 
-pub(super) fn allocate_entity(
+mod relation_lifecycle;
+
+pub(super) use relation_lifecycle::{delete_relation, retain_relation_dangling_for_audit};
+
+pub(super) fn allocate_entity_with_extra(
     state: &mut WorkingState,
     version_id: crate::identity::data::VersionId,
     partition_id: PartitionId,
     kind_id: KindId,
-    payload: RecordPayload,
+    extra: EntityExtra,
 ) -> EntityId {
-    let (slot, generation, reused) = allocate_record::<EntityRecordKind>(
-        state,
-        partition_id,
-        kind_id,
-        Some(payload),
-        version_id,
-        EntityRecordKind::empty_extra(),
-    );
+    let (slot, generation, reused) =
+        allocate_record::<EntityRecordKind>(state, partition_id, kind_id, version_id, extra);
     if reused {
         state.mark_entity_free_list_changed(partition_id);
     }
@@ -66,16 +66,14 @@ pub(super) fn allocate_relation(
     kind_id: KindId,
     source: EntityId,
     target: EntityId,
-    payload: Option<RecordPayload>,
+    authoritative_aspect_state: Option<forge_foundational::facade::AuthoritativeRecordAspectState>,
 ) -> RelationId {
-    let (slot, generation, reused) = allocate_record::<RelationRecordKind>(
-        state,
-        partition_id,
-        kind_id,
-        payload,
-        version_id,
-        Some(RelationEndpoints { source, target }),
-    );
+    let extra = RelationExtra {
+        endpoints: Some(RelationEndpoints { source, target }),
+        authoritative_aspect_state,
+    };
+    let (slot, generation, reused) =
+        allocate_record::<RelationRecordKind>(state, partition_id, kind_id, version_id, extra);
     if reused {
         state.mark_relation_free_list_changed(partition_id);
     }
@@ -90,47 +88,32 @@ pub(super) fn delete_entity_with_cascade(
     default_cascade_delete_policy: CascadeDeletePolicy,
     outcome: &mut MutationOutcome,
 ) -> Result<(), CommitConflict> {
-    let slot = entity_id.local_slot.0 as usize;
+    let slot = entity_id.slot_index();
     state.mark_entity_slot_touched(entity_id.partition_id, slot);
     let partition = state.get_partition_mut(entity_id.partition_id);
     let slot_view = partition.entity_arena.get_slot(slot).ok_or_else(|| {
         mutation_state_inconsistency(
             "entity delete requires an existing slot after stale-target validation",
-            serde_json::json!({
-                "record_class": "entity",
-                "entity_id": entity_id,
-                "phase": "delete_with_cascade",
-                "missing": "slot",
-            }),
+            entity_cascade_delete_missing(entity_id, EntityCascadeDeleteMissingState::Slot),
         )
     })?;
     let kind_id = slot_view.kind_id().ok_or_else(|| {
         mutation_state_inconsistency(
             "entity delete requires a retained kind id after stale-target validation",
-            serde_json::json!({
-                "record_class": "entity",
-                "entity_id": entity_id,
-                "phase": "delete_with_cascade",
-                "missing": "kind_id",
-            }),
+            entity_cascade_delete_missing(entity_id, EntityCascadeDeleteMissingState::KindId),
         )
     })?;
-    let payload = slot_view.payload().cloned().ok_or_else(|| {
-        mutation_state_inconsistency(
-            "entity delete requires a retained payload after stale-target validation",
-            serde_json::json!({
-                "record_class": "entity",
-                "entity_id": entity_id,
-                "phase": "delete_with_cascade",
-                "missing": "payload",
-            }),
-        )
+    let authoritative_patch = plan_entity_authoritative_deletion_patch(
+        slot_view.extra().authoritative_aspect_state.as_ref(),
+    )
+    .map_err(|denial| {
+        CommitConflict::new(ConflictClass::EntityAuthoritativeAspectStateDenied { kind_id, denial })
     })?;
     partition.entity_arena.retire(slot, version_id);
     outcome.record_change(RecordMutation::EntityDeleted {
         entity_id,
         kind_id,
-        payload,
+        authoritative_patch,
     });
 
     let mut attached = BTreeSet::new();
@@ -168,150 +151,38 @@ pub(super) fn delete_entity_with_cascade(
     Ok(())
 }
 
-pub(super) fn retain_relation_dangling_for_audit(
-    state: &mut WorkingState,
-    version_id: crate::identity::data::VersionId,
-    relation_id: RelationId,
-    outcome: &mut MutationOutcome,
-) {
-    let slot = relation_id.local_slot.0 as usize;
-    let relation_is_visible = state
-        .get_partition(relation_id.partition_id)
-        .and_then(|partition| partition.relation_arena.get(&relation_id))
-        .is_some_and(|relation_slot| {
-            matches!(
-                relation_slot.lifecycle(),
-                RecordLifecycleState::Live | RecordLifecycleState::RetainedDanglingForAudit
-            )
-        });
-    if !relation_is_visible {
-        return;
-    }
-    state.mark_relation_slot_touched(relation_id.partition_id, slot);
-    let partition = state.get_partition_mut(relation_id.partition_id);
-    partition.relation_arena.lifecycle[slot] = RecordLifecycleState::RetainedDanglingForAudit;
-    let _ = version_id;
-    partition.relation_arena.live_bitset.set(slot, true);
-    partition.relation_arena.reclaimable_bitset.set(slot, false);
-    let endpoints = partition
-        .relation_arena
-        .get_slot(slot)
-        .and_then(|relation_slot| relation_slot.extra().clone());
-    let payload = partition
-        .relation_arena
-        .get_slot(slot)
-        .and_then(|relation_slot| relation_slot.payload().cloned());
-    let kind_id = partition
-        .relation_arena
-        .get_slot(slot)
-        .and_then(|relation_slot| relation_slot.kind_id());
-    let Some(endpoints) = endpoints else {
-        return;
-    };
-    let Some(kind_id) = kind_id else {
-        return;
-    };
-    outcome.record_change(RecordMutation::RelationRetainedForAudit {
-        relation_id,
-        kind_id,
-        source: endpoints.source,
-        target: endpoints.target,
-        payload,
-    });
-}
-
-pub(super) fn delete_relation(
-    state: &mut WorkingState,
-    version_id: crate::identity::data::VersionId,
-    relation_id: RelationId,
-    outcome: &mut MutationOutcome,
-) {
-    let slot = relation_id.local_slot.0 as usize;
-    let relation_is_live = state
-        .get_partition(relation_id.partition_id)
-        .and_then(|partition| partition.relation_arena.get(&relation_id))
-        .is_some_and(|relation_slot| relation_slot.lifecycle() == RecordLifecycleState::Live);
-    if !relation_is_live {
-        return;
-    }
-    state.mark_relation_slot_touched(relation_id.partition_id, slot);
-    let partition = state.get_partition_mut(relation_id.partition_id);
-    let endpoints = partition
-        .relation_arena
-        .get_slot(slot)
-        .and_then(|relation_slot| relation_slot.extra().clone());
-    let payload = partition
-        .relation_arena
-        .get_slot(slot)
-        .and_then(|relation_slot| relation_slot.payload().cloned());
-    let kind_id = partition
-        .relation_arena
-        .get_slot(slot)
-        .and_then(|relation_slot| relation_slot.kind_id());
-    partition.relation_arena.retire(slot, version_id);
-    let lifecycle = if partition
-        .relation_arena
-        .snapshot_pin_count(slot)
-        .unwrap_or(0)
-        > 0
-    {
-        RecordLifecycleState::PinnedBySnapshot
-    } else if partition.relation_arena.branch_pin_count(slot).unwrap_or(0) > 0 {
-        RecordLifecycleState::PinnedByBranch
-    } else if partition.relation_arena.replay_pin_count(slot).unwrap_or(0) > 0 {
-        RecordLifecycleState::PinnedByReplayRetention
-    } else {
-        RecordLifecycleState::DeletedRetained
-    };
-    partition.relation_arena.lifecycle[slot] = lifecycle;
-    if let (Some(endpoints), Some(kind_id)) = (endpoints, kind_id) {
-        outcome.record_change(RecordMutation::RelationDeleted {
-            relation_id,
-            kind_id,
-            source: endpoints.source,
-            target: endpoints.target,
-            payload,
-        });
-    }
-}
-
 pub(crate) fn apply_adjacency_deltas(state: &mut WorkingState, deltas: &[AdjacencyDelta]) {
     for delta in deltas {
         let (source, target) = match delta.kind {
             AdjacencyDeltaKind::Created { source, target }
             | AdjacencyDeltaKind::Deleted { source, target } => (source, target),
         };
-        state.mark_adjacency_slot_touched(source.partition_id, source.local_slot.0 as usize);
-        state
-            .mark_reverse_adjacency_slot_touched(target.partition_id, target.local_slot.0 as usize);
+        state.mark_adjacency_slot_touched(source.partition_id, source.slot_index());
+        state.mark_reverse_adjacency_slot_touched(target.partition_id, target.slot_index());
 
         let source_partition = ensure_partition_state(state, source.partition_id);
-        ensure_entity_adjacency_capacity(source_partition, source.local_slot.0 as usize);
+        ensure_entity_adjacency_capacity(source_partition, source.slot_index());
         match delta.kind {
             AdjacencyDeltaKind::Created { .. } => {
-                source_partition.adjacency[source.local_slot.0 as usize].insert(delta.relation_id);
+                source_partition.adjacency[source.slot_index()].insert(delta.relation_id);
             }
             AdjacencyDeltaKind::Deleted { .. } => {
-                if let Some(relations) = source_partition
-                    .adjacency
-                    .get_mut(source.local_slot.0 as usize)
-                {
+                if let Some(relations) = source_partition.adjacency.get_mut(source.slot_index()) {
                     relations.remove(&delta.relation_id);
                 }
             }
         }
 
         let target_partition = ensure_partition_state(state, target.partition_id);
-        ensure_entity_adjacency_capacity(target_partition, target.local_slot.0 as usize);
+        ensure_entity_adjacency_capacity(target_partition, target.slot_index());
         match delta.kind {
             AdjacencyDeltaKind::Created { .. } => {
-                target_partition.reverse_adjacency[target.local_slot.0 as usize]
-                    .insert(delta.relation_id);
+                target_partition.reverse_adjacency[target.slot_index()].insert(delta.relation_id);
             }
             AdjacencyDeltaKind::Deleted { .. } => {
                 if let Some(relations) = target_partition
                     .reverse_adjacency
-                    .get_mut(target.local_slot.0 as usize)
+                    .get_mut(target.slot_index())
                 {
                     relations.remove(&delta.relation_id);
                 }
@@ -357,7 +228,6 @@ fn allocate_record<K: RecordKind>(
     state: &mut WorkingState,
     partition_id: PartitionId,
     kind_id: KindId,
-    payload: Option<RecordPayload>,
     version_id: crate::identity::data::VersionId,
     extra: K::Extra,
 ) -> (usize, u32, bool) {
@@ -366,7 +236,6 @@ fn allocate_record<K: RecordKind>(
     let (slot, generation, reused) = arena.push_slot(crate::storage::logic::state::SlotInit {
         partition_id,
         kind_id,
-        payload,
         version_id,
         extra,
     });
@@ -388,10 +257,17 @@ fn ensure_entity_adjacency_capacity(partition: &mut PartitionState, slot: usize)
 
 fn mutation_state_inconsistency(
     detail: impl Into<String>,
-    fields: serde_json::Value,
+    evidence: MutationStateInconsistencyEvidence,
 ) -> CommitConflict {
     CommitConflict::new(ConflictClass::MutationStateInconsistency {
         detail: detail.into(),
-        fields,
+        evidence,
     })
+}
+
+fn entity_cascade_delete_missing(
+    entity_id: EntityId,
+    missing: EntityCascadeDeleteMissingState,
+) -> MutationStateInconsistencyEvidence {
+    MutationStateInconsistencyEvidence::EntityCascadeDelete { entity_id, missing }
 }

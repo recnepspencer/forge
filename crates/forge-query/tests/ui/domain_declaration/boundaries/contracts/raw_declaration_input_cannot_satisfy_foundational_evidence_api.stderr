@@ -9,7 +9,7 @@ error[E0308]: mismatched types
    = note: expected enum `ForgeQueryDeclarationFoundationalEvidenceInput<GeometryDomain, _>`
             found struct `SplitEdgeDeclaration`
 note: method defined here
-  --> src/application/domain_handle/admitted_handle.rs
+  --> src/application/domain_handle/admitted_handle/evidence.rs
    |
    |     pub fn describe_foundational<I>(
    |            ^^^^^^^^^^^^^^^^^^^^^

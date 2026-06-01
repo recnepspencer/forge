@@ -196,7 +196,7 @@ pub(super) fn raw_mutation_effect_with_binding(
         ),
         input: MutationLoweringInput::IntentReconciliation {
             entity_id,
-            desired_payload: serde_json::json!({ "name": desired_name }),
+            desired_aspect_fields_external_json: serde_json::json!({ "name": desired_name }),
         },
     }
 }

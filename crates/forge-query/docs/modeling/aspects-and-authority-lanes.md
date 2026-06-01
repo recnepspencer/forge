@@ -248,6 +248,29 @@ The most important places to check lanes and aspects are:
 - Authority lanes are infrastructure vocabulary. They should not be replaced
   with domain-specific lane names in public DX.
 
+## Declaration-entry retrofit
+
+The aspect story extends beyond runtime reads, computed surfaces, and
+effects. Declaration-entry artifacts such as progression, foundational
+evidence, route plans, receipts, envelopes, relational routing, bridge
+routing, and signal compatibility now need to carry aspect-aware semantic
+granularity too. The same discipline applies there: aspects are contracts, not
+optional decoration, and later binding/orchestration phases should consume
+retained aspect truth instead of re-inferring it from broad artifact classes.
+
+In the currently shipped declaration-entry retrofit, that means:
+
+- envelopes publish the public semantic slice
+- relational routing lowers only the relational slice from that publication
+- bridge routing lowers only the bridge slice and separately freezes what
+  actually mapped into bridge continuation semantics
+- signal compatibility checks dependency and produced-aspect posture against
+  the envelope slice before later execution exists
+
+So aspects are now doing the same kind of load-bearing work on the
+declaration-entry side that they already do in runtime, relational, bridge,
+and signal execution surfaces.
+
 ## Related Docs
 
 - [Computed](../runtime-surfaces/computed.md)

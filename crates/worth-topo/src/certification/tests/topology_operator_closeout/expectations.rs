@@ -31,7 +31,7 @@ pub(super) fn replay_scenarios_from_report(
 
 pub(super) fn accepted_branch_local_row_count(report: &MilestoneThreeHostileSuiteReport) -> usize {
     report
-        .edit_branch_local_parity_rows
+        .mutation_branch_local_parity_rows
         .iter()
         .filter(|row| {
             row.outcome_class == MilestoneThreeHostileOutcomeClass::Accepted
@@ -45,7 +45,7 @@ pub(super) fn accepted_branch_local_scenarios_from_report(
     report: &MilestoneThreeHostileSuiteReport,
 ) -> Vec<String> {
     report
-        .edit_branch_local_parity_rows
+        .mutation_branch_local_parity_rows
         .iter()
         .filter(|row| {
             row.outcome_class == MilestoneThreeHostileOutcomeClass::Accepted
@@ -60,7 +60,7 @@ pub(super) fn rejected_branch_local_scenarios_from_report(
     report: &MilestoneThreeHostileSuiteReport,
 ) -> Vec<String> {
     report
-        .edit_branch_local_parity_rows
+        .mutation_branch_local_parity_rows
         .iter()
         .filter(|row| {
             row.outcome_class == MilestoneThreeHostileOutcomeClass::Rejected
@@ -72,28 +72,28 @@ pub(super) fn rejected_branch_local_scenarios_from_report(
         .collect()
 }
 
-pub(super) fn stable_edit_digest_scenarios_from_report(
+pub(super) fn stable_mutation_digest_scenarios_from_report(
     report: &MilestoneThreeHostileSuiteReport,
 ) -> Vec<String> {
     report
         .determinism_rule_rows
         .iter()
         .filter(|row| {
-            row.rule_kind == MilestoneThreeDeterminismRuleKind::StableEditDigest
+            row.rule_kind == MilestoneThreeDeterminismRuleKind::StableMutationDigest
                 && row.replay_verified
         })
         .map(|row| row.scenario.as_str().to_string())
         .collect()
 }
 
-pub(super) fn stable_edit_order_scenarios_from_report(
+pub(super) fn stable_mutation_order_scenarios_from_report(
     report: &MilestoneThreeHostileSuiteReport,
 ) -> Vec<String> {
     report
         .determinism_rule_rows
         .iter()
         .filter(|row| {
-            row.rule_kind == MilestoneThreeDeterminismRuleKind::StableEditOrder
+            row.rule_kind == MilestoneThreeDeterminismRuleKind::StableMutationOrder
                 && row.replay_verified
                 && row.row_digest.contains("order_policy=sequence_preserving")
         })
@@ -115,7 +115,7 @@ pub(super) fn expected_milestone_three_validator_expectations() -> Vec<(String, 
         (
             "BowtieAdjacentRewire".to_string(),
             vec![
-                "edit_local_continuity".to_string(),
+                "mutation_local_continuity".to_string(),
                 "naming_continuity".to_string(),
                 "rejection_locality".to_string(),
             ],
@@ -135,7 +135,7 @@ pub(super) fn expected_milestone_three_validator_expectations() -> Vec<(String, 
         (
             "BrokenRadialLocalization".to_string(),
             vec![
-                "edit_local_continuity".to_string(),
+                "mutation_local_continuity".to_string(),
                 "naming_continuity".to_string(),
                 "rejection_locality".to_string(),
             ],
@@ -145,7 +145,7 @@ pub(super) fn expected_milestone_three_validator_expectations() -> Vec<(String, 
 
 fn accepted_validator_expectations() -> Vec<String> {
     vec![
-        "edit_local_continuity".to_string(),
+        "mutation_local_continuity".to_string(),
         "naming_continuity".to_string(),
         "derived_validation_inspection".to_string(),
     ]
@@ -160,20 +160,20 @@ pub(super) fn assert_milestone_three_required_outputs(
         CertificationRequiredOutput::MilestoneThreeOperatorFamilyClosureRows,
         CertificationRequiredOutput::MilestoneThreePrimitiveFamilyClosureRows,
         CertificationRequiredOutput::MilestoneThreeScalePressureRows,
-        CertificationRequiredOutput::MilestoneThreeTopologyEditDigestRows,
+        CertificationRequiredOutput::MilestoneThreeTopologyMutationDigestRows,
         CertificationRequiredOutput::MilestoneThreeNamingContinuityMatrixRows,
         CertificationRequiredOutput::MilestoneThreeNamingContinuityBreadthRows,
-        CertificationRequiredOutput::MilestoneThreeRejectedEditScopeReportRows,
-        CertificationRequiredOutput::MilestoneThreeEditReplayParityRows,
-        CertificationRequiredOutput::MilestoneThreeEditBranchLocalParityRows,
+        CertificationRequiredOutput::MilestoneThreeRejectedMutationScopeReportRows,
+        CertificationRequiredOutput::MilestoneThreeMutationReplayParityRows,
+        CertificationRequiredOutput::MilestoneThreeMutationBranchLocalParityRows,
         CertificationRequiredOutput::MilestoneThreeReplayBranchBreadthRows,
-        CertificationRequiredOutput::MilestoneThreeEditedTopologyQueryTraversalRows,
+        CertificationRequiredOutput::MilestoneThreeMutationTopologyQueryTraversalRows,
         CertificationRequiredOutput::MilestoneThreeChangedScopeCoverageRows,
         CertificationRequiredOutput::MilestoneThreeValidationBreadthRows,
         CertificationRequiredOutput::MilestoneThreeDerivedRegionCoverageRows,
         CertificationRequiredOutput::MilestoneThreeDeterminismRuleRows,
-        CertificationRequiredOutput::MilestoneThreeEditBreadthCounterRows,
-        CertificationRequiredOutput::MilestoneThreeEditFalloutBreadthRows,
+        CertificationRequiredOutput::MilestoneThreeMutationBreadthCounterRows,
+        CertificationRequiredOutput::MilestoneThreeMutationFalloutBreadthRows,
         CertificationRequiredOutput::MilestoneThreeDerivedReuseLegalityRows,
         CertificationRequiredOutput::MilestoneThreeDerivedWorkBreadthRows,
         CertificationRequiredOutput::MilestoneThreeFailureLocalityRows,

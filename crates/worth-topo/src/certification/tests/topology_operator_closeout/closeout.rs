@@ -1,8 +1,8 @@
 use super::super::*;
 use super::expectations::*;
 use crate::facade::{
-    CertificationSuiteRequirements, MilestoneThreeHostileScenario, TopologyEditNamingOutcome,
-    TopologyEditRejectionClass,
+    CertificationSuiteRequirements, MilestoneThreeHostileScenario, TopologyMutationNamingOutcome,
+    TopologyMutationRejectionClass,
 };
 
 #[test]
@@ -49,7 +49,7 @@ fn milestone_three_closeout_enforces_declared_closeout_requirements() {
     let requirements = milestone_three_closeout_requirements();
     let report = certify_milestone_three_closeout(
         || {
-            crate::facade::milestone_one_runtime_builder()
+            crate::validation::reference_integrity::milestone_one_runtime_builder()
                 .expect(" milestone one runtime builder")
                 .build()
         },
@@ -74,11 +74,11 @@ fn milestone_three_closeout_enforces_declared_closeout_requirements() {
         requirements.required_parity_rows
     );
     assert_eq!(
-        report.topology_edit_digest_rows.len(),
+        report.topology_mutation_digest_rows.len(),
         requirements.required_family_rows.len()
     );
     assert_eq!(
-        report.naming_edit_continuity_matrix_rows.len(),
+        report.naming_mutation_continuity_matrix_rows.len(),
         requirements.required_family_rows.len()
     );
     assert_eq!(
@@ -86,13 +86,13 @@ fn milestone_three_closeout_enforces_declared_closeout_requirements() {
         requirements.required_family_rows.len()
     );
     assert_eq!(
-        report.edit_replay_parity_rows.len(),
+        report.mutation_replay_parity_rows.len(),
         requirements.required_family_rows.len()
     );
     assert_eq!(
         accepted_branch_local_row_count(&report),
         requirements.required_family_rows.len() - requirements.required_rejection_rows.len(),
-        "closeout should prove accepted branch-local edit parity for each accepted scenario"
+        "closeout should prove accepted branch-local mutation parity for each accepted scenario"
     );
     assert_eq!(
         accepted_branch_local_scenarios_from_report(&report),
@@ -109,23 +109,23 @@ fn milestone_three_closeout_enforces_declared_closeout_requirements() {
         "closeout should prove rejected branch-local diagnostic parity"
     );
     assert_eq!(
-        stable_edit_digest_scenarios_from_report(&report),
+        stable_mutation_digest_scenarios_from_report(&report),
         requirements.required_family_rows
     );
     assert_eq!(
-        stable_edit_order_scenarios_from_report(&report),
+        stable_mutation_order_scenarios_from_report(&report),
         requirements.required_family_rows
     );
     assert_eq!(
-        report.rejected_edit_scope_report_rows.len(),
+        report.rejected_mutation_scope_report_rows.len(),
         requirements.required_rejection_rows.len()
     );
     assert_eq!(
-        report.edit_breadth_counter_rows.len(),
+        report.mutation_breadth_counter_rows.len(),
         requirements.required_family_rows.len()
     );
     assert_eq!(
-        report.edit_fallout_breadth_rows.len(),
+        report.mutation_fallout_breadth_rows.len(),
         requirements.required_family_rows.len()
     );
     assert_eq!(
@@ -172,13 +172,13 @@ fn assert_milestone_three_direct_rows_are_nonempty(
     assert!(!report.changed_scope_coverage_rows.is_empty());
     assert!(!report.derived_region_coverage_rows.is_empty());
     assert!(report
-        .topology_edit_digest_rows
+        .topology_mutation_digest_rows
         .iter()
-        .all(|row| row.topology_edit_digest.contract_count > 0));
+        .all(|row| row.topology_mutation_digest.mutation_record_count > 0));
     assert!(report
-        .naming_edit_continuity_matrix_rows
+        .naming_mutation_continuity_matrix_rows
         .iter()
-        .all(|row| !row.naming_edit_continuity_matrix.rows.is_empty()));
+        .all(|row| !row.naming_mutation_continuity_matrix.rows.is_empty()));
     assert!(report
         .naming_continuity_breadth_rows
         .iter()
@@ -186,18 +186,17 @@ fn assert_milestone_three_direct_rows_are_nonempty(
             && row.naming_scope_count() > 0
             && row.replay_checked()));
     assert!(report
-        .edit_breadth_counter_rows
+        .mutation_breadth_counter_rows
         .iter()
-        .all(|row| row.contract_count > 0 && row.replay_checked));
-    assert!(report
-        .edit_fallout_breadth_rows
-        .iter()
-        .all(|row| row.declared_derived_region_count > 0
-            && !row.locality_claim_mismatch
-            && !row.fallback_policy_exceeded
-            && row.fallback_rejection_class.is_none()));
-    assert_eq!(report.edited_query_traversal_rows.len(), 2);
-    assert!(report.edited_query_traversal_rows.iter().all(|row| {
+        .all(|row| row.mutation_record_count > 0 && row.replay_checked));
+    assert!(report.mutation_fallout_breadth_rows.iter().all(|row| row
+        .declared_derived_region_count
+        > 0
+        && !row.locality_claim_mismatch
+        && !row.fallback_policy_exceeded
+        && row.fallback_rejection_class.is_none()));
+    assert_eq!(report.mutation_query_traversal_rows.len(), 2);
+    assert!(report.mutation_query_traversal_rows.iter().all(|row| {
         row.parity_verified
             && row.request_count > 0
             && row.relationship_proof_admission_count > 0
@@ -220,7 +219,7 @@ fn assert_milestone_three_direct_rows_are_nonempty(
     );
     assert!(report.primitive_family_closure_rows.iter().all(|row| {
         row.replay_verified
-            && row.topology_edit_digest.contract_count > 0
+            && row.topology_mutation_digest.mutation_record_count > 0
             && row.final_materialized_topology_digest
                 == row.replay_final_materialized_topology_digest
             && row.derived_validation_row_count > 0
@@ -228,9 +227,9 @@ fn assert_milestone_three_direct_rows_are_nonempty(
     assert_eq!(report.scale_pressure_rows.len(), 6);
     assert!(report.scale_pressure_rows.iter().all(|row| {
         row.replay_verified()
-            && row.topology_edit_digest().contract_count > 0
+            && row.topology_mutation_digest().mutation_record_count > 0
             && row.workload_size() > 0
-            && row.edit_step_count() > 0
+            && row.mutation_step_count() > 0
             && row.final_state_digest() == row.replay_final_state_digest()
     }));
     assert!(report
@@ -249,8 +248,8 @@ fn assert_milestone_three_direct_rows_are_nonempty(
             && row.diagnostic_classification_stable
             && row.tie_break_evidence_stable
     }));
-    assert!(report.edit_fallout_breadth_rows.iter().any(|row| {
-        row.fallout_class == MilestoneThreeEditFalloutClass::WholeViewFallback
+    assert!(report.mutation_fallout_breadth_rows.iter().any(|row| {
+        row.fallout_class == MilestoneThreeMutationFalloutClass::WholeViewFallback
             && row.fallback_count > 0
             && row.derived_validation_row_count > 0
     }));
@@ -267,7 +266,7 @@ fn assert_milestone_three_direct_rows_are_nonempty(
             && row.row_digest().contains("scenarios=")
     }));
     assert!(report.rejection_distribution_rows.iter().any(|row| {
-        row.rejection_class() == TopologyEditRejectionClass::InvariantBlocked
+        row.rejection_class() == TopologyMutationRejectionClass::InvariantBlocked
             && row.case_count() == 2
             && row.scenarios().len() == 2
             && row
@@ -278,9 +277,9 @@ fn assert_milestone_three_direct_rows_are_nonempty(
     }));
     assert_eq!(
         report.rejection_distribution_rows.len(),
-        TopologyEditRejectionClass::ALL.len()
+        TopologyMutationRejectionClass::ALL.len()
     );
-    for rejection_class in TopologyEditRejectionClass::ALL {
+    for rejection_class in TopologyMutationRejectionClass::ALL {
         assert!(
             report
                 .rejection_distribution_rows
@@ -291,7 +290,7 @@ fn assert_milestone_three_direct_rows_are_nonempty(
         );
     }
     assert!(report.naming_distribution_rows.iter().any(|row| {
-        row.continuity_outcome_class() == TopologyEditNamingOutcome::Ambiguous
+        row.continuity_outcome_class() == TopologyMutationNamingOutcome::Ambiguous
             && row.case_count() > 0
             && row
                 .scenarios()
@@ -300,7 +299,7 @@ fn assert_milestone_three_direct_rows_are_nonempty(
             && row.row_digest().contains("AmbiguousLocalRewireContinuity")
     }));
     assert!(report.naming_distribution_rows.iter().any(|row| {
-        row.continuity_outcome_class() == TopologyEditNamingOutcome::Rejected
+        row.continuity_outcome_class() == TopologyMutationNamingOutcome::Rejected
             && row.case_count() > 0
             && row.row_digest().starts_with("naming_outcome=Rejected;")
             && row.row_digest().contains("scenarios=")
@@ -340,7 +339,7 @@ fn assert_milestone_three_direct_rows_are_nonempty(
                 && row
                     .evidence_labels
                     .iter()
-                    .any(|evidence| evidence == "primitive_family_edit_closure=SolidShell(f)")
+                    .any(|evidence| evidence == "primitive_family_mutation_closure=SolidShell(f)")
         }));
     assert!(report
         .hostile_certification_category_rows
@@ -350,7 +349,7 @@ fn assert_milestone_three_direct_rows_are_nonempty(
                 && row.status.as_str() == "certified"
                 && row.gap_labels.is_empty()
                 && row.evidence_labels.iter().any(|evidence| {
-                    evidence == "edited_topology_query_traversal=post_edit_local_rewire_view"
+                    evidence == "mutation_topology_query_traversal=post_mutation_local_rewire_view"
                 })
         }));
     assert!(report

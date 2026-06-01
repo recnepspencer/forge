@@ -1,22 +1,11 @@
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 use super::{
     ForgeQueryAspectMutationOperation, ForgeQueryAspectMutationOperationKind,
     ForgeQueryAspectValue, ForgeQuerySymbolicAspectReference,
 };
 use crate::identity::hash_parts;
-use crate::memory_workspace::ForgeQueryWorkspaceError;
 use crate::runtime::ForgeQueryWriteCommand;
-
-pub(crate) fn aspect_values_to_payload(
-    aspects: &[ForgeQueryAspectValue],
-) -> Result<Value, ForgeQueryWorkspaceError> {
-    let mut payload = Value::Object(Map::new());
-    for aspect in aspects {
-        set_json_path(&mut payload, aspect.aspect_path(), aspect.value().clone())?;
-    }
-    Ok(payload)
-}
 
 pub(crate) fn command_declared_aspect_paths(command: &ForgeQueryWriteCommand) -> Vec<String> {
     command_declared_aspect_operations(command)
@@ -252,47 +241,4 @@ fn declared_aspect_value_digest_row(
         },
         serde_json::to_string(value).unwrap_or_else(|_| value.to_string())
     )
-}
-
-fn set_json_path(
-    root: &mut Value,
-    path: &str,
-    value: Value,
-) -> Result<(), ForgeQueryWorkspaceError> {
-    if path.trim().is_empty() {
-        return Err(ForgeQueryWorkspaceError::new(
-            "aspect path may not be empty",
-        ));
-    }
-
-    let mut current = root;
-    let mut segments = path.split('.').peekable();
-    while let Some(segment) = segments.next() {
-        if segment.is_empty() {
-            return Err(ForgeQueryWorkspaceError::new(format!(
-                "aspect path `{path}` contains an empty segment"
-            )));
-        }
-        let is_leaf = segments.peek().is_none();
-        if is_leaf {
-            let object = current.as_object_mut().ok_or_else(|| {
-                ForgeQueryWorkspaceError::new(format!(
-                    "aspect path `{path}` traverses through a non-object payload segment"
-                ))
-            })?;
-            object.insert(segment.to_string(), value);
-            return Ok(());
-        }
-
-        let object = current.as_object_mut().ok_or_else(|| {
-            ForgeQueryWorkspaceError::new(format!(
-                "aspect path `{path}` traverses through a non-object payload segment"
-            ))
-        })?;
-        current = object
-            .entry(segment.to_string())
-            .or_insert_with(|| Value::Object(Map::new()));
-    }
-
-    Ok(())
 }

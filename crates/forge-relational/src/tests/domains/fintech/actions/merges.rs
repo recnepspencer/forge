@@ -1,10 +1,7 @@
-use serde_json::json;
-
 use crate::facade::history::BranchId;
-use crate::facade::payloads::RecordPayload;
 use crate::facade::transactions::{
-    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions, UpdateEntityIntent,
-    WorkerIntentBatch,
+    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions,
+    UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 use super::super::fixture::{FintechCaseRole, FintechWorld};
@@ -22,17 +19,45 @@ pub(crate) fn diverge_case_trade_on_branch(
     });
     txn.push_batch(
         WorkerIntentBatch::new("diverge-case-trade").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: case.trade,
-                payload: RecordPayload::StructuredJson(json!({
-                    "entity_type": "trade",
-                    "case": format!("{:?}", case.role),
-                    "desk": "analysis-branch",
-                    "book": "branch-divergence",
-                    "notional": notional,
-                    "ccy": "USD",
-                    "diverged": true,
-                })),
+                fields: crate::tests::support::aspect_field_patch_from_values([
+                    (
+                        crate::tests::support::aspect_key("entity_type"),
+                        crate::tests::support::field_key("entity_type"),
+                        crate::tests::support::string_aspect_value("trade"),
+                    ),
+                    (
+                        crate::tests::support::aspect_key("case"),
+                        crate::tests::support::field_key("case"),
+                        crate::tests::support::string_aspect_value(&format!("{:?}", case.role)),
+                    ),
+                    (
+                        crate::tests::support::aspect_key("desk"),
+                        crate::tests::support::field_key("desk"),
+                        crate::tests::support::string_aspect_value("analysis-branch"),
+                    ),
+                    (
+                        crate::tests::support::aspect_key("book"),
+                        crate::tests::support::field_key("book"),
+                        crate::tests::support::string_aspect_value("branch-divergence"),
+                    ),
+                    (
+                        crate::tests::support::aspect_key("notional"),
+                        crate::tests::support::field_key("notional"),
+                        crate::tests::support::fixture_i64_number_aspect_value(notional),
+                    ),
+                    (
+                        crate::tests::support::aspect_key("ccy"),
+                        crate::tests::support::field_key("ccy"),
+                        crate::tests::support::string_aspect_value("USD"),
+                    ),
+                    (
+                        crate::tests::support::aspect_key("diverged"),
+                        crate::tests::support::field_key("diverged"),
+                        crate::tests::support::bool_aspect_value(true),
+                    ),
+                ]),
             }),
         )),
     );

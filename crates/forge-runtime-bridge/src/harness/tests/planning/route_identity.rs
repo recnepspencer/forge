@@ -175,9 +175,24 @@ fn bridge_route_identity_is_stable_when_patch_items_arrive_out_of_order_with_dup
                 "patch-a",
                 "snapshot-a",
                 vec![
-                    crate::facade::BridgeCommittedPatchItem::new("user", "profile", "name"),
-                    crate::facade::BridgeCommittedPatchItem::new("user", "profile", "name"),
-                    crate::facade::BridgeCommittedPatchItem::new("user", "profile", "name"),
+                    crate::facade::BridgeCommittedPatchItem::new(
+                        "user",
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid bridge patch aspect key"),
+                        "name",
+                    ),
+                    crate::facade::BridgeCommittedPatchItem::new(
+                        "user",
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid bridge patch aspect key"),
+                        "name",
+                    ),
+                    crate::facade::BridgeCommittedPatchItem::new(
+                        "user",
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid bridge patch aspect key"),
+                        "name",
+                    ),
                 ],
             ))
             .with_snapshot(snapshot("snapshot-a", "alice")),
@@ -207,8 +222,18 @@ fn bridge_route_identity_is_stable_when_patch_items_arrive_out_of_order_with_dup
                 "patch-a",
                 "snapshot-a",
                 vec![
-                    crate::facade::BridgeCommittedPatchItem::new("user", "profile", "name"),
-                    crate::facade::BridgeCommittedPatchItem::new("user", "profile", "name"),
+                    crate::facade::BridgeCommittedPatchItem::new(
+                        "user",
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid bridge patch aspect key"),
+                        "name",
+                    ),
+                    crate::facade::BridgeCommittedPatchItem::new(
+                        "user",
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid bridge patch aspect key"),
+                        "name",
+                    ),
                 ],
             ))
             .with_snapshot(snapshot("snapshot-a", "alice")),

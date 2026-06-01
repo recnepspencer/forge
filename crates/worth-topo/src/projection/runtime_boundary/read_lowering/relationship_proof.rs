@@ -6,13 +6,13 @@ use forge_query::facade::{
     SnapshotLineageClass, TenantBasisEpoch, TenantBindingSnapshot,
 };
 
-use super::TopologyDomainQueryRelationshipProofPosture;
-use crate::projection::read_views::domain::error::TopologyDomainQueryError;
-use crate::projection::read_views::domain::request::TopologyDomainQueryRequest;
+use super::TopologyReadRelationshipProofPosture;
+use crate::projection::read_views::domain::error::TopologyReadError;
+use crate::projection::read_views::domain::request::TopologyReadRequest;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct RelationshipProofLowering {
-    pub(super) posture: TopologyDomainQueryRelationshipProofPosture,
+    pub(super) posture: TopologyReadRelationshipProofPosture,
     pub(super) admission_identity: Option<String>,
     pub(super) topology_classes: Vec<RelationshipProofTopologyClass>,
     pub(super) admission_count: usize,
@@ -20,15 +20,15 @@ pub(super) struct RelationshipProofLowering {
     pub(super) support_profile_digest: String,
 }
 
-pub(super) fn admit_domain_query_relationship_proofs(
-    request: &TopologyDomainQueryRequest,
+pub(super) fn admit_topology_read_relationship_proofs(
+    request: &TopologyReadRequest,
     canonical_query: &CanonicalQueryArtifact,
-) -> Result<RelationshipProofLowering, TopologyDomainQueryError> {
+) -> Result<RelationshipProofLowering, TopologyReadError> {
     let relationship_proof_support_profile =
         forge_query::facade::runtime_backed_relationship_proof_support_profile();
     let policy = PolicyRuleSnapshot::synthetic_authority(
-        "topology-domain-query",
-        "topology-domain-query-rules",
+        "topology-read",
+        "topology-read-rules",
         PolicyEpoch::Synthetic(1),
     );
     let admitted_policy_context = admit_policy_tenant_context(
@@ -44,9 +44,7 @@ pub(super) fn admit_domain_query_relationship_proofs(
         SchemaVariantSnapshot::synthetic_authority("tenant-a", "schema-a", "compatible"),
         PolicyExecutionModeRequest::CurrentRead,
     )
-    .map_err(|error| {
-        TopologyDomainQueryError::canonical_lowering_resolution(format!("{error:?}"))
-    })?;
+    .map_err(|error| TopologyReadError::canonical_lowering_resolution(format!("{error:?}")))?;
     let descriptor_set = relationship_proof_descriptor_set(
         request,
         admitted_policy_context.bundle().policy_digest(),
@@ -54,10 +52,10 @@ pub(super) fn admit_domain_query_relationship_proofs(
     let (relationship_proof_admission, relationship_proof_counters) =
         admit_relationship_proofs(canonical_query, &admitted_policy_context, &descriptor_set)
             .map_err(|error| {
-                TopologyDomainQueryError::canonical_lowering_resolution(format!("{error:?}"))
+                TopologyReadError::canonical_lowering_resolution(format!("{error:?}"))
             })?;
     Ok(RelationshipProofLowering {
-        posture: TopologyDomainQueryRelationshipProofPosture::Admitted,
+        posture: TopologyReadRelationshipProofPosture::Admitted,
         admission_identity: Some(relationship_proof_admission.identity().as_str().to_string()),
         topology_classes: relationship_proof_admission.topology_classes().to_vec(),
         admission_count: relationship_proof_counters.relationship_proof_admission_count(),
@@ -77,7 +75,7 @@ pub(super) fn runtime_basis_intent() -> ExecutionBasisIntent {
 }
 
 fn relationship_proof_descriptor_set(
-    request: &TopologyDomainQueryRequest,
+    request: &TopologyReadRequest,
     policy_digest: &str,
 ) -> RelationshipProofDescriptorSet {
     let descriptors = request

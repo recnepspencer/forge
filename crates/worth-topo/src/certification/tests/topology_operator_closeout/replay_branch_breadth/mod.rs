@@ -1,7 +1,5 @@
-use crate::facade::{
-    certify_milestone_three_closeout, milestone_one_runtime_builder,
-    MilestoneThreeHostileSuiteReport,
-};
+use crate::facade::{certify_milestone_three_closeout, MilestoneThreeHostileSuiteReport};
+use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
 #[test]
 fn closeout_exposes_replay_and_branch_breadth_as_direct_evidence() {

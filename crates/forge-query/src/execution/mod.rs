@@ -249,14 +249,14 @@ impl ExecutionError {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExecutionResultEnvelope {
-    payload: Vec<String>,
+    rows: Vec<String>,
     report: ExecutionReport,
     counters: ExecutionCounters,
 }
 
 impl ExecutionResultEnvelope {
-    pub fn payload(&self) -> &[String] {
-        &self.payload
+    pub fn rows(&self) -> &[String] {
+        &self.rows
     }
 
     pub fn report(&self) -> &ExecutionReport {
@@ -274,9 +274,9 @@ impl ExecutionResultEnvelope {
             });
         }
 
-        if self.counters.execution_records_emitted_count() != self.payload.len() {
+        if self.counters.execution_records_emitted_count() != self.rows.len() {
             return Err(ExecutionError::ExecutionInvariantViolation {
-                message: "execution emitted count does not match payload length",
+                message: "execution emitted count does not match rows length",
             });
         }
 
@@ -284,12 +284,12 @@ impl ExecutionResultEnvelope {
     }
 
     pub(crate) fn new(
-        payload: Vec<String>,
+        rows: Vec<String>,
         report: ExecutionReport,
         counters: ExecutionCounters,
     ) -> Result<Self, ExecutionError> {
         let envelope = Self {
-            payload,
+            rows,
             report,
             counters,
         };

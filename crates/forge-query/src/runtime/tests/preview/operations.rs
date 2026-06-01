@@ -82,7 +82,10 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
         .expect("live view should declare");
     let rows = runtime.read_live(&view);
     assert_eq!(rows.len(), 1);
-    assert_eq!(rows[0].payload["title"]["value"], "Promoted preview task");
+    assert_eq!(
+        rows[0].external_row()["title"]["value"],
+        "Promoted preview task"
+    );
 }
 
 #[test]

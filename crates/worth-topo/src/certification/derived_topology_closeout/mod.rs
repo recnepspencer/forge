@@ -5,10 +5,12 @@ use forge_query::facade::{
 };
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::CommitResult;
-use schema::facade::{
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
+
+use crate::certification::{
     AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure, DecisionTrace,
-    DerivedTopologyReadBasis, DerivedTraceAnchor, DerivedTraceEvidence, NamedCounter,
-    PerformanceAccounting, TraceAvailability, VerifiedTopologyCommit,
+    DerivedTraceAnchor, DerivedTraceEvidence, NamedCounter, PerformanceAccounting,
+    TraceAvailability,
 };
 
 use crate::certification::authority_closeout::read_view::certification_integrity_markers;
@@ -32,7 +34,7 @@ use crate::certification::support::reporting::{
 };
 use crate::facade::{
     build_topology_read_artifact, certify_topology_view, compare_derived_equivalence_contracts,
-    validate_named_topology_truth, ReplayParityStatus, TopologyQueryAssembly,
+    validate_named_topology_truth, ReplayParityStatus,
 };
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,

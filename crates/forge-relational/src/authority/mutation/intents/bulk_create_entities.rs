@@ -18,17 +18,26 @@ use crate::authority::commit::preparation::reduction::merge::{
     canonical_merge_streams, OrderedReductionStream,
 };
 use crate::authority::mutation::outcomes::{MutationOutcome, RecordMutation};
-use crate::authority::mutation::record_changes::{allocate_entity, reserve_bulk_entity_capacity};
+use crate::authority::mutation::record_changes::{
+    allocate_entity_with_extra, reserve_bulk_entity_capacity,
+};
 use crate::authority::mutation::MutationWorkspace;
-use crate::transactions::data::{BulkEntityCreateIntent, CommitConflict, CreatedEntityRef};
+use crate::transactions::data::{
+    BulkEntityCreateIntent, BulkImportRowDomain, BulkImportStage, CommitConflict, ConflictClass,
+    CreatedEntityRef,
+};
 use crate::validation::data::InvariantGroupSet;
+
+use super::entity_field_creation_aspects::{
+    plan_entity_field_creation_aspects, EntityFieldCreationAspectPlan,
+};
 
 pub(super) fn apply(
     intent: &BulkEntityCreateIntent,
     workspace: &mut MutationWorkspace<'_>,
 ) -> Result<MutationOutcome, CommitConflict> {
     let version_id = workspace.version_id();
-    let mut outcome = MutationOutcome::with_capacity(intent.payloads.len(), 1);
+    let mut outcome = MutationOutcome::with_capacity(intent.field_patches.len(), 1);
     outcome.record_event(
         crate::authority::mutation::outcomes::MutationEvent::BulkEntitiesCreated {
             partition_id: intent.partition_id,
@@ -37,26 +46,32 @@ pub(super) fn apply(
         },
     );
     let staged_rows = stage_bulk_entity_rows(intent, workspace)?;
+    let entity_aspect_plans = stage_bulk_entity_aspect_plans(intent, workspace, &staged_rows)?;
     workspace.with_context(|context| {
-        reserve_bulk_entity_capacity(context.state, intent.partition_id, intent.payloads.len());
+        reserve_bulk_entity_capacity(
+            context.state,
+            intent.partition_id,
+            intent.field_patches.len(),
+        );
     });
-    for (client_key, payload) in intent
+    for ((client_key, _fields), aspect_plan) in intent
         .client_keys
         .iter()
         .cloned()
         .zip(staged_rows.into_iter())
+        .zip(entity_aspect_plans.into_iter())
     {
         let entity_id = workspace.with_context(|context| {
-            let entity_id = allocate_entity(
+            let entity_id = allocate_entity_with_extra(
                 context.state,
                 version_id,
                 intent.partition_id,
                 intent.kind_id,
-                payload.clone(),
+                aspect_plan.extra,
             );
             context
                 .state
-                .mark_entity_slot_touched(entity_id.partition_id, entity_id.local_slot.0 as usize);
+                .mark_entity_slot_touched(entity_id.partition_id, entity_id.slot_index());
             entity_id
         });
         workspace.register_created_entity(
@@ -70,22 +85,45 @@ pub(super) fn apply(
         outcome.record_change(RecordMutation::EntityCreated {
             entity_id,
             kind_id: intent.kind_id,
-            payload: payload.clone(),
+            authoritative_patch: aspect_plan.authoritative_patch,
         });
     }
-    outcome.set_last_event_count(intent.payloads.len());
+    outcome.set_last_event_count(intent.field_patches.len());
     Ok(outcome)
+}
+
+fn stage_bulk_entity_aspect_plans(
+    intent: &BulkEntityCreateIntent,
+    workspace: &MutationWorkspace<'_>,
+    field_patches: &[crate::transactions::data::AspectFieldPatch],
+) -> Result<Vec<EntityFieldCreationAspectPlan>, CommitConflict> {
+    let lowered_plan = workspace.entity_aspect_plan(intent.kind_id);
+    field_patches
+        .iter()
+        .map(|fields| {
+            plan_entity_field_creation_aspects(intent.kind_id, lowered_plan, fields).map_err(
+                |denial| {
+                    CommitConflict::new(ConflictClass::EntityAuthoritativeAspectStateDenied {
+                        kind_id: intent.kind_id,
+                        denial,
+                    })
+                },
+            )
+        })
+        .collect()
 }
 
 fn stage_bulk_entity_rows(
     intent: &BulkEntityCreateIntent,
     workspace: &mut MutationWorkspace<'_>,
-) -> Result<Vec<crate::payloads::data::RecordPayload>, CommitConflict> {
-    let packet_count =
-        coarse_preparation_packet_count(intent.payloads.len(), TARGET_PREPARATION_ITEMS_PER_PACKET);
+) -> Result<Vec<crate::transactions::data::AspectFieldPatch>, CommitConflict> {
+    let packet_count = coarse_preparation_packet_count(
+        intent.field_patches.len(),
+        TARGET_PREPARATION_ITEMS_PER_PACKET,
+    );
     let mut packets = Vec::with_capacity(packet_count);
-    for (packet_index, payloads) in intent
-        .payloads
+    for (packet_index, field_patches) in intent
+        .field_patches
         .chunks(TARGET_PREPARATION_ITEMS_PER_PACKET)
         .enumerate()
     {
@@ -112,10 +150,10 @@ fn stage_bulk_entity_rows(
                     write_exclusion: PreparationWriteExclusionClass::PublicationExcluded,
                 },
             },
-            rows: payloads
+            rows: field_patches
                 .iter()
                 .cloned()
-                .map(|payload| ImportStagedRow::Entity { payload })
+                .map(|fields| ImportStagedRow::Entity { fields })
                 .collect(),
         });
     }
@@ -123,16 +161,12 @@ fn stage_bulk_entity_rows(
     stage_import_packets(workspace, packets)
         .into_iter()
         .map(|row| match row {
-            ImportStagedRow::Entity { payload } => Ok(payload),
+            ImportStagedRow::Entity { fields } => Ok(fields),
             ImportStagedRow::Relation { .. } => Err(CommitConflict::new(
-                crate::transactions::data::ConflictClass::MutationStateInconsistency {
-                    detail: "bulk entity staging produced a relation row in the entity import lane"
-                        .to_string(),
-                    fields: serde_json::json!({
-                        "expected_row_domain": "entity",
-                        "actual_row_domain": "relation",
-                        "phase": "bulk_entity_stage_import",
-                    }),
+                crate::transactions::data::ConflictClass::BulkImportDomainMismatch {
+                    expected: BulkImportRowDomain::Entity,
+                    actual: BulkImportRowDomain::Relation,
+                    stage: BulkImportStage::EntityCreate,
                 },
             )),
         })

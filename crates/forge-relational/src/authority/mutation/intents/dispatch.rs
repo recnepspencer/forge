@@ -4,8 +4,7 @@ use crate::transactions::data::{
 
 use super::{
     bulk_create_entities, bulk_create_relations, create_entity, create_relation, delete_entity,
-    delete_relation, replace_entity, update_entity, update_entity_fields,
-    update_relation_endpoints,
+    delete_relation, replace_entity, update_entity_fields, update_relation_endpoints,
 };
 use crate::authority::mutation::outcomes::MutationOutcome;
 use crate::authority::mutation::MutationWorkspace;
@@ -18,9 +17,6 @@ pub(crate) fn dispatch_intent(
         MutationIntent::Create(CreateIntent::Entity(spec)) => create_entity::apply(spec, workspace),
         MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {
             bulk_create_entities::apply(spec, workspace)
-        }
-        MutationIntent::Entity(EntityMutationIntent::Update(spec)) => {
-            update_entity::apply(spec, workspace)
         }
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(spec)) => {
             update_entity_fields::apply(spec, workspace)

@@ -23,6 +23,43 @@ too-limited-to-express (REST endpoints for everything). `forge-query` fills
 that gap with a query model that is expressive enough for real applications
 and constrained enough for the runtime to optimize, narrow, and subscribe.
 
+That public story now also includes eleven compact product-facing layers on top
+of the retained declaration-entry pipeline:
+
+- a typed binding pipeline for turning current context or retained artifacts
+  into the next explicit Query input
+- a denial-preserving ordinary outcome layer that keeps ordinary call sites
+  concise without flattening checked or proof-visible topology
+- a prepared/executed continuation pipeline that turns retained continuation
+  truth into one explicit continuation contract without hiding workspace,
+  runtime, basis, or execution posture
+- a signal-compatibility orchestration layer that keeps retained compatibility,
+  prepared continuation, and explicit execution as separate public states
+- a contribution-composed orchestration layer that keeps declaration-entry
+  lowering and declaration-scoped contribution authoring on one public surface
+  without pretending they are one proof chain
+- an orchestration inventory and audit layer that keeps exported orchestration
+  verbs, ordinary lanes, transcripts, docs, and certification synchronized as
+  one public contract instead of letting those drift independently
+- a recovery boundary that turns ordinary, checked, and proof-visible stop
+  posture into one typed explanation and repair surface without pretending
+  Query already owns automatic repair execution
+- a family-helper projection layer that gives major declaration families
+  domain-native helper surfaces while still compiling onto the same generic
+  binding, orchestration, ordinary, recovery, and audit lanes
+- a grouped-authoring layer that turns meaningful neighborhood-shaped
+  declarations into retained grouped artifacts, grouped orchestration, and
+  grouped recovery without degrading into loops over isolated single-member
+  declarations
+- a public-doc-coverage layer that keeps feature docs, README discovery,
+  golden readouts, and teaching journeys synchronized with the live public
+  orchestration surface instead of letting documentation drift into a second
+  invented product
+- a platform-entry closeout layer that turns the shipped orchestration,
+  docs/goldens, compile-fail, parity, and hostile proof surfaces into one
+  machine-checkable certification ledger rather than a bag of local green
+  checks
+
 ## What This Query Layer Is For
 
 `forge-query` exists for every consumer that needs to read, filter, project,
@@ -294,9 +331,28 @@ What this enables:
 #### Implicit topological binding (Route-model binding generalized)
 
 Technical role:
-The query layer acts as a Type-Bound Dependency Injector, taking inspiration from Laravel's route-model binding but generalizing it to graph-native truth. Consumer functions (UI components, controller endpoints, or kernel solvers) declare their data needs purely as typed signature inputs (e.g., `Query<Entity, SubgraphCone<Depth=3>>`). 
+The query layer owns one shared proof-bearing binding substrate, starting
+with one retained target-binding core that both contribution authoring and
+declaration-entry orchestration consume before the shipped first
+extractor/resolver expansion in Phase 25 and later follow-on widening, taking
+inspiration from Laravel's route-model binding but translating it into
+Rust-native typed extractors, retained-artifact resolvers, capability
+witnesses, and family-scoped binding contracts. Consumer functions (UI
+components, controller endpoints, kernel solvers, contribution authors, and
+later orchestration/continuation callers) declare their data needs as typed
+signature inputs or typed request forms rather than ambient host lookups.
 
-The runtime automatically parses the active context, binds the target, executes the query, and injects the fully-resolved regional dependencies into the function.
+The runtime binds declared context and retained proof into the right admitted
+Query artifact, executes against canonical query meaning, and exposes the same
+binding story across direct query execution, domain capability contribution,
+declaration-entry orchestration, and later continuation surfaces.
+
+The first shipped slice now covers both sides of that seam:
+
+- context-bound declaration, route, receipt, envelope, and continuation-ready
+  request preparation
+- retained progression / route / receipt / envelope target resolution into the
+  next explicit Query input
 
 What this enables:
 
@@ -304,7 +360,13 @@ What this enables:
 - **Workflow context** can implicitly bind to a pending-approval scope
 - **Geometry triggers** can implicitly bind to a neighborhood/subgraph traversal
 - **AI execution contexts** can implicitly bind to a speculative branch or time window
-- eradication of explicit "data fetching" and "loading/error states" from consuming code
+- contribution authoring and later declaration/continuation ergonomics can
+  reuse the same binding substrate instead of inventing local glue families
+- declaration-entry and later continuation binding should narrow by semantic
+  aspect contract, not by raw target-string folklore or broad artifact class
+- eradication of explicit "data fetching" and "loading/error states" from
+  consuming code where the binding contract already proves what can be safely
+  resolved
 
 ### Live Query Architecture
 

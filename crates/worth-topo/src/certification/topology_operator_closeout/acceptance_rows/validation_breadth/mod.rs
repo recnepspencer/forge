@@ -97,13 +97,13 @@ fn validation_breadth_row(
         outcome_class: report.outcome_class,
         validator_family_count: scenario_validator_rows.len(),
         validator_name_count: validator_names.len(),
-        edit_family_count: report.edit_families.len(),
-        changed_scope_count: report.topology_edit_digest.changed_scope_count,
-        naming_scope_count: report.topology_edit_digest.naming_scope_count,
-        derived_region_count: report.topology_edit_digest.derived_region_count,
+        mutation_family_count: report.mutation_families.len(),
+        changed_scope_count: report.topology_mutation_digest.changed_scope_count,
+        naming_scope_count: report.topology_mutation_digest.naming_scope_count,
+        derived_region_count: report.topology_mutation_digest.derived_region_count,
         derived_validation_row_count,
         localized_rejection_boundary_count,
-        replay_checked: report.edit_replay_parity_report.replay_checked,
+        replay_checked: report.mutation_replay_parity_report.replay_checked,
         row_digest: validation_breadth_digest(
             report,
             scenario_validator_rows.len(),
@@ -128,18 +128,18 @@ fn validation_breadth_digest(
     localized_rejection_boundary_count: usize,
 ) -> String {
     format!(
-        "scenario={};outcome={:?};validator_families={};validator_names={};edit_families={};changed_scopes={};naming_scopes={};derived_regions={};derived_validation_rows={};localized_rejection_boundaries={};replay_checked={}",
+        "scenario={};outcome={:?};validator_families={};validator_names={};mutation_families={};changed_scopes={};naming_scopes={};derived_regions={};derived_validation_rows={};localized_rejection_boundaries={};replay_checked={}",
         report.scenario.as_str(),
         report.outcome_class,
         validator_family_count,
         validator_name_count,
-        report.edit_families.len(),
-        report.topology_edit_digest.changed_scope_count,
-        report.topology_edit_digest.naming_scope_count,
-        report.topology_edit_digest.derived_region_count,
+        report.mutation_families.len(),
+        report.topology_mutation_digest.changed_scope_count,
+        report.topology_mutation_digest.naming_scope_count,
+        report.topology_mutation_digest.derived_region_count,
         derived_validation_row_count,
         localized_rejection_boundary_count,
-        report.edit_replay_parity_report.replay_checked
+        report.mutation_replay_parity_report.replay_checked
     )
 }
 
@@ -148,7 +148,7 @@ fn ensure_validation_breadth_row_is_proof_bearing(
 ) -> Result<(), TopologyCertificationError> {
     let common_breadth_is_present = row.validator_family_count >= 3
         && row.validator_name_count >= 3
-        && row.edit_family_count > 0
+        && row.mutation_family_count > 0
         && row.changed_scope_count > 0
         && row.naming_scope_count > 0
         && row.derived_region_count > 0

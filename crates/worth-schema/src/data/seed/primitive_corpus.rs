@@ -2,13 +2,13 @@ use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use serde::{Deserialize, Serialize};
 
-use crate::data::authority::{
-    MutationOrigin, RawTopologyIntent, TopologyAuthority, TopologyAuthorityError,
-    VerifiedTopologyCommit,
-};
+use crate::data::authority::{MutationOrigin, RawTopologyIntent};
 use crate::data::entities::{EntityKind, TopologyEntityKind};
 use crate::data::relations::{RelationKind, TopologyRelationKind};
-use crate::data::seed::{created_ref, TopologyCreateBatchBuilder};
+use crate::data::seed::{
+    commit_topology_intent, commit_topology_intent_on_branch, created_ref, SeededTopologyCommit,
+    TopologyCreateBatchBuilder, TopologyIntentCommitError,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MilestoneOnePrimitiveCase {
@@ -50,7 +50,7 @@ pub enum MilestoneOnePrimitiveAuthoringError {
         parameter: usize,
         requirement: &'static str,
     },
-    Authority(TopologyAuthorityError),
+    Authority(TopologyIntentCommitError),
 }
 
 impl std::fmt::Display for MilestoneOnePrimitiveAuthoringError {
@@ -71,8 +71,8 @@ impl std::fmt::Display for MilestoneOnePrimitiveAuthoringError {
 
 impl std::error::Error for MilestoneOnePrimitiveAuthoringError {}
 
-impl From<TopologyAuthorityError> for MilestoneOnePrimitiveAuthoringError {
-    fn from(value: TopologyAuthorityError) -> Self {
+impl From<TopologyIntentCommitError> for MilestoneOnePrimitiveAuthoringError {
+    fn from(value: TopologyIntentCommitError) -> Self {
         Self::Authority(value)
     }
 }
@@ -162,12 +162,9 @@ pub fn seed_milestone_one_primitive(
     runtime: &mut RelationalRuntime,
     stem: &str,
     primitive: &MilestoneOnePrimitiveCase,
-) -> Result<VerifiedTopologyCommit, MilestoneOnePrimitiveAuthoringError> {
+) -> Result<SeededTopologyCommit, MilestoneOnePrimitiveAuthoringError> {
     let intent = build_milestone_one_primitive_intent(stem, primitive)?;
-    Ok(TopologyAuthority::new(runtime)
-        .apply_topology_intent_traced(intent)
-        .map(|traced| traced.into_primary_result())
-        .map_err(|failure| failure.into_error())?)
+    commit_topology_intent(runtime, intent).map_err(Into::into)
 }
 
 pub fn seed_milestone_one_primitive_on_branch(
@@ -176,13 +173,10 @@ pub fn seed_milestone_one_primitive_on_branch(
     primitive: &MilestoneOnePrimitiveCase,
     branch_id: BranchId,
     mutation_origin: MutationOrigin,
-) -> Result<VerifiedTopologyCommit, MilestoneOnePrimitiveAuthoringError> {
+) -> Result<SeededTopologyCommit, MilestoneOnePrimitiveAuthoringError> {
     let mut intent = build_milestone_one_primitive_intent(stem, primitive)?;
     intent.mutation_origin = mutation_origin;
-    Ok(TopologyAuthority::new(runtime)
-        .apply_topology_intent_on_branch_traced(intent, branch_id)
-        .map(|traced| traced.into_primary_result())
-        .map_err(|failure| failure.into_error())?)
+    commit_topology_intent_on_branch(runtime, intent, branch_id).map_err(Into::into)
 }
 
 pub fn milestone_one_default_primitive_corpus() -> Vec<MilestoneOnePrimitiveScenario> {

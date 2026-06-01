@@ -1,8 +1,9 @@
+use crate::capabilities::AspectPlanSource;
 use crate::identity::data::KindId;
 use crate::logic::runtime::RelationalRuntime;
+use crate::schema::data::LoweredAspectContractPlan;
 use crate::transactions::data::MergedCommitPlan;
 
-use super::index_view::InvariantIndexView;
 use super::metrics::InvariantMetrics;
 use super::observation::InvariantObservation;
 use super::request::{PreparedRelationIntegrityScope, PreparedRelationIntegrityScopes};
@@ -60,8 +61,8 @@ impl<'runtime> InvariantExecutionContext<'runtime> {
             .and_then(|scopes| scopes.scope_for(relation_kind_id))
     }
 
-    pub fn indexes(&self) -> InvariantIndexView<'runtime> {
-        InvariantIndexView::new(self.runtime.index_access())
+    pub(crate) fn entity_aspect_plan(&self, kind_id: KindId) -> Option<&LoweredAspectContractPlan> {
+        self.runtime.entity_aspect_plan(kind_id)
     }
 
     pub fn metrics(&self) -> InvariantMetrics<'runtime> {

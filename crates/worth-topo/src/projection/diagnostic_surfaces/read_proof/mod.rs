@@ -9,22 +9,20 @@ mod report_surface;
 mod surface;
 
 pub use closeout::{
-    TopologyDomainQueryCloseoutReport, TopologyDomainQueryCloseoutRow,
-    TopologyDomainQueryCloseoutStatus, TopologyDomainQueryPhaseThreeBlocker,
-    TopologyDomainQueryPhaseThreeBlockerRow, TopologyDomainQueryPhaseThreeBlockerStatus,
+    TopologyReadCloseoutReport, TopologyReadCloseoutRow, TopologyReadCloseoutStatus,
+    TopologyReadPhaseThreeBlocker, TopologyReadPhaseThreeBlockerRow,
+    TopologyReadPhaseThreeBlockerStatus,
 };
-pub use fallback::TopologyDomainQueryFallbackPosture;
-pub use ledger::TopologyDomainQueryProofReport;
+pub use fallback::TopologyReadFallbackPosture;
+pub use ledger::TopologyReadProofReport;
 pub use no_n_plus_one::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
 };
 pub use parity::{
-    TopologyDomainQueryParityAggregateReport, TopologyDomainQueryParityAggregateRow,
-    TopologyDomainQueryParityKind,
+    TopologyReadParityAggregateReport, TopologyReadParityAggregateRow, TopologyReadParityKind,
 };
 pub use report::{
-    TopologyDomainQueryAggregateReport, TopologyDomainQueryDebtRow,
-    TopologyDomainQueryExecutionAggregateRow, TopologyDomainQueryExecutionEngine,
-    TopologyDomainQueryFamilyAggregateRow, TopologyDomainQueryRequestFamily,
-    TopologyDomainQueryRequestReport,
+    TopologyReadAggregateReport, TopologyReadDebtRow, TopologyReadExecutionAggregateRow,
+    TopologyReadExecutionEngine, TopologyReadFamilyAggregateRow, TopologyReadRequestFamily,
+    TopologyReadRequestReport,
 };

@@ -9,9 +9,10 @@ use crate::projection_consumption::{
     ProjectionConsumptionBindingContext, ProjectionConsumptionDeclaration,
     ProjectionConsumptionEligibility, ProjectionConsumptionSource,
 };
+use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_relational::facade::grouped_truth::{
-    materialize_relational_authoritative_row_set, project_relational_grouped_truth,
-    GroupedProjectionContract, RelationalAuthoritativeRowSetArtifact,
+    encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
+    project_relational_grouped_truth, RelationalAuthoritativeRowSetArtifact,
     RelationalGroupedProjectionArtifact,
 };
 use forge_runtime_bridge::facade::{
@@ -26,6 +27,7 @@ use super::super::receipt::ProjectionConsumptionReceipt;
 use super::super::source::{
     ProjectionSourceCapabilityProfile, ProjectionSourceExecutionPosture, ProjectionSourceFamily,
 };
+use super::grouped_projection_contract::grouped_projection_contract;
 
 const QUERY_DIGEST: &str = "query:projection_consumption_certification";
 const RESULT_SHAPE_DIGEST: &str = "result-shape:projection_consumption_certification";
@@ -270,7 +272,7 @@ fn control_authorized_projection(visible_fields: &[&str]) -> AuthorizedProjectio
 pub fn certification_grouped_projection(row_count: usize) -> RelationalGroupedProjectionArtifact {
     project_relational_grouped_truth(
         &certification_row_set(row_count),
-        GroupedProjectionContract::new("status", "identity.id", "status.lane"),
+        grouped_projection_contract("status", "identity.id", "status.lane"),
     )
     .expect("grouped projection certification fixture")
 }
@@ -285,35 +287,35 @@ pub fn certification_row_set(row_count: usize) -> RelationalAuthoritativeRowSetA
         let name = format!("Task {}", index + 1);
         reads.push(SnapshotReadRequest::for_coarse(
             entity.as_str(),
-            "identity.id",
+            snapshot_aspect_key("identity.id"),
         ));
         reads.push(SnapshotReadRequest::for_coarse(
             entity.as_str(),
-            "status.lane",
+            snapshot_aspect_key("status.lane"),
         ));
         reads.push(SnapshotReadRequest::for_coarse(
             entity.as_str(),
-            "profile.display_name",
+            snapshot_aspect_key("profile.display_name"),
         ));
         reads.push(SnapshotReadRequest::for_coarse(
             entity.as_str(),
-            "metrics.priority",
+            snapshot_aspect_key("metrics.priority"),
         ));
         records.push(SnapshotReadRecord::new(
             format!("{entity}:identity.id"),
-            task.into_bytes(),
+            aspect_bytes(AspectValue::String(task.into())),
         ));
         records.push(SnapshotReadRecord::new(
             format!("{entity}:status.lane"),
-            lane.as_bytes().to_vec(),
+            aspect_bytes(AspectValue::String(lane.into())),
         ));
         records.push(SnapshotReadRecord::new(
             format!("{entity}:profile.display_name"),
-            name.into_bytes(),
+            aspect_bytes(AspectValue::String(name.into())),
         ));
         records.push(SnapshotReadRecord::new(
             format!("{entity}:metrics.priority"),
-            serde_json::to_vec(&(index + 1)).expect("priority json"),
+            aspect_bytes(AspectValue::UInt64((index + 1) as u64)),
         ));
     }
     materialize_relational_authoritative_row_set(
@@ -324,6 +326,14 @@ pub fn certification_row_set(row_count: usize) -> RelationalAuthoritativeRowSetA
         ),
     )
     .expect("row set certification fixture")
+}
+
+fn snapshot_aspect_key(value: &str) -> AspectKey {
+    AspectKey::new(value).expect("valid certification snapshot aspect key")
+}
+
+fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+    encode_snapshot_aspect_read_value(&value)
 }
 
 pub(crate) fn intent_admission_admitted_projection_declaration() -> ProjectionConsumptionDeclaration

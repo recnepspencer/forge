@@ -75,27 +75,11 @@ impl<'runtime> MergeAccess<'runtime> {
         let mut touched_records = BTreeMap::new();
         for commit_id in commits {
             if let Some(envelope) = history.commit_envelope(*commit_id) {
-                for record in &envelope.patch.records {
+                for target in envelope.touched_record_refs() {
                     touched_records
-                        .entry(record.target.clone())
+                        .entry(target)
                         .or_insert_with(Vec::new)
                         .push(*commit_id);
-                }
-                for intent in &envelope.merged_plan.merged_intents {
-                    let Some(target) = intent.existing_record_target().map(|target| match target {
-                        crate::transactions::data::ExistingRecordTarget::Entity(entity_id) => {
-                            RecordRef::Entity(entity_id)
-                        }
-                        crate::transactions::data::ExistingRecordTarget::Relation(relation_id) => {
-                            RecordRef::Relation(relation_id)
-                        }
-                    }) else {
-                        continue;
-                    };
-                    let commit_ids = touched_records.entry(target).or_insert_with(Vec::new);
-                    if !commit_ids.contains(commit_id) {
-                        commit_ids.push(*commit_id);
-                    }
                 }
             }
         }

@@ -3,8 +3,8 @@ mod subsystems;
 
 pub use runtime_state::RelationalRuntime;
 pub(crate) use subsystems::{
-    AspectSemanticsSubsystem, CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem,
-    IndexingSubsystem, LineageSubsystem, PublicationSubsystem, ReplayRetentionState,
-    RuntimeInstrumentation, RuntimeServices, RuntimeSubsystem, SnapshotHandleBinding,
+    CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
+    LineageSubsystem, PublicationSubsystem, ReplayRetentionState, RuntimeInstrumentation,
+    RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem, SnapshotHandleBinding,
     VisibilityResidency, VisibilitySubsystem,
 };

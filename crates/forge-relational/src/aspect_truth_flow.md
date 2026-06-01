@@ -7,43 +7,43 @@ when changing commit, history, query, or diagnostics code.
 
 The runtime owns one one-way aspect-truth pipeline:
 
-`KindAspectDeclarations`
--> `LoweredAspectPlan`
+`KindAspectContractDeclarations`
+-> `LoweredAspectContractPlan`
 -> `CanonicalRecordAspectDelta`
 -> durable patch/commit encoding
 -> history/query/lineage consumers
 -> diagnostics, traces, and reports derived from those same artifacts
 
-If a helper needs raw payload access after `CanonicalRecordAspectDelta` exists,
-treat that as suspect. History, query, and diagnostics must not re-derive
-aspect meaning from payloads.
+If a helper needs raw external document access after `CanonicalRecordAspectDelta`
+exists, treat that as suspect. History, query, and diagnostics must not
+re-derive aspect meaning from JSON or compatibility documents.
 
 ## Core types
 
 Schema truth:
 
-- `schema::data::KindAspectDeclarations`
-- `schema::data::DeclaredAspect`
+- `schema::data::KindAspectContractDeclarations`
+- `schema::data::DeclaredAspectContractBinding`
 - `schema::data::AspectBinding`
-- `schema::data::AspectComparator`
-- `schema::data::AspectPrecision`
+- `forge_foundational::facade::AspectContract`
+- `forge_foundational::facade::AspectKey`
 
 Executable truth:
 
-- `schema::logic::LoweredAspectPlan`
-- `schema::logic::LoweredAspectBinding`
-- `logic::runtime::state::subsystems::AspectPlanCatalog`
+- `schema::data::LoweredAspectContractPlan`
+- `schema::data::LoweredAspectContractBinding`
+- `schema::data::AspectContractPlanCatalog`
 
 Commit-time truth:
 
 - `authority::mutation::canonical_deltas::CanonicalRecordAspectDelta`
 - `authority::mutation::canonical_deltas::EvaluatedAspectBinding`
-- `publication::patch::data::CanonicalAspectSet`
+- ordered `forge_foundational::facade::AspectKey` lists
 - `publication::patch::data::RecordStructuralChange`
 
 Durable/public consumption:
 
-- `publication::patch::data::PatchRecord`
+- `publication::patch::data::PublishedAuthoritativeRecordPatch`
 - `transactions::data::CommitAspectSummary`
 - `history::data::AspectHistoryOrigin`
 - `history::data::AspectResolutionContext`
@@ -65,9 +65,9 @@ Trace/report views:
 
 Keep these invariants intact:
 
-- no post-delta payload rescans
+- no post-delta external document rescans
 - no second aspect-set construction path
-- no diagnostics builder with raw payload access
+- no diagnostics builder with raw external document access
 - no lineage mutation of origin semantics
 - no noncanonical emitted aspect collections
 - no replay or patch parity path that ignores structural or degraded-precision flags

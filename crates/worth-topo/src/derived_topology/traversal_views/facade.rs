@@ -5,7 +5,7 @@ use crate::derived_topology::traversal_views::types::{
     InterpretationReport, InterpretedTopologyView, TopologyInterpretationSet,
 };
 use crate::derived_topology::wire_views::interpret_wires;
-use schema::facade::{
+use schema::facade::topology_authoring::{
     CertifiedTopologyInterpretation, DerivedTopologyReadBasis, TopologyReadArtifact,
 };
 

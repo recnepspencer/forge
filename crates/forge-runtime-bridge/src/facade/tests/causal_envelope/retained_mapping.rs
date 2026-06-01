@@ -84,7 +84,9 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
     );
     let structural_read =
         SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-            "entity-1", "profile",
+            "entity-1",
+            forge_foundational::facade::AspectKey::new("profile")
+                .expect("valid snapshot aspect key"),
         )]);
     let structural_planned = runtime
         .plan_structural_match_packet_set_from_read_packets(

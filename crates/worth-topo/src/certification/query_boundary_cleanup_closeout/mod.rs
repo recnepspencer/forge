@@ -8,7 +8,7 @@ use crate::certification::DeterministicDigest;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TopologyQueryBoundaryCleanupArea {
     OperatorPath,
-    SnapshotAssembly,
+    SnapshotSurfaces,
     ReadViewDecode,
     BasisAdapter,
     PublicFacade,
@@ -17,7 +17,7 @@ pub enum TopologyQueryBoundaryCleanupArea {
 impl TopologyQueryBoundaryCleanupArea {
     pub const ALL: [Self; 5] = [
         Self::OperatorPath,
-        Self::SnapshotAssembly,
+        Self::SnapshotSurfaces,
         Self::ReadViewDecode,
         Self::BasisAdapter,
         Self::PublicFacade,
@@ -26,7 +26,7 @@ impl TopologyQueryBoundaryCleanupArea {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::OperatorPath => "operator_path",
-            Self::SnapshotAssembly => "snapshot_assembly",
+            Self::SnapshotSurfaces => "snapshot_surfaces",
             Self::ReadViewDecode => "read_view_decode",
             Self::BasisAdapter => "basis_adapter",
             Self::PublicFacade => "public_facade",
@@ -116,7 +116,7 @@ pub fn certify_topology_query_boundary_cleanup_closeout(
 ) -> Result<TopologyQueryBoundaryCleanupCloseoutReport, TopologyCertificationError> {
     let rows = vec![
         certify_operator_path_row()?,
-        certify_snapshot_assembly_row()?,
+        certify_snapshot_surfaces_row()?,
         certify_read_view_decode_row()?,
         certify_basis_adapter_row()?,
         certify_public_facade_row()?,
@@ -167,33 +167,32 @@ fn certify_operator_path_row() -> Result<TopologyQueryBoundaryCleanupRow, Topolo
     )
 }
 
-fn certify_snapshot_assembly_row(
+fn certify_snapshot_surfaces_row(
 ) -> Result<TopologyQueryBoundaryCleanupRow, TopologyCertificationError> {
-    let query_assembly_mod = source_text("src/projection/runtime_boundary/query_assembly/mod.rs")?;
+    let declared_query_surfaces_mod =
+        source_text("src/projection/runtime_boundary/declared_query_surfaces/mod.rs")?;
     let historical_rows =
-        source_text("src/projection/runtime_boundary/query_assembly/historical_rows.rs")?;
-    let snapshot_rows =
-        source_text("src/projection/runtime_boundary/query_assembly/snapshot_rows.rs")?;
+        source_text("src/projection/runtime_boundary/declared_query_surfaces/historical_rows.rs")?;
     let materialized_graph = source_text("src/derived_topology/materialized_graph/mod.rs")?;
     let persistent_naming = source_text("src/projection/truth_surfaces/persistent_naming.rs")?;
 
     ensure(
-        !query_assembly_mod.contains("workspace.read(&self.entities)")
-            && !query_assembly_mod.contains("workspace.materialize(&self.materialized)")
-            && !query_assembly_mod.contains("naming_attachment_report_from_query"),
+        !declared_query_surfaces_mod.contains("workspace.read(&self.entities)")
+            && !declared_query_surfaces_mod.contains("workspace.materialize(&self.materialized)")
+            && !declared_query_surfaces_mod.contains("naming_attachment_report_from_query"),
     )?;
     ensure(historical_rows.contains("TopologyQueryMaterializationInput::decode"))?;
-    ensure(snapshot_rows.contains("TopologyNamingAttachmentInput::new"))?;
+    ensure(historical_rows.contains("TopologyNamingAttachmentInput::new"))?;
     ensure(!materialized_graph.contains("materialize_from_query_rows"))?;
     ensure(!persistent_naming.contains("naming_attachment_report_from_query_rows"))?;
 
     closed_row(
-        TopologyQueryBoundaryCleanupArea::SnapshotAssembly,
-        "snapshot and historical fallback ownership is concentrated in query-assembly boundary seams with typed naming and materialization ingress",
-        Some("src/projection/runtime_boundary/query_assembly/historical_rows.rs"),
+        TopologyQueryBoundaryCleanupArea::SnapshotSurfaces,
+        "snapshot and historical fallback ownership is concentrated in declared-query-surfaces boundary seams with typed naming and materialization ingress",
+        Some("src/projection/runtime_boundary/declared_query_surfaces/historical_rows.rs"),
         [
-            "src/projection/runtime_boundary/query_assembly/mod.rs",
-            "src/projection/runtime_boundary/query_assembly/historical_rows.rs",
+            "src/projection/runtime_boundary/declared_query_surfaces/mod.rs",
+            "src/projection/runtime_boundary/declared_query_surfaces/historical_rows.rs",
             "src/derived_topology/materialized_graph/query_input.rs",
         ],
     )
@@ -263,21 +262,26 @@ fn certify_basis_adapter_row() -> Result<TopologyQueryBoundaryCleanupRow, Topolo
 fn certify_public_facade_row() -> Result<TopologyQueryBoundaryCleanupRow, TopologyCertificationError>
 {
     let facade = source_text("src/facade.rs")?;
+    let query_domain = source_text("src/query_domain.rs")?;
     let compile_fail_contracts =
         source_text("src/certification/public_facade_contracts/compile_fail_contracts.rs")?;
 
     ensure(!facade.contains("from_query_rows"))?;
-    ensure(facade.contains("TopologyDomainQuery"))?;
+    ensure(!facade.contains("TopologyReadSessionState"))?;
+    ensure(!facade.contains("TopologyConfiguredDomainReadSession"))?;
+    ensure(query_domain.contains("TopologyConfiguredDomainReadSession"))?;
+    ensure(compile_fail_contracts.contains("public_topology_reads_not_exported_from_facade.rs"))?;
     ensure(facade.contains("TopologyRuntimeSupport"))?;
     ensure(compile_fail_contracts.contains("public_query_row_helpers_not_exported.rs"))?;
     ensure(compile_fail_contracts.contains("public_query_row_materializer_not_exported.rs"))?;
 
     closed_row(
         TopologyQueryBoundaryCleanupArea::PublicFacade,
-        "public facade foregrounds typed topology-facing seams and compile-fail proof rejects the old row-shaped exports",
-        Some("src/certification/public_facade_contracts/compile_fail/public_query_row_helpers_not_exported.rs"),
+        "public facade keeps runtime support but no longer competes with query_domain for handle-bound topology read entry",
+        Some("src/query_domain.rs"),
         [
             "src/facade.rs",
+            "src/query_domain.rs",
             "src/certification/public_facade_contracts/compile_fail_contracts.rs",
         ],
     )

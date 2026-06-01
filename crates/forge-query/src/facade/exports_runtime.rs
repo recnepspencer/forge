@@ -583,6 +583,14 @@ pub use crate::subscription::{
     SubscriptionLifecyclePreviewCertification, SubscriptionPerformanceReceipt,
     SupportLookupReceipt, SupportResolutionPosture,
 };
+pub use crate::target_binding::{
+    ForgeQueryAdmittedDeclarationProgressionBindingTarget,
+    ForgeQueryAdmittedIntentPlanBindingTarget, ForgeQueryBindingTarget,
+    ForgeQueryBindingTargetKind, ForgeQueryBindingTargetSemantics, ForgeQueryBindingTargetWitness,
+    ForgeQueryDeclarationEnvelopeBindingTarget, ForgeQueryDeclarationReceiptBindingTarget,
+    ForgeQueryDeclarationRoutePlanBindingTarget, ForgeQueryIntentDeclarationBindingTarget,
+    ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget,
+};
 pub use crate::tenant_basis::{
     SchemaVariantSnapshot, TenantBasisAdmissionError, TenantBasisAdmissionFailureClass,
     TenantBasisCounters, TenantBasisEpoch, TenantBindingSnapshot, TenantResolutionClass,
@@ -637,8 +645,8 @@ pub use crate::workflow::{
     shape_merge_authority_outcome, shape_mutation_authority_outcome,
     shape_writeback_authority_outcome, ConflictInspectionFamily, ConflictInspectionRow,
     LoweredMergeWorkflowDeclaration, LoweredMutationIntentDeclaration, MergeAuthorityTarget,
-    MergeClassAdmission, MergeLoweringInput, MergeWorkflowIntent, MutationIntentFamily,
-    MutationLoweringInput, PostMergeInspectionFamily, PostMergeInspectionRow,
+    MergeClassAdmission, MergeLoweringInput, MergeWorkflowIntent, MutationAuthorityBinding,
+    MutationIntentFamily, MutationLoweringInput, PostMergeInspectionFamily, PostMergeInspectionRow,
     QueryConflictInspectionArtifact, QueryPostMergeInspectionArtifact, QueryWorkflowDeclaration,
     QueryWritebackDeclaration, RelationalStrategyTarget, WorkflowAdmissionError,
     WorkflowAdmissionFailureClass, WorkflowAdmissionReport, WorkflowAuthorityOutcomeArtifact,

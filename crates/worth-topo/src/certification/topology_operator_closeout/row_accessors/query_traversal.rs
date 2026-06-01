@@ -1,14 +1,15 @@
 use super::super::query_traversal_proof::{
-    MilestoneThreeEditedTopologyQueryTraversalRow, MilestoneThreeEditedTopologyQueryTraversalView,
+    MilestoneThreeMutationTopologyQueryTraversalRow,
+    MilestoneThreeMutationTopologyQueryTraversalView,
 };
 use super::super::report::MilestoneThreeHostileScenario;
 
-impl MilestoneThreeEditedTopologyQueryTraversalRow {
+impl MilestoneThreeMutationTopologyQueryTraversalRow {
     pub fn scenario(&self) -> MilestoneThreeHostileScenario {
         self.scenario
     }
 
-    pub fn view(&self) -> MilestoneThreeEditedTopologyQueryTraversalView {
+    pub fn view(&self) -> MilestoneThreeMutationTopologyQueryTraversalView {
         self.view
     }
 

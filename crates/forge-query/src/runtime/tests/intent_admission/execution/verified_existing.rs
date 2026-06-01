@@ -121,26 +121,26 @@ fn workspace_update_existing_verified_delegates_to_authoritative_mutation_intent
     assert_eq!(
         delegated_probe
             .field("status.value")
-            .map(|field| field.value_json()),
+            .map(|field| field.external_value_json()),
         canonical_probe
             .field("status.value")
-            .map(|field| field.value_json())
+            .map(|field| field.external_value_json())
     );
     assert_eq!(
         delegated_probe
             .field("title.value")
-            .map(|field| field.value_json()),
+            .map(|field| field.external_value_json()),
         canonical_probe
             .field("title.value")
-            .map(|field| field.value_json())
+            .map(|field| field.external_value_json())
     );
     assert_eq!(
         delegated_probe
             .field("identity.id")
-            .map(|field| field.value_json()),
+            .map(|field| field.external_value_json()),
         canonical_probe
             .field("identity.id")
-            .map(|field| field.value_json())
+            .map(|field| field.external_value_json())
     );
 }
 

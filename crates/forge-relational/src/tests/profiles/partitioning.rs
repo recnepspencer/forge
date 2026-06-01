@@ -12,12 +12,20 @@ fn bulk_create_entities_match_equivalent_singular_creates() {
             partition_id: PartitionId::main(),
             kind_id: KindId(1),
             client_keys: vec![
-                InternedString::Raw("a".to_string()),
-                InternedString::Raw("b".to_string()),
+                crate::symbols::data::ClientKey::raw("a"),
+                crate::symbols::data::ClientKey::raw("b"),
             ],
-            payloads: vec![
-                RecordPayload::StructuredJson(json!({"name":"a"})),
-                RecordPayload::StructuredJson(json!({"name":"b"})),
+            field_patches: vec![
+                single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                    "a",
+                ),
+                single_string_aspect_field_patch(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                    "b",
+                ),
             ],
         }),
     )));
@@ -70,14 +78,26 @@ fn staged_parallel_bulk_entity_import_matches_serial_reference() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_keys: vec![
-                    InternedString::Raw("a".to_string()),
-                    InternedString::Raw("b".to_string()),
-                    InternedString::Raw("c".to_string()),
+                    crate::symbols::data::ClientKey::raw("a"),
+                    crate::symbols::data::ClientKey::raw("b"),
+                    crate::symbols::data::ClientKey::raw("c"),
                 ],
-                payloads: vec![
-                    RecordPayload::StructuredJson(json!({"name":"a"})),
-                    RecordPayload::StructuredJson(json!({"name":"b"})),
-                    RecordPayload::StructuredJson(json!({"name":"c"})),
+                field_patches: vec![
+                    single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "a",
+                    ),
+                    single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "b",
+                    ),
+                    single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "c",
+                    ),
                 ],
             }),
         )));
@@ -89,7 +109,7 @@ fn staged_parallel_bulk_entity_import_matches_serial_reference() {
         let names = read
             .entities()
             .iter()
-            .map(|record| read_entity_name(record).map(str::to_string))
+            .map(read_entity_name)
             .collect::<Vec<_>>();
         (outcome, names)
     }
@@ -131,7 +151,7 @@ fn cross_context_relations_respect_relation_kind_policy() {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::default(),
+            aspect_contract_declarations: KindAspectContractDeclarations::default(),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -139,10 +159,9 @@ fn cross_context_relations_respect_relation_kind_policy() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::SchemaControlled,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::default(),
                 relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
             })
         })
@@ -159,10 +178,10 @@ fn cross_context_relations_respect_relation_kind_policy() {
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId(29),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("bridge".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("bridge"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: None,
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
     );

@@ -1,4 +1,5 @@
-use schema::facade::{QueryAspectPath, RelationKind, TopologyRelationKind};
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use schema::facade::QueryAspectPath;
 
 pub(crate) fn topology_relation_dependency_path(kind: RelationKind) -> Option<&'static str> {
     match kind {

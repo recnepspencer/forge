@@ -1,0 +1,12 @@
+error[E0432]: unresolved imports `schema::facade::bootstrap_invariant_plan`, `schema::facade::bootstrap_runtime_invariant_plan`, `schema::facade::BootstrapInvariantPlan`, `schema::facade::BootstrapRuntimeInvariant`, `schema::facade::BootstrapRuntimeInvariantPlan`
+ --> tests/compile_fail/removed_facade_exports/invariants/removed_runtime_invariant_facade_exports.rs:2:5
+  |
+2 |     bootstrap_invariant_plan, bootstrap_runtime_invariant_plan, BootstrapInvariantPlan,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^ no `BootstrapInvariantPlan` in `facade`
+  |     |                         |
+  |     |                         no `bootstrap_runtime_invariant_plan` in `facade`
+  |     no `bootstrap_invariant_plan` in `facade`
+3 |     BootstrapRuntimeInvariant, BootstrapRuntimeInvariantPlan,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `BootstrapRuntimeInvariantPlan` in `facade`
+  |     |
+  |     no `BootstrapRuntimeInvariant` in `facade`

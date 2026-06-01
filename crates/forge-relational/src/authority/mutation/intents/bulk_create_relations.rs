@@ -24,9 +24,14 @@ use crate::authority::mutation::record_changes::{
 };
 use crate::authority::mutation::MutationWorkspace;
 use crate::transactions::data::{
-    BulkRelationCreateIntent, CommitConflict, ConflictClass, EntityReference,
+    AspectFieldPatch, BulkImportRowDomain, BulkImportStage, BulkRelationCreateIntent,
+    CommitConflict, ConflictClass, EntityReference,
 };
 use crate::validation::data::InvariantGroupSet;
+
+use super::relation_field_creation_aspects::{
+    plan_relation_field_creation_aspects, RelationFieldCreationAspectPlan,
+};
 
 pub(super) fn apply(
     intent: &BulkRelationCreateIntent,
@@ -64,9 +69,13 @@ fn for_each_staged_bulk_relation_row(
             strategy_for_parallel_packets(workspace.execution_model(), 1),
         );
         for (offset, (source, target)) in intent.endpoints.iter().cloned().enumerate() {
-            let payload = intent.payloads.get(offset).cloned().unwrap_or(None);
+            let fields = intent
+                .field_patches
+                .get(offset)
+                .cloned()
+                .unwrap_or_default();
             apply_staged_relation_row(
-                intent, workspace, outcome, version_id, source, target, payload,
+                intent, workspace, outcome, version_id, source, target, fields,
             )?;
         }
         return Ok(());
@@ -112,11 +121,11 @@ fn for_each_staged_bulk_relation_row(
                 .map(|(offset, (source, target))| ImportStagedRow::Relation {
                     source,
                     target,
-                    payload: intent
-                        .payloads
+                    fields: intent
+                        .field_patches
                         .get(packet_index_floor + offset)
                         .cloned()
-                        .unwrap_or(None),
+                        .unwrap_or_default(),
                 })
                 .collect(),
         });
@@ -127,22 +136,19 @@ fn for_each_staged_bulk_relation_row(
             ImportStagedRow::Relation {
                 source,
                 target,
-                payload,
+                fields,
             } => apply_staged_relation_row(
-                intent, workspace, outcome, version_id, source, target, payload,
+                intent, workspace, outcome, version_id, source, target, fields,
             )?,
-            ImportStagedRow::Entity { .. } => return Err(CommitConflict::new(
-                crate::transactions::data::ConflictClass::MutationStateInconsistency {
-                    detail:
-                        "bulk relation staging produced an entity row in the relation import lane"
-                            .to_string(),
-                    fields: serde_json::json!({
-                        "expected_row_domain": "relation",
-                        "actual_row_domain": "entity",
-                        "phase": "bulk_relation_stage_import",
-                    }),
-                },
-            )),
+            ImportStagedRow::Entity { .. } => {
+                return Err(CommitConflict::new(
+                    crate::transactions::data::ConflictClass::BulkImportDomainMismatch {
+                        expected: BulkImportRowDomain::Relation,
+                        actual: BulkImportRowDomain::Entity,
+                        stage: BulkImportStage::RelationCreate,
+                    },
+                ))
+            }
         }
     }
     Ok(())
@@ -155,10 +161,28 @@ fn apply_staged_relation_row(
     version_id: crate::identity::data::VersionId,
     source: EntityReference,
     target: EntityReference,
-    payload: Option<crate::payloads::data::RecordPayload>,
+    fields: AspectFieldPatch,
 ) -> Result<(), CommitConflict> {
     let source_id = resolve_entity_reference(workspace, &source)?;
     let target_id = resolve_entity_reference(workspace, &target)?;
+    let aspect_plan = plan_relation_field_creation_aspects(
+        intent.kind_id,
+        workspace.relation_aspect_plan(intent.kind_id),
+        &fields,
+        source_id,
+        target_id,
+    )
+    .map_err(|denial| {
+        CommitConflict::new(ConflictClass::RelationAuthoritativeAspectStateDenied {
+            kind_id: intent.kind_id,
+            denial,
+        })
+    })?;
+    let RelationFieldCreationAspectPlan {
+        authoritative_patch,
+        extra,
+    } = aspect_plan;
+    let authoritative_aspect_state = extra.authoritative_aspect_state;
     let relation_id = workspace.with_context(|context| {
         let relation_id = allocate_relation(
             context.state,
@@ -167,12 +191,11 @@ fn apply_staged_relation_row(
             intent.kind_id,
             source_id,
             target_id,
-            payload.clone(),
+            authoritative_aspect_state,
         );
-        context.state.mark_relation_slot_touched(
-            relation_id.partition_id,
-            relation_id.local_slot.0 as usize,
-        );
+        context
+            .state
+            .mark_relation_slot_touched(relation_id.partition_id, relation_id.slot_index());
         relation_id
     });
     outcome.record_change(RecordMutation::RelationCreated {
@@ -180,7 +203,7 @@ fn apply_staged_relation_row(
         kind_id: intent.kind_id,
         source: source_id,
         target: target_id,
-        payload: payload.clone(),
+        authoritative_patch,
     });
     Ok(())
 }

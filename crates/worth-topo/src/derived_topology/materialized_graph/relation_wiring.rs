@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
 use forge_relational::facade::identity::EntityId;
-use schema::facade::{
-    EntityKind, GeometryRelationKind, RelationKind, TopologyEntityKind, TopologyRelationKind,
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
+use schema::facade::platform::relations::{
+    GeometryRelationKind, RelationKind, TopologyRelationKind,
 };
 
 use crate::brep::topology_graph::TopologyView;

@@ -1,7 +1,7 @@
 mod adapters;
 mod contracts;
-mod edit_support;
-mod edit_support_rows;
+mod mutation_support;
+mod mutation_support_rows;
 mod operator_bindings;
 mod operator_post_write;
 mod read_support;
@@ -15,10 +15,10 @@ use forge_query::facade::{ForgeQueryRuntime, ForgeQueryWorkspace};
 
 pub(crate) use contracts::workspace_requires_historical_basis_context;
 pub use contracts::{TopologyRuntimeAdapters, TopologyRuntimeFailure, TopologyRuntimeSupport};
-pub use edit_support::{
-    TopologyQueryEditFamilySupportStatus, TopologyQueryEditLane,
-    TopologyQueryEditLaneExecutionShape, TopologyQueryEditLaneSupportStatus,
-    TopologyRuntimeEditFamilySupportRow, TopologyRuntimeEditLaneSupportRow,
+pub use mutation_support::{
+    TopologyQueryMutationFamilySupportStatus, TopologyQueryMutationLane,
+    TopologyQueryMutationLaneExecutionShape, TopologyQueryMutationLaneSupportStatus,
+    TopologyRuntimeMutationFamilySupportRow, TopologyRuntimeMutationLaneSupportRow,
 };
 pub(crate) use operator_bindings::TopologyQueryBindingIndex;
 pub(crate) use operator_post_write::load_post_write_materialized_topology;
@@ -31,11 +31,13 @@ pub use runtime_posture::{
     TopologyRuntimePostureCapability, TopologyRuntimePostureRow, TopologyRuntimePostureStatus,
 };
 
-use self::adapters::write_authority::TopologyRuntimeWriteAuthority;
+pub use self::adapters::write_authority::TopologyRuntimeWriteAuthority;
+pub use self::adapters::{
+    build_runtime_bridge, TopologyRuntimeBinding, TopologyRuntimeSchemaAdapter,
+};
 use self::adapters::{
-    build_runtime_bridge, TopologyExistingTruthVerificationAdapter, TopologyInspectorEvidence,
-    TopologyRuntimeSchemaAdapter, TopologyRuntimeSourceAdapter, TopologyStaticSignalSink,
-    TopologySubscriptionActivation,
+    TopologyExistingTruthVerificationAdapter, TopologyInspectorEvidence,
+    TopologyRuntimeSourceAdapter, TopologyStaticSignalSink, TopologySubscriptionActivation,
 };
 
 pub fn topology_runtime(
@@ -46,10 +48,12 @@ pub fn topology_runtime(
     let binding = adapters.binding.clone();
     let write_binding = binding.clone();
     let mut builder = ForgeQueryRuntime::builder()
-        .runtime_bridge(build_runtime_bridge(binding.clone())?)
-        .schema_adapter(TopologyRuntimeSchemaAdapter)
+        .runtime_bridge(self::adapters::build_runtime_bridge(binding.clone())?)
+        .schema_adapter(self::adapters::TopologyRuntimeSchemaAdapter)
         .source_adapter(TopologyRuntimeSourceAdapter::new(binding.clone()))
-        .write_authority(TopologyRuntimeWriteAuthority::new(write_binding))
+        .write_authority(
+            self::adapters::write_authority::TopologyRuntimeWriteAuthority::new(write_binding),
+        )
         .signal_sink(TopologyStaticSignalSink)
         .subscription_activation(TopologySubscriptionActivation::new(
             adapters.support().subscription_activation_evidence(),

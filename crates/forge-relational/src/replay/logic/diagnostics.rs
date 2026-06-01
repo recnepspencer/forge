@@ -1,38 +1,15 @@
-use serde_json::json;
-
-use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope};
+use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope, RelationalDiagnosticValue};
 use crate::logic::runtime::RelationalRuntime;
-use crate::replay::data::{RelationalReplayOutcome, RelationalReplayRequest, ReplayFailureClass};
+use crate::replay::data::{
+    RelationalReplayOutcome, RelationalReplayRequest, ReplayFailureClass,
+    ReplayLineageAuthorityBasis, ReplayMismatch,
+};
 
 pub(super) fn record_replay_diagnostic(
     runtime: &mut RelationalRuntime,
     request: &RelationalReplayRequest,
     outcome: &RelationalReplayOutcome,
 ) {
-    let mismatch_classes = outcome
-        .mismatches
-        .iter()
-        .map(|mismatch| format!("{:?}", mismatch.class))
-        .collect::<Vec<_>>();
-    let mismatch_surfaces = outcome
-        .mismatches
-        .iter()
-        .map(|mismatch| format!("{:?}", mismatch.surface))
-        .collect::<Vec<_>>();
-    let mismatch_verification_layers = outcome
-        .mismatches
-        .iter()
-        .map(|mismatch| format!("{:?}", mismatch.verification_layer))
-        .collect::<Vec<_>>();
-    let compared_surfaces = outcome
-        .compared_surfaces
-        .iter()
-        .map(|surface| format!("{surface:?}"))
-        .collect::<Vec<_>>();
-    let lineage_authority_basis = outcome
-        .lineage_authority_basis
-        .as_ref()
-        .map(|basis| format!("{:?}", basis.kind()));
     let code = match outcome.failure.as_ref() {
         Some(ReplayFailureClass::SchemaMismatch | ReplayFailureClass::UnsupportedReplaySchema) => {
             DiagnosticCode::ReplaySchemaVersionMismatch
@@ -51,20 +28,124 @@ pub(super) fn record_replay_diagnostic(
     builder.emit_entry(
         code,
         "replay comparison completed",
-        json!({
-            "commit_id": request.commit_id.0,
-            "branch_id": request.branch_id.0,
-            "verification_mode": format!("{:?}", request.verification_mode),
-            "lineage_authority_basis": lineage_authority_basis,
-            "lineage_authority_commit_id": outcome.lineage_authority_basis.as_ref().map(|basis| basis.commit_id().0),
-            "lineage_authority_event_count": outcome.lineage_authority_basis.as_ref().map(|basis| basis.lineage_event_count()),
-            "lineage_authority_decision_count": outcome.lineage_authority_basis.as_ref().map(|basis| basis.lineage_decision_count()),
-            "compared_surfaces": compared_surfaces,
-            "mismatch_count": outcome.mismatches.len(),
-            "mismatch_classes": mismatch_classes,
-            "mismatch_surfaces": mismatch_surfaces,
-            "mismatch_verification_layers": mismatch_verification_layers,
-            "failure": outcome.failure.as_ref().map(|value| format!("{value:?}")),
-        }),
+        replay_comparison_fields(request, outcome),
     );
+}
+
+fn replay_comparison_fields(
+    request: &RelationalReplayRequest,
+    outcome: &RelationalReplayOutcome,
+) -> RelationalDiagnosticValue {
+    RelationalDiagnosticValue::object([
+        (
+            "commit_id",
+            RelationalDiagnosticValue::CommitId(request.commit_id),
+        ),
+        (
+            "branch_id",
+            RelationalDiagnosticValue::BranchId(request.branch_id.clone()),
+        ),
+        (
+            "verification_mode",
+            RelationalDiagnosticValue::string(format!("{:?}", request.verification_mode)),
+        ),
+        (
+            "lineage_authority_basis",
+            lineage_authority_basis_kind(outcome.lineage_authority_basis.as_ref()),
+        ),
+        (
+            "lineage_authority_commit_id",
+            lineage_authority_commit_id(outcome.lineage_authority_basis.as_ref()),
+        ),
+        (
+            "lineage_authority_event_count",
+            lineage_authority_event_count(outcome.lineage_authority_basis.as_ref()),
+        ),
+        (
+            "lineage_authority_decision_count",
+            lineage_authority_decision_count(outcome.lineage_authority_basis.as_ref()),
+        ),
+        (
+            "compared_surfaces",
+            RelationalDiagnosticValue::array(
+                outcome
+                    .compared_surfaces
+                    .iter()
+                    .map(|surface| RelationalDiagnosticValue::string(format!("{surface:?}"))),
+            ),
+        ),
+        (
+            "mismatch_count",
+            RelationalDiagnosticValue::unsigned(outcome.mismatches.len()),
+        ),
+        ("mismatch_classes", mismatch_classes(&outcome.mismatches)),
+        ("mismatch_surfaces", mismatch_surfaces(&outcome.mismatches)),
+        (
+            "mismatch_verification_layers",
+            mismatch_verification_layers(&outcome.mismatches),
+        ),
+        (
+            "failure",
+            RelationalDiagnosticValue::optional(
+                outcome
+                    .failure
+                    .as_ref()
+                    .map(|failure| RelationalDiagnosticValue::string(format!("{failure:?}"))),
+            ),
+        ),
+    ])
+}
+
+fn lineage_authority_basis_kind(
+    basis: Option<&ReplayLineageAuthorityBasis>,
+) -> RelationalDiagnosticValue {
+    RelationalDiagnosticValue::optional(
+        basis.map(|basis| RelationalDiagnosticValue::string(format!("{:?}", basis.kind()))),
+    )
+}
+
+fn lineage_authority_commit_id(
+    basis: Option<&ReplayLineageAuthorityBasis>,
+) -> RelationalDiagnosticValue {
+    RelationalDiagnosticValue::optional(
+        basis.map(|basis| RelationalDiagnosticValue::CommitId(basis.commit_id())),
+    )
+}
+
+fn lineage_authority_event_count(
+    basis: Option<&ReplayLineageAuthorityBasis>,
+) -> RelationalDiagnosticValue {
+    RelationalDiagnosticValue::optional(
+        basis.map(|basis| RelationalDiagnosticValue::unsigned(basis.lineage_event_count())),
+    )
+}
+
+fn lineage_authority_decision_count(
+    basis: Option<&ReplayLineageAuthorityBasis>,
+) -> RelationalDiagnosticValue {
+    RelationalDiagnosticValue::optional(
+        basis.map(|basis| RelationalDiagnosticValue::unsigned(basis.lineage_decision_count())),
+    )
+}
+
+fn mismatch_classes(mismatches: &[ReplayMismatch]) -> RelationalDiagnosticValue {
+    RelationalDiagnosticValue::array(
+        mismatches
+            .iter()
+            .map(|mismatch| RelationalDiagnosticValue::string(format!("{:?}", mismatch.class))),
+    )
+}
+
+fn mismatch_surfaces(mismatches: &[ReplayMismatch]) -> RelationalDiagnosticValue {
+    RelationalDiagnosticValue::array(
+        mismatches
+            .iter()
+            .map(|mismatch| RelationalDiagnosticValue::string(format!("{:?}", mismatch.surface))),
+    )
+}
+
+fn mismatch_verification_layers(mismatches: &[ReplayMismatch]) -> RelationalDiagnosticValue {
+    RelationalDiagnosticValue::array(mismatches.iter().map(|mismatch| {
+        RelationalDiagnosticValue::string(format!("{:?}", mismatch.verification_layer))
+    }))
 }

@@ -149,3 +149,59 @@ fn json_lowering_rejects_incompatible_reference_shapes() {
         })
     );
 }
+
+#[test]
+fn json_lowering_rejects_content_shape_with_shape_specific_denial() {
+    let contract = AspectContract::content_ref(key("blob.preview"), identity(52), revision(1));
+    let source = source_for("blob.preview");
+
+    let outcome = lower_json_record_aspect_state([JsonCompatibilityAspectInput::new(
+        contract,
+        source.clone(),
+        json!("inline-bytes-are-not-admitted"),
+    )]);
+
+    assert_eq!(
+        outcome,
+        TransitionOutcome::Denied(JsonCompatibilityLoweringDenial::JsonShapeNotAdmitted {
+            source,
+            expected: "content reference id",
+        })
+    );
+}
+
+#[test]
+fn json_lowering_rejects_scalar_content_ref_with_family_specific_shape_text() {
+    let source = source_for("blob.slot");
+    let outcome = lower_json_record_aspect_state([JsonCompatibilityAspectInput::new(
+        scalar_contract("blob.slot", 1, ScalarAspectType::ContentRef),
+        source.clone(),
+        json!("not-a-content-id"),
+    )]);
+
+    assert_eq!(
+        outcome,
+        TransitionOutcome::Denied(JsonCompatibilityLoweringDenial::JsonShapeNotAdmitted {
+            source,
+            expected: "content reference id",
+        })
+    );
+}
+
+#[test]
+fn json_lowering_rejects_scalar_bytes_with_family_specific_shape_text() {
+    let source = source_for("blob.bytes");
+    let outcome = lower_json_record_aspect_state([JsonCompatibilityAspectInput::new(
+        scalar_contract("blob.bytes", 1, ScalarAspectType::Bytes),
+        source.clone(),
+        json!("not-a-bytes-id"),
+    )]);
+
+    assert_eq!(
+        outcome,
+        TransitionOutcome::Denied(JsonCompatibilityLoweringDenial::JsonShapeNotAdmitted {
+            source,
+            expected: "bytes reference id",
+        })
+    );
+}

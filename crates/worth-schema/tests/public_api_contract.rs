@@ -1,57 +1,133 @@
+use schema::facade::platform::aspects::Aspect;
+use schema::facade::platform::authority::{
+    CreateKey, EntityReference, MutationOrigin, RawTopologyIntent,
+};
+use schema::facade::platform::entities::EntityKind;
+use schema::facade::platform::relations::RelationKind;
 use schema::facade::topology_authoring::{
-    milestone_one_default_primitive_corpus, MilestoneOnePrimitiveScenario,
+    commit_topology_intent, commit_topology_intent_on_branch, commit_topology_mutation_set,
+    commit_topology_mutation_set_on_branch, milestone_one_default_primitive_corpus,
+    CertifiedTopologyInterpretation, DerivedTopologyReadBasis, DerivedTruthBasisIdentity,
+    MilestoneOnePrimitiveScenario, PersistedTopologyTruth, SeededTopologyCommit,
+    TopologyCommittedMutationSet, TopologyIntentCommitError, TopologyMutationSetCommitError,
+    TopologyReadArtifact,
 };
 use schema::facade::{
-    admit_query_mutation_batch, query_mutation_support_contract, QueryAspectPath, QueryCollection,
-    QueryComputedDeclarationBuilder, QueryLiveDeclarationBuilder, QueryMutationAdmission,
-    QueryMutationAdmissionBlocker, QueryMutationSupportContract, QuerySchemaBasis,
-    RawTopologyIntent,
+    bootstrap_schema_registry, QueryAspectFamily, QueryAspectPath, QueryCollection, QueryLiveField,
+    QuerySchemaBasis, SchemaBuildError, SchemaBuilder, SCHEMA_ID, SCHEMA_VERSION_ID,
 };
 
-fn _live_declaration_contract() {
-    let _ = QueryLiveDeclarationBuilder::new(
-        ".public.topology",
-        QueryCollection::TopologyEntity,
-        QuerySchemaBasis::TopologyEntityLiveView,
-    )
-    .select([QueryAspectPath::TOPOLOGY_STRUCTURE])
-    .build()
-    .unwrap();
+fn _query_vocab_contract() {
+    let contract = QueryLiveSurfaceContract {
+        surface: ".public.topology",
+        family: QueryAspectFamily::Topology,
+        collection: QueryCollection::TopologyEntity,
+        basis: QuerySchemaBasis::TopologyEntityLiveView,
+        aspect: QueryAspectPath::TOPOLOGY_STRUCTURE,
+        field: QueryLiveField::IdentityId,
+    };
+    let _ = (
+        contract.surface,
+        contract.family,
+        contract.collection,
+        contract.basis,
+        contract.aspect,
+        contract.field,
+    );
 }
 
-fn _computed_declaration_contract() {
-    let _ = QueryComputedDeclarationBuilder::new(".public.validation")
-        .reads([QueryAspectPath::TOPOLOGY_STRUCTURE])
-        .produces([QueryAspectPath::DIAGNOSTICS_DECISIONS])
-        .build()
-        .unwrap();
+fn _truth_vocab_contract(
+    aspect: Aspect,
+    entity: EntityKind,
+    relation: RelationKind,
+    create_key: CreateKey,
+    entity_reference: EntityReference,
+    mutation_origin: MutationOrigin,
+    intent: RawTopologyIntent,
+    committed_mutation_set: TopologyCommittedMutationSet,
+) {
+    let _ = (
+        aspect,
+        entity,
+        relation,
+        create_key,
+        entity_reference,
+        mutation_origin,
+        intent,
+        committed_mutation_set,
+    );
 }
 
-fn _query_aspect_roundtrip_contract() {
-    let path = QueryAspectPath::from_str("topology.structure").unwrap();
-    let _aspect = path.into_aspect();
-}
-
-fn _query_mutation_admission_contract(intent: &RawTopologyIntent) -> QueryMutationAdmission {
-    admit_query_mutation_batch(intent)
-}
-
-fn _query_mutation_support_contract(
-) -> Result<QueryMutationSupportContract, forge_query::facade::ForgeQueryRuntimeError> {
-    query_mutation_support_contract()
+fn _bootstrap_contract() {
+    let _ = bootstrap_schema_registry();
+    let _ = SchemaBuilder::new()
+        .with_topology_kinds()
+        .with_naming_kinds();
+    let _ = SchemaBuildError::MissingTopologyKinds;
+    let _ = (SCHEMA_ID, SCHEMA_VERSION_ID);
 }
 
 fn _topology_authoring_contract() -> Vec<MilestoneOnePrimitiveScenario> {
     milestone_one_default_primitive_corpus()
 }
 
+struct QueryLiveSurfaceContract {
+    surface: &'static str,
+    family: QueryAspectFamily,
+    collection: QueryCollection,
+    basis: QuerySchemaBasis,
+    aspect: QueryAspectPath,
+    field: QueryLiveField,
+}
+
+fn _topology_authoring_support_contract(
+    seeded: SeededTopologyCommit,
+    committed_mutation_set: TopologyCommittedMutationSet,
+    persisted: PersistedTopologyTruth,
+    read_basis: DerivedTopologyReadBasis,
+    read_artifact: TopologyReadArtifact,
+    certified: CertifiedTopologyInterpretation,
+    truth_basis: DerivedTruthBasisIdentity,
+) {
+    let _: fn(
+        &mut forge_relational::facade::runtime::RelationalRuntime,
+        &'static str,
+        Vec<forge_relational::facade::transactions::MutationIntent>,
+    ) -> Result<
+        forge_relational::facade::transactions::CommitResult,
+        TopologyMutationSetCommitError,
+    > = commit_topology_mutation_set;
+    let _: fn(
+        &mut forge_relational::facade::runtime::RelationalRuntime,
+        forge_relational::facade::history::BranchId,
+        &'static str,
+        Vec<forge_relational::facade::transactions::MutationIntent>,
+    ) -> Result<
+        forge_relational::facade::transactions::CommitResult,
+        TopologyMutationSetCommitError,
+    > = commit_topology_mutation_set_on_branch;
+    let _ = (
+        commit_topology_intent,
+        commit_topology_intent_on_branch,
+        seeded.snapshot(),
+        seeded.branch_id(),
+        seeded.commits(),
+        committed_mutation_set,
+        persisted,
+        read_basis,
+        read_artifact,
+        certified,
+        truth_basis,
+        std::mem::size_of::<TopologyIntentCommitError>(),
+        std::mem::size_of::<TopologyMutationSetCommitError>(),
+    );
+}
+
 #[test]
-fn schema_public_query_declaration_boundaries_compile() {
-    let _ = _live_declaration_contract;
-    let _ = _computed_declaration_contract;
-    let _ = _query_aspect_roundtrip_contract;
-    let _ = _query_mutation_admission_contract;
-    let _ = _query_mutation_support_contract;
+fn schema_public_surface_stays_vocabulary_first() {
+    let _ = _query_vocab_contract;
+    let _ = _truth_vocab_contract;
+    let _ = _bootstrap_contract;
     let _ = _topology_authoring_contract;
-    let _ = QueryMutationAdmissionBlocker::ExistingIdentityBindingRequired;
+    let _ = _topology_authoring_support_contract;
 }

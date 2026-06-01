@@ -146,3 +146,14 @@ pub(crate) fn runtime_with_test_schema_and_invariants(
         .invariant_catalog(invariant_catalog)
         .build()
 }
+
+pub(crate) fn runtime_with_declared_aspect_schema_and_invariants(
+    invariant_catalog: InvariantCatalog,
+) -> RelationalRuntime {
+    RelationalRuntimeApi::builder()
+        .schema_registry(declared_aspect_schema_registry(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        ))
+        .invariant_catalog(invariant_catalog)
+        .build()
+}

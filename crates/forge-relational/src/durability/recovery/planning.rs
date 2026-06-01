@@ -1,1 +1,1 @@
-// Durability recovery planning now lives in `durability/access.rs`.
+// Durability recovery planning lives in `durability/access/recovery_plan_entrypoint.rs`.

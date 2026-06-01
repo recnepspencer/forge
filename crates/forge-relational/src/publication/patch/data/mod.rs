@@ -1,17 +1,27 @@
-mod aspect_key;
-mod canonical_aspects;
+mod aspect_key_ordering;
+mod authoritative_patch_envelope;
 mod patch_batch;
 mod patch_detail;
 mod patch_errors;
 mod patch_ordering;
 mod patch_position;
-mod patch_record;
+mod published_authoritative_patch;
+mod record_structural_change;
 
-pub use aspect_key::*;
-pub use canonical_aspects::*;
-pub use patch_batch::*;
-pub use patch_detail::*;
-pub use patch_errors::*;
-pub use patch_ordering::*;
-pub use patch_position::*;
-pub use patch_record::*;
+pub use authoritative_patch_envelope::{
+    PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch,
+};
+pub use patch_batch::{PatchStreamBatch, PatchStreamRequest};
+pub use patch_detail::{PatchDetail, PatchFragmentBudget};
+pub use patch_errors::{PatchStreamReadError, PatchStreamReadErrorClass};
+pub use patch_ordering::{PatchOrdering, PatchPublicationMode};
+pub use patch_position::PatchStreamPosition;
+pub use published_authoritative_patch::{
+    PublishedAuthoritativeFieldSet, PublishedAuthoritativePatch,
+};
+pub use record_structural_change::RecordStructuralChange;
+
+pub(crate) use aspect_key_ordering::ordered_aspect_keys;
+pub(crate) use published_authoritative_patch::{
+    PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue,
+};

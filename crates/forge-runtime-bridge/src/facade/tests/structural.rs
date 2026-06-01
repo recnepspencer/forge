@@ -285,10 +285,16 @@ fn runtime_canonicalizes_and_replays_structural_remap_record() {
         .plan_structural_match_packet_set_from_read_packets(
             &contract,
             SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                "entity-1", "profile",
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid snapshot aspect key"),
             )]),
             vec![SnapshotReadPacket::new(vec![
-                crate::snapshot::SnapshotReadRequest::for_coarse("entity-1", "profile"),
+                crate::snapshot::SnapshotReadRequest::for_coarse(
+                    "entity-1",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid snapshot aspect key"),
+                ),
             ])],
         )
         .expect("structural candidates should plan");
@@ -498,7 +504,9 @@ fn runtime_canonicalizes_and_replays_structural_branch_comparison_record() {
         .plan_structural_branch_comparison_from_read_packet(
             &contract,
             SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                "entity-1", "profile",
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid snapshot aspect key"),
             )]),
         )
         .expect("branch diff candidate should plan");
@@ -555,10 +563,16 @@ fn runtime_replay_rejects_incompatible_structural_remap_record_version() {
         .plan_structural_match_packet_set_from_read_packets(
             &contract,
             SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                "entity-1", "profile",
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid snapshot aspect key"),
             )]),
             vec![SnapshotReadPacket::new(vec![
-                crate::snapshot::SnapshotReadRequest::for_coarse("entity-1", "profile"),
+                crate::snapshot::SnapshotReadRequest::for_coarse(
+                    "entity-1",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid snapshot aspect key"),
+                ),
             ])],
         )
         .expect("structural candidates should plan");
@@ -645,7 +659,9 @@ fn runtime_replay_rejects_incompatible_structural_branch_record_version() {
         .plan_structural_branch_comparison_from_read_packet(
             &contract,
             SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                "entity-1", "profile",
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid snapshot aspect key"),
             )]),
         )
         .expect("branch diff candidate should plan");
@@ -864,10 +880,16 @@ fn runtime_derives_structural_candidates_from_read_packets() {
         .plan_structural_match_packet_set_from_read_packets(
             &contract,
             SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                "entity-1", "profile",
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid snapshot aspect key"),
             )]),
             vec![SnapshotReadPacket::new(vec![
-                crate::snapshot::SnapshotReadRequest::for_coarse("entity-1", "profile"),
+                crate::snapshot::SnapshotReadRequest::for_coarse(
+                    "entity-1",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid snapshot aspect key"),
+                ),
             ])],
         )
         .expect("structural candidates should derive from read packets");
@@ -905,10 +927,16 @@ fn runtime_derives_identity_authority_conflict_from_same_snapshot_same_structure
         .plan_structural_match_packet_set_from_read_packets(
             &contract,
             SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                "entity-1", "profile",
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid snapshot aspect key"),
             )]),
             vec![SnapshotReadPacket::new(vec![
-                crate::snapshot::SnapshotReadRequest::for_coarse("entity-2", "profile"),
+                crate::snapshot::SnapshotReadRequest::for_coarse(
+                    "entity-2",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid snapshot aspect key"),
+                ),
             ])],
         )
         .expect("structural candidates should derive from read packets");
@@ -946,7 +974,9 @@ fn runtime_materializes_structural_fingerprint_from_truth_view_read() {
         .materialize_structural_fingerprint(
             &contract,
             SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                "entity-1", "profile",
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid snapshot aspect key"),
             )]),
         )
         .expect("structural fingerprint should materialize");
@@ -1120,7 +1150,9 @@ fn runtime_derives_branch_comparison_candidates_from_branch_pair_reads() {
         .plan_structural_branch_comparison_from_read_packet(
             &contract,
             SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
-                "entity-1", "profile",
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid snapshot aspect key"),
             )]),
         )
         .expect("branch comparison should derive candidates from paired reads");
@@ -1332,8 +1364,16 @@ fn runtime_branch_comparison_ignores_read_result_order_when_structure_is_equal()
         .plan_structural_branch_comparison_from_read_packet(
             &contract,
             SnapshotReadPacket::new(vec![
-                crate::snapshot::SnapshotReadRequest::for_coarse("entity-1", "profile"),
-                crate::snapshot::SnapshotReadRequest::for_coarse("entity-2", "profile"),
+                crate::snapshot::SnapshotReadRequest::for_coarse(
+                    "entity-1",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid snapshot aspect key"),
+                ),
+                crate::snapshot::SnapshotReadRequest::for_coarse(
+                    "entity-2",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid snapshot aspect key"),
+                ),
             ]),
         )
         .expect("branch comparison should plan from reordered equal reads");

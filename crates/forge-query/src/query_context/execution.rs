@@ -39,7 +39,7 @@ impl QueryContextExecutionFamily {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct QueryContextExecutionCounters {
     context_execution_count: usize,
-    payload_row_count: usize,
+    materialized_row_count: usize,
     result_shape_width: usize,
     executor_rediscovery_count: usize,
 }
@@ -49,8 +49,8 @@ impl QueryContextExecutionCounters {
         self.context_execution_count
     }
 
-    pub fn payload_row_count(&self) -> usize {
-        self.payload_row_count
+    pub fn materialized_row_count(&self) -> usize {
+        self.materialized_row_count
     }
 
     pub fn result_shape_width(&self) -> usize {
@@ -68,7 +68,7 @@ pub struct QueryContextExecutionArtifact {
     basis_digest: String,
     result_digest: String,
     result_shape_digest: String,
-    payload: Vec<String>,
+    rows: Vec<String>,
     family: QueryContextExecutionFamily,
     cost_class: QueryContextCostClass,
     budget_class: QueryContextBudgetClass,
@@ -101,8 +101,8 @@ impl QueryContextExecutionArtifact {
         &self.result_shape_digest
     }
 
-    pub fn payload(&self) -> &[String] {
-        &self.payload
+    pub fn rows(&self) -> &[String] {
+        &self.rows
     }
 
     pub fn family(&self) -> &QueryContextExecutionFamily {
@@ -182,7 +182,7 @@ pub fn execute_query_basis_context(
                     .canonical_result_shape_digest()
                     .as_str()
                     .to_string(),
-                payload: execution.payload().to_vec(),
+                rows: execution.rows().to_vec(),
                 family,
                 cost_class: context.cost_class().clone(),
                 budget_class: context.budget_class().clone(),
@@ -197,7 +197,7 @@ pub fn execute_query_basis_context(
                 preview_provenance_identity: None,
                 counters: QueryContextExecutionCounters {
                     context_execution_count: 1,
-                    payload_row_count: execution.payload().len(),
+                    materialized_row_count: execution.rows().len(),
                     result_shape_width: preflight.plan().result_shape().binding_count(),
                     executor_rediscovery_count: 0,
                 },
@@ -242,7 +242,7 @@ pub fn execute_query_basis_context(
                     QueryContextCounters::for_historical_broadening_denial(),
                 ));
             }
-            let payload = synthetic::synthetic_payload(
+            let rows = synthetic::synthetic_rows(
                 query_preflight,
                 context.basis_digest(),
                 Some(requested_path_class),
@@ -251,7 +251,7 @@ pub fn execute_query_basis_context(
             let result_digest = synthetic::synthetic_result_digest(
                 query_preflight,
                 context.basis_digest(),
-                &payload,
+                &rows,
                 Some(requested_path_class),
                 Some(materialization_identity.as_str()),
             );
@@ -265,7 +265,7 @@ pub fn execute_query_basis_context(
                     .canonical_result_shape_digest()
                     .as_str()
                     .to_string(),
-                payload,
+                rows,
                 family: QueryContextExecutionFamily::HistoricalMaterialized,
                 cost_class: context.cost_class().clone(),
                 budget_class: context.budget_class().clone(),
@@ -280,7 +280,7 @@ pub fn execute_query_basis_context(
                 preview_provenance_identity: None,
                 counters: QueryContextExecutionCounters {
                     context_execution_count: 1,
-                    payload_row_count: query_preflight.plan().result_shape().binding_count(),
+                    materialized_row_count: query_preflight.plan().result_shape().binding_count(),
                     result_shape_width: query_preflight.plan().result_shape().binding_count(),
                     executor_rediscovery_count: 0,
                 },
@@ -297,7 +297,7 @@ pub fn execute_query_basis_context(
                         QueryContextCounters::for_denial(false, false),
                     )
                 })?;
-            let payload = (0..foundation.shape_check_width())
+            let rows = (0..foundation.shape_check_width())
                 .map(|index| {
                     format!(
                         "preview:{}:{}:{}:{}",
@@ -308,9 +308,9 @@ pub fn execute_query_basis_context(
                     )
                 })
                 .collect::<Vec<_>>();
-            let payload_row_count = payload.len();
+            let materialized_row_count = rows.len();
             let result_digest = ResultDigest::from_parts(
-                &payload
+                &rows
                     .iter()
                     .enumerate()
                     .map(|(index, value)| format!("row:{}:{}", index, value))
@@ -335,7 +335,7 @@ pub fn execute_query_basis_context(
                     format!("shape_check_width:{}", foundation.shape_check_width()),
                     "preview_query_context_shape".to_string(),
                 ]),
-                payload,
+                rows,
                 family: QueryContextExecutionFamily::PreviewDerivedHistorical,
                 cost_class: context.cost_class().clone(),
                 budget_class: context.budget_class().clone(),
@@ -350,7 +350,7 @@ pub fn execute_query_basis_context(
                 preview_provenance_identity: Some(preview_identity),
                 counters: QueryContextExecutionCounters {
                     context_execution_count: 1,
-                    payload_row_count,
+                    materialized_row_count,
                     result_shape_width: foundation.shape_check_width(),
                     executor_rediscovery_count: 0,
                 },

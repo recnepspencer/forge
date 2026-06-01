@@ -1,42 +1,36 @@
 use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
-    RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
+    RelationalDiagnosticArtifact, RelationalDiagnosticFields, RelationalDiagnosticValue,
+    RelationalDiagnosticsEntry,
 };
-use crate::publication::cdc::data::{
-    SubscriberContinuationAssessment, SubscriberContractDeclaration, SubscriberStreamFailureClass,
-};
-use serde_json::json;
+use crate::publication::cdc::data::SubscriberStreamFailureClass;
 
 pub(crate) fn rejection_artifact(
     class: SubscriberStreamFailureClass,
     detail: &str,
 ) -> RelationalDiagnosticArtifact {
-    RelationalDiagnosticArtifact {
-        scope: DiagnosticsScope::Replay,
-        kind: DiagnosticsArtifactKind::Failure,
-        determinism: DeterminismExpectation::Required,
-        entries: vec![RelationalDiagnosticsEntry {
-            code: DiagnosticCode::ReplaySchemaVersionMismatch,
-            message: "subscriber recovery request rejected".to_string(),
-            fields: json!({
-                "failure_class": format!("{:?}", class),
-                "detail": detail,
-            }),
-        }],
-    }
+    RelationalDiagnosticArtifact::new(
+        DiagnosticsScope::Replay,
+        DiagnosticsArtifactKind::Failure,
+        DeterminismExpectation::Required,
+        vec![RelationalDiagnosticsEntry::new(
+            DiagnosticCode::ReplaySchemaVersionMismatch,
+            "subscriber recovery request rejected",
+            subscriber_recovery_request_rejection_fields(class, detail),
+        )],
+    )
 }
 
-pub(crate) fn continuation_rejection_artifact(
-    class: SubscriberStreamFailureClass,
+fn subscriber_recovery_request_rejection_fields(
+    failure_class: SubscriberStreamFailureClass,
     detail: &str,
-    subscriber_contract: &SubscriberContractDeclaration,
-    assessment: &SubscriberContinuationAssessment,
-    normalized_boundary_count_at_failure: usize,
-) -> RelationalDiagnosticArtifact {
-    assessment.to_rejection_artifact(
-        class,
-        detail,
-        subscriber_contract,
-        normalized_boundary_count_at_failure,
-    )
+) -> RelationalDiagnosticFields {
+    RelationalDiagnosticValue::object([
+        (
+            "failure_class",
+            RelationalDiagnosticValue::string(format!("{failure_class:?}")),
+        ),
+        ("detail", RelationalDiagnosticValue::string(detail)),
+    ])
+    .into()
 }

@@ -1,0 +1,58 @@
+use super::*;
+
+#[test]
+fn complexity_budget_preparation_packetization_is_chunked_for_broad_deltas() {
+    let mut runtime = runtime_with_test_schema_execution_model(
+        crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
+    );
+    runtime.performance_access().reset_counters();
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("bulk-entities").push(MutationIntent::Create(
+            CreateIntent::BulkEntities(BulkEntityCreateIntent {
+                partition_id: PartitionId(41),
+                kind_id: KindId(1),
+                client_keys: (0..65)
+                    .map(|index| crate::symbols::data::ClientKey::raw(format!("e{index}")))
+                    .collect(),
+                field_patches: (0..65)
+                    .map(|index| {
+                        crate::tests::support::aspect_field_patch_from_values([(
+                            crate::tests::support::aspect_key("name"),
+                            crate::tests::support::field_key("name"),
+                            crate::tests::support::string_aspect_value(&format!("e{index}")),
+                        )])
+                    })
+                    .collect(),
+            }),
+        )),
+    );
+    let outcome = txn.commit().unwrap();
+    let counters = runtime.performance_access().counters();
+
+    assert_eq!(outcome.changed_records.len(), 65);
+    assert!(counters.preparation_packet_count <= 8);
+    assert!(counters.preparation_packet_item_count >= outcome.changed_records.len());
+    assert!(counters.preparation_packet_peak_width_total >= 16);
+    assert!(counters.preparation_scope_unit_count >= 1);
+    assert!(counters.preparation_staged_parallel_strategy_count >= 1);
+    assert!(counters.preparation_packet_count < outcome.changed_records.len());
+}
+
+#[test]
+fn complexity_budget_preparation_narrow_delta_falls_back_to_serial() {
+    let mut runtime = runtime_with_test_schema_execution_model(
+        crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
+    );
+    runtime.performance_access().reset_counters();
+
+    let _ = create_entity_outcome(&mut runtime, "narrow");
+    let counters = runtime.performance_access().counters();
+
+    assert!(counters.preparation_packet_count <= 3);
+    assert!(counters.preparation_packet_item_count >= 1);
+    assert!(counters.preparation_packet_peak_width_total >= 1);
+    assert!(counters.preparation_scope_unit_count >= 1);
+    assert!(counters.preparation_serial_strategy_count >= 1);
+}

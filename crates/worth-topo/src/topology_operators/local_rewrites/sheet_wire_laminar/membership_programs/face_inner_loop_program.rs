@@ -1,61 +1,65 @@
 use forge_query::facade::ForgeQueryBatchWriteReceipt;
-use schema::facade::{EntityReference, TopologyEntityKind, TopologyRelationKind};
+use schema::facade::platform::authority::EntityReference;
+use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{
-    TopologyOperatorExecutionError, TopologyOperatorRunner,
+    TopologyMutationApplicationError, TopologyMutationApplicationRunner,
 };
 use crate::topology_operators::topology_relation_dependency_path;
 use crate::topology_operators::{
-    BoundaryMembershipKind, TopologyEditAction, TopologyEditContract, TopologyEditFamily,
+    BoundaryMembershipKind, TopologyDeclaredMutationActionRef, TopologyDeclaredMutationSequence,
+    TopologyMutationFamily,
 };
 
-impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
-    pub(super) fn compose_face_inner_loop_program(
+impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
+    pub(crate) fn compose_face_inner_loop_program(
         &mut self,
-        contracts: &[TopologyEditContract],
+        sequence: &TopologyDeclaredMutationSequence,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyOperatorExecutionError> {
-        let [create, attach] = contracts else {
-            return Err(TopologyOperatorExecutionError::UnsupportedFamilies(vec![
-                TopologyEditFamily::AttachBoundaryMembership,
+    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyMutationApplicationError> {
+        let members = sequence.members().collect::<Vec<_>>();
+        let [create, attach] = members.as_slice() else {
+            return Err(TopologyMutationApplicationError::UnsupportedFamilies(vec![
+                TopologyMutationFamily::AttachBoundaryMembership,
             ]));
         };
         let (
-            TopologyEditAction::CreateTopologyEntity {
+            TopologyDeclaredMutationActionRef::CreateTopologyEntity {
                 create_key,
                 kind: TopologyEntityKind::Loop,
-                ..
             },
-            TopologyEditAction::AttachBoundaryMembership {
+            TopologyDeclaredMutationActionRef::AttachBoundaryMembership {
                 kind: BoundaryMembershipKind::FaceInnerLoop,
                 owner: EntityReference::Existing(face_id),
                 member: EntityReference::Created(member_key),
-                ..
             },
-        ) = (&create.action, &attach.action)
+        ) = (create.action_ref(), attach.action_ref())
         else {
-            return Err(TopologyOperatorExecutionError::UnsupportedFamilies(vec![
-                TopologyEditFamily::AttachBoundaryMembership,
+            return Err(TopologyMutationApplicationError::UnsupportedFamilies(vec![
+                TopologyMutationFamily::AttachBoundaryMembership,
             ]));
         };
-        if create_key.as_str() != member_key.as_str() {
-            return Err(TopologyOperatorExecutionError::UnsupportedFamilies(vec![
-                TopologyEditFamily::AttachBoundaryMembership,
+        if create_key != member_key.as_str() {
+            return Err(TopologyMutationApplicationError::UnsupportedFamilies(vec![
+                TopologyMutationFamily::AttachBoundaryMembership,
             ]));
         }
         let face_binding = crate::topology_operators::application::bindings::query_entity_binding(
             bindings, *face_id,
         )?
-        .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(*face_id))?;
+        .ok_or(TopologyMutationApplicationError::MissingExistingEntityBinding(*face_id))?;
         if face_binding.kind != TopologyEntityKind::Face {
-            return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {
-                entity_id: *face_id,
-                expected: TopologyEntityKind::Face,
-                actual: face_binding.kind,
-            });
+            return Err(
+                TopologyMutationApplicationError::ExistingEntityKindMismatch {
+                    entity_id: *face_id,
+                    expected: TopologyEntityKind::Face,
+                    actual: face_binding.kind,
+                },
+            );
         }
-        let create_key = create_key.as_str().to_string();
+        let create_key = create_key.to_string();
         self.workspace
             .compose_graph(|graph| {
                 let loop_symbol =
@@ -77,7 +81,9 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                         )
                         .symbolic_entity_identity("topology.target_identity", &loop_symbol);
                     if let Some(path) = topology_relation_dependency_path(
-                        schema::facade::RelationKind::Topology(TopologyRelationKind::FaceInnerLoop),
+                        schema::facade::platform::relations::RelationKind::Topology(
+                            TopologyRelationKind::FaceInnerLoop,
+                        ),
                     ) {
                         relation.aspect(path, TopologyRelationKind::FaceInnerLoop.kind_name())
                     } else {

@@ -47,7 +47,7 @@ pub(crate) use graph_composition::{
     GRAPH_COMPOSITION_TARGET_COMBINATION_FAMILIES,
 };
 pub(crate) use lowering::{
-    aspect_values_to_payload, command_declared_aspect_operations, command_declared_aspect_paths,
+    command_declared_aspect_operations, command_declared_aspect_paths,
     command_declared_aspect_value_digest,
 };
 pub use metadata::ForgeQueryMutationMetadata;

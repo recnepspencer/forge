@@ -1,0 +1,183 @@
+use super::*;
+
+pub(super) fn replay_commit(
+    runtime: &mut RelationalRuntime,
+    commit_id: crate::history::data::CommitId,
+    branch_id: BranchId,
+) -> crate::facade::replay::RelationalReplayOutcome {
+    runtime
+        .replay_authority()
+        .replay_commit(RelationalReplayRequest {
+            commit_id,
+            branch_id,
+            execution_mode: ReplayExecutionMode::SerialDeterministic,
+            verification_mode: ReplayVerificationMode::AuditRecoveryVerification,
+        })
+}
+
+pub(super) fn assert_strategy_replay_clean(
+    replay: &crate::facade::replay::RelationalReplayOutcome,
+    stage: &str,
+) {
+    assert!(
+        replay
+            .compared_surfaces
+            .contains(&ReplayObservableSurface::Strategy),
+        "expected strategy replay surface during {stage}: {replay:?}"
+    );
+    assert!(
+        replay
+            .mismatches
+            .iter()
+            .all(|mismatch| mismatch.surface != ReplayObservableSurface::Strategy),
+        "unexpected strategy replay mismatch during {stage}: {replay:?}"
+    );
+}
+
+pub(super) fn planning_evidence(
+    planning: &crate::merge::data::MergePlanningArtifactCore,
+) -> KubernetesPlanningEvidence {
+    KubernetesPlanningEvidence {
+        conflict: KubernetesConflictEvidence {
+            records: planning.digest_basis.conflict.records.clone(),
+            classes: planning.digest_basis.conflict.classes.clone(),
+            validated_schema_correspondence: planning
+                .digest_basis
+                .conflict
+                .validated_schema_correspondence
+                .clone(),
+            strategy_conflict_classes: planning
+                .digest_basis
+                .conflict
+                .strategy_conflict_classes
+                .clone(),
+            source_strategy_descriptors: planning
+                .digest_basis
+                .conflict
+                .source_strategy_descriptors
+                .clone(),
+            target_strategy_descriptors: planning
+                .digest_basis
+                .conflict
+                .target_strategy_descriptors
+                .clone(),
+            relation_evidence: planning.digest_basis.conflict.relation_evidence.clone(),
+            aspect_evidence_keys: planning.digest_basis.conflict.aspect_evidence_keys.clone(),
+            aspect_evidence_comparisons: planning
+                .digest_basis
+                .conflict
+                .aspect_evidence_comparisons
+                .clone(),
+        },
+        lowered_plan: planning.digest_basis.lowered_plan.clone(),
+        decision_log: planning.decision_log_digest_basis.clone(),
+    }
+}
+
+pub(super) fn recover_stage(
+    runtime: &mut RelationalRuntime,
+    root_path: std::path::PathBuf,
+) -> RelationalRuntime {
+    let (_recovery, recovered) =
+        checkpoint_and_recover_with(runtime, || persisted_strategy_runtime(root_path));
+    recovered
+}
+
+pub(super) fn recover_stage_from_final_history(
+    source: &RelationalRuntime,
+    root_path: std::path::PathBuf,
+    source_head: crate::history::data::CommitReference,
+    target_head: crate::history::data::CommitReference,
+) -> RelationalRuntime {
+    let mut chain = source
+        .history()
+        .ancestor_closure_by_commit_id_order(source_head.commit_id)
+        .into_iter()
+        .chain(
+            source
+                .history()
+                .ancestor_closure_by_commit_id_order(target_head.commit_id),
+        )
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    chain.sort_unstable();
+    let replay_access = source.replay();
+    let checkpoint = source
+        .durable_checkpoints()
+        .iter()
+        .rev()
+        .find(|checkpoint| {
+            checkpoint
+                .coverage
+                .up_to_commit
+                .as_ref()
+                .map(|commit| chain.contains(&commit.commit_id))
+                .unwrap_or(false)
+        })
+        .cloned();
+    let tail_start = checkpoint
+        .as_ref()
+        .and_then(|checkpoint| checkpoint.coverage.up_to_commit.as_ref())
+        .map(|commit| commit.commit_id);
+    let tail_log = chain
+        .iter()
+        .copied()
+        .filter(|commit_id| tail_start.is_none_or(|start| *commit_id > start))
+        .filter_map(|commit_id| replay_access.canonical_commit_envelope(commit_id))
+        .cloned()
+        .collect::<Vec<_>>();
+    let restore_authoritative_envelope_commit_ids = tail_log
+        .iter()
+        .filter(|envelope| envelope.strategy_artifacts.is_some())
+        .map(|envelope| envelope.commit.commit_id)
+        .collect::<Vec<_>>();
+    let descriptor_semantics_version = tail_log
+        .last()
+        .map(|envelope| envelope.descriptor_semantics_version)
+        .unwrap_or_default();
+    let plan = crate::durability::data::RecoveryPlan::new(
+        source.config().clone(),
+        source.durable_store().cloned(),
+        None,
+        checkpoint,
+        tail_log,
+        crate::durability::data::RecoveryCursor {
+            checkpoint_id: None,
+            segment_ids: Vec::new(),
+        },
+        crate::durability::data::RecoveryIntegrityReport {
+            selected_checkpoint_id: None,
+            skipped_corrupt_checkpoints: Vec::new(),
+            verified_segment_ids: Vec::new(),
+            corrupt_segment_id: None,
+        },
+        crate::durability::data::RecoveryAuthorityContinuityCheck::verified_at(
+            crate::replay::data::ReplayVerificationLayer::DigestParity,
+        ),
+        crate::durability::data::RecoveryVerificationMode::AuditRecoveryVerification,
+        descriptor_semantics_version,
+        restore_authoritative_envelope_commit_ids,
+    )
+    .with_commit_strategy_executors(source.commit_strategy_executor_registry().clone());
+    let mut recovered = persisted_strategy_runtime(root_path);
+    recovered
+        .durability_authority()
+        .recover(plan)
+        .expect("recover staged runtime from final history");
+    if let Some(base_commit_id) = recovered
+        .history()
+        .max_commit_id_common_ancestor(source_head.commit_id, target_head.commit_id)
+    {
+        let base_version_id = recovered
+            .history()
+            .commit_envelope(base_commit_id)
+            .map(|envelope| envelope.commit.version_id);
+        if let Some(base_version_id) = base_version_id {
+            recovered
+                .history_authority()
+                .retain_version_for_replay(base_version_id);
+        }
+    }
+    recovered
+}

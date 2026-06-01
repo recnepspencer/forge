@@ -1,22 +1,25 @@
-#![allow(dead_code)]
+use std::collections::BTreeMap;
 
+use forge_foundational::facade::{
+    aspects, AspectFieldLocator, AspectIdentity, AspectKey, AspectValue, CanonicalFieldPath,
+    FieldKey, LocatorAuthority, ScalarAspectType,
+};
 use forge_relational::facade::{
     config::{CascadeDeletePolicy, CrossContextPolicy},
     history::BranchId,
     identity::{EntityId, KindId, PartitionId, RelationId},
-    payloads::RecordPayload,
     schema::{
-        EntityKindRegistration, KindAspectDeclarations, RelationIntegrityDeclarations,
-        RelationKindRegistration, RelationPayloadClass, RelationalSchemaRegistry, SchemaId,
-        SchemaVersionId,
+        AspectBinding, DeclaredAspectContractBinding, EntityKindRegistration,
+        KindAspectContractDeclarations, RelationIntegrityDeclarations, RelationKindRegistration,
+        RelationalSchemaRegistry, SchemaId, SchemaVersionId,
     },
-    symbols::InternedString,
+    symbols::ClientKey,
     transactions::{
-        CreateIntent, DeleteEntityIntent, EntityMutationIntent, EntityReference, EntitySpec,
-        MutationIntent, RelationSpec, TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
+        AspectFieldPatch, CreateIntent, DeleteEntityIntent, EntityMutationIntent, EntityReference,
+        EntitySpec, MutationIntent, RelationSpec, TransactionOptions, UpdateEntityFieldsIntent,
+        WorkerIntentBatch,
     },
 };
-use serde_json::json;
 
 pub fn demo_schema_registry() -> RelationalSchemaRegistry {
     RelationalSchemaRegistry::new()
@@ -25,7 +28,9 @@ pub fn demo_schema_registry() -> RelationalSchemaRegistry {
             kind_name: "demo.entity".to_string(),
             schema_id: SchemaId("demo".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::default(),
+            aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                entity_string_field_aspect(aspect_key("name"), field_key("name")),
+            ]),
         })
         .and_then(|registry| {
             registry.register_relation_kind(RelationKindRegistration {
@@ -33,10 +38,11 @@ pub fn demo_schema_registry() -> RelationalSchemaRegistry {
                 kind_name: "demo.relation".to_string(),
                 schema_id: SchemaId("demo".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-                aspect_declarations: KindAspectDeclarations::default(),
+                aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
+                    relation_string_field_aspect(aspect_key("label"), field_key("label")),
+                ]),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
         })
@@ -60,8 +66,8 @@ pub fn create_entity(
             CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
-                client_key: InternedString::Raw(name.to_string()),
-                payload: RecordPayload::StructuredJson(json!({ "name": name })),
+                client_key: ClientKey::raw(name),
+                fields: string_field_patch(aspect_key("name"), field_key("name"), name),
             }),
         )),
     );
@@ -90,9 +96,9 @@ pub fn update_entity_on_branch(
     });
     tx.push_batch(
         WorkerIntentBatch::new(format!("update-{name}")).push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                payload: RecordPayload::StructuredJson(json!({ "name": name })),
+                fields: string_field_patch(aspect_key("name"), field_key("name"), name),
             }),
         )),
     );
@@ -127,10 +133,10 @@ pub fn create_relation(
             CreateIntent::Relation(RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw(label.to_string()),
+                client_key: ClientKey::raw(label),
                 source: EntityReference::Existing(source),
                 target: EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(json!({ "label": label }))),
+                fields: string_field_patch(aspect_key("label"), field_key("label"), label),
             }),
         )),
     );
@@ -165,4 +171,72 @@ pub fn changed_relation(
             }
             forge_relational::facade::transactions::RecordRef::Entity(_) => None,
         })
+}
+
+pub fn field_key(label: &str) -> FieldKey {
+    FieldKey::new(label).expect("example field key must be foundational")
+}
+
+pub fn aspect_field_locator(label: &str) -> AspectFieldLocator {
+    AspectFieldLocator::new(
+        LocatorAuthority::Planned,
+        aspect_key(label),
+        CanonicalFieldPath::single(field_key(label)),
+    )
+}
+
+fn string_field_patch(aspect_key: AspectKey, field_key: FieldKey, value: &str) -> AspectFieldPatch {
+    let mut fields = BTreeMap::new();
+    fields.insert(
+        AspectFieldLocator::new(
+            LocatorAuthority::Planned,
+            aspect_key,
+            CanonicalFieldPath::single(field_key),
+        ),
+        AspectValue::String(value.to_string().into()),
+    );
+    AspectFieldPatch::from(fields)
+}
+
+fn aspect_key(label: &str) -> AspectKey {
+    AspectKey::new(label).expect("example aspect key must be foundational")
+}
+
+fn entity_string_field_aspect(
+    aspect_key: AspectKey,
+    field_key: FieldKey,
+) -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
+        binding: AspectBinding::EntityField { field: field_key },
+        contract: scalar_string_contract(aspect_key),
+    }
+}
+
+fn relation_string_field_aspect(
+    aspect_key: AspectKey,
+    field_key: FieldKey,
+) -> DeclaredAspectContractBinding {
+    DeclaredAspectContractBinding {
+        binding: AspectBinding::RelationField { field: field_key },
+        contract: scalar_string_contract(aspect_key),
+    }
+}
+
+fn scalar_string_contract(aspect_key: AspectKey) -> forge_foundational::AspectContract {
+    let identity = stable_contract_identity(&aspect_key);
+    aspects()
+        .contract()
+        .for_key(aspect_key)
+        .identified_by(AspectIdentity(identity))
+        .at_revision(aspects().vocabulary().revision(1))
+        .scalar(ScalarAspectType::String)
+}
+
+fn stable_contract_identity(aspect_key: &AspectKey) -> u64 {
+    let mut hash = 14695981039346656037_u64;
+    for byte in aspect_key.as_str().as_bytes() {
+        hash ^= *byte as u64;
+        hash = hash.wrapping_mul(1099511628211_u64);
+    }
+    hash
 }

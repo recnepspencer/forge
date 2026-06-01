@@ -1,0 +1,254 @@
+use super::*;
+
+#[derive(Debug, Clone, Copy)]
+struct DeterministicFailureExecutor;
+
+impl CommitStrategyExecutor for DeterministicFailureExecutor {
+    fn execute(
+        &self,
+        _request: &crate::commit_strategies::data::CanonicalStrategyCommitRequest,
+        _observation: &StrategyObservationContext<'_>,
+    ) -> Result<StrategyExecutionResult, StrategyExecutorFailure> {
+        Err(StrategyExecutorFailure::new(
+            StrategyExecutorFailureClass::DomainRejection,
+            "milestone-8.5 hostile deterministic executor rejection",
+        ))
+    }
+}
+
+pub(super) fn persisted_strategy_runtime(root_path: std::path::PathBuf) -> RelationalRuntime {
+    let intent_descriptor = IntentReconciliationStrategy::descriptor(
+        crate::facade::commit_strategies::CommitStrategyId(801),
+    );
+    let replica_descriptor = ReplicaConvergenceStrategy::descriptor(
+        crate::facade::commit_strategies::CommitStrategyId(802),
+    );
+    let aspect_descriptor = AspectFieldReconciliationStrategy::descriptor(
+        crate::facade::commit_strategies::CommitStrategyId(803),
+    );
+    let replacement_descriptor = EntityReplacementReconciliationStrategy::descriptor(
+        crate::facade::commit_strategies::CommitStrategyId(804),
+    );
+    RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(strategy_schema_registry())
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(DurableStoreLayout {
+            root_path,
+            segment_commit_capacity: 2,
+        })
+        .commit_strategy(
+            crate::facade::commit_strategies::CommitStrategyRegistration::new(
+                intent_descriptor.clone(),
+            )
+            .expect("intent registration"),
+        )
+        .commit_strategy_executor(IntentReconciliationStrategy::execution_registration(
+            &intent_descriptor,
+        ))
+        .commit_strategy(
+            crate::facade::commit_strategies::CommitStrategyRegistration::new(
+                replica_descriptor.clone(),
+            )
+            .expect("replica registration"),
+        )
+        .commit_strategy_executor(ReplicaConvergenceStrategy::execution_registration(
+            &replica_descriptor,
+        ))
+        .commit_strategy(
+            crate::facade::commit_strategies::CommitStrategyRegistration::new(
+                aspect_descriptor.clone(),
+            )
+            .expect("aspect registration"),
+        )
+        .commit_strategy_executor(AspectFieldReconciliationStrategy::execution_registration(
+            &aspect_descriptor,
+        ))
+        .commit_strategy(
+            crate::facade::commit_strategies::CommitStrategyRegistration::new(
+                replacement_descriptor.clone(),
+            )
+            .expect("replacement registration"),
+        )
+        .commit_strategy_executor(
+            EntityReplacementReconciliationStrategy::execution_registration(
+                &replacement_descriptor,
+            ),
+        )
+        .build()
+}
+
+pub(super) fn persisted_replacement_strategy_runtime(
+    root_path: std::path::PathBuf,
+) -> RelationalRuntime {
+    let replacement_descriptor = EntityReplacementReconciliationStrategy::descriptor(
+        crate::facade::commit_strategies::CommitStrategyId(804),
+    );
+    RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(strategy_schema_registry())
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(DurableStoreLayout {
+            root_path,
+            segment_commit_capacity: 2,
+        })
+        .commit_strategy(
+            crate::facade::commit_strategies::CommitStrategyRegistration::new(
+                replacement_descriptor.clone(),
+            )
+            .expect("replacement registration"),
+        )
+        .commit_strategy_executor(
+            EntityReplacementReconciliationStrategy::execution_registration(
+                &replacement_descriptor,
+            ),
+        )
+        .build()
+}
+
+pub(super) fn persisted_strategy_runtime_without_executors(
+    root_path: std::path::PathBuf,
+) -> RelationalRuntime {
+    let intent_descriptor = IntentReconciliationStrategy::descriptor(
+        crate::facade::commit_strategies::CommitStrategyId(801),
+    );
+    let replica_descriptor = ReplicaConvergenceStrategy::descriptor(
+        crate::facade::commit_strategies::CommitStrategyId(802),
+    );
+    let aspect_descriptor = AspectFieldReconciliationStrategy::descriptor(
+        crate::facade::commit_strategies::CommitStrategyId(803),
+    );
+    let replacement_descriptor = EntityReplacementReconciliationStrategy::descriptor(
+        crate::facade::commit_strategies::CommitStrategyId(804),
+    );
+    RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(strategy_schema_registry())
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(DurableStoreLayout {
+            root_path,
+            segment_commit_capacity: 2,
+        })
+        .commit_strategy(
+            CommitStrategyRegistration::new(intent_descriptor).expect("intent registration"),
+        )
+        .commit_strategy(
+            CommitStrategyRegistration::new(replica_descriptor).expect("replica registration"),
+        )
+        .commit_strategy(
+            CommitStrategyRegistration::new(aspect_descriptor).expect("aspect registration"),
+        )
+        .commit_strategy(
+            CommitStrategyRegistration::new(replacement_descriptor)
+                .expect("replacement registration"),
+        )
+        .build()
+}
+
+pub(super) fn persisted_strategy_runtime_with_failing_intent_executor(
+    root_path: std::path::PathBuf,
+) -> RelationalRuntime {
+    let intent_descriptor = IntentReconciliationStrategy::descriptor(
+        crate::facade::commit_strategies::CommitStrategyId(801),
+    );
+    let replica_descriptor = ReplicaConvergenceStrategy::descriptor(
+        crate::facade::commit_strategies::CommitStrategyId(802),
+    );
+    let aspect_descriptor = AspectFieldReconciliationStrategy::descriptor(
+        crate::facade::commit_strategies::CommitStrategyId(803),
+    );
+    let replacement_descriptor = EntityReplacementReconciliationStrategy::descriptor(
+        crate::facade::commit_strategies::CommitStrategyId(804),
+    );
+    RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(strategy_schema_registry())
+        .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
+        .durable_store_layout(DurableStoreLayout {
+            root_path,
+            segment_commit_capacity: 2,
+        })
+        .commit_strategy(
+            CommitStrategyRegistration::new(intent_descriptor.clone())
+                .expect("intent registration"),
+        )
+        .commit_strategy_executor(CommitStrategyExecutionRegistration::new(
+            &intent_descriptor,
+            DeterministicFailureExecutor,
+        ))
+        .commit_strategy(
+            CommitStrategyRegistration::new(replica_descriptor.clone())
+                .expect("replica registration"),
+        )
+        .commit_strategy_executor(ReplicaConvergenceStrategy::execution_registration(
+            &replica_descriptor,
+        ))
+        .commit_strategy(
+            CommitStrategyRegistration::new(aspect_descriptor.clone())
+                .expect("aspect registration"),
+        )
+        .commit_strategy_executor(AspectFieldReconciliationStrategy::execution_registration(
+            &aspect_descriptor,
+        ))
+        .commit_strategy(
+            CommitStrategyRegistration::new(replacement_descriptor.clone())
+                .expect("replacement registration"),
+        )
+        .commit_strategy_executor(
+            EntityReplacementReconciliationStrategy::execution_registration(
+                &replacement_descriptor,
+            ),
+        )
+        .build()
+}
+
+fn strategy_schema_registry() -> crate::schema::data::RelationalSchemaRegistry {
+    AspectSchemaFixture {
+        entity_aspects: vec![
+            entity_field_aspect(
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
+            ),
+            entity_u64_field_aspect(
+                crate::tests::support::aspect_key("replicas"),
+                crate::tests::support::field_key("replicas"),
+            ),
+            lifecycle_aspect(),
+        ],
+        ..AspectSchemaFixture::default()
+    }
+    .build_registry()
+}
+
+pub(super) fn execute_strategy_commit(
+    runtime: &mut RelationalRuntime,
+    request: NativeStrategyCommitRequest,
+    target_branch: Option<BranchId>,
+) -> crate::facade::transactions::CommitResult {
+    let request = runtime
+        .commit_strategies()
+        .canonicalize_request(&request)
+        .expect("canonical strategy request");
+    let snapshot = runtime.visibility_authority().snapshot();
+    let execution = runtime
+        .commit_strategies()
+        .execute(&request, &snapshot)
+        .expect("strategy execution");
+    let mut authority = runtime.commit_strategies_authority();
+    let lowered = authority
+        .lower_execution(
+            &request,
+            &execution,
+            TransactionOptions {
+                target_branch,
+                ..TransactionOptions::default()
+            },
+        )
+        .expect("lowered strategy plan");
+    let validated = authority
+        .validate_lowered_plan(lowered)
+        .expect("validated strategy plan");
+    authority
+        .execute_validated_commit(validated)
+        .expect("strategy commit")
+}

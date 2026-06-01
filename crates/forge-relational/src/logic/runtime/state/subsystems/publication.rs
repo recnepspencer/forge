@@ -1,5 +1,5 @@
 use crate::logic::runtime::state::subsystems::RuntimeSubsystem;
-use crate::publication::data::PublicationBundle;
+use crate::publication::bundle::PublicationBundle;
 use crate::replay::data::RelationalReplayRecord;
 use std::collections::VecDeque;
 

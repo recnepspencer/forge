@@ -31,7 +31,7 @@ fn mutation_effect_normalizes_and_admits_from_raw_workflow_request() {
             ),
             input: MutationLoweringInput::IntentReconciliation {
                 entity_id: EntityId::new(PartitionId(1), 7, 0),
-                desired_payload: serde_json::json!({ "name": "esther" }),
+                desired_aspect_fields_external_json: serde_json::json!({ "name": "esther" }),
             },
         },
     )
@@ -114,7 +114,7 @@ fn preview_mutation_authoring_is_real_and_returns_typed_rebind() {
             ),
             input: MutationLoweringInput::IntentReconciliation {
                 entity_id: EntityId::new(PartitionId(1), 17, 0),
-                desired_payload: serde_json::json!({ "name": "preview-mutation" }),
+                desired_aspect_fields_external_json: serde_json::json!({ "name": "preview-mutation" }),
             },
         },
     )

@@ -48,7 +48,7 @@ fn compose_read_executes_operator_owned_successor_walk_detail_as_local_neighborh
         })
         .expect("operator-owned successor walk detail should execute");
 
-    assert!(!result.payload().is_empty());
+    assert!(!result.rows().is_empty());
     assert_eq!(
         result.receipt().scope_class(),
         &ForgeQueryReadScopeClass::LocalNeighborhood

@@ -29,8 +29,8 @@ pub(crate) fn assert_intraday_risk_case_transition(
 ) {
     let mismatches = compare_case_truth(baseline, post_mutation);
     assert!(
-        mismatches.contains(&"payload_fingerprints".to_string()),
-        "intraday risk should change the case payload fingerprints, saw {mismatches:?}"
+        mismatches.contains(&"aspect_state_fingerprints".to_string()),
+        "intraday risk should change the case aspect state fingerprints, saw {mismatches:?}"
     );
     assert!(
         post_mutation.open_breach_count > 0,

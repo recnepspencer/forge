@@ -1,8 +1,8 @@
-use super::domain_query::support::seeded_sheet_disk_workspace;
-use crate::facade::milestone_one_runtime_builder;
+use super::topology_reads::support::seeded_sheet_disk_workspace;
 use crate::projection::runtime_boundary::read_stage::{
     open_topology_read_view, stage_topology_read_from_view,
 };
+use crate::validation::reference_integrity::milestone_one_runtime_builder;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
 #[test]
@@ -17,12 +17,12 @@ fn query_materializer_rebuilds_minimal_topology_from_production_runtime_rows() {
     )
     .expect("verified primitive");
     let staged = stage_topology_read_from_view(
-        &open_topology_read_view(&runtime, &verified.read_basis).expect("read view should open"),
+        &open_topology_read_view(&runtime, &verified.read_basis()).expect("read view should open"),
     )
     .expect("read stage should succeed");
-    let (mut workspace, assembly, read_basis) =
+    let (mut workspace, surfaces, read_basis) =
         seeded_sheet_disk_workspace("query-materializer-minimal");
-    let snapshot = assembly
+    let snapshot = surfaces
         .snapshot_for_read_basis(&mut workspace, &read_basis)
         .expect("query snapshot should decode");
     let materialized_view = snapshot.materialized;

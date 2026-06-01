@@ -16,6 +16,7 @@ mod structure_guard;
 #[cfg(test)]
 mod structure_guard_support;
 pub(crate) mod support;
+mod tracing;
 
 #[cfg(test)]
 mod tests;
@@ -84,24 +85,29 @@ pub use topology_operator_closeout::{
     MilestoneThreeDerivedFallbackPolicyDenialRow, MilestoneThreeDerivedRegionCoverageRow,
     MilestoneThreeDerivedReuseLegalityRow, MilestoneThreeDerivedWorkBreadthClass,
     MilestoneThreeDerivedWorkBreadthRow, MilestoneThreeDeterminismRuleKind,
-    MilestoneThreeDeterminismRuleRow, MilestoneThreeEditBranchLocalParityRow,
-    MilestoneThreeEditBreadthCounterRow, MilestoneThreeEditFalloutBreadthRow,
-    MilestoneThreeEditFalloutClass, MilestoneThreeEditReplayParityReport,
-    MilestoneThreeEditReplayParityRow, MilestoneThreeEditReplayStepRow,
-    MilestoneThreeEditedTopologyQueryTraversalRow, MilestoneThreeEditedTopologyQueryTraversalView,
-    MilestoneThreeFailureLocalityRow, MilestoneThreeHostileCertificationCategory,
-    MilestoneThreeHostileCertificationCategoryRow, MilestoneThreeHostileCertificationStatus,
-    MilestoneThreeHostileCoverageRow, MilestoneThreeHostileFamilyCoverageRow,
-    MilestoneThreeHostileNamingDistributionRow, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileRejectionDistributionRow, MilestoneThreeHostileScenario,
-    MilestoneThreeHostileScenarioReport, MilestoneThreeHostileSuiteReport,
-    MilestoneThreeNamingContinuityBreadthRow, MilestoneThreeNamingContinuityMatrixRow,
-    MilestoneThreeOperatorFamilyClosureRow, MilestoneThreePrimitiveFamilyClosureRow,
-    MilestoneThreeRejectedEditScopeReportRow, MilestoneThreeReplayBranchBreadthRow,
-    MilestoneThreeReturnGateBlockerRow, MilestoneThreeScalePressureRow,
-    MilestoneThreeScalePressureSweep, MilestoneThreeSideQuestBlockerRow,
-    MilestoneThreeSideQuestCloseoutReport, MilestoneThreeSideQuestContractRow,
-    MilestoneThreeSplitCollapseChurnWitness, MilestoneThreeTopologyEditDigestRow,
-    MilestoneThreeValidationBreadthRow, MilestoneThreeValidatorFamily,
-    MilestoneThreeValidatorFamilyCoverageRow,
+    MilestoneThreeDeterminismRuleRow, MilestoneThreeFailureLocalityRow,
+    MilestoneThreeHostileCertificationCategory, MilestoneThreeHostileCertificationCategoryRow,
+    MilestoneThreeHostileCertificationStatus, MilestoneThreeHostileCoverageRow,
+    MilestoneThreeHostileFamilyCoverageRow, MilestoneThreeHostileNamingDistributionRow,
+    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileRejectionDistributionRow,
+    MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
+    MilestoneThreeHostileSuiteReport, MilestoneThreeMutationBranchLocalParityRow,
+    MilestoneThreeMutationBreadthCounterRow, MilestoneThreeMutationFalloutBreadthRow,
+    MilestoneThreeMutationFalloutClass, MilestoneThreeMutationReplayParityReport,
+    MilestoneThreeMutationReplayParityRow, MilestoneThreeMutationReplayStepRow,
+    MilestoneThreeMutationTopologyQueryTraversalRow,
+    MilestoneThreeMutationTopologyQueryTraversalView, MilestoneThreeNamingContinuityBreadthRow,
+    MilestoneThreeNamingContinuityMatrixRow, MilestoneThreeOperatorFamilyClosureRow,
+    MilestoneThreePrimitiveFamilyClosureRow, MilestoneThreeRejectedMutationScopeReportRow,
+    MilestoneThreeReplayBranchBreadthRow, MilestoneThreeReturnGateBlockerRow,
+    MilestoneThreeScalePressureRow, MilestoneThreeScalePressureSweep,
+    MilestoneThreeSideQuestBlockerRow, MilestoneThreeSideQuestCloseoutReport,
+    MilestoneThreeSideQuestContractRow, MilestoneThreeSplitCollapseChurnWitness,
+    MilestoneThreeTopologyMutationDigestRow, MilestoneThreeValidationBreadthRow,
+    MilestoneThreeValidatorFamily, MilestoneThreeValidatorFamilyCoverageRow,
+};
+pub use tracing::{
+    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure,
+    BridgeTraceAnchor, DecisionTrace, DerivedTraceAnchor, DerivedTraceEvidence, IntegrityMarkers,
+    NamedCounter, PerformanceAccounting, TraceAvailability, TraceWarning,
 };

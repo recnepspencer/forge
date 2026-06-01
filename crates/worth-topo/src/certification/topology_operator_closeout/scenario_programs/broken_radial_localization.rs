@@ -1,6 +1,6 @@
 use forge_relational::facade::runtime::RelationalRuntime;
+use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::TopologyRelationKind;
 use serde_json::Value;
 
 use super::super::report::{
@@ -8,35 +8,39 @@ use super::super::report::{
     MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
 };
 use super::super::shared::{
-    accepted_step_row, aggregate_naming_edit_continuity_matrix, aggregate_topology_edit_digest,
-    derived_validation_report_from_materialized, entity_id_from_query_identity,
-    first_source_identity_for_relation_kind, rejected_step_row, relation_id_from_query_identity,
-    replay_checked, replay_checked_rejected,
+    accepted_step_row_for_declaration, derived_validation_report_from_materialized,
+    entity_id_from_query_identity, first_source_identity_for_relation_kind,
+    rejected_step_row_for_declaration, relation_id_from_query_identity, replay_checked,
+    replay_checked_rejected,
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
+use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::certification::support::parity::digest_materialized_topology_view;
-use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::projection::{TopologyDomainQuery, TopologyHalfEdgeSharedVertexNeighborhoodView};
+use crate::query_domain::{
+    TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
+};
 use crate::topology_operators::{
-    TopologyEditApplicationMode, TopologyEditBatch, TopologyEditContract, TopologyEditDigest,
-    TopologyEditFamily, TopologyEditRejectionClass,
+    application::TopologyDeclarationMutationPayload, TopologyMutationDigest,
+    TopologyMutationFamily, TopologyMutationRejectionClass,
+    TopologySpliceRadialAdjacencyDeclaration,
 };
 
 struct MilestoneThreeBrokenRadialRun {
     primitive_family: String,
     primitive: MilestoneOnePrimitiveCase,
-    topology_edit_digest: TopologyEditDigest,
-    naming_edit_continuity_matrix: crate::topology_operators::NamingEditContinuityMatrix,
-    step_rows: Vec<super::super::report::MilestoneThreeEditReplayStepRow>,
+    topology_mutation_digest: TopologyMutationDigest,
+    naming_mutation_continuity_matrix: crate::topology_operators::NamingMutationContinuityMatrix,
+    step_rows: Vec<super::super::report::MilestoneThreeMutationReplayStepRow>,
     baseline_materialized_topology_digest: crate::certification::DeterministicDigest,
     final_materialized_topology_digest: Option<crate::certification::DeterministicDigest>,
     outcome_class: MilestoneThreeHostileOutcomeClass,
-    rejection_class: Option<TopologyEditRejectionClass>,
-    rejected_edit_scope_report: Option<crate::topology_operators::RejectedEditScopeReport>,
+    rejection_class: Option<TopologyMutationRejectionClass>,
+    rejected_mutation_scope_report: Option<crate::topology_operators::RejectedMutationScopeReport>,
     derived_validation_report: Option<crate::validation::DerivedTopologyValidationReport>,
     derived_materialization_fallback_class:
         Option<crate::derived_topology::materialized_graph::MaterializationFallbackClass>,
@@ -85,21 +89,21 @@ where
         scenario: MilestoneThreeHostileScenario::BrokenRadialLocalization,
         primitive_family: left.primitive_family,
         primitive: left.primitive,
-        edit_families: vec![TopologyEditFamily::SpliceRadialAdjacency],
+        mutation_families: vec![TopologyMutationFamily::SpliceRadialAdjacency],
         bowtie_adjacent_witness: None,
         ambiguous_local_rewire_witness: None,
         split_collapse_churn_witness: None,
         broken_radial_witness: Some(left.witness),
-        topology_edit_digest: left.topology_edit_digest,
-        naming_edit_continuity_matrix: left.naming_edit_continuity_matrix.clone(),
-        continuity_outcome_class: left.naming_edit_continuity_matrix.outcome_class(),
-        continuity_rejection_class: left.naming_edit_continuity_matrix.rejection_class(),
+        topology_mutation_digest: left.topology_mutation_digest,
+        naming_mutation_continuity_matrix: left.naming_mutation_continuity_matrix.clone(),
+        continuity_outcome_class: left.naming_mutation_continuity_matrix.outcome_class(),
+        continuity_rejection_class: left.naming_mutation_continuity_matrix.rejection_class(),
         outcome_class: left.outcome_class,
         rejection_class: left.rejection_class,
-        rejected_edit_scope_report: left.rejected_edit_scope_report,
+        rejected_mutation_scope_report: left.rejected_mutation_scope_report,
         derived_validation_report: left.derived_validation_report,
         derived_materialization_fallback_class: left.derived_materialization_fallback_class,
-        edit_replay_parity_report: replay_report,
+        mutation_replay_parity_report: replay_report,
         detail: left.detail,
     })
 }
@@ -125,24 +129,27 @@ where
         &format!("{stem}.broken_radial_localization.runtime"),
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let baseline_snapshot = assembly
-        .snapshot_for_read_basis(&mut workspace, &verified.read_basis)
+    let baseline_snapshot = surfaces
+        .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
         digest_materialized_topology_view(&baseline_snapshot.materialized);
-    let domain_query = TopologyDomainQuery::load();
-    let relation_rows = workspace.read::<Value>(assembly.relations());
+    let topology_read = TopologyReadProofHarness::new();
+    let relation_rows = workspace.read::<Value>(surfaces.relations());
     let source_identity = first_source_identity_for_relation_kind(
         &relation_rows,
         TopologyRelationKind::HalfEdgeRadialNext,
     )?;
     let source_half_edge_id = entity_id_from_query_identity(&source_identity)?;
-    let radial = domain_query
+    let radial = topology_read
         .radial_half_edge_neighborhood(&mut workspace, &source_identity)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let shared_vertex = domain_query
+    let shared_vertex = topology_read
         .shared_vertex_half_edge_neighborhood(&mut workspace, &source_identity)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let current_target_identity = radial.current_target_half_edge_identity().to_string();
@@ -151,19 +158,14 @@ where
     let witness = build_broken_radial_witness(radial, shared_vertex)?;
     let illegal_target_half_edge_id =
         entity_id_from_query_identity(&witness.illegal_target_half_edge_identity)?;
-    let batch = TopologyEditBatch::new(vec![TopologyEditContract::splice_radial_adjacency(
+    let declaration = TopologySpliceRadialAdjacencyDeclaration::new(
         relation_id_from_query_identity(&source_radial_next_relation_identity)?,
         source_half_edge_id,
         illegal_target_half_edge_id,
-    )])
-    .expect("broken radial localization batch should be non-empty");
-    let batches = vec![batch.clone()];
+    );
 
-    match assembly.apply_edit(
-        &mut workspace,
-        batch.clone(),
-        TopologyEditApplicationMode::Mainline,
-    ) {
+    match execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration.clone())
+    {
         Ok(execution) => {
             let detail = format!(
                 "radial splice from `{source_identity}` to illegal target `{}` unexpectedly admitted from current target `{current_target_identity}`",
@@ -174,16 +176,20 @@ where
             Ok(MilestoneThreeBrokenRadialRun {
                 primitive_family,
                 primitive,
-                topology_edit_digest: aggregate_topology_edit_digest(&batches),
-                naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix(&batches),
-                step_rows: vec![accepted_step_row(0, &batch, &execution)],
+                topology_mutation_digest: declaration.topology_mutation_digest(),
+                naming_mutation_continuity_matrix: declaration.naming_continuity_matrix(),
+                step_rows: vec![accepted_step_row_for_declaration(
+                    0,
+                    &declaration,
+                    &execution,
+                )],
                 baseline_materialized_topology_digest,
                 final_materialized_topology_digest: Some(digest_materialized_topology_view(
                     &execution.materialized,
                 )),
                 outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
                 rejection_class: None,
-                rejected_edit_scope_report: None,
+                rejected_mutation_scope_report: None,
                 derived_validation_report: Some(derived_validation_report),
                 derived_materialization_fallback_class: execution
                     .materialized
@@ -196,14 +202,14 @@ where
         Err(error) => Ok(MilestoneThreeBrokenRadialRun {
             primitive_family,
             primitive,
-            topology_edit_digest: aggregate_topology_edit_digest(&batches),
-            naming_edit_continuity_matrix: aggregate_naming_edit_continuity_matrix(&batches),
-            step_rows: vec![rejected_step_row(0, &batch, &error)],
+            topology_mutation_digest: declaration.topology_mutation_digest(),
+            naming_mutation_continuity_matrix: declaration.naming_continuity_matrix(),
+            step_rows: vec![rejected_step_row_for_declaration(0, &declaration, &error)],
             baseline_materialized_topology_digest,
             final_materialized_topology_digest: None,
             outcome_class: MilestoneThreeHostileOutcomeClass::Rejected,
             rejection_class: error.rejection_class(),
-            rejected_edit_scope_report: error.rejected_edit_scope_report(&batch),
+            rejected_mutation_scope_report: error.rejected_declaration_scope_report(&declaration),
             derived_validation_report: None,
             derived_materialization_fallback_class: None,
             witness,
@@ -213,7 +219,7 @@ where
 }
 
 fn build_broken_radial_witness(
-    radial: crate::projection::TopologyHalfEdgeRadialNeighborhoodView,
+    radial: TopologyHalfEdgeRadialNeighborhoodView,
     shared_vertex: TopologyHalfEdgeSharedVertexNeighborhoodView,
 ) -> Result<MilestoneThreeBrokenRadialWitness, TopologyCertificationError> {
     let illegal_target = shared_vertex

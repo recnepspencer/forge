@@ -8,7 +8,6 @@ use forge_harness::facade::{
     WorkflowCertificationCapabilities, WorkflowCheckpoint, WorkflowFailureContext, WorkflowPlan,
     WorkflowRuntimeProfile, WorkflowState, WorkflowStep, WorkflowStepOutcome,
 };
-use serde_json::json;
 
 use crate::facade::history::BranchId;
 use crate::facade::replay::{RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode};
@@ -20,10 +19,15 @@ use super::super::actions::{
 };
 use super::super::fixture::FintechWorkflowCase;
 use super::super::scenarios::{setup_world_for, FintechScenario};
-use super::artifacts::{capture_artifacts, case_read_summary, read_summary};
+use super::artifacts::capture_artifacts;
 use super::invariants::run_checks;
+use super::read_summaries::{case_read_summary, read_summary};
 use super::session::CertifiedRelationalFintechSession;
 use super::steps::{FintechCaseRef, FintechWorkflowStep};
+use super::workflow_artifact_projection::{
+    optional_usize_field, string_array_field, string_field, workflow_artifact_object,
+    WorkflowArtifactProjection,
+};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub(super) struct RelationalFintechWorkflowCertificationAdapter;
@@ -320,15 +324,23 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
     ) -> Result<ReproductionMetadata, Self::Error> {
         Ok(ReproductionMetadata {
             format: "json".to_string(),
-            payload: json!({
-                "state": format!("{:?}", failure.state),
-                "step_index": failure.step_index,
-                "known_branches": session.named_branches.keys().collect::<Vec<_>>(),
-                "known_snapshots": session.named_snapshots.keys().collect::<Vec<_>>(),
-                "known_reads": session.named_reads.keys().collect::<Vec<_>>(),
-                "known_replays": session.named_replays.keys().collect::<Vec<_>>(),
-            })
-            .to_string(),
+            payload: reproduction_workflow_artifact_projection(session, failure)
+                .into_record_summary_value()
+                .to_string(),
         })
     }
+}
+
+fn reproduction_workflow_artifact_projection(
+    session: &CertifiedRelationalFintechSession,
+    failure: &WorkflowFailureContext,
+) -> WorkflowArtifactProjection {
+    workflow_artifact_object([
+        string_field("state", format!("{:?}", failure.state)),
+        optional_usize_field("step_index", failure.step_index),
+        string_array_field("known_branches", session.named_branches.keys().cloned()),
+        string_array_field("known_snapshots", session.named_snapshots.keys().cloned()),
+        string_array_field("known_reads", session.named_reads.keys().cloned()),
+        string_array_field("known_replays", session.named_replays.keys().cloned()),
+    ])
 }

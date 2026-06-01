@@ -157,7 +157,7 @@ fn primary_bridge_backed_entity_verification_family_executes_when_profile_and_ad
         probe
             .field("status.value")
             .expect("status field should exist")
-            .value_json(),
+            .external_value_json(),
         "\"open\""
     );
 
@@ -250,7 +250,7 @@ fn primary_bridge_backed_relation_verification_family_executes_when_profile_and_
         probe
             .field("kind.value")
             .expect("kind field should exist")
-            .value_json(),
+            .external_value_json(),
         "\"depends_on\""
     );
 

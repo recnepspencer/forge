@@ -2,11 +2,11 @@ use std::collections::BTreeMap;
 
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
+use schema::facade::platform::authority::MutationOrigin;
 use schema::facade::topology_authoring::{
     MilestoneOnePrimitiveCase, MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
     MilestoneOnePrimitiveScenario,
 };
-use schema::facade::MutationOrigin;
 
 use crate::certification::error::MilestoneOneCertificationError;
 use crate::certification::rejections::summarize_primitive_rejection;

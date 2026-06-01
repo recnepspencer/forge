@@ -51,6 +51,10 @@ Milestone 1 now has two named public journeys:
 They are related, but they are not interchangeable. The whole point of the DX
 hardening work was to make that obvious from the public surface.
 
+This page is about the grouped first-contact lanes only. It is not the
+reference for canonical basis preparation, readiness closure, or lower-level
+type inventories.
+
 ## How It Executes
 
 The practical rule is:
@@ -74,6 +78,9 @@ The `aspect_common_path` surface specifically exists so one public lane teaches:
 
 The `compatibility_common_path` surface exists so JSON lowering cannot quietly
 pretend to be the same lane.
+
+If you later need canonical ordering or digest input, leave these common paths
+and move into the `canonicalization()` surface explicitly.
 
 ## Small Example
 
@@ -115,6 +122,9 @@ It is the shipped public journey the readiness artifact names as
 
 - [Compatibility Lowering And JSON Bridges](./compatibility-lowering-and-json-bridges.md)
   covers the explicit bridge lane in detail.
+- [Digest Preparation And Canonical Basis](./digest-preparation-and-canonical-basis.md)
+  covers the separate canonicalization surface that starts after Milestone 1
+  meaning is already established.
 - [Milestone 1 Production Readiness](./milestone-1-production-readiness.md)
   freezes the public API inventory and proof seeds for this milestone.
 - the other docs in this folder explain the specific capability seams behind the
@@ -138,6 +148,8 @@ skipping back to flat exports too early instead of following the named lanes.
 - Do not teach new callers from the full flat export wall when `aspects()` and
   `compatibility()` are the hardened public journeys.
 - Do not run native authoring through `compatibility()` out of convenience.
+- Do not assume `aspects()` or `compatibility()` already explain canonical
+  digest preparation just because readiness names those grouped surfaces.
 - Do not hide patch application or state admission behind one giant helper.
 
 ## Current Limits
@@ -150,4 +162,5 @@ skipping back to flat exports too early instead of following the named lanes.
 ## Related Docs
 
 - [Compatibility Lowering And JSON Bridges](./compatibility-lowering-and-json-bridges.md)
+- [Digest Preparation And Canonical Basis](./digest-preparation-and-canonical-basis.md)
 - [Milestone 1 Production Readiness](./milestone-1-production-readiness.md)

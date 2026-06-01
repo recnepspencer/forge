@@ -1,6 +1,7 @@
 use forge_foundational::{
-    admit_authoritative_record_aspect_state, lower_json_record_aspect_state, validate_aspect_value,
-    AspectValue, JsonCompatibilityAspectInput, ScalarAspectType, StructAspectValue,
+    admit_authoritative_record_aspect_state, compatibility, lower_json_record_aspect_state,
+    validate_aspect_value, AspectValue, ContractValidatedAspectValueView,
+    JsonCompatibilityAspectInput, ScalarAspectType, StructAspectValue,
 };
 use forge_proof::TransitionOutcome;
 use serde_json::json;
@@ -64,4 +65,43 @@ fn json_lowering_admits_unambiguous_scalar_wrapper_shapes() {
     assert!(state.payload().get(&key("date")).is_some());
     assert!(state.payload().get(&key("uuid")).is_some());
     assert!(state.payload().get(&key("ratio")).is_some());
+}
+
+#[test]
+fn json_lowering_keeps_bytes_and_content_ref_scalar_families_distinct() {
+    let bytes_contract =
+        crate::foundational_vocabulary::scalar_contract("blob.bytes", 1, ScalarAspectType::Bytes);
+    let content_contract = crate::foundational_vocabulary::scalar_contract(
+        "blob.content_ref",
+        1,
+        ScalarAspectType::ContentRef,
+    );
+
+    let TransitionOutcome::Success(bytes_artifact) =
+        compatibility()
+            .json()
+            .lower_value(&bytes_contract, source_for("blob.bytes"), &json!(9))
+    else {
+        panic!("expected bytes compatibility lowering");
+    };
+    let TransitionOutcome::Success(content_artifact) = compatibility().json().lower_value(
+        &content_contract,
+        source_for("blob.content_ref"),
+        &json!(9),
+    ) else {
+        panic!("expected content reference compatibility lowering");
+    };
+
+    let ContractValidatedAspectValueView::Scalar(bytes_value) = bytes_artifact.payload().view()
+    else {
+        panic!("bytes contract produced non-scalar artifact");
+    };
+    let ContractValidatedAspectValueView::Scalar(content_value) = content_artifact.payload().view()
+    else {
+        panic!("content reference contract produced non-scalar artifact");
+    };
+
+    assert_eq!(bytes_value.value_family(), ScalarAspectType::Bytes);
+    assert_eq!(content_value.value_family(), ScalarAspectType::ContentRef);
+    assert_ne!(bytes_value, content_value);
 }

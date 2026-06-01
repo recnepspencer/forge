@@ -106,7 +106,7 @@ fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retir
     assert_eq!(task_rows.len(), 1);
     assert_eq!(edge_rows.len(), 0);
     assert_eq!(
-        task_rows[0].payload["title"]["value"].as_str(),
+        task_rows[0].external_row()["title"]["value"].as_str(),
         Some("Published task")
     );
 

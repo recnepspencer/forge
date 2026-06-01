@@ -1,4 +1,4 @@
-use schema::facade::{DerivedInvalidationTarget, MutationOrigin};
+use schema::facade::platform::authority::{DerivedInvalidationTarget, MutationOrigin};
 use serde::{Deserialize, Serialize};
 
 use crate::certification::DeterministicDigest;

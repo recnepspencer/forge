@@ -4,6 +4,7 @@ use crate::facade::indexes::{
     DerivedIndexKind,
 };
 use crate::facade::lineage::LineageResolutionStatus;
+use crate::tests::support::{aspect_field_locator, aspect_key, field_key};
 
 use super::super::fixture::{FintechCaseRole, FintechWorld};
 
@@ -14,8 +15,8 @@ pub(crate) fn register_case_book_index(world: &mut FintechWorld) -> DerivedIndex
         .register(DerivedIndexDefinition {
             index_id: DerivedIndexId(0),
             name: "fintech.trade.book".to_string(),
-            kind: DerivedIndexKind::EntityPayloadField {
-                field: "book".to_string(),
+            kind: DerivedIndexKind::EntityField {
+                field_locator: aspect_field_locator(aspect_key("book"), field_key("book")),
             },
             branch_scoped: true,
         })

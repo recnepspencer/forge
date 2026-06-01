@@ -246,7 +246,7 @@ fn preview_derived_execution_is_query_owned_and_provenance_explicit() {
         execution.counters().result_shape_width(),
         foundation.shape_check_width()
     );
-    assert_eq!(execution.payload().len(), foundation.shape_check_width());
+    assert_eq!(execution.rows().len(), foundation.shape_check_width());
 }
 
 #[test]

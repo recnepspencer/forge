@@ -5,7 +5,6 @@ use forge_runtime_bridge::facade::{
     BridgeDeliveryReceipt, BridgeSignalInvalidationDelivery, BridgeTruthViewEvaluationRequest,
     InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity,
 };
-use schema::facade::BridgeTraceAnchor;
 
 use crate::certification::error::MilestoneOneCertificationError;
 use crate::certification::shared::{
@@ -14,6 +13,7 @@ use crate::certification::shared::{
 use crate::certification::support::reporting::{
     BridgeFamilyCoverageReport, BridgeFamilyCoverageRow, BridgeProofReport,
 };
+use crate::certification::BridgeTraceAnchor;
 use crate::facade::build_milestone_one_bridge;
 use crate::test_support::primitive_corpus::bridge_cases::milestone_one_bridge_proof_cases;
 use crate::test_support::primitive_corpus::validated_topology::verified_primitive;
@@ -79,7 +79,7 @@ pub(crate) fn certify_milestone_one_bridge_proof(
     let mut family_rows = Vec::with_capacity(proof_cases.len());
 
     for (index, primitive) in proof_cases.iter().enumerate() {
-        let mut runtime = crate::facade::milestone_one_runtime_builder()
+        let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
             .map_err(|error| {
                 MilestoneOneCertificationError::ReadView(format!(
                     " milestone one bridge proof could not build runtime builder: {error:?}"
@@ -88,13 +88,13 @@ pub(crate) fn certify_milestone_one_bridge_proof(
             .build();
         let verified =
             verified_primitive(&mut runtime, &format!("{stem}.case.{index}"), primitive)?;
-        let commit = verified.commits.last().ok_or_else(|| {
+        let commit = verified.commits().last().ok_or_else(|| {
             MilestoneOneCertificationError::ReadView(
                 " milestone one bridge proof requires a committed topology mutation".to_string(),
             )
         })?;
         let family = primitive_family_name(primitive).to_string();
-        let branch_id = verified.branch_id.0.clone();
+        let branch_id = verified.branch_id().0.clone();
         let commit_id = commit.outcome.commit.commit_id.0.to_string();
         let bridge_runtime = Arc::new(runtime);
         let bridge =
@@ -131,15 +131,15 @@ pub(crate) fn certify_milestone_one_bridge_proof(
         proved_families.push(family);
         source_branch = Some(branch_id);
         source_commit = Some(commit_id);
-        source_snapshot = Some(evaluation.snapshot_identity().as_str().to_string());
+        source_snapshot = Some(evaluation.snapshot_identity().to_string());
 
         route_rows.extend(route_records.iter().map(|record| {
-            route_identities.push(record.route_identity().as_str().to_string());
-            invalidation_identities.push(record.invalidation_identity().as_str().to_string());
+            route_identities.push(record.route_identity().to_string());
+            invalidation_identities.push(record.invalidation_identity().to_string());
             snapshot_identities.push(record.source_snapshot().as_str().to_string());
             format!(
                 "route:{}:{}:{}:{}:{}",
-                record.route_identity().as_str(),
+                record.route_identity(),
                 record.source_branch().as_str(),
                 record.source_commit().as_str(),
                 record.source_snapshot().as_str(),
@@ -147,7 +147,7 @@ pub(crate) fn certify_milestone_one_bridge_proof(
             )
         }));
         historical_rows.extend(historical_records.iter().map(|record| {
-            historical_record_identities.push(record.record_identity().as_str().to_string());
+            historical_record_identities.push(record.record_identity().to_string());
             snapshot_identities.push(
                 record
                     .decision_log()
@@ -157,10 +157,10 @@ pub(crate) fn certify_milestone_one_bridge_proof(
             );
             format!(
                 "historical:{}:{}:{}:{}:{:?}",
-                record.record_identity().as_str(),
-                record.decision_log().branch_identity().as_str(),
-                record.decision_log().commit_identity().as_str(),
-                record.decision_log().snapshot_identity().as_str(),
+                record.record_identity(),
+                record.decision_log().branch_identity(),
+                record.decision_log().commit_identity(),
+                record.decision_log().snapshot_identity(),
                 record.decision_log().materialization_path()
             )
         }));

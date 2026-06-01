@@ -106,7 +106,12 @@ impl TopologyMaterializer {
             + view.vertices.len();
         let topology_relation_count = relations
             .iter()
-            .filter(|relation| matches!(relation.kind, schema::facade::RelationKind::Topology(_)))
+            .filter(|relation| {
+                matches!(
+                    relation.kind,
+                    schema::facade::platform::relations::RelationKind::Topology(_)
+                )
+            })
             .count();
 
         Ok(MaterializedTopologyView::new(

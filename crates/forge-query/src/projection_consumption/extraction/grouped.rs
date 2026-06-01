@@ -8,6 +8,7 @@ use super::super::consumed::{
 use super::super::contracts::MaterializedProjectionContract;
 use super::super::facts::ProjectionFactKind;
 use super::super::source::ProjectionSourceFamily;
+use super::aspect_value_projection::project_aspect_value_for_consumption_json;
 use crate::projection_consumption::ProjectionFactExtractionError;
 
 pub(super) fn extract_relational_grouped_facts(
@@ -18,12 +19,12 @@ pub(super) fn extract_relational_grouped_facts(
         contract,
         ProjectionSourceFamily::RelationalGroupedProjection,
         projection.digest().as_str(),
-        projection.contract().grouping_aspect(),
+        projection.contract().grouping_aspect().as_str(),
         projection.members().iter().map(|member| {
             (
                 member.row_identity().as_str(),
-                member.identity_value().clone(),
-                member.grouping_value().value().clone(),
+                project_aspect_value_for_consumption_json(member.identity_value()),
+                project_aspect_value_for_consumption_json(member.grouping_value()),
             )
         }),
     )
@@ -41,8 +42,8 @@ pub(super) fn extract_bridge_grouped_facts(
         grouped_truth_view.members().iter().map(|member| {
             (
                 member.row_identity().as_str(),
-                member.identity_value().clone(),
-                member.lane().value().clone(),
+                project_aspect_value_for_consumption_json(member.identity_value()),
+                project_aspect_value_for_consumption_json(member.lane().value()),
             )
         }),
     )

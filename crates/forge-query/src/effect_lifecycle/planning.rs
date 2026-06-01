@@ -63,7 +63,7 @@ pub enum EffectConflictFootprint {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectStrategyIdentityTarget {
-    RawStrategyCommitRequest,
+    NativeStrategyCommitRequest,
     MergeExecutionRequest,
     BridgeWritebackDeclaration,
 }
@@ -199,7 +199,7 @@ impl AuthorityScopedEffectPlan {
     pub fn strategy_identity_target(&self) -> EffectStrategyIdentityTarget {
         match self.permitted_lowering_family {
             EffectPermittedLoweringFamily::MutationIntentDeclaration => {
-                EffectStrategyIdentityTarget::RawStrategyCommitRequest
+                EffectStrategyIdentityTarget::NativeStrategyCommitRequest
             }
             EffectPermittedLoweringFamily::MergeWorkflowDeclaration => {
                 EffectStrategyIdentityTarget::MergeExecutionRequest
@@ -322,7 +322,7 @@ planning_enum_as_str!(EffectConflictFootprint {
     BridgeWriteback => "bridge_writeback",
 });
 planning_enum_as_str!(EffectStrategyIdentityTarget {
-    RawStrategyCommitRequest => "raw_strategy_commit_request",
+    NativeStrategyCommitRequest => "native_strategy_commit_request",
     MergeExecutionRequest => "merge_execution_request",
     BridgeWritebackDeclaration => "bridge_writeback_declaration",
 });

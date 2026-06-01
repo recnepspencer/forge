@@ -7,14 +7,14 @@ use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use forge_relational::facade::snapshots::SnapshotHandle;
 use forge_runtime_bridge::facade::BridgeBuildError;
 
-use crate::topology_operators::TopologyEditFamily;
+use crate::topology_operators::TopologyMutationFamily;
 
 use super::adapters::TopologyRuntimeBinding;
-use super::edit_support::{
-    current_head_edit_family_support_rows, current_head_edit_lane_support_rows,
-    snapshot_edit_family_support_rows, snapshot_edit_lane_support_rows,
-    TopologyQueryEditFamilySupportStatus, TopologyRuntimeEditFamilySupportRow,
-    TopologyRuntimeEditLaneSupportRow,
+use super::mutation_support::{
+    current_head_mutation_family_support_rows, current_head_mutation_lane_support_rows,
+    snapshot_mutation_family_support_rows, snapshot_mutation_lane_support_rows,
+    TopologyQueryMutationFamilySupportStatus, TopologyRuntimeMutationFamilySupportRow,
+    TopologyRuntimeMutationLaneSupportRow,
 };
 use super::read_support::{
     current_head_query_read_family_support_rows, snapshot_query_read_family_support_rows,
@@ -59,8 +59,8 @@ impl TopologyRuntimeAdapters {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyRuntimeSupport {
     pub(super) runtime_posture_rows: Vec<TopologyRuntimePostureRow>,
-    pub(super) query_edit_family_support_rows: Vec<TopologyRuntimeEditFamilySupportRow>,
-    pub(super) query_edit_lane_support_rows: Vec<TopologyRuntimeEditLaneSupportRow>,
+    pub(super) query_mutation_family_support_rows: Vec<TopologyRuntimeMutationFamilySupportRow>,
+    pub(super) query_mutation_lane_support_rows: Vec<TopologyRuntimeMutationLaneSupportRow>,
     pub(super) query_read_family_support_rows: Vec<TopologyRuntimeReadFamilySupportRow>,
     pub(super) closeout: TopologyRuntimeCloseout,
 }
@@ -69,17 +69,17 @@ impl TopologyRuntimeSupport {
     pub fn current_head_authoritative() -> Self {
         let runtime_posture_rows = current_head_runtime_posture_rows();
         let query_read_family_support_rows = current_head_query_read_family_support_rows();
-        let query_edit_family_support_rows = current_head_edit_family_support_rows();
-        let query_edit_lane_support_rows = current_head_edit_lane_support_rows();
+        let query_mutation_family_support_rows = current_head_mutation_family_support_rows();
+        let query_mutation_lane_support_rows = current_head_mutation_lane_support_rows();
         Self {
             runtime_posture_rows,
             closeout: runtime_closeout_from_support_rows(
                 &query_read_family_support_rows,
-                &query_edit_family_support_rows,
-                &query_edit_lane_support_rows,
+                &query_mutation_family_support_rows,
+                &query_mutation_lane_support_rows,
             ),
-            query_edit_family_support_rows,
-            query_edit_lane_support_rows,
+            query_mutation_family_support_rows,
+            query_mutation_lane_support_rows,
             query_read_family_support_rows,
         }
     }
@@ -87,31 +87,31 @@ impl TopologyRuntimeSupport {
     pub fn snapshot_read_only() -> Self {
         let runtime_posture_rows = snapshot_runtime_posture_rows();
         let query_read_family_support_rows = snapshot_query_read_family_support_rows();
-        let query_edit_family_support_rows = snapshot_edit_family_support_rows();
-        let query_edit_lane_support_rows = snapshot_edit_lane_support_rows();
+        let query_mutation_family_support_rows = snapshot_mutation_family_support_rows();
+        let query_mutation_lane_support_rows = snapshot_mutation_lane_support_rows();
         Self {
             runtime_posture_rows,
             closeout: runtime_closeout_from_support_rows(
                 &query_read_family_support_rows,
-                &query_edit_family_support_rows,
-                &query_edit_lane_support_rows,
+                &query_mutation_family_support_rows,
+                &query_mutation_lane_support_rows,
             ),
-            query_edit_family_support_rows,
-            query_edit_lane_support_rows,
+            query_mutation_family_support_rows,
+            query_mutation_lane_support_rows,
             query_read_family_support_rows,
         }
     }
 
-    pub fn query_edit_family_support_status(
+    pub fn query_mutation_family_support_status(
         &self,
-        family: TopologyEditFamily,
-    ) -> TopologyQueryEditFamilySupportStatus {
-        self.query_edit_family_support_rows
+        family: TopologyMutationFamily,
+    ) -> TopologyQueryMutationFamilySupportStatus {
+        self.query_mutation_family_support_rows
             .iter()
             .find(|row| row.family() == family)
-            .map(TopologyRuntimeEditFamilySupportRow::status)
+            .map(TopologyRuntimeMutationFamilySupportRow::status)
             .unwrap_or_else(|| {
-                panic!(" runtime edit-family support rows should cover every declared family")
+                panic!(" runtime mutation-family support rows should cover every declared family")
             })
     }
 
@@ -276,7 +276,7 @@ impl std::fmt::Display for TopologyRuntimeFailure {
                 write!(f, " topology query runtime bridge build failed: {error}")
             }
             Self::QueryRuntime(error) => {
-                write!(f, " topology query runtime assembly failed: {error}")
+                write!(f, " topology query runtime surfaces failed: {error}")
             }
         }
     }

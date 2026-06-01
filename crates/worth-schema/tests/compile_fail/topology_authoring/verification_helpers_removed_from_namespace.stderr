@@ -1,0 +1,18 @@
+error[E0432]: unresolved imports `schema::facade::topology_authoring::verify_topology_intent`, `schema::facade::topology_authoring::verify_topology_intent_on_branch`
+ --> tests/compile_fail/topology_authoring/verification_helpers_removed_from_namespace.rs:2:5
+  |
+2 |     verify_topology_intent, verify_topology_intent_on_branch,
+  |     ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `verify_topology_intent_on_branch` in `facade::topology_authoring`
+  |     |
+  |     no `verify_topology_intent` in `facade::topology_authoring`
+  |
+help: a similar name exists in the module
+  |
+2 -     verify_topology_intent, verify_topology_intent_on_branch,
+2 +     commit_topology_intent, verify_topology_intent_on_branch,
+  |
+help: a similar name exists in the module
+  |
+2 -     verify_topology_intent, verify_topology_intent_on_branch,
+2 +     verify_topology_intent, commit_topology_intent_on_branch,
+  |

@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-
 use super::overrides::RelationalConfigOverride;
 use super::policies::RuntimeProfileBoundaryPolicy;
 use super::provenance::ConfigProvenance;
@@ -9,7 +7,7 @@ use super::sections::{
 };
 use super::RelationalRuntimeProfile;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelationalRuntimeConfig {
     pub profile: RelationalRuntimeProfile,
     pub execution: ExecutionConfig,

@@ -183,7 +183,13 @@ impl ForgeQueryRuntime {
                     let read = self.execute_live_read_by_name(&view_name)?;
                     outputs.push(ForgeQueryOperationOutput::new(
                         format!("live:{view_name}"),
-                        Value::Array(read.rows().iter().cloned().map(|row| row.payload).collect()),
+                        Value::Array(
+                            read.rows()
+                                .iter()
+                                .cloned()
+                                .map(ForgeQueryEntity::into_external_row)
+                                .collect(),
+                        ),
                     ));
                     trace.record_replay_or_parity(format!("read-live:{view_name}"));
                 }

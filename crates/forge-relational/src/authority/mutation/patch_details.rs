@@ -1,9 +1,5 @@
-use serde_json::json;
-
-use crate::config::data::PatchSurfacePolicy;
 use crate::identity::data::{EntityId, RelationId};
-use crate::payloads::data::RecordPayload;
-use crate::publication::data::diff::PatchDetail;
+use crate::publication::patch::data::PatchDetail;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum EntityPatchDetailKind {
@@ -21,51 +17,33 @@ pub(super) enum RelationPatchDetailKind {
 }
 
 pub(super) fn patch_detail_for_entity(
-    patch_surface_policy: PatchSurfacePolicy,
     kind: EntityPatchDetailKind,
     entity_id: EntityId,
-    payload: Option<&RecordPayload>,
 ) -> PatchDetail {
-    match patch_surface_policy {
-        PatchSurfacePolicy::StructuredPatchSurface => match payload {
-            Some(payload) => PatchDetail::Payload(payload.clone()),
-            None => PatchDetail::StructuredJson(json!({})),
-        },
-        PatchSurfacePolicy::DensePatchSurface => PatchDetail::DenseBitset(vec![
-            entity_patch_kind_code(kind),
-            entity_id.partition_id.0 as u64,
-            entity_id.local_slot.0,
-            entity_id.generation.0 as u64,
-            payload.map(payload_class_code).unwrap_or(0),
-        ]),
-    }
+    PatchDetail::DenseBitset(vec![
+        entity_patch_kind_code(kind),
+        entity_id.partition_value_u64(),
+        entity_id.local_slot_value(),
+        entity_id.generation_value() as u64,
+    ])
 }
 
 pub(super) fn patch_detail_for_relation(
-    patch_surface_policy: PatchSurfacePolicy,
     kind: RelationPatchDetailKind,
     relation_id: RelationId,
     source: EntityId,
     target: EntityId,
-    payload: Option<&RecordPayload>,
 ) -> PatchDetail {
-    match patch_surface_policy {
-        PatchSurfacePolicy::StructuredPatchSurface => match payload {
-            Some(payload) => PatchDetail::Payload(payload.clone()),
-            None => PatchDetail::StructuredJson(json!({"payload_class":"topology_only"})),
-        },
-        PatchSurfacePolicy::DensePatchSurface => PatchDetail::DenseBitset(vec![
-            relation_patch_kind_code(kind),
-            relation_id.partition_id.0 as u64,
-            relation_id.local_slot.0,
-            relation_id.generation.0 as u64,
-            source.partition_id.0 as u64,
-            source.local_slot.0,
-            target.partition_id.0 as u64,
-            target.local_slot.0,
-            payload.map(payload_class_code).unwrap_or(0),
-        ]),
-    }
+    PatchDetail::DenseBitset(vec![
+        relation_patch_kind_code(kind),
+        relation_id.partition_value_u64(),
+        relation_id.local_slot_value(),
+        relation_id.generation_value() as u64,
+        source.partition_value_u64(),
+        source.local_slot_value(),
+        target.partition_value_u64(),
+        target.local_slot_value(),
+    ])
 }
 
 fn entity_patch_kind_code(kind: EntityPatchDetailKind) -> u64 {
@@ -85,9 +63,40 @@ fn relation_patch_kind_code(kind: RelationPatchDetailKind) -> u64 {
     }
 }
 
-fn payload_class_code(payload: &RecordPayload) -> u64 {
-    match payload {
-        RecordPayload::StructuredJson(_) => 1,
-        RecordPayload::OpaqueBytes(_) => 2,
+#[cfg(test)]
+mod tests {
+    use super::{
+        patch_detail_for_entity, patch_detail_for_relation, EntityPatchDetailKind,
+        RelationPatchDetailKind,
+    };
+    use crate::identity::data::{EntityId, PartitionId, RelationId};
+    use crate::publication::patch::data::PatchDetail;
+
+    #[test]
+    fn dense_entity_patch_details_use_named_identity_accessors() {
+        let entity_id = EntityId::new(PartitionId::new(3), 11, 7);
+
+        let detail = patch_detail_for_entity(EntityPatchDetailKind::Updated, entity_id);
+
+        assert_eq!(detail, PatchDetail::DenseBitset(vec![2, 3, 11, 7]),);
+    }
+
+    #[test]
+    fn dense_relation_patch_details_use_named_identity_accessors() {
+        let relation_id = RelationId::new(PartitionId::new(9), 5, 2);
+        let source = EntityId::new(PartitionId::new(3), 11, 7);
+        let target = EntityId::new(PartitionId::new(4), 12, 8);
+
+        let detail = patch_detail_for_relation(
+            RelationPatchDetailKind::Created,
+            relation_id,
+            source,
+            target,
+        );
+
+        assert_eq!(
+            detail,
+            PatchDetail::DenseBitset(vec![4, 9, 5, 2, 3, 11, 4, 12]),
+        );
     }
 }

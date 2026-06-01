@@ -5,17 +5,18 @@ use crate::authority::commit::preparation::planning::strategy::{
 use crate::authority::commit::preparation::reduction::merge::{
     canonical_merge_streams, OrderedReductionStream,
 };
+use crate::authority::mutation::FoundationalPatchFragment;
 use crate::diagnostics::data::{
-    DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticArtifact,
-    RelationalDiagnosticsEntry,
+    DeterminismExpectation, DiagnosticsArtifactKind, DiagnosticsScope,
+    RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::identity::data::VersionId;
 use crate::logic::planning::RelationalExecutionModel;
 use crate::logic::runtime::RelationalRuntime;
-use crate::publication::data::diff::{
-    PatchCompatibilityClass, PatchOrdering, PatchPublicationMode, PatchRecord, PatchStreamPosition,
-    RelationalPatchRecord,
+use crate::publication::patch::data::{
+    PatchOrdering, PatchPublicationMode, PatchStreamPosition, PublishedAuthoritativePatchEnvelope,
+    PublishedAuthoritativeRecordPatch,
 };
 use crate::storage::logic::state::{PartitionState, PublicationArtifacts};
 use crate::transactions::data::RecordRef;
@@ -79,49 +80,49 @@ pub(crate) fn with_test_diff_preparation_fault<T>(
 pub(super) fn assemble_patch(
     runtime: &RelationalRuntime,
     commit_id: CommitId,
-    records: Vec<PatchRecord>,
-) -> RelationalPatchRecord {
-    let records = prepare_patch_fragments(runtime, records);
-    RelationalPatchRecord {
+    fragments: Vec<FoundationalPatchFragment>,
+) -> PublishedAuthoritativePatchEnvelope {
+    let records = prepare_patch_fragments(
+        runtime,
+        fragments
+            .into_iter()
+            .map(|fragment| fragment.published_record())
+            .collect(),
+    );
+    PublishedAuthoritativePatchEnvelope {
         ordering: PatchOrdering::CanonicalCommitOrder,
         publication_mode: PatchPublicationMode::CommitNative,
         position: PatchStreamPosition(commit_id.0),
-        compatibility: match runtime.config.publication.policy.patch_surface_policy {
-            crate::config::data::PatchSurfacePolicy::StructuredPatchSurface => {
-                PatchCompatibilityClass::StructuredCompatible
-            }
-            crate::config::data::PatchSurfacePolicy::DensePatchSurface => {
-                PatchCompatibilityClass::DenseCompatible
-            }
-        },
-        records,
+        authoritative_record_patches: records,
     }
     .canonicalized()
 }
 
 fn prepare_patch_fragments(
     runtime: &RelationalRuntime,
-    records: Vec<PatchRecord>,
-) -> Vec<PatchRecord> {
+    authoritative_record_patches: Vec<PublishedAuthoritativeRecordPatch>,
+) -> Vec<PublishedAuthoritativeRecordPatch> {
     use crate::authority::commit::preparation::packets::diff::{
         DiffPreparationHeader, DiffPreparationPacket,
     };
 
-    if records.is_empty() {
-        return records;
+    if authoritative_record_patches.is_empty() {
+        return authoritative_record_patches;
     }
 
-    let packet_count =
-        coarse_preparation_packet_count(records.len(), TARGET_PREPARATION_ITEMS_PER_PACKET);
+    let packet_count = coarse_preparation_packet_count(
+        authoritative_record_patches.len(),
+        TARGET_PREPARATION_ITEMS_PER_PACKET,
+    );
     runtime.performance_access().count_preparation_packet_shape(
         packet_count,
-        records.len(),
-        records
+        authoritative_record_patches.len(),
+        authoritative_record_patches
             .chunks(TARGET_PREPARATION_ITEMS_PER_PACKET)
             .map(|chunk| chunk.len())
             .max()
             .unwrap_or(0),
-        records
+        authoritative_record_patches
             .iter()
             .map(|record| match record.target {
                 RecordRef::Entity(entity_id) => entity_id.partition_id,
@@ -141,7 +142,7 @@ fn prepare_patch_fragments(
         runtime
             .performance_access()
             .count_preparation_serial_strategy();
-        return direct_diff_record_order(records);
+        return direct_diff_record_order(authoritative_record_patches);
     }
 
     runtime
@@ -155,7 +156,7 @@ fn prepare_patch_fragments(
         .count_preparation_staged_parallel_strategy();
 
     let mut packets = Vec::with_capacity(packet_count);
-    for (packet_index, chunk) in records
+    for (packet_index, chunk) in authoritative_record_patches
         .chunks(TARGET_PREPARATION_ITEMS_PER_PACKET)
         .enumerate()
     {
@@ -163,7 +164,7 @@ fn prepare_patch_fragments(
             header: DiffPreparationHeader {
                 packet_index_floor: packet_index * TARGET_PREPARATION_ITEMS_PER_PACKET,
             },
-            records: chunk.to_vec(),
+            authoritative_record_patches: chunk.to_vec(),
         });
     }
 
@@ -178,11 +179,13 @@ fn prepare_patch_fragments(
     .collect()
 }
 
-fn direct_diff_record_order(records: Vec<PatchRecord>) -> Vec<PatchRecord> {
+fn direct_diff_record_order(
+    authoritative_record_patches: Vec<PublishedAuthoritativeRecordPatch>,
+) -> Vec<PublishedAuthoritativeRecordPatch> {
     use crate::authority::commit::preparation::packets::diff::DiffFragmentKind;
     use crate::authority::commit::preparation::reduction::keys::DiffReductionKey;
 
-    let mut keyed_records = records
+    let mut keyed_records = authoritative_record_patches
         .into_iter()
         .enumerate()
         .map(|(record_index, record)| {
@@ -190,7 +193,7 @@ fn direct_diff_record_order(records: Vec<PatchRecord>) -> Vec<PatchRecord> {
             #[allow(unused_mut)]
             let mut key = DiffReductionKey::new(
                 canonical.target.clone(),
-                diff_kind_order(DiffFragmentKind::from(&canonical.kind)),
+                diff_kind_order(DiffFragmentKind::from(canonical.structural_change)),
                 record_index,
             );
             #[cfg(test)]
@@ -214,21 +217,21 @@ fn diff_packet_stream(
     packet: &crate::authority::commit::preparation::packets::diff::DiffPreparationPacket,
 ) -> OrderedReductionStream<
     crate::authority::commit::preparation::reduction::keys::DiffReductionKey,
-    PatchRecord,
+    PublishedAuthoritativeRecordPatch,
 > {
     use crate::authority::commit::preparation::reduction::keys::DiffReductionKey;
 
-    let mut canonical_records = Vec::with_capacity(packet.records.len());
-    let mut headers = Vec::with_capacity(packet.records.len());
+    let mut canonical_records = Vec::with_capacity(packet.authoritative_record_patches.len());
+    let mut headers = Vec::with_capacity(packet.authoritative_record_patches.len());
 
-    for (offset, record) in packet.records.iter().enumerate() {
+    for (offset, record) in packet.authoritative_record_patches.iter().enumerate() {
         let canonical = record.canonicalized();
         #[allow(unused_mut)]
         let mut key = DiffReductionKey::new(
             canonical.target.clone(),
             diff_kind_order(
                 crate::authority::commit::preparation::packets::diff::DiffFragmentKind::from(
-                    &canonical.kind,
+                    canonical.structural_change,
                 ),
             ),
             packet.header.packet_index_floor + offset,
@@ -284,81 +287,16 @@ pub(super) fn diagnostics_summary_artifact(
     let mut kept = reserved_entries;
     let remaining_capacity = max_entries.saturating_sub(kept.len());
     kept.extend(entries.into_iter().take(remaining_capacity));
-    RelationalDiagnosticArtifact {
-        scope: DiagnosticsScope::Transaction,
-        kind: DiagnosticsArtifactKind::MinimalSummary,
-        determinism: crate::diagnostics::data::DeterminismExpectation::Required,
-        entries: kept,
-    }
+    RelationalDiagnosticArtifact::new(
+        DiagnosticsScope::Transaction,
+        DiagnosticsArtifactKind::MinimalSummary,
+        DeterminismExpectation::Required,
+        kept,
+    )
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{diff_packet_stream, direct_diff_record_order};
-    use crate::authority::commit::preparation::packets::diff::{
-        DiffPreparationHeader, DiffPreparationPacket,
-    };
-    use crate::authority::commit::preparation::reduction::merge::canonical_merge_streams;
-    use crate::identity::data::{EntityId, PartitionId};
-    use crate::publication::data::diff::{
-        AspectKey, CanonicalAspectSet, PatchDetail, PatchRecord, PatchRecordKind,
-        RecordStructuralChange,
-    };
-    use crate::symbols::data::InternedString;
-    use crate::transactions::data::RecordRef;
-
-    #[test]
-    fn direct_serial_patch_preparation_matches_packet_merge_order() {
-        let records = vec![
-            patch_record(7, PatchRecordKind::Updated),
-            patch_record(3, PatchRecordKind::Deleted),
-            patch_record(3, PatchRecordKind::Created),
-            patch_record(8, PatchRecordKind::RetainedForAudit),
-            patch_record(7, PatchRecordKind::Created),
-            patch_record(3, PatchRecordKind::Updated),
-        ];
-
-        let mut packets = Vec::new();
-        for (packet_index, chunk) in records.chunks(2).enumerate() {
-            packets.push(DiffPreparationPacket {
-                header: DiffPreparationHeader {
-                    packet_index_floor: packet_index * 2,
-                },
-                records: chunk.to_vec(),
-            });
-        }
-
-        let merged =
-            canonical_merge_streams(packets.iter().map(diff_packet_stream).collect::<Vec<_>>())
-                .into_iter()
-                .map(|(_key, record)| record)
-                .collect::<Vec<_>>();
-        let direct = direct_diff_record_order(records);
-
-        assert_eq!(direct, merged);
-    }
-
-    fn patch_record(raw_entity_id: u64, kind: PatchRecordKind) -> PatchRecord {
-        let kind_label = format!("{kind:?}");
-        let structural_change = match kind {
-            PatchRecordKind::Created => RecordStructuralChange::Created,
-            PatchRecordKind::Updated => RecordStructuralChange::Updated,
-            PatchRecordKind::Deleted => RecordStructuralChange::Deleted,
-            PatchRecordKind::RetainedForAudit => RecordStructuralChange::RetainedForAudit,
-        };
-        PatchRecord {
-            kind,
-            target: RecordRef::Entity(EntityId::new(PartitionId(0), raw_entity_id, 0)),
-            structural_change,
-            aspects: CanonicalAspectSet::new([AspectKey(InternedString::from("geometry"))]),
-            contains_degraded_precision: false,
-            detail: PatchDetail::StructuredJson(serde_json::json!({
-                "entity": raw_entity_id,
-                "kind": kind_label,
-            })),
-        }
-    }
-}
+mod tests;
 
 pub(super) fn finalize_published_commit(
     runtime: &mut RelationalRuntime,
@@ -391,7 +329,7 @@ pub(super) fn finalize_published_commit(
     let phase_started = std::time::Instant::now();
     runtime
         .index_authority()
-        .refresh_unique_field_index_for_records(changed_records, version_id);
+        .refresh_unique_entity_aspect_field_index_for_records(changed_records, version_id);
     phase_timing.index_refresh_micros = phase_started.elapsed().as_micros() as u64;
 
     let phase_started = std::time::Instant::now();

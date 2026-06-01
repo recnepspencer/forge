@@ -1,4 +1,5 @@
-use schema::facade::{DerivedInvalidationTarget, DerivedTopologyReadBasis, MutationOrigin};
+use schema::facade::platform::authority::{DerivedInvalidationTarget, MutationOrigin};
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::support::parity::types::{
     DerivedEquivalenceContractReport, DerivedParityComparisonReport,
@@ -41,7 +42,7 @@ pub fn build_derived_equivalence_contract(
         read_basis
             .authority
             .truth_basis_identity
-            .mutation_batch_digest_hex
+            .mutation_digest_hex
             .clone(),
         read_basis
             .authority

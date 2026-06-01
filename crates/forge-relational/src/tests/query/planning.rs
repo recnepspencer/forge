@@ -27,7 +27,7 @@ fn query_planning_context_binds_snapshot_runtime_and_schema_identity() {
 }
 
 #[test]
-fn legacy_query_packet_planning_marks_single_target_packets_serial_preferred() {
+fn packetized_query_planning_marks_single_target_packets_serial_preferred() {
     let mut runtime = runtime_with_test_schema();
     let created = create_entity_outcome(&mut runtime, "single");
     let entity = changed_entities(&created)[0];
@@ -48,7 +48,7 @@ fn legacy_query_packet_planning_marks_single_target_packets_serial_preferred() {
 }
 
 #[test]
-fn legacy_query_packet_planning_marks_single_chunk_packets_serial_preferred() {
+fn packetized_query_planning_marks_single_chunk_packets_serial_preferred() {
     let mut runtime = runtime_with_test_schema();
     let first = create_entity_outcome(&mut runtime, "first");
     let second = create_entity_outcome(&mut runtime, "second");
@@ -88,7 +88,7 @@ fn traversal_query_packets_are_legal_read_only_snapshots_and_narrow_traversals_s
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
         ordering: QueryOrderingContract::CanonicalTraversalOrder,
-        fallback: QueryFallbackContract::StorageOnly,
+        access_contract: QueryAccessContract::AuthoritativeStorageOnly,
         execution_shape: QueryExecutionShape::BulkPacketized,
         reduction: ReductionDiscipline::DeterministicMerge,
         plan_key: DeterministicQueryPlanKey(17),
@@ -139,7 +139,7 @@ fn multi_seed_traversal_query_packets_become_profitable_after_seed_packetization
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
         ordering: QueryOrderingContract::CanonicalTraversalOrder,
-        fallback: QueryFallbackContract::StorageOnly,
+        access_contract: QueryAccessContract::AuthoritativeStorageOnly,
         execution_shape: QueryExecutionShape::BulkPacketized,
         reduction: ReductionDiscipline::DeterministicMerge,
         plan_key: DeterministicQueryPlanKey(18),
@@ -174,7 +174,7 @@ fn query_planning_rejects_packets_with_forged_context() {
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
         ordering: QueryOrderingContract::CanonicalRecordRefOrder,
-        fallback: QueryFallbackContract::StorageOnly,
+        access_contract: QueryAccessContract::AuthoritativeStorageOnly,
         execution_shape: QueryExecutionShape::BulkPacketized,
         reduction: ReductionDiscipline::DeterministicMerge,
         plan_key: DeterministicQueryPlanKey(99),
@@ -188,7 +188,7 @@ fn query_planning_rejects_packets_with_forged_context() {
 }
 
 #[test]
-fn legacy_packet_plan_key_is_deterministic_for_identical_inputs() {
+fn packetized_plan_key_is_deterministic_for_identical_inputs() {
     let mut runtime = runtime_with_test_schema();
     let created = create_entity_outcome(&mut runtime, "plan-key");
     let entity = changed_entities(&created)[0];

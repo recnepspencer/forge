@@ -1,4 +1,4 @@
-use crate::topology_operators::TopologyEditNamingOutcome;
+use crate::topology_operators::TopologyMutationNamingOutcome;
 use serde::{Deserialize, Serialize};
 
 use super::report::MilestoneThreeHostileScenario;
@@ -13,6 +13,6 @@ pub struct MilestoneThreeNamingContinuityBreadthRow {
     pub(crate) naming_scope_count: usize,
     pub(crate) replay_step_count: usize,
     pub(crate) replay_checked: bool,
-    pub(crate) outcome_class: TopologyEditNamingOutcome,
+    pub(crate) outcome_class: TopologyMutationNamingOutcome,
     pub(crate) row_digest: String,
 }

@@ -41,21 +41,33 @@ fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
     .expect("memory workspace should build");
 
     let insert = workspace
-        .insert(json!({
-            "identity": { "id": "task-1" },
-            "title": { "value": "First task" }
-        }))
+        .insert_aspects(vec![
+            ForgeQueryAspectValue::new("identity.id", json!("task-1")).expect("identity aspect"),
+            ForgeQueryAspectValue::new("title.value", json!("First task")).expect("title aspect"),
+        ])
         .expect("seed insert should succeed");
     let entity_identity = insert.deltas[0].entity_identity.clone();
 
     let update = workspace
-        .update_aspect(&entity_identity, "title.value", json!("Updated task"))
+        .update_aspects(
+            &entity_identity,
+            vec![
+                ForgeQueryAspectValue::new("title.value", json!("Updated task"))
+                    .expect("title aspect"),
+            ],
+        )
         .expect("update should succeed");
     assert_eq!(update.deltas[0].kind, ForgeQueryMutationKind::Updated);
     assert_eq!(update.deltas[0].aspect_paths, ["title.value"]);
     assert_eq!(
-        workspace.entities()[0].payload["title"]["value"],
+        workspace.entities()[0].external_row()["title"]["value"],
         json!("Updated task")
+    );
+    assert_eq!(
+        workspace.entities()[0]
+            .aspect_value("title.value")
+            .map(crate::aspect_field_authoring::project_aspect_value_to_workspace_json),
+        Some(json!("Updated task"))
     );
 
     let delete = workspace
@@ -65,6 +77,9 @@ fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
     assert!(workspace.entities().is_empty());
 }
 
-fn aspect(label: &str, payload_path: &str) -> crate::memory_workspace::ForgeQueryAspect {
-    crate::memory_workspace::ForgeQueryAspect::new(label, payload_path)
+fn aspect(
+    label: &str,
+    external_projection_path: &str,
+) -> crate::memory_workspace::ForgeQueryAspect {
+    crate::memory_workspace::ForgeQueryAspect::new(label, external_projection_path)
 }

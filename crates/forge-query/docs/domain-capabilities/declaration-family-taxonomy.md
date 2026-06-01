@@ -50,7 +50,8 @@ Good to know:
 - family markers may also declare required capability families and config
   sections
 - the same family marker also carries additional declaration-side contracts, so
-  legality and progression stay explicit instead of being inferred from taxonomy
+  legality, progression, and routing stay explicit instead of being inferred
+  from taxonomy
 
 ## API Reference
 
@@ -63,6 +64,7 @@ Family marker contract:
 - `taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy`
 - `legality_contract() -> ForgeQueryDeclarationLegalityContract`
 - `progression_contract(handle_identity_digest, operating_context_identity_digest) -> ForgeQueryDeclarationProgressionContract`
+- `route_contract() -> ForgeQueryDeclarationRouteContract`
 
 Runtime taxonomy object:
 - `ForgeQueryDeclarationFamilyTaxonomy::new(primary, signal, grouped) -> ForgeQueryDeclarationFamilyTaxonomy`
@@ -103,7 +105,7 @@ Think of family identity as three connected layers:
 The first layer stays domain-owned. The second and third layers stay
 Query-owned.
 
-For example, a geometry domain may define `SplitEdge` while Query classifies it
+For example, a geometry domain may define `AttachFaceMaterial` while Query classifies it
 as:
 
 - relational-truth
@@ -141,15 +143,15 @@ use forge_query::facade::{
 };
 
 struct GeometryDomain;
-struct SplitEdge;
+struct AttachFaceMaterial;
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "attach-face-material"
     }
 
     fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
@@ -161,6 +163,12 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
     }
 }
 ```
+
+The family key remains canonical retained vocabulary, but it is not the
+primary app-facing targeting story. Declaration-entry and binding
+surfaces should treat dynamic context and semantic aspect contracts as the
+ordinary geometry mental model while preserving canonical family identity as
+internal proof shape.
 
 ## Real Example
 
@@ -175,15 +183,15 @@ use forge_query::facade::{
 
 struct GeometryDomain;
 
-struct SplitEdge;
+struct AttachFaceMaterial;
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "attach-face-material"
     }
 
     fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
@@ -199,15 +207,22 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
     }
 }
 
-struct SplitEdgeAtMidpoint {
-    edge_ref: &'static str,
-}
+struct AttachMaterialForActiveSelection;
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeAtMidpoint {
-    type Family = SplitEdge;
+impl ForgeQueryDeclarationInput<GeometryDomain> for AttachMaterialForActiveSelection {
+    type Family = AttachFaceMaterial;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref)]
+        vec![
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "selection_scope",
+                "active-face-selection",
+            ),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "material_edit_intent",
+                "attach-material-from-current-selection",
+            ),
+        ]
     }
 }
 ```
@@ -228,6 +243,9 @@ What this example is showing:
   and witness availability
 - [Declaration Legality](./declaration-legality.md) consumes the retained
   family taxonomy together with one explicit family legality contract
+- [Declaration Route Plans](./declaration-route-plan.md) consumes admitted
+  progression proof plus one explicit family route contract instead of
+  rebuilding lower-authority participation from taxonomy folklore
 - grouped posture here is classification, not grouped execution
 - signal posture here is classification, not signal execution
 
@@ -264,8 +282,12 @@ Declaration family taxonomy now feeds legality review directly. It still does
 not decide:
 
 - grouped execution semantics
-- lower-authority route planning
-- continuation participation beyond the retained family posture
+- actual lower-authority crossings after route planning
+- Query boundary receipts over those crossings
+- Query boundary envelopes over retained receipt truth
+- Query relational truth routing from retained envelope truth
+- Query bridge continuation routing from retained envelope truth
+- signal execution or continuation participation beyond the retained family posture
 
 It freezes the classification and support vocabulary other Query declaration
 features consume.
@@ -276,4 +298,10 @@ features consume.
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
 - [Declaration Legality](./declaration-legality.md)
+- [Declaration Route Plans](./declaration-route-plan.md)
+- [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+- [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Platform Entry](./platform-entry.md)

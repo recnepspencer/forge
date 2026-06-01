@@ -17,7 +17,8 @@ pub(in crate::certification::topology_operator_closeout) use aggregate_distribut
     ensure_hostile_distribution_rows,
 };
 pub(in crate::certification::topology_operator_closeout) use branch_parity::{
-    certify_milestone_three_branch_local_edit_parity_impl, ensure_branch_local_edit_parity_rows,
+    certify_milestone_three_branch_local_mutation_parity_impl,
+    ensure_branch_local_mutation_parity_rows,
 };
 pub(super) use direct_acceptance::{
     build_direct_acceptance_rows, ensure_direct_acceptance_proof_rows,

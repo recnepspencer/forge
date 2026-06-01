@@ -3,7 +3,9 @@ use forge_runtime_bridge::facade::{
     BridgeMappingRegistration, CoarseRoutingMode, MappingSelector, SignalInvalidationScope,
     SliceFallbackPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind, TruthPatchScope,
 };
-use schema::facade::{milestone_two_invalidation_declarations, DerivedTruthSurfaceKind};
+use schema::facade::platform::authority::{
+    milestone_two_invalidation_declarations, DerivedTruthSurfaceKind,
+};
 
 pub fn milestone_one_bridge_mapping_registrations() -> Vec<BridgeMappingRegistration> {
     milestone_two_invalidation_declarations()

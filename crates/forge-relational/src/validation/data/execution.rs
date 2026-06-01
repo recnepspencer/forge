@@ -57,6 +57,16 @@ pub enum InvariantFailureEffect {
     AuditOnly,
 }
 
+impl InvariantFailureEffect {
+    pub const fn diagnostic_label(self) -> &'static str {
+        match self {
+            Self::BlockCommit => "block_commit",
+            Self::BlockPublication => "block_publication",
+            Self::AuditOnly => "audit_only",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum InvariantVerdict {
@@ -68,26 +78,106 @@ pub enum InvariantVerdict {
     Violation(InvariantViolation),
 }
 
+impl InvariantVerdict {
+    pub const fn diagnostic_label(&self) -> &'static str {
+        match self {
+            Self::Pass => "pass",
+            Self::Advisory { .. } => "advisory",
+            Self::Violation(_) => "violation",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum InvariantReportedRule {
     Native(InvariantRule),
     Custom(CustomInvariantSemanticIdentity),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct InvariantWitnessKey(String);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InvariantWitnessBasis {
+    StringOnly,
+    Pass,
+    UniqueEntityAspectField {
+        field_locator: forge_foundational::facade::AspectFieldLocator,
+        value: forge_foundational::facade::AspectValue,
+        field_locator_canonical_bytes: Vec<u8>,
+        value_canonical_bytes: Vec<u8>,
+    },
+}
+
+impl Default for InvariantWitnessBasis {
+    fn default() -> Self {
+        Self::StringOnly
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InvariantWitnessKey {
+    value: String,
+    #[serde(skip)]
+    basis: InvariantWitnessBasis,
+}
 
 impl InvariantWitnessKey {
     pub fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
+        Self {
+            value: value.into(),
+            basis: InvariantWitnessBasis::StringOnly,
+        }
     }
 
     pub fn pass() -> Self {
-        Self("pass".to_string())
+        Self {
+            value: "pass".to_string(),
+            basis: InvariantWitnessBasis::Pass,
+        }
+    }
+
+    pub fn unique_entity_aspect_field(
+        value: impl Into<String>,
+        field_locator: forge_foundational::facade::AspectFieldLocator,
+        aspect_value: forge_foundational::facade::AspectValue,
+        field_locator_canonical_bytes: Vec<u8>,
+        value_canonical_bytes: Vec<u8>,
+    ) -> Self {
+        Self {
+            value: value.into(),
+            basis: InvariantWitnessBasis::UniqueEntityAspectField {
+                field_locator,
+                value: aspect_value,
+                field_locator_canonical_bytes,
+                value_canonical_bytes,
+            },
+        }
     }
 
     pub fn as_str(&self) -> &str {
-        &self.0
+        &self.value
+    }
+
+    pub fn basis(&self) -> &InvariantWitnessBasis {
+        &self.basis
+    }
+}
+
+impl PartialEq for InvariantWitnessKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+
+impl Eq for InvariantWitnessKey {}
+
+impl PartialOrd for InvariantWitnessKey {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for InvariantWitnessKey {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.value.cmp(&other.value)
     }
 }
 

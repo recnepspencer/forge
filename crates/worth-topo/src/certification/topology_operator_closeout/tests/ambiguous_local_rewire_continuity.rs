@@ -1,7 +1,7 @@
 use crate::facade::{
     certify_milestone_three_ambiguous_local_rewire_continuity, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileScenario, ReplayParityStatus, TopologyEditFamily,
-    TopologyEditNamingOutcome, TopologyEditRejectionClass,
+    MilestoneThreeHostileScenario, ReplayParityStatus, TopologyMutationFamily,
+    TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
@@ -29,14 +29,14 @@ fn milestone_three_ambiguous_local_rewire_continuity_certifies_accepted_ambiguit
     );
     assert_eq!(
         report.continuity_outcome_class,
-        TopologyEditNamingOutcome::Ambiguous
+        TopologyMutationNamingOutcome::Ambiguous
     );
     assert_eq!(
         report.continuity_rejection_class,
-        Some(TopologyEditRejectionClass::NamingContinuityAmbiguous)
+        Some(TopologyMutationRejectionClass::NamingContinuityAmbiguous)
     );
     assert!(report.rejection_class.is_none());
-    assert!(report.rejected_edit_scope_report.is_none());
+    assert!(report.rejected_mutation_scope_report.is_none());
     assert!(report.bowtie_adjacent_witness.is_none());
     let witness = report
         .ambiguous_local_rewire_witness
@@ -57,26 +57,29 @@ fn milestone_three_ambiguous_local_rewire_continuity_certifies_accepted_ambiguit
         witness.chosen_materialized_topology_digest,
         witness.alternate_materialized_topology_digest
     );
-    assert_eq!(report.edit_families.len(), 6);
+    assert_eq!(report.mutation_families.len(), 6);
     assert!(report
-        .edit_families
+        .mutation_families
         .iter()
-        .all(|family| *family == TopologyEditFamily::RewireLoopSuccessor));
-    assert_eq!(report.topology_edit_digest.contract_count, 6);
-    assert_eq!(report.naming_edit_continuity_matrix.rows.len(), 6);
-    assert_eq!(report.naming_edit_continuity_matrix.ambiguous_count, 6);
-    assert_eq!(report.naming_edit_continuity_matrix.preserved_count, 0);
-    assert_eq!(report.naming_edit_continuity_matrix.rejected_count, 0);
-    assert!(report.edit_replay_parity_report.replay_checked);
+        .all(|family| *family == TopologyMutationFamily::RewireLoopSuccessor));
+    assert_eq!(report.topology_mutation_digest.mutation_record_count, 6);
+    assert_eq!(report.naming_mutation_continuity_matrix.rows.len(), 6);
+    assert_eq!(report.naming_mutation_continuity_matrix.ambiguous_count, 6);
+    assert_eq!(report.naming_mutation_continuity_matrix.preserved_count, 0);
+    assert_eq!(report.naming_mutation_continuity_matrix.rejected_count, 0);
+    assert!(report.mutation_replay_parity_report.replay_checked);
     assert_eq!(
-        report.edit_replay_parity_report.parity_status,
+        report.mutation_replay_parity_report.parity_status,
         ReplayParityStatus::Match
     );
-    assert_eq!(report.edit_replay_parity_report.mismatch_count, 0);
-    assert_eq!(report.edit_replay_parity_report.step_rows.len(), 1);
-    assert_eq!(report.edit_replay_parity_report.replay_step_rows.len(), 1);
+    assert_eq!(report.mutation_replay_parity_report.mismatch_count, 0);
+    assert_eq!(report.mutation_replay_parity_report.step_rows.len(), 1);
     assert_eq!(
-        report.edit_replay_parity_report.returned_to_baseline,
+        report.mutation_replay_parity_report.replay_step_rows.len(),
+        1
+    );
+    assert_eq!(
+        report.mutation_replay_parity_report.returned_to_baseline,
         Some(false)
     );
 }
@@ -99,17 +102,20 @@ fn milestone_three_ambiguous_local_rewire_report_is_deterministic_for_same_seede
         left.continuity_outcome_class,
         right.continuity_outcome_class
     );
-    assert_eq!(left.topology_edit_digest, right.topology_edit_digest);
     assert_eq!(
-        left.naming_edit_continuity_matrix,
-        right.naming_edit_continuity_matrix
+        left.topology_mutation_digest,
+        right.topology_mutation_digest
+    );
+    assert_eq!(
+        left.naming_mutation_continuity_matrix,
+        right.naming_mutation_continuity_matrix
     );
     assert_eq!(
         left.ambiguous_local_rewire_witness,
         right.ambiguous_local_rewire_witness
     );
     assert_eq!(
-        left.edit_replay_parity_report,
-        right.edit_replay_parity_report
+        left.mutation_replay_parity_report,
+        right.mutation_replay_parity_report
     );
 }

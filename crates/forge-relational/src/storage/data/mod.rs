@@ -1,13 +1,19 @@
+use forge_foundational::facade::AuthoritativeRecordAspectState;
 use serde::{Deserialize, Serialize};
 
 use crate::identity::data::{EntityId, LineageId, RelationId, VersionId};
-use crate::payloads::data::RecordPayload;
 use crate::query::data::{
     deterministic_query_fragment_key, QueryFragmentCounters, QueryWorkerFragment,
 };
 use crate::schema::data::KindResolution;
 use crate::snapshots::data::SnapshotHandle;
 use crate::transactions::data::RecordRef;
+
+mod authoritative_field_comparison_key;
+
+pub use authoritative_field_comparison_key::{
+    authoritative_aspect_value_field_comparison_key, AuthoritativeFieldComparisonKey,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RecordLifecycleState {
@@ -29,7 +35,7 @@ pub struct EntityReadRecord {
     pub lifecycle: RecordLifecycleState,
     pub created_at_version: VersionId,
     pub retired_at_version: Option<VersionId>,
-    pub payload: RecordPayload,
+    pub authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -41,7 +47,7 @@ pub struct RelationReadRecord {
     pub retired_at_version: Option<VersionId>,
     pub source: EntityId,
     pub target: EntityId,
-    pub payload: Option<RecordPayload>,
+    pub authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -91,8 +97,8 @@ impl RelationalReadView {
                 }
             }
         }
-        let entity_records_emitted = entities.len();
-        let relation_records_emitted = relations.len();
+        let authoritative_entity_records_emitted = entities.len();
+        let authoritative_relation_records_emitted = relations.len();
 
         Some(QueryWorkerFragment {
             plan_key,
@@ -102,8 +108,8 @@ impl RelationalReadView {
             relations,
             counters: QueryFragmentCounters {
                 target_count: targets.len(),
-                entity_records_emitted,
-                relation_records_emitted,
+                authoritative_entity_records_emitted,
+                authoritative_relation_records_emitted,
                 touched_partitions: touched_partitions.len(),
             },
             traversal_basis: None,

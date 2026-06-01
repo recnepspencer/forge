@@ -4,7 +4,7 @@ use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, Sug
 use crate::history::data::HistoryDriftClass;
 use crate::identity::data::KindId;
 use crate::schema::data::{
-    ContractId, DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
+    ContractId, DescriptorCanonicalBasisVersion, DescriptorSemanticsVersion,
     SchemaBoundaryFingerprint, SchemaVersionId,
 };
 
@@ -31,7 +31,7 @@ pub enum RelationIntegrityContractFamily {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RecoveryCompatibilityMismatch {
+pub enum RecoveryAuthorityContinuityMismatch {
     SchemaRegistryShape {
         expected_primary_schema_version: SchemaVersionId,
         found_primary_schema_version: SchemaVersionId,
@@ -73,9 +73,9 @@ pub enum RecoveryCompatibilityMismatch {
         expected: DescriptorSemanticsVersion,
         found: DescriptorSemanticsVersion,
     },
-    DescriptorCanonicalizationVersion {
-        expected: DescriptorCanonicalizationVersion,
-        found: DescriptorCanonicalizationVersion,
+    DescriptorCanonicalBasisVersion {
+        expected: DescriptorCanonicalBasisVersion,
+        found: DescriptorCanonicalBasisVersion,
     },
     SchemaTransitionArtifact {
         commit_id: u64,
@@ -96,7 +96,7 @@ pub enum RecoveryCompatibilityMismatch {
     },
 }
 
-impl RecoveryCompatibilityMismatch {
+impl RecoveryAuthorityContinuityMismatch {
     pub fn summary(&self) -> String {
         match self {
             Self::SchemaRegistryShape {
@@ -161,8 +161,8 @@ impl RecoveryCompatibilityMismatch {
                 "descriptor semantics version mismatch expected {} found {}",
                 expected.0, found.0
             ),
-            Self::DescriptorCanonicalizationVersion { expected, found } => format!(
-                "descriptor canonicalization version mismatch expected {} found {}",
+            Self::DescriptorCanonicalBasisVersion { expected, found } => format!(
+                "descriptor canonical basis version mismatch expected {} found {}",
                 expected.0, found.0
             ),
             Self::SchemaTransitionArtifact { commit_id, detail } => {
@@ -191,7 +191,7 @@ pub struct DurabilityError {
     pub class: RecoveryFailureClass,
     pub detail: String,
     pub history_drift_class: Option<HistoryDriftClass>,
-    pub compatibility_mismatch: Option<RecoveryCompatibilityMismatch>,
+    pub authority_continuity_mismatch: Option<RecoveryAuthorityContinuityMismatch>,
     pub context: ErrorContext,
 }
 
@@ -211,7 +211,7 @@ impl DurabilityError {
             class,
             detail: detail.into(),
             history_drift_class: None,
-            compatibility_mismatch: None,
+            authority_continuity_mismatch: None,
             context: ErrorContext::new(RelationalSubsystem::Durability, operation)
                 .with_fix(SuggestedFix::RepairDurableStore),
         }
@@ -222,9 +222,12 @@ impl DurabilityError {
         self
     }
 
-    pub fn with_compatibility_mismatch(mut self, mismatch: RecoveryCompatibilityMismatch) -> Self {
+    pub fn with_authority_continuity_mismatch(
+        mut self,
+        mismatch: RecoveryAuthorityContinuityMismatch,
+    ) -> Self {
         self.detail = format!("{}: {}", self.detail, mismatch.summary());
-        self.compatibility_mismatch = Some(mismatch);
+        self.authority_continuity_mismatch = Some(mismatch);
         self
     }
 }

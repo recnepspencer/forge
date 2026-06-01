@@ -9,5 +9,5 @@ pub(crate) use ambiguous_local_rewire::certify_milestone_three_ambiguous_local_r
 pub(crate) use bowtie_adjacent::certify_milestone_three_bowtie_adjacent_rewire_impl;
 pub(crate) use broken_radial_localization::certify_milestone_three_broken_radial_localization_impl;
 pub(crate) use cancellation_chain::certify_milestone_three_cancellation_chain_parity_impl;
-pub(in crate::certification::topology_operator_closeout) use local_successor_rewire::successor_relocation_batch;
+pub(in crate::certification::topology_operator_closeout) use local_successor_rewire::successor_relocation_declaration;
 pub(crate) use split_collapse_churn::certify_milestone_three_split_collapse_churn_impl;

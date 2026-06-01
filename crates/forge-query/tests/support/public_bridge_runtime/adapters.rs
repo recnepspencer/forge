@@ -21,7 +21,7 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::RuntimeBridge;
 use serde_json::Value;
 
-use super::payload::{apply_aspects, payload_from_aspects};
+use super::external_row::{apply_aspects_to_external_row, external_row_from_aspects};
 use super::state::PublicBridgeRuntimeState;
 
 type SharedRuntimeState = Rc<RefCell<PublicBridgeRuntimeState>>;
@@ -73,9 +73,8 @@ impl ForgeQueryRuntimeSourceAdapter for PublicSourceAdapter {
             return Vec::new();
         };
         rows.iter()
-            .map(|(identity, payload)| ForgeQueryEntity {
-                identity: identity.clone(),
-                payload: payload.clone(),
+            .map(|(identity, external_row)| {
+                ForgeQueryEntity::from_external_projection(identity.clone(), external_row.clone())
             })
             .collect()
     }
@@ -194,12 +193,12 @@ fn apply_command(
 ) -> Result<ForgeQueryMutationKind, ForgeQueryWorkspaceError> {
     match command.mutation_family() {
         forge_query::facade::ForgeQueryMutationFamily::Insert => {
-            let payload = payload_from_aspects(command.aspect_values())?;
+            let external_row = external_row_from_aspects(command.aspect_values())?;
             state
                 .rows_by_collection
                 .entry(collection.to_string())
                 .or_default()
-                .insert(entity_identity.to_string(), payload);
+                .insert(entity_identity.to_string(), external_row);
             state
                 .collection_by_identity
                 .insert(entity_identity.to_string(), collection.to_string());
@@ -222,7 +221,7 @@ fn apply_command(
                         "public bridge update could not find `{entity_identity}` in `{collection}`"
                     ))
                 })?;
-            apply_aspects(row, command.aspect_values())?;
+            apply_aspects_to_external_row(row, command.aspect_values())?;
             Ok(ForgeQueryMutationKind::Updated)
         }
         forge_query::facade::ForgeQueryMutationFamily::Delete => {

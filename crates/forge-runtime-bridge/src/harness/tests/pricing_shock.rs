@@ -397,7 +397,8 @@ fn pricing_patch(
         TruthBranchIdentity::new(branch),
         vec![BridgeCommittedPatchItem::new(
             format!("component:{component}"),
-            "cost",
+            forge_foundational::facade::AspectKey::new("cost")
+                .expect("valid bridge patch aspect key"),
             "usd",
         )],
     )
@@ -679,7 +680,7 @@ fn pricing_writeback_causality_basis(
 fn pricing_component_read_packet(component: &str) -> SnapshotReadPacket {
     SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
         format!("component:{component}"),
-        "cost",
+        forge_foundational::facade::AspectKey::new("cost").expect("valid snapshot aspect key"),
     )])
 }
 
@@ -689,21 +690,40 @@ fn pricing_provenance_record_key(component: &str, field: &str) -> String {
 
 fn pricing_provenance_read_packet(component: &str) -> SnapshotReadPacket {
     SnapshotReadPacket::new(vec![
-        SnapshotReadRequest::for_coarse(format!("component:{component}"), "provenance:regime"),
         SnapshotReadRequest::for_coarse(
             format!("component:{component}"),
-            "provenance:external-factor",
+            forge_foundational::facade::AspectKey::new("provenance:regime")
+                .expect("valid snapshot aspect key"),
         ),
         SnapshotReadRequest::for_coarse(
             format!("component:{component}"),
-            "provenance:factor-delta",
+            forge_foundational::facade::AspectKey::new("provenance:external-factor")
+                .expect("valid snapshot aspect key"),
         ),
-        SnapshotReadRequest::for_coarse(format!("component:{component}"), "provenance:trend-delta"),
-        SnapshotReadRequest::for_coarse(format!("component:{component}"), "provenance:jump-delta"),
-        SnapshotReadRequest::for_coarse(format!("component:{component}"), "provenance:shock-delta"),
         SnapshotReadRequest::for_coarse(
             format!("component:{component}"),
-            "provenance:shock-multiplier",
+            forge_foundational::facade::AspectKey::new("provenance:factor-delta")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            format!("component:{component}"),
+            forge_foundational::facade::AspectKey::new("provenance:trend-delta")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            format!("component:{component}"),
+            forge_foundational::facade::AspectKey::new("provenance:jump-delta")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            format!("component:{component}"),
+            forge_foundational::facade::AspectKey::new("provenance:shock-delta")
+                .expect("valid snapshot aspect key"),
+        ),
+        SnapshotReadRequest::for_coarse(
+            format!("component:{component}"),
+            forge_foundational::facade::AspectKey::new("provenance:shock-multiplier")
+                .expect("valid snapshot aspect key"),
         ),
     ])
 }
@@ -804,23 +824,25 @@ fn snapshot_with_identity(snapshot: &SnapshotFixture, identity: &str) -> Snapsho
     .with_read_result_identity(TruthSnapshotIdentity::new(identity))
 }
 
-fn read_single_payload(evaluation: &crate::facade::BridgeTruthViewEvaluation) -> String {
+fn read_single_aspect_bytes_text(evaluation: &crate::facade::BridgeTruthViewEvaluation) -> String {
     let reads = evaluation
         .observation()
         .read_planned_packet()
         .expect("truth-view read packet should materialize");
-    std::str::from_utf8(reads.records()[0].payload())
-        .expect("pricing payload should be utf8")
+    std::str::from_utf8(reads.records()[0].aspect_bytes())
+        .expect("pricing aspect bytes should be utf8")
         .to_owned()
 }
 
 fn read_single_money_cents(evaluation: &crate::facade::BridgeTruthViewEvaluation) -> i64 {
-    read_single_payload(evaluation)
+    read_single_aspect_bytes_text(evaluation)
         .parse::<i64>()
-        .expect("pricing payload should be parseable as integer cents")
+        .expect("pricing aspect bytes should be parseable as integer cents")
 }
 
-fn read_packet_payloads(evaluation: &crate::facade::BridgeTruthViewEvaluation) -> Vec<String> {
+fn read_packet_aspect_bytes_texts(
+    evaluation: &crate::facade::BridgeTruthViewEvaluation,
+) -> Vec<String> {
     evaluation
         .observation()
         .read_planned_packet()
@@ -828,8 +850,8 @@ fn read_packet_payloads(evaluation: &crate::facade::BridgeTruthViewEvaluation) -
         .records()
         .iter()
         .map(|record| {
-            std::str::from_utf8(record.payload())
-                .expect("pricing payload should be utf8")
+            std::str::from_utf8(record.aspect_bytes())
+                .expect("pricing aspect bytes should be utf8")
                 .to_owned()
         })
         .collect()
@@ -954,7 +976,8 @@ fn pricing_reference_source_with_conflicting_commit_identity_for_route(
         "patch:steel-main-conflicting-meaning",
         vec![BridgeCommittedPatchItem::new(
             "component:rubber",
-            "cost",
+            forge_foundational::facade::AspectKey::new("cost")
+                .expect("valid bridge patch aspect key"),
             "usd",
         )],
     )
@@ -1504,8 +1527,18 @@ fn capture_pricing_restart_failure_bundle() -> PricingRestartFailureBundle {
         "patch:steel-main",
         "snapshot:pricing-main",
         vec![
-            BridgeCommittedPatchItem::new("component:steel", "cost", "usd"),
-            BridgeCommittedPatchItem::new("component:steel", "tariff", "usd"),
+            BridgeCommittedPatchItem::new(
+                "component:steel",
+                forge_foundational::facade::AspectKey::new("cost")
+                    .expect("valid bridge patch aspect key"),
+                "usd",
+            ),
+            BridgeCommittedPatchItem::new(
+                "component:steel",
+                forge_foundational::facade::AspectKey::new("tariff")
+                    .expect("valid bridge patch aspect key"),
+                "usd",
+            ),
         ],
     ));
     drifted_source.insert_committed_patch(pricing_patch(
@@ -1658,8 +1691,8 @@ fn capture_pricing_historical_provenance_bundle(
             .with_read_packet(pricing_provenance_read_packet("rubber")),
         )
         .expect("historical shock provenance should materialize");
-    let main_payloads = read_packet_payloads(&main);
-    let shock_payloads = read_packet_payloads(&shock_eval);
+    let main_payloads = read_packet_aspect_bytes_texts(&main);
+    let shock_payloads = read_packet_aspect_bytes_texts(&shock_eval);
 
     PricingHistoricalProvenanceBundle {
         main_commit: "commit:rubber-main".to_owned(),
@@ -2709,8 +2742,8 @@ fn pricing_shock_split_screen_keeps_main_and_speculative_truth_isolated() {
         .route("commit:steel-main")
         .expect("main branch routing should remain live while speculation is open");
 
-    let main_rubber_cost = read_single_payload(&main_eval);
-    let speculative_rubber_cost = read_single_payload(&speculative_eval);
+    let main_rubber_cost = read_single_aspect_bytes_text(&main_eval);
+    let speculative_rubber_cost = read_single_aspect_bytes_text(&speculative_eval);
 
     assert_eq!(comparison.truth_branch_identity().as_str(), "pricing-shock");
     assert_eq!(
@@ -2798,7 +2831,7 @@ fn pricing_shock_historical_commit_reads_bridge_visible_provenance_from_truth() 
             .with_read_packet(pricing_provenance_read_packet("rubber")),
         )
         .expect("historical pricing shock provenance should materialize");
-    let payloads = read_packet_payloads(&historical);
+    let payloads = read_packet_aspect_bytes_texts(&historical);
     let shock = scenario
         .commit_attributions
         .get("commit:rubber-shock")
@@ -2867,7 +2900,7 @@ fn pricing_shock_historical_provenance_corruption_is_detectable_against_independ
             .with_read_packet(pricing_component_read_packet("rubber")),
         )
         .expect("historical component cost should still materialize");
-    let payloads = read_packet_payloads(&provenance_eval);
+    let payloads = read_packet_aspect_bytes_texts(&provenance_eval);
     let shock = scenario
         .commit_attributions
         .get("commit:rubber-shock")
@@ -2962,7 +2995,7 @@ fn pricing_shock_provenance_mutation_sweep_is_detectable_against_independent_ora
                 .with_read_packet(pricing_provenance_read_packet("rubber")),
             )
             .expect("corrupted provenance field should still materialize");
-        let payloads = read_packet_payloads(&historical);
+        let payloads = read_packet_aspect_bytes_texts(&historical);
         let field_index = match field {
             "external-factor" => 1,
             "factor-delta" => 2,
@@ -3008,7 +3041,7 @@ fn pricing_shock_conflicting_historical_basis_is_detectable_against_independent_
             .with_read_packet(pricing_provenance_read_packet("rubber")),
         )
         .expect("conflicting historical basis should materialize provenance packet");
-    let payloads = read_packet_payloads(&historical_provenance);
+    let payloads = read_packet_aspect_bytes_texts(&historical_provenance);
 
     assert_eq!(
         historical_cost.snapshot_identity().as_str(),
@@ -3439,7 +3472,8 @@ fn pricing_shock_duplicate_conflicting_commit_identity_permutation_sweep_is_dete
                 "patch:steel-main-conflicting-rubber",
                 vec![BridgeCommittedPatchItem::new(
                     "component:rubber",
-                    "cost",
+                    forge_foundational::facade::AspectKey::new("cost")
+                        .expect("valid bridge patch aspect key"),
                     "usd",
                 )],
             ),
@@ -3454,7 +3488,8 @@ fn pricing_shock_duplicate_conflicting_commit_identity_permutation_sweep_is_dete
                 "patch:rubber-main-conflicting-steel",
                 vec![BridgeCommittedPatchItem::new(
                     "component:steel",
-                    "cost",
+                    forge_foundational::facade::AspectKey::new("cost")
+                        .expect("valid bridge patch aspect key"),
                     "usd",
                 )],
             ),
@@ -3468,8 +3503,18 @@ fn pricing_shock_duplicate_conflicting_commit_identity_permutation_sweep_is_dete
                 "commit:steel-main",
                 "patch:steel-main-conflicting-combined",
                 vec![
-                    BridgeCommittedPatchItem::new("component:steel", "cost", "usd"),
-                    BridgeCommittedPatchItem::new("component:rubber", "cost", "usd"),
+                    BridgeCommittedPatchItem::new(
+                        "component:steel",
+                        forge_foundational::facade::AspectKey::new("cost")
+                            .expect("valid bridge patch aspect key"),
+                        "usd",
+                    ),
+                    BridgeCommittedPatchItem::new(
+                        "component:rubber",
+                        forge_foundational::facade::AspectKey::new("cost")
+                            .expect("valid bridge patch aspect key"),
+                        "usd",
+                    ),
                 ],
             ),
             "commit:steel-main",
@@ -3560,7 +3605,8 @@ fn pricing_shock_non_commuting_route_history_permutation_sweep_fails_closed() {
                 "patch:steel-main-conflicting-rubber",
                 vec![BridgeCommittedPatchItem::new(
                     "component:rubber",
-                    "cost",
+                    forge_foundational::facade::AspectKey::new("cost")
+                        .expect("valid bridge patch aspect key"),
                     "usd",
                 )],
             ),
@@ -3573,7 +3619,8 @@ fn pricing_shock_non_commuting_route_history_permutation_sweep_fails_closed() {
                 "patch:rubber-main-conflicting-steel",
                 vec![BridgeCommittedPatchItem::new(
                     "component:steel",
-                    "cost",
+                    forge_foundational::facade::AspectKey::new("cost")
+                        .expect("valid bridge patch aspect key"),
                     "usd",
                 )],
             ),
@@ -3585,8 +3632,18 @@ fn pricing_shock_non_commuting_route_history_permutation_sweep_fails_closed() {
                 "commit:steel-main",
                 "patch:steel-main-conflicting-combined",
                 vec![
-                    BridgeCommittedPatchItem::new("component:steel", "cost", "usd"),
-                    BridgeCommittedPatchItem::new("component:rubber", "cost", "usd"),
+                    BridgeCommittedPatchItem::new(
+                        "component:steel",
+                        forge_foundational::facade::AspectKey::new("cost")
+                            .expect("valid bridge patch aspect key"),
+                        "usd",
+                    ),
+                    BridgeCommittedPatchItem::new(
+                        "component:rubber",
+                        forge_foundational::facade::AspectKey::new("cost")
+                            .expect("valid bridge patch aspect key"),
+                        "usd",
+                    ),
                 ],
             ),
         ),

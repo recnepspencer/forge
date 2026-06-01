@@ -1,9 +1,9 @@
 use crate::facade::{
-    certify_milestone_three_closeout, milestone_one_runtime_builder,
-    milestone_three_closeout_requirements, CertificationRequiredOutput,
-    MilestoneThreeEditFalloutClass, MilestoneThreeHostileScenario,
-    TopologyEditDerivedFallbackPolicy, TopologyEditRejectionClass,
+    certify_milestone_three_closeout, milestone_three_closeout_requirements,
+    CertificationRequiredOutput, MilestoneThreeHostileScenario, MilestoneThreeMutationFalloutClass,
+    TopologyMutationDerivedFallbackPolicy, TopologyMutationRejectionClass,
 };
+use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
 #[test]
 fn milestone_three_closeout_requires_derived_fallback_policy_denial_rows() {
@@ -26,11 +26,11 @@ fn milestone_three_closeout_requires_derived_fallback_policy_denial_rows() {
         .derived_fallback_policy_denial_rows
         .iter()
         .all(|row| {
-            row.strict_fallback_policy() == TopologyEditDerivedFallbackPolicy::RejectAnyFallback
+            row.strict_fallback_policy() == TopologyMutationDerivedFallbackPolicy::RejectAnyFallback
                 && row.policy_exceeded()
                 && row.observed_fallback_count() > 0
                 && row.denied_rejection_class()
-                    == TopologyEditRejectionClass::DerivedFallbackExceeded
+                    == TopologyMutationRejectionClass::DerivedFallbackExceeded
                 && row
                     .row_digest()
                     .starts_with(&format!("scenario={};", row.scenario().as_str()))
@@ -40,6 +40,7 @@ fn milestone_three_closeout_requires_derived_fallback_policy_denial_rows() {
         .iter()
         .any(|row| {
             row.scenario() == MilestoneThreeHostileScenario::SplitCollapseChurn
-                && row.observed_fallout_class() == MilestoneThreeEditFalloutClass::WholeViewFallback
+                && row.observed_fallout_class()
+                    == MilestoneThreeMutationFalloutClass::WholeViewFallback
         }));
 }

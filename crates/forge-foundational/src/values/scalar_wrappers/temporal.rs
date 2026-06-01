@@ -1,9 +1,11 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CanonicalDate {
     pub days_from_unix_epoch: i32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CanonicalTime {
     pub nanos_since_midnight: u64,
 }
@@ -22,12 +24,12 @@ impl CanonicalTime {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CanonicalTimestamp {
     pub micros_since_unix_epoch: i64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CanonicalTimestampTz {
     pub utc_micros_since_unix_epoch: i64,
     pub offset_minutes: i32,

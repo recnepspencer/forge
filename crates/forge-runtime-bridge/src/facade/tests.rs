@@ -43,7 +43,12 @@ impl crate::adapter::CommittedPatchSource for StaticSource {
             )),
             TruthSnapshotIdentity::new("snapshot-a"),
             TruthBranchIdentity::new("analysis"),
-            vec![BridgeCommittedPatchItem::new("entity-1", "profile", "name")],
+            vec![BridgeCommittedPatchItem::new(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid bridge patch aspect key"),
+                "name",
+            )],
         ))
     }
 }
@@ -114,7 +119,12 @@ impl crate::adapter::TruthBranchHeadSource for StaticSource {
             )),
             TruthSnapshotIdentity::new("snapshot-a"),
             branch_identity.clone(),
-            vec![BridgeCommittedPatchItem::new("entity-1", "profile", "name")],
+            vec![BridgeCommittedPatchItem::new(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid bridge patch aspect key"),
+                "name",
+            )],
         ))
     }
 }
@@ -455,7 +465,12 @@ fn canonical_envelope(
         TruthPatchIdentity::new(patch),
         TruthSnapshotIdentity::new(snapshot),
         TruthBranchIdentity::new(branch),
-        vec![BridgeCommittedPatchItem::new("entity-1", "profile", "name")],
+        vec![BridgeCommittedPatchItem::new(
+            "entity-1",
+            forge_foundational::facade::AspectKey::new("profile")
+                .expect("valid bridge patch aspect key"),
+            "name",
+        )],
     );
     let normalized = crate::input::normalization::normalize_raw_envelope(raw);
     crate::input::validation::validate_normalized_envelope(normalized)

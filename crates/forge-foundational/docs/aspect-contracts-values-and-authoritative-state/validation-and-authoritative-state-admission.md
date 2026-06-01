@@ -37,6 +37,9 @@ Good to know:
 
 - validation and state admission are separate phases on purpose.
 - a raw `AspectValue` is not the same thing as a validated aspect artifact.
+- raw scalar-like values and raw struct values already split before validation
+  through `ContractValidationInput`.
+- authoritative state admission fails closed on empty entry sets.
 
 ## Core Mental Model
 
@@ -58,6 +61,14 @@ The normal flow is:
 3. validate the value against the contract
 4. admit one or more validated artifacts into authoritative state
 5. hand the resulting authoritative artifact to later lanes
+
+The admission lane is intentionally narrower than a generic map constructor:
+
+- duplicate aspect keys are denied
+- empty admission requests are denied
+- later patch application may still yield an empty resulting state after legal
+  clears, but the admission boundary itself requires at least one validated
+  entry
 
 ## Small Example
 
@@ -110,6 +121,8 @@ value.
 
 - [Aspect Keys, Values, And Scalar Contracts](./aspect-keys-values-and-scalar-contracts.md)
   provides the contract meaning validation consumes.
+- [Aspect Shapes And Value Carriers](./aspect-shapes-and-value-carriers.md)
+  explains the raw input carriers that validation accepts.
 - [Authoritative Patches And Apply Flow](./authoritative-patches-and-apply-flow.md)
   starts from authoritative state.
 - [Compatibility Lowering And JSON Bridges](./compatibility-lowering-and-json-bridges.md)
@@ -141,7 +154,11 @@ start before the state phase.
 - Admission preserves the milestone’s explicit authority boundary; it is not a
   generic map update helper.
 
+This is not the public path for minting an "empty but authoritative" state
+shell.
+
 ## Related Docs
 
+- [Aspect Shapes And Value Carriers](./aspect-shapes-and-value-carriers.md)
 - [Authoritative Patches And Apply Flow](./authoritative-patches-and-apply-flow.md)
 - [Compatibility Lowering And JSON Bridges](./compatibility-lowering-and-json-bridges.md)

@@ -33,7 +33,7 @@ pub enum ForgeQueryDeclarationCanonicalizationError {
     ComparisonPreparationFailed,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ForgeQueryCanonicalDeclarationArtifact<
     D: ForgeQueryDomainEntryMarker,
     I: ForgeQueryDeclarationInput<D>,
@@ -41,11 +41,32 @@ pub struct ForgeQueryCanonicalDeclarationArtifact<
     handle_identity_digest: String,
     declaration_family_key: &'static str,
     declaration_taxonomy: ForgeQueryDeclarationFamilyTaxonomy,
+    declaration_entry_loci: Vec<String>,
     canonical_entries: Vec<CanonicalBasisEntry>,
     canonical_basis_bundle: CanonicalBundleReadyArtifact,
     declaration_digest: CanonicalDerivedDigest,
     version: ForgeQueryDeclarationCanonicalizationVersion,
     _marker: std::marker::PhantomData<(D, I)>,
+}
+
+impl<D, I> Clone for ForgeQueryCanonicalDeclarationArtifact<D, I>
+where
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+{
+    fn clone(&self) -> Self {
+        Self {
+            handle_identity_digest: self.handle_identity_digest.clone(),
+            declaration_family_key: self.declaration_family_key,
+            declaration_taxonomy: self.declaration_taxonomy,
+            declaration_entry_loci: self.declaration_entry_loci.clone(),
+            canonical_entries: self.canonical_entries.clone(),
+            canonical_basis_bundle: self.canonical_basis_bundle.clone(),
+            declaration_digest: self.declaration_digest.clone(),
+            version: self.version.clone(),
+            _marker: std::marker::PhantomData,
+        }
+    }
 }
 
 impl<D, I> ForgeQueryCanonicalDeclarationArtifact<D, I>
@@ -57,6 +78,7 @@ where
         handle_identity_digest: String,
         declaration_family_key: &'static str,
         declaration_taxonomy: ForgeQueryDeclarationFamilyTaxonomy,
+        declaration_entry_loci: Vec<String>,
         canonical_entries: Vec<CanonicalBasisEntry>,
         canonical_basis_bundle: CanonicalBundleReadyArtifact,
         declaration_digest: CanonicalDerivedDigest,
@@ -66,6 +88,7 @@ where
             handle_identity_digest,
             declaration_family_key,
             declaration_taxonomy,
+            declaration_entry_loci,
             canonical_entries,
             canonical_basis_bundle,
             declaration_digest,
@@ -102,6 +125,10 @@ where
 
     pub fn canonical_basis_bundle(&self) -> &CanonicalBundleReadyArtifact {
         &self.canonical_basis_bundle
+    }
+
+    pub fn declaration_entry_loci(&self) -> &[String] {
+        &self.declaration_entry_loci
     }
 
     pub fn declaration_digest(&self) -> &CanonicalDerivedDigest {
@@ -159,6 +186,11 @@ where
     }
 
     let canonical_entries = declaration_entries(handle, &raw);
+    let declaration_entry_loci = raw
+        .canonical_entries()
+        .iter()
+        .map(|entry| entry.locus().to_string())
+        .collect::<Vec<_>>();
     let canonical_basis_bundle =
         canonical_basis_bundle_from_entries(&canonical_entries, version.foundational());
 
@@ -184,6 +216,7 @@ where
         handle.handle_identity_digest().to_string(),
         raw.declaration_family_key(),
         raw.declaration_taxonomy(),
+        declaration_entry_loci,
         canonical_entries,
         canonical_basis_bundle,
         declaration_digest,

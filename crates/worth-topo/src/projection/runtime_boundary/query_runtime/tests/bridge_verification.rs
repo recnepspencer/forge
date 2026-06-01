@@ -70,7 +70,7 @@ fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
         probe
             .field("topology.kind")
             .expect("topology.kind should be present")
-            .value_json(),
+            .external_value_json(),
         "\".vertex\""
     );
     workspace
@@ -94,9 +94,9 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
         .relations()
         .iter()
         .find(|record| {
-            schema::facade::RelationKind::from_kind_id(record.kind.kind_id)
-                == Some(schema::facade::RelationKind::Topology(
-                    schema::facade::TopologyRelationKind::LoopOwnsHalfEdge,
+            schema::facade::platform::relations::RelationKind::from_kind_id(record.kind.kind_id)
+                == Some(schema::facade::platform::relations::RelationKind::Topology(
+                    schema::facade::platform::relations::TopologyRelationKind::LoopOwnsHalfEdge,
                 ))
         })
         .map(|record| record.relation_id)
@@ -156,7 +156,7 @@ fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
         probe
             .field("topology.kind")
             .expect("topology.kind should be present")
-            .value_json(),
+            .external_value_json(),
         "\".loop_owns_half_edge\""
     );
     workspace

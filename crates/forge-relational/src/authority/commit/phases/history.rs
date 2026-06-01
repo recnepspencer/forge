@@ -1,7 +1,7 @@
-use serde_json::json;
-
-use crate::capabilities::{DiagnosticsSink, RuntimeConfigSource};
-use crate::diagnostics::data::DiagnosticsScope;
+use crate::capabilities::{DiagnosticArtifactSink, RuntimeConfigSource};
+use crate::diagnostics::data::{
+    DiagnosticsScope, RelationalDiagnosticFields, RelationalDiagnosticValue,
+};
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::identity::data::VersionId;
 use crate::logic::runtime::RelationalRuntime;
@@ -59,19 +59,14 @@ pub(crate) fn resolve_commit_history(
     let (parents, merge_base_commits) = match transaction.resolve_parent_commits(&branch_id) {
         Ok(result) => result,
         Err(conflict) => {
-            transaction.runtime.emit_diagnostic_entry(
+            transaction.runtime.emit_failure_diagnostic(
                 DiagnosticsScope::History,
                 conflict.code,
                 conflict.detail.clone(),
-                json!({
-                    "branch_id": branch_id.0,
-                    "merge_parent_branches": transaction
-                        .options
-                        .merge_parent_branches
-                        .iter()
-                        .map(|branch| branch.0.clone())
-                        .collect::<Vec<_>>(),
-                }),
+                merge_parent_resolution_failure_fields(
+                    &branch_id,
+                    &transaction.options.merge_parent_branches,
+                ),
             );
             return Err(TransactionCommitError::conflict(conflict));
         }
@@ -147,17 +142,11 @@ where
     let (parents, merge_base_commits) = match resolve_parents(&branch_id) {
         Ok(result) => result,
         Err(conflict) => {
-            runtime.emit_diagnostic_entry(
+            runtime.emit_failure_diagnostic(
                 DiagnosticsScope::History,
                 conflict.code,
                 conflict.detail.clone(),
-                json!({
-                    "branch_id": branch_id.0,
-                    "merge_parent_branches": merge_parent_branches
-                        .iter()
-                        .map(|branch| branch.0.clone())
-                        .collect::<Vec<_>>(),
-                }),
+                merge_parent_resolution_failure_fields(&branch_id, merge_parent_branches),
             );
             return Err(TransactionCommitError::conflict(conflict));
         }
@@ -180,4 +169,25 @@ where
         requested_merge_parent_count,
         effective_merge_parent_count,
     })
+}
+
+fn merge_parent_resolution_failure_fields(
+    branch_id: &BranchId,
+    merge_parent_branches: &[BranchId],
+) -> RelationalDiagnosticFields {
+    RelationalDiagnosticValue::object([
+        (
+            "branch_id",
+            RelationalDiagnosticValue::string(branch_id.0.clone()),
+        ),
+        (
+            "merge_parent_branches",
+            RelationalDiagnosticValue::array(
+                merge_parent_branches
+                    .iter()
+                    .map(|branch| RelationalDiagnosticValue::string(branch.0.clone())),
+            ),
+        ),
+    ])
+    .into()
 }

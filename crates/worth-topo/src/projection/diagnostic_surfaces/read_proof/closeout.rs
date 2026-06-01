@@ -1,13 +1,13 @@
-use super::ledger::TopologyDomainQueryProofReport;
+use super::ledger::TopologyReadProofReport;
 use super::no_n_plus_one::{
     no_n_plus_one_contract_rows, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
 };
-use super::report::TopologyDomainQueryAggregateReport;
-use super::report::TopologyDomainQueryRequestFamily;
-use crate::projection::read_views::domain::TopologyDomainQuery;
+use super::report::TopologyReadAggregateReport;
+use super::report::TopologyReadRequestFamily;
+use crate::projection::read_views::domain::TopologyReadLedger;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum TopologyDomainQueryCloseoutStatus {
+pub enum TopologyReadCloseoutStatus {
     Unobserved,
     ExecutionGap,
     QueryExecutedWithDebt,
@@ -15,9 +15,9 @@ pub enum TopologyDomainQueryCloseoutStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TopologyDomainQueryCloseoutRow {
-    pub(crate) request_family: TopologyDomainQueryRequestFamily,
-    pub(crate) status: TopologyDomainQueryCloseoutStatus,
+pub struct TopologyReadCloseoutRow {
+    pub(crate) request_family: TopologyReadRequestFamily,
+    pub(crate) status: TopologyReadCloseoutStatus,
     pub(crate) reason: String,
     pub(crate) row_digest: String,
     pub(crate) request_count: usize,
@@ -30,7 +30,7 @@ pub struct TopologyDomainQueryCloseoutRow {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum TopologyDomainQueryPhaseThreeBlocker {
+pub enum TopologyReadPhaseThreeBlocker {
     NoObservedRequests,
     NonQueryRuntimeExecution,
     LocalityClaimMismatch,
@@ -41,7 +41,7 @@ pub enum TopologyDomainQueryPhaseThreeBlocker {
     ParityDeterminismGap,
 }
 
-impl TopologyDomainQueryPhaseThreeBlocker {
+impl TopologyReadPhaseThreeBlocker {
     pub const ALL: [Self; 8] = [
         Self::NoObservedRequests,
         Self::NonQueryRuntimeExecution,
@@ -55,23 +55,23 @@ impl TopologyDomainQueryPhaseThreeBlocker {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TopologyDomainQueryPhaseThreeBlockerStatus {
+pub enum TopologyReadPhaseThreeBlockerStatus {
     Clear,
     Blocked,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TopologyDomainQueryPhaseThreeBlockerRow {
-    pub(crate) blocker: TopologyDomainQueryPhaseThreeBlocker,
-    pub(crate) status: TopologyDomainQueryPhaseThreeBlockerStatus,
+pub struct TopologyReadPhaseThreeBlockerRow {
+    pub(crate) blocker: TopologyReadPhaseThreeBlocker,
+    pub(crate) status: TopologyReadPhaseThreeBlockerStatus,
     pub(crate) reason: String,
     pub(crate) row_digest: String,
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TopologyDomainQueryCloseoutReport {
-    pub(crate) proof_report: TopologyDomainQueryProofReport,
+pub struct TopologyReadCloseoutReport {
+    pub(crate) proof_report: TopologyReadProofReport,
     pub(crate) query_executed_family_count: usize,
     pub(crate) query_executed_debt_free_family_count: usize,
     pub(crate) query_executed_debt_backed_family_count: usize,
@@ -79,15 +79,15 @@ pub struct TopologyDomainQueryCloseoutReport {
     pub(crate) whole_view_debt_request_count: usize,
     pub(crate) row_scan_fallback_request_count: usize,
     pub(crate) repeated_rediscovery_denied_count: usize,
-    pub(crate) family_rows: Vec<TopologyDomainQueryCloseoutRow>,
-    pub(crate) phase_three_blocker_rows: Vec<TopologyDomainQueryPhaseThreeBlockerRow>,
+    pub(crate) family_rows: Vec<TopologyReadCloseoutRow>,
+    pub(crate) phase_three_blocker_rows: Vec<TopologyReadPhaseThreeBlockerRow>,
     pub(crate) no_n_plus_one_contract_rows: Vec<TopologyNoNPlusOneContractRow>,
     pub(crate) phase_three_ready: bool,
 }
 
-impl TopologyDomainQueryCloseoutReport {
+impl TopologyReadCloseoutReport {
     #[allow(dead_code)]
-    pub(crate) fn from_proof_report(proof_report: TopologyDomainQueryProofReport) -> Self {
+    pub(crate) fn from_proof_report(proof_report: TopologyReadProofReport) -> Self {
         let request_aggregate = &proof_report.request_aggregate;
         let family_rows = closeout_family_rows(request_aggregate);
         let query_executed_family_count = request_aggregate
@@ -97,7 +97,7 @@ impl TopologyDomainQueryCloseoutReport {
             .count();
         let query_executed_debt_free_family_count = family_rows
             .iter()
-            .filter(|row| row.status == TopologyDomainQueryCloseoutStatus::QueryExecutedDebtFree)
+            .filter(|row| row.status == TopologyReadCloseoutStatus::QueryExecutedDebtFree)
             .count();
         let query_executed_debt_backed_family_count =
             query_executed_family_count - query_executed_debt_free_family_count;
@@ -127,37 +127,37 @@ impl TopologyDomainQueryCloseoutReport {
 }
 
 fn phase_three_ready(
-    blocker_rows: &[TopologyDomainQueryPhaseThreeBlockerRow],
+    blocker_rows: &[TopologyReadPhaseThreeBlockerRow],
     no_n_plus_one_rows: &[TopologyNoNPlusOneContractRow],
 ) -> bool {
     blocker_rows
         .iter()
-        .all(|row| row.status == TopologyDomainQueryPhaseThreeBlockerStatus::Clear)
+        .all(|row| row.status == TopologyReadPhaseThreeBlockerStatus::Clear)
         && no_n_plus_one_rows
             .iter()
             .all(|row| row.status == TopologyNoNPlusOneContractStatus::Satisfied)
 }
 
-impl TopologyDomainQuery {
+impl TopologyReadLedger {
     #[allow(dead_code)]
-    pub fn closeout_report(&self) -> TopologyDomainQueryCloseoutReport {
-        TopologyDomainQueryCloseoutReport::from_proof_report(self.proof_report())
+    pub fn closeout_report(&self) -> TopologyReadCloseoutReport {
+        TopologyReadCloseoutReport::from_proof_report(self.proof_report())
     }
 }
 
 fn closeout_family_rows(
-    request_aggregate: &TopologyDomainQueryAggregateReport,
-) -> Vec<TopologyDomainQueryCloseoutRow> {
-    TopologyDomainQueryRequestFamily::ALL
+    request_aggregate: &TopologyReadAggregateReport,
+) -> Vec<TopologyReadCloseoutRow> {
+    TopologyReadRequestFamily::ALL
         .into_iter()
         .map(|request_family| closeout_family_row(request_aggregate, request_family))
         .collect()
 }
 
 fn closeout_family_row(
-    request_aggregate: &TopologyDomainQueryAggregateReport,
-    request_family: TopologyDomainQueryRequestFamily,
-) -> TopologyDomainQueryCloseoutRow {
+    request_aggregate: &TopologyReadAggregateReport,
+    request_family: TopologyReadRequestFamily,
+) -> TopologyReadCloseoutRow {
     let family_aggregate = request_aggregate
         .family_rows
         .iter()
@@ -184,12 +184,12 @@ fn closeout_family_row(
         .sum();
     let (status, reason) = if request_count == 0 {
         (
-            TopologyDomainQueryCloseoutStatus::Unobserved,
+            TopologyReadCloseoutStatus::Unobserved,
             "no executed requests were observed for this public topology-domain family".to_string(),
         )
     } else if query_execution_count != request_count {
         (
-            TopologyDomainQueryCloseoutStatus::ExecutionGap,
+            TopologyReadCloseoutStatus::ExecutionGap,
             format!(
                 "observed requests for this public topology-domain family outnumber query-runtime executions ({query_execution_count}/{request_count})"
             ),
@@ -201,20 +201,20 @@ fn closeout_family_row(
         || locality_claim_mismatch_count > 0
     {
         (
-            TopologyDomainQueryCloseoutStatus::QueryExecutedWithDebt,
+            TopologyReadCloseoutStatus::QueryExecutedWithDebt,
             format!(
                 "this public topology-domain family executed through the query runtime but still carries debt signals (debt_rows={debt_row_count};row_scan_fallback={row_scan_fallback_count};whole_view_fallback={whole_view_fallback_count};repeated_rediscovery_denied={repeated_rediscovery_denied_count};locality_claim_mismatch={locality_claim_mismatch_count})"
             ),
         )
     } else {
         (
-            TopologyDomainQueryCloseoutStatus::QueryExecutedDebtFree,
+            TopologyReadCloseoutStatus::QueryExecutedDebtFree,
             format!(
                 "this public topology-domain family executed through the query runtime without observed debt signals ({query_execution_count}/{request_count} executions)"
             ),
         )
     };
-    TopologyDomainQueryCloseoutRow {
+    TopologyReadCloseoutRow {
         request_family,
         status,
         row_digest: closeout_family_row_digest(
@@ -240,8 +240,8 @@ fn closeout_family_row(
 }
 
 fn closeout_family_row_digest(
-    request_family: TopologyDomainQueryRequestFamily,
-    status: TopologyDomainQueryCloseoutStatus,
+    request_family: TopologyReadRequestFamily,
+    status: TopologyReadCloseoutStatus,
     request_count: usize,
     query_execution_count: usize,
     locality_claim_mismatch_count: usize,
@@ -256,70 +256,70 @@ fn closeout_family_row_digest(
 }
 
 fn phase_three_blocker_rows(
-    request_aggregate: &TopologyDomainQueryAggregateReport,
-    proof_report: &TopologyDomainQueryProofReport,
-) -> Vec<TopologyDomainQueryPhaseThreeBlockerRow> {
-    TopologyDomainQueryPhaseThreeBlocker::ALL
+    request_aggregate: &TopologyReadAggregateReport,
+    proof_report: &TopologyReadProofReport,
+) -> Vec<TopologyReadPhaseThreeBlockerRow> {
+    TopologyReadPhaseThreeBlocker::ALL
         .into_iter()
         .map(|blocker| phase_three_blocker_row(blocker, request_aggregate, proof_report))
         .collect()
 }
 
 fn phase_three_blocker_row(
-    blocker: TopologyDomainQueryPhaseThreeBlocker,
-    request_aggregate: &TopologyDomainQueryAggregateReport,
-    proof_report: &TopologyDomainQueryProofReport,
-) -> TopologyDomainQueryPhaseThreeBlockerRow {
+    blocker: TopologyReadPhaseThreeBlocker,
+    request_aggregate: &TopologyReadAggregateReport,
+    proof_report: &TopologyReadProofReport,
+) -> TopologyReadPhaseThreeBlockerRow {
     let (status, reason) = match blocker {
-        TopologyDomainQueryPhaseThreeBlocker::NoObservedRequests => {
+        TopologyReadPhaseThreeBlocker::NoObservedRequests => {
             blocker_from_condition(
                 request_aggregate.request_count == 0,
                 "no executed topology-domain read requests were observed on this boundary",
                 "at least one executed topology-domain read request was observed on this boundary",
             )
         }
-        TopologyDomainQueryPhaseThreeBlocker::NonQueryRuntimeExecution => {
+        TopologyReadPhaseThreeBlocker::NonQueryRuntimeExecution => {
             blocker_from_condition(
                 request_aggregate.query_execution_count != request_aggregate.request_count,
                 "one or more observed topology-domain requests were not executed through the query runtime",
                 "all observed topology-domain requests executed through the query runtime",
             )
         }
-        TopologyDomainQueryPhaseThreeBlocker::LocalityClaimMismatch => blocker_from_condition(
+        TopologyReadPhaseThreeBlocker::LocalityClaimMismatch => blocker_from_condition(
             request_aggregate.locality_claim_mismatch_count > 0,
             "one or more observed topology-domain requests executed under a different scope class than their claimed family posture",
             "all observed topology-domain requests executed under their claimed scope class",
         ),
-        TopologyDomainQueryPhaseThreeBlocker::RowScanFallback => blocker_from_condition(
+        TopologyReadPhaseThreeBlocker::RowScanFallback => blocker_from_condition(
             request_aggregate.row_scan_fallback_count > 0,
             "one or more observed topology-domain requests incurred row-scan fallback debt",
             "no observed topology-domain requests incurred row-scan fallback debt",
         ),
-        TopologyDomainQueryPhaseThreeBlocker::WholeViewDebt => blocker_from_condition(
+        TopologyReadPhaseThreeBlocker::WholeViewDebt => blocker_from_condition(
             request_aggregate.whole_view_fallback_count > 0,
             "one or more observed topology-domain requests incurred whole-view fallback debt",
             "no observed topology-domain requests incurred whole-view fallback debt",
         ),
-        TopologyDomainQueryPhaseThreeBlocker::RepeatedRediscoveryDenial => {
+        TopologyReadPhaseThreeBlocker::RepeatedRediscoveryDenial => {
             blocker_from_condition(
                 request_aggregate.repeated_rediscovery_denied_count > 0,
                 "one or more observed topology-domain requests were denied by repeated-rediscovery debt",
                 "no observed topology-domain requests were denied by repeated-rediscovery debt",
             )
         }
-        TopologyDomainQueryPhaseThreeBlocker::OutstandingDebtRows => blocker_from_condition(
+        TopologyReadPhaseThreeBlocker::OutstandingDebtRows => blocker_from_condition(
             !request_aggregate.debt_rows.is_empty(),
             "the executed topology-domain aggregate still exposes outstanding debt rows",
             "the executed topology-domain aggregate exposes no outstanding debt rows",
         ),
-        TopologyDomainQueryPhaseThreeBlocker::ParityDeterminismGap => blocker_from_condition(
+        TopologyReadPhaseThreeBlocker::ParityDeterminismGap => blocker_from_condition(
             proof_report.parity_aggregate.view_determinism_checked_count
                 != proof_report.parity_aggregate.view_determinism_verified_count,
             "one or more checked topology-domain parity views have not been determinism-verified",
             "all checked topology-domain parity views were determinism-verified",
         ),
     };
-    TopologyDomainQueryPhaseThreeBlockerRow {
+    TopologyReadPhaseThreeBlockerRow {
         blocker,
         status,
         row_digest: format!("blocker={blocker:?};status={status:?};reason={reason}"),
@@ -331,16 +331,10 @@ fn blocker_from_condition(
     blocked: bool,
     blocked_reason: &'static str,
     clear_reason: &'static str,
-) -> (TopologyDomainQueryPhaseThreeBlockerStatus, &'static str) {
+) -> (TopologyReadPhaseThreeBlockerStatus, &'static str) {
     if blocked {
-        (
-            TopologyDomainQueryPhaseThreeBlockerStatus::Blocked,
-            blocked_reason,
-        )
+        (TopologyReadPhaseThreeBlockerStatus::Blocked, blocked_reason)
     } else {
-        (
-            TopologyDomainQueryPhaseThreeBlockerStatus::Clear,
-            clear_reason,
-        )
+        (TopologyReadPhaseThreeBlockerStatus::Clear, clear_reason)
     }
 }

@@ -1,8 +1,8 @@
-use crate::facade::{topology_runtime, TopologyQueryAssembly, TopologyRuntimeAdapters};
+use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
 use crate::projection::TopologyQueryRowLookup;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
+use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::TopologyRelationKind;
 
 #[test]
 fn row_lookup_finds_half_edge_neighbors_for_edge_fan_witnesses() {
@@ -16,9 +16,13 @@ fn row_lookup_finds_half_edge_neighbors_for_edge_fan_witnesses() {
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, "query.row-lookup.edge-fan.runtime").expect("runtime");
-    let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let entity_rows = workspace.read(assembly.entities());
-    let relation_rows = workspace.read(assembly.relations());
+    let surfaces =
+        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+    let entity_rows = workspace.read(surfaces.entities());
+    let relation_rows = workspace.read(surfaces.relations());
     let lookup = TopologyQueryRowLookup::new(&entity_rows, &relation_rows);
     let source_identity = lookup
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeRadialNext)
@@ -32,7 +36,7 @@ fn row_lookup_finds_half_edge_neighbors_for_edge_fan_witnesses() {
 
     let same_edge = entity_rows
         .iter()
-        .map(|row| row.identity.as_str())
+        .map(|row| row.identity())
         .filter(|identity| {
             lookup
                 .edge_identity_of_half_edge(identity)
@@ -41,7 +45,7 @@ fn row_lookup_finds_half_edge_neighbors_for_edge_fan_witnesses() {
         .collect::<Vec<_>>();
     let different_edge = entity_rows
         .iter()
-        .map(|row| row.identity.as_str())
+        .map(|row| row.identity())
         .filter(|identity| {
             lookup
                 .edge_identity_of_half_edge(identity)
@@ -65,7 +69,7 @@ fn row_lookup_finds_half_edge_neighbors_for_edge_fan_witnesses() {
     }));
     let sharing_vertex = entity_rows
         .iter()
-        .map(|row| row.identity.as_str())
+        .map(|row| row.identity())
         .filter(|identity| *identity != source_identity)
         .filter(|identity| {
             lookup

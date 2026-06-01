@@ -14,8 +14,8 @@ use forge_runtime_bridge::facade::{
 use super::binding::TopologyRuntimeBinding;
 use super::bridge_source_support::{
     missing_aspect_error, missing_record_error, parse_bridge_commit_identity,
-    parse_bridge_record_identity, parse_bridge_snapshot_identity, payload_bytes_for_entity_aspect,
-    payload_bytes_for_relation_aspect,
+    parse_bridge_record_identity, parse_bridge_snapshot_identity, snapshot_bytes_for_entity_aspect,
+    snapshot_bytes_for_relation_aspect,
 };
 
 #[derive(Clone)]
@@ -195,17 +195,17 @@ impl TruthSnapshotReader for TopologySnapshotReader {
                     let runtime = runtime
                         .read()
                         .expect("topology bridge source lock poisoned");
-                    let projection = runtime.read_truth().project_version(*version_id);
+                    let read_view = runtime.read_truth().read_version(*version_id);
                     match record_ref {
                         RecordRef::Entity(entity_id) => {
-                            let record = projection.entity_record(entity_id).ok_or_else(|| {
+                            let record = read_view.get_entity(entity_id).ok_or_else(|| {
                                 missing_record_error(
                                     "entity",
                                     read.entity_identity(),
                                     &self.snapshot_identity,
                                 )
                             })?;
-                            payload_bytes_for_entity_aspect(&record, read.aspect_label())
+                            snapshot_bytes_for_entity_aspect(&record, read.aspect_label())
                                 .ok_or_else(|| {
                                     missing_aspect_error(
                                         "entity",
@@ -216,15 +216,14 @@ impl TruthSnapshotReader for TopologySnapshotReader {
                                 })?
                         }
                         RecordRef::Relation(relation_id) => {
-                            let record =
-                                projection.relation_record(relation_id).ok_or_else(|| {
-                                    missing_record_error(
-                                        "relation",
-                                        read.entity_identity(),
-                                        &self.snapshot_identity,
-                                    )
-                                })?;
-                            payload_bytes_for_relation_aspect(&record, read.aspect_label())
+                            let record = read_view.get_relation(relation_id).ok_or_else(|| {
+                                missing_record_error(
+                                    "relation",
+                                    read.entity_identity(),
+                                    &self.snapshot_identity,
+                                )
+                            })?;
+                            snapshot_bytes_for_relation_aspect(&record, read.aspect_label())
                                 .ok_or_else(|| {
                                     missing_aspect_error(
                                         "relation",
@@ -255,11 +254,11 @@ fn resolve_bridge_snapshot_version(
     identity: &TruthSnapshotIdentity,
 ) -> Result<VersionId, RelationalBridgeSourceError> {
     let (snapshot_id, expected_version_id) = parse_bridge_snapshot_identity(identity)?;
-    let observed_version_id = runtime
+    let observed_snapshot = runtime
         .publication()
         .latest_bundle()
         .and_then(|bundle| {
-            (bundle.commit.commit_id.0 == snapshot_id.0).then_some(bundle.commit.version_id)
+            (bundle.snapshot.snapshot_id == snapshot_id).then_some(bundle.snapshot.clone())
         })
         .ok_or_else(|| {
             RelationalBridgeSourceError::new(format!(
@@ -267,15 +266,15 @@ fn resolve_bridge_snapshot_version(
                 identity.as_str()
             ))
         })?;
-    if observed_version_id != expected_version_id {
+    if observed_snapshot.version_id != expected_version_id {
         return Err(RelationalBridgeSourceError::new(format!(
             "topology bridge snapshot identity `{}` expected version `{}` but authoritative binding resolved to version `{}`",
             identity.as_str(),
             expected_version_id.0,
-            observed_version_id.0
+            observed_snapshot.version_id.0
         )));
     }
-    Ok(observed_version_id)
+    Ok(observed_snapshot.version_id)
 }
 
 fn payload_from_read_view(
@@ -289,7 +288,7 @@ fn payload_from_read_view(
             let record = read_view.get_entity(entity_id).ok_or_else(|| {
                 missing_record_error("entity", read.entity_identity(), snapshot_identity)
             })?;
-            payload_bytes_for_entity_aspect(record, read.aspect_label()).ok_or_else(|| {
+            snapshot_bytes_for_entity_aspect(record, read.aspect_label()).ok_or_else(|| {
                 missing_aspect_error(
                     "entity",
                     read.aspect_label(),
@@ -302,7 +301,7 @@ fn payload_from_read_view(
             let record = read_view.get_relation(relation_id).ok_or_else(|| {
                 missing_record_error("relation", read.entity_identity(), snapshot_identity)
             })?;
-            payload_bytes_for_relation_aspect(record, read.aspect_label()).ok_or_else(|| {
+            snapshot_bytes_for_relation_aspect(record, read.aspect_label()).ok_or_else(|| {
                 missing_aspect_error(
                     "relation",
                     read.aspect_label(),

@@ -46,6 +46,9 @@ Good to know:
   capability.
 - field paths are the shared targeting surface masks, locators, and patches
   build on.
+- the common path only authors single-field Milestone 1 targets through
+  `aspects().vocabulary().field_path(...)`; broader canonical field paths stay
+  in the lower lane for locator and canonicalization work.
 
 ## Core Mental Model
 
@@ -68,6 +71,13 @@ The normal flow is:
 3. create the enclosing aspect contract with that shape
 4. construct struct values with named fields
 5. reuse field keys and field paths in masks, locators, and field-level patches
+
+The front door is intentionally narrower than the lower lane here:
+
+- `aspects().vocabulary().field_path(...)` is for one declared field target
+- `CanonicalFieldPath::new(...)` still exists below the front door for typed
+  canonical-path work that is not pretending Milestone 1 struct authoring is a
+  nested object engine
 
 ## Small Example
 
@@ -127,6 +137,8 @@ the producer’s local map layout.
 
 ## How It Relates To Other Features
 
+- [Aspect Shapes And Value Carriers](./aspect-shapes-and-value-carriers.md)
+  explains why struct aspects use `StructAspectValue` instead of `AspectValue`.
 - [Projection, Mutation, And Diagnostic Masks](./projection-mutation-and-diagnostic-masks.md)
   uses field keys and field paths to define legal visibility and mutation.
 - [Validation And Authoritative State Admission](./validation-and-authoritative-state-admission.md)
@@ -157,9 +169,12 @@ problems start as field-shape drift.
 
 - Struct fields are scalar-family fields today; this layer is not a general
   nested object engine.
-- Field-path law is still milestone-scoped and intentionally explicit.
+- Common-path field authoring is single-field only.
+- Broader field-path law still exists in the lower lane for locator and
+  canonicalization vocabulary.
 
 ## Related Docs
 
+- [Aspect Shapes And Value Carriers](./aspect-shapes-and-value-carriers.md)
 - [Projection, Mutation, And Diagnostic Masks](./projection-mutation-and-diagnostic-masks.md)
 - [Authoritative Patches And Apply Flow](./authoritative-patches-and-apply-flow.md)

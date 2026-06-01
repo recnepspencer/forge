@@ -1,12 +1,16 @@
 use serde::{Deserialize, Serialize};
 
+use crate::topology_operators::application::TopologyDeclarationMutationPayload;
+use crate::topology_operators::application::TopologyMutationApplicationError;
+use crate::topology_operators::{TopologyDeclaredMutationMember, TopologyDeclaredMutationSequence};
+
 use super::{
-    TopologyDerivedRegion, TopologyEditBatch, TopologyEditChangedScope, TopologyEditContract,
-    TopologyEditFamily, TopologyEditNamingScope, TopologyOperatorExecutionError,
+    TopologyDerivedRegion, TopologyMutationChangedScope, TopologyMutationFamily,
+    TopologyMutationNamingScope,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum TopologyEditRejectionClass {
+pub enum TopologyMutationRejectionClass {
     OutOfClassEdit,
     InvariantBlocked,
     NamingContinuityAmbiguous,
@@ -15,7 +19,7 @@ pub enum TopologyEditRejectionClass {
     DerivedFallbackExceeded,
 }
 
-impl TopologyEditRejectionClass {
+impl TopologyMutationRejectionClass {
     pub const ALL: [Self; 6] = [
         Self::OutOfClassEdit,
         Self::InvariantBlocked,
@@ -38,32 +42,31 @@ impl TopologyEditRejectionClass {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RejectedEditScopeRow {
-    pub family: TopologyEditFamily,
-    pub rejection_class: TopologyEditRejectionClass,
-    pub changed_scopes: Vec<TopologyEditChangedScope>,
-    pub naming_scopes: Vec<TopologyEditNamingScope>,
+pub struct RejectedMutationScopeRow {
+    pub family: TopologyMutationFamily,
+    pub rejection_class: TopologyMutationRejectionClass,
+    pub changed_scopes: Vec<TopologyMutationChangedScope>,
+    pub naming_scopes: Vec<TopologyMutationNamingScope>,
     pub derived_regions: Vec<TopologyDerivedRegion>,
     pub detail: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RejectedEditScopeReport {
-    pub rows: Vec<RejectedEditScopeRow>,
+pub struct RejectedMutationScopeReport {
+    pub rows: Vec<RejectedMutationScopeRow>,
 }
 
-impl TopologyOperatorExecutionError {
-    pub fn rejection_class(&self) -> Option<TopologyEditRejectionClass> {
+impl TopologyMutationApplicationError {
+    pub fn rejection_class(&self) -> Option<TopologyMutationRejectionClass> {
         match self {
-            Self::UnsupportedMode(_) | Self::UnsupportedFamilies(_) => {
-                Some(TopologyEditRejectionClass::OutOfClassEdit)
-            }
+            Self::UnsupportedFamilies(_) => Some(TopologyMutationRejectionClass::OutOfClassEdit),
+            Self::DeclarationEntry { .. } => Some(TopologyMutationRejectionClass::OutOfClassEdit),
             Self::MissingCreatedEntityReference(_)
             | Self::MissingExistingEntityBinding(_)
             | Self::MissingExistingRelationBinding(_)
             | Self::ExistingEntityOutgoingRelationCountMismatch { .. }
             | Self::ExistingEntityIncomingRelationCountMismatch { .. } => {
-                Some(TopologyEditRejectionClass::ScopeLocalizationUnavailable)
+                Some(TopologyMutationRejectionClass::ScopeLocalizationUnavailable)
             }
             Self::CreatedEntityKindMismatch { .. }
             | Self::ExistingEntityKindMismatch { .. }
@@ -71,43 +74,56 @@ impl TopologyOperatorExecutionError {
             | Self::ExistingRelationSourceMismatch { .. }
             | Self::ExistingHalfEdgesNotOnSameEdge { .. }
             | Self::ExistingHalfEdgesNotOnSameLoop { .. } => {
-                Some(TopologyEditRejectionClass::InvariantBlocked)
+                Some(TopologyMutationRejectionClass::InvariantBlocked)
             }
             Self::Query(_) | Self::MaterializedDecode(_) | Self::UnexpectedInspectionFamily => None,
         }
     }
 
-    pub fn rejected_edit_scope_report(
+    pub(crate) fn rejected_mutation_sequence_scope_report(
         &self,
-        batch: &TopologyEditBatch,
-    ) -> Option<RejectedEditScopeReport> {
+        sequence: &TopologyDeclaredMutationSequence,
+    ) -> Option<RejectedMutationScopeReport> {
         let rejection_class = self.rejection_class()?;
         let detail = self.to_string();
-        let rows = rejected_contracts(self, batch)
+        let rows = rejected_members(self, sequence)
             .into_iter()
-            .map(|contract| RejectedEditScopeRow {
-                family: contract.family,
-                rejection_class,
-                changed_scopes: contract.changed_scopes().to_vec(),
-                naming_scopes: contract.naming_scopes().to_vec(),
-                derived_regions: contract.derived_regions().to_vec(),
-                detail: detail.clone(),
+            .map(|member| {
+                let record = member.record();
+                RejectedMutationScopeRow {
+                    family: record.family,
+                    rejection_class,
+                    changed_scopes: record.changed_scopes().to_vec(),
+                    naming_scopes: record.naming_scopes().to_vec(),
+                    derived_regions: record.derived_regions().to_vec(),
+                    detail: detail.clone(),
+                }
             })
             .collect();
-        Some(RejectedEditScopeReport { rows })
+        Some(RejectedMutationScopeReport { rows })
+    }
+
+    pub fn rejected_declaration_scope_report<D>(
+        &self,
+        declaration: &D,
+    ) -> Option<RejectedMutationScopeReport>
+    where
+        D: TopologyDeclarationMutationPayload,
+    {
+        let sequence = declaration.clone().into_mutation_sequence();
+        self.rejected_mutation_sequence_scope_report(&sequence)
     }
 }
 
-fn rejected_contracts<'a>(
-    error: &TopologyOperatorExecutionError,
-    batch: &'a TopologyEditBatch,
-) -> Vec<&'a TopologyEditContract> {
+fn rejected_members<'a>(
+    error: &TopologyMutationApplicationError,
+    sequence: &'a TopologyDeclaredMutationSequence,
+) -> Vec<TopologyDeclaredMutationMember<'a>> {
     match error {
-        TopologyOperatorExecutionError::UnsupportedFamilies(families) => batch
-            .contracts()
-            .iter()
-            .filter(|contract| families.contains(&contract.family))
+        TopologyMutationApplicationError::UnsupportedFamilies(families) => sequence
+            .members()
+            .filter(|member| families.contains(&member.record().family))
             .collect(),
-        _ => batch.contracts().iter().collect(),
+        _ => sequence.members().collect(),
     }
 }

@@ -15,6 +15,9 @@ pub(crate) fn capture_observability_probe(
     world: &FintechWorld,
     stage: ProbeStage,
 ) -> ObservabilityProbe {
+    let publication = world.runtime.publication();
+    let observation = publication.observation_snapshot();
+
     ObservabilityProbe {
         stage,
         latest_commit_id: world
@@ -22,13 +25,9 @@ pub(crate) fn capture_observability_probe(
             .history()
             .latest_commit()
             .map(|commit| commit.commit_id.0),
-        latest_patch_present: world.runtime.publication().latest_patch().is_some(),
-        latest_replay_present: world.runtime.publication().latest_replay().is_some(),
-        diagnostics_artifact_count: world.runtime.publication().diagnostics().artifacts().len(),
-        publication_snapshot_id: world
-            .runtime
-            .publication()
-            .latest_bundle()
-            .map(|bundle| bundle.snapshot.snapshot_id.0),
+        latest_patch_present: observation.latest_patch_present,
+        latest_replay_present: observation.latest_replay_present,
+        diagnostics_artifact_count: observation.diagnostics_artifact_count,
+        publication_snapshot_id: observation.publication_snapshot_id.map(|id| id.0),
     }
 }

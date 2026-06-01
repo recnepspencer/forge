@@ -1,10 +1,10 @@
 use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
 
 use super::admitted::ForgeQueryAdmittedDeclarationProgression;
+use super::denial::ForgeQueryDeclarationProgressionFailed;
 use super::denial::{
     ForgeQueryDeclarationProgressionDeferred, ForgeQueryDeclarationProgressionDenied,
 };
-use super::denial::ForgeQueryDeclarationProgressionFailed;
 use super::rebind::ForgeQueryDeclarationProgressionRebindRequired;
 use super::stale::ForgeQueryDeclarationProgressionStale;
 

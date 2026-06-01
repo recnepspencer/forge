@@ -1,6 +1,7 @@
 use super::*;
 use crate::facade::query::PlannedQueryPacket;
 use crate::tests::domains::fintech::fixture::FintechCaseRole;
+use crate::tests::support::{field_key, read_entity_field};
 
 #[test]
 fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portfolio_state() {
@@ -173,7 +174,7 @@ fn fintech_complexity_hooks_measure_seeded_workflows() {
             selector: |counters| counters.full_state_clones,
         });
 
-    assert!(contracts.contains(&"runtime.partition_local_commit"));
+    assert!(contracts.contains(&"runtime.partition_local_commit".into()));
 
     let counters = measure_world_action(&mut world, |world| {
         let _ = correct_seeded_trade_candidate(world, analysis.clone());
@@ -347,12 +348,10 @@ fn fintech_recovery_falls_back_from_corrupt_latest_checkpoint_and_keeps_truth() 
         .integrity_report
         .skipped_corrupt_checkpoints
         .is_empty());
-    assert!(result.entities.iter().any(|entity| matches!(
-        &entity.payload,
-        RecordPayload::StructuredJson(value)
-            if value.get("corrected").and_then(|value| value.as_bool()) == Some(true)
-    )));
+    assert!(result
+        .entities
+        .iter()
+        .any(|entity| read_entity_field(entity, field_key("corrected")) == Some("true".into())));
 }
 use crate::facade::diagnostics::DiagnosticCode;
-use crate::facade::payloads::RecordPayload;
 use crate::facade::replay::ReplayFailureClass;

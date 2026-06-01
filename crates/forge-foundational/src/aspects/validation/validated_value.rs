@@ -4,8 +4,9 @@ use crate::aspects::identity::AspectContractRevision;
 use crate::aspects::keys::AspectKey;
 use crate::aspects::structs::StructAspectValue;
 use crate::values::AspectValue;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContractValidatedAspectValue {
     key: AspectKey,
     contract_revision: AspectContractRevision,
@@ -57,7 +58,7 @@ impl ContractValidatedAspectValue {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 enum ContractValidatedAspectValueKind {
     Scalar(AspectValue),
     Struct(StructAspectValue),

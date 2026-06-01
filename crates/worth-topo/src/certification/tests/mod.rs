@@ -9,15 +9,15 @@ use crate::facade::{
     DerivedInvalidationAggregateReport, DerivedRebuildAggregateReport,
     DerivedValidatorCoverageReport, DeterministicDigest, FailureLocalityReport,
     MilestoneOneCloseoutReport, MilestoneOneCounters, MilestoneThreeDeterminismRuleKind,
-    MilestoneThreeEditFalloutClass, MilestoneTwoCloseoutReport, MilestoneTwoCounters,
+    MilestoneThreeMutationFalloutClass, MilestoneTwoCloseoutReport, MilestoneTwoCounters,
     PrimitiveCorpusCoverageMatrix, PrimitiveCorpusParityReport,
 };
 use forge_relational::facade::history::BranchId;
+use schema::facade::platform::authority::MutationOrigin;
+use schema::facade::platform::authority::{ShellInterpretationClass, WireInterpretationClass};
 use schema::facade::topology_authoring::{
     MilestoneOnePrimitiveCase, MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
 };
-use schema::facade::{MutationOrigin, RawTopologyIntent, TopologyMutation};
-use schema::facade::{ShellInterpretationClass, WireInterpretationClass};
 
 use crate::certification::{
     certify_milestone_one_branch_local_primitive_scenarios, certify_milestone_one_closeout,
@@ -36,6 +36,7 @@ use crate::test_support::primitive_corpus::validated_topology::{
 mod closeout;
 mod parameter_sweeps;
 mod primitive_corpus;
+mod public_facade_contracts;
 mod query_runtime;
 mod read_surfaces;
 mod support;

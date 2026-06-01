@@ -10,9 +10,11 @@ keywords = ["graph", "runtime", "transactions", "replay", "simulation"]
 categories = ["data-structures", "database-implementations", "science"]
 
 [dependencies]
+forge-foundational.workspace = true
+forge-proof.workspace = true
 forge-runtime-bridge.workspace = true
 serde.workspace = true
-serde_json.workspace = true
+rmp-serde = "1.3"
 rayon.workspace = true
 smallvec.workspace = true
 sha2 = "0.10"

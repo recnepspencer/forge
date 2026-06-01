@@ -9,7 +9,7 @@ error[E0271]: type mismatch resolving `<[AspectValue; 1] as IntoIterator>::Item 
   = note: expected struct `forge_proof::artifact::carrier::Artifact<forge_foundational::aspects::validation::validated_value::ContractValidated, ContractValidatedAspectValue>`
                found enum `AspectValue`
 note: required by a bound in `AuthoritativeStateFrontDoor::admit`
- --> src/aspects/front_doors/state.rs
+ --> src/aspects/front_doors/state/admission.rs
   |
   |     pub fn admit(
   |            ----- required by a bound in this associated function
