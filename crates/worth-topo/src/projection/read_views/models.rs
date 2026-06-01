@@ -1,4 +1,4 @@
-use crate::projection::TopologyDomainQueryRequestReport;
+use super::domain::TopologyReadRequestReport;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyAdjacentHalfEdgeEvidence {
@@ -24,7 +24,7 @@ pub struct TopologyLoopNeighborEvidence {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyHalfEdgeSharedVertexNeighborhoodView {
-    pub(crate) request_report: TopologyDomainQueryRequestReport,
+    pub(crate) request_report: TopologyReadRequestReport,
     pub(crate) source_half_edge_identity: String,
     pub(crate) source_edge_identity: String,
     pub(crate) source_vertex_identities: Vec<String>,
@@ -35,7 +35,7 @@ pub struct TopologyHalfEdgeSharedVertexNeighborhoodView {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyHalfEdgeRadialNeighborhoodView {
-    pub(crate) request_report: TopologyDomainQueryRequestReport,
+    pub(crate) request_report: TopologyReadRequestReport,
     pub(crate) source_half_edge_identity: String,
     pub(crate) source_edge_identity: String,
     pub(crate) current_target_half_edge_identity: String,
@@ -48,14 +48,14 @@ pub struct TopologyHalfEdgeRadialNeighborhoodView {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyLoopCycleView {
-    pub(crate) request_report: TopologyDomainQueryRequestReport,
+    pub(crate) request_report: TopologyReadRequestReport,
     pub(crate) start_half_edge_identity: String,
     pub(crate) cycle_identities: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyLocalRewireNeighborhoodView {
-    pub(crate) request_report: TopologyDomainQueryRequestReport,
+    pub(crate) request_report: TopologyReadRequestReport,
     pub(crate) moved_half_edge_identity: String,
     pub(crate) old_successor_identity: String,
     pub(crate) old_predecessor_identity: String,

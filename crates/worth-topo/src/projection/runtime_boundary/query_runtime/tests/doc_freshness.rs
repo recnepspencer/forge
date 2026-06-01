@@ -42,7 +42,7 @@ fn topology_query_docs_do_not_regress_snapshot_reads_to_deferred_fallback() {
         assert!(!lower.contains("not migrated yet and remains explicit"));
         assert!(!lower.contains("snapshot-index fallback"));
         assert!(!lower.contains("snapshot_index fallback"));
-        assert!(!doc.contains("WorthTopologyDomainQuery"));
+        assert!(!doc.contains("WorthTopologyRead"));
         assert!(!doc.contains("worth_topology_read_"));
         assert!(!doc.contains("crates/-topo"));
     }

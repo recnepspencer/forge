@@ -19,9 +19,10 @@ use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::projection::{
-    build_domain_query_view_parity_artifact, query_entity_identity, TopologyDomainQueryParityKind,
-    TopologyDomainQueryViewParityArtifact, TopologyDomainQueryViewRef,
+    build_topology_read_view_parity_artifact, query_entity_identity,
+    TopologyReadViewParityArtifact, TopologyReadViewRef,
 };
+use crate::query_domain::TopologyReadParityKind;
 
 pub(in crate::certification::topology_operator_closeout) fn certify_milestone_three_side_quest_closeout_impl<
     F,
@@ -35,15 +36,12 @@ where
     let query = TopologyReadProofHarness::new();
     let (replay_left, replay_right) =
         replay_local_rewire_parity_artifacts(runtime_factory, stem, &query)?;
-    let replay_parity = query.record_view_parity(
-        TopologyDomainQueryParityKind::Replay,
-        &replay_left,
-        &replay_right,
-    );
+    let replay_parity =
+        query.record_view_parity(TopologyReadParityKind::Replay, &replay_left, &replay_right);
     let (branch_left, branch_right) =
         branch_local_loop_cycle_parity_artifacts(runtime_factory, stem, &query)?;
     let branch_parity = query.record_view_parity(
-        TopologyDomainQueryParityKind::BranchLocal,
+        TopologyReadParityKind::BranchLocal,
         &branch_left,
         &branch_right,
     );
@@ -57,7 +55,7 @@ where
     let proof_report = closeout.proof_report();
     Ok(MilestoneThreeSideQuestCloseoutReport {
         domain_read_request_count: proof_report.request_aggregate().request_count(),
-        domain_read_parity_count: proof_report.parity_aggregate().domain_query_parity_count(),
+        domain_read_parity_count: proof_report.parity_aggregate().topology_read_parity_count(),
         replay_checked_count: proof_report.parity_aggregate().replay_checked_count(),
         replay_verified_count: proof_report.parity_aggregate().replay_verified_count(),
         branch_local_checked_count: proof_report.parity_aggregate().branch_local_checked_count(),
@@ -94,8 +92,8 @@ fn replay_local_rewire_parity_artifacts<F>(
     query: &TopologyReadProofHarness,
 ) -> Result<
     (
-        TopologyDomainQueryViewParityArtifact,
-        TopologyDomainQueryViewParityArtifact,
+        TopologyReadViewParityArtifact,
+        TopologyReadViewParityArtifact,
     ),
     TopologyCertificationError,
 >
@@ -131,8 +129,8 @@ fn branch_local_loop_cycle_parity_artifacts<F>(
     query: &TopologyReadProofHarness,
 ) -> Result<
     (
-        TopologyDomainQueryViewParityArtifact,
-        TopologyDomainQueryViewParityArtifact,
+        TopologyReadViewParityArtifact,
+        TopologyReadViewParityArtifact,
     ),
     TopologyCertificationError,
 >
@@ -178,7 +176,7 @@ fn local_rewire_parity_artifact(
     stem: &str,
     read_basis: &DerivedTopologyReadBasis,
     query: &TopologyReadProofHarness,
-) -> Result<TopologyDomainQueryViewParityArtifact, TopologyCertificationError> {
+) -> Result<TopologyReadViewParityArtifact, TopologyCertificationError> {
     let moved_identity = first_source_identity_for_snapshot_relation(
         runtime,
         read_basis,
@@ -188,9 +186,9 @@ fn local_rewire_parity_artifact(
     let local_rewire = query
         .local_rewire_neighborhood(&mut workspace, &moved_identity, 6)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    Ok(build_domain_query_view_parity_artifact(
+    Ok(build_topology_read_view_parity_artifact(
         read_basis,
-        TopologyDomainQueryViewRef::LocalRewire(&local_rewire),
+        TopologyReadViewRef::LocalRewire(&local_rewire),
     ))
 }
 
@@ -200,7 +198,7 @@ fn loop_cycle_parity_artifact(
     read_basis: &DerivedTopologyReadBasis,
     query: &TopologyReadProofHarness,
     depth: usize,
-) -> Result<TopologyDomainQueryViewParityArtifact, TopologyCertificationError> {
+) -> Result<TopologyReadViewParityArtifact, TopologyCertificationError> {
     let start_identity = first_source_identity_for_snapshot_relation(
         runtime,
         read_basis,
@@ -210,9 +208,9 @@ fn loop_cycle_parity_artifact(
     let loop_cycle = query
         .loop_cycle(&mut workspace, &start_identity, depth)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    Ok(build_domain_query_view_parity_artifact(
+    Ok(build_topology_read_view_parity_artifact(
         read_basis,
-        TopologyDomainQueryViewRef::LoopCycle(&loop_cycle),
+        TopologyReadViewRef::LoopCycle(&loop_cycle),
     ))
 }
 

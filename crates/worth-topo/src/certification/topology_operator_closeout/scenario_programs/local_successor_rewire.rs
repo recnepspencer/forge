@@ -1,6 +1,6 @@
 use super::super::shared::{entity_id_from_query_identity, relation_id_from_query_identity};
 use crate::certification::error::TopologyCertificationError;
-use crate::projection::{TopologyLocalRewireNeighborhoodView, TopologyLoopNeighborEvidence};
+use crate::query_domain::{TopologyLocalRewireNeighborhoodView, TopologyLoopNeighborEvidence};
 use crate::topology_operators::{
     LoopSuccessorKind, TopologyLoopSuccessorRewireMember,
     TopologyRewireLoopSuccessorProgramDeclaration,

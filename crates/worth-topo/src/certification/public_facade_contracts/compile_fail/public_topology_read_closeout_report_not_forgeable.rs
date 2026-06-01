@@ -1,7 +1,7 @@
-use topology::facade::TopologyDomainQueryCloseoutReport;
+use topology::query_domain::TopologyReadCloseoutReport;
 
 fn main() {
-    let _ = TopologyDomainQueryCloseoutReport {
+    let _ = TopologyReadCloseoutReport {
         proof_report: todo!(),
         query_executed_family_count: 0,
         query_executed_debt_free_family_count: 0,

@@ -133,13 +133,13 @@ where
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
         digest_materialized_topology_view(&baseline_snapshot.materialized);
-    let domain_query = TopologyReadProofHarness::new();
+    let topology_read = TopologyReadProofHarness::new();
     let relation_rows = workspace.read::<Value>(surfaces.relations());
     let moved_half_edge_identity = first_source_identity_for_relation_kind(
         &relation_rows,
         TopologyRelationKind::HalfEdgeNext,
     )?;
-    let neighborhood = domain_query
+    let neighborhood = topology_read
         .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 6)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let old_successor_identity = neighborhood.old_successor_identity.clone();

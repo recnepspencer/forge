@@ -6,6 +6,23 @@ use forge_query::facade::{
     ForgeQueryDomainOperatingContext,
 };
 
+pub use crate::projection::read_views::domain::{
+    TopologyAdjacentHalfEdgeEvidence, TopologyConfiguredDomainReadSession,
+    TopologyCurrentHeadReadHandleExt, TopologyCurrentHeadReadSession,
+    TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
+    TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView, TopologyLoopNeighborEvidence,
+    TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
+    TopologyRadialCandidateEvidence, TopologyReadAggregateReport, TopologyReadCloseoutReport,
+    TopologyReadCloseoutRow, TopologyReadCloseoutStatus, TopologyReadDebtRow, TopologyReadError,
+    TopologyReadErrorKind, TopologyReadExecutionAggregateRow, TopologyReadExecutionEngine,
+    TopologyReadFallbackPosture, TopologyReadFamilyAggregateRow, TopologyReadLoweringPosture,
+    TopologyReadParityAggregateReport, TopologyReadParityAggregateRow, TopologyReadParityKind,
+    TopologyReadPhaseThreeBlocker, TopologyReadPhaseThreeBlockerRow,
+    TopologyReadPhaseThreeBlockerStatus, TopologyReadProofReport,
+    TopologyReadRelationshipProofPosture, TopologyReadRequestFamily, TopologyReadRequestReport,
+    TopologySnapshotReadOnlyReadHandleExt, TopologySnapshotReadOnlyReadSession,
+};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TopologyQueryDomain {
     _sealed: (),

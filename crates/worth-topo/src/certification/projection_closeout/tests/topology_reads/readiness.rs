@@ -6,7 +6,7 @@ use schema::facade::topology_authoring::{
 
 use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::read_views::domain::parity::{
-    TopologyDomainQueryParityKind, TopologyDomainQueryViewParityArtifact,
+    TopologyReadParityKind, TopologyReadViewParityArtifact,
 };
 use crate::projection::read_views::domain::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractStatus,
@@ -16,17 +16,14 @@ use crate::validation::reference_integrity::build_milestone_one_runtime;
 use super::parity_harness::{local_rewire_parity_artifact, loop_cycle_parity_artifact};
 
 #[test]
-fn domain_query_closeout_requires_replay_and_branch_local_view_parity_for_phase_three_ready() {
+fn topology_read_closeout_requires_replay_and_branch_local_view_parity_for_phase_three_ready() {
     let query = TopologyReadProofHarness::new();
     let (replay_left, replay_right) = replay_local_rewire_parity_artifacts(&query);
-    let replay_parity = query.record_view_parity(
-        TopologyDomainQueryParityKind::Replay,
-        &replay_left,
-        &replay_right,
-    );
+    let replay_parity =
+        query.record_view_parity(TopologyReadParityKind::Replay, &replay_left, &replay_right);
     let (branch_left, branch_right) = branch_local_loop_cycle_parity_artifacts(&query);
     let branch_parity = query.record_view_parity(
-        TopologyDomainQueryParityKind::BranchLocal,
+        TopologyReadParityKind::BranchLocal,
         &branch_left,
         &branch_right,
     );
@@ -36,7 +33,7 @@ fn domain_query_closeout_requires_replay_and_branch_local_view_parity_for_phase_
 
     assert!(replay_parity.parity_verified);
     assert!(branch_parity.parity_verified);
-    assert_eq!(proof_report.parity_aggregate.domain_query_parity_count, 2);
+    assert_eq!(proof_report.parity_aggregate.topology_read_parity_count, 2);
     assert_eq!(proof_report.parity_aggregate.replay_checked_count, 1);
     assert_eq!(proof_report.parity_aggregate.replay_verified_count, 1);
     assert_eq!(proof_report.parity_aggregate.branch_local_checked_count, 1);
@@ -68,11 +65,11 @@ fn domain_query_closeout_requires_replay_and_branch_local_view_parity_for_phase_
 }
 
 #[test]
-fn domain_query_closeout_blocks_phase_three_when_branch_local_parity_lacks_replay_parity() {
+fn topology_read_closeout_blocks_phase_three_when_branch_local_parity_lacks_replay_parity() {
     let query = TopologyReadProofHarness::new();
     let (branch_left, branch_right) = branch_local_loop_cycle_parity_artifacts(&query);
     let branch_parity = query.record_view_parity(
-        TopologyDomainQueryParityKind::BranchLocal,
+        TopologyReadParityKind::BranchLocal,
         &branch_left,
         &branch_right,
     );
@@ -81,7 +78,7 @@ fn domain_query_closeout_blocks_phase_three_when_branch_local_parity_lacks_repla
     let closeout_report = query.closeout_report();
 
     assert!(branch_parity.parity_verified);
-    assert_eq!(proof_report.parity_aggregate.domain_query_parity_count, 1);
+    assert_eq!(proof_report.parity_aggregate.topology_read_parity_count, 1);
     assert_eq!(proof_report.parity_aggregate.replay_checked_count, 0);
     assert_eq!(proof_report.parity_aggregate.replay_verified_count, 0);
     assert_eq!(proof_report.parity_aggregate.branch_local_checked_count, 1);
@@ -96,13 +93,13 @@ fn domain_query_closeout_blocks_phase_three_when_branch_local_parity_lacks_repla
 fn replay_local_rewire_parity_artifacts(
     query: &TopologyReadProofHarness,
 ) -> (
-    TopologyDomainQueryViewParityArtifact,
-    TopologyDomainQueryViewParityArtifact,
+    TopologyReadViewParityArtifact,
+    TopologyReadViewParityArtifact,
 ) {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     let verified = seed_milestone_one_primitive(
         &mut runtime,
-        "query.domain-query-proof.ready.replay",
+        "query.topology-read-proof.ready.replay",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )
     .expect("seed replay primitive");
@@ -110,13 +107,13 @@ fn replay_local_rewire_parity_artifacts(
     let left_artifact = local_rewire_parity_artifact(
         query,
         &runtime,
-        "query.domain-query-proof.ready.replay.left",
+        "query.topology-read-proof.ready.replay.left",
         &verified.read_basis(),
     );
     let right_artifact = local_rewire_parity_artifact(
         query,
         &runtime,
-        "query.domain-query-proof.ready.replay.right",
+        "query.topology-read-proof.ready.replay.right",
         &replay_basis,
     );
     (left_artifact, right_artifact)
@@ -125,8 +122,8 @@ fn replay_local_rewire_parity_artifacts(
 fn branch_local_loop_cycle_parity_artifacts(
     query: &TopologyReadProofHarness,
 ) -> (
-    TopologyDomainQueryViewParityArtifact,
-    TopologyDomainQueryViewParityArtifact,
+    TopologyReadViewParityArtifact,
+    TopologyReadViewParityArtifact,
 ) {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     runtime
@@ -138,7 +135,7 @@ fn branch_local_loop_cycle_parity_artifacts(
         .expect("feature branch");
     let verified = seed_milestone_one_primitive_on_branch(
         &mut runtime,
-        "query.domain-query-proof.ready.branch",
+        "query.topology-read-proof.ready.branch",
         &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 5 },
         BranchId("feature".to_string()),
         MutationOrigin::BranchLocalApplication,
@@ -148,14 +145,14 @@ fn branch_local_loop_cycle_parity_artifacts(
     let left_artifact = loop_cycle_parity_artifact(
         query,
         &runtime,
-        "query.domain-query-proof.ready.branch.left",
+        "query.topology-read-proof.ready.branch.left",
         &verified.read_basis(),
         5,
     );
     let right_artifact = loop_cycle_parity_artifact(
         query,
         &runtime,
-        "query.domain-query-proof.ready.branch.right",
+        "query.topology-read-proof.ready.branch.right",
         &replay_basis,
         5,
     );

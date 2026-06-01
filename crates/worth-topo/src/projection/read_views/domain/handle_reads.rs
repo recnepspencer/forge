@@ -3,11 +3,10 @@ use forge_query::facade::{
 };
 
 use super::{
-    TopologyDomainQueryAggregateReport, TopologyDomainQueryCloseoutReport,
-    TopologyDomainQueryError, TopologyDomainQueryFallbackPosture, TopologyDomainQueryProofReport,
-    TopologyDomainQueryRequestFamily, TopologyHalfEdgeRadialNeighborhoodView,
-    TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,
-    TopologyLoopCycleView, TopologyReadLedger,
+    TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
+    TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView, TopologyReadAggregateReport,
+    TopologyReadCloseoutReport, TopologyReadError, TopologyReadFallbackPosture, TopologyReadLedger,
+    TopologyReadProofReport, TopologyReadRequestFamily,
 };
 use crate::query_domain::{
     TopologyCurrentHeadConfiguredDomainHandle, TopologyQueryDomain,
@@ -52,30 +51,30 @@ impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
         self.handle.operating_context_identity_digest()
     }
 
-    pub fn aggregate_report(&self) -> TopologyDomainQueryAggregateReport {
+    pub fn aggregate_report(&self) -> TopologyReadAggregateReport {
         self.state.aggregate_report()
     }
 
-    pub fn proof_report(&self) -> TopologyDomainQueryProofReport {
+    pub fn proof_report(&self) -> TopologyReadProofReport {
         self.state.proof_report()
     }
 
-    pub fn closeout_report(&self) -> TopologyDomainQueryCloseoutReport {
+    pub fn closeout_report(&self) -> TopologyReadCloseoutReport {
         self.state.closeout_report()
     }
 
-    pub fn fallback_posture(&self) -> TopologyDomainQueryFallbackPosture {
+    pub fn fallback_posture(&self) -> TopologyReadFallbackPosture {
         self.state.fallback_posture()
     }
 
-    pub fn supported_request_families(&self) -> Vec<TopologyDomainQueryRequestFamily> {
+    pub fn supported_request_families(&self) -> Vec<TopologyReadRequestFamily> {
         self.state.supported_request_families()
     }
 
     pub fn shared_vertex_half_edge_neighborhood(
         &mut self,
         source_identity: &str,
-    ) -> Result<TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyDomainQueryError> {
+    ) -> Result<TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyReadError> {
         self.state
             .shared_vertex_half_edge_neighborhood(self.workspace, source_identity)
     }
@@ -83,7 +82,7 @@ impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
     pub fn radial_half_edge_neighborhood(
         &mut self,
         source_identity: &str,
-    ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyDomainQueryError> {
+    ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyReadError> {
         self.state
             .radial_half_edge_neighborhood(self.workspace, source_identity)
     }
@@ -92,7 +91,7 @@ impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
         &mut self,
         start_identity: &str,
         count: usize,
-    ) -> Result<TopologyLoopCycleView, TopologyDomainQueryError> {
+    ) -> Result<TopologyLoopCycleView, TopologyReadError> {
         self.state.loop_cycle(self.workspace, start_identity, count)
     }
 
@@ -100,7 +99,7 @@ impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
         &mut self,
         moved_identity: &str,
         cycle_count: usize,
-    ) -> Result<TopologyLocalRewireNeighborhoodView, TopologyDomainQueryError> {
+    ) -> Result<TopologyLocalRewireNeighborhoodView, TopologyReadError> {
         self.state
             .local_rewire_neighborhood(self.workspace, moved_identity, cycle_count)
     }

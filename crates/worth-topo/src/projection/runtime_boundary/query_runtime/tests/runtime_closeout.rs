@@ -1,8 +1,8 @@
+use crate::projection::read_views::domain::TopologyReadRequestFamily;
 use crate::projection::runtime_boundary::query_runtime::{
     TopologyQueryReadFamilySupportStatus, TopologyRuntimeCloseoutFamily,
     TopologyRuntimeCloseoutStatus, TopologyRuntimeSupport,
 };
-use crate::projection::TopologyDomainQueryRequestFamily;
 
 #[test]
 fn current_head_runtime_support_reports_query_native_read_family_admission() {
@@ -10,9 +10,9 @@ fn current_head_runtime_support_reports_query_native_read_family_admission() {
 
     assert_eq!(
         support.query_read_family_support_rows().len(),
-        TopologyDomainQueryRequestFamily::ALL.len()
+        TopologyReadRequestFamily::ALL.len()
     );
-    for family in TopologyDomainQueryRequestFamily::ALL {
+    for family in TopologyReadRequestFamily::ALL {
         assert_eq!(
             support.query_read_family_support_status(family),
             TopologyQueryReadFamilySupportStatus::Admitted
@@ -33,9 +33,9 @@ fn snapshot_runtime_support_reports_historical_query_native_read_family_admissio
 
     assert_eq!(
         support.query_read_family_support_rows().len(),
-        TopologyDomainQueryRequestFamily::ALL.len()
+        TopologyReadRequestFamily::ALL.len()
     );
-    for family in TopologyDomainQueryRequestFamily::ALL {
+    for family in TopologyReadRequestFamily::ALL {
         assert_eq!(
             support.query_read_family_support_status(family),
             TopologyQueryReadFamilySupportStatus::Admitted

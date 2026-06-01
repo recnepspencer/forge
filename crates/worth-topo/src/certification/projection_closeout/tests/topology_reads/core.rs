@@ -1,10 +1,12 @@
 use super::support::{current_head_query_handle, snapshot_query_handle};
 use super::support::{current_lookup_rows, snapshot_basis_workspace};
 use crate::facade::{topology_runtime, TopologyDeclaredQuerySurfaces, TopologyRuntimeAdapters};
-use crate::facade::{TopologyCurrentHeadReadHandleExt, TopologySnapshotReadOnlyReadHandleExt};
-use crate::projection::read_views::domain::error::TopologyDomainQueryErrorKind;
+use crate::projection::read_views::domain::error::TopologyReadErrorKind;
 use crate::projection::read_views::domain::report::{
-    TopologyDomainQueryExecutionEngine, TopologyDomainQueryRequestFamily,
+    TopologyReadExecutionEngine, TopologyReadRequestFamily,
+};
+use crate::query_domain::{
+    TopologyCurrentHeadReadHandleExt, TopologySnapshotReadOnlyReadHandleExt,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::{ForgeQueryReadBuiltInOperator, ForgeQueryReadScopeClass};
@@ -12,9 +14,9 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
 #[test]
-fn domain_query_reports_request_only_posture() {
+fn topology_read_reports_request_only_posture() {
     let (mut workspace, _assembly) = seeded_workspace(
-        "query.domain-query.edge-fan",
+        "query.topology-read.edge-fan",
         MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
     );
     let handle = current_head_query_handle();
@@ -25,9 +27,9 @@ fn domain_query_reports_request_only_posture() {
 }
 
 #[test]
-fn domain_query_reports_supported_request_families() {
+fn topology_read_reports_supported_request_families() {
     let (mut workspace, _assembly) = seeded_workspace(
-        "query.domain-query.supported-families",
+        "query.topology-read.supported-families",
         MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     );
     let handle = current_head_query_handle();
@@ -36,18 +38,18 @@ fn domain_query_reports_supported_request_families() {
     assert_eq!(
         reads.supported_request_families(),
         vec![
-            TopologyDomainQueryRequestFamily::HalfEdgeSharedVertexNeighborhood,
-            TopologyDomainQueryRequestFamily::HalfEdgeRadialNeighborhood,
-            TopologyDomainQueryRequestFamily::LoopCycleNeighborhood,
-            TopologyDomainQueryRequestFamily::LocalRewireNeighborhood,
+            TopologyReadRequestFamily::HalfEdgeSharedVertexNeighborhood,
+            TopologyReadRequestFamily::HalfEdgeRadialNeighborhood,
+            TopologyReadRequestFamily::LoopCycleNeighborhood,
+            TopologyReadRequestFamily::LocalRewireNeighborhood,
         ]
     );
 }
 
 #[test]
-fn domain_query_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
+fn topology_read_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
     let (mut workspace, surfaces) = seeded_workspace(
-        "query.domain-query.edge-fan-neighborhoods",
+        "query.topology-read.edge-fan-neighborhoods",
         MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
     );
     let lookup_rows = current_lookup_rows(&mut workspace, &surfaces);
@@ -73,7 +75,7 @@ fn domain_query_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
         .is_empty());
     assert_eq!(
         shared_vertex.request_report.execution_engine,
-        TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
+        TopologyReadExecutionEngine::QueryRuntimeCurrent
     );
     assert_eq!(
         shared_vertex.request_report.executed_scope_class,
@@ -113,7 +115,7 @@ fn domain_query_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
     assert!(!radial.same_edge_half_edge_identities.is_empty());
     assert_eq!(
         radial.request_report.execution_engine,
-        TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
+        TopologyReadExecutionEngine::QueryRuntimeCurrent
     );
     assert_eq!(
         radial.request_report.executed_scope_class,
@@ -143,14 +145,14 @@ fn domain_query_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
     assert_eq!(aggregate.debt_rows.len(), 0);
     assert_eq!(aggregate.family_rows.len(), 2);
     assert!(aggregate.family_rows.iter().any(|row| {
-        row.request_family == TopologyDomainQueryRequestFamily::HalfEdgeSharedVertexNeighborhood
+        row.request_family == TopologyReadRequestFamily::HalfEdgeSharedVertexNeighborhood
             && row.request_count == 1
             && row.query_execution_count == 1
             && row.row_scan_fallback_count == 0
             && row.whole_view_fallback_count == 0
     }));
     assert!(aggregate.family_rows.iter().any(|row| {
-        row.request_family == TopologyDomainQueryRequestFamily::HalfEdgeRadialNeighborhood
+        row.request_family == TopologyReadRequestFamily::HalfEdgeRadialNeighborhood
             && row.request_count == 1
             && row.query_execution_count == 1
             && row.row_scan_fallback_count == 0
@@ -160,9 +162,9 @@ fn domain_query_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
 }
 
 #[test]
-fn domain_query_exposes_local_rewire_cycle_from_sheet_disk() {
+fn topology_read_exposes_local_rewire_cycle_from_sheet_disk() {
     let (mut workspace, surfaces) = seeded_workspace(
-        "query.domain-query.local-rewire",
+        "query.topology-read.local-rewire",
         MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     );
     let lookup_rows = current_lookup_rows(&mut workspace, &surfaces);
@@ -189,7 +191,7 @@ fn domain_query_exposes_local_rewire_cycle_from_sheet_disk() {
     );
     assert_eq!(
         local_rewire.request_report.execution_engine,
-        TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
+        TopologyReadExecutionEngine::QueryRuntimeCurrent
     );
     assert_eq!(
         local_rewire.request_report.fallback_posture.as_str(),
@@ -222,9 +224,9 @@ fn domain_query_exposes_local_rewire_cycle_from_sheet_disk() {
 }
 
 #[test]
-fn domain_query_moves_loop_cycle_onto_query_runtime_without_decode_debt() {
+fn topology_read_moves_loop_cycle_onto_query_runtime_without_decode_debt() {
     let (mut workspace, surfaces) = seeded_workspace(
-        "query.domain-query.loop-cycle",
+        "query.topology-read.loop-cycle",
         MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 5 },
     );
     let lookup_rows = current_lookup_rows(&mut workspace, &surfaces);
@@ -243,7 +245,7 @@ fn domain_query_moves_loop_cycle_onto_query_runtime_without_decode_debt() {
     assert_eq!(loop_cycle.cycle_identities.first(), Some(&start_identity));
     assert_eq!(
         loop_cycle.request_report.execution_engine,
-        TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
+        TopologyReadExecutionEngine::QueryRuntimeCurrent
     );
     assert_eq!(
         loop_cycle.request_report.executed_scope_class,
@@ -274,8 +276,8 @@ fn domain_query_moves_loop_cycle_onto_query_runtime_without_decode_debt() {
 }
 
 #[test]
-fn snapshot_domain_query_uses_historical_basis_context_receipt() {
-    let stem = "query.domain-query.snapshot-loop-cycle";
+fn snapshot_topology_read_uses_historical_basis_context_receipt() {
+    let stem = "query.topology-read.snapshot-loop-cycle";
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     let verified = seed_milestone_one_primitive(
         &mut runtime,
@@ -302,7 +304,7 @@ fn snapshot_domain_query_uses_historical_basis_context_receipt() {
 
     assert_eq!(
         loop_cycle.request_report.execution_engine,
-        TopologyDomainQueryExecutionEngine::QueryRuntimeHistorical
+        TopologyReadExecutionEngine::QueryRuntimeHistorical
     );
     assert_eq!(
         loop_cycle.request_report.executed_snapshot_token.as_deref(),
@@ -324,9 +326,9 @@ fn snapshot_domain_query_uses_historical_basis_context_receipt() {
 }
 
 #[test]
-fn domain_query_denies_zero_and_oversized_cycle_depths_typed_and_early() {
+fn topology_read_denies_zero_and_oversized_cycle_depths_typed_and_early() {
     let (mut workspace, surfaces) = seeded_workspace(
-        "query.domain-query.depth-denial",
+        "query.topology-read.depth-denial",
         MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     );
     let lookup_rows = current_lookup_rows(&mut workspace, &surfaces);
@@ -342,14 +344,14 @@ fn domain_query_denies_zero_and_oversized_cycle_depths_typed_and_early() {
         .expect_err("zero-depth loop cycle should fail typed and early");
     assert_eq!(
         zero_depth_error.kind(),
-        TopologyDomainQueryErrorKind::UnsupportedTraversalDepth
+        TopologyReadErrorKind::UnsupportedTraversalDepth
     );
     let oversized_depth_error = reads
         .local_rewire_neighborhood(&moved_identity, 65)
         .expect_err("oversized local rewire traversal should fail typed and early");
     assert_eq!(
         oversized_depth_error.kind(),
-        TopologyDomainQueryErrorKind::UnsupportedTraversalDepth
+        TopologyReadErrorKind::UnsupportedTraversalDepth
     );
     let aggregate = reads.aggregate_report();
     assert_eq!(aggregate.request_count, 0);

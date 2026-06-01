@@ -1,9 +1,9 @@
 use super::support::{
     current_head_query_handle, current_lookup_rows, snapshot_basis_workspace, snapshot_query_handle,
 };
-use crate::facade::{
-    topology_runtime, TopologyCurrentHeadReadHandleExt, TopologyDeclaredQuerySurfaces,
-    TopologyDomainQueryExecutionEngine, TopologyRuntimeAdapters,
+use crate::facade::{topology_runtime, TopologyDeclaredQuerySurfaces, TopologyRuntimeAdapters};
+use crate::query_domain::{
+    TopologyCurrentHeadReadHandleExt, TopologyReadExecutionEngine,
     TopologySnapshotReadOnlyReadHandleExt,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
@@ -13,7 +13,7 @@ use schema::facade::topology_authoring::{seed_milestone_one_primitive, Milestone
 #[test]
 fn current_head_handle_bound_reads_execute_neighborhood_queries_and_accumulate_reports() {
     let (mut workspace, surfaces) = seeded_workspace(
-        "query.domain-query.handle-entry.current",
+        "query.topology-read.handle-entry.current",
         MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
     );
     let source_identity = current_lookup_rows(&mut workspace, &surfaces)
@@ -36,18 +36,18 @@ fn current_head_handle_bound_reads_execute_neighborhood_queries_and_accumulate_r
     );
     assert_eq!(
         shared_vertex.request_report.execution_engine,
-        TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
+        TopologyReadExecutionEngine::QueryRuntimeCurrent
     );
     assert_eq!(
         radial.request_report.execution_engine,
-        TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
+        TopologyReadExecutionEngine::QueryRuntimeCurrent
     );
     assert_eq!(reads.aggregate_report().request_count, 2);
 }
 
 #[test]
 fn snapshot_handle_bound_reads_preserve_historical_execution_posture() {
-    let stem = "query.domain-query.handle-entry.snapshot";
+    let stem = "query.topology-read.handle-entry.snapshot";
     let mut runtime = build_milestone_one_runtime().expect("runtime");
     let verified = seed_milestone_one_primitive(
         &mut runtime,
@@ -78,7 +78,7 @@ fn snapshot_handle_bound_reads_preserve_historical_execution_posture() {
     );
     assert_eq!(
         loop_cycle.request_report.execution_engine,
-        TopologyDomainQueryExecutionEngine::QueryRuntimeHistorical
+        TopologyReadExecutionEngine::QueryRuntimeHistorical
     );
     assert_eq!(
         loop_cycle.request_report.executed_snapshot_token.as_deref(),

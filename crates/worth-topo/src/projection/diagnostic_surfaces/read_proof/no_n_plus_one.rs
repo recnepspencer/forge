@@ -1,5 +1,5 @@
-use super::ledger::TopologyDomainQueryProofReport;
-use super::report::TopologyDomainQueryAggregateReport;
+use super::ledger::TopologyReadProofReport;
+use super::report::TopologyReadAggregateReport;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TopologyNoNPlusOneContract {
@@ -42,7 +42,7 @@ pub struct TopologyNoNPlusOneContractRow {
 }
 
 pub(crate) fn no_n_plus_one_contract_rows(
-    proof_report: &TopologyDomainQueryProofReport,
+    proof_report: &TopologyReadProofReport,
 ) -> Vec<TopologyNoNPlusOneContractRow> {
     TopologyNoNPlusOneContract::ALL
         .into_iter()
@@ -52,7 +52,7 @@ pub(crate) fn no_n_plus_one_contract_rows(
 
 fn no_n_plus_one_contract_row(
     contract: TopologyNoNPlusOneContract,
-    proof_report: &TopologyDomainQueryProofReport,
+    proof_report: &TopologyReadProofReport,
 ) -> TopologyNoNPlusOneContractRow {
     let request_aggregate = &proof_report.request_aggregate;
     let (status, reason) = match contract {
@@ -79,7 +79,7 @@ fn no_n_plus_one_contract_row(
 }
 
 fn lowering_breadth_status(
-    request_aggregate: &TopologyDomainQueryAggregateReport,
+    request_aggregate: &TopologyReadAggregateReport,
 ) -> (TopologyNoNPlusOneContractStatus, &'static str) {
     contract_from_condition(
         request_aggregate.request_count > 0
@@ -91,7 +91,7 @@ fn lowering_breadth_status(
 }
 
 fn view_parity_status(
-    proof_report: &TopologyDomainQueryProofReport,
+    proof_report: &TopologyReadProofReport,
 ) -> (TopologyNoNPlusOneContractStatus, &'static str) {
     let parity_aggregate = &proof_report.parity_aggregate;
     contract_from_condition(
@@ -108,7 +108,7 @@ fn view_parity_status(
 }
 
 fn fallback_posture_status(
-    request_aggregate: &TopologyDomainQueryAggregateReport,
+    request_aggregate: &TopologyReadAggregateReport,
 ) -> (TopologyNoNPlusOneContractStatus, &'static str) {
     contract_from_condition(
         request_aggregate.row_scan_fallback_count == 0

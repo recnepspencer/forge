@@ -132,7 +132,7 @@ where
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
         digest_materialized_topology_view(&baseline_snapshot.materialized);
-    let domain_query = TopologyReadProofHarness::new();
+    let topology_read = TopologyReadProofHarness::new();
     let relation_rows = workspace.read::<Value>(surfaces.relations());
     let source_identity = first_source_identity_for_relation_kind(
         &relation_rows,
@@ -140,8 +140,8 @@ where
     )?;
     let source_half_edge_id = entity_id_from_query_identity(&source_identity)?;
     let bowtie_adjacent_witness =
-        build_bowtie_adjacent_witness(&domain_query, &mut workspace, &source_identity)?;
-    let radial = domain_query
+        build_bowtie_adjacent_witness(&topology_read, &mut workspace, &source_identity)?;
+    let radial = topology_read
         .radial_half_edge_neighborhood(&mut workspace, &source_identity)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let declaration = TopologySpliceRadialAdjacencyDeclaration::new(
@@ -203,11 +203,11 @@ where
 }
 
 fn build_bowtie_adjacent_witness(
-    domain_query: &TopologyReadProofHarness,
+    topology_read: &TopologyReadProofHarness,
     workspace: &mut ForgeQueryWorkspace,
     source_identity: &str,
 ) -> Result<MilestoneThreeBowtieAdjacentWitness, TopologyCertificationError> {
-    let neighborhood = domain_query
+    let neighborhood = topology_read
         .shared_vertex_half_edge_neighborhood(workspace, source_identity)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let target = neighborhood

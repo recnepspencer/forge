@@ -178,67 +178,67 @@ fn _topology_operator_surface_contracts() {
     > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry_proof::<
         TopologyCreateInnerLoopOnExistingFaceDeclaration,
     >;
-    let _: fn(&TopologyCurrentHeadReadSession<'_>) -> Vec<TopologyDomainQueryRequestFamily> =
+    let _: fn(&TopologyCurrentHeadReadSession<'_>) -> Vec<TopologyReadRequestFamily> =
         |session| session.supported_request_families();
-    let _: fn(&TopologyCurrentHeadReadSession<'_>) -> TopologyDomainQueryFallbackPosture =
+    let _: fn(&TopologyCurrentHeadReadSession<'_>) -> TopologyReadFallbackPosture =
         |session| session.fallback_posture();
-    let _: fn(&TopologyCurrentHeadReadSession<'_>) -> TopologyDomainQueryAggregateReport =
+    let _: fn(&TopologyCurrentHeadReadSession<'_>) -> TopologyReadAggregateReport =
         |session| session.aggregate_report();
-    let _: fn(&TopologyCurrentHeadReadSession<'_>) -> TopologyDomainQueryProofReport =
+    let _: fn(&TopologyCurrentHeadReadSession<'_>) -> TopologyReadProofReport =
         |session| session.proof_report();
-    let _: fn(&TopologyCurrentHeadReadSession<'_>) -> TopologyDomainQueryCloseoutReport =
+    let _: fn(&TopologyCurrentHeadReadSession<'_>) -> TopologyReadCloseoutReport =
         |session| session.closeout_report();
-    let _: fn(TopologyDomainQueryExecutionEngine) -> &'static str =
-        TopologyDomainQueryExecutionEngine::as_str;
-    let _: fn(TopologyDomainQueryRequestFamily) -> &'static str =
-        TopologyDomainQueryRequestFamily::as_str;
-    let _: fn(&TopologyDomainQueryRequestReport) -> TopologyDomainQueryRequestFamily =
-        TopologyDomainQueryRequestReport::request_family;
-    let _: fn(&TopologyDomainQueryRequestReport) -> TopologyDomainQueryExecutionEngine =
-        TopologyDomainQueryRequestReport::execution_engine;
-    let _: fn(&TopologyHalfEdgeSharedVertexNeighborhoodView) -> &TopologyDomainQueryRequestReport =
+    let _: fn(TopologyReadExecutionEngine) -> &'static str =
+        TopologyReadExecutionEngine::as_str;
+    let _: fn(TopologyReadRequestFamily) -> &'static str =
+        TopologyReadRequestFamily::as_str;
+    let _: fn(&TopologyReadRequestReport) -> TopologyReadRequestFamily =
+        TopologyReadRequestReport::request_family;
+    let _: fn(&TopologyReadRequestReport) -> TopologyReadExecutionEngine =
+        TopologyReadRequestReport::execution_engine;
+    let _: fn(&TopologyHalfEdgeSharedVertexNeighborhoodView) -> &TopologyReadRequestReport =
         TopologyHalfEdgeSharedVertexNeighborhoodView::request_report;
-    let _: fn(&TopologyHalfEdgeRadialNeighborhoodView) -> &TopologyDomainQueryRequestReport =
+    let _: fn(&TopologyHalfEdgeRadialNeighborhoodView) -> &TopologyReadRequestReport =
         TopologyHalfEdgeRadialNeighborhoodView::request_report;
-    let _: fn(&TopologyLoopCycleView) -> &TopologyDomainQueryRequestReport =
+    let _: fn(&TopologyLoopCycleView) -> &TopologyReadRequestReport =
         TopologyLoopCycleView::request_report;
-    let _: fn(&TopologyLocalRewireNeighborhoodView) -> &TopologyDomainQueryRequestReport =
+    let _: fn(&TopologyLocalRewireNeighborhoodView) -> &TopologyReadRequestReport =
         TopologyLocalRewireNeighborhoodView::request_report;
-    let _: fn(&TopologyDomainQueryProofReport) -> &TopologyDomainQueryAggregateReport =
-        TopologyDomainQueryProofReport::request_aggregate;
-    let _: fn(&TopologyDomainQueryProofReport) -> &TopologyDomainQueryParityAggregateReport =
-        TopologyDomainQueryProofReport::parity_aggregate;
-    let _: fn(TopologyDomainQueryCloseoutStatus) -> &'static str =
-        TopologyDomainQueryCloseoutStatus::as_str;
-    let _: fn(&TopologyDomainQueryCloseoutReport) -> &[TopologyDomainQueryCloseoutRow] =
-        TopologyDomainQueryCloseoutReport::family_rows;
+    let _: fn(&TopologyReadProofReport) -> &TopologyReadAggregateReport =
+        TopologyReadProofReport::request_aggregate;
+    let _: fn(&TopologyReadProofReport) -> &TopologyReadParityAggregateReport =
+        TopologyReadProofReport::parity_aggregate;
+    let _: fn(TopologyReadCloseoutStatus) -> &'static str =
+        TopologyReadCloseoutStatus::as_str;
+    let _: fn(&TopologyReadCloseoutReport) -> &[TopologyReadCloseoutRow] =
+        TopologyReadCloseoutReport::family_rows;
     let _: fn(
-        &TopologyDomainQueryCloseoutReport,
-        TopologyDomainQueryRequestFamily,
-    ) -> TopologyDomainQueryCloseoutStatus = TopologyDomainQueryCloseoutReport::status;
-    let _: fn(&TopologyDomainQueryCloseoutRow) -> &str = TopologyDomainQueryCloseoutRow::reason;
-    let _: fn(&TopologyDomainQueryCloseoutRow) -> &str = TopologyDomainQueryCloseoutRow::row_digest;
-    let _: fn(TopologyDomainQueryPhaseThreeBlocker) -> &'static str =
-        TopologyDomainQueryPhaseThreeBlocker::as_str;
-    let _: fn(TopologyDomainQueryPhaseThreeBlockerStatus) -> &'static str =
-        TopologyDomainQueryPhaseThreeBlockerStatus::as_str;
-    let _: fn(&TopologyDomainQueryCloseoutReport) -> &[TopologyDomainQueryPhaseThreeBlockerRow] =
-        TopologyDomainQueryCloseoutReport::phase_three_blocker_rows;
+        &TopologyReadCloseoutReport,
+        TopologyReadRequestFamily,
+    ) -> TopologyReadCloseoutStatus = TopologyReadCloseoutReport::status;
+    let _: fn(&TopologyReadCloseoutRow) -> &str = TopologyReadCloseoutRow::reason;
+    let _: fn(&TopologyReadCloseoutRow) -> &str = TopologyReadCloseoutRow::row_digest;
+    let _: fn(TopologyReadPhaseThreeBlocker) -> &'static str =
+        TopologyReadPhaseThreeBlocker::as_str;
+    let _: fn(TopologyReadPhaseThreeBlockerStatus) -> &'static str =
+        TopologyReadPhaseThreeBlockerStatus::as_str;
+    let _: fn(&TopologyReadCloseoutReport) -> &[TopologyReadPhaseThreeBlockerRow] =
+        TopologyReadCloseoutReport::phase_three_blocker_rows;
     let _: fn(
-        &TopologyDomainQueryCloseoutReport,
-        TopologyDomainQueryPhaseThreeBlocker,
-    ) -> TopologyDomainQueryPhaseThreeBlockerStatus =
-        TopologyDomainQueryCloseoutReport::phase_three_blocker_status;
+        &TopologyReadCloseoutReport,
+        TopologyReadPhaseThreeBlocker,
+    ) -> TopologyReadPhaseThreeBlockerStatus =
+        TopologyReadCloseoutReport::phase_three_blocker_status;
     let _: fn(TopologyNoNPlusOneContract) -> &'static str = TopologyNoNPlusOneContract::as_str;
     let _: fn(TopologyNoNPlusOneContractStatus) -> &'static str =
         TopologyNoNPlusOneContractStatus::as_str;
-    let _: fn(&TopologyDomainQueryCloseoutReport) -> &[TopologyNoNPlusOneContractRow] =
-        TopologyDomainQueryCloseoutReport::no_n_plus_one_contract_rows;
+    let _: fn(&TopologyReadCloseoutReport) -> &[TopologyNoNPlusOneContractRow] =
+        TopologyReadCloseoutReport::no_n_plus_one_contract_rows;
     let _: fn(
-        &TopologyDomainQueryCloseoutReport,
+        &TopologyReadCloseoutReport,
         TopologyNoNPlusOneContract,
     ) -> TopologyNoNPlusOneContractStatus =
-        TopologyDomainQueryCloseoutReport::no_n_plus_one_contract_status;
+        TopologyReadCloseoutReport::no_n_plus_one_contract_status;
     let _: fn(&TopologyNoNPlusOneContractRow) -> TopologyNoNPlusOneContract =
         TopologyNoNPlusOneContractRow::contract;
     let _: fn(&TopologyNoNPlusOneContractRow) -> TopologyNoNPlusOneContractStatus =
@@ -282,7 +282,7 @@ fn _topology_operator_surface_contracts() {
         TopologyRuntimeSupport::query_read_family_support_rows;
     let _: fn(
         &TopologyRuntimeSupport,
-        TopologyDomainQueryRequestFamily,
+        TopologyReadRequestFamily,
     ) -> TopologyQueryReadFamilySupportStatus =
         TopologyRuntimeSupport::query_read_family_support_status;
     let _: fn(&TopologyRuntimeSupport) -> &TopologyRuntimeCloseout =

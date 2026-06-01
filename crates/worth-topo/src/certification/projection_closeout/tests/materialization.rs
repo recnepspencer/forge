@@ -1,4 +1,4 @@
-use super::domain_query::support::seeded_sheet_disk_workspace;
+use super::topology_reads::support::seeded_sheet_disk_workspace;
 use crate::projection::runtime_boundary::read_stage::{
     open_topology_read_view, stage_topology_read_from_view,
 };

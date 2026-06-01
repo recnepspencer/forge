@@ -2,23 +2,23 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
 use super::super::query_runtime_support::QueryRuntimeSupport;
-use crate::projection::read_views::domain::report::TopologyDomainQueryRequestFamily;
+use crate::projection::read_views::domain::report::TopologyReadRequestFamily;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
-fn relation_update_query_support_reports_domain_query_breadth_aggregate() {
+fn relation_update_query_support_reports_topology_read_breadth_aggregate() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.domain-query-breadth",
+        ".current-head.topology-read-breadth",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace = topology_runtime(adapters, ".current-head.domain-query-breadth.runtime")
+    let mut workspace = topology_runtime(adapters, ".current-head.topology-read-breadth.runtime")
         .expect("workspace");
     let surfaces =
         crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
@@ -49,7 +49,7 @@ fn relation_update_query_support_reports_domain_query_breadth_aggregate() {
     assert_eq!(aggregate.debt_rows.len(), 0);
     assert_eq!(aggregate.family_rows.len(), 2);
     assert!(aggregate.family_rows.iter().any(|row| {
-        row.request_family == TopologyDomainQueryRequestFamily::LoopCycleNeighborhood
+        row.request_family == TopologyReadRequestFamily::LoopCycleNeighborhood
             && row.request_count == 1
             && row.query_execution_count == 1
             && row.lowered_traversal_count == 1
@@ -58,7 +58,7 @@ fn relation_update_query_support_reports_domain_query_breadth_aggregate() {
             && row.whole_view_fallback_count == 0
     }));
     assert!(aggregate.family_rows.iter().any(|row| {
-        row.request_family == TopologyDomainQueryRequestFamily::LocalRewireNeighborhood
+        row.request_family == TopologyReadRequestFamily::LocalRewireNeighborhood
             && row.request_count == 2
             && row.query_execution_count == 2
             && row.lowered_traversal_count == 4
@@ -73,14 +73,14 @@ fn relation_update_query_support_reports_topology_operator_radial_breadth_aggreg
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.domain-query-breadth.radial",
+        ".current-head.topology-read-breadth.radial",
         &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(
         adapters,
-        ".current-head.domain-query-breadth.radial.runtime",
+        ".current-head.topology-read-breadth.radial.runtime",
     )
     .expect("workspace");
     let surfaces =
@@ -116,7 +116,7 @@ fn relation_update_query_support_reports_topology_operator_radial_breadth_aggreg
     assert_eq!(aggregate.debt_rows.len(), 0);
     assert_eq!(aggregate.family_rows.len(), 1);
     assert!(aggregate.family_rows.iter().any(|row| {
-        row.request_family == TopologyDomainQueryRequestFamily::HalfEdgeRadialNeighborhood
+        row.request_family == TopologyReadRequestFamily::HalfEdgeRadialNeighborhood
             && row.request_count == 2
             && row.query_execution_count == 2
             && row.whole_view_fallback_count == 0

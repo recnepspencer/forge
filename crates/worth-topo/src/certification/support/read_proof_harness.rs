@@ -1,15 +1,14 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
-use crate::projection::diagnostic_surfaces::read_proof::parity::TopologyDomainQueryViewParityReport;
+use crate::projection::diagnostic_surfaces::read_proof::parity::TopologyReadViewParityReport;
 use crate::projection::read_views::domain::parity::{
-    TopologyDomainQueryParityKind, TopologyDomainQueryViewParityArtifact,
+    TopologyReadParityKind, TopologyReadViewParityArtifact,
 };
 use crate::projection::read_views::domain::{
-    TopologyDomainQueryAggregateReport, TopologyDomainQueryCloseoutReport,
-    TopologyDomainQueryError, TopologyDomainQueryFallbackPosture, TopologyDomainQueryProofReport,
-    TopologyDomainQueryRequestFamily, TopologyHalfEdgeRadialNeighborhoodView,
-    TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,
-    TopologyLoopCycleView, TopologyReadLedger,
+    TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
+    TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView, TopologyReadAggregateReport,
+    TopologyReadCloseoutReport, TopologyReadError, TopologyReadFallbackPosture, TopologyReadLedger,
+    TopologyReadProofReport, TopologyReadRequestFamily,
 };
 
 pub(crate) struct TopologyReadProofHarness {
@@ -24,32 +23,32 @@ impl TopologyReadProofHarness {
         }
     }
 
-    pub(crate) fn aggregate_report(&self) -> TopologyDomainQueryAggregateReport {
+    pub(crate) fn aggregate_report(&self) -> TopologyReadAggregateReport {
         self.state.aggregate_report()
     }
 
-    pub(crate) fn proof_report(&self) -> TopologyDomainQueryProofReport {
+    pub(crate) fn proof_report(&self) -> TopologyReadProofReport {
         self.state.proof_report()
     }
 
-    pub(crate) fn closeout_report(&self) -> TopologyDomainQueryCloseoutReport {
+    pub(crate) fn closeout_report(&self) -> TopologyReadCloseoutReport {
         self.state.closeout_report()
     }
 
-    pub(crate) fn fallback_posture(&self) -> TopologyDomainQueryFallbackPosture {
+    pub(crate) fn fallback_posture(&self) -> TopologyReadFallbackPosture {
         self.state.fallback_posture()
     }
 
-    pub(crate) fn supported_request_families(&self) -> Vec<TopologyDomainQueryRequestFamily> {
+    pub(crate) fn supported_request_families(&self) -> Vec<TopologyReadRequestFamily> {
         self.state.supported_request_families()
     }
 
     pub(crate) fn record_view_parity(
         &self,
-        parity_kind: TopologyDomainQueryParityKind,
-        left: &TopologyDomainQueryViewParityArtifact,
-        right: &TopologyDomainQueryViewParityArtifact,
-    ) -> TopologyDomainQueryViewParityReport {
+        parity_kind: TopologyReadParityKind,
+        left: &TopologyReadViewParityArtifact,
+        right: &TopologyReadViewParityArtifact,
+    ) -> TopologyReadViewParityReport {
         self.state.record_view_parity(parity_kind, left, right)
     }
 
@@ -57,7 +56,7 @@ impl TopologyReadProofHarness {
         &self,
         workspace: &mut ForgeQueryWorkspace,
         source_identity: &str,
-    ) -> Result<TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyDomainQueryError> {
+    ) -> Result<TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyReadError> {
         self.state
             .shared_vertex_half_edge_neighborhood(workspace, source_identity)
     }
@@ -66,7 +65,7 @@ impl TopologyReadProofHarness {
         &self,
         workspace: &mut ForgeQueryWorkspace,
         source_identity: &str,
-    ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyDomainQueryError> {
+    ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyReadError> {
         self.state
             .radial_half_edge_neighborhood(workspace, source_identity)
     }
@@ -76,7 +75,7 @@ impl TopologyReadProofHarness {
         workspace: &mut ForgeQueryWorkspace,
         start_identity: &str,
         count: usize,
-    ) -> Result<TopologyLoopCycleView, TopologyDomainQueryError> {
+    ) -> Result<TopologyLoopCycleView, TopologyReadError> {
         self.state.loop_cycle(workspace, start_identity, count)
     }
 
@@ -85,7 +84,7 @@ impl TopologyReadProofHarness {
         workspace: &mut ForgeQueryWorkspace,
         moved_identity: &str,
         cycle_count: usize,
-    ) -> Result<TopologyLocalRewireNeighborhoodView, TopologyDomainQueryError> {
+    ) -> Result<TopologyLocalRewireNeighborhoodView, TopologyReadError> {
         self.state
             .local_rewire_neighborhood(workspace, moved_identity, cycle_count)
     }

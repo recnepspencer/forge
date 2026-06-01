@@ -16,8 +16,7 @@ use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::projection::TopologyLocalRewireNeighborhoodView;
-use crate::projection::TopologyLoopCycleView;
+use crate::query_domain::{TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView};
 use crate::topology_operators::TopologyRewireLoopSuccessorProgramDeclaration;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

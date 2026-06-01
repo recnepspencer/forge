@@ -1,16 +1,16 @@
 use super::support::current_head_query_handle;
 use super::support::current_lookup_rows;
-use crate::facade::{topology_runtime, TopologyCurrentHeadReadHandleExt, TopologyRuntimeAdapters};
-use crate::projection::read_views::domain::error::TopologyDomainQueryErrorKind;
-use crate::projection::read_views::domain::report::TopologyDomainQueryExecutionEngine;
-use crate::projection::read_views::domain::request::TopologyDomainQueryRequest;
+use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
+use crate::projection::read_views::domain::error::TopologyReadErrorKind;
+use crate::projection::read_views::domain::report::TopologyReadExecutionEngine;
+use crate::projection::read_views::domain::request::TopologyReadRequest;
 use crate::projection::runtime_boundary::read_lowering::schema::{
-    topology_domain_query_schema_view, TopologyDomainTraversalRelation,
+    topology_read_schema_view, TopologyDomainTraversalRelation,
 };
 use crate::projection::runtime_boundary::read_lowering::{
-    lower_topology_domain_query, TopologyDomainQueryLoweringPosture,
-    TopologyDomainQueryRelationshipProofPosture,
+    lower_topology_read, TopologyReadLoweringPosture, TopologyReadRelationshipProofPosture,
 };
+use crate::query_domain::TopologyCurrentHeadReadHandleExt;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::PlannedExecutionRoute;
 use schema::facade::platform::relations::TopologyRelationKind;
@@ -18,9 +18,9 @@ use schema::facade::topology_authoring::{seed_milestone_one_primitive, Milestone
 use schema::facade::QuerySchemaBasis;
 
 #[test]
-fn topology_domain_query_schema_admits_only_declared_traversal_relations() {
-    let schema = topology_domain_query_schema_view()
-        .expect("domain query schema should build through  query declarations");
+fn topology_read_schema_admits_only_declared_traversal_relations() {
+    let schema = topology_read_schema_view()
+        .expect("topology read schema should build through  query declarations");
 
     let comparison_schema = forge_query::facade::QuerySchemaView::new(
         QuerySchemaBasis::TopologyEntityLiveView.as_str(),
@@ -47,14 +47,14 @@ fn topology_domain_query_schema_admits_only_declared_traversal_relations() {
 }
 
 #[test]
-fn topology_domain_request_lowering_is_canonical_for_equivalent_local_rewire_requests() {
-    let request = TopologyDomainQueryRequest::LocalRewireNeighborhood {
+fn topology_read_request_lowering_is_canonical_for_equivalent_local_rewire_requests() {
+    let request = TopologyReadRequest::LocalRewireNeighborhood {
         moved_half_edge_identity: ".topology.half_edge.7".to_string(),
         cycle_depth: 6,
     };
 
-    let left = lower_topology_domain_query(&request).expect("lowering should stay admitted");
-    let right = lower_topology_domain_query(&request).expect("lowering should stay admitted");
+    let left = lower_topology_read(&request).expect("lowering should stay admitted");
+    let right = lower_topology_read(&request).expect("lowering should stay admitted");
 
     assert_eq!(
         left.canonical_query_digest(),
@@ -66,7 +66,7 @@ fn topology_domain_request_lowering_is_canonical_for_equivalent_local_rewire_req
     );
     assert_eq!(
         left.lowering_posture(),
-        TopologyDomainQueryLoweringPosture::CanonicalTraversalLowered
+        TopologyReadLoweringPosture::CanonicalTraversalLowered
     );
     assert_eq!(left.live_query_family().as_str(), "bounded_materialization");
     assert_eq!(
@@ -76,7 +76,7 @@ fn topology_domain_request_lowering_is_canonical_for_equivalent_local_rewire_req
     assert_eq!(left.planned_traversal_depth_limit(), 64);
     assert_eq!(
         left.relationship_proof_posture(),
-        TopologyDomainQueryRelationshipProofPosture::Admitted
+        TopologyReadRelationshipProofPosture::Admitted
     );
     assert_eq!(left.relationship_proof_admission_count(), 2);
     assert_eq!(left.relationship_proof_topology_width(), 7);
@@ -94,42 +94,42 @@ fn topology_domain_request_lowering_is_canonical_for_equivalent_local_rewire_req
 }
 
 #[test]
-fn topology_domain_lowering_denies_zero_depth_before_canonical_authoring() {
-    let loop_cycle = TopologyDomainQueryRequest::LoopCycleNeighborhood {
+fn topology_read_lowering_denies_zero_depth_before_canonical_authoring() {
+    let loop_cycle = TopologyReadRequest::LoopCycleNeighborhood {
         start_half_edge_identity: ".topology.half_edge.7".to_string(),
         depth: 0,
     };
-    let local_rewire = TopologyDomainQueryRequest::LocalRewireNeighborhood {
+    let local_rewire = TopologyReadRequest::LocalRewireNeighborhood {
         moved_half_edge_identity: ".topology.half_edge.7".to_string(),
         cycle_depth: 0,
     };
 
-    let loop_cycle_error = lower_topology_domain_query(&loop_cycle)
+    let loop_cycle_error = lower_topology_read(&loop_cycle)
         .expect_err("zero-depth loop cycle must fail before canonical lowering");
-    let local_rewire_error = lower_topology_domain_query(&local_rewire)
+    let local_rewire_error = lower_topology_read(&local_rewire)
         .expect_err("zero-depth local rewire must fail before canonical lowering");
 
     assert_eq!(
         loop_cycle_error.kind(),
-        TopologyDomainQueryErrorKind::UnsupportedTraversalDepth
+        TopologyReadErrorKind::UnsupportedTraversalDepth
     );
     assert_eq!(
         local_rewire_error.kind(),
-        TopologyDomainQueryErrorKind::UnsupportedTraversalDepth
+        TopologyReadErrorKind::UnsupportedTraversalDepth
     );
 }
 
 #[test]
-fn topology_domain_views_expose_canonical_lowering_and_explicit_debt_rows() {
+fn topology_read_views_expose_canonical_lowering_and_explicit_debt_rows() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     seed_milestone_one_primitive(
         &mut runtime,
-        "query.domain-query.lowering-debt",
+        "query.topology-read.lowering-debt",
         &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
     )
     .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace = topology_runtime(adapters, "query.domain-query.lowering-debt.runtime")
+    let mut workspace = topology_runtime(adapters, "query.topology-read.lowering-debt.runtime")
         .expect(" topology runtime");
     let surfaces =
         crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
@@ -157,7 +157,7 @@ fn topology_domain_views_expose_canonical_lowering_and_explicit_debt_rows() {
             .request_report
             .lowering_artifact
             .lowering_posture(),
-        TopologyDomainQueryLoweringPosture::CanonicalTraversalLowered
+        TopologyReadLoweringPosture::CanonicalTraversalLowered
     );
     assert_eq!(
         shared_vertex
@@ -172,7 +172,7 @@ fn topology_domain_views_expose_canonical_lowering_and_explicit_debt_rows() {
             .request_report
             .lowering_artifact
             .relationship_proof_posture(),
-        TopologyDomainQueryRelationshipProofPosture::Admitted
+        TopologyReadRelationshipProofPosture::Admitted
     );
     assert_eq!(
         radial
@@ -193,11 +193,11 @@ fn topology_domain_views_expose_canonical_lowering_and_explicit_debt_rows() {
     assert_eq!(radial.request_report.relationship_proof_admission_count, 2);
     assert_eq!(
         shared_vertex.request_report.execution_engine,
-        TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
+        TopologyReadExecutionEngine::QueryRuntimeCurrent
     );
     assert_eq!(
         radial.request_report.execution_engine,
-        TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
+        TopologyReadExecutionEngine::QueryRuntimeCurrent
     );
     assert_eq!(aggregate.query_execution_count, 2);
     assert_eq!(aggregate.row_scan_fallback_count, 0);

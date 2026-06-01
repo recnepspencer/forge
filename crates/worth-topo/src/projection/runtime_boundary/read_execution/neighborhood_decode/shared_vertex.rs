@@ -1,6 +1,6 @@
 use forge_query::facade::{ForgeQueryEntity, RelationName};
 
-use crate::projection::read_views::domain::error::TopologyDomainQueryError;
+use crate::projection::read_views::domain::error::TopologyReadError;
 use crate::projection::read_views::TopologyAdjacentHalfEdgeEvidence;
 
 use super::super::row_decode::{
@@ -23,7 +23,7 @@ pub(crate) fn decode_shared_vertex_neighborhood(
     edge_relation: &RelationName,
     endpoint_relations: &[RelationName],
     label: &str,
-) -> Result<DecodedSharedVertexNeighborhood, TopologyDomainQueryError> {
+) -> Result<DecodedSharedVertexNeighborhood, TopologyReadError> {
     let rows = RetainedTopologyRows::new(rows);
     let source_row = rows.row(source_identity, label)?;
     let source_edge_identity = source_row
@@ -69,7 +69,7 @@ fn build_adjacent_half_edge_evidence(
     edge_relation: &RelationName,
     endpoint_relations: &[RelationName],
     label: &str,
-) -> Result<Vec<TopologyAdjacentHalfEdgeEvidence>, TopologyDomainQueryError> {
+) -> Result<Vec<TopologyAdjacentHalfEdgeEvidence>, TopologyReadError> {
     adjacent_half_edge_identities
         .iter()
         .map(|identity| {

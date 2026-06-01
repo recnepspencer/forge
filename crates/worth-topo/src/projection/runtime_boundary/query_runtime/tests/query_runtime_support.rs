@@ -5,13 +5,13 @@ use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use serde_json::Value;
 
 use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
-use crate::projection::diagnostic_surfaces::read_proof::TopologyDomainQueryProofReport;
-use crate::projection::read_views::domain::closeout::TopologyDomainQueryCloseoutReport;
+use crate::projection::diagnostic_surfaces::read_proof::TopologyReadProofReport;
+use crate::projection::read_views::domain::closeout::TopologyReadCloseoutReport;
 use crate::projection::read_views::domain::parity::{
-    build_domain_query_view_parity_artifact, TopologyDomainQueryParityKind,
-    TopologyDomainQueryViewParityArtifact, TopologyDomainQueryViewRef,
+    build_topology_read_view_parity_artifact, TopologyReadParityKind,
+    TopologyReadViewParityArtifact, TopologyReadViewRef,
 };
-use crate::projection::read_views::domain::report::TopologyDomainQueryAggregateReport;
+use crate::projection::read_views::domain::report::TopologyReadAggregateReport;
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 use crate::projection::TopologyQueryRowLookup;
 
@@ -27,7 +27,7 @@ pub(super) fn query_entity_id_from_row(row: &forge_query::facade::ForgeQueryEnti
 }
 
 pub(super) struct QueryRuntimeSupport {
-    domain_query: TopologyReadProofHarness,
+    topology_read: TopologyReadProofHarness,
     entity_rows: Vec<forge_query::facade::ForgeQueryEntity>,
     relation_rows: Vec<forge_query::facade::ForgeQueryEntity>,
 }
@@ -40,7 +40,7 @@ impl QueryRuntimeSupport {
         let entity_rows = workspace.read::<Value>(surfaces.entities());
         let relation_rows = workspace.read::<Value>(surfaces.relations());
         Self {
-            domain_query: TopologyReadProofHarness::new(),
+            topology_read: TopologyReadProofHarness::new(),
             entity_rows,
             relation_rows,
         }
@@ -55,26 +55,26 @@ impl QueryRuntimeSupport {
             .expect("seeded topology should expose requested source relation")
     }
 
-    pub(super) fn aggregate_report(&self) -> TopologyDomainQueryAggregateReport {
-        self.domain_query.aggregate_report()
+    pub(super) fn aggregate_report(&self) -> TopologyReadAggregateReport {
+        self.topology_read.aggregate_report()
     }
 
-    pub(super) fn proof_report(&self) -> TopologyDomainQueryProofReport {
-        self.domain_query.proof_report()
+    pub(super) fn proof_report(&self) -> TopologyReadProofReport {
+        self.topology_read.proof_report()
     }
 
-    pub(super) fn closeout_report(&self) -> TopologyDomainQueryCloseoutReport {
-        self.domain_query.closeout_report()
+    pub(super) fn closeout_report(&self) -> TopologyReadCloseoutReport {
+        self.topology_read.closeout_report()
     }
 
     pub(super) fn record_view_parity(
         &self,
-        parity_kind: TopologyDomainQueryParityKind,
-        left: &TopologyDomainQueryViewParityArtifact,
-        right: &TopologyDomainQueryViewParityArtifact,
+        parity_kind: TopologyReadParityKind,
+        left: &TopologyReadViewParityArtifact,
+        right: &TopologyReadViewParityArtifact,
     ) {
         let _ = self
-            .domain_query
+            .topology_read
             .record_view_parity(parity_kind, left, right);
     }
 
@@ -96,7 +96,7 @@ impl QueryRuntimeSupport {
         source_identity: &str,
         current_target_identity: &str,
     ) -> EntityId {
-        self.domain_query
+        self.topology_read
             .radial_half_edge_neighborhood(workspace, source_identity)
             .expect("seeded topology should expose radial neighborhood")
             .same_edge_half_edge_identities
@@ -113,7 +113,7 @@ impl QueryRuntimeSupport {
         workspace: &mut ForgeQueryWorkspace,
         source_identity: &str,
     ) -> String {
-        self.domain_query
+        self.topology_read
             .radial_half_edge_neighborhood(workspace, source_identity)
             .expect("seeded topology should expose radial neighborhood")
             .current_target_half_edge_identity
@@ -161,7 +161,7 @@ impl QueryRuntimeSupport {
         source_identity: &str,
     ) -> EntityId {
         let local_rewire = self
-            .domain_query
+            .topology_read
             .local_rewire_neighborhood(workspace, source_identity, 2)
             .expect("seeded topology should expose local rewire neighborhood");
         self.find_entity_id_by_identity(&local_rewire.old_successor_identity)
@@ -173,7 +173,7 @@ impl QueryRuntimeSupport {
         source_identity: &str,
     ) -> EntityId {
         let local_rewire = self
-            .domain_query
+            .topology_read
             .local_rewire_neighborhood(workspace, source_identity, 2)
             .expect("seeded topology should expose local rewire neighborhood");
         self.find_entity_id_by_identity(&local_rewire.old_predecessor_identity)
@@ -217,7 +217,7 @@ impl QueryRuntimeSupport {
         start_identity: &str,
         count: usize,
     ) -> Vec<String> {
-        self.domain_query
+        self.topology_read
             .loop_cycle(workspace, start_identity, count)
             .expect("seeded topology should expose a closed successor cycle")
             .cycle_identities
@@ -229,14 +229,14 @@ impl QueryRuntimeSupport {
         read_basis: &DerivedTopologyReadBasis,
         moved_identity: &str,
         cycle_count: usize,
-    ) -> TopologyDomainQueryViewParityArtifact {
+    ) -> TopologyReadViewParityArtifact {
         let local_rewire = self
-            .domain_query
+            .topology_read
             .local_rewire_neighborhood(workspace, moved_identity, cycle_count)
             .expect("seeded topology should expose local rewire neighborhood");
-        build_domain_query_view_parity_artifact(
+        build_topology_read_view_parity_artifact(
             read_basis,
-            TopologyDomainQueryViewRef::LocalRewire(&local_rewire),
+            TopologyReadViewRef::LocalRewire(&local_rewire),
         )
     }
 

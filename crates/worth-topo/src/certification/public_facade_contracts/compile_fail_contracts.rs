@@ -55,13 +55,13 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_runtime_closeout_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_domain_query_request_report_not_forgeable.rs"
+        "{compile_fail}/public_topology_read_request_report_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_domain_query_closeout_report_not_forgeable.rs"
+        "{compile_fail}/public_topology_read_closeout_report_not_forgeable.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_domain_query_closeout_row_not_forgeable.rs"
+        "{compile_fail}/public_topology_read_closeout_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_no_n_plus_one_contract_row_not_forgeable.rs"
@@ -79,6 +79,12 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_topology_query_domain_entry_not_exported_from_projection.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_domain_query_workspace_methods_not_exported.rs"
+        "{compile_fail}/public_topology_read_workspace_methods_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_reads_not_exported_from_facade.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_removed_domain_query_read_names_not_exported.rs"
     ));
 }

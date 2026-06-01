@@ -2,19 +2,17 @@ use schema::facade::platform::relations::TopologyRelationKind;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 
 use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
-use crate::facade::TopologyCurrentHeadReadHandleExt;
 use crate::projection::read_views::domain::closeout::{
-    TopologyDomainQueryCloseoutStatus, TopologyDomainQueryPhaseThreeBlocker,
-    TopologyDomainQueryPhaseThreeBlockerStatus,
+    TopologyReadCloseoutStatus, TopologyReadPhaseThreeBlocker, TopologyReadPhaseThreeBlockerStatus,
 };
 use crate::projection::read_views::domain::parity::{
-    build_domain_query_view_parity_artifact, TopologyDomainQueryParityKind,
-    TopologyDomainQueryViewRef,
+    build_topology_read_view_parity_artifact, TopologyReadParityKind, TopologyReadViewRef,
 };
-use crate::projection::read_views::domain::TopologyDomainQueryRequestFamily;
+use crate::projection::read_views::domain::TopologyReadRequestFamily;
 use crate::projection::read_views::domain::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractStatus,
 };
+use crate::query_domain::TopologyCurrentHeadReadHandleExt;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 use super::support::{
@@ -23,7 +21,7 @@ use super::support::{
 };
 
 #[test]
-fn domain_query_closeout_reports_unobserved_families_before_any_requests() {
+fn topology_read_closeout_reports_unobserved_families_before_any_requests() {
     let query = TopologyReadProofHarness::new();
     let closeout_report = query.closeout_report();
 
@@ -36,19 +34,19 @@ fn domain_query_closeout_reports_unobserved_families_before_any_requests() {
     assert_eq!(closeout_report.repeated_rediscovery_denied_count, 0);
     assert_eq!(closeout_report.family_rows().len(), 4);
     assert!(closeout_report.family_rows().iter().all(|row| {
-        row.status() == TopologyDomainQueryCloseoutStatus::Unobserved
+        row.status() == TopologyReadCloseoutStatus::Unobserved
             && row.request_count() == 0
             && row.query_execution_count() == 0
     }));
     assert_eq!(
         closeout_report
-            .phase_three_blocker_status(TopologyDomainQueryPhaseThreeBlocker::NoObservedRequests),
-        TopologyDomainQueryPhaseThreeBlockerStatus::Blocked
+            .phase_three_blocker_status(TopologyReadPhaseThreeBlocker::NoObservedRequests),
+        TopologyReadPhaseThreeBlockerStatus::Blocked
     );
     assert_eq!(
         closeout_report
-            .phase_three_blocker_status(TopologyDomainQueryPhaseThreeBlocker::ParityDeterminismGap),
-        TopologyDomainQueryPhaseThreeBlockerStatus::Clear
+            .phase_three_blocker_status(TopologyReadPhaseThreeBlocker::ParityDeterminismGap),
+        TopologyReadPhaseThreeBlockerStatus::Clear
     );
     assert_eq!(closeout_report.no_n_plus_one_contract_rows().len(), 4);
     assert_eq!(
@@ -63,9 +61,9 @@ fn domain_query_closeout_reports_unobserved_families_before_any_requests() {
 }
 
 #[test]
-fn domain_query_closeout_requires_no_n_plus_one_contracts_before_phase_three_ready() {
+fn topology_read_closeout_requires_no_n_plus_one_contracts_before_phase_three_ready() {
     let (mut workspace, surfaces, _read_basis) =
-        seeded_sheet_disk_workspace("query.domain-query-closeout.contract-gate");
+        seeded_sheet_disk_workspace("query.topology-read-closeout.contract-gate");
     let handle = current_head_query_handle();
     let lookup_rows = current_lookup_rows(&mut workspace, &surfaces);
     let moved_identity = lookup_rows
@@ -81,13 +79,13 @@ fn domain_query_closeout_requires_no_n_plus_one_contracts_before_phase_three_rea
 
     assert_eq!(
         closeout_report
-            .phase_three_blocker_status(TopologyDomainQueryPhaseThreeBlocker::NoObservedRequests),
-        TopologyDomainQueryPhaseThreeBlockerStatus::Clear
+            .phase_three_blocker_status(TopologyReadPhaseThreeBlocker::NoObservedRequests),
+        TopologyReadPhaseThreeBlockerStatus::Clear
     );
     assert_eq!(
         closeout_report
-            .phase_three_blocker_status(TopologyDomainQueryPhaseThreeBlocker::ParityDeterminismGap),
-        TopologyDomainQueryPhaseThreeBlockerStatus::Clear
+            .phase_three_blocker_status(TopologyReadPhaseThreeBlocker::ParityDeterminismGap),
+        TopologyReadPhaseThreeBlockerStatus::Clear
     );
     assert_eq!(
         closeout_report.no_n_plus_one_contract_status(TopologyNoNPlusOneContract::LoweringBreadth),
@@ -105,23 +103,23 @@ fn domain_query_closeout_requires_no_n_plus_one_contracts_before_phase_three_rea
 }
 
 #[test]
-fn domain_query_proof_report_aggregates_request_and_parity_evidence_on_the_boundary() {
+fn topology_read_proof_report_aggregates_request_and_parity_evidence_on_the_boundary() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     let verified = seed_milestone_one_primitive(
         &mut runtime,
-        "query.domain-query-proof.replay",
+        "query.topology-read-proof.replay",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )
     .expect("seed primitive");
     let replay_basis = verified.read_basis().replay_of();
     let (mut left_workspace, left_assembly) = snapshot_basis_workspace(
         &runtime,
-        "query.domain-query-proof.replay.left",
+        "query.topology-read-proof.replay.left",
         &verified.read_basis(),
     );
     let (mut right_workspace, _right_assembly) = snapshot_basis_workspace(
         &runtime,
-        "query.domain-query-proof.replay.right",
+        "query.topology-read-proof.replay.right",
         &replay_basis,
     );
     let left_query = TopologyReadProofHarness::new();
@@ -137,16 +135,16 @@ fn domain_query_proof_report_aggregates_request_and_parity_evidence_on_the_bound
     let right_view = right_query
         .local_rewire_neighborhood(&mut right_workspace, &moved_identity, 6)
         .expect("right local rewire neighborhood should load");
-    let left_artifact = build_domain_query_view_parity_artifact(
+    let left_artifact = build_topology_read_view_parity_artifact(
         &verified.read_basis(),
-        TopologyDomainQueryViewRef::LocalRewire(&left_view),
+        TopologyReadViewRef::LocalRewire(&left_view),
     );
-    let right_artifact = build_domain_query_view_parity_artifact(
+    let right_artifact = build_topology_read_view_parity_artifact(
         &replay_basis,
-        TopologyDomainQueryViewRef::LocalRewire(&right_view),
+        TopologyReadViewRef::LocalRewire(&right_view),
     );
     let parity = left_query.record_view_parity(
-        TopologyDomainQueryParityKind::Replay,
+        TopologyReadParityKind::Replay,
         &left_artifact,
         &right_artifact,
     );
@@ -172,7 +170,7 @@ fn domain_query_proof_report_aggregates_request_and_parity_evidence_on_the_bound
         0
     );
     assert_eq!(proof_report.request_aggregate.lowered_traversal_count, 2);
-    assert_eq!(proof_report.parity_aggregate.domain_query_parity_count, 1);
+    assert_eq!(proof_report.parity_aggregate.topology_read_parity_count, 1);
     assert_eq!(
         proof_report.parity_aggregate.view_determinism_checked_count,
         1
@@ -203,13 +201,11 @@ fn domain_query_proof_report_aggregates_request_and_parity_evidence_on_the_bound
     let local_rewire_row = closeout_report
         .family_rows()
         .iter()
-        .find(|row| {
-            row.request_family() == TopologyDomainQueryRequestFamily::LocalRewireNeighborhood
-        })
+        .find(|row| row.request_family() == TopologyReadRequestFamily::LocalRewireNeighborhood)
         .expect("local rewire closeout row");
     assert_eq!(
         local_rewire_row.status(),
-        TopologyDomainQueryCloseoutStatus::QueryExecutedDebtFree
+        TopologyReadCloseoutStatus::QueryExecutedDebtFree
     );
     assert!(local_rewire_row
         .reason()
@@ -227,13 +223,12 @@ fn domain_query_proof_report_aggregates_request_and_parity_evidence_on_the_bound
         .family_rows()
         .iter()
         .find(|row| {
-            row.request_family()
-                == TopologyDomainQueryRequestFamily::HalfEdgeSharedVertexNeighborhood
+            row.request_family() == TopologyReadRequestFamily::HalfEdgeSharedVertexNeighborhood
         })
         .expect("shared vertex closeout row");
     assert_eq!(
         shared_vertex_row.status(),
-        TopologyDomainQueryCloseoutStatus::Unobserved
+        TopologyReadCloseoutStatus::Unobserved
     );
     assert!(shared_vertex_row
         .reason()
@@ -242,24 +237,24 @@ fn domain_query_proof_report_aggregates_request_and_parity_evidence_on_the_bound
     let no_observed_requests_blocker = closeout_report
         .phase_three_blocker_rows()
         .iter()
-        .find(|row| row.blocker() == TopologyDomainQueryPhaseThreeBlocker::NoObservedRequests)
+        .find(|row| row.blocker() == TopologyReadPhaseThreeBlocker::NoObservedRequests)
         .expect("no observed requests blocker");
     assert_eq!(
         no_observed_requests_blocker.status(),
-        TopologyDomainQueryPhaseThreeBlockerStatus::Clear
+        TopologyReadPhaseThreeBlockerStatus::Clear
     );
     assert!(no_observed_requests_blocker
         .reason()
         .contains("at least one executed topology-domain read request was observed"));
     assert_eq!(
         closeout_report
-            .phase_three_blocker_status(TopologyDomainQueryPhaseThreeBlocker::ParityDeterminismGap),
-        TopologyDomainQueryPhaseThreeBlockerStatus::Clear
+            .phase_three_blocker_status(TopologyReadPhaseThreeBlocker::ParityDeterminismGap),
+        TopologyReadPhaseThreeBlockerStatus::Clear
     );
     assert_eq!(
         closeout_report
-            .phase_three_blocker_status(TopologyDomainQueryPhaseThreeBlocker::NoObservedRequests),
-        TopologyDomainQueryPhaseThreeBlockerStatus::Clear
+            .phase_three_blocker_status(TopologyReadPhaseThreeBlocker::NoObservedRequests),
+        TopologyReadPhaseThreeBlockerStatus::Clear
     );
     assert_eq!(
         closeout_report.no_n_plus_one_contract_status(TopologyNoNPlusOneContract::LoweringBreadth),

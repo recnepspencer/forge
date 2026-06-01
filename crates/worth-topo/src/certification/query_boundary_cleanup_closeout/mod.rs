@@ -262,22 +262,26 @@ fn certify_basis_adapter_row() -> Result<TopologyQueryBoundaryCleanupRow, Topolo
 fn certify_public_facade_row() -> Result<TopologyQueryBoundaryCleanupRow, TopologyCertificationError>
 {
     let facade = source_text("src/facade.rs")?;
+    let query_domain = source_text("src/query_domain.rs")?;
     let compile_fail_contracts =
         source_text("src/certification/public_facade_contracts/compile_fail_contracts.rs")?;
 
     ensure(!facade.contains("from_query_rows"))?;
     ensure(!facade.contains("TopologyReadSessionState"))?;
-    ensure(facade.contains("TopologyConfiguredDomainReadSession"))?;
+    ensure(!facade.contains("TopologyConfiguredDomainReadSession"))?;
+    ensure(query_domain.contains("TopologyConfiguredDomainReadSession"))?;
+    ensure(compile_fail_contracts.contains("public_topology_reads_not_exported_from_facade.rs"))?;
     ensure(facade.contains("TopologyRuntimeSupport"))?;
     ensure(compile_fail_contracts.contains("public_query_row_helpers_not_exported.rs"))?;
     ensure(compile_fail_contracts.contains("public_query_row_materializer_not_exported.rs"))?;
 
     closed_row(
         TopologyQueryBoundaryCleanupArea::PublicFacade,
-        "public facade foregrounds typed topology-facing seams and compile-fail proof rejects the old row-shaped exports",
-        Some("src/certification/public_facade_contracts/compile_fail/public_query_row_helpers_not_exported.rs"),
+        "public facade keeps runtime support but no longer competes with query_domain for handle-bound topology read entry",
+        Some("src/query_domain.rs"),
         [
             "src/facade.rs",
+            "src/query_domain.rs",
             "src/certification/public_facade_contracts/compile_fail_contracts.rs",
         ],
     )

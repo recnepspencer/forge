@@ -222,8 +222,8 @@ where
         &workspace.read::<Value>(surfaces.relations()),
         TopologyRelationKind::HalfEdgeNext,
     )?;
-    let domain_query = TopologyReadProofHarness::new();
-    let neighborhood = domain_query
+    let topology_read = TopologyReadProofHarness::new();
+    let neighborhood = topology_read
         .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, cycle_depth)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let chosen_successor_identity = neighborhood

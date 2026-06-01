@@ -1,12 +1,12 @@
-error: cannot construct `TopologyDomainQueryCloseoutRow` with struct literal syntax due to private fields
-  --> src/certification/public_facade_contracts/compile_fail/public_domain_query_closeout_row_not_forgeable.rs:7:13
+error: cannot construct `TopologyReadCloseoutRow` with struct literal syntax due to private fields
+  --> src/certification/public_facade_contracts/compile_fail/public_topology_read_closeout_row_not_forgeable.rs:7:13
    |
- 7 |     let _ = TopologyDomainQueryCloseoutRow {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 8 |         request_family: TopologyDomainQueryRequestFamily::LoopCycleNeighborhood,
-   |         ----------------------------------------------------------------------- private field
- 9 |         status: TopologyDomainQueryCloseoutStatus::QueryExecutedDebtFree,
+ 7 |     let _ = TopologyReadCloseoutRow {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^
+ 8 |         request_family: TopologyReadRequestFamily::LoopCycleNeighborhood,
    |         ---------------------------------------------------------------- private field
+ 9 |         status: TopologyReadCloseoutStatus::QueryExecutedDebtFree,
+   |         --------------------------------------------------------- private field
 10 |         request_count: 1,
    |         ---------------- private field
 11 |         query_execution_count: 1,

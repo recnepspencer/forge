@@ -1,9 +1,9 @@
-use self::relationship_proof::{admit_domain_query_relationship_proofs, runtime_basis_intent};
-use self::schema::topology_domain_query_schema_view;
-use crate::projection::diagnostic_surfaces::read_proof::report::TopologyDomainQueryRequestFamily;
-use crate::projection::read_views::domain::error::TopologyDomainQueryError;
+use self::relationship_proof::{admit_topology_read_relationship_proofs, runtime_basis_intent};
+use self::schema::topology_read_schema_view;
+use crate::projection::diagnostic_surfaces::read_proof::report::TopologyReadRequestFamily;
+use crate::projection::read_views::domain::error::TopologyReadError;
 use crate::projection::read_views::domain::request::{
-    TopologyDomainQueryRequest, TopologyDomainQueryTraversalStep,
+    TopologyReadRequest, TopologyReadTraversalStep,
 };
 use crate::projection::runtime_boundary::read_execution::query_shape::{
     identity_anchor_predicate, identity_ordering, identity_result_field, identity_selector,
@@ -19,23 +19,23 @@ pub(crate) mod relationship_proof;
 pub(crate) mod schema;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TopologyDomainQueryLoweringPosture {
+pub enum TopologyReadLoweringPosture {
     CanonicalTraversalLowered,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum TopologyDomainQueryRelationshipProofPosture {
+pub enum TopologyReadRelationshipProofPosture {
     Admitted,
     Deferred,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct TopologyDomainQueryLoweringArtifact {
-    request_family: TopologyDomainQueryRequestFamily,
-    lowering_posture: TopologyDomainQueryLoweringPosture,
+pub(crate) struct TopologyReadLoweringArtifact {
+    request_family: TopologyReadRequestFamily,
+    lowering_posture: TopologyReadLoweringPosture,
     query_family: QueryFamily,
     root_entity: String,
-    traversal_steps: Vec<TopologyDomainQueryTraversalStep>,
+    traversal_steps: Vec<TopologyReadTraversalStep>,
     canonical_query_digest: String,
     canonical_result_shape_digest: String,
     planned_execution_route: PlannedExecutionRoute,
@@ -43,7 +43,7 @@ pub(crate) struct TopologyDomainQueryLoweringArtifact {
     live_performance_status: String,
     planned_traversal_depth_limit: usize,
     planned_aggregate_input_breadth: usize,
-    relationship_proof_posture: TopologyDomainQueryRelationshipProofPosture,
+    relationship_proof_posture: TopologyReadRelationshipProofPosture,
     relationship_proof_admission_identity: Option<String>,
     relationship_proof_topology_classes: Vec<RelationshipProofTopologyClass>,
     relationship_proof_admission_count: usize,
@@ -51,14 +51,14 @@ pub(crate) struct TopologyDomainQueryLoweringArtifact {
     relationship_proof_support_profile_digest: String,
 }
 
-impl TopologyDomainQueryLoweringArtifact {
+impl TopologyReadLoweringArtifact {
     #[allow(dead_code)]
-    pub(crate) fn request_family(&self) -> TopologyDomainQueryRequestFamily {
+    pub(crate) fn request_family(&self) -> TopologyReadRequestFamily {
         self.request_family
     }
 
     #[allow(dead_code)]
-    pub(crate) fn lowering_posture(&self) -> TopologyDomainQueryLoweringPosture {
+    pub(crate) fn lowering_posture(&self) -> TopologyReadLoweringPosture {
         self.lowering_posture
     }
 
@@ -72,7 +72,7 @@ impl TopologyDomainQueryLoweringArtifact {
         self.root_entity.as_str()
     }
 
-    pub(crate) fn traversal_steps(&self) -> &[TopologyDomainQueryTraversalStep] {
+    pub(crate) fn traversal_steps(&self) -> &[TopologyReadTraversalStep] {
         &self.traversal_steps
     }
 
@@ -112,7 +112,7 @@ impl TopologyDomainQueryLoweringArtifact {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn relationship_proof_posture(&self) -> TopologyDomainQueryRelationshipProofPosture {
+    pub(crate) fn relationship_proof_posture(&self) -> TopologyReadRelationshipProofPosture {
         self.relationship_proof_posture
     }
 
@@ -141,9 +141,9 @@ impl TopologyDomainQueryLoweringArtifact {
     }
 }
 
-pub(crate) fn lower_topology_domain_query(
-    request: &TopologyDomainQueryRequest,
-) -> Result<TopologyDomainQueryLoweringArtifact, TopologyDomainQueryError> {
+pub(crate) fn lower_topology_read(
+    request: &TopologyReadRequest,
+) -> Result<TopologyReadLoweringArtifact, TopologyReadError> {
     request.validate()?;
     let root = topology_entity_root()?;
     let traversal_steps = request.traversal_steps();
@@ -155,38 +155,31 @@ pub(crate) fn lower_topology_domain_query(
     for step in &traversal_steps {
         query = query.traverse(traversal_selector(*step)?);
     }
-    let query = query.build().map_err(|error| {
-        TopologyDomainQueryError::canonical_lowering_resolution(format!("{error:?}"))
-    })?;
+    let query = query
+        .build()
+        .map_err(|error| TopologyReadError::canonical_lowering_resolution(format!("{error:?}")))?;
     let result_shape = CollectionResultShapeBuilder::new()
         .field(identity_result_field()?)
         .field(topology_kind_result_field()?)
         .build()
-        .map_err(|error| {
-            TopologyDomainQueryError::canonical_lowering_resolution(format!("{error:?}"))
-        })?;
-    let canonical =
-        GuidedAuthoringPath::canonicalize_collection(query, result_shape).map_err(|error| {
-            TopologyDomainQueryError::canonical_lowering_resolution(format!("{error:?}"))
-        })?;
-    let schema_view = topology_domain_query_schema_view().map_err(|error| {
-        TopologyDomainQueryError::canonical_lowering_resolution(error.to_string())
-    })?;
-    let validated = validate_canonical_bundle(canonical.clone(), schema_view).map_err(|error| {
-        TopologyDomainQueryError::canonical_lowering_resolution(format!("{error:?}"))
-    })?;
+        .map_err(|error| TopologyReadError::canonical_lowering_resolution(format!("{error:?}")))?;
+    let canonical = GuidedAuthoringPath::canonicalize_collection(query, result_shape)
+        .map_err(|error| TopologyReadError::canonical_lowering_resolution(format!("{error:?}")))?;
+    let schema_view = topology_read_schema_view()
+        .map_err(|error| TopologyReadError::canonical_lowering_resolution(error.to_string()))?;
+    let validated = validate_canonical_bundle(canonical.clone(), schema_view)
+        .map_err(|error| TopologyReadError::canonical_lowering_resolution(format!("{error:?}")))?;
     let request_context = planning_request_context_for_direct(&validated, runtime_basis_intent())
         .map_err(|error| {
-        TopologyDomainQueryError::canonical_lowering_resolution(format!("{error:?}"))
+        TopologyReadError::canonical_lowering_resolution(format!("{error:?}"))
     })?;
-    let plan = plan_validated_bundle(&validated, request_context).map_err(|error| {
-        TopologyDomainQueryError::canonical_lowering_resolution(format!("{error:?}"))
-    })?;
+    let plan = plan_validated_bundle(&validated, request_context)
+        .map_err(|error| TopologyReadError::canonical_lowering_resolution(format!("{error:?}")))?;
     let live_promotion = plan.live_promotion().clone();
-    let relationship_proof = admit_domain_query_relationship_proofs(request, canonical.query())?;
-    Ok(TopologyDomainQueryLoweringArtifact {
+    let relationship_proof = admit_topology_read_relationship_proofs(request, canonical.query())?;
+    Ok(TopologyReadLoweringArtifact {
         request_family: request.family(),
-        lowering_posture: TopologyDomainQueryLoweringPosture::CanonicalTraversalLowered,
+        lowering_posture: TopologyReadLoweringPosture::CanonicalTraversalLowered,
         query_family: canonical.query().family().clone(),
         root_entity: canonical.query().root().as_str().to_string(),
         traversal_steps,
@@ -210,9 +203,8 @@ pub(crate) fn lower_topology_domain_query(
 }
 
 fn traversal_selector(
-    step: TopologyDomainQueryTraversalStep,
-) -> Result<TraversalSelector, TopologyDomainQueryError> {
-    TraversalSelector::bounded_relation_name(step.relation_name(), step.depth()).map_err(|error| {
-        TopologyDomainQueryError::canonical_lowering_resolution(format!("{error:?}"))
-    })
+    step: TopologyReadTraversalStep,
+) -> Result<TraversalSelector, TopologyReadError> {
+    TraversalSelector::bounded_relation_name(step.relation_name(), step.depth())
+        .map_err(|error| TopologyReadError::canonical_lowering_resolution(format!("{error:?}")))
 }

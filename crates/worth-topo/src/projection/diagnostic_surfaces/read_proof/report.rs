@@ -5,13 +5,13 @@ use forge_query::facade::{
     ForgeQueryReadScopeClass,
 };
 
-use super::fallback::TopologyDomainQueryFallbackPosture;
+use super::fallback::TopologyReadFallbackPosture;
 use crate::projection::runtime_boundary::read_lowering::{
-    TopologyDomainQueryLoweringArtifact, TopologyDomainQueryRelationshipProofPosture,
+    TopologyReadLoweringArtifact, TopologyReadRelationshipProofPosture,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum TopologyDomainQueryExecutionEngine {
+pub enum TopologyReadExecutionEngine {
     QueryRuntimeCurrent,
     QueryRuntimeBranch,
     QueryRuntimeHistorical,
@@ -19,14 +19,14 @@ pub enum TopologyDomainQueryExecutionEngine {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum TopologyDomainQueryRequestFamily {
+pub enum TopologyReadRequestFamily {
     HalfEdgeSharedVertexNeighborhood,
     HalfEdgeRadialNeighborhood,
     LoopCycleNeighborhood,
     LocalRewireNeighborhood,
 }
 
-impl TopologyDomainQueryRequestFamily {
+impl TopologyReadRequestFamily {
     pub const ALL: [Self; 4] = [
         Self::HalfEdgeSharedVertexNeighborhood,
         Self::HalfEdgeRadialNeighborhood,
@@ -45,16 +45,16 @@ impl TopologyDomainQueryRequestFamily {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TopologyDomainQueryRequestReport {
-    pub(crate) request_family: TopologyDomainQueryRequestFamily,
-    pub(crate) lowering_artifact: TopologyDomainQueryLoweringArtifact,
-    pub(crate) execution_engine: TopologyDomainQueryExecutionEngine,
+pub struct TopologyReadRequestReport {
+    pub(crate) request_family: TopologyReadRequestFamily,
+    pub(crate) lowering_artifact: TopologyReadLoweringArtifact,
+    pub(crate) execution_engine: TopologyReadExecutionEngine,
     pub(crate) executed_scope_class: Option<ForgeQueryReadScopeClass>,
     pub(crate) executed_query_digest: Option<String>,
     pub(crate) executed_basis_digest: Option<String>,
     pub(crate) executed_snapshot_token: Option<String>,
     pub(crate) executed_built_in_operator_coverage: Vec<ForgeQueryReadBuiltInOperator>,
-    pub(crate) fallback_posture: TopologyDomainQueryFallbackPosture,
+    pub(crate) fallback_posture: TopologyReadFallbackPosture,
     pub(crate) query_execution_count: usize,
     pub(crate) lowered_traversal_count: usize,
     pub(crate) relationship_proof_admission_count: usize,
@@ -63,9 +63,9 @@ pub struct TopologyDomainQueryRequestReport {
     pub(crate) repeated_rediscovery_denied_count: usize,
 }
 
-impl TopologyDomainQueryRequestReport {
+impl TopologyReadRequestReport {
     pub(crate) fn query_execution_without_fallback_debt(
-        lowering_artifact: TopologyDomainQueryLoweringArtifact,
+        lowering_artifact: TopologyReadLoweringArtifact,
         receipt: &ForgeQueryReadReceipt,
     ) -> Self {
         Self {
@@ -80,7 +80,7 @@ impl TopologyDomainQueryRequestReport {
             relationship_proof_admission_count: lowering_artifact
                 .relationship_proof_admission_count(),
             lowering_artifact,
-            fallback_posture: TopologyDomainQueryFallbackPosture::None,
+            fallback_posture: TopologyReadFallbackPosture::None,
             query_execution_count: 1,
             row_scan_fallback_count: 0,
             whole_view_fallback_count: 0,
@@ -90,8 +90,8 @@ impl TopologyDomainQueryRequestReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TopologyDomainQueryFamilyAggregateRow {
-    pub(crate) request_family: TopologyDomainQueryRequestFamily,
+pub struct TopologyReadFamilyAggregateRow {
+    pub(crate) request_family: TopologyReadRequestFamily,
     pub(crate) request_count: usize,
     pub(crate) query_execution_count: usize,
     pub(crate) lowered_traversal_count: usize,
@@ -102,21 +102,21 @@ pub struct TopologyDomainQueryFamilyAggregateRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TopologyDomainQueryDebtRow {
-    pub(crate) request_family: TopologyDomainQueryRequestFamily,
+pub struct TopologyReadDebtRow {
+    pub(crate) request_family: TopologyReadRequestFamily,
     pub(crate) request_count: usize,
-    pub(crate) fallback_posture: TopologyDomainQueryFallbackPosture,
-    pub(crate) relationship_proof_posture: TopologyDomainQueryRelationshipProofPosture,
+    pub(crate) fallback_posture: TopologyReadFallbackPosture,
+    pub(crate) relationship_proof_posture: TopologyReadRelationshipProofPosture,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TopologyDomainQueryExecutionAggregateRow {
-    pub(crate) request_family: TopologyDomainQueryRequestFamily,
+pub struct TopologyReadExecutionAggregateRow {
+    pub(crate) request_family: TopologyReadRequestFamily,
     pub(crate) claimed_scope_class: ForgeQueryReadScopeClass,
     pub(crate) executed_scope_class: Option<ForgeQueryReadScopeClass>,
-    pub(crate) execution_engine: TopologyDomainQueryExecutionEngine,
-    pub(crate) fallback_posture: TopologyDomainQueryFallbackPosture,
-    pub(crate) relationship_proof_posture: TopologyDomainQueryRelationshipProofPosture,
+    pub(crate) execution_engine: TopologyReadExecutionEngine,
+    pub(crate) fallback_posture: TopologyReadFallbackPosture,
+    pub(crate) relationship_proof_posture: TopologyReadRelationshipProofPosture,
     pub(crate) request_count: usize,
     pub(crate) query_execution_count: usize,
     pub(crate) lowered_traversal_count: usize,
@@ -127,7 +127,7 @@ pub struct TopologyDomainQueryExecutionAggregateRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TopologyDomainQueryAggregateReport {
+pub struct TopologyReadAggregateReport {
     pub(crate) request_count: usize,
     pub(crate) query_runtime_current_execution_count: usize,
     pub(crate) query_runtime_historical_execution_count: usize,
@@ -141,35 +141,33 @@ pub struct TopologyDomainQueryAggregateReport {
     pub(crate) row_scan_fallback_count: usize,
     pub(crate) whole_view_fallback_count: usize,
     pub(crate) repeated_rediscovery_denied_count: usize,
-    pub(crate) family_rows: Vec<TopologyDomainQueryFamilyAggregateRow>,
-    pub(crate) debt_rows: Vec<TopologyDomainQueryDebtRow>,
-    pub(crate) execution_rows: Vec<TopologyDomainQueryExecutionAggregateRow>,
+    pub(crate) family_rows: Vec<TopologyReadFamilyAggregateRow>,
+    pub(crate) debt_rows: Vec<TopologyReadDebtRow>,
+    pub(crate) execution_rows: Vec<TopologyReadExecutionAggregateRow>,
 }
 
-impl TopologyDomainQueryAggregateReport {
-    pub(crate) fn from_request_reports(reports: &[TopologyDomainQueryRequestReport]) -> Self {
-        let mut family_rows = BTreeMap::<
-            TopologyDomainQueryRequestFamily,
-            TopologyDomainQueryFamilyAggregateRow,
-        >::new();
+impl TopologyReadAggregateReport {
+    pub(crate) fn from_request_reports(reports: &[TopologyReadRequestReport]) -> Self {
+        let mut family_rows =
+            BTreeMap::<TopologyReadRequestFamily, TopologyReadFamilyAggregateRow>::new();
         let mut debt_rows = BTreeMap::<
             (
-                TopologyDomainQueryRequestFamily,
-                TopologyDomainQueryFallbackPosture,
-                TopologyDomainQueryRelationshipProofPosture,
+                TopologyReadRequestFamily,
+                TopologyReadFallbackPosture,
+                TopologyReadRelationshipProofPosture,
             ),
-            TopologyDomainQueryDebtRow,
+            TopologyReadDebtRow,
         >::new();
         let mut execution_rows = BTreeMap::<
             (
-                TopologyDomainQueryRequestFamily,
+                TopologyReadRequestFamily,
                 &'static str,
                 Option<&'static str>,
-                TopologyDomainQueryExecutionEngine,
-                TopologyDomainQueryFallbackPosture,
-                TopologyDomainQueryRelationshipProofPosture,
+                TopologyReadExecutionEngine,
+                TopologyReadFallbackPosture,
+                TopologyReadRelationshipProofPosture,
             ),
-            TopologyDomainQueryExecutionAggregateRow,
+            TopologyReadExecutionAggregateRow,
         >::new();
         let mut aggregate = Self {
             request_count: reports.len(),
@@ -194,11 +192,10 @@ impl TopologyDomainQueryAggregateReport {
             let claimed_scope_key = scope_class_key(&claimed_scope_class);
             let executed_scope_key = report.executed_scope_class.as_ref().map(scope_class_key);
             aggregate.query_execution_count += report.query_execution_count;
-            if report.execution_engine == TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent {
+            if report.execution_engine == TopologyReadExecutionEngine::QueryRuntimeCurrent {
                 aggregate.query_runtime_current_execution_count += report.query_execution_count;
             }
-            if report.execution_engine == TopologyDomainQueryExecutionEngine::QueryRuntimeHistorical
-            {
+            if report.execution_engine == TopologyReadExecutionEngine::QueryRuntimeHistorical {
                 aggregate.query_runtime_historical_execution_count += report.query_execution_count;
             }
             match report.executed_scope_class {
@@ -223,7 +220,7 @@ impl TopologyDomainQueryAggregateReport {
             aggregate.whole_view_fallback_count += report.whole_view_fallback_count;
             aggregate.repeated_rediscovery_denied_count += report.repeated_rediscovery_denied_count;
             let family_row = family_rows.entry(report.request_family).or_insert(
-                TopologyDomainQueryFamilyAggregateRow {
+                TopologyReadFamilyAggregateRow {
                     request_family: report.request_family,
                     request_count: 0,
                     query_execution_count: 0,
@@ -252,7 +249,7 @@ impl TopologyDomainQueryAggregateReport {
                     report.fallback_posture,
                     report.lowering_artifact.relationship_proof_posture(),
                 ))
-                .or_insert(TopologyDomainQueryExecutionAggregateRow {
+                .or_insert(TopologyReadExecutionAggregateRow {
                     request_family: report.request_family,
                     claimed_scope_class,
                     executed_scope_class: report.executed_scope_class.clone(),
@@ -278,9 +275,9 @@ impl TopologyDomainQueryAggregateReport {
             execution_row.whole_view_fallback_count += report.whole_view_fallback_count;
             execution_row.repeated_rediscovery_denied_count +=
                 report.repeated_rediscovery_denied_count;
-            if report.fallback_posture != TopologyDomainQueryFallbackPosture::None
+            if report.fallback_posture != TopologyReadFallbackPosture::None
                 || report.lowering_artifact.relationship_proof_posture()
-                    == TopologyDomainQueryRelationshipProofPosture::Deferred
+                    == TopologyReadRelationshipProofPosture::Deferred
             {
                 let debt_row = debt_rows
                     .entry((
@@ -288,7 +285,7 @@ impl TopologyDomainQueryAggregateReport {
                         report.fallback_posture,
                         report.lowering_artifact.relationship_proof_posture(),
                     ))
-                    .or_insert(TopologyDomainQueryDebtRow {
+                    .or_insert(TopologyReadDebtRow {
                         request_family: report.request_family,
                         request_count: 0,
                         fallback_posture: report.fallback_posture,
@@ -308,19 +305,19 @@ impl TopologyDomainQueryAggregateReport {
 
 fn topology_execution_engine_from_receipt(
     receipt: &ForgeQueryReadReceipt,
-) -> TopologyDomainQueryExecutionEngine {
+) -> TopologyReadExecutionEngine {
     match receipt.execution_engine() {
         ForgeQueryReadExecutionEngine::QueryRuntimeCurrent => {
-            TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
+            TopologyReadExecutionEngine::QueryRuntimeCurrent
         }
         ForgeQueryReadExecutionEngine::QueryRuntimeHistorical => {
-            TopologyDomainQueryExecutionEngine::QueryRuntimeHistorical
+            TopologyReadExecutionEngine::QueryRuntimeHistorical
         }
         ForgeQueryReadExecutionEngine::QueryRuntimeBranch => {
-            TopologyDomainQueryExecutionEngine::QueryRuntimeBranch
+            TopologyReadExecutionEngine::QueryRuntimeBranch
         }
         ForgeQueryReadExecutionEngine::QueryRuntimePreviewDerived => {
-            TopologyDomainQueryExecutionEngine::QueryRuntimePreviewDerived
+            TopologyReadExecutionEngine::QueryRuntimePreviewDerived
         }
     }
 }

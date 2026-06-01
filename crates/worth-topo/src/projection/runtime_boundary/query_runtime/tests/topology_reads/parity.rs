@@ -2,11 +2,10 @@ use schema::facade::topology_authoring::{seed_milestone_one_primitive, Milestone
 
 use super::super::query_runtime_support::QueryRuntimeSupport;
 use crate::projection::read_views::domain::closeout::{
-    TopologyDomainQueryCloseoutStatus, TopologyDomainQueryPhaseThreeBlocker,
-    TopologyDomainQueryPhaseThreeBlockerStatus,
+    TopologyReadCloseoutStatus, TopologyReadPhaseThreeBlocker, TopologyReadPhaseThreeBlockerStatus,
 };
-use crate::projection::read_views::domain::parity::TopologyDomainQueryParityKind;
-use crate::projection::read_views::domain::report::TopologyDomainQueryRequestFamily;
+use crate::projection::read_views::domain::parity::TopologyReadParityKind;
+use crate::projection::read_views::domain::report::TopologyReadRequestFamily;
 use crate::projection::read_views::domain::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractStatus,
 };
@@ -17,11 +16,11 @@ use crate::projection::runtime_boundary::read_stage::open_topology_read_view;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
-fn relation_update_query_support_reports_domain_query_proof_report_with_replay_parity() {
+fn relation_update_query_support_reports_topology_read_proof_report_with_replay_parity() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     let verified = seed_milestone_one_primitive(
         &mut runtime,
-        ".current-head.domain-query-parity",
+        ".current-head.topology-read-parity",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )
     .expect("seed primitive");
@@ -31,7 +30,7 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
             .expect("snapshot read view should open");
         let adapters =
             TopologyRuntimeAdapters::snapshot_read_only(read_view, replay_basis.snapshot().clone());
-        let mut workspace = topology_runtime(adapters, ".current-head.domain-query-parity.replay")
+        let mut workspace = topology_runtime(adapters, ".current-head.topology-read-parity.replay")
             .expect("snapshot workspace");
         let surfaces =
             crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
@@ -43,8 +42,9 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
 
     let (current_head_support, mut current_head_workspace) = {
         let adapters = TopologyRuntimeAdapters::current_head(runtime);
-        let mut workspace = topology_runtime(adapters, ".current-head.domain-query-parity.runtime")
-            .expect("workspace");
+        let mut workspace =
+            topology_runtime(adapters, ".current-head.topology-read-parity.runtime")
+                .expect("workspace");
         let surfaces =
             crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
                 &mut workspace,
@@ -73,7 +73,7 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
         &moved_identity,
         6,
     );
-    current_head_support.record_view_parity(TopologyDomainQueryParityKind::Replay, &left, &right);
+    current_head_support.record_view_parity(TopologyReadParityKind::Replay, &left, &right);
 
     let proof_report = current_head_support.proof_report();
     let closeout_report = current_head_support.closeout_report();
@@ -91,7 +91,7 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
         1
     );
     assert_eq!(proof_report.request_aggregate.lowered_traversal_count, 2);
-    assert_eq!(proof_report.parity_aggregate.domain_query_parity_count, 1);
+    assert_eq!(proof_report.parity_aggregate.topology_read_parity_count, 1);
     assert_eq!(
         proof_report.parity_aggregate.view_determinism_checked_count,
         1
@@ -119,13 +119,13 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
     assert_eq!(closeout_report.query_executed_debt_backed_family_count, 0);
     assert_eq!(closeout_report.debt_family_count, 0);
     assert_eq!(
-        closeout_report.status(TopologyDomainQueryRequestFamily::LocalRewireNeighborhood),
-        TopologyDomainQueryCloseoutStatus::QueryExecutedDebtFree
+        closeout_report.status(TopologyReadRequestFamily::LocalRewireNeighborhood),
+        TopologyReadCloseoutStatus::QueryExecutedDebtFree
     );
     assert_eq!(
         closeout_report
-            .phase_three_blocker_status(TopologyDomainQueryPhaseThreeBlocker::ParityDeterminismGap),
-        TopologyDomainQueryPhaseThreeBlockerStatus::Clear
+            .phase_three_blocker_status(TopologyReadPhaseThreeBlocker::ParityDeterminismGap),
+        TopologyReadPhaseThreeBlockerStatus::Clear
     );
     assert_eq!(
         closeout_report.no_n_plus_one_contract_status(TopologyNoNPlusOneContract::LoweringBreadth),

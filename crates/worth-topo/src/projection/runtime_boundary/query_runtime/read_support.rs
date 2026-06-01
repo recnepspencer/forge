@@ -1,5 +1,5 @@
 use super::contracts::TopologyRuntimeSupport;
-use crate::projection::TopologyDomainQueryRequestFamily;
+use crate::projection::read_views::domain::TopologyReadRequestFamily;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TopologyQueryReadFamilySupportStatus {
@@ -15,14 +15,14 @@ impl TopologyQueryReadFamilySupportStatus {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TopologyRuntimeReadFamilySupportRow {
-    family: TopologyDomainQueryRequestFamily,
+    family: TopologyReadRequestFamily,
     status: TopologyQueryReadFamilySupportStatus,
     reason: String,
     row_digest: String,
 }
 
 impl TopologyRuntimeReadFamilySupportRow {
-    pub fn family(&self) -> TopologyDomainQueryRequestFamily {
+    pub fn family(&self) -> TopologyReadRequestFamily {
         self.family
     }
 
@@ -38,10 +38,7 @@ impl TopologyRuntimeReadFamilySupportRow {
         &self.row_digest
     }
 
-    pub(super) fn admitted(
-        family: TopologyDomainQueryRequestFamily,
-        reason: impl Into<String>,
-    ) -> Self {
+    pub(super) fn admitted(family: TopologyReadRequestFamily, reason: impl Into<String>) -> Self {
         let reason = reason.into();
         Self {
             family,
@@ -63,7 +60,7 @@ impl TopologyRuntimeSupport {
 
     pub fn query_read_family_support_status(
         &self,
-        family: TopologyDomainQueryRequestFamily,
+        family: TopologyReadRequestFamily,
     ) -> TopologyQueryReadFamilySupportStatus {
         self.query_read_family_support_rows
             .iter()
@@ -77,22 +74,22 @@ impl TopologyRuntimeSupport {
 
 pub(super) fn current_head_query_read_family_support_rows(
 ) -> Vec<TopologyRuntimeReadFamilySupportRow> {
-    TopologyDomainQueryRequestFamily::ALL
+    TopologyReadRequestFamily::ALL
         .into_iter()
         .map(|family| {
             TopologyRuntimeReadFamilySupportRow::admitted(
                 family,
                 match family {
-                    TopologyDomainQueryRequestFamily::HalfEdgeSharedVertexNeighborhood => {
+                    TopologyReadRequestFamily::HalfEdgeSharedVertexNeighborhood => {
                         "current-head bridge-backed runtime admits the shared-vertex topology-domain read family"
                     }
-                    TopologyDomainQueryRequestFamily::HalfEdgeRadialNeighborhood => {
+                    TopologyReadRequestFamily::HalfEdgeRadialNeighborhood => {
                         "current-head bridge-backed runtime admits the radial topology-domain read family"
                     }
-                    TopologyDomainQueryRequestFamily::LoopCycleNeighborhood => {
+                    TopologyReadRequestFamily::LoopCycleNeighborhood => {
                         "current-head bridge-backed runtime admits the loop-cycle topology-domain read family"
                     }
-                    TopologyDomainQueryRequestFamily::LocalRewireNeighborhood => {
+                    TopologyReadRequestFamily::LocalRewireNeighborhood => {
                         "current-head bridge-backed runtime admits the local-rewire topology-domain read family"
                     }
                 },
@@ -103,7 +100,7 @@ pub(super) fn current_head_query_read_family_support_rows(
 
 pub(super) fn snapshot_query_read_family_support_rows() -> Vec<TopologyRuntimeReadFamilySupportRow>
 {
-    TopologyDomainQueryRequestFamily::ALL
+    TopologyReadRequestFamily::ALL
         .into_iter()
         .map(|family| {
             TopologyRuntimeReadFamilySupportRow::admitted(
@@ -115,7 +112,7 @@ pub(super) fn snapshot_query_read_family_support_rows() -> Vec<TopologyRuntimeRe
 }
 
 fn support_row_digest(
-    family: TopologyDomainQueryRequestFamily,
+    family: TopologyReadRequestFamily,
     status: TopologyQueryReadFamilySupportStatus,
     reason: &str,
 ) -> String {

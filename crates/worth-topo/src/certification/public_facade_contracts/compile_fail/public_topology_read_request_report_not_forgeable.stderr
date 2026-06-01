@@ -1,24 +1,24 @@
 warning: unreachable expression
-  --> src/certification/public_facade_contracts/compile_fail/public_domain_query_request_report_not_forgeable.rs:10:27
+  --> src/certification/public_facade_contracts/compile_fail/public_topology_read_request_report_not_forgeable.rs:10:27
    |
  9 |         lowering_artifact: todo!(),
    |                            ------- any code following this expression is unreachable
-10 |         execution_engine: TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent,
-   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+10 |         execution_engine: TopologyReadExecutionEngine::QueryRuntimeCurrent,
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
    |
    = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
-error: cannot construct `TopologyDomainQueryRequestReport` with struct literal syntax due to private fields
-  --> src/certification/public_facade_contracts/compile_fail/public_domain_query_request_report_not_forgeable.rs:7:13
+error: cannot construct `TopologyReadRequestReport` with struct literal syntax due to private fields
+  --> src/certification/public_facade_contracts/compile_fail/public_topology_read_request_report_not_forgeable.rs:7:13
    |
- 7 |     let _ = TopologyDomainQueryRequestReport {
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
- 8 |         request_family: TopologyDomainQueryRequestFamily::LoopCycleNeighborhood,
-   |         ----------------------------------------------------------------------- private field
+ 7 |     let _ = TopologyReadRequestReport {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+ 8 |         request_family: TopologyReadRequestFamily::LoopCycleNeighborhood,
+   |         ---------------------------------------------------------------- private field
  9 |         lowering_artifact: todo!(),
    |         -------------------------- private field
-10 |         execution_engine: TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent,
-   |         ------------------------------------------------------------------------- private field
+10 |         execution_engine: TopologyReadExecutionEngine::QueryRuntimeCurrent,
+   |         ------------------------------------------------------------------ private field
 11 |         executed_scope_class: None,
    |         -------------------------- private field
 12 |         executed_query_digest: None,
@@ -43,10 +43,10 @@ error: cannot construct `TopologyDomainQueryRequestReport` with struct literal s
    = note: ...and other private fields `executed_basis_digest` and `executed_snapshot_token` that were not provided
 help: you might have meant to use the `query_execution_without_fallback_debt` associated function
    |
- 7 -     let _ = TopologyDomainQueryRequestReport {
- 8 -         request_family: TopologyDomainQueryRequestFamily::LoopCycleNeighborhood,
+ 7 -     let _ = TopologyReadRequestReport {
+ 8 -         request_family: TopologyReadRequestFamily::LoopCycleNeighborhood,
  9 -         lowering_artifact: todo!(),
-10 -         execution_engine: TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent,
+10 -         execution_engine: TopologyReadExecutionEngine::QueryRuntimeCurrent,
 11 -         executed_scope_class: None,
 12 -         executed_query_digest: None,
 13 -         executed_built_in_operator_coverage: Vec::new(),
@@ -58,5 +58,5 @@ help: you might have meant to use the `query_execution_without_fallback_debt` as
 19 -         whole_view_fallback_count: 0,
 20 -         repeated_rediscovery_denied_count: 0,
 21 -     };
- 7 +     let _ = TopologyDomainQueryRequestReport::query_execution_without_fallback_debt(_, _);
+ 7 +     let _ = TopologyReadRequestReport::query_execution_without_fallback_debt(_, _);
    |

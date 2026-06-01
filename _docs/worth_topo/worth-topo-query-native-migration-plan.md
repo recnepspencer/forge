@@ -70,9 +70,11 @@ These Query docs are the shared reference set for the plan:
 
 Current `worth-topo` surfaces:
 
-- `TopologyQueryAssembly`
-- `TopologyDomainQuery::load()`
-- broad public `projection` and `facade` exports
+- `query_domain::TopologyQueryDomain`
+- `query_domain::TopologyCurrentHeadAuthoritativeContext`
+- `query_domain::TopologySnapshotReadOnlyContext`
+- `query_domain::topology_query_domain_entry(...)`
+- admitted configured handle aliases under `query_domain`
 
 Target Query surfaces to reference:
 
@@ -94,7 +96,7 @@ Required migration:
 - keep typed operating contexts for current-head authoritative work
 - keep typed operating contexts for snapshot read-only work
 - route public topology entry only through Query domain entry
-- prune projection-first and broad facade-root entry stories from the live API
+- keep projection and the root facade from competing as entry surfaces
 
 Phase-completion rule:
 
@@ -107,13 +109,24 @@ Phase-completion rule:
   historical engineering docs or intentionally archived material, not
   production code, certification code, tests, or active support code
 
+Phase 1 closeout:
+
+- complete as of the dedicated `query_domain` boundary
+- compile-fail proof rejects topology query-domain entry imports from the root
+  facade and from `projection`
+- root convenience re-exports are not an equal public entry lane
+
 ### 2. Read Helpers
 
 Current `worth-topo` surfaces:
 
-- `TopologyDomainQuery`
-- neighborhood helpers under `projection/read_views/domain/views`
-- workspace-taking helper entry points
+- `query_domain::TopologyCurrentHeadReadHandleExt`
+- `query_domain::TopologySnapshotReadOnlyReadHandleExt`
+- `query_domain::TopologyCurrentHeadReadSession`
+- `query_domain::TopologySnapshotReadOnlyReadSession`
+- `query_domain::TopologyRead*` request, report, parity, closeout, and
+  no-N-plus-one proof products
+- topology neighborhood view and evidence types exported through `query_domain`
 
 Target Query surfaces to reference:
 
@@ -127,10 +140,13 @@ Target Query surfaces to reference:
 Required migration:
 
 - rehang the current read kernels under admitted-handle helper entry
-- remove raw workspace-taking entry points from live topology read code
+- remove raw workspace-taking entry points from public topology read code
 - remove query-object-root read entry as a live topology read model
 - keep topology read DX centered on handle-bound sessions rather than local
   workspace seams
+- use `TopologyRead*` for product-facing topology read reports; reserve
+  `QuerySchemaBasis::TopologyDomainQuery` for the lower-level Forge Query
+  schema-basis vocabulary only
 
 Phase-completion rule:
 
@@ -141,6 +157,19 @@ Phase-completion rule:
   read sessions are the only topology read model in live code
 - documentation, compile-fail proofs, public API certification, support code,
   and tests must all agree on that boundary before phase 2 is called done
+
+Phase 2 closeout:
+
+- complete once the live read imports flow through `query_domain`
+- `projection` no longer re-exports topology read sessions, products, views, or
+  proof rows as a bucket seam
+- the root facade no longer exports topology read sessions or read proof
+  products
+- compile-fail proof rejects root-facade read imports and rejects the removed
+  `TopologyDomainQuery*` product names
+- the only intentional surviving `TopologyDomainQuery` code reference is
+  `QuerySchemaBasis::TopologyDomainQuery`, which names the Forge Query schema
+  basis, not the topology product API
 
 ### 3. Edit And Declaration Workflow
 

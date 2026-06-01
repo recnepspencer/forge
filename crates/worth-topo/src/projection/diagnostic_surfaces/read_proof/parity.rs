@@ -1,9 +1,8 @@
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
-use super::fallback::TopologyDomainQueryFallbackPosture;
+use super::fallback::TopologyReadFallbackPosture;
 use super::report::{
-    TopologyDomainQueryExecutionEngine, TopologyDomainQueryRequestFamily,
-    TopologyDomainQueryRequestReport,
+    TopologyReadExecutionEngine, TopologyReadRequestFamily, TopologyReadRequestReport,
 };
 use crate::projection::read_views::{
     TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
@@ -11,18 +10,18 @@ use crate::projection::read_views::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum TopologyDomainQueryParityKind {
+pub enum TopologyReadParityKind {
     Replay,
     BranchLocal,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct TopologyDomainQueryViewParityArtifact {
-    request_family: TopologyDomainQueryRequestFamily,
+pub(crate) struct TopologyReadViewParityArtifact {
+    request_family: TopologyReadRequestFamily,
     authority_snapshot_id: u64,
     authority_branch_id: String,
-    execution_engine: TopologyDomainQueryExecutionEngine,
-    fallback_posture: TopologyDomainQueryFallbackPosture,
+    execution_engine: TopologyReadExecutionEngine,
+    fallback_posture: TopologyReadFallbackPosture,
     query_execution_count: usize,
     canonical_query_digest: String,
     canonical_result_shape_digest: String,
@@ -34,8 +33,8 @@ pub(crate) struct TopologyDomainQueryViewParityArtifact {
     view_digest_hex: String,
 }
 
-impl TopologyDomainQueryViewParityArtifact {
-    pub(crate) fn request_family(&self) -> TopologyDomainQueryRequestFamily {
+impl TopologyReadViewParityArtifact {
+    pub(crate) fn request_family(&self) -> TopologyReadRequestFamily {
         self.request_family
     }
 
@@ -53,9 +52,9 @@ impl TopologyDomainQueryViewParityArtifact {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct TopologyDomainQueryViewParityReport {
-    pub(crate) parity_kind: TopologyDomainQueryParityKind,
-    pub(crate) request_family: TopologyDomainQueryRequestFamily,
+pub(crate) struct TopologyReadViewParityReport {
+    pub(crate) parity_kind: TopologyReadParityKind,
+    pub(crate) request_family: TopologyReadRequestFamily,
     pub(crate) left_branch_id: String,
     pub(crate) right_branch_id: String,
     pub(crate) left_snapshot_id: u64,
@@ -72,60 +71,55 @@ pub(crate) struct TopologyDomainQueryViewParityReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TopologyDomainQueryParityAggregateRow {
-    pub(crate) parity_kind: TopologyDomainQueryParityKind,
-    pub(crate) request_family: TopologyDomainQueryRequestFamily,
+pub struct TopologyReadParityAggregateRow {
+    pub(crate) parity_kind: TopologyReadParityKind,
+    pub(crate) request_family: TopologyReadRequestFamily,
     pub(crate) checked_count: usize,
     pub(crate) verified_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TopologyDomainQueryParityAggregateReport {
-    pub(crate) domain_query_parity_count: usize,
+pub struct TopologyReadParityAggregateReport {
+    pub(crate) topology_read_parity_count: usize,
     pub(crate) view_determinism_checked_count: usize,
     pub(crate) view_determinism_verified_count: usize,
     pub(crate) replay_checked_count: usize,
     pub(crate) replay_verified_count: usize,
     pub(crate) branch_local_checked_count: usize,
     pub(crate) branch_local_verified_count: usize,
-    pub(crate) parity_rows: Vec<TopologyDomainQueryParityAggregateRow>,
+    pub(crate) parity_rows: Vec<TopologyReadParityAggregateRow>,
 }
 
-impl TopologyDomainQueryParityAggregateReport {
-    pub(crate) fn from_reports(reports: &[TopologyDomainQueryViewParityReport]) -> Self {
+impl TopologyReadParityAggregateReport {
+    pub(crate) fn from_reports(reports: &[TopologyReadViewParityReport]) -> Self {
         let mut parity_rows = std::collections::BTreeMap::<
-            (
-                TopologyDomainQueryParityKind,
-                TopologyDomainQueryRequestFamily,
-            ),
-            TopologyDomainQueryParityAggregateRow,
+            (TopologyReadParityKind, TopologyReadRequestFamily),
+            TopologyReadParityAggregateRow,
         >::new();
         let replay_checked_count = reports
             .iter()
-            .filter(|report| report.parity_kind == TopologyDomainQueryParityKind::Replay)
+            .filter(|report| report.parity_kind == TopologyReadParityKind::Replay)
             .count();
         let replay_verified_count = reports
             .iter()
             .filter(|report| {
-                report.parity_kind == TopologyDomainQueryParityKind::Replay
-                    && report.parity_verified
+                report.parity_kind == TopologyReadParityKind::Replay && report.parity_verified
             })
             .count();
         let branch_local_checked_count = reports
             .iter()
-            .filter(|report| report.parity_kind == TopologyDomainQueryParityKind::BranchLocal)
+            .filter(|report| report.parity_kind == TopologyReadParityKind::BranchLocal)
             .count();
         let branch_local_verified_count = reports
             .iter()
             .filter(|report| {
-                report.parity_kind == TopologyDomainQueryParityKind::BranchLocal
-                    && report.parity_verified
+                report.parity_kind == TopologyReadParityKind::BranchLocal && report.parity_verified
             })
             .count();
         for report in reports {
             let row = parity_rows
                 .entry((report.parity_kind, report.request_family))
-                .or_insert(TopologyDomainQueryParityAggregateRow {
+                .or_insert(TopologyReadParityAggregateRow {
                     parity_kind: report.parity_kind,
                     request_family: report.request_family,
                     checked_count: 0,
@@ -137,7 +131,7 @@ impl TopologyDomainQueryParityAggregateReport {
             }
         }
         Self {
-            domain_query_parity_count: reports.len(),
+            topology_read_parity_count: reports.len(),
             view_determinism_checked_count: reports.len(),
             view_determinism_verified_count: replay_verified_count + branch_local_verified_count,
             replay_checked_count,
@@ -149,20 +143,20 @@ impl TopologyDomainQueryParityAggregateReport {
     }
 }
 
-pub(crate) enum TopologyDomainQueryViewRef<'a> {
+pub(crate) enum TopologyReadViewRef<'a> {
     SharedVertex(&'a TopologyHalfEdgeSharedVertexNeighborhoodView),
     Radial(&'a TopologyHalfEdgeRadialNeighborhoodView),
     LoopCycle(&'a TopologyLoopCycleView),
     LocalRewire(&'a TopologyLocalRewireNeighborhoodView),
 }
 
-pub(crate) fn build_domain_query_view_parity_artifact(
+pub(crate) fn build_topology_read_view_parity_artifact(
     read_basis: &DerivedTopologyReadBasis,
-    view: TopologyDomainQueryViewRef<'_>,
-) -> TopologyDomainQueryViewParityArtifact {
+    view: TopologyReadViewRef<'_>,
+) -> TopologyReadViewParityArtifact {
     let request_report = request_report(&view);
     let view_digest_hex = digest_parts(&view_digest_parts(&view));
-    TopologyDomainQueryViewParityArtifact {
+    TopologyReadViewParityArtifact {
         request_family: request_report.request_family,
         authority_snapshot_id: read_basis.snapshot().snapshot_id.0,
         authority_branch_id: read_basis.branch_id().0.clone(),
@@ -183,11 +177,11 @@ pub(crate) fn build_domain_query_view_parity_artifact(
     }
 }
 
-pub(crate) fn compare_domain_query_view_parity(
-    parity_kind: TopologyDomainQueryParityKind,
-    left: &TopologyDomainQueryViewParityArtifact,
-    right: &TopologyDomainQueryViewParityArtifact,
-) -> TopologyDomainQueryViewParityReport {
+pub(crate) fn compare_topology_read_view_parity(
+    parity_kind: TopologyReadParityKind,
+    left: &TopologyReadViewParityArtifact,
+    right: &TopologyReadViewParityArtifact,
+) -> TopologyReadViewParityReport {
     let branch_identity_match = left.authority_branch_id == right.authority_branch_id;
     let snapshot_identity_match = left.authority_snapshot_id == right.authority_snapshot_id;
     let execution_engine_match =
@@ -212,7 +206,7 @@ pub(crate) fn compare_domain_query_view_parity(
         && canonical_result_shape_digest_match
         && breadth_counters_match
         && view_digest_match;
-    TopologyDomainQueryViewParityReport {
+    TopologyReadViewParityReport {
         parity_kind,
         request_family: left.request_family,
         left_branch_id: left.authority_branch_id.clone(),
@@ -231,33 +225,31 @@ pub(crate) fn compare_domain_query_view_parity(
     }
 }
 
-fn request_report<'a>(
-    view: &'a TopologyDomainQueryViewRef<'a>,
-) -> &'a TopologyDomainQueryRequestReport {
+fn request_report<'a>(view: &'a TopologyReadViewRef<'a>) -> &'a TopologyReadRequestReport {
     match view {
-        TopologyDomainQueryViewRef::SharedVertex(view) => &view.request_report,
-        TopologyDomainQueryViewRef::Radial(view) => &view.request_report,
-        TopologyDomainQueryViewRef::LoopCycle(view) => &view.request_report,
-        TopologyDomainQueryViewRef::LocalRewire(view) => &view.request_report,
+        TopologyReadViewRef::SharedVertex(view) => &view.request_report,
+        TopologyReadViewRef::Radial(view) => &view.request_report,
+        TopologyReadViewRef::LoopCycle(view) => &view.request_report,
+        TopologyReadViewRef::LocalRewire(view) => &view.request_report,
     }
 }
 
 fn execution_engines_are_parity_compatible(
-    left: TopologyDomainQueryExecutionEngine,
-    right: TopologyDomainQueryExecutionEngine,
+    left: TopologyReadExecutionEngine,
+    right: TopologyReadExecutionEngine,
 ) -> bool {
     matches!(
         (left, right),
         (
-            TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
-                | TopologyDomainQueryExecutionEngine::QueryRuntimeHistorical,
-            TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
-                | TopologyDomainQueryExecutionEngine::QueryRuntimeHistorical,
+            TopologyReadExecutionEngine::QueryRuntimeCurrent
+                | TopologyReadExecutionEngine::QueryRuntimeHistorical,
+            TopologyReadExecutionEngine::QueryRuntimeCurrent
+                | TopologyReadExecutionEngine::QueryRuntimeHistorical,
         )
     )
 }
 
-fn parity_query_digest(report: &TopologyDomainQueryRequestReport) -> String {
+fn parity_query_digest(report: &TopologyReadRequestReport) -> String {
     report.executed_query_digest.clone().unwrap_or_else(|| {
         report
             .lowering_artifact
@@ -266,9 +258,9 @@ fn parity_query_digest(report: &TopologyDomainQueryRequestReport) -> String {
     })
 }
 
-fn view_digest_parts(view: &TopologyDomainQueryViewRef<'_>) -> Vec<String> {
+fn view_digest_parts(view: &TopologyReadViewRef<'_>) -> Vec<String> {
     match view {
-        TopologyDomainQueryViewRef::SharedVertex(view) => vec![
+        TopologyReadViewRef::SharedVertex(view) => vec![
             format!("source_half_edge:{}", view.source_half_edge_identity),
             format!("source_edge:{}", view.source_edge_identity),
             format!(
@@ -285,7 +277,7 @@ fn view_digest_parts(view: &TopologyDomainQueryViewRef<'_>) -> Vec<String> {
                     .join("|")
             ),
         ],
-        TopologyDomainQueryViewRef::Radial(view) => vec![
+        TopologyReadViewRef::Radial(view) => vec![
             format!("source_half_edge:{}", view.source_half_edge_identity),
             format!("source_edge:{}", view.source_edge_identity),
             format!(
@@ -302,11 +294,11 @@ fn view_digest_parts(view: &TopologyDomainQueryViewRef<'_>) -> Vec<String> {
                 view.different_edge_half_edge_identities.join("|")
             ),
         ],
-        TopologyDomainQueryViewRef::LoopCycle(view) => vec![
+        TopologyReadViewRef::LoopCycle(view) => vec![
             format!("start_half_edge:{}", view.start_half_edge_identity),
             format!("cycle_identities:{}", view.cycle_identities.join("|")),
         ],
-        TopologyDomainQueryViewRef::LocalRewire(view) => vec![
+        TopologyReadViewRef::LocalRewire(view) => vec![
             format!("moved_half_edge:{}", view.moved_half_edge_identity),
             format!("old_successor:{}", view.old_successor_identity),
             format!("old_predecessor:{}", view.old_predecessor_identity),

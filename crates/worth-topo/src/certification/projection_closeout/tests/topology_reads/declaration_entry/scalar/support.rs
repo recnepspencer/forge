@@ -169,7 +169,7 @@ pub(super) fn radial_splice_fixture(
     workspace: &mut ForgeQueryWorkspace,
     surfaces: &TopologyDeclaredQuerySurfaces,
 ) -> (RelationId, EntityId, EntityId) {
-    let domain_query = TopologyReadProofHarness::new();
+    let topology_read = TopologyReadProofHarness::new();
     let relation_rows = workspace.read(surfaces.relations());
     let entity_rows = workspace.read(surfaces.entities());
     let relation = relation_rows
@@ -190,11 +190,11 @@ pub(super) fn radial_splice_fixture(
         .and_then(|value| value.get("source_identity"))
         .and_then(|value| value.as_str())
         .expect("radial relation should expose topology.source_identity");
-    let current_target_identity = domain_query
+    let current_target_identity = topology_read
         .radial_half_edge_neighborhood(workspace, source_identity)
         .expect("seeded topology should expose radial neighborhood")
         .current_target_half_edge_identity;
-    let alternate_identity = domain_query
+    let alternate_identity = topology_read
         .radial_half_edge_neighborhood(workspace, source_identity)
         .expect("seeded topology should expose radial neighborhood")
         .same_edge_half_edge_identities

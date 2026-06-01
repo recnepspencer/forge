@@ -21,7 +21,9 @@ use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::projection::TopologyHalfEdgeSharedVertexNeighborhoodView;
+use crate::query_domain::{
+    TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
+};
 use crate::topology_operators::{
     application::TopologyDeclarationMutationPayload, TopologyMutationDigest,
     TopologyMutationFamily, TopologyMutationRejectionClass,
@@ -137,17 +139,17 @@ where
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
         digest_materialized_topology_view(&baseline_snapshot.materialized);
-    let domain_query = TopologyReadProofHarness::new();
+    let topology_read = TopologyReadProofHarness::new();
     let relation_rows = workspace.read::<Value>(surfaces.relations());
     let source_identity = first_source_identity_for_relation_kind(
         &relation_rows,
         TopologyRelationKind::HalfEdgeRadialNext,
     )?;
     let source_half_edge_id = entity_id_from_query_identity(&source_identity)?;
-    let radial = domain_query
+    let radial = topology_read
         .radial_half_edge_neighborhood(&mut workspace, &source_identity)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let shared_vertex = domain_query
+    let shared_vertex = topology_read
         .shared_vertex_half_edge_neighborhood(&mut workspace, &source_identity)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let current_target_identity = radial.current_target_half_edge_identity().to_string();
@@ -217,7 +219,7 @@ where
 }
 
 fn build_broken_radial_witness(
-    radial: crate::projection::TopologyHalfEdgeRadialNeighborhoodView,
+    radial: TopologyHalfEdgeRadialNeighborhoodView,
     shared_vertex: TopologyHalfEdgeSharedVertexNeighborhoodView,
 ) -> Result<MilestoneThreeBrokenRadialWitness, TopologyCertificationError> {
     let illegal_target = shared_vertex

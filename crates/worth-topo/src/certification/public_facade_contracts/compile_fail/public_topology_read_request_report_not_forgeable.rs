@@ -1,13 +1,13 @@
-use topology::facade::{
-    TopologyDomainQueryExecutionEngine, TopologyDomainQueryRequestFamily,
-    TopologyDomainQueryRequestReport,
+use topology::query_domain::{
+    TopologyReadExecutionEngine, TopologyReadRequestFamily,
+    TopologyReadRequestReport,
 };
 
 fn main() {
-    let _ = TopologyDomainQueryRequestReport {
-        request_family: TopologyDomainQueryRequestFamily::LoopCycleNeighborhood,
+    let _ = TopologyReadRequestReport {
+        request_family: TopologyReadRequestFamily::LoopCycleNeighborhood,
         lowering_artifact: todo!(),
-        execution_engine: TopologyDomainQueryExecutionEngine::QueryRuntimeCurrent,
+        execution_engine: TopologyReadExecutionEngine::QueryRuntimeCurrent,
         executed_scope_class: None,
         executed_query_digest: None,
         executed_built_in_operator_coverage: Vec::new(),
