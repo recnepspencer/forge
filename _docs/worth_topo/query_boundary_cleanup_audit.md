@@ -5,6 +5,8 @@
 > Phase 1 and Phase 2 of the query-native migration supersede its older
 > `TopologyDomainQuery`/facade-centered read language with the dedicated
 > `worth_topo::query_domain` entry and handle-bound `TopologyRead*` surfaces.
+> Some referenced pre-migration seams, including `TopologyQueryAssembly`, were
+> later deleted as merge residue rather than retained as active cleanup targets.
 
 ## Purpose
 

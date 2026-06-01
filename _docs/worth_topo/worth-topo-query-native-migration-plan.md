@@ -100,9 +100,8 @@ Required migration:
 
 Phase-completion rule:
 
-- phase 1 is not complete while `TopologyQueryAssembly`, projection-first
-  entry, or any other topology-owned root remains in live code as a topology
-  entry option
+- phase 1 is not complete while projection-first entry or any other
+  topology-owned root remains in live code as a topology entry option
 - phase 1 is complete only when Query domain entry and admitted configured
   handles are the only topology entry model in live code
 - the only allowed remaining references to replaced phase-1 entry surfaces are
@@ -175,10 +174,17 @@ Phase 2 closeout:
 
 Current `worth-topo` surfaces:
 
+- topology declaration family types under `topology_operators::declaration_entry`
+- topology mutation sequence and digest proof types
+- internal lower-runtime mutation application adapters
+- `topology_operators/application`
+
+Deleted merge fossils:
+
 - `TopologyEditBatch`
 - `TopologyEditContract`
 - `TopologyOperatorExecution`
-- `topology_operators/application`
+- `TopologyQueryAssembly`
 
 Target Query surfaces to reference:
 
@@ -218,19 +224,17 @@ Required migration:
 Phase-completion rule:
 
 - phase 3 is not complete when one topology edit family has been migrated
-- phase 3 is complete only when every public topology operator family currently
-  exposed through `TopologyEditBatch`, `TopologyEditContract`, and the
-  topology-operator facade has moved onto Query declaration entry
+- phase 3 is complete only when every public topology operator family exposed
+  through the topology-operator facade has moved onto Query declaration entry
   infrastructure and the best available Query DX/product lane for that family
 - migrating one narrow family first is allowed only as the opening
   implementation slice inside phase 3, not as the definition of phase-3
   completion
 - no remaining public or internal live operator may continue to depend on the
   old direct mutation-batch workflow once phase 3 is declared done
-- `TopologyEditBatch`, `TopologyEditContract`, batch-promotion helpers, and
-  batch-admission helpers must be removed from live operator code for
-  transitioned families rather than left behind as compatibility authoring
-  layers
+- old `TopologyEditBatch`, `TopologyEditContract`, batch-promotion helpers, and
+  batch-admission helpers must stay deleted from live operator code rather than
+  returning as compatibility authoring layers
 
 ### 4. Contribution-Composed Workflow
 
@@ -347,9 +351,9 @@ Completion rule:
 
 Current `worth-topo` surfaces:
 
-- `TopologyQueryAssembly`
-- `historical_rows`
+- `declared_query_surfaces`
 - runtime-basis posture inference in query runtime contracts
+- topology materialization and historical read adapters
 
 Target Query surfaces to reference:
 
