@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { demoRegistry } from "../state/demoData";
 import { BouncingValueField } from "./BouncingValueField";
 import { FormsComposerField } from "./FormsComposerField";
+import { RouterRouteField } from "./RouterRouteField";
 
 interface LandingPageProps {
   onNavigate: (path: string) => void;
@@ -210,6 +211,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                     >
                       {slide.id === 2 ? (
                         <FormsComposerField />
+                      ) : slide.id === 3 ? (
+                        <RouterRouteField />
                       ) : (
                         <BouncingValueField seed={slide.seed} values={slide.values} />
                       )}
