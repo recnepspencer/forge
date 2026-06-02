@@ -25,11 +25,12 @@ fn milestone_three_bowtie_adjacent_rewire_certifies_typed_rejection_with_exact_s
         MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 }
     );
     assert_eq!(
-        report.mutation_families,
+        report.mutation_families(),
         vec![TopologyMutationFamily::SpliceRadialAdjacency]
     );
     let witness = report
         .bowtie_adjacent_witness
+        .as_ref()
         .expect("bowtie hostile report should expose explicit witness evidence");
     assert_ne!(
         witness.source_half_edge_identity,
@@ -42,20 +43,23 @@ fn milestone_three_bowtie_adjacent_rewire_certifies_typed_rejection_with_exact_s
         MilestoneThreeHostileOutcomeClass::Rejected
     );
     assert_eq!(
-        report.continuity_outcome_class,
+        report.continuity_outcome_class(),
         TopologyMutationNamingOutcome::Ambiguous
     );
     assert_eq!(
-        report.continuity_rejection_class,
+        report.continuity_rejection_class(),
         Some(TopologyMutationRejectionClass::NamingContinuityAmbiguous)
     );
     assert_eq!(
         report.rejection_class,
         Some(TopologyMutationRejectionClass::InvariantBlocked)
     );
-    assert_eq!(report.topology_mutation_digest.mutation_record_count, 1);
-    assert_eq!(report.naming_mutation_continuity_matrix.rows.len(), 1);
-    assert_eq!(report.naming_mutation_continuity_matrix.ambiguous_count, 1);
+    assert_eq!(report.topology_mutation_digest().mutation_record_count, 1);
+    assert_eq!(report.naming_mutation_continuity_matrix().rows.len(), 1);
+    assert_eq!(
+        report.naming_mutation_continuity_matrix().ambiguous_count,
+        1
+    );
     assert!(report.mutation_replay_parity_report.replay_checked);
     assert_eq!(
         report.mutation_replay_parity_report.parity_status,
@@ -98,13 +102,13 @@ fn milestone_three_bowtie_adjacent_rewire_report_is_deterministic_for_same_seede
     assert_eq!(left.outcome_class, right.outcome_class);
     assert_eq!(left.rejection_class, right.rejection_class);
     assert_eq!(
-        left.topology_mutation_digest,
-        right.topology_mutation_digest
+        left.topology_mutation_digest(),
+        right.topology_mutation_digest()
     );
     assert_eq!(left.bowtie_adjacent_witness, right.bowtie_adjacent_witness);
     assert_eq!(
-        left.naming_mutation_continuity_matrix,
-        right.naming_mutation_continuity_matrix
+        left.naming_mutation_continuity_matrix(),
+        right.naming_mutation_continuity_matrix()
     );
     assert_eq!(
         left.rejected_mutation_scope_report,

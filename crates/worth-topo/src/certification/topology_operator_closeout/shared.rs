@@ -1,16 +1,10 @@
 use crate::certification::error::TopologyCertificationError;
-use crate::certification::support::parity::digest_materialized_topology_view;
 use crate::certification::topology_operator_closeout::report::{
-    MilestoneThreeHostileOutcomeClass, MilestoneThreeMutationReplayParityReport,
-    MilestoneThreeMutationReplayStepRow,
+    MilestoneThreeMutationReplayParityReport, MilestoneThreeMutationReplayStepRow,
 };
 use crate::certification::{DeterministicDigest, ReplayParityStatus};
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::interpret_topology_view;
-use crate::topology_operators::application::TopologyMutationApplicationError;
-use crate::topology_operators::application::{
-    TopologyDeclarationMutationPayload, TopologyDeclaredMutationArtifact,
-};
 use crate::validation::{validate_interpreted_topology, DerivedTopologyValidationReport};
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
@@ -122,52 +116,12 @@ pub(super) fn find_loop_id_by_label(
         })
 }
 
-pub(super) fn accepted_step_row_for_declaration<D>(
-    step_index: usize,
-    declaration: &D,
-    execution: &TopologyDeclaredMutationArtifact,
-) -> MilestoneThreeMutationReplayStepRow
-where
-    D: TopologyDeclarationMutationPayload,
-{
-    MilestoneThreeMutationReplayStepRow {
-        step_index,
-        mutation_families: declaration.semantic_families(),
-        topology_mutation_digest: declaration.topology_mutation_digest(),
-        naming_mutation_continuity_matrix: declaration.naming_continuity_matrix(),
-        outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
-        rejection_class: None,
-        resulting_materialized_topology_digest: Some(digest_materialized_topology_view(
-            &execution.materialized,
-        )),
-    }
-}
-
 pub(super) fn derived_validation_report_from_materialized(
     materialized: &MaterializedTopologyView,
 ) -> Result<DerivedTopologyValidationReport, TopologyCertificationError> {
     let interpreted = interpret_topology_view(materialized);
     validate_interpreted_topology(materialized, &interpreted)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))
-}
-
-pub(super) fn rejected_step_row_for_declaration<D>(
-    step_index: usize,
-    declaration: &D,
-    error: &TopologyMutationApplicationError,
-) -> MilestoneThreeMutationReplayStepRow
-where
-    D: TopologyDeclarationMutationPayload,
-{
-    MilestoneThreeMutationReplayStepRow {
-        step_index,
-        mutation_families: declaration.semantic_families(),
-        topology_mutation_digest: declaration.topology_mutation_digest(),
-        naming_mutation_continuity_matrix: declaration.naming_continuity_matrix(),
-        outcome_class: MilestoneThreeHostileOutcomeClass::Rejected,
-        rejection_class: error.rejection_class(),
-        resulting_materialized_topology_digest: None,
-    }
 }
 
 pub(super) fn replay_checked(

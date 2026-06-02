@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::sync::Arc;
 
 use forge_runtime_bridge::facade::{
     BridgeDeliveryReceipt, BridgeSignalInvalidationDelivery, BridgeTruthViewEvaluationRequest,
@@ -14,9 +13,11 @@ use crate::certification::support::reporting::{
     BridgeFamilyCoverageReport, BridgeFamilyCoverageRow, BridgeProofReport,
 };
 use crate::certification::BridgeTraceAnchor;
-use crate::facade::build_milestone_one_bridge;
+use crate::projection::runtime_boundary::bridge::build_milestone_one_bridge;
 use crate::test_support::primitive_corpus::bridge_cases::milestone_one_bridge_proof_cases;
-use crate::test_support::primitive_corpus::validated_topology::verified_primitive;
+use crate::test_support::primitive_corpus::validated_topology::committed_primitive_input;
+
+use std::sync::Arc;
 
 #[derive(Clone)]
 struct BridgeCertificationSink;
@@ -86,15 +87,15 @@ pub(crate) fn certify_milestone_one_bridge_proof(
                 ))
             })?
             .build();
-        let verified =
-            verified_primitive(&mut runtime, &format!("{stem}.case.{index}"), primitive)?;
-        let commit = verified.commits().last().ok_or_else(|| {
+        let commit_input =
+            committed_primitive_input(&mut runtime, &format!("{stem}.case.{index}"), primitive)?;
+        let commit = commit_input.commits().last().ok_or_else(|| {
             MilestoneOneCertificationError::ReadView(
                 " milestone one bridge proof requires a committed topology mutation".to_string(),
             )
         })?;
         let family = primitive_family_name(primitive).to_string();
-        let branch_id = verified.branch_id().0.clone();
+        let branch_id = commit_input.branch_id().0.clone();
         let commit_id = commit.outcome.commit.commit_id.0.to_string();
         let bridge_runtime = Arc::new(runtime);
         let bridge =

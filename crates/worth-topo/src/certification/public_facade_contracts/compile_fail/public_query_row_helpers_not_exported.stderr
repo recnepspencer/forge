@@ -6,10 +6,8 @@ error[E0432]: unresolved imports `topology::facade::derived_read_diagnostics_fro
   |     |
   |     no `derived_read_diagnostics_from_query_rows` in `facade`
 3 |     interpreted_topology_from_materialized_rows, naming_attachment_report_from_query_rows,
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |     |                                            |
-  |     |                                            no `naming_attachment_report_from_query_rows` in `facade`
-  |     |                                            help: a similar name exists in the module: `naming_attachment_report_from_query_input`
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `naming_attachment_report_from_query_rows` in `facade`
+  |     |
   |     no `interpreted_topology_from_materialized_rows` in `facade`
 4 |     validation_report_from_query_rows,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `validation_report_from_query_rows` in `facade`

@@ -8,6 +8,7 @@ mod naming_continuity_breadth_row;
 mod operator_family_proof;
 mod query_traversal_proof;
 mod replay_branch_breadth_row;
+mod replay_step_rows;
 mod report;
 mod row_accessors;
 mod scale_pressure_proof;
@@ -54,7 +55,8 @@ pub use report::{
     MilestoneThreeMutationFalloutBreadthRow, MilestoneThreeMutationFalloutClass,
     MilestoneThreeMutationReplayParityReport, MilestoneThreeMutationReplayParityRow,
     MilestoneThreeMutationReplayStepRow, MilestoneThreeNamingContinuityMatrixRow,
-    MilestoneThreeRejectedMutationScopeReportRow, MilestoneThreeSplitCollapseChurnWitness,
+    MilestoneThreeRejectedMutationScopeReportRow, MilestoneThreeScenarioMutationSemanticSummary,
+    MilestoneThreeScenarioMutationSynopsis, MilestoneThreeSplitCollapseChurnWitness,
     MilestoneThreeTopologyMutationDigestRow, MilestoneThreeValidatorFamily,
     MilestoneThreeValidatorFamilyCoverageRow,
 };

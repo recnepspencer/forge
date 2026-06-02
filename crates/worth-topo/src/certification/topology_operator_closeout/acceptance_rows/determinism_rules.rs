@@ -30,7 +30,8 @@ fn stable_mutation_order_row(
     MilestoneThreeDeterminismRuleRow {
         scenario: report.scenario,
         rule_kind: MilestoneThreeDeterminismRuleKind::StableMutationOrder,
-        evidence_count: report.topology_mutation_digest.mutation_record_count + replay.step_rows.len(),
+        evidence_count: report.topology_mutation_digest().mutation_record_count
+            + replay.step_rows.len(),
         replay_verified: replay.replay_checked
             && replay.parity_status == ReplayParityStatus::Match
             && replay.mismatch_count == 0,
@@ -40,8 +41,8 @@ fn stable_mutation_order_row(
             "scenario={};rule={};order_policy=sequence_preserving;digest={};mutation_records={};steps={};replay_steps={}",
             report.scenario.as_str(),
             MilestoneThreeDeterminismRuleKind::StableMutationOrder.as_str(),
-            report.topology_mutation_digest.digest.digest_hex,
-            report.topology_mutation_digest.mutation_record_count,
+            report.topology_mutation_digest().digest.digest_hex,
+            report.topology_mutation_digest().mutation_record_count,
             replay.step_rows.len(),
             replay.replay_step_rows.len()
         ),
@@ -65,7 +66,7 @@ fn stable_mutation_digest_row(
             "scenario={};rule={};digest={};steps={};replay_steps={};mismatches={}",
             report.scenario.as_str(),
             MilestoneThreeDeterminismRuleKind::StableMutationDigest.as_str(),
-            report.topology_mutation_digest.digest.digest_hex,
+            report.topology_mutation_digest().digest.digest_hex,
             replay.step_rows.len(),
             replay.replay_step_rows.len(),
             replay.mismatch_count
@@ -111,7 +112,7 @@ fn ambiguous_tie_break_evidence_row(
         evidence_count: 2,
         replay_verified: report.mutation_replay_parity_report.replay_checked
             && report.mutation_replay_parity_report.mismatch_count == 0,
-        diagnostic_classification_stable: report.continuity_outcome_class
+        diagnostic_classification_stable: report.continuity_outcome_class()
             == TopologyMutationNamingOutcome::Ambiguous,
         tie_break_evidence_stable: distinct_accepted_outputs
             && !witness.chosen_successor_identity.is_empty()

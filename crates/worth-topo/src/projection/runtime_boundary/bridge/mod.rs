@@ -11,11 +11,11 @@ use forge_runtime_bridge::facade::{
     BridgeBuildError, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSink,
 };
 
-pub use mappings::{
+pub(crate) use mappings::{
     milestone_one_bridge_aspect_registrations, milestone_one_bridge_mapping_registrations,
 };
 
-pub fn build_milestone_one_bridge<S>(
+pub(crate) fn build_milestone_one_bridge<S>(
     runtime: Arc<RelationalRuntime>,
     sink: S,
 ) -> Result<RuntimeBridge, BridgeBuildError>

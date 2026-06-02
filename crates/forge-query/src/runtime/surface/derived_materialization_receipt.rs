@@ -72,4 +72,22 @@ impl ForgeQueryDerivedMaterializationReceipt {
     pub fn consumer_inspection(&self) -> Option<ForgeQueryIntentConsumerInspection<'_>> {
         Some(ForgeQueryIntentConsumerInspection::from_derived_materialization_receipt(self))
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(
+        view_name: impl Into<String>,
+        snapshot_token: impl Into<String>,
+        result_digest: impl Into<String>,
+    ) -> Self {
+        Self {
+            view_name: view_name.into(),
+            dependency_digest: "dependency:test".to_string(),
+            materialization_digest: result_digest.into(),
+            inspection_digest: "inspection:test".to_string(),
+            snapshot_token: snapshot_token.into(),
+            row_count: 1,
+            decision_trace_envelope: None,
+            execution_provenance: None,
+        }
+    }
 }

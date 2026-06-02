@@ -8,13 +8,13 @@ use forge_runtime_bridge::facade::{
 use schema::facade::platform::authority::{
     milestone_two_invalidation_declarations, DerivedInvalidationTarget, DerivedTruthSurfaceKind,
 };
-use schema::facade::topology_authoring::seed_minimal_topology;
 
 use crate::certification::BridgeTraceAnchor;
 use crate::projection::runtime_boundary::bridge::{
     build_milestone_one_bridge, milestone_one_bridge_aspect_registrations,
     milestone_one_bridge_mapping_registrations,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 
 #[derive(Clone)]
 struct RecordingSink;
@@ -102,7 +102,8 @@ fn milestone_one_bridge_routes_and_evaluates_seeded_commit() {
         .expect(" milestone one runtime builder")
         .build();
 
-    let _seeded = seed_minimal_topology(&mut runtime, "bridge--seeded").expect("seed  topology");
+    let _seeded = seed_minimal_topology_through_schema_execution(&mut runtime, "bridge--seeded")
+        .expect("seed  topology");
     let history = runtime.history();
     let head_commit_id = history
         .branch_head(&BranchId("main".to_string()))
@@ -139,7 +140,8 @@ fn bridge_trace_anchor_tracks_real_runtime_diagnostics() {
         .expect(" milestone one runtime builder")
         .build();
 
-    let _seeded = seed_minimal_topology(&mut runtime, "bridge--explained").expect("seed  topology");
+    let _seeded = seed_minimal_topology_through_schema_execution(&mut runtime, "bridge--explained")
+        .expect("seed  topology");
     let history = runtime.history();
     let head_commit_id = history
         .branch_head(&BranchId("main".to_string()))

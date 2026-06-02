@@ -1,5 +1,5 @@
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::read_views::domain::closeout::{
@@ -13,6 +13,7 @@ use crate::projection::read_views::domain::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractStatus,
 };
 use crate::query_domain::TopologyCurrentHeadReadHandleExt;
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 use super::support::{
@@ -22,7 +23,7 @@ use super::support::{
 
 #[test]
 fn topology_read_closeout_reports_unobserved_families_before_any_requests() {
-    let query = TopologyReadProofHarness::new();
+    let query = TopologyReadProofHarness::current_head();
     let closeout_report = query.closeout_report();
 
     assert_eq!(closeout_report.query_executed_family_count, 0);
@@ -105,7 +106,7 @@ fn topology_read_closeout_requires_no_n_plus_one_contracts_before_phase_three_re
 #[test]
 fn topology_read_proof_report_aggregates_request_and_parity_evidence_on_the_boundary() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query.topology-read-proof.replay",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
@@ -122,8 +123,8 @@ fn topology_read_proof_report_aggregates_request_and_parity_evidence_on_the_boun
         "query.topology-read-proof.replay.right",
         &replay_basis,
     );
-    let left_query = TopologyReadProofHarness::new();
-    let right_query = TopologyReadProofHarness::new();
+    let left_query = TopologyReadProofHarness::historical_from_workspace_token();
+    let right_query = TopologyReadProofHarness::historical_from_workspace_token();
     let left_lookup_rows = current_lookup_rows(&mut left_workspace, &left_assembly);
     let moved_identity = left_lookup_rows
         .lookup()

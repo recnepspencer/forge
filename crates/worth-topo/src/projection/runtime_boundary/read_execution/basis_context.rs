@@ -2,31 +2,45 @@ use forge_query::facade::{
     admit_historical_evaluation_path, admit_query_basis_context, bind_query_basis_context,
     materialization_metadata_from_resolved, preflight_execution_basis,
     resolve_historical_materialization_path, resolve_runtime_current_snapshot_basis,
-    AdmittedQueryBasisContext, ForgeQueryReadFamily, ForgeQueryWorkspace,
+    AdmittedQueryBasisContext, ForgeQueryReadFamily, ForgeQueryReadResult, ForgeQueryWorkspace,
     HistoricalCapabilityDescriptor, HistoricalEvaluationRequest,
     HistoricalMaterializationDescriptor, HistoricalPathReuseDescriptor, QueryBasisContextRequest,
     QueryContextBindingSource,
 };
 
 use crate::projection::read_views::domain::error::TopologyReadError;
-use crate::projection::runtime_boundary::query_runtime::workspace_requires_historical_basis_context;
 
-pub(super) enum TopologyReadBasisExecutionMode {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum TopologyReadExecutionTarget {
     CurrentHead,
-    HistoricalSnapshot { context: AdmittedQueryBasisContext },
+    HistoricalSnapshot { snapshot_token: String },
 }
 
-impl TopologyReadBasisExecutionMode {
-    pub(super) fn for_workspace(
-        workspace: &ForgeQueryWorkspace,
-        family: &ForgeQueryReadFamily,
-    ) -> Result<Self, TopologyReadError> {
-        if !workspace_requires_historical_basis_context(workspace) {
-            return Ok(Self::CurrentHead);
+impl TopologyReadExecutionTarget {
+    pub(crate) fn current_head() -> Self {
+        Self::CurrentHead
+    }
+
+    pub(crate) fn historical_snapshot(snapshot_token: impl Into<String>) -> Self {
+        Self::HistoricalSnapshot {
+            snapshot_token: snapshot_token.into(),
         }
-        Ok(Self::HistoricalSnapshot {
-            context: historical_context_for_family(family, workspace.snapshot_token().as_str())?,
-        })
+    }
+
+    pub(crate) fn execute_family(
+        &self,
+        workspace: &mut ForgeQueryWorkspace,
+        family: &ForgeQueryReadFamily,
+    ) -> Result<ForgeQueryReadResult, TopologyReadError> {
+        match self {
+            Self::CurrentHead => workspace.execute_read_family(family),
+            Self::HistoricalSnapshot { snapshot_token } => workspace
+                .execute_read_family_in_basis_context(
+                    family,
+                    &historical_context_for_family(family, snapshot_token)?,
+                ),
+        }
+        .map_err(|error| TopologyReadError::read_family_execution_denied(format!("{error:?}")))
     }
 }
 

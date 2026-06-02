@@ -1,3 +1,5 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use serde_json::Value;
 
 use super::read_composition_hooks::{
@@ -5,10 +7,12 @@ use super::read_composition_hooks::{
 };
 use super::{
     ForgeQueryDerivedViewHandle, ForgeQueryGenericInspectionIntentTarget, ForgeQueryInspection,
-    ForgeQueryInspectionTarget, ForgeQueryInstalledProgram, ForgeQueryPatchBatch,
-    ForgeQueryProgram, ForgeQueryReadBuilder, ForgeQueryReadDomainInvariantDenial,
-    ForgeQueryReadFamily, ForgeQueryReadFamilyInvariantEvidence, ForgeQueryReadGraph,
-    ForgeQueryReadResult, ForgeQueryRuntimeError, ForgeQueryWorkspace,
+    ForgeQueryInspectionTarget, ForgeQueryInstalledProgram, ForgeQueryLiveArtifactBinding,
+    ForgeQueryLiveArtifactBundle, ForgeQueryLiveArtifactTarget, ForgeQueryLiveReadResult,
+    ForgeQueryPatchBatch, ForgeQueryProgram, ForgeQueryReadBuilder,
+    ForgeQueryReadDomainInvariantDenial, ForgeQueryReadFamily,
+    ForgeQueryReadFamilyInvariantEvidence, ForgeQueryReadGraph, ForgeQueryReadResult,
+    ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
 
 impl ForgeQueryWorkspace {
@@ -124,6 +128,33 @@ impl ForgeQueryWorkspace {
             .to_vec()
     }
 
+    pub fn read_live_artifact_binding(
+        &mut self,
+        artifact_name: impl Into<String>,
+        targets: impl IntoIterator<Item = ForgeQueryLiveArtifactTarget>,
+    ) -> Result<ForgeQueryLiveArtifactBinding, ForgeQueryRuntimeError> {
+        let retained_targets = targets.into_iter().collect::<Vec<_>>();
+        self.read_live_artifact_bundle(retained_targets.clone())?
+            .bind_live_artifact(artifact_name, retained_targets)
+    }
+
+    pub fn read_live_artifact_bundle(
+        &mut self,
+        targets: impl IntoIterator<Item = ForgeQueryLiveArtifactTarget>,
+    ) -> Result<ForgeQueryLiveArtifactBundle, ForgeQueryRuntimeError> {
+        let mut retained_targets = targets.into_iter().collect::<Vec<_>>();
+        retained_targets.sort();
+        retained_targets.dedup();
+
+        let mut reads = BTreeMap::new();
+        for target in retained_targets {
+            let result = self.runtime.execute_live_read_by_name(target.view_name())?;
+            reads.insert(target.view_name().to_string(), result);
+        }
+        let snapshot_token = live_bundle_snapshot_token(&reads)?;
+        Ok(ForgeQueryLiveArtifactBundle::new(snapshot_token, reads))
+    }
+
     pub fn observe<T>(&mut self, view: &super::ForgeQueryLiveView<T>) -> ForgeQueryPatchBatch {
         self.runtime.drain_patches(view)
     }
@@ -161,5 +192,41 @@ impl ForgeQueryWorkspace {
         T: Into<ForgeQueryInspectionTarget<'a>>,
     {
         self.runtime.inspect(target)
+    }
+}
+
+fn live_bundle_snapshot_token(
+    reads: &BTreeMap<String, ForgeQueryLiveReadResult>,
+) -> Result<String, ForgeQueryRuntimeError> {
+    let snapshot_tokens = reads
+        .iter()
+        .map(|(view_name, result)| {
+            (
+                view_name.clone(),
+                result.receipt().snapshot_token().to_string(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let distinct_snapshot_tokens = snapshot_tokens
+        .iter()
+        .map(|(_, snapshot_token)| snapshot_token.clone())
+        .collect::<BTreeSet<_>>();
+    match snapshot_tokens.as_slice() {
+        [] => Ok(String::new()),
+        [(_, snapshot_token)] if distinct_snapshot_tokens.len() == 1 => Ok(snapshot_token.clone()),
+        _ if distinct_snapshot_tokens.len() == 1 => Ok(snapshot_tokens[0].1.clone()),
+        _ => Err(ForgeQueryRuntimeError::ReadCompositionDenied(
+            super::ForgeQueryReadDenial::new(
+                super::ForgeQueryReadDenialKind::ExecutionDenied,
+                format!(
+                    "live artifact bundle materialized multiple snapshot tokens: {}",
+                    snapshot_tokens
+                        .iter()
+                        .map(|(view_name, snapshot_token)| format!("{view_name}:{snapshot_token}"))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+            ),
+        )),
     }
 }

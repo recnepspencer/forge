@@ -1,4 +1,6 @@
 use super::*;
+use crate::facade::TopologyBranchAuthoringBoundary;
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_in_new_branch_through_schema_execution;
 
 #[test]
 fn admitted_family_parameter_sweeps_certify_across_ranges() {
@@ -65,9 +67,10 @@ fn admitted_family_parameter_sweeps_certify_across_ranges() {
         let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
             .expect(" milestone one runtime builder")
             .build();
-        let verified = verified_primitive(&mut runtime, &format!("sweep.case.{index}"), &primitive)
-            .expect("admitted primitive commit");
-        let report = certify_verified_topology_commit_traced(&mut runtime, &verified)
+        let commit_input =
+            committed_primitive_input(&mut runtime, &format!("sweep.case.{index}"), &primitive)
+                .expect("admitted primitive commit input");
+        let report = certify_topology_commit_input_traced(&mut runtime, &commit_input)
             .expect("swept primitive certification should succeed")
             .into_primary_result();
 
@@ -122,28 +125,27 @@ fn branch_local_parameter_sweeps_preserve_branch_and_replay_truth() {
         let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
             .expect(" milestone one runtime builder")
             .build();
-        runtime
-            .history_authority()
-            .create_branch(
-                BranchId("feature".to_string()),
-                &BranchId("main".to_string()),
-            )
-            .expect("feature branch");
-        let verified = verified_primitive_on_branch(
+        let commit_input = seed_milestone_one_primitive_in_new_branch_through_schema_execution(
             &mut runtime,
             &format!("branch-sweep.case.{index}"),
             &primitive,
-            BranchId("feature".to_string()),
+            "feature",
             MutationOrigin::BranchLocalApplication,
         )
-        .expect("branch-local admitted primitive commit");
-        let report = certify_verified_topology_commit_traced(&mut runtime, &verified)
+        .expect("branch-local admitted primitive commit input");
+        let report = certify_topology_commit_input_traced(&mut runtime, &commit_input)
             .expect("branch-local swept primitive certification should succeed")
             .into_primary_result();
 
         assert!(
             report.branch_local_topology_report.branch_local,
             "{family} should remain branch-local"
+        );
+        assert_eq!(
+            report
+                .branch_local_topology_report
+                .branch_authoring_boundary,
+            Some(TopologyBranchAuthoringBoundary::SchemaTopologyAuthoring)
         );
         assert_eq!(report.branch_local_topology_report.branch_id.0, "feature");
         assert_eq!(

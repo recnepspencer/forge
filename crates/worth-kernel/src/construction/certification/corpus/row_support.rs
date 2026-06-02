@@ -3,21 +3,23 @@ use crate::construction::diagnostics::{
     PrimitiveConstructionRejectionLocalityRow,
 };
 use crate::construction::request::PrimitiveConstructionRequest;
-use crate::construction::result::PreparedPrimitiveConstructionResult;
+use crate::construction::result::{
+    prepare_primitive_construction_result, PreparedPrimitiveConstructionResult,
+};
 
 pub(super) fn construction_breadth(
     request: &PrimitiveConstructionRequest,
 ) -> Result<usize, String> {
-    let intent = request.clone().admit().map_err(|error| error.to_string())?;
-    let scaffold = intent.build_scaffold().map_err(|error| error.to_string())?;
-    let counts = scaffold.topology_counts();
-    Ok(counts.vertex_count()
-        + counts.edge_count()
-        + counts.loop_count()
-        + counts.wire_count()
-        + counts.face_count()
-        + counts.shell_count()
-        + counts.body_count())
+    let result = prepare_primitive_construction_result(request.clone())
+        .map_err(|error| error.to_string())?;
+    let counts = result.evidence().birth_completeness_report();
+    Ok(counts.supported_vertex_count()
+        + counts.supported_edge_count()
+        + counts.supported_loop_count()
+        + counts.supported_wire_count()
+        + counts.supported_face_count()
+        + counts.supported_shell_count()
+        + counts.supported_body_count())
 }
 
 pub(super) fn birth_attachment_breadth(result: &PreparedPrimitiveConstructionResult) -> usize {
@@ -33,8 +35,9 @@ pub(super) fn birth_attachment_breadth(result: &PreparedPrimitiveConstructionRes
 pub(super) fn certification_breadth(result: &PreparedPrimitiveConstructionResult) -> usize {
     result
         .evidence()
-        .topology_fact_report()
-        .rows()
+        .topology_query_handoff()
+        .topology_query_envelope()
+        .fact_rows()
         .iter()
         .map(|row| row.fact_count())
         .sum()

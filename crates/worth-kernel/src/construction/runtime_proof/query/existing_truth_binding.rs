@@ -18,24 +18,24 @@ const AUDITED_FILES: [(&str, &str); 5] = [
         )),
     ),
     (
-        "worth-topo.lowering",
+        "worth-topo.construction-boundary-mod",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../worth-topo/src/construction/lowering.rs"
+            "/../worth-topo/src/construction/mod.rs"
         )),
     ),
     (
-        "worth-topo.execution",
+        "worth-topo.query-native-boundary",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../worth-topo/src/construction/execution.rs"
+            "/../worth-topo/src/construction/query_native_boundary.rs"
         )),
     ),
     (
-        "worth-topo.certification",
+        "worth-topo.boundary-tests",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../worth-topo/src/construction/certification.rs"
+            "/../worth-topo/src/construction/boundary_tests.rs"
         )),
     ),
 ];

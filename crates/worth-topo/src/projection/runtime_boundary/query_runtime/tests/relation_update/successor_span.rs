@@ -2,7 +2,7 @@ use forge_query::facade::{
     ForgeQueryExistingTruthAssertionMode, ForgeQueryGraphCompositionLifecycleOutcomeKind,
     ForgeQueryGraphCompositionProgramStepKind,
 };
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::super::query_runtime_support::QueryRuntimeSupport;
 use super::successor_span_declaration::{
@@ -12,13 +12,14 @@ use crate::certification::support::declaration_runtime::execute_current_head_top
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::TopologyMutationFamily;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
 fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-mutation-rewire-successor-span",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
@@ -61,10 +62,11 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration).expect(
             "two-halfedge span relocation program should execute through declaration entry",
         );
+    let synopsis = execution.accepted_mutation_projection();
 
-    assert_eq!(execution.families.len(), 6);
-    assert!(execution
-        .families
+    assert_eq!(synopsis.mutation_families().len(), 6);
+    assert!(synopsis
+        .mutation_families()
         .iter()
         .all(|family| *family == TopologyMutationFamily::RewireLoopSuccessor));
     assert_eq!(
@@ -75,7 +77,7 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_program()
             .expect("two-halfedge successor span should expose composed program")
             .steps()
@@ -86,7 +88,7 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_lifecycle_outcomes()
             .expect("two-halfedge successor span should expose graph lifecycle")
             .entries()
@@ -95,9 +97,9 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
             .collect::<Vec<_>>(),
         vec![ForgeQueryGraphCompositionLifecycleOutcomeKind::RetargetedIdentityPreserved; 6]
     );
-    assert_eq!(execution.inspection.component_operations().len(), 6);
+    assert_eq!(execution.inspection().component_operations().len(), 6);
     assert!(execution
-        .inspection
+        .inspection()
         .component_operations()
         .iter()
         .all(|operation| {
@@ -111,7 +113,7 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
                     })
         }));
     let moved_start = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()
@@ -120,7 +122,7 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
     assert_eq!(moved_start.prev_half_edge_id, Some(new_predecessor_id));
     assert_eq!(moved_start.next_half_edge_id, Some(moved_end_id));
     let moved_end = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()
@@ -129,7 +131,7 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
     assert_eq!(moved_end.prev_half_edge_id, Some(moved_start_id));
     assert_eq!(moved_end.next_half_edge_id, Some(new_successor_id));
     let old_predecessor = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()
@@ -141,7 +143,7 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
 #[test]
 fn current_head_runtime_executes_three_half_edge_span_relocation_successor_program() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-mutation-rewire-successor-three-span",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
@@ -187,10 +189,11 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration).expect(
             "three-halfedge span relocation program should execute through declaration entry",
         );
+    let synopsis = execution.accepted_mutation_projection();
 
-    assert_eq!(execution.families.len(), 6);
-    assert!(execution
-        .families
+    assert_eq!(synopsis.mutation_families().len(), 6);
+    assert!(synopsis
+        .mutation_families()
         .iter()
         .all(|family| *family == TopologyMutationFamily::RewireLoopSuccessor));
     assert_eq!(
@@ -201,7 +204,7 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_program()
             .expect("three-halfedge successor span should expose composed program")
             .steps()
@@ -212,7 +215,7 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_lifecycle_outcomes()
             .expect("three-halfedge successor span should expose graph lifecycle")
             .entries()
@@ -221,9 +224,9 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
             .collect::<Vec<_>>(),
         vec![ForgeQueryGraphCompositionLifecycleOutcomeKind::RetargetedIdentityPreserved; 6]
     );
-    assert_eq!(execution.inspection.component_operations().len(), 6);
+    assert_eq!(execution.inspection().component_operations().len(), 6);
     assert!(execution
-        .inspection
+        .inspection()
         .component_operations()
         .iter()
         .all(|operation| {
@@ -237,7 +240,7 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
                     })
         }));
     let moved_start = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()
@@ -246,7 +249,7 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
     assert_eq!(moved_start.prev_half_edge_id, Some(new_predecessor_id));
     assert_eq!(moved_start.next_half_edge_id, Some(moved_mid_id));
     let moved_mid = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()
@@ -255,7 +258,7 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
     assert_eq!(moved_mid.prev_half_edge_id, Some(moved_start_id));
     assert_eq!(moved_mid.next_half_edge_id, Some(moved_end_id));
     let moved_end = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()
@@ -264,7 +267,7 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
     assert_eq!(moved_end.prev_half_edge_id, Some(moved_mid_id));
     assert_eq!(moved_end.next_half_edge_id, Some(new_successor_id));
     let old_predecessor = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()

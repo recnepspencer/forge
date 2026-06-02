@@ -5,7 +5,6 @@ mod validator_tests {
     use forge_relational::facade::symbols::ClientKey;
     use forge_relational::facade::transactions::{CreateIntent, EntitySpec, MutationIntent};
     use schema::facade::bootstrap_schema_registry;
-    use schema::facade::topology_authoring::{commit_topology_mutation_set, seed_minimal_topology};
 
     use crate::brep::topology_graph::{TopologyFace, TopologyLoop};
     use crate::facade::{
@@ -18,13 +17,18 @@ mod validator_tests {
         half_edge_with_links, open_sheet_patch_view, open_shell_nmt_fan_view, open_wire_chain_view,
         single_face_sheet_disk_view, tetrahedral_closed_shell_view, vertex,
     };
+    use crate::test_support::schema_topology_authoring_boundary::{
+        commit_topology_mutation_set_through_schema_execution,
+        seed_minimal_topology_through_schema_execution,
+    };
     #[test]
     fn seeded_topology_view_passes_milestone_one_validators() {
         let mut runtime = RelationalRuntimeApi::builder()
             .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
             .build();
 
-        let seeded = seed_minimal_topology(&mut runtime, "validator").expect("seed  topology");
+        let seeded = seed_minimal_topology_through_schema_execution(&mut runtime, "validator")
+            .expect("seed  topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)
@@ -59,9 +63,10 @@ mod validator_tests {
             .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
             .build();
 
-        let seeded = seed_minimal_topology(&mut runtime, "missing-name").expect("seed  topology");
+        let seeded = seed_minimal_topology_through_schema_execution(&mut runtime, "missing-name")
+            .expect("seed  topology");
 
-        let commit = commit_topology_mutation_set(
+        let commit = commit_topology_mutation_set_through_schema_execution(
             &mut runtime,
             "validation-missing-name-mutation-set",
             [MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -103,7 +108,8 @@ mod validator_tests {
             .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
             .build();
 
-        let seeded = seed_minimal_topology(&mut runtime, "validator").expect("seed  topology");
+        let seeded = seed_minimal_topology_through_schema_execution(&mut runtime, "validator")
+            .expect("seed  topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)

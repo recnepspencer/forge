@@ -1,17 +1,17 @@
 use std::collections::BTreeMap;
 
 use crate::topology_operators::TopologyDeclaredMutationSequence;
-use forge_query::facade::{
-    ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection, ForgeQueryInspection,
-    ForgeQueryMutationBatchBuilder,
-};
+use forge_query::facade::ForgeQueryDeclarationInput;
+use forge_query::facade::ForgeQueryMutationBatchBuilder;
 use schema::facade::platform::entities::TopologyEntityKind;
 
 use super::super::{
-    load_post_write_materialized_topology, TopologyDeclaredMutationArtifact,
+    finalize_batch_write_closeout, TopologyDeclaredMutationArtifact,
     TopologyMutationApplicationError, TopologyMutationApplicationMode,
     TopologyMutationApplicationRunner, TopologyQueryBindingIndex,
+    TopologyRetainedApplicationHandoff,
 };
+use crate::query_domain::TopologyQueryDomain;
 
 pub(super) fn lower_mutation_sequence(
     runner: &TopologyMutationApplicationRunner<'_, '_>,
@@ -26,31 +26,22 @@ pub(super) fn lower_mutation_sequence(
         })
 }
 
-pub(super) fn finalize_lowered_mutations(
+pub(super) fn finalize_lowered_mutations<I>(
     runner: &mut TopologyMutationApplicationRunner<'_, '_>,
+    retained_handoff: TopologyRetainedApplicationHandoff<I>,
     lowered_mutations: ForgeQueryMutationBatchBuilder,
     semantic_family_key: &'static str,
     _mode: TopologyMutationApplicationMode,
     sequence: &TopologyDeclaredMutationSequence,
-) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
-    let receipt = runner.workspace.batch(|_| lowered_mutations)?;
-    let inspection = load_mutation_receipt_inspection(runner, &receipt)?;
-    let materialized = load_post_write_materialized_topology(runner.workspace, runner.surfaces)?;
-    Ok(TopologyDeclaredMutationArtifact::from_receipt(
+) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError>
+where
+    I: ForgeQueryDeclarationInput<TopologyQueryDomain>,
+{
+    finalize_batch_write_closeout(
+        runner,
+        retained_handoff,
+        lowered_mutations,
         semantic_family_key,
         sequence,
-        receipt,
-        inspection,
-        materialized,
-    ))
-}
-
-fn load_mutation_receipt_inspection(
-    runner: &mut TopologyMutationApplicationRunner<'_, '_>,
-    receipt: &ForgeQueryBatchWriteReceipt,
-) -> Result<ForgeQueryBatchWriteReceiptInspection, TopologyMutationApplicationError> {
-    match runner.workspace.inspect(receipt)? {
-        ForgeQueryInspection::BatchWriteReceipt(inspection) => Ok(inspection),
-        _ => Err(TopologyMutationApplicationError::UnexpectedInspectionFamily),
-    }
+    )
 }

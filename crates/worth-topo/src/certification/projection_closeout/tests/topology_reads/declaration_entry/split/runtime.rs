@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::support::{
     shell_split_declaration_for_fixture, shell_split_fixture, wire_split_declaration_for_fixture,
@@ -8,12 +8,13 @@ use super::support::{
 };
 use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
 fn current_head_runtime_executes_canonical_wire_split_declaration_through_declaration_entry() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.split-wire.runtime",
         &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
@@ -40,10 +41,12 @@ fn current_head_runtime_executes_canonical_wire_split_declaration_through_declar
     .expect("canonical wire split declaration should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.split_connected_half_edge_set_to_new_wire"
     );
-    let topology = execution.materialized.topology();
+    let topology = execution.materialized().topology();
     let new_wire = topology
         .wires
         .iter()
@@ -83,7 +86,7 @@ fn current_head_runtime_executes_canonical_wire_split_declaration_through_declar
 #[test]
 fn current_head_runtime_executes_canonical_shell_split_declaration_through_declaration_entry() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.split-shell.runtime",
         &MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },
@@ -111,10 +114,12 @@ fn current_head_runtime_executes_canonical_shell_split_declaration_through_decla
     .expect("canonical shell split declaration should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.split_single_face_from_two_face_shell_to_new_shell"
     );
-    let topology = execution.materialized.topology();
+    let topology = execution.materialized().topology();
     let new_shell = topology
         .shells
         .iter()

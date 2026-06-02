@@ -1,5 +1,5 @@
-use crate::facade::TopologyQueryMutationEvidence;
 use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
+use crate::projection::runtime_boundary::declared_query_surfaces::query_diagnostics::TopologyQueryMutationEvidence;
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 use crate::projection::runtime_boundary::read_stage::open_topology_read_view;
 use crate::projection::TopologyQueryRowLookup;
@@ -8,6 +8,7 @@ use crate::query_domain::{
     topology_snapshot_read_only_context, TopologyCurrentHeadConfiguredDomainHandle,
     TopologySnapshotReadOnlyConfiguredDomainHandle,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::milestone_one_runtime_builder;
 use forge_query::facade::ForgeQueryApplicationFacade;
 use forge_query::facade::ForgeQueryEntity;
@@ -15,7 +16,7 @@ use forge_query::facade::ForgeQueryWorkspace;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::authority::MutationOrigin;
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde_json::Value;
 
 pub(in crate::certification::projection_closeout::tests) fn seeded_sheet_disk_workspace(
@@ -28,7 +29,7 @@ pub(in crate::certification::projection_closeout::tests) fn seeded_sheet_disk_wo
     let mut runtime = milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         stem,
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
@@ -67,7 +68,7 @@ pub(in crate::certification::projection_closeout::tests) fn snapshot_basis_works
     let read_view =
         open_topology_read_view(runtime, read_basis).expect("snapshot read view should open");
     let adapters =
-        TopologyRuntimeAdapters::snapshot_read_only(read_view, read_basis.snapshot().clone());
+        TopologyRuntimeAdapters::snapshot_historical_basis(read_view, read_basis.clone());
     let mut workspace = topology_runtime(adapters, stem).expect("workspace should build");
     let surfaces =
         crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(

@@ -12,25 +12,26 @@ use crate::facade::{
     MilestoneThreeMutationFalloutClass, MilestoneTwoCloseoutReport, MilestoneTwoCounters,
     PrimitiveCorpusCoverageMatrix, PrimitiveCorpusParityReport,
 };
-use forge_relational::facade::history::BranchId;
 use schema::facade::platform::authority::MutationOrigin;
 use schema::facade::platform::authority::{ShellInterpretationClass, WireInterpretationClass};
 use schema::facade::topology_authoring::{
     MilestoneOnePrimitiveCase, MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
 };
 
+use crate::certification::facade::{
+    certify_milestone_two_topology_commit_input_traced, certify_topology_commit_input_traced,
+};
 use crate::certification::{
     certify_milestone_one_branch_local_primitive_scenarios, certify_milestone_one_closeout,
     certify_milestone_one_default_primitive_corpus, certify_milestone_one_primitive_corpus,
     certify_milestone_one_read_basis_traced, certify_milestone_three_closeout,
     certify_milestone_two_closeout, certify_milestone_two_default_derived_corpus,
-    certify_milestone_two_read_basis_traced, certify_milestone_two_verified_topology_commit_traced,
-    certify_verified_topology_commit_traced,
+    certify_milestone_two_read_basis_traced,
 };
 use crate::test_support::primitive_corpus::authored_topology::milestone_one_default_corpus_scenarios;
 use crate::test_support::primitive_corpus::branch_replay_cases::milestone_one_default_branch_local_admitted_scenarios;
 use crate::test_support::primitive_corpus::validated_topology::{
-    seeded_bootstrap, verified_primitive, verified_primitive_on_branch,
+    committed_primitive_input, seeded_bootstrap,
 };
 
 mod closeout;

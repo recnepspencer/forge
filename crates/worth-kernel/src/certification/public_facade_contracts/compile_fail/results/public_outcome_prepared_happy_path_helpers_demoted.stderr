@@ -1,0 +1,9 @@
+error[E0432]: unresolved imports `worth_kernel::facade::outcome::prepared::prepare_primitive_construction_outcome`, `worth_kernel::facade::outcome::prepared::prepare_primitive_construction_result`
+ --> src/certification/public_facade_contracts/compile_fail/results/public_outcome_prepared_happy_path_helpers_demoted.rs:2:5
+  |
+2 |     prepare_primitive_construction_outcome, prepare_primitive_construction_result,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |     |                                       |
+  |     |                                       no `prepare_primitive_construction_result` in `facade::outcome::prepared`
+  |     |                                       help: a similar name exists in the module: `PreparedPrimitiveConstructionResult`
+  |     no `prepare_primitive_construction_outcome` in `facade::outcome::prepared`

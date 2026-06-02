@@ -1,23 +1,21 @@
 use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryWorkspace,
 };
-use topology::facade::TopologyConstructionMutationSurface;
+use topology::facade::TopologyConstructionQueryMutationSurface;
 
-use crate::construction::artifact::build_canonical_primitive_construction_artifact;
-use crate::construction::digest::digest_owned_parts;
-use crate::construction::execution::{
-    PreparedPrimitiveConstructionExecution, PrimitiveConstructionExecutionError,
+use crate::construction::authoring::{
+    primitive_construction_authoring, PrimitiveConstructionQueryEntryError,
+    WorthKernelAuthorityError,
 };
+use crate::construction::digest::digest_owned_parts;
 use crate::construction::intent::PrimitiveConstructionIntent;
-use crate::construction::lower_scaffold_to_topology;
-use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
-
+use crate::construction::request::PrimitiveConstructionFamily;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionQueryGraphCompositionParityReport {
     family: PrimitiveConstructionFamily,
     query_contract_digest: String,
-    lowering_surface: TopologyConstructionMutationSurface,
-    artifact_surface: TopologyConstructionMutationSurface,
+    topology_query_receipt_surface: TopologyConstructionQueryMutationSurface,
+    artifact_surface: TopologyConstructionQueryMutationSurface,
     required_query_families: Vec<ForgeQueryRuntimeFacadeFamily>,
     parity_verified: bool,
     report_digest: String,
@@ -27,17 +25,22 @@ impl PrimitiveConstructionQueryGraphCompositionParityReport {
     fn new(
         family: PrimitiveConstructionFamily,
         query_contract_digest: String,
-        lowering_surface: TopologyConstructionMutationSurface,
-        artifact_surface: TopologyConstructionMutationSurface,
+        topology_query_envelope_surface: TopologyConstructionQueryMutationSurface,
+        artifact_surface: TopologyConstructionQueryMutationSurface,
         required_query_families: &[ForgeQueryRuntimeFacadeFamily],
     ) -> Self {
-        let parity_verified = lowering_surface == TopologyConstructionMutationSurface::ComposeGraph
-            && artifact_surface == TopologyConstructionMutationSurface::ComposeGraph
-            && required_query_families == [ForgeQueryRuntimeFacadeFamily::Write];
+        let parity_verified = topology_query_envelope_surface
+            == TopologyConstructionQueryMutationSurface::ComposeGraph
+            && artifact_surface == TopologyConstructionQueryMutationSurface::ComposeGraph
+            && required_query_families
+                == [
+                    ForgeQueryRuntimeFacadeFamily::Write,
+                    ForgeQueryRuntimeFacadeFamily::Inspect,
+                ];
         let report_digest = digest_owned_parts(&[
             family.as_str().to_string(),
             query_contract_digest.clone(),
-            lowering_surface.as_str().to_string(),
+            topology_query_envelope_surface.as_str().to_string(),
             artifact_surface.as_str().to_string(),
             required_query_families
                 .iter()
@@ -49,7 +52,7 @@ impl PrimitiveConstructionQueryGraphCompositionParityReport {
         Self {
             family,
             query_contract_digest,
-            lowering_surface,
+            topology_query_receipt_surface: topology_query_envelope_surface,
             artifact_surface,
             required_query_families: required_query_families.to_vec(),
             parity_verified,
@@ -61,15 +64,15 @@ impl PrimitiveConstructionQueryGraphCompositionParityReport {
         self.family
     }
 
-    pub fn lowering_surface(&self) -> TopologyConstructionMutationSurface {
-        self.lowering_surface
+    pub fn topology_query_receipt_surface(&self) -> TopologyConstructionQueryMutationSurface {
+        self.topology_query_receipt_surface
     }
 
     pub fn query_contract_digest(&self) -> &str {
         &self.query_contract_digest
     }
 
-    pub fn artifact_surface(&self) -> TopologyConstructionMutationSurface {
+    pub fn artifact_surface(&self) -> TopologyConstructionQueryMutationSurface {
         self.artifact_surface
     }
 
@@ -88,16 +91,16 @@ impl PrimitiveConstructionQueryGraphCompositionParityReport {
 
 #[derive(Debug)]
 pub enum PrimitiveConstructionQueryGraphCompositionParityError {
-    Phase(PrimitiveConstructionPhaseError),
-    Execution(PrimitiveConstructionExecutionError),
+    Authority(WorthKernelAuthorityError),
+    QueryEntry(PrimitiveConstructionQueryEntryError),
     QueryRuntime(ForgeQueryRuntimeError),
 }
 
 impl std::fmt::Display for PrimitiveConstructionQueryGraphCompositionParityError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Phase(error) => write!(f, "{error}"),
-            Self::Execution(error) => write!(f, "{error}"),
+            Self::Authority(error) => write!(f, "{error:?}"),
+            Self::QueryEntry(error) => write!(f, "{error}"),
             Self::QueryRuntime(error) => write!(f, "{error}"),
         }
     }
@@ -117,41 +120,24 @@ pub fn prepare_primitive_construction_query_graph_composition_parity_report(
         .map_err(PrimitiveConstructionQueryGraphCompositionParityError::QueryRuntime)?
         .contract_digest()
         .to_string();
-    let request_for_chain = intent.into().into_request();
-    let intent = request_for_chain
-        .clone()
-        .admit()
-        .map_err(PrimitiveConstructionQueryGraphCompositionParityError::Phase)?;
-    let scaffold = intent
-        .build_scaffold()
-        .map_err(PrimitiveConstructionQueryGraphCompositionParityError::Phase)?;
-    let (birth_plan, lowering_plan) = lower_scaffold_to_topology(&scaffold)
-        .map_err(PrimitiveConstructionQueryGraphCompositionParityError::Phase)?;
-    let execution = PreparedPrimitiveConstructionExecution::from_phase_chain(
-        &request_for_chain,
-        &intent,
-        &scaffold,
-        &birth_plan,
-        &lowering_plan,
-    )
-    .map_err(PrimitiveConstructionQueryGraphCompositionParityError::Execution)?;
-    let certification = execution.plan_topology_certification();
-    let artifact = build_canonical_primitive_construction_artifact(
-        &request_for_chain,
-        &intent,
-        &scaffold,
-        &birth_plan,
-        &lowering_plan,
-        &execution,
-        &certification,
-    )
-    .expect("graph composition parity should not fail artifact assembly");
+    let prepared = {
+        let mut session = primitive_construction_authoring(workspace)
+            .map_err(PrimitiveConstructionQueryGraphCompositionParityError::Authority)?;
+        session
+            .prepare_result(intent)
+            .map_err(PrimitiveConstructionQueryGraphCompositionParityError::QueryEntry)?
+    };
+    let artifact = prepared.canonical_artifact();
+    let topology_query_envelope = prepared
+        .evidence()
+        .topology_query_handoff()
+        .topology_query_envelope();
     Ok(PrimitiveConstructionQueryGraphCompositionParityReport::new(
-        request_for_chain.family(),
+        prepared.family(),
         query_contract_digest,
-        lowering_plan.mutation_surface(),
+        topology_query_envelope.mutation_surface(),
         artifact.mutation_surface(),
-        execution.execution_plan().required_query_families(),
+        topology_query_envelope.required_query_families(),
     ))
 }
 
@@ -163,7 +149,7 @@ mod tests {
     };
     use forge_query::facade::ForgeQueryRuntimeFacadeFamily;
     use topology::facade::{
-        milestone_one_runtime_builder, topology_runtime, TopologyConstructionMutationSurface,
+        milestone_one_runtime_builder, topology_runtime, TopologyConstructionQueryMutationSurface,
         TopologyRuntimeAdapters,
     };
 
@@ -187,16 +173,19 @@ mod tests {
 
         assert_eq!(report.family(), PrimitiveConstructionFamily::Orthotope);
         assert_eq!(
-            report.lowering_surface(),
-            TopologyConstructionMutationSurface::ComposeGraph
+            report.topology_query_receipt_surface(),
+            TopologyConstructionQueryMutationSurface::ComposeGraph
         );
         assert_eq!(
             report.artifact_surface(),
-            TopologyConstructionMutationSurface::ComposeGraph
+            TopologyConstructionQueryMutationSurface::ComposeGraph
         );
         assert_eq!(
             report.required_query_families(),
-            &[ForgeQueryRuntimeFacadeFamily::Write]
+            &[
+                ForgeQueryRuntimeFacadeFamily::Write,
+                ForgeQueryRuntimeFacadeFamily::Inspect,
+            ]
         );
         assert!(!report.query_contract_digest().is_empty());
         assert!(report.parity_verified());

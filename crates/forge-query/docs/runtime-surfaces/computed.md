@@ -71,12 +71,61 @@ pretending a local incremental update was sufficient.
    downstream whole-refresh computeds reached through other computed surfaces:
    the runtime preserves the declared live siblings needed by the downstream
    rebuild contract rather than forcing the maintainer to reconstruct them
-   manually. Whole-refresh maintainers also receive retained mutation context:
-   commit identity, snapshot token, touched aspect paths, and any authored
-   mutation metadata the write carried.
-5. `workspace.materialize(...)` returns current derived rows.
-6. `workspace.inspect(...)` explains dependencies, produced aspects, and patch
+   manually.
+5. The same whole-refresh contract also applies at declaration time. If a
+   maintained computed is declared after its upstream live or computed truth
+   already exists, the runtime seeds that computed immediately from retained
+   upstream rows instead of waiting for the next write just to make the first
+   materialization honest.
+6. Whole-refresh maintainers do not receive a fake "write" signal for that
+   first seed. They receive retained refresh context that tells them whether
+   the rebuild came from a mutation or from declaration-time initialization,
+   plus the snapshot token, touched aspect paths, and any runtime-owned refresh
+   metadata the basis or write path attached.
+7. `workspace.materialize(...)` returns current derived rows.
+8. `workspace.inspect(...)` explains dependencies, produced aspects, and patch
    posture.
+
+When a caller needs one typed retained row instead of raw `Vec<Value>` row
+archaeology, the admitted materialization lane is the stronger floor:
+
+- `workspace.materialize_intent(&derived).execute()` returns one retained
+  derived materialization result artifact
+- that artifact can decode its single retained row directly through
+  `decode_single_row::<T>()`
+- when one downstream step needs a coherent retained artifact across multiple
+  computed surfaces, `workspace.materialize_derived_artifact_bundle(...)`
+  retains that multi-surface materialization as one Query-owned bundle instead
+  of forcing caller-owned loops over repeated materialization entry
+  - when that next step also needs an exact named artifact contract over that
+  bundle, bind it through `bind_retained_artifact(...)` so the runtime owns the
+  target-set check and artifact digest instead of caller code pretending the
+  naked bundle was already the final artifact
+  - when the caller already knows it wants one exact named retained artifact,
+  use `materialize_derived_artifact_binding(...)` instead of spelling
+  `materialize_derived_artifact_bundle(...).bind_retained_artifact(...)`
+  manually
+- when the next step needs only named scalar evidence from one retained
+  derived artifact row, consume it through
+  `ForgeQueryDerivedArtifactBinding::consume_scalar_fields(...)` so the runtime
+  owns dotted-path extraction and retained fact identity instead of caller code
+  spelunking decoded structs or raw `serde_json::Value`
+- when the next step needs a small typed pack from one retained artifact,
+  decode it through `ForgeQueryDerivedArtifactBinding::decode_row_pair(...)` or
+  `decode_row_triple(...)` instead of repeating separate single-row decode
+  choreography in caller code
+- when the next step must prove that scalar evidence stayed aligned across two
+  retained rows inside one artifact, verify it through
+  `ForgeQueryDerivedArtifactBinding::verify_scalar_alignment(...)` instead of
+  extracting both fact sets and comparing them locally
+- when one mutation step already has a retained batch-write receipt and needs
+  the matching inspection plus one exact retained derived artifact as the next
+  authoritative package, use `materialize_batch_write_artifact_binding(...)`
+  instead of stitching `workspace.inspect(...)` and
+  `materialize_derived_artifact_binding(...)` together in caller code
+- whole-refresh maintainers can also decode one retained computed upstream row
+  through `ForgeQueryRetainedUpstreamInputs::decode_single_computed_row(...)`
+  instead of teaching local `serde_json` helper folklore
 
 Nested computed surfaces execute in dependency order rather than in accidental
 call order.
@@ -190,7 +239,22 @@ What gets retained:
 - produced-aspect digests
 - materialized rows
 - pending incremental or refresh-fallback patch posture
-- retained mutation context for whole-refresh rebuilds
+- retained refresh context for whole-refresh rebuilds, including declaration-
+  initialization posture when the runtime seeds from already-retained truth
+- retained derived materialization artifacts that can decode one typed row
+  through the runtime-owned `decode_single_row::<T>()` seam
+- retained derived materialization bundles that preserve one snapshot token and
+  one bundle digest across multiple typed computed rows when the next step
+  needs a coherent retained artifact instead of three separate local calls
+- retained derived artifact bindings that turn an exact multi-surface bundle
+  into one named retained artifact with an explicit target-set digest
+- retained scalar fact sets that bind one named derived artifact row to a
+  stable set of dotted scalar fields when the next step needs historical or
+  proof-bearing scalar evidence without reopening raw rows
+- retained typed pair/triple decode helpers that let one named derived artifact
+  yield a small typed pack without caller-owned repeated single-row decoding
+- retained scalar alignment artifacts that prove two named retained rows stayed
+  correspondence-aligned for one declared set of scalar field pairs
 
 What gets inspected:
 
@@ -236,6 +300,16 @@ This is the main way to verify whether a computed surface is wired correctly.
 - Reconstructing sibling upstream truth yourself because a write touched only
   one live view. The runtime already hands whole-refresh maintainers the
   retained rows for every declared upstream live surface.
+- Decoding one retained computed row through local `Vec<Value>` helper folklore
+  when the runtime already owns typed decode on retained upstream inputs or on
+  the derived materialization result artifact.
+- Looping over several computed handles in caller code and pretending the
+  resulting pack is a local product. If the next step needs a retained artifact
+  over multiple computed rows, use the runtime-owned
+  `materialize_derived_artifact_bundle(...)` seam.
+- Treating declaration-time seeding as a fake mutation. If a computed depends
+  on basis-specific or write-specific metadata, that metadata belongs in the
+  runtime-owned refresh context, not in caller-side workaround logic.
 
 ## Current Limits
 

@@ -291,8 +291,8 @@ fn build_coverage_rows(
             scenario: report.scenario,
             outcome_class: report.outcome_class,
             rejection_class: report.rejection_class,
-            continuity_outcome_class: report.continuity_outcome_class,
-            continuity_rejection_class: report.continuity_rejection_class,
+            continuity_outcome_class: report.continuity_outcome_class(),
+            continuity_rejection_class: report.continuity_rejection_class(),
             replay_checked: report.mutation_replay_parity_report.replay_checked,
             replay_parity_status: report.mutation_replay_parity_report.parity_status,
         })

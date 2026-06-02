@@ -3,7 +3,7 @@ use forge_query::facade::{
     ForgeQueryExistingTruthAssertionMode, ForgeQueryGraphCompositionLifecycleOutcomeKind,
     ForgeQueryGraphCompositionProgramStepKind,
 };
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::super::query_runtime_support::QueryRuntimeSupport;
 use crate::certification::support::declaration_runtime::{
@@ -12,13 +12,14 @@ use crate::certification::support::declaration_runtime::{
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::{LoopSuccessorKind, TopologyMutationFamily};
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
 fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-mutation-rewire-successor",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 5 },
@@ -58,10 +59,11 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .expect("halfedge relocation program should execute through declaration entry");
+    let synopsis = execution.accepted_mutation_projection();
 
-    assert_eq!(execution.families.len(), 6);
-    assert!(execution
-        .families
+    assert_eq!(synopsis.mutation_families().len(), 6);
+    assert!(synopsis
+        .mutation_families()
         .iter()
         .all(|family| *family == TopologyMutationFamily::RewireLoopSuccessor));
     assert_eq!(
@@ -72,7 +74,7 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_program()
             .expect("successor relocation should expose graph composition program")
             .steps()
@@ -83,7 +85,7 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_lifecycle_outcomes()
             .expect("successor relocation should expose graph lifecycle")
             .entries()
@@ -94,14 +96,14 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_assumption_summary()
             .expect("successor relocation should expose graph assumption summary")
             .verified_step_count(),
         6
     );
     let lineage = execution
-        .receipt
+        .receipt()
         .graph_composition_lineage_summary()
         .expect("successor relocation should expose graph lineage summary");
     assert_eq!(
@@ -113,9 +115,9 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
             && entry.outcome_class() == ForgeQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
             && entry.target_collection() == Some("TopologyRelation")
     }));
-    assert_eq!(execution.inspection.component_operations().len(), 6);
+    assert_eq!(execution.inspection().component_operations().len(), 6);
     assert!(execution
-        .inspection
+        .inspection()
         .component_operations()
         .iter()
         .all(|operation| {
@@ -130,7 +132,7 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
         }));
     assert_eq!(
         execution
-            .inspection
+            .inspection()
             .graph_composition_program()
             .expect("inspection should expose composed program")
             .component_count(),
@@ -138,14 +140,14 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     );
     assert_eq!(
         execution
-            .inspection
+            .inspection()
             .graph_composition_lineage_summary()
             .expect("inspection should expose graph lineage summary")
             .lineage_summary_digest(),
         lineage.lineage_summary_digest()
     );
     assert!(execution
-        .inspection
+        .inspection()
         .component_operations()
         .iter()
         .all(|operation| {
@@ -158,7 +160,7 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
                 })
         }));
     let moved_half_edge = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()
@@ -167,7 +169,7 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     assert_eq!(moved_half_edge.prev_half_edge_id, Some(new_predecessor_id));
     assert_eq!(moved_half_edge.next_half_edge_id, Some(new_successor_id));
     let old_predecessor = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()
@@ -179,7 +181,7 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
 #[test]
 fn current_head_runtime_denies_cross_loop_successor_relocation_program() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-mutation-rewire-successor-cross-loop",
         &MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },

@@ -44,6 +44,7 @@ pub enum PrimitiveConstructionCompoundAdversarialSiegeError {
     InvalidSpecializedRow(String),
     Inspection(String),
     Projection(String),
+    QueryEntry(String),
     NumericWitness(String),
     Verification(PrimitiveConstructionCompoundParityVerificationFailure),
 }
@@ -61,6 +62,7 @@ impl std::fmt::Display for PrimitiveConstructionCompoundAdversarialSiegeError {
             Self::InvalidSpecializedRow(reason) => write!(f, "{reason}"),
             Self::Inspection(reason) => write!(f, "{reason}"),
             Self::Projection(reason) => write!(f, "{reason}"),
+            Self::QueryEntry(reason) => write!(f, "{reason}"),
             Self::NumericWitness(reason) => write!(f, "{reason}"),
             Self::Verification(error) => write!(f, "{error:?}"),
         }

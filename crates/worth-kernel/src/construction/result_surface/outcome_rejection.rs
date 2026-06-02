@@ -18,7 +18,6 @@ pub enum PrimitiveConstructionRejectionClass {
     SpatialBirth,
     ImpossibleBirthAttachment,
     TopologyExecution,
-    ArtifactAssembly,
 }
 
 impl PrimitiveConstructionRejectionClass {
@@ -30,7 +29,6 @@ impl PrimitiveConstructionRejectionClass {
             Self::SpatialBirth => "spatial_birth",
             Self::ImpossibleBirthAttachment => "impossible_birth_attachment",
             Self::TopologyExecution => "topology_execution",
-            Self::ArtifactAssembly => "artifact_assembly",
         }
     }
 }
@@ -41,7 +39,6 @@ pub enum PrimitiveConstructionRejectionLocality {
     Scaffold,
     SpatialBirth,
     Execution,
-    Artifact,
 }
 
 impl PrimitiveConstructionRejectionLocality {
@@ -51,7 +48,6 @@ impl PrimitiveConstructionRejectionLocality {
             Self::Scaffold => "scaffold",
             Self::SpatialBirth => "spatial_birth",
             Self::Execution => "execution",
-            Self::Artifact => "artifact",
         }
     }
 }
@@ -292,8 +288,23 @@ pub(crate) fn rejected_outcome(
                     )
                 }
             },
-            PrimitiveConstructionPhaseError::SpatialBirth(_) => {
-                PrimitiveConstructionRejectedOutcome::new(
+            PrimitiveConstructionPhaseError::TopologyQueryAdmittedHandoff(error) => match error {
+                topology::facade::TopologyConstructionQueryAdmittedHandoffError::Handoff(_) => {
+                    PrimitiveConstructionRejectedOutcome::new(
+                        family,
+                        PrimitiveConstructionRejectionClass::TopologyExecution,
+                        PrimitiveConstructionRejectionLocality::Execution,
+                        Vec::new(),
+                        None,
+                        None,
+                        None,
+                        None,
+                        error.to_string(),
+                    )
+                }
+                topology::facade::TopologyConstructionQueryAdmittedHandoffError::BirthCompleteness(
+                    _,
+                ) => PrimitiveConstructionRejectedOutcome::new(
                     family,
                     PrimitiveConstructionRejectionClass::SpatialBirth,
                     PrimitiveConstructionRejectionLocality::SpatialBirth,
@@ -302,74 +313,22 @@ pub(crate) fn rejected_outcome(
                     None,
                     None,
                     None,
-                    phase.to_string(),
-                )
-            }
-            PrimitiveConstructionPhaseError::TopologyLowering(_) => {
-                PrimitiveConstructionRejectedOutcome::new(
+                    error.to_string(),
+                ),
+                topology::facade::TopologyConstructionQueryAdmittedHandoffError::ImpossibleBirthAttachment(
+                    reason,
+                ) => PrimitiveConstructionRejectedOutcome::new(
                     family,
-                    PrimitiveConstructionRejectionClass::TopologyExecution,
-                    PrimitiveConstructionRejectionLocality::Execution,
+                    PrimitiveConstructionRejectionClass::ImpossibleBirthAttachment,
+                    PrimitiveConstructionRejectionLocality::SpatialBirth,
                     Vec::new(),
                     None,
                     None,
                     None,
                     None,
-                    phase.to_string(),
-                )
-            }
+                    reason.to_string(),
+                ),
+            },
         },
-        PrimitiveConstructionResultError::Execution(error) => {
-            PrimitiveConstructionRejectedOutcome::new(
-                family,
-                PrimitiveConstructionRejectionClass::TopologyExecution,
-                PrimitiveConstructionRejectionLocality::Execution,
-                Vec::new(),
-                None,
-                None,
-                None,
-                None,
-                error.to_string(),
-            )
-        }
-        PrimitiveConstructionResultError::BirthCompleteness(error) => {
-            PrimitiveConstructionRejectedOutcome::new(
-                family,
-                PrimitiveConstructionRejectionClass::SpatialBirth,
-                PrimitiveConstructionRejectionLocality::SpatialBirth,
-                Vec::new(),
-                None,
-                None,
-                None,
-                None,
-                error.to_string(),
-            )
-        }
-        PrimitiveConstructionResultError::ImpossibleBirthAttachment(row) => {
-            PrimitiveConstructionRejectedOutcome::new(
-                family,
-                PrimitiveConstructionRejectionClass::ImpossibleBirthAttachment,
-                PrimitiveConstructionRejectionLocality::SpatialBirth,
-                Vec::new(),
-                None,
-                None,
-                None,
-                None,
-                row.reason().to_string(),
-            )
-        }
-        PrimitiveConstructionResultError::Artifact(error) => {
-            PrimitiveConstructionRejectedOutcome::new(
-                family,
-                PrimitiveConstructionRejectionClass::ArtifactAssembly,
-                PrimitiveConstructionRejectionLocality::Artifact,
-                Vec::new(),
-                None,
-                None,
-                None,
-                None,
-                error.to_string(),
-            )
-        }
     }
 }

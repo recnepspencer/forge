@@ -28,7 +28,31 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_query_row_helpers_not_exported.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/public_topology_construction_authority_constructor_not_exported.rs"
+        "{compile_fail}/public_derived_diagnostics_builders_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_projection_surface_entry_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_construction_authority_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_construction_stepwise_lowering_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_construction_stepwise_execution_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_construction_stepwise_certification_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_construction_fact_report_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_construction_boundary_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_construction_boundary_preparation_not_exported.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_runtime_read_family_support_row_not_forgeable.rs"
@@ -79,6 +103,9 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_topology_query_domain_entry_not_exported_from_projection.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/public_bridge_registration_entry_not_exported.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/public_topology_read_workspace_methods_not_exported.rs"
     ));
     t.compile_fail(format!(
@@ -86,5 +113,17 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
     ));
     t.compile_fail(format!(
         "{compile_fail}/public_removed_domain_query_read_names_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_committed_artifact_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_verified_topology_commit_cert_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_declaration_entry_stop_class_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_declaration_entry_refusal_class_not_exported.rs"
     ));
 }

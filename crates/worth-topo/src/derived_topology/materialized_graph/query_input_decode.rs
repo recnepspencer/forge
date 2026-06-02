@@ -1,4 +1,4 @@
-use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
+use forge_relational::facade::identity::{EntityId, PartitionId};
 use schema::facade::platform::entities::EntityKind;
 use schema::facade::platform::relations::RelationKind;
 use serde_json::Value;
@@ -75,26 +75,6 @@ pub(crate) fn query_entity_identity(entity_id: EntityId) -> String {
         "entity:{}:{}:{}",
         entity_id.partition_id.0, entity_id.local_slot.0, entity_id.generation.0
     )
-}
-
-pub(crate) fn parse_relation_identity(
-    identity: &str,
-) -> Result<RelationId, TopologyMaterializationError> {
-    let mut parts = identity.split(':');
-    if parts.next() != Some("relation") {
-        return Err(TopologyMaterializationError::new(format!(
-            "expected forge-query relation identity, found `{identity}`"
-        )));
-    }
-    let partition = parse_identity_part(parts.next(), "partition", identity)?;
-    let slot = parse_identity_part(parts.next(), "slot", identity)?;
-    let generation = parse_identity_part(parts.next(), "generation", identity)?;
-    if parts.next().is_some() {
-        return Err(TopologyMaterializationError::new(format!(
-            "unexpected trailing forge-query identity data in `{identity}`"
-        )));
-    }
-    Ok(RelationId::new(PartitionId(partition), slot, generation))
 }
 
 fn parse_identity_part<T>(

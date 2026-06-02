@@ -1,6 +1,8 @@
 use forge_query::facade::{
     ForgeQueryDeclarationEntryOrchestrationRefusalClass,
-    ForgeQueryDeclarationEntryOrchestrationStage, ForgeQueryRuntimeError, ForgeQueryWorkspaceError,
+    ForgeQueryDeclarationEntryOrchestrationStage, ForgeQueryOrdinaryPostureKind,
+    ForgeQueryRecoveryBrief, ForgeQueryRecoveryStopKind, ForgeQueryRuntimeError,
+    ForgeQueryWorkspaceError,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::platform::entities::TopologyEntityKind;
@@ -13,9 +15,10 @@ pub enum TopologyMutationApplicationError {
     DeclarationEntry {
         family: TopologyMutationFamily,
         stop_class: TopologyDeclarationEntryStopClass,
-        stop_stage: ForgeQueryDeclarationEntryOrchestrationStage,
+        stop_stage: Option<ForgeQueryDeclarationEntryOrchestrationStage>,
         refusal_class: Option<TopologyDeclarationEntryRefusalClass>,
-        reason: &'static str,
+        recovery: Option<ForgeQueryRecoveryBrief>,
+        reason: String,
     },
     MissingCreatedEntityReference(String),
     MissingExistingEntityBinding(EntityId),
@@ -68,17 +71,34 @@ pub enum TopologyMutationApplicationError {
     },
     Query(ForgeQueryRuntimeError),
     MaterializedDecode(String),
-    UnexpectedInspectionFamily,
+    QueryAnchorFamilyMismatch {
+        semantic_family_key: &'static str,
+        query_declaration_family_key: &'static str,
+    },
+    RetainedSemanticAftermathMismatch {
+        semantic_family_key: &'static str,
+        reason: String,
+    },
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum TopologyDeclarationEntryStopClass {
+pub(crate) enum TopologyDeclarationEntryStopClass {
     Deferred,
     Denied,
     Stale,
     RebindRequired,
     Failed,
     Refused,
+    Unsupported,
+    Ambiguous,
+    AspectConflict,
+    AuthorityMismatch,
+    BasisMismatch,
+    ExplicitNarrowingRequired,
+    MissingRequiredAspect,
+    Unavailable,
+    WrongHandle,
+    WrongWorld,
 }
 
 impl TopologyDeclarationEntryStopClass {
@@ -90,12 +110,70 @@ impl TopologyDeclarationEntryStopClass {
             Self::RebindRequired => "rebind_required",
             Self::Failed => "failed",
             Self::Refused => "refused",
+            Self::Unsupported => "unsupported",
+            Self::Ambiguous => "ambiguous",
+            Self::AspectConflict => "aspect_conflict",
+            Self::AuthorityMismatch => "authority_mismatch",
+            Self::BasisMismatch => "basis_mismatch",
+            Self::ExplicitNarrowingRequired => "explicit_narrowing_required",
+            Self::MissingRequiredAspect => "missing_required_aspect",
+            Self::Unavailable => "unavailable",
+            Self::WrongHandle => "wrong_handle",
+            Self::WrongWorld => "wrong_world",
+        }
+    }
+}
+
+impl From<ForgeQueryOrdinaryPostureKind> for TopologyDeclarationEntryStopClass {
+    fn from(value: ForgeQueryOrdinaryPostureKind) -> Self {
+        match value {
+            ForgeQueryOrdinaryPostureKind::Ambiguous => Self::Ambiguous,
+            ForgeQueryOrdinaryPostureKind::AspectConflict => Self::AspectConflict,
+            ForgeQueryOrdinaryPostureKind::AuthorityMismatch => Self::AuthorityMismatch,
+            ForgeQueryOrdinaryPostureKind::BasisMismatch => Self::BasisMismatch,
+            ForgeQueryOrdinaryPostureKind::Deferred => Self::Deferred,
+            ForgeQueryOrdinaryPostureKind::Denied => Self::Denied,
+            ForgeQueryOrdinaryPostureKind::ExplicitNarrowingRequired => {
+                Self::ExplicitNarrowingRequired
+            }
+            ForgeQueryOrdinaryPostureKind::Failed => Self::Failed,
+            ForgeQueryOrdinaryPostureKind::MissingRequiredAspect => Self::MissingRequiredAspect,
+            ForgeQueryOrdinaryPostureKind::RebindRequired => Self::RebindRequired,
+            ForgeQueryOrdinaryPostureKind::Refused => Self::Refused,
+            ForgeQueryOrdinaryPostureKind::Stale => Self::Stale,
+            ForgeQueryOrdinaryPostureKind::Unavailable => Self::Unavailable,
+            ForgeQueryOrdinaryPostureKind::Unsupported => Self::Unsupported,
+            ForgeQueryOrdinaryPostureKind::WrongHandle => Self::WrongHandle,
+            ForgeQueryOrdinaryPostureKind::WrongWorld => Self::WrongWorld,
+        }
+    }
+}
+
+impl From<ForgeQueryRecoveryStopKind> for TopologyDeclarationEntryStopClass {
+    fn from(value: ForgeQueryRecoveryStopKind) -> Self {
+        match value {
+            ForgeQueryRecoveryStopKind::Ambiguous => Self::Ambiguous,
+            ForgeQueryRecoveryStopKind::AspectConflict => Self::AspectConflict,
+            ForgeQueryRecoveryStopKind::AuthorityMismatch => Self::AuthorityMismatch,
+            ForgeQueryRecoveryStopKind::BasisMismatch => Self::BasisMismatch,
+            ForgeQueryRecoveryStopKind::ContributionDenied
+            | ForgeQueryRecoveryStopKind::DeclarationDenied => Self::Denied,
+            ForgeQueryRecoveryStopKind::Deferred => Self::Deferred,
+            ForgeQueryRecoveryStopKind::Failed => Self::Failed,
+            ForgeQueryRecoveryStopKind::MissingRequiredAspect => Self::MissingRequiredAspect,
+            ForgeQueryRecoveryStopKind::RebindRequired => Self::RebindRequired,
+            ForgeQueryRecoveryStopKind::Refused => Self::Refused,
+            ForgeQueryRecoveryStopKind::Stale => Self::Stale,
+            ForgeQueryRecoveryStopKind::Unavailable => Self::Unavailable,
+            ForgeQueryRecoveryStopKind::Unsupported => Self::Unsupported,
+            ForgeQueryRecoveryStopKind::WrongHandle => Self::WrongHandle,
+            ForgeQueryRecoveryStopKind::WrongWorld => Self::WrongWorld,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum TopologyDeclarationEntryRefusalClass {
+pub(crate) enum TopologyDeclarationEntryRefusalClass {
     UnsupportedAutomation,
     ExplicitIntentRequired,
     StrongerProofRequired,
@@ -156,15 +234,27 @@ impl std::fmt::Display for TopologyMutationApplicationError {
                 stop_class,
                 stop_stage,
                 refusal_class,
+                recovery,
                 reason,
             } => {
                 write!(
                     f,
-                    "topology query declaration entry orchestration for family `{family:?}` stopped as `{}` at stage `{stop_stage:?}`",
+                    "topology query declaration entry orchestration for family `{family:?}` stopped as `{}`",
                     stop_class.as_str(),
                 )?;
+                if let Some(stop_stage) = stop_stage {
+                    write!(f, " at stage `{stop_stage:?}`")?;
+                }
                 if let Some(refusal_class) = refusal_class {
                     write!(f, " with refusal class `{}`", refusal_class.as_str())?;
+                }
+                if let Some(recovery) = recovery {
+                    write!(
+                        f,
+                        " owned by `{:?}` recommending `{:?}`",
+                        recovery.authority_surface(),
+                        recovery.recommended_action()
+                    )?;
                 }
                 write!(f, ": {reason}")
             }
@@ -260,15 +350,46 @@ impl std::fmt::Display for TopologyMutationApplicationError {
             ),
             Self::Query(error) => write!(f, "{error}"),
             Self::MaterializedDecode(message) => write!(f, "{message}"),
-            Self::UnexpectedInspectionFamily => write!(
+            Self::QueryAnchorFamilyMismatch {
+                semantic_family_key,
+                query_declaration_family_key,
+            } => write!(
                 f,
-                "topology query mutation application expected declaration-write receipt inspection"
+                "topology query mutation application refused to project local aftermath for semantic family `{semantic_family_key}` from Query declaration family `{query_declaration_family_key}`"
+            ),
+            Self::RetainedSemanticAftermathMismatch {
+                semantic_family_key,
+                reason,
+            } => write!(
+                f,
+                "topology query mutation application retained Query semantic aftermath that did not match the declared topology mutation sequence for `{semantic_family_key}`: {reason}"
             ),
         }
     }
 }
 
 impl std::error::Error for TopologyMutationApplicationError {}
+
+#[cfg_attr(not(test), allow(dead_code))]
+impl TopologyMutationApplicationError {
+    pub(crate) fn is_declaration_entry_stop(&self) -> bool {
+        matches!(self, Self::DeclarationEntry { .. })
+    }
+
+    pub(crate) fn declaration_entry_stop_class(&self) -> Option<TopologyDeclarationEntryStopClass> {
+        match self {
+            Self::DeclarationEntry { stop_class, .. } => Some(*stop_class),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn declaration_entry_recovery_brief(&self) -> Option<&ForgeQueryRecoveryBrief> {
+        match self {
+            Self::DeclarationEntry { recovery, .. } => recovery.as_ref(),
+            _ => None,
+        }
+    }
+}
 
 impl From<ForgeQueryRuntimeError> for TopologyMutationApplicationError {
     fn from(value: ForgeQueryRuntimeError) -> Self {

@@ -48,7 +48,7 @@ fn corpus_replay_siege_mixes_admitted_and_rejected_rows_across_family_ladder() {
     assert_eq!(report.rejected_count(), 14);
     assert_eq!(report.authoring_order_rows().len(), 4);
     assert!(report.authoring_order_parity_verified());
-    assert_eq!(report.rejection_witness_rows().len(), 6);
+    assert_eq!(report.rejection_witness_rows().len(), 5);
     assert_ne!(
         report.report_digest(),
         report

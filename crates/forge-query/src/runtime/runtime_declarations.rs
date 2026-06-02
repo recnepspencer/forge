@@ -68,6 +68,7 @@ impl ForgeQueryRuntime {
             view,
             Some(Box::new(maintainer)),
         );
+        self.initialize_maintained_derived_view_materialization(&name)?;
         Ok(ForgeQueryDerivedViewHandle::new(name))
     }
 
@@ -97,6 +98,44 @@ impl ForgeQueryRuntime {
         let target_lane = declaration.target_lane();
         insert_effect_runtime(&mut self.effects, &mut self.effect_index, declaration);
         Ok(ForgeQueryEffectHandle::new(name, target_lane))
+    }
+}
+
+impl ForgeQueryRuntime {
+    fn initialize_maintained_derived_view_materialization(
+        &mut self,
+        view_name: &str,
+    ) -> Result<(), ForgeQueryRuntimeError> {
+        let declaration = match self.derived_views.get(view_name) {
+            Some(runtime) if !runtime.declaration.incremental() && runtime.maintainer.is_some() => {
+                runtime.declaration.clone()
+            }
+            _ => return Ok(()),
+        };
+        let upstreams = retained_upstream_inputs_for_declaration(self, &declaration)?;
+        let snapshot_token = self.snapshot_token();
+        let refresh_metadata = self
+            .backend
+            .declaration_initialization_metadata(&declaration, &snapshot_token)
+            .map_err(ForgeQueryRuntimeError::Workspace)?;
+        let refresh = ForgeQueryRetainedRefreshContext::from_declaration_initialization(
+            format!("derived-declaration:{view_name}"),
+            snapshot_token,
+            refresh_metadata,
+        );
+        let Some(runtime) = self.derived_views.get_mut(view_name) else {
+            return Ok(());
+        };
+        let Some(maintainer) = runtime.maintainer.as_mut() else {
+            return Ok(());
+        };
+        let _ = maintainer.refresh_from_upstreams(
+            &declaration,
+            &refresh,
+            &upstreams,
+            &mut runtime.materialization,
+        );
+        Ok(())
     }
 }
 
@@ -168,4 +207,33 @@ fn live_source_declaration_error(
         stage: "source-declaration",
         message: format!("{error}; {closeout_message}"),
     }
+}
+
+fn retained_upstream_inputs_for_declaration(
+    runtime: &mut ForgeQueryRuntime,
+    declaration: &ForgeQueryDerivedView,
+) -> Result<ForgeQueryRetainedUpstreamInputs, ForgeQueryRuntimeError> {
+    let live_rows = declaration
+        .upstream_live_views()
+        .iter()
+        .map(|view_name| {
+            runtime
+                .execute_live_read_by_name(view_name)
+                .map(|read| (view_name.clone(), read.rows().to_vec()))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let computed_rows = declaration
+        .upstream_derived_views()
+        .iter()
+        .filter_map(|view_name| {
+            runtime
+                .derived_views
+                .get(view_name)
+                .map(|runtime| (view_name.clone(), runtime.materialization.rows().to_vec()))
+        })
+        .collect::<Vec<_>>();
+    Ok(ForgeQueryRetainedUpstreamInputs::new(
+        live_rows,
+        computed_rows,
+    ))
 }

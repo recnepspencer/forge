@@ -4,7 +4,7 @@ mod loop_wiring;
 mod naming;
 mod ownership;
 mod radial_rings;
-pub(crate) mod reference_integrity;
+pub mod reference_integrity;
 mod shared;
 mod shell_closure;
 mod tests;
@@ -16,4 +16,9 @@ pub use facade::{
     validate_named_topology_truth, validate_topology_view, DerivedTopologyValidationReport,
     TopologyValidationInputClass, TopologyValidationPhase, TopologyValidationReport,
     TopologyValidationRow, TopologyValidator,
+};
+pub use reference_integrity::{
+    build_milestone_one_runtime, configure_milestone_one_runtime_builder,
+    milestone_one_invariant_registrations, milestone_one_runtime_builder,
+    MilestoneOneRuntimeSetupError,
 };

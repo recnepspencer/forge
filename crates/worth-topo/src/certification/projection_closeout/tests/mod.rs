@@ -9,10 +9,11 @@ use crate::facade::{
     DerivedReadDiagnostics, DerivedTopologyValidationReport, InterpretedTopologyView,
     MaterializedTopologyView,
 };
-use crate::projection::{
-    equivalence_contract_from_diagnostics_rows, interpreted_topology_from_materialized_rows,
-    validation_report_from_query_rows, TopologyQueryMutationEvidence,
+use crate::projection::runtime_boundary::declared_query_surfaces::derived_surfaces::{
+    interpreted_topology_from_materialized_rows, validation_report_from_query_rows,
 };
+use crate::projection::runtime_boundary::declared_query_surfaces::equivalence_contract_from_diagnostics_rows;
+use crate::projection::runtime_boundary::declared_query_surfaces::query_diagnostics::TopologyQueryMutationEvidence;
 
 const MATERIALIZED_TOPOLOGY_SURFACE: &str = ".topology.materialized";
 const INTERPRETED_TOPOLOGY_SURFACE: &str = ".topology.interpreted";

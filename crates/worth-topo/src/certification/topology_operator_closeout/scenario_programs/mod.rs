@@ -3,11 +3,14 @@ mod bowtie_adjacent;
 mod broken_radial_localization;
 mod cancellation_chain;
 mod local_successor_rewire;
+pub(in crate::certification::topology_operator_closeout) mod scenario_mutation_report_lowering;
 mod split_collapse_churn;
 
 pub(crate) use ambiguous_local_rewire::certify_milestone_three_ambiguous_local_rewire_continuity_impl;
 pub(crate) use bowtie_adjacent::certify_milestone_three_bowtie_adjacent_rewire_impl;
+pub(in crate::certification::topology_operator_closeout) use bowtie_adjacent::rejected_branch_local_bowtie_adjacent_declaration;
 pub(crate) use broken_radial_localization::certify_milestone_three_broken_radial_localization_impl;
+pub(in crate::certification::topology_operator_closeout) use broken_radial_localization::rejected_branch_local_broken_radial_declaration;
 pub(crate) use cancellation_chain::certify_milestone_three_cancellation_chain_parity_impl;
 pub(in crate::certification::topology_operator_closeout) use local_successor_rewire::successor_relocation_declaration;
 pub(crate) use split_collapse_churn::certify_milestone_three_split_collapse_churn_impl;

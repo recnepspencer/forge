@@ -9,7 +9,6 @@
 
 mod brep;
 mod certification;
-mod committed_artifact;
 mod construction;
 mod derived_topology;
 mod projection;

@@ -1,14 +1,13 @@
 pub(crate) mod error;
 mod handle_reads;
+pub(crate) mod read_proof;
 pub(crate) mod request;
 mod session_state;
 mod views;
 
 #[allow(unused_imports)]
-pub(crate) use crate::projection::diagnostic_surfaces::read_proof::{
-    closeout, no_n_plus_one, parity, report,
-};
-pub use crate::projection::diagnostic_surfaces::read_proof::{
+pub(crate) use self::read_proof::{closeout, no_n_plus_one, parity, report};
+pub use self::read_proof::{
     TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
     TopologyReadAggregateReport, TopologyReadCloseoutReport, TopologyReadCloseoutRow,
     TopologyReadCloseoutStatus, TopologyReadDebtRow, TopologyReadExecutionAggregateRow,

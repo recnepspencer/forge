@@ -1,6 +1,6 @@
 use worth_spatial::facade::SpatialPlacementSpec;
 
-use super::{PrimitiveConstructionFamily, PrimitiveConstructionGeometry};
+use super::PrimitiveConstructionGeometry;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct PrimitiveConstructionPlacement {
@@ -94,10 +94,8 @@ pub(crate) fn map_geometry_placement(
     }
 }
 
-pub(crate) fn request_digest_parts(
-    family: PrimitiveConstructionFamily,
-    geometry: &PrimitiveConstructionGeometry,
-) -> Vec<String> {
+pub(crate) fn request_digest_parts(geometry: &PrimitiveConstructionGeometry) -> Vec<String> {
+    let family = geometry.family();
     let placement = placement_of(geometry).decode();
     let mut parts = vec![
         family.as_str().to_string(),

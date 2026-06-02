@@ -84,6 +84,20 @@ Good to know:
   should reach for
 - the shared intent-admission path exists so projection consumption uses the
   same admitted vocabulary as the runtime-backed families
+- retained derived artifact bindings are not yet first-class projection-
+  consumption sources; when a caller needs typed scalar evidence from a named
+  retained derived artifact, the current runtime-owned seam is
+  `consume_scalar_fields(...)` on the retained artifact binding, and when a
+  caller needs a small typed pack from that same named artifact the current
+  runtime-owned seam is `decode_row_pair(...)` or `decode_row_triple(...)`;
+  when a caller needs correspondence proof across two retained rows in that
+  same named artifact, the current runtime-owned seam is
+  `verify_scalar_alignment(...)`
+- live artifact bindings are also runtime-owned pack/bind seams, not yet full
+  projection-consumption source families; when a caller needs one named live
+  snapshot pack across several live views, the current runtime-owned seams are
+  `read_live_artifact_bundle(...)`, `bind_live_artifact(...)`, and
+  `read_live_artifact_binding(...)`
 
 ## Core Mental Model
 
@@ -359,6 +373,10 @@ Those are framework-level artifacts, not the normal app entry point.
   mismatched instead of being guessed.
 - Lower-source relational and bridge extraction seams exist, but they are still
   expert boundaries rather than the primary app-facing path.
+- Retained derived artifact bindings currently stop at the runtime-owned
+  retained-scalar evidence seam; they do not yet participate as full
+  projection-consumption source families with authorized-projection binding
+  semantics.
 - This feature does not replace `workspace.read(...)`, `workspace.observe(...)`,
   or `workspace.materialize(...)`. Use those when rows are the real product
   surface.

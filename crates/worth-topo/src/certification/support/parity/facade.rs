@@ -7,7 +7,7 @@ use crate::certification::support::parity::types::{
 use crate::certification::DeterministicDigest;
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::derived_topology::traversal_views::InterpretedTopologyView;
-use crate::projection::diagnostic_surfaces::triggered_invalidation_targets;
+use crate::projection::diagnostic_surfaces::derived_read_diagnostics::triggered_invalidation_targets;
 use crate::validation::DerivedTopologyValidationReport;
 
 pub fn digest_materialized_topology_view(

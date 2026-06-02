@@ -21,7 +21,7 @@ use crate::construction::{
     prepare_primitive_construction_realization_exhaustion_report,
     prepare_primitive_construction_realization_strategy_report, PrimitiveConstructionFamily,
     PrimitiveConstructionIntent, PrimitiveConstructionPhaseError,
-    PrimitiveConstructionQueryInspectionParityError,
+    PrimitiveConstructionQueryEntryError, PrimitiveConstructionQueryInspectionParityError,
     PrimitiveConstructionQueryProjectionConsumptionReceiptError,
     PrimitiveConstructionRealizationExhaustionStatus, PrimitiveConstructionResultError,
 };
@@ -323,22 +323,24 @@ fn simplex_query_surface(
                 projection_consumption_digest: Some(projection.report_digest().to_string()),
             })
         }
-        Err(PrimitiveConstructionQueryInspectionParityError::Result(
-            PrimitiveConstructionResultError::Phase(
+        Err(PrimitiveConstructionQueryInspectionParityError::QueryEntry(
+            PrimitiveConstructionQueryEntryError::Result(PrimitiveConstructionResultError::Phase(
                 PrimitiveConstructionPhaseError::InvalidRequest {
                     family: PrimitiveConstructionFamily::SimplexSolid,
                     ..
                 },
-            ),
+            )),
         )) => Ok(PrimitiveConstructionSimplexQuerySurface {
             status:
                 PrimitiveConstructionSimplexQuerySurfaceStatus::UnavailableByTypedAdmissionRejection,
             inspection_digest: None,
             projection_consumption_digest: None,
         }),
-        Err(PrimitiveConstructionQueryInspectionParityError::Result(
-            PrimitiveConstructionResultError::Phase(PrimitiveConstructionPhaseError::Geometry(
-                PrimitiveConstructionGeometryError::RealizationExhausted(_),
+        Err(PrimitiveConstructionQueryInspectionParityError::QueryEntry(
+            PrimitiveConstructionQueryEntryError::Result(PrimitiveConstructionResultError::Phase(
+                PrimitiveConstructionPhaseError::Geometry(
+                    PrimitiveConstructionGeometryError::RealizationExhausted(_),
+                ),
             )),
         )) => Ok(PrimitiveConstructionSimplexQuerySurface {
             status:

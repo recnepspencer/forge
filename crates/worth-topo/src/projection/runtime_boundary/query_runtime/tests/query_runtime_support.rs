@@ -5,12 +5,12 @@ use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use serde_json::Value;
 
 use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
-use crate::projection::diagnostic_surfaces::read_proof::TopologyReadProofReport;
 use crate::projection::read_views::domain::closeout::TopologyReadCloseoutReport;
 use crate::projection::read_views::domain::parity::{
     build_topology_read_view_parity_artifact, TopologyReadParityKind,
     TopologyReadViewParityArtifact, TopologyReadViewRef,
 };
+use crate::projection::read_views::domain::read_proof::TopologyReadProofReport;
 use crate::projection::read_views::domain::report::TopologyReadAggregateReport;
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 use crate::projection::TopologyQueryRowLookup;
@@ -40,7 +40,7 @@ impl QueryRuntimeSupport {
         let entity_rows = workspace.read::<Value>(surfaces.entities());
         let relation_rows = workspace.read::<Value>(surfaces.relations());
         Self {
-            topology_read: TopologyReadProofHarness::new(),
+            topology_read: TopologyReadProofHarness::current_head(),
             entity_rows,
             relation_rows,
         }

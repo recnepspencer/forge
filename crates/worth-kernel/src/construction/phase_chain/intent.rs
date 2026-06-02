@@ -1,7 +1,4 @@
-use crate::construction::admission::AdmittedPrimitiveConstructionIntent;
-use crate::construction::request::{
-    PrimitiveConstructionFamily, PrimitiveConstructionPhaseError, PrimitiveConstructionRequest,
-};
+use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionRequest};
 use crate::construction::specs::{
     OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
     WireBodySpec,
@@ -72,12 +69,6 @@ impl PrimitiveConstructionIntent {
 
     pub fn into_request(self) -> PrimitiveConstructionRequest {
         self.request
-    }
-
-    pub fn admit(
-        self,
-    ) -> Result<AdmittedPrimitiveConstructionIntent, PrimitiveConstructionPhaseError> {
-        self.request.admit()
     }
 }
 

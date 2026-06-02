@@ -15,7 +15,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         bindings: &TopologyQueryBindingIndex,
         mode: TopologyMutationApplicationMode,
     ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
-        orchestrate_topology_declaration_entry(
+        let retained_handoff = orchestrate_topology_declaration_entry(
             TopologyMutationFamily::AttachBoundaryMembership,
             declaration.clone(),
         )?;
@@ -24,6 +24,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let receipt = self.compose_face_inner_loop_program(&sequence, bindings)?;
         self.finish_composed_membership_execution(
             mode,
+            retained_handoff,
             TopologyCreateInnerLoopOnExistingFaceDeclaration::SEMANTIC_FAMILY_KEY,
             &sequence,
             receipt,

@@ -1,29 +1,30 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::TopologyEntityKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
-use super::super::mutation_sequence_support::{
-    aggregate_naming_mutation_continuity_matrix_for_declarations,
-    aggregate_topology_mutation_digest_for_declarations,
-    topology_mutation_families_for_declarations, TopologyCloseoutDeclaration,
-};
+use super::super::replay_step_rows::accepted_step_row_for_execution;
 use super::super::report::{
     MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario,
     MilestoneThreeHostileScenarioReport, MilestoneThreeMutationReplayStepRow,
+    MilestoneThreeScenarioMutationSynopsis,
 };
 use super::super::shared::{
-    accepted_step_row_for_declaration, derived_validation_report_from_materialized,
-    find_loop_id_by_label, replay_checked,
+    derived_validation_report_from_materialized, entity_id_from_query_identity,
+    find_loop_id_by_label, relation_id_from_query_identity, replay_checked,
+};
+use super::scenario_mutation_report_lowering::{
+    accepted_mutation_synopsis_from_step_rows, accepted_semantic_summary_from_step_rows,
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
 use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::certification::support::parity::digest_materialized_topology_view;
-use crate::projection::parse_relation_identity;
+use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclaredQuerySurfaces;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::{
     BoundaryMembershipKind, TopologyCreateInnerLoopOnExistingFaceDeclaration,
     TopologyDetachBoundaryMembershipDeclaration, TopologyRetireTopologyEntityDeclaration,
@@ -32,9 +33,9 @@ use crate::topology_operators::{
 struct MilestoneThreeCancellationRun {
     primitive_family: String,
     primitive: MilestoneOnePrimitiveCase,
-    mutation_families: Vec<crate::topology_operators::TopologyMutationFamily>,
-    topology_mutation_digest: crate::topology_operators::TopologyMutationDigest,
-    naming_mutation_continuity_matrix: crate::topology_operators::NamingMutationContinuityMatrix,
+    declared_mutation_synopsis: MilestoneThreeScenarioMutationSynopsis,
+    accepted_semantic_summary:
+        crate::certification::topology_operator_closeout::report::MilestoneThreeScenarioMutationSemanticSummary,
     step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
     baseline_materialized_topology_digest: crate::certification::DeterministicDigest,
     final_materialized_topology_digest: crate::certification::DeterministicDigest,
@@ -66,15 +67,12 @@ where
         scenario: MilestoneThreeHostileScenario::CancellationChainParity,
         primitive_family: left.primitive_family,
         primitive: left.primitive,
-        mutation_families: left.mutation_families,
+        declared_mutation_synopsis: left.declared_mutation_synopsis,
+        semantic_summary: left.accepted_semantic_summary,
         bowtie_adjacent_witness: None,
         ambiguous_local_rewire_witness: None,
         split_collapse_churn_witness: None,
         broken_radial_witness: None,
-        topology_mutation_digest: left.topology_mutation_digest,
-        continuity_outcome_class: left.naming_mutation_continuity_matrix.outcome_class(),
-        continuity_rejection_class: left.naming_mutation_continuity_matrix.rejection_class(),
-        naming_mutation_continuity_matrix: left.naming_mutation_continuity_matrix,
         outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
         rejection_class: None,
         rejected_mutation_scope_report: None,
@@ -97,7 +95,8 @@ where
     let primitive = MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 };
     let primitive_family = primitive_family_name(&primitive).to_string();
     let mut runtime = runtime_factory();
-    let verified = seed_milestone_one_primitive(&mut runtime, stem, &primitive)?;
+    let verified =
+        seed_milestone_one_primitive_through_schema_execution(&mut runtime, stem, &primitive)?;
     let face_id = runtime
         .read_truth()
         .read_snapshot(verified.read_basis().snapshot())
@@ -129,11 +128,14 @@ where
             &mut workspace,
         )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let baseline_snapshot = surfaces
-        .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
+    let baseline_materialized =
+        crate::certification::support::current_head_materialized_topology::current_head_materialized_topology(
+            &mut workspace,
+            &surfaces,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
-        digest_materialized_topology_view(&baseline_snapshot.materialized);
+        digest_materialized_topology_view(&baseline_materialized);
 
     let loop_key = CreateKey::new(format!("{stem}.cancellation.inner_loop"));
     let create_inner_loop = TopologyCreateInnerLoopOnExistingFaceDeclaration::new(
@@ -147,9 +149,10 @@ where
         create_inner_loop.clone(),
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let step_one = accepted_step_row_for_declaration(0, &create_inner_loop, &execution_one);
-    let loop_id = find_loop_id_by_label(&execution_one.materialized, loop_key.as_str())?;
-    let inner_loop_relation_id = created_relation_id(&execution_one.receipt)?;
+    let step_one = accepted_step_row_for_execution(0, &execution_one);
+    let loop_id = find_loop_id_by_label(&execution_one.materialized(), loop_key.as_str())?;
+    let inner_loop_relation_id =
+        face_inner_loop_relation_id(&mut workspace, &surfaces, face_id, loop_id)?;
 
     let detach_inner_loop = TopologyDetachBoundaryMembershipDeclaration::new(
         inner_loop_relation_id,
@@ -161,63 +164,76 @@ where
         detach_inner_loop.clone(),
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let step_two = accepted_step_row_for_declaration(1, &detach_inner_loop, &execution_two);
+    let step_two = accepted_step_row_for_execution(1, &execution_two);
 
     let retire_loop =
         TopologyRetireTopologyEntityDeclaration::new(loop_id, TopologyEntityKind::Loop);
     let execution_three =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, retire_loop.clone())
             .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let step_three = accepted_step_row_for_declaration(2, &retire_loop, &execution_three);
-
-    let declarations = vec![
-        TopologyCloseoutDeclaration::CreateInnerLoopOnExistingFace(create_inner_loop),
-        TopologyCloseoutDeclaration::DetachBoundaryMembership(detach_inner_loop),
-        TopologyCloseoutDeclaration::RetireTopologyEntity(retire_loop),
-    ];
+    let step_three = accepted_step_row_for_execution(2, &execution_three);
+    let step_rows = vec![step_one, step_two, step_three];
+    let declared_mutation_synopsis = accepted_mutation_synopsis_from_step_rows(&step_rows);
+    let accepted_semantic_summary =
+        accepted_semantic_summary_from_step_rows(&step_rows, "accepted cancellation chain")?;
     let derived_validation_report =
-        derived_validation_report_from_materialized(&execution_three.materialized)?;
+        derived_validation_report_from_materialized(&execution_three.materialized())?;
     Ok(MilestoneThreeCancellationRun {
         primitive_family,
         primitive,
-        mutation_families: topology_mutation_families_for_declarations(declarations.clone()),
-        topology_mutation_digest: aggregate_topology_mutation_digest_for_declarations(
-            declarations.clone(),
-        ),
-        naming_mutation_continuity_matrix:
-            aggregate_naming_mutation_continuity_matrix_for_declarations(declarations),
-        step_rows: vec![step_one, step_two, step_three],
+        declared_mutation_synopsis,
+        accepted_semantic_summary,
+        step_rows,
         baseline_materialized_topology_digest,
         final_materialized_topology_digest: digest_materialized_topology_view(
-            &execution_three.materialized,
+            &execution_three.materialized(),
         ),
         derived_validation_report,
         derived_materialization_fallback_class: execution_three
-            .materialized
+            .materialized()
             .report()
             .fallback_class,
     })
 }
 
-fn created_relation_id(
-    receipt: &forge_query::facade::ForgeQueryBatchWriteReceipt,
+fn face_inner_loop_relation_id(
+    workspace: &mut forge_query::facade::ForgeQueryWorkspace,
+    surfaces: &TopologyDeclaredQuerySurfaces,
+    face_id: forge_relational::facade::identity::EntityId,
+    loop_id: forge_relational::facade::identity::EntityId,
 ) -> Result<forge_relational::facade::identity::RelationId, TopologyCertificationError> {
-    receipt
-        .write_receipts()
+    workspace
+        .read(surfaces.relations())
         .iter()
-        .flat_map(|write_receipt| write_receipt.deltas())
-        .find(|delta| {
-            delta.collection == "TopologyRelation"
-                && delta.kind == forge_query::facade::ForgeQueryMutationKind::Created
+        .find(|row| {
+            row.external_row()
+                .get("topology")
+                .and_then(|value| value.get("kind"))
+                .and_then(|value| value.as_str())
+                == Some(schema::facade::platform::relations::TopologyRelationKind::FaceInnerLoop.kind_name())
+                && row
+                    .external_row()
+                    .get("topology")
+                    .and_then(|value| value.get("source_identity"))
+                    .and_then(|value| value.as_str())
+                    .and_then(|identity| entity_id_from_query_identity(identity).ok())
+                    == Some(face_id)
+                && row
+                    .external_row()
+                    .get("topology")
+                    .and_then(|value| value.get("target_identity"))
+                    .and_then(|value| value.as_str())
+                    .and_then(|identity| entity_id_from_query_identity(identity).ok())
+                    == Some(loop_id)
         })
         .ok_or_else(|| {
             TopologyCertificationError::Query(
-                "cancellation-chain relation-create receipt did not expose a created topology relation"
+                "cancellation-chain topology rows did not expose the created face-inner-loop relation"
                     .to_string(),
             )
         })
-        .and_then(|delta| {
-            parse_relation_identity(delta.entity_identity.as_str())
+        .and_then(|row| {
+            relation_id_from_query_identity(row.identity())
                 .map_err(|error| TopologyCertificationError::Query(error.to_string()))
         })
 }

@@ -1,17 +1,19 @@
 use schema::facade::platform::entities::TopologyEntityKind;
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
-};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::support::{endpoint_rewire_fixture, radial_splice_fixture, seeded_relation_id};
 use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::facade::{
     topology_runtime, BoundaryMembershipKind, LoopEndpointKind, ShellOrWireMembershipKind,
     TopologyDetachBoundaryMembershipDeclaration, TopologyDetachRadialAdjacencyDeclaration,
-    TopologyDetachShellOrWireMembershipDeclaration, TopologyRetireTopologyEntityDeclaration,
-    TopologyRewireLoopEndpointDeclaration, TopologyRuntimeAdapters,
-    TopologySpliceRadialAdjacencyDeclaration,
+    TopologyDetachShellOrWireMembershipDeclaration, TopologyQueryMutationLaneExecutionShape,
+    TopologyRetireTopologyEntityDeclaration, TopologyRewireLoopEndpointDeclaration,
+    TopologyRuntimeAdapters, TopologySpliceRadialAdjacencyDeclaration,
+};
+use crate::test_support::schema_topology_authoring_boundary::{
+    seed_milestone_one_primitive_through_schema_execution,
+    seed_minimal_topology_through_schema_execution,
 };
 use crate::topology_operators::application::TopologyMutationApplicationError;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
@@ -29,7 +31,7 @@ fn current_head_runtime_executes_remaining_scalar_declarations_through_declarati
 #[test]
 fn current_head_runtime_keeps_invalid_scalar_splice_on_typed_denial_boundary() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.scalar.splice-radial-denial",
         &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
@@ -64,7 +66,9 @@ fn current_head_runtime_keeps_invalid_scalar_splice_on_typed_denial_boundary() {
 
 fn retire_runtime_case() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "query-native.scalar.retire").expect("seed");
+    let seeded =
+        seed_minimal_topology_through_schema_execution(&mut runtime, "query-native.scalar.retire")
+            .expect("seed");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, "query-native.scalar.retire").expect("workspace");
@@ -81,11 +85,18 @@ fn retire_runtime_case() {
     .expect("retire declaration should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.retire_topology_entity"
     );
+    assert_eq!(
+        execution.execution_shape(),
+        TopologyQueryMutationLaneExecutionShape::ScalarMutation
+    );
+    assert_query_anchor_matches_execution(&execution);
     assert!(!execution
-        .materialized
+        .materialized()
         .topology()
         .vertices
         .iter()
@@ -94,8 +105,11 @@ fn retire_runtime_case() {
 
 fn detach_boundary_runtime_case() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let seeded =
-        seed_minimal_topology(&mut runtime, "query-native.scalar.detach-boundary").expect("seed");
+    let seeded = seed_minimal_topology_through_schema_execution(
+        &mut runtime,
+        "query-native.scalar.detach-boundary",
+    )
+    .expect("seed");
     let relation_id = seeded_relation_id(
         &runtime,
         &seeded.snapshot,
@@ -120,11 +134,18 @@ fn detach_boundary_runtime_case() {
     .expect("detach boundary declaration should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.detach_boundary_membership"
     );
+    assert_eq!(
+        execution.execution_shape(),
+        TopologyQueryMutationLaneExecutionShape::ScalarMutation
+    );
+    assert_query_anchor_matches_execution(&execution);
     let loop_record = execution
-        .materialized
+        .materialized()
         .topology()
         .loops
         .iter()
@@ -135,7 +156,7 @@ fn detach_boundary_runtime_case() {
 
 fn rewire_endpoint_runtime_case() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.scalar.rewire-endpoint",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
@@ -164,11 +185,18 @@ fn rewire_endpoint_runtime_case() {
     .expect("rewire endpoint declaration should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.rewire_loop_endpoint"
     );
+    assert_eq!(
+        execution.execution_shape(),
+        TopologyQueryMutationLaneExecutionShape::ScalarMutation
+    );
+    assert_query_anchor_matches_execution(&execution);
     let half_edge = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()
@@ -179,8 +207,11 @@ fn rewire_endpoint_runtime_case() {
 
 fn detach_shell_or_wire_runtime_case() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let seeded =
-        seed_minimal_topology(&mut runtime, "query-native.scalar.detach-wire").expect("seed");
+    let seeded = seed_minimal_topology_through_schema_execution(
+        &mut runtime,
+        "query-native.scalar.detach-wire",
+    )
+    .expect("seed");
     let relation_id = seeded_relation_id(
         &runtime,
         &seeded.snapshot,
@@ -205,11 +236,18 @@ fn detach_shell_or_wire_runtime_case() {
     .expect("detach shell-or-wire declaration should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.detach_shell_or_wire_membership"
     );
+    assert_eq!(
+        execution.execution_shape(),
+        TopologyQueryMutationLaneExecutionShape::ScalarMutation
+    );
+    assert_query_anchor_matches_execution(&execution);
     let wire = execution
-        .materialized
+        .materialized()
         .topology()
         .wires
         .iter()
@@ -220,7 +258,7 @@ fn detach_shell_or_wire_runtime_case() {
 
 fn splice_radial_runtime_case() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.scalar.splice-radial",
         &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
@@ -248,11 +286,18 @@ fn splice_radial_runtime_case() {
     .expect("splice radial declaration should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.splice_radial_adjacency"
     );
+    assert_eq!(
+        execution.execution_shape(),
+        TopologyQueryMutationLaneExecutionShape::ScalarMutation
+    );
+    assert_query_anchor_matches_execution(&execution);
     let half_edge = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()
@@ -266,8 +311,11 @@ fn splice_radial_runtime_case() {
 
 fn detach_radial_runtime_case() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let seeded =
-        seed_minimal_topology(&mut runtime, "query-native.scalar.detach-radial").expect("seed");
+    let seeded = seed_minimal_topology_through_schema_execution(
+        &mut runtime,
+        "query-native.scalar.detach-radial",
+    )
+    .expect("seed");
     let relation_id = seeded_relation_id(
         &runtime,
         &seeded.snapshot,
@@ -289,15 +337,44 @@ fn detach_radial_runtime_case() {
     .expect("detach radial declaration should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.detach_radial_adjacency"
     );
+    assert_eq!(
+        execution.execution_shape(),
+        TopologyQueryMutationLaneExecutionShape::ScalarMutation
+    );
+    assert_query_anchor_matches_execution(&execution);
     let half_edge = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()
         .find(|half_edge| half_edge.entity_id == seeded.half_edge)
         .expect("seeded half-edge should remain present");
     assert_eq!(half_edge.radial_next_half_edge_id, None);
+}
+
+fn assert_query_anchor_matches_execution(
+    execution: &crate::topology_operators::application::TopologyDeclaredMutationArtifact,
+) {
+    let anchor = execution.query_anchor();
+    let semantic_projection = execution.accepted_mutation_projection();
+    assert_eq!(
+        anchor.declaration_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key()
+    );
+    assert!(!anchor.declaration_digest().is_empty());
+    assert!(!anchor.progression_digest().is_empty());
+    assert!(!anchor.route_plan_digest().is_empty());
+    assert!(!anchor.contribution_digest().is_empty());
+    assert!(anchor.envelope_digest().metadata().entry_count() > 0);
+    assert!(anchor.receipt_digest().metadata().entry_count() > 0);
+    assert!(semantic_projection
+        .fallback_explanation_detail()
+        .contains("fallback"));
 }

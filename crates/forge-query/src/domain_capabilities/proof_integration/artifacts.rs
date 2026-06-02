@@ -73,7 +73,10 @@ mod allowed_bindings {
         ]
     );
     allow!(
-        ForgeQueryContinuityContributionPayload => [ForgeQueryAdmittedPlanBoundContributionTarget]
+        ForgeQueryContinuityContributionPayload => [
+            ForgeQueryDeclarationBoundContributionTarget,
+            ForgeQueryAdmittedPlanBoundContributionTarget
+        ]
     );
     allow!(
         ForgeQueryAftermathContributionPayload => [

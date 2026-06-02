@@ -2,7 +2,8 @@ use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclar
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{
     TopologyDeclarationMutationPayload, TopologyDeclaredMutationArtifact,
-    TopologyMutationApplicationError, TopologyMutationApplicationRunner,
+    TopologyMutationApplicationError, TopologyMutationApplicationOutcome,
+    TopologyMutationApplicationRunner,
 };
 #[cfg(test)]
 use crate::topology_operators::TopologyMutationFamily;
@@ -40,6 +41,22 @@ where
     let bindings = current_operator_bindings(workspace, surfaces)?;
     let mut runner = TopologyMutationApplicationRunner::new(workspace, surfaces);
     declaration.execute_on_runner(&mut runner, &bindings)
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) fn execute_current_head_topology_declaration_outcome<D>(
+    workspace: &mut ForgeQueryWorkspace,
+    surfaces: &TopologyDeclaredQuerySurfaces,
+    declaration: D,
+) -> TopologyMutationApplicationOutcome
+where
+    D: TopologyCurrentHeadRuntimeDeclaration,
+{
+    TopologyMutationApplicationOutcome::from_result(execute_current_head_topology_declaration(
+        workspace,
+        surfaces,
+        declaration,
+    ))
 }
 
 #[cfg(test)]
@@ -183,3 +200,172 @@ impl_grouped_runtime_declaration!(
 use crate::projection::runtime_boundary::query_runtime::TopologyRuntimeSupport;
 #[cfg(test)]
 use crate::topology_operators::application::admission::unsupported_declaration_families;
+
+#[cfg(test)]
+mod tests {
+    use forge_query::facade::{ForgeQueryApplicationFacade, ForgeQueryDeclarationFamilyMarker};
+    use schema::facade::platform::entities::TopologyEntityKind;
+
+    use super::{
+        execute_current_head_topology_declaration,
+        execute_current_head_topology_declaration_outcome,
+    };
+    use crate::topology_operators::application::{
+        TopologyDeclarationEntryStopClass, TopologyDeclaredMutationArtifact,
+        TopologyMutationApplicationError, TopologyMutationApplicationOutcome,
+        TopologyRetainedApplicationHandoff,
+    };
+    use crate::topology_operators::{
+        TopologyCreateTopologyEntityDeclaration, TopologyCreateTopologyEntityFamily,
+        TopologyOperatorWorkflowHandleExt,
+    };
+
+    #[test]
+    fn current_head_execution_outcome_projects_success_without_losing_artifact() {
+        let runtime =
+            crate::validation::reference_integrity::build_milestone_one_runtime().expect("runtime");
+        let adapters = crate::facade::TopologyRuntimeAdapters::current_head(runtime);
+        let mut workspace =
+            crate::facade::topology_runtime(adapters, "phase3.execution-outcome.success")
+                .expect("workspace");
+        let surfaces = crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+
+        let outcome = execute_current_head_topology_declaration_outcome(
+            &mut workspace,
+            &surfaces,
+            TopologyCreateTopologyEntityDeclaration::new(
+                "phase3.execution-outcome.vertex",
+                TopologyEntityKind::Vertex,
+            ),
+        );
+
+        match outcome {
+            TopologyMutationApplicationOutcome::Applied(artifact) => {
+                let synopsis = artifact.accepted_mutation_projection();
+                let semantic_projection = artifact.accepted_mutation_projection();
+                assert_eq!(
+                    synopsis.semantic_family_key(),
+                    "topology.create_topology_entity"
+                );
+                assert_eq!(
+                    synopsis.mutation_families(),
+                    &[crate::topology_operators::TopologyMutationFamily::CreateTopologyEntity]
+                );
+                assert_eq!(synopsis.topology_mutation_digest().mutation_record_count, 1);
+                assert_eq!(synopsis.topology_mutation_digest().family_count, 1);
+                assert_eq!(
+                    semantic_projection
+                        .naming_mutation_continuity_matrix()
+                        .preserved_count,
+                    1
+                );
+                assert_eq!(
+                    semantic_projection
+                        .naming_mutation_continuity_matrix()
+                        .rows
+                        .len(),
+                    1
+                );
+                assert_eq!(
+                    semantic_projection.derived_fallback_policy(),
+                    crate::topology_operators::TopologyMutationDerivedFallbackPolicy::AllowExplicitFallback
+                );
+            }
+            _ => panic!("expected applied execution outcome"),
+        }
+    }
+
+    #[test]
+    fn declaration_entry_errors_project_to_stopped_execution_outcomes() {
+        let outcome = TopologyMutationApplicationOutcome::from_result(Err(
+            TopologyMutationApplicationError::DeclarationEntry {
+                family: crate::topology_operators::TopologyMutationFamily::CreateTopologyEntity,
+                stop_class: TopologyDeclarationEntryStopClass::RebindRequired,
+                stop_stage: None,
+                refusal_class: None,
+                recovery: None,
+                reason: "snapshot contexts require explicit rebind".to_string(),
+            },
+        ));
+
+        match outcome {
+            TopologyMutationApplicationOutcome::Stopped(stop) => {
+                assert_eq!(
+                    stop.stop_class(),
+                    Some(TopologyDeclarationEntryStopClass::RebindRequired)
+                );
+                assert!(stop.recovery().is_none());
+            }
+            _ => panic!("expected declaration-entry stop outcome"),
+        }
+    }
+
+    #[test]
+    fn retained_query_semantic_aftermath_mismatch_fails_closed_before_projection() {
+        let declaration = TopologyCreateTopologyEntityDeclaration::new(
+            "semantic-aftermath.vertex",
+            TopologyEntityKind::Vertex,
+        );
+        let second_declaration = TopologyCreateTopologyEntityDeclaration::new(
+            "semantic-aftermath.vertex.successor",
+            TopologyEntityKind::Vertex,
+        );
+        let facade = ForgeQueryApplicationFacade::runtime_backed_default();
+        let handle = crate::query_domain::topology_query_domain_entry(&facade)
+            .with_operating_context(
+                crate::query_domain::topology_current_head_authoritative_context(),
+            )
+            .validate()
+            .expect("current-head context should validate")
+            .admit()
+            .expect("current-head context should admit");
+        let handoff = TopologyRetainedApplicationHandoff::new(
+            handle
+                .orchestrate_topology_operator_with_contributions(
+                    crate::topology_operators::topology_operator_contribution_workflow(
+                        declaration.clone(),
+                    ),
+                )
+                .unwrap_or_else(|_| panic!("topology contribution-composed lane should admit")),
+        );
+        let runtime =
+            crate::validation::reference_integrity::build_milestone_one_runtime().expect("runtime");
+        let adapters = crate::facade::TopologyRuntimeAdapters::current_head(runtime);
+        let mut workspace =
+            crate::facade::topology_runtime(adapters, "semantic-aftermath.mismatch")
+                .expect("workspace");
+        let surfaces = crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
+            &mut workspace,
+        )
+        .expect("declare surfaces");
+        let execution = execute_current_head_topology_declaration(
+            &mut workspace,
+            &surfaces,
+            declaration.clone(),
+        )
+        .expect("declaration should execute through current-head runtime");
+        let mismatched_sequence =
+            crate::topology_operators::TopologyDeclaredMutationSequence::concatenate([
+                declaration.declared_mutation_sequence(),
+                second_declaration.declared_mutation_sequence(),
+            ]);
+
+        assert!(matches!(
+            TopologyDeclaredMutationArtifact::from_receipt(
+                TopologyCreateTopologyEntityFamily::semantic_family_key(),
+                &handoff,
+                &mismatched_sequence,
+                execution.post_write_query_artifact_for_test(),
+            ),
+            Err(
+                TopologyMutationApplicationError::RetainedSemanticAftermathMismatch {
+                    semantic_family_key: "topology.create_topology_entity",
+                    ..
+                }
+            )
+        ));
+    }
+}

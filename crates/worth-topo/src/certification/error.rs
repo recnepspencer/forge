@@ -1,11 +1,12 @@
 use crate::derived_topology::materialized_graph::TopologyMaterializationError;
-use crate::projection::TopologyQuerySurfaceError;
+use crate::projection::runtime_boundary::declared_query_surfaces::TopologyQuerySurfaceError;
+use crate::projection::runtime_boundary::read_stage::TopologyReadStageError;
+use crate::test_support::schema_topology_authoring_boundary::SchemaPrimitiveAuthoringError;
 use crate::validation::TopologyValidationError;
-use schema::facade::topology_authoring::MilestoneOnePrimitiveAuthoringError;
 
 #[derive(Debug)]
 pub enum MilestoneOneCertificationError {
-    Authoring(MilestoneOnePrimitiveAuthoringError),
+    Authoring(SchemaPrimitiveAuthoringError),
     Query(String),
     ReadView(String),
     Materialization(TopologyMaterializationError),
@@ -40,8 +41,8 @@ impl From<TopologyValidationError> for MilestoneOneCertificationError {
     }
 }
 
-impl From<MilestoneOnePrimitiveAuthoringError> for MilestoneOneCertificationError {
-    fn from(value: MilestoneOnePrimitiveAuthoringError) -> Self {
+impl From<SchemaPrimitiveAuthoringError> for MilestoneOneCertificationError {
+    fn from(value: SchemaPrimitiveAuthoringError) -> Self {
         Self::Authoring(value)
     }
 }
@@ -49,5 +50,16 @@ impl From<MilestoneOnePrimitiveAuthoringError> for MilestoneOneCertificationErro
 impl From<TopologyQuerySurfaceError> for MilestoneOneCertificationError {
     fn from(value: TopologyQuerySurfaceError) -> Self {
         Self::Query(value.to_string())
+    }
+}
+
+impl From<TopologyReadStageError> for MilestoneOneCertificationError {
+    fn from(value: TopologyReadStageError) -> Self {
+        match value {
+            #[cfg(test)]
+            TopologyReadStageError::ReadView(error) => Self::ReadView(error),
+            TopologyReadStageError::Materialization(error) => Self::Materialization(error),
+            TopologyReadStageError::Validation(error) => Self::Validation(error),
+        }
     }
 }

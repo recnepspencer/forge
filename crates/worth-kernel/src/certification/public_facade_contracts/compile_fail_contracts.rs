@@ -11,10 +11,22 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
         "{compile_fail}/phases/public_raw_request_cannot_skip_admission.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/phases/public_scaffold_cannot_skip_spatial_birth.rs"
+        "{compile_fail}/phases/public_intent_admission_phase_demoted.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/phases/public_lowering_plan_cannot_skip_execution_phase.rs"
+        "{compile_fail}/phases/public_admitted_intent_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/phases/public_admitted_handoff_helper_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/phases/public_scaffold_handoff_helper_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/phases/public_raw_handoff_helper_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/phases/public_execution_phase_exports_demoted.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/authority/public_kernel_certification_plan_not_exported.rs"
@@ -27,6 +39,12 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
     ));
     t.compile_fail(format!(
         "{compile_fail}/results/public_root_happy_path_exports_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/results/public_outcome_prepared_happy_path_helpers_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/results/public_prelude_happy_path_helpers_demoted.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/reports/public_branch_local_parity_report_constructor_not_exported.rs"
@@ -81,6 +99,9 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
     ));
     t.compile_fail(format!(
         "{compile_fail}/reports/public_preview_continuity_hostility_suite_constructor_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/reports/public_phase_five_boundary_closeout_report_constructor_not_exported.rs"
     ));
     for fixture in prepare_primitive_construction_proof_boundary_compile_fail_report().fixtures() {
         t.compile_fail(fixture.path().to_string());

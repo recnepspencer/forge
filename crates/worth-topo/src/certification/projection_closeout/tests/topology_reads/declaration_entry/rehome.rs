@@ -1,22 +1,18 @@
-use forge_query::facade::{
-    ForgeQueryDeclarationEntryOrchestrationChecked,
-    ForgeQueryDeclarationEntryOrchestrationTerminalError,
-};
 use forge_relational::facade::identity::EntityId;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
-use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
-};
+use schema::facade::topology_authoring::{DerivedTopologyReadBasis, MilestoneOnePrimitiveCase};
 use std::collections::BTreeSet;
 
 use super::super::support::{current_head_query_handle, snapshot_query_handle};
 use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::facade::{
-    topology_runtime, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
+    topology_runtime, TopologyOperatorEnvelopeChecked, TopologyOperatorEnvelopeTerminalError,
+    TopologyOperatorWorkflowHandleExt, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyRuntimeAdapters,
     TopologyShellRehomeFaceMember, TopologyWireRehomeHalfEdgeMember,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
@@ -39,19 +35,19 @@ fn current_head_handle_orchestrates_wire_rehome_declaration_across_all_query_lan
         )],
     );
     let ordinary = handle
-        .orchestrate_declaration_entry(declaration.clone())
+        .orchestrate_topology_operator_envelope(declaration.clone())
         .unwrap_or_else(|_| panic!("current-head wire rehome declaration should envelope"));
-    let checked = handle.orchestrate_declaration_entry_checked(declaration.clone());
-    let proof = handle.orchestrate_declaration_entry_proof(declaration);
+    let checked = handle.orchestrate_topology_operator_envelope_checked(declaration.clone());
+    let proof = handle.orchestrate_topology_operator_envelope_proof(declaration);
 
     match checked {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped checked wire rehome declaration"),
     }
     match proof.outcome() {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped proof wire rehome declaration"),
@@ -61,7 +57,7 @@ fn current_head_handle_orchestrates_wire_rehome_declaration_across_all_query_lan
 #[test]
 fn snapshot_handle_does_not_envelope_wire_rehome_declaration() {
     let handle = snapshot_query_handle();
-    let ordinary = handle.orchestrate_declaration_entry(
+    let ordinary = handle.orchestrate_topology_operator_envelope(
         TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration::new(
             "query-native.snapshot.rehome-wire",
             EntityId::new(
@@ -79,7 +75,7 @@ fn snapshot_handle_does_not_envelope_wire_rehome_declaration() {
             )],
         ),
     );
-    let checked = handle.orchestrate_declaration_entry_checked(
+    let checked = handle.orchestrate_topology_operator_envelope_checked(
         TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration::new(
             "query-native.snapshot.rehome-wire",
             EntityId::new(
@@ -100,18 +96,18 @@ fn snapshot_handle_does_not_envelope_wire_rehome_declaration() {
 
     assert!(matches!(
         ordinary,
-        Err(ForgeQueryDeclarationEntryOrchestrationTerminalError::RebindRequired(_))
+        Err(TopologyOperatorEnvelopeTerminalError::RebindRequired(_))
     ));
     assert!(matches!(
         checked,
-        ForgeQueryDeclarationEntryOrchestrationChecked::RebindRequired(_)
+        TopologyOperatorEnvelopeChecked::RebindRequired(_)
     ));
 }
 
 #[test]
 fn current_head_runtime_executes_canonical_wire_rehome_declaration_through_declaration_entry() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.rehome-wire.runtime",
         &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
@@ -145,10 +141,12 @@ fn current_head_runtime_executes_canonical_wire_rehome_declaration_through_decla
             .expect("canonical wire rehome declaration should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.rehome_all_owned_half_edges_to_new_wire"
     );
-    let topology = execution.materialized.topology();
+    let topology = execution.materialized().topology();
     assert!(!topology.wires.iter().any(|wire| wire.entity_id == wire_id));
     let new_wire = topology
         .wires
@@ -191,19 +189,19 @@ fn current_head_handle_orchestrates_shell_rehome_declaration_across_all_query_la
         )],
     );
     let ordinary = handle
-        .orchestrate_declaration_entry(declaration.clone())
+        .orchestrate_topology_operator_envelope(declaration.clone())
         .unwrap_or_else(|_| panic!("current-head shell rehome declaration should envelope"));
-    let checked = handle.orchestrate_declaration_entry_checked(declaration.clone());
-    let proof = handle.orchestrate_declaration_entry_proof(declaration);
+    let checked = handle.orchestrate_topology_operator_envelope_checked(declaration.clone());
+    let proof = handle.orchestrate_topology_operator_envelope_proof(declaration);
 
     match checked {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped checked shell rehome declaration"),
     }
     match proof.outcome() {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped proof shell rehome declaration"),
@@ -213,7 +211,7 @@ fn current_head_handle_orchestrates_shell_rehome_declaration_across_all_query_la
 #[test]
 fn snapshot_handle_does_not_envelope_shell_rehome_declaration() {
     let handle = snapshot_query_handle();
-    let ordinary = handle.orchestrate_declaration_entry(
+    let ordinary = handle.orchestrate_topology_operator_envelope(
         TopologyRehomeAllOwnedFacesToNewShellDeclaration::new(
             "query-native.snapshot.rehome-shell",
             "query-native.snapshot.rehome-shell.region-member",
@@ -237,7 +235,7 @@ fn snapshot_handle_does_not_envelope_shell_rehome_declaration() {
             )],
         ),
     );
-    let checked = handle.orchestrate_declaration_entry_checked(
+    let checked = handle.orchestrate_topology_operator_envelope_checked(
         TopologyRehomeAllOwnedFacesToNewShellDeclaration::new(
             "query-native.snapshot.rehome-shell",
             "query-native.snapshot.rehome-shell.region-member",
@@ -264,18 +262,18 @@ fn snapshot_handle_does_not_envelope_shell_rehome_declaration() {
 
     assert!(matches!(
         ordinary,
-        Err(ForgeQueryDeclarationEntryOrchestrationTerminalError::RebindRequired(_))
+        Err(TopologyOperatorEnvelopeTerminalError::RebindRequired(_))
     ));
     assert!(matches!(
         checked,
-        ForgeQueryDeclarationEntryOrchestrationChecked::RebindRequired(_)
+        TopologyOperatorEnvelopeChecked::RebindRequired(_)
     ));
 }
 
 #[test]
 fn current_head_runtime_executes_canonical_shell_rehome_declaration_through_declaration_entry() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.rehome-shell.runtime",
         &MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },
@@ -312,10 +310,12 @@ fn current_head_runtime_executes_canonical_shell_rehome_declaration_through_decl
             .expect("canonical shell rehome declaration should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.rehome_all_owned_faces_to_new_shell"
     );
-    let topology = execution.materialized.topology();
+    let topology = execution.materialized().topology();
     assert!(!topology
         .shells
         .iter()

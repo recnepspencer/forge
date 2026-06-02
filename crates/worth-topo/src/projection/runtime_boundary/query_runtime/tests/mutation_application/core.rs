@@ -2,19 +2,21 @@ use forge_relational::facade::identity::RelationId;
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
-use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
-};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::{
+    seed_milestone_one_primitive_through_schema_execution,
+    seed_minimal_topology_through_schema_execution,
+};
 use crate::topology_operators::{
     BoundaryMembershipKind, TopologyCreateInnerLoopOnExistingFaceDeclaration,
     TopologyCreateTopologyEntityDeclaration, TopologyDetachBoundaryMembershipDeclaration,
-    TopologyDetachRadialAdjacencyDeclaration, TopologyMutationFamily,
-    TopologyMutationNamingOutcome,
+    TopologyDetachRadialAdjacencyDeclaration, TopologyMutationDerivedFallbackPolicy,
+    TopologyMutationFamily, TopologyMutationNamingOutcome,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::{
@@ -39,32 +41,41 @@ fn current_head_runtime_executes_create_topology_entity_through_topology_mutatio
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .expect("create topology entity should execute through declaration entry");
+    let synopsis = execution.accepted_mutation_projection();
+    let semantic_projection = execution.accepted_mutation_projection();
 
     assert_eq!(
-        execution.families,
+        synopsis.mutation_families(),
         vec![TopologyMutationFamily::CreateTopologyEntity]
     );
-    assert_eq!(execution.topology_mutation_digest.mutation_record_count, 1);
-    assert_eq!(execution.topology_mutation_digest.family_count, 1);
-    assert_eq!(execution.naming_continuity_matrix.rows.len(), 1);
-    assert_eq!(execution.naming_continuity_matrix.preserved_count, 1);
-    assert_eq!(execution.naming_continuity_matrix.ambiguous_count, 0);
-    assert_eq!(execution.naming_continuity_matrix.rejected_count, 0);
+    assert_eq!(synopsis.topology_mutation_digest().mutation_record_count, 1);
+    assert_eq!(synopsis.topology_mutation_digest().family_count, 1);
+    let naming_mutation_continuity_matrix = semantic_projection.naming_mutation_continuity_matrix();
+    assert_eq!(naming_mutation_continuity_matrix.rows.len(), 1);
+    assert_eq!(naming_mutation_continuity_matrix.preserved_count, 1);
+    assert_eq!(naming_mutation_continuity_matrix.ambiguous_count, 0);
+    assert_eq!(naming_mutation_continuity_matrix.rejected_count, 0);
     assert_eq!(
-        execution.naming_continuity_matrix.rows[0].outcome,
+        naming_mutation_continuity_matrix.rows[0].outcome,
         TopologyMutationNamingOutcome::Preserved
     );
-    assert_eq!(execution.naming_report.rows.len(), 1);
+    assert_eq!(
+        semantic_projection.derived_fallback_policy(),
+        TopologyMutationDerivedFallbackPolicy::AllowExplicitFallback
+    );
+    assert!(semantic_projection
+        .fallback_explanation_detail()
+        .contains("allows explicit fallback"));
     assert!(execution
-        .receipt
+        .receipt()
         .affected_derived_view_ids()
         .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
-        execution.inspection.affected_derived_view_ids(),
-        execution.receipt.affected_derived_view_ids()
+        execution.inspection().affected_derived_view_ids(),
+        execution.receipt().affected_derived_view_ids()
     );
     assert!(execution
-        .materialized
+        .materialized()
         .topology()
         .vertices
         .iter()
@@ -74,8 +85,11 @@ fn current_head_runtime_executes_create_topology_entity_through_topology_mutatio
 #[test]
 fn current_head_runtime_executes_retire_topology_entity_through_topology_mutation_application() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "query-mutation-runtime-retire")
-        .expect("seed topology");
+    let seeded = seed_minimal_topology_through_schema_execution(
+        &mut runtime,
+        "query-mutation-runtime-retire",
+    )
+    .expect("seed topology");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-mutation-retire").expect("workspace");
@@ -91,21 +105,22 @@ fn current_head_runtime_executes_retire_topology_entity_through_topology_mutatio
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .expect("retire topology entity should execute through declaration entry");
+    let synopsis = execution.accepted_mutation_projection();
 
     assert_eq!(
-        execution.families,
+        synopsis.mutation_families(),
         vec![TopologyMutationFamily::RetireTopologyEntity]
     );
     assert!(execution
-        .receipt
+        .receipt()
         .affected_derived_view_ids()
         .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
-        execution.inspection.affected_derived_view_ids(),
-        execution.receipt.affected_derived_view_ids()
+        execution.inspection().affected_derived_view_ids(),
+        execution.receipt().affected_derived_view_ids()
     );
     assert_eq!(
-        execution.inspection.component_operations()[0]
+        execution.inspection().component_operations()[0]
             .existing_truth_assertion_evidence()
             .expect("retire receipt should retain backend verification evidence")
             .mode(),
@@ -118,7 +133,7 @@ fn current_head_runtime_executes_retire_topology_entity_through_topology_mutatio
         1
     );
     assert!(!execution
-        .materialized
+        .materialized()
         .topology()
         .vertices
         .iter()
@@ -129,8 +144,11 @@ fn current_head_runtime_executes_retire_topology_entity_through_topology_mutatio
 fn current_head_runtime_executes_detach_boundary_membership_through_topology_mutation_application()
 {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "query-mutation-runtime-detach")
-        .expect("seed topology");
+    let seeded = seed_minimal_topology_through_schema_execution(
+        &mut runtime,
+        "query-mutation-runtime-detach",
+    )
+    .expect("seed topology");
     let loop_owns_half_edge_relation = seeded_relation_id(
         &runtime,
         &seeded.snapshot,
@@ -151,21 +169,22 @@ fn current_head_runtime_executes_detach_boundary_membership_through_topology_mut
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .expect("detach boundary membership should execute through declaration entry");
+    let synopsis = execution.accepted_mutation_projection();
 
     assert_eq!(
-        execution.families,
+        synopsis.mutation_families(),
         vec![TopologyMutationFamily::DetachBoundaryMembership]
     );
     assert!(execution
-        .receipt
+        .receipt()
         .affected_derived_view_ids()
         .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
-        execution.inspection.affected_derived_view_ids(),
-        execution.receipt.affected_derived_view_ids()
+        execution.inspection().affected_derived_view_ids(),
+        execution.receipt().affected_derived_view_ids()
     );
     assert_eq!(
-        execution.inspection.component_operations()[0]
+        execution.inspection().component_operations()[0]
             .existing_truth_assertion_evidence()
             .expect("detach receipt should retain backend verification evidence")
             .mode(),
@@ -178,7 +197,7 @@ fn current_head_runtime_executes_detach_boundary_membership_through_topology_mut
         1
     );
     let loop_record = execution
-        .materialized
+        .materialized()
         .topology()
         .loops
         .iter()
@@ -190,7 +209,7 @@ fn current_head_runtime_executes_detach_boundary_membership_through_topology_mut
 #[test]
 fn current_head_runtime_executes_create_inner_loop_on_existing_face_program() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-mutation-runtime-attach-boundary",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
@@ -224,21 +243,22 @@ fn current_head_runtime_executes_create_inner_loop_on_existing_face_program() {
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .expect("create-inner-loop program should execute through declaration entry");
+    let synopsis = execution.accepted_mutation_projection();
 
     assert_eq!(
-        execution.families,
+        synopsis.mutation_families(),
         vec![
             TopologyMutationFamily::CreateTopologyEntity,
             TopologyMutationFamily::AttachBoundaryMembership,
         ]
     );
     assert!(execution
-        .receipt
+        .receipt()
         .affected_derived_view_ids()
         .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_program()
             .expect("inner-loop program should expose composed program")
             .steps()
@@ -251,7 +271,7 @@ fn current_head_runtime_executes_create_inner_loop_on_existing_face_program() {
         ]
     );
     let face = execution
-        .materialized
+        .materialized()
         .topology()
         .faces
         .iter()
@@ -266,8 +286,11 @@ fn current_head_runtime_executes_create_inner_loop_on_existing_face_program() {
 #[test]
 fn current_head_runtime_executes_detach_radial_adjacency_through_topology_mutation_application() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "query-mutation-runtime-detach-radial")
-        .expect("seed topology");
+    let seeded = seed_minimal_topology_through_schema_execution(
+        &mut runtime,
+        "query-mutation-runtime-detach-radial",
+    )
+    .expect("seed topology");
     let radial_relation = seeded_relation_id(
         &runtime,
         &seeded.snapshot,
@@ -285,21 +308,22 @@ fn current_head_runtime_executes_detach_radial_adjacency_through_topology_mutati
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .expect("detach radial adjacency should execute through declaration entry");
+    let synopsis = execution.accepted_mutation_projection();
 
     assert_eq!(
-        execution.families,
+        synopsis.mutation_families(),
         vec![TopologyMutationFamily::DetachRadialAdjacency]
     );
     assert!(execution
-        .receipt
+        .receipt()
         .affected_derived_view_ids()
         .contains(&surfaces.materialized().name().to_string()));
     assert_eq!(
-        execution.inspection.affected_derived_view_ids(),
-        execution.receipt.affected_derived_view_ids()
+        execution.inspection().affected_derived_view_ids(),
+        execution.receipt().affected_derived_view_ids()
     );
     assert_eq!(
-        execution.inspection.component_operations()[0]
+        execution.inspection().component_operations()[0]
             .existing_truth_assertion_evidence()
             .expect("detach receipt should retain backend verification evidence")
             .mode(),
@@ -312,7 +336,7 @@ fn current_head_runtime_executes_detach_radial_adjacency_through_topology_mutati
         1
     );
     let half_edge = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()

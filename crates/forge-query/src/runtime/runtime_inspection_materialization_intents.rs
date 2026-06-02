@@ -8,8 +8,52 @@ use crate::intent_admission::{
     ForgeQueryDerivedMaterializationExecutionHandoff, ForgeQueryDerivedViewIntentSeed,
     ForgeQueryIntentAdmissionDecision,
 };
+use crate::runtime::{
+    ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteRetainedArtifact,
+    ForgeQueryDerivedMaterializationBundle, ForgeQueryDerivedMaterializationTarget,
+};
+use std::collections::BTreeMap;
 
 impl ForgeQueryWorkspace {
+    pub fn materialize_batch_write_artifact_binding(
+        &mut self,
+        receipt: &ForgeQueryBatchWriteReceipt,
+        artifact_name: impl Into<String>,
+        targets: impl IntoIterator<Item = ForgeQueryDerivedMaterializationTarget>,
+    ) -> Result<ForgeQueryBatchWriteRetainedArtifact, ForgeQueryRuntimeError> {
+        ForgeQueryBatchWriteRetainedArtifact::build(self, receipt, artifact_name, targets)
+    }
+
+    pub fn materialize_derived_artifact_binding(
+        &mut self,
+        artifact_name: impl Into<String>,
+        targets: impl IntoIterator<Item = ForgeQueryDerivedMaterializationTarget>,
+    ) -> Result<crate::runtime::ForgeQueryDerivedArtifactBinding, ForgeQueryRuntimeError> {
+        let retained_targets = targets.into_iter().collect::<Vec<_>>();
+        self.materialize_derived_artifact_bundle(retained_targets.clone())?
+            .bind_retained_artifact(artifact_name, retained_targets)
+    }
+
+    pub fn materialize_derived_artifact_bundle(
+        &mut self,
+        targets: impl IntoIterator<Item = ForgeQueryDerivedMaterializationTarget>,
+    ) -> Result<ForgeQueryDerivedMaterializationBundle, ForgeQueryRuntimeError> {
+        let mut retained_targets = targets.into_iter().collect::<Vec<_>>();
+        retained_targets.sort();
+        retained_targets.dedup();
+
+        let mut materializations = BTreeMap::new();
+        for target in retained_targets {
+            let result = self.materialize_derived_view_by_name(target.view_name().to_string())?;
+            materializations.insert(target.view_name().to_string(), result);
+        }
+        let snapshot_token = bundle_snapshot_token(&materializations)?;
+        Ok(ForgeQueryDerivedMaterializationBundle::new(
+            snapshot_token,
+            materializations,
+        ))
+    }
+
     pub fn materialize_intent<T>(
         &mut self,
         view: &ForgeQueryDerivedViewHandle<T>,
@@ -106,6 +150,55 @@ impl ForgeQueryWorkspace {
     ) -> Result<ForgeQueryDerivedInspectionResult, ForgeQueryRuntimeError> {
         self.runtime
             .execute_derived_inspection_execution_binding(binding)
+    }
+
+    fn materialize_derived_view_by_name(
+        &mut self,
+        view_name: String,
+    ) -> Result<ForgeQueryDerivedMaterializationResult, ForgeQueryRuntimeError> {
+        let review = self.review_derived_materialization(view_name)?;
+        let handoff = self.resolve_reviewed_admitted_derived_materialization_handoff(review)?;
+        let binding = self.into_runtime_derived_materialization_binding(handoff);
+        self.execute_bound_derived_materialization(binding)
+    }
+}
+
+fn bundle_snapshot_token(
+    materializations: &BTreeMap<String, ForgeQueryDerivedMaterializationResult>,
+) -> Result<String, ForgeQueryRuntimeError> {
+    let snapshot_tokens = materializations
+        .iter()
+        .map(|(view_name, result)| {
+            (
+                view_name.as_str(),
+                result.receipt().snapshot_token().to_string(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let distinct_snapshot_tokens = snapshot_tokens
+        .iter()
+        .map(|(_, snapshot_token)| snapshot_token.as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    match snapshot_tokens.as_slice() {
+        [] => Ok(String::new()),
+        [(_, snapshot_token)] if distinct_snapshot_tokens.len() == 1 => Ok(snapshot_token.clone()),
+        _ if distinct_snapshot_tokens.len() == 1 => Ok(snapshot_tokens[0].1.clone()),
+        _ => Err(ForgeQueryRuntimeError::RetainedRowDecode {
+            view_name: materializations
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("|"),
+            stage: "derived-materialization-bundle",
+            message: format!(
+                "bundle materialized multiple snapshot tokens: {}",
+                snapshot_tokens
+                    .iter()
+                    .map(|(view_name, snapshot_token)| format!("{view_name}:{snapshot_token}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+        }),
     }
 }
 

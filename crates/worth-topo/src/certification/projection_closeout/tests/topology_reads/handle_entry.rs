@@ -6,9 +6,10 @@ use crate::query_domain::{
     TopologyCurrentHeadReadHandleExt, TopologyReadExecutionEngine,
     TopologySnapshotReadOnlyReadHandleExt,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 #[test]
 fn current_head_handle_bound_reads_execute_neighborhood_queries_and_accumulate_reports() {
@@ -49,7 +50,7 @@ fn current_head_handle_bound_reads_execute_neighborhood_queries_and_accumulate_r
 fn snapshot_handle_bound_reads_preserve_historical_execution_posture() {
     let stem = "query.topology-read.handle-entry.snapshot";
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         stem,
         &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 5 },
@@ -95,7 +96,8 @@ fn seeded_workspace(
     TopologyDeclaredQuerySurfaces,
 ) {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    seed_milestone_one_primitive(&mut runtime, stem, &primitive).expect("seed primitive");
+    seed_milestone_one_primitive_through_schema_execution(&mut runtime, stem, &primitive)
+        .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, stem).expect("workspace should build");
     let surfaces =

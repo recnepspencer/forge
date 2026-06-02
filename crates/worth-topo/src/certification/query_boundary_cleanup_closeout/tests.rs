@@ -37,3 +37,30 @@ fn query_boundary_cleanup_closeout_names_designated_survivors_for_every_area() {
         );
     }
 }
+
+#[test]
+fn query_boundary_cleanup_closeout_proves_phase_six_public_surface_completion_rule() {
+    let report = certify_topology_query_boundary_cleanup_closeout()
+        .expect("worth-topo query boundary cleanup closeout should certify");
+
+    let public_surface_row = report
+        .rows()
+        .iter()
+        .find(|row| row.area() == TopologyQueryBoundaryCleanupArea::PublicFacade)
+        .expect("cleanup closeout should cover the public facade area");
+
+    assert_eq!(
+        public_surface_row.status(),
+        TopologyQueryBoundaryCleanupStatus::Closed
+    );
+    assert_eq!(
+        public_surface_row.designated_survivor(),
+        Some("src/query_domain.rs")
+    );
+    assert!(
+        public_surface_row
+            .reason()
+            .contains("topology-facing public surface is limited to query-domain entry"),
+        "public-surface closeout reason should state the surviving query-domain entry boundary",
+    );
+}

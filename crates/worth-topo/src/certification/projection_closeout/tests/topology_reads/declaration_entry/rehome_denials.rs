@@ -1,9 +1,7 @@
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
-use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
-};
+use schema::facade::topology_authoring::{DerivedTopologyReadBasis, MilestoneOnePrimitiveCase};
 
 use crate::certification::support::declaration_runtime::current_head_unsupported_declaration_families;
 use crate::facade::{
@@ -11,13 +9,14 @@ use crate::facade::{
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyRuntimeAdapters,
     TopologyShellRehomeFaceMember, TopologyWireRehomeHalfEdgeMember,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
 fn current_head_runtime_rejects_partial_wire_rehome_declaration_before_any_declaration_entry_execution(
 ) {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.partial-rehome-wire.runtime",
         &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
@@ -53,7 +52,7 @@ fn current_head_runtime_rejects_partial_wire_rehome_declaration_before_any_decla
 fn current_head_runtime_rejects_partial_shell_rehome_declaration_before_any_declaration_entry_execution(
 ) {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.partial-rehome-shell.runtime",
         &MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },

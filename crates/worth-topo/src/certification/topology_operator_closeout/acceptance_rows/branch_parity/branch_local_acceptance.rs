@@ -8,6 +8,7 @@ use super::super::super::{
     MilestoneThreeHostileScenario,
 };
 use super::accepted_branch_execution::mutation_digest_shape_matches;
+use super::accepted_branch_schema_authority_projection::AcceptedBranchSchemaAuthorityProjection;
 
 pub(in crate::certification::topology_operator_closeout) fn ensure_branch_local_mutation_parity_rows(
     report: &MilestoneThreeHostileSuiteReport,
@@ -43,17 +44,18 @@ fn ensure_accepted_branch_local_mutation_parity_scenario(
             && row.rejection_class.is_none()
             && row.branch_head_diverged_from_main
             && row.mutation_origin == "branch_local_application"
-            && row.mutation_families == scenario_report.mutation_families
+            && row.mutation_families == scenario_report.mutation_families()
             && mutation_digest_shape_matches(
                 &row.topology_mutation_digest,
-                &scenario_report.topology_mutation_digest,
+                scenario_report.topology_mutation_digest(),
             )
             && row.naming_mutation_continuity_matrix
-                == scenario_report.naming_mutation_continuity_matrix
+                == *scenario_report.naming_mutation_continuity_matrix()
+            && row.derived_fallback_policy == scenario_report.derived_fallback_policy()
             && row.branch_truth_digest.is_some()
             && row
                 .row_digest
-                .contains("projection=authority_branch_projection")
+                .contains(AcceptedBranchSchemaAuthorityProjection::ROW_PROJECTION_MARKER)
     });
     if accepted_verified {
         Ok(())
@@ -110,7 +112,7 @@ mod tests {
     use super::ensure_branch_local_mutation_parity_rows;
 
     #[test]
-    fn accepted_branch_local_gate_rejects_missing_authority_projection_marker() {
+    fn accepted_branch_local_gate_rejects_missing_schema_authority_projection_marker() {
         let mut report = certify_milestone_three_hostile_suite(
             || build_milestone_one_runtime().expect("milestone one runtime builder"),
             "m3.branch_local_acceptance.projection_marker",
@@ -122,13 +124,17 @@ mod tests {
             .find(|row| row.outcome_class == super::MilestoneThreeHostileOutcomeClass::Accepted)
             .expect("accepted branch-local row");
 
-        accepted.row_digest = accepted
-            .row_digest
-            .replace("projection=authority_branch_projection;", "");
+        accepted.row_digest = accepted.row_digest.replace(
+            &format!(
+                "projection={};",
+                super::AcceptedBranchSchemaAuthorityProjection::ROW_PROJECTION_MARKER
+            ),
+            "",
+        );
 
         assert!(
             ensure_branch_local_mutation_parity_rows(&report).is_err(),
-            "accepted branch-local evidence must remain tied to the authority projection path"
+            "accepted branch-local evidence must remain tied to the schema authority projection path"
         );
     }
 }

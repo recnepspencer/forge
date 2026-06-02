@@ -28,7 +28,6 @@ forge-runtime-bridge.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 schema = { package = "worth-schema", path = "../worth-schema" }
-worth-spatial.workspace = true
 
 [dev-dependencies]
 trybuild.workspace = true

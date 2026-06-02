@@ -7,16 +7,20 @@ pub enum TopologyRuntimePostureCapability {
     PostWriteMaterialization,
     HistoricalBasis,
     BranchPreviewBasis,
+    BranchLocalIntentStaging,
+    BranchLocalDeclarationExecution,
     AuthoritativeWrites,
 }
 
 impl TopologyRuntimePostureCapability {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 8] = [
         Self::CurrentHeadLiveReads,
         Self::CurrentHeadMaterialization,
         Self::PostWriteMaterialization,
         Self::HistoricalBasis,
         Self::BranchPreviewBasis,
+        Self::BranchLocalIntentStaging,
+        Self::BranchLocalDeclarationExecution,
         Self::AuthoritativeWrites,
     ];
 }
@@ -146,6 +150,18 @@ pub(super) fn current_head_runtime_posture_rows() -> Vec<TopologyRuntimePostureR
                     "current-head runtime admits preview and branch-local basis selection over retained topology truth",
                 )
             }
+            TopologyRuntimePostureCapability::BranchLocalIntentStaging => {
+                TopologyRuntimePostureRow::denied(
+                    capability,
+                    "current-head runtime admits branch sessions but does not admit branch-local intent staging because the Query intent family is not admitted on this topology runtime",
+                )
+            }
+            TopologyRuntimePostureCapability::BranchLocalDeclarationExecution => {
+                TopologyRuntimePostureRow::denied(
+                    capability,
+                    "current-head runtime does not yet admit branch-local topology declaration execution; branch-local authoring still crosses the schema-owned branch commit lane",
+                )
+            }
             TopologyRuntimePostureCapability::AuthoritativeWrites => {
                 TopologyRuntimePostureRow::admitted(
                     capability,
@@ -188,6 +204,18 @@ pub(super) fn snapshot_runtime_posture_rows() -> Vec<TopologyRuntimePostureRow> 
                 TopologyRuntimePostureRow::denied(
                     capability,
                     "snapshot read-only runtime is already fixed to one historical basis and does not admit preview or branch-local basis selection",
+                )
+            }
+            TopologyRuntimePostureCapability::BranchLocalIntentStaging => {
+                TopologyRuntimePostureRow::denied(
+                    capability,
+                    "snapshot read-only runtime does not admit branch-local intent staging because preview and branch sessions are denied on historical-basis posture",
+                )
+            }
+            TopologyRuntimePostureCapability::BranchLocalDeclarationExecution => {
+                TopologyRuntimePostureRow::denied(
+                    capability,
+                    "snapshot read-only runtime does not admit branch-local topology declaration execution because authoritative writes are denied and branch-local authoring is unavailable",
                 )
             }
             TopologyRuntimePostureCapability::AuthoritativeWrites => {

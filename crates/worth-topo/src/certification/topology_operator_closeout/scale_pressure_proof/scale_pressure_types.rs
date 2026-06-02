@@ -1,3 +1,4 @@
+use crate::certification::TopologyBranchAuthoringBoundary;
 use crate::topology_operators::{TopologyMutationDigest, TopologyMutationFamily};
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde::{Deserialize, Serialize};
@@ -34,6 +35,7 @@ pub struct MilestoneThreeScalePressureRow {
     pub(crate) mutation_step_count: usize,
     pub(crate) mutation_families: Vec<TopologyMutationFamily>,
     pub(crate) branch_local: bool,
+    pub(crate) branch_authoring_boundary: Option<TopologyBranchAuthoringBoundary>,
     pub(crate) topology_mutation_digest: TopologyMutationDigest,
     pub(crate) replay_verified: bool,
     pub(crate) final_state_digest: String,

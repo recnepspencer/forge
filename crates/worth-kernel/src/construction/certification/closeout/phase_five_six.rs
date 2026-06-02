@@ -5,6 +5,10 @@ use forge_proof::raw::{
 use forge_query::facade::ForgeQueryWorkspace;
 use worth_geom::facade::PrimitiveRealizationExhaustionWitnessKind;
 
+use super::phase_five_boundary::{
+    prepare_primitive_construction_phase_five_boundary_closeout_report,
+    PrimitiveConstructionPhaseFiveBoundaryCloseoutReport,
+};
 use crate::construction::certification::corpus::{
     prepare_primitive_construction_compound_milestone_closeout_report,
     prepare_primitive_construction_simplex_realization_exhaustion_witness_report,
@@ -75,6 +79,7 @@ fn phase_five_six_registry() -> PrimitiveConstructionPhaseFiveSixCloseoutRegistr
 
 #[derive(Clone, Debug, PartialEq)]
 struct PrimitiveConstructionPhaseFiveSixCloseoutAssembly {
+    phase_five_boundary: PrimitiveConstructionPhaseFiveBoundaryCloseoutReport,
     compound_closeout: PrimitiveConstructionCompoundMilestoneCloseoutReport,
     simplex_ladder: PrimitiveConstructionSimplexRealizationStrategyLadderReport,
     simplex_exhaustion: PrimitiveConstructionSimplexRealizationExhaustionWitnessReport,
@@ -83,12 +88,14 @@ struct PrimitiveConstructionPhaseFiveSixCloseoutAssembly {
 
 impl PrimitiveConstructionPhaseFiveSixCloseoutAssembly {
     fn new(
+        phase_five_boundary: PrimitiveConstructionPhaseFiveBoundaryCloseoutReport,
         compound_closeout: PrimitiveConstructionCompoundMilestoneCloseoutReport,
         simplex_ladder: PrimitiveConstructionSimplexRealizationStrategyLadderReport,
         simplex_exhaustion: PrimitiveConstructionSimplexRealizationExhaustionWitnessReport,
         policy_pressure: PrimitiveConstructionPolicyPressureReportBundle,
     ) -> Self {
         Self {
+            phase_five_boundary,
             compound_closeout,
             simplex_ladder,
             simplex_exhaustion,
@@ -116,6 +123,7 @@ struct PrimitiveConstructionVerifiedPhaseFiveSixCloseoutPayload {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionPhaseFiveSixCloseoutVerificationMismatch {
+    PhaseFiveBoundaryUnverified,
     CompoundCloseoutUnverified,
     RequiredSimplexScenarioMissing,
     SimplexExhaustionInventoryDrift,
@@ -124,6 +132,7 @@ pub enum PrimitiveConstructionPhaseFiveSixCloseoutVerificationMismatch {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure {
     registry: Vec<String>,
+    phase_five_boundary: PrimitiveConstructionPhaseFiveBoundaryCloseoutReport,
     compound_closeout: PrimitiveConstructionCompoundMilestoneCloseoutReport,
     simplex_ladder: PrimitiveConstructionSimplexRealizationStrategyLadderReport,
     simplex_exhaustion: PrimitiveConstructionSimplexRealizationExhaustionWitnessReport,
@@ -135,6 +144,10 @@ pub struct PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure {
 }
 
 impl PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure {
+    pub fn phase_five_boundary(&self) -> &PrimitiveConstructionPhaseFiveBoundaryCloseoutReport {
+        &self.phase_five_boundary
+    }
+
     pub fn compound_closeout(&self) -> &PrimitiveConstructionCompoundMilestoneCloseoutReport {
         &self.compound_closeout
     }
@@ -219,6 +232,10 @@ impl PrimitiveConstructionPhaseFiveSixCloseoutReport {
         &self.0.payload().assembly.compound_closeout
     }
 
+    pub fn phase_five_boundary(&self) -> &PrimitiveConstructionPhaseFiveBoundaryCloseoutReport {
+        &self.0.payload().assembly.phase_five_boundary
+    }
+
     pub fn simplex_ladder(&self) -> &PrimitiveConstructionSimplexRealizationStrategyLadderReport {
         &self.0.payload().assembly.simplex_ladder
     }
@@ -276,6 +293,11 @@ fn verify_closeout(
         .filter(|kind| assembly.simplex_exhaustion.row_for(*kind).is_none())
         .collect::<Vec<_>>();
     let mut mismatches = Vec::new();
+    if !assembly.phase_five_boundary.closeout_gate_verified() {
+        mismatches.push(
+            PrimitiveConstructionPhaseFiveSixCloseoutVerificationMismatch::PhaseFiveBoundaryUnverified,
+        );
+    }
     if !assembly.compound_closeout.closeout_gate_verified() {
         mismatches.push(
             PrimitiveConstructionPhaseFiveSixCloseoutVerificationMismatch::CompoundCloseoutUnverified,
@@ -300,6 +322,7 @@ fn verify_closeout(
         ConstructionDigestScope::ArtifactIdentity,
         &[
             registry.registry_digest.clone(),
+            assembly.phase_five_boundary.report_digest().to_string(),
             assembly.compound_closeout.report_digest().to_string(),
             assembly.simplex_ladder.report_digest().to_string(),
             assembly.simplex_exhaustion.report_digest().to_string(),
@@ -316,6 +339,7 @@ fn verify_closeout(
                 .iter()
                 .map(|scenario| (*scenario).to_string())
                 .collect(),
+            phase_five_boundary: assembly.phase_five_boundary,
             compound_closeout: assembly.compound_closeout,
             simplex_ladder: assembly.simplex_ladder,
             simplex_exhaustion: assembly.simplex_exhaustion,
@@ -336,6 +360,7 @@ fn closeout_digest(
         ConstructionDigestScope::ArtifactIdentity,
         &[
             registry.registry_digest.clone(),
+            assembly.phase_five_boundary.report_digest().to_string(),
             assembly.compound_closeout.report_digest().to_string(),
             assembly.simplex_ladder.report_digest().to_string(),
             assembly.simplex_exhaustion.report_digest().to_string(),
@@ -375,6 +400,7 @@ pub fn prepare_primitive_construction_phase_five_six_closeout_report(
     PrimitiveConstructionPhaseFiveSixCloseoutReport,
     PrimitiveConstructionPhaseFiveSixCloseoutReportError,
 > {
+    let phase_five_boundary = prepare_primitive_construction_phase_five_boundary_closeout_report();
     let compound_closeout =
         prepare_primitive_construction_compound_milestone_closeout_report(workspace)
             .map_err(PrimitiveConstructionPhaseFiveSixCloseoutReportError::Compound)?;
@@ -386,6 +412,7 @@ pub fn prepare_primitive_construction_phase_five_six_closeout_report(
     let policy_pressure = prepare_primitive_construction_policy_pressure_report_bundle()
         .map_err(PrimitiveConstructionPhaseFiveSixCloseoutReportError::PolicyPressure)?;
     verify_closeout(PrimitiveConstructionPhaseFiveSixCloseoutAssembly::new(
+        phase_five_boundary,
         compound_closeout,
         simplex_ladder,
         simplex_exhaustion,

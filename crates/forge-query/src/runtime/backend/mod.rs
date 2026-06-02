@@ -10,11 +10,11 @@ pub use crate::lower_runtime_routing::{
 };
 pub use bridge_backed::ForgeQueryBridgeBackedRuntimeBackend;
 pub use contracts::{
-    ForgeQueryRuntimeBackend, ForgeQueryRuntimeExistingTruthVerificationAdapter,
-    ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
-    ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
-    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
-    ForgeQueryRuntimeWriteAuthorityAdapter,
+    ForgeQueryRuntimeBackend, ForgeQueryRuntimeDeclarationInitializationAdapter,
+    ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
+    ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
+    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
+    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
 };
 pub use intent_authority::{
     ForgeQueryIntentAuthorityAdapter,

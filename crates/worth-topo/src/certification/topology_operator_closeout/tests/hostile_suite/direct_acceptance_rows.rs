@@ -1,6 +1,10 @@
+use crate::certification::topology_operator_closeout::scenario_programs::scenario_mutation_report_lowering::{
+    accepted_mutation_synopsis_from_step_rows, accepted_semantic_summary_from_step_rows,
+};
 use crate::facade::{
     MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario,
-    TopologyMutationDerivedFallbackPolicy, TopologyMutationRejectionClass,
+    TopologyBranchAuthoringBoundary, TopologyMutationDerivedFallbackPolicy,
+    TopologyMutationRejectionClass,
 };
 
 use super::certify_hostile_suite_report;
@@ -39,7 +43,12 @@ fn hostile_suite_direct_acceptance_rows_are_proof_shaped() {
         .starts_with(&format!("scenario={};", row.scenario.as_str()))));
     assert!(report.mutation_branch_local_parity_rows.iter().all(|row| {
         row.mutation_origin == "branch_local_application"
+            && row.branch_authoring_boundary
+                == TopologyBranchAuthoringBoundary::SchemaTopologyAuthoring
             && row.topology_mutation_digest.mutation_record_count > 0
+            && (row.outcome_class == MilestoneThreeHostileOutcomeClass::Rejected
+                || row.derived_fallback_policy
+                    == Some(TopologyMutationDerivedFallbackPolicy::AllowExplicitFallback))
             && row
                 .row_digest
                 .starts_with(&format!("branch={};", row.branch_label))
@@ -63,6 +72,59 @@ fn hostile_suite_direct_acceptance_rows_are_proof_shaped() {
             && row.branch_head_diverged_from_main
             && row.branch_truth_digest.is_some()
     }));
+    assert!(report.scenario_reports.iter().all(|scenario| {
+        scenario.outcome_class == MilestoneThreeHostileOutcomeClass::Rejected
+            || (scenario.derived_fallback_policy()
+                == Some(TopologyMutationDerivedFallbackPolicy::AllowExplicitFallback)
+                && scenario
+                    .fallback_explanation_detail()
+                    .is_some_and(|detail| detail.contains("fallback"))
+                && scenario
+                    .mutation_replay_parity_report
+                    .step_rows
+                    .iter()
+                    .all(|row| {
+                        row.derived_fallback_policy
+                            == Some(TopologyMutationDerivedFallbackPolicy::AllowExplicitFallback)
+                            && row
+                                .fallback_explanation_detail()
+                                .is_some_and(|detail| detail.contains("fallback"))
+                    }))
+    }));
+    for scenario in report
+        .scenario_reports
+        .iter()
+        .filter(|scenario| scenario.outcome_class == MilestoneThreeHostileOutcomeClass::Accepted)
+    {
+        let accepted_mutation_synopsis = accepted_mutation_synopsis_from_step_rows(
+            &scenario.mutation_replay_parity_report.step_rows,
+        );
+        let accepted_semantic_summary = accepted_semantic_summary_from_step_rows(
+            &scenario.mutation_replay_parity_report.step_rows,
+            "accepted hostile scenario",
+        )
+        .expect("accepted hostile scenario should retain one projected aftermath seam");
+        assert_eq!(
+            scenario.mutation_families(),
+            accepted_mutation_synopsis.mutation_families()
+        );
+        assert_eq!(
+            scenario.topology_mutation_digest(),
+            accepted_mutation_synopsis.topology_mutation_digest()
+        );
+        assert_eq!(
+            scenario.naming_mutation_continuity_matrix(),
+            accepted_semantic_summary.naming_mutation_continuity_matrix()
+        );
+        assert_eq!(
+            scenario.derived_fallback_policy(),
+            accepted_semantic_summary.derived_fallback_policy()
+        );
+        assert_eq!(
+            scenario.fallback_explanation_detail(),
+            accepted_semantic_summary.fallback_explanation_detail()
+        );
+    }
 }
 
 #[test]
@@ -124,10 +186,12 @@ fn hostile_suite_derived_and_scale_rows_are_breadth_honest() {
                 .row_digest
                 .starts_with(&format!("scale_pressure={};", row.sweep_label()))
     }));
-    assert!(report
-        .scale_pressure_rows
-        .iter()
-        .any(|row| row.sweep_label() == "large_branch_local_histories" && row.branch_local));
+    assert!(report.scale_pressure_rows.iter().any(|row| {
+        row.sweep_label() == "large_branch_local_histories"
+            && row.branch_local
+            && row.branch_authoring_boundary
+                == Some(TopologyBranchAuthoringBoundary::SchemaTopologyAuthoring)
+    }));
     assert!(report.scale_pressure_rows.iter().any(|row| {
         row.sweep_label() == "radial_adjacency_splice"
             && row.mutation_step_count > 1

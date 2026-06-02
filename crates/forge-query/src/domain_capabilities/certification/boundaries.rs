@@ -20,7 +20,7 @@ impl ForgeQueryDomainCapabilityCompileFailBoundary {
     }
 }
 
-const COMPILE_FAIL_BOUNDARIES: [ForgeQueryDomainCapabilityCompileFailBoundary; 38] = [
+const COMPILE_FAIL_BOUNDARIES: [ForgeQueryDomainCapabilityCompileFailBoundary; 37] = [
     ForgeQueryDomainCapabilityCompileFailBoundary::new(
         "checked_outcome_constructor_private",
         "tests/ui/domain_capabilities/dx_boundaries/domain_capability_checked_outcome_constructor_private.rs",
@@ -146,10 +146,6 @@ const COMPILE_FAIL_BOUNDARIES: [ForgeQueryDomainCapabilityCompileFailBoundary; 3
         "tests/ui/domain_capabilities/boundaries/runtime_targets/declaration_entry_route_target_cannot_satisfy_contribution_target.rs",
     ),
     ForgeQueryDomainCapabilityCompileFailBoundary::new(
-        "continuity_cannot_bind_to_declaration",
-        "tests/ui/domain_capabilities/boundaries/runtime_targets/domain_capability_continuity_cannot_bind_to_declaration.rs",
-    ),
-    ForgeQueryDomainCapabilityCompileFailBoundary::new(
         "explanation_artifact_requires_lower_runtime_target",
         "tests/ui/domain_capabilities/boundaries/runtime_targets/domain_capability_explanation_artifact_requires_lower_runtime_target.rs",
     ),
@@ -236,7 +232,7 @@ mod tests {
         let labels = rows.iter().map(|row| row.label()).collect::<Vec<_>>();
         let paths = rows.iter().map(|row| row.path()).collect::<Vec<_>>();
 
-        assert_eq!(rows.len(), 38);
+        assert_eq!(rows.len(), 37);
         assert_eq!(
             labels.len(),
             labels.iter().copied().collect::<BTreeSet<_>>().len()

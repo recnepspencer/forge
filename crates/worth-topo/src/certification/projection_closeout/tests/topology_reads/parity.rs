@@ -1,12 +1,13 @@
-use forge_relational::facade::history::BranchId;
 use schema::facade::platform::authority::MutationOrigin;
-use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch, MilestoneOnePrimitiveCase,
-};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::read_views::domain::parity::{
     compare_topology_read_view_parity, TopologyReadParityAggregateReport, TopologyReadParityKind,
+};
+use crate::test_support::schema_topology_authoring_boundary::{
+    seed_milestone_one_primitive_in_new_branch_through_schema_execution,
+    seed_milestone_one_primitive_through_schema_execution,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
@@ -17,15 +18,15 @@ use super::parity_harness::{
 #[test]
 fn topology_read_replay_parity_matches_for_local_rewire_view() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query.topology-read-parity.replay",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )
     .expect("seed primitive");
     let replay_basis = verified.read_basis().replay_of();
-    let left_query = TopologyReadProofHarness::new();
-    let right_query = TopologyReadProofHarness::new();
+    let left_query = TopologyReadProofHarness::historical_from_workspace_token();
+    let right_query = TopologyReadProofHarness::historical_from_workspace_token();
 
     let left = local_rewire_parity_artifact(
         &left_query,
@@ -58,15 +59,15 @@ fn topology_read_replay_parity_matches_for_local_rewire_view() {
 #[test]
 fn topology_read_replay_parity_matches_for_radial_view() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query.topology-read-parity.radial",
         &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
     )
     .expect("seed primitive");
     let replay_basis = verified.read_basis().replay_of();
-    let left_query = TopologyReadProofHarness::new();
-    let right_query = TopologyReadProofHarness::new();
+    let left_query = TopologyReadProofHarness::historical_from_workspace_token();
+    let right_query = TopologyReadProofHarness::historical_from_workspace_token();
 
     let left = radial_parity_artifact(
         &left_query,
@@ -100,24 +101,17 @@ fn topology_read_replay_parity_matches_for_radial_view() {
 #[test]
 fn topology_read_branch_local_parity_matches_for_feature_loop_cycle_view() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("feature".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("feature branch");
-    let verified = seed_milestone_one_primitive_on_branch(
+    let verified = seed_milestone_one_primitive_in_new_branch_through_schema_execution(
         &mut runtime,
         "query.topology-read-parity.branch",
         &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 5 },
-        BranchId("feature".to_string()),
+        "feature",
         MutationOrigin::BranchLocalApplication,
     )
     .expect("seed branch-local primitive");
     let replay_basis = verified.read_basis().replay_of();
-    let left_query = TopologyReadProofHarness::new();
-    let right_query = TopologyReadProofHarness::new();
+    let left_query = TopologyReadProofHarness::historical_from_workspace_token();
+    let right_query = TopologyReadProofHarness::historical_from_workspace_token();
 
     let left = loop_cycle_parity_artifact(
         &left_query,
@@ -146,7 +140,7 @@ fn topology_read_branch_local_parity_matches_for_feature_loop_cycle_view() {
 #[test]
 fn topology_read_parity_aggregate_reports_replay_and_branch_local_coverage() {
     let mut replay_runtime = build_milestone_one_runtime().expect(" runtime");
-    let replay_verified = seed_milestone_one_primitive(
+    let replay_verified = seed_milestone_one_primitive_through_schema_execution(
         &mut replay_runtime,
         "query.topology-read-parity.aggregate.replay",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
@@ -155,13 +149,13 @@ fn topology_read_parity_aggregate_reports_replay_and_branch_local_coverage() {
     let replay_report = compare_topology_read_view_parity(
         TopologyReadParityKind::Replay,
         &local_rewire_parity_artifact(
-            &TopologyReadProofHarness::new(),
+            &TopologyReadProofHarness::historical_from_workspace_token(),
             &replay_runtime,
             "query.topology-read-parity.aggregate.replay.left",
             &replay_verified.read_basis(),
         ),
         &local_rewire_parity_artifact(
-            &TopologyReadProofHarness::new(),
+            &TopologyReadProofHarness::historical_from_workspace_token(),
             &replay_runtime,
             "query.topology-read-parity.aggregate.replay.right",
             &replay_verified.read_basis().replay_of(),
@@ -169,32 +163,25 @@ fn topology_read_parity_aggregate_reports_replay_and_branch_local_coverage() {
     );
 
     let mut branch_runtime = build_milestone_one_runtime().expect(" runtime");
-    branch_runtime
-        .history_authority()
-        .create_branch(
-            BranchId("feature".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("feature branch");
-    let branch_verified = seed_milestone_one_primitive_on_branch(
+    let branch_verified = seed_milestone_one_primitive_in_new_branch_through_schema_execution(
         &mut branch_runtime,
         "query.topology-read-parity.aggregate.branch",
         &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 5 },
-        BranchId("feature".to_string()),
+        "feature",
         MutationOrigin::BranchLocalApplication,
     )
     .expect("seed branch-local primitive");
     let branch_report = compare_topology_read_view_parity(
         TopologyReadParityKind::BranchLocal,
         &loop_cycle_parity_artifact(
-            &TopologyReadProofHarness::new(),
+            &TopologyReadProofHarness::historical_from_workspace_token(),
             &branch_runtime,
             "query.topology-read-parity.aggregate.branch.left",
             &branch_verified.read_basis(),
             5,
         ),
         &loop_cycle_parity_artifact(
-            &TopologyReadProofHarness::new(),
+            &TopologyReadProofHarness::historical_from_workspace_token(),
             &branch_runtime,
             "query.topology-read-parity.aggregate.branch.right",
             &branch_verified.read_basis().replay_of(),

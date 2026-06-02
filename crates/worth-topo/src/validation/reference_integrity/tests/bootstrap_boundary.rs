@@ -37,7 +37,11 @@ fn runtime_invariants_accept_seeded_topology_on_the_actual_authority_path() {
         .expect(" milestone one runtime builder")
         .build();
 
-    let seeded = seed_minimal_topology(&mut runtime, "runtime-invariant-seed")
+    let seeded =
+        crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution(
+            &mut runtime,
+            "runtime-invariant-seed",
+        )
         .expect("seeded milestone-one topology should commit through runtime invariants");
 
     let read = runtime

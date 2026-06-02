@@ -1,67 +1,13 @@
-use crate::construction::artifact::{
-    build_canonical_primitive_construction_artifact_with_completeness,
-    CanonicalPrimitiveConstructionArtifact, PrimitiveConstructionArtifactError,
-};
-use crate::construction::execution::{
-    PreparedPrimitiveConstructionExecution, PrimitiveConstructionExecutionError,
-};
-use crate::construction::phase_report::PrimitiveConstructionPhaseChainReport;
+use crate::construction::admitted_scaffold::prepare_primitive_construction_admitted_result_input;
+use crate::construction::artifact::CanonicalPrimitiveConstructionArtifact;
+use crate::construction::evidence::PrimitiveConstructionResultEvidence;
 use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
 use crate::construction::PrimitiveConstructionIntent;
-use topology::facade::{build_topology_construction_fact_report, TopologyConstructionFactReport};
 use worth_geom::facade::{
     PrimitiveRealizationReport, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
 };
-use worth_spatial::facade::{
-    build_primitive_construction_birth_mapping_report,
-    certify_primitive_construction_birth_completeness,
-    impossible_primitive_construction_birth_attachment, SpatialConstructionBirthCompletenessReport,
-    SpatialConstructionBirthError, SpatialConstructionBirthMappingReport,
-    SpatialConstructionBirthRejectionRow,
-};
 
 use super::digest::digest_owned_parts;
-use super::lower_scaffold_to_topology;
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PrimitiveConstructionResultEvidence {
-    phase_chain_report: PrimitiveConstructionPhaseChainReport,
-    birth_completeness_report: SpatialConstructionBirthCompletenessReport,
-    birth_mapping_report: SpatialConstructionBirthMappingReport,
-    topology_fact_report: TopologyConstructionFactReport,
-}
-
-impl PrimitiveConstructionResultEvidence {
-    fn new(
-        phase_chain_report: PrimitiveConstructionPhaseChainReport,
-        birth_completeness_report: SpatialConstructionBirthCompletenessReport,
-        birth_mapping_report: SpatialConstructionBirthMappingReport,
-        topology_fact_report: TopologyConstructionFactReport,
-    ) -> Self {
-        Self {
-            phase_chain_report,
-            birth_completeness_report,
-            birth_mapping_report,
-            topology_fact_report,
-        }
-    }
-
-    pub fn phase_chain_report(&self) -> &PrimitiveConstructionPhaseChainReport {
-        &self.phase_chain_report
-    }
-
-    pub fn birth_completeness_report(&self) -> &SpatialConstructionBirthCompletenessReport {
-        &self.birth_completeness_report
-    }
-
-    pub fn birth_mapping_report(&self) -> &SpatialConstructionBirthMappingReport {
-        &self.birth_mapping_report
-    }
-
-    pub fn topology_fact_report(&self) -> &TopologyConstructionFactReport {
-        &self.topology_fact_report
-    }
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreparedPrimitiveConstructionResult {
@@ -77,13 +23,19 @@ impl PreparedPrimitiveConstructionResult {
     ) -> Self {
         let result_digest = digest_owned_parts(&[
             canonical_artifact.artifact_digest().to_string(),
-            evidence.phase_chain_report().report_digest().to_string(),
+            evidence
+                .result_assembly_report()
+                .report_digest()
+                .to_string(),
             evidence
                 .birth_completeness_report()
                 .completeness_digest()
                 .to_string(),
             evidence.birth_mapping_report().report_digest().to_string(),
-            evidence.topology_fact_report().report_digest().to_string(),
+            evidence
+                .topology_query_admitted_handoff()
+                .admitted_handoff_digest()
+                .to_string(),
         ]);
         Self {
             canonical_artifact,
@@ -137,20 +89,12 @@ impl PreparedPrimitiveConstructionResult {
 #[derive(Debug)]
 pub enum PrimitiveConstructionResultError {
     Phase(PrimitiveConstructionPhaseError),
-    Execution(PrimitiveConstructionExecutionError),
-    BirthCompleteness(SpatialConstructionBirthError),
-    ImpossibleBirthAttachment(SpatialConstructionBirthRejectionRow),
-    Artifact(PrimitiveConstructionArtifactError),
 }
 
 impl std::fmt::Display for PrimitiveConstructionResultError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Phase(error) => write!(f, "{error}"),
-            Self::Execution(error) => write!(f, "{error}"),
-            Self::BirthCompleteness(error) => write!(f, "{error}"),
-            Self::ImpossibleBirthAttachment(row) => write!(f, "{}", row.reason()),
-            Self::Artifact(error) => write!(f, "{error}"),
         }
     }
 }
@@ -162,65 +106,11 @@ pub fn prepare_primitive_construction_result<I: Into<PrimitiveConstructionIntent
 ) -> Result<PreparedPrimitiveConstructionResult, PrimitiveConstructionResultError> {
     let intent = intent.into();
     let request = intent.request().clone();
-    let request_for_chain = request.clone();
-    let admitted = intent
-        .admit()
+    let result_input = prepare_primitive_construction_admitted_result_input(&request)
         .map_err(PrimitiveConstructionResultError::Phase)?;
-    let scaffold = admitted
-        .build_scaffold()
-        .map_err(PrimitiveConstructionResultError::Phase)?;
-    let birth_input = scaffold.birth_input();
-    let (birth_plan, lowering_plan) =
-        lower_scaffold_to_topology(&scaffold).map_err(PrimitiveConstructionResultError::Phase)?;
-    if let Some(row) = impossible_primitive_construction_birth_attachment(&birth_input, &birth_plan)
-    {
-        return Err(PrimitiveConstructionResultError::ImpossibleBirthAttachment(
-            row,
-        ));
-    }
-    let birth_completeness_report =
-        certify_primitive_construction_birth_completeness(&birth_input, &birth_plan)
-            .map_err(PrimitiveConstructionResultError::BirthCompleteness)?;
-    let birth_mapping_report =
-        build_primitive_construction_birth_mapping_report(&birth_completeness_report);
-    let execution = PreparedPrimitiveConstructionExecution::from_phase_chain(
-        &request_for_chain,
-        &admitted,
-        &scaffold,
-        &birth_plan,
-        &lowering_plan,
-    )
-    .map_err(PrimitiveConstructionResultError::Execution)?;
-    let certification = execution.plan_topology_certification();
-    let topology_fact_report =
-        build_topology_construction_fact_report(&lowering_plan, &certification);
-    let phase_chain_report = PrimitiveConstructionPhaseChainReport::from_phase_chain(
-        &request_for_chain,
-        &admitted,
-        &scaffold,
-        &birth_plan,
-        &lowering_plan,
-        &execution,
-        &certification,
-    );
-    let canonical_artifact = build_canonical_primitive_construction_artifact_with_completeness(
-        &request_for_chain,
-        &admitted,
-        &scaffold,
-        &birth_plan,
-        &birth_completeness_report,
-        &topology_fact_report,
-        &lowering_plan,
-        &execution,
-        &certification,
-    )
-    .map_err(PrimitiveConstructionResultError::Artifact)?;
-    let evidence = PrimitiveConstructionResultEvidence::new(
-        phase_chain_report,
-        birth_completeness_report,
-        birth_mapping_report,
-        topology_fact_report,
-    );
+    let canonical_artifact =
+        CanonicalPrimitiveConstructionArtifact::from_admitted_result_input(&result_input);
+    let evidence = PrimitiveConstructionResultEvidence::from_admitted_result_input(&result_input);
     Ok(PreparedPrimitiveConstructionResult::new(
         canonical_artifact,
         evidence,
@@ -267,7 +157,11 @@ mod tests {
         );
         assert_eq!(
             result.canonical_artifact().topology_fact_digest(),
-            result.evidence().topology_fact_report().report_digest()
+            result
+                .evidence()
+                .topology_query_handoff()
+                .topology_query_envelope()
+                .fact_digest()
         );
         assert_eq!(
             result.canonical_artifact().family(),

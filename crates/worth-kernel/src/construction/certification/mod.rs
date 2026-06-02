@@ -42,11 +42,15 @@ pub use arbitration::{
 };
 pub use closeout::{
     prepare_primitive_construction_milestone_four_kernel_closeout_evidence_report,
+    prepare_primitive_construction_phase_five_boundary_closeout_report,
     prepare_primitive_construction_phase_five_six_closeout_report,
     PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport,
     PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError,
     PrimitiveConstructionMilestoneFourKernelCloseoutVerificationFailure,
     PrimitiveConstructionMilestoneFourKernelCloseoutVerificationMismatch,
+    PrimitiveConstructionPhaseFiveBoundaryCloseoutKind,
+    PrimitiveConstructionPhaseFiveBoundaryCloseoutReport,
+    PrimitiveConstructionPhaseFiveBoundaryCloseoutRow,
     PrimitiveConstructionPhaseFiveSixCloseoutReport,
     PrimitiveConstructionPhaseFiveSixCloseoutReportError,
     PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure,
@@ -195,5 +199,7 @@ pub use realization::{
 
 #[cfg(test)]
 mod milestone_four_kernel_closeout_tests;
+#[cfg(test)]
+mod phase_five_boundary_closeout_tests;
 #[cfg(test)]
 mod phase_five_six_closeout_tests;

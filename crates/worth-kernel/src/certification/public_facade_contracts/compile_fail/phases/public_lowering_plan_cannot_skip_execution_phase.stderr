@@ -1,5 +1,0 @@
-error[E0599]: no method named `plan_certification` found for struct `topology::construction::lowering::TopologyConstructionLoweringPlan` in the current scope
- --> src/certification/public_facade_contracts/compile_fail/phases/public_lowering_plan_cannot_skip_execution_phase.rs:9:22
-  |
-9 |     let _ = lowering.plan_certification();
-  |                      ^^^^^^^^^^^^^^^^^^ method not found in `topology::construction::lowering::TopologyConstructionLoweringPlan`

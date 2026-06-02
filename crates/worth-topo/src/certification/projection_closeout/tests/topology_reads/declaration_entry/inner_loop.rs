@@ -1,14 +1,12 @@
 use super::super::support::{current_head_query_handle, snapshot_query_handle};
 use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::facade::{
-    topology_runtime, TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyRuntimeAdapters,
+    topology_runtime, TopologyCreateInnerLoopOnExistingFaceDeclaration,
+    TopologyOperatorEnvelopeChecked, TopologyOperatorEnvelopeTerminalError,
+    TopologyOperatorWorkflowHandleExt, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
-use forge_query::facade::{
-    ForgeQueryDeclarationEntryOrchestrationChecked,
-    ForgeQueryDeclarationEntryOrchestrationTerminalError,
-};
-use schema::facade::topology_authoring::seed_minimal_topology;
 
 #[test]
 fn current_head_handle_orchestrates_create_inner_loop_on_existing_face_declaration_across_all_query_lanes(
@@ -24,19 +22,19 @@ fn current_head_handle_orchestrates_create_inner_loop_on_existing_face_declarati
         ),
     );
     let ordinary = handle
-        .orchestrate_declaration_entry(declaration.clone())
+        .orchestrate_topology_operator_envelope(declaration.clone())
         .unwrap_or_else(|_| panic!("current-head grouped inner-loop declaration should envelope"));
-    let checked = handle.orchestrate_declaration_entry_checked(declaration.clone());
-    let proof = handle.orchestrate_declaration_entry_proof(declaration);
+    let checked = handle.orchestrate_topology_operator_envelope_checked(declaration.clone());
+    let proof = handle.orchestrate_topology_operator_envelope_proof(declaration);
 
     match checked {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped checked grouped inner-loop declaration"),
     }
     match proof.outcome() {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped proof grouped inner-loop declaration"),
@@ -47,7 +45,7 @@ fn current_head_handle_orchestrates_create_inner_loop_on_existing_face_declarati
 fn snapshot_handle_does_not_envelope_create_inner_loop_on_existing_face_declaration() {
     let handle = snapshot_query_handle();
 
-    let ordinary = handle.orchestrate_declaration_entry(
+    let ordinary = handle.orchestrate_topology_operator_envelope(
         TopologyCreateInnerLoopOnExistingFaceDeclaration::new(
             "query-native.snapshot.inner-loop",
             "query-native.snapshot.inner-loop.face-membership",
@@ -58,7 +56,7 @@ fn snapshot_handle_does_not_envelope_create_inner_loop_on_existing_face_declarat
             ),
         ),
     );
-    let checked = handle.orchestrate_declaration_entry_checked(
+    let checked = handle.orchestrate_topology_operator_envelope_checked(
         TopologyCreateInnerLoopOnExistingFaceDeclaration::new(
             "query-native.snapshot.inner-loop",
             "query-native.snapshot.inner-loop.face-membership",
@@ -72,11 +70,11 @@ fn snapshot_handle_does_not_envelope_create_inner_loop_on_existing_face_declarat
 
     assert!(matches!(
         ordinary,
-        Err(ForgeQueryDeclarationEntryOrchestrationTerminalError::RebindRequired(_))
+        Err(TopologyOperatorEnvelopeTerminalError::RebindRequired(_))
     ));
     assert!(matches!(
         checked,
-        ForgeQueryDeclarationEntryOrchestrationChecked::RebindRequired(_)
+        TopologyOperatorEnvelopeChecked::RebindRequired(_)
     ));
 }
 
@@ -84,8 +82,11 @@ fn snapshot_handle_does_not_envelope_create_inner_loop_on_existing_face_declarat
 fn current_head_runtime_executes_canonical_create_inner_loop_declaration_through_declaration_entry()
 {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "query-native.inner-loop.runtime")
-        .expect("seed topology");
+    let seeded = seed_minimal_topology_through_schema_execution(
+        &mut runtime,
+        "query-native.inner-loop.runtime",
+    )
+    .expect("seed topology");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, "query-native.inner-loop.runtime").expect("workspace");
@@ -106,11 +107,13 @@ fn current_head_runtime_executes_canonical_create_inner_loop_declaration_through
     .expect("canonical inner-loop declaration should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.create_inner_loop_on_existing_face"
     );
     let face = execution
-        .materialized
+        .materialized()
         .topology()
         .faces
         .iter()

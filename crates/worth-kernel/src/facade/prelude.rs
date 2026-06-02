@@ -6,6 +6,4 @@ pub use crate::facade::authoring::construction::{
 pub use crate::facade::authoring::intents::{
     MoveSpatialIntent, PointsTowardSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
 };
-pub use crate::facade::outcome::{
-    prepare_primitive_construction_result, PreparedPrimitiveConstructionResult,
-};
+pub use crate::facade::outcome::PreparedPrimitiveConstructionResult;

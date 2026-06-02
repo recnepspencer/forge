@@ -4,6 +4,11 @@ error[E0432]: unresolved import `worth_kernel::facade::PrimitiveConstructionQuer
 1 | use worth_kernel::facade::PrimitiveConstructionQueryBoundaryGapRegister;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionQueryBoundaryGapRegister` in `facade`
   |
+help: a similar name exists in the module
+  |
+1 - use worth_kernel::facade::PrimitiveConstructionQueryBoundaryGapRegister;
+1 + use worth_kernel::facade::PrimitiveConstructionQueryEntryError;
+  |
 help: consider importing this struct instead
   |
 1 | use worth_kernel::facade::diagnostics::query::PrimitiveConstructionQueryBoundaryGapRegister;

@@ -177,19 +177,6 @@ where
     )
 }
 
-pub(super) fn aggregate_naming_mutation_continuity_matrix_for_declarations<D>(
-    declarations: impl IntoIterator<Item = D>,
-) -> NamingMutationContinuityMatrix
-where
-    D: TopologyDeclarationMutationPayload,
-{
-    aggregate_naming_mutation_continuity_matrix_for_plans(
-        declarations
-            .into_iter()
-            .map(closeout_mutation_plan_for_declaration),
-    )
-}
-
 pub(super) fn topology_mutation_families_for_declarations<D>(
     declarations: impl IntoIterator<Item = D>,
 ) -> Vec<TopologyMutationFamily>
