@@ -307,9 +307,6 @@ export function HistorySection({ onNavigate }: HistorySectionProps) {
       {!runtime && !bootError && <div className="history-loading">Booting Forge runtime...</div>}
       {runtime && <HistoryWorkbench runtime={runtime} />}
       <div className="xai-section-actions">
-        <button className="xai-button xai-button-primary" type="button" onClick={() => onNavigate("#/demos/6")}>
-          Open full-screen version
-        </button>
         <button className="xai-button xai-button-secondary" type="button" onClick={() => onNavigate("#/docs/resources/branch-native-effects")}>
           Read branch docs
         </button>

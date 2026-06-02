@@ -1,7 +1,7 @@
 # Milestone 9.3.8 Engineering Spec: Query-As-Beginning Platform Entry
 
 > **Status:** Shipped through Phase 35 on 2026-05-27; reopened for planned
-> collaboration-entry extension Phases 36 through 38
+> collaboration-entry extension Phases 36 through 41
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
@@ -381,21 +381,40 @@ locked decisions above:
     helper-vs-generic parity and helper-family gating as closure-grade proof
     obligations rather than helper-local niceties.
 
-36. **Phase 36: Collaborative Authority Witness Boundary**
+36. **Phase 36: Collaborative Strategy Admission Boundary**
+    Query adds one stable public strategy-admission seam over relational
+    merge/commit strategy families, signal merge/invalidation/delivery
+    strategy families, and bridge writeback/promotion families so serious
+    downstream domains stop reopening lower-runtime registries and host-local
+    compatibility glue.
+
+37. **Phase 37: Collaborative Strategy Witness And Compatibility Boundary**
+    Query adds one retained, proof-bearing collaborative strategy witness over
+    admitted strategy families plus basis/authority/policy posture so later
+    collaboration phases classify against one canonical retained strategy story
+    instead of three loosely-related lower-runtime surfaces.
+
+38. **Phase 38: Collaborative Strategy Inspection And Preparation Boundary**
+    Query adds one strategy-facing inspection and preparation seam that can
+    explain admitted collaborative strategy posture and prepare the next lower
+    merge/writeback/inspection handoff without pretending to execute the lower
+    authorities directly.
+
+39. **Phase 39: Collaborative Authority Witness Boundary**
     Query adds one stable collaboration-facing witness surface over the
     already-planned preview-session, branch/workspace basis, lineage,
     tenant/policy, and mutation-evidence groundwork so downstream domains do
     not have to mint local pseudo-Query authority bags just to talk about
     collaborative posture.
 
-37. **Phase 37: Collaborative Readmission And Conflict Classification Boundary**
+40. **Phase 40: Collaborative Readmission And Conflict Classification Boundary**
     Query adds one typed readmission and conflict-classification seam over the
     retained collaborative witness so replayable, stale, rebind-required,
     authority-mismatch, merge-inspection-required, and semantic-conflict
     posture become ordinary Query-facing truth instead of host-local merge
     folklore.
 
-38. **Phase 38: Collaborative Recovery And Inspection Boundary**
+41. **Phase 41: Collaborative Recovery And Inspection Boundary**
     Query adds one operator-facing recovery and inspection seam that exposes
     collaborative next-step posture over the retained witness and conflict
     classification without stealing merge, writeback, or durable workflow
@@ -4259,7 +4278,320 @@ tests, markdown pages, or remembered command lists.
   certification ledger over orchestration breadth, docs/goldens breadth,
   compile-fail breadth, parity breadth, and hostile breadth
 
-### Phase 36: Collaborative Authority Witness Boundary
+### Phase 36: Collaborative Strategy Admission Boundary
+
+This phase closes the missing Query-owned front door for admitted collaborative
+strategy posture before Query tries to retain or classify the larger
+collaborative world.
+
+The hard problem is not "can lower runtimes merge or write back?" They already
+can. The hard problem is that Query still lacks one product-grade public seam
+for admitting and naming which lower strategy families are in play together for
+one collaborative domain world.
+
+This phase therefore does not implement merge engines, signal delivery engines,
+or writeback engines in Query. It adds one Query-facing typed admission surface
+over those lower-authority families so later collaborative witnesses and
+classifications stop depending on host-local strategy folklore.
+
+**Required Query artifacts**
+
+- one Query-owned collaborative strategy admission input family
+- one checked / proof-visible collaborative strategy admission result family
+- one typed descriptor family over admitted relational strategy family,
+  admitted signal strategy family, admitted bridge writeback/promotion family,
+  and admitted cross-family compatibility posture
+- one support/readiness report over collaborative strategy admission that
+  converges with ordinary / checked / proof / helper-facing public lanes
+
+**Locked references**
+
+- `forge-relational` remains authoritative for merge, commit-strategy, and
+  authoritative truth execution semantics
+- `forge-signal` remains authoritative for signal merge, invalidation, and
+  delivery semantics
+- `forge-runtime-bridge` remains authoritative for preview promotion,
+  writeback-family execution, and merge-aware bridge continuity semantics
+- `forge-foundational` remains authoritative for shared merge/transition
+  strategy vocabulary, basis vocabulary, proof-bearing readmission, and
+  support-grade recovery posture
+- local foundational docs this phase must reuse instead of replacing:
+  - `crates/forge-foundational/docs/branching-merging-and-commit-vocabulary/README.md`
+  - `crates/forge-foundational/docs/branching-merging-and-commit-vocabulary/merge-planning-and-verdicts.md`
+  - `crates/forge-foundational/docs/branching-merging-and-commit-vocabulary/transition-strategy-and-basis-semantics.md`
+  - `crates/forge-foundational/docs/branching-merging-and-commit-vocabulary/transition-canonical-basis-locators-and-current-basis.md`
+  - `crates/forge-foundational/docs/profiles-and-policy-vocabulary/README.md`
+  - `crates/forge-foundational/docs/profiles-and-policy-vocabulary/target-aware-profile-attachment.md`
+  - `crates/forge-foundational/docs/profiles-and-policy-vocabulary/profile-identity-difference-and-canonical-basis.md`
+  - `crates/forge-foundational/docs/lineage-provenance-receipts-and-support-truth/support-truth-recovery-and-degraded-operation.md`
+- local Query substrate docs that this phase must extend honestly:
+  - `crates/forge-query/docs/domain-capabilities/declaration-relational-truth-routing.md`
+  - `crates/forge-query/docs/domain-capabilities/declaration-bridge-continuation-routing.md`
+  - `crates/forge-query/docs/domain-capabilities/signal-compatibility-orchestration.md`
+  - `crates/forge-query/docs/domain-capabilities/continuation-pipeline.md`
+  - `crates/forge-query/docs/domain-capabilities/platform-entry.md`
+  - `crates/forge-query/docs/domain-capabilities/configured-domain-handles.md`
+- new public docs this phase must add:
+  - `crates/forge-query/docs/domain-capabilities/collaborative-strategy-admission.md`
+  - `crates/forge-query/docs/domain-capabilities/collaborative-strategy-support-and-readiness.md`
+- code contexts this phase must extend instead of bypassing:
+  - `crates/forge-query/src/application/declaration_relational_routing/`
+  - `crates/forge-query/src/application/declaration_bridge_routing/`
+  - `crates/forge-query/src/application/domain_handle/`
+  - `crates/forge-query/src/orchestration_inventory/`
+  - `crates/forge-query/src/public_doc_coverage/`
+  - `crates/forge-query/src/platform_entry_closeout/`
+  - `crates/forge-foundational/src/boundary_evidence_api/stronger_lane/readmission.rs`
+  - `crates/forge-foundational/src/facade.rs`
+
+**Requirements**
+
+- Query must expose one typed public admission seam for collaborative strategy
+  posture instead of forcing domains to reopen lower-runtime strategy
+  registries directly
+- the strategy admission seam must preserve the authority split above instead
+  of re-owning merge, signal, or writeback semantics inside Query
+- Query must distinguish at minimum:
+  relational strategy admission, signal strategy admission, bridge writeback /
+  promotion admission, and cross-family compatibility admission
+- equivalent collaborative strategy posture reached through ordinary, checked,
+  proof, helper, continuation, and contribution-composed lanes must converge
+  on the same admitted strategy descriptor family
+- strategy identity, strategy descriptor digests, strategy contract basis, and
+  strategy basis must remain durable enough for later replay, certification,
+  and collaborative classification work
+- Query must fail closed when a caller attempts to combine unsupported or
+  authority-incoherent strategy families rather than silently widening into
+  "best effort" compatibility
+- this phase must make future collaborative conflict classification depend on
+  one Query-facing strategy-admission artifact, not on helper-local strategy
+  selection heuristics
+
+**DX target**
+
+- a serious downstream domain should be able to ask Query "which collaborative
+  strategy families are admitted here?" and receive one retained, typed answer
+  instead of raw lower-runtime handles and host glue
+
+**Documentation obligation**
+
+- yes; this phase introduces a discoverable public strategy-admission surface
+  and must teach what Query owns versus what lower crates still own
+
+**Compile-time enforcement**
+
+- public construction of admitted collaborative strategy descriptors must
+  remain sealed
+- unsupported or incoherent collaborative strategy combinations must fail
+  through typed denial / deferred / unsupported lanes rather than ambient
+  fallback
+
+**Acceptance evidence**
+
+- parity proving equivalent public lanes converge onto the same admitted
+  collaborative strategy descriptor
+- hostile tests proving Query cannot synthesize a strategy family, descriptor
+  digest, or basis story that was not admitted by lower-authority seams
+- docs, inventory rows, and support/readiness rows aligned with the new public
+  strategy-admission surface
+
+### Phase 37: Collaborative Strategy Witness And Compatibility Boundary
+
+This phase turns the admitted strategy surface into one retained,
+proof-bearing collaborative strategy witness that later collaborative entry can
+consume canonically.
+
+The hard problem is not naming one lower strategy. It is retaining the exact
+cross-family strategy story, basis story, and authority story that shaped a
+collaborative world so later readmission and conflict classification do not
+rebuild them from scratch.
+
+**Required Query artifacts**
+
+- one Query-owned collaborative strategy witness family
+- one typed compatibility report over admitted relational, signal, and bridge
+  strategy families plus their basis / authority / policy posture
+- one canonical witness identity / digest surface that converges when the same
+  strategy world is retained and diverges when strategy, basis, or authority
+  meaning changes
+- one sealed mapping surface from the strategy witness back to existing
+  routing, continuation, signal-compatibility, contribution, and recovery
+  substrates
+
+**Locked references**
+
+- `forge-foundational` transition strategy and basis vocabulary remains
+  authoritative for strategy identity, descriptor digest, contract basis,
+  strategy basis, and branch-basis drift meaning
+- `forge-foundational` profile identity and target-aware attachment surfaces
+  remain authoritative for profile-bearing compatibility and support attachment
+  semantics
+- `forge-foundational` support-truth surfaces remain authoritative for
+  degraded or support-grade recovery posture where this witness cannot claim
+  stronger current-basis authority
+- local foundational docs this phase must reuse instead of replacing:
+  - `crates/forge-foundational/docs/branching-merging-and-commit-vocabulary/transition-strategy-and-basis-semantics.md`
+  - `crates/forge-foundational/docs/branching-merging-and-commit-vocabulary/transition-canonical-basis-locators-and-current-basis.md`
+  - `crates/forge-foundational/docs/profiles-and-policy-vocabulary/requested-admitted-and-materialized-profile-progression.md`
+  - `crates/forge-foundational/docs/profiles-and-policy-vocabulary/proof-bearing-profile-certification-and-readmission.md`
+  - `crates/forge-foundational/docs/lineage-provenance-receipts-and-support-truth/support-truth-recovery-and-degraded-operation.md`
+- local Query substrate docs that this phase must extend honestly:
+  - `crates/forge-query/docs/domain-capabilities/collaborative-strategy-admission.md`
+  - `crates/forge-query/docs/domain-capabilities/declaration-relational-truth-routing.md`
+  - `crates/forge-query/docs/domain-capabilities/declaration-bridge-continuation-routing.md`
+  - `crates/forge-query/docs/domain-capabilities/signal-compatibility-orchestration.md`
+  - `crates/forge-query/docs/domain-capabilities/continuation-pipeline.md`
+  - `crates/forge-query/docs/domain-capabilities/recovery-boundary.md`
+- new public docs this phase must add:
+  - `crates/forge-query/docs/domain-capabilities/collaborative-strategy-witness.md`
+  - `crates/forge-query/docs/domain-capabilities/collaborative-strategy-compatibility.md`
+- code contexts this phase must extend instead of bypassing:
+  - `crates/forge-query/src/application/domain_handle/operating_context.rs`
+  - `crates/forge-query/src/continuation_pipeline/`
+  - `crates/forge-query/src/recovery_boundary/`
+  - `crates/forge-query/src/orchestration_inventory/`
+  - `crates/forge-foundational/src/boundary_evidence/`
+  - `crates/forge-foundational/src/canonicalization/`
+
+**Requirements**
+
+- Query must retain one canonical collaborative strategy witness instead of
+  making later phases reconstruct admitted strategy posture from multiple
+  lower-runtime artifacts
+- the witness must keep strategy identity, descriptor digest, contract basis,
+  strategy basis, and relevant basis-drift posture explicit
+- the witness must preserve enough authority and policy posture that later
+  collaborative classification can distinguish replay issues from strategy
+  issues, basis issues, and authority issues without reopening host glue
+- equivalent collaborative strategy worlds reached through ordinary, checked,
+  proof, helper, continuation, grouped, and contribution-composed lanes must
+  converge on the same witness family
+- the witness must be proof-bearing and sealed; no caller-authored witness
+  literals or bag-shaped compatibility contexts are allowed
+- this phase must not invent a second strategy identity or basis identity
+  surface when foundational vocabulary already defines one shared meaning
+
+**DX target**
+
+- a downstream domain should be able to ask Query "what strategy-shaped
+  collaborative world have we actually retained?" and get one inspectable
+  witness rather than one relational answer, one signal answer, and one bridge
+  answer that must be correlated manually
+
+**Documentation obligation**
+
+- yes; the witness and compatibility model change the public collaborative
+  story and must be teachable as one Query-facing retained artifact
+
+**Compile-time enforcement**
+
+- public construction of collaborative strategy witnesses must remain sealed
+- helper-facing compatibility projections must compile onto the same witness
+  family instead of inventing helper-local compatibility enums
+
+**Acceptance evidence**
+
+- parity proving equivalent collaborative strategy posture yields the same
+  witness identity across the public lanes
+- hostile tests proving Query does not widen or reinterpret lower-authority
+  strategy identity, basis, or drift meaning
+- docs and inventory rows proving the witness family is public product surface,
+  not test-only scaffolding
+
+### Phase 38: Collaborative Strategy Inspection And Preparation Boundary
+
+This phase makes the retained collaborative strategy witness operational before
+the later authority witness / conflict / recovery phases build on it.
+
+The goal is one Query-facing seam that can inspect the retained collaborative
+strategy world and prepare the next lower merge/writeback/inspection handoff
+without pretending Query executed or re-owned those lower authorities.
+
+**Required Query artifacts**
+
+- one collaborative strategy inspection artifact family
+- one typed collaborative strategy preparation request family
+- one checked / proof-visible preparation result family that can stop at
+  support, inspection, merge-preparation, writeback-preparation, or explicit
+  incompatibility
+- one explanation artifact that joins admitted strategy posture, retained
+  witness posture, and next-step preparation posture
+
+**Locked references**
+
+- `forge-relational` remains authoritative for prepared merge execution
+  semantics
+- `forge-runtime-bridge` remains authoritative for writeback preparation,
+  preview promotion, and merge-aware bridge publication semantics
+- `forge-signal` remains authoritative for execution-side signal merge,
+  invalidation, and delivery semantics
+- `forge-foundational` support-truth, target-aware profile attachment, and
+  proof-bearing readmission surfaces remain authoritative for how weaker
+  inspection/preparation posture is represented honestly
+- local foundational docs this phase must reuse instead of replacing:
+  - `crates/forge-foundational/docs/lineage-provenance-receipts-and-support-truth/support-truth-recovery-and-degraded-operation.md`
+  - `crates/forge-foundational/docs/profiles-and-policy-vocabulary/target-aware-profile-attachment.md`
+  - `crates/forge-foundational/docs/profiles-and-policy-vocabulary/proof-bearing-profile-certification-and-readmission.md`
+- local Query substrate docs that this phase must extend honestly:
+  - `crates/forge-query/docs/domain-capabilities/collaborative-strategy-witness.md`
+  - `crates/forge-query/docs/domain-capabilities/continuation-pipeline.md`
+  - `crates/forge-query/docs/domain-capabilities/signal-compatibility-orchestration.md`
+  - `crates/forge-query/docs/domain-capabilities/recovery-boundary.md`
+  - `crates/forge-query/docs/domain-capabilities/explanation/lower-runtime-explanation-contributions.md`
+- new public docs this phase must add:
+  - `crates/forge-query/docs/domain-capabilities/collaborative-strategy-inspection-and-preparation.md`
+  - `crates/forge-query/docs/domain-capabilities/choosing/collaborative-strategy-vs-continuation-vs-recovery.md`
+- code contexts this phase must extend instead of bypassing:
+  - `crates/forge-query/src/continuation_pipeline/`
+  - `crates/forge-query/src/signal_compatibility_orchestration/`
+  - `crates/forge-query/src/recovery_boundary/`
+  - `crates/forge-query/src/application/domain_handle/admitted_handle/`
+  - `crates/forge-query/src/platform_entry_closeout/`
+
+**Requirements**
+
+- Query must expose one public strategy-facing inspection surface that tells a
+  caller which collaborative strategy world was retained and which lower
+  next-step families are honestly preparable now
+- preparation must remain explicit and typed; prepared does not mean executed
+  and inspected does not mean replayable
+- preparation must preserve relational merge, bridge writeback/promotion, and
+  signal-facing ownership instead of laundering them into a Query-local
+  execution abstraction
+- equivalent retained strategy posture must produce the same inspection and
+  preparation identity across ordinary / checked / proof / helper lanes
+- this phase must preserve enough retained explanation posture that later
+  collaborative authority witnesses and conflict classifications do not reopen
+  raw strategy-routing details from scratch
+
+**DX target**
+
+- a serious downstream domain should be able to ask Query "what collaborative
+  strategy world do we have, and what exact next lower step is honestly
+  preparable from here?" and get one typed answer
+
+**Documentation obligation**
+
+- yes; this phase creates a new discoverable preparation and inspection seam
+  that must be taught as distinct from continuation execution and recovery
+
+**Compile-time enforcement**
+
+- collaborative strategy preparation requests must remain sealed to retained
+  witness posture and admitted strategy families
+- invalid preparation transitions must fail at the type level rather than as
+  late runtime fallback
+
+**Acceptance evidence**
+
+- parity proving equivalent retained collaborative strategy witness posture
+  yields the same inspection and preparation outputs
+- hostile tests proving Query cannot claim a merge/writeback/inspection step is
+  preparable when the lower-authority family was not admitted
+- docs, inventory, and closeout hooks proving this is a real public strategy
+  seam rather than substrate-only plumbing
+
+### Phase 39: Collaborative Authority Witness Boundary
 
 This phase extends the now-shipped platform-entry seam so collaborative,
 branch-aware, preview-aware, and policy-aware downstream domains can enter
@@ -4303,16 +4635,29 @@ projects those already-planned lower-authority truths coherently.
   semantics and execution
 - `forge-signal` remains authoritative for signal merge / invalidation /
   delivery strategy semantics and execution
+- the shipped Phase 36 through 38 collaborative strategy substrate remains
+  authoritative for admitted strategy families, retained strategy identity, and
+  Query-facing preparation posture
 - local Query substrate docs that this phase must extend honestly:
   - `crates/forge-query/docs/foundations/branches-and-previews.md`
   - `crates/forge-query/docs/domain-capabilities/platform-entry.md`
   - `crates/forge-query/docs/domain-capabilities/configured-domain-handles.md`
+  - `crates/forge-query/docs/domain-capabilities/collaborative-strategy-admission.md`
+  - `crates/forge-query/docs/domain-capabilities/collaborative-strategy-witness.md`
+  - `crates/forge-query/docs/domain-capabilities/collaborative-strategy-inspection-and-preparation.md`
   - `crates/forge-query/docs/domain-capabilities/declaration-bridge-continuation-routing.md`
   - `crates/forge-query/docs/domain-capabilities/continuation-pipeline.md`
   - `crates/forge-query/docs/domain-capabilities/contribution-composed-orchestration.md`
   - `crates/forge-query/docs/domain-capabilities/continuity/continuity-contributions-and-authoritative-successors.md`
   - `crates/forge-query/docs/domain-capabilities/workflow/preview-inspection-and-mutation-planning.md`
   - `crates/forge-query/docs/domain-capabilities/workflow/runtime-preflight-workflow-contributions.md`
+- new public docs this phase must add:
+  - `crates/forge-query/docs/domain-capabilities/collaborative-authority-witness.md`
+- code contexts this phase must extend instead of bypassing:
+  - `crates/forge-query/src/application/domain_handle/`
+  - `crates/forge-query/src/continuation_pipeline/`
+  - `crates/forge-query/src/recovery_boundary/`
+  - `crates/forge-query/src/orchestration_inventory/`
 
 **Requirements**
 
@@ -4365,7 +4710,7 @@ projects those already-planned lower-authority truths coherently.
   admitted by lower-authority seams
 - docs and inventory rows aligned with the new collaborative witness surface
 
-### Phase 37: Collaborative Readmission And Conflict Classification Boundary
+### Phase 40: Collaborative Readmission And Conflict Classification Boundary
 
 This phase turns the retained collaborative witness into one typed Query-facing
 readmission and conflict-classification seam.
@@ -4420,6 +4765,16 @@ evolution, policy, or mutation semantics.
   merge-strategy semantics
 - `forge-signal` remains authoritative for extensible signal merge /
   invalidation / delivery strategy semantics
+- the shipped Phase 36 through 38 collaborative strategy substrate remains
+  authoritative for admitted strategy identity, basis story, compatibility
+  posture, and preparation posture
+- new public docs this phase must add:
+  - `crates/forge-query/docs/domain-capabilities/collaborative-readmission-and-conflict-classification.md`
+- code contexts this phase must extend instead of bypassing:
+  - `crates/forge-query/src/recovery_boundary/`
+  - `crates/forge-query/src/continuation_pipeline/`
+  - `crates/forge-query/src/application/domain_handle/admitted_handle/`
+  - `crates/forge-query/src/orchestration_inventory/`
 
 **Requirements**
 
@@ -4477,7 +4832,7 @@ evolution, policy, or mutation semantics.
 - transcript / inventory / docs coverage proving the classification seam is
   product-grade rather than test-local
 
-### Phase 38: Collaborative Recovery And Inspection Boundary
+### Phase 41: Collaborative Recovery And Inspection Boundary
 
 This phase makes collaborative conflict posture operable instead of merely
 detectable.
@@ -4518,6 +4873,16 @@ lower-authority truths, not a second authority owner.
   - `crates/forge-query/docs/domain-capabilities/orchestration-inventory.md`
   - `crates/forge-query/docs/domain-capabilities/explanation/lower-runtime-explanation-contributions.md`
   - `crates/forge-query/docs/foundations/branches-and-previews.md`
+  - `crates/forge-query/docs/domain-capabilities/collaborative-authority-witness.md`
+  - `crates/forge-query/docs/domain-capabilities/collaborative-readmission-and-conflict-classification.md`
+- new public docs this phase must add:
+  - `crates/forge-query/docs/domain-capabilities/collaborative-recovery-and-inspection.md`
+- code contexts this phase must extend instead of bypassing:
+  - `crates/forge-query/src/recovery_boundary/`
+  - `crates/forge-query/src/platform_entry_closeout/`
+  - `crates/forge-query/src/public_doc_coverage/`
+  - `crates/forge-query/src/orchestration_inventory/`
+  - `crates/forge-query/src/application/domain_handle/admitted_handle/`
 
 **Requirements**
 
@@ -4567,15 +4932,29 @@ lower-authority truths, not a second authority owner.
 Phases 1 through 35 now all have boundary-level requirements, and those
 boundaries ship as one closed original `9.3.8` platform-entry product.
 
-Phases 36 through 38 are the new planned collaboration-entry extension over
-that shipped substrate. They intentionally stop at stable Query entry,
-readmission, classification, recovery, and inspection veneers over already-
-planned lower-authority roadmap work. They do not claim to close preview
-workflow ownership, merge execution ownership, durable workflow continuation,
-or full certification breadth for later collaborative milestones.
+Phases 36 through 41 are the new planned collaboration-entry extension over
+that shipped substrate.
+
+Phases 36 through 38 intentionally close the missing collaborative strategy
+foundation first: Query-facing strategy admission, retained strategy witness /
+compatibility, and strategy-facing inspection / preparation.
+
+Phases 39 through 41 then build the larger collaboration witness,
+readmission/conflict-classification, and recovery/inspection stack on top of
+that strategy substrate instead of rediscovering merge, writeback, and signal
+strategy posture ad hoc inside the later collaborative phases.
+
+This late extension therefore intentionally stops at stable Query entry,
+strategy-facing preparation, collaborative readmission, classification,
+recovery, and inspection veneers over already-planned lower-authority roadmap
+work. It does not claim to close preview workflow ownership, merge execution
+ownership, durable workflow continuation, or full certification breadth for
+later collaborative milestones.
 
 Future hostile QA may still tighten wording if later roadmap work uncovers a
 teaching or sequencing gap, but `9.3.8` now has one explicit late frontier:
 Query must become a stable platform entry for collaboration-aware branch /
-preview / lineage / policy / mutation-evidence posture before the runtime API
-stabilization gate and later roadmap work consume that entry seam.
+preview / lineage / policy / mutation-evidence posture and for the admitted
+strategy substrate that shapes collaborative merge / writeback / delivery
+meaning before the runtime API stabilization gate and later roadmap work
+consume that entry seam.

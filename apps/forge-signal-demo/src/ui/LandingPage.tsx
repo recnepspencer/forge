@@ -1,164 +1,249 @@
 import React from "react";
-import "./landingShell.css";
-import "./landingPage.css";
-import { CompositionSection } from "./CompositionSection";
-import { FormsSection } from "./FormsSection";
-import { HistorySection } from "./HistorySection";
-import { ResourcesSection } from "./ResourcesSection";
-import { RouterSection } from "./RouterSection";
-import { SignalsSection } from "./SignalsSection";
+import { motion, useReducedMotion } from "motion/react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { demoRegistry } from "../state/demoData";
+import { BouncingValueField } from "./BouncingValueField";
+import { FormsComposerField } from "./FormsComposerField";
 
 interface LandingPageProps {
   onNavigate: (path: string) => void;
 }
 
-interface RevealProps {
-  children: React.ReactNode;
-}
+const capabilitySlides = [
+  {
+    id: 1,
+    accent: "signals",
+    eyebrow: "Signals",
+    headline: "State changes once. Everything derived follows.",
+    body: "Start with the smallest Forge primitive: retained local state, derived outputs, and one coherent update path.",
+    seed: 11,
+    values: [18, 42, 128, 7, 3, 89, 64, 21],
+  },
+  {
+    id: 2,
+    accent: "forms",
+    eyebrow: "Forms",
+    headline: "Form readiness belongs to the runtime.",
+    body: "Source truth, draft edits, validation, dirty state, and submit posture stay in one controller instead of scattered component glue.",
+    seed: 23,
+    values: [12, 62, 4, 98, 2, 71, 31, 9],
+  },
+  {
+    id: 3,
+    accent: "router",
+    eyebrow: "Router",
+    headline: "Routes can own more than matching.",
+    body: "Browser ingress, role-sensitive admission, breadcrumbs, and replayable session history live behind one route authority.",
+    seed: 37,
+    values: [5, 240, 33, 18, 4, 72, 12, 9],
+  },
+  {
+    id: 4,
+    accent: "resources",
+    eyebrow: "Resources",
+    headline: "Optimistic writes should be inspectable.",
+    body: "Resource lines expose loading, settled truth, mutation feedback, reconciliation, and rollback as runtime output.",
+    seed: 41,
+    values: [204, 16, 74, 1, 32, 68, 11, 2],
+  },
+  {
+    id: 5,
+    accent: "composition",
+    eyebrow: "Composition",
+    headline: "The adapter layer is the tax.",
+    body: "See route, form, resource, write lifecycle, and diagnostics compose without building a second app framework beside React.",
+    seed: 59,
+    values: [3, 77, 91, 8, 144, 24, 12, 6],
+  },
+];
 
-const capabilityPills = ["Signals", "Forms", "Router", "Resources", "Composition", "History"];
+const accentGlowColors = {
+  composition: "rgba(255, 156, 183, 0.18)",
+  forms: "rgba(245, 183, 109, 0.18)",
+  resources: "rgba(121, 223, 177, 0.18)",
+  router: "rgba(195, 165, 255, 0.18)",
+  signals: "rgba(125, 199, 255, 0.18)",
+} as const;
 
-const RevealSection: React.FC<RevealProps> = ({ children }) => {
-  const ref = React.useRef<HTMLDivElement | null>(null);
-  const [visible, setVisible] = React.useState(false);
-
-  React.useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.unobserve(entry.target);
-        }
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -64px 0px" },
-    );
-
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <section ref={ref} className={`landing-reveal ${visible ? "is-visible" : ""}`}>
-      {children}
-    </section>
-  );
+type CarouselPosition = {
+  filter: string;
+  opacity: number;
+  pointerEvents: "auto" | "none";
+  rotateY: number;
+  scale: number;
+  x: string;
+  z: number;
+  zIndex: number;
 };
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
+  const [activeIndex, setActiveIndex] = React.useState(0);
+  const prefersReducedMotion = useReducedMotion();
+  const active = capabilitySlides[activeIndex];
+  const previousSlide = capabilitySlides[(activeIndex - 1 + capabilitySlides.length) % capabilitySlides.length];
+  const nextSlide = capabilitySlides[(activeIndex + 1) % capabilitySlides.length];
+
+  const goTo = (nextIndex: number) => {
+    setActiveIndex((nextIndex + capabilitySlides.length) % capabilitySlides.length);
+  };
+
+  const relativePosition = (index: number) => {
+    const raw = index - activeIndex;
+    if (raw > capabilitySlides.length / 2) return raw - capabilitySlides.length;
+    if (raw < -capabilitySlides.length / 2) return raw + capabilitySlides.length;
+    return raw;
+  };
+
+  const cardPosition = (relative: number): CarouselPosition => {
+    if (prefersReducedMotion) {
+      return {
+        filter: "blur(0px) saturate(1)",
+        opacity: relative === 0 ? 1 : 0,
+        pointerEvents: relative === 0 ? "auto" : "none",
+        rotateY: 0,
+        scale: 1,
+        x: relative === 0 ? "0rem" : `${relative * 4}rem`,
+        z: 0,
+        zIndex: relative === 0 ? 5 : 1,
+      };
+    }
+
+    if (relative === 0) {
+      return {
+        filter: "blur(0px) saturate(1)",
+        opacity: 1,
+        pointerEvents: "auto",
+        rotateY: 0,
+        scale: 1,
+        x: "0rem",
+        z: 0,
+        zIndex: 5,
+      };
+    }
+
+    if (relative === -1 || relative === 1) {
+      return {
+        filter: "blur(5px) saturate(0.78)",
+        opacity: 0.42,
+        pointerEvents: "none",
+        rotateY: relative === -1 ? 68 : -68,
+        scale: 0.82,
+        x: relative === -1 ? "-42rem" : "42rem",
+        z: -240,
+        zIndex: 3,
+      };
+    }
+
+    return {
+      filter: "blur(12px) saturate(0.55)",
+      opacity: 0.08,
+      pointerEvents: "none",
+      rotateY: relative < 0 ? 78 : -78,
+      scale: 0.68,
+      x: relative < 0 ? "-54rem" : "54rem",
+      z: -420,
+      zIndex: 1,
+    };
+  };
+
   return (
-    <div className="xai-landing">
-      <section className="xai-hero xai-hero-centered">
-        <div className="container xai-hero-stack">
-          <span className="xai-eyebrow">Forge demo ladder</span>
-          <h1 className="xai-hero-title">
-            One runtime for
-            <br />
-            forms, routes,
-            <br />
-            resources, and
-            <br />
-            history.
-          </h1>
-          <p className="xai-hero-body">
-            Explore the demo ladder from local reactivity to branch-aware workflows,
-            all powered by the same retained WASM runtime.
-          </p>
-          <div className="xai-hero-actions">
-            <button className="xai-button xai-button-primary" onClick={() => onNavigate("#/demos")} type="button">
-              Explore demos
-            </button>
-            <button className="xai-button xai-button-secondary" onClick={() => onNavigate("#/docs")} type="button">
-              Read docs
-            </button>
-          </div>
-
-          <div className="xai-hero-preview accent-composition">
-            <div className="xai-hero-preview-header">
-              <span>Composed runtime preview</span>
-              <span>Live model</span>
-            </div>
-            <div className="xai-hero-preview-grid">
-              <div className="xai-preview-panel">
-                <span>Route session</span>
-                <strong>/products/17/edit</strong>
-                <p>Browser story, breadcrumbs, and route admission all agree.</p>
-              </div>
-              <div className="xai-preview-panel">
-                <span>Form controller</span>
-                <strong>draft dirty / submit ready</strong>
-                <p>Source, draft, effective, and dialog close policy stay aligned.</p>
-              </div>
-              <div className="xai-preview-panel">
-                <span>Resource write</span>
-                <strong>partial → recovery applied</strong>
-                <p>Execution truth, feedback, and revalidation share one lifecycle.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="xai-intro-strip">
-        <div className="container xai-intro-strip-inner">
+    <main className="xai-landing xai-carousel-home">
+      <section className="container xai-carousel-shell">
+        <div className="xai-carousel-title">
+          <span className="xai-eyebrow">Forge signal demo</span>
+          <h1>A runtime for UI state that has to stay coordinated.</h1>
           <p>
-            Start with signals, then move through forms, routing, resources,
-            composed workflows, and branch-native history.
+            Walk through five focused demos, one capability at a time. Start
+            with signals, then see how Forge carries the same runtime discipline
+            into forms, routes, resources, and composed workflows.
           </p>
-          <div className="xai-capability-rail">
-            {capabilityPills.map((capability) => (
-              <span key={capability}>{capability}</span>
-            ))}
+          <div className="xai-carousel-actions">
+            <button className="xai-button xai-button-primary" onClick={() => onNavigate("#/demos/1")} type="button">
+              Start with signals
+              <ArrowRight aria-hidden="true" size={17} />
+            </button>
+            <button className="xai-button xai-button-secondary" onClick={() => onNavigate("#/demos")} type="button">
+              View demo ladder
+            </button>
           </div>
         </div>
-      </section>
 
-      <div className="container xai-sections">
-        <RevealSection>
-          <SignalsSection onNavigate={onNavigate} />
-        </RevealSection>
+        <div className="xai-carousel-stage">
+          <motion.div
+            animate={{ backgroundColor: accentGlowColors[previousSlide.accent as keyof typeof accentGlowColors] }}
+            className="xai-card-glow xai-card-glow-left"
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          />
+          <motion.div
+            animate={{ backgroundColor: accentGlowColors[nextSlide.accent as keyof typeof accentGlowColors] }}
+            className="xai-card-glow xai-card-glow-right"
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          />
 
-        <RevealSection>
-          <FormsSection onNavigate={onNavigate} />
-        </RevealSection>
+          <button className="xai-carousel-arrow xai-carousel-arrow-left" onClick={() => goTo(activeIndex - 1)} title="Previous capability" type="button">
+            <ArrowLeft aria-hidden="true" size={20} />
+          </button>
 
-        <RevealSection>
-          <RouterSection onNavigate={onNavigate} />
-        </RevealSection>
+          <div className={`xai-capability-carousel accent-${active.accent}`}>
+            <div className="xai-carousel-window" aria-live="polite" aria-roledescription="carousel">
+              {capabilitySlides.map((slide, index) => {
+                const relative = relativePosition(index);
+                const position = cardPosition(relative);
+                const demo = demoRegistry.find((entry) => entry.id === slide.id);
 
-        <RevealSection>
-          <ResourcesSection onNavigate={onNavigate} />
-        </RevealSection>
+                return (
+                  <motion.article
+                    key={slide.id}
+                    animate={position}
+                    className={`xai-carousel-slide accent-${slide.accent}`}
+                    initial={false}
+                    transition={{
+                      damping: 26,
+                      mass: 0.78,
+                      stiffness: 170,
+                      type: "spring",
+                    }}
+                  >
+                    <div
+                      className={`xai-slide-artifact${slide.id === 2 ? " xai-slide-artifact-form" : ""}`}
+                      aria-hidden="true"
+                    >
+                      {slide.id === 2 ? (
+                        <FormsComposerField />
+                      ) : (
+                        <BouncingValueField seed={slide.seed} values={slide.values} />
+                      )}
+                    </div>
 
-        <RevealSection>
-          <CompositionSection onNavigate={onNavigate} />
-        </RevealSection>
+                    <div className="xai-slide-copy">
+                      <span>{`0${slide.id} / ${slide.eyebrow}`}</span>
+                      <h2>{slide.headline}</h2>
+                      <p>{slide.body}</p>
+                    </div>
 
-        <RevealSection>
-          <HistorySection onNavigate={onNavigate} />
-        </RevealSection>
-
-        <RevealSection>
-          <div className="xai-closing-band">
-            <span className="xai-section-eyebrow">Start with the ladder</span>
-            <h2>See each surface alone, then see how they compose.</h2>
-            <p>
-              Use the demo ladder if you want runtime behavior. Use the docs if you
-              want the exact public surfaces behind it.
-            </p>
-            <div className="xai-hero-actions">
-              <button className="xai-button xai-button-primary" onClick={() => onNavigate("#/demos")} type="button">
-                Explore demos
-              </button>
-              <button className="xai-button xai-button-secondary" onClick={() => onNavigate("#/docs")} type="button">
-                Browse docs
-              </button>
+                    <div className="xai-slide-actions">
+                      <button className="xai-button xai-button-primary" onClick={() => onNavigate(`#/demos/${slide.id}`)} type="button">
+                        Open demo
+                      </button>
+                      <button
+                        className="xai-button xai-button-secondary"
+                        onClick={() => onNavigate(`#/docs/${demo?.relatedDocsPath ?? ""}`)}
+                        type="button"
+                      >
+                        Read docs
+                      </button>
+                    </div>
+                  </motion.article>
+                );
+              })}
             </div>
           </div>
-        </RevealSection>
-      </div>
-    </div>
+
+          <button className="xai-carousel-arrow xai-carousel-arrow-right" onClick={() => goTo(activeIndex + 1)} title="Next capability" type="button">
+            <ArrowRight aria-hidden="true" size={20} />
+          </button>
+        </div>
+      </section>
+    </main>
   );
 };
