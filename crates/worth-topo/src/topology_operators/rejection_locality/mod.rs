@@ -76,7 +76,12 @@ impl TopologyMutationApplicationError {
             | Self::ExistingHalfEdgesNotOnSameLoop { .. } => {
                 Some(TopologyMutationRejectionClass::InvariantBlocked)
             }
-            Self::Query(_) | Self::MaterializedDecode(_) | Self::UnexpectedInspectionFamily => None,
+            Self::Query(_)
+            | Self::MaterializedDecode(_)
+            | Self::RetainedSemanticAftermathMismatch { .. } => None,
+            Self::QueryAnchorFamilyMismatch { .. } => {
+                Some(TopologyMutationRejectionClass::ScopeLocalizationUnavailable)
+            }
         }
     }
 

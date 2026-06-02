@@ -1,8 +1,5 @@
 use std::collections::BTreeMap;
 
-use forge_query::facade::{
-    ForgeQueryComputedInspectionEvidence, ForgeQueryInspection, ForgeQueryRuntimeStateKind,
-};
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::CommitResult;
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
@@ -34,10 +31,7 @@ use crate::certification::support::reporting::{
 };
 use crate::facade::{
     build_topology_read_artifact, certify_topology_view, compare_derived_equivalence_contracts,
-    validate_named_topology_truth, ReplayParityStatus,
-};
-use crate::projection::runtime_boundary::query_runtime::{
-    topology_runtime, TopologyRuntimeAdapters,
+    ReplayParityStatus,
 };
 
 pub type TracedMilestoneTwoDerivedReadReport = BoundaryEnvelope<MilestoneTwoDerivedReadReport>;
@@ -64,7 +58,6 @@ mod traced_reports;
 
 pub(crate) use closeout_program::certify_milestone_two_closeout_impl;
 pub(crate) use derived_corpus::certify_milestone_two_default_derived_corpus_impl;
-pub(crate) use read_basis::{
-    certify_milestone_two_read_basis_runtime_traced_impl,
-    certify_milestone_two_verified_commit_traced_impl,
-};
+#[cfg(test)]
+pub(crate) use read_basis::certify_milestone_two_commit_input_traced_impl;
+pub(crate) use read_basis::certify_milestone_two_read_basis_runtime_traced_impl;

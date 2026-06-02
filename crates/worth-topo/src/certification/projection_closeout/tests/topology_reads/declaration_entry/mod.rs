@@ -1,4 +1,5 @@
 mod inner_loop;
+mod precedent_guard;
 mod radial_program;
 mod rehome;
 mod rehome_denials;
@@ -8,10 +9,6 @@ mod successor_handle;
 mod successor_runtime;
 mod successor_runtime_support;
 
-use forge_query::facade::{
-    ForgeQueryDeclarationEntryOrchestrationChecked, ForgeQueryDeclarationEntryOrchestrationStage,
-    ForgeQueryDeclarationEntryOrchestrationTerminalError,
-};
 use schema::facade::platform::entities::TopologyEntityKind;
 
 use super::support::{current_head_query_handle, snapshot_query_handle};
@@ -21,39 +18,44 @@ use crate::certification::support::declaration_runtime::{
 use crate::facade::{
     topology_runtime, BoundaryMembershipKind, ShellOrWireMembershipKind,
     TopologyAttachBoundaryMembershipDeclaration, TopologyAttachShellOrWireMembershipDeclaration,
-    TopologyCreateTopologyEntityDeclaration, TopologyRuntimeAdapters,
+    TopologyCreateTopologyEntityDeclaration, TopologyOperatorEnvelopeChecked,
+    TopologyOperatorEnvelopeTerminalError, TopologyOperatorWorkflowHandleExt,
+    TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
-use schema::facade::topology_authoring::seed_minimal_topology;
+use forge_query::facade::ForgeQueryDeclarationEntryOrchestrationStage;
 
 #[test]
 fn current_head_handle_orchestrates_create_topology_entity_declaration_across_all_query_lanes() {
     let handle = current_head_query_handle();
     let ordinary = handle
-        .orchestrate_declaration_entry(TopologyCreateTopologyEntityDeclaration::new(
+        .orchestrate_topology_operator_envelope(TopologyCreateTopologyEntityDeclaration::new(
             "query-native.handle-entry.vertex",
             TopologyEntityKind::Vertex,
         ))
         .unwrap_or_else(|_| panic!("current-head create declaration should envelope"));
-    let checked =
-        handle.orchestrate_declaration_entry_checked(TopologyCreateTopologyEntityDeclaration::new(
+    let checked = handle.orchestrate_topology_operator_envelope_checked(
+        TopologyCreateTopologyEntityDeclaration::new(
             "query-native.handle-entry.vertex",
             TopologyEntityKind::Vertex,
-        ));
-    let proof =
-        handle.orchestrate_declaration_entry_proof(TopologyCreateTopologyEntityDeclaration::new(
+        ),
+    );
+    let proof = handle.orchestrate_topology_operator_envelope_proof(
+        TopologyCreateTopologyEntityDeclaration::new(
             "query-native.handle-entry.vertex",
             TopologyEntityKind::Vertex,
-        ));
+        ),
+    );
 
     match checked {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped checked create declaration"),
     }
     match proof.outcome() {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped proof create declaration"),
@@ -72,28 +74,30 @@ fn current_head_handle_orchestrates_create_topology_entity_declaration_across_al
 fn snapshot_handle_does_not_envelope_create_topology_entity_declaration() {
     let handle = snapshot_query_handle();
 
-    let ordinary =
-        handle.orchestrate_declaration_entry(TopologyCreateTopologyEntityDeclaration::new(
+    let ordinary = handle.orchestrate_topology_operator_envelope(
+        TopologyCreateTopologyEntityDeclaration::new(
             "query-native.handle-entry.snapshot.vertex",
             TopologyEntityKind::Vertex,
-        ));
-    let checked =
-        handle.orchestrate_declaration_entry_checked(TopologyCreateTopologyEntityDeclaration::new(
+        ),
+    );
+    let checked = handle.orchestrate_topology_operator_envelope_checked(
+        TopologyCreateTopologyEntityDeclaration::new(
             "query-native.handle-entry.snapshot.vertex",
             TopologyEntityKind::Vertex,
-        ));
+        ),
+    );
 
     assert!(
         matches!(
             ordinary,
-            Err(ForgeQueryDeclarationEntryOrchestrationTerminalError::RebindRequired(_))
+            Err(TopologyOperatorEnvelopeTerminalError::RebindRequired(_))
         ),
         "snapshot read-only topology handle must report rebind-required, not a generic failure, for authoritative create declarations"
     );
     assert!(
         matches!(
             checked,
-            ForgeQueryDeclarationEntryOrchestrationChecked::RebindRequired(_)
+            TopologyOperatorEnvelopeChecked::RebindRequired(_)
         ),
         "snapshot read-only topology handle must preserve the checked rebind-required outcome for authoritative create declarations"
     );
@@ -121,7 +125,7 @@ fn current_head_runtime_executes_single_create_declaration_through_declaration_e
     .expect("single create declaration should execute through declaration entry");
 
     assert!(execution
-        .materialized
+        .materialized()
         .topology()
         .vertices
         .iter()
@@ -147,19 +151,19 @@ fn current_head_handle_orchestrates_attach_boundary_membership_declaration_acros
         ),
     );
     let ordinary = handle
-        .orchestrate_declaration_entry(declaration.clone())
+        .orchestrate_topology_operator_envelope(declaration.clone())
         .unwrap_or_else(|_| panic!("current-head attach-boundary declaration should envelope"));
-    let checked = handle.orchestrate_declaration_entry_checked(declaration.clone());
-    let proof = handle.orchestrate_declaration_entry_proof(declaration);
+    let checked = handle.orchestrate_topology_operator_envelope_checked(declaration.clone());
+    let proof = handle.orchestrate_topology_operator_envelope_proof(declaration);
 
     match checked {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped checked attach-boundary declaration"),
     }
     match proof.outcome() {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped proof attach-boundary declaration"),
@@ -170,8 +174,11 @@ fn current_head_handle_orchestrates_attach_boundary_membership_declaration_acros
 fn current_head_runtime_keeps_single_attach_boundary_declaration_on_unsupported_admission_boundary()
 {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "query-native.attach-boundary.runtime")
-        .expect("seed topology");
+    let seeded = seed_minimal_topology_through_schema_execution(
+        &mut runtime,
+        "query-native.attach-boundary.runtime",
+    )
+    .expect("seed topology");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, "query-native.attach-boundary.runtime").expect("workspace");
@@ -212,21 +219,21 @@ fn current_head_handle_orchestrates_attach_shell_or_wire_membership_declaration_
         ),
     );
     let ordinary = handle
-        .orchestrate_declaration_entry(declaration.clone())
+        .orchestrate_topology_operator_envelope(declaration.clone())
         .unwrap_or_else(|_| {
             panic!("current-head attach-shell-or-wire declaration should envelope")
         });
-    let checked = handle.orchestrate_declaration_entry_checked(declaration.clone());
-    let proof = handle.orchestrate_declaration_entry_proof(declaration);
+    let checked = handle.orchestrate_topology_operator_envelope_checked(declaration.clone());
+    let proof = handle.orchestrate_topology_operator_envelope_proof(declaration);
 
     match checked {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped checked attach-shell-or-wire declaration"),
     }
     match proof.outcome() {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped proof attach-shell-or-wire declaration"),
@@ -237,8 +244,11 @@ fn current_head_handle_orchestrates_attach_shell_or_wire_membership_declaration_
 fn current_head_runtime_keeps_single_attach_shell_or_wire_declaration_on_unsupported_admission_boundary(
 ) {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "query-native.attach-wire.runtime")
-        .expect("seed topology");
+    let seeded = seed_minimal_topology_through_schema_execution(
+        &mut runtime,
+        "query-native.attach-wire.runtime",
+    )
+    .expect("seed topology");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, "query-native.attach-wire.runtime").expect("workspace");

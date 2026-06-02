@@ -7,7 +7,7 @@ use schema::facade::platform::authority::{
     milestone_two_invalidation_declarations, DerivedTruthSurfaceKind,
 };
 
-pub fn milestone_one_bridge_mapping_registrations() -> Vec<BridgeMappingRegistration> {
+pub(crate) fn milestone_one_bridge_mapping_registrations() -> Vec<BridgeMappingRegistration> {
     milestone_two_invalidation_declarations()
         .into_iter()
         .map(|declaration| {
@@ -25,7 +25,7 @@ pub fn milestone_one_bridge_mapping_registrations() -> Vec<BridgeMappingRegistra
         .collect()
 }
 
-pub fn milestone_one_bridge_aspect_registrations() -> Vec<BridgeAspectRegistration> {
+pub(crate) fn milestone_one_bridge_aspect_registrations() -> Vec<BridgeAspectRegistration> {
     milestone_two_invalidation_declarations()
         .into_iter()
         .map(|declaration| {

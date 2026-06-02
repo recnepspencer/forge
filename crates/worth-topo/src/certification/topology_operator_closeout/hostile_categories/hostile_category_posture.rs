@@ -195,7 +195,7 @@ fn non_manifold_radial_brutality_row(
         .iter()
         .filter(|scenario| {
             scenario
-                .mutation_families
+                .mutation_families()
                 .contains(&TopologyMutationFamily::SpliceRadialAdjacency)
         })
         .count();
@@ -208,7 +208,7 @@ fn non_manifold_radial_brutality_row(
             .iter()
             .filter(|scenario| {
                 scenario
-                    .mutation_families
+                    .mutation_families()
                     .contains(&TopologyMutationFamily::SpliceRadialAdjacency)
             })
             .map(|scenario| format!("radial_scenario={}", scenario.scenario.as_str()))

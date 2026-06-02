@@ -1,15 +1,16 @@
 use forge_query::facade::{
     ForgeQueryAuthorityLane, ForgeQueryEffectPolicy, ForgeQueryRuntimeError,
-    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
-    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeSupportProfile, ForgeQueryWorkspace,
+    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeSupportProfile,
 };
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use forge_relational::facade::snapshots::SnapshotHandle;
 use forge_runtime_bridge::facade::BridgeBuildError;
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::topology_operators::TopologyMutationFamily;
 
 use super::adapters::TopologyRuntimeBinding;
+use super::adapters::TopologyRuntimeDeclarationInitialization;
 use super::mutation_support::{
     current_head_mutation_family_support_rows, current_head_mutation_lane_support_rows,
     snapshot_mutation_family_support_rows, snapshot_mutation_lane_support_rows,
@@ -33,6 +34,7 @@ const TOPOLOGY_CURRENT_HEAD_PREVIEW_BASIS_EVIDENCE: &str = "topology-current-hea
 #[derive(Debug)]
 pub struct TopologyRuntimeAdapters {
     pub(super) binding: TopologyRuntimeBinding,
+    pub(super) declaration_initialization: TopologyRuntimeDeclarationInitialization,
     support: TopologyRuntimeSupport,
 }
 
@@ -40,6 +42,7 @@ impl TopologyRuntimeAdapters {
     pub fn current_head(runtime: RelationalRuntime) -> Self {
         Self {
             binding: TopologyRuntimeBinding::current_head(runtime),
+            declaration_initialization: TopologyRuntimeDeclarationInitialization::default_runtime(),
             support: TopologyRuntimeSupport::current_head_authoritative(),
         }
     }
@@ -47,6 +50,22 @@ impl TopologyRuntimeAdapters {
     pub fn snapshot_read_only(read_view: RelationalReadView, snapshot: SnapshotHandle) -> Self {
         Self {
             binding: TopologyRuntimeBinding::snapshot_read_only(read_view, snapshot),
+            declaration_initialization: TopologyRuntimeDeclarationInitialization::default_runtime(),
+            support: TopologyRuntimeSupport::snapshot_read_only(),
+        }
+    }
+
+    pub fn snapshot_historical_basis(
+        read_view: RelationalReadView,
+        read_basis: DerivedTopologyReadBasis,
+    ) -> Self {
+        Self {
+            binding: TopologyRuntimeBinding::snapshot_read_only(
+                read_view,
+                read_basis.snapshot().clone(),
+            ),
+            declaration_initialization:
+                TopologyRuntimeDeclarationInitialization::historical_read_basis(read_basis),
             support: TopologyRuntimeSupport::snapshot_read_only(),
         }
     }
@@ -244,23 +263,6 @@ impl TopologyRuntimeSupport {
             )
         }
     }
-}
-
-pub(crate) fn workspace_requires_historical_basis_context(workspace: &ForgeQueryWorkspace) -> bool {
-    // `workspace.admit_public_api_family(...)` currently reports both ordinary
-    // preview denial and snapshot historical-basis denial as the same
-    // unsupported-family error. The public family contract is the narrowest
-    // workspace-owned surface that still preserves the distinguishing evidence.
-    workspace
-        .public_api_contract()
-        .family(ForgeQueryRuntimeFacadeFamily::BranchPreview)
-        .is_some_and(|contract| {
-            contract.status() == ForgeQueryRuntimeFamilySupportStatus::Unsupported
-                && contract
-                    .evidence()
-                    .iter()
-                    .any(|evidence| evidence == TOPOLOGY_SNAPSHOT_HISTORICAL_BASIS_EVIDENCE)
-        })
 }
 
 #[derive(Debug)]

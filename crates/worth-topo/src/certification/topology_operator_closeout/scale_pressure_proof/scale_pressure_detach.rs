@@ -1,7 +1,7 @@
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde_json::Value;
 
 use super::super::shared::relation_id_from_query_identity;
@@ -15,6 +15,7 @@ use crate::certification::support::parity::digest_materialized_topology_view;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
     ShellOrWireMembershipKind, TopologyDeclaredMutationSequence,
@@ -106,6 +107,7 @@ where
         mutation_step_count: left.topology_mutation_digest.mutation_record_count,
         mutation_families: left.mutation_families,
         branch_local: false,
+        branch_authoring_boundary: None,
         topology_mutation_digest: left.topology_mutation_digest,
         replay_verified,
         final_state_digest: left.final_state_digest.clone(),
@@ -128,7 +130,7 @@ where
 {
     let primitive_family = primitive_family_name(&primitive).to_string();
     let mut runtime = runtime_factory();
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         &format!("{stem}.scale_pressure.{}", sweep.as_str()),
         &primitive,
@@ -155,7 +157,8 @@ where
         }
     }
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let final_state_digest = digest_materialized_topology_view(&execution.materialized).digest_hex;
+    let final_state_digest =
+        digest_materialized_topology_view(&execution.materialized()).digest_hex;
     Ok(DetachPressureExecution {
         primitive_family,
         topology_mutation_digest,

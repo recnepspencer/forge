@@ -32,6 +32,8 @@ pub struct ForgeQueryBridgeBackedRuntimeBackend {
     subscription_activation: Box<dyn super::ForgeQueryRuntimeSubscriptionActivationAdapter>,
     preview_basis: Box<dyn super::ForgeQueryRuntimePreviewBasisAdapter>,
     inspector_evidence: Box<dyn super::ForgeQueryRuntimeInspectorEvidenceAdapter>,
+    declaration_initialization:
+        Option<Box<dyn super::ForgeQueryRuntimeDeclarationInitializationAdapter>>,
     intent_authority: Option<Box<dyn super::ForgeQueryIntentAuthorityAdapter>>,
     support_profile: ForgeQueryRuntimeSupportProfile,
 }
@@ -66,6 +68,7 @@ impl ForgeQueryBridgeBackedRuntimeBackend {
         let inspector_evidence = parts
             .inspector_evidence
             .ok_or(ForgeQueryRuntimeError::MissingInspectorEvidence)?;
+        let declaration_initialization = parts.declaration_initialization;
         let intent_authority = parts.intent_authority;
         let support_profile = parts.support_profile.unwrap_or_else(|| {
             ForgeQueryRuntimeSupportProfile::bridge_backed(
@@ -90,6 +93,7 @@ impl ForgeQueryBridgeBackedRuntimeBackend {
             subscription_activation,
             preview_basis,
             inspector_evidence,
+            declaration_initialization,
             intent_authority,
             support_profile,
         })
@@ -294,5 +298,16 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
     ) -> Result<ForgeQueryRuntimeInspectionEvidence, ForgeQueryWorkspaceError> {
         self.inspector_evidence
             .inspect_write_receipt(receipt, authority)
+    }
+
+    fn declaration_initialization_metadata(
+        &self,
+        view: &crate::program::ForgeQueryDerivedView,
+        snapshot_token: &str,
+    ) -> Result<crate::runtime::ForgeQueryMutationMetadata, ForgeQueryWorkspaceError> {
+        match self.declaration_initialization.as_ref() {
+            Some(adapter) => adapter.declaration_initialization_metadata(view, snapshot_token),
+            None => Ok(crate::runtime::ForgeQueryMutationMetadata::default()),
+        }
     }
 }

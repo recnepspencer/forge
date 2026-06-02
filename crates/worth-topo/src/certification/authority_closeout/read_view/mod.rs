@@ -1,7 +1,4 @@
-use forge_query::facade::{
-    ForgeQueryComputedInspectionEvidence, ForgeQueryEntity, ForgeQueryInspection,
-    ForgeQueryRuntimeStateKind,
-};
+use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::replay::{
     RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode,
 };
@@ -25,10 +22,7 @@ use crate::certification::{
 };
 use crate::facade::{
     build_derived_equivalence_contract, build_topology_read_artifact, certify_topology_view,
-    compare_derived_equivalence_contracts, validate_named_topology_truth,
-};
-use crate::projection::runtime_boundary::query_runtime::{
-    topology_runtime, TopologyRuntimeAdapters,
+    compare_derived_equivalence_contracts,
 };
 
 pub type TracedMilestoneOneCertificationReport = BoundaryEnvelope<MilestoneOneCertificationReport>;

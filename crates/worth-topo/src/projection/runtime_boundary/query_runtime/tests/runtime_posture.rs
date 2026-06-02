@@ -1,9 +1,10 @@
 use crate::projection::runtime_boundary::query_runtime::{
-    topology_runtime, workspace_requires_historical_basis_context, TopologyRuntimeAdapters,
-    TopologyRuntimePostureCapability, TopologyRuntimePostureStatus, TopologyRuntimeSupport,
+    topology_runtime, TopologyRuntimeAdapters, TopologyRuntimePostureCapability,
+    TopologyRuntimePostureStatus, TopologyRuntimeSupport,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
-use schema::facade::topology_authoring::seed_minimal_topology;
+use forge_query::facade::{ForgeQueryBranchOptions, ForgeQueryIntentDeclaration};
+use serde_json::json;
 
 #[test]
 fn current_head_runtime_posture_rows_freeze_admitted_and_denied_capabilities() {
@@ -27,6 +28,8 @@ fn current_head_runtime_posture_rows_freeze_admitted_and_denied_capabilities() {
                 TopologyRuntimePostureStatus::Admitted
             }
             TopologyRuntimePostureCapability::CurrentHeadMaterialization
+            | TopologyRuntimePostureCapability::BranchLocalIntentStaging
+            | TopologyRuntimePostureCapability::BranchLocalDeclarationExecution
             | TopologyRuntimePostureCapability::HistoricalBasis => {
                 TopologyRuntimePostureStatus::Denied
             }
@@ -53,37 +56,14 @@ fn snapshot_runtime_posture_rows_freeze_historical_read_only_capabilities() {
             | TopologyRuntimePostureCapability::CurrentHeadMaterialization
             | TopologyRuntimePostureCapability::PostWriteMaterialization
             | TopologyRuntimePostureCapability::BranchPreviewBasis
+            | TopologyRuntimePostureCapability::BranchLocalIntentStaging
+            | TopologyRuntimePostureCapability::BranchLocalDeclarationExecution
             | TopologyRuntimePostureCapability::AuthoritativeWrites => {
                 TopologyRuntimePostureStatus::Denied
             }
         };
         assert_eq!(support.runtime_posture_status(capability), expected_status);
     }
-}
-
-#[test]
-fn workspace_historical_basis_detection_tracks_topology_runtime_support_contract() {
-    let current_runtime = build_milestone_one_runtime().expect("runtime");
-    let current_adapters = TopologyRuntimeAdapters::current_head(current_runtime);
-    let current_workspace =
-        topology_runtime(current_adapters, ".runtime-posture.current-head").expect("workspace");
-    assert!(!workspace_requires_historical_basis_context(
-        &current_workspace
-    ));
-
-    let mut snapshot_runtime = build_milestone_one_runtime().expect("runtime");
-    let seeded = seed_minimal_topology(&mut snapshot_runtime, "runtime-posture-snapshot")
-        .expect("seed topology");
-    let read_view = snapshot_runtime
-        .read_truth()
-        .read_snapshot(&seeded.snapshot)
-        .expect("seeded snapshot");
-    let snapshot_adapters = TopologyRuntimeAdapters::snapshot_read_only(read_view, seeded.snapshot);
-    let snapshot_workspace =
-        topology_runtime(snapshot_adapters, ".runtime-posture.snapshot").expect("workspace");
-    assert!(workspace_requires_historical_basis_context(
-        &snapshot_workspace
-    ));
 }
 
 #[test]
@@ -100,4 +80,44 @@ fn current_head_runtime_admits_preview_and_branch_sessions() {
 
     let branch = workspace.branch("topology-branch").expect("branch session");
     assert_eq!(branch.basis_admission().label(), "topology-branch");
+}
+
+#[test]
+fn current_head_runtime_admits_branch_sessions_but_denies_branch_local_intent_staging_and_topology_declaration_execution(
+) {
+    let runtime = build_milestone_one_runtime().expect("runtime");
+    let adapters = TopologyRuntimeAdapters::current_head(runtime);
+    let support = adapters.support().clone();
+    let mut workspace =
+        topology_runtime(adapters, ".runtime-posture.branch-intent").expect("workspace");
+
+    assert_eq!(
+        support.runtime_posture_status(TopologyRuntimePostureCapability::BranchLocalIntentStaging),
+        TopologyRuntimePostureStatus::Denied
+    );
+    assert_eq!(
+        support.runtime_posture_status(
+            TopologyRuntimePostureCapability::BranchLocalDeclarationExecution
+        ),
+        TopologyRuntimePostureStatus::Denied
+    );
+
+    let mut branch = workspace
+        .branch_with_options(
+            "topology-branch-intent",
+            ForgeQueryBranchOptions::sandboxed_write_intent(),
+        )
+        .expect("branch session should be admitted");
+    let error = branch
+        .execute_intent(ForgeQueryIntentDeclaration::strategy_commit(
+            "topology-branch-stage",
+            "strategy.intent.reconcile",
+            "1.0",
+            "intent.reconcile.input.v1",
+            json!({ "entity": "topology-branch-stage" }),
+        ))
+        .expect_err("branch-local intent staging should remain denied");
+    assert!(error
+        .to_string()
+        .contains("intent commit strategies are not admitted by this runtime batch"));
 }

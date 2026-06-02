@@ -7,7 +7,8 @@ one declaration-entry operation and attach declaration-scoped domain-capability
 contributions in the same call.
 
 Use it when your app already knows the declaration it wants to make and also
-knows that the run should carry support, explanation, admission, or workflow
+knows that the run should carry support, explanation, admission, workflow, or
+continuity
 contribution posture at the same time.
 
 This feature does not replace declaration entry, and it does not replace the
@@ -124,6 +125,7 @@ The current contribution intents are:
 - `ForgeQueryContributionIntent::support(...)`
 - `ForgeQueryContributionIntent::explanation(...)`
 - `ForgeQueryContributionIntent::workflow(...)`
+- `ForgeQueryContributionIntent::continuity(...)`
 
 The execution shape is:
 
@@ -392,6 +394,10 @@ inspection:
 
 - this surface currently binds contributions only to declaration-scoped targets
   derived from the retained canonical declaration
+- continuity contributions on this surface are declaration-bound continuity
+  posture, not admitted-plan continuity evidence materialization; if you need
+  admitted-plan correspondence evidence or runtime continuity artifacts, stay
+  on the admitted-plan continuity lane
 - calling this surface with no contribution intents is rejected as
   `Unsupported`; use Declaration Entry Orchestration directly when you only
   need the declaration-side envelope run

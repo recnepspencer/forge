@@ -169,7 +169,7 @@ fn topology_crate_remains_geometry_dependency_pure() {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let cargo_toml = fs::read_to_string(manifest_dir.join("Cargo.toml"))
         .expect("worth-topo Cargo.toml is readable");
-    for forbidden_dependency in ["worth-geom", "worth-math", "forge-topo"] {
+    for forbidden_dependency in ["worth-geom", "worth-math", "worth-spatial", "forge-topo"] {
         assert!(
             !cargo_toml.contains(forbidden_dependency),
             "worth-topo must not depend on geometry or legacy topology crate `{forbidden_dependency}`"
@@ -177,8 +177,15 @@ fn topology_crate_remains_geometry_dependency_pure() {
     }
 
     let src = manifest_dir.join("src");
-    let source_violations =
-        production_files_containing_any(&src, &["worth_geom::", "worth_math::", "forge_topo::"]);
+    let source_violations = production_files_containing_any(
+        &src,
+        &[
+            "worth_geom::",
+            "worth_math::",
+            "worth_spatial::",
+            "forge_topo::",
+        ],
+    );
     assert!(
         source_violations.is_empty(),
         "worth-topo source must not import geometry or legacy topology crates: {source_violations:?}"
@@ -190,21 +197,49 @@ fn broad_direct_file_clusters_stay_explicitly_reviewed() {
     let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
     let allowed_dense_directories = [
         "certification",
+        "certification/projection_closeout/tests/topology_reads/declaration_entry",
         "certification/public_facade_contracts/compile_fail",
         "construction",
         "derived_topology/materialized_graph",
-        "projection/diagnostic_surfaces/read_proof",
+        "projection/read_views/domain/read_proof",
         "projection/runtime_boundary/declared_query_surfaces",
         "projection/runtime_boundary/query_runtime",
+        "projection/runtime_boundary/query_runtime/adapters",
         "projection/runtime_boundary/query_runtime/tests",
         "certification/topology_operator_closeout",
         "topology_operators/mutation_records",
+        "topology_operators/query_workflow",
         "validation/reference_integrity",
     ];
     let violations = dense_directory_violations(&src, 8, &allowed_dense_directories);
     assert!(
         violations.is_empty(),
         "new worth-topo flat file clusters need an explicit structural review before they pass: {violations:?}"
+    );
+}
+
+#[test]
+fn certification_closeout_semantic_summary_does_not_store_deterministic_fallback_detail() {
+    let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
+    let report = fs::read_to_string(
+        src.join("certification")
+            .join("topology_operator_closeout")
+            .join("report.rs"),
+    )
+    .expect("topology operator closeout report is readable");
+    let replay_rows = fs::read_to_string(
+        src.join("certification")
+            .join("topology_operator_closeout")
+            .join("replay_step_rows.rs"),
+    )
+    .expect("topology operator closeout replay step rows are readable");
+    assert!(
+        !report.contains("pub fallback_explanation_detail:"),
+        "certification semantic-summary/report seams must derive deterministic fallback explanation text instead of storing it"
+    );
+    assert!(
+        !replay_rows.contains("fallback_explanation_detail:"),
+        "certification replay-step rows must derive deterministic fallback explanation text instead of storing it"
     );
 }
 
@@ -328,7 +363,6 @@ fn dependency_direction_violations(src: &Path) -> Vec<String> {
             "topology_operators/local_rewrites/boundary_wiring/membership.rs",
             "topology_operators/local_rewrites/boundary_wiring/relation_update.rs",
             "topology_operators/local_rewrites/boundary_wiring/successor_admission.rs",
-            "topology_operators/local_rewrites/boundary_wiring/successor_support.rs",
             "topology_operators/local_rewrites/entity_lifecycle/relation_create.rs",
             "topology_operators/local_rewrites/radial_cycles/splice_adjacency.rs",
             "topology_operators/local_rewrites/sheet_wire_laminar/membership_admission.rs",
@@ -337,10 +371,7 @@ fn dependency_direction_violations(src: &Path) -> Vec<String> {
             "topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/shared.rs",
             "topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/shell_membership_program.rs",
             "topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/wire_membership_program.rs",
-            "topology_operators/local_rewrites/sheet_wire_laminar/shell_face_rehome.rs",
             "topology_operators/local_rewrites/sheet_wire_laminar/shell_face_rehome_support.rs",
-            "topology_operators/local_rewrites/sheet_wire_laminar/shell_face_split.rs",
-            "topology_operators/local_rewrites/sheet_wire_laminar/wire_rehome.rs",
             "topology_operators/local_rewrites/sheet_wire_laminar/wire_rehome_support.rs",
         ],
         &mut violations,

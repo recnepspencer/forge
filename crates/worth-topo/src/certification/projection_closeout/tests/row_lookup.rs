@@ -1,13 +1,14 @@
 use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
 use crate::projection::TopologyQueryRowLookup;
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 #[test]
 fn row_lookup_finds_half_edge_neighbors_for_edge_fan_witnesses() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query.row-lookup.edge-fan",
         &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },

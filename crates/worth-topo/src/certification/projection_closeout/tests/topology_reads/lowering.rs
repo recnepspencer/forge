@@ -11,10 +11,11 @@ use crate::projection::runtime_boundary::read_lowering::{
     lower_topology_read, TopologyReadLoweringPosture, TopologyReadRelationshipProofPosture,
 };
 use crate::query_domain::TopologyCurrentHeadReadHandleExt;
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::PlannedExecutionRoute;
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use schema::facade::QuerySchemaBasis;
 
 #[test]
@@ -122,7 +123,7 @@ fn topology_read_lowering_denies_zero_depth_before_canonical_authoring() {
 #[test]
 fn topology_read_views_expose_canonical_lowering_and_explicit_debt_rows() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query.topology-read.lowering-debt",
         &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },

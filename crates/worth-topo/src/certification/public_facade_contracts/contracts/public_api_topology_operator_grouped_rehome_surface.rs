@@ -35,70 +35,68 @@ fn _topology_operator_grouped_rehome_surface_contracts() {
                 members,
             )
         };
+    let _: fn(
+        TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
+    ) -> TopologyOperatorGroupedInput<TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration> =
+        topology_grouped_operator_neighborhood::<TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration>;
+    let _: fn(
+        TopologyRehomeAllOwnedFacesToNewShellDeclaration,
+    ) -> TopologyOperatorGroupedInput<TopologyRehomeAllOwnedFacesToNewShellDeclaration> =
+        topology_grouped_operator_neighborhood::<TopologyRehomeAllOwnedFacesToNewShellDeclaration>;
+    let _: fn(
+        TopologyOperatorGroupedInput<TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration>,
+        ForgeQuerySupportContributionAuthoring,
+    ) -> TopologyOperatorGroupedContributionInput<TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration> =
+        |input, contribution| input.with_shared_support_contribution(contribution);
+    let _: fn(
+        TopologyOperatorGroupedInput<TopologyRehomeAllOwnedFacesToNewShellDeclaration>,
+        ForgeQuerySupportContributionAuthoring,
+    ) -> TopologyOperatorGroupedContributionInput<TopologyRehomeAllOwnedFacesToNewShellDeclaration> =
+        |input, contribution| input.with_shared_support_contribution(contribution);
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
+        TopologyOperatorGroupedInput<TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration>,
     ) -> Result<
-        forge_query::facade::ForgeQueryDeclarationEnvelope<
-            TopologyQueryDomain,
+        TopologyOperatorGroupedDeclaration<TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration>,
+        TopologyOperatorGroupedDeclarationStop,
+    > = <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::declare_topology_grouped_operator::<
+        TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
+    >;
+    let _: for<'a> fn(
+        &'a TopologyCurrentHeadConfiguredDomainHandle,
+        TopologyOperatorGroupedDeclaration<TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration>,
+    ) -> TopologyOperatorGroupedOutcome<TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration> =
+        <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::orchestrate_topology_grouped_operator_outcome::<
             TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
-        >,
-        forge_query::facade::ForgeQueryDeclarationEntryOrchestrationTerminalError<
-            TopologyQueryDomain,
-            TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
-        >,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry::<
-        TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
-    >;
+        >;
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
-    ) -> forge_query::facade::ForgeQueryDeclarationEntryOrchestrationChecked<
-        TopologyQueryDomain,
-        TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry_checked::<
-        TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
-    >;
+        &TopologyOperatorGroupedDeclaration<TopologyRehomeAllOwnedFacesToNewShellDeclaration>,
+    ) -> forge_query::facade::ForgeQueryGroupedSupportReport =
+        <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::topology_grouped_operator_support::<
+            TopologyRehomeAllOwnedFacesToNewShellDeclaration,
+        >;
+    let _: Option<
+        TopologyOperatorGroupedContributionComposition<TopologyRehomeAllOwnedFacesToNewShellDeclaration>,
+    > = None;
+    let _: Option<
+        TopologyOperatorGroupedContributionStop<TopologyRehomeAllOwnedFacesToNewShellDeclaration>,
+    > = None;
+    let _: Option<TopologyOperatorGroupedContributionMemberContext> = None;
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
-    ) -> forge_query::facade::ForgeQueryDeclarationEntryOrchestrationProof<
-        TopologyQueryDomain,
-        TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry_proof::<
-        TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
-    >;
-    let _: for<'a> fn(
-        &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologyRehomeAllOwnedFacesToNewShellDeclaration,
+        TopologyOperatorGroupedContributionInput<TopologyRehomeAllOwnedFacesToNewShellDeclaration>,
     ) -> Result<
-        forge_query::facade::ForgeQueryDeclarationEnvelope<
-            TopologyQueryDomain,
-            TopologyRehomeAllOwnedFacesToNewShellDeclaration,
-        >,
-        forge_query::facade::ForgeQueryDeclarationEntryOrchestrationTerminalError<
-            TopologyQueryDomain,
-            TopologyRehomeAllOwnedFacesToNewShellDeclaration,
-        >,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry::<
+        TopologyOperatorGroupedContributionComposition<TopologyRehomeAllOwnedFacesToNewShellDeclaration>,
+        TopologyOperatorGroupedContributionStop<TopologyRehomeAllOwnedFacesToNewShellDeclaration>,
+    > = <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::grouped_topology_operator_contributions_checked::<
         TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     >;
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
         TopologyRehomeAllOwnedFacesToNewShellDeclaration,
-    ) -> forge_query::facade::ForgeQueryDeclarationEntryOrchestrationChecked<
-        TopologyQueryDomain,
-        TopologyRehomeAllOwnedFacesToNewShellDeclaration,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry_checked::<
-        TopologyRehomeAllOwnedFacesToNewShellDeclaration,
-    >;
-    let _: for<'a> fn(
-        &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologyRehomeAllOwnedFacesToNewShellDeclaration,
-    ) -> forge_query::facade::ForgeQueryDeclarationEntryOrchestrationProof<
-        TopologyQueryDomain,
-        TopologyRehomeAllOwnedFacesToNewShellDeclaration,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry_proof::<
-        TopologyRehomeAllOwnedFacesToNewShellDeclaration,
-    >;
+    ) -> TopologyOperatorDeclarationOutcome<TopologyRehomeAllOwnedFacesToNewShellDeclaration> =
+        <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::orchestrate_topology_operator_outcome::<
+            TopologyRehomeAllOwnedFacesToNewShellDeclaration,
+        >;
 }

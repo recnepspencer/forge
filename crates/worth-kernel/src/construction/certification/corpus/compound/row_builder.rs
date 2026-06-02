@@ -19,7 +19,6 @@ use super::schema::{
 use crate::construction::diagnostics::prepare_primitive_construction_rejection_locality_report;
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
-use crate::construction::result::prepare_primitive_construction_result;
 use crate::construction::{
     prepare_primitive_construction_query_inspection_parity_report,
     prepare_primitive_construction_query_projection_consumption_receipt_report,
@@ -31,6 +30,7 @@ use super::super::row_support::{
     birth_attachment_breadth, certification_breadth, construction_breadth,
 };
 use super::builder::PrimitiveConstructionCompoundAdversarialSiegeError;
+use crate::construction::authoring::primitive_construction_authoring;
 
 pub(super) fn build_rows_for_lane(
     workspace: &mut ForgeQueryWorkspace,
@@ -132,8 +132,18 @@ fn build_row(
                         )
                     },
                 )?;
-            let result = prepare_primitive_construction_result(intent.clone())
-                .map_err(PrimitiveConstructionCompoundAdversarialSiegeError::Result)?;
+            let result = {
+                let mut session = primitive_construction_authoring(workspace).map_err(|error| {
+                    PrimitiveConstructionCompoundAdversarialSiegeError::QueryEntry(format!(
+                        "{error:?}"
+                    ))
+                })?;
+                session.prepare_result(intent.clone()).map_err(|error| {
+                    PrimitiveConstructionCompoundAdversarialSiegeError::QueryEntry(
+                        error.to_string(),
+                    )
+                })?
+            };
             Ok(PrimitiveConstructionCompoundRow::new(
                 scenario.scenario_id.to_string(),
                 scenario.workload_family,

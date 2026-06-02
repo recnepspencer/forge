@@ -1,12 +1,8 @@
 use forge_query::facade::ForgeQueryWorkspace;
-use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::authority::MutationOrigin;
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
-use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch, DerivedTopologyReadBasis,
-    MilestoneOnePrimitiveCase,
-};
+use schema::facade::topology_authoring::{DerivedTopologyReadBasis, MilestoneOnePrimitiveCase};
 
 use super::side_quest_types::{
     MilestoneThreeSideQuestBlockerRow, MilestoneThreeSideQuestCloseoutReport,
@@ -23,6 +19,10 @@ use crate::projection::{
     TopologyReadViewParityArtifact, TopologyReadViewRef,
 };
 use crate::query_domain::TopologyReadParityKind;
+use crate::test_support::schema_topology_authoring_boundary::{
+    seed_milestone_one_primitive_in_new_branch_through_schema_execution,
+    seed_milestone_one_primitive_through_schema_execution,
+};
 
 pub(in crate::certification::topology_operator_closeout) fn certify_milestone_three_side_quest_closeout_impl<
     F,
@@ -33,7 +33,7 @@ pub(in crate::certification::topology_operator_closeout) fn certify_milestone_th
 where
     F: FnMut() -> RelationalRuntime,
 {
-    let query = TopologyReadProofHarness::new();
+    let query = TopologyReadProofHarness::historical_from_workspace_token();
     let (replay_left, replay_right) =
         replay_local_rewire_parity_artifacts(runtime_factory, stem, &query)?;
     let replay_parity =
@@ -101,7 +101,7 @@ where
     F: FnMut() -> RelationalRuntime,
 {
     let mut runtime = runtime_factory();
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         &format!("{stem}.side_quest.replay"),
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
@@ -138,20 +138,14 @@ where
     F: FnMut() -> RelationalRuntime,
 {
     let mut runtime = runtime_factory();
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("feature".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .map_err(|error| TopologyCertificationError::Query(format!("{error:?}")))?;
-    let verified = seed_milestone_one_primitive_on_branch(
+    let verified = seed_milestone_one_primitive_in_new_branch_through_schema_execution(
         &mut runtime,
         &format!("{stem}.side_quest.branch"),
         &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 5 },
-        BranchId("feature".to_string()),
+        "feature",
         MutationOrigin::BranchLocalApplication,
-    )?;
+    )
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let replay_basis = verified.read_basis().replay_of();
     Ok((
         loop_cycle_parity_artifact(
@@ -229,7 +223,7 @@ fn snapshot_basis_workspace(
             ))
         })?;
     let adapters =
-        TopologyRuntimeAdapters::snapshot_read_only(read_view, read_basis.snapshot().clone());
+        TopologyRuntimeAdapters::snapshot_historical_basis(read_view, read_basis.clone());
     let mut workspace = topology_runtime(adapters, stem)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let surfaces =

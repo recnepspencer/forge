@@ -1,4 +1,7 @@
-use crate::runtime::ForgeQueryIntentExecutionProvenance;
+use serde::de::DeserializeOwned;
+
+use crate::runtime::retained_rows::decode_single_retained_row;
+use crate::runtime::{ForgeQueryIntentExecutionProvenance, ForgeQueryRuntimeError};
 
 use super::super::ForgeQueryIntentDecisionTraceEnvelope;
 use super::ForgeQueryDerivedMaterializationReceipt;
@@ -12,6 +15,17 @@ pub struct ForgeQueryDerivedMaterializationResult {
 impl ForgeQueryDerivedMaterializationResult {
     pub fn rows(&self) -> &[serde_json::Value] {
         &self.rows
+    }
+
+    pub fn decode_single_row<T>(&self) -> Result<T, ForgeQueryRuntimeError>
+    where
+        T: DeserializeOwned,
+    {
+        decode_single_retained_row(
+            &self.rows,
+            self.receipt.view_name(),
+            "derived-materialization",
+        )
     }
 
     pub fn receipt(&self) -> &ForgeQueryDerivedMaterializationReceipt {

@@ -1,4 +1,5 @@
 use crate::certification::ReplayParityStatus;
+use crate::certification::TopologyBranchAuthoringBoundary;
 use crate::topology_operators::{
     NamingMutationContinuityMatrix, RejectedMutationScopeReport, TopologyDerivedRegion,
     TopologyMutationChangedScope, TopologyMutationDerivedFallbackPolicy, TopologyMutationDigest,
@@ -119,6 +120,10 @@ impl MilestoneThreeMutationBranchLocalParityRow {
         self.mutation_origin.as_str()
     }
 
+    pub fn branch_authoring_boundary(&self) -> TopologyBranchAuthoringBoundary {
+        self.branch_authoring_boundary.clone()
+    }
+
     pub fn outcome_class(&self) -> MilestoneThreeHostileOutcomeClass {
         self.outcome_class
     }
@@ -137,6 +142,10 @@ impl MilestoneThreeMutationBranchLocalParityRow {
 
     pub fn naming_mutation_continuity_matrix(&self) -> &NamingMutationContinuityMatrix {
         &self.naming_mutation_continuity_matrix
+    }
+
+    pub fn derived_fallback_policy(&self) -> Option<TopologyMutationDerivedFallbackPolicy> {
+        self.derived_fallback_policy
     }
 
     pub fn branch_head_diverged_from_main(&self) -> bool {

@@ -1,23 +1,26 @@
-use forge_query::facade::{
-    ForgeQueryApplicationFacade, ForgeQueryDeclarationEntryOrchestrationTerminalError,
-    ForgeQueryDeclarationInput,
-};
+use forge_query::facade::{ForgeQueryApplicationFacade, ForgeQueryDeclarationInput};
 
 use crate::query_domain::{
     topology_current_head_authoritative_context, topology_query_domain_entry, TopologyQueryDomain,
 };
+use crate::topology_operators::{
+    topology_operator_contribution_workflow, TopologyOperatorContributionCheckedOutcome,
+    TopologyOperatorContributionDeclaration, TopologyOperatorWorkflowHandleExt,
+};
 
 use super::super::{
-    TopologyDeclarationEntryRefusalClass, TopologyDeclarationEntryStopClass,
-    TopologyMutationApplicationError, TopologyMutationFamily,
+    TopologyDeclarationEntryStopClass, TopologyMutationApplicationError, TopologyMutationFamily,
+    TopologyRetainedApplicationHandoff,
 };
 
 pub(super) fn orchestrate_topology_declaration_entry<I>(
     family: TopologyMutationFamily,
     declaration: I,
-) -> Result<(), TopologyMutationApplicationError>
+) -> Result<TopologyRetainedApplicationHandoff<I>, TopologyMutationApplicationError>
 where
-    I: ForgeQueryDeclarationInput<TopologyQueryDomain> + Clone,
+    I: ForgeQueryDeclarationInput<TopologyQueryDomain>
+        + TopologyOperatorContributionDeclaration
+        + Clone,
 {
     let facade = topology_current_head_declaration_entry_facade();
     let handle = topology_query_domain_entry(&facade)
@@ -26,79 +29,105 @@ where
         .expect("current-head topology declaration context should validate")
         .admit()
         .expect("current-head topology declaration context should admit");
-    handle
-        .orchestrate_declaration_entry(declaration)
-        .map(|_| ())
-        .map_err(|error| declaration_entry_error(family, error))
+    let artifact = handle
+        .orchestrate_topology_operator_with_contributions(topology_operator_contribution_workflow(
+            declaration,
+        ))
+        .map_err(|outcome| contribution_error(family, &handle, outcome))?;
+    Ok(TopologyRetainedApplicationHandoff::new(artifact))
 }
 
 pub(super) fn topology_current_head_declaration_entry_facade() -> ForgeQueryApplicationFacade {
     ForgeQueryApplicationFacade::runtime_backed_default()
 }
 
-fn declaration_entry_error<I>(
+fn contribution_error<I>(
     family: TopologyMutationFamily,
-    error: ForgeQueryDeclarationEntryOrchestrationTerminalError<TopologyQueryDomain, I>,
+    handle: &crate::query_domain::TopologyCurrentHeadConfiguredDomainHandle,
+    outcome: TopologyOperatorContributionCheckedOutcome<I>,
 ) -> TopologyMutationApplicationError
 where
     I: ForgeQueryDeclarationInput<TopologyQueryDomain>,
 {
-    match error {
-        ForgeQueryDeclarationEntryOrchestrationTerminalError::Deferred(outcome) => {
-            TopologyMutationApplicationError::DeclarationEntry {
-                family,
-                stop_class: TopologyDeclarationEntryStopClass::Deferred,
-                stop_stage: outcome.stop_stage(),
-                refusal_class: None,
-                reason: outcome.reason(),
-            }
+    let stop_stage = match &outcome {
+        forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Bound(_) => None,
+        forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Deferred(value)
+        | forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::DeclarationDenied(value)
+        | forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::ContributionDenied(value)
+        | forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Stale(value)
+        | forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::RebindRequired(value)
+        | forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Unsupported(value)
+        | forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Failed(value) => {
+            Some(value.stop_stage())
         }
-        ForgeQueryDeclarationEntryOrchestrationTerminalError::Denied(outcome) => {
-            TopologyMutationApplicationError::DeclarationEntry {
-                family,
-                stop_class: TopologyDeclarationEntryStopClass::Denied,
-                stop_stage: outcome.stop_stage(),
-                refusal_class: None,
-                reason: outcome.reason(),
-            }
+    };
+    let fallback_stop_class = contribution_stop_class(&outcome);
+    let fallback_reason = contribution_reason(&outcome).to_string();
+    let brief = handle.recover_topology_operator_contribution_checked(outcome);
+    let stop_class = brief
+        .as_ref()
+        .map(|value| TopologyDeclarationEntryStopClass::from(value.stop_kind()))
+        .unwrap_or(fallback_stop_class);
+    let reason = brief
+        .as_ref()
+        .map(|value| value.reason().to_string())
+        .unwrap_or(fallback_reason);
+    TopologyMutationApplicationError::DeclarationEntry {
+        family,
+        stop_class,
+        stop_stage,
+        refusal_class: None,
+        recovery: brief,
+        reason,
+    }
+}
+
+fn contribution_reason<I>(outcome: &TopologyOperatorContributionCheckedOutcome<I>) -> &str
+where
+    I: ForgeQueryDeclarationInput<TopologyQueryDomain>,
+{
+    match outcome {
+        forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Bound(_) => {
+            "topology contribution-composed orchestration should not use the non-bound error lane"
         }
-        ForgeQueryDeclarationEntryOrchestrationTerminalError::Stale(outcome) => {
-            TopologyMutationApplicationError::DeclarationEntry {
-                family,
-                stop_class: TopologyDeclarationEntryStopClass::Stale,
-                stop_stage: outcome.stop_stage(),
-                refusal_class: None,
-                reason: outcome.reason(),
-            }
+        forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Deferred(value)
+        | forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::DeclarationDenied(value)
+        | forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::ContributionDenied(value)
+        | forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Stale(value)
+        | forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::RebindRequired(value)
+        | forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Unsupported(value)
+        | forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Failed(value) => value.reason(),
+    }
+}
+
+fn contribution_stop_class<I>(
+    outcome: &TopologyOperatorContributionCheckedOutcome<I>,
+) -> TopologyDeclarationEntryStopClass
+where
+    I: ForgeQueryDeclarationInput<TopologyQueryDomain>,
+{
+    match outcome {
+        forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Bound(_) => {
+            TopologyDeclarationEntryStopClass::Failed
         }
-        ForgeQueryDeclarationEntryOrchestrationTerminalError::RebindRequired(outcome) => {
-            TopologyMutationApplicationError::DeclarationEntry {
-                family,
-                stop_class: TopologyDeclarationEntryStopClass::RebindRequired,
-                stop_stage: outcome.stop_stage(),
-                refusal_class: None,
-                reason: outcome.reason(),
-            }
+        forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Deferred(_) => {
+            TopologyDeclarationEntryStopClass::Deferred
         }
-        ForgeQueryDeclarationEntryOrchestrationTerminalError::Failed(outcome) => {
-            TopologyMutationApplicationError::DeclarationEntry {
-                family,
-                stop_class: TopologyDeclarationEntryStopClass::Failed,
-                stop_stage: outcome.stop_stage(),
-                refusal_class: None,
-                reason: outcome.reason(),
-            }
+        forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::DeclarationDenied(_)
+        | forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::ContributionDenied(_) => {
+            TopologyDeclarationEntryStopClass::Denied
         }
-        ForgeQueryDeclarationEntryOrchestrationTerminalError::Refused(outcome) => {
-            TopologyMutationApplicationError::DeclarationEntry {
-                family,
-                stop_class: TopologyDeclarationEntryStopClass::Refused,
-                stop_stage: outcome.stop_stage(),
-                refusal_class: Some(TopologyDeclarationEntryRefusalClass::from(
-                    outcome.refusal_class(),
-                )),
-                reason: outcome.reason(),
-            }
+        forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Stale(_) => {
+            TopologyDeclarationEntryStopClass::Stale
+        }
+        forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::RebindRequired(_) => {
+            TopologyDeclarationEntryStopClass::RebindRequired
+        }
+        forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Unsupported(_) => {
+            TopologyDeclarationEntryStopClass::Unsupported
+        }
+        forge_query::facade::ForgeQueryContributionComposedOrchestrationOutcome::Failed(_) => {
+            TopologyDeclarationEntryStopClass::Failed
         }
     }
 }

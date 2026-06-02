@@ -1,7 +1,10 @@
 mod assertion_evidence;
+mod batch_write_retained_artifact;
 mod continuity_mutation_evidence;
+mod derived_artifact_binding;
 mod derived_inspection_receipt;
 mod derived_inspection_result;
+mod derived_materialization_bundle;
 mod derived_materialization_receipt;
 mod derived_materialization_result;
 mod existing_truth_probe_receipt;
@@ -17,6 +20,8 @@ mod graph_composition_program;
 mod graph_composition_resolution_map;
 mod inspection_artifact;
 mod live;
+mod live_artifact_binding;
+mod live_artifact_bundle;
 mod live_read_receipt;
 mod live_read_result;
 mod mutation;
@@ -36,6 +41,8 @@ mod read_receipt_construction;
 mod read_receipt_support;
 mod read_relationship_proof_denial;
 mod read_result;
+mod retained_scalar_alignment;
+mod retained_scalar_facts;
 mod symbolic_aspect_resolution_evidence;
 mod symbolic_target_reference_evidence;
 mod unified_inspection_receipt;
@@ -43,12 +50,17 @@ mod unified_inspection_result;
 mod verified_assumption_set;
 
 pub use assertion_evidence::ForgeQueryExistingTruthAssertionEvidence;
+pub use batch_write_retained_artifact::ForgeQueryBatchWriteRetainedArtifact;
 pub use continuity_mutation_evidence::{
     ForgeQueryContinuityClass, ForgeQueryContinuityMutationEvidence,
     ForgeQueryContinuityOutcomeClass, ForgeQueryContinuityRejectionClass,
 };
+pub use derived_artifact_binding::ForgeQueryDerivedArtifactBinding;
 pub use derived_inspection_receipt::ForgeQueryDerivedInspectionReceipt;
 pub use derived_inspection_result::ForgeQueryDerivedInspectionResult;
+pub use derived_materialization_bundle::{
+    ForgeQueryDerivedMaterializationBundle, ForgeQueryDerivedMaterializationTarget,
+};
 pub use derived_materialization_receipt::ForgeQueryDerivedMaterializationReceipt;
 pub use derived_materialization_result::ForgeQueryDerivedMaterializationResult;
 pub use existing_truth_probe_receipt::ForgeQueryExistingTruthProbeReceipt;
@@ -76,6 +88,8 @@ pub use graph_composition_resolution_map::{
 };
 pub use inspection_artifact::{ForgeQueryArtifactInspector, ForgeQueryInspectedArtifact};
 pub use live::{ForgeQueryLiveView, ForgeQueryPatchBatch};
+pub use live_artifact_binding::ForgeQueryLiveArtifactBinding;
+pub use live_artifact_bundle::{ForgeQueryLiveArtifactBundle, ForgeQueryLiveArtifactTarget};
 pub use live_read_receipt::ForgeQueryLiveReadReceipt;
 pub use live_read_result::ForgeQueryLiveReadResult;
 pub use mutation::{
@@ -118,6 +132,12 @@ pub use read_relationship_proof_denial::{
     ForgeQueryReadRelationshipProofDenial, ForgeQueryReadRelationshipProofDenialStage,
 };
 pub use read_result::ForgeQueryReadResult;
+pub use retained_scalar_alignment::{
+    ForgeQueryRetainedScalarAlignment, ForgeQueryRetainedScalarAlignmentFact,
+};
+pub use retained_scalar_facts::{
+    ForgeQueryRetainedScalarFactSet, ForgeQueryRetainedScalarFieldFact,
+};
 pub use symbolic_aspect_resolution_evidence::ForgeQuerySymbolicAspectResolutionEvidence;
 pub use symbolic_target_reference_evidence::{
     ForgeQuerySymbolicTargetReferenceEvidence, ForgeQuerySymbolicTargetReferenceOutcome,

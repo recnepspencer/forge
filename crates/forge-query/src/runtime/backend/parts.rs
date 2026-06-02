@@ -2,11 +2,11 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::RuntimeBridge;
 
 use super::{
-    ForgeQueryIntentAuthorityAdapter, ForgeQueryRuntimeExistingTruthVerificationAdapter,
-    ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
-    ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
-    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
-    ForgeQueryRuntimeWriteAuthorityAdapter,
+    ForgeQueryIntentAuthorityAdapter, ForgeQueryRuntimeDeclarationInitializationAdapter,
+    ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
+    ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
+    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
+    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
 };
 use crate::runtime::ForgeQueryRuntimeSupportProfile;
 
@@ -24,6 +24,8 @@ pub struct ForgeQueryRuntimeBackendParts {
         Option<Box<dyn ForgeQueryRuntimeSubscriptionActivationAdapter>>,
     pub(super) preview_basis: Option<Box<dyn ForgeQueryRuntimePreviewBasisAdapter>>,
     pub(super) inspector_evidence: Option<Box<dyn ForgeQueryRuntimeInspectorEvidenceAdapter>>,
+    pub(super) declaration_initialization:
+        Option<Box<dyn ForgeQueryRuntimeDeclarationInitializationAdapter>>,
     pub(super) intent_authority: Option<Box<dyn ForgeQueryIntentAuthorityAdapter>>,
     pub(super) support_profile: Option<ForgeQueryRuntimeSupportProfile>,
 }
@@ -44,6 +46,7 @@ impl ForgeQueryRuntimeBackendParts {
             && self.subscription_activation.is_none()
             && self.preview_basis.is_none()
             && self.inspector_evidence.is_none()
+            && self.declaration_initialization.is_none()
             && self.intent_authority.is_none()
             && self.support_profile.is_none()
     }
@@ -120,6 +123,14 @@ impl ForgeQueryRuntimeBackendParts {
         adapter: impl ForgeQueryRuntimeInspectorEvidenceAdapter + 'static,
     ) -> Self {
         self.inspector_evidence = Some(Box::new(adapter));
+        self
+    }
+
+    pub fn declaration_initialization(
+        mut self,
+        adapter: impl ForgeQueryRuntimeDeclarationInitializationAdapter + 'static,
+    ) -> Self {
+        self.declaration_initialization = Some(Box::new(adapter));
         self
     }
 

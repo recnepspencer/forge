@@ -1,7 +1,7 @@
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde_json::Value;
 
 use super::super::super::mutation_sequence_support::aggregate_topology_mutation_digest_for_declarations;
@@ -20,6 +20,7 @@ use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
     TopologyMutationDigest, TopologyMutationFamily, TopologyRadialSpliceMember,
@@ -59,6 +60,7 @@ where
         mutation_step_count: left.topology_mutation_digest.mutation_record_count,
         mutation_families: left.mutation_families,
         branch_local: false,
+        branch_authoring_boundary: None,
         topology_mutation_digest: left.topology_mutation_digest,
         replay_verified,
         final_state_digest: left.final_state_digest.clone(),
@@ -81,7 +83,7 @@ where
 {
     let primitive_family = primitive_family_name(&primitive).to_string();
     let mut runtime = runtime_factory();
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         &format!("{stem}.scale_pressure.radial_adjacency_splice"),
         &primitive,
@@ -99,7 +101,7 @@ where
         &relation_rows,
         TopologyRelationKind::HalfEdgeRadialNext,
     )?;
-    let _radial = TopologyReadProofHarness::new()
+    let _radial = TopologyReadProofHarness::current_head()
         .radial_half_edge_neighborhood(&mut workspace, &source_identity)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let cycle = radial_cycle_identities(&relation_rows, &source_identity)?;
@@ -111,8 +113,9 @@ where
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let final_state_digest = digest_materialized_topology_view(&execution.materialized).digest_hex;
-    let final_materialized = execution.materialized;
+    let final_state_digest =
+        digest_materialized_topology_view(&execution.materialized()).digest_hex;
+    let final_materialized = execution.materialized();
     let validation = derived_validation_report_from_materialized(&final_materialized)?;
     Ok(RadialSpliceExecution {
         primitive_family,

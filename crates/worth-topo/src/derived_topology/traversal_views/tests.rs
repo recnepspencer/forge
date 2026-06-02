@@ -3,7 +3,6 @@ mod interpretation_tests {
 
     use forge_relational::facade::runtime::RelationalRuntimeApi;
     use schema::facade::bootstrap_schema_registry;
-    use schema::facade::topology_authoring::seed_minimal_topology;
 
     use crate::facade::{
         build_topology_read_artifact, certify_topology_view, interpret_topology_view,
@@ -14,6 +13,7 @@ mod interpretation_tests {
         open_sheet_patch_view, open_shell_nmt_fan_view, open_wire_chain_view,
         single_face_sheet_disk_view,
     };
+    use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
     use schema::facade::platform::authority::{ShellInterpretationClass, WireInterpretationClass};
 
     #[test]
@@ -22,7 +22,8 @@ mod interpretation_tests {
             .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
             .build();
 
-        let seeded = seed_minimal_topology(&mut runtime, "interpret").expect("seed  topology");
+        let seeded = seed_minimal_topology_through_schema_execution(&mut runtime, "interpret")
+            .expect("seed  topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)
@@ -76,7 +77,8 @@ mod interpretation_tests {
             .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
             .build();
 
-        let seeded = seed_minimal_topology(&mut runtime, "certify").expect("seed  topology");
+        let seeded = seed_minimal_topology_through_schema_execution(&mut runtime, "certify")
+            .expect("seed  topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)

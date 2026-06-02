@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde_json::Value;
 
 use super::super::mutation_sequence_support::aggregate_topology_mutation_digest_for_declarations;
@@ -27,6 +27,7 @@ use crate::projection::runtime_boundary::declared_query_surfaces::TopologyDeclar
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
     ShellOrWireMembershipKind, TopologyDeclaredMutationSequence, TopologyMutationDigest,
@@ -181,6 +182,7 @@ where
         mutation_step_count: left.topology_mutation_digest.mutation_record_count,
         mutation_families: left.mutation_families,
         branch_local: false,
+        branch_authoring_boundary: None,
         topology_mutation_digest: left.topology_mutation_digest,
         replay_verified,
         final_state_digest: left.final_state_digest.clone(),
@@ -200,7 +202,7 @@ where
 {
     let primitive_family = primitive_family_name(&case.primitive).to_string();
     let mut runtime = runtime_factory();
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         &format!("{stem}.scale_pressure.{}", case.sweep.as_str()),
         &case.primitive,
@@ -277,7 +279,7 @@ fn local_successor_declaration(
 ) -> Result<TopologyRewireLoopSuccessorProgramDeclaration, TopologyCertificationError> {
     let moved_half_edge_identity =
         first_source_identity_for_relation_kind(relation_rows, TopologyRelationKind::HalfEdgeNext)?;
-    let neighborhood = TopologyReadProofHarness::new()
+    let neighborhood = TopologyReadProofHarness::current_head()
         .local_rewire_neighborhood(workspace, &moved_half_edge_identity, cycle_depth)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let chosen_successor_identity = neighborhood
@@ -307,8 +309,9 @@ fn scale_rewire_execution(
     let mut final_materialized = None;
     for declaration in declarations {
         let execution = execute_scale_rewire_declaration(workspace, surfaces, declaration)?;
-        final_state_digest = digest_materialized_topology_view(&execution.materialized).digest_hex;
-        final_materialized = Some(execution.materialized);
+        let materialized = execution.into_materialized();
+        final_state_digest = digest_materialized_topology_view(&materialized).digest_hex;
+        final_materialized = Some(materialized);
     }
     let final_materialized = final_materialized
         .ok_or_else(|| scale_pressure_error("scale pressure executed no batches"))?;

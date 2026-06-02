@@ -96,25 +96,28 @@ fn build_mutation_breadth_counter_rows(
 ) -> Vec<MilestoneThreeMutationBreadthCounterRow> {
     reports
         .iter()
-        .map(|report| MilestoneThreeMutationBreadthCounterRow {
-            scenario: report.scenario,
-            mutation_record_count: report.topology_mutation_digest.mutation_record_count,
-            family_count: report.topology_mutation_digest.family_count,
-            changed_scope_count: report.topology_mutation_digest.changed_scope_count,
-            naming_scope_count: report.topology_mutation_digest.naming_scope_count,
-            derived_region_count: report.topology_mutation_digest.derived_region_count,
-            replay_step_count: report.mutation_replay_parity_report.step_rows.len(),
-            replay_checked: report.mutation_replay_parity_report.replay_checked,
-            row_digest: format!(
-                "scenario={};mutation_records={};families={};changed_scopes={};naming_scopes={};derived_regions={};replay_steps={}",
-                report.scenario.as_str(),
-                report.topology_mutation_digest.mutation_record_count,
-                report.topology_mutation_digest.family_count,
-                report.topology_mutation_digest.changed_scope_count,
-                report.topology_mutation_digest.naming_scope_count,
-                report.topology_mutation_digest.derived_region_count,
-                report.mutation_replay_parity_report.step_rows.len()
-            ),
+        .map(|report| {
+            let digest = report.topology_mutation_digest();
+            MilestoneThreeMutationBreadthCounterRow {
+                scenario: report.scenario,
+                mutation_record_count: digest.mutation_record_count,
+                family_count: digest.family_count,
+                changed_scope_count: digest.changed_scope_count,
+                naming_scope_count: digest.naming_scope_count,
+                derived_region_count: digest.derived_region_count,
+                replay_step_count: report.mutation_replay_parity_report.step_rows.len(),
+                replay_checked: report.mutation_replay_parity_report.replay_checked,
+                row_digest: format!(
+                    "scenario={};mutation_records={};families={};changed_scopes={};naming_scopes={};derived_regions={};replay_steps={}",
+                    report.scenario.as_str(),
+                    digest.mutation_record_count,
+                    digest.family_count,
+                    digest.changed_scope_count,
+                    digest.naming_scope_count,
+                    digest.derived_region_count,
+                    report.mutation_replay_parity_report.step_rows.len()
+                ),
+            }
         })
         .collect()
 }
@@ -221,15 +224,17 @@ pub(super) fn build_mutation_fallout_breadth_rows(
 fn fallback_policy_from_report(
     report: &MilestoneThreeHostileScenarioReport,
 ) -> TopologyMutationDerivedFallbackPolicy {
-    if report
-        .topology_mutation_digest
-        .fallback_rejection_policy_count
-        > 0
-    {
-        TopologyMutationDerivedFallbackPolicy::RejectAnyFallback
-    } else {
-        TopologyMutationDerivedFallbackPolicy::AllowExplicitFallback
-    }
+    report.derived_fallback_policy().unwrap_or_else(|| {
+        if report
+            .topology_mutation_digest()
+            .fallback_rejection_policy_count
+            > 0
+        {
+            TopologyMutationDerivedFallbackPolicy::RejectAnyFallback
+        } else {
+            TopologyMutationDerivedFallbackPolicy::AllowExplicitFallback
+        }
+    })
 }
 
 fn fallback_policy_exceeded(
@@ -267,7 +272,7 @@ fn changed_scopes_from_report(
             scopes.extend(row.changed_scopes.iter().copied());
         }
     }
-    for row in &report.naming_mutation_continuity_matrix.rows {
+    for row in &report.naming_mutation_continuity_matrix().rows {
         scopes.extend(changed_scopes_for_family(row.family));
     }
     scopes
@@ -282,7 +287,7 @@ fn derived_regions_from_report(
             regions.extend(row.derived_regions.iter().copied());
         }
     }
-    for row in &report.naming_mutation_continuity_matrix.rows {
+    for row in &report.naming_mutation_continuity_matrix().rows {
         regions.extend(derived_regions_for_family(row.family));
     }
     regions

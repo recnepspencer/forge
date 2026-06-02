@@ -8,7 +8,7 @@ use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use crate::certification::support::declaration_runtime::{
     current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
@@ -16,6 +16,7 @@ use crate::certification::support::declaration_runtime::{
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::{
     TopologyMutationFamily, TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
     TopologyWireRehomeHalfEdgeMember,
@@ -25,7 +26,7 @@ use crate::validation::reference_integrity::build_milestone_one_runtime;
 #[test]
 fn current_head_runtime_executes_rehome_all_owned_half_edges_to_new_wire_program() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-mutation-attach-wire-set",
         &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
@@ -61,9 +62,10 @@ fn current_head_runtime_executes_rehome_all_owned_half_edges_to_new_wire_program
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .expect("full half-edge-set wire rehome should execute through declaration entry");
+    let synopsis = execution.accepted_mutation_projection();
 
     assert_eq!(
-        execution.families,
+        synopsis.mutation_families(),
         vec![
             TopologyMutationFamily::CreateTopologyEntity,
             TopologyMutationFamily::AttachShellOrWireMembership,
@@ -87,7 +89,7 @@ fn current_head_runtime_executes_rehome_all_owned_half_edges_to_new_wire_program
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_program()
             .expect("wire half-edge-set rehome should expose composed program")
             .steps()
@@ -105,7 +107,7 @@ fn current_head_runtime_executes_rehome_all_owned_half_edges_to_new_wire_program
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_lineage_summary()
             .expect("wire half-edge-set rehome should expose lineage summary")
             .entries()
@@ -118,7 +120,7 @@ fn current_head_runtime_executes_rehome_all_owned_half_edges_to_new_wire_program
         4
     );
     assert!(execution
-        .inspection
+        .inspection()
         .component_operations()
         .iter()
         .filter(|operation| operation.family() == "update")
@@ -132,7 +134,7 @@ fn current_head_runtime_executes_rehome_all_owned_half_edges_to_new_wire_program
                     })
         }));
     assert!(execution
-        .inspection
+        .inspection()
         .component_operations()
         .iter()
         .any(|operation| {
@@ -146,7 +148,7 @@ fn current_head_runtime_executes_rehome_all_owned_half_edges_to_new_wire_program
                     })
         }));
     let new_wire = execution
-        .materialized
+        .materialized()
         .topology()
         .wires
         .iter()
@@ -161,7 +163,7 @@ fn current_head_runtime_executes_rehome_all_owned_half_edges_to_new_wire_program
         half_edge_ids.iter().copied().collect::<BTreeSet<_>>()
     );
     assert!(!execution
-        .materialized
+        .materialized()
         .topology()
         .wires
         .iter()
@@ -171,7 +173,7 @@ fn current_head_runtime_executes_rehome_all_owned_half_edges_to_new_wire_program
 #[test]
 fn current_head_runtime_denies_wire_rehome_without_moving_the_full_owned_half_edge_set() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-mutation-attach-wire-set-partial",
         &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },

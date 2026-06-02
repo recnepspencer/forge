@@ -26,11 +26,26 @@ runtime boundary now freezes posture using named capabilities such as:
 - `CurrentHeadMaterialization`
 - `PostWriteMaterialization`
 - `HistoricalBasis`
+- `BranchPreviewBasis`
+- `BranchLocalIntentStaging`
+- `BranchLocalDeclarationExecution`
 - `AuthoritativeWrites`
 
 These rows are exhaustive for the declared runtime posture capability set. The
 runtime support boundary treats omission as a construction bug, not as an
 implicit `Denied`.
+
+The branch-facing split is deliberate:
+
+- `BranchPreviewBasis` means the runtime admits preview and branch session basis
+  selection.
+- `BranchLocalIntentStaging` remains denied on the current topology runtime.
+  Query branch sessions exist, but this runtime does not admit the Query
+  `Intent` family for branch-local staging.
+- `BranchLocalDeclarationExecution` remains denied today. `worth-topo` does not
+  yet have Query-native branch-local topology declaration execution, so callers
+  must not treat branch-session admission as proof that branch-local topology
+  authoring has been rehomed off schema.
 
 ## Public Read Support
 
@@ -127,6 +142,7 @@ blocker rows rather than asking the runtime admission surface to summarize
 proof it does not own.
 
 The bridge-backed runtime support profile still exposes live read declarations
-on snapshot posture, but snapshot posture does not admit preview or
-branch-local sessions; topology-domain reads are admitted only through the
-historical snapshot query-basis context for that read-only runtime.
+on snapshot posture, but snapshot posture does not admit preview sessions,
+branch-local intent staging, or branch-local declaration execution;
+topology-domain reads are admitted only through the historical snapshot
+query-basis context for that read-only runtime.

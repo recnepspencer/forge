@@ -16,17 +16,25 @@ use forge_runtime_bridge::facade::{
 mod binding;
 pub(super) mod bridge_source;
 mod bridge_source_support;
+mod declaration_initialization;
 mod existing_truth_verification;
 mod query_rows;
+mod schema_write_boundary;
 pub(super) mod write_authority;
 pub(super) mod write_support;
 
 pub use self::binding::TopologyRuntimeBinding;
 use self::bridge_source::TopologyRuntimeBridgeSource;
+pub(crate) use self::declaration_initialization::{
+    TopologyRuntimeDeclarationInitialization, TopologyRuntimeDeclarationInitializationAdapter,
+};
 pub(crate) use self::existing_truth_verification::TopologyExistingTruthVerificationAdapter;
 use self::query_rows::{persistent_name_rows, topology_entity_rows, topology_relation_rows};
+use crate::projection::runtime_boundary::bridge::{
+    milestone_one_bridge_aspect_registrations, milestone_one_bridge_mapping_registrations,
+};
 
-pub fn build_runtime_bridge(
+pub(crate) fn build_runtime_bridge(
     binding: TopologyRuntimeBinding,
 ) -> Result<RuntimeBridge, forge_runtime_bridge::facade::BridgeBuildError> {
     use forge_runtime_bridge::facade::RuntimeBridgeBuilder;
@@ -36,21 +44,18 @@ pub fn build_runtime_bridge(
         .with_relational_source(source.clone())
         .with_truth_branch_head_source(source)
         .with_signal_sink(TopologyStaticBridgeSink);
-    let mut mappings =
-        crate::projection::runtime_boundary::bridge::milestone_one_bridge_mapping_registrations()
-            .into_iter();
+    let mut mappings = milestone_one_bridge_mapping_registrations().into_iter();
     let first = mappings
         .next()
         .expect(" milestone 1 bridge mapping pack should not be empty");
     let builder = mappings.fold(builder.register_mapping(first), |builder, registration| {
         builder.register_mapping(registration)
     });
-    let builder =
-        crate::projection::runtime_boundary::bridge::milestone_one_bridge_aspect_registrations()
-            .into_iter()
-            .fold(builder, |builder, registration| {
-                builder.register_aspect_mapping(registration)
-            });
+    let builder = milestone_one_bridge_aspect_registrations()
+        .into_iter()
+        .fold(builder, |builder, registration| {
+            builder.register_aspect_mapping(registration)
+        });
     builder.build()
 }
 

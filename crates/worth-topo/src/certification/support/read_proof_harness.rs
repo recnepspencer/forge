@@ -1,24 +1,40 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
-use crate::projection::diagnostic_surfaces::read_proof::parity::TopologyReadViewParityReport;
 use crate::projection::read_views::domain::parity::{
     TopologyReadParityKind, TopologyReadViewParityArtifact,
 };
+use crate::projection::read_views::domain::read_proof::parity::TopologyReadViewParityReport;
 use crate::projection::read_views::domain::{
     TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
     TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView, TopologyReadAggregateReport,
     TopologyReadCloseoutReport, TopologyReadError, TopologyReadFallbackPosture, TopologyReadLedger,
     TopologyReadProofReport, TopologyReadRequestFamily,
 };
+use crate::projection::runtime_boundary::read_execution::TopologyReadExecutionTarget;
 
 pub(crate) struct TopologyReadProofHarness {
+    execution_mode: TopologyReadProofHarnessExecutionMode,
     state: TopologyReadLedger,
+}
+
+#[derive(Clone, Copy)]
+enum TopologyReadProofHarnessExecutionMode {
+    CurrentHead,
+    HistoricalFromWorkspaceToken,
 }
 
 #[allow(dead_code)]
 impl TopologyReadProofHarness {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn current_head() -> Self {
         Self {
+            execution_mode: TopologyReadProofHarnessExecutionMode::CurrentHead,
+            state: TopologyReadLedger::new(),
+        }
+    }
+
+    pub(crate) fn historical_from_workspace_token() -> Self {
+        Self {
+            execution_mode: TopologyReadProofHarnessExecutionMode::HistoricalFromWorkspaceToken,
             state: TopologyReadLedger::new(),
         }
     }
@@ -57,8 +73,12 @@ impl TopologyReadProofHarness {
         workspace: &mut ForgeQueryWorkspace,
         source_identity: &str,
     ) -> Result<TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyReadError> {
-        self.state
-            .shared_vertex_half_edge_neighborhood(workspace, source_identity)
+        let execution_target = self.execution_target_for_workspace(workspace);
+        self.state.shared_vertex_half_edge_neighborhood(
+            workspace,
+            &execution_target,
+            source_identity,
+        )
     }
 
     pub(crate) fn radial_half_edge_neighborhood(
@@ -66,8 +86,9 @@ impl TopologyReadProofHarness {
         workspace: &mut ForgeQueryWorkspace,
         source_identity: &str,
     ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyReadError> {
+        let execution_target = self.execution_target_for_workspace(workspace);
         self.state
-            .radial_half_edge_neighborhood(workspace, source_identity)
+            .radial_half_edge_neighborhood(workspace, &execution_target, source_identity)
     }
 
     pub(crate) fn loop_cycle(
@@ -76,7 +97,9 @@ impl TopologyReadProofHarness {
         start_identity: &str,
         count: usize,
     ) -> Result<TopologyLoopCycleView, TopologyReadError> {
-        self.state.loop_cycle(workspace, start_identity, count)
+        let execution_target = self.execution_target_for_workspace(workspace);
+        self.state
+            .loop_cycle(workspace, &execution_target, start_identity, count)
     }
 
     pub(crate) fn local_rewire_neighborhood(
@@ -85,7 +108,28 @@ impl TopologyReadProofHarness {
         moved_identity: &str,
         cycle_count: usize,
     ) -> Result<TopologyLocalRewireNeighborhoodView, TopologyReadError> {
-        self.state
-            .local_rewire_neighborhood(workspace, moved_identity, cycle_count)
+        let execution_target = self.execution_target_for_workspace(workspace);
+        self.state.local_rewire_neighborhood(
+            workspace,
+            &execution_target,
+            moved_identity,
+            cycle_count,
+        )
+    }
+
+    fn execution_target_for_workspace(
+        &self,
+        workspace: &ForgeQueryWorkspace,
+    ) -> TopologyReadExecutionTarget {
+        match self.execution_mode {
+            TopologyReadProofHarnessExecutionMode::CurrentHead => {
+                TopologyReadExecutionTarget::current_head()
+            }
+            TopologyReadProofHarnessExecutionMode::HistoricalFromWorkspaceToken => {
+                TopologyReadExecutionTarget::historical_snapshot(
+                    workspace.snapshot_token().to_string(),
+                )
+            }
+        }
     }
 }

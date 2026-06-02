@@ -4,10 +4,10 @@ use worth_geom::facade::{
     PrimitiveRealizationStrategy, PrimitiveStabilityClass, PrimitiveSupportNormalClass,
 };
 use worth_kernel::facade::{
-    authoring::construction::*,
     certification::{query::*, realization::*},
     diagnostics::{query::*, rejection::*},
-    outcome::prepared::*,
+    OrthotopeSpec, PrimitiveConstructionFamily, PrimitiveConstructionIntent, RegularPrismSpec,
+    RegularPyramidSpec, ShellWithHoleSpec, WireBodySpec,
 };
 
 #[test]
@@ -19,9 +19,12 @@ fn kernel_public_facade_exports_outcome_and_parity_reports() {
             height: 2.0,
         }),
     );
-    let rejected = prepare_primitive_construction_outcome(PrimitiveConstructionIntent::wire_body(
-        WireBodySpec { edge_count: 2 },
-    ));
+    let locality = prepare_primitive_construction_rejection_locality_report(vec![
+        PrimitiveConstructionIntent::orthotope(OrthotopeSpec {
+            half_extents: [1.0, 2.0, 3.0],
+        }),
+        PrimitiveConstructionIntent::wire_body(WireBodySpec { edge_count: 2 }),
+    ]);
     let runtime = milestone_one_runtime_builder()
         .expect("runtime builder")
         .build();
@@ -38,7 +41,8 @@ fn kernel_public_facade_exports_outcome_and_parity_reports() {
 
     assert_eq!(replay.family(), PrimitiveConstructionFamily::RegularPrism);
     assert!(replay.parity_verified());
-    assert_eq!(rejected.family(), PrimitiveConstructionFamily::WireBody);
+    assert_eq!(locality.accepted_count(), 1);
+    assert_eq!(locality.rejected_count(), 1);
     assert_eq!(branch.family(), PrimitiveConstructionFamily::WireBody);
     assert!(branch.parity_verified());
 }

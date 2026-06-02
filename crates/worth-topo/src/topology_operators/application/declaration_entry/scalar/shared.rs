@@ -12,6 +12,7 @@ use super::super::super::{
 use super::super::execution_finalize::{finalize_lowered_mutations, lower_mutation_sequence};
 use super::super::mutation_payload::TopologyDeclarationMutationPayload;
 use super::super::orchestration_boundary::orchestrate_topology_declaration_entry;
+use crate::topology_operators::TopologyOperatorContributionDeclaration;
 
 pub(super) trait ScalarDeclarationFamily {
     const FAMILY: TopologyMutationFamily;
@@ -50,15 +51,17 @@ pub(super) fn apply_scalar_declaration<D>(
 where
     D: ScalarDeclarationFamily
         + TopologyDeclarationMutationPayload
+        + TopologyOperatorContributionDeclaration
         + forge_query::facade::ForgeQueryDeclarationInput<crate::query_domain::TopologyQueryDomain>
         + Clone,
 {
-    orchestrate_topology_declaration_entry(D::FAMILY, declaration.clone())?;
+    let retained_handoff = orchestrate_topology_declaration_entry(D::FAMILY, declaration.clone())?;
     let sequence = declaration.clone().into_mutation_sequence();
     let lowered_mutations =
         lower_mutation_sequence(runner, &sequence, bindings, &Default::default())?;
     finalize_lowered_mutations(
         runner,
+        retained_handoff,
         lowered_mutations,
         D::SEMANTIC_FAMILY_KEY,
         mode,

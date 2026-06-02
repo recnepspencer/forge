@@ -2,7 +2,7 @@ use super::error::TopologyReadError;
 use crate::projection::runtime_boundary::read_lowering::schema::TopologyDomainTraversalRelation;
 use forge_query::facade::RelationName;
 
-use crate::projection::diagnostic_surfaces::read_proof::report::TopologyReadRequestFamily;
+use crate::projection::read_views::domain::read_proof::report::TopologyReadRequestFamily;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum TopologyReadRequest {

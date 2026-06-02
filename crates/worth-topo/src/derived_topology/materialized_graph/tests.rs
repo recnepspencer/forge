@@ -1,15 +1,15 @@
 #[cfg(test)]
 mod materializer_tests {
-    use schema::facade::topology_authoring::seed_minimal_topology;
-
     use crate::derived_topology::materialized_graph::TopologyMaterializer;
     use crate::test_support::primitive_corpus::validated_topology::build_test_runtime;
+    use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 
     #[test]
     fn materialize_from_truth_reads_bootstrap_structure_from_relational_snapshot() {
         let mut runtime = build_test_runtime().expect(" milestone one runtime builder");
 
-        let seeded = seed_minimal_topology(&mut runtime, "topo").expect("seed  topology");
+        let seeded = seed_minimal_topology_through_schema_execution(&mut runtime, "topo")
+            .expect("seed  topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)

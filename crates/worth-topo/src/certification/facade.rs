@@ -1,4 +1,5 @@
-use crate::committed_artifact::TopologyCommittedArtifact;
+#[cfg(test)]
+use crate::certification::support::commit_certification_input::TopologyCommitCertificationInput;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{
     DerivedTopologyReadBasis, MilestoneOnePrimitiveCase, MilestoneOnePrimitiveScenario,
@@ -8,13 +9,26 @@ use crate::certification::authority_closeout::certify_milestone_one_closeout_imp
 use crate::certification::authority_closeout::read_view::{
     MilestoneOneCertificationHarness, TracedMilestoneOneCertificationReport,
 };
+use crate::certification::bridge_registration_closeout::{
+    certify_topology_bridge_registration_closeout as certify_topology_bridge_registration_closeout_impl,
+    TopologyBridgeRegistrationCloseoutReport,
+};
+use crate::certification::committed_artifact_alignment_closeout::{
+    certify_topology_committed_artifact_alignment_closeout as certify_topology_committed_artifact_alignment_closeout_impl,
+    TopologyCommittedArtifactAlignmentCloseoutReport,
+};
+#[cfg(test)]
+use crate::certification::derived_topology_closeout::certify_milestone_two_commit_input_traced_impl;
 use crate::certification::derived_topology_closeout::TracedMilestoneTwoDerivedReadReport;
 use crate::certification::derived_topology_closeout::{
     certify_milestone_two_closeout_impl, certify_milestone_two_default_derived_corpus_impl,
     certify_milestone_two_read_basis_runtime_traced_impl,
-    certify_milestone_two_verified_commit_traced_impl,
 };
 use crate::certification::error::{MilestoneOneCertificationError, TopologyCertificationError};
+use crate::certification::historical_materialization_closeout::{
+    certify_topology_historical_materialization_closeout as certify_topology_historical_materialization_closeout_impl,
+    TopologyHistoricalMaterializationCloseoutReport,
+};
 use crate::certification::primitive_corpus::{
     certify_milestone_one_branch_local_primitive_scenarios_impl,
     certify_milestone_one_default_primitive_corpus_impl,
@@ -48,12 +62,13 @@ pub fn certify_milestone_one_read_basis_traced(
     )
 }
 
-pub fn certify_verified_topology_commit_traced(
+#[cfg(test)]
+pub(crate) fn certify_topology_commit_input_traced(
     runtime: &mut RelationalRuntime,
-    verified: &TopologyCommittedArtifact,
+    commit_input: &TopologyCommitCertificationInput,
 ) -> Result<TracedMilestoneOneCertificationReport, BoundaryFailure<MilestoneOneCertificationError>>
 {
-    MilestoneOneCertificationHarness::certify_verified_commit_traced(runtime, verified)
+    MilestoneOneCertificationHarness::certify_commit_input_traced(runtime, commit_input)
 }
 
 pub fn certify_milestone_two_read_basis_traced(
@@ -63,11 +78,12 @@ pub fn certify_milestone_two_read_basis_traced(
     certify_milestone_two_read_basis_runtime_traced_impl(runtime, read_basis)
 }
 
-pub fn certify_milestone_two_verified_topology_commit_traced(
+#[cfg(test)]
+pub(crate) fn certify_milestone_two_topology_commit_input_traced(
     runtime: &mut RelationalRuntime,
-    verified: &TopologyCommittedArtifact,
+    commit_input: &TopologyCommitCertificationInput,
 ) -> Result<TracedMilestoneTwoDerivedReadReport, BoundaryFailure<MilestoneOneCertificationError>> {
-    certify_milestone_two_verified_commit_traced_impl(runtime, verified)
+    certify_milestone_two_commit_input_traced_impl(runtime, commit_input)
 }
 
 pub fn certify_milestone_one_primitive_corpus<F>(
@@ -194,6 +210,21 @@ where
 pub fn certify_topology_query_boundary_cleanup_closeout(
 ) -> Result<TopologyQueryBoundaryCleanupCloseoutReport, TopologyCertificationError> {
     certify_topology_query_boundary_cleanup_closeout_impl()
+}
+
+pub fn certify_topology_bridge_registration_closeout(
+) -> Result<TopologyBridgeRegistrationCloseoutReport, TopologyCertificationError> {
+    certify_topology_bridge_registration_closeout_impl()
+}
+
+pub fn certify_topology_historical_materialization_closeout(
+) -> Result<TopologyHistoricalMaterializationCloseoutReport, TopologyCertificationError> {
+    certify_topology_historical_materialization_closeout_impl()
+}
+
+pub fn certify_topology_committed_artifact_alignment_closeout(
+) -> Result<TopologyCommittedArtifactAlignmentCloseoutReport, TopologyCertificationError> {
+    certify_topology_committed_artifact_alignment_closeout_impl()
 }
 
 pub fn certify_milestone_one_primitive_scenarios<F>(

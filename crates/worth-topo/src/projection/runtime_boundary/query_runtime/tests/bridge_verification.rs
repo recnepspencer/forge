@@ -1,15 +1,16 @@
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::ForgeQueryBridgeBackedVerificationSupportStatus;
-use schema::facade::topology_authoring::seed_minimal_topology;
 
 #[test]
 fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     let seeded =
-        seed_minimal_topology(&mut runtime, "query-runtime-verify").expect("seed topology");
+        seed_minimal_topology_through_schema_execution(&mut runtime, "query-runtime-verify")
+            .expect("seed topology");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.verify-existing").expect("workspace");
@@ -85,7 +86,9 @@ fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
 #[test]
 fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "query-runtime-probe").expect("seed topology");
+    let seeded =
+        seed_minimal_topology_through_schema_execution(&mut runtime, "query-runtime-probe")
+            .expect("seed topology");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&seeded.snapshot)

@@ -469,6 +469,53 @@ fn refresh_fallback_maintainer_rebuilds_from_retained_live_rows() {
 }
 
 #[test]
+fn refresh_fallback_maintainer_seeds_retained_live_rows_during_declaration() {
+    let mut runtime = stateful_bridge_task_runtime();
+    let live = runtime
+        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .expect("live view should declare");
+
+    runtime
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Seeded before computed declaration")),
+            ],
+        ))
+        .expect("task insert should retain upstream live row before computed declaration");
+
+    let computed = runtime
+        .declare_maintained_derived_view::<Value>(
+            ForgeQueryDerivedView::new("computed.refresh.seeded", ["title".to_string()])
+                .depends_on_live(&live)
+                .produces(["summary.count".to_string()])
+                .whole_refresh_fallback(),
+            RefreshCountMaintainer,
+        )
+        .expect("refresh maintainer should seed from retained live rows during declaration");
+
+    assert_eq!(
+        runtime.read_derived(&computed),
+        vec![Value::String("count:1".to_string())]
+    );
+    assert_eq!(
+        runtime
+            .inspect_derived_view(&computed)
+            .expect("seeded refresh computed should inspect")
+            .materialized_row_count(),
+        1
+    );
+    assert!(
+        runtime
+            .drain_derived_patches(computed.name())
+            .derived_patches
+            .is_empty(),
+        "declaration-time retained seeding should not enqueue derived patches",
+    );
+}
+
+#[test]
 fn refresh_fallback_maintainer_receives_all_declared_upstream_live_rows() {
     let mut runtime = stateful_bridge_task_issue_runtime();
     let tasks = runtime
@@ -524,6 +571,126 @@ fn refresh_fallback_maintainer_receives_all_declared_upstream_live_rows() {
     assert_eq!(
         patches.derived_patches[0].payload(),
         &Value::String("count:2".to_string())
+    );
+}
+
+#[test]
+fn downstream_refresh_fallback_seeds_retained_derived_and_live_rows_during_declaration() {
+    struct MixedUpstreamSnapshotMaintainer;
+
+    impl ForgeQueryDerivedViewMaintainer for MixedUpstreamSnapshotMaintainer {
+        fn maintain(
+            &mut self,
+            view: &ForgeQueryDerivedView,
+            delta: &crate::memory_workspace::ForgeQueryMutationDelta,
+            materialization: &mut ForgeQueryDerivedViewMaterialization,
+        ) -> ForgeQueryDerivedPatch {
+            let row = Value::String(format!("incremental:{}", delta.entity_identity));
+            materialization.replace_rows([row.clone()]);
+            ForgeQueryDerivedPatch::incremental(
+                view.name(),
+                "mixed-upstream-incremental",
+                delta.entity_identity.clone(),
+                if view.produced_aspects().is_empty() {
+                    delta.aspect_paths.clone()
+                } else {
+                    view.produced_aspects().to_vec()
+                },
+                row,
+            )
+        }
+
+        fn refresh_from_upstreams(
+            &mut self,
+            view: &ForgeQueryDerivedView,
+            _refresh: &ForgeQueryRetainedRefreshContext,
+            upstreams: &ForgeQueryRetainedUpstreamInputs,
+            materialization: &mut ForgeQueryDerivedViewMaterialization,
+        ) -> Option<ForgeQueryDerivedPatch> {
+            let derived_count = upstreams
+                .computed_view_names()
+                .flat_map(|view_name| upstreams.computed_rows(view_name).into_iter().flatten())
+                .count();
+            let live_count = upstreams
+                .live_view_names()
+                .flat_map(|view_name| upstreams.live_rows(view_name).into_iter().flatten())
+                .count();
+            let row = Value::String(format!("derived:{derived_count}|live:{live_count}"));
+            materialization.replace_rows([row.clone()]);
+            Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
+                view.name(),
+                "mixed-upstream-refresh",
+                if view.produced_aspects().is_empty() {
+                    view.dependency_aspects().to_vec()
+                } else {
+                    view.produced_aspects().to_vec()
+                },
+                row,
+                "retained-mixed-upstream-snapshot",
+            ))
+        }
+    }
+
+    let mut runtime = stateful_bridge_task_issue_runtime();
+    let tasks = runtime
+        .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
+        .expect("task live view should declare");
+    let issues = runtime
+        .declare_live_view::<Value>("issues.table", issue_live_request(), issue_schema())
+        .expect("issue live view should declare");
+
+    runtime
+        .write(insert_command(
+            "Issue",
+            [
+                ("identity.id", json!("")),
+                ("summary.value", json!("Retained issue sibling")),
+            ],
+        ))
+        .expect("issue insert should retain live sibling before declaration");
+    runtime
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Retained task upstream")),
+            ],
+        ))
+        .expect("task insert should retain live upstream before declaration");
+
+    let refresh = runtime
+        .declare_maintained_derived_view::<Value>(
+            ForgeQueryDerivedView::new("computed.refresh.seed.count", ["title".to_string()])
+                .depends_on_live(&tasks)
+                .produces(["summary.count".to_string()])
+                .whole_refresh_fallback(),
+            RefreshCountMaintainer,
+        )
+        .expect("upstream refresh maintainer should seed during declaration");
+    let downstream = runtime
+        .declare_maintained_derived_view::<Value>(
+            ForgeQueryDerivedView::new(
+                "computed.refresh.seed.mixed",
+                ["summary.count".to_string(), "summary".to_string()],
+            )
+            .depends_on_derived(&refresh)
+            .depends_on_live(&issues)
+            .produces(["validation.state".to_string()])
+            .whole_refresh_fallback(),
+            MixedUpstreamSnapshotMaintainer,
+        )
+        .expect("downstream mixed refresh maintainer should seed during declaration");
+
+    assert_eq!(
+        runtime.read_derived(&downstream),
+        vec![Value::String("derived:1|live:1".to_string())]
+    );
+    assert!(
+        runtime
+            .drain_derived_patches(downstream.name())
+            .derived_patches
+            .is_empty(),
+        "declaration-time retained seeding should not enqueue downstream derived patches",
     );
 }
 
@@ -612,7 +779,7 @@ fn downstream_refresh_fallback_receives_declared_live_siblings_through_computed_
         fn refresh_from_upstreams(
             &mut self,
             view: &ForgeQueryDerivedView,
-            _mutation: &ForgeQueryRetainedMutationContext,
+            _refresh: &ForgeQueryRetainedRefreshContext,
             upstreams: &ForgeQueryRetainedUpstreamInputs,
             materialization: &mut ForgeQueryDerivedViewMaterialization,
         ) -> Option<ForgeQueryDerivedPatch> {
@@ -728,19 +895,19 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
         fn refresh_from_upstreams(
             &mut self,
             view: &ForgeQueryDerivedView,
-            mutation: &ForgeQueryRetainedMutationContext,
+            refresh: &ForgeQueryRetainedRefreshContext,
             _upstreams: &ForgeQueryRetainedUpstreamInputs,
             materialization: &mut ForgeQueryDerivedViewMaterialization,
         ) -> Option<ForgeQueryDerivedPatch> {
-            let author = mutation
-                .mutation_metadata()
+            let author = refresh
+                .refresh_metadata()
                 .get("author")
                 .and_then(Value::as_str)
                 .unwrap_or("missing");
             let row = Value::String(format!(
                 "{}:{}:{}",
-                mutation.commit_identity(),
-                mutation.touched_aspect_paths().join("|"),
+                refresh.refresh_identity(),
+                refresh.touched_aspect_paths().join("|"),
                 author
             ));
             materialization.replace_rows([row.clone()]);
@@ -794,6 +961,228 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
             receipt.commit_identity()
         ))]
     );
+}
+
+#[test]
+fn retained_upstreams_decode_single_computed_rows_through_query_runtime_floor() {
+    let upstreams = ForgeQueryRetainedUpstreamInputs::new(
+        Vec::<(String, Vec<ForgeQueryEntity>)>::new(),
+        [(
+            "computed.materialized".to_string(),
+            vec![json!({ "count": 4 })],
+        )],
+    );
+
+    #[derive(Debug, serde::Deserialize, PartialEq)]
+    struct CountRow {
+        count: u64,
+    }
+
+    let row: CountRow = upstreams
+        .decode_single_computed_row("computed.materialized")
+        .expect("single retained computed row should decode");
+    assert_eq!(row, CountRow { count: 4 });
+
+    let missing = upstreams
+        .decode_single_computed_row::<CountRow>("computed.missing")
+        .expect_err("missing retained row should fail closed");
+    match missing {
+        ForgeQueryRuntimeError::RetainedRowDecode {
+            view_name, stage, ..
+        } => {
+            assert_eq!(view_name, "computed.missing");
+            assert_eq!(stage, "retained-upstream");
+        }
+        other => panic!("expected retained-row decode error, got {other:?}"),
+    }
+}
+
+#[test]
+fn derived_materialization_bundle_decodes_multiple_retained_rows_through_query_runtime_floor() {
+    struct TitleRowMaintainer;
+    struct CountRowMaintainer;
+
+    impl ForgeQueryDerivedViewMaintainer for TitleRowMaintainer {
+        fn maintain(
+            &mut self,
+            view: &ForgeQueryDerivedView,
+            delta: &crate::memory_workspace::ForgeQueryMutationDelta,
+            materialization: &mut ForgeQueryDerivedViewMaterialization,
+        ) -> ForgeQueryDerivedPatch {
+            let row = Value::String(delta.entity_identity.clone());
+            materialization.replace_rows([row.clone()]);
+            ForgeQueryDerivedPatch::incremental(
+                view.name(),
+                "title-row",
+                delta.entity_identity.clone(),
+                if view.produced_aspects().is_empty() {
+                    delta.aspect_paths.clone()
+                } else {
+                    view.produced_aspects().to_vec()
+                },
+                row,
+            )
+        }
+
+        fn refresh_from_upstreams(
+            &mut self,
+            view: &ForgeQueryDerivedView,
+            _refresh: &ForgeQueryRetainedRefreshContext,
+            upstreams: &ForgeQueryRetainedUpstreamInputs,
+            materialization: &mut ForgeQueryDerivedViewMaterialization,
+        ) -> Option<ForgeQueryDerivedPatch> {
+            let row = Value::String(
+                upstreams
+                    .live_rows("tasks.table")
+                    .and_then(|rows| rows.first())
+                    .map(|entity| entity.identity().to_string())
+                    .unwrap_or_else(|| "missing".to_string()),
+            );
+            materialization.replace_rows([row.clone()]);
+            Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
+                view.name(),
+                "title-row-refresh",
+                if view.produced_aspects().is_empty() {
+                    view.dependency_aspects().to_vec()
+                } else {
+                    view.produced_aspects().to_vec()
+                },
+                row,
+                "title-row-refresh",
+            ))
+        }
+    }
+
+    impl ForgeQueryDerivedViewMaintainer for CountRowMaintainer {
+        fn maintain(
+            &mut self,
+            view: &ForgeQueryDerivedView,
+            _delta: &crate::memory_workspace::ForgeQueryMutationDelta,
+            materialization: &mut ForgeQueryDerivedViewMaterialization,
+        ) -> ForgeQueryDerivedPatch {
+            let row = json!({ "count": 1 });
+            materialization.replace_rows([row.clone()]);
+            ForgeQueryDerivedPatch::whole_refresh_materialized(
+                view.name(),
+                "count-row",
+                if view.produced_aspects().is_empty() {
+                    view.dependency_aspects().to_vec()
+                } else {
+                    view.produced_aspects().to_vec()
+                },
+                row,
+                "count-refresh",
+            )
+        }
+
+        fn refresh_from_upstreams(
+            &mut self,
+            view: &ForgeQueryDerivedView,
+            _refresh: &ForgeQueryRetainedRefreshContext,
+            upstreams: &ForgeQueryRetainedUpstreamInputs,
+            materialization: &mut ForgeQueryDerivedViewMaterialization,
+        ) -> Option<ForgeQueryDerivedPatch> {
+            let row = json!({
+                "count": upstreams
+                    .computed_rows("computed.bundle.title_row")
+                    .map(|rows| rows.len() as u64)
+                    .unwrap_or(0)
+            });
+            materialization.replace_rows([row.clone()]);
+            Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
+                view.name(),
+                "count-row-refresh",
+                if view.produced_aspects().is_empty() {
+                    view.dependency_aspects().to_vec()
+                } else {
+                    view.produced_aspects().to_vec()
+                },
+                row,
+                "count-refresh",
+            ))
+        }
+    }
+
+    #[derive(Debug, serde::Deserialize, PartialEq)]
+    struct CountRow {
+        count: u64,
+    }
+
+    let mut workspace = stateful_bridge_task_runtime()
+        .workspace("computed.materialization.bundle")
+        .expect("task runtime should open a named workspace");
+    let tasks: ForgeQueryLiveView<Value> = workspace
+        .live_view("tasks.table", |q| {
+            q.from("Task")
+                .select(["identity.id", "title.value"])
+                .order_by("title.value")
+                .schema_basis("tasks-bundle-table")
+        })
+        .expect("task live view should declare");
+    let title_row: ForgeQueryDerivedViewHandle<Value> = workspace
+        .computed_view(
+            ForgeQueryDerivedView::new("computed.bundle.title_row", ["title".to_string()])
+                .depends_on_live(&tasks)
+                .produces(["title.row".to_string()])
+                .whole_refresh_fallback(),
+            TitleRowMaintainer,
+        )
+        .expect("title-row computed should declare");
+    let count_row: ForgeQueryDerivedViewHandle<Value> = workspace
+        .computed_view(
+            ForgeQueryDerivedView::new("computed.bundle.count_row", ["title.row".to_string()])
+                .depends_on_derived(&title_row)
+                .produces(["count.row".to_string()])
+                .whole_refresh_fallback(),
+            CountRowMaintainer,
+        )
+        .expect("count-row computed should declare");
+
+    let receipt = workspace
+        .insert("Task", |builder| {
+            builder.aspect("title.value", "Bundle proof")
+        })
+        .expect("task insert should succeed");
+    let bundle = workspace
+        .materialize_derived_artifact_bundle([
+            (&title_row).into(),
+            (&count_row).into(),
+            (&title_row).into(),
+        ])
+        .expect("bundle should materialize retained computed rows");
+
+    assert_eq!(bundle.target_count(), 2);
+    assert!(bundle.includes_view_name(title_row.name()));
+    assert!(bundle.includes_view_name(count_row.name()));
+    assert_eq!(
+        bundle.snapshot_token(),
+        bundle
+            .materialization(&title_row)
+            .expect("title-row result should stay in bundle")
+            .receipt()
+            .snapshot_token()
+    );
+    let materialized_title: String = bundle
+        .decode_single_row(&title_row)
+        .expect("title row should decode");
+    let materialized_count: CountRow = bundle
+        .decode_single_row(&count_row)
+        .expect("count row should decode");
+    assert_eq!(materialized_title, receipt.deltas()[0].entity_identity);
+    assert_eq!(materialized_count, CountRow { count: 1 });
+
+    let missing = bundle
+        .materialization_by_name("computed.bundle.missing")
+        .expect_err("missing retained bundle target should fail closed");
+    match missing {
+        ForgeQueryRuntimeError::RetainedRowDecode {
+            view_name, stage, ..
+        } => {
+            assert_eq!(view_name, "computed.bundle.missing");
+            assert_eq!(stage, "derived-materialization-bundle");
+        }
+        other => panic!("expected retained-row decode error, got {other:?}"),
+    }
 }
 
 #[test]
@@ -855,5 +1244,205 @@ fn computed_dependency_admission_rejects_missing_or_cyclic_upstream_views() {
             assert!(message.contains("cycle"));
         }
         other => panic!("expected computed cycle declaration error, got {other:?}"),
+    }
+}
+
+#[test]
+fn derived_materialization_bundle_binds_one_exact_retained_artifact() {
+    struct TitleRowMaintainer;
+    struct CountRowMaintainer;
+
+    impl ForgeQueryDerivedViewMaintainer for TitleRowMaintainer {
+        fn maintain(
+            &mut self,
+            view: &ForgeQueryDerivedView,
+            delta: &crate::memory_workspace::ForgeQueryMutationDelta,
+            materialization: &mut ForgeQueryDerivedViewMaterialization,
+        ) -> ForgeQueryDerivedPatch {
+            let row = Value::String(delta.entity_identity.clone());
+            materialization.replace_rows([row.clone()]);
+            ForgeQueryDerivedPatch::incremental(
+                view.name(),
+                "title-row",
+                delta.entity_identity.clone(),
+                if view.produced_aspects().is_empty() {
+                    delta.aspect_paths.clone()
+                } else {
+                    view.produced_aspects().to_vec()
+                },
+                row,
+            )
+        }
+
+        fn refresh_from_upstreams(
+            &mut self,
+            view: &ForgeQueryDerivedView,
+            _refresh: &ForgeQueryRetainedRefreshContext,
+            upstreams: &ForgeQueryRetainedUpstreamInputs,
+            materialization: &mut ForgeQueryDerivedViewMaterialization,
+        ) -> Option<ForgeQueryDerivedPatch> {
+            let row = Value::String(
+                upstreams
+                    .live_rows("computed.bundle.binding.tasks")
+                    .and_then(|rows| rows.first())
+                    .map(|entity| entity.identity().to_string())
+                    .unwrap_or_else(|| "missing".to_string()),
+            );
+            materialization.replace_rows([row.clone()]);
+            Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
+                view.name(),
+                "title-row-refresh",
+                if view.produced_aspects().is_empty() {
+                    view.dependency_aspects().to_vec()
+                } else {
+                    view.produced_aspects().to_vec()
+                },
+                row,
+                "title-row-refresh",
+            ))
+        }
+    }
+
+    impl ForgeQueryDerivedViewMaintainer for CountRowMaintainer {
+        fn maintain(
+            &mut self,
+            view: &ForgeQueryDerivedView,
+            _delta: &crate::memory_workspace::ForgeQueryMutationDelta,
+            materialization: &mut ForgeQueryDerivedViewMaterialization,
+        ) -> ForgeQueryDerivedPatch {
+            let row = json!({ "count": 1 });
+            materialization.replace_rows([row.clone()]);
+            ForgeQueryDerivedPatch::whole_refresh_materialized(
+                view.name(),
+                "count-row",
+                if view.produced_aspects().is_empty() {
+                    view.dependency_aspects().to_vec()
+                } else {
+                    view.produced_aspects().to_vec()
+                },
+                row,
+                "count-refresh",
+            )
+        }
+
+        fn refresh_from_upstreams(
+            &mut self,
+            view: &ForgeQueryDerivedView,
+            _refresh: &ForgeQueryRetainedRefreshContext,
+            upstreams: &ForgeQueryRetainedUpstreamInputs,
+            materialization: &mut ForgeQueryDerivedViewMaterialization,
+        ) -> Option<ForgeQueryDerivedPatch> {
+            let row = json!({
+                "count": upstreams
+                    .computed_rows("computed.bundle.binding.title_row")
+                    .map(|rows| rows.len() as u64)
+                    .unwrap_or(0)
+            });
+            materialization.replace_rows([row.clone()]);
+            Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
+                view.name(),
+                "count-row-refresh",
+                if view.produced_aspects().is_empty() {
+                    view.dependency_aspects().to_vec()
+                } else {
+                    view.produced_aspects().to_vec()
+                },
+                row,
+                "count-refresh",
+            ))
+        }
+    }
+
+    #[derive(Debug, serde::Deserialize, PartialEq)]
+    struct CountRow {
+        count: u64,
+    }
+
+    let runtime = stateful_bridge_task_runtime();
+    let mut workspace = runtime.workspace("computed-bundle-binding").unwrap();
+    let tasks: ForgeQueryLiveView<Value> = workspace
+        .live_view("computed.bundle.binding.tasks", |q| {
+            q.from("Task")
+                .select(["identity.id", "title.value"])
+                .order_by("title.value")
+                .schema_basis("computed-bundle-binding")
+        })
+        .expect("task live view should declare");
+    let title_row: ForgeQueryDerivedViewHandle<Value> = workspace
+        .computed_view(
+            ForgeQueryDerivedView::new("computed.bundle.binding.title_row", ["title".to_string()])
+                .depends_on_live(&tasks)
+                .produces(["title.row".to_string()])
+                .whole_refresh_fallback(),
+            TitleRowMaintainer,
+        )
+        .expect("title-row computed should declare");
+    let count_row: ForgeQueryDerivedViewHandle<Value> = workspace
+        .computed_view(
+            ForgeQueryDerivedView::new(
+                "computed.bundle.binding.count_row",
+                ["title.row".to_string()],
+            )
+            .depends_on_derived(&title_row)
+            .produces(["count.row".to_string()])
+            .whole_refresh_fallback(),
+            CountRowMaintainer,
+        )
+        .expect("count-row computed should declare");
+
+    workspace
+        .insert("Task", |builder| {
+            builder.aspect("title.value", "Artifact proof")
+        })
+        .expect("task insert should succeed");
+
+    let binding = workspace
+        .materialize_derived_artifact_binding(
+            "computed.bundle.binding.artifact",
+            [(&title_row).into(), (&count_row).into()],
+        )
+        .expect("exact retained artifact binding should succeed");
+
+    assert_eq!(binding.artifact_name(), "computed.bundle.binding.artifact");
+    assert_eq!(binding.target_count(), 2);
+    assert_eq!(
+        binding.target_view_names().collect::<Vec<_>>(),
+        vec![count_row.name(), title_row.name()]
+    );
+    assert_eq!(
+        binding.snapshot_token(),
+        binding
+            .materialization(&title_row)
+            .expect("title-row result should stay in artifact")
+            .receipt()
+            .snapshot_token()
+    );
+
+    let title: String = binding
+        .decode_single_row(&title_row)
+        .expect("title row should decode through retained artifact binding");
+    let count: CountRow = binding
+        .decode_single_row(&count_row)
+        .expect("count row should decode through retained artifact binding");
+    assert!(!binding.binding_digest().is_empty());
+    assert!(!title.is_empty());
+    assert_eq!(count, CountRow { count: 1 });
+
+    let mismatch = workspace
+        .materialize_derived_artifact_bundle([(&title_row).into()])
+        .expect("bundle should materialize retained title row")
+        .bind_retained_artifact(
+            "computed.bundle.binding.mismatch",
+            [(&title_row).into(), (&count_row).into()],
+        )
+        .expect_err("missing retained target should fail closed");
+    match mismatch {
+        ForgeQueryRuntimeError::RetainedRowDecode {
+            view_name, stage, ..
+        } => {
+            assert_eq!(view_name, "computed.bundle.binding.mismatch");
+            assert_eq!(stage, "derived-artifact-binding");
+        }
+        other => panic!("expected retained-row decode error, got {other:?}"),
     }
 }

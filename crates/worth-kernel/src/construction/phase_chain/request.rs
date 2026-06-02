@@ -1,15 +1,15 @@
-use crate::construction::admission::{admit_request, AdmittedPrimitiveConstructionIntent};
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::specs::{
     OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
     WireBodySpec,
 };
 mod request_placement;
+pub(crate) use request_placement::placement_of;
 pub(crate) use request_placement::PrimitiveConstructionPlacement;
-use request_placement::{map_geometry_placement, placement_of, request_digest_parts};
-use topology::facade::TopologyConstructionLoweringError;
+use request_placement::{map_geometry_placement, request_digest_parts};
+use topology::facade::TopologyConstructionQueryAdmittedHandoffError;
 use worth_geom::facade::{PrimitiveRealizationError, PrimitiveRealizationExhaustionReport};
-use worth_spatial::facade::{SpatialConstructionBirthError, SpatialPlacementSpec};
+use worth_spatial::facade::SpatialPlacementSpec;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum PrimitiveConstructionFamily {
@@ -90,7 +90,6 @@ pub(crate) enum PrimitiveConstructionGeometry {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionRequest {
-    family: PrimitiveConstructionFamily,
     geometry: PrimitiveConstructionGeometry,
     request_digest: String,
 }
@@ -106,11 +105,7 @@ impl PrimitiveConstructionRequest {
             scale: spec.scale.to_bits(),
             auxiliary_altitude_component: spec.auxiliary_altitude_component.to_bits(),
         };
-        Self::new(
-            PrimitiveConstructionFamily::SimplexSolid,
-            geometry.clone(),
-            request_digest_parts(PrimitiveConstructionFamily::SimplexSolid, &geometry),
-        )
+        Self::new(geometry.clone(), request_digest_parts(&geometry))
     }
 
     pub fn orthotope(center: [f64; 3], half_extents: [f64; 3]) -> Self {
@@ -122,11 +117,7 @@ impl PrimitiveConstructionRequest {
             placement: PrimitiveConstructionPlacement::world(),
             half_extents: spec.half_extents.map(f64::to_bits),
         };
-        Self::new(
-            PrimitiveConstructionFamily::Orthotope,
-            geometry.clone(),
-            request_digest_parts(PrimitiveConstructionFamily::Orthotope, &geometry),
-        )
+        Self::new(geometry.clone(), request_digest_parts(&geometry))
     }
 
     pub fn regular_prism(center: [f64; 3], sides: u32, radius: f64, height: f64) -> Self {
@@ -145,11 +136,7 @@ impl PrimitiveConstructionRequest {
             radius: spec.radius.to_bits(),
             height: spec.height.to_bits(),
         };
-        Self::new(
-            PrimitiveConstructionFamily::RegularPrism,
-            geometry.clone(),
-            request_digest_parts(PrimitiveConstructionFamily::RegularPrism, &geometry),
-        )
+        Self::new(geometry.clone(), request_digest_parts(&geometry))
     }
 
     pub fn regular_pyramid(center: [f64; 3], sides: u32, radius: f64, height: f64) -> Self {
@@ -168,11 +155,7 @@ impl PrimitiveConstructionRequest {
             radius: spec.radius.to_bits(),
             height: spec.height.to_bits(),
         };
-        Self::new(
-            PrimitiveConstructionFamily::RegularPyramid,
-            geometry.clone(),
-            request_digest_parts(PrimitiveConstructionFamily::RegularPyramid, &geometry),
-        )
+        Self::new(geometry.clone(), request_digest_parts(&geometry))
     }
 
     pub fn wire_body(edge_count: u32) -> Self {
@@ -184,11 +167,7 @@ impl PrimitiveConstructionRequest {
             placement: PrimitiveConstructionPlacement::world(),
             edge_count: spec.edge_count,
         };
-        Self::new(
-            PrimitiveConstructionFamily::WireBody,
-            geometry.clone(),
-            request_digest_parts(PrimitiveConstructionFamily::WireBody, &geometry),
-        )
+        Self::new(geometry.clone(), request_digest_parts(&geometry))
     }
 
     pub fn shell_with_hole(outer_loop_edge_count: u32, hole_loop_edge_counts: Vec<u32>) -> Self {
@@ -204,27 +183,18 @@ impl PrimitiveConstructionRequest {
             outer_loop_edge_count: spec.outer_loop_edge_count,
             hole_loop_edge_counts: spec.hole_loop_edge_counts.clone(),
         };
-        Self::new(
-            PrimitiveConstructionFamily::ShellWithHole,
-            geometry.clone(),
-            request_digest_parts(PrimitiveConstructionFamily::ShellWithHole, &geometry),
-        )
+        Self::new(geometry.clone(), request_digest_parts(&geometry))
     }
 
-    fn new(
-        family: PrimitiveConstructionFamily,
-        geometry: PrimitiveConstructionGeometry,
-        parts: Vec<String>,
-    ) -> Self {
+    fn new(geometry: PrimitiveConstructionGeometry, parts: Vec<String>) -> Self {
         Self {
-            family,
             geometry,
             request_digest: digest_owned_parts(&parts),
         }
     }
 
     pub fn family(&self) -> PrimitiveConstructionFamily {
-        self.family
+        self.geometry.family()
     }
 
     pub fn request_digest(&self) -> &str {
@@ -244,20 +214,30 @@ impl PrimitiveConstructionRequest {
         let placement = self.placement_spec().facing(facing);
         self.with_placement_spec(placement)
     }
-
-    pub fn admit(
-        self,
-    ) -> Result<AdmittedPrimitiveConstructionIntent, PrimitiveConstructionPhaseError> {
-        admit_request(self.family, self.geometry, self.request_digest)
-    }
-
     pub(crate) fn with_placement_spec(self, placement: SpatialPlacementSpec) -> Self {
         let geometry = map_geometry_placement(
             self.geometry,
             PrimitiveConstructionPlacement::from_spec(placement),
         );
-        let parts = request_digest_parts(self.family, &geometry);
-        Self::new(self.family, geometry, parts)
+        let parts = request_digest_parts(&geometry);
+        Self::new(geometry, parts)
+    }
+
+    pub(crate) fn geometry(&self) -> &PrimitiveConstructionGeometry {
+        &self.geometry
+    }
+}
+
+impl PrimitiveConstructionGeometry {
+    pub(crate) fn family(&self) -> PrimitiveConstructionFamily {
+        match self {
+            Self::SimplexSolid { .. } => PrimitiveConstructionFamily::SimplexSolid,
+            Self::Orthotope { .. } => PrimitiveConstructionFamily::Orthotope,
+            Self::RegularPrism { .. } => PrimitiveConstructionFamily::RegularPrism,
+            Self::RegularPyramid { .. } => PrimitiveConstructionFamily::RegularPyramid,
+            Self::WireBody { .. } => PrimitiveConstructionFamily::WireBody,
+            Self::ShellWithHole { .. } => PrimitiveConstructionFamily::ShellWithHole,
+        }
     }
 }
 
@@ -292,8 +272,7 @@ pub enum PrimitiveConstructionPhaseError {
         reason: &'static str,
     },
     Geometry(PrimitiveConstructionGeometryError),
-    SpatialBirth(SpatialConstructionBirthError),
-    TopologyLowering(TopologyConstructionLoweringError),
+    TopologyQueryAdmittedHandoff(TopologyConstructionQueryAdmittedHandoffError),
 }
 
 impl std::fmt::Display for PrimitiveConstructionPhaseError {
@@ -303,8 +282,7 @@ impl std::fmt::Display for PrimitiveConstructionPhaseError {
                 write!(f, "invalid {} request: {reason}", family.as_str())
             }
             Self::Geometry(error) => write!(f, "geometry scaffold failed: {error}"),
-            Self::SpatialBirth(error) => write!(f, "{error}"),
-            Self::TopologyLowering(error) => write!(f, "{error}"),
+            Self::TopologyQueryAdmittedHandoff(error) => write!(f, "{error}"),
         }
     }
 }

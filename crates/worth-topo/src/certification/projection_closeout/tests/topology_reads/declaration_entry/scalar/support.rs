@@ -169,7 +169,7 @@ pub(super) fn radial_splice_fixture(
     workspace: &mut ForgeQueryWorkspace,
     surfaces: &TopologyDeclaredQuerySurfaces,
 ) -> (RelationId, EntityId, EntityId) {
-    let topology_read = TopologyReadProofHarness::new();
+    let topology_read = TopologyReadProofHarness::current_head();
     let relation_rows = workspace.read(surfaces.relations());
     let entity_rows = workspace.read(surfaces.entities());
     let relation = relation_rows

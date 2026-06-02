@@ -285,11 +285,11 @@ fn build_topology_mutation_digest_rows(
         .iter()
         .map(|report| MilestoneThreeTopologyMutationDigestRow {
             scenario: report.scenario,
-            topology_mutation_digest: report.topology_mutation_digest.clone(),
+            topology_mutation_digest: report.topology_mutation_digest().clone(),
             row_digest: format!(
                 "scenario={};topology_mutation_digest={}",
                 report.scenario.as_str(),
-                report.topology_mutation_digest.digest.digest_hex
+                report.topology_mutation_digest().digest.digest_hex
             ),
         })
         .collect()
@@ -302,14 +302,14 @@ fn build_naming_mutation_continuity_matrix_rows(
         .iter()
         .map(|report| MilestoneThreeNamingContinuityMatrixRow {
             scenario: report.scenario,
-            naming_mutation_continuity_matrix: report.naming_mutation_continuity_matrix.clone(),
-            continuity_outcome_class: report.continuity_outcome_class,
-            continuity_rejection_class: report.continuity_rejection_class,
+            naming_mutation_continuity_matrix: report.naming_mutation_continuity_matrix().clone(),
+            continuity_outcome_class: report.continuity_outcome_class(),
+            continuity_rejection_class: report.continuity_rejection_class(),
             row_digest: format!(
                 "scenario={};naming_outcome={};rows={}",
                 report.scenario.as_str(),
-                naming_outcome_label(report.continuity_outcome_class),
-                report.naming_mutation_continuity_matrix.rows.len()
+                naming_outcome_label(report.continuity_outcome_class()),
+                report.naming_mutation_continuity_matrix().rows.len()
             ),
         })
         .collect()

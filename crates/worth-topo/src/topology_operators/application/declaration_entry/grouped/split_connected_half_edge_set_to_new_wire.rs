@@ -16,7 +16,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         bindings: &TopologyQueryBindingIndex,
         mode: TopologyMutationApplicationMode,
     ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
-        orchestrate_topology_declaration_entry(
+        let retained_handoff = orchestrate_topology_declaration_entry(
             TopologyMutationFamily::AttachShellOrWireMembership,
             declaration.clone(),
         )?;
@@ -27,6 +27,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let receipt = self.compose_wire_split_program(program, bindings)?;
         self.finish_composed_membership_execution(
             mode,
+            retained_handoff,
             TopologySplitConnectedHalfEdgeSetToNewWireDeclaration::SEMANTIC_FAMILY_KEY,
             &sequence,
             receipt,

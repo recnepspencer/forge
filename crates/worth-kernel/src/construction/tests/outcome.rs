@@ -2,20 +2,20 @@ use super::{
     prepare_primitive_construction_outcome, rejected_outcome, PrimitiveConstructionPreparedOutcome,
     PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
 };
-use crate::construction::artifact::PrimitiveConstructionArtifactError;
-use crate::construction::execution::PrimitiveConstructionExecutionError;
 use crate::construction::request::{
     PrimitiveConstructionFamily, PrimitiveConstructionGeometryError,
     PrimitiveConstructionPhaseError,
 };
 use crate::construction::result::PrimitiveConstructionResultError;
 use crate::construction::{OrthotopeSpec, PrimitiveConstructionIntent, WireBodySpec};
-use topology::facade::TopologyConstructionExecutionError;
+use topology::facade::{
+    TopologyConstructionQueryAdmittedHandoffError, TopologyConstructionQueryEnvelopeError,
+    TopologyConstructionQueryHandoffError, TopologyConstructionQueryReceiptError,
+};
 use worth_geom::facade::Plane;
 use worth_spatial::facade::{
     impossible_primitive_construction_birth_attachment, plan_primitive_construction_birth,
     PrimitiveConstructionBirthFamily, PrimitiveConstructionBirthScaffoldInput,
-    SpatialConstructionBirthError,
 };
 
 #[test]
@@ -73,21 +73,20 @@ fn rejected_outcome_maps_phase_and_runtime_failures_to_exact_localities() {
     );
     let execution = rejected_outcome(
         PrimitiveConstructionFamily::RegularPrism,
-        &PrimitiveConstructionResultError::Execution(
-            PrimitiveConstructionExecutionError::TopologyExecution(
-                TopologyConstructionExecutionError::UnsupportedMutationSurface("bad surface"),
+        &PrimitiveConstructionResultError::Phase(
+            PrimitiveConstructionPhaseError::TopologyQueryAdmittedHandoff(
+                TopologyConstructionQueryAdmittedHandoffError::Handoff(
+                    TopologyConstructionQueryHandoffError::Envelope(
+                        TopologyConstructionQueryEnvelopeError::Receipt(
+                            TopologyConstructionQueryReceiptError::UnsupportedBirthClass(
+                                "bad surface",
+                            ),
+                        ),
+                    ),
+                ),
             ),
         ),
     );
-    let artifact = rejected_outcome(
-        PrimitiveConstructionFamily::RegularPyramid,
-        &PrimitiveConstructionResultError::Artifact(
-            PrimitiveConstructionArtifactError::SpatialBirth(
-                SpatialConstructionBirthError::InvalidPrimitiveBirthScaffold("artifact mismatch"),
-            ),
-        ),
-    );
-
     assert_eq!(
         (geometry.rejection_class(), geometry.rejection_locality()),
         (
@@ -100,13 +99,6 @@ fn rejected_outcome_maps_phase_and_runtime_failures_to_exact_localities() {
         (
             PrimitiveConstructionRejectionClass::TopologyExecution,
             PrimitiveConstructionRejectionLocality::Execution,
-        )
-    );
-    assert_eq!(
-        (artifact.rejection_class(), artifact.rejection_locality()),
-        (
-            PrimitiveConstructionRejectionClass::ArtifactAssembly,
-            PrimitiveConstructionRejectionLocality::Artifact,
         )
     );
 }
@@ -156,13 +148,23 @@ fn rejected_outcome_maps_spatial_birth_and_impossible_attachment_distinctly() {
         .expect("impossible attachment");
     let completeness = rejected_outcome(
         PrimitiveConstructionFamily::WireBody,
-        &PrimitiveConstructionResultError::BirthCompleteness(
-            SpatialConstructionBirthError::InvalidPrimitiveBirthScaffold("birth mismatch"),
+        &PrimitiveConstructionResultError::Phase(
+            PrimitiveConstructionPhaseError::TopologyQueryAdmittedHandoff(
+                TopologyConstructionQueryAdmittedHandoffError::BirthCompleteness(
+                    "birth mismatch".to_string(),
+                ),
+            ),
         ),
     );
     let impossible = rejected_outcome(
         PrimitiveConstructionFamily::WireBody,
-        &PrimitiveConstructionResultError::ImpossibleBirthAttachment(impossible),
+        &PrimitiveConstructionResultError::Phase(
+            PrimitiveConstructionPhaseError::TopologyQueryAdmittedHandoff(
+                TopologyConstructionQueryAdmittedHandoffError::ImpossibleBirthAttachment(
+                    impossible.reason().to_string(),
+                ),
+            ),
+        ),
     );
 
     assert_eq!(

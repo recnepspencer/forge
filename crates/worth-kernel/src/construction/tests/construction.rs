@@ -1,28 +1,29 @@
-use crate::construction::phase_report::PrimitiveConstructionPhaseChainReport;
+use crate::construction::admitted_scaffold::prepare_primitive_construction_admitted_result_input;
+use crate::construction::artifact::build_canonical_primitive_construction_artifact;
+use crate::construction::evidence::PrimitiveConstructionResultAssemblyReport;
+use crate::construction::result::prepare_primitive_construction_result;
 use crate::construction::{
-    build_canonical_primitive_construction_artifact, lower_scaffold_to_topology,
     prepare_primitive_construction_branch_local_parity_report,
     prepare_primitive_construction_branch_preview_runtime_report,
     prepare_primitive_construction_query_basis_preview_parity_report,
     prepare_primitive_construction_query_inspection_parity_report,
     prepare_primitive_construction_rejection_locality_report,
-    prepare_primitive_construction_replay_parity_report, prepare_primitive_construction_result,
-    primitive_construction_family_coverage_report, OrthotopeSpec,
-    PreparedPrimitiveConstructionExecution, PrimitiveConstructionFamily,
+    prepare_primitive_construction_replay_parity_report,
+    primitive_construction_family_coverage_report, OrthotopeSpec, PrimitiveConstructionFamily,
     PrimitiveConstructionFamilyCoverageStatus, PrimitiveConstructionIntent,
     PrimitiveConstructionRequest, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec,
     SimplexSolidSpec, WireBodySpec,
 };
 use forge_query::facade::ForgeQueryAuthorityLane;
 use topology::facade::{
-    milestone_one_runtime_builder, topology_runtime, TopologyConstructionCertificationReadSurface,
-    TopologyConstructionFactProvenance, TopologyConstructionInspectionSurface,
-    TopologyConstructionMutationSurface, TopologyRuntimeAdapters,
+    milestone_one_runtime_builder, topology_runtime, TopologyConstructionQueryFactProvenance,
+    TopologyConstructionQueryInspectionSurface, TopologyConstructionQueryMutationSurface,
+    TopologyConstructionQueryReadSurface, TopologyRuntimeAdapters,
 };
 use worth_geom::facade::{PrimitiveRealizationStrategy, PrimitiveStabilityClass};
 
 #[test]
-fn admitted_phase_three_family_ladder_builds_generic_phase_chain_reports() {
+fn admitted_phase_three_family_ladder_builds_generic_result_assembly_reports() {
     let requests = [
         PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(1.0)).into_request(),
         PrimitiveConstructionIntent::orthotope(OrthotopeSpec {
@@ -50,46 +51,36 @@ fn admitted_phase_three_family_ladder_builds_generic_phase_chain_reports() {
     ];
 
     for request in requests {
-        let intent = request.clone().admit().expect("admitted intent");
-        let scaffold = intent.build_scaffold().expect("scaffold");
-        let (birth_plan, lowering_plan) = lower_scaffold_to_topology(&scaffold).expect("lowering");
-        let execution = PreparedPrimitiveConstructionExecution::from_phase_chain(
-            &request,
-            &intent,
-            &scaffold,
-            &birth_plan,
-            &lowering_plan,
-        )
-        .expect("execution");
-        let certification = execution.plan_topology_certification();
-        let report = PrimitiveConstructionPhaseChainReport::from_phase_chain(
-            &request,
-            &intent,
-            &scaffold,
-            &birth_plan,
-            &lowering_plan,
-            &execution,
-            &certification,
-        );
+        let result_input =
+            prepare_primitive_construction_admitted_result_input(&request).expect("result input");
+        let report =
+            PrimitiveConstructionResultAssemblyReport::from_admitted_result_input(&result_input);
 
         assert_eq!(report.family(), request.family());
         assert_eq!(
             report.mutation_surface(),
-            TopologyConstructionMutationSurface::ComposeGraph
+            TopologyConstructionQueryMutationSurface::ComposeGraph
         );
-        assert_ne!(report.execution_digest(), report.certification_digest());
-        assert_ne!(report.report_digest(), report.execution_digest());
-        assert_ne!(report.report_digest(), report.certification_digest());
+        assert_eq!(
+            report.topology_query_admitted_handoff_digest(),
+            result_input
+                .topology_query_admitted_handoff()
+                .admitted_handoff_digest()
+        );
+        assert_ne!(
+            report.report_digest(),
+            report.topology_query_admitted_handoff_digest()
+        );
     }
 }
 
 #[test]
 fn out_of_class_phase_three_requests_fail_typed_and_locally() {
-    let wire_error = PrimitiveConstructionRequest::wire_body(2)
-        .admit()
+    let wire_request = PrimitiveConstructionRequest::wire_body(2);
+    let wire_error = prepare_primitive_construction_admitted_result_input(&wire_request)
         .expect_err("wire body should reject");
-    let shell_error = PrimitiveConstructionRequest::shell_with_hole(6, Vec::new())
-        .admit()
+    let shell_request = PrimitiveConstructionRequest::shell_with_hole(6, Vec::new());
+    let shell_error = prepare_primitive_construction_admitted_result_input(&shell_request)
         .expect_err("shell-with-hole should reject");
 
     assert!(wire_error.to_string().contains("invalid wire_body request"));
@@ -130,37 +121,24 @@ fn family_coverage_report_marks_all_phase_three_rows_explicitly() {
 }
 
 #[test]
-fn canonical_artifact_surface_binds_phase_chain_and_birth_truth() {
+fn canonical_artifact_surface_binds_result_input_and_birth_truth() {
     let intent = PrimitiveConstructionIntent::wire_body(WireBodySpec { edge_count: 8 });
     let request = intent.clone().into_request();
-    let admitted = request.clone().admit().expect("admitted intent");
-    let scaffold = admitted.build_scaffold().expect("scaffold");
-    let (birth_plan, lowering_plan) = lower_scaffold_to_topology(&scaffold).expect("lowering");
-    let execution = PreparedPrimitiveConstructionExecution::from_phase_chain(
-        &request,
-        &admitted,
-        &scaffold,
-        &birth_plan,
-        &lowering_plan,
-    )
-    .expect("execution");
-    let certification = execution.plan_topology_certification();
-    let artifact = build_canonical_primitive_construction_artifact(
-        &request,
-        &admitted,
-        &scaffold,
-        &birth_plan,
-        &lowering_plan,
-        &execution,
-        &certification,
-    )
-    .expect("artifact");
+    let result_input =
+        prepare_primitive_construction_admitted_result_input(&request).expect("result input");
+    let artifact = build_canonical_primitive_construction_artifact(&result_input);
 
     assert_eq!(artifact.family(), PrimitiveConstructionFamily::WireBody);
-    assert_eq!(artifact.birth_truth_digest(), birth_plan.birth_digest());
+    assert_eq!(
+        artifact.birth_truth_digest(),
+        result_input
+            .topology_query_admitted_handoff()
+            .topology_query_handoff()
+            .source_birth_digest()
+    );
     assert_eq!(
         artifact.mutation_surface(),
-        TopologyConstructionMutationSurface::ComposeGraph
+        TopologyConstructionQueryMutationSurface::ComposeGraph
     );
     assert_eq!(
         artifact.realization_strategy(),
@@ -174,7 +152,7 @@ fn canonical_artifact_surface_binds_phase_chain_and_birth_truth() {
 }
 
 #[test]
-fn prepared_result_common_path_bundles_birth_mapping_and_artifact() {
+fn prepared_result_input_bundles_birth_mapping_and_artifact() {
     let result = prepare_primitive_construction_result(
         PrimitiveConstructionIntent::shell_with_hole(ShellWithHoleSpec {
             outer_loop_edge_count: 6,
@@ -198,7 +176,15 @@ fn prepared_result_common_path_bundles_birth_mapping_and_artifact() {
         PrimitiveStabilityClass::StableDirect
     );
     assert_eq!(result.evidence().birth_mapping_report().rows().len(), 7);
-    assert_eq!(result.evidence().topology_fact_report().rows().len(), 7);
+    assert_eq!(
+        result
+            .evidence()
+            .topology_query_handoff()
+            .topology_query_envelope()
+            .fact_rows()
+            .len(),
+        7
+    );
     assert_ne!(
         result.result_digest(),
         result.canonical_artifact().artifact_digest()
@@ -227,23 +213,27 @@ fn tiny_pyramid_result_preserves_escalated_realization_truth() {
 }
 
 #[test]
-fn literal_world_collapsed_simplex_result_survives_full_kernel_common_path() {
+fn literal_world_collapsed_simplex_result_survives_full_kernel_result_input() {
     let intent = PrimitiveConstructionIntent::simplex_solid(
         SimplexSolidSpec::new(1.0e-200).with_auxiliary_altitude_component(1.0e-220),
     )
     .at([2.0f64.powi(548), -2.0f64.powi(548), 2.0f64.powi(548)]);
     let request = intent.clone().into_request();
-    let admitted = request.clone().admit().expect("admitted simplex intent");
-    let scaffold = admitted.build_scaffold().expect("simplex scaffold");
+    let result_input =
+        prepare_primitive_construction_admitted_result_input(&request).expect("result input");
     let result = prepare_primitive_construction_result(intent)
         .expect("literal world-collapsed simplex result");
 
     assert_eq!(
-        scaffold.realization_report().strategy(),
+        result_input.realization_report().strategy(),
         PrimitiveRealizationStrategy::ExactSupport
     );
     assert_eq!(
-        scaffold.realization_report().attempted_strategies(),
+        result_input.realization_report().report_digest(),
+        result.realization_report().report_digest()
+    );
+    assert_eq!(
+        result_input.realization_report().attempted_strategies(),
         &[
             PrimitiveRealizationStrategy::DirectWorld,
             PrimitiveRealizationStrategy::ExactSupport,
@@ -359,15 +349,15 @@ fn query_and_diagnostic_reports_cover_phase_five_runtime_and_rejection_surfaces(
     assert!(basis.query_gap_free());
     assert_eq!(
         inspection.read_surface(),
-        TopologyConstructionCertificationReadSurface::ProjectionConsumptionFromInspectionReceipt
+        TopologyConstructionQueryReadSurface::ProjectionConsumptionFromInspectionReceipt
     );
     assert_eq!(
         inspection.inspection_surface(),
-        TopologyConstructionInspectionSurface::InspectReceipt
+        TopologyConstructionQueryInspectionSurface::InspectReceipt
     );
     assert_eq!(
         inspection.fact_provenance(),
-        TopologyConstructionFactProvenance::EquivalentProjectionConsumptionFacts
+        TopologyConstructionQueryFactProvenance::InspectionBackedProjectionConsumption
     );
     assert_eq!(locality.accepted_count(), 1);
     assert_eq!(locality.rejected_count(), 1);

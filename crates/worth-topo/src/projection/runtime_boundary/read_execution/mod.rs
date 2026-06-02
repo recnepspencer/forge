@@ -4,6 +4,7 @@ mod neighborhood_decode;
 pub(crate) mod query_shape;
 mod row_decode;
 
+pub(crate) use basis_context::TopologyReadExecutionTarget;
 pub(crate) use family_execution::{
     ends_at_vertex_relation_name, execute_local_rewire_read, execute_loop_cycle_read,
     execute_shared_neighborhood_read, prev_relation_name, radial_next_relation_name,

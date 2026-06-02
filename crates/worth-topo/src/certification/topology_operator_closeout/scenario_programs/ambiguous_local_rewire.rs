@@ -1,23 +1,22 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde_json::Value;
 
-use super::super::mutation_sequence_support::{
-    aggregate_naming_mutation_continuity_matrix_for_declarations,
-    aggregate_topology_mutation_digest_for_declarations,
-    topology_mutation_families_for_declarations,
-};
+use super::super::replay_step_rows::accepted_step_row_for_execution;
 use super::super::report::{
     MilestoneThreeAmbiguousLocalRewireWitness, MilestoneThreeHostileOutcomeClass,
     MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
-    MilestoneThreeMutationReplayStepRow,
+    MilestoneThreeMutationReplayStepRow, MilestoneThreeScenarioMutationSynopsis,
 };
 use super::super::shared::{
-    accepted_step_row_for_declaration, derived_validation_report_from_materialized,
-    first_source_identity_for_relation_kind, replay_checked,
+    derived_validation_report_from_materialized, first_source_identity_for_relation_kind,
+    replay_checked,
 };
 use super::local_successor_rewire::successor_relocation_declaration;
+use super::scenario_mutation_report_lowering::{
+    accepted_mutation_synopsis_from_step_rows, accepted_semantic_summary_from_step_rows,
+};
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
 use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
@@ -26,14 +25,14 @@ use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
-use crate::topology_operators::{TopologyMutationDigest, TopologyMutationFamily};
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 
 struct MilestoneThreeAmbiguousLocalRewireRun {
     primitive_family: String,
     primitive: MilestoneOnePrimitiveCase,
-    mutation_families: Vec<TopologyMutationFamily>,
-    topology_mutation_digest: TopologyMutationDigest,
-    naming_mutation_continuity_matrix: crate::topology_operators::NamingMutationContinuityMatrix,
+    declared_mutation_synopsis: MilestoneThreeScenarioMutationSynopsis,
+    accepted_semantic_summary:
+        crate::certification::topology_operator_closeout::report::MilestoneThreeScenarioMutationSemanticSummary,
     step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
     baseline_materialized_topology_digest: crate::certification::DeterministicDigest,
     final_materialized_topology_digest: crate::certification::DeterministicDigest,
@@ -62,14 +61,15 @@ where
         chosen.final_materialized_topology_digest.clone(),
         replay.final_materialized_topology_digest.clone(),
     );
-    let continuity_outcome_class = chosen.naming_mutation_continuity_matrix.outcome_class();
-    let continuity_rejection_class = chosen.naming_mutation_continuity_matrix.rejection_class();
+    let semantic_summary = chosen.accepted_semantic_summary;
+    let continuity_outcome_class = semantic_summary.continuity_outcome_class;
 
     Ok(MilestoneThreeHostileScenarioReport {
         scenario: MilestoneThreeHostileScenario::AmbiguousLocalRewireContinuity,
         primitive_family: chosen.primitive_family,
         primitive: chosen.primitive,
-        mutation_families: chosen.mutation_families,
+        declared_mutation_synopsis: chosen.declared_mutation_synopsis,
+        semantic_summary,
         bowtie_adjacent_witness: None,
         ambiguous_local_rewire_witness: Some(MilestoneThreeAmbiguousLocalRewireWitness {
             moved_half_edge_identity: chosen.moved_half_edge_identity.clone(),
@@ -85,10 +85,6 @@ where
         }),
         split_collapse_churn_witness: None,
         broken_radial_witness: None,
-        topology_mutation_digest: chosen.topology_mutation_digest,
-        naming_mutation_continuity_matrix: chosen.naming_mutation_continuity_matrix,
-        continuity_outcome_class,
-        continuity_rejection_class,
         outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
         rejection_class: None,
         rejected_mutation_scope_report: None,
@@ -112,7 +108,7 @@ where
     let primitive = MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 };
     let primitive_family = primitive_family_name(&primitive).to_string();
     let mut runtime = runtime_factory();
-    let verified = seed_milestone_one_primitive(
+    let _verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         &format!("{stem}.ambiguous_local_rewire.{candidate_offset}"),
         &primitive,
@@ -128,12 +124,15 @@ where
             &mut workspace,
         )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let baseline_snapshot = surfaces
-        .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
+    let baseline_materialized =
+        crate::certification::support::current_head_materialized_topology::current_head_materialized_topology(
+            &mut workspace,
+            &surfaces,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
-        digest_materialized_topology_view(&baseline_snapshot.materialized);
-    let topology_read = TopologyReadProofHarness::new();
+        digest_materialized_topology_view(&baseline_materialized);
+    let topology_read = TopologyReadProofHarness::current_head();
     let relation_rows = workspace.read::<Value>(surfaces.relations());
     let moved_half_edge_identity = first_source_identity_for_relation_kind(
         &relation_rows,
@@ -152,29 +151,24 @@ where
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration.clone())
             .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let step_rows = vec![accepted_step_row_for_declaration(
-        0,
-        &declaration,
-        &execution,
-    )];
+    let step_rows = vec![accepted_step_row_for_execution(0, &execution)];
+    let declared_mutation_synopsis = accepted_mutation_synopsis_from_step_rows(&step_rows);
+    let accepted_semantic_summary =
+        accepted_semantic_summary_from_step_rows(&step_rows, "accepted ambiguous local rewire")?;
     let derived_validation_report =
-        derived_validation_report_from_materialized(&execution.materialized)?;
+        derived_validation_report_from_materialized(&execution.materialized())?;
     Ok(MilestoneThreeAmbiguousLocalRewireRun {
         primitive_family,
         primitive,
-        mutation_families: topology_mutation_families_for_declarations(vec![declaration.clone()]),
-        topology_mutation_digest: aggregate_topology_mutation_digest_for_declarations(vec![
-            declaration.clone(),
-        ]),
-        naming_mutation_continuity_matrix:
-            aggregate_naming_mutation_continuity_matrix_for_declarations(vec![declaration.clone()]),
+        declared_mutation_synopsis,
+        accepted_semantic_summary,
         step_rows,
         baseline_materialized_topology_digest,
         final_materialized_topology_digest: digest_materialized_topology_view(
-            &execution.materialized,
+            &execution.materialized(),
         ),
         derived_validation_report,
-        derived_materialization_fallback_class: execution.materialized.report().fallback_class,
+        derived_materialization_fallback_class: execution.materialized().report().fallback_class,
         moved_half_edge_identity,
         old_successor_identity,
         chosen_successor_identity,

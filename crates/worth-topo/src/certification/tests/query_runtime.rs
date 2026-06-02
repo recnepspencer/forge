@@ -124,20 +124,20 @@ fn traced_milestone_two_read_view_reuses_certification_trace_packet() {
 }
 
 #[test]
-fn verified_commit_earns_direct_milestone_two_read_report() {
+fn commit_input_earns_direct_milestone_two_read_report() {
     let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();
 
-    let verified = verified_primitive(
+    let commit_input = committed_primitive_input(
         &mut runtime,
         "cert-m2-verified",
         &MilestoneOnePrimitiveCase::WireBranch { branch_count: 4 },
     )
-    .expect("verified primitive");
+    .expect("committed primitive input");
 
-    let report = certify_milestone_two_verified_topology_commit_traced(&mut runtime, &verified)
-        .expect("milestone two verified certification should succeed")
+    let report = certify_milestone_two_topology_commit_input_traced(&mut runtime, &commit_input)
+        .expect("milestone two commit-input certification should succeed")
         .into_primary_result();
 
     assert!(report.materialized_topology_digest.row_count > 0);

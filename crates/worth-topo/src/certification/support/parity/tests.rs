@@ -8,7 +8,7 @@ mod parity_tests {
         digest_materialized_topology_view, interpret_topology_view, validate_interpreted_topology,
         MilestoneOneCertificationHarness, TopologyMaterializer,
     };
-    use crate::test_support::primitive_corpus::validated_topology::verified_primitive;
+    use crate::test_support::primitive_corpus::validated_topology::committed_primitive_input;
     use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
     #[test]
@@ -16,15 +16,15 @@ mod parity_tests {
         let mut runtime = milestone_one_runtime_builder()
             .expect(" milestone one runtime builder")
             .build();
-        let verified = verified_primitive(
+        let commit_input = committed_primitive_input(
             &mut runtime,
             "phase-six-parity",
             &MilestoneOnePrimitiveCase::SheetPatch { face_count: 3 },
         )
-        .expect("verified primitive");
+        .expect("committed primitive input");
         let read_view = runtime
             .read_truth()
-            .read_snapshot(&verified.persisted_truth().snapshot)
+            .read_snapshot(commit_input.snapshot())
             .expect("snapshot read");
         let materialized =
             TopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
@@ -33,13 +33,13 @@ mod parity_tests {
             validate_interpreted_topology(&materialized, &interpreted).expect("validation");
 
         let first = build_derived_equivalence_contract(
-            &verified.read_basis(),
+            commit_input.read_basis(),
             &materialized,
             &interpreted,
             &validation,
         );
         let second = build_derived_equivalence_contract(
-            &verified.read_basis(),
+            commit_input.read_basis(),
             &materialized,
             &interpreted,
             &validation,
@@ -65,15 +65,15 @@ mod parity_tests {
         let mut runtime = milestone_one_runtime_builder()
             .expect(" milestone one runtime builder")
             .build();
-        let verified = verified_primitive(
+        let commit_input = committed_primitive_input(
             &mut runtime,
             "phase-six-replay",
             &MilestoneOnePrimitiveCase::WireBranch { branch_count: 4 },
         )
-        .expect("verified primitive");
+        .expect("committed primitive input");
         let read_view = runtime
             .read_truth()
-            .read_snapshot(&verified.persisted_truth().snapshot)
+            .read_snapshot(commit_input.snapshot())
             .expect("snapshot read");
         let materialized =
             TopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
@@ -82,12 +82,12 @@ mod parity_tests {
             validate_interpreted_topology(&materialized, &interpreted).expect("validation");
 
         let mainline = build_derived_equivalence_contract(
-            &verified.read_basis(),
+            commit_input.read_basis(),
             &materialized,
             &interpreted,
             &validation,
         );
-        let replay_basis = verified.read_basis().replay_of();
+        let replay_basis = commit_input.read_basis().replay_of();
         let replay = build_derived_equivalence_contract(
             &replay_basis,
             &materialized,
@@ -107,15 +107,15 @@ mod parity_tests {
         let mut runtime = milestone_one_runtime_builder()
             .expect(" milestone one runtime builder")
             .build();
-        let verified = verified_primitive(
+        let commit_input = committed_primitive_input(
             &mut runtime,
             "phase-six-certification",
             &MilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
         )
-        .expect("verified primitive");
+        .expect("committed primitive input");
 
         let report =
-            MilestoneOneCertificationHarness::certify_verified_commit(&mut runtime, &verified)
+            MilestoneOneCertificationHarness::certify_commit_input(&mut runtime, &commit_input)
                 .expect("certification");
 
         assert!(

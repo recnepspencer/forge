@@ -1,17 +1,18 @@
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::super::query_runtime_support::QueryRuntimeSupport;
 use crate::projection::read_views::domain::report::TopologyReadRequestFamily;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
 fn relation_update_query_support_reports_topology_read_breadth_aggregate() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.topology-read-breadth",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
@@ -71,7 +72,7 @@ fn relation_update_query_support_reports_topology_read_breadth_aggregate() {
 #[test]
 fn relation_update_query_support_reports_topology_operator_radial_breadth_aggregate() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.topology-read-breadth.radial",
         &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },

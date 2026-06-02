@@ -20,10 +20,11 @@ pub(super) use schema::facade::platform::entities::{
 pub(super) use schema::facade::platform::relations::{
     NamingRelationKind, RelationKind, TopologyRelationKind,
 };
-use schema::facade::topology_authoring::commit_topology_mutation_set;
-pub(super) use schema::facade::topology_authoring::seed_minimal_topology;
 
 use crate::relational_aspect_boundary::topology_entity_create_fields;
+use crate::test_support::schema_topology_authoring_boundary::{
+    commit_topology_mutation_set_through_schema_execution, TopologyMutationSetCommitError,
+};
 
 mod bootstrap_boundary;
 mod disconnected_wire_creation;
@@ -144,12 +145,10 @@ fn commit_create_only_mutation_set(
     transaction_label: &'static str,
     mutations: impl IntoIterator<Item = MutationIntent>,
 ) -> Result<(), TransactionCommitError> {
-    commit_topology_mutation_set(runtime, transaction_label, mutations)
+    commit_topology_mutation_set_through_schema_execution(runtime, transaction_label, mutations)
         .map(|_| ())
         .map_err(|error| match error {
-            schema::facade::topology_authoring::TopologyMutationSetCommitError::Commit(error) => {
-                error
-            }
+            TopologyMutationSetCommitError::Commit(error) => error,
         })
 }
 

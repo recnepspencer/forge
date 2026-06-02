@@ -13,7 +13,6 @@ mod tests;
 
 use forge_query::facade::{ForgeQueryRuntime, ForgeQueryWorkspace};
 
-pub(crate) use contracts::workspace_requires_historical_basis_context;
 pub use contracts::{TopologyRuntimeAdapters, TopologyRuntimeFailure, TopologyRuntimeSupport};
 pub use mutation_support::{
     TopologyQueryMutationFamilySupportStatus, TopologyQueryMutationLane,
@@ -21,7 +20,7 @@ pub use mutation_support::{
     TopologyRuntimeMutationFamilySupportRow, TopologyRuntimeMutationLaneSupportRow,
 };
 pub(crate) use operator_bindings::TopologyQueryBindingIndex;
-pub(crate) use operator_post_write::load_post_write_materialized_topology;
+pub(crate) use operator_post_write::TopologyPostWriteQueryArtifact;
 pub use read_support::{TopologyQueryReadFamilySupportStatus, TopologyRuntimeReadFamilySupportRow};
 pub use runtime_closeout::{
     TopologyRuntimeCloseout, TopologyRuntimeCloseoutFamily, TopologyRuntimeCloseoutRow,
@@ -32,12 +31,11 @@ pub use runtime_posture::{
 };
 
 pub use self::adapters::write_authority::TopologyRuntimeWriteAuthority;
-pub use self::adapters::{
-    build_runtime_bridge, TopologyRuntimeBinding, TopologyRuntimeSchemaAdapter,
-};
+pub use self::adapters::TopologyRuntimeSchemaAdapter;
 use self::adapters::{
     TopologyExistingTruthVerificationAdapter, TopologyInspectorEvidence,
-    TopologyRuntimeSourceAdapter, TopologyStaticSignalSink, TopologySubscriptionActivation,
+    TopologyRuntimeDeclarationInitializationAdapter, TopologyRuntimeSourceAdapter,
+    TopologyStaticSignalSink, TopologySubscriptionActivation,
 };
 
 pub fn topology_runtime(
@@ -62,6 +60,9 @@ pub fn topology_runtime(
         .inspector_evidence(TopologyInspectorEvidence::new(
             adapters.support().write_receipt_evidence_label(),
             adapters.support().inspector_evidence_label(),
+        ))
+        .declaration_initialization(TopologyRuntimeDeclarationInitializationAdapter::new(
+            adapters.declaration_initialization.clone(),
         ))
         .support_profile(support_profile);
     if adapters

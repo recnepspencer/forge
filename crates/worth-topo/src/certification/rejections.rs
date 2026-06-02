@@ -8,8 +8,7 @@ use schema::facade::platform::authority::{
 use schema::facade::platform::entities::EntityKind;
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 use schema::facade::topology_authoring::{
-    build_milestone_one_primitive_intent, MilestoneOnePrimitiveAuthoringError,
-    MilestoneOnePrimitiveCase,
+    build_milestone_one_primitive_intent, MilestoneOnePrimitiveCase,
 };
 
 use crate::certification::error::MilestoneOneCertificationError;
@@ -17,13 +16,16 @@ use crate::certification::shared::digest_rows;
 use crate::certification::support::reporting::{
     IllegalTopologyRejectionCaseReport, IllegalTopologyRejectionReport, PrimitiveRejectionReport,
 };
-use crate::test_support::topology_commit::{commit_topology_intent, TopologyIntentCommitError};
+use crate::test_support::schema_topology_authoring_boundary::{
+    commit_topology_intent_through_schema_execution, SchemaPrimitiveAuthoringError,
+    TopologyIntentCommitError,
+};
 
 pub(crate) fn summarize_primitive_rejection(
-    error: &MilestoneOnePrimitiveAuthoringError,
+    error: &SchemaPrimitiveAuthoringError,
 ) -> PrimitiveRejectionReport {
     match error {
-        MilestoneOnePrimitiveAuthoringError::InvalidParameter {
+        SchemaPrimitiveAuthoringError::InvalidParameter {
             family,
             parameter,
             requirement,
@@ -39,7 +41,7 @@ pub(crate) fn summarize_primitive_rejection(
             localized_entity_count: 0,
             localized_relation_count: 0,
         },
-        MilestoneOnePrimitiveAuthoringError::Authority(authority) => PrimitiveRejectionReport {
+        SchemaPrimitiveAuthoringError::Authority(authority) => PrimitiveRejectionReport {
             rejection_class: "AuthorityBlocked".to_string(),
             validator_family: None,
             diagnostic_code: None,
@@ -225,7 +227,7 @@ where
     F: FnMut() -> RelationalRuntime,
 {
     let mut runtime = runtime_factory();
-    let rejection = match commit_topology_intent(&mut runtime, intent) {
+    let rejection = match commit_topology_intent_through_schema_execution(&mut runtime, intent) {
         Ok(_) => {
             return Err(MilestoneOneCertificationError::ReadView(format!(
                 "illegal topology case `{name}` unexpectedly admitted"

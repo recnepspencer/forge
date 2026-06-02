@@ -1,6 +1,7 @@
 pub use crate::construction::{
     prepare_primitive_construction_digest_protocol_report,
     prepare_primitive_construction_milestone_four_kernel_closeout_evidence_report,
+    prepare_primitive_construction_phase_five_boundary_closeout_report,
     prepare_primitive_construction_phase_five_six_closeout_report,
     prepare_primitive_construction_proof_boundary_compile_fail_report,
     prepare_primitive_construction_proof_substrate_closeout_report,
@@ -11,6 +12,9 @@ pub use crate::construction::{
     PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError,
     PrimitiveConstructionMilestoneFourKernelCloseoutVerificationFailure,
     PrimitiveConstructionMilestoneFourKernelCloseoutVerificationMismatch,
+    PrimitiveConstructionPhaseFiveBoundaryCloseoutKind,
+    PrimitiveConstructionPhaseFiveBoundaryCloseoutReport,
+    PrimitiveConstructionPhaseFiveBoundaryCloseoutRow,
     PrimitiveConstructionPhaseFiveSixCloseoutReport,
     PrimitiveConstructionPhaseFiveSixCloseoutReportError,
     PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure,

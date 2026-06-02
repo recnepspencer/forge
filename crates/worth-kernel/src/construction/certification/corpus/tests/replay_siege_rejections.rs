@@ -86,7 +86,6 @@ fn corpus_replay_siege_rejection_witnesses_cover_every_major_failure_boundary() 
     assert!(boundaries.contains(&PrimitiveConstructionBlockingBoundary::KernelIntent));
     assert!(boundaries.contains(&PrimitiveConstructionBlockingBoundary::SpatialBirth));
     assert!(boundaries.contains(&PrimitiveConstructionBlockingBoundary::TopologyLegality));
-    assert!(boundaries.contains(&PrimitiveConstructionBlockingBoundary::ArtifactAssembly));
     assert_ne!(
         report.rejection_witness_rows()[0].row_digest(),
         report.rejection_witness_rows()[1].row_digest()

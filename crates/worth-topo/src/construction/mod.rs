@@ -1,24 +1,18 @@
-mod authority;
-mod certification;
-mod execution;
-mod facts;
-mod lowering;
+#[cfg(test)]
+mod boundary_tests;
+mod query_native_boundary;
 
-pub use authority::{topology_construction_authority, TopologyConstructionAuthority};
-pub use certification::{
-    prepare_primitive_construction_certification, TopologyConstructionCertificationPlan,
-    TopologyConstructionCertificationReadSurface, TopologyConstructionInspectionSurface,
-};
-pub use execution::{
-    prepare_primitive_construction_execution, TopologyConstructionExecutionError,
-    TopologyConstructionExecutionPlan,
-};
-pub use facts::{
-    build_topology_construction_fact_report, TopologyConstructionFactKind,
-    TopologyConstructionFactProvenance, TopologyConstructionFactReport,
-    TopologyConstructionFactRow,
-};
-pub use lowering::{
-    lower_primitive_construction_birth_plan, TopologyConstructionLoweringError,
-    TopologyConstructionLoweringPlan, TopologyConstructionMutationSurface,
+pub use query_native_boundary::{
+    prepare_primitive_construction_query_admitted_handoff,
+    prepare_primitive_construction_query_admitted_handoff_from_synopsis,
+    prepare_primitive_construction_query_envelope, prepare_primitive_construction_query_handoff,
+    prepare_primitive_construction_query_receipt, TopologyConstructionQueryAdmittedHandoffError,
+    TopologyConstructionQueryEnvelopeError, TopologyConstructionQueryFactKind,
+    TopologyConstructionQueryFactProvenance, TopologyConstructionQueryFactRow,
+    TopologyConstructionQueryHandoffError, TopologyConstructionQueryInspectionSurface,
+    TopologyConstructionQueryMutationSurface, TopologyConstructionQueryReadSurface,
+    TopologyConstructionQueryReceiptError, TopologyPrimitiveConstructionBirthFamily,
+    TopologyPrimitiveConstructionQueryAdmittedHandoff,
+    TopologyPrimitiveConstructionQueryBirthSynopsis, TopologyPrimitiveConstructionQueryEnvelope,
+    TopologyPrimitiveConstructionQueryHandoff, TopologyPrimitiveConstructionQueryReceipt,
 };

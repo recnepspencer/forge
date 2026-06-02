@@ -10,18 +10,25 @@ use crate::projection::runtime_boundary::read_execution::{
     decode_radial_neighborhood, decode_shared_vertex_neighborhood, ends_at_vertex_relation_name,
     execute_shared_neighborhood_read, radial_next_relation_name, starts_at_vertex_relation_name,
     uses_edge_relation_name, ExecutedTopologyReadFamily, SharedNeighborhoodReadKind,
+    TopologyReadExecutionTarget,
 };
 
 impl TopologyReadLedger {
     pub(crate) fn shared_vertex_half_edge_neighborhood(
         &self,
         workspace: &mut ForgeQueryWorkspace,
+        execution_target: &TopologyReadExecutionTarget,
         source_identity: &str,
     ) -> Result<TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyReadError> {
         let request = TopologyReadRequest::HalfEdgeSharedVertexNeighborhood {
             source_half_edge_identity: source_identity.to_string(),
         };
-        let executed = self.execute_shared_vertex_read(workspace, &request, source_identity)?;
+        let executed = self.execute_shared_vertex_read(
+            workspace,
+            execution_target,
+            &request,
+            source_identity,
+        )?;
         let request_report = self.record_report(executed.report);
         let decoded = decode_shared_vertex_neighborhood(
             executed.result.rows(),
@@ -49,12 +56,14 @@ impl TopologyReadLedger {
     pub(crate) fn radial_half_edge_neighborhood(
         &self,
         workspace: &mut ForgeQueryWorkspace,
+        execution_target: &TopologyReadExecutionTarget,
         source_identity: &str,
     ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyReadError> {
         let request = TopologyReadRequest::HalfEdgeRadialNeighborhood {
             source_half_edge_identity: source_identity.to_string(),
         };
-        let executed = self.execute_radial_read(workspace, &request, source_identity)?;
+        let executed =
+            self.execute_radial_read(workspace, execution_target, &request, source_identity)?;
         let request_report = self.record_report(executed.report);
         let decoded = decode_radial_neighborhood(
             executed.result.rows(),
@@ -79,11 +88,13 @@ impl TopologyReadLedger {
     fn execute_shared_vertex_read(
         &self,
         workspace: &mut ForgeQueryWorkspace,
+        execution_target: &TopologyReadExecutionTarget,
         request: &TopologyReadRequest,
         source_identity: &str,
     ) -> Result<ExecutedTopologyReadFamily, TopologyReadError> {
         execute_shared_neighborhood_read(
             workspace,
+            execution_target,
             request,
             format!("topology.shared_vertex_neighborhood:{source_identity}"),
             [
@@ -98,11 +109,13 @@ impl TopologyReadLedger {
     fn execute_radial_read(
         &self,
         workspace: &mut ForgeQueryWorkspace,
+        execution_target: &TopologyReadExecutionTarget,
         request: &TopologyReadRequest,
         source_identity: &str,
     ) -> Result<ExecutedTopologyReadFamily, TopologyReadError> {
         execute_shared_neighborhood_read(
             workspace,
+            execution_target,
             request,
             format!("topology.radial_neighborhood:{source_identity}"),
             [radial_next_relation_name(), uses_edge_relation_name()],

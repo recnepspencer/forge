@@ -1,14 +1,16 @@
-use forge_query::facade::{
-    ForgeQueryDeclarationEntryOrchestrationChecked, ForgeQueryDeclarationEntryOrchestrationStage,
-    ForgeQueryDeclarationEntryOrchestrationTerminalError, ForgeQueryEntity,
-};
+use forge_query::facade::{ForgeQueryDeclarationEntryOrchestrationStage, ForgeQueryEntity};
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::super::support::{current_head_query_handle, snapshot_query_handle};
 use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
-use crate::facade::{topology_runtime, TopologyDeclaredQuerySurfaces, TopologyRuntimeAdapters};
+use crate::facade::{
+    topology_runtime, TopologyDeclaredQuerySurfaces, TopologyOperatorEnvelopeChecked,
+    TopologyOperatorEnvelopeTerminalError, TopologyOperatorWorkflowHandleExt,
+    TopologyRuntimeAdapters,
+};
 use crate::projection::{query_entity_id_from_row, query_relation_id_from_row};
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::{
     TopologyRadialSpliceMember, TopologySpliceRadialAdjacencyProgramDeclaration,
 };
@@ -19,19 +21,19 @@ fn current_head_handle_orchestrates_radial_splice_program_declaration_across_all
     let declaration = radial_program_declaration();
     let handle = current_head_query_handle();
     let ordinary = handle
-        .orchestrate_declaration_entry(declaration.clone())
+        .orchestrate_topology_operator_envelope(declaration.clone())
         .unwrap_or_else(|_| panic!("current-head radial splice program should envelope"));
-    let checked = handle.orchestrate_declaration_entry_checked(declaration.clone());
-    let proof = handle.orchestrate_declaration_entry_proof(declaration);
+    let checked = handle.orchestrate_topology_operator_envelope_checked(declaration.clone());
+    let proof = handle.orchestrate_topology_operator_envelope_proof(declaration);
 
     match checked {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped checked radial splice program"),
     }
     match proof.outcome() {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped proof radial splice program"),
@@ -49,18 +51,18 @@ fn current_head_handle_orchestrates_radial_splice_program_declaration_across_all
 #[test]
 fn snapshot_handle_does_not_envelope_radial_splice_program_declaration() {
     let handle = snapshot_query_handle();
-    let ordinary = handle.orchestrate_declaration_entry(radial_program_declaration());
+    let ordinary = handle.orchestrate_topology_operator_envelope(radial_program_declaration());
 
     assert!(matches!(
         ordinary,
-        Err(ForgeQueryDeclarationEntryOrchestrationTerminalError::RebindRequired(_))
+        Err(TopologyOperatorEnvelopeTerminalError::RebindRequired(_))
     ));
 }
 
 #[test]
 fn current_head_runtime_executes_canonical_radial_splice_program_through_declaration_entry() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.grouped.radial-splice-program",
         &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
@@ -80,7 +82,9 @@ fn current_head_runtime_executes_canonical_radial_splice_program_through_declara
             .expect("radial splice program should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.splice_radial_adjacency_program"
     );
 }

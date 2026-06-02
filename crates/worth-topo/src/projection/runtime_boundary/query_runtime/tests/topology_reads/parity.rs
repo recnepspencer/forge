@@ -1,4 +1,4 @@
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::super::query_runtime_support::QueryRuntimeSupport;
 use crate::projection::read_views::domain::closeout::{
@@ -13,12 +13,13 @@ use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::projection::runtime_boundary::read_stage::open_topology_read_view;
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
 fn relation_update_query_support_reports_topology_read_proof_report_with_replay_parity() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.topology-read-parity",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
@@ -29,7 +30,7 @@ fn relation_update_query_support_reports_topology_read_proof_report_with_replay_
         let read_view = open_topology_read_view(&runtime, &replay_basis)
             .expect("snapshot read view should open");
         let adapters =
-            TopologyRuntimeAdapters::snapshot_read_only(read_view, replay_basis.snapshot().clone());
+            TopologyRuntimeAdapters::snapshot_historical_basis(read_view, replay_basis.clone());
         let mut workspace = topology_runtime(adapters, ".current-head.topology-read-parity.replay")
             .expect("snapshot workspace");
         let surfaces =

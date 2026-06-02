@@ -4,15 +4,17 @@ use forge_query::facade::{
 };
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
-use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
-};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use crate::certification::support::declaration_runtime::{
     current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
 };
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
+};
+use crate::test_support::schema_topology_authoring_boundary::{
+    seed_milestone_one_primitive_through_schema_execution,
+    seed_minimal_topology_through_schema_execution,
 };
 use crate::topology_operators::{
     TopologyMutationFamily, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
@@ -23,8 +25,11 @@ use crate::validation::reference_integrity::build_milestone_one_runtime;
 #[test]
 fn current_head_runtime_executes_rehome_single_face_to_new_shell_program() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "query-mutation-runtime-attach-shell-face")
-        .expect("seed topology");
+    let seeded = seed_minimal_topology_through_schema_execution(
+        &mut runtime,
+        "query-mutation-runtime-attach-shell-face",
+    )
+    .expect("seed topology");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-mutation-attach-shell-face")
@@ -48,9 +53,10 @@ fn current_head_runtime_executes_rehome_single_face_to_new_shell_program() {
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .expect("single-face shell rehome should execute through declaration entry");
+    let synopsis = execution.accepted_mutation_projection();
 
     assert_eq!(
-        execution.families,
+        synopsis.mutation_families(),
         vec![
             TopologyMutationFamily::CreateTopologyEntity,
             TopologyMutationFamily::AttachShellOrWireMembership,
@@ -72,7 +78,7 @@ fn current_head_runtime_executes_rehome_single_face_to_new_shell_program() {
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_program()
             .expect("shell rehome should expose composed program")
             .steps()
@@ -88,7 +94,7 @@ fn current_head_runtime_executes_rehome_single_face_to_new_shell_program() {
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_lineage_summary()
             .expect("shell rehome should expose lineage summary")
             .entries()
@@ -101,7 +107,7 @@ fn current_head_runtime_executes_rehome_single_face_to_new_shell_program() {
         2
     );
     assert!(execution
-        .inspection
+        .inspection()
         .component_operations()
         .iter()
         .filter(|operation| operation.family() == "update")
@@ -115,7 +121,7 @@ fn current_head_runtime_executes_rehome_single_face_to_new_shell_program() {
                     })
         }));
     assert!(execution
-        .inspection
+        .inspection()
         .component_operations()
         .iter()
         .filter(|operation| operation.family() == "delete")
@@ -129,13 +135,13 @@ fn current_head_runtime_executes_rehome_single_face_to_new_shell_program() {
                     })
         }));
     assert!(!execution
-        .materialized
+        .materialized()
         .topology()
         .shells
         .iter()
         .any(|shell| shell.entity_id == seeded.shell));
     let new_shell = execution
-        .materialized
+        .materialized()
         .topology()
         .shells
         .iter()
@@ -147,7 +153,7 @@ fn current_head_runtime_executes_rehome_single_face_to_new_shell_program() {
 #[test]
 fn current_head_runtime_denies_single_face_shell_rehome_when_old_shell_still_owns_other_faces() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-mutation-runtime-attach-shell-patch",
         &MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },

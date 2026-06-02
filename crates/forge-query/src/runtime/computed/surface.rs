@@ -1,8 +1,11 @@
+use super::refresh_context::ForgeQueryRetainedRefreshContext;
 use super::*;
-use crate::runtime::mutation::ForgeQueryMutationMetadata;
+use crate::runtime::retained_rows::decode_single_retained_row;
+use crate::runtime::ForgeQueryRuntimeError;
 
 use crate::identity::hash_parts;
 use crate::memory_workspace::ForgeQueryEntity;
+use serde::de::DeserializeOwned;
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -48,48 +51,19 @@ impl ForgeQueryRetainedUpstreamInputs {
     pub fn computed_view_names(&self) -> impl Iterator<Item = &str> {
         self.computed_rows.keys().map(String::as_str)
     }
-}
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct ForgeQueryRetainedMutationContext {
-    commit_identity: String,
-    snapshot_token: String,
-    touched_aspect_paths: Vec<String>,
-    mutation_metadata: ForgeQueryMutationMetadata,
-}
-
-impl ForgeQueryRetainedMutationContext {
-    pub(in crate::runtime) fn new(
-        commit_identity: impl Into<String>,
-        snapshot_token: impl Into<String>,
-        touched_aspect_paths: impl IntoIterator<Item = String>,
-        mutation_metadata: ForgeQueryMutationMetadata,
-    ) -> Self {
-        let mut touched_aspect_paths = touched_aspect_paths.into_iter().collect::<Vec<_>>();
-        touched_aspect_paths.sort();
-        touched_aspect_paths.dedup();
-        Self {
-            commit_identity: commit_identity.into(),
-            snapshot_token: snapshot_token.into(),
-            touched_aspect_paths,
-            mutation_metadata,
-        }
-    }
-
-    pub fn commit_identity(&self) -> &str {
-        &self.commit_identity
-    }
-
-    pub fn snapshot_token(&self) -> &str {
-        &self.snapshot_token
-    }
-
-    pub fn touched_aspect_paths(&self) -> &[String] {
-        &self.touched_aspect_paths
-    }
-
-    pub fn mutation_metadata(&self) -> &ForgeQueryMutationMetadata {
-        &self.mutation_metadata
+    pub fn decode_single_computed_row<T>(
+        &self,
+        view_name: &str,
+    ) -> Result<T, ForgeQueryRuntimeError>
+    where
+        T: DeserializeOwned,
+    {
+        decode_single_retained_row(
+            self.computed_rows(view_name).unwrap_or(&[]),
+            view_name,
+            "retained-upstream",
+        )
     }
 }
 
@@ -312,7 +286,7 @@ pub trait ForgeQueryDerivedViewMaintainer {
     fn refresh_from_upstreams(
         &mut self,
         _view: &ForgeQueryDerivedView,
-        _mutation: &ForgeQueryRetainedMutationContext,
+        _refresh: &ForgeQueryRetainedRefreshContext,
         _upstreams: &ForgeQueryRetainedUpstreamInputs,
         _materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> Option<ForgeQueryDerivedPatch> {

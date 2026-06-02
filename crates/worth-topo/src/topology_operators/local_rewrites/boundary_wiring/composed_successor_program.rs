@@ -1,13 +1,11 @@
-use forge_query::facade::{
-    ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection, ForgeQueryInspection,
-};
+use forge_query::facade::ForgeQueryBatchWriteReceipt;
 
-use crate::projection::runtime_boundary::query_runtime::{
-    load_post_write_materialized_topology, TopologyQueryBindingIndex,
-};
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
+use crate::query_domain::TopologyQueryDomain;
 use crate::topology_operators::application::{
-    TopologyDeclaredMutationArtifact, TopologyMutationApplicationError,
-    TopologyMutationApplicationRunner,
+    finalize_graph_or_batch_receipt_closeout, TopologyDeclaredMutationArtifact,
+    TopologyMutationApplicationError, TopologyMutationApplicationRunner,
+    TopologyRetainedApplicationHandoff,
 };
 use crate::topology_operators::local_rewrites::boundary_wiring::ResolvedLoopSuccessorRewire;
 use crate::topology_operators::{
@@ -16,13 +14,17 @@ use crate::topology_operators::{
 };
 
 impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfaces> {
-    pub(crate) fn execute_composed_loop_successor_program(
+    pub(crate) fn execute_composed_loop_successor_program<I>(
         &mut self,
         semantic_family_key: &'static str,
+        retained_handoff: TopologyRetainedApplicationHandoff<I>,
         _mode: TopologyMutationApplicationMode,
         sequence: TopologyDeclaredMutationSequence,
         bindings: &TopologyQueryBindingIndex,
-    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
+    ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError>
+    where
+        I: forge_query::facade::ForgeQueryDeclarationInput<TopologyQueryDomain>,
+    {
         let rewires = sequence
             .members()
             .map(|contract| match contract.action_ref() {
@@ -49,19 +51,14 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             }
             Ok(())
         })?;
-        let inspection: ForgeQueryBatchWriteReceiptInspection =
-            match self.workspace.inspect(&receipt)? {
-                ForgeQueryInspection::BatchWriteReceipt(inspection) => inspection,
-                _ => return Err(TopologyMutationApplicationError::UnexpectedInspectionFamily),
-            };
-        let materialized = load_post_write_materialized_topology(self.workspace, self.surfaces)?;
-        Ok(TopologyDeclaredMutationArtifact::from_receipt(
+        finalize_graph_or_batch_receipt_closeout(
+            self,
+            retained_handoff,
             semantic_family_key,
             &sequence,
             receipt,
-            inspection,
-            materialized,
-        ))
+            crate::projection::runtime_boundary::query_runtime::TopologyQueryMutationLaneExecutionShape::GraphComposition,
+        )
     }
 }
 

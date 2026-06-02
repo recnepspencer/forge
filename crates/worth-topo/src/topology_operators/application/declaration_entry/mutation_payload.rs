@@ -4,8 +4,8 @@ use crate::topology_operators::{
     TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyCreateTopologyEntityDeclaration,
     TopologyDeclaredMutationSequence, TopologyDetachBoundaryMembershipDeclaration,
     TopologyDetachRadialAdjacencyDeclaration, TopologyDetachShellOrWireMembershipDeclaration,
-    TopologyMutationDigest, TopologyMutationFamily,
-    TopologyRehomeAllOwnedFacesToNewShellDeclaration,
+    TopologyMutationDerivedFallbackPolicy, TopologyMutationDigest, TopologyMutationFamily,
+    TopologyOperatorContributionDeclaration, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration, TopologyRetireTopologyEntityDeclaration,
     TopologyRewireLoopEndpointDeclaration, TopologyRewireLoopSuccessorProgramDeclaration,
     TopologySpliceRadialAdjacencyDeclaration, TopologySpliceRadialAdjacencyProgramDeclaration,
@@ -35,10 +35,31 @@ pub(crate) trait TopologyDeclarationMutationPayload: Clone {
             .naming_continuity_matrix()
             .clone()
     }
+
+    fn strictest_fallback_policy(&self) -> TopologyMutationDerivedFallbackPolicy {
+        self.clone()
+            .into_mutation_sequence()
+            .strictest_fallback_policy()
+    }
 }
 
 macro_rules! impl_contract_backed_payload {
     ($ty:ty, $semantic:expr) => {
+        impl crate::topology_operators::query_workflow::contribution_declaration_private::Sealed
+            for $ty
+        {
+        }
+
+        impl TopologyOperatorContributionDeclaration for $ty {
+            fn topology_semantic_contributions(
+                &self,
+            ) -> Vec<forge_query::facade::ForgeQueryContributionIntent> {
+                crate::topology_operators::query_workflow::build_topology_semantic_contributions(
+                    self,
+                )
+            }
+        }
+
         impl TopologyDeclarationMutationPayload for $ty {
             const SEMANTIC_FAMILY_KEY: &'static str = $semantic;
 

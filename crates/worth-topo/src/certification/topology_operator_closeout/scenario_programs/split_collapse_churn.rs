@@ -3,22 +3,17 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
-use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
-};
+use schema::facade::topology_authoring::{DerivedTopologyReadBasis, MilestoneOnePrimitiveCase};
 
-use super::super::mutation_sequence_support::{
-    aggregate_naming_mutation_continuity_matrix_for_declarations,
-    aggregate_topology_mutation_digest_for_declarations,
-    topology_mutation_families_for_declarations, TopologyCloseoutDeclaration,
-};
+use super::super::replay_step_rows::accepted_step_row_for_execution;
 use super::super::report::{
     MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario,
     MilestoneThreeHostileScenarioReport, MilestoneThreeMutationReplayStepRow,
-    MilestoneThreeSplitCollapseChurnWitness,
+    MilestoneThreeScenarioMutationSynopsis, MilestoneThreeSplitCollapseChurnWitness,
 };
-use super::super::shared::{
-    accepted_step_row_for_declaration, derived_validation_report_from_materialized, replay_checked,
+use super::super::shared::{derived_validation_report_from_materialized, replay_checked};
+use super::scenario_mutation_report_lowering::{
+    accepted_mutation_synopsis_from_step_rows, accepted_semantic_summary_from_step_rows,
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
@@ -27,8 +22,8 @@ use crate::certification::support::parity::digest_materialized_topology_view;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::{
-    TopologyMutationDigest, TopologyMutationFamily,
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
     TopologySplitConnectedHalfEdgeSetToNewWireDeclaration, TopologyWireRehomeHalfEdgeMember,
     TopologyWireSplitHalfEdgeMember,
@@ -37,9 +32,9 @@ use crate::topology_operators::{
 struct MilestoneThreeSplitCollapseRun {
     primitive_family: String,
     primitive: MilestoneOnePrimitiveCase,
-    mutation_families: Vec<TopologyMutationFamily>,
-    topology_mutation_digest: TopologyMutationDigest,
-    naming_mutation_continuity_matrix: crate::topology_operators::NamingMutationContinuityMatrix,
+    declared_mutation_synopsis: MilestoneThreeScenarioMutationSynopsis,
+    accepted_semantic_summary:
+        crate::certification::topology_operator_closeout::report::MilestoneThreeScenarioMutationSemanticSummary,
     step_rows: Vec<MilestoneThreeMutationReplayStepRow>,
     baseline_materialized_topology_digest: crate::certification::DeterministicDigest,
     final_materialized_topology_digest: crate::certification::DeterministicDigest,
@@ -65,22 +60,19 @@ where
         left.final_materialized_topology_digest.clone(),
         replay.final_materialized_topology_digest.clone(),
     );
-    let continuity_outcome_class = left.naming_mutation_continuity_matrix.outcome_class();
-    let continuity_rejection_class = left.naming_mutation_continuity_matrix.rejection_class();
+    let semantic_summary = left.accepted_semantic_summary;
+    let continuity_outcome_class = semantic_summary.continuity_outcome_class;
 
     Ok(MilestoneThreeHostileScenarioReport {
         scenario: MilestoneThreeHostileScenario::SplitCollapseChurn,
         primitive_family: left.primitive_family,
         primitive: left.primitive,
-        mutation_families: left.mutation_families,
+        declared_mutation_synopsis: left.declared_mutation_synopsis,
+        semantic_summary,
         bowtie_adjacent_witness: None,
         ambiguous_local_rewire_witness: None,
         split_collapse_churn_witness: Some(left.witness),
         broken_radial_witness: None,
-        topology_mutation_digest: left.topology_mutation_digest,
-        naming_mutation_continuity_matrix: left.naming_mutation_continuity_matrix,
-        continuity_outcome_class,
-        continuity_rejection_class,
         outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
         rejection_class: None,
         rejected_mutation_scope_report: None,
@@ -103,7 +95,7 @@ where
     let primitive = MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 };
     let primitive_family = primitive_family_name(&primitive).to_string();
     let mut runtime = runtime_factory();
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         &format!("{stem}.split_collapse_churn"),
         &primitive,
@@ -118,22 +110,25 @@ where
             &mut workspace,
         )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let baseline_snapshot = surfaces
-        .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
+    let baseline_materialized =
+        crate::certification::support::current_head_materialized_topology::current_head_materialized_topology(
+            &mut workspace,
+            &surfaces,
+        )
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
-        digest_materialized_topology_view(&baseline_snapshot.materialized);
+        digest_materialized_topology_view(&baseline_materialized);
     let original_wire_identity = wire_identity(
-        &baseline_snapshot.materialized,
+        &baseline_materialized,
         original_wire_id,
         "original split-collapse wire",
     )?;
     let moved_half_edge_ids = vec![half_edge_ids[2], half_edge_ids[3]];
     let retained_half_edge_ids = vec![half_edge_ids[0], half_edge_ids[1]];
     let moved_half_edge_identities =
-        half_edge_identities(&baseline_snapshot.materialized, &moved_half_edge_ids)?;
+        half_edge_identities(&baseline_materialized, &moved_half_edge_ids)?;
     let retained_half_edge_identities =
-        half_edge_identities(&baseline_snapshot.materialized, &retained_half_edge_ids)?;
+        half_edge_identities(&baseline_materialized, &retained_half_edge_ids)?;
 
     let split_wire_key = CreateKey::new(&format!("{stem}.split_collapse_churn.split_wire"));
     let split_declaration = split_wire_declaration(split_wire_key.as_str(), &moved_half_edge_ids)?;
@@ -144,7 +139,7 @@ where
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let split_wire = split_execution
-        .materialized
+        .materialized()
         .topology()
         .wires
         .iter()
@@ -156,7 +151,7 @@ where
         })?;
     let split_wire_id = split_wire.entity_id;
     let split_wire_half_edge_ids = split_wire.half_edge_ids.clone();
-    let split_step_wire_count = split_execution.materialized.topology().wires.len();
+    let split_step_wire_count = split_execution.materialized().topology().wires.len();
 
     let collapse_wire_key = CreateKey::new(&format!("{stem}.split_collapse_churn.collapse_wire"));
     let collapse_declaration = collapse_split_wire_declaration(
@@ -171,33 +166,28 @@ where
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let final_materialized_topology_digest =
-        digest_materialized_topology_view(&collapse_execution.materialized);
+        digest_materialized_topology_view(collapse_execution.materialized());
     let derived_validation_report =
-        derived_validation_report_from_materialized(&collapse_execution.materialized)?;
-    let declarations = vec![
-        TopologyCloseoutDeclaration::SplitConnectedHalfEdgeSetToNewWire(split_declaration.clone()),
-        TopologyCloseoutDeclaration::RehomeAllOwnedHalfEdgesToNewWire(collapse_declaration.clone()),
-    ];
+        derived_validation_report_from_materialized(collapse_execution.materialized())?;
     let step_rows = vec![
-        accepted_step_row_for_declaration(0, &split_declaration, &split_execution),
-        accepted_step_row_for_declaration(1, &collapse_declaration, &collapse_execution),
+        accepted_step_row_for_execution(0, &split_execution),
+        accepted_step_row_for_execution(1, &collapse_execution),
     ];
+    let declared_mutation_synopsis = accepted_mutation_synopsis_from_step_rows(&step_rows);
+    let accepted_semantic_summary =
+        accepted_semantic_summary_from_step_rows(&step_rows, "accepted split-collapse churn")?;
 
     Ok(MilestoneThreeSplitCollapseRun {
         primitive_family,
         primitive,
-        mutation_families: topology_mutation_families_for_declarations(declarations.clone()),
-        topology_mutation_digest: aggregate_topology_mutation_digest_for_declarations(
-            declarations.clone(),
-        ),
-        naming_mutation_continuity_matrix:
-            aggregate_naming_mutation_continuity_matrix_for_declarations(declarations),
+        declared_mutation_synopsis,
+        accepted_semantic_summary,
         step_rows,
         baseline_materialized_topology_digest,
         final_materialized_topology_digest,
         derived_validation_report,
         derived_materialization_fallback_class: collapse_execution
-            .materialized
+            .materialized()
             .report()
             .fallback_class,
         witness: MilestoneThreeSplitCollapseChurnWitness {
@@ -207,7 +197,7 @@ where
             moved_half_edge_identities,
             retained_half_edge_identities,
             split_step_wire_count,
-            final_wire_count: collapse_execution.materialized.topology().wires.len(),
+            final_wire_count: collapse_execution.materialized().topology().wires.len(),
         },
     })
 }

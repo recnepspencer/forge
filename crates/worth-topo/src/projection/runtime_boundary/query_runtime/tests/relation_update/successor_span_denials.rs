@@ -1,4 +1,4 @@
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::super::query_runtime_support::QueryRuntimeSupport;
 use super::successor_span_declaration::{
@@ -8,13 +8,14 @@ use crate::certification::support::declaration_runtime::current_head_unsupported
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::TopologyMutationFamily;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
 fn current_head_runtime_denies_cross_loop_two_half_edge_span_relocation_program() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-mutation-rewire-successor-span-cross-loop",
         &MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },
@@ -49,7 +50,7 @@ fn current_head_runtime_denies_cross_loop_two_half_edge_span_relocation_program(
 #[test]
 fn current_head_runtime_denies_degenerate_two_half_edge_span_relocation_before_current_successor() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-mutation-rewire-successor-span-degenerate",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
@@ -87,7 +88,7 @@ fn current_head_runtime_denies_degenerate_two_half_edge_span_relocation_before_c
 #[test]
 fn current_head_runtime_denies_three_half_edge_span_relocation_before_internal_member() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-mutation-rewire-successor-three-span-internal",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },

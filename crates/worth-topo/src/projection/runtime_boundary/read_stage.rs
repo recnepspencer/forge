@@ -1,14 +1,20 @@
+#[cfg(test)]
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
+#[cfg(test)]
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
+#[cfg(test)]
 use crate::facade::{
     interpret_topology_view, validate_interpreted_topology, InterpretedTopologyView,
     MaterializedTopologyView, TopologyMaterializationError, TopologyMaterializer,
     TopologyValidationError,
 };
+#[cfg(not(test))]
+use crate::facade::{TopologyMaterializationError, TopologyValidationError};
 
 #[derive(Debug)]
 pub(crate) enum TopologyReadStageError {
+    #[cfg(test)]
     ReadView(String),
     Materialization(TopologyMaterializationError),
     Validation(TopologyValidationError),
@@ -17,6 +23,7 @@ pub(crate) enum TopologyReadStageError {
 impl std::fmt::Display for TopologyReadStageError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            #[cfg(test)]
             Self::ReadView(error) => write!(f, "read view: {error}"),
             Self::Materialization(error) => write!(f, "materialization: {error}"),
             Self::Validation(error) => write!(f, "validation: {error}"),
@@ -38,6 +45,7 @@ impl From<TopologyValidationError> for TopologyReadStageError {
     }
 }
 
+#[cfg(test)]
 #[derive(Debug, Clone)]
 pub(crate) struct StagedTopologyRead {
     materialized: MaterializedTopologyView,
@@ -45,6 +53,7 @@ pub(crate) struct StagedTopologyRead {
     validation: crate::validation::DerivedTopologyValidationReport,
 }
 
+#[cfg(test)]
 impl StagedTopologyRead {
     pub(crate) fn materialized(&self) -> &MaterializedTopologyView {
         &self.materialized
@@ -59,6 +68,7 @@ impl StagedTopologyRead {
     }
 }
 
+#[cfg(test)]
 pub(crate) fn open_topology_read_view(
     runtime: &RelationalRuntime,
     basis: &DerivedTopologyReadBasis,
@@ -74,6 +84,7 @@ pub(crate) fn open_topology_read_view(
         })
 }
 
+#[cfg(test)]
 pub(crate) fn stage_topology_read_from_view(
     read_view: &RelationalReadView,
 ) -> Result<StagedTopologyRead, TopologyReadStageError> {

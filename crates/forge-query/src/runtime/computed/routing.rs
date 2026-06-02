@@ -90,7 +90,7 @@ pub(in crate::runtime) fn route_derived_view_patches(
     let mut considered_view_count = 0;
     let mut candidates = dependency_index.live_candidates(candidate_live_view_names);
     let mut emitted_by_view: BTreeMap<String, Vec<ForgeQueryDerivedPatch>> = BTreeMap::new();
-    let mutation = ForgeQueryRetainedMutationContext::new(
+    let refresh = ForgeQueryRetainedRefreshContext::from_mutation(
         receipt.commit_identity.clone(),
         receipt.snapshot_token.clone(),
         receipt
@@ -124,7 +124,7 @@ pub(in crate::runtime) fn route_derived_view_patches(
                 maintainer
                     .refresh_from_upstreams(
                         &view.declaration,
-                        &mutation,
+                        &refresh,
                         &upstreams,
                         &mut view.materialization,
                     )

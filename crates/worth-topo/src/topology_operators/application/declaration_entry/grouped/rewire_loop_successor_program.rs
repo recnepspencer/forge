@@ -15,7 +15,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         bindings: &TopologyQueryBindingIndex,
         mode: TopologyMutationApplicationMode,
     ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
-        orchestrate_topology_declaration_entry(
+        let retained_handoff = orchestrate_topology_declaration_entry(
             TopologyMutationFamily::RewireLoopSuccessor,
             declaration.clone(),
         )?;
@@ -23,6 +23,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let sequence = declaration.into_mutation_sequence();
         self.execute_composed_loop_successor_program(
             TopologyRewireLoopSuccessorProgramDeclaration::SEMANTIC_FAMILY_KEY,
+            retained_handoff,
             mode,
             sequence,
             bindings,

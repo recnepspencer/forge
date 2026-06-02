@@ -1,14 +1,14 @@
+use crate::certification::support::commit_certification_input::TopologyCommitCertificationInput;
 use forge_relational::facade::runtime::RelationalRuntime;
 
 use crate::certification::{
     MilestoneOneCertificationError, MilestoneOneCertificationHarness,
     MilestoneOneCertificationReport,
 };
-use crate::committed_artifact::TopologyCommittedArtifact;
 
-pub(crate) fn certified_verified_commit(
+pub(crate) fn certified_topology_commit_input(
     runtime: &mut RelationalRuntime,
-    verified: &TopologyCommittedArtifact,
+    commit_input: &TopologyCommitCertificationInput,
 ) -> Result<MilestoneOneCertificationReport, MilestoneOneCertificationError> {
-    MilestoneOneCertificationHarness::certify_verified_commit(runtime, verified)
+    MilestoneOneCertificationHarness::certify_commit_input(runtime, commit_input)
 }

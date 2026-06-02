@@ -6,12 +6,10 @@ use forge_query::facade::{
 
 use crate::construction::authoring::{
     primitive_construction_authoring, PrimitiveConstructionAuthorityChainReport,
-    WorthKernelAuthorityError,
+    PrimitiveConstructionQueryEntryError, WorthKernelAuthorityError,
 };
 use crate::construction::digest::digest_owned_parts;
-use crate::construction::outcome::{
-    prepare_primitive_construction_outcome, PrimitiveConstructionPreparedOutcome,
-};
+use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
 use crate::construction::realization_truth::PrimitiveConstructionRuntimeRealizationTruth;
 use crate::construction::{PrimitiveConstructionFamily, PrimitiveConstructionIntent};
 use worth_geom::facade::{
@@ -197,6 +195,7 @@ impl PrimitiveConstructionBranchPreviewRuntimeReport {
 #[derive(Debug)]
 pub enum PrimitiveConstructionRuntimeBasisError {
     Authority(WorthKernelAuthorityError),
+    QueryEntry(PrimitiveConstructionQueryEntryError),
     QueryRuntime(ForgeQueryRuntimeError),
 }
 
@@ -204,6 +203,7 @@ impl std::fmt::Display for PrimitiveConstructionRuntimeBasisError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Authority(error) => write!(f, "{error:?}"),
+            Self::QueryEntry(error) => write!(f, "{error}"),
             Self::QueryRuntime(error) => write!(f, "{error}"),
         }
     }
@@ -228,7 +228,13 @@ pub fn prepare_primitive_construction_branch_preview_runtime_report(
         .map_err(PrimitiveConstructionRuntimeBasisError::QueryRuntime)?
         .contract_digest()
         .to_string();
-    let outcome = prepare_primitive_construction_outcome(intent);
+    let outcome = {
+        let mut session = primitive_construction_authoring(workspace)
+            .map_err(PrimitiveConstructionRuntimeBasisError::Authority)?;
+        session
+            .prepare_outcome(intent)
+            .map_err(PrimitiveConstructionRuntimeBasisError::QueryEntry)?
+    };
     let realization_truth = PrimitiveConstructionRuntimeRealizationTruth::from_outcome(&outcome);
     let preview_lane = {
         let preview = workspace

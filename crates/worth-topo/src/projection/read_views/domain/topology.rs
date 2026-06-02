@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 
 use super::error::TopologyDomainQueryError;
-use crate::projection::diagnostic_surfaces::read_proof::fallback::TopologyDomainQueryFallbackPosture;
-use crate::projection::diagnostic_surfaces::read_proof::ledger::TopologyDomainQueryProofLedger;
-use crate::projection::diagnostic_surfaces::read_proof::report::{
+use crate::projection::read_views::domain::read_proof::fallback::TopologyDomainQueryFallbackPosture;
+use crate::projection::read_views::domain::read_proof::ledger::TopologyDomainQueryProofLedger;
+use crate::projection::read_views::domain::read_proof::report::{
     TopologyDomainQueryAggregateReport, TopologyDomainQueryRequestFamily,
     TopologyDomainQueryRequestReport,
 };

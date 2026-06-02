@@ -1,12 +1,9 @@
-use forge_query::facade::{
-    ForgeQueryDeclarationEntryOrchestrationChecked,
-    ForgeQueryDeclarationEntryOrchestrationTerminalError,
-};
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 
 use super::super::support::{current_head_query_handle, snapshot_query_handle};
 use crate::facade::{
-    LoopSuccessorKind, TopologyLoopSuccessorRewireMember,
+    LoopSuccessorKind, TopologyLoopSuccessorRewireMember, TopologyOperatorEnvelopeChecked,
+    TopologyOperatorEnvelopeTerminalError, TopologyOperatorWorkflowHandleExt,
     TopologyRewireLoopSuccessorProgramDeclaration,
 };
 
@@ -15,19 +12,19 @@ fn current_head_handle_orchestrates_loop_successor_program_declaration_across_al
     let handle = current_head_query_handle();
     let declaration = successor_program_declaration();
     let ordinary = handle
-        .orchestrate_declaration_entry(declaration.clone())
+        .orchestrate_topology_operator_envelope(declaration.clone())
         .unwrap_or_else(|_| panic!("current-head successor declaration should envelope"));
-    let checked = handle.orchestrate_declaration_entry_checked(declaration.clone());
-    let proof = handle.orchestrate_declaration_entry_proof(declaration);
+    let checked = handle.orchestrate_topology_operator_envelope_checked(declaration.clone());
+    let proof = handle.orchestrate_topology_operator_envelope_proof(declaration);
 
     match checked {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped checked successor declaration"),
     }
     match proof.outcome() {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped proof successor declaration"),
@@ -39,16 +36,16 @@ fn snapshot_handle_does_not_envelope_loop_successor_program_declaration() {
     let handle = snapshot_query_handle();
     let declaration = successor_program_declaration();
 
-    let ordinary = handle.orchestrate_declaration_entry(declaration.clone());
-    let checked = handle.orchestrate_declaration_entry_checked(declaration);
+    let ordinary = handle.orchestrate_topology_operator_envelope(declaration.clone());
+    let checked = handle.orchestrate_topology_operator_envelope_checked(declaration);
 
     assert!(matches!(
         ordinary,
-        Err(ForgeQueryDeclarationEntryOrchestrationTerminalError::RebindRequired(_))
+        Err(TopologyOperatorEnvelopeTerminalError::RebindRequired(_))
     ));
     assert!(matches!(
         checked,
-        ForgeQueryDeclarationEntryOrchestrationChecked::RebindRequired(_)
+        TopologyOperatorEnvelopeChecked::RebindRequired(_)
     ));
 }
 

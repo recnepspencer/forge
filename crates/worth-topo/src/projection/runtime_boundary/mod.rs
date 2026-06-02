@@ -4,6 +4,4 @@ pub(crate) mod query_runtime;
 pub(crate) mod query_support;
 pub(crate) mod read_execution;
 pub(crate) mod read_lowering;
-
-#[cfg(test)]
 pub(crate) mod read_stage;

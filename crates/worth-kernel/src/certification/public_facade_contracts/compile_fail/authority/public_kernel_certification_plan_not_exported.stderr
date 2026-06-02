@@ -2,7 +2,4 @@ error[E0432]: unresolved import `worth_kernel::facade::PrimitiveConstructionCert
  --> src/certification/public_facade_contracts/compile_fail/authority/public_kernel_certification_plan_not_exported.rs:1:5
   |
 1 | use worth_kernel::facade::PrimitiveConstructionCertificationPlan;
-  |     ^^^^^^^^^^^^^^^^^^^^^^--------------------------------------
-  |     |                     |
-  |     |                     help: a similar name exists in the module: `PrimitiveConstructionArtifactError`
-  |     no `PrimitiveConstructionCertificationPlan` in `facade`
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionCertificationPlan` in `facade`

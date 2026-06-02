@@ -17,8 +17,6 @@ error[E0432]: unresolved imports `worth_kernel::facade::authoring::construction:
   |
   = help: consider importing this struct instead:
           worth_kernel::facade::diagnostics::query::PrimitiveConstructionAuthorityChainReport
-  = help: consider importing this enum instead:
-          worth_kernel::facade::outcome::execution::PrimitiveConstructionExecutionError
   = help: consider importing this struct instead:
           worth_kernel::facade::certification::corpus::PrimitiveConstructionFamilyBoundaryReport
   = help: consider importing this struct instead:
@@ -31,7 +29,7 @@ help: a similar name exists in the module
 help: a similar name exists in the module
   |
 3 -         PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionExecutionError,
-3 +         PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionArtifactError,
+3 +         PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionPhaseError,
   |
 help: a similar name exists in the module
   |

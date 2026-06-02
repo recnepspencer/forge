@@ -8,10 +8,11 @@ use crate::projection::read_views::domain::report::{
 use crate::query_domain::{
     TopologyCurrentHeadReadHandleExt, TopologySnapshotReadOnlyReadHandleExt,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::{ForgeQueryReadBuiltInOperator, ForgeQueryReadScopeClass};
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 #[test]
 fn topology_read_reports_request_only_posture() {
@@ -279,7 +280,7 @@ fn topology_read_moves_loop_cycle_onto_query_runtime_without_decode_debt() {
 fn snapshot_topology_read_uses_historical_basis_context_receipt() {
     let stem = "query.topology-read.snapshot-loop-cycle";
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         stem,
         &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 5 },
@@ -365,7 +366,8 @@ fn seeded_workspace(
     TopologyDeclaredQuerySurfaces,
 ) {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(&mut runtime, stem, &primitive).expect("seed primitive");
+    seed_milestone_one_primitive_through_schema_execution(&mut runtime, stem, &primitive)
+        .expect("seed primitive");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, &format!("{stem}.runtime")).expect(" topology runtime");

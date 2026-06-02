@@ -3,9 +3,9 @@ use crate::projection::runtime_boundary::query_runtime::{
     TopologyQueryMutationLaneSupportStatus, TopologyRuntimeAdapters,
     TopologyRuntimePostureCapability, TopologyRuntimePostureStatus,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::{ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus};
-use schema::facade::topology_authoring::seed_minimal_topology;
 
 #[test]
 fn current_head_runtime_support_reports_authoritative_current_head_posture() {
@@ -16,6 +16,7 @@ fn current_head_runtime_support_reports_authoritative_current_head_posture() {
     for capability in [
         TopologyRuntimePostureCapability::CurrentHeadLiveReads,
         TopologyRuntimePostureCapability::PostWriteMaterialization,
+        TopologyRuntimePostureCapability::BranchPreviewBasis,
         TopologyRuntimePostureCapability::AuthoritativeWrites,
     ] {
         assert_eq!(
@@ -26,6 +27,8 @@ fn current_head_runtime_support_reports_authoritative_current_head_posture() {
     for capability in [
         TopologyRuntimePostureCapability::CurrentHeadMaterialization,
         TopologyRuntimePostureCapability::HistoricalBasis,
+        TopologyRuntimePostureCapability::BranchLocalIntentStaging,
+        TopologyRuntimePostureCapability::BranchLocalDeclarationExecution,
     ] {
         assert_eq!(
             support.runtime_posture_status(capability),
@@ -89,7 +92,8 @@ fn current_head_runtime_support_reports_authoritative_current_head_posture() {
 #[test]
 fn current_head_runtime_reads_seeded_topology_without_query_import() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_minimal_topology(&mut runtime, "query-runtime").expect("seed topology");
+    seed_minimal_topology_through_schema_execution(&mut runtime, "query-runtime")
+        .expect("seed topology");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace = topology_runtime(adapters, ".current-head.runtime").expect("workspace");
     let surfaces =
@@ -175,7 +179,8 @@ fn current_head_runtime_denies_unsupported_insert_collections() {
 fn snapshot_read_only_runtime_support_reports_historical_read_only_posture() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     let seeded =
-        seed_minimal_topology(&mut runtime, "query-runtime-snapshot").expect("seed topology");
+        seed_minimal_topology_through_schema_execution(&mut runtime, "query-runtime-snapshot")
+            .expect("seed topology");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&seeded.snapshot)
@@ -198,6 +203,16 @@ fn snapshot_read_only_runtime_support_reports_historical_read_only_posture() {
         support.runtime_posture_status(TopologyRuntimePostureCapability::HistoricalBasis),
         TopologyRuntimePostureStatus::Admitted
     );
+    for capability in [
+        TopologyRuntimePostureCapability::BranchPreviewBasis,
+        TopologyRuntimePostureCapability::BranchLocalIntentStaging,
+        TopologyRuntimePostureCapability::BranchLocalDeclarationExecution,
+    ] {
+        assert_eq!(
+            support.runtime_posture_status(capability),
+            TopologyRuntimePostureStatus::Denied
+        );
+    }
     assert!(support
         .query_mutation_lane_support_rows()
         .iter()
@@ -236,10 +251,46 @@ fn snapshot_read_only_runtime_support_reports_historical_read_only_posture() {
 }
 
 #[test]
+fn current_head_runtime_support_profile_reports_branch_sessions_without_branch_intent_or_topology_declaration_execution(
+) {
+    let runtime = build_milestone_one_runtime().expect(" runtime");
+    let adapters = TopologyRuntimeAdapters::current_head(runtime);
+    let support = adapters.support();
+    let support_profile = support.support_profile();
+    let preview_support = support_profile
+        .support_for(ForgeQueryRuntimeFacadeFamily::BranchPreview)
+        .expect("current-head preview support row should exist");
+
+    assert_eq!(
+        preview_support.status(),
+        ForgeQueryRuntimeFamilySupportStatus::Supported
+    );
+    assert!(preview_support
+        .evidence()
+        .iter()
+        .any(|entry| entry == "topology-current-head-preview-basis"));
+    assert!(!preview_support
+        .evidence()
+        .iter()
+        .any(|entry| entry == "topology-current-head-branch-intent-staging"));
+    assert_eq!(
+        support.runtime_posture_status(TopologyRuntimePostureCapability::BranchLocalIntentStaging),
+        TopologyRuntimePostureStatus::Denied
+    );
+    assert_eq!(
+        support.runtime_posture_status(
+            TopologyRuntimePostureCapability::BranchLocalDeclarationExecution
+        ),
+        TopologyRuntimePostureStatus::Denied
+    );
+}
+
+#[test]
 fn snapshot_read_only_runtime_reads_seeded_topology_and_denies_writes() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
     let seeded =
-        seed_minimal_topology(&mut runtime, "query-runtime-snapshot").expect("seed topology");
+        seed_minimal_topology_through_schema_execution(&mut runtime, "query-runtime-snapshot")
+            .expect("seed topology");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&seeded.snapshot)

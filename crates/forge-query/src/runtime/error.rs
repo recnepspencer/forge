@@ -35,6 +35,11 @@ pub enum ForgeQueryRuntimeError {
     MissingDerivedView(String),
     MissingEffect(String),
     MissingPendingWriteIntent(String),
+    RetainedRowDecode {
+        view_name: String,
+        stage: &'static str,
+        message: String,
+    },
     ComputedDeclaration {
         view_name: String,
         stage: &'static str,
@@ -159,6 +164,14 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
             Self::MissingPendingWriteIntent(effect) => {
                 write!(f, "effect `{effect}` has no pending write intent delivery")
             }
+            Self::RetainedRowDecode {
+                view_name,
+                stage,
+                message,
+            } => write!(
+                f,
+                "retained row decode for `{view_name}` failed during {stage}: {message}"
+            ),
             Self::ComputedDeclaration {
                 view_name,
                 stage,

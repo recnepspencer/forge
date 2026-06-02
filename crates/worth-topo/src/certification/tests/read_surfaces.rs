@@ -1,6 +1,6 @@
 use super::*;
 use crate::certification::support::parity::build_derived_equivalence_contract;
-use crate::facade::build_derived_read_diagnostics;
+use crate::projection::diagnostic_surfaces::derived_read_diagnostics::build_derived_read_diagnostics;
 use crate::projection::runtime_boundary::read_stage::stage_topology_read_from_view;
 
 #[test]
@@ -32,6 +32,12 @@ fn seeded_bootstrap_earns_milestone_one_certification_report() {
         schema::facade::platform::authority::MutationOrigin::Seed
     );
     assert!(!report.branch_local_topology_report.branch_local);
+    assert_eq!(
+        report
+            .branch_local_topology_report
+            .branch_authoring_boundary,
+        None
+    );
     assert_eq!(report.branch_local_topology_report.branch_id.0, "main");
     assert_eq!(
         report.milestone_1_replay_parity_report.parity_status,

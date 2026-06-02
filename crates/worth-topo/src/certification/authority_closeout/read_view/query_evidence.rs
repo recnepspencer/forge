@@ -1,44 +1,6 @@
 use super::*;
 use crate::certification::{TraceAvailability, TraceWarning};
 
-pub(super) fn ensure_query_surface_ready(
-    surface_name: &str,
-    state: &forge_query::facade::ForgeQueryRuntimeStateSnapshot,
-) -> Result<(), MilestoneOneCertificationError> {
-    if state.kind() != ForgeQueryRuntimeStateKind::Ready {
-        return Err(MilestoneOneCertificationError::Query(format!(
-            "query certification surface `{surface_name}` is `{}` instead of `ready`: {}",
-            state.kind(),
-            state.explanation()
-        )));
-    }
-    Ok(())
-}
-
-pub(super) fn derived_query_inspection<T>(
-    workspace: &mut forge_query::facade::ForgeQueryWorkspace,
-    view: &forge_query::facade::ForgeQueryDerivedViewHandle<T>,
-    expected_name: &str,
-) -> Result<ForgeQueryComputedInspectionEvidence, MilestoneOneCertificationError> {
-    match workspace
-        .inspect(view)
-        .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?
-    {
-        ForgeQueryInspection::DerivedView(inspection) => {
-            if inspection.name() != expected_name {
-                return Err(MilestoneOneCertificationError::Query(format!(
-                    "query inspection returned derived surface `{}` while `{expected_name}` was expected",
-                    inspection.name()
-                )));
-            }
-            Ok(inspection)
-        }
-        other => Err(MilestoneOneCertificationError::Query(format!(
-            "query inspection for `{expected_name}` returned wrong artifact family: {other:?}"
-        ))),
-    }
-}
-
 pub(super) fn traced_certification_envelope(
     report: MilestoneOneCertificationReport,
     read_basis: &DerivedTopologyReadBasis,

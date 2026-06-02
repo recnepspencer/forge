@@ -70,6 +70,48 @@ Good to know:
 - that admitted family is the public basis-observation entry point when you
   need one scoped basis artifact directly instead of a full basis-bound query
   execution
+- basis-aware runtimes may also attach historical-basis metadata to
+  declaration-time whole-refresh computed initialization, so retained derived
+  surfaces can seed honestly from one admitted historical basis without
+  caller-side reconstruction
+- once those retained derived rows exist, downstream crates should consume them
+  through the admitted materialization floor rather than reopening raw row
+  archaeology; `materialize_intent(...).execute().decode_single_row::<T>()`
+  is the preferred retained-artifact seam for one typed historical computed row
+- when one historical step needs a coherent retained artifact across several
+  computed surfaces from the same admitted basis, downstream crates should use
+  `materialize_derived_artifact_bundle(...)` instead of rebuilding that pack
+  through repeated local materialization loops
+  - when that historical pack also needs exact artifact identity over a specific
+  set of retained computed surfaces, downstream crates should bind the bundle
+  through `bind_retained_artifact(...)` so the runtime owns the target-set
+  contract and artifact digest
+  - when the caller already knows the historical step is one exact named
+  retained artifact, prefer `materialize_derived_artifact_binding(...)` so the
+  runtime owns both materialization and binding in one seam
+- when a historical proof or comparison step needs only scalar basis evidence
+  from one retained derived row, downstream crates should cross
+  `consume_scalar_fields(...)` on that retained artifact binding instead of
+  decoding the whole row and reopening nested fields locally
+- when a historical proof or comparison step needs a small typed pack from one
+  retained artifact, downstream crates should cross `decode_row_pair(...)` or
+  `decode_row_triple(...)` on that retained artifact binding instead of
+  repeating separate local single-row decode choreography
+- when a historical proof or comparison step needs to prove scalar
+  correspondence across two retained rows inside one named artifact,
+  downstream crates should cross `verify_scalar_alignment(...)` on that
+  retained artifact binding instead of extracting both scalar fact sets and
+  comparing them locally
+- when a historical proof or comparison step still needs several live rows from
+  one coherent historical snapshot, downstream crates should cross
+  `read_live_artifact_bundle(...)` instead of rebuilding that pack through
+  repeated local `read(...)` calls
+  - when that live historical pack also needs exact artifact identity over a
+    specific set of live views, downstream crates should bind the bundle
+    through `bind_live_artifact(...)`
+  - when the caller already knows the historical step is one exact named live
+    artifact, prefer `read_live_artifact_binding(...)` so the runtime owns both
+    live-read materialization and binding in one seam
 
 ## How It Executes
 
@@ -86,6 +128,25 @@ Historical path work adds another explicit layer:
 - admit the requested historical path
 - resolve the materialization path
 - preserve cost, reconstruction, replay-span, and reuse posture in the result
+
+One more runtime consequence matters for downstream crates that declare
+maintained computed surfaces over historical truth:
+
+- when the runtime already has retained upstream rows for an admitted
+  historical basis, declaration-time whole-refresh computeds can materialize
+  immediately
+- the runtime carries that historical-basis metadata through retained refresh
+  context instead of asking the maintainer or caller to rediscover it from raw
+  rows
+- downstream callers that need one typed retained historical row should cross
+  the admitted derived-materialization artifact instead of combining
+  `workspace.materialize(...)` with local decode helpers
+- downstream callers that need several typed retained historical computed rows
+  from one admitted basis should cross the retained derived-materialization
+  bundle artifact instead of assembling the pack locally
+- downstream callers that need only retained scalar basis evidence from one
+  admitted historical derived row should cross the retained scalar fact set
+  artifact instead of rebuilding that evidence from decoded structs
 
 ## Small Example
 

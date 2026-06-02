@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `topology::facade::prepare_primitive_construction_certification`
+ --> src/certification/public_facade_contracts/compile_fail/public_topology_construction_stepwise_certification_not_exported.rs:1:5
+  |
+1 | use topology::facade::prepare_primitive_construction_certification;
+  |     ^^^^^^^^^^^^^^^^^^--------------------------------------------
+  |     |                 |
+  |     |                 help: a similar name exists in the module: `prepare_primitive_construction_query_receipt`
+  |     no `prepare_primitive_construction_certification` in `facade`

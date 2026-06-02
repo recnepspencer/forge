@@ -1,7 +1,6 @@
-use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::entities::TopologyEntityKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::super::mutation_sequence_support::{
     aggregate_topology_mutation_digest_for_declarations, closeout_mutation_plan_for_declaration,
@@ -11,8 +10,14 @@ use super::scale_pressure_types::{
     MilestoneThreeScalePressureRow, MilestoneThreeScalePressureSweep,
 };
 use crate::certification::error::TopologyCertificationError;
-use crate::certification::shared::{digest_rows, primitive_family_name};
-use crate::test_support::topology_commit::commit_topology_intent_on_branch;
+use crate::certification::shared::primitive_family_name;
+use crate::certification::TopologyBranchAuthoringBoundary;
+use crate::test_support::schema_topology_authoring_boundary::{
+    commit_topology_intent_on_branch_through_schema_execution,
+    open_schema_topology_authoring_branch_execution,
+    seed_milestone_one_primitive_through_schema_execution,
+    SchemaTopologyAuthoringBranchExecutionLedger,
+};
 use crate::topology_operators::{
     TopologyCreateTopologyEntityDeclaration, TopologyMutationDigest, TopologyMutationFamily,
 };
@@ -43,6 +48,7 @@ where
         mutation_step_count: left.topology_mutation_digest.mutation_record_count,
         mutation_families: left.mutation_families,
         branch_local: true,
+        branch_authoring_boundary: Some(TopologyBranchAuthoringBoundary::SchemaTopologyAuthoring),
         topology_mutation_digest: left.topology_mutation_digest,
         replay_verified,
         final_state_digest: left.final_state_digest.clone(),
@@ -61,34 +67,35 @@ where
     F: FnMut() -> RelationalRuntime,
 {
     let mut runtime = runtime_factory();
-    seed_milestone_one_primitive(&mut runtime, &format!("{stem}.branch_pressure"), primitive)?;
-    let branch_id = BranchId(format!("{stem}.branch_pressure.history"));
-    runtime
-        .history_authority()
-        .create_branch(branch_id.clone(), &BranchId("main".to_string()))
-        .map_err(|error| TopologyCertificationError::Query(format!("{error:?}")))?;
-    execute_branch_local_vertex_history(runtime, branch_id, stem)
+    seed_milestone_one_primitive_through_schema_execution(
+        &mut runtime,
+        &format!("{stem}.branch_pressure"),
+        primitive,
+    )
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let branch = open_schema_topology_authoring_branch_execution(
+        &mut runtime,
+        format!("{stem}.branch_pressure.history"),
+    )
+    .map_err(TopologyCertificationError::Query)?;
+    execute_branch_local_vertex_history(runtime, branch, stem)
 }
 
 fn execute_branch_local_vertex_history(
     mut runtime: RelationalRuntime,
-    branch_id: BranchId,
+    mut branch_execution: SchemaTopologyAuthoringBranchExecutionLedger,
     stem: &str,
 ) -> Result<BranchHistoryExecution, TopologyCertificationError> {
     let mut declarations = Vec::new();
-    let mut truth_digest_rows = Vec::new();
     for step in 0..large_branch_history_step_count() {
         let declaration = branch_local_vertex_creation_declaration(stem, step);
         let plan = closeout_mutation_plan_for_declaration(declaration.clone());
-        let verified =
-            commit_topology_intent_on_branch(&mut runtime, plan.raw_intent, branch_id.clone())
-                .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-        truth_digest_rows.extend(
-            verified
-                .mutations()
-                .iter()
-                .map(|mutation| serde_json::to_string(mutation).expect("mutation serializes")),
-        );
+        let _commit_input = commit_topology_intent_on_branch_through_schema_execution(
+            &mut runtime,
+            &mut branch_execution,
+            plan.raw_intent,
+        )
+        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
         declarations.push(declaration);
     }
     Ok(BranchHistoryExecution {
@@ -96,7 +103,7 @@ fn execute_branch_local_vertex_history(
             declarations.clone(),
         ),
         mutation_families: topology_mutation_families_for_declarations(declarations),
-        final_state_digest: digest_rows(truth_digest_rows.into_iter()).digest_hex,
+        final_state_digest: branch_execution.branch_truth_digest().digest_hex,
     })
 }
 
@@ -116,8 +123,9 @@ fn large_branch_history_step_count() -> usize {
 
 fn branch_history_row_digest(replay_verified: bool) -> String {
     format!(
-        "scale_pressure={};replay_verified={replay_verified};workload_size={}",
+        "scale_pressure={};boundary={};replay_verified={replay_verified};workload_size={}",
         MilestoneThreeScalePressureSweep::LargeBranchLocalHistories.as_str(),
+        TopologyBranchAuthoringBoundary::SchemaTopologyAuthoring.as_str(),
         large_branch_history_step_count()
     )
 }
