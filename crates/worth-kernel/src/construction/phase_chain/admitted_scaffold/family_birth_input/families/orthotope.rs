@@ -7,7 +7,8 @@ use super::super::scalar_admission::decode_positive_triplet;
 use super::super::topology_counts::PrimitiveConstructionTopologyCounts;
 use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
 use worth_geom::facade::realize_block_support;
-use worth_spatial::facade::{AdmittedSpatialPlacement, PrimitiveConstructionBirthScaffoldInput};
+use worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldInput;
+use worth_spatial::facade::placement::AdmittedSpatialPlacement;
 
 struct AdmittedOrthotopeBirthParameters {
     half_extents: [f64; 3],

@@ -1,8 +1,10 @@
 pub use crate::construction::{
-    primitive_construction_authoring, CanonicalPrimitiveConstructionArtifact, OrthotopeSpec,
-    PrimitiveConstructionAuthoringSession, PrimitiveConstructionFamily,
-    PrimitiveConstructionIntent, PrimitiveConstructionPhaseError,
-    PrimitiveConstructionQueryEntryError, PrimitiveConstructionRequest, RegularPrismSpec,
-    RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec, WireBodySpec,
-    WorthKernelAuthorityError,
+    primitive_construction_authoring, OrthotopeSpec, PrimitiveConstructionAuthoringEntry,
+    PrimitiveConstructionAuthoringInput, PrimitiveConstructionAuthoringSession,
+    PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionCatalogAuthoringInput,
+    PrimitiveConstructionFamily, PrimitiveConstructionIntent, PrimitiveConstructionPhaseError,
+    PrimitiveConstructionQueryEntryError, PrimitiveConstructionRequest,
+    PrimitiveConstructionRuntimeBasisError, PrimitiveConstructionRuntimeBasisLaneReport,
+    PrimitiveConstructionSpatialIntentError, RegularPrismSpec, RegularPyramidSpec,
+    ShellWithHoleSpec, SimplexSolidSpec, WireBodySpec, WorthKernelAuthorityError,
 };

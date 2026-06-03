@@ -3,7 +3,7 @@ use topology::facade::{milestone_one_runtime_builder, topology_runtime, Topology
 use worth_kernel::facade::{
     authoring::{intents::*, policy::*},
     certification::{continuity::*, query::*},
-    diagnostics::{arbitration::*, continuity::*, preview::*},
+    diagnostics::{arbitration::*, continuity::*},
 };
 
 #[test]
@@ -38,7 +38,7 @@ fn kernel_public_facade_exports_continuity_surface_and_query_parity() {
 fn kernel_public_facade_exports_continuity_hostility_suite_and_preview_inspection() {
     let suite = prepare_primitive_construction_continuity_hostility_suite_report()
         .expect("continuity suite");
-    let preview = PrimitiveIntentPreview::analyze_with_capabilities(
+    let preview = PrimitiveIntentPreviewAssessment::analyze_with_capabilities(
         SpatialAuthoredActKind::Move,
         &[SpatialObservedRelationFact::GrazingContact],
         SpatialIntentCapabilitySet::blocked_defaults(),
@@ -90,7 +90,7 @@ fn kernel_public_facade_exports_continuity_replay_and_branch_runtime_surface() {
 }
 
 #[test]
-fn kernel_public_facade_exports_continuity_bundle_surfaces() {
+fn kernel_public_facade_exports_continuity_hostility_surface_without_bundle_lane() {
     let runtime = milestone_one_runtime_builder()
         .expect("runtime builder")
         .build();
@@ -99,20 +99,19 @@ fn kernel_public_facade_exports_continuity_bundle_surfaces() {
         "worth-kernel.public-continuity-bundle".to_string(),
     )
     .expect("workspace");
-    let direct = prepare_primitive_construction_continuity_report_bundle(
-        &mut workspace,
-        PrimitiveConstructionContinuityCase::GrazingSnapAnchorContinuity,
-    )
-    .expect("direct bundle");
     let suite = prepare_primitive_construction_continuity_hostility_suite_report()
         .expect("continuity suite");
-    let reused = prepare_primitive_construction_continuity_bundle_from_hostility_suite(
-        &suite,
-        &mut workspace,
-        PrimitiveConstructionContinuityCase::OverlapBlockedPendingChoice,
-    )
-    .expect("reused bundle");
+    let report = prepare_primitive_construction_continuity_surface_report().expect("report");
+    let query =
+        prepare_primitive_construction_query_continuity_projection_consumption_receipt_report(
+            &mut workspace,
+            report
+                .row(PrimitiveConstructionContinuityCase::OverlapBlockedPendingChoice)
+                .expect("continuity row")
+                .clone(),
+        )
+        .expect("query");
 
-    assert!(direct.parity_verified());
-    assert!(reused.parity_verified());
+    assert!(suite.suite_verified());
+    assert!(query.parity_verified());
 }

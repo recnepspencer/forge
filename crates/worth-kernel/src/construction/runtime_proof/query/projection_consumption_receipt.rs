@@ -15,8 +15,8 @@ use crate::construction::authoring::{
     WorthKernelAuthorityError,
 };
 use crate::construction::digest::digest_owned_parts;
-use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::realization_truth::PrimitiveConstructionRuntimeRealizationTruth;
+use crate::construction::PrimitiveConstructionAuthoringInput;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionQueryProjectionConsumptionReceiptReport {
     family: crate::construction::request::PrimitiveConstructionFamily,
@@ -40,13 +40,9 @@ impl PrimitiveConstructionQueryProjectionConsumptionReceiptReport {
         query_contract_digest: String,
         prepared: &crate::construction::result::PreparedPrimitiveConstructionResult,
     ) -> Self {
-        let artifact = prepared.canonical_artifact();
-        let topology_query_envelope = prepared
-            .evidence()
-            .topology_query_handoff()
-            .topology_query_envelope();
+        let topology_query_envelope = prepared.topology_query_handoff().topology_query_envelope();
         let realization_truth =
-            PrimitiveConstructionRuntimeRealizationTruth::from_artifact(artifact);
+            PrimitiveConstructionRuntimeRealizationTruth::from_prepared_result(prepared);
         let parity_verified = topology_query_envelope.required_query_families()
             == [
                 ForgeQueryRuntimeFacadeFamily::Write,
@@ -58,12 +54,12 @@ impl PrimitiveConstructionQueryProjectionConsumptionReceiptReport {
                 == TopologyConstructionQueryInspectionSurface::InspectReceipt
             && topology_query_envelope.fact_provenance()
                 == TopologyConstructionQueryFactProvenance::InspectionBackedProjectionConsumption
-            && artifact.topology_fact_digest() == topology_query_envelope.fact_digest()
+            && prepared.topology_fact_digest() == topology_query_envelope.fact_digest()
             && !query_contract_digest.is_empty()
             && realization_truth.selected_strategy().is_some()
             && realization_truth.stability_class().is_some();
         let report_digest = digest_owned_parts(&[
-            artifact.family().as_str().to_string(),
+            prepared.family().as_str().to_string(),
             query_contract_digest.clone(),
             topology_query_envelope
                 .required_query_families()
@@ -84,7 +80,7 @@ impl PrimitiveConstructionQueryProjectionConsumptionReceiptReport {
             parity_verified.to_string(),
         ]);
         Self {
-            family: artifact.family(),
+            family: prepared.family(),
             query_contract_digest,
             required_query_families: topology_query_envelope.required_query_families().to_vec(),
             read_surface: topology_query_envelope.read_surface(),
@@ -179,7 +175,7 @@ impl std::error::Error for PrimitiveConstructionQueryProjectionConsumptionReceip
 
 pub fn prepare_primitive_construction_query_projection_consumption_receipt_report(
     workspace: &mut ForgeQueryWorkspace,
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: impl PrimitiveConstructionAuthoringInput,
 ) -> Result<
     PrimitiveConstructionQueryProjectionConsumptionReceiptReport,
     PrimitiveConstructionQueryProjectionConsumptionReceiptError,
@@ -193,7 +189,9 @@ pub fn prepare_primitive_construction_query_projection_consumption_receipt_repor
         let mut session = primitive_construction_authoring(workspace)
             .map_err(PrimitiveConstructionQueryProjectionConsumptionReceiptError::Authority)?;
         session
-            .prepare_result(intent)
+            .author(intent)
+            .map_err(PrimitiveConstructionQueryProjectionConsumptionReceiptError::QueryEntry)?
+            .prepare_result()
             .map_err(PrimitiveConstructionQueryProjectionConsumptionReceiptError::QueryEntry)?
     };
     Ok(

@@ -1,6 +1,5 @@
 mod anchors;
 mod lowered_intents;
-mod materialization;
 mod motion;
 mod operations;
 mod operations_errors;
@@ -8,7 +7,7 @@ mod placement;
 mod transforms;
 
 pub use lowered_intents::{
-    admit_lowered_spatial_runtime_intent, lower_admitted_anchor_match_constraint_intent,
+    lower_admitted_anchor_match_constraint_intent,
     lower_admitted_anchor_match_constraint_intent_with_catalog,
     lower_admitted_lies_on_constraint_intent,
     lower_admitted_lies_on_constraint_intent_with_catalog, lower_admitted_move_intent,
@@ -16,13 +15,7 @@ pub use lowered_intents::{
     lower_admitted_offset_intent_with_catalog, lower_admitted_points_toward_constraint_intent,
     lower_admitted_points_toward_constraint_intent_with_catalog, lower_admitted_reorient_intent,
     lower_admitted_reorient_intent_with_catalog, lower_admitted_rotate_intent,
-    lower_admitted_rotate_intent_with_catalog, LoweredSpatialIntent, LoweredSpatialIntentArtifact,
-    LoweredSpatialIntentFamily, LoweredSpatialNumericPosture, LoweredSpatialRuntimeDeclaration,
-    LoweredSpatialTargetBindingPosture, RuntimeAnchorSemantic, SpatialLoweringDenial,
-};
-pub use materialization::{
-    materialize_lowered_spatial_intent_support_report, LoweredSpatialIntentMaterializationDenial,
-    LoweredSpatialIntentMaterializationProfilePlan, LoweredSpatialIntentSupportMaterialization,
+    lower_admitted_rotate_intent_with_catalog, SpatialLoweringDenial,
 };
 pub use motion::{
     admit_spatial_move, admit_spatial_move_with_catalog, admit_spatial_offset,

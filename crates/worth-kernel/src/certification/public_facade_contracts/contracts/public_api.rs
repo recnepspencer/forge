@@ -23,3 +23,4 @@ mod public_api_reports;
 mod public_api_spatial_anchor_lowering;
 mod public_api_spatial_carrier_witnesses;
 mod public_api_spatial_intent;
+mod spatial_fixture_witness_catalog;

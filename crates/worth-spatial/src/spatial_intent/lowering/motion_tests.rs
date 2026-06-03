@@ -3,8 +3,11 @@ use super::{
     SpatialMotionError, SpatialMoveSpec, SpatialOffsetSpec, SpatialReorientSpec, SpatialRotateSpec,
 };
 use crate::facade::{
-    SpatialAnchorRef, SpatialAxis, SpatialDirectionWitnessRef, SpatialFrameRef,
-    SpatialPointWitnessRef, SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
+    refs::{
+        SpatialAnchorRef, SpatialAxis, SpatialDirectionWitnessRef, SpatialFrameRef,
+        SpatialPointWitnessRef,
+    },
+    witness_resolution::{SpatialWitnessFailureClass, SpatialWitnessResolutionClass},
 };
 
 #[test]

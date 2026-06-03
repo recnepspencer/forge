@@ -1,0 +1,7 @@
+error[E0432]: unresolved imports `worth_spatial::facade::resolve_spatial_direction_witness`, `worth_spatial::facade::resolve_spatial_point_witness`
+ --> src/certification/public_facade_contracts/compile_fail/public_spatial_top_level_witness_helpers_not_exported.rs:3:5
+  |
+3 |     resolve_spatial_direction_witness, resolve_spatial_point_witness,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `resolve_spatial_point_witness` in `facade`
+  |     |
+  |     no `resolve_spatial_direction_witness` in `facade`

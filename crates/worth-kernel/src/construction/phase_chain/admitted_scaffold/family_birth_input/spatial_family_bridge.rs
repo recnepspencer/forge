@@ -1,5 +1,5 @@
 use crate::construction::request::PrimitiveConstructionFamily;
-use worth_spatial::facade::PrimitiveConstructionBirthFamily;
+use worth_spatial::facade::bindings::PrimitiveConstructionBirthFamily;
 
 pub(super) fn to_spatial_family(
     family: PrimitiveConstructionFamily,

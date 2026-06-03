@@ -49,40 +49,6 @@ pub enum LoweredSpatialRuntimePayload {
 }
 
 impl LoweredSpatialRuntimePayload {
-    pub fn support_codes(&self) -> Vec<&'static str> {
-        let mut codes = Vec::new();
-        match self {
-            Self::Move { .. } => codes.push("worth.spatial.lowering.payload.move"),
-            Self::Offset { .. } => codes.push("worth.spatial.lowering.payload.offset"),
-            Self::RotateFacingOnly { .. } => {
-                codes.push("worth.spatial.lowering.payload.rotate_facing_only")
-            }
-            Self::RotateAroundPivot { .. } => {
-                codes.push("worth.spatial.lowering.payload.rotate_around_pivot")
-            }
-            Self::ReorientPointLike {
-                target_direction, ..
-            } => {
-                codes.push("worth.spatial.lowering.payload.reorient_point_like");
-                codes.push(target_direction.support_code());
-            }
-            Self::ReorientDirectional { .. } => {
-                codes.push("worth.spatial.lowering.payload.reorient_directional")
-            }
-            Self::LiesOnShapeOrigin { target_frame } => {
-                codes.push("worth.spatial.lowering.payload.lies_on_shape_origin");
-                codes.push(target_frame.support_code());
-            }
-            Self::LiesOnProjected { target_frame, .. } => {
-                codes.push("worth.spatial.lowering.payload.lies_on_projected");
-                codes.push(target_frame.support_code());
-            }
-            Self::PointsToward { .. } => codes.push("worth.spatial.lowering.payload.points_toward"),
-            Self::AnchorMatch { .. } => codes.push("worth.spatial.lowering.payload.anchor_match"),
-        }
-        codes
-    }
-
     pub fn to_json(&self) -> Value {
         match self {
             Self::Move {

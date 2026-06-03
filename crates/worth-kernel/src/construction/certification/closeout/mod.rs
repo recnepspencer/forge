@@ -1,8 +1,10 @@
 mod milestone_four_kernel_evidence;
 mod milestone_four_kernel_evidence_verified;
+mod milestone_four_kernel_representative_evidence;
 mod milestone_four_kernel_requirements;
 mod phase_five_boundary;
 mod phase_five_six;
+mod policy_pressure_representative_evidence;
 
 pub use milestone_four_kernel_evidence::{
     prepare_primitive_construction_milestone_four_kernel_closeout_evidence_report,
@@ -25,4 +27,8 @@ pub use phase_five_six::{
     PrimitiveConstructionPhaseFiveSixCloseoutReportError,
     PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure,
     PrimitiveConstructionPhaseFiveSixCloseoutVerificationMismatch,
+};
+pub use policy_pressure_representative_evidence::{
+    PrimitiveConstructionPolicyPressureRepresentativeEvidence,
+    PrimitiveConstructionPolicyPressureRepresentativeEvidenceError,
 };

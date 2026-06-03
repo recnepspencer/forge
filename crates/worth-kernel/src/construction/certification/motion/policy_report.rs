@@ -18,12 +18,17 @@ use crate::construction::{
     RegularPyramidSpec, WireBodySpec,
 };
 use crate::spatial_intent::{MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent};
-use worth_spatial::facade::{
+use crate::test_support::SpatialFixtureWitnessCatalog;
+use worth_spatial::facade::refs::{
     SpatialAnchorRef, SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole,
+    SpatialDirectionWitnessRef, SpatialFrameRef, SpatialPointWitnessRef,
+};
+use worth_spatial::facade::witness_catalog::{
     SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
-    SpatialCatalogWitnessResolutionClass, SpatialDirectionWitnessRef, SpatialFixtureWitnessCatalog,
-    SpatialFrameRef, SpatialPointWitnessRef, SpatialWitnessFailureClass,
-    SpatialWitnessResolutionClass,
+    SpatialCatalogWitnessResolutionClass,
+};
+use worth_spatial::facade::witness_resolution::{
+    SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

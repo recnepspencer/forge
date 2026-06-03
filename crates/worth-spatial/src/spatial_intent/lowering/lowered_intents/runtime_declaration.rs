@@ -1,15 +1,13 @@
-use forge_proof::Artifact;
 use serde_json::json;
 
 use super::runtime_payload::LoweredSpatialRuntimePayload;
 use super::runtime_targets::RuntimeDirectionWitnessTarget;
-use super::LoweredSpatialIntentPhase;
 use crate::spatial_intent::lowering::anchors::{
     LoweredDirectionAnchorOrigin, LoweredPointAnchorOrigin, LoweringAnchorDenial,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LoweredSpatialIntentFamily {
+pub(crate) enum LoweredSpatialIntentFamily {
     Move,
     Offset,
     Rotate,
@@ -20,15 +18,14 @@ pub enum LoweredSpatialIntentFamily {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LoweredSpatialNumericPosture {
+pub(crate) enum LoweredSpatialNumericPosture {
     Direct,
     Normalized,
     FallbackDerived,
-    CanonicalizedParameterSpaceBacked,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LoweredSpatialTargetBindingPosture {
+pub(crate) enum LoweredSpatialTargetBindingPosture {
     PointWitness,
     DirectionWitness,
     FrameTarget,
@@ -36,12 +33,12 @@ pub enum LoweredSpatialTargetBindingPosture {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LoweredSpatialAftermathFamily {
+pub(crate) enum LoweredSpatialAftermathFamily {
     PlacementMutation,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuntimeAnchorSemantic {
+pub(crate) enum RuntimeAnchorSemantic {
     ShapeOriginPoint,
     ExternalReferencePoint,
     FeatureOwnedPoint,
@@ -87,7 +84,7 @@ impl From<LoweringAnchorDenial> for SpatialLoweringDenial {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct LoweredSpatialRuntimeDeclaration {
+pub(crate) struct LoweredSpatialRuntimeDeclaration {
     family: LoweredSpatialIntentFamily,
     subject_anchor: Option<RuntimeAnchorSemantic>,
     target_anchor: Option<RuntimeAnchorSemantic>,
@@ -117,32 +114,14 @@ impl LoweredSpatialRuntimeDeclaration {
         }
     }
 
-    pub fn family(&self) -> LoweredSpatialIntentFamily {
+    #[cfg(test)]
+    pub(crate) fn family(&self) -> LoweredSpatialIntentFamily {
         self.family
     }
 
-    pub fn numeric_posture(&self) -> LoweredSpatialNumericPosture {
+    #[cfg(test)]
+    pub(crate) fn numeric_posture(&self) -> LoweredSpatialNumericPosture {
         self.numeric_posture
-    }
-
-    pub fn subject_anchor(&self) -> Option<RuntimeAnchorSemantic> {
-        self.subject_anchor
-    }
-
-    pub fn target_anchor(&self) -> Option<RuntimeAnchorSemantic> {
-        self.target_anchor
-    }
-
-    pub fn target_binding(&self) -> LoweredSpatialTargetBindingPosture {
-        self.target_binding
-    }
-
-    pub fn aftermath(&self) -> LoweredSpatialAftermathFamily {
-        self.aftermath
-    }
-
-    pub fn payload(&self) -> &LoweredSpatialRuntimePayload {
-        &self.payload
     }
 
     pub fn to_query_intent_declaration(&self) -> forge_query::facade::ForgeQueryIntentDeclaration {
@@ -163,7 +142,8 @@ impl LoweredSpatialRuntimeDeclaration {
         )
     }
 
-    pub fn to_query_runtime_request(
+    #[cfg(test)]
+    pub(crate) fn to_query_runtime_request(
         &self,
     ) -> Result<
         forge_query::facade::ForgeQueryRawIntentAdmissionRequest,
@@ -175,19 +155,8 @@ impl LoweredSpatialRuntimeDeclaration {
     }
 }
 
-pub fn admit_lowered_spatial_runtime_intent(
-    declaration: &LoweredSpatialRuntimeDeclaration,
-) -> Result<
-    forge_query::facade::ForgeQueryIntentAdmissionDecision,
-    forge_query::facade::ForgeQueryIntentViolationDecision,
-> {
-    declaration
-        .to_query_runtime_request()
-        .map(forge_query::facade::admit_runtime_intent_request)
-}
-
 #[derive(Clone, Debug, PartialEq)]
-pub struct LoweredSpatialIntent {
+pub(crate) struct LoweredSpatialIntent {
     runtime_declaration: LoweredSpatialRuntimeDeclaration,
     operation: LoweredSpatialOperation,
 }
@@ -203,8 +172,41 @@ impl LoweredSpatialIntent {
         }
     }
 
-    pub fn runtime_declaration(&self) -> &LoweredSpatialRuntimeDeclaration {
-        &self.runtime_declaration
+    #[cfg(test)]
+    pub(crate) fn family(&self) -> LoweredSpatialIntentFamily {
+        self.runtime_declaration.family()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn numeric_posture(&self) -> LoweredSpatialNumericPosture {
+        self.runtime_declaration.numeric_posture()
+    }
+
+    pub(crate) fn to_query_intent_declaration(
+        &self,
+    ) -> forge_query::facade::ForgeQueryIntentDeclaration {
+        self.runtime_declaration.to_query_intent_declaration()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn to_query_runtime_request(
+        &self,
+    ) -> Result<
+        forge_query::facade::ForgeQueryRawIntentAdmissionRequest,
+        forge_query::facade::ForgeQueryIntentViolationDecision,
+    > {
+        self.runtime_declaration.to_query_runtime_request()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn admit_query_runtime_intent(
+        &self,
+    ) -> Result<
+        forge_query::facade::ForgeQueryIntentAdmissionDecision,
+        forge_query::facade::ForgeQueryIntentViolationDecision,
+    > {
+        self.to_query_runtime_request()
+            .map(forge_query::facade::admit_runtime_intent_request)
     }
 
     pub(crate) fn operation(&self) -> &LoweredSpatialOperation {
@@ -257,8 +259,6 @@ pub(crate) enum LoweredSpatialOperation {
     },
 }
 
-pub type LoweredSpatialIntentArtifact = Artifact<LoweredSpatialIntentPhase, LoweredSpatialIntent>;
-
 impl LoweredSpatialIntentFamily {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -279,7 +279,6 @@ impl LoweredSpatialNumericPosture {
             Self::Direct => "direct",
             Self::Normalized => "normalized",
             Self::FallbackDerived => "fallback_derived",
-            Self::CanonicalizedParameterSpaceBacked => "canonicalized_parameter_space_backed",
         }
     }
 }

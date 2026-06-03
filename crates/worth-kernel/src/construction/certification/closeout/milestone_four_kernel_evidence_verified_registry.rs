@@ -24,9 +24,9 @@ pub(super) struct PrimitiveConstructionMilestoneFourKernelCloseoutRegistry {
     pub(super) required_realization_witness_kinds:
         &'static [PrimitiveRealizationExhaustionWitnessKind],
     pub(super) required_intent_bundle_case: PrimitiveConstructionIntentArbitrationBundleCase,
-    pub(super) required_preview_bundle_case: PrimitiveConstructionPreviewCase,
-    pub(super) required_continuity_bundle_case: PrimitiveConstructionContinuityCase,
-    pub(super) required_policy_profile_bundle_case: PrimitiveConstructionPolicyProfileCase,
+    pub(super) required_preview_representative_case: PrimitiveConstructionPreviewCase,
+    pub(super) required_continuity_representative_case: PrimitiveConstructionContinuityCase,
+    pub(super) required_policy_profile_representative_case: PrimitiveConstructionPolicyProfileCase,
     pub(super) required_proof_substrate_subject: PrimitiveConstructionProofSubject,
     pub(super) registry_digest: String,
 }
@@ -41,10 +41,11 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutRegistry {
         let required_realization_witness_kinds = required_realization_witness_kinds();
         let required_intent_bundle_case =
             PrimitiveConstructionIntentArbitrationBundleCase::GrazingSnapExplicitChoice;
-        let required_preview_bundle_case = PrimitiveConstructionPreviewCase::OverlapHighFidelity;
-        let required_continuity_bundle_case =
+        let required_preview_representative_case =
+            PrimitiveConstructionPreviewCase::OverlapHighFidelity;
+        let required_continuity_representative_case =
             PrimitiveConstructionContinuityCase::ExplicitMergeIdentityMerged;
-        let required_policy_profile_bundle_case =
+        let required_policy_profile_representative_case =
             PrimitiveConstructionPolicyProfileCase::HighFidelityPreview;
         let required_proof_substrate_subject =
             PrimitiveConstructionProofSubject::ProofSubstrateCloseout;
@@ -80,9 +81,9 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutRegistry {
                 )
                 .chain([
                     format!("{required_intent_bundle_case:?}"),
-                    format!("{required_preview_bundle_case:?}"),
-                    format!("{required_continuity_bundle_case:?}"),
-                    format!("{required_policy_profile_bundle_case:?}"),
+                    format!("{required_preview_representative_case:?}"),
+                    format!("{required_continuity_representative_case:?}"),
+                    format!("{required_policy_profile_representative_case:?}"),
                     required_proof_substrate_subject.as_str().to_string(),
                 ])
                 .collect::<Vec<_>>(),
@@ -95,9 +96,9 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutRegistry {
             required_policy_profile_cases,
             required_realization_witness_kinds,
             required_intent_bundle_case,
-            required_preview_bundle_case,
-            required_continuity_bundle_case,
-            required_policy_profile_bundle_case,
+            required_preview_representative_case,
+            required_continuity_representative_case,
+            required_policy_profile_representative_case,
             required_proof_substrate_subject,
             registry_digest,
         }

@@ -1,9 +1,6 @@
 use crate::construction::digest::digest_owned_parts;
-use crate::spatial_intent::arbitration::{
-    analyze_primitive_intent_conflict, analyze_primitive_intent_conflict_with_capabilities,
-    resolve_primitive_intent_conflict_by_choice, resolve_primitive_intent_conflict_by_policy,
-};
-use worth_spatial::facade::{
+use crate::spatial_intent::PrimitiveIntentConflict;
+use worth_spatial::facade::arbitration::{
     SpatialAuthoredActKind, SpatialChosenIntentAuthority, SpatialChosenIntentResolution,
     SpatialIntentCandidate, SpatialIntentCapabilitySet, SpatialIntentConflictClass,
     SpatialIntentResolutionError, SpatialObservedRelationFact,
@@ -180,47 +177,39 @@ pub fn prepare_primitive_chosen_intent_resolution_report() -> Result<
         vec![
             PrimitiveConstructionChosenIntentResolutionRow::new(
                 PrimitiveConstructionChosenIntentResolutionCase::PolicyMoveOnly,
-                resolve_primitive_intent_conflict_by_policy(analyze_primitive_intent_conflict(
-                    SpatialAuthoredActKind::Move,
-                    &[],
-                ))
-                .map_err(PrimitiveConstructionChosenIntentResolutionReportError::Resolution)?,
+                PrimitiveIntentConflict::analyze(SpatialAuthoredActKind::Move, &[])
+                    .resolve_by_policy()
+                    .map_err(PrimitiveConstructionChosenIntentResolutionReportError::Resolution)?,
             ),
             PrimitiveConstructionChosenIntentResolutionRow::new(
                 PrimitiveConstructionChosenIntentResolutionCase::ExplicitSnapFlush,
-                resolve_primitive_intent_conflict_by_choice(
-                    analyze_primitive_intent_conflict(
-                        SpatialAuthoredActKind::Move,
-                        &[SpatialObservedRelationFact::GrazingContact],
-                    ),
-                    SpatialIntentCandidate::SnapFlush,
+                PrimitiveIntentConflict::analyze(
+                    SpatialAuthoredActKind::Move,
+                    &[SpatialObservedRelationFact::GrazingContact],
                 )
+                .resolve_by_choice(SpatialIntentCandidate::SnapFlush)
                 .map_err(PrimitiveConstructionChosenIntentResolutionReportError::Resolution)?,
             ),
             PrimitiveConstructionChosenIntentResolutionRow::new(
                 PrimitiveConstructionChosenIntentResolutionCase::ExplicitMoveOnlyWithBlockedMerge,
-                resolve_primitive_intent_conflict_by_choice(
-                    analyze_primitive_intent_conflict(
-                        SpatialAuthoredActKind::Move,
-                        &[SpatialObservedRelationFact::Overlap],
-                    ),
-                    SpatialIntentCandidate::MoveOnly,
+                PrimitiveIntentConflict::analyze(
+                    SpatialAuthoredActKind::Move,
+                    &[SpatialObservedRelationFact::Overlap],
                 )
+                .resolve_by_choice(SpatialIntentCandidate::MoveOnly)
                 .map_err(PrimitiveConstructionChosenIntentResolutionReportError::Resolution)?,
             ),
             PrimitiveConstructionChosenIntentResolutionRow::new(
                 PrimitiveConstructionChosenIntentResolutionCase::ExplicitNestInsideWithBlockedMerge,
-                resolve_primitive_intent_conflict_by_choice(
-                    analyze_primitive_intent_conflict_with_capabilities(
-                        SpatialAuthoredActKind::Move,
-                        &[
-                            SpatialObservedRelationFact::Overlap,
-                            SpatialObservedRelationFact::InsideTarget,
-                        ],
-                        SpatialIntentCapabilitySet::blocked_defaults(),
-                    ),
-                    SpatialIntentCandidate::NestInside,
+                PrimitiveIntentConflict::analyze_with_capabilities(
+                    SpatialAuthoredActKind::Move,
+                    &[
+                        SpatialObservedRelationFact::Overlap,
+                        SpatialObservedRelationFact::InsideTarget,
+                    ],
+                    SpatialIntentCapabilitySet::blocked_defaults(),
                 )
+                .resolve_by_choice(SpatialIntentCandidate::NestInside)
                 .map_err(PrimitiveConstructionChosenIntentResolutionReportError::Resolution)?,
             ),
         ],

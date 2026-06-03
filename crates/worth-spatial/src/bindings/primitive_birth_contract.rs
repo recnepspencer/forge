@@ -1,9 +1,10 @@
-use crate::facade::{PrimitiveConstructionBirthFamily, SpatialConstructionBirthPlan};
-
-use super::PrimitiveConstructionBirthScaffoldInput;
+use super::primitive_birth::{
+    PrimitiveConstructionBirthFamily, PrimitiveConstructionBirthScaffoldInput,
+    SpatialConstructionBirthPlan,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct PrimitiveConstructionBirthContractCounts {
+pub(crate) struct PrimitiveConstructionBirthContractCounts {
     vertex_count: usize,
     edge_count: usize,
     loop_count: usize,
@@ -14,7 +15,7 @@ pub struct PrimitiveConstructionBirthContractCounts {
 }
 
 impl PrimitiveConstructionBirthContractCounts {
-    pub fn from_input(input: &PrimitiveConstructionBirthScaffoldInput) -> Self {
+    pub(crate) fn from_input(input: &PrimitiveConstructionBirthScaffoldInput) -> Self {
         Self {
             vertex_count: input.expected_vertex_count(),
             edge_count: input.expected_edge_count(),
@@ -26,7 +27,7 @@ impl PrimitiveConstructionBirthContractCounts {
         }
     }
 
-    pub fn from_plan(plan: &SpatialConstructionBirthPlan) -> Self {
+    pub(crate) fn from_plan(plan: &SpatialConstructionBirthPlan) -> Self {
         Self {
             vertex_count: plan.supported_vertex_count(),
             edge_count: plan.supported_edge_count(),
@@ -67,7 +68,7 @@ impl PrimitiveConstructionBirthContractCounts {
     }
 }
 
-pub fn primitive_birth_contract_matches_counts(
+pub(crate) fn primitive_birth_contract_matches_counts(
     family: PrimitiveConstructionBirthFamily,
     counts: PrimitiveConstructionBirthContractCounts,
 ) -> bool {
@@ -130,7 +131,7 @@ pub fn primitive_birth_contract_matches_counts(
     }
 }
 
-pub fn primitive_birth_contract_matches_support_planes(
+pub(crate) fn primitive_birth_contract_matches_support_planes(
     family: PrimitiveConstructionBirthFamily,
     support_plane_count: usize,
     counts: PrimitiveConstructionBirthContractCounts,

@@ -121,9 +121,8 @@ impl PrimitiveConstructionBranchLocalParityReport {
 }
 
 pub fn prepare_primitive_construction_replay_parity_report(
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: PrimitiveConstructionIntent,
 ) -> PrimitiveConstructionReplayParityReport {
-    let intent = intent.into();
     let family = intent.family();
     let request = intent.request().clone();
     let direct_outcome = prepare_primitive_construction_outcome(request.clone());
@@ -133,12 +132,11 @@ pub fn prepare_primitive_construction_replay_parity_report(
 
 pub fn prepare_primitive_construction_branch_local_parity_report(
     workspace: &mut ForgeQueryWorkspace,
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: PrimitiveConstructionIntent,
 ) -> Result<PrimitiveConstructionBranchLocalParityReport, PrimitiveConstructionRuntimeBasisError> {
-    let intent = intent.into();
     let family = intent.family();
     let request = intent.request().clone();
-    let direct_outcome = prepare_primitive_construction_outcome(request.clone());
+    let direct_outcome = prepare_primitive_construction_outcome(request);
     let branch_preview_runtime_report =
         prepare_primitive_construction_branch_preview_runtime_report(workspace, intent)?;
     Ok(PrimitiveConstructionBranchLocalParityReport::new(

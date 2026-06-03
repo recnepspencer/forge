@@ -5,7 +5,6 @@ error[E0432]: unresolved imports `worth_kernel::facade::PrimitiveConstructionCor
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionCorpusRejectionWitnessRow` in `facade`
   |     |
   |     no `PrimitiveConstructionCorpusAuthoringOrderRow` in `facade`
-  |     help: a similar name exists in the module: `PrimitiveConstructionAuthoringSession`
 3 |     PrimitiveConstructionCorpusReplaySiegeReport,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionCorpusReplaySiegeReport` in `facade`
   |

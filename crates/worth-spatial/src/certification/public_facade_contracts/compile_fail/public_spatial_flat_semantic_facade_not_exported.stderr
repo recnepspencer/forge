@@ -1,0 +1,26 @@
+error[E0432]: unresolved imports `worth_spatial::facade::admit_spatial_move`, `worth_spatial::facade::admit_spatial_placement`, `worth_spatial::facade::analyze_spatial_intent_conflict`, `worth_spatial::facade::evaluate_primitive_construction_birth_consequence`, `worth_spatial::facade::lower_admitted_move_intent`, `worth_spatial::facade::plan_primitive_construction_birth`, `worth_spatial::facade::SpatialAuthoredActKind`, `worth_spatial::facade::SpatialMoveSpec`, `worth_spatial::facade::SpatialPlacementSpec`
+ --> src/certification/public_facade_contracts/compile_fail/public_spatial_flat_semantic_facade_not_exported.rs:2:5
+  |
+2 |     admit_spatial_move, admit_spatial_placement, analyze_spatial_intent_conflict,
+  |     ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `analyze_spatial_intent_conflict` in `facade`
+  |     |                   |
+  |     |                   no `admit_spatial_placement` in `facade`
+  |     no `admit_spatial_move` in `facade`
+3 |     evaluate_primitive_construction_birth_consequence, lower_admitted_move_intent,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^ no `lower_admitted_move_intent` in `facade`
+  |     |
+  |     no `evaluate_primitive_construction_birth_consequence` in `facade`
+4 |     plan_primitive_construction_birth, SpatialAuthoredActKind, SpatialMoveSpec,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^ no `SpatialMoveSpec` in `facade`
+  |     |                                  |
+  |     |                                  no `SpatialAuthoredActKind` in `facade`
+  |     no `plan_primitive_construction_birth` in `facade`
+5 |     SpatialPlacementSpec,
+  |     ^^^^^^^^^^^^^^^^^^^^ no `SpatialPlacementSpec` in `facade`
+  |
+  = help: consider importing this enum instead:
+          worth_spatial::facade::arbitration::SpatialAuthoredActKind
+  = help: consider importing this struct instead:
+          worth_spatial::facade::motion::SpatialMoveSpec
+  = help: consider importing this struct instead:
+          worth_spatial::facade::placement::SpatialPlacementSpec

@@ -1,4 +1,4 @@
-use worth_kernel::facade::{OrthotopeSpec, PrimitiveConstructionIntent};
+use worth_kernel::facade::authoring::construction::{OrthotopeSpec, PrimitiveConstructionIntent};
 
 fn main() {
     let intent = PrimitiveConstructionIntent::orthotope(OrthotopeSpec {

@@ -1,11 +1,15 @@
 use super::PrimitiveConstructionSpatialIntentError;
 use crate::construction::{PrimitiveConstructionIntent, RegularPyramidSpec};
-use crate::facade::ReorientSpatialIntent;
-use worth_spatial::facade::{
-    admit_spatial_placement, SpatialAnchorRef, SpatialAxis, SpatialCarrierDirectionRole,
-    SpatialCarrierPointRole, SpatialCatalogResolvedDirectionWitness,
-    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
-    SpatialDirectionWitnessRef, SpatialFixtureWitnessCatalog, SpatialPlacementMotionError,
+use crate::facade::authoring::intents::ReorientSpatialIntent;
+use crate::test_support::SpatialFixtureWitnessCatalog;
+use worth_spatial::facade::placement::{admit_spatial_placement, SpatialPlacementMotionError};
+use worth_spatial::facade::refs::{
+    SpatialAnchorRef, SpatialAxis, SpatialCarrierDirectionRole, SpatialCarrierPointRole,
+    SpatialDirectionWitnessRef,
+};
+use worth_spatial::facade::witness_catalog::{
+    SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
+    SpatialCatalogWitnessResolutionClass,
 };
 
 #[test]
@@ -51,7 +55,7 @@ fn primitive_construction_reorient_finish_supports_full_shape_axis_and_frame_axi
         },
     ))
     .about(SpatialAnchorRef::frame_axis(
-        worth_spatial::facade::SpatialFrameRef::world(),
+        worth_spatial::facade::refs::SpatialFrameRef::world(),
         SpatialAxis::U,
     ))
     .toward_witness(SpatialDirectionWitnessRef::world_direction([0.0, 0.0, 1.0]))

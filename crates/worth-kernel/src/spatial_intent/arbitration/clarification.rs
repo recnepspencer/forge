@@ -1,4 +1,4 @@
-use worth_spatial::facade::{
+use worth_spatial::facade::arbitration::{
     SpatialAuthoredActKind, SpatialBlockedCapability, SpatialIntentArbitrationAnalysis,
     SpatialIntentCandidate, SpatialIntentCandidateAvailability, SpatialIntentCandidateRank,
     SpatialIntentConflictClass, SpatialIntentEscalation, SpatialIntentExplanationClass,

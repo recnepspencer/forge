@@ -9,8 +9,9 @@ use crate::construction::{
     PrimitiveConstructionMotionWitnessResolutionStatus,
 };
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
-use worth_spatial::facade::{
-    SpatialPlacementConstraintError, SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
+use worth_spatial::facade::placement::SpatialPlacementConstraintError;
+use worth_spatial::facade::witness_resolution::{
+    SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
 };
 
 fn workspace(name: &str) -> forge_query::facade::ForgeQueryWorkspace {
@@ -43,7 +44,7 @@ fn motion_resolution_policy_report_distinguishes_resolution_and_failure_classes(
             .row(PrimitiveConstructionMotionResolutionPolicyCase::DirectMove)
             .expect("direct move")
             .anchor(),
-        &worth_spatial::facade::SpatialAnchorRef::shape_origin()
+        &worth_spatial::facade::refs::SpatialAnchorRef::shape_origin()
     );
     assert_eq!(
         report

@@ -97,7 +97,7 @@ mod tests {
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,
     };
-    use worth_spatial::facade::{SpatialBlockedCapability, SpatialIntentEscalation};
+    use worth_spatial::facade::arbitration::{SpatialBlockedCapability, SpatialIntentEscalation};
 
     #[test]
     fn arbitration_hostility_suite_covers_contact_containment_and_blocked_future_candidates() {

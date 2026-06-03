@@ -7,5 +7,6 @@
 
 mod construction;
 mod spatial_intent;
+mod test_support;
 
 pub mod facade;

@@ -7,7 +7,8 @@ use super::super::scalar_admission::{admit_polygon_edge_count, decode_positive_s
 use super::super::topology_counts::PrimitiveConstructionTopologyCounts;
 use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
 use worth_geom::facade::realize_prism_support;
-use worth_spatial::facade::{AdmittedSpatialPlacement, PrimitiveConstructionBirthScaffoldInput};
+use worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldInput;
+use worth_spatial::facade::placement::AdmittedSpatialPlacement;
 
 struct AdmittedRegularPrismBirthParameters {
     sides: u32,

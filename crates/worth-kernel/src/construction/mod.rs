@@ -3,6 +3,9 @@ mod admitted_scaffold;
 #[path = "result_surface/artifact.rs"]
 mod artifact;
 mod authoring;
+mod authoring_authority;
+mod authoring_entry;
+mod authoring_input;
 #[path = "certification/mod.rs"]
 mod certification;
 #[path = "runtime_proof/continuity_branch_runtime.rs"]
@@ -51,11 +54,15 @@ mod runtime_basis;
 #[path = "phase_chain/specs.rs"]
 mod specs;
 
-pub use artifact::CanonicalPrimitiveConstructionArtifact;
+pub use crate::spatial_intent::PrimitiveConstructionSpatialIntentError;
 pub use authoring::{
     primitive_construction_authoring, PrimitiveConstructionAuthoringSession,
     PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionQueryEntryError,
     WorthKernelAuthorityError,
+};
+pub use authoring_entry::PrimitiveConstructionAuthoringEntry;
+pub use authoring_input::{
+    PrimitiveConstructionAuthoringInput, PrimitiveConstructionCatalogAuthoringInput,
 };
 pub use certification::{
     prepare_primitive_chosen_intent_resolution_report,
@@ -67,9 +74,7 @@ pub use certification::{
     prepare_primitive_construction_compound_ordering_parity_report,
     prepare_primitive_construction_compound_parity_report,
     prepare_primitive_construction_conditioning_witness_report,
-    prepare_primitive_construction_continuity_bundle_from_hostility_suite,
     prepare_primitive_construction_continuity_hostility_suite_report,
-    prepare_primitive_construction_continuity_report_bundle,
     prepare_primitive_construction_continuity_surface_report,
     prepare_primitive_construction_corpus_replay_siege,
     prepare_primitive_construction_family_boundary_drift_report,
@@ -80,7 +85,6 @@ pub use certification::{
     prepare_primitive_construction_motion_dx_surface_report,
     prepare_primitive_construction_motion_resolution_policy_report,
     prepare_primitive_construction_move_motion_report_bundle,
-    prepare_primitive_construction_move_motion_report_bundle_with_catalog,
     prepare_primitive_construction_move_witness_resolution_report,
     prepare_primitive_construction_move_witness_resolution_report_with_catalog,
     prepare_primitive_construction_phase_five_boundary_closeout_report,
@@ -91,16 +95,10 @@ pub use certification::{
     prepare_primitive_construction_points_toward_witness_resolution_report_with_catalog,
     prepare_primitive_construction_policy_pressure_delta_report,
     prepare_primitive_construction_policy_pressure_report,
-    prepare_primitive_construction_policy_pressure_report_bundle,
-    prepare_primitive_construction_policy_profile_bundle_from_combined_hostility_suite,
-    prepare_primitive_construction_policy_profile_bundle_from_hostility_suites,
     prepare_primitive_construction_policy_profile_report,
-    prepare_primitive_construction_policy_profile_report_bundle,
     prepare_primitive_construction_preserved_intent_resolution_report,
-    prepare_primitive_construction_preview_bundle_from_hostility_suite,
     prepare_primitive_construction_preview_continuity_hostility_suite_report,
     prepare_primitive_construction_preview_hostility_suite_report,
-    prepare_primitive_construction_preview_report_bundle,
     prepare_primitive_construction_preview_surface_report,
     prepare_primitive_construction_realization_exhaustion_report,
     prepare_primitive_construction_realization_exhaustion_witness_report,
@@ -110,7 +108,6 @@ pub use certification::{
     prepare_primitive_construction_reorient_motion_report_bundle_with_catalog,
     prepare_primitive_construction_reorient_witness_resolution_report,
     prepare_primitive_construction_reorient_witness_resolution_report_with_catalog,
-    prepare_primitive_construction_rotate_motion_report_bundle,
     prepare_primitive_construction_rotate_motion_report_bundle_with_catalog,
     prepare_primitive_construction_rotate_witness_resolution_report,
     prepare_primitive_construction_rotate_witness_resolution_report_with_catalog,
@@ -142,7 +139,6 @@ pub use certification::{
     PrimitiveConstructionCompoundRowClass, PrimitiveConstructionCompoundTopologyClass,
     PrimitiveConstructionCompoundWorkloadFamily, PrimitiveConstructionConditioningWitnessReport,
     PrimitiveConstructionContinuityCase, PrimitiveConstructionContinuityHostilitySuiteReport,
-    PrimitiveConstructionContinuityReportBundle, PrimitiveConstructionContinuityReportBundleError,
     PrimitiveConstructionContinuityResolutionSource, PrimitiveConstructionContinuityRow,
     PrimitiveConstructionContinuitySurfaceReport,
     PrimitiveConstructionContinuitySurfaceReportError,
@@ -155,9 +151,6 @@ pub use certification::{
     PrimitiveConstructionFamilyBoundaryReport, PrimitiveConstructionFamilyBoundaryReportError,
     PrimitiveConstructionFamilyBoundaryRow, PrimitiveConstructionFamilyBoundaryTransitionClass,
     PrimitiveConstructionIntentArbitrationBundleCase,
-    PrimitiveConstructionIntentArbitrationBundleVerificationFailure,
-    PrimitiveConstructionIntentArbitrationBundleVerificationMismatch,
-    PrimitiveConstructionIntentArbitrationCanonicalTruth,
     PrimitiveConstructionIntentArbitrationConflictClass,
     PrimitiveConstructionIntentArbitrationDxSurface,
     PrimitiveConstructionIntentArbitrationDxSurfaceReport,
@@ -167,17 +160,13 @@ pub use certification::{
     PrimitiveConstructionIntentArbitrationPolicyReport,
     PrimitiveConstructionIntentArbitrationPolicyReportError,
     PrimitiveConstructionIntentArbitrationPolicyRow,
-    PrimitiveConstructionIntentArbitrationReportBundleError,
     PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport,
     PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError,
     PrimitiveConstructionMilestoneFourKernelCloseoutVerificationFailure,
     PrimitiveConstructionMilestoneFourKernelCloseoutVerificationMismatch,
-    PrimitiveConstructionMotionBundleVerificationFailure,
-    PrimitiveConstructionMotionBundleVerificationMismatch,
-    PrimitiveConstructionMotionCanonicalTruth, PrimitiveConstructionMotionDxSurface,
-    PrimitiveConstructionMotionDxSurfaceReport, PrimitiveConstructionMotionDxSurfaceReportError,
-    PrimitiveConstructionMotionDxSurfaceRow, PrimitiveConstructionMotionReportBundleError,
-    PrimitiveConstructionMotionResolutionPolicyCase,
+    PrimitiveConstructionMotionDxSurface, PrimitiveConstructionMotionDxSurfaceReport,
+    PrimitiveConstructionMotionDxSurfaceReportError, PrimitiveConstructionMotionDxSurfaceRow,
+    PrimitiveConstructionMotionReportBundleError, PrimitiveConstructionMotionResolutionPolicyCase,
     PrimitiveConstructionMotionResolutionPolicyReport,
     PrimitiveConstructionMotionResolutionPolicyReportError,
     PrimitiveConstructionMotionResolutionPolicyRow,
@@ -193,18 +182,16 @@ pub use certification::{
     PrimitiveConstructionPhaseFiveSixCloseoutReportError,
     PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure,
     PrimitiveConstructionPhaseFiveSixCloseoutVerificationMismatch,
-    PrimitiveConstructionPolicyPressureBundleVerificationFailure,
-    PrimitiveConstructionPolicyPressureBundleVerificationMismatch,
-    PrimitiveConstructionPolicyPressureCanonicalTruth, PrimitiveConstructionPolicyPressureCase,
-    PrimitiveConstructionPolicyPressureDeltaCase, PrimitiveConstructionPolicyPressureDeltaReport,
+    PrimitiveConstructionPolicyPressureCase, PrimitiveConstructionPolicyPressureDeltaCase,
+    PrimitiveConstructionPolicyPressureDeltaReport,
     PrimitiveConstructionPolicyPressureDeltaReportError,
-    PrimitiveConstructionPolicyPressureDeltaRow, PrimitiveConstructionPolicyPressureReportBundle,
-    PrimitiveConstructionPolicyPressureReportBundleError, PrimitiveConstructionPolicyPressureRow,
-    PrimitiveConstructionPolicyPressureSetup, PrimitiveConstructionPolicyPressureSurfaceReport,
+    PrimitiveConstructionPolicyPressureDeltaRow,
+    PrimitiveConstructionPolicyPressureRepresentativeEvidence,
+    PrimitiveConstructionPolicyPressureRepresentativeEvidenceError,
+    PrimitiveConstructionPolicyPressureRow, PrimitiveConstructionPolicyPressureSetup,
+    PrimitiveConstructionPolicyPressureSurfaceReport,
     PrimitiveConstructionPolicyPressureSurfaceReportError, PrimitiveConstructionPolicyProfileCase,
-    PrimitiveConstructionPolicyProfileReportBundle,
-    PrimitiveConstructionPolicyProfileReportBundleError, PrimitiveConstructionPolicyProfileRow,
-    PrimitiveConstructionPolicyProfileSurfaceReport,
+    PrimitiveConstructionPolicyProfileRow, PrimitiveConstructionPolicyProfileSurfaceReport,
     PrimitiveConstructionPreservedIntentResolutionCase,
     PrimitiveConstructionPreservedIntentResolutionReport,
     PrimitiveConstructionPreservedIntentResolutionReportError,
@@ -213,8 +200,7 @@ pub use certification::{
     PrimitiveConstructionPreviewContinuityHostilityRow,
     PrimitiveConstructionPreviewContinuityHostilitySuiteError,
     PrimitiveConstructionPreviewContinuityHostilitySuiteReport,
-    PrimitiveConstructionPreviewHostilitySuiteReport, PrimitiveConstructionPreviewReportBundle,
-    PrimitiveConstructionPreviewReportBundleError, PrimitiveConstructionPreviewRow,
+    PrimitiveConstructionPreviewHostilitySuiteReport, PrimitiveConstructionPreviewRow,
     PrimitiveConstructionPreviewSurfaceReport, PrimitiveConstructionPreviewSurfaceReportError,
     PrimitiveConstructionRealizationExhaustionReport,
     PrimitiveConstructionRealizationExhaustionStatus,

@@ -1,8 +1,5 @@
-error[E0599]: no function or associated item named `new` found for struct `PrimitiveConstructionPolicyPressureReportBundle` in the current scope
- --> src/certification/public_facade_contracts/compile_fail/reports/public_policy_pressure_report_bundle_constructor_not_exported.rs:4:62
+error[E0432]: unresolved import `worth_kernel::facade::certification::policy`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_policy_pressure_report_bundle_constructor_not_exported.rs:1:42
   |
-4 |     let _ = PrimitiveConstructionPolicyPressureReportBundle::new;
-  |                                                              ^^^ function or associated item not found in `PrimitiveConstructionPolicyPressureReportBundle`
-  |
-help: there is a method `ne` with a similar name
- --> $RUST/core/src/cmp.rs
+1 | use worth_kernel::facade::certification::policy::PrimitiveConstructionPolicyPressureReportBundle;
+  |                                          ^^^^^^ could not find `policy` in `certification`

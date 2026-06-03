@@ -9,14 +9,21 @@ use crate::construction::{
     PrimitiveConstructionIntent, PrimitiveConstructionMotionWitnessResolutionStatus,
     RegularPyramidSpec, WireBodySpec,
 };
-use crate::facade::{MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent};
-use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
-use worth_spatial::facade::{
-    SpatialAnchorRef, SpatialAxis, SpatialCarrierDirectionRole, SpatialCarrierPointRole,
-    SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
-    SpatialCatalogWitnessResolutionClass, SpatialDirectionWitnessRef, SpatialFixtureWitnessCatalog,
-    SpatialPlacementMotionError, SpatialPointWitnessRef, SpatialWitnessFailureClass,
+use crate::facade::authoring::intents::{
+    MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
 };
+use crate::test_support::SpatialFixtureWitnessCatalog;
+use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
+use worth_spatial::facade::placement::SpatialPlacementMotionError;
+use worth_spatial::facade::refs::{
+    SpatialAnchorRef, SpatialAxis, SpatialCarrierDirectionRole, SpatialCarrierPointRole,
+    SpatialDirectionWitnessRef, SpatialPointWitnessRef,
+};
+use worth_spatial::facade::witness_catalog::{
+    SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
+    SpatialCatalogWitnessResolutionClass,
+};
+use worth_spatial::facade::witness_resolution::SpatialWitnessFailureClass;
 
 fn workspace(name: &str) -> forge_query::facade::ForgeQueryWorkspace {
     let runtime = milestone_one_runtime_builder()
@@ -118,7 +125,7 @@ fn motion_branch_preview_runtime_reports_cover_external_pivot_rotate_and_points_
             edge_count: 6,
         }))
         .about(SpatialAnchorRef::frame_origin(
-            worth_spatial::facade::SpatialFrameRef::workplane(
+            worth_spatial::facade::refs::SpatialFrameRef::workplane(
                 "pivot",
                 [4.0, 0.0, 0.0],
                 [0.0, 0.0, 1.0],

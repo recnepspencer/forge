@@ -16,6 +16,7 @@ fn kernel_public_facade_exports_phase_five_six_closeout_surface() {
 
     assert!(report.phase_five_boundary().closeout_gate_verified());
     assert!(report.compound_closeout().closeout_gate_verified());
+    assert!(report.policy_pressure().parity_verified());
     assert_eq!(
         report.simplex_ladder().rows().len(),
         report.required_simplex_scenarios().len()

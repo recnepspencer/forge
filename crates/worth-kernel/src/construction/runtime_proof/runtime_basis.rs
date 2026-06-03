@@ -11,7 +11,8 @@ use crate::construction::authoring::{
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
 use crate::construction::realization_truth::PrimitiveConstructionRuntimeRealizationTruth;
-use crate::construction::{PrimitiveConstructionFamily, PrimitiveConstructionIntent};
+use crate::construction::PrimitiveConstructionAuthoringInput;
+use crate::construction::PrimitiveConstructionFamily;
 use worth_geom::facade::{
     PrimitiveFeatureConditioningClass, PrimitiveNormalizationDisposition,
     PrimitiveRealizationExhaustionReason, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
@@ -213,11 +214,18 @@ impl std::error::Error for PrimitiveConstructionRuntimeBasisError {}
 
 pub fn prepare_primitive_construction_branch_preview_runtime_report(
     workspace: &mut ForgeQueryWorkspace,
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: impl PrimitiveConstructionAuthoringInput,
 ) -> Result<PrimitiveConstructionBranchPreviewRuntimeReport, PrimitiveConstructionRuntimeBasisError>
 {
-    let intent = intent.into();
-    let request = intent.request().clone();
+    let outcome = {
+        let mut session = primitive_construction_authoring(workspace)
+            .map_err(PrimitiveConstructionRuntimeBasisError::Authority)?;
+        session
+            .author(intent)
+            .map_err(PrimitiveConstructionRuntimeBasisError::QueryEntry)?
+            .prepare_outcome()
+    };
+    let family = outcome.family();
     let authority_chain_report = {
         let session = primitive_construction_authoring(workspace)
             .map_err(PrimitiveConstructionRuntimeBasisError::Authority)?;
@@ -228,18 +236,11 @@ pub fn prepare_primitive_construction_branch_preview_runtime_report(
         .map_err(PrimitiveConstructionRuntimeBasisError::QueryRuntime)?
         .contract_digest()
         .to_string();
-    let outcome = {
-        let mut session = primitive_construction_authoring(workspace)
-            .map_err(PrimitiveConstructionRuntimeBasisError::Authority)?;
-        session
-            .prepare_outcome(intent)
-            .map_err(PrimitiveConstructionRuntimeBasisError::QueryEntry)?
-    };
     let realization_truth = PrimitiveConstructionRuntimeRealizationTruth::from_outcome(&outcome);
     let preview_lane = {
         let preview = workspace
             .preview_with_options(
-                format!("worth-kernel.{}.preview", request.family().as_str()),
+                format!("worth-kernel.{}.preview", family.as_str()),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .map_err(PrimitiveConstructionRuntimeBasisError::QueryRuntime)?;
@@ -248,14 +249,14 @@ pub fn prepare_primitive_construction_branch_preview_runtime_report(
     let branch_lane = {
         let branch = workspace
             .branch_with_options(
-                format!("worth-kernel.{}.branch", request.family().as_str()),
+                format!("worth-kernel.{}.branch", family.as_str()),
                 ForgeQueryBranchOptions::sandboxed_write_intent(),
             )
             .map_err(PrimitiveConstructionRuntimeBasisError::QueryRuntime)?;
         PrimitiveConstructionRuntimeBasisLaneReport::from_branch(branch.basis_admission())
     };
     Ok(PrimitiveConstructionBranchPreviewRuntimeReport::new(
-        request.family(),
+        family,
         authority_chain_report,
         branch_preview_contract_digest,
         outcome,

@@ -1,13 +1,17 @@
+use super::spatial_fixture_witness_catalog::SpatialFixtureWitnessCatalog;
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{
     authoring::{construction::*, intents::*},
     diagnostics::motion::*,
 };
-use worth_spatial::facade::{
-    SpatialAnchorRef, SpatialAxis, SpatialCarrierPointRole, SpatialCatalogResolvedPointWitness,
-    SpatialCatalogWitnessResolutionClass, SpatialDirectionWitnessRef, SpatialFixtureWitnessCatalog,
-    SpatialFrameRef, SpatialPointWitnessRef, SpatialWitnessFailureClass,
+use worth_spatial::facade::refs::{
+    SpatialAnchorRef, SpatialAxis, SpatialCarrierPointRole, SpatialDirectionWitnessRef,
+    SpatialFrameRef, SpatialPointWitnessRef,
 };
+use worth_spatial::facade::witness_catalog::{
+    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
+};
+use worth_spatial::facade::witness_resolution::SpatialWitnessFailureClass;
 
 #[test]
 fn kernel_public_facade_exports_motion_replay_parity_reports() {
@@ -149,7 +153,7 @@ fn kernel_public_facade_exports_motion_branch_preview_runtime_reports() {
     assert_eq!(
         blocked.runtime_surface_status(),
         PrimitiveConstructionMotionRuntimeSurfaceStatus::PlacementLoweringBlocked(
-            worth_spatial::facade::SpatialPlacementMotionError::UnsupportedMoveAnchor
+            worth_spatial::facade::placement::SpatialPlacementMotionError::UnsupportedMoveAnchor
         )
     );
     assert!(blocked.runtime_report().is_none());
@@ -251,7 +255,7 @@ fn kernel_public_facade_preserves_feature_owned_anchor_witness_failure_in_motion
     assert_eq!(
         report.runtime_surface_status(),
         PrimitiveConstructionMotionRuntimeSurfaceStatus::PlacementLoweringBlocked(
-            worth_spatial::facade::SpatialPlacementMotionError::AnchorWitnessFailure(
+            worth_spatial::facade::placement::SpatialPlacementMotionError::AnchorWitnessFailure(
                 SpatialWitnessFailureClass::Unsupported
             )
         )
@@ -260,7 +264,7 @@ fn kernel_public_facade_preserves_feature_owned_anchor_witness_failure_in_motion
     assert_eq!(
         blocked.runtime_surface_status(),
         PrimitiveConstructionMotionRuntimeSurfaceStatus::PlacementLoweringBlocked(
-            worth_spatial::facade::SpatialPlacementMotionError::AnchorWitnessFailure(
+            worth_spatial::facade::placement::SpatialPlacementMotionError::AnchorWitnessFailure(
                 SpatialWitnessFailureClass::Undefined
             )
         )

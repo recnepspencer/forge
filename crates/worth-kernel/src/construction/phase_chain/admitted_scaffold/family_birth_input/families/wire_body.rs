@@ -6,7 +6,8 @@ use super::super::geometry::{planar_support_plane, wire_body_vertices};
 use super::super::scalar_admission::admit_polygon_edge_count;
 use super::super::topology_counts::PrimitiveConstructionTopologyCounts;
 use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
-use worth_spatial::facade::{AdmittedSpatialPlacement, PrimitiveConstructionBirthScaffoldInput};
+use worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldInput;
+use worth_spatial::facade::placement::AdmittedSpatialPlacement;
 
 struct AdmittedWireBodyBirthParameters {
     edge_count: u32,

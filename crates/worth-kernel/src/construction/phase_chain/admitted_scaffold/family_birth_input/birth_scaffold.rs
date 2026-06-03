@@ -4,9 +4,8 @@ use super::topology_counts::PrimitiveConstructionTopologyCounts;
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
 use worth_geom::facade::{build_direct_realization_report, Plane, PrimitiveRealizationReport};
-use worth_spatial::facade::{
-    apply_spatial_placement, AdmittedSpatialPlacement, PrimitiveConstructionBirthScaffoldInput,
-};
+use worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldInput;
+use worth_spatial::facade::placement::{apply_spatial_placement, AdmittedSpatialPlacement};
 
 pub(super) struct PrimitiveConstructionBirthScaffoldPlan {
     family: PrimitiveConstructionFamily,

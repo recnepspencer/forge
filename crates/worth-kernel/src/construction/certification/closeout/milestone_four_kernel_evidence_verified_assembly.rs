@@ -1,12 +1,15 @@
+use crate::construction::certification::closeout::milestone_four_kernel_representative_evidence::{
+    PrimitiveConstructionContinuityRepresentativeEvidence,
+    PrimitiveConstructionPolicyProfileRepresentativeEvidence,
+    PrimitiveConstructionPreviewRepresentativeEvidence,
+};
 use crate::construction::certification::{
-    PrimitiveConstructionContinuityReportBundle, PrimitiveConstructionContinuitySurfaceReport,
+    PrimitiveConstructionContinuitySurfaceReport,
     PrimitiveConstructionIntentArbitrationDxSurfaceReport,
     PrimitiveConstructionIntentArbitrationPolicyReport, PrimitiveConstructionMotionDxSurfaceReport,
     PrimitiveConstructionMotionResolutionPolicyReport,
     PrimitiveConstructionPhaseFiveSixCloseoutReport,
-    PrimitiveConstructionPolicyProfileReportBundle,
-    PrimitiveConstructionPolicyProfileSurfaceReport, PrimitiveConstructionPreviewReportBundle,
-    PrimitiveConstructionPreviewSurfaceReport,
+    PrimitiveConstructionPolicyProfileSurfaceReport, PrimitiveConstructionPreviewSurfaceReport,
     PrimitiveConstructionRealizationExhaustionWitnessReport,
 };
 use crate::construction::query::{
@@ -42,11 +45,13 @@ pub(crate) struct PrimitiveConstructionMilestoneFourKernelCloseoutAssembly {
     pub(super) representative_intent_bundle:
         PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
     pub(super) preview_surface_report: PrimitiveConstructionPreviewSurfaceReport,
-    pub(super) representative_preview_bundle: PrimitiveConstructionPreviewReportBundle,
+    pub(super) representative_preview_evidence: PrimitiveConstructionPreviewRepresentativeEvidence,
     pub(super) continuity_surface_report: PrimitiveConstructionContinuitySurfaceReport,
-    pub(super) representative_continuity_bundle: PrimitiveConstructionContinuityReportBundle,
+    pub(super) representative_continuity_evidence:
+        PrimitiveConstructionContinuityRepresentativeEvidence,
     pub(super) policy_profile_report: PrimitiveConstructionPolicyProfileSurfaceReport,
-    pub(super) representative_policy_profile_bundle: PrimitiveConstructionPolicyProfileReportBundle,
+    pub(super) representative_policy_profile_evidence:
+        PrimitiveConstructionPolicyProfileRepresentativeEvidence,
     pub(super) realization_exhaustion_witness_report:
         PrimitiveConstructionRealizationExhaustionWitnessReport,
 }
@@ -67,11 +72,11 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutAssembly {
         intent_conflict_dx_surface_report: PrimitiveConstructionIntentArbitrationDxSurfaceReport,
         representative_intent_bundle: PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
         preview_surface_report: PrimitiveConstructionPreviewSurfaceReport,
-        representative_preview_bundle: PrimitiveConstructionPreviewReportBundle,
+        representative_preview_evidence: PrimitiveConstructionPreviewRepresentativeEvidence,
         continuity_surface_report: PrimitiveConstructionContinuitySurfaceReport,
-        representative_continuity_bundle: PrimitiveConstructionContinuityReportBundle,
+        representative_continuity_evidence: PrimitiveConstructionContinuityRepresentativeEvidence,
         policy_profile_report: PrimitiveConstructionPolicyProfileSurfaceReport,
-        representative_policy_profile_bundle: PrimitiveConstructionPolicyProfileReportBundle,
+        representative_policy_profile_evidence: PrimitiveConstructionPolicyProfileRepresentativeEvidence,
         realization_exhaustion_witness_report: PrimitiveConstructionRealizationExhaustionWitnessReport,
     ) -> Self {
         Self {
@@ -88,11 +93,11 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutAssembly {
             intent_conflict_dx_surface_report,
             representative_intent_bundle,
             preview_surface_report,
-            representative_preview_bundle,
+            representative_preview_evidence,
             continuity_surface_report,
-            representative_continuity_bundle,
+            representative_continuity_evidence,
             policy_profile_report,
-            representative_policy_profile_bundle,
+            representative_policy_profile_evidence,
             realization_exhaustion_witness_report,
         }
     }

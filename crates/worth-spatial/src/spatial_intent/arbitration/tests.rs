@@ -1,11 +1,13 @@
 use super::{
     analyze_spatial_intent_conflict, analyze_spatial_intent_conflict_with_capabilities,
-    declare_spatial_arbitration_runtime, resolve_spatial_intent_conflict_by_choice,
-    resolve_spatial_intent_conflict_by_policy, SpatialAuthoredActKind, SpatialBlockedCapability,
-    SpatialChosenIntentAuthority, SpatialIntentCandidate, SpatialIntentCapabilitySet,
-    SpatialIntentConflictClass, SpatialIntentEscalation, SpatialIntentResolutionError,
-    SpatialObservedRelationFact,
+    analyze_spatial_intent_conflict_with_capabilities_and_profile,
+    resolve_spatial_intent_conflict_by_choice, resolve_spatial_intent_conflict_by_policy,
+    SpatialAuthoredActKind, SpatialBlockedCapability, SpatialChosenIntentAuthority,
+    SpatialIdentityContinuityClass, SpatialIntentCandidate, SpatialIntentCapabilitySet,
+    SpatialIntentConflictClass, SpatialIntentEscalation, SpatialIntentPreviewCommitDisposition,
+    SpatialIntentPreviewWarning, SpatialIntentResolutionError, SpatialObservedRelationFact,
 };
+use crate::spatial_intent::policy::{SpatialIntentPolicyProfile, SpatialPreviewRichness};
 
 #[test]
 fn common_path_preserves_move_only_as_single_clear_intent() {
@@ -135,15 +137,14 @@ fn blocked_candidate_cannot_be_resolved_by_choice() {
 }
 
 #[test]
-fn runtime_declaration_preserves_query_seam_and_invariant_violations() {
+fn arbitration_declaration_exposes_query_seam_and_invariant_violations() {
     let analysis = analyze_spatial_intent_conflict(
         SpatialAuthoredActKind::Move,
         &[SpatialObservedRelationFact::Overlap],
     );
-    let runtime = declare_spatial_arbitration_runtime(analysis.clone());
-    let eligibility = runtime
+    let eligibility = analysis
         .to_query_eligibility()
-        .expect("runtime request should be valid");
+        .expect("declaration request should be valid");
 
     assert_eq!(
         eligibility
@@ -153,9 +154,99 @@ fn runtime_declaration_preserves_query_seam_and_invariant_violations() {
             .name(),
         "worth.spatial.arbitration"
     );
-    assert!(!runtime.graph_composition_invariant_violations().is_empty());
-    assert!(!runtime
+    assert!(!analysis.graph_composition_invariant_violations().is_empty());
+    assert!(!analysis
         .graph_composition_capability_support_rows()
         .is_empty());
-    assert_eq!(runtime.declaration(), &analysis);
+    assert!(analysis.admit_query_intent().is_ok());
+}
+
+#[test]
+fn preview_semantics_live_on_arbitration_declaration() {
+    let analysis = analyze_spatial_intent_conflict_with_capabilities_and_profile(
+        SpatialAuthoredActKind::Move,
+        &[SpatialObservedRelationFact::HostFaceContact],
+        SpatialIntentCapabilitySet::blocked_defaults().with_host_attach(),
+        SpatialIntentPolicyProfile::bim_host_friendly(),
+    );
+
+    assert_eq!(
+        analysis.preview_commit_disposition(),
+        SpatialIntentPreviewCommitDisposition::WouldAutoResolve(
+            SpatialIntentCandidate::AttachRelationally
+        )
+    );
+    assert_eq!(
+        analysis.preview_richness(),
+        SpatialPreviewRichness::Standard
+    );
+    assert!(analysis.preview_warnings().contains(
+        &SpatialIntentPreviewWarning::ProfileDrivenAutoResolve(
+            SpatialIntentCandidate::AttachRelationally
+        )
+    ));
+}
+
+#[test]
+fn high_fidelity_preview_warning_lives_on_arbitration_declaration() {
+    let analysis = analyze_spatial_intent_conflict_with_capabilities_and_profile(
+        SpatialAuthoredActKind::Align,
+        &[SpatialObservedRelationFact::FrameAligned],
+        SpatialIntentCapabilitySet::blocked_defaults(),
+        SpatialIntentPolicyProfile::high_fidelity_preview(),
+    );
+
+    assert_eq!(
+        analysis.preview_richness(),
+        SpatialPreviewRichness::HighFidelity
+    );
+    assert!(analysis
+        .preview_warnings()
+        .contains(&SpatialIntentPreviewWarning::HighFidelityPreview));
+}
+
+#[test]
+fn continuity_semantics_live_on_analysis_and_resolution() {
+    let policy_analysis = analyze_spatial_intent_conflict_with_capabilities_and_profile(
+        SpatialAuthoredActKind::Move,
+        &[SpatialObservedRelationFact::GrazingContact],
+        SpatialIntentCapabilitySet::blocked_defaults(),
+        SpatialIntentPolicyProfile::aggressive_snap(),
+    );
+    let merged_analysis = analyze_spatial_intent_conflict_with_capabilities_and_profile(
+        SpatialAuthoredActKind::Move,
+        &[SpatialObservedRelationFact::Overlap],
+        SpatialIntentCapabilitySet::blocked_defaults().with_merge_boolean(),
+        SpatialIntentPolicyProfile::conservative_exact_modeling(),
+    );
+    let merged_resolution = resolve_spatial_intent_conflict_by_choice(
+        merged_analysis,
+        SpatialIntentCandidate::MergeCandidate,
+    )
+    .expect("merge choice");
+    let blocked_analysis = analyze_spatial_intent_conflict_with_capabilities_and_profile(
+        SpatialAuthoredActKind::Move,
+        &[SpatialObservedRelationFact::Overlap],
+        SpatialIntentCapabilitySet::blocked_defaults(),
+        SpatialIntentPolicyProfile::conservative_exact_modeling(),
+    );
+
+    assert_eq!(
+        policy_analysis
+            .identity_continuity_assessment()
+            .continuity_class(),
+        SpatialIdentityContinuityClass::AnchorContinuityPreserved
+    );
+    assert_eq!(
+        merged_resolution
+            .identity_continuity_assessment()
+            .continuity_class(),
+        SpatialIdentityContinuityClass::IdentityMerged
+    );
+    assert_eq!(
+        blocked_analysis
+            .identity_continuity_assessment()
+            .continuity_class(),
+        SpatialIdentityContinuityClass::IdentityBlockedPendingChoice
+    );
 }

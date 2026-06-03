@@ -3,8 +3,3 @@ error[E0432]: unresolved import `worth_kernel::facade::PrimitiveConstructionCont
   |
 1 | use worth_kernel::facade::PrimitiveConstructionContinuityReportBundle;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionContinuityReportBundle` in `facade`
-  |
-help: consider importing this struct instead
-  |
-1 | use worth_kernel::facade::certification::continuity::PrimitiveConstructionContinuityReportBundle;
-  |                           +++++++++++++++++++++++++++

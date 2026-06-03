@@ -58,10 +58,6 @@ const KERNEL_FACADE_OUTCOME: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/src/facade/outcome.rs"
 ));
-const KERNEL_FACADE_PRELUDE: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/src/facade/prelude.rs"
-));
 const KERNEL_AUTHORING: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/src/construction/authoring.rs"
@@ -278,14 +274,14 @@ fn public_queryless_happy_path_quarantined_row() -> PrimitiveConstructionPhaseFi
         && !KERNEL_FACADE_ROOT.contains("prepare_primitive_construction_outcome")
         && !KERNEL_FACADE_OUTCOME.contains("prepare_primitive_construction_result")
         && !KERNEL_FACADE_OUTCOME.contains("prepare_primitive_construction_outcome")
-        && !KERNEL_FACADE_PRELUDE.contains("prepare_primitive_construction_result")
-        && !KERNEL_FACADE_PRELUDE.contains("prepare_primitive_construction_outcome");
+        && !KERNEL_FACADE_ROOT.contains("pub mod prelude;");
     PrimitiveConstructionPhaseFiveBoundaryCloseoutRow::new(
         PrimitiveConstructionPhaseFiveBoundaryCloseoutKind::PublicQuerylessHappyPathQuarantined,
         verified,
         vec![
             "worth-kernel.facade: no public queryless happy-path helpers".to_string(),
-            "worth-kernel.facade.prelude/outcome: no queryless happy-path exports".to_string(),
+            "worth-kernel.facade: no prelude bypass and outcome lane exports no queryless helpers"
+                .to_string(),
         ],
     )
 }
@@ -294,8 +290,8 @@ fn query_runtime_authoring_honesty_row(
     query_runtime_audit: &PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit,
 ) -> PrimitiveConstructionPhaseFiveBoundaryCloseoutRow {
     let verified = query_runtime_audit.violation_count() == 0
-        && KERNEL_AUTHORING.contains("fn prepare_result<")
-        && KERNEL_AUTHORING.contains("fn prepare_outcome<")
+        && KERNEL_AUTHORING.contains("pub fn author<")
+        && KERNEL_AUTHORING.contains("pub fn author_with_catalog<")
         && KERNEL_AUTHORING.contains("ForgeQueryWorkspace");
     PrimitiveConstructionPhaseFiveBoundaryCloseoutRow::new(
         PrimitiveConstructionPhaseFiveBoundaryCloseoutKind::QueryRuntimeAuthoringHonesty,
@@ -305,7 +301,7 @@ fn query_runtime_authoring_honesty_row(
                 "query runtime workaround audit violations: {}",
                 query_runtime_audit.violation_count()
             ),
-            "worth-kernel.authoring: session exposes the query-backed construction entry lane"
+            "worth-kernel.authoring: session exposes a single query-backed authoring entry lane"
                 .to_string(),
         ],
     )

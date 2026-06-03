@@ -8,14 +8,20 @@ use crate::construction::{
     PrimitiveConstructionIntent, PrimitiveConstructionMotionRuntimeSurfaceStatus,
     PrimitiveConstructionMotionWitnessResolutionStatus, RegularPyramidSpec, WireBodySpec,
 };
-use crate::facade::{MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent};
-use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
-use worth_spatial::facade::{
-    SpatialAnchorRef, SpatialAxis, SpatialCarrierDirectionRole, SpatialCarrierPointRole,
-    SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
-    SpatialCatalogWitnessResolutionClass, SpatialDirectionWitnessRef, SpatialFixtureWitnessCatalog,
-    SpatialPointWitnessRef, SpatialWitnessResolutionClass,
+use crate::facade::authoring::intents::{
+    MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
 };
+use crate::test_support::SpatialFixtureWitnessCatalog;
+use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
+use worth_spatial::facade::refs::{
+    SpatialAnchorRef, SpatialAxis, SpatialCarrierDirectionRole, SpatialCarrierPointRole,
+    SpatialDirectionWitnessRef, SpatialPointWitnessRef,
+};
+use worth_spatial::facade::witness_catalog::{
+    SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
+    SpatialCatalogWitnessResolutionClass,
+};
+use worth_spatial::facade::witness_resolution::SpatialWitnessResolutionClass;
 
 fn workspace(name: &str) -> forge_query::facade::ForgeQueryWorkspace {
     let runtime = milestone_one_runtime_builder()
@@ -100,7 +106,7 @@ fn motion_report_bundle_preserves_rejected_and_lowering_blocked_truth() {
             .branch_preview_runtime_report()
             .runtime_surface_status(),
         PrimitiveConstructionMotionRuntimeSurfaceStatus::PlacementLoweringBlocked(
-            worth_spatial::facade::SpatialPlacementMotionError::UnsupportedMoveAnchor
+            worth_spatial::facade::placement::SpatialPlacementMotionError::UnsupportedMoveAnchor
         )
     );
 }
@@ -114,7 +120,7 @@ fn motion_report_bundle_supports_external_pivot_rotate_and_world_origin_points_t
             edge_count: 6,
         }))
         .about(SpatialAnchorRef::frame_origin(
-            worth_spatial::facade::SpatialFrameRef::workplane(
+            worth_spatial::facade::refs::SpatialFrameRef::workplane(
                 "pivot",
                 [4.0, 0.0, 0.0],
                 [0.0, 0.0, 1.0],
@@ -343,7 +349,7 @@ fn motion_report_bundle_preserves_directional_anchor_ambiguity_truth() {
             .branch_preview_runtime_report()
             .runtime_surface_status(),
         PrimitiveConstructionMotionRuntimeSurfaceStatus::PlacementLoweringBlocked(
-            worth_spatial::facade::SpatialPlacementMotionError::AmbiguousReorientAnchorMeaning
+            worth_spatial::facade::placement::SpatialPlacementMotionError::AmbiguousReorientAnchorMeaning
         )
     );
 }

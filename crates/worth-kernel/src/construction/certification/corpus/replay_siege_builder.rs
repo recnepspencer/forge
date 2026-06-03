@@ -48,23 +48,32 @@ fn build_corpus_row(
 
     match execution.direct_outcome().clone() {
         PrimitiveConstructionPreparedOutcome::Accepted(outcome) => {
-            let result =
-                {
-                    let mut session = primitive_construction_authoring(workspace).map_err(|error| {
+            let result = {
+                let mut session = primitive_construction_authoring(workspace).map_err(|error| {
                     PrimitiveConstructionCorpusReplaySiegeError::AcceptedArtifactUnavailable {
                         family: scenario.family,
                         parameter_role: scenario.parameter_role,
                         reason: format!("{error:?}"),
                     }
                 })?;
-                    session.prepare_result(scenario.intent.clone()).map_err(|error| {
-                    PrimitiveConstructionCorpusReplaySiegeError::AcceptedArtifactUnavailable {
-                        family: scenario.family,
-                        parameter_role: scenario.parameter_role,
-                        reason: error.to_string(),
-                    }
-                })?
-                };
+                session
+                    .author(scenario.intent.clone())
+                    .map_err(|error| {
+                        PrimitiveConstructionCorpusReplaySiegeError::AcceptedArtifactUnavailable {
+                            family: scenario.family,
+                            parameter_role: scenario.parameter_role,
+                            reason: error.to_string(),
+                        }
+                    })?
+                    .prepare_result()
+                    .map_err(|error| {
+                        PrimitiveConstructionCorpusReplaySiegeError::AcceptedArtifactUnavailable {
+                            family: scenario.family,
+                            parameter_role: scenario.parameter_role,
+                            reason: error.to_string(),
+                        }
+                    })?
+            };
             Ok(PrimitiveConstructionCorpusReplaySiegeRow::new(
                 scenario.scenario_id.to_string(),
                 scenario.family,
@@ -77,9 +86,9 @@ fn build_corpus_row(
                 Some(outcome.realization_strategy()),
                 outcome.attempted_realization_strategies().to_vec(),
                 Some(outcome.stability_class()),
-                Some(result.canonical_artifact().feature_conditioning_class()),
-                Some(result.canonical_artifact().support_normal_class()),
-                Some(result.canonical_artifact().normalization_disposition()),
+                Some(result.feature_conditioning_class()),
+                Some(result.support_normal_class()),
+                Some(result.normalization_disposition()),
                 None,
                 None,
                 None,

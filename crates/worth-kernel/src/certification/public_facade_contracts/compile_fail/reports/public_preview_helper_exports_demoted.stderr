@@ -9,3 +9,9 @@ error[E0432]: unresolved imports `worth_kernel::facade::preview_primitive_intent
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `preview_primitive_intent_with_profile` in `facade`
   |     |
   |     no `preview_primitive_intent_with_capabilities_and_profile` in `facade`
+
+error[E0432]: unresolved import `worth_kernel::facade::diagnostics::preview::PrimitiveIntentPreview`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_preview_helper_exports_demoted.rs:6:5
+  |
+6 | use worth_kernel::facade::diagnostics::preview::PrimitiveIntentPreview;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveIntentPreview` in `facade::diagnostics::preview`

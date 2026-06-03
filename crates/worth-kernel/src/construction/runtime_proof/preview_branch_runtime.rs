@@ -163,8 +163,8 @@ mod tests {
 
         assert_eq!(
             report.preview_row().commit_disposition(),
-            worth_spatial::facade::SpatialIntentPreviewCommitDisposition::WouldAutoResolve(
-                worth_spatial::facade::SpatialIntentCandidate::AttachRelationally
+            worth_spatial::facade::arbitration::SpatialIntentPreviewCommitDisposition::WouldAutoResolve(
+                worth_spatial::facade::arbitration::SpatialIntentCandidate::AttachRelationally
             )
         );
         assert_eq!(

@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_kernel::facade::CanonicalPrimitiveConstructionArtifact`
+ --> src/certification/public_facade_contracts/compile_fail/results/public_canonical_artifact_not_exported.rs:1:5
+  |
+1 | use worth_kernel::facade::CanonicalPrimitiveConstructionArtifact;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `CanonicalPrimitiveConstructionArtifact` in `facade`

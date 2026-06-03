@@ -3,7 +3,7 @@ use crate::construction::specs::{
     OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
     WireBodySpec,
 };
-use worth_spatial::facade::SpatialPlacementSpec;
+use worth_spatial::facade::placement::SpatialPlacementSpec;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionIntent {

@@ -86,9 +86,9 @@ impl PrimitiveConstructionRealizationStrategyReport {
 }
 
 pub fn prepare_primitive_construction_realization_strategy_report(
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: PrimitiveConstructionIntent,
 ) -> PrimitiveConstructionRealizationStrategyReport {
     PrimitiveConstructionRealizationStrategyReport::from_snapshot(&prepare_realization_snapshot(
-        intent.into().into_request(),
+        intent.into_request(),
     ))
 }

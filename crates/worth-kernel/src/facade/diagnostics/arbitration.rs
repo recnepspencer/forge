@@ -24,9 +24,13 @@ pub use crate::construction::{
 };
 pub use crate::spatial_intent::{
     PrimitiveIntentClarificationCandidate, PrimitiveIntentClarificationRequest,
-    PrimitiveIntentClarificationRequestError, PrimitiveIntentConflict, SpatialBlockedCapability,
-    SpatialChosenIntentAuthority, SpatialChosenIntentResolution, SpatialIntentArbitrationAnalysis,
-    SpatialIntentCandidate, SpatialIntentCandidateAvailability, SpatialIntentCandidateRank,
-    SpatialIntentCapabilitySet, SpatialIntentConflictClass, SpatialIntentEscalation,
-    SpatialIntentExplanationClass, SpatialIntentResolutionError, SpatialObservedRelationFact,
+    PrimitiveIntentClarificationRequestError, PrimitiveIntentConflict,
+    PrimitiveIntentPreviewAssessment, SpatialBlockedCapability, SpatialChosenIntentAuthority,
+    SpatialChosenIntentResolution, SpatialIdentityContinuityAssessment,
+    SpatialIdentityContinuityClass, SpatialIdentityContinuityExplanationClass,
+    SpatialIntentArbitrationAnalysis, SpatialIntentCandidate, SpatialIntentCandidateAvailability,
+    SpatialIntentCandidateRank, SpatialIntentCapabilitySet, SpatialIntentConflictClass,
+    SpatialIntentEscalation, SpatialIntentExplanationClass, SpatialIntentPreviewCommitDisposition,
+    SpatialIntentPreviewWarning, SpatialIntentResolutionError, SpatialObservedRelationFact,
+    SpatialPreviewRichness,
 };

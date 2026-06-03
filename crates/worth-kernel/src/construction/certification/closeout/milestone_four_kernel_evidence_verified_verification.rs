@@ -1,17 +1,20 @@
 use worth_geom::facade::PrimitiveRealizationExhaustionWitnessKind;
 
+use crate::construction::certification::closeout::milestone_four_kernel_representative_evidence::{
+    PrimitiveConstructionContinuityRepresentativeEvidence,
+    PrimitiveConstructionPolicyProfileRepresentativeEvidence,
+    PrimitiveConstructionPreviewRepresentativeEvidence,
+};
 use crate::construction::certification::{
-    PrimitiveConstructionContinuityCase, PrimitiveConstructionContinuityReportBundle,
-    PrimitiveConstructionContinuitySurfaceReport,
+    PrimitiveConstructionContinuityCase, PrimitiveConstructionContinuitySurfaceReport,
     PrimitiveConstructionIntentArbitrationDxSurfaceReport,
     PrimitiveConstructionIntentArbitrationPolicyCase,
     PrimitiveConstructionIntentArbitrationPolicyReport, PrimitiveConstructionMotionDxSurfaceReport,
     PrimitiveConstructionMotionResolutionPolicyCase,
     PrimitiveConstructionMotionResolutionPolicyReport,
     PrimitiveConstructionPhaseFiveSixCloseoutReport, PrimitiveConstructionPolicyProfileCase,
-    PrimitiveConstructionPolicyProfileReportBundle,
     PrimitiveConstructionPolicyProfileSurfaceReport, PrimitiveConstructionPreviewCase,
-    PrimitiveConstructionPreviewReportBundle, PrimitiveConstructionPreviewSurfaceReport,
+    PrimitiveConstructionPreviewSurfaceReport,
     PrimitiveConstructionRealizationExhaustionWitnessReport,
 };
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
@@ -68,11 +71,12 @@ pub struct PrimitiveConstructionMilestoneFourKernelCloseoutVerificationFailure {
     intent_conflict_dx_surface_report: PrimitiveConstructionIntentArbitrationDxSurfaceReport,
     representative_intent_bundle: PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
     preview_surface_report: PrimitiveConstructionPreviewSurfaceReport,
-    representative_preview_bundle: PrimitiveConstructionPreviewReportBundle,
+    representative_preview_evidence: PrimitiveConstructionPreviewRepresentativeEvidence,
     continuity_surface_report: PrimitiveConstructionContinuitySurfaceReport,
-    representative_continuity_bundle: PrimitiveConstructionContinuityReportBundle,
+    representative_continuity_evidence: PrimitiveConstructionContinuityRepresentativeEvidence,
     policy_profile_report: PrimitiveConstructionPolicyProfileSurfaceReport,
-    representative_policy_profile_bundle: PrimitiveConstructionPolicyProfileReportBundle,
+    representative_policy_profile_evidence:
+        PrimitiveConstructionPolicyProfileRepresentativeEvidence,
     realization_exhaustion_witness_report: PrimitiveConstructionRealizationExhaustionWitnessReport,
     missing_motion_cases: Vec<PrimitiveConstructionMotionResolutionPolicyCase>,
     missing_arbitration_cases: Vec<PrimitiveConstructionIntentArbitrationPolicyCase>,
@@ -218,30 +222,31 @@ pub(crate) fn verify_closeout(
         );
     }
     if !missing_preview_cases.is_empty()
-        || assembly.representative_preview_bundle.preview_row().case()
-            != registry.required_preview_bundle_case
+        || !assembly.representative_preview_evidence.parity_verified()
+        || assembly.representative_preview_evidence.case()
+            != registry.required_preview_representative_case
     {
         mismatches.push(
             PrimitiveConstructionMilestoneFourKernelCloseoutVerificationMismatch::PreviewInventoryDrift,
         );
     }
     if !missing_continuity_cases.is_empty()
-        || assembly
-            .representative_continuity_bundle
-            .continuity_row()
-            .case()
-            != registry.required_continuity_bundle_case
+        || !assembly
+            .representative_continuity_evidence
+            .parity_verified()
+        || assembly.representative_continuity_evidence.case()
+            != registry.required_continuity_representative_case
     {
         mismatches.push(
             PrimitiveConstructionMilestoneFourKernelCloseoutVerificationMismatch::ContinuityInventoryDrift,
         );
     }
     if !missing_policy_profile_cases.is_empty()
-        || assembly
-            .representative_policy_profile_bundle
-            .profile_row()
-            .case()
-            != registry.required_policy_profile_bundle_case
+        || !assembly
+            .representative_policy_profile_evidence
+            .parity_verified()
+        || assembly.representative_policy_profile_evidence.case()
+            != registry.required_policy_profile_representative_case
     {
         mismatches.push(
             PrimitiveConstructionMilestoneFourKernelCloseoutVerificationMismatch::PolicyProfileInventoryDrift,
@@ -309,7 +314,7 @@ pub(crate) fn verify_closeout(
                 .to_string(),
             assembly.preview_surface_report.report_digest().to_string(),
             assembly
-                .representative_preview_bundle
+                .representative_preview_evidence
                 .report_digest()
                 .to_string(),
             assembly
@@ -317,12 +322,12 @@ pub(crate) fn verify_closeout(
                 .report_digest()
                 .to_string(),
             assembly
-                .representative_continuity_bundle
+                .representative_continuity_evidence
                 .report_digest()
                 .to_string(),
             assembly.policy_profile_report.report_digest().to_string(),
             assembly
-                .representative_policy_profile_bundle
+                .representative_policy_profile_evidence
                 .report_digest()
                 .to_string(),
             assembly
@@ -354,11 +359,11 @@ pub(crate) fn verify_closeout(
             intent_conflict_dx_surface_report: assembly.intent_conflict_dx_surface_report,
             representative_intent_bundle: assembly.representative_intent_bundle,
             preview_surface_report: assembly.preview_surface_report,
-            representative_preview_bundle: assembly.representative_preview_bundle,
+            representative_preview_evidence: assembly.representative_preview_evidence,
             continuity_surface_report: assembly.continuity_surface_report,
-            representative_continuity_bundle: assembly.representative_continuity_bundle,
+            representative_continuity_evidence: assembly.representative_continuity_evidence,
             policy_profile_report: assembly.policy_profile_report,
-            representative_policy_profile_bundle: assembly.representative_policy_profile_bundle,
+            representative_policy_profile_evidence: assembly.representative_policy_profile_evidence,
             realization_exhaustion_witness_report: assembly.realization_exhaustion_witness_report,
             missing_motion_cases,
             missing_arbitration_cases,

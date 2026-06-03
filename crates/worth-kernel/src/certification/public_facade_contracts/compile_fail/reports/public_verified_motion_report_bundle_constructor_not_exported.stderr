@@ -1,13 +1,5 @@
-error[E0624]: associated function `from_parts` is private
- --> src/certification/public_facade_contracts/compile_fail/reports/public_verified_motion_report_bundle_constructor_not_exported.rs:4:62
+error[E0432]: unresolved import `worth_kernel::facade::certification::motion`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_verified_motion_report_bundle_constructor_not_exported.rs:1:42
   |
-4 |       let _ = PrimitiveConstructionVerifiedMotionReportBundle::from_parts;
-  |                                                                ^^^^^^^^^^ private associated function
-  |
- ::: src/construction/certification/motion/bundle_verified.rs
-  |
-  | /     pub(crate) fn from_parts(
-  | |         truth: PrimitiveConstructionMotionCanonicalTruth,
-  | |         bundle: PrimitiveConstructionMotionReportBundle,
-  | |     ) -> Self {
-  | |_____________- private associated function defined here
+1 | use worth_kernel::facade::certification::motion::PrimitiveConstructionVerifiedMotionReportBundle;
+  |                                          ^^^^^^ could not find `motion` in `certification`

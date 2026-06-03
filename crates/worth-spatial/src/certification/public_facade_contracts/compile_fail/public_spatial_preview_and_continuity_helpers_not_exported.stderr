@@ -1,0 +1,17 @@
+error[E0432]: unresolved imports `worth_spatial::facade::assess_spatial_identity_continuity_from_analysis`, `worth_spatial::facade::assess_spatial_identity_continuity_from_resolution`, `worth_spatial::facade::prepare_spatial_intent_preview`, `worth_spatial::facade::prepare_spatial_intent_preview_with_capabilities`, `worth_spatial::facade::prepare_spatial_intent_preview_with_capabilities_and_profile`, `worth_spatial::facade::prepare_spatial_intent_preview_with_profile`, `worth_spatial::facade::SpatialIntentPreview`
+ --> src/certification/public_facade_contracts/compile_fail/public_spatial_preview_and_continuity_helpers_not_exported.rs:2:5
+  |
+2 |     assess_spatial_identity_continuity_from_analysis,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `assess_spatial_identity_continuity_from_analysis` in `facade`
+3 |     assess_spatial_identity_continuity_from_resolution, prepare_spatial_intent_preview,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_spatial_intent_preview` in `facade`
+  |     |
+  |     no `assess_spatial_identity_continuity_from_resolution` in `facade`
+4 |     prepare_spatial_intent_preview_with_capabilities,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_spatial_intent_preview_with_capabilities` in `facade`
+5 |     prepare_spatial_intent_preview_with_capabilities_and_profile,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_spatial_intent_preview_with_capabilities_and_profile` in `facade`
+6 |     prepare_spatial_intent_preview_with_profile, SpatialIntentPreview,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^ no `SpatialIntentPreview` in `facade`
+  |     |
+  |     no `prepare_spatial_intent_preview_with_profile` in `facade`

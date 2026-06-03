@@ -7,7 +7,7 @@ use crate::construction::{
     PrimitiveConstructionIntentChosenTruth, PrimitiveConstructionPreservedIntentTruth,
 };
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
-use worth_spatial::facade::{SpatialIntentCandidate, SpatialIntentEscalation};
+use worth_spatial::facade::arbitration::{SpatialIntentCandidate, SpatialIntentEscalation};
 
 fn workspace(name: &str) -> forge_query::facade::ForgeQueryWorkspace {
     let runtime = milestone_one_runtime_builder()
@@ -33,9 +33,11 @@ fn arbitration_report_bundle_verifies_policy_dx_and_query_truth_for_unresolved_c
         bundle.truth().preserved_truth(),
         PrimitiveConstructionPreservedIntentTruth::Unresolved {
             escalation: SpatialIntentEscalation::BlockedByMissingCapability(
-                worth_spatial::facade::SpatialBlockedCapability::CutOpening
+                worth_spatial::facade::arbitration::SpatialBlockedCapability::CutOpening
             ),
-            blocked_capability: Some(worth_spatial::facade::SpatialBlockedCapability::CutOpening),
+            blocked_capability: Some(
+                worth_spatial::facade::arbitration::SpatialBlockedCapability::CutOpening
+            ),
         }
     );
     assert!(bundle.replay_parity_report().parity_verified());
@@ -43,7 +45,7 @@ fn arbitration_report_bundle_verifies_policy_dx_and_query_truth_for_unresolved_c
     assert_eq!(
         bundle.policy_row().escalation(),
         SpatialIntentEscalation::BlockedByMissingCapability(
-            worth_spatial::facade::SpatialBlockedCapability::CutOpening
+            worth_spatial::facade::arbitration::SpatialBlockedCapability::CutOpening
         )
     );
     assert_eq!(

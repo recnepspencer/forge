@@ -1,6 +1,6 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{certification::query::*, diagnostics::arbitration::*};
-use worth_spatial::facade::SpatialIntentCandidate;
+use worth_spatial::facade::arbitration::SpatialIntentCandidate;
 
 #[test]
 fn kernel_public_facade_exports_query_intent_arbitration_parity_surface() {

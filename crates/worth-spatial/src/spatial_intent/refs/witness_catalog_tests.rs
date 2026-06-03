@@ -4,8 +4,8 @@ use super::{
     SpatialCatalogWitnessResolutionClass, SpatialWitnessCatalog,
 };
 use crate::facade::{
-    SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole,
-    SpatialWitnessFailureClass,
+    refs::{SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole},
+    witness_resolution::SpatialWitnessFailureClass,
 };
 use crate::test_support::SpatialFixtureWitnessCatalog;
 use worth_geom::ParameterSpacePoint;

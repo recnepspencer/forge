@@ -15,8 +15,8 @@ use crate::construction::authoring::{
     WorthKernelAuthorityError,
 };
 use crate::construction::digest::digest_owned_parts;
-use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::realization_truth::PrimitiveConstructionRuntimeRealizationTruth;
+use crate::construction::PrimitiveConstructionAuthoringInput;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionQueryInspectionParityReport {
     family: crate::construction::request::PrimitiveConstructionFamily,
@@ -40,20 +40,16 @@ impl PrimitiveConstructionQueryInspectionParityReport {
         query_contract_digest: String,
         prepared: &crate::construction::result::PreparedPrimitiveConstructionResult,
     ) -> Self {
-        let artifact = prepared.canonical_artifact();
-        let topology_query_envelope = prepared
-            .evidence()
-            .topology_query_handoff()
-            .topology_query_envelope();
+        let topology_query_envelope = prepared.topology_query_handoff().topology_query_envelope();
         let realization_truth =
-            PrimitiveConstructionRuntimeRealizationTruth::from_artifact(artifact);
+            PrimitiveConstructionRuntimeRealizationTruth::from_prepared_result(prepared);
         let parity_verified = topology_query_envelope.required_query_families()
             == [
                 ForgeQueryRuntimeFacadeFamily::Write,
                 ForgeQueryRuntimeFacadeFamily::Inspect,
             ]
-            && artifact.inspection_surface() == topology_query_envelope.inspection_surface()
-            && artifact.topology_fact_digest() == topology_query_envelope.fact_digest()
+            && prepared.inspection_surface() == topology_query_envelope.inspection_surface()
+            && prepared.topology_fact_digest() == topology_query_envelope.fact_digest()
             && topology_query_envelope.read_surface()
                 == TopologyConstructionQueryReadSurface::ProjectionConsumptionFromInspectionReceipt
             && topology_query_envelope.fact_provenance()
@@ -62,7 +58,7 @@ impl PrimitiveConstructionQueryInspectionParityReport {
             && realization_truth.selected_strategy().is_some()
             && realization_truth.stability_class().is_some();
         let report_digest = digest_owned_parts(&[
-            artifact.family().as_str().to_string(),
+            prepared.family().as_str().to_string(),
             query_contract_digest.clone(),
             topology_query_envelope
                 .required_query_families()
@@ -71,7 +67,7 @@ impl PrimitiveConstructionQueryInspectionParityReport {
                 .collect::<Vec<_>>()
                 .join("|"),
             topology_query_envelope.read_surface().as_str().to_string(),
-            artifact.inspection_surface().as_str().to_string(),
+            prepared.inspection_surface().as_str().to_string(),
             topology_query_envelope
                 .fact_provenance()
                 .as_str()
@@ -80,11 +76,11 @@ impl PrimitiveConstructionQueryInspectionParityReport {
             parity_verified.to_string(),
         ]);
         Self {
-            family: artifact.family(),
+            family: prepared.family(),
             query_contract_digest,
             required_query_families: topology_query_envelope.required_query_families().to_vec(),
             read_surface: topology_query_envelope.read_surface(),
-            inspection_surface: artifact.inspection_surface(),
+            inspection_surface: prepared.inspection_surface(),
             fact_provenance: topology_query_envelope.fact_provenance(),
             realization_strategy: realization_truth.selected_strategy(),
             attempted_realization_strategies: realization_truth.attempted_strategies().to_vec(),
@@ -175,7 +171,7 @@ impl std::error::Error for PrimitiveConstructionQueryInspectionParityError {}
 
 pub fn prepare_primitive_construction_query_inspection_parity_report(
     workspace: &mut ForgeQueryWorkspace,
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: impl PrimitiveConstructionAuthoringInput,
 ) -> Result<
     PrimitiveConstructionQueryInspectionParityReport,
     PrimitiveConstructionQueryInspectionParityError,
@@ -189,7 +185,9 @@ pub fn prepare_primitive_construction_query_inspection_parity_report(
         let mut session = primitive_construction_authoring(workspace)
             .map_err(PrimitiveConstructionQueryInspectionParityError::Authority)?;
         session
-            .prepare_result(intent)
+            .author(intent)
+            .map_err(PrimitiveConstructionQueryInspectionParityError::QueryEntry)?
+            .prepare_result()
             .map_err(PrimitiveConstructionQueryInspectionParityError::QueryEntry)?
     };
     Ok(PrimitiveConstructionQueryInspectionParityReport::new(

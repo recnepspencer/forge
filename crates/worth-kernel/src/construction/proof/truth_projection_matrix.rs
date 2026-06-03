@@ -69,11 +69,6 @@ pub fn prepare_primitive_construction_truth_projection_matrix(
                 "exhaustion_witness_parity_report",
             ],
         },
-        PrimitiveConstructionTruthProjectionRow {
-            subject: PrimitiveConstructionProofSubject::PolicyPressure,
-            canonical_truth_type: "PrimitiveConstructionPolicyPressureCanonicalTruth",
-            projections: &["direct_report", "delta_report"],
-        },
     ];
     let report_digest = digest_owned_parts_with_scope(
         ConstructionDigestScope::ArtifactIdentity,

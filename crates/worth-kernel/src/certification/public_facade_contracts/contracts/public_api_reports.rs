@@ -4,10 +4,9 @@ use worth_geom::facade::{
     PrimitiveRealizationStrategy, PrimitiveStabilityClass, PrimitiveSupportNormalClass,
 };
 use worth_kernel::facade::{
+    authoring::construction::*,
     certification::{query::*, realization::*},
-    diagnostics::{query::*, rejection::*},
-    OrthotopeSpec, PrimitiveConstructionFamily, PrimitiveConstructionIntent, RegularPrismSpec,
-    RegularPyramidSpec, ShellWithHoleSpec, WireBodySpec,
+    diagnostics::rejection::*,
 };
 
 #[test]

@@ -8,9 +8,9 @@ error[E0432]: unresolved imports `worth_kernel::facade::authoring::MoveSpatialIn
   |     no `MoveSpatialIntent` in `facade::authoring`
   |
   = help: consider importing this struct instead:
-          worth_kernel::facade::MoveSpatialIntent
+          worth_kernel::facade::authoring::intents::MoveSpatialIntent
   = help: consider importing this struct instead:
-          worth_kernel::facade::PrimitiveConstructionIntent
+          worth_kernel::facade::authoring::construction::PrimitiveConstructionIntent
   = help: consider importing one of these structs instead:
-          worth_kernel::facade::SpatialIntentPolicyProfile
-          worth_spatial::facade::SpatialIntentPolicyProfile
+          worth_kernel::facade::authoring::policy::SpatialIntentPolicyProfile
+          worth_spatial::facade::arbitration::SpatialIntentPolicyProfile
