@@ -70,13 +70,6 @@ pub fn prepare_primitive_construction_verified_artifact_surface_report(
             failure_type: "PrimitiveConstructionCompoundParityVerificationFailure",
         },
         PrimitiveConstructionVerifiedArtifactSurfaceRow {
-            subject: PrimitiveConstructionProofSubject::PolicyPressure,
-            grade: PrimitiveConstructionProofGrade::BundleCoherence,
-            truth_type: "PrimitiveConstructionPolicyPressureCanonicalTruth",
-            verified_type: "PrimitiveConstructionPolicyPressureReportBundle",
-            failure_type: "PrimitiveConstructionPolicyPressureBundleVerificationFailure",
-        },
-        PrimitiveConstructionVerifiedArtifactSurfaceRow {
             subject: PrimitiveConstructionProofSubject::PhaseFiveSixCloseout,
             grade: PrimitiveConstructionProofGrade::MilestoneCloseout,
             truth_type: "PrimitiveConstructionPhaseFiveSixCloseoutRegistry",

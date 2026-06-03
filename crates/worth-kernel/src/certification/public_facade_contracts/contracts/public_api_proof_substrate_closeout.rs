@@ -18,8 +18,8 @@ fn kernel_public_facade_exports_proof_substrate_closeout_surface() {
         .expect("proof substrate closeout");
 
     assert_eq!(digest_protocol_report.version_prefix(), "worth-kernel.v1");
-    assert_eq!(verified_artifact_surface_report.rows().len(), 6);
-    assert_eq!(truth_projection_matrix.rows().len(), 4);
+    assert_eq!(verified_artifact_surface_report.rows().len(), 5);
+    assert_eq!(truth_projection_matrix.rows().len(), 3);
     assert_eq!(proof_boundary_compile_fail_report.fixtures().len(), 7);
     assert_eq!(
         substrate_closeout.digest_protocol_report().report_digest(),

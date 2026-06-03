@@ -52,6 +52,8 @@ pub use closeout::{
     PrimitiveConstructionPhaseFiveSixCloseoutReportError,
     PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure,
     PrimitiveConstructionPhaseFiveSixCloseoutVerificationMismatch,
+    PrimitiveConstructionPolicyPressureRepresentativeEvidence,
+    PrimitiveConstructionPolicyPressureRepresentativeEvidenceError,
 };
 pub use continuity::{
     prepare_primitive_construction_continuity_hostility_suite_report,

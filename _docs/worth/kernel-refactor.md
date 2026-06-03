@@ -810,9 +810,13 @@ time we question one local production seam.
   bundles are deleted and replaced by direct representative evidence built from
   surface rows, hostility suites, replay parity, query inspection/projection,
   and branch-runtime truth
+- the phase-five/six closeout path now does the same for policy-pressure:
+  the policy-pressure canonical-truth and verified-bundle seam is deleted, and
+  closeout consumes direct representative evidence built from the direct report,
+  delta report, and explicit required-case coverage instead
 - the remaining work is now narrower and deeper in the certification corpus:
-  motion, arbitration, and policy-pressure verified bundle internals still
-  survive under `construction/certification`, and Folder 9 is not honest to
+  motion and arbitration verified bundle internals still survive under
+  `construction/certification`, and Folder 9 is not honest to
   mark complete until those residual proof packages are either consumed by
   corpus-only closeout or deleted
 

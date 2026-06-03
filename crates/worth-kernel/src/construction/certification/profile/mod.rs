@@ -3,8 +3,6 @@ mod report;
 mod suite;
 
 #[cfg(test)]
-mod pressure_bundle_tests;
-#[cfg(test)]
 mod pressure_delta_tests;
 #[cfg(test)]
 mod pressure_tests;
@@ -19,9 +17,7 @@ pub use pressure::{
     PrimitiveConstructionPolicyPressureSurfaceReportError,
 };
 pub(crate) use pressure::{
-    prepare_primitive_construction_policy_pressure_report_bundle,
-    PrimitiveConstructionPolicyPressureReportBundle,
-    PrimitiveConstructionPolicyPressureReportBundleError,
+    required_policy_pressure_delta_cases, required_policy_pressure_direct_cases,
 };
 pub(crate) use report::prepare_primitive_construction_policy_profile_row;
 pub use report::{
