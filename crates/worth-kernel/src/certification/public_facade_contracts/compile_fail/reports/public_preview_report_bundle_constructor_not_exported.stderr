@@ -3,8 +3,3 @@ error[E0432]: unresolved import `worth_kernel::facade::PrimitiveConstructionPrev
   |
 1 | use worth_kernel::facade::PrimitiveConstructionPreviewReportBundle;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionPreviewReportBundle` in `facade`
-  |
-help: consider importing this struct instead
-  |
-1 | use worth_kernel::facade::certification::preview::PrimitiveConstructionPreviewReportBundle;
-  |                           ++++++++++++++++++++++++

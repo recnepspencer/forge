@@ -131,6 +131,9 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
         "{compile_fail}/reports/public_preview_continuity_hostility_suite_constructor_not_exported.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/reports/public_subject_certification_bundle_exports_demoted.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/reports/public_phase_five_boundary_closeout_report_constructor_not_exported.rs"
     ));
     for fixture in prepare_primitive_construction_proof_boundary_compile_fail_report().fixtures() {

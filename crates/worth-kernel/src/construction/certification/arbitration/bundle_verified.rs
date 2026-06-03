@@ -11,9 +11,6 @@ use crate::construction::certification::{
     PrimitiveConstructionPreservedIntentResolutionRow,
 };
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::proof::{
-    PrimitiveConstructionProofGrade, PrimitiveConstructionProofSubject,
-};
 use crate::construction::{
     PrimitiveConstructionIntentArbitrationReplayParityReport,
     PrimitiveConstructionQueryIntentArbitrationParityReport,
@@ -284,14 +281,6 @@ impl PrimitiveConstructionVerifiedIntentArbitrationReportBundle {
 
     pub fn bundle_digest(&self) -> &str {
         self.0.payload().truth.truth_digest()
-    }
-
-    pub fn proof_grade(&self) -> PrimitiveConstructionProofGrade {
-        PrimitiveConstructionProofGrade::BundleCoherence
-    }
-
-    pub fn proof_subject(&self) -> PrimitiveConstructionProofSubject {
-        PrimitiveConstructionProofSubject::IntentArbitration
     }
 }
 

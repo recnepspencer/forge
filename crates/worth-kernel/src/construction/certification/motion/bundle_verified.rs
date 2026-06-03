@@ -6,9 +6,6 @@ use forge_proof::raw::{
 use crate::construction::certification::motion::truth::PrimitiveConstructionMotionCanonicalTruth;
 use crate::construction::certification::motion::witness_report::PrimitiveConstructionMotionWitnessResolutionReport;
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::proof::{
-    PrimitiveConstructionProofGrade, PrimitiveConstructionProofSubject,
-};
 use crate::construction::{
     PrimitiveConstructionMotionBranchPreviewRuntimeReport,
     PrimitiveConstructionMotionReplayParityReport,
@@ -197,14 +194,6 @@ impl PrimitiveConstructionVerifiedMotionReportBundle {
         &self,
     ) -> &PrimitiveConstructionMotionBranchPreviewRuntimeReport {
         self.0.payload().bundle.branch_preview_runtime_report()
-    }
-
-    pub fn proof_grade(&self) -> PrimitiveConstructionProofGrade {
-        PrimitiveConstructionProofGrade::BundleCoherence
-    }
-
-    pub fn proof_subject(&self) -> PrimitiveConstructionProofSubject {
-        PrimitiveConstructionProofSubject::Motion
     }
 }
 

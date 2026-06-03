@@ -796,9 +796,25 @@ time we question one local production seam.
 
 ### Current Status
 
-- major active concern
-- the amount of public certification/report vocabulary strongly suggests this
-  will need a large collapse once earlier folders are cleaned up
+- materially advanced, not closed
+- the first large public certification bundle collapse is done:
+  `facade::certification::{motion,policy}` no longer survive as public
+  operating buckets, and the surviving `preview`, `continuity`, and
+  `arbitration` certification lanes now expose hostility-suite truth instead
+  of public bundle constructors
+- public contract and compile-fail proof now certify that direct diagnostics
+  and query-proof lanes are the public surface instead of
+  preview/continuity/policy/motion/arbitration certification bundles
+- the milestone-four closeout path no longer treats preview, continuity, and
+  policy-profile bundle artifacts as canonical internal proof currency; those
+  bundles are deleted and replaced by direct representative evidence built from
+  surface rows, hostility suites, replay parity, query inspection/projection,
+  and branch-runtime truth
+- the remaining work is now narrower and deeper in the certification corpus:
+  motion, arbitration, and policy-pressure verified bundle internals still
+  survive under `construction/certification`, and Folder 9 is not honest to
+  mark complete until those residual proof packages are either consumed by
+  corpus-only closeout or deleted
 
 ## Folder 10: `facade`, root certification harness, and docs
 

@@ -87,6 +87,7 @@ pub fn prepare_primitive_construction_move_motion_report_bundle_with_catalog(
     )
 }
 
+#[cfg(test)]
 pub fn prepare_primitive_construction_rotate_motion_report_bundle(
     workspace: &mut ForgeQueryWorkspace,
     intent: RotateSpatialIntent<PrimitiveConstructionIntent>,

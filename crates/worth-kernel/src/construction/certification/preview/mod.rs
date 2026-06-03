@@ -1,12 +1,6 @@
-mod bundle;
 mod report;
 mod suite;
 
-pub use bundle::{
-    prepare_primitive_construction_preview_bundle_from_hostility_suite,
-    prepare_primitive_construction_preview_report_bundle, PrimitiveConstructionPreviewReportBundle,
-    PrimitiveConstructionPreviewReportBundleError,
-};
 pub(crate) use report::prepare_primitive_construction_preview_row;
 pub use report::{
     prepare_primitive_construction_preview_surface_report, PrimitiveConstructionPreviewCase,

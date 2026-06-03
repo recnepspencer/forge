@@ -1,60 +1,41 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
-use worth_kernel::facade::{
-    certification::{arbitration::*, query::*},
-    diagnostics::arbitration::*,
-};
-use worth_spatial::facade::arbitration::SpatialIntentCandidate;
+use worth_kernel::facade::{certification::arbitration::*, diagnostics::arbitration::*};
 
 #[test]
-fn kernel_public_facade_exports_intent_arbitration_report_bundle() {
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.public-api.intent-arbitration-bundle".to_string(),
-    )
-    .expect("workspace");
-    let unresolved = prepare_primitive_construction_intent_arbitration_report_bundle(
-        &mut workspace,
-        PrimitiveConstructionIntentArbitrationBundleCase::HostPenetrationBlockedCut,
-    )
-    .expect("unresolved bundle");
-    let explicit = prepare_primitive_construction_intent_arbitration_report_bundle(
-        &mut workspace,
-        PrimitiveConstructionIntentArbitrationBundleCase::GrazingSnapExplicitChoice,
-    )
-    .expect("explicit bundle");
+fn kernel_public_facade_exports_intent_arbitration_diagnostics_without_bundle_lane() {
+    let preserved =
+        prepare_primitive_construction_preserved_intent_resolution_report().expect("preserved");
+    let unresolved = preserved
+        .row(PrimitiveConstructionPreservedIntentResolutionCase::HostPenetrationBlockedCut)
+        .expect("unresolved");
+    let chosen = prepare_primitive_chosen_intent_resolution_report().expect("chosen");
+    let explicit = chosen
+        .row(PrimitiveConstructionChosenIntentResolutionCase::ExplicitSnapFlush)
+        .expect("explicit");
+    let dx = prepare_primitive_intent_conflict_dx_surface_report().expect("dx");
 
     assert_eq!(
-        unresolved.truth().preserved_truth(),
+        unresolved.preserved_truth(),
         PrimitiveConstructionPreservedIntentTruth::Unresolved {
             escalation: worth_spatial::facade::arbitration::SpatialIntentEscalation::BlockedByMissingCapability(
                 worth_spatial::facade::arbitration::SpatialBlockedCapability::CutOpening
             ),
-            blocked_capability: Some(worth_spatial::facade::arbitration::SpatialBlockedCapability::CutOpening),
+            blocked_capability: Some(
+                worth_spatial::facade::arbitration::SpatialBlockedCapability::CutOpening
+            ),
         }
     );
-    assert!(unresolved.replay_parity_report().parity_verified());
     assert_eq!(
-        unresolved.query_inspection_parity_report().chosen_truth(),
-        PrimitiveConstructionIntentChosenTruth::Unresolved
+        explicit.chosen_candidate(),
+        worth_spatial::facade::arbitration::SpatialIntentCandidate::SnapFlush
     );
     assert_eq!(
-        explicit.truth().preserved_truth(),
-        PrimitiveConstructionPreservedIntentTruth::Resolved {
-            candidate: SpatialIntentCandidate::SnapFlush,
-            authority: PrimitiveConstructionChosenIntentResolutionAuthority::ExplicitChoice,
-        }
+        explicit.authority(),
+        PrimitiveConstructionChosenIntentResolutionAuthority::ExplicitChoice
     );
-    assert!(explicit.replay_parity_report().parity_verified());
-    assert_eq!(
-        explicit.query_projection_receipt_report().chosen_truth(),
-        PrimitiveConstructionIntentChosenTruth::Resolved {
-            candidate: SpatialIntentCandidate::SnapFlush,
-            authority: PrimitiveConstructionChosenIntentResolutionAuthority::ExplicitChoice,
-        }
-    );
+    assert!(dx.rows().iter().any(|row| {
+        row.case() == PrimitiveConstructionIntentArbitrationPolicyCase::HostPenetrationBlockedCut
+    }));
 }
 
 #[test]

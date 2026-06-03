@@ -1,5 +1,6 @@
 mod milestone_four_kernel_evidence;
 mod milestone_four_kernel_evidence_verified;
+mod milestone_four_kernel_representative_evidence;
 mod milestone_four_kernel_requirements;
 mod phase_five_boundary;
 mod phase_five_six;

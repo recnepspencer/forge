@@ -12,11 +12,7 @@ pub use bundle::{
     PrimitiveConstructionIntentArbitrationBundleCase,
     PrimitiveConstructionIntentArbitrationReportBundleError,
 };
-pub use bundle_verified::{
-    PrimitiveConstructionIntentArbitrationBundleVerificationFailure,
-    PrimitiveConstructionIntentArbitrationBundleVerificationMismatch,
-    PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
-};
+pub use bundle_verified::PrimitiveConstructionVerifiedIntentArbitrationReportBundle;
 pub use chosen_report::{
     prepare_primitive_chosen_intent_resolution_report,
     PrimitiveConstructionChosenIntentResolutionAuthority,
@@ -50,8 +46,6 @@ pub use suite::{
     prepare_primitive_construction_intent_arbitration_hostility_suite_report,
     PrimitiveConstructionIntentArbitrationHostilitySuiteReport,
 };
-pub use truth::PrimitiveConstructionIntentArbitrationCanonicalTruth;
-
 #[cfg(test)]
 mod bundle_tests;
 #[cfg(test)]

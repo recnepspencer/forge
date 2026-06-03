@@ -8,15 +8,11 @@ mod registry;
 mod report;
 mod truth;
 
-pub use bundle::{
+pub(crate) use bundle::{
     prepare_primitive_construction_policy_pressure_report_bundle,
     PrimitiveConstructionPolicyPressureReportBundleError,
 };
-pub use bundle_verified::{
-    PrimitiveConstructionPolicyPressureBundleVerificationFailure,
-    PrimitiveConstructionPolicyPressureBundleVerificationMismatch,
-    PrimitiveConstructionPolicyPressureReportBundle,
-};
+pub(crate) use bundle_verified::PrimitiveConstructionPolicyPressureReportBundle;
 pub use delta::{
     prepare_primitive_construction_policy_pressure_delta_report,
     PrimitiveConstructionPolicyPressureDeltaCase, PrimitiveConstructionPolicyPressureDeltaReport,
@@ -29,4 +25,3 @@ pub use report::{
     PrimitiveConstructionPolicyPressureSurfaceReport,
     PrimitiveConstructionPolicyPressureSurfaceReportError,
 };
-pub use truth::PrimitiveConstructionPolicyPressureCanonicalTruth;

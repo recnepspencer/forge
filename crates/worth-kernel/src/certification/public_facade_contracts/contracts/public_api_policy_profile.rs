@@ -1,7 +1,7 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{
     authoring::policy::*,
-    certification::{continuity::*, policy::*, preview::*, query::*},
+    certification::{continuity::*, preview::*, query::*},
     diagnostics::policy::*,
 };
 
@@ -45,7 +45,7 @@ fn kernel_public_facade_exports_policy_profile_report_and_query_surfaces() {
 }
 
 #[test]
-fn kernel_public_facade_exports_policy_profile_bundle_surfaces() {
+fn kernel_public_facade_exports_policy_profile_direct_reports_and_supporting_hostility_suites() {
     let runtime = milestone_one_runtime_builder()
         .expect("runtime builder")
         .build();
@@ -54,30 +54,27 @@ fn kernel_public_facade_exports_policy_profile_bundle_surfaces() {
         "worth-kernel.public-policy-profile-bundle".to_string(),
     )
     .expect("workspace");
-    let direct = prepare_primitive_construction_policy_profile_report_bundle(
-        &mut workspace,
-        PrimitiveConstructionPolicyProfileCase::AggressiveSnap,
-    )
-    .expect("direct bundle");
+    let report = prepare_primitive_construction_policy_profile_report();
+    let direct = report
+        .row(PrimitiveConstructionPolicyProfileCase::AggressiveSnap)
+        .expect("direct row");
     let preview_suite =
         prepare_primitive_construction_preview_hostility_suite_report().expect("preview suite");
     let continuity_suite = prepare_primitive_construction_continuity_hostility_suite_report()
         .expect("continuity suite");
-    let reused = prepare_primitive_construction_policy_profile_bundle_from_hostility_suites(
-        &preview_suite,
-        &continuity_suite,
+    let branch = prepare_primitive_construction_policy_profile_branch_preview_runtime_report(
         &mut workspace,
-        PrimitiveConstructionPolicyProfileCase::BimHostFriendly,
+        PrimitiveConstructionPolicyProfileCase::AggressiveSnap,
     )
-    .expect("reused bundle");
+    .expect("branch");
 
-    assert!(direct.parity_verified());
     assert_eq!(
-        direct.profile_row().arbitration_posture(),
+        direct.arbitration_posture(),
         SpatialArbitrationPosture::PreferSnap
     );
-    assert!(reused.parity_verified());
-    assert!(reused.continuity_bundle().is_some());
+    assert!(preview_suite.suite_verified());
+    assert!(continuity_suite.suite_verified());
+    assert_eq!(branch.profile_row().profile_name(), direct.profile_name());
 }
 
 #[test]
@@ -101,17 +98,9 @@ fn kernel_public_facade_exports_profile_replay_branch_and_combined_suite_surface
     .expect("branch");
     let suite = prepare_primitive_construction_preview_continuity_hostility_suite_report()
         .expect("combined suite");
-    let bundle =
-        prepare_primitive_construction_policy_profile_bundle_from_combined_hostility_suite(
-            &suite,
-            &mut workspace,
-            PrimitiveConstructionPolicyProfileCase::BimHostFriendly,
-        )
-        .expect("bundle");
 
     assert!(replay.parity_verified());
     assert!(suite.suite_verified());
-    assert!(bundle.parity_verified());
     assert_eq!(
         replay.direct_row().profile_name(),
         branch.profile_row().profile_name()

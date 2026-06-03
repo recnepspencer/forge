@@ -7,10 +7,6 @@ use crate::construction::certification::profile::pressure::delta::PrimitiveConst
 use crate::construction::certification::profile::pressure::report::PrimitiveConstructionPolicyPressureSurfaceReport;
 use crate::construction::certification::profile::pressure::truth::PrimitiveConstructionPolicyPressureCanonicalTruth;
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::proof::{
-    PrimitiveConstructionProofGrade, PrimitiveConstructionProofSubject,
-};
-
 type PolicyPressureProofBasis = FreshnessScopedBasis<CurrentValidity, AssumptionBasis<()>>;
 type VerifiedPolicyPressureArtifact = Artifact<
     VerifiedPolicyPressureBundlePhase,
@@ -164,14 +160,6 @@ impl PrimitiveConstructionPolicyPressureReportBundle {
 
     pub fn report_digest(&self) -> &str {
         self.truth().truth_digest()
-    }
-
-    pub fn proof_grade(&self) -> PrimitiveConstructionProofGrade {
-        PrimitiveConstructionProofGrade::BundleCoherence
-    }
-
-    pub fn proof_subject(&self) -> PrimitiveConstructionProofSubject {
-        PrimitiveConstructionProofSubject::PolicyPressure
     }
 }
 

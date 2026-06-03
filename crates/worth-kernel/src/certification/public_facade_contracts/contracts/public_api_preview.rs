@@ -37,7 +37,7 @@ fn kernel_public_facade_exports_preview_hostility_suite() {
 }
 
 #[test]
-fn kernel_public_facade_exports_preview_replay_branch_and_bundle_surfaces() {
+fn kernel_public_facade_exports_preview_replay_branch_and_hostility_surfaces() {
     let replay = prepare_primitive_construction_preview_replay_parity_report(
         PrimitiveConstructionPreviewCase::OverlapBlockedMerge,
     )
@@ -55,18 +55,9 @@ fn kernel_public_facade_exports_preview_replay_branch_and_bundle_surfaces() {
         PrimitiveConstructionPreviewCase::HostFaceBimAttach,
     )
     .expect("branch");
-    let bundle = prepare_primitive_construction_preview_report_bundle(
-        &mut workspace,
-        PrimitiveConstructionPreviewCase::GrazingAggressiveSnap,
-    )
-    .expect("bundle");
     let suite = prepare_primitive_construction_preview_hostility_suite_report().expect("suite");
-    let bundle_from_suite = prepare_primitive_construction_preview_bundle_from_hostility_suite(
-        &suite,
-        &mut workspace,
-        PrimitiveConstructionPreviewCase::OverlapBlockedMerge,
-    )
-    .expect("bundle from suite");
+    let combined = prepare_primitive_construction_preview_continuity_hostility_suite_report()
+        .expect("combined suite");
 
     assert!(replay.parity_verified());
     assert_eq!(
@@ -77,8 +68,8 @@ fn kernel_public_facade_exports_preview_replay_branch_and_bundle_surfaces() {
         branch.branch_lane().authority_lane(),
         ForgeQueryAuthorityLane::BranchLocalTruth
     );
-    assert!(bundle.parity_verified());
-    assert!(bundle_from_suite.parity_verified());
+    assert!(suite.suite_verified());
+    assert!(combined.suite_verified());
 }
 
 #[test]
