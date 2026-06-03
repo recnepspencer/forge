@@ -12,7 +12,6 @@ mod wire_connectivity;
 
 use std::fmt;
 
-#[cfg(test)]
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::runtime::{
     CustomInvariantRegistration, CustomInvariantRegistrationError, RelationalRuntimeApi,
@@ -22,7 +21,7 @@ use forge_relational::facade::schema::SchemaRegistryError;
 use schema::facade::bootstrap_schema_registry;
 
 #[derive(Debug)]
-pub(crate) enum MilestoneOneRuntimeSetupError {
+pub enum MilestoneOneRuntimeSetupError {
     SchemaRegistry(SchemaRegistryError),
     CustomInvariantRegistration(CustomInvariantRegistrationError),
 }
@@ -61,7 +60,7 @@ pub fn milestone_one_invariant_registrations(
     ])
 }
 
-pub(crate) fn configure_milestone_one_runtime_builder(
+pub fn configure_milestone_one_runtime_builder(
     builder: RelationalRuntimeBuilder,
 ) -> Result<RelationalRuntimeBuilder, MilestoneOneRuntimeSetupError> {
     let builder = builder.schema_registry(bootstrap_schema_registry()?);
@@ -73,13 +72,11 @@ pub(crate) fn configure_milestone_one_runtime_builder(
         }))
 }
 
-pub(crate) fn milestone_one_runtime_builder(
+pub fn milestone_one_runtime_builder(
 ) -> Result<RelationalRuntimeBuilder, MilestoneOneRuntimeSetupError> {
     configure_milestone_one_runtime_builder(RelationalRuntimeApi::builder())
 }
 
-#[cfg(test)]
-pub(crate) fn build_milestone_one_runtime(
-) -> Result<RelationalRuntime, MilestoneOneRuntimeSetupError> {
+pub fn build_milestone_one_runtime() -> Result<RelationalRuntime, MilestoneOneRuntimeSetupError> {
     Ok(milestone_one_runtime_builder()?.build())
 }

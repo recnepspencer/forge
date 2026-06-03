@@ -25,7 +25,7 @@ fn milestone_three_broken_radial_localization_certifies_exact_radial_rejection_a
         MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 }
     );
     assert_eq!(
-        report.mutation_families,
+        report.mutation_families(),
         vec![TopologyMutationFamily::SpliceRadialAdjacency]
     );
     assert_eq!(
@@ -37,11 +37,11 @@ fn milestone_three_broken_radial_localization_certifies_exact_radial_rejection_a
         Some(TopologyMutationRejectionClass::InvariantBlocked)
     );
     assert_eq!(
-        report.continuity_outcome_class,
+        report.continuity_outcome_class(),
         TopologyMutationNamingOutcome::Ambiguous
     );
     assert_eq!(
-        report.continuity_rejection_class,
+        report.continuity_rejection_class(),
         Some(TopologyMutationRejectionClass::NamingContinuityAmbiguous)
     );
     let witness = report
@@ -106,12 +106,12 @@ fn milestone_three_broken_radial_localization_report_is_deterministic_for_same_s
     assert_eq!(left.outcome_class, right.outcome_class);
     assert_eq!(left.rejection_class, right.rejection_class);
     assert_eq!(
-        left.topology_mutation_digest,
-        right.topology_mutation_digest
+        left.topology_mutation_digest(),
+        right.topology_mutation_digest()
     );
     assert_eq!(
-        left.naming_mutation_continuity_matrix,
-        right.naming_mutation_continuity_matrix
+        left.naming_mutation_continuity_matrix(),
+        right.naming_mutation_continuity_matrix()
     );
     assert_eq!(left.broken_radial_witness, right.broken_radial_witness);
     assert_eq!(

@@ -1,4 +1,4 @@
-use crate::runtime::ForgeQueryAdmittedIntentPlan;
+use crate::runtime::{ForgeQueryAdmittedIntentPlan, ForgeQueryIntentDeclaration};
 
 use super::bind_requested;
 use crate::domain_capabilities::payloads::{
@@ -6,7 +6,9 @@ use crate::domain_capabilities::payloads::{
     ForgeQueryContinuityRuntimeSemantics,
 };
 use crate::domain_capabilities::proof_integration::ForgeQueryRequestedContinuityContribution;
-use crate::domain_capabilities::targets::ForgeQueryAdmittedPlanBoundContributionTarget;
+use crate::domain_capabilities::targets::{
+    ForgeQueryAdmittedPlanBoundContributionTarget, ForgeQueryDeclarationBoundContributionTarget,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryContinuityContributionAuthoring {
@@ -120,10 +122,28 @@ impl ForgeQueryContinuityContributionAuthoring {
         )
     }
 
+    pub fn for_intent_declaration(
+        self,
+        declaration: &ForgeQueryIntentDeclaration,
+    ) -> ForgeQueryRequestedContinuityContribution<ForgeQueryDeclarationBoundContributionTarget>
+    {
+        self.bind_to_declaration_target(
+            ForgeQueryDeclarationBoundContributionTarget::for_intent_declaration(declaration),
+        )
+    }
+
     pub fn bind_to_admitted_plan_target(
         self,
         target: ForgeQueryAdmittedPlanBoundContributionTarget,
     ) -> ForgeQueryRequestedContinuityContribution<ForgeQueryAdmittedPlanBoundContributionTarget>
+    {
+        bind_requested(self.payload, target)
+    }
+
+    pub fn bind_to_declaration_target(
+        self,
+        target: ForgeQueryDeclarationBoundContributionTarget,
+    ) -> ForgeQueryRequestedContinuityContribution<ForgeQueryDeclarationBoundContributionTarget>
     {
         bind_requested(self.payload, target)
     }

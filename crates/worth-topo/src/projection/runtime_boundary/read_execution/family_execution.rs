@@ -4,13 +4,13 @@ use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryWorkspace, RelationName, TraversalSelector,
 };
 
-use super::basis_context::TopologyReadBasisExecutionMode;
+use super::basis_context::TopologyReadExecutionTarget;
 use super::query_shape::{
     identity_anchor_predicate, identity_ordering, identity_result_field, identity_selector,
     topology_kind_result_field, topology_kind_selector, TOPOLOGY_ENTITY_ROOT,
 };
-use crate::projection::diagnostic_surfaces::read_proof::report::TopologyReadRequestReport;
 use crate::projection::read_views::domain::error::TopologyReadError;
+use crate::projection::read_views::domain::read_proof::report::TopologyReadRequestReport;
 use crate::projection::read_views::domain::request::TopologyReadRequest;
 use crate::projection::runtime_boundary::read_lowering::lower_topology_read;
 use crate::projection::runtime_boundary::read_lowering::schema::{
@@ -30,6 +30,7 @@ pub(crate) struct ExecutedTopologyReadFamily {
 
 pub(crate) fn execute_shared_neighborhood_read(
     workspace: &mut ForgeQueryWorkspace,
+    execution_target: &TopologyReadExecutionTarget,
     request: &TopologyReadRequest,
     family_name: String,
     relations: [RelationName; 2],
@@ -58,11 +59,18 @@ pub(crate) fn execute_shared_neighborhood_read(
                 ),
         })
         .map_err(map_read_family_execution_error)?;
-    execute_debt_free_family(workspace, &family, lowering_artifact, "shared neighborhood")
+    execute_debt_free_family(
+        workspace,
+        execution_target,
+        &family,
+        lowering_artifact,
+        "shared neighborhood",
+    )
 }
 
 pub(crate) fn execute_loop_cycle_read(
     workspace: &mut ForgeQueryWorkspace,
+    execution_target: &TopologyReadExecutionTarget,
     request: &TopologyReadRequest,
     start_identity: &str,
     cycle_depth: usize,
@@ -95,11 +103,18 @@ pub(crate) fn execute_loop_cycle_read(
             },
         )
         .map_err(map_read_family_execution_error)?;
-    execute_debt_free_family(workspace, &family, lowering_artifact, "loop cycle")
+    execute_debt_free_family(
+        workspace,
+        execution_target,
+        &family,
+        lowering_artifact,
+        "loop cycle",
+    )
 }
 
 pub(crate) fn execute_local_rewire_read(
     workspace: &mut ForgeQueryWorkspace,
+    execution_target: &TopologyReadExecutionTarget,
     request: &TopologyReadRequest,
     moved_identity: &str,
     cycle_depth: usize,
@@ -136,6 +151,7 @@ pub(crate) fn execute_local_rewire_read(
         .map_err(map_read_family_execution_error)?;
     execute_debt_free_family(
         workspace,
+        execution_target,
         &family,
         lowering_artifact,
         "local rewire neighborhood",
@@ -178,17 +194,12 @@ fn identity_topology_result_shape(
 
 fn execute_debt_free_family(
     workspace: &mut ForgeQueryWorkspace,
+    execution_target: &TopologyReadExecutionTarget,
     family: &ForgeQueryReadFamily,
     lowering_artifact: crate::projection::runtime_boundary::read_lowering::TopologyReadLoweringArtifact,
     read_surface: &str,
 ) -> Result<ExecutedTopologyReadFamily, TopologyReadError> {
-    let result = match TopologyReadBasisExecutionMode::for_workspace(workspace, family)? {
-        TopologyReadBasisExecutionMode::CurrentHead => workspace.execute_read_family(family),
-        TopologyReadBasisExecutionMode::HistoricalSnapshot { context } => {
-            workspace.execute_read_family_in_basis_context(family, &context)
-        }
-    }
-    .map_err(map_read_family_execution_error)?;
+    let result = execution_target.execute_family(workspace, family)?;
     let receipt = result.receipt();
     require_no_query_fallback(receipt.fallback_class(), read_surface)?;
     Ok(ExecutedTopologyReadFamily {

@@ -1,6 +1,6 @@
 use worth_kernel::facade::{
-    authoring::{construction::*, intents::*},
-    diagnostics::motion::*,
+    authoring::intents::*, diagnostics::motion::*, PrimitiveConstructionIntent, RegularPyramidSpec,
+    WireBodySpec,
 };
 use worth_spatial::facade::{
     admit_spatial_placement, SpatialAnchorRef, SpatialAxis, SpatialDirectionWitnessRef,
@@ -23,16 +23,8 @@ fn kernel_public_facade_exports_prepositional_create_placement_surface() {
     .r#in(workplane.clone())
     .parallel_to(workplane.clone());
     let intent = created.clone().finish();
-    let request = intent.clone().into_request();
-    let admitted = request.admit().expect("admitted intent");
-    let scaffold = admitted.build_scaffold().expect("scaffold");
     let admitted_placement =
         admit_spatial_placement(intent.placement_spec()).expect("admitted placement");
-    let apex = scaffold
-        .vertex_positions()
-        .last()
-        .copied()
-        .expect("pyramid apex");
 
     assert_eq!(created.placement_spec().origin(), [0.0, 0.0, 2.0]);
     assert_eq!(created.placement_spec().reference_frame(), &workplane);
@@ -47,7 +39,6 @@ fn kernel_public_facade_exports_prepositional_create_placement_surface() {
             .resolution_class(),
         SpatialWitnessResolutionClass::FrameDerived
     );
-    assert_eq!(apex, admitted_placement.embed_point([0.0, 0.0, 2.0]));
 }
 
 #[test]

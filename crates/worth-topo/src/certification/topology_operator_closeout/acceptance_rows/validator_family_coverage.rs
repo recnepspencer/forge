@@ -79,10 +79,10 @@ fn validator_family_coverage_row(
         scenario: report.scenario,
         validator_family,
         validator_names: validator_names_for_family(report, validator_family),
-        mutation_family_count: report.mutation_families.len(),
-        changed_scope_count: report.topology_mutation_digest.changed_scope_count,
-        naming_scope_count: report.topology_mutation_digest.naming_scope_count,
-        derived_region_count: report.topology_mutation_digest.derived_region_count,
+        mutation_family_count: report.mutation_families().len(),
+        changed_scope_count: report.topology_mutation_digest().changed_scope_count,
+        naming_scope_count: report.topology_mutation_digest().naming_scope_count,
+        derived_region_count: report.topology_mutation_digest().derived_region_count,
         derived_validation_row_count: report
             .derived_validation_report
             .as_ref()
@@ -93,10 +93,10 @@ fn validator_family_coverage_row(
             report.scenario.as_str(),
             validator_family.as_str(),
             validator_names_for_family(report, validator_family).join("|"),
-            report.mutation_families.len(),
-            report.topology_mutation_digest.changed_scope_count,
-            report.topology_mutation_digest.naming_scope_count,
-            report.topology_mutation_digest.derived_region_count,
+            report.mutation_families().len(),
+            report.topology_mutation_digest().changed_scope_count,
+            report.topology_mutation_digest().naming_scope_count,
+            report.topology_mutation_digest().derived_region_count,
             report
                 .derived_validation_report
                 .as_ref()

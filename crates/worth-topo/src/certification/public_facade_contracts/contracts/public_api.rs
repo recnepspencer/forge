@@ -1,38 +1,69 @@
 use forge_query::facade::{
-    ForgeQueryApplicationFacade, ForgeQueryComputedBuilder, ForgeQueryLiveViewBuilder,
+    ForgeQueryApplicationFacade, ForgeQueryComputedBuilder,
+    ForgeQueryContributionComposedClassification, ForgeQueryLiveViewBuilder,
+    ForgeQuerySupportContributionAuthoring,
 };
 use forge_relational::facade::runtime::RelationalRuntime;
+use forge_relational::facade::runtime::RelationalRuntimeBuilder;
 use forge_relational::facade::snapshots::SnapshotHandle;
-use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent, TopologyMutation};
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use schema::facade::{QueryAspectPath, QueryCollection, QuerySchemaBasis};
 use topology::facade::topology_runtime;
 use topology::facade::BoundaryFailure;
 use topology::facade::{
-    build_topology_construction_fact_report, certify_milestone_one_read_basis_traced,
-    certify_milestone_two_read_basis_traced, certify_milestone_two_verified_topology_commit_traced,
-    certify_topology_query_boundary_cleanup_closeout, certify_verified_topology_commit_traced,
-    declare_persistent_name_live_view, declare_topology_diagnostics_surface,
-    declare_topology_entity_live_view, declare_topology_equivalence_contract_surface,
-    declare_topology_interpreted_surface, declare_topology_materialized_surface,
-    declare_topology_relation_live_view, declare_topology_validation_surface,
-    lower_primitive_construction_birth_plan, naming_attachment_report_from_query_input,
-    persistent_name_live_view_declaration, prepare_primitive_construction_certification,
-    prepare_primitive_construction_execution, topology_construction_authority,
-    MilestoneOneCertificationError, TopologyAttachBoundaryMembershipDeclaration,
-    TopologyAttachShellOrWireMembershipDeclaration, TopologyCommittedArtifact,
-    TopologyConstructionAuthority, TopologyConstructionCertificationPlan,
-    TopologyConstructionCertificationReadSurface, TopologyConstructionExecutionError,
-    TopologyConstructionExecutionPlan, TopologyConstructionFactKind,
-    TopologyConstructionFactProvenance, TopologyConstructionFactReport,
-    TopologyConstructionInspectionSurface, TopologyConstructionLoweringError,
-    TopologyConstructionLoweringPlan, TopologyConstructionMutationSurface,
-    TopologyCreateInnerLoopOnExistingFaceDeclaration, TopologyCreateTopologyEntityDeclaration,
-    TopologyDetachBoundaryMembershipDeclaration, TopologyDetachRadialAdjacencyDeclaration,
-    TopologyDetachShellOrWireMembershipDeclaration, TopologyLoopSuccessorRewireMember,
-    TopologyNamingAttachmentInput, TopologyQueryBoundaryCleanupArea,
-    TopologyQueryBoundaryCleanupCloseoutReport, TopologyQueryBoundaryCleanupRow,
-    TopologyQueryBoundaryCleanupStatus, TopologyQueryMutationEvidence,
+    certify_milestone_one_read_basis_traced, certify_milestone_two_read_basis_traced,
+    certify_topology_bridge_registration_closeout,
+    certify_topology_historical_materialization_closeout,
+    certify_topology_query_boundary_cleanup_closeout, milestone_one_runtime_builder,
+    prepare_primitive_construction_query_admitted_handoff_from_synopsis,
+    prepare_primitive_construction_query_envelope, prepare_primitive_construction_query_handoff,
+    prepare_primitive_construction_query_receipt, topology_grouped_operator_neighborhood,
+    topology_operator_continuation_target, topology_operator_contribution_workflow,
+    topology_operator_signal_workflow, MilestoneOneCertificationError,
+    MilestoneOneRuntimeSetupError, TopologyAttachBoundaryMembershipDeclaration,
+    TopologyAttachShellOrWireMembershipDeclaration, TopologyBridgeRegistrationArea,
+    TopologyBridgeRegistrationCloseoutReport, TopologyBridgeRegistrationRow,
+    TopologyBridgeRegistrationStatus, TopologyConstructionQueryAdmittedHandoffError,
+    TopologyConstructionQueryEnvelopeError, TopologyConstructionQueryFactKind,
+    TopologyConstructionQueryFactProvenance, TopologyConstructionQueryFactRow,
+    TopologyConstructionQueryHandoffError, TopologyConstructionQueryInspectionSurface,
+    TopologyConstructionQueryMutationSurface, TopologyConstructionQueryReadSurface,
+    TopologyConstructionQueryReceiptError, TopologyCreateInnerLoopOnExistingFaceDeclaration,
+    TopologyCreateTopologyEntityDeclaration, TopologyDetachBoundaryMembershipDeclaration,
+    TopologyDetachRadialAdjacencyDeclaration, TopologyDetachShellOrWireMembershipDeclaration,
+    TopologyHistoricalMaterializationArea, TopologyHistoricalMaterializationCloseoutReport,
+    TopologyHistoricalMaterializationRow, TopologyHistoricalMaterializationStatus,
+    TopologyLoopSuccessorRewireMember, TopologyOperatorCanonicalDeclaration,
+    TopologyOperatorContinuationExecution, TopologyOperatorContinuationExecutionChecked,
+    TopologyOperatorContinuationExecutionOutcome, TopologyOperatorContinuationExecutionProof,
+    TopologyOperatorContinuationTarget, TopologyOperatorContributionArtifact,
+    TopologyOperatorContributionChecked, TopologyOperatorContributionCheckedOutcome,
+    TopologyOperatorContributionInput, TopologyOperatorContributionIntent,
+    TopologyOperatorContributionOutcome, TopologyOperatorContributionProof,
+    TopologyOperatorDeclarationAdmissionError, TopologyOperatorDeclarationLegalityDenial,
+    TopologyOperatorDeclarationLegalityEvidence, TopologyOperatorDeclarationOutcome,
+    TopologyOperatorDeclarationReceipt, TopologyOperatorDeclarationReceiptChecked,
+    TopologyOperatorDeclarationReceiptProof, TopologyOperatorDeclarationReceiptTerminalError,
+    TopologyOperatorEnvelope, TopologyOperatorEnvelopeChecked,
+    TopologyOperatorEnvelopeFromProgressedChecked, TopologyOperatorEnvelopeFromProgressedProof,
+    TopologyOperatorEnvelopeFromProgressedTerminalError, TopologyOperatorEnvelopeProof,
+    TopologyOperatorEnvelopeTerminalError, TopologyOperatorGroupedContributionComposition,
+    TopologyOperatorGroupedContributionInput, TopologyOperatorGroupedContributionMemberContext,
+    TopologyOperatorGroupedContributionStop, TopologyOperatorGroupedDeclaration,
+    TopologyOperatorGroupedDeclarationStop, TopologyOperatorGroupedInput,
+    TopologyOperatorGroupedOutcome, TopologyOperatorPreparedContinuation,
+    TopologyOperatorPreparedContinuationChecked, TopologyOperatorPreparedContinuationOutcome,
+    TopologyOperatorPreparedContinuationProof, TopologyOperatorProgressedDeclaration,
+    TopologyOperatorProgressionError, TopologyOperatorRoutePlan, TopologyOperatorRoutePlanChecked,
+    TopologyOperatorRoutePlanProof, TopologyOperatorRoutePlanTerminalError,
+    TopologyOperatorSignalCompatibilityArtifact, TopologyOperatorSignalCompatibilityChecked,
+    TopologyOperatorSignalCompatibilityInput, TopologyOperatorSignalCompatibilityOutcome,
+    TopologyOperatorSignalCompatibilityProof, TopologyOperatorSignalCompatibilitySubject,
+    TopologyOperatorWorkflowHandleExt, TopologyPrimitiveConstructionQueryAdmittedHandoff,
+    TopologyPrimitiveConstructionQueryBirthSynopsis, TopologyPrimitiveConstructionQueryEnvelope,
+    TopologyPrimitiveConstructionQueryHandoff, TopologyPrimitiveConstructionQueryReceipt,
+    TopologyQueryBoundaryCleanupArea, TopologyQueryBoundaryCleanupCloseoutReport,
+    TopologyQueryBoundaryCleanupRow, TopologyQueryBoundaryCleanupStatus,
     TopologyQueryMutationFamilySupportStatus, TopologyQueryMutationLane,
     TopologyQueryMutationLaneExecutionShape, TopologyQueryMutationLaneSupportStatus,
     TopologyQueryReadFamilySupportStatus, TopologyRadialSpliceMember,
@@ -68,7 +99,6 @@ use topology::query_domain::{
     TopologySnapshotReadOnlyConfiguredDomainHandleChecked, TopologySnapshotReadOnlyContext,
     TopologySnapshotReadOnlyReadHandleExt, TopologySnapshotReadOnlyReadSession,
 };
-use worth_spatial::facade::SpatialConstructionBirthPlan;
 
 fn _m1_read_cert_contract(
     runtime: &mut RelationalRuntime,
@@ -78,14 +108,6 @@ fn _m1_read_cert_contract(
     certify_milestone_one_read_basis_traced(runtime, basis)
 }
 
-fn _m1_commit_cert_contract(
-    runtime: &mut RelationalRuntime,
-    verified: &TopologyCommittedArtifact,
-) -> Result<TracedMilestoneOneCertificationReport, BoundaryFailure<MilestoneOneCertificationError>>
-{
-    certify_verified_topology_commit_traced(runtime, verified)
-}
-
 fn _m2_read_cert_contract(
     runtime: &mut RelationalRuntime,
     basis: DerivedTopologyReadBasis,
@@ -93,21 +115,60 @@ fn _m2_read_cert_contract(
     certify_milestone_two_read_basis_traced(runtime, basis)
 }
 
-fn _m2_commit_cert_contract(
-    runtime: &mut RelationalRuntime,
-    verified: &TopologyCommittedArtifact,
-) -> Result<TracedMilestoneTwoDerivedReadReport, BoundaryFailure<MilestoneOneCertificationError>> {
-    certify_milestone_two_verified_topology_commit_traced(runtime, verified)
+fn _topology_construction_query_receipt_contract(
+    synopsis: &TopologyPrimitiveConstructionQueryBirthSynopsis,
+) -> Result<TopologyPrimitiveConstructionQueryReceipt, TopologyConstructionQueryReceiptError> {
+    prepare_primitive_construction_query_receipt(synopsis)
 }
 
-fn _committed_artifact_contracts(verified: &TopologyCommittedArtifact) {
-    let _: fn(&TopologyCommittedArtifact) -> &[TopologyMutation] =
-        TopologyCommittedArtifact::mutations;
-    let _: fn(&TopologyCommittedArtifact) -> MutationOrigin =
-        TopologyCommittedArtifact::mutation_origin;
-    let _: fn(&TopologyCommittedArtifact) -> RawTopologyIntent =
-        TopologyCommittedArtifact::raw_intent;
-    let _: &[TopologyMutation] = verified.mutations();
+fn _topology_construction_query_envelope_contract(
+    synopsis: &TopologyPrimitiveConstructionQueryBirthSynopsis,
+) -> Result<TopologyPrimitiveConstructionQueryEnvelope, TopologyConstructionQueryEnvelopeError> {
+    prepare_primitive_construction_query_envelope(synopsis)
+}
+
+fn _topology_construction_query_handoff_contract(
+    synopsis: &TopologyPrimitiveConstructionQueryBirthSynopsis,
+) -> Result<TopologyPrimitiveConstructionQueryHandoff, TopologyConstructionQueryHandoffError> {
+    prepare_primitive_construction_query_handoff(synopsis)
+}
+
+fn _topology_construction_query_admitted_handoff_contract(
+    synopsis: &TopologyPrimitiveConstructionQueryBirthSynopsis,
+) -> Result<
+    TopologyPrimitiveConstructionQueryAdmittedHandoff,
+    TopologyConstructionQueryAdmittedHandoffError,
+> {
+    prepare_primitive_construction_query_admitted_handoff_from_synopsis(
+        synopsis,
+        "completeness",
+        "mapping",
+        1,
+        1,
+    )
+}
+
+fn _topology_construction_query_surface_vocab_contract(
+    row: &TopologyConstructionQueryFactRow,
+) -> (
+    TopologyConstructionQueryMutationSurface,
+    TopologyConstructionQueryReadSurface,
+    TopologyConstructionQueryInspectionSurface,
+    TopologyConstructionQueryFactProvenance,
+    TopologyConstructionQueryFactKind,
+) {
+    (
+        TopologyConstructionQueryMutationSurface::ComposeGraph,
+        TopologyConstructionQueryReadSurface::ProjectionConsumptionFromInspectionReceipt,
+        TopologyConstructionQueryInspectionSurface::InspectReceipt,
+        TopologyConstructionQueryFactProvenance::InspectionBackedProjectionConsumption,
+        row.kind(),
+    )
+}
+
+fn _milestone_one_runtime_builder_contract(
+) -> Result<RelationalRuntimeBuilder, MilestoneOneRuntimeSetupError> {
+    milestone_one_runtime_builder()
 }
 
 fn _vocab_live_query_declaration_contract() {
@@ -138,124 +199,7 @@ include!("public_api_topology_operator_radial_program_surface.rs");
 include!("public_api_topology_operator_successor_surface.rs");
 include!("public_api_topology_operator_split_surface.rs");
 
-fn _topology_projection_surface_contracts() {
-    let _: fn(
-        &mut forge_query::facade::ForgeQueryWorkspace,
-        String,
-    ) -> Result<
-        forge_query::facade::ForgeQueryLiveView<serde_json::Value>,
-        forge_query::facade::ForgeQueryRuntimeError,
-    > = declare_topology_entity_live_view::<serde_json::Value>;
-    let _: fn(
-        &mut forge_query::facade::ForgeQueryWorkspace,
-        String,
-    ) -> Result<
-        forge_query::facade::ForgeQueryLiveView<serde_json::Value>,
-        forge_query::facade::ForgeQueryRuntimeError,
-    > = declare_topology_relation_live_view::<serde_json::Value>;
-    let _: fn(
-        &mut forge_query::facade::ForgeQueryWorkspace,
-        String,
-    ) -> Result<
-        forge_query::facade::ForgeQueryLiveView<serde_json::Value>,
-        forge_query::facade::ForgeQueryRuntimeError,
-    > = declare_persistent_name_live_view::<serde_json::Value>;
-    let _: fn(
-        String,
-    ) -> Result<
-        forge_query::facade::ForgeQueryWorkspaceLiveViewDeclaration,
-        forge_query::facade::ForgeQueryRuntimeError,
-    > = persistent_name_live_view_declaration;
-    let _: fn(
-        &mut forge_query::facade::ForgeQueryWorkspace,
-        String,
-        &forge_query::facade::ForgeQueryLiveView<serde_json::Value>,
-        &forge_query::facade::ForgeQueryLiveView<serde_json::Value>,
-    ) -> Result<
-        forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
-        forge_query::facade::ForgeQueryRuntimeError,
-    > = declare_topology_materialized_surface::<
-        serde_json::Value,
-        serde_json::Value,
-        serde_json::Value,
-    >;
-    let _: fn(
-        &mut forge_query::facade::ForgeQueryWorkspace,
-        String,
-        &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
-    ) -> Result<
-        forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
-        forge_query::facade::ForgeQueryRuntimeError,
-    > = declare_topology_interpreted_surface::<serde_json::Value, serde_json::Value>;
-    let _: fn(
-        &mut forge_query::facade::ForgeQueryWorkspace,
-        String,
-        &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
-        &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
-    ) -> Result<
-        forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
-        forge_query::facade::ForgeQueryRuntimeError,
-    > = declare_topology_validation_surface::<
-        serde_json::Value,
-        serde_json::Value,
-        serde_json::Value,
-    >;
-    let _: fn(
-        &mut forge_query::facade::ForgeQueryWorkspace,
-        String,
-        &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
-        &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
-        &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
-    ) -> Result<
-        forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
-        forge_query::facade::ForgeQueryRuntimeError,
-    > = declare_topology_diagnostics_surface::<
-        serde_json::Value,
-        serde_json::Value,
-        serde_json::Value,
-        serde_json::Value,
-    >;
-    let _: fn(
-        &mut forge_query::facade::ForgeQueryWorkspace,
-        String,
-        &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
-    ) -> Result<
-        forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
-        forge_query::facade::ForgeQueryRuntimeError,
-    > = declare_topology_equivalence_contract_surface::<serde_json::Value, serde_json::Value>;
-    let _: fn(
-        TopologyNamingAttachmentInput<'_>,
-    ) -> Result<
-        topology::facade::NamingAttachmentReport,
-        topology::facade::TopologyQuerySurfaceError,
-    > = naming_attachment_report_from_query_input;
-    let _: fn(&DerivedTopologyReadBasis) -> topology::facade::TopologyQueryMutationEvidence =
-        TopologyQueryMutationEvidence::from_read_basis;
-    let _: fn() -> TopologyConstructionAuthority = topology_construction_authority;
-    let _: fn(
-        &SpatialConstructionBirthPlan,
-    ) -> Result<TopologyConstructionLoweringPlan, TopologyConstructionLoweringError> =
-        lower_primitive_construction_birth_plan;
-    let _: fn(
-        &TopologyConstructionLoweringPlan,
-    )
-        -> Result<TopologyConstructionExecutionPlan, TopologyConstructionExecutionError> =
-        prepare_primitive_construction_execution;
-    let _: fn(&TopologyConstructionExecutionPlan) -> TopologyConstructionCertificationPlan =
-        prepare_primitive_construction_certification;
-    let _: fn(
-        &TopologyConstructionLoweringPlan,
-        &TopologyConstructionCertificationPlan,
-    ) -> TopologyConstructionFactReport = build_topology_construction_fact_report;
-    let _: fn(TopologyConstructionMutationSurface) -> &'static str =
-        TopologyConstructionMutationSurface::as_str;
-    let _: fn(TopologyConstructionCertificationReadSurface) -> &'static str =
-        TopologyConstructionCertificationReadSurface::as_str;
-    let _: fn(TopologyConstructionInspectionSurface) -> &'static str =
-        TopologyConstructionInspectionSurface::as_str;
-    let _: fn(TopologyConstructionFactKind) -> &'static str = TopologyConstructionFactKind::as_str;
-    let _: fn(TopologyConstructionFactProvenance) -> &'static str =
-        TopologyConstructionFactProvenance::as_str;
+fn _topology_projection_cleanup_closeout_contracts() {
     let _: fn() -> Result<
         TopologyQueryBoundaryCleanupCloseoutReport,
         topology::facade::TopologyCertificationError,
@@ -277,14 +221,60 @@ fn _topology_projection_surface_contracts() {
     let _: fn(&TopologyQueryBoundaryCleanupRow) -> TopologyQueryBoundaryCleanupStatus =
         TopologyQueryBoundaryCleanupRow::status;
     let _: fn(&TopologyQueryBoundaryCleanupRow) -> &str = TopologyQueryBoundaryCleanupRow::reason;
+
+    let _: fn() -> Result<
+        TopologyBridgeRegistrationCloseoutReport,
+        topology::facade::TopologyCertificationError,
+    > = certify_topology_bridge_registration_closeout;
+    let _: fn(TopologyBridgeRegistrationArea) -> &'static str =
+        TopologyBridgeRegistrationArea::as_str;
+    let _: fn(TopologyBridgeRegistrationStatus) -> &'static str =
+        TopologyBridgeRegistrationStatus::as_str;
+    let _: fn(&TopologyBridgeRegistrationCloseoutReport) -> &[TopologyBridgeRegistrationRow] =
+        TopologyBridgeRegistrationCloseoutReport::rows;
+    let _: fn(&TopologyBridgeRegistrationCloseoutReport) -> bool =
+        TopologyBridgeRegistrationCloseoutReport::phase_eight_ready;
+    let _: fn(
+        &TopologyBridgeRegistrationCloseoutReport,
+        TopologyBridgeRegistrationArea,
+    ) -> TopologyBridgeRegistrationStatus = TopologyBridgeRegistrationCloseoutReport::status;
+    let _: fn(&TopologyBridgeRegistrationRow) -> TopologyBridgeRegistrationArea =
+        TopologyBridgeRegistrationRow::area;
+    let _: fn(&TopologyBridgeRegistrationRow) -> TopologyBridgeRegistrationStatus =
+        TopologyBridgeRegistrationRow::status;
+    let _: fn(&TopologyBridgeRegistrationRow) -> &str = TopologyBridgeRegistrationRow::reason;
+
+    let _: fn() -> Result<
+        TopologyHistoricalMaterializationCloseoutReport,
+        topology::facade::TopologyCertificationError,
+    > = certify_topology_historical_materialization_closeout;
+    let _: fn(TopologyHistoricalMaterializationArea) -> &'static str =
+        TopologyHistoricalMaterializationArea::as_str;
+    let _: fn(TopologyHistoricalMaterializationStatus) -> &'static str =
+        TopologyHistoricalMaterializationStatus::as_str;
+    let _: fn(
+        &TopologyHistoricalMaterializationCloseoutReport,
+    ) -> &[TopologyHistoricalMaterializationRow] =
+        TopologyHistoricalMaterializationCloseoutReport::rows;
+    let _: fn(&TopologyHistoricalMaterializationCloseoutReport) -> bool =
+        TopologyHistoricalMaterializationCloseoutReport::phase_seven_ready;
+    let _: fn(
+        &TopologyHistoricalMaterializationCloseoutReport,
+        TopologyHistoricalMaterializationArea,
+    ) -> TopologyHistoricalMaterializationStatus =
+        TopologyHistoricalMaterializationCloseoutReport::status;
+    let _: fn(&TopologyHistoricalMaterializationRow) -> TopologyHistoricalMaterializationArea =
+        TopologyHistoricalMaterializationRow::area;
+    let _: fn(&TopologyHistoricalMaterializationRow) -> TopologyHistoricalMaterializationStatus =
+        TopologyHistoricalMaterializationRow::status;
+    let _: fn(&TopologyHistoricalMaterializationRow) -> &str =
+        TopologyHistoricalMaterializationRow::reason;
 }
 
 #[test]
 fn topo_public_traced_boundaries_compile_with_envelope_contracts() {
     let _ = _m1_read_cert_contract;
-    let _ = _m1_commit_cert_contract;
     let _ = _m2_read_cert_contract;
-    let _ = _m2_commit_cert_contract;
     let _ = _vocab_live_query_declaration_contract;
     let _ = _vocab_computed_query_declaration_contract;
     let _ = _topology_query_domain_entry_contracts;
@@ -293,5 +283,5 @@ fn topo_public_traced_boundaries_compile_with_envelope_contracts() {
     let _ = _topology_operator_grouped_rehome_surface_contracts;
     let _ = _topology_operator_radial_program_surface_contracts;
     let _ = _topology_operator_successor_surface_contracts;
-    let _ = _topology_projection_surface_contracts;
+    let _ = _topology_projection_cleanup_closeout_contracts;
 }

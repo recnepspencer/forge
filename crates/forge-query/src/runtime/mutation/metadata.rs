@@ -27,7 +27,15 @@ impl ForgeQueryMutationMetadata {
         &self.entries
     }
 
-    pub(crate) fn insert<T: Serialize>(
+    pub fn insert<T: Serialize>(
+        &mut self,
+        key: impl Into<String>,
+        value: T,
+    ) -> Result<(), ForgeQueryWorkspaceError> {
+        self.insert_serialized(key, value)
+    }
+
+    pub(crate) fn insert_serialized<T: Serialize>(
         &mut self,
         key: impl Into<String>,
         value: T,

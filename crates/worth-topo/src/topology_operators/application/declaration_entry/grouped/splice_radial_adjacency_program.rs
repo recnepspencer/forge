@@ -16,7 +16,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         bindings: &TopologyQueryBindingIndex,
         mode: TopologyMutationApplicationMode,
     ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
-        orchestrate_topology_declaration_entry(
+        let retained_handoff = orchestrate_topology_declaration_entry(
             TopologyMutationFamily::SpliceRadialAdjacency,
             declaration.clone(),
         )?;
@@ -26,6 +26,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
             lower_mutation_sequence(self, &sequence, bindings, &Default::default())?;
         finalize_lowered_mutations(
             self,
+            retained_handoff,
             lowered_mutations,
             TopologySpliceRadialAdjacencyProgramDeclaration::SEMANTIC_FAMILY_KEY,
             mode,

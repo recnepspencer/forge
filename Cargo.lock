@@ -5267,7 +5267,6 @@ dependencies = [
  "serde_json",
  "trybuild",
  "worth-schema",
- "worth-spatial",
 ]
 
 [[package]]

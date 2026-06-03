@@ -87,9 +87,30 @@ pub struct PrimitiveFamilyCoverageMatrix {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TopologyBranchAuthoringBoundary {
+    SchemaTopologyAuthoring,
+}
+
+impl TopologyBranchAuthoringBoundary {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::SchemaTopologyAuthoring => "schema_topology_authoring",
+        }
+    }
+
+    pub const fn from_mutation_origin(mutation_origin: MutationOrigin) -> Option<Self> {
+        match mutation_origin {
+            MutationOrigin::BranchLocalApplication => Some(Self::SchemaTopologyAuthoring),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BranchLocalTopologyReport {
     pub mutation_origin: MutationOrigin,
     pub branch_local: bool,
+    pub branch_authoring_boundary: Option<TopologyBranchAuthoringBoundary>,
     pub branch_id: BranchId,
     pub snapshot_id: u64,
     pub touched_aspect_count: usize,

@@ -1,3 +1,4 @@
+use crate::certification::TopologyBranchAuthoringBoundary;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::super::super::scale_pressure_proof::{
@@ -36,6 +37,10 @@ impl MilestoneThreeScalePressureRow {
 
     pub fn branch_local(&self) -> bool {
         self.branch_local
+    }
+
+    pub fn branch_authoring_boundary(&self) -> Option<TopologyBranchAuthoringBoundary> {
+        self.branch_authoring_boundary.clone()
     }
 
     pub fn topology_mutation_digest(&self) -> &TopologyMutationDigest {

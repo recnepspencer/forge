@@ -33,91 +33,43 @@ fn _topology_operator_scalar_surface_contracts() {
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
         TopologyRetireTopologyEntityDeclaration,
-    ) -> Result<
-        forge_query::facade::ForgeQueryDeclarationEnvelope<
-            TopologyQueryDomain,
+    ) -> TopologyOperatorDeclarationOutcome<TopologyRetireTopologyEntityDeclaration> =
+        <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::orchestrate_topology_operator_outcome::<
             TopologyRetireTopologyEntityDeclaration,
-        >,
-        forge_query::facade::ForgeQueryDeclarationEntryOrchestrationTerminalError<
-            TopologyQueryDomain,
-            TopologyRetireTopologyEntityDeclaration,
-        >,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry::<
-        TopologyRetireTopologyEntityDeclaration,
-    >;
+        >;
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
         TopologyDetachBoundaryMembershipDeclaration,
-    ) -> Result<
-        forge_query::facade::ForgeQueryDeclarationEnvelope<
-            TopologyQueryDomain,
+    ) -> TopologyOperatorDeclarationOutcome<TopologyDetachBoundaryMembershipDeclaration> =
+        <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::orchestrate_topology_operator_outcome::<
             TopologyDetachBoundaryMembershipDeclaration,
-        >,
-        forge_query::facade::ForgeQueryDeclarationEntryOrchestrationTerminalError<
-            TopologyQueryDomain,
-            TopologyDetachBoundaryMembershipDeclaration,
-        >,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry::<
-        TopologyDetachBoundaryMembershipDeclaration,
-    >;
+        >;
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
         TopologyRewireLoopEndpointDeclaration,
-    ) -> Result<
-        forge_query::facade::ForgeQueryDeclarationEnvelope<
-            TopologyQueryDomain,
+    ) -> TopologyOperatorDeclarationOutcome<TopologyRewireLoopEndpointDeclaration> =
+        <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::orchestrate_topology_operator_outcome::<
             TopologyRewireLoopEndpointDeclaration,
-        >,
-        forge_query::facade::ForgeQueryDeclarationEntryOrchestrationTerminalError<
-            TopologyQueryDomain,
-            TopologyRewireLoopEndpointDeclaration,
-        >,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry::<
-        TopologyRewireLoopEndpointDeclaration,
-    >;
+        >;
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
         TopologyDetachShellOrWireMembershipDeclaration,
-    ) -> Result<
-        forge_query::facade::ForgeQueryDeclarationEnvelope<
-            TopologyQueryDomain,
+    ) -> TopologyOperatorDeclarationOutcome<TopologyDetachShellOrWireMembershipDeclaration> =
+        <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::orchestrate_topology_operator_outcome::<
             TopologyDetachShellOrWireMembershipDeclaration,
-        >,
-        forge_query::facade::ForgeQueryDeclarationEntryOrchestrationTerminalError<
-            TopologyQueryDomain,
-            TopologyDetachShellOrWireMembershipDeclaration,
-        >,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry::<
-        TopologyDetachShellOrWireMembershipDeclaration,
-    >;
+        >;
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
         TopologySpliceRadialAdjacencyDeclaration,
-    ) -> Result<
-        forge_query::facade::ForgeQueryDeclarationEnvelope<
-            TopologyQueryDomain,
+    ) -> TopologyOperatorDeclarationOutcome<TopologySpliceRadialAdjacencyDeclaration> =
+        <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::orchestrate_topology_operator_outcome::<
             TopologySpliceRadialAdjacencyDeclaration,
-        >,
-        forge_query::facade::ForgeQueryDeclarationEntryOrchestrationTerminalError<
-            TopologyQueryDomain,
-            TopologySpliceRadialAdjacencyDeclaration,
-        >,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry::<
-        TopologySpliceRadialAdjacencyDeclaration,
-    >;
+        >;
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
         TopologyDetachRadialAdjacencyDeclaration,
-    ) -> Result<
-        forge_query::facade::ForgeQueryDeclarationEnvelope<
-            TopologyQueryDomain,
+    ) -> TopologyOperatorDeclarationOutcome<TopologyDetachRadialAdjacencyDeclaration> =
+        <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::orchestrate_topology_operator_outcome::<
             TopologyDetachRadialAdjacencyDeclaration,
-        >,
-        forge_query::facade::ForgeQueryDeclarationEntryOrchestrationTerminalError<
-            TopologyQueryDomain,
-            TopologyDetachRadialAdjacencyDeclaration,
-        >,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry::<
-        TopologyDetachRadialAdjacencyDeclaration,
-    >;
+        >;
 }

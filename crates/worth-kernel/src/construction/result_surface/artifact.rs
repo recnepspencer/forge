@@ -1,21 +1,14 @@
-use crate::construction::admission::AdmittedPrimitiveConstructionIntent;
+use crate::construction::admitted_scaffold::PreparedPrimitiveConstructionAdmittedResultInput;
 use crate::construction::digest::digest_owned_parts;
-use crate::construction::execution::PreparedPrimitiveConstructionExecution;
-use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionRequest};
-use crate::construction::scaffold::PrimitiveConstructionScaffold;
+use crate::construction::request::PrimitiveConstructionFamily;
 use topology::facade::{
-    build_topology_construction_fact_report, TopologyConstructionCertificationPlan,
-    TopologyConstructionFactReport, TopologyConstructionInspectionSurface,
-    TopologyConstructionLoweringPlan, TopologyConstructionMutationSurface,
+    TopologyConstructionQueryInspectionSurface, TopologyConstructionQueryMutationSurface,
+    TopologyPrimitiveConstructionQueryAdmittedHandoff,
 };
 use worth_geom::facade::{
     PrimitiveFeatureConditioningClass, PrimitiveNormalizationDisposition,
     PrimitiveRealizationReport, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
     PrimitiveSupportNormalClass,
-};
-use worth_spatial::facade::{
-    certify_primitive_construction_birth_completeness, SpatialConstructionBirthCompletenessReport,
-    SpatialConstructionBirthError, SpatialConstructionBirthPlan,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -23,77 +16,73 @@ pub struct CanonicalPrimitiveConstructionArtifact {
     family: PrimitiveConstructionFamily,
     topology_birth_class: String,
     realization_report: PrimitiveRealizationReport,
-    request_digest: String,
-    intent_digest: String,
-    scaffold_digest: String,
     birth_digest: String,
     birth_completeness_digest: String,
     topology_fact_digest: String,
-    lowering_digest: String,
-    execution_digest: String,
-    certification_digest: String,
-    mutation_surface: TopologyConstructionMutationSurface,
-    inspection_surface: TopologyConstructionInspectionSurface,
-    supported_vertex_count: usize,
-    supported_edge_count: usize,
+    mutation_surface: TopologyConstructionQueryMutationSurface,
+    inspection_surface: TopologyConstructionQueryInspectionSurface,
     supported_loop_count: usize,
-    supported_wire_count: usize,
-    supported_face_count: usize,
-    supported_shell_count: usize,
     supported_body_count: usize,
     artifact_digest: String,
 }
 
 impl CanonicalPrimitiveConstructionArtifact {
     fn new(
-        request: &PrimitiveConstructionRequest,
-        intent: &AdmittedPrimitiveConstructionIntent,
-        scaffold: &PrimitiveConstructionScaffold,
-        birth_plan: &SpatialConstructionBirthPlan,
-        birth_completeness: &SpatialConstructionBirthCompletenessReport,
-        fact_report: &TopologyConstructionFactReport,
-        lowering_plan: &TopologyConstructionLoweringPlan,
-        execution: &PreparedPrimitiveConstructionExecution,
-        certification: &TopologyConstructionCertificationPlan,
+        family: PrimitiveConstructionFamily,
+        scaffold_digest: &str,
+        realization_report: &PrimitiveRealizationReport,
+        topology_query_admitted_handoff: &TopologyPrimitiveConstructionQueryAdmittedHandoff,
+        admitted_handoff_digest: &str,
     ) -> Self {
+        let topology_query_handoff = topology_query_admitted_handoff.topology_query_handoff();
+        let topology_query_envelope = topology_query_handoff.topology_query_envelope();
         let parts = [
-            request.request_digest().to_string(),
-            intent.intent_digest().to_string(),
-            scaffold.scaffold_digest().to_string(),
-            birth_plan.birth_digest().to_string(),
-            birth_completeness.completeness_digest().to_string(),
-            fact_report.report_digest().to_string(),
-            lowering_plan.lowering_digest().to_string(),
-            execution.execution_digest().to_string(),
-            certification.certification_digest().to_string(),
-            scaffold.realization_report().report_digest().to_string(),
-            lowering_plan.mutation_surface().as_str().to_string(),
-            certification.inspection_surface().as_str().to_string(),
+            family.as_str().to_string(),
+            scaffold_digest.to_string(),
+            topology_query_handoff.source_birth_digest().to_string(),
+            topology_query_admitted_handoff
+                .birth_completeness_digest()
+                .to_string(),
+            topology_query_envelope.fact_digest().to_string(),
+            topology_query_handoff.handoff_digest().to_string(),
+            admitted_handoff_digest.to_string(),
+            realization_report.report_digest().to_string(),
+            topology_query_envelope
+                .mutation_surface()
+                .as_str()
+                .to_string(),
+            topology_query_envelope
+                .inspection_surface()
+                .as_str()
+                .to_string(),
         ];
         Self {
-            family: request.family(),
-            topology_birth_class: birth_plan.topology_birth_class().to_string(),
-            realization_report: scaffold.realization_report().clone(),
-            request_digest: request.request_digest().to_string(),
-            intent_digest: intent.intent_digest().to_string(),
-            scaffold_digest: scaffold.scaffold_digest().to_string(),
-            birth_digest: birth_plan.birth_digest().to_string(),
-            birth_completeness_digest: birth_completeness.completeness_digest().to_string(),
-            topology_fact_digest: fact_report.report_digest().to_string(),
-            lowering_digest: lowering_plan.lowering_digest().to_string(),
-            execution_digest: execution.execution_digest().to_string(),
-            certification_digest: certification.certification_digest().to_string(),
-            mutation_surface: lowering_plan.mutation_surface(),
-            inspection_surface: certification.inspection_surface(),
-            supported_vertex_count: birth_completeness.supported_vertex_count(),
-            supported_edge_count: birth_completeness.supported_edge_count(),
-            supported_loop_count: birth_completeness.supported_loop_count(),
-            supported_wire_count: birth_completeness.supported_wire_count(),
-            supported_face_count: birth_completeness.supported_face_count(),
-            supported_shell_count: birth_completeness.supported_shell_count(),
-            supported_body_count: birth_completeness.supported_body_count(),
+            family,
+            topology_birth_class: topology_query_envelope.topology_birth_class().to_string(),
+            realization_report: realization_report.clone(),
+            birth_digest: topology_query_handoff.source_birth_digest().to_string(),
+            birth_completeness_digest: topology_query_admitted_handoff
+                .birth_completeness_digest()
+                .to_string(),
+            topology_fact_digest: topology_query_envelope.fact_digest().to_string(),
+            mutation_surface: topology_query_envelope.mutation_surface(),
+            inspection_surface: topology_query_envelope.inspection_surface(),
+            supported_loop_count: topology_query_admitted_handoff.supported_loop_count(),
+            supported_body_count: topology_query_admitted_handoff.supported_body_count(),
             artifact_digest: digest_owned_parts(&parts),
         }
+    }
+
+    pub(crate) fn from_admitted_result_input(
+        result_input: &PreparedPrimitiveConstructionAdmittedResultInput,
+    ) -> Self {
+        Self::new(
+            result_input.family(),
+            result_input.scaffold_digest(),
+            result_input.realization_report(),
+            result_input.topology_query_admitted_handoff(),
+            result_input.admitted_handoff_digest(),
+        )
     }
 
     pub fn family(&self) -> PrimitiveConstructionFamily {
@@ -154,11 +143,11 @@ impl CanonicalPrimitiveConstructionArtifact {
         &self.topology_fact_digest
     }
 
-    pub fn mutation_surface(&self) -> TopologyConstructionMutationSurface {
+    pub fn mutation_surface(&self) -> TopologyConstructionQueryMutationSurface {
         self.mutation_surface
     }
 
-    pub fn inspection_surface(&self) -> TopologyConstructionInspectionSurface {
+    pub fn inspection_surface(&self) -> TopologyConstructionQueryInspectionSurface {
         self.inspection_surface
     }
 
@@ -175,79 +164,21 @@ impl CanonicalPrimitiveConstructionArtifact {
     }
 }
 
-#[derive(Debug)]
-pub enum PrimitiveConstructionArtifactError {
-    SpatialBirth(SpatialConstructionBirthError),
-}
-
-impl std::fmt::Display for PrimitiveConstructionArtifactError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::SpatialBirth(error) => write!(f, "{error}"),
-        }
-    }
-}
-
-impl std::error::Error for PrimitiveConstructionArtifactError {}
-
-pub(crate) fn build_canonical_primitive_construction_artifact_with_completeness(
-    request: &PrimitiveConstructionRequest,
-    intent: &AdmittedPrimitiveConstructionIntent,
-    scaffold: &PrimitiveConstructionScaffold,
-    birth_plan: &SpatialConstructionBirthPlan,
-    birth_completeness: &SpatialConstructionBirthCompletenessReport,
-    fact_report: &TopologyConstructionFactReport,
-    lowering_plan: &TopologyConstructionLoweringPlan,
-    execution: &PreparedPrimitiveConstructionExecution,
-    certification: &TopologyConstructionCertificationPlan,
-) -> Result<CanonicalPrimitiveConstructionArtifact, PrimitiveConstructionArtifactError> {
-    Ok(CanonicalPrimitiveConstructionArtifact::new(
-        request,
-        intent,
-        scaffold,
-        birth_plan,
-        birth_completeness,
-        fact_report,
-        lowering_plan,
-        execution,
-        certification,
-    ))
-}
-
-pub fn build_canonical_primitive_construction_artifact(
-    request: &PrimitiveConstructionRequest,
-    intent: &AdmittedPrimitiveConstructionIntent,
-    scaffold: &PrimitiveConstructionScaffold,
-    birth_plan: &SpatialConstructionBirthPlan,
-    lowering_plan: &TopologyConstructionLoweringPlan,
-    execution: &PreparedPrimitiveConstructionExecution,
-    certification: &TopologyConstructionCertificationPlan,
-) -> Result<CanonicalPrimitiveConstructionArtifact, PrimitiveConstructionArtifactError> {
-    let birth_completeness =
-        certify_primitive_construction_birth_completeness(&scaffold.birth_input(), birth_plan)
-            .map_err(PrimitiveConstructionArtifactError::SpatialBirth)?;
-    let fact_report = build_topology_construction_fact_report(lowering_plan, certification);
-    build_canonical_primitive_construction_artifact_with_completeness(
-        request,
-        intent,
-        scaffold,
-        birth_plan,
-        &birth_completeness,
-        &fact_report,
-        lowering_plan,
-        execution,
-        certification,
-    )
+#[cfg(test)]
+pub(crate) fn build_canonical_primitive_construction_artifact(
+    result_input: &PreparedPrimitiveConstructionAdmittedResultInput,
+) -> CanonicalPrimitiveConstructionArtifact {
+    CanonicalPrimitiveConstructionArtifact::from_admitted_result_input(result_input)
 }
 
 #[cfg(test)]
 mod tests {
     use super::build_canonical_primitive_construction_artifact;
+    use crate::construction::admitted_scaffold::prepare_primitive_construction_admitted_result_input;
     use crate::construction::{
-        lower_scaffold_to_topology, PreparedPrimitiveConstructionExecution,
         PrimitiveConstructionFamily, PrimitiveConstructionIntent, ShellWithHoleSpec,
     };
-    use topology::facade::TopologyConstructionInspectionSurface;
+    use topology::facade::TopologyConstructionQueryInspectionSurface;
 
     #[test]
     fn canonical_artifact_binds_shell_birth_and_topology_truth() {
@@ -256,28 +187,9 @@ mod tests {
             hole_loop_edge_counts: vec![3, 4],
         });
         let request = intent.clone().into_request();
-        let admitted = request.clone().admit().expect("admitted intent");
-        let scaffold = admitted.build_scaffold().expect("scaffold");
-        let (birth_plan, lowering_plan) = lower_scaffold_to_topology(&scaffold).expect("lowering");
-        let execution = PreparedPrimitiveConstructionExecution::from_phase_chain(
-            &request,
-            &admitted,
-            &scaffold,
-            &birth_plan,
-            &lowering_plan,
-        )
-        .expect("execution");
-        let certification = execution.plan_topology_certification();
-        let artifact = build_canonical_primitive_construction_artifact(
-            &request,
-            &admitted,
-            &scaffold,
-            &birth_plan,
-            &lowering_plan,
-            &execution,
-            &certification,
-        )
-        .expect("artifact");
+        let result_input =
+            prepare_primitive_construction_admitted_result_input(&request).expect("result input");
+        let artifact = build_canonical_primitive_construction_artifact(&result_input);
 
         assert_eq!(
             artifact.family(),
@@ -287,13 +199,19 @@ mod tests {
             artifact.topology_birth_class(),
             "planar_shell_with_hole_body"
         );
-        assert_eq!(artifact.birth_truth_digest(), birth_plan.birth_digest());
+        assert_eq!(
+            artifact.birth_truth_digest(),
+            result_input
+                .topology_query_admitted_handoff()
+                .topology_query_handoff()
+                .source_birth_digest()
+        );
         assert_eq!(artifact.supported_loop_count(), 3);
         assert_eq!(artifact.supported_body_count(), 1);
         assert!(!artifact.topology_fact_digest().is_empty());
         assert_eq!(
             artifact.inspection_surface(),
-            TopologyConstructionInspectionSurface::InspectReceipt
+            TopologyConstructionQueryInspectionSurface::InspectReceipt
         );
         assert!(!artifact.birth_completeness_digest().is_empty());
         assert!(!artifact.artifact_digest().is_empty());

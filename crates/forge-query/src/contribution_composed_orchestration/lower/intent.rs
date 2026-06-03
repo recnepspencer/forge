@@ -99,6 +99,14 @@ fn process_intent<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<
             materialization_profile,
             linked_artifacts,
         ),
+        ForgeQueryContributionIntent::Continuity(value) => process_requested::<D, I, _>(
+            order_index,
+            ForgeQueryDeclarationEntryContributionCategoryFamily::ContinuityLineage,
+            declaration_aspect_record,
+            value.bind_to_declaration_target(target),
+            materialization_profile,
+            linked_artifacts,
+        ),
     }
 }
 

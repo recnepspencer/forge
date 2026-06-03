@@ -4,8 +4,9 @@ use forge_foundational::FoundationalProfileSet;
 
 use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
 use crate::domain_capabilities::{
-    ForgeQueryAdmissionContributionAuthoring, ForgeQueryExplanationContributionAuthoring,
-    ForgeQuerySupportContributionAuthoring, ForgeQueryWorkflowContributionAuthoring,
+    ForgeQueryAdmissionContributionAuthoring, ForgeQueryContinuityContributionAuthoring,
+    ForgeQueryExplanationContributionAuthoring, ForgeQuerySupportContributionAuthoring,
+    ForgeQueryWorkflowContributionAuthoring,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -14,6 +15,7 @@ pub enum ForgeQueryContributionIntent {
     Support(ForgeQuerySupportContributionAuthoring),
     Explanation(ForgeQueryExplanationContributionAuthoring),
     Workflow(ForgeQueryWorkflowContributionAuthoring),
+    Continuity(ForgeQueryContinuityContributionAuthoring),
 }
 
 impl ForgeQueryContributionIntent {
@@ -31,6 +33,10 @@ impl ForgeQueryContributionIntent {
 
     pub fn workflow(value: ForgeQueryWorkflowContributionAuthoring) -> Self {
         Self::Workflow(value)
+    }
+
+    pub fn continuity(value: ForgeQueryContinuityContributionAuthoring) -> Self {
+        Self::Continuity(value)
     }
 }
 

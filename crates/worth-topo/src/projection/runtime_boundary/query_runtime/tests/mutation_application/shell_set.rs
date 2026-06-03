@@ -6,7 +6,7 @@ use forge_query::facade::{
 };
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use crate::certification::support::declaration_runtime::{
     current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
@@ -14,6 +14,7 @@ use crate::certification::support::declaration_runtime::{
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::{
     TopologyMutationFamily, TopologyRehomeAllOwnedFacesToNewShellDeclaration,
     TopologyShellRehomeFaceMember,
@@ -23,7 +24,7 @@ use crate::validation::reference_integrity::build_milestone_one_runtime;
 #[test]
 fn current_head_runtime_executes_rehome_all_owned_faces_to_new_shell_program() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-mutation-attach-shell-face-set",
         &MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },
@@ -62,9 +63,10 @@ fn current_head_runtime_executes_rehome_all_owned_faces_to_new_shell_program() {
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .expect("full face-set shell rehome should execute through declaration entry");
+    let synopsis = execution.accepted_mutation_projection();
 
     assert_eq!(
-        execution.families,
+        synopsis.mutation_families(),
         vec![
             TopologyMutationFamily::CreateTopologyEntity,
             TopologyMutationFamily::AttachShellOrWireMembership,
@@ -87,7 +89,7 @@ fn current_head_runtime_executes_rehome_all_owned_faces_to_new_shell_program() {
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_program()
             .expect("shell face-set rehome should expose composed program")
             .steps()
@@ -104,7 +106,7 @@ fn current_head_runtime_executes_rehome_all_owned_faces_to_new_shell_program() {
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_lineage_summary()
             .expect("shell face-set rehome should expose lineage summary")
             .entries()
@@ -117,7 +119,7 @@ fn current_head_runtime_executes_rehome_all_owned_faces_to_new_shell_program() {
         3
     );
     assert!(execution
-        .inspection
+        .inspection()
         .component_operations()
         .iter()
         .filter(|operation| operation.family() == "update")
@@ -131,7 +133,7 @@ fn current_head_runtime_executes_rehome_all_owned_faces_to_new_shell_program() {
                     })
         }));
     let new_shell = execution
-        .materialized
+        .materialized()
         .topology()
         .shells
         .iter()
@@ -142,7 +144,7 @@ fn current_head_runtime_executes_rehome_all_owned_faces_to_new_shell_program() {
         face_ids.iter().copied().collect::<BTreeSet<_>>()
     );
     assert!(!execution
-        .materialized
+        .materialized()
         .topology()
         .shells
         .iter()
@@ -152,7 +154,7 @@ fn current_head_runtime_executes_rehome_all_owned_faces_to_new_shell_program() {
 #[test]
 fn current_head_runtime_denies_shell_face_set_rehome_with_duplicate_face_membership() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-mutation-attach-shell-face-set-duplicate",
         &MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },

@@ -16,7 +16,7 @@ use topology::facade::{
     MilestoneThreeSideQuestCloseoutReport, MilestoneThreeSideQuestContractRow,
     MilestoneThreeSplitCollapseChurnWitness, MilestoneThreeTopologyMutationDigestRow,
     MilestoneThreeValidationBreadthRow, MilestoneThreeValidatorFamilyCoverageRow,
-    TopologyCertificationError,
+    TopologyBranchAuthoringBoundary, TopologyCertificationError,
 };
 
 fn _milestone_three_closeout_function_contract() {
@@ -167,12 +167,15 @@ fn _milestone_three_direct_acceptance_row_contracts(
     let _: &str = branch_row.branch_label();
     let _: &str = branch_row.branch_id();
     let _: &str = branch_row.mutation_origin();
+    let _: TopologyBranchAuthoringBoundary = branch_row.branch_authoring_boundary();
     let _: topology::facade::MilestoneThreeHostileOutcomeClass = branch_row.outcome_class();
     let _: Option<topology::facade::TopologyMutationRejectionClass> = branch_row.rejection_class();
     let _: &[topology::facade::TopologyMutationFamily] = branch_row.mutation_families();
     let _: &topology::facade::TopologyMutationDigest = branch_row.topology_mutation_digest();
     let _: &topology::facade::NamingMutationContinuityMatrix =
         branch_row.naming_mutation_continuity_matrix();
+    let _: Option<topology::facade::TopologyMutationDerivedFallbackPolicy> =
+        branch_row.derived_fallback_policy();
     let _: bool = branch_row.branch_head_diverged_from_main();
     let _: bool = branch_row.branch_head_unchanged_after_rejection();
     let _: Option<&topology::facade::DeterministicDigest> = branch_row.branch_truth_digest();
@@ -236,6 +239,7 @@ fn _milestone_three_direct_acceptance_row_contracts(
     let _: usize = scale_row.workload_size();
     let _: usize = scale_row.mutation_step_count();
     let _: bool = scale_row.branch_local();
+    let _: Option<TopologyBranchAuthoringBoundary> = scale_row.branch_authoring_boundary();
     let _: &topology::facade::TopologyMutationDigest = scale_row.topology_mutation_digest();
     let _: bool = scale_row.replay_verified();
     let _: &str = scale_row.final_state_digest();

@@ -27,6 +27,7 @@ mod graph_composition_supersede_existing;
 mod graph_composition_verified_existing;
 mod mixed_authority;
 mod naming;
+mod post_write_artifact;
 mod probe_existing;
 mod relation_existing_update;
 mod symbolic_reference;

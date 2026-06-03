@@ -10,10 +10,8 @@ use super::row_support::{
     birth_attachment_breadth, certification_breadth, construction_breadth,
     rejection_locality_row_for,
 };
+use crate::construction::authoring::primitive_construction_authoring;
 use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
-use crate::construction::result::{
-    prepare_primitive_construction_result, PrimitiveConstructionResultError,
-};
 
 pub(super) fn build_corpus_rows(
     workspace: &mut ForgeQueryWorkspace,
@@ -50,13 +48,23 @@ fn build_corpus_row(
 
     match execution.direct_outcome().clone() {
         PrimitiveConstructionPreparedOutcome::Accepted(outcome) => {
-            let result = prepare_primitive_construction_result(scenario.intent.clone()).map_err(
-                |error| PrimitiveConstructionCorpusReplaySiegeError::AcceptedArtifactUnavailable {
-                    family: scenario.family,
-                    parameter_role: scenario.parameter_role,
-                    reason: result_error_reason(&error),
-                },
-            )?;
+            let result =
+                {
+                    let mut session = primitive_construction_authoring(workspace).map_err(|error| {
+                    PrimitiveConstructionCorpusReplaySiegeError::AcceptedArtifactUnavailable {
+                        family: scenario.family,
+                        parameter_role: scenario.parameter_role,
+                        reason: format!("{error:?}"),
+                    }
+                })?;
+                    session.prepare_result(scenario.intent.clone()).map_err(|error| {
+                    PrimitiveConstructionCorpusReplaySiegeError::AcceptedArtifactUnavailable {
+                        family: scenario.family,
+                        parameter_role: scenario.parameter_role,
+                        reason: error.to_string(),
+                    }
+                })?
+                };
             Ok(PrimitiveConstructionCorpusReplaySiegeRow::new(
                 scenario.scenario_id.to_string(),
                 scenario.family,
@@ -127,8 +135,4 @@ fn build_corpus_row(
             ))
         }
     }
-}
-
-fn result_error_reason(error: &PrimitiveConstructionResultError) -> String {
-    error.to_string()
 }

@@ -1,25 +1,16 @@
-//! Internal declared Query surfaces for topology historical snapshot decoding.
+//! Internal declared Query surfaces for live and computed topology reads.
+
+pub(crate) mod derived_surfaces;
+pub(crate) mod query_diagnostics;
+pub(crate) mod retained_artifacts;
+pub(crate) mod truth_surfaces;
 
 use forge_query::facade::{
-    ForgeQueryDerivedViewHandle, ForgeQueryLiveView, ForgeQueryRuntimeError, ForgeQueryWorkspace,
+    ForgeQueryDerivedMaterializationTarget, ForgeQueryDerivedViewHandle,
+    ForgeQueryLiveArtifactTarget, ForgeQueryLiveView, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
-use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 use serde_json::Value;
-
-use crate::facade::{
-    DerivedEquivalenceContractReport, DerivedReadDiagnostics, DerivedTopologyValidationReport,
-    InterpretedTopologyView, MaterializedTopologyView, NamingAttachmentReport,
-};
-use crate::projection::{
-    declare_persistent_name_live_view, declare_topology_diagnostics_surface,
-    declare_topology_entity_live_view, declare_topology_equivalence_contract_surface,
-    declare_topology_interpreted_surface, declare_topology_materialized_surface,
-    declare_topology_relation_live_view, declare_topology_validation_surface,
-    TopologyQuerySurfaceError,
-};
-mod historical_rows;
-mod snapshot_decode;
-mod snapshot_rows;
+const QUERY_SURFACE_FAILURE_ROW_KEY: &str = "query_surface_error";
 
 const ENTITY_SURFACE: &str = ".topology.entities";
 const RELATION_SURFACE: &str = ".topology.relations";
@@ -42,15 +33,19 @@ pub(crate) struct TopologyDeclaredQuerySurfaces {
     equivalence_contract: ForgeQueryDerivedViewHandle<Value>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct TopologyDerivedQuerySnapshot {
-    pub naming_attachments: NamingAttachmentReport,
-    pub materialized: MaterializedTopologyView,
-    pub interpreted: InterpretedTopologyView,
-    pub validation: DerivedTopologyValidationReport,
-    pub diagnostics: DerivedReadDiagnostics,
-    pub equivalence_contract: DerivedEquivalenceContractReport,
-}
+pub(crate) use derived_surfaces::{
+    declare_topology_interpreted_surface, declare_topology_validation_surface,
+    TopologyQuerySurfaceError,
+};
+#[cfg(test)]
+pub(crate) use query_diagnostics::equivalence_contract_from_diagnostics_rows;
+pub(crate) use query_diagnostics::{
+    declare_topology_diagnostics_surface, declare_topology_equivalence_contract_surface,
+};
+pub(crate) use truth_surfaces::{
+    declare_persistent_name_live_view, declare_topology_entity_live_view,
+    declare_topology_materialized_surface, declare_topology_relation_live_view,
+};
 
 pub(crate) fn declare_topology_query_surfaces(
     workspace: &mut ForgeQueryWorkspace,
@@ -128,72 +123,44 @@ impl TopologyDeclaredQuerySurfaces {
     pub fn equivalence_contract(&self) -> &ForgeQueryDerivedViewHandle<Value> {
         &self.equivalence_contract
     }
-
-    pub fn snapshot_for_read_basis(
-        &self,
-        workspace: &mut ForgeQueryWorkspace,
-        read_basis: &DerivedTopologyReadBasis,
-    ) -> Result<TopologyDerivedQuerySnapshot, TopologyQuerySurfaceError> {
-        let rows =
-            snapshot_rows::TopologyQuerySnapshotRows::historical(self, workspace, read_basis)?;
-        let snapshot = snapshot_decode::snapshot_from_query_rows(rows)?;
-        ensure_snapshot_matches_read_basis(&snapshot, read_basis)?;
-        Ok(snapshot)
-    }
 }
 
-fn ensure_snapshot_matches_read_basis(
-    snapshot: &TopologyDerivedQuerySnapshot,
-    read_basis: &DerivedTopologyReadBasis,
-) -> Result<(), TopologyQuerySurfaceError> {
-    let equivalence = &snapshot.equivalence_contract;
-    if equivalence.authority_snapshot_id != read_basis.snapshot().snapshot_id.0 {
-        return Err(TopologyQuerySurfaceError::new(format!(
-            "query-derived snapshot authority snapshot id `{}` did not match requested read basis snapshot `{}`",
-            equivalence.authority_snapshot_id,
-            read_basis.snapshot().snapshot_id.0
-        )));
-    }
-    if equivalence.authority_branch_id != read_basis.branch_id().0 {
-        return Err(TopologyQuerySurfaceError::new(format!(
-            "query-derived snapshot authority branch id `{}` did not match requested read basis branch `{}`",
-            equivalence.authority_branch_id,
-            read_basis.branch_id().0
-        )));
-    }
-    if equivalence.authoritative_mutation_origin != read_basis.authoritative_mutation_origin() {
-        return Err(TopologyQuerySurfaceError::new(
-            "query-derived snapshot authoritative mutation origin diverged from requested read basis",
-        ));
-    }
-    if equivalence.derivation_origin != read_basis.derivation_origin() {
-        return Err(TopologyQuerySurfaceError::new(
-            "query-derived snapshot derivation origin diverged from requested read basis",
-        ));
-    }
-    if equivalence.truth_basis_digest_hex
-        != read_basis
-            .authority
-            .truth_basis_identity
-            .mutation_digest_hex
-    {
-        return Err(TopologyQuerySurfaceError::new(
-            "query-derived snapshot truth basis digest diverged from requested read basis",
-        ));
-    }
-    if equivalence.touched_aspect_count != read_basis.touched_aspects().len() {
-        return Err(TopologyQuerySurfaceError::new(format!(
-            "query-derived snapshot touched-aspect count `{}` did not match requested read basis count `{}`",
-            equivalence.touched_aspect_count,
-            read_basis.touched_aspects().len()
-        )));
-    }
-    Ok(())
+pub(crate) fn materialize_declared_query_surface_row<T>(
+    workspace: &mut ForgeQueryWorkspace,
+    view: &ForgeQueryDerivedViewHandle<Value>,
+) -> Result<T, TopologyQuerySurfaceError>
+where
+    T: serde::de::DeserializeOwned,
+{
+    workspace
+        .materialize_intent(view)
+        .execute()
+        .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?
+        .decode_single_row()
+        .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))
+}
+
+pub(crate) fn materialize_declared_query_surface_binding(
+    workspace: &mut ForgeQueryWorkspace,
+    artifact_name: impl Into<String>,
+    views: impl IntoIterator<Item = ForgeQueryDerivedMaterializationTarget>,
+) -> Result<forge_query::facade::ForgeQueryDerivedArtifactBinding, TopologyQuerySurfaceError> {
+    workspace
+        .materialize_derived_artifact_binding(artifact_name, views)
+        .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))
+}
+
+pub(crate) fn read_declared_query_surface_binding(
+    workspace: &mut ForgeQueryWorkspace,
+    artifact_name: impl Into<String>,
+    views: impl IntoIterator<Item = ForgeQueryLiveArtifactTarget>,
+) -> Result<forge_query::facade::ForgeQueryLiveArtifactBinding, TopologyQuerySurfaceError> {
+    workspace
+        .read_live_artifact_binding(artifact_name, views)
+        .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))
 }
 
 #[cfg(test)]
 mod boundary_tests;
-#[cfg(test)]
-mod snapshot_tests;
 #[cfg(test)]
 mod tests;

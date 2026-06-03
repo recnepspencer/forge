@@ -8,6 +8,7 @@ use super::{
     TopologyReadCloseoutReport, TopologyReadError, TopologyReadFallbackPosture, TopologyReadLedger,
     TopologyReadProofReport, TopologyReadRequestFamily,
 };
+use crate::projection::runtime_boundary::read_execution::TopologyReadExecutionTarget;
 use crate::query_domain::{
     TopologyCurrentHeadConfiguredDomainHandle, TopologyQueryDomain,
     TopologySnapshotReadOnlyConfiguredDomainHandle,
@@ -19,6 +20,7 @@ pub struct TopologyConfiguredDomainReadSession<
 > {
     handle: &'a ForgeQueryAdmittedConfiguredDomainHandle<TopologyQueryDomain, C>,
     workspace: &'a mut ForgeQueryWorkspace,
+    execution_target: TopologyReadExecutionTarget,
     state: TopologyReadLedger,
 }
 
@@ -35,10 +37,12 @@ impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
     fn new(
         handle: &'a ForgeQueryAdmittedConfiguredDomainHandle<TopologyQueryDomain, C>,
         workspace: &'a mut ForgeQueryWorkspace,
+        execution_target: TopologyReadExecutionTarget,
     ) -> Self {
         Self {
             handle,
             workspace,
+            execution_target,
             state: TopologyReadLedger::new(),
         }
     }
@@ -75,16 +79,22 @@ impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
         &mut self,
         source_identity: &str,
     ) -> Result<TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyReadError> {
-        self.state
-            .shared_vertex_half_edge_neighborhood(self.workspace, source_identity)
+        self.state.shared_vertex_half_edge_neighborhood(
+            self.workspace,
+            &self.execution_target,
+            source_identity,
+        )
     }
 
     pub fn radial_half_edge_neighborhood(
         &mut self,
         source_identity: &str,
     ) -> Result<TopologyHalfEdgeRadialNeighborhoodView, TopologyReadError> {
-        self.state
-            .radial_half_edge_neighborhood(self.workspace, source_identity)
+        self.state.radial_half_edge_neighborhood(
+            self.workspace,
+            &self.execution_target,
+            source_identity,
+        )
     }
 
     pub fn loop_cycle(
@@ -92,7 +102,12 @@ impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
         start_identity: &str,
         count: usize,
     ) -> Result<TopologyLoopCycleView, TopologyReadError> {
-        self.state.loop_cycle(self.workspace, start_identity, count)
+        self.state.loop_cycle(
+            self.workspace,
+            &self.execution_target,
+            start_identity,
+            count,
+        )
     }
 
     pub fn local_rewire_neighborhood(
@@ -100,8 +115,12 @@ impl<'a, C: ForgeQueryDomainOperatingContext<TopologyQueryDomain>>
         moved_identity: &str,
         cycle_count: usize,
     ) -> Result<TopologyLocalRewireNeighborhoodView, TopologyReadError> {
-        self.state
-            .local_rewire_neighborhood(self.workspace, moved_identity, cycle_count)
+        self.state.local_rewire_neighborhood(
+            self.workspace,
+            &self.execution_target,
+            moved_identity,
+            cycle_count,
+        )
     }
 }
 
@@ -117,7 +136,11 @@ impl TopologyCurrentHeadReadHandleExt for TopologyCurrentHeadConfiguredDomainHan
         &'a self,
         workspace: &'a mut ForgeQueryWorkspace,
     ) -> TopologyCurrentHeadReadSession<'a> {
-        TopologyConfiguredDomainReadSession::new(self, workspace)
+        TopologyConfiguredDomainReadSession::new(
+            self,
+            workspace,
+            TopologyReadExecutionTarget::current_head(),
+        )
     }
 }
 
@@ -133,6 +156,11 @@ impl TopologySnapshotReadOnlyReadHandleExt for TopologySnapshotReadOnlyConfigure
         &'a self,
         workspace: &'a mut ForgeQueryWorkspace,
     ) -> TopologySnapshotReadOnlyReadSession<'a> {
-        TopologyConfiguredDomainReadSession::new(self, workspace)
+        let snapshot_token = workspace.snapshot_token().to_string();
+        TopologyConfiguredDomainReadSession::new(
+            self,
+            workspace,
+            TopologyReadExecutionTarget::historical_snapshot(snapshot_token),
+        )
     }
 }

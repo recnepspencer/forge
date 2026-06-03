@@ -33,70 +33,72 @@ fn _topology_operator_split_surface_contracts() {
                 face_id,
             )
         };
+    let _: fn(
+        TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
+    ) -> TopologyOperatorGroupedInput<TopologySplitConnectedHalfEdgeSetToNewWireDeclaration> =
+        topology_grouped_operator_neighborhood::<TopologySplitConnectedHalfEdgeSetToNewWireDeclaration>;
+    let _: fn(
+        TopologyOperatorGroupedInput<TopologySplitConnectedHalfEdgeSetToNewWireDeclaration>,
+        ForgeQuerySupportContributionAuthoring,
+    ) -> TopologyOperatorGroupedContributionInput<TopologySplitConnectedHalfEdgeSetToNewWireDeclaration> =
+        |input, contribution| input.with_shared_support_contribution(contribution);
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
+        TopologyOperatorGroupedInput<TopologySplitConnectedHalfEdgeSetToNewWireDeclaration>,
     ) -> Result<
-        forge_query::facade::ForgeQueryDeclarationEnvelope<
-            TopologyQueryDomain,
+        TopologyOperatorGroupedDeclaration<TopologySplitConnectedHalfEdgeSetToNewWireDeclaration>,
+        TopologyOperatorGroupedDeclarationStop,
+    > = <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::declare_topology_grouped_operator::<
+        TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
+    >;
+    let _: for<'a> fn(
+        &'a TopologyCurrentHeadConfiguredDomainHandle,
+        TopologyOperatorGroupedDeclaration<TopologySplitConnectedHalfEdgeSetToNewWireDeclaration>,
+    ) -> TopologyOperatorGroupedOutcome<TopologySplitConnectedHalfEdgeSetToNewWireDeclaration> =
+        <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::orchestrate_topology_grouped_operator_outcome::<
             TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
-        >,
-        forge_query::facade::ForgeQueryDeclarationEntryOrchestrationTerminalError<
-            TopologyQueryDomain,
-            TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
-        >,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry::<
-        TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
-    >;
+        >;
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
-    ) -> forge_query::facade::ForgeQueryDeclarationEntryOrchestrationChecked<
-        TopologyQueryDomain,
-        TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry_checked::<
-        TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
-    >;
-    let _: for<'a> fn(
-        &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
-    ) -> forge_query::facade::ForgeQueryDeclarationEntryOrchestrationProof<
-        TopologyQueryDomain,
-        TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry_proof::<
-        TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
-    >;
-    let _: for<'a> fn(
-        &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
+        TopologyOperatorGroupedContributionInput<TopologySplitConnectedHalfEdgeSetToNewWireDeclaration>,
     ) -> Result<
-        forge_query::facade::ForgeQueryDeclarationEnvelope<
-            TopologyQueryDomain,
-            TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
-        >,
-        forge_query::facade::ForgeQueryDeclarationEntryOrchestrationTerminalError<
-            TopologyQueryDomain,
-            TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
-        >,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry::<
+        TopologyOperatorGroupedContributionComposition<TopologySplitConnectedHalfEdgeSetToNewWireDeclaration>,
+        TopologyOperatorGroupedContributionStop<TopologySplitConnectedHalfEdgeSetToNewWireDeclaration>,
+    > = <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::grouped_topology_operator_contributions_checked::<
+        TopologySplitConnectedHalfEdgeSetToNewWireDeclaration,
+    >;
+    let _: fn(
+        TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
+    ) -> TopologyOperatorGroupedInput<TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration> =
+        topology_grouped_operator_neighborhood::<TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration>;
+    let _: fn(
+        TopologyOperatorGroupedInput<TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration>,
+        ForgeQuerySupportContributionAuthoring,
+    ) -> TopologyOperatorGroupedContributionInput<TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration> =
+        |input, contribution| input.with_shared_support_contribution(contribution);
+    let _: for<'a> fn(
+        &'a TopologyCurrentHeadConfiguredDomainHandle,
+        TopologyOperatorGroupedInput<TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration>,
+    ) -> Result<
+        TopologyOperatorGroupedDeclaration<TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration>,
+        TopologyOperatorGroupedDeclarationStop,
+    > = <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::declare_topology_grouped_operator::<
         TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
     >;
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
-    ) -> forge_query::facade::ForgeQueryDeclarationEntryOrchestrationChecked<
-        TopologyQueryDomain,
-        TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry_checked::<
-        TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
-    >;
+        TopologyOperatorGroupedDeclaration<TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration>,
+    ) -> TopologyOperatorGroupedOutcome<TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration> =
+        <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::orchestrate_topology_grouped_operator_outcome::<
+            TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
+        >;
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
-    ) -> forge_query::facade::ForgeQueryDeclarationEntryOrchestrationProof<
-        TopologyQueryDomain,
-        TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry_proof::<
+        TopologyOperatorGroupedContributionInput<TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration>,
+    ) -> Result<
+        TopologyOperatorGroupedContributionComposition<TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration>,
+        TopologyOperatorGroupedContributionStop<TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration>,
+    > = <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::grouped_topology_operator_contributions_checked::<
         TopologySplitSingleFaceFromTwoFaceShellToNewShellDeclaration,
     >;
 }

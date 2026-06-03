@@ -16,7 +16,7 @@ pub(in crate::certification::topology_operator_closeout) fn build_family_coverag
 ) -> Vec<MilestoneThreeHostileFamilyCoverageRow> {
     let mut rows = BTreeMap::<TopologyMutationFamily, Vec<MilestoneThreeHostileScenario>>::new();
     for report in reports {
-        for family in &report.mutation_families {
+        for family in report.mutation_families() {
             rows.entry(*family).or_default().push(report.scenario);
         }
     }
@@ -69,7 +69,7 @@ pub(in crate::certification::topology_operator_closeout) fn build_naming_distrib
     let mut rows =
         BTreeMap::<TopologyMutationNamingOutcome, Vec<MilestoneThreeHostileScenario>>::new();
     for report in reports {
-        rows.entry(report.continuity_outcome_class)
+        rows.entry(report.continuity_outcome_class())
             .or_default()
             .push(report.scenario);
     }

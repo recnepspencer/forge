@@ -1,5 +1,5 @@
-#[path = "phase_chain/admission.rs"]
-mod admission;
+#[path = "phase_chain/admitted_scaffold/mod.rs"]
+mod admitted_scaffold;
 #[path = "result_surface/artifact.rs"]
 mod artifact;
 mod authoring;
@@ -12,8 +12,8 @@ mod continuity_replay;
 #[path = "runtime_proof/diagnostics.rs"]
 mod diagnostics;
 mod digest;
-#[path = "phase_chain/execution.rs"]
-mod execution;
+#[path = "result_surface/evidence.rs"]
+mod evidence;
 #[path = "runtime_proof/family_coverage.rs"]
 mod family_coverage;
 #[path = "phase_chain/intent.rs"]
@@ -28,8 +28,6 @@ mod motion_replay;
 mod outcome;
 #[path = "runtime_proof/parity.rs"]
 mod parity;
-#[path = "phase_chain/phase_report.rs"]
-mod phase_report;
 #[path = "runtime_proof/preview_branch_runtime.rs"]
 mod preview_branch_runtime;
 #[path = "runtime_proof/preview_replay.rs"]
@@ -50,25 +48,14 @@ mod request;
 mod result;
 #[path = "runtime_proof/runtime_basis.rs"]
 mod runtime_basis;
-#[path = "phase_chain/scaffold.rs"]
-mod scaffold;
-#[path = "phase_chain/scaffold_geometry.rs"]
-mod scaffold_geometry;
-#[path = "phase_chain/admitted_scaffold.rs"]
-mod scaffold_realization;
 #[path = "phase_chain/specs.rs"]
 mod specs;
-#[path = "phase_chain/topology_counts.rs"]
-mod topology_counts;
 
-pub use admission::AdmittedPrimitiveConstructionIntent;
-pub use artifact::{
-    build_canonical_primitive_construction_artifact, CanonicalPrimitiveConstructionArtifact,
-    PrimitiveConstructionArtifactError,
-};
+pub use artifact::CanonicalPrimitiveConstructionArtifact;
 pub use authoring::{
     primitive_construction_authoring, PrimitiveConstructionAuthoringSession,
-    PrimitiveConstructionAuthorityChainReport, WorthKernelAuthorityError,
+    PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionQueryEntryError,
+    WorthKernelAuthorityError,
 };
 pub use certification::{
     prepare_primitive_chosen_intent_resolution_report,
@@ -96,6 +83,7 @@ pub use certification::{
     prepare_primitive_construction_move_motion_report_bundle_with_catalog,
     prepare_primitive_construction_move_witness_resolution_report,
     prepare_primitive_construction_move_witness_resolution_report_with_catalog,
+    prepare_primitive_construction_phase_five_boundary_closeout_report,
     prepare_primitive_construction_phase_five_six_closeout_report,
     prepare_primitive_construction_points_toward_motion_report_bundle,
     prepare_primitive_construction_points_toward_motion_report_bundle_with_catalog,
@@ -197,7 +185,11 @@ pub use certification::{
     PrimitiveConstructionMotionWitnessResolutionKind,
     PrimitiveConstructionMotionWitnessResolutionReport,
     PrimitiveConstructionMotionWitnessResolutionStatus,
-    PrimitiveConstructionObservedIntentRelation, PrimitiveConstructionPhaseFiveSixCloseoutReport,
+    PrimitiveConstructionObservedIntentRelation,
+    PrimitiveConstructionPhaseFiveBoundaryCloseoutKind,
+    PrimitiveConstructionPhaseFiveBoundaryCloseoutReport,
+    PrimitiveConstructionPhaseFiveBoundaryCloseoutRow,
+    PrimitiveConstructionPhaseFiveSixCloseoutReport,
     PrimitiveConstructionPhaseFiveSixCloseoutReportError,
     PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure,
     PrimitiveConstructionPhaseFiveSixCloseoutVerificationMismatch,
@@ -254,7 +246,6 @@ pub use diagnostics::{
     PrimitiveConstructionBlockingBoundary, PrimitiveConstructionRejectionLocalityReport,
     PrimitiveConstructionRejectionLocalityRow,
 };
-pub use execution::{PreparedPrimitiveConstructionExecution, PrimitiveConstructionExecutionError};
 pub use family_coverage::{
     primitive_construction_family_coverage_report, PrimitiveConstructionFamilyCoverageReport,
     PrimitiveConstructionFamilyCoverageRow, PrimitiveConstructionFamilyCoverageStatus,
@@ -289,9 +280,9 @@ pub use motion_replay::{
     PrimitiveConstructionMotionReplayParityReport,
 };
 pub use outcome::{
-    prepare_primitive_construction_outcome, PrimitiveConstructionAcceptedOutcome,
-    PrimitiveConstructionPreparedOutcome, PrimitiveConstructionRejectedOutcome,
-    PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
+    PrimitiveConstructionAcceptedOutcome, PrimitiveConstructionPreparedOutcome,
+    PrimitiveConstructionRejectedOutcome, PrimitiveConstructionRejectionClass,
+    PrimitiveConstructionRejectionLocality,
 };
 pub use parity::{
     prepare_primitive_construction_branch_local_parity_report,
@@ -391,16 +382,12 @@ pub use query::{
 pub use request::{
     PrimitiveConstructionFamily, PrimitiveConstructionPhaseError, PrimitiveConstructionRequest,
 };
-pub use result::{
-    prepare_primitive_construction_result, PreparedPrimitiveConstructionResult,
-    PrimitiveConstructionResultError,
-};
+pub use result::{PreparedPrimitiveConstructionResult, PrimitiveConstructionResultError};
 pub use runtime_basis::{
     prepare_primitive_construction_branch_preview_runtime_report,
     PrimitiveConstructionBranchPreviewRuntimeReport, PrimitiveConstructionRuntimeBasisError,
     PrimitiveConstructionRuntimeBasisLaneReport,
 };
-pub use scaffold::{lower_scaffold_to_topology, PrimitiveConstructionScaffold};
 pub use specs::{
     OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
     WireBodySpec,

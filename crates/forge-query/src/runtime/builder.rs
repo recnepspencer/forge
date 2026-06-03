@@ -167,6 +167,14 @@ impl ForgeQueryRuntimeBuilder {
         self
     }
 
+    pub fn declaration_initialization(
+        mut self,
+        adapter: impl ForgeQueryRuntimeDeclarationInitializationAdapter + 'static,
+    ) -> Self {
+        self.backend_parts = self.backend_parts.declaration_initialization(adapter);
+        self
+    }
+
     pub fn intent_authority(
         mut self,
         adapter: impl ForgeQueryIntentAuthorityAdapter + 'static,

@@ -155,7 +155,7 @@ fn direct_scenario_labels(
     report
         .scenario_reports
         .iter()
-        .filter(|scenario| scenario.mutation_families.contains(&family))
+        .filter(|scenario| scenario.mutation_families().contains(&family))
         .map(|scenario| scenario.scenario.as_str().to_string())
         .collect()
 }
@@ -180,7 +180,7 @@ fn replay_evidence_labels(
         .scenario_reports
         .iter()
         .filter(|scenario| {
-            scenario.mutation_families.contains(&family)
+            scenario.mutation_families().contains(&family)
                 && scenario.mutation_replay_parity_report.replay_checked
         })
         .map(|scenario| format!("scenario_replay={}", scenario.scenario.as_str()))
@@ -216,7 +216,7 @@ fn accepted_execution_evidence_count(
         .scenario_reports
         .iter()
         .filter(|scenario| {
-            scenario.mutation_families.contains(&family)
+            scenario.mutation_families().contains(&family)
                 && scenario.outcome_class == MilestoneThreeHostileOutcomeClass::Accepted
         })
         .count()
@@ -230,7 +230,7 @@ fn accepted_execution_evidence_labels(
         .scenario_reports
         .iter()
         .filter(|scenario| {
-            scenario.mutation_families.contains(&family)
+            scenario.mutation_families().contains(&family)
                 && scenario.outcome_class == MilestoneThreeHostileOutcomeClass::Accepted
         })
         .map(|scenario| format!("accepted_scenario={}", scenario.scenario.as_str()))
@@ -303,7 +303,7 @@ fn derived_breadth_evidence_count(
     let scenario_count = report
         .scenario_reports
         .iter()
-        .filter(|scenario| scenario.mutation_families.contains(&family))
+        .filter(|scenario| scenario.mutation_families().contains(&family))
         .filter(|scenario| {
             report
                 .mutation_fallout_breadth_rows
@@ -334,7 +334,7 @@ fn rejected_execution_evidence_labels(
         .scenario_reports
         .iter()
         .filter(|scenario| {
-            scenario.mutation_families.contains(&family)
+            scenario.mutation_families().contains(&family)
                 && scenario.outcome_class == MilestoneThreeHostileOutcomeClass::Rejected
         })
         .map(|scenario| format!("rejected_scenario={}", scenario.scenario.as_str()))

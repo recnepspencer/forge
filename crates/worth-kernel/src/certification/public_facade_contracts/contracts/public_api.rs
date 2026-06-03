@@ -13,6 +13,7 @@ mod public_api_motion_dx_surface;
 mod public_api_motion_policy;
 mod public_api_motion_query;
 mod public_api_motion_runtime;
+mod public_api_phase_five_boundary_closeout;
 mod public_api_phase_five_six_closeout;
 mod public_api_policy_pressure;
 mod public_api_policy_profile;

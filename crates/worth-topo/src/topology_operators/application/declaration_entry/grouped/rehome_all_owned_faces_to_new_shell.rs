@@ -16,7 +16,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         bindings: &TopologyQueryBindingIndex,
         mode: TopologyMutationApplicationMode,
     ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
-        orchestrate_topology_declaration_entry(
+        let retained_handoff = orchestrate_topology_declaration_entry(
             TopologyMutationFamily::AttachShellOrWireMembership,
             declaration.clone(),
         )?;
@@ -28,6 +28,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         let receipt = self.compose_shell_rehome_program(program, &sequence, bindings)?;
         self.finish_composed_membership_execution(
             mode,
+            retained_handoff,
             TopologyRehomeAllOwnedFacesToNewShellDeclaration::SEMANTIC_FAMILY_KEY,
             &sequence,
             receipt,

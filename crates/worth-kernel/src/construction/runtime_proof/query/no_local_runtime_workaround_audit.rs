@@ -170,24 +170,24 @@ const AUDITED_FILES: [(&str, &str); 27] = [
         )),
     ),
     (
-        "worth-topo.lowering",
+        "worth-topo.construction-boundary-mod",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../worth-topo/src/construction/lowering.rs"
+            "/../worth-topo/src/construction/mod.rs"
         )),
     ),
     (
-        "worth-topo.execution",
+        "worth-topo.query-native-boundary",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../worth-topo/src/construction/execution.rs"
+            "/../worth-topo/src/construction/query_native_boundary.rs"
         )),
     ),
     (
-        "worth-topo.certification",
+        "worth-topo.boundary-tests",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../worth-topo/src/construction/certification.rs"
+            "/../worth-topo/src/construction/boundary_tests.rs"
         )),
     ),
 ];
@@ -249,6 +249,49 @@ pub fn prepare_primitive_construction_query_no_local_runtime_workaround_audit(
 mod tests {
     use super::prepare_primitive_construction_query_no_local_runtime_workaround_audit;
 
+    const AUDITED_QUERY_READY_ENTRY_FILES: [(&str, &str); 5] = [
+        (
+            "worth-kernel.runtime-basis",
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/construction/runtime_proof/runtime_basis.rs"
+            )),
+        ),
+        (
+            "worth-kernel.query-graph-composition-parity",
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/construction/runtime_proof/query/graph_composition_parity.rs"
+            )),
+        ),
+        (
+            "worth-kernel.query-inspection-parity",
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/construction/runtime_proof/query/inspection_parity.rs"
+            )),
+        ),
+        (
+            "worth-kernel.query-projection-consumption-receipt",
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/construction/runtime_proof/query/projection_consumption_receipt.rs"
+            )),
+        ),
+        (
+            "worth-kernel.public-api-construction-contract",
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/certification/public_facade_contracts/contracts/public_api_construction.rs"
+            )),
+        ),
+    ];
+
+    const FORBIDDEN_DIRECT_LOCAL_PREPARATION_PATTERNS: [&str; 2] = [
+        "prepare_primitive_construction_result(",
+        "prepare_primitive_construction_outcome(",
+    ];
+
     #[test]
     fn query_no_local_runtime_workaround_audit_proves_the_current_path_avoids_local_bypasses() {
         let report = prepare_primitive_construction_query_no_local_runtime_workaround_audit();
@@ -256,5 +299,24 @@ mod tests {
         assert_eq!(report.audited_file_count(), 27);
         assert_eq!(report.violation_count(), 0);
         assert!(!report.report_digest().is_empty());
+    }
+
+    #[test]
+    fn query_ready_runtime_surfaces_enter_through_query_authoring_session() {
+        let violations = AUDITED_QUERY_READY_ENTRY_FILES
+            .iter()
+            .flat_map(|(label, source)| {
+                FORBIDDEN_DIRECT_LOCAL_PREPARATION_PATTERNS
+                    .iter()
+                    .filter(move |pattern| source.contains(**pattern))
+                    .map(move |pattern| format!("{label}:{pattern}"))
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            violations,
+            Vec::<String>::new(),
+            "workspace-backed query/runtime construction surfaces still call direct local preparation helpers instead of crossing the query authoring-session entry lane: {violations:?}"
+        );
     }
 }

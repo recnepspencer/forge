@@ -1,4 +1,4 @@
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::support::{
     shell_split_declaration_for_fixture, shell_split_fixture, wire_split_declaration_for_fixture,
@@ -6,13 +6,14 @@ use super::support::{
 };
 use crate::certification::support::declaration_runtime::current_head_unsupported_declaration_families;
 use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
 fn current_head_runtime_rejects_disconnected_wire_split_declaration_before_any_declaration_entry_execution(
 ) {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.denied-split-wire.runtime",
         &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
@@ -43,7 +44,7 @@ fn current_head_runtime_rejects_disconnected_wire_split_declaration_before_any_d
 fn current_head_runtime_rejects_three_face_shell_split_declaration_before_any_declaration_entry_execution(
 ) {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.denied-split-shell.runtime",
         &MilestoneOnePrimitiveCase::SheetPatch { face_count: 3 },

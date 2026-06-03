@@ -1,5 +1,8 @@
 use super::*;
-use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent, TopologyMutation};
+use crate::certification::support::commit_certification_input::TopologyCommitCertificationInput;
+use crate::facade::TopologyBranchAuthoringBoundary;
+use crate::test_support::schema_topology_authoring_boundary::empty_branch_local_commit_input_through_schema_execution;
+use schema::facade::platform::authority::MutationOrigin;
 
 #[test]
 fn public_facade_exports_closeout_field_types() {
@@ -35,30 +38,34 @@ fn public_facade_exports_closeout_field_types() {
 }
 
 #[test]
-fn verified_topology_commit_is_the_canonical_certification_input() {
+fn internal_commit_input_is_the_canonical_certification_lane() {
     let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();
 
     let seeded = seeded_bootstrap(&mut runtime, "cert-verified-commit").expect("seed  topology");
-    let verified = crate::committed_artifact::TopologyCommittedArtifact::empty_on_main(
-        seeded.snapshot,
-        MutationOrigin::LocalEdit,
-    );
+    let commit_input =
+        TopologyCommitCertificationInput::empty_on_main(seeded.snapshot, MutationOrigin::LocalEdit);
 
-    let report = certify_verified_topology_commit_traced(&mut runtime, &verified)
-        .expect("verified commit certification should succeed")
+    let report = certify_topology_commit_input_traced(&mut runtime, &commit_input)
+        .expect("commit-input certification should succeed")
         .into_primary_result();
 
     assert!(report.named_truth_validated);
     assert!(report.topology_validated);
     assert_eq!(
         report.read_artifact.snapshot,
-        verified.persisted_truth().snapshot
+        commit_input.snapshot().clone()
     );
     assert_eq!(
         report.branch_local_topology_report.mutation_origin,
         MutationOrigin::LocalEdit
+    );
+    assert_eq!(
+        report
+            .branch_local_topology_report
+            .branch_authoring_boundary,
+        None
     );
     assert_eq!(report.branch_local_topology_report.branch_id.0, "main");
     assert!(
@@ -75,40 +82,37 @@ fn verified_topology_commit_is_the_canonical_certification_input() {
         report.milestone_1_replay_parity_report.parity_status,
         ReplayParityStatus::NotChecked
     );
-    assert!(verified.commits().is_empty());
+    assert!(commit_input.commits().is_empty());
 }
 
 #[test]
-fn branch_local_verified_commit_certifies_against_the_feature_branch_truth_basis() {
+fn branch_local_commit_input_certifies_against_the_feature_branch_truth_basis() {
     let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();
 
     let seeded = seeded_bootstrap(&mut runtime, "cert-branch-local").expect("seed  topology");
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("feature".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("feature branch");
-
-    let verified = crate::committed_artifact::TopologyCommittedArtifact::empty_from_intent(
+    let commit_input = empty_branch_local_commit_input_through_schema_execution(
+        &mut runtime,
         seeded.snapshot,
-        BranchId("feature".to_string()),
-        RawTopologyIntent::new(
-            Vec::<TopologyMutation>::new(),
-            MutationOrigin::BranchLocalApplication,
-        ),
-    );
+        "feature",
+        MutationOrigin::BranchLocalApplication,
+    )
+    .expect("feature branch");
 
-    let report = certify_verified_topology_commit_traced(&mut runtime, &verified)
-        .expect("branch-local certification should succeed")
+    let report = certify_topology_commit_input_traced(&mut runtime, &commit_input)
+        .expect("branch-local commit-input certification should succeed")
         .into_primary_result();
 
     assert!(report.named_truth_validated);
     assert!(report.topology_validated);
     assert!(report.branch_local_topology_report.branch_local);
+    assert_eq!(
+        report
+            .branch_local_topology_report
+            .branch_authoring_boundary,
+        Some(TopologyBranchAuthoringBoundary::SchemaTopologyAuthoring)
+    );
     assert_eq!(report.branch_local_topology_report.branch_id.0, "feature");
     assert_eq!(
         report.milestone_1_replay_parity_report.branch_id.0,
@@ -128,24 +132,24 @@ fn branch_local_verified_commit_certifies_against_the_feature_branch_truth_basis
         report.milestone_1_replay_parity_report.parity_status,
         ReplayParityStatus::NotChecked
     );
-    assert!(verified.commits().is_empty());
+    assert!(commit_input.commits().is_empty());
 }
 
 #[test]
-fn verified_commit_certification_runs_relational_replay_when_commit_exists() {
+fn commit_input_certification_runs_relational_replay_when_commit_exists() {
     let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();
 
-    let verified = verified_primitive(
+    let commit_input = committed_primitive_input(
         &mut runtime,
         "replay-backed-certification",
         &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
     )
-    .expect("verified admitted primitive commit");
+    .expect("admitted primitive commit input");
 
-    let report = certify_verified_topology_commit_traced(&mut runtime, &verified)
-        .expect("verified commit certification should succeed")
+    let report = certify_topology_commit_input_traced(&mut runtime, &commit_input)
+        .expect("commit-input certification should succeed")
         .into_primary_result();
 
     assert!(

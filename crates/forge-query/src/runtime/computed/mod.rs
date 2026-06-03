@@ -10,10 +10,12 @@ use crate::program::ForgeQueryDerivedView;
 
 use super::ForgeQueryAuthorityLane;
 
+mod refresh_context;
 mod routing;
 mod state;
 mod surface;
 
+pub use refresh_context::{ForgeQueryRetainedRefreshContext, ForgeQueryRetainedRefreshOrigin};
 pub(in crate::runtime) use routing::{
     admit_derived_view_declaration, insert_derived_runtime,
     retained_live_view_names_for_candidates, route_derived_view_patches,
@@ -25,6 +27,5 @@ pub(in crate::runtime) use state::{
 pub use surface::{
     ForgeQueryComputedInspectionEvidence, ForgeQueryDerivedPatch, ForgeQueryDerivedPatchFamily,
     ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
-    ForgeQueryDerivedViewMaterialization, ForgeQueryRetainedMutationContext,
-    ForgeQueryRetainedUpstreamInputs,
+    ForgeQueryDerivedViewMaterialization, ForgeQueryRetainedUpstreamInputs,
 };

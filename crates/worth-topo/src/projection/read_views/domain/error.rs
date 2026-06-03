@@ -1,4 +1,4 @@
-use crate::projection::diagnostic_surfaces::read_proof::report::TopologyReadRequestFamily;
+use crate::projection::read_views::domain::read_proof::report::TopologyReadRequestFamily;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TopologyReadErrorKind {

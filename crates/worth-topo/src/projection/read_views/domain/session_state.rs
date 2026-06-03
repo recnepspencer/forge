@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 
 use super::error::TopologyReadError;
-use crate::projection::diagnostic_surfaces::read_proof::fallback::TopologyReadFallbackPosture;
-use crate::projection::diagnostic_surfaces::read_proof::ledger::TopologyReadProofLedger;
-use crate::projection::diagnostic_surfaces::read_proof::report::{
+use crate::projection::read_views::domain::read_proof::fallback::TopologyReadFallbackPosture;
+use crate::projection::read_views::domain::read_proof::ledger::TopologyReadProofLedger;
+use crate::projection::read_views::domain::read_proof::report::{
     TopologyReadAggregateReport, TopologyReadRequestFamily, TopologyReadRequestReport,
 };
 

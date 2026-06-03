@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde_json::Value;
 
 use super::super::hostile_categories::milestone_three_expected_primitive_family_labels;
@@ -21,6 +21,7 @@ use crate::certification::support::read_proof_harness::TopologyReadProofHarness;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::TopologyMutationDigest;
 
@@ -202,7 +203,7 @@ where
 {
     let primitive_family = primitive_family_name(&primitive).to_string();
     let mut runtime = runtime_factory();
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         &format!("{stem}.primitive_family_closure.{primitive_family}"),
         &primitive,
@@ -222,7 +223,7 @@ where
         &workspace.read::<Value>(surfaces.relations()),
         TopologyRelationKind::HalfEdgeNext,
     )?;
-    let topology_read = TopologyReadProofHarness::new();
+    let topology_read = TopologyReadProofHarness::current_head();
     let neighborhood = topology_read
         .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, cycle_depth)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
@@ -239,13 +240,13 @@ where
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let validation = derived_validation_report_from_materialized(&execution.materialized)?;
+    let validation = derived_validation_report_from_materialized(&execution.materialized())?;
     Ok(PrimitiveClosureExecution {
         primitive_family,
         mutation_families,
         topology_mutation_digest,
         final_materialized_topology_digest: digest_materialized_topology_view(
-            &execution.materialized,
+            &execution.materialized(),
         ),
         derived_validation_row_count: validation.rows.len(),
     })

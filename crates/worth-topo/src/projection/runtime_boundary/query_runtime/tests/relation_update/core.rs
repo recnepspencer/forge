@@ -1,12 +1,13 @@
 use forge_query::facade::{ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthAssertionMode};
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::super::query_runtime_support::{query_entity_id_from_row, query_relation_id_from_row};
 use crate::certification::support::declaration_runtime::execute_current_head_topology_declaration;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::{
     LoopEndpointKind, TopologyMutationFamily, TopologyRewireLoopEndpointDeclaration,
 };
@@ -15,7 +16,7 @@ use crate::validation::reference_integrity::build_milestone_one_runtime;
 #[test]
 fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_runtime() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-update-rewire-endpoint",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
@@ -110,7 +111,7 @@ fn current_head_runtime_executes_identity_preserving_relation_updates_on_real_ru
 #[test]
 fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_mutation_application() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-mutation-rewire-endpoint",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
@@ -176,9 +177,10 @@ fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_mutation_
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .expect("endpoint rewire should execute through declaration entry");
+    let synopsis = execution.accepted_mutation_projection();
 
     assert_eq!(
-        execution.families,
+        synopsis.mutation_families(),
         vec![TopologyMutationFamily::RewireLoopEndpoint]
     );
     assert_eq!(
@@ -188,14 +190,14 @@ fn current_head_runtime_executes_rewire_loop_endpoint_through_topology_mutation_
         1
     );
     assert_eq!(
-        execution.inspection.component_operations()[0]
+        execution.inspection().component_operations()[0]
             .existing_truth_assertion_evidence()
             .expect("rewire receipt should retain backend verification evidence")
             .mode(),
         ForgeQueryExistingTruthAssertionMode::BackendVerifiedAssertion
     );
     let half_edge = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()

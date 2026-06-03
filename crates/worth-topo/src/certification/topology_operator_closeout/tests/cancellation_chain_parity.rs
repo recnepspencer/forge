@@ -1,7 +1,7 @@
 use crate::facade::{
     certify_milestone_three_cancellation_chain_parity, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileScenario, ReplayParityStatus, TopologyMutationFamily,
-    TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
+    MilestoneThreeHostileScenario, ReplayParityStatus, TopologyMutationDerivedFallbackPolicy,
+    TopologyMutationFamily, TopologyMutationNamingOutcome, TopologyMutationRejectionClass,
 };
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
@@ -24,7 +24,7 @@ fn milestone_three_cancellation_chain_parity_replays_and_returns_to_baseline() {
         MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 }
     );
     assert_eq!(
-        report.mutation_families,
+        report.mutation_families(),
         vec![
             TopologyMutationFamily::CreateTopologyEntity,
             TopologyMutationFamily::AttachBoundaryMembership,
@@ -39,14 +39,21 @@ fn milestone_three_cancellation_chain_parity_replays_and_returns_to_baseline() {
     );
     assert!(report.rejection_class.is_none());
     assert!(report.rejected_mutation_scope_report.is_none());
-    assert_eq!(report.topology_mutation_digest.mutation_record_count, 4);
-    assert_eq!(report.naming_mutation_continuity_matrix.rows.len(), 4);
     assert_eq!(
-        report.continuity_outcome_class,
+        report.derived_fallback_policy(),
+        Some(TopologyMutationDerivedFallbackPolicy::AllowExplicitFallback)
+    );
+    assert!(report
+        .fallback_explanation_detail()
+        .is_some_and(|detail| detail.contains("fallback")));
+    assert_eq!(report.topology_mutation_digest().mutation_record_count, 4);
+    assert_eq!(report.naming_mutation_continuity_matrix().rows.len(), 4);
+    assert_eq!(
+        report.continuity_outcome_class(),
         TopologyMutationNamingOutcome::Rejected
     );
     assert_eq!(
-        report.continuity_rejection_class,
+        report.continuity_rejection_class(),
         Some(TopologyMutationRejectionClass::NamingContinuityRejected)
     );
     assert!(report.mutation_replay_parity_report.replay_checked);
@@ -56,6 +63,17 @@ fn milestone_three_cancellation_chain_parity_replays_and_returns_to_baseline() {
     );
     assert_eq!(report.mutation_replay_parity_report.mismatch_count, 0);
     assert_eq!(report.mutation_replay_parity_report.step_rows.len(), 3);
+    assert!(report
+        .mutation_replay_parity_report
+        .step_rows
+        .iter()
+        .all(|row| {
+            row.derived_fallback_policy
+                == Some(TopologyMutationDerivedFallbackPolicy::AllowExplicitFallback)
+                && row
+                    .fallback_explanation_detail()
+                    .is_some_and(|detail| detail.contains("fallback"))
+        }));
     assert_eq!(
         report.mutation_replay_parity_report.replay_step_rows.len(),
         3
@@ -97,12 +115,12 @@ fn milestone_three_cancellation_chain_report_is_deterministic_for_same_seeded_hi
 
     assert_eq!(left.outcome_class, right.outcome_class);
     assert_eq!(
-        left.topology_mutation_digest,
-        right.topology_mutation_digest
+        left.topology_mutation_digest(),
+        right.topology_mutation_digest()
     );
     assert_eq!(
-        left.naming_mutation_continuity_matrix,
-        right.naming_mutation_continuity_matrix
+        left.naming_mutation_continuity_matrix(),
+        right.naming_mutation_continuity_matrix()
     );
     assert_eq!(
         left.mutation_replay_parity_report,

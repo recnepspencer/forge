@@ -47,7 +47,7 @@ fn kernel_public_facade_exports_corpus_replay_siege_certification_artifact() {
     assert_eq!(report.rejected_count(), 14);
     assert_eq!(report.authoring_order_rows().len(), 4);
     assert!(report.authoring_order_parity_verified());
-    assert_eq!(report.rejection_witness_rows().len(), 6);
+    assert_eq!(report.rejection_witness_rows().len(), 5);
     assert!(rejected_wire.birth_digest().is_none());
     assert_eq!(rejected_wire.construction_breadth(), 0);
     assert_eq!(

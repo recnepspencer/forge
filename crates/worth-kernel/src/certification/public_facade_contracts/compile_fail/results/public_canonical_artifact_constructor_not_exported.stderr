@@ -7,10 +7,10 @@ error[E0624]: associated function `new` is private
  ::: src/construction/result_surface/artifact.rs
   |
   | /     fn new(
-  | |         request: &PrimitiveConstructionRequest,
-  | |         intent: &AdmittedPrimitiveConstructionIntent,
-  | |         scaffold: &PrimitiveConstructionScaffold,
-... |
-  | |         certification: &TopologyConstructionCertificationPlan,
+  | |         family: PrimitiveConstructionFamily,
+  | |         scaffold_digest: &str,
+  | |         realization_report: &PrimitiveRealizationReport,
+  | |         topology_query_admitted_handoff: &TopologyPrimitiveConstructionQueryAdmittedHandoff,
+  | |         admitted_handoff_digest: &str,
   | |     ) -> Self {
   | |_____________- private associated function defined here

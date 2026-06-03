@@ -1,6 +1,8 @@
 use super::traced_reports::{traced_milestone_two_envelope, traced_milestone_two_failure};
 use super::*;
-use crate::committed_artifact::TopologyCommittedArtifact;
+#[cfg(test)]
+use crate::certification::support::commit_certification_input::TopologyCommitCertificationInput;
+use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
 
 pub(crate) fn certify_milestone_two_read_basis_runtime_traced_impl(
     runtime: &mut RelationalRuntime,
@@ -17,22 +19,22 @@ pub(crate) fn certify_milestone_two_read_basis_runtime_traced_impl(
     ))
 }
 
-pub(crate) fn certify_milestone_two_verified_commit_traced_impl(
+#[cfg(test)]
+pub(crate) fn certify_milestone_two_commit_input_traced_impl(
     runtime: &mut RelationalRuntime,
-    verified: &TopologyCommittedArtifact,
+    commit_input: &TopologyCommitCertificationInput,
 ) -> Result<TracedMilestoneTwoDerivedReadReport, BoundaryFailure<MilestoneOneCertificationError>> {
     let mut certified =
-        certify_milestone_two_query_read_basis(runtime, verified.read_basis().clone()).map_err(
-            |error| {
+        certify_milestone_two_query_read_basis(runtime, commit_input.read_basis().clone())
+            .map_err(|error| {
                 traced_milestone_two_failure(
                     error,
-                    &verified.read_basis(),
-                    Some(verified.commits()),
-                    verified.commits().len(),
+                    commit_input.read_basis(),
+                    Some(commit_input.commits()),
+                    commit_input.commits().len(),
                 )
-            },
-        )?;
-    if let Some(replay_commit_id) = verified
+            })?;
+    if let Some(replay_commit_id) = commit_input
         .commits()
         .last()
         .map(|commit| commit.outcome.commit.commit_id.clone())
@@ -40,7 +42,7 @@ pub(crate) fn certify_milestone_two_verified_commit_traced_impl(
         let replay = runtime
             .replay_authority()
             .replay_commit(forge_relational::facade::replay::RelationalReplayRequest {
-                branch_id: verified.branch_id().clone(),
+                branch_id: commit_input.branch_id().clone(),
                 commit_id: replay_commit_id,
                 execution_mode:
                     forge_relational::facade::replay::ReplayExecutionMode::SerialDeterministic,
@@ -98,9 +100,9 @@ pub(crate) fn certify_milestone_two_verified_commit_traced_impl(
     Ok(traced_milestone_two_envelope(
         certified.report,
         certified.query_evidence,
-        &verified.read_basis(),
-        Some(verified.commits()),
-        verified.commits().len(),
+        commit_input.read_basis(),
+        Some(commit_input.commits()),
+        commit_input.commits().len(),
     ))
 }
 
@@ -114,47 +116,18 @@ fn certify_milestone_two_query_read_basis(
     runtime: &mut RelationalRuntime,
     read_basis: DerivedTopologyReadBasis,
 ) -> Result<MilestoneTwoQueryCertification, MilestoneOneCertificationError> {
-    let read_view = runtime
-        .read_truth()
-        .read_snapshot(read_basis.snapshot())
-        .ok_or_else(|| {
-            MilestoneOneCertificationError::ReadView(format!(
-                " certification could not open snapshot {:?}",
-                read_basis.snapshot()
-            ))
-        })?;
-    validate_named_topology_truth(&read_view)?;
-
-    let adapters =
-        TopologyRuntimeAdapters::snapshot_read_only(read_view, read_basis.snapshot().clone());
-    let mut workspace = topology_runtime(adapters, ".milestone-two.certification")
-        .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?;
-    let surfaces =
-        crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
-            &mut workspace,
-        )
-        .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?;
-    let validation_state = workspace
-        .state(surfaces.validation())
-        .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?;
-    ensure_query_surface_ready(".topology.validation", &validation_state)?;
-    let equivalence_state = workspace
-        .state(surfaces.equivalence_contract())
-        .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?;
-    ensure_query_surface_ready(".topology.equivalence_contract", &equivalence_state)?;
-    let validation_inspection = derived_query_inspection(
-        &mut workspace,
-        surfaces.validation(),
-        ".topology.validation",
+    let mut query_runtime = HistoricalReadBasisQueryRuntime::open(
+        runtime,
+        read_basis.clone(),
+        ".milestone-two.certification",
     )?;
-    let equivalence_inspection = derived_query_inspection(
-        &mut workspace,
-        surfaces.equivalence_contract(),
-        ".topology.equivalence_contract",
+    let surface_evidence = query_runtime.query_surface_evidence()?;
+    let snapshot = crate::certification::support::historical_query_snapshot::historical_derived_surface_snapshot_for_read_basis(
+        &mut query_runtime,
     )?;
-    let snapshot = surfaces.snapshot_for_read_basis(&mut workspace, &read_basis)?;
-    let read_artifact = build_topology_read_artifact(&read_basis, &snapshot.interpreted);
-    let certified_interpretation = certify_topology_view(read_basis.clone(), &snapshot.interpreted);
+    let read_artifact = build_topology_read_artifact(&read_basis, snapshot.interpreted());
+    let certified_interpretation =
+        certify_topology_view(read_basis.clone(), snapshot.interpreted());
     let replay_basis = read_basis.replay_of();
     let replay_equivalence_contract = build_derived_equivalence_contract_report(
         replay_basis.snapshot().snapshot_id.0,
@@ -170,15 +143,15 @@ fn certify_milestone_two_query_read_basis(
             .authority
             .truth_basis_identity
             .touched_aspect_count,
-        crate::projection::diagnostic_surfaces::triggered_invalidation_targets(&replay_basis),
+        crate::projection::diagnostic_surfaces::derived_read_diagnostics::triggered_invalidation_targets(&replay_basis),
         replay_basis.precision_fallbacks.len(),
         replay_basis.precision_budget_fallbacks.len(),
-        &snapshot.materialized,
-        &snapshot.interpreted,
-        &snapshot.validation,
+        snapshot.materialized(),
+        snapshot.interpreted(),
+        snapshot.validation(),
     );
     let replay_comparison = compare_derived_equivalence_contracts(
-        &snapshot.equivalence_contract,
+        snapshot.equivalence_contract(),
         &replay_equivalence_contract,
     );
     let branch_local_report = crate::certification::support::reporting::BranchLocalTopologyReport {
@@ -187,6 +160,10 @@ fn certify_milestone_two_query_read_basis(
             read_basis.derivation_origin(),
             schema::facade::platform::authority::MutationOrigin::BranchLocalApplication
         ),
+        branch_authoring_boundary:
+            crate::certification::support::reporting::TopologyBranchAuthoringBoundary::from_mutation_origin(
+                read_basis.derivation_origin(),
+            ),
         branch_id: read_basis.branch_id().clone(),
         snapshot_id: read_basis.snapshot().snapshot_id.0,
         touched_aspect_count: read_basis.touched_aspects().len(),
@@ -199,7 +176,7 @@ fn certify_milestone_two_query_read_basis(
         ),
         branch_id: read_basis.branch_id().clone(),
         parity_status: ReplayParityStatus::NotChecked,
-        equivalence_contract: snapshot.equivalence_contract.clone(),
+        equivalence_contract: snapshot.equivalence_contract().clone(),
         replay_equivalence_contract: Some(replay_equivalence_contract),
         relational_replay_checked: false,
         relational_replay_verified: false,
@@ -220,35 +197,38 @@ fn certify_milestone_two_query_read_basis(
     };
     let report = MilestoneTwoDerivedReadReport {
         materialized_topology_digest: snapshot
-            .equivalence_contract
+            .equivalence_contract()
             .materialized_topology_digest
             .clone(),
         interpreted_topology_digest: snapshot
-            .equivalence_contract
+            .equivalence_contract()
             .interpreted_topology_digest
             .clone(),
         derived_validation_digest: snapshot
-            .equivalence_contract
+            .equivalence_contract()
             .derived_validation_digest
             .clone(),
-        derived_invalidation_report: snapshot.diagnostics.invalidation_report.clone(),
-        derived_rebuild_report: snapshot.diagnostics.rebuild_report.clone(),
-        derived_fallback_report: snapshot.diagnostics.fallback_report.clone(),
-        derived_equivalence_contract_report: snapshot.equivalence_contract.clone(),
+        derived_invalidation_report: snapshot.diagnostics().invalidation_report.clone(),
+        derived_rebuild_report: snapshot.diagnostics().rebuild_report.clone(),
+        derived_fallback_report: snapshot.diagnostics().fallback_report.clone(),
+        derived_equivalence_contract_report: snapshot.equivalence_contract().clone(),
         derived_branch_local_parity_report: branch_local_report,
         derived_replay_parity_report: replay_report,
         milestone_2_counter_report: MilestoneTwoCounters {
             derived_read_count: 1,
-            touched_aspect_count: snapshot.equivalence_contract.touched_aspect_count,
+            touched_aspect_count: snapshot.equivalence_contract().touched_aspect_count,
             triggered_invalidation_target_count: snapshot
-                .equivalence_contract
+                .equivalence_contract()
                 .triggered_invalidation_targets
                 .len(),
-            validation_row_count: snapshot.validation.rows.len(),
+            validation_row_count: snapshot.validation().rows.len(),
             whole_view_rebuild_count: usize::from(
-                snapshot.diagnostics.rebuild_report.whole_view_rebuild,
+                snapshot.diagnostics().rebuild_report.whole_view_rebuild,
             ),
-            explicit_fallback_count: snapshot.diagnostics.fallback_report.explicit_fallback_count,
+            explicit_fallback_count: snapshot
+                .diagnostics()
+                .fallback_report
+                .explicit_fallback_count,
             replay_checked_count: 0,
             branch_local_case_count: usize::from(matches!(
                 read_basis.derivation_origin(),
@@ -264,52 +244,20 @@ fn certify_milestone_two_query_read_basis(
             affected_live_view_count: 0,
             affected_derived_view_count: 0,
             considered_computed_view_count: 0,
-            validation_materialized_row_count: validation_inspection.materialized_row_count(),
-            equivalence_materialized_row_count: equivalence_inspection.materialized_row_count(),
-            validation_pending_refresh_fallback_count: validation_inspection
+            validation_materialized_row_count: surface_evidence
+                .validation_inspection()
+                .materialized_row_count(),
+            equivalence_materialized_row_count: surface_evidence
+                .equivalence_inspection()
+                .materialized_row_count(),
+            validation_pending_refresh_fallback_count: surface_evidence
+                .validation_inspection()
                 .pending_refresh_fallback_count(),
-            equivalence_pending_refresh_fallback_count: equivalence_inspection
+            equivalence_pending_refresh_fallback_count: surface_evidence
+                .equivalence_inspection()
                 .pending_refresh_fallback_count(),
             declared_aspect_operation_count: 0,
             mutation_metadata_key_count: 0,
         },
     })
-}
-
-fn ensure_query_surface_ready(
-    surface_name: &str,
-    state: &forge_query::facade::ForgeQueryRuntimeStateSnapshot,
-) -> Result<(), MilestoneOneCertificationError> {
-    if state.kind() != ForgeQueryRuntimeStateKind::Ready {
-        return Err(MilestoneOneCertificationError::Query(format!(
-            "query certification surface `{surface_name}` is `{}` instead of `ready`: {}",
-            state.kind(),
-            state.explanation()
-        )));
-    }
-    Ok(())
-}
-
-fn derived_query_inspection<T>(
-    workspace: &mut forge_query::facade::ForgeQueryWorkspace,
-    view: &forge_query::facade::ForgeQueryDerivedViewHandle<T>,
-    expected_name: &str,
-) -> Result<ForgeQueryComputedInspectionEvidence, MilestoneOneCertificationError> {
-    match workspace
-        .inspect(view)
-        .map_err(|error| MilestoneOneCertificationError::Query(error.to_string()))?
-    {
-        ForgeQueryInspection::DerivedView(inspection) => {
-            if inspection.name() != expected_name {
-                return Err(MilestoneOneCertificationError::Query(format!(
-                    "query inspection returned derived surface `{}` while `{expected_name}` was expected",
-                    inspection.name()
-                )));
-            }
-            Ok(inspection)
-        }
-        other => Err(MilestoneOneCertificationError::Query(format!(
-            "query inspection for `{expected_name}` returned wrong artifact family: {other:?}"
-        ))),
-    }
 }

@@ -1,5 +1,5 @@
 use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::super::query_runtime_support::QueryRuntimeSupport;
 use super::successor_span_declaration::successor_span_relocation_declaration;
@@ -7,13 +7,14 @@ use crate::certification::support::declaration_runtime::execute_current_head_top
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::TopologyMutationFamily;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
 fn current_head_runtime_executes_four_half_edge_span_relocation_on_larger_loop() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         ".current-head.query-mutation-rewire-successor-four-span",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 7 },
@@ -47,9 +48,10 @@ fn current_head_runtime_executes_four_half_edge_span_relocation_on_larger_loop()
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .expect("four-halfedge span relocation should execute through declaration entry");
+    let synopsis = execution.accepted_mutation_projection();
 
-    assert!(execution
-        .families
+    assert!(synopsis
+        .mutation_families()
         .iter()
         .all(|family| *family == TopologyMutationFamily::RewireLoopSuccessor));
     assert_eq!(
@@ -59,7 +61,7 @@ fn current_head_runtime_executes_four_half_edge_span_relocation_on_larger_loop()
         6
     );
     assert!(execution
-        .inspection
+        .inspection()
         .component_operations()
         .iter()
         .all(|operation| {
@@ -73,7 +75,7 @@ fn current_head_runtime_executes_four_half_edge_span_relocation_on_larger_loop()
                     })
         }));
     let moved_end = execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()

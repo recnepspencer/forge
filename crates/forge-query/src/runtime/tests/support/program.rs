@@ -113,7 +113,7 @@ impl ForgeQueryDerivedViewMaintainer for RefreshCountMaintainer {
     fn refresh_from_upstreams(
         &mut self,
         view: &ForgeQueryDerivedView,
-        _mutation: &ForgeQueryRetainedMutationContext,
+        _refresh: &ForgeQueryRetainedRefreshContext,
         upstreams: &ForgeQueryRetainedUpstreamInputs,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> Option<ForgeQueryDerivedPatch> {

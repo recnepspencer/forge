@@ -1,7 +1,7 @@
 use self::relationship_proof::{admit_topology_read_relationship_proofs, runtime_basis_intent};
 use self::schema::topology_read_schema_view;
-use crate::projection::diagnostic_surfaces::read_proof::report::TopologyReadRequestFamily;
 use crate::projection::read_views::domain::error::TopologyReadError;
+use crate::projection::read_views::domain::read_proof::report::TopologyReadRequestFamily;
 use crate::projection::read_views::domain::request::{
     TopologyReadRequest, TopologyReadTraversalStep,
 };

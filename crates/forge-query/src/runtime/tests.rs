@@ -13,6 +13,7 @@ mod intent;
 mod intent_admission;
 #[allow(deprecated)]
 mod live;
+mod live_artifacts;
 #[allow(deprecated)]
 mod live_receipts;
 #[allow(deprecated)]

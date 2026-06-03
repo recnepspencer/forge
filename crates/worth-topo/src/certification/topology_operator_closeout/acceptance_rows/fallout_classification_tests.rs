@@ -1,7 +1,8 @@
 use crate::certification::topology_operator_closeout::report::{
     MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileScenario,
     MilestoneThreeHostileScenarioReport, MilestoneThreeMutationFalloutClass,
-    MilestoneThreeMutationReplayParityReport,
+    MilestoneThreeMutationReplayParityReport, MilestoneThreeScenarioMutationSemanticSummary,
+    MilestoneThreeScenarioMutationSynopsis,
 };
 use crate::certification::ReplayParityStatus;
 use crate::topology_operators::{
@@ -22,15 +23,20 @@ fn validation_rows_alone_do_not_imply_whole_view_fallback() {
         scenario: MilestoneThreeHostileScenario::CancellationChainParity,
         primitive_family: "SheetDisk(n)".to_string(),
         primitive: MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
-        mutation_families: Vec::new(),
+        declared_mutation_synopsis: MilestoneThreeScenarioMutationSynopsis {
+            mutation_families: Vec::new(),
+            topology_mutation_digest: empty_mutation_digest(),
+        },
+        semantic_summary: MilestoneThreeScenarioMutationSemanticSummary {
+            naming_mutation_continuity_matrix: empty_continuity_matrix(),
+            derived_fallback_policy: None,
+            continuity_outcome_class: TopologyMutationNamingOutcome::Preserved,
+            continuity_rejection_class: None,
+        },
         bowtie_adjacent_witness: None,
         ambiguous_local_rewire_witness: None,
         split_collapse_churn_witness: None,
         broken_radial_witness: None,
-        topology_mutation_digest: empty_mutation_digest(),
-        naming_mutation_continuity_matrix: empty_continuity_matrix(),
-        continuity_outcome_class: TopologyMutationNamingOutcome::Preserved,
-        continuity_rejection_class: None,
         outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
         rejection_class: None,
         rejected_mutation_scope_report: None,

@@ -154,7 +154,7 @@ pub(super) fn find_half_edge(
     half_edge_id: EntityId,
 ) -> &crate::facade::TopologyHalfEdge {
     execution
-        .materialized
+        .materialized()
         .topology()
         .half_edges
         .iter()

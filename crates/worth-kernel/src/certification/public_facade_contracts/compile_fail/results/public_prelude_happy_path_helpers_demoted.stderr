@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_kernel::facade::prelude::prepare_primitive_construction_result`
+ --> src/certification/public_facade_contracts/compile_fail/results/public_prelude_happy_path_helpers_demoted.rs:1:5
+  |
+1 | use worth_kernel::facade::prelude::prepare_primitive_construction_result;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-------------------------------------
+  |     |                              |
+  |     |                              help: a similar name exists in the module: `PreparedPrimitiveConstructionResult`
+  |     no `prepare_primitive_construction_result` in `facade::prelude`

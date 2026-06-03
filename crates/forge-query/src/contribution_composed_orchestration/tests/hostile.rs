@@ -2,7 +2,9 @@ use crate::contribution_composed_orchestration::{
     ForgeQueryContributionComposedClassification, ForgeQueryContributionComposedOrchestrationInput,
     ForgeQueryContributionIntent,
 };
-use crate::domain_capabilities::ForgeQuerySupportContributionAuthoring;
+use crate::domain_capabilities::{
+    ForgeQueryContinuityContributionAuthoring, ForgeQuerySupportContributionAuthoring,
+};
 use crate::ordinary_outcome::ForgeQueryOrdinaryOutcome;
 
 use super::support::{
@@ -250,4 +252,37 @@ fn empty_contribution_request_is_rejected_as_unsupported() {
         checked,
         crate::contribution_composed_orchestration::ForgeQueryContributionComposedOrchestrationOutcome::Unsupported(_)
     ));
+}
+
+#[test]
+fn declaration_bound_continuity_is_admitted_on_contribution_composed_lane() {
+    let handle = admitted_handle();
+    let composed = match handle.orchestrate_declaration_with_contributions(
+        ForgeQueryContributionComposedOrchestrationInput::new(ContributionInput::new(
+            "face-continuity",
+        ))
+        .with_contribution(ForgeQueryContributionIntent::continuity(
+            ForgeQueryContinuityContributionAuthoring::preserved(
+                "domain.continuity.face",
+                "declaration retains canonical face continuity",
+            ),
+        )),
+    ) {
+        Ok(value) => value,
+        Err(_) => panic!("expected declaration-bound continuity contribution to admit"),
+    };
+
+    assert_eq!(
+        composed.classification(),
+        ForgeQueryContributionComposedClassification::FullyAdmitted
+    );
+    assert_eq!(composed.contributions().len(), 1);
+    assert_eq!(
+        composed.contribution_composition().composed_category_families(),
+        &[crate::application::ForgeQueryDeclarationEntryContributionCategoryFamily::ContinuityLineage]
+    );
+    assert_eq!(
+        composed.intent_results()[0].semantic_code(),
+        "domain.continuity.face"
+    );
 }

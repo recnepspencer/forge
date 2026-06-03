@@ -1,12 +1,12 @@
 use forge_relational::facade::runtime::RelationalRuntimeApi;
 use schema::facade::bootstrap_schema_registry;
-use schema::facade::topology_authoring::seed_minimal_topology;
 
 use crate::brep::topology_graph::{
     TopologyBody, TopologyFace, TopologyLoop, TopologyLump, TopologyModel, TopologyRegion,
     TopologyShell, TopologyView,
 };
 use crate::facade::TopologyMaterializer;
+use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 
 use super::primitives::*;
 
@@ -15,7 +15,8 @@ pub(crate) fn base_seeded_view(stem: &str) -> TopologyView {
         .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
         .build();
 
-    let seeded = seed_minimal_topology(&mut runtime, stem).expect("seed  topology");
+    let seeded =
+        seed_minimal_topology_through_schema_execution(&mut runtime, stem).expect("seed  topology");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&seeded.snapshot)

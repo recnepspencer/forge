@@ -14,6 +14,7 @@ fn kernel_public_facade_exports_phase_five_six_closeout_surface() {
     let report = prepare_primitive_construction_phase_five_six_closeout_report(&mut workspace)
         .expect("phase 5.6 closeout");
 
+    assert!(report.phase_five_boundary().closeout_gate_verified());
     assert!(report.compound_closeout().closeout_gate_verified());
     assert_eq!(
         report.simplex_ladder().rows().len(),

@@ -235,6 +235,7 @@ mod read_composition_shared;
 mod read_composition_successor;
 mod read_composition_support_report;
 mod read_composition_walks;
+mod retained_rows;
 mod runtime_api_contract;
 mod runtime_authoritative_mutation_routing;
 mod runtime_batch_write_entrypoints;
@@ -293,6 +294,7 @@ pub use authority::{
 pub use backend::{
     ForgeQueryBridgeBackedRuntimeBackend, ForgeQueryIntentAuthorityAdapter,
     ForgeQueryRuntimeBackend, ForgeQueryRuntimeBackendParts,
+    ForgeQueryRuntimeDeclarationInitializationAdapter,
     ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
     ForgeQueryRuntimeIntentAuthorityAdapter, ForgeQueryRuntimePreviewBasisAdapter,
     ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
@@ -313,8 +315,8 @@ use computed::{
 pub use computed::{
     ForgeQueryComputedInspectionEvidence, ForgeQueryDerivedPatch, ForgeQueryDerivedPatchFamily,
     ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
-    ForgeQueryDerivedViewMaterialization, ForgeQueryRetainedMutationContext,
-    ForgeQueryRetainedUpstreamInputs,
+    ForgeQueryDerivedViewMaterialization, ForgeQueryRetainedRefreshContext,
+    ForgeQueryRetainedRefreshOrigin, ForgeQueryRetainedUpstreamInputs,
 };
 pub use delivery::ForgeQueryRuntimeDeliveryBatch;
 use delivery::{
@@ -496,10 +498,12 @@ pub use support_matrix::{
 #[allow(unused_imports)]
 pub use surface::{
     ForgeQueryArtifactInspector, ForgeQueryBatchMutationEvidence, ForgeQueryBatchWriteReceipt,
-    ForgeQueryContinuityClass, ForgeQueryContinuityMutationEvidence,
-    ForgeQueryContinuityOutcomeClass, ForgeQueryContinuityRejectionClass,
+    ForgeQueryBatchWriteRetainedArtifact, ForgeQueryContinuityClass,
+    ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityOutcomeClass,
+    ForgeQueryContinuityRejectionClass, ForgeQueryDerivedArtifactBinding,
     ForgeQueryDerivedInspectionReceipt, ForgeQueryDerivedInspectionResult,
-    ForgeQueryDerivedMaterializationReceipt, ForgeQueryDerivedMaterializationResult,
+    ForgeQueryDerivedMaterializationBundle, ForgeQueryDerivedMaterializationReceipt,
+    ForgeQueryDerivedMaterializationResult, ForgeQueryDerivedMaterializationTarget,
     ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,
     ForgeQueryExistingTruthBindingOutcome, ForgeQueryExistingTruthProbeReceipt,
     ForgeQueryExistingTruthProbeResult, ForgeQueryGraphCompositionAdmissionTrace,
@@ -511,7 +515,8 @@ pub use surface::{
     ForgeQueryGraphCompositionProgram, ForgeQueryGraphCompositionProgramStep,
     ForgeQueryGraphCompositionProgramStepKind, ForgeQueryGraphCompositionResolutionEntry,
     ForgeQueryGraphCompositionResolutionMap, ForgeQueryInspectedArtifact,
-    ForgeQueryInstalledOperation, ForgeQueryInstalledProgram, ForgeQueryLiveReadReceipt,
+    ForgeQueryInstalledOperation, ForgeQueryInstalledProgram, ForgeQueryLiveArtifactBinding,
+    ForgeQueryLiveArtifactBundle, ForgeQueryLiveArtifactTarget, ForgeQueryLiveReadReceipt,
     ForgeQueryLiveReadResult, ForgeQueryLiveView, ForgeQueryMutationCausalityEvidence,
     ForgeQueryMutationFamily, ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetClass,
     ForgeQueryMutationTargetDescriptor, ForgeQueryMutationTargetEvidence,
@@ -526,11 +531,12 @@ pub use surface::{
     ForgeQueryReadOperatorFamily, ForgeQueryReadReceipt, ForgeQueryReadRelationshipProofDenial,
     ForgeQueryReadRelationshipProofDenialStage, ForgeQueryReadRelationshipProofPosture,
     ForgeQueryReadResult, ForgeQueryReadScopeClass, ForgeQueryReadScopeShapeMismatch,
-    ForgeQueryRunReceipt, ForgeQuerySymbolicAspectResolutionEvidence,
-    ForgeQuerySymbolicTargetReferenceEvidence, ForgeQuerySymbolicTargetReferenceOutcome,
-    ForgeQueryUnifiedInspectionReceipt, ForgeQueryUnifiedInspectionResult,
-    ForgeQueryVerificationReadSetBreadth, ForgeQueryVerifiedAssumptionSet, ForgeQueryWriteCommand,
-    ForgeQueryWriteReceipt,
+    ForgeQueryRetainedScalarAlignment, ForgeQueryRetainedScalarAlignmentFact,
+    ForgeQueryRetainedScalarFactSet, ForgeQueryRetainedScalarFieldFact, ForgeQueryRunReceipt,
+    ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReferenceEvidence,
+    ForgeQuerySymbolicTargetReferenceOutcome, ForgeQueryUnifiedInspectionReceipt,
+    ForgeQueryUnifiedInspectionResult, ForgeQueryVerificationReadSetBreadth,
+    ForgeQueryVerifiedAssumptionSet, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };
 pub use workspace::ForgeQueryWorkspace;
 pub use workspace_declaration::{

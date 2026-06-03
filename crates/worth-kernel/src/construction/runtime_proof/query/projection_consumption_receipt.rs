@@ -2,29 +2,29 @@ use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryWorkspace,
 };
 use topology::facade::{
-    TopologyConstructionCertificationReadSurface, TopologyConstructionFactProvenance,
-    TopologyConstructionInspectionSurface,
+    TopologyConstructionQueryFactProvenance, TopologyConstructionQueryInspectionSurface,
+    TopologyConstructionQueryReadSurface,
 };
 use worth_geom::facade::{
     PrimitiveFeatureConditioningClass, PrimitiveNormalizationDisposition,
     PrimitiveRealizationStrategy, PrimitiveStabilityClass, PrimitiveSupportNormalClass,
 };
 
+use crate::construction::authoring::{
+    primitive_construction_authoring, PrimitiveConstructionQueryEntryError,
+    WorthKernelAuthorityError,
+};
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::realization_truth::PrimitiveConstructionRuntimeRealizationTruth;
-use crate::construction::result::{
-    prepare_primitive_construction_result, PrimitiveConstructionResultError,
-};
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionQueryProjectionConsumptionReceiptReport {
     family: crate::construction::request::PrimitiveConstructionFamily,
     query_contract_digest: String,
     required_query_families: Vec<ForgeQueryRuntimeFacadeFamily>,
-    read_surface: TopologyConstructionCertificationReadSurface,
-    inspection_surface: TopologyConstructionInspectionSurface,
-    fact_provenance: TopologyConstructionFactProvenance,
+    read_surface: TopologyConstructionQueryReadSurface,
+    inspection_surface: TopologyConstructionQueryInspectionSurface,
+    fact_provenance: TopologyConstructionQueryFactProvenance,
     realization_strategy: Option<PrimitiveRealizationStrategy>,
     attempted_realization_strategies: Vec<PrimitiveRealizationStrategy>,
     stability_class: Option<PrimitiveStabilityClass>,
@@ -41,43 +41,55 @@ impl PrimitiveConstructionQueryProjectionConsumptionReceiptReport {
         prepared: &crate::construction::result::PreparedPrimitiveConstructionResult,
     ) -> Self {
         let artifact = prepared.canonical_artifact();
-        let facts = prepared.evidence().topology_fact_report();
+        let topology_query_envelope = prepared
+            .evidence()
+            .topology_query_handoff()
+            .topology_query_envelope();
         let realization_truth =
             PrimitiveConstructionRuntimeRealizationTruth::from_artifact(artifact);
-        let parity_verified =
-            facts.required_query_families() == [ForgeQueryRuntimeFacadeFamily::Inspect]
-                && facts.read_surface()
-                    == TopologyConstructionCertificationReadSurface::ProjectionConsumptionFromInspectionReceipt
-                && facts.inspection_surface()
-                    == TopologyConstructionInspectionSurface::InspectReceipt
-                && facts.provenance()
-                    == TopologyConstructionFactProvenance::EquivalentProjectionConsumptionFacts
-                && artifact.topology_fact_digest() == facts.report_digest()
-                && !query_contract_digest.is_empty()
-                && realization_truth.selected_strategy().is_some()
-                && realization_truth.stability_class().is_some();
+        let parity_verified = topology_query_envelope.required_query_families()
+            == [
+                ForgeQueryRuntimeFacadeFamily::Write,
+                ForgeQueryRuntimeFacadeFamily::Inspect,
+            ]
+            && topology_query_envelope.read_surface()
+                == TopologyConstructionQueryReadSurface::ProjectionConsumptionFromInspectionReceipt
+            && topology_query_envelope.inspection_surface()
+                == TopologyConstructionQueryInspectionSurface::InspectReceipt
+            && topology_query_envelope.fact_provenance()
+                == TopologyConstructionQueryFactProvenance::InspectionBackedProjectionConsumption
+            && artifact.topology_fact_digest() == topology_query_envelope.fact_digest()
+            && !query_contract_digest.is_empty()
+            && realization_truth.selected_strategy().is_some()
+            && realization_truth.stability_class().is_some();
         let report_digest = digest_owned_parts(&[
             artifact.family().as_str().to_string(),
             query_contract_digest.clone(),
-            facts
+            topology_query_envelope
                 .required_query_families()
                 .iter()
                 .map(|family| format!("{family:?}"))
                 .collect::<Vec<_>>()
                 .join("|"),
-            facts.read_surface().as_str().to_string(),
-            facts.inspection_surface().as_str().to_string(),
-            facts.provenance().as_str().to_string(),
+            topology_query_envelope.read_surface().as_str().to_string(),
+            topology_query_envelope
+                .inspection_surface()
+                .as_str()
+                .to_string(),
+            topology_query_envelope
+                .fact_provenance()
+                .as_str()
+                .to_string(),
             realization_truth.truth_digest().to_string(),
             parity_verified.to_string(),
         ]);
         Self {
             family: artifact.family(),
             query_contract_digest,
-            required_query_families: facts.required_query_families().to_vec(),
-            read_surface: facts.read_surface(),
-            inspection_surface: facts.inspection_surface(),
-            fact_provenance: facts.provenance(),
+            required_query_families: topology_query_envelope.required_query_families().to_vec(),
+            read_surface: topology_query_envelope.read_surface(),
+            inspection_surface: topology_query_envelope.inspection_surface(),
+            fact_provenance: topology_query_envelope.fact_provenance(),
             realization_strategy: realization_truth.selected_strategy(),
             attempted_realization_strategies: realization_truth.attempted_strategies().to_vec(),
             stability_class: realization_truth.stability_class(),
@@ -101,15 +113,15 @@ impl PrimitiveConstructionQueryProjectionConsumptionReceiptReport {
         &self.required_query_families
     }
 
-    pub fn read_surface(&self) -> TopologyConstructionCertificationReadSurface {
+    pub fn read_surface(&self) -> TopologyConstructionQueryReadSurface {
         self.read_surface
     }
 
-    pub fn inspection_surface(&self) -> TopologyConstructionInspectionSurface {
+    pub fn inspection_surface(&self) -> TopologyConstructionQueryInspectionSurface {
         self.inspection_surface
     }
 
-    pub fn fact_provenance(&self) -> TopologyConstructionFactProvenance {
+    pub fn fact_provenance(&self) -> TopologyConstructionQueryFactProvenance {
         self.fact_provenance
     }
 
@@ -148,14 +160,16 @@ impl PrimitiveConstructionQueryProjectionConsumptionReceiptReport {
 
 #[derive(Debug)]
 pub enum PrimitiveConstructionQueryProjectionConsumptionReceiptError {
-    Result(PrimitiveConstructionResultError),
+    Authority(WorthKernelAuthorityError),
+    QueryEntry(PrimitiveConstructionQueryEntryError),
     QueryRuntime(ForgeQueryRuntimeError),
 }
 
 impl std::fmt::Display for PrimitiveConstructionQueryProjectionConsumptionReceiptError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Result(error) => write!(f, "{error}"),
+            Self::Authority(error) => write!(f, "{error:?}"),
+            Self::QueryEntry(error) => write!(f, "{error}"),
             Self::QueryRuntime(error) => write!(f, "{error}"),
         }
     }
@@ -175,8 +189,13 @@ pub fn prepare_primitive_construction_query_projection_consumption_receipt_repor
         .map_err(PrimitiveConstructionQueryProjectionConsumptionReceiptError::QueryRuntime)?
         .contract_digest()
         .to_string();
-    let prepared = prepare_primitive_construction_result(intent)
-        .map_err(PrimitiveConstructionQueryProjectionConsumptionReceiptError::Result)?;
+    let prepared = {
+        let mut session = primitive_construction_authoring(workspace)
+            .map_err(PrimitiveConstructionQueryProjectionConsumptionReceiptError::Authority)?;
+        session
+            .prepare_result(intent)
+            .map_err(PrimitiveConstructionQueryProjectionConsumptionReceiptError::QueryEntry)?
+    };
     Ok(
         PrimitiveConstructionQueryProjectionConsumptionReceiptReport::new(
             query_contract_digest,
@@ -194,9 +213,9 @@ mod tests {
     };
     use forge_query::facade::ForgeQueryRuntimeFacadeFamily;
     use topology::facade::{
-        milestone_one_runtime_builder, topology_runtime,
-        TopologyConstructionCertificationReadSurface, TopologyConstructionFactProvenance,
-        TopologyConstructionInspectionSurface, TopologyRuntimeAdapters,
+        milestone_one_runtime_builder, topology_runtime, TopologyConstructionQueryFactProvenance,
+        TopologyConstructionQueryInspectionSurface, TopologyConstructionQueryReadSurface,
+        TopologyRuntimeAdapters,
     };
     use worth_geom::facade::{
         PrimitiveNormalizationDisposition, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
@@ -227,19 +246,22 @@ mod tests {
         assert!(!report.query_contract_digest().is_empty());
         assert_eq!(
             report.required_query_families(),
-            &[ForgeQueryRuntimeFacadeFamily::Inspect]
+            &[
+                ForgeQueryRuntimeFacadeFamily::Write,
+                ForgeQueryRuntimeFacadeFamily::Inspect,
+            ]
         );
         assert_eq!(
             report.read_surface(),
-            TopologyConstructionCertificationReadSurface::ProjectionConsumptionFromInspectionReceipt
+            TopologyConstructionQueryReadSurface::ProjectionConsumptionFromInspectionReceipt
         );
         assert_eq!(
             report.inspection_surface(),
-            TopologyConstructionInspectionSurface::InspectReceipt
+            TopologyConstructionQueryInspectionSurface::InspectReceipt
         );
         assert_eq!(
             report.fact_provenance(),
-            TopologyConstructionFactProvenance::EquivalentProjectionConsumptionFacts
+            TopologyConstructionQueryFactProvenance::InspectionBackedProjectionConsumption
         );
         assert_eq!(
             report.realization_strategy(),

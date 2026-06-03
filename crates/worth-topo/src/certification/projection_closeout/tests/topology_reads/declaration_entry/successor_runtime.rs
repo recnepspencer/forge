@@ -1,4 +1,4 @@
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::successor_runtime_support::{
     cross_loop_successor_declaration, find_half_edge, single_successor_fixture,
@@ -7,13 +7,16 @@ use super::successor_runtime_support::{
 use crate::certification::support::declaration_runtime::{
     current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
 };
-use crate::facade::{topology_runtime, TopologyRuntimeAdapters};
+use crate::facade::{
+    topology_runtime, TopologyQueryMutationLaneExecutionShape, TopologyRuntimeAdapters,
+};
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 
 #[test]
 fn current_head_runtime_executes_single_successor_program_declaration_through_declaration_entry() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let seeded = seed_milestone_one_primitive(
+    let seeded = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.successor.runtime",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 5 },
@@ -34,9 +37,16 @@ fn current_head_runtime_executes_single_successor_program_declaration_through_de
             .expect("single successor relocation should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.rewire_loop_successor_program"
     );
+    assert_eq!(
+        execution.execution_shape(),
+        TopologyQueryMutationLaneExecutionShape::GraphComposition
+    );
+    assert_query_anchor_matches_execution(&execution);
     let moved_half_edge = find_half_edge(&execution, fixture.moved_half_edge_id);
     assert_eq!(
         moved_half_edge.prev_half_edge_id,
@@ -56,7 +66,7 @@ fn current_head_runtime_executes_single_successor_program_declaration_through_de
 #[test]
 fn current_head_runtime_executes_two_half_edge_span_successor_program_through_declaration_entry() {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let seeded = seed_milestone_one_primitive(
+    let seeded = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.successor-span.runtime",
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
@@ -77,9 +87,16 @@ fn current_head_runtime_executes_two_half_edge_span_successor_program_through_de
             .expect("two-half-edge span relocation should execute through declaration entry");
 
     assert_eq!(
-        execution.semantic_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key(),
         "topology.rewire_loop_successor_program"
     );
+    assert_eq!(
+        execution.execution_shape(),
+        TopologyQueryMutationLaneExecutionShape::GraphComposition
+    );
+    assert_query_anchor_matches_execution(&execution);
     let moved_start = find_half_edge(&execution, fixture.moved_start_id);
     assert_eq!(
         moved_start.prev_half_edge_id,
@@ -96,11 +113,33 @@ fn current_head_runtime_executes_two_half_edge_span_successor_program_through_de
     );
 }
 
+fn assert_query_anchor_matches_execution(
+    execution: &crate::topology_operators::application::TopologyDeclaredMutationArtifact,
+) {
+    let anchor = execution.query_anchor();
+    let semantic_projection = execution.accepted_mutation_projection();
+    assert_eq!(
+        anchor.declaration_family_key(),
+        execution
+            .accepted_mutation_projection()
+            .semantic_family_key()
+    );
+    assert!(!anchor.declaration_digest().is_empty());
+    assert!(!anchor.progression_digest().is_empty());
+    assert!(!anchor.route_plan_digest().is_empty());
+    assert!(!anchor.contribution_digest().is_empty());
+    assert!(anchor.envelope_digest().metadata().entry_count() > 0);
+    assert!(anchor.receipt_digest().metadata().entry_count() > 0);
+    assert!(semantic_projection
+        .fallback_explanation_detail()
+        .contains("fallback"));
+}
+
 #[test]
 fn current_head_runtime_rejects_cross_loop_successor_program_before_any_declaration_entry_execution(
 ) {
     let mut runtime = build_milestone_one_runtime().expect("runtime");
-    let seeded = seed_milestone_one_primitive(
+    let seeded = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         "query-native.successor-cross-loop.runtime",
         &MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },

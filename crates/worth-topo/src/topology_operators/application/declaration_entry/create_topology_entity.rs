@@ -14,7 +14,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
         declaration: TopologyCreateTopologyEntityDeclaration,
         mode: TopologyMutationApplicationMode,
     ) -> Result<TopologyDeclaredMutationArtifact, TopologyMutationApplicationError> {
-        orchestrate_topology_declaration_entry(
+        let retained_handoff = orchestrate_topology_declaration_entry(
             crate::topology_operators::TopologyMutationFamily::CreateTopologyEntity,
             declaration.clone(),
         )?;
@@ -29,6 +29,7 @@ impl<'workspace, 'surfaces> TopologyMutationApplicationRunner<'workspace, 'surfa
 
         finalize_lowered_mutations(
             self,
+            retained_handoff,
             lowered_mutations,
             TopologyCreateTopologyEntityDeclaration::SEMANTIC_FAMILY_KEY,
             mode,

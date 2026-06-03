@@ -6,6 +6,8 @@
 
 mod bindings;
 mod spatial_intent;
+#[cfg(test)]
+mod structure_guard;
 
 pub mod facade;
 pub mod test_support;

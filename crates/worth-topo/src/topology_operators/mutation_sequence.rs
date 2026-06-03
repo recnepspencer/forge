@@ -5,9 +5,10 @@ use schema::facade::platform::entities::TopologyEntityKind;
 
 use super::mutation_records::TopologyDeclaredMutationRecord;
 use super::{
-    NamingMutationContinuityMatrix, TopologyDeclaredMutationActionRef, TopologyMutationDigest,
-    TopologyMutationFamily, TopologyMutationNamingOutcome, TopologyMutationNamingReport,
-    TopologyMutationNamingRow, TopologyMutationSequenceDigest,
+    NamingMutationContinuityMatrix, TopologyDeclaredMutationActionRef,
+    TopologyMutationDerivedFallbackPolicy, TopologyMutationDigest, TopologyMutationFamily,
+    TopologyMutationNamingOutcome, TopologyMutationNamingReport, TopologyMutationNamingRow,
+    TopologyMutationSequenceDigest,
 };
 
 #[derive(Clone)]
@@ -17,7 +18,6 @@ pub(crate) struct TopologyDeclaredMutationSequence {
     families: Vec<TopologyMutationFamily>,
     topology_mutation_digest: TopologyMutationDigest,
     naming_continuity_matrix: NamingMutationContinuityMatrix,
-    naming_report: TopologyMutationNamingReport,
 }
 
 #[derive(Clone, Copy)]
@@ -35,7 +35,6 @@ impl TopologyDeclaredMutationSequence {
             naming_continuity_matrix: naming_mutation_continuity_matrix_from_rows(
                 naming_report.rows.clone(),
             ),
-            naming_report,
             families,
             records,
         }
@@ -81,8 +80,22 @@ impl TopologyDeclaredMutationSequence {
         &self.naming_continuity_matrix
     }
 
-    pub(crate) fn naming_report(&self) -> &TopologyMutationNamingReport {
-        &self.naming_report
+    #[cfg(test)]
+    pub(crate) fn naming_report(&self) -> TopologyMutationNamingReport {
+        TopologyMutationNamingReport {
+            rows: self.naming_continuity_matrix.rows.clone(),
+        }
+    }
+
+    pub(crate) fn strictest_fallback_policy(&self) -> TopologyMutationDerivedFallbackPolicy {
+        if self.members().any(|member| {
+            member.record().derived_fallback_policy()
+                == TopologyMutationDerivedFallbackPolicy::RejectAnyFallback
+        }) {
+            TopologyMutationDerivedFallbackPolicy::RejectAnyFallback
+        } else {
+            TopologyMutationDerivedFallbackPolicy::AllowExplicitFallback
+        }
     }
 }
 

@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_kernel::facade::prepare_scaffold_topology_query_handoff`
+ --> src/certification/public_facade_contracts/compile_fail/phases/public_raw_handoff_helper_not_exported.rs:1:5
+  |
+1 | use worth_kernel::facade::prepare_scaffold_topology_query_handoff;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_scaffold_topology_query_handoff` in `facade`

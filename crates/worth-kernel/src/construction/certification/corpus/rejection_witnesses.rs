@@ -1,7 +1,5 @@
-use crate::construction::artifact::PrimitiveConstructionArtifactError;
 use crate::construction::diagnostics::PrimitiveConstructionBlockingBoundary;
 use crate::construction::digest::digest_owned_parts;
-use crate::construction::execution::PrimitiveConstructionExecutionError;
 use crate::construction::outcome::{
     rejected_outcome, PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
 };
@@ -10,12 +8,15 @@ use crate::construction::request::{
     PrimitiveConstructionPhaseError,
 };
 use crate::construction::result::PrimitiveConstructionResultError;
-use topology::facade::TopologyConstructionExecutionError;
+use topology::facade::{
+    TopologyConstructionQueryAdmittedHandoffError, TopologyConstructionQueryEnvelopeError,
+    TopologyConstructionQueryHandoffError, TopologyConstructionQueryReceiptError,
+};
 use worth_geom::facade::Plane;
 use worth_spatial::facade::{
     impossible_primitive_construction_birth_attachment, plan_primitive_construction_birth,
     PrimitiveConstructionBirthFamily, PrimitiveConstructionBirthScaffoldInput,
-    SpatialConstructionBirthError, SpatialConstructionBirthRejectionRow,
+    SpatialConstructionBirthRejectionRow,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -84,33 +85,38 @@ pub(super) fn primitive_construction_rejection_witness_rows(
         witness(
             "spatial_birth_completeness_failure",
             PrimitiveConstructionFamily::ShellWithHole,
-            PrimitiveConstructionResultError::BirthCompleteness(
-                SpatialConstructionBirthError::InvalidPrimitiveBirthScaffold("birth mismatch"),
+            PrimitiveConstructionResultError::Phase(
+                PrimitiveConstructionPhaseError::TopologyQueryAdmittedHandoff(
+                    TopologyConstructionQueryAdmittedHandoffError::BirthCompleteness(
+                        "birth mismatch".to_string(),
+                    ),
+                ),
             ),
         ),
         witness(
             "impossible_birth_attachment_failure",
             PrimitiveConstructionFamily::RegularPyramid,
-            PrimitiveConstructionResultError::ImpossibleBirthAttachment(
-                impossible_birth_attachment_witness(),
+            PrimitiveConstructionResultError::Phase(
+                PrimitiveConstructionPhaseError::TopologyQueryAdmittedHandoff(
+                    TopologyConstructionQueryAdmittedHandoffError::ImpossibleBirthAttachment(
+                        impossible_birth_attachment_witness().reason().to_string(),
+                    ),
+                ),
             ),
         ),
         witness(
             "topology_execution_failure",
             PrimitiveConstructionFamily::RegularPrism,
-            PrimitiveConstructionResultError::Execution(
-                PrimitiveConstructionExecutionError::TopologyExecution(
-                    TopologyConstructionExecutionError::UnsupportedMutationSurface("bad surface"),
-                ),
-            ),
-        ),
-        witness(
-            "artifact_assembly_failure",
-            PrimitiveConstructionFamily::SimplexSolid,
-            PrimitiveConstructionResultError::Artifact(
-                PrimitiveConstructionArtifactError::SpatialBirth(
-                    SpatialConstructionBirthError::InvalidPrimitiveBirthScaffold(
-                        "artifact mismatch",
+            PrimitiveConstructionResultError::Phase(
+                PrimitiveConstructionPhaseError::TopologyQueryAdmittedHandoff(
+                    TopologyConstructionQueryAdmittedHandoffError::Handoff(
+                        TopologyConstructionQueryHandoffError::Envelope(
+                            TopologyConstructionQueryEnvelopeError::Receipt(
+                                TopologyConstructionQueryReceiptError::UnsupportedBirthClass(
+                                    "bad surface",
+                                ),
+                            ),
+                        ),
                     ),
                 ),
             ),
@@ -136,9 +142,6 @@ fn witness(
         }
         PrimitiveConstructionRejectionLocality::Execution => {
             PrimitiveConstructionBlockingBoundary::TopologyLegality
-        }
-        PrimitiveConstructionRejectionLocality::Artifact => {
-            PrimitiveConstructionBlockingBoundary::ArtifactAssembly
         }
     };
     let row_digest = digest_owned_parts(&[

@@ -3,9 +3,7 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
-use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
-};
+use schema::facade::topology_authoring::{DerivedTopologyReadBasis, MilestoneOnePrimitiveCase};
 
 use super::super::mutation_sequence_support::{
     aggregate_topology_mutation_digest_for_declarations, TopologyCloseoutDeclaration,
@@ -19,6 +17,7 @@ use crate::certification::support::parity::digest_materialized_topology_view;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::application::TopologyDeclarationMutationPayload;
 use crate::topology_operators::{
     TopologyRehomeAllOwnedHalfEdgesToNewWireDeclaration,
@@ -39,7 +38,7 @@ where
 {
     let primitive_family = primitive_family_name(&primitive).to_string();
     let mut runtime = runtime_factory();
-    let verified = seed_milestone_one_primitive(
+    let verified = seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         &format!("{stem}.primitive_family_closure.{primitive_family}"),
         &primitive,
@@ -68,7 +67,7 @@ where
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let split_wire_id = split_execution
-        .materialized
+        .materialized()
         .topology()
         .wires
         .iter()
@@ -91,7 +90,8 @@ where
         collapse_declaration.clone(),
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
-    let validation = derived_validation_report_from_materialized(&collapse_execution.materialized)?;
+    let validation =
+        derived_validation_report_from_materialized(collapse_execution.materialized())?;
     let mutation_families = split_declaration
         .semantic_families()
         .into_iter()
@@ -105,7 +105,7 @@ where
             TopologyCloseoutDeclaration::RehomeAllOwnedHalfEdgesToNewWire(collapse_declaration),
         ]),
         final_materialized_topology_digest: digest_materialized_topology_view(
-            &collapse_execution.materialized,
+            collapse_execution.materialized(),
         ),
         derived_validation_row_count: validation.rows.len(),
     })

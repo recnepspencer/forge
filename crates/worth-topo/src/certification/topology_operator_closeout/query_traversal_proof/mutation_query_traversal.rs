@@ -1,6 +1,6 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::relations::TopologyRelationKind;
-use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde_json::Value;
 
 use super::super::report::{MilestoneThreeHostileScenario, MilestoneThreeHostileSuiteReport};
@@ -17,6 +17,7 @@ use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::query_domain::{TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView};
+use crate::test_support::schema_topology_authoring_boundary::seed_milestone_one_primitive_through_schema_execution;
 use crate::topology_operators::TopologyRewireLoopSuccessorProgramDeclaration;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -102,7 +103,7 @@ where
     F: FnMut() -> RelationalRuntime,
 {
     let mut runtime = runtime_factory();
-    seed_milestone_one_primitive(
+    seed_milestone_one_primitive_through_schema_execution(
         &mut runtime,
         &format!("{stem}.seed"),
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
@@ -119,7 +120,7 @@ where
         &workspace.read::<Value>(surfaces.relations()),
         TopologyRelationKind::HalfEdgeNext,
     )?;
-    let pre_mutation_query = TopologyReadProofHarness::new();
+    let pre_mutation_query = TopologyReadProofHarness::current_head();
     let pre_mutation_rewire = pre_mutation_query
         .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 6)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
@@ -141,7 +142,7 @@ where
     )
     .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
 
-    let post_mutation_query = TopologyReadProofHarness::new();
+    let post_mutation_query = TopologyReadProofHarness::current_head();
     let local_rewire = post_mutation_query
         .local_rewire_neighborhood(&mut workspace, &moved_half_edge_identity, 6)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;

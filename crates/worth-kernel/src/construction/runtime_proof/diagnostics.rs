@@ -12,7 +12,6 @@ pub enum PrimitiveConstructionBlockingBoundary {
     SpatialBirth,
     TopologyLegality,
     PrimitiveClassAdmission,
-    ArtifactAssembly,
 }
 
 impl PrimitiveConstructionBlockingBoundary {
@@ -22,7 +21,6 @@ impl PrimitiveConstructionBlockingBoundary {
             Self::SpatialBirth => "spatial_birth",
             Self::TopologyLegality => "topology_legality",
             Self::PrimitiveClassAdmission => "primitive_class_admission",
-            Self::ArtifactAssembly => "artifact_assembly",
         }
     }
 }
@@ -53,9 +51,6 @@ impl PrimitiveConstructionRejectionLocalityRow {
             }
             crate::construction::outcome::PrimitiveConstructionRejectionLocality::Execution => {
                 PrimitiveConstructionBlockingBoundary::TopologyLegality
-            }
-            crate::construction::outcome::PrimitiveConstructionRejectionLocality::Artifact => {
-                PrimitiveConstructionBlockingBoundary::ArtifactAssembly
             }
         };
         let topology_scope = rejected.family().topology_birth_class().to_string();

@@ -17,6 +17,7 @@ fn phase_five_six_closeout_report_binds_compound_simplex_and_policy_pressure_evi
     let report = prepare_primitive_construction_phase_five_six_closeout_report(&mut workspace)
         .expect("phase 5.6 closeout report");
 
+    assert!(report.phase_five_boundary().closeout_gate_verified());
     assert!(report.compound_closeout().closeout_gate_verified());
     assert_eq!(report.policy_pressure().required_direct_cases().len(), 7);
     assert_eq!(report.policy_pressure().required_delta_cases().len(), 5);
@@ -34,6 +35,10 @@ fn phase_five_six_closeout_report_binds_compound_simplex_and_policy_pressure_evi
     for witness_kind in required_simplex_exhaustion_witness_kinds() {
         assert!(report.simplex_exhaustion().row_for(*witness_kind).is_some());
     }
+    assert_ne!(
+        report.report_digest(),
+        report.phase_five_boundary().report_digest()
+    );
     assert_ne!(
         report.report_digest(),
         report.compound_closeout().report_digest()

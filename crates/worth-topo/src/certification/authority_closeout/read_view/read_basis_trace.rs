@@ -4,11 +4,11 @@ use super::localization_report::{
 };
 use super::query_evidence::{
     certification_integrity_markers, certification_performance_accounting,
-    derived_query_inspection, ensure_query_surface_ready, query_evidence_from_accounting,
-    traced_certification_envelope, traced_certification_failure,
+    query_evidence_from_accounting, traced_certification_envelope, traced_certification_failure,
 };
 use super::*;
-use crate::committed_artifact::TopologyCommittedArtifact;
+use crate::certification::support::commit_certification_input::TopologyCommitCertificationInput;
+use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
 
 impl MilestoneOneCertificationHarness {
     pub(crate) fn certify_read_basis_with_runtime_traced(
@@ -20,107 +20,38 @@ impl MilestoneOneCertificationHarness {
         TracedMilestoneOneCertificationReport,
         BoundaryFailure<MilestoneOneCertificationError>,
     > {
-        let read_view = runtime
-            .read_truth()
-            .read_snapshot(read_basis.snapshot())
-            .ok_or_else(|| {
-                traced_certification_failure(
-                    MilestoneOneCertificationError::ReadView(format!(
-                        " certification could not open snapshot {:?}",
-                        read_basis.snapshot()
-                    )),
-                    &read_basis,
-                    None,
-                    replay_history_length,
-                )
-            })?;
-        validate_named_topology_truth(&read_view).map_err(|error| {
+        let mut query_runtime = HistoricalReadBasisQueryRuntime::open(
+            runtime,
+            read_basis.clone(),
+            ".milestone-one.certification",
+        )
+        .map_err(|error| {
+            traced_certification_failure(error, &read_basis, None, replay_history_length)
+        })?;
+        let surfaces = query_runtime.surfaces().clone();
+        let entity_rows = query_runtime.workspace().read(surfaces.entities());
+        let relation_rows = query_runtime.workspace().read(surfaces.relations());
+        let persistent_name_rows = query_runtime.workspace().read(surfaces.persistent_names());
+        let surface_evidence = query_runtime.query_surface_evidence().map_err(|error| {
+            traced_certification_failure(error, &read_basis, None, replay_history_length)
+        })?;
+        let snapshot = crate::certification::support::historical_query_snapshot::historical_query_snapshot_for_read_basis(
+            &mut query_runtime,
+        )
+        .map_err(|error| {
             traced_certification_failure(error.into(), &read_basis, None, replay_history_length)
         })?;
-
-        let adapters =
-            TopologyRuntimeAdapters::snapshot_read_only(read_view, read_basis.snapshot().clone());
-        let mut workspace =
-            topology_runtime(adapters, ".milestone-one.certification").map_err(|error| {
-                traced_certification_failure(
-                    MilestoneOneCertificationError::Query(error.to_string()),
-                    &read_basis,
-                    None,
-                    replay_history_length,
-                )
-            })?;
-        let surfaces =
-            crate::projection::runtime_boundary::declared_query_surfaces::declare_topology_query_surfaces(
-                &mut workspace,
-            )
-            .map_err(|error| {
-                traced_certification_failure(
-                    MilestoneOneCertificationError::Query(error.to_string()),
-                    &read_basis,
-                    None,
-                    replay_history_length,
-                )
-            })?;
-        let entity_rows = workspace.read(surfaces.entities());
-        let relation_rows = workspace.read(surfaces.relations());
-        let persistent_name_rows = workspace.read(surfaces.persistent_names());
-        let validation_state = workspace.state(surfaces.validation()).map_err(|error| {
-            traced_certification_failure(
-                MilestoneOneCertificationError::Query(error.to_string()),
-                &read_basis,
-                None,
-                replay_history_length,
-            )
-        })?;
-        ensure_query_surface_ready(".topology.validation", &validation_state).map_err(|error| {
-            traced_certification_failure(error, &read_basis, None, replay_history_length)
-        })?;
-        let equivalence_state =
-            workspace
-                .state(surfaces.equivalence_contract())
-                .map_err(|error| {
-                    traced_certification_failure(
-                        MilestoneOneCertificationError::Query(error.to_string()),
-                        &read_basis,
-                        None,
-                        replay_history_length,
-                    )
-                })?;
-        ensure_query_surface_ready(".topology.equivalence_contract", &equivalence_state).map_err(
-            |error| traced_certification_failure(error, &read_basis, None, replay_history_length),
-        )?;
-        let validation_inspection = derived_query_inspection(
-            &mut workspace,
-            surfaces.validation(),
-            ".topology.validation",
-        )
-        .map_err(|error| {
-            traced_certification_failure(error, &read_basis, None, replay_history_length)
-        })?;
-        let equivalence_inspection = derived_query_inspection(
-            &mut workspace,
-            surfaces.equivalence_contract(),
-            ".topology.equivalence_contract",
-        )
-        .map_err(|error| {
-            traced_certification_failure(error, &read_basis, None, replay_history_length)
-        })?;
-        let snapshot = surfaces
-            .snapshot_for_read_basis(&mut workspace, &read_basis)
-            .map_err(|error| {
-                traced_certification_failure(error.into(), &read_basis, None, replay_history_length)
-            })?;
-        let equivalence_contract = snapshot.equivalence_contract.clone();
-        let derived_read_diagnostics = snapshot.diagnostics.clone();
-        let read_artifact = build_topology_read_artifact(&read_basis, &snapshot.interpreted);
+        let equivalence_contract = snapshot.equivalence_contract().clone();
+        let derived_read_diagnostics = snapshot.diagnostics().clone();
+        let read_artifact = build_topology_read_artifact(&read_basis, snapshot.interpreted());
         let certified_interpretation =
-            certify_topology_view(read_basis.clone(), &snapshot.interpreted);
+            certify_topology_view(read_basis.clone(), snapshot.interpreted());
         let replay_read_basis = read_basis.replay_of();
         let replay_equivalence_contract = build_derived_equivalence_contract(
             &replay_read_basis,
-            &snapshot.materialized,
-            &snapshot.interpreted,
-            &snapshot.validation,
+            snapshot.materialized(),
+            snapshot.interpreted(),
+            snapshot.validation(),
         );
         let replay_comparison = compare_derived_equivalence_contracts(
             &equivalence_contract,
@@ -131,7 +62,7 @@ impl MilestoneOneCertificationHarness {
                 .map_err(|error| {
                     traced_certification_failure(error, &read_basis, None, replay_history_length)
                 })?;
-        let naming_attachment_report = snapshot.naming_attachments.clone();
+        let naming_attachment_report = snapshot.naming_attachments().clone();
         let primitive_family_coverage_matrix =
             build_primitive_family_coverage_matrix(&read_artifact.interpretations);
         let topology_truth_digest = digest_rows(
@@ -161,7 +92,7 @@ impl MilestoneOneCertificationHarness {
             }));
         let topology_validation_digest = digest_rows(
             snapshot
-                .validation
+                .validation()
                 .rows
                 .iter()
                 .map(|row| format!("validator:{}:{}", row.validator, row.status)),
@@ -180,7 +111,7 @@ impl MilestoneOneCertificationHarness {
         );
         let replay_topology_validation_digest = digest_rows(
             snapshot
-                .validation
+                .validation()
                 .rows
                 .iter()
                 .map(|row| format!("validator:{}:{}", row.validator, row.status)),
@@ -191,6 +122,10 @@ impl MilestoneOneCertificationHarness {
                 read_basis.derivation_origin(),
                 MutationOrigin::BranchLocalApplication
             ),
+            branch_authoring_boundary:
+                crate::certification::support::reporting::TopologyBranchAuthoringBoundary::from_mutation_origin(
+                    read_basis.derivation_origin(),
+                ),
             branch_id: read_basis.branch_id().clone(),
             snapshot_id: read_basis.snapshot().snapshot_id.0,
             touched_aspect_count: read_basis.touched_aspects().len(),
@@ -215,7 +150,7 @@ impl MilestoneOneCertificationHarness {
         };
         let counters = build_counter_report(
             authority_mutations,
-            &snapshot.validation,
+            snapshot.validation(),
             &naming_attachment_report,
             &primitive_family_coverage_matrix,
             &read_basis,
@@ -228,8 +163,12 @@ impl MilestoneOneCertificationHarness {
             topology_entity_row_count: entity_rows.len(),
             topology_relation_row_count: relation_rows.len(),
             persistent_name_row_count: persistent_name_rows.len(),
-            validation_materialized_row_count: validation_inspection.materialized_row_count(),
-            equivalence_materialized_row_count: equivalence_inspection.materialized_row_count(),
+            validation_materialized_row_count: surface_evidence
+                .validation_inspection()
+                .materialized_row_count(),
+            equivalence_materialized_row_count: surface_evidence
+                .equivalence_inspection()
+                .materialized_row_count(),
             declared_aspect_operation_count: 0,
             mutation_metadata_key_count: 0,
         };
@@ -239,7 +178,7 @@ impl MilestoneOneCertificationHarness {
             topology_truth_digest,
             naming_truth_digest,
             topology_validation_digest,
-            topology_validation_report: snapshot.validation.clone(),
+            topology_validation_report: snapshot.validation().clone(),
             topology_localization_report,
             naming_attachment_report,
             primitive_family_coverage_matrix,
@@ -265,40 +204,42 @@ impl MilestoneOneCertificationHarness {
         ))
     }
 
-    pub fn certify_verified_commit(
+    pub(crate) fn certify_commit_input(
         runtime: &mut RelationalRuntime,
-        verified: &TopologyCommittedArtifact,
+        commit_input: &TopologyCommitCertificationInput,
     ) -> Result<MilestoneOneCertificationReport, MilestoneOneCertificationError> {
-        Self::certify_verified_commit_traced(runtime, verified)
+        Self::certify_commit_input_traced(runtime, commit_input)
             .map(BoundaryEnvelope::into_primary_result)
             .map_err(BoundaryFailure::into_error)
     }
 
-    pub fn certify_verified_commit_traced(
+    pub(crate) fn certify_commit_input_traced(
         runtime: &mut RelationalRuntime,
-        verified: &TopologyCommittedArtifact,
+        commit_input: &TopologyCommitCertificationInput,
     ) -> Result<
         TracedMilestoneOneCertificationReport,
         BoundaryFailure<MilestoneOneCertificationError>,
     > {
         let traced = Self::certify_read_basis_with_runtime_traced(
             runtime,
-            verified.read_basis().clone(),
-            Some(verified.mutations()),
-            verified.commits().len(),
+            commit_input.read_basis().clone(),
+            Some(commit_input.authority_mutations()),
+            commit_input.commits().len(),
         )?;
         let mut report = traced.primary_result().clone();
-        let Some(replay_commit_id) = verified
+        let Some(replay_commit_id) = commit_input
             .commits()
             .last()
             .map(|commit| commit.outcome.commit.commit_id.clone())
         else {
-            let integrity_markers =
-                certification_integrity_markers(&verified.read_basis(), Some(verified.commits()));
+            let integrity_markers = certification_integrity_markers(
+                commit_input.read_basis(),
+                Some(commit_input.commits()),
+            );
             let performance_accounting = certification_performance_accounting(
                 &report,
-                Some(verified.commits()),
-                verified.commits().len(),
+                Some(commit_input.commits()),
+                commit_input.commits().len(),
                 query_evidence_from_accounting(traced.performance_accounting()),
             );
             return Ok(traced
@@ -306,12 +247,12 @@ impl MilestoneOneCertificationHarness {
                 .map_decision_trace(|mut decision_trace| {
                     decision_trace.authority_anchor =
                         Some(AuthorityTraceAnchor::from_commit_results(
-                            verified.branch_id().clone(),
-                            verified.commits(),
+                            commit_input.branch_id().clone(),
+                            commit_input.commits(),
                         ));
                     decision_trace.authority = Some(AuthorityTraceEvidence::from_commit_results(
-                        verified.branch_id().clone(),
-                        verified.commits(),
+                        commit_input.branch_id().clone(),
+                        commit_input.commits(),
                     ));
                     decision_trace
                 })
@@ -321,7 +262,7 @@ impl MilestoneOneCertificationHarness {
         let replay = runtime
             .replay_authority()
             .replay_commit(RelationalReplayRequest {
-                branch_id: verified.branch_id().clone(),
+                branch_id: commit_input.branch_id().clone(),
                 commit_id: replay_commit_id,
                 execution_mode: ReplayExecutionMode::SerialDeterministic,
                 verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
@@ -357,24 +298,26 @@ impl MilestoneOneCertificationHarness {
             report.milestone_1_replay_parity_report.parity_status = ReplayParityStatus::Mismatch;
         }
 
-        let integrity_markers =
-            certification_integrity_markers(&verified.read_basis(), Some(verified.commits()));
+        let integrity_markers = certification_integrity_markers(
+            commit_input.read_basis(),
+            Some(commit_input.commits()),
+        );
         let performance_accounting = certification_performance_accounting(
             &report,
-            Some(verified.commits()),
-            verified.commits().len(),
+            Some(commit_input.commits()),
+            commit_input.commits().len(),
             query_evidence_from_accounting(traced.performance_accounting()),
         );
         Ok(traced
             .map_primary_result(|_| report)
             .map_decision_trace(|mut decision_trace| {
                 decision_trace.authority_anchor = Some(AuthorityTraceAnchor::from_commit_results(
-                    verified.branch_id().clone(),
-                    verified.commits(),
+                    commit_input.branch_id().clone(),
+                    commit_input.commits(),
                 ));
                 decision_trace.authority = Some(AuthorityTraceEvidence::from_commit_results(
-                    verified.branch_id().clone(),
-                    verified.commits(),
+                    commit_input.branch_id().clone(),
+                    commit_input.commits(),
                 ));
                 decision_trace
             })

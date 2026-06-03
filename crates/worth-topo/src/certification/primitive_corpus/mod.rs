@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::platform::authority::MutationOrigin;
 use schema::facade::topology_authoring::{
@@ -28,9 +27,11 @@ use crate::test_support::primitive_corpus::branch_replay_cases::{
     milestone_one_default_branch_local_admitted_scenarios,
     milestone_one_heavy_branch_local_scenarios,
 };
-use crate::test_support::primitive_corpus::derived_topology::certified_verified_commit;
-use crate::test_support::primitive_corpus::validated_topology::{
-    verified_primitive, verified_primitive_on_branch,
+use crate::test_support::primitive_corpus::derived_topology::certified_topology_commit_input;
+use crate::test_support::primitive_corpus::validated_topology::committed_primitive_input;
+use crate::test_support::schema_topology_authoring_boundary::{
+    seed_milestone_one_primitive_in_new_branch_through_schema_execution,
+    SchemaBranchPrimitiveAuthoringError,
 };
 
 mod parity;
@@ -49,8 +50,8 @@ where
     for (index, primitive) in primitives.iter().enumerate() {
         let case_stem = format!("{stem}.case.{index}");
         let mut runtime = runtime_factory();
-        let verified = verified_primitive(&mut runtime, &case_stem, primitive)?;
-        let certification = certified_verified_commit(&mut runtime, &verified)?;
+        let commit_input = committed_primitive_input(&mut runtime, &case_stem, primitive)?;
+        let certification = certified_topology_commit_input(&mut runtime, &commit_input)?;
         cases.push(PrimitiveCorpusCaseReport {
             stem: case_stem,
             family: primitive_family_name(primitive).to_string(),
@@ -108,8 +109,9 @@ where
         let mut runtime = runtime_factory();
         match scenario.expected_outcome {
             MilestoneOnePrimitiveExpectedOutcome::Admit => {
-                let verified = verified_primitive(&mut runtime, &case_stem, &scenario.primitive)?;
-                let certification = certified_verified_commit(&mut runtime, &verified)?;
+                let commit_input =
+                    committed_primitive_input(&mut runtime, &case_stem, &scenario.primitive)?;
+                let certification = certified_topology_commit_input(&mut runtime, &commit_input)?;
                 cases.push(PrimitiveCorpusCaseReport {
                     stem: case_stem,
                     family: scenario.family.clone(),
@@ -120,16 +122,19 @@ where
                 });
             }
             MilestoneOnePrimitiveExpectedOutcome::Reject => {
-                let rejection =
-                    match verified_primitive(&mut runtime, &case_stem, &scenario.primitive) {
-                        Ok(_) => {
-                            return Err(MilestoneOneCertificationError::ReadView(format!(
-                                "out-of-class scenario `{}` unexpectedly admitted",
-                                scenario.family
-                            )));
-                        }
-                        Err(error) => summarize_primitive_rejection(&error),
-                    };
+                let rejection = match committed_primitive_input(
+                    &mut runtime,
+                    &case_stem,
+                    &scenario.primitive,
+                ) {
+                    Ok(_) => {
+                        return Err(MilestoneOneCertificationError::ReadView(format!(
+                            "out-of-class scenario `{}` unexpectedly admitted",
+                            scenario.family
+                        )));
+                    }
+                    Err(error) => summarize_primitive_rejection(&error),
+                };
                 rejected_cases.push(PrimitiveCorpusRejectedCaseReport {
                     stem: case_stem,
                     family: scenario.family.clone(),
@@ -166,27 +171,18 @@ where
     for (index, scenario) in scenarios.iter().enumerate() {
         let case_stem = format!("{stem}.case.{index}");
         let mut runtime = runtime_factory();
-        runtime
-            .history_authority()
-            .create_branch(
-                BranchId(branch_id.to_string()),
-                &BranchId("main".to_string()),
-            )
-            .map_err(|error| {
-                MilestoneOneCertificationError::ReadView(format!(
-                    "failed to create branch `{branch_id}`: {error:?}"
-                ))
-            })?;
         match scenario.expected_outcome {
             MilestoneOnePrimitiveExpectedOutcome::Admit => {
-                let verified = verified_primitive_on_branch(
-                    &mut runtime,
-                    &case_stem,
-                    &scenario.primitive,
-                    BranchId(branch_id.to_string()),
-                    MutationOrigin::BranchLocalApplication,
-                )?;
-                let certification = certified_verified_commit(&mut runtime, &verified)?;
+                let commit_input =
+                    seed_milestone_one_primitive_in_new_branch_through_schema_execution(
+                        &mut runtime,
+                        &case_stem,
+                        &scenario.primitive,
+                        branch_id,
+                        MutationOrigin::BranchLocalApplication,
+                    )
+                    .map_err(|error| MilestoneOneCertificationError::ReadView(error.to_string()))?;
+                let certification = certified_topology_commit_input(&mut runtime, &commit_input)?;
                 cases.push(PrimitiveCorpusCaseReport {
                     stem: case_stem,
                     family: scenario.family.clone(),
@@ -197,21 +193,27 @@ where
                 });
             }
             MilestoneOnePrimitiveExpectedOutcome::Reject => {
-                let rejection = match verified_primitive_on_branch(
-                    &mut runtime,
-                    &case_stem,
-                    &scenario.primitive,
-                    BranchId(branch_id.to_string()),
-                    MutationOrigin::BranchLocalApplication,
-                ) {
-                    Ok(_) => {
-                        return Err(MilestoneOneCertificationError::ReadView(format!(
-                            "out-of-class branch-local scenario `{}` unexpectedly admitted",
-                            scenario.family
-                        )));
-                    }
-                    Err(error) => summarize_primitive_rejection(&error),
-                };
+                let rejection =
+                    match seed_milestone_one_primitive_in_new_branch_through_schema_execution(
+                        &mut runtime,
+                        &case_stem,
+                        &scenario.primitive,
+                        branch_id,
+                        MutationOrigin::BranchLocalApplication,
+                    ) {
+                        Ok(_) => {
+                            return Err(MilestoneOneCertificationError::ReadView(format!(
+                                "out-of-class branch-local scenario `{}` unexpectedly admitted",
+                                scenario.family
+                            )));
+                        }
+                        Err(SchemaBranchPrimitiveAuthoringError::PrimitiveAuthoring(error)) => {
+                            summarize_primitive_rejection(&error)
+                        }
+                        Err(SchemaBranchPrimitiveAuthoringError::BranchSetup(error)) => {
+                            return Err(MilestoneOneCertificationError::ReadView(error));
+                        }
+                    };
                 rejected_cases.push(PrimitiveCorpusRejectedCaseReport {
                     stem: case_stem,
                     family: scenario.family.clone(),

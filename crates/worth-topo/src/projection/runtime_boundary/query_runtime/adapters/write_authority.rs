@@ -11,7 +11,6 @@ use forge_relational::facade::transactions::{
     MutationIntent, RelationMutationIntent,
 };
 use forge_runtime_bridge::facade::RuntimeBridge;
-use schema::facade::topology_authoring::commit_topology_mutation_set;
 
 mod command_lowering;
 mod patch_matching;
@@ -19,6 +18,7 @@ mod write_lowering;
 
 use self::command_lowering::lower_write_command;
 use self::write_lowering::{lower_topology_entity_insert, lower_topology_relation_insert};
+use super::schema_write_boundary::commit_topology_mutation_set_through_schema_runtime_boundary;
 use super::write_support::{
     aspect_map, mutation_deltas_from_commit, mutation_deltas_from_patch_records,
     parse_entity_identity, parse_relation_identity, write_command_label,
@@ -176,11 +176,11 @@ impl TopologyRuntimeWriteAuthority {
         let mut runtime = runtime_handle
             .write()
             .expect("topology runtime write authority lock poisoned");
-        commit_topology_mutation_set(&mut runtime, transaction_label, intents).map_err(|error| {
-            ForgeQueryWorkspaceError::new(format!(
-                "topology production runtime write commit failed: {error}"
-            ))
-        })
+        commit_topology_mutation_set_through_schema_runtime_boundary(
+            &mut runtime,
+            transaction_label,
+            intents,
+        )
     }
 
     fn write_insert(

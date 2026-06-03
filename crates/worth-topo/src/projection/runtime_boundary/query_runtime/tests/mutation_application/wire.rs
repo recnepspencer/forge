@@ -5,7 +5,7 @@ use forge_query::facade::{
 use forge_relational::facade::identity::RelationId;
 use schema::facade::platform::authority::CreateKey;
 use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
-use schema::facade::topology_authoring::{created_ref, seed_minimal_topology};
+use schema::facade::topology_authoring::created_ref;
 
 use crate::certification::support::declaration_runtime::{
     current_head_unsupported_declaration_families, execute_current_head_topology_declaration,
@@ -13,6 +13,7 @@ use crate::certification::support::declaration_runtime::{
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
+use crate::test_support::schema_topology_authoring_boundary::seed_minimal_topology_through_schema_execution;
 use crate::topology_operators::{
     RejectedMutationScopeRow, ShellOrWireMembershipKind,
     TopologyAttachShellOrWireMembershipDeclaration, TopologyDetachShellOrWireMembershipDeclaration,
@@ -25,8 +26,11 @@ use crate::validation::reference_integrity::build_milestone_one_runtime;
 fn current_head_runtime_executes_detach_shell_or_wire_membership_through_topology_mutation_application(
 ) {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "query-mutation-runtime-detach-wire")
-        .expect("seed topology");
+    let seeded = seed_minimal_topology_through_schema_execution(
+        &mut runtime,
+        "query-mutation-runtime-detach-wire",
+    )
+    .expect("seed topology");
     let wire_owns_half_edge_relation =
         seeded_wire_owns_half_edge_relation(&runtime, &seeded.snapshot);
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
@@ -44,13 +48,14 @@ fn current_head_runtime_executes_detach_shell_or_wire_membership_through_topolog
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .expect("detach shell-or-wire membership should execute through declaration entry");
+    let synopsis = execution.accepted_mutation_projection();
 
     assert_eq!(
-        execution.families,
+        synopsis.mutation_families(),
         vec![TopologyMutationFamily::DetachShellOrWireMembership]
     );
     assert_eq!(
-        execution.inspection.component_operations()[0]
+        execution.inspection().component_operations()[0]
             .existing_truth_assertion_evidence()
             .expect("detach receipt should retain backend verification evidence")
             .mode(),
@@ -63,7 +68,7 @@ fn current_head_runtime_executes_detach_shell_or_wire_membership_through_topolog
         1
     );
     let wire = execution
-        .materialized
+        .materialized()
         .topology()
         .wires
         .iter()
@@ -75,8 +80,11 @@ fn current_head_runtime_executes_detach_shell_or_wire_membership_through_topolog
 #[test]
 fn current_head_runtime_executes_rehome_single_half_edge_to_new_wire_program() {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let seeded =
-        seed_minimal_topology(&mut runtime, "query-mutation-runtime-attach-wire").expect("seed");
+    let seeded = seed_minimal_topology_through_schema_execution(
+        &mut runtime,
+        "query-mutation-runtime-attach-wire",
+    )
+    .expect("seed");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-mutation-attach-wire").expect("workspace");
@@ -97,9 +105,10 @@ fn current_head_runtime_executes_rehome_single_half_edge_to_new_wire_program() {
     let execution =
         execute_current_head_topology_declaration(&mut workspace, &surfaces, declaration)
             .expect("wire rehome should execute through declaration entry");
+    let synopsis = execution.accepted_mutation_projection();
 
     assert_eq!(
-        execution.families,
+        synopsis.mutation_families(),
         vec![
             TopologyMutationFamily::CreateTopologyEntity,
             TopologyMutationFamily::AttachShellOrWireMembership,
@@ -120,7 +129,7 @@ fn current_head_runtime_executes_rehome_single_half_edge_to_new_wire_program() {
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_program()
             .expect("wire rehome should expose composed program")
             .steps()
@@ -135,7 +144,7 @@ fn current_head_runtime_executes_rehome_single_half_edge_to_new_wire_program() {
     );
     assert_eq!(
         execution
-            .receipt
+            .receipt()
             .graph_composition_lineage_summary()
             .expect("wire rehome should expose lineage summary")
             .entries()
@@ -148,7 +157,7 @@ fn current_head_runtime_executes_rehome_single_half_edge_to_new_wire_program() {
         1
     );
     assert!(execution
-        .inspection
+        .inspection()
         .component_operations()
         .iter()
         .any(|operation| {
@@ -162,13 +171,13 @@ fn current_head_runtime_executes_rehome_single_half_edge_to_new_wire_program() {
                     })
         }));
     assert!(!execution
-        .materialized
+        .materialized()
         .topology()
         .wires
         .iter()
         .any(|wire| wire.entity_id == seeded.wire));
     let new_wire = execution
-        .materialized
+        .materialized()
         .topology()
         .wires
         .iter()
@@ -181,8 +190,11 @@ fn current_head_runtime_executes_rehome_single_half_edge_to_new_wire_program() {
 fn current_head_runtime_denies_region_owns_shell_membership_until_invariant_complete_shell_subgraphs_are_admitted(
 ) {
     let mut runtime = build_milestone_one_runtime().expect(" runtime");
-    let seeded = seed_minimal_topology(&mut runtime, "query-mutation-runtime-attach-shell")
-        .expect("seed topology");
+    let seeded = seed_minimal_topology_through_schema_execution(
+        &mut runtime,
+        "query-mutation-runtime-attach-shell",
+    )
+    .expect("seed topology");
     let adapters = TopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-mutation-attach-shell").expect("workspace");

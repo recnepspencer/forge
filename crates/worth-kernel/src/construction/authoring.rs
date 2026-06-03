@@ -2,15 +2,25 @@ use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus,
     ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryWorkspace,
 };
-use topology::facade::{topology_construction_authority, TopologyConstructionAuthority};
+use topology::facade::TopologyConstructionQueryMutationSurface;
 use worth_spatial::facade::{construction_birth_authority, SpatialConstructionBirthAuthority};
 
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
+use crate::construction::outcome::{
+    prepare_primitive_construction_outcome, PrimitiveConstructionPreparedOutcome,
+};
+use crate::construction::result::{
+    prepare_primitive_construction_result, PreparedPrimitiveConstructionResult,
+    PrimitiveConstructionResultError,
+};
+use crate::construction::PrimitiveConstructionIntent;
 
 const REQUIRED_QUERY_FAMILIES: [ForgeQueryRuntimeFacadeFamily; 2] = [
     ForgeQueryRuntimeFacadeFamily::Write,
     ForgeQueryRuntimeFacadeFamily::Inspect,
 ];
+const TOPOLOGY_CONSTRUCTION_ADMITTED_HANDOFF_NAME: &str =
+    "worth-topo.query-native-construction-admitted-handoff";
 const REPORTED_QUERY_FAMILIES: [ForgeQueryRuntimeFacadeFamily; 3] = [
     ForgeQueryRuntimeFacadeFamily::Write,
     ForgeQueryRuntimeFacadeFamily::Inspect,
@@ -31,7 +41,6 @@ impl From<ForgeQueryRuntimeError> for WorthKernelAuthorityError {
 pub struct PrimitiveConstructionAuthoringSession<'a> {
     workspace: &'a mut ForgeQueryWorkspace,
     spatial_authority: SpatialConstructionBirthAuthority,
-    topology_authority: TopologyConstructionAuthority,
     required_query_family_contracts: Vec<ForgeQueryRuntimePublicApiFamilyContract>,
     query_gap_rows: Vec<PrimitiveConstructionQueryGapRow>,
 }
@@ -62,7 +71,6 @@ impl<'a> PrimitiveConstructionAuthoringSession<'a> {
         Ok(Self {
             workspace,
             spatial_authority: construction_birth_authority(),
-            topology_authority: topology_construction_authority(),
             required_query_family_contracts,
             query_gap_rows,
         })
@@ -80,7 +88,6 @@ impl<'a> PrimitiveConstructionAuthoringSession<'a> {
         PrimitiveConstructionAuthorityChainReport::new(
             self.workspace.name().to_string(),
             self.spatial_authority.clone(),
-            self.topology_authority.clone(),
             self.required_query_family_contracts.clone(),
             self.query_gap_rows.clone(),
         )
@@ -94,7 +101,54 @@ impl<'a> PrimitiveConstructionAuthoringSession<'a> {
             .admit_public_api_family(family)
             .map_err(Into::into)
     }
+
+    pub fn prepare_result<I: Into<PrimitiveConstructionIntent>>(
+        &mut self,
+        intent: I,
+    ) -> Result<PreparedPrimitiveConstructionResult, PrimitiveConstructionQueryEntryError> {
+        self.require_query_construction_entry()?;
+        prepare_primitive_construction_result(intent)
+            .map_err(PrimitiveConstructionQueryEntryError::Result)
+    }
+
+    pub fn prepare_outcome<I: Into<PrimitiveConstructionIntent>>(
+        &mut self,
+        intent: I,
+    ) -> Result<PrimitiveConstructionPreparedOutcome, PrimitiveConstructionQueryEntryError> {
+        self.require_query_construction_entry()?;
+        Ok(prepare_primitive_construction_outcome(intent))
+    }
+
+    fn require_query_construction_entry(&self) -> Result<(), WorthKernelAuthorityError> {
+        for family in REQUIRED_QUERY_FAMILIES {
+            self.admit_query_family(family)?;
+        }
+        Ok(())
+    }
 }
+
+#[derive(Debug)]
+pub enum PrimitiveConstructionQueryEntryError {
+    Authority(WorthKernelAuthorityError),
+    Result(PrimitiveConstructionResultError),
+}
+
+impl From<WorthKernelAuthorityError> for PrimitiveConstructionQueryEntryError {
+    fn from(value: WorthKernelAuthorityError) -> Self {
+        Self::Authority(value)
+    }
+}
+
+impl std::fmt::Display for PrimitiveConstructionQueryEntryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Authority(error) => write!(f, "{error:?}"),
+            Self::Result(error) => write!(f, "{error}"),
+        }
+    }
+}
+
+impl std::error::Error for PrimitiveConstructionQueryEntryError {}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionQueryGapRow {
@@ -141,8 +195,9 @@ pub struct PrimitiveConstructionAuthorityChainReport {
     query_front_door: &'static str,
     kernel_boundary_name: &'static str,
     kernel_authority_scope: &'static str,
-    spatial_authority: SpatialConstructionBirthAuthority,
-    topology_authority: TopologyConstructionAuthority,
+    lower_layer_birth_authority: SpatialConstructionBirthAuthority,
+    topology_construction_admitted_handoff_name: &'static str,
+    topology_mutation_surface: TopologyConstructionQueryMutationSurface,
     required_query_family_contracts: Vec<ForgeQueryRuntimePublicApiFamilyContract>,
     query_gap_rows: Vec<PrimitiveConstructionQueryGapRow>,
     report_digest: String,
@@ -152,20 +207,23 @@ impl PrimitiveConstructionAuthorityChainReport {
     fn new(
         workspace_name: String,
         spatial_authority: SpatialConstructionBirthAuthority,
-        topology_authority: TopologyConstructionAuthority,
         required_query_family_contracts: Vec<ForgeQueryRuntimePublicApiFamilyContract>,
         query_gap_rows: Vec<PrimitiveConstructionQueryGapRow>,
     ) -> Self {
         let kernel_boundary_name = "worth-kernel.primitive-construction-authoring";
         let kernel_authority_scope = "primitive_construction_orchestration";
         let query_front_door = "ForgeQueryWorkspace";
+        let topology_construction_admitted_handoff_name =
+            TOPOLOGY_CONSTRUCTION_ADMITTED_HANDOFF_NAME;
+        let topology_mutation_surface = TopologyConstructionQueryMutationSurface::ComposeGraph;
         let mut parts = vec![
             workspace_name.clone(),
             query_front_door.to_string(),
             kernel_boundary_name.to_string(),
             kernel_authority_scope.to_string(),
             spatial_authority.authority_digest().to_string(),
-            topology_authority.authority_digest().to_string(),
+            topology_construction_admitted_handoff_name.to_string(),
+            topology_mutation_surface.as_str().to_string(),
         ];
         parts.extend(
             required_query_family_contracts
@@ -184,8 +242,9 @@ impl PrimitiveConstructionAuthorityChainReport {
             query_front_door,
             kernel_boundary_name,
             kernel_authority_scope,
-            spatial_authority,
-            topology_authority,
+            lower_layer_birth_authority: spatial_authority,
+            topology_construction_admitted_handoff_name,
+            topology_mutation_surface,
             required_query_family_contracts,
             query_gap_rows,
             report_digest,
@@ -208,12 +267,16 @@ impl PrimitiveConstructionAuthorityChainReport {
         self.kernel_authority_scope
     }
 
-    pub fn spatial_authority(&self) -> &SpatialConstructionBirthAuthority {
-        &self.spatial_authority
+    pub fn lower_layer_birth_authority(&self) -> &SpatialConstructionBirthAuthority {
+        &self.lower_layer_birth_authority
     }
 
-    pub fn topology_authority(&self) -> &TopologyConstructionAuthority {
-        &self.topology_authority
+    pub fn topology_construction_admitted_handoff_name(&self) -> &str {
+        self.topology_construction_admitted_handoff_name
+    }
+
+    pub fn topology_mutation_surface(&self) -> TopologyConstructionQueryMutationSurface {
+        self.topology_mutation_surface
     }
 
     pub fn required_query_family_contracts(&self) -> &[ForgeQueryRuntimePublicApiFamilyContract] {
@@ -240,7 +303,8 @@ mod tests {
     use super::primitive_construction_authoring;
     use forge_query::facade::ForgeQueryRuntimeFacadeFamily;
     use topology::facade::{
-        milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,
+        milestone_one_runtime_builder, topology_runtime, TopologyConstructionQueryMutationSurface,
+        TopologyRuntimeAdapters,
     };
 
     #[test]
@@ -263,12 +327,16 @@ mod tests {
             "worth-kernel.primitive-construction-authoring"
         );
         assert_eq!(
-            report.spatial_authority().boundary_name(),
+            report.lower_layer_birth_authority().boundary_name(),
             "worth-spatial.construction-birth-authority"
         );
         assert_eq!(
-            report.topology_authority().boundary_name(),
-            "worth-topo.construction-authority"
+            report.topology_construction_admitted_handoff_name(),
+            "worth-topo.query-native-construction-admitted-handoff"
+        );
+        assert_eq!(
+            report.topology_mutation_surface(),
+            TopologyConstructionQueryMutationSurface::ComposeGraph
         );
         assert_eq!(report.required_query_family_contracts().len(), 2);
         assert!(report.query_gap_rows().is_empty());

@@ -16,7 +16,7 @@ pub(super) fn scaled_successor_span_declaration(
     moved_start_identity: &str,
 ) -> Result<TopologyRewireLoopSuccessorProgramDeclaration, TopologyCertificationError> {
     let span_length = 4;
-    let cycle = TopologyReadProofHarness::new()
+    let cycle = TopologyReadProofHarness::current_head()
         .loop_cycle(workspace, moved_start_identity, 7)
         .map_err(|error| TopologyCertificationError::Query(error.to_string()))?
         .cycle_identities()

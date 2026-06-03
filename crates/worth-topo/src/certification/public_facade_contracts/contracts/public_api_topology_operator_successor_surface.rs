@@ -15,37 +15,38 @@ fn _topology_operator_successor_surface_contracts() {
         };
     let _: fn(Vec<TopologyLoopSuccessorRewireMember>) -> TopologyRewireLoopSuccessorProgramDeclaration =
         TopologyRewireLoopSuccessorProgramDeclaration::new;
+    let _: fn(
+        TopologyRewireLoopSuccessorProgramDeclaration,
+    ) -> TopologyOperatorGroupedInput<TopologyRewireLoopSuccessorProgramDeclaration> =
+        topology_grouped_operator_neighborhood::<TopologyRewireLoopSuccessorProgramDeclaration>;
+    let _: fn(
+        TopologyOperatorGroupedInput<TopologyRewireLoopSuccessorProgramDeclaration>,
+        ForgeQuerySupportContributionAuthoring,
+    ) -> TopologyOperatorGroupedContributionInput<TopologyRewireLoopSuccessorProgramDeclaration> =
+        |input, contribution| input.with_shared_support_contribution(contribution);
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologyRewireLoopSuccessorProgramDeclaration,
+        TopologyOperatorGroupedInput<TopologyRewireLoopSuccessorProgramDeclaration>,
     ) -> Result<
-        forge_query::facade::ForgeQueryDeclarationEnvelope<
-            TopologyQueryDomain,
-            TopologyRewireLoopSuccessorProgramDeclaration,
-        >,
-        forge_query::facade::ForgeQueryDeclarationEntryOrchestrationTerminalError<
-            TopologyQueryDomain,
-            TopologyRewireLoopSuccessorProgramDeclaration,
-        >,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry::<
+        TopologyOperatorGroupedDeclaration<TopologyRewireLoopSuccessorProgramDeclaration>,
+        TopologyOperatorGroupedDeclarationStop,
+    > = <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::declare_topology_grouped_operator::<
         TopologyRewireLoopSuccessorProgramDeclaration,
     >;
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologyRewireLoopSuccessorProgramDeclaration,
-    ) -> forge_query::facade::ForgeQueryDeclarationEntryOrchestrationChecked<
-        TopologyQueryDomain,
-        TopologyRewireLoopSuccessorProgramDeclaration,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry_checked::<
-        TopologyRewireLoopSuccessorProgramDeclaration,
-    >;
+        TopologyOperatorGroupedDeclaration<TopologyRewireLoopSuccessorProgramDeclaration>,
+    ) -> TopologyOperatorGroupedOutcome<TopologyRewireLoopSuccessorProgramDeclaration> =
+        <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::orchestrate_topology_grouped_operator_outcome::<
+            TopologyRewireLoopSuccessorProgramDeclaration,
+        >;
     let _: for<'a> fn(
         &'a TopologyCurrentHeadConfiguredDomainHandle,
-        TopologyRewireLoopSuccessorProgramDeclaration,
-    ) -> forge_query::facade::ForgeQueryDeclarationEntryOrchestrationProof<
-        TopologyQueryDomain,
-        TopologyRewireLoopSuccessorProgramDeclaration,
-    > = TopologyCurrentHeadConfiguredDomainHandle::orchestrate_declaration_entry_proof::<
+        TopologyOperatorGroupedContributionInput<TopologyRewireLoopSuccessorProgramDeclaration>,
+    ) -> Result<
+        TopologyOperatorGroupedContributionComposition<TopologyRewireLoopSuccessorProgramDeclaration>,
+        TopologyOperatorGroupedContributionStop<TopologyRewireLoopSuccessorProgramDeclaration>,
+    > = <TopologyCurrentHeadConfiguredDomainHandle as TopologyOperatorWorkflowHandleExt>::grouped_topology_operator_contributions_checked::<
         TopologyRewireLoopSuccessorProgramDeclaration,
     >;
 }

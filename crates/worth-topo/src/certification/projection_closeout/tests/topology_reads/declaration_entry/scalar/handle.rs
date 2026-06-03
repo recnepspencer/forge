@@ -1,12 +1,11 @@
-use forge_query::facade::{
-    ForgeQueryDeclarationEntryOrchestrationChecked,
-    ForgeQueryDeclarationEntryOrchestrationTerminalError,
-};
-
 use super::super::super::support::{current_head_query_handle, snapshot_query_handle};
 use super::support::{
     detach_boundary_declaration, detach_radial_declaration, detach_shell_or_wire_declaration,
     retire_declaration, rewire_endpoint_declaration, splice_radial_declaration,
+};
+use crate::facade::{
+    TopologyOperatorEnvelopeChecked, TopologyOperatorEnvelopeTerminalError,
+    TopologyOperatorWorkflowHandleExt,
 };
 
 fn assert_current_head_envelopes<I>(declaration: I)
@@ -16,19 +15,19 @@ where
 {
     let handle = current_head_query_handle();
     let ordinary = handle
-        .orchestrate_declaration_entry(declaration.clone())
+        .orchestrate_topology_operator_envelope(declaration.clone())
         .unwrap_or_else(|_| panic!("current-head declaration should envelope"));
-    let checked = handle.orchestrate_declaration_entry_checked(declaration.clone());
-    let proof = handle.orchestrate_declaration_entry_proof(declaration);
+    let checked = handle.orchestrate_topology_operator_envelope_checked(declaration.clone());
+    let proof = handle.orchestrate_topology_operator_envelope_proof(declaration);
 
     match checked {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped checked declaration"),
     }
     match proof.outcome() {
-        ForgeQueryDeclarationEntryOrchestrationChecked::Enveloped(envelope) => {
+        TopologyOperatorEnvelopeChecked::Enveloped(envelope) => {
             assert_eq!(ordinary.envelope_digest(), envelope.envelope_digest());
         }
         _ => panic!("expected enveloped proof declaration"),
@@ -43,12 +42,12 @@ where
     let handle = snapshot_query_handle();
 
     assert!(matches!(
-        handle.orchestrate_declaration_entry(declaration.clone()),
-        Err(ForgeQueryDeclarationEntryOrchestrationTerminalError::RebindRequired(_))
+        handle.orchestrate_topology_operator_envelope(declaration.clone()),
+        Err(TopologyOperatorEnvelopeTerminalError::RebindRequired(_))
     ));
     assert!(matches!(
-        handle.orchestrate_declaration_entry_checked(declaration),
-        ForgeQueryDeclarationEntryOrchestrationChecked::RebindRequired(_)
+        handle.orchestrate_topology_operator_envelope_checked(declaration),
+        TopologyOperatorEnvelopeChecked::RebindRequired(_)
     ));
 }
 

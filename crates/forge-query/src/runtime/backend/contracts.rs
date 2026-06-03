@@ -13,6 +13,7 @@ use crate::memory_workspace::{
     ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt,
     ForgeQueryWorkspaceError,
 };
+use crate::program::ForgeQueryDerivedView;
 use crate::schema_view::QuerySchemaView;
 use crate::subscription::SubscriptionActivationInput;
 
@@ -119,6 +120,14 @@ pub trait ForgeQueryRuntimeBackend {
         receipt: &ForgeQueryWriteReceipt,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryRuntimeInspectionEvidence, ForgeQueryWorkspaceError>;
+
+    fn declaration_initialization_metadata(
+        &self,
+        _view: &ForgeQueryDerivedView,
+        _snapshot_token: &str,
+    ) -> Result<crate::runtime::ForgeQueryMutationMetadata, ForgeQueryWorkspaceError> {
+        Ok(crate::runtime::ForgeQueryMutationMetadata::default())
+    }
 
     fn grouped_baseline_members(
         &self,
@@ -297,4 +306,12 @@ pub trait ForgeQueryRuntimeInspectorEvidenceAdapter {
         receipt: &ForgeQueryWriteReceipt,
         authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryRuntimeInspectionEvidence, ForgeQueryWorkspaceError>;
+}
+
+pub trait ForgeQueryRuntimeDeclarationInitializationAdapter {
+    fn declaration_initialization_metadata(
+        &self,
+        view: &ForgeQueryDerivedView,
+        snapshot_token: &str,
+    ) -> Result<crate::runtime::ForgeQueryMutationMetadata, ForgeQueryWorkspaceError>;
 }

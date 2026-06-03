@@ -1,4 +1,5 @@
 use super::*;
+use crate::facade::TopologyBranchAuthoringBoundary;
 
 #[test]
 fn primitive_corpus_certification_runs_cases_through_authority_and_reports_family_coverage() {
@@ -211,6 +212,12 @@ fn branch_local_default_primitive_corpus_preserves_branch_local_reports_for_admi
         .cases
         .iter()
         .all(|case| case.certification.branch_local_topology_report.branch_local));
+    assert!(corpus.cases.iter().all(|case| {
+        case.certification
+            .branch_local_topology_report
+            .branch_authoring_boundary
+            == Some(TopologyBranchAuthoringBoundary::SchemaTopologyAuthoring)
+    }));
     assert!(corpus.cases.iter().all(|case| {
         case.certification.branch_local_topology_report.branch_id.0 == "feature"
             && case

@@ -44,6 +44,14 @@ fn materialize_intent_common_path_helper_executes_through_canonical_handoff() {
         .expect("materialize common path should execute");
 
     assert_eq!(result.rows().len(), 1);
+    let decoded: String = result
+        .decode_single_row()
+        .expect("single materialized row should decode");
+    assert_eq!(
+        decoded,
+        serde_json::from_value::<String>(result.rows()[0].clone())
+            .expect("materialized row should decode through serde as the same payload"),
+    );
     assert_eq!(
         result
             .receipt()
