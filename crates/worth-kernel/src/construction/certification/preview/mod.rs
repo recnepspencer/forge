@@ -45,7 +45,7 @@ mod tests {
                 .expect("aggressive")
                 .commit_disposition(),
             SpatialIntentPreviewCommitDisposition::WouldAutoResolve(
-                worth_spatial::facade::SpatialIntentCandidate::SnapFlush
+                worth_spatial::facade::arbitration::SpatialIntentCandidate::SnapFlush
             )
         );
         assert!(report
@@ -53,7 +53,7 @@ mod tests {
             .expect("blocked")
             .warnings()
             .contains(&SpatialIntentPreviewWarning::BlockedFutureCandidate(
-                worth_spatial::facade::SpatialBlockedCapability::MergeBoolean
+                worth_spatial::facade::arbitration::SpatialBlockedCapability::MergeBoolean
             )));
         assert_eq!(
             report

@@ -2,7 +2,7 @@ use crate::construction::request::{
     PrimitiveConstructionGeometryError, PrimitiveConstructionPhaseError,
 };
 use worth_geom::facade::PrimitiveRealizationError;
-use worth_spatial::facade::SpatialPlacementError;
+use worth_spatial::facade::placement::SpatialPlacementError;
 
 pub(super) fn map_geometry(error: impl ToString) -> PrimitiveConstructionPhaseError {
     PrimitiveConstructionPhaseError::Geometry(PrimitiveConstructionGeometryError::GeometryFailure(

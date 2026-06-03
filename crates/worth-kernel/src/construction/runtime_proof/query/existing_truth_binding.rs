@@ -97,9 +97,9 @@ impl PrimitiveConstructionQueryExistingTruthBindingReport {
 }
 
 pub fn prepare_primitive_construction_query_existing_truth_binding_report(
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: PrimitiveConstructionIntent,
 ) -> PrimitiveConstructionQueryExistingTruthBindingReport {
-    let family = intent.into().family();
+    let family = intent.family();
     let forbidden_pattern_count = AUDITED_FILES
         .iter()
         .flat_map(|(_, source)| {

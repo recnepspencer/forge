@@ -1,16 +1,12 @@
 use crate::spatial_intent::refs::{
-    EmptySpatialWitnessCatalog, SpatialCarrierDirectionRole, SpatialCarrierPointRole,
-    SpatialCatalogParameterAdmission, SpatialDirectionWitnessRef, SpatialPointWitnessRef,
-    SpatialWitnessCatalog,
+    SpatialCarrierDirectionRole, SpatialCarrierPointRole, SpatialCatalogParameterAdmission,
+    SpatialDirectionWitnessRef, SpatialPointWitnessRef, SpatialWitnessCatalog,
 };
 use crate::spatial_intent::resolution::{
     SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
 };
 
-use super::progression::{
-    admit_requested_spatial_direction_witness, admit_requested_spatial_point_witness,
-    request_spatial_direction_witness, request_spatial_point_witness,
-    resolve_admitted_spatial_direction_witness, resolve_admitted_spatial_point_witness,
+use super::admitted_witness_requests::{
     AdmittedSpatialDirectionWitnessRequest, AdmittedSpatialPointWitnessRequest,
 };
 use super::witness_support::{
@@ -66,56 +62,6 @@ impl ResolvedSpatialDirectionWitness {
 
     pub fn parameter_admission(&self) -> Option<&SpatialCatalogParameterAdmission> {
         self.parameter_admission.as_ref()
-    }
-}
-
-pub fn resolve_spatial_point_witness(
-    requested: SpatialPointWitnessRef,
-) -> Result<ResolvedSpatialPointWitness, SpatialWitnessFailureClass> {
-    resolve_spatial_point_witness_with_catalog(requested, &EmptySpatialWitnessCatalog)
-}
-
-pub fn resolve_spatial_point_witness_with_catalog(
-    requested: SpatialPointWitnessRef,
-    catalog: &impl SpatialWitnessCatalog,
-) -> Result<ResolvedSpatialPointWitness, SpatialWitnessFailureClass> {
-    let requested = request_spatial_point_witness(requested);
-    let admitted = match admit_requested_spatial_point_witness(requested) {
-        forge_proof::TransitionOutcome::Success(admitted) => admitted,
-        forge_proof::TransitionOutcome::Denied(denial) => return Err(denial),
-        _ => unreachable!("witness admission uses only denial outcomes"),
-    };
-    match resolve_admitted_spatial_point_witness(admitted, catalog) {
-        forge_proof::TransitionOutcome::Success(resolved) => {
-            Ok(resolved.into_parts().into_parts().0)
-        }
-        forge_proof::TransitionOutcome::Denied(denial) => Err(denial),
-        _ => unreachable!("witness resolution uses only denial outcomes"),
-    }
-}
-
-pub fn resolve_spatial_direction_witness(
-    requested: SpatialDirectionWitnessRef,
-) -> Result<ResolvedSpatialDirectionWitness, SpatialWitnessFailureClass> {
-    resolve_spatial_direction_witness_with_catalog(requested, &EmptySpatialWitnessCatalog)
-}
-
-pub fn resolve_spatial_direction_witness_with_catalog(
-    requested: SpatialDirectionWitnessRef,
-    catalog: &impl SpatialWitnessCatalog,
-) -> Result<ResolvedSpatialDirectionWitness, SpatialWitnessFailureClass> {
-    let requested = request_spatial_direction_witness(requested);
-    let admitted = match admit_requested_spatial_direction_witness(requested) {
-        forge_proof::TransitionOutcome::Success(admitted) => admitted,
-        forge_proof::TransitionOutcome::Denied(denial) => return Err(denial),
-        _ => unreachable!("witness admission uses only denial outcomes"),
-    };
-    match resolve_admitted_spatial_direction_witness(admitted, catalog) {
-        forge_proof::TransitionOutcome::Success(resolved) => {
-            Ok(resolved.into_parts().into_parts().0)
-        }
-        forge_proof::TransitionOutcome::Denied(denial) => Err(denial),
-        _ => unreachable!("witness resolution uses only denial outcomes"),
     }
 }
 

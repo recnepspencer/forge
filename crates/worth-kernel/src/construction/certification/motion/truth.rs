@@ -11,7 +11,8 @@ use crate::construction::{
     PrimitiveConstructionMotionReplayParityReport, PrimitiveConstructionMotionRuntimeSurfaceStatus,
     PrimitiveConstructionQueryMotionWitnessParityReport,
 };
-use worth_spatial::facade::{SpatialAnchorRef, SpatialWitnessResolutionClass};
+use worth_spatial::facade::refs::SpatialAnchorRef;
+use worth_spatial::facade::witness_resolution::SpatialWitnessResolutionClass;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionMotionCanonicalTruth {

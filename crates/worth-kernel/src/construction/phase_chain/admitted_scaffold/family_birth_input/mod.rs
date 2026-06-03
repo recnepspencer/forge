@@ -1,7 +1,8 @@
 use crate::construction::request::{
     PrimitiveConstructionGeometry, PrimitiveConstructionPhaseError, PrimitiveConstructionRequest,
 };
-use worth_spatial::facade::{AdmittedSpatialPlacement, PrimitiveConstructionBirthScaffoldInput};
+use worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldInput;
+use worth_spatial::facade::placement::AdmittedSpatialPlacement;
 
 mod birth_scaffold;
 mod error_mapping;

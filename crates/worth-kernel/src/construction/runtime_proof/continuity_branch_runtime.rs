@@ -164,7 +164,7 @@ mod tests {
 
         assert_eq!(
             report.continuity_row().continuity_class(),
-            worth_spatial::facade::SpatialIdentityContinuityClass::IdentityReinterpreted
+            worth_spatial::facade::arbitration::SpatialIdentityContinuityClass::IdentityReinterpreted
         );
         assert_eq!(
             report.preview_lane().authority_lane(),

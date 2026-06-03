@@ -1,5 +1,6 @@
 use crate::construction::PrimitiveConstructionIntent;
-use worth_spatial::facade::{SpatialDirectionWitnessRef, SpatialFrameRef, SpatialPlacementSpec};
+use worth_spatial::facade::placement::SpatialPlacementSpec;
+use worth_spatial::facade::refs::{SpatialDirectionWitnessRef, SpatialFrameRef};
 
 pub trait ApplyCreatePlacement: Sized {
     fn apply_create_placement(self, placement: SpatialPlacementSpec) -> Self;

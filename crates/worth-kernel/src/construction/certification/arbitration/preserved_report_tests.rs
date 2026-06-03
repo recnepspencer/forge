@@ -3,7 +3,7 @@ use super::{
     PrimitiveConstructionPreservedIntentResolutionCase, PrimitiveConstructionPreservedIntentTruth,
 };
 use crate::construction::PrimitiveConstructionChosenIntentResolutionAuthority;
-use worth_spatial::facade::{
+use worth_spatial::facade::arbitration::{
     SpatialBlockedCapability, SpatialIntentCandidate, SpatialIntentEscalation,
 };
 

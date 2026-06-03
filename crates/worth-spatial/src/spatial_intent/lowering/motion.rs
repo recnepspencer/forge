@@ -2,8 +2,10 @@ use crate::spatial_intent::refs::{
     EmptySpatialWitnessCatalog, SpatialAnchorRef, SpatialAxis, SpatialDirectionWitnessRef,
     SpatialFrameRef, SpatialPointWitnessRef, SpatialWitnessCatalog,
 };
-use crate::spatial_intent::resolution::{
+use crate::spatial_intent::resolution::witness_resolution::{
     resolve_spatial_direction_witness_with_catalog, resolve_spatial_point_witness_with_catalog,
+};
+use crate::spatial_intent::resolution::{
     ResolvedSpatialDirectionWitness, ResolvedSpatialPointWitness, SpatialWitnessFailureClass,
 };
 

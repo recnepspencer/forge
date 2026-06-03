@@ -1,6 +1,7 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::diagnostics::motion::*;
-use worth_spatial::facade::{SpatialPlacementConstraintError, SpatialWitnessFailureClass};
+use worth_spatial::facade::placement::SpatialPlacementConstraintError;
+use worth_spatial::facade::witness_resolution::SpatialWitnessFailureClass;
 
 #[test]
 fn kernel_public_facade_exports_motion_resolution_policy_report() {
@@ -27,7 +28,7 @@ fn kernel_public_facade_exports_motion_resolution_policy_report() {
             .row(PrimitiveConstructionMotionResolutionPolicyCase::CarrierReorient)
             .expect("carrier reorient")
             .resolution_class(),
-        Some(worth_spatial::facade::SpatialWitnessResolutionClass::CarrierDerived)
+        Some(worth_spatial::facade::witness_resolution::SpatialWitnessResolutionClass::CarrierDerived)
     );
     assert_eq!(
         report

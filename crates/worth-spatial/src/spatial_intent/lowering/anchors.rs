@@ -4,9 +4,9 @@ use crate::spatial_intent::refs::{
     SpatialCatalogResolvedGeometricTag, SpatialDirectionWitnessRef,
     SpatialGeometricTagFailureClass, SpatialWitnessCatalog,
 };
+use crate::spatial_intent::resolution::witness_resolution::resolve_spatial_direction_witness;
 use crate::spatial_intent::resolution::{
-    admit_spatial_frame, resolve_spatial_direction_witness, SpatialFrameError,
-    SpatialWitnessFailureClass,
+    admit_spatial_frame, SpatialFrameError, SpatialWitnessFailureClass,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

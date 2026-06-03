@@ -1,7 +1,10 @@
 use crate::facade::{
-    SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole,
-    SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedGeometricTag,
-    SpatialCatalogResolvedPointWitness, SpatialWitnessCatalog, SpatialWitnessFailureClass,
+    refs::{SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole},
+    witness_catalog::{
+        SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedGeometricTag,
+        SpatialCatalogResolvedPointWitness, SpatialWitnessCatalog,
+    },
+    witness_resolution::SpatialWitnessFailureClass,
 };
 use worth_geom::ParameterSpacePoint;
 

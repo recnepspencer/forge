@@ -1,12 +1,15 @@
+use super::spatial_fixture_witness_catalog::SpatialFixtureWitnessCatalog;
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{
     authoring::{construction::*, intents::*},
     certification::motion::*,
     diagnostics::motion::*,
 };
-use worth_spatial::facade::{
-    SpatialAnchorRef, SpatialCarrierPointRole, SpatialCatalogResolvedPointWitness,
-    SpatialCatalogWitnessResolutionClass, SpatialFixtureWitnessCatalog, SpatialPointWitnessRef,
+use worth_spatial::facade::refs::{
+    SpatialAnchorRef, SpatialCarrierPointRole, SpatialPointWitnessRef,
+};
+use worth_spatial::facade::witness_catalog::{
+    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
 };
 
 #[test]

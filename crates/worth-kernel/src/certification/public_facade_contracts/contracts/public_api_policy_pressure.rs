@@ -1,7 +1,7 @@
 use worth_kernel::facade::{
     authoring::{intents::*, policy::*},
     certification::policy::*,
-    diagnostics::{arbitration::*, continuity::*, policy::*, preview::*},
+    diagnostics::{arbitration::*, policy::*},
 };
 
 #[test]

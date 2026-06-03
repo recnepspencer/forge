@@ -8,7 +8,3 @@ pub use crate::construction::{
     PrimitiveConstructionPreviewRow, PrimitiveConstructionPreviewSurfaceReport,
     PrimitiveConstructionPreviewSurfaceReportError,
 };
-pub use crate::spatial_intent::{
-    PrimitiveIntentPreview, PrimitiveIntentPreviewAssessment,
-    SpatialIntentPreviewCommitDisposition, SpatialIntentPreviewWarning,
-};

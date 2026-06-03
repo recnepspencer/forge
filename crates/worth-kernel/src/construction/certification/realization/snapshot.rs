@@ -75,20 +75,16 @@ fn accepted_snapshot(
     family: PrimitiveConstructionFamily,
     result: &PreparedPrimitiveConstructionResult,
 ) -> PrimitiveConstructionRealizationSnapshot {
-    let artifact = result.canonical_artifact();
     PrimitiveConstructionRealizationSnapshot {
         family,
         admitted: true,
-        selected_strategy: Some(artifact.realization_strategy()),
-        attempted_strategies: artifact
-            .realization_report()
-            .attempted_strategies()
-            .to_vec(),
-        conditioning_witness: Some(artifact.realization_report().conditioning_witness().clone()),
-        stability_class: Some(artifact.stability_class()),
+        selected_strategy: Some(result.realization_strategy()),
+        attempted_strategies: result.attempted_realization_strategies().to_vec(),
+        conditioning_witness: Some(result.realization_report().conditioning_witness().clone()),
+        stability_class: Some(result.stability_class()),
         exhaustion_reason: None,
-        canonical_artifact_digest: Some(artifact.artifact_digest().to_string()),
-        realization_digest: artifact.realization_report().report_digest().to_string(),
+        canonical_artifact_digest: Some(result.artifact_digest().to_string()),
+        realization_digest: result.realization_report().report_digest().to_string(),
     }
 }
 

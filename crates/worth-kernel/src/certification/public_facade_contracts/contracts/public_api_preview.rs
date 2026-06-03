@@ -89,7 +89,7 @@ fn kernel_public_facade_exports_preview_assessment_envelope_and_profile_override
             .with_preview_richness(SpatialPreviewRichness::HighFidelity)
             .with_arbitration_posture(SpatialArbitrationPosture::PreferSnap),
     );
-    let assessment = PrimitiveIntentPreview::analyze(
+    let assessment = PrimitiveIntentPreviewAssessment::analyze(
         SpatialAuthoredActKind::Move,
         &[SpatialObservedRelationFact::GrazingContact],
         profile,
@@ -101,7 +101,7 @@ fn kernel_public_facade_exports_preview_assessment_envelope_and_profile_override
         SpatialIntentPreviewCommitDisposition::WouldAutoResolve(SpatialIntentCandidate::SnapFlush)
     );
     assert_eq!(
-        assessment.preview().preview_richness(),
+        assessment.preview_richness(),
         SpatialPreviewRichness::HighFidelity
     );
     assert_eq!(
@@ -113,7 +113,7 @@ fn kernel_public_facade_exports_preview_assessment_envelope_and_profile_override
         .warnings()
         .contains(&SpatialIntentPreviewWarning::HighFidelityPreview));
     assert_eq!(
-        assessment.preview().commit_disposition(),
+        assessment.commit_disposition(),
         SpatialIntentPreviewCommitDisposition::WouldAutoResolve(SpatialIntentCandidate::SnapFlush)
     );
 }

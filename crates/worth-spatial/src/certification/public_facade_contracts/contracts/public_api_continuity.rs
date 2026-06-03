@@ -1,6 +1,5 @@
-use worth_spatial::facade::{
-    analyze_spatial_intent_conflict_with_capabilities_and_profile,
-    assess_spatial_identity_continuity_from_analysis, SpatialAuthoredActKind,
+use worth_spatial::facade::arbitration::{
+    analyze_spatial_intent_conflict_with_capabilities_and_profile, SpatialAuthoredActKind,
     SpatialIdentityContinuityClass, SpatialIntentCapabilitySet, SpatialIntentPolicyProfile,
     SpatialObservedRelationFact,
 };
@@ -13,7 +12,7 @@ fn spatial_public_facade_exports_identity_continuity_surface() {
         SpatialIntentCapabilitySet::blocked_defaults().with_host_attach(),
         SpatialIntentPolicyProfile::bim_host_friendly(),
     );
-    let continuity = assess_spatial_identity_continuity_from_analysis(&analysis);
+    let continuity = analysis.identity_continuity_assessment();
 
     assert_eq!(
         continuity.continuity_class(),

@@ -1,6 +1,6 @@
-use crate::construction::artifact::CanonicalPrimitiveConstructionArtifact;
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
+use crate::construction::result::PreparedPrimitiveConstructionResult;
 use worth_geom::facade::{
     PrimitiveFeatureConditioningClass, PrimitiveNormalizationDisposition,
     PrimitiveRealizationExhaustionReason, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
@@ -32,14 +32,14 @@ impl PrimitiveConstructionRuntimeRealizationTruth {
         )
     }
 
-    pub(crate) fn from_artifact(artifact: &CanonicalPrimitiveConstructionArtifact) -> Self {
+    pub(crate) fn from_prepared_result(prepared: &PreparedPrimitiveConstructionResult) -> Self {
         Self::new(
-            Some(artifact.realization_strategy()),
-            artifact.attempted_realization_strategies().to_vec(),
-            Some(artifact.stability_class()),
-            Some(artifact.feature_conditioning_class()),
-            Some(artifact.support_normal_class()),
-            Some(artifact.normalization_disposition()),
+            Some(prepared.realization_strategy()),
+            prepared.attempted_realization_strategies().to_vec(),
+            Some(prepared.stability_class()),
+            Some(prepared.feature_conditioning_class()),
+            Some(prepared.support_normal_class()),
+            Some(prepared.normalization_disposition()),
             None,
         )
     }

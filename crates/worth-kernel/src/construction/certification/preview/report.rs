@@ -1,9 +1,8 @@
 use crate::construction::digest::digest_owned_parts;
-use crate::spatial_intent::preview::preview_primitive_intent_with_capabilities_and_profile;
 use crate::spatial_intent::{
-    SpatialAuthoredActKind, SpatialBlockedCapability, SpatialIntentCandidate,
-    SpatialIntentCapabilitySet, SpatialIntentConflictClass, SpatialIntentPolicyProfile,
-    SpatialIntentPreviewCommitDisposition, SpatialIntentPreviewWarning,
+    PrimitiveIntentPreviewAssessment, SpatialAuthoredActKind, SpatialBlockedCapability,
+    SpatialIntentCandidate, SpatialIntentCapabilitySet, SpatialIntentConflictClass,
+    SpatialIntentPolicyProfile, SpatialIntentPreviewCommitDisposition, SpatialIntentPreviewWarning,
     SpatialObservedRelationFact, SpatialPreviewRichness,
 };
 
@@ -21,8 +20,8 @@ pub struct PrimitiveConstructionPreviewRow {
     case: PrimitiveConstructionPreviewCase,
     profile_name: &'static str,
     authored_act: SpatialAuthoredActKind,
-    proximity_posture: worth_spatial::facade::SpatialThresholdPosture,
-    alignment_posture: worth_spatial::facade::SpatialThresholdPosture,
+    proximity_posture: worth_spatial::facade::arbitration::SpatialThresholdPosture,
+    alignment_posture: worth_spatial::facade::arbitration::SpatialThresholdPosture,
     conflict_class: SpatialIntentConflictClass,
     commit_disposition: SpatialIntentPreviewCommitDisposition,
     preview_richness: SpatialPreviewRichness,
@@ -35,7 +34,7 @@ pub struct PrimitiveConstructionPreviewRow {
 impl PrimitiveConstructionPreviewRow {
     fn new(case: PrimitiveConstructionPreviewCase) -> Self {
         let (authored_act, observed_relations, capabilities, profile) = case.fixture();
-        let preview = preview_primitive_intent_with_capabilities_and_profile(
+        let preview = PrimitiveIntentPreviewAssessment::analyze_with_capabilities(
             authored_act,
             &observed_relations,
             capabilities,
@@ -51,8 +50,8 @@ impl PrimitiveConstructionPreviewRow {
             .candidates()
             .iter()
             .filter_map(|candidate| match candidate.availability() {
-                worth_spatial::facade::SpatialIntentCandidateAvailability::Available => None,
-                worth_spatial::facade::SpatialIntentCandidateAvailability::Blocked(blocked) => {
+                worth_spatial::facade::arbitration::SpatialIntentCandidateAvailability::Available => None,
+                worth_spatial::facade::arbitration::SpatialIntentCandidateAvailability::Blocked(blocked) => {
                     Some((candidate.candidate(), blocked))
                 }
             })
@@ -97,11 +96,11 @@ impl PrimitiveConstructionPreviewRow {
         self.authored_act
     }
 
-    pub fn proximity_posture(&self) -> worth_spatial::facade::SpatialThresholdPosture {
+    pub fn proximity_posture(&self) -> worth_spatial::facade::arbitration::SpatialThresholdPosture {
         self.proximity_posture
     }
 
-    pub fn alignment_posture(&self) -> worth_spatial::facade::SpatialThresholdPosture {
+    pub fn alignment_posture(&self) -> worth_spatial::facade::arbitration::SpatialThresholdPosture {
         self.alignment_posture
     }
 

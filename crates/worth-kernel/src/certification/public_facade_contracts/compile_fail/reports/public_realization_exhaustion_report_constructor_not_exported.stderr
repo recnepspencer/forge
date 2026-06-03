@@ -1,11 +1,15 @@
-error[E0432]: unresolved imports `worth_kernel::facade::PrimitiveConstructionRealizationExhaustionReport`, `worth_kernel::facade::PrimitiveConstructionRealizationExhaustionStatus`
- --> src/certification/public_facade_contracts/compile_fail/reports/public_realization_exhaustion_report_constructor_not_exported.rs:2:34
+error[E0432]: unresolved imports `worth_kernel::facade::PrimitiveConstructionFamily`, `worth_kernel::facade::PrimitiveConstructionRealizationExhaustionReport`, `worth_kernel::facade::PrimitiveConstructionRealizationExhaustionStatus`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_realization_exhaustion_report_constructor_not_exported.rs:2:5
   |
 2 |     PrimitiveConstructionFamily, PrimitiveConstructionRealizationExhaustionReport,
-  |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionRealizationExhaustionReport` in `facade`
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionRealizationExhaustionReport` in `facade`
+  |     |
+  |     no `PrimitiveConstructionFamily` in `facade`
 3 |     PrimitiveConstructionRealizationExhaustionStatus,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionRealizationExhaustionStatus` in `facade`
   |
+  = help: consider importing this enum instead:
+          worth_kernel::facade::authoring::construction::PrimitiveConstructionFamily
   = help: consider importing this struct instead:
           worth_kernel::facade::certification::realization::PrimitiveConstructionRealizationExhaustionReport
   = help: consider importing this enum instead:

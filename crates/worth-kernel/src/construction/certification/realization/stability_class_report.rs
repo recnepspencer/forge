@@ -80,9 +80,9 @@ impl PrimitiveConstructionStabilityClassReport {
 }
 
 pub fn prepare_primitive_construction_stability_class_report(
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: PrimitiveConstructionIntent,
 ) -> PrimitiveConstructionStabilityClassReport {
     PrimitiveConstructionStabilityClassReport::from_snapshot(&prepare_realization_snapshot(
-        intent.into().into_request(),
+        intent.into_request(),
     ))
 }

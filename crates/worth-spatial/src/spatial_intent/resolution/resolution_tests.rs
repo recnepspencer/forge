@@ -1,14 +1,20 @@
-use super::{
+use crate::facade::{
+    refs::{
+        SpatialAxis, SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole,
+        SpatialDirectionWitnessRef, SpatialFrameRef, SpatialPointWitnessRef,
+    },
+    witness_catalog::{
+        SpatialCatalogParameterAdmission, SpatialCatalogResolvedDirectionWitness,
+        SpatialCatalogResolvedPointWitness, SpatialCatalogTrimmedAdmissionPosture,
+        SpatialCatalogWitnessResolutionClass,
+    },
+};
+use crate::spatial_intent::resolution::witness_resolution::{
     resolve_spatial_direction_witness, resolve_spatial_direction_witness_with_catalog,
     resolve_spatial_point_witness, resolve_spatial_point_witness_with_catalog,
-    SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
 };
-use crate::facade::{
-    SpatialAxis, SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole,
-    SpatialCatalogParameterAdmission, SpatialCatalogResolvedDirectionWitness,
-    SpatialCatalogResolvedPointWitness, SpatialCatalogTrimmedAdmissionPosture,
-    SpatialCatalogWitnessResolutionClass, SpatialDirectionWitnessRef, SpatialFrameRef,
-    SpatialPointWitnessRef,
+use crate::spatial_intent::resolution::{
+    SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
 };
 use crate::test_support::SpatialFixtureWitnessCatalog;
 use worth_geom::{ParameterDomain, ParameterSpacePoint, PolygonalTrimmedParameterRegion};

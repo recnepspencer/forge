@@ -9,7 +9,7 @@ use crate::construction::certification::{
     PrimitiveConstructionIntentArbitrationPolicyRow, PrimitiveConstructionObservedIntentRelation,
 };
 use crate::construction::digest::digest_owned_parts;
-use worth_spatial::facade::{SpatialIntentCandidate, SpatialIntentEscalation};
+use worth_spatial::facade::arbitration::{SpatialIntentCandidate, SpatialIntentEscalation};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionIntentArbitrationQueryInspectionSurface {
@@ -69,14 +69,14 @@ pub enum PrimitiveConstructionIntentChosenTruth {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionQueryIntentArbitrationParityReport {
-    authored_act: worth_spatial::facade::SpatialAuthoredActKind,
+    authored_act: worth_spatial::facade::arbitration::SpatialAuthoredActKind,
     observed_relations: Vec<PrimitiveConstructionObservedIntentRelation>,
     conflict_class: PrimitiveConstructionIntentArbitrationConflictClass,
     escalation: SpatialIntentEscalation,
     candidates: Vec<SpatialIntentCandidate>,
     blocked_candidates: Vec<(
         SpatialIntentCandidate,
-        worth_spatial::facade::SpatialBlockedCapability,
+        worth_spatial::facade::arbitration::SpatialBlockedCapability,
     )>,
     chosen_truth: PrimitiveConstructionIntentChosenTruth,
     query_contract_digest: String,
@@ -177,7 +177,7 @@ impl PrimitiveConstructionQueryIntentArbitrationParityReport {
         })
     }
 
-    pub fn authored_act(&self) -> worth_spatial::facade::SpatialAuthoredActKind {
+    pub fn authored_act(&self) -> worth_spatial::facade::arbitration::SpatialAuthoredActKind {
         self.authored_act
     }
 
@@ -201,7 +201,7 @@ impl PrimitiveConstructionQueryIntentArbitrationParityReport {
         &self,
     ) -> &[(
         SpatialIntentCandidate,
-        worth_spatial::facade::SpatialBlockedCapability,
+        worth_spatial::facade::arbitration::SpatialBlockedCapability,
     )] {
         &self.blocked_candidates
     }
@@ -325,7 +325,7 @@ mod tests {
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,
     };
-    use worth_spatial::facade::SpatialIntentCandidate;
+    use worth_spatial::facade::arbitration::SpatialIntentCandidate;
 
     #[test]
     fn query_arbitration_inspection_report_preserves_unresolved_conflict_truth() {

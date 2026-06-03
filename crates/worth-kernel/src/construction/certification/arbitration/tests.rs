@@ -8,7 +8,7 @@ use super::{
     PrimitiveConstructionIntentArbitrationDxSurface,
     PrimitiveConstructionIntentArbitrationPolicyCase,
 };
-use worth_spatial::facade::{
+use worth_spatial::facade::arbitration::{
     SpatialBlockedCapability, SpatialIntentCandidate, SpatialIntentEscalation,
 };
 

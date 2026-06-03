@@ -3,7 +3,7 @@ use topology::facade::{milestone_one_runtime_builder, topology_runtime, Topology
 use worth_kernel::facade::{
     authoring::{intents::*, policy::*},
     certification::{continuity::*, query::*},
-    diagnostics::{arbitration::*, continuity::*, preview::*},
+    diagnostics::{arbitration::*, continuity::*},
 };
 
 #[test]
@@ -38,7 +38,7 @@ fn kernel_public_facade_exports_continuity_surface_and_query_parity() {
 fn kernel_public_facade_exports_continuity_hostility_suite_and_preview_inspection() {
     let suite = prepare_primitive_construction_continuity_hostility_suite_report()
         .expect("continuity suite");
-    let preview = PrimitiveIntentPreview::analyze_with_capabilities(
+    let preview = PrimitiveIntentPreviewAssessment::analyze_with_capabilities(
         SpatialAuthoredActKind::Move,
         &[SpatialObservedRelationFact::GrazingContact],
         SpatialIntentCapabilitySet::blocked_defaults(),

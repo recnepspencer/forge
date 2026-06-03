@@ -3,7 +3,8 @@ use worth_math::error::MathError;
 use worth_math::numeric::metrics::{
     angle_between_unit_vectors, distance_between_points, FiniteNonNegativeF64, UnitVector3,
 };
-use worth_spatial::facade::{admit_spatial_placement, SpatialFrameRef};
+use worth_spatial::facade::placement::admit_spatial_placement;
+use worth_spatial::facade::refs::SpatialFrameRef;
 
 use super::super::execution::prepare_corpus_execution_proof_ingredients;
 use super::super::ordering::{lane_digest as ordering_lane_digest, normalized_matrix_digest};
@@ -138,11 +139,19 @@ fn build_row(
                         "{error:?}"
                     ))
                 })?;
-                session.prepare_result(intent.clone()).map_err(|error| {
-                    PrimitiveConstructionCompoundAdversarialSiegeError::QueryEntry(
-                        error.to_string(),
-                    )
-                })?
+                session
+                    .author(intent.clone())
+                    .map_err(|error| {
+                        PrimitiveConstructionCompoundAdversarialSiegeError::QueryEntry(
+                            error.to_string(),
+                        )
+                    })?
+                    .prepare_result()
+                    .map_err(|error| {
+                        PrimitiveConstructionCompoundAdversarialSiegeError::QueryEntry(
+                            error.to_string(),
+                        )
+                    })?
             };
             Ok(PrimitiveConstructionCompoundRow::new(
                 scenario.scenario_id.to_string(),
@@ -301,8 +310,7 @@ fn rejected_locality(
     crate::construction::PrimitiveConstructionRejectionLocalityRow,
     PrimitiveConstructionCompoundAdversarialSiegeError,
 > {
-    let report =
-        prepare_primitive_construction_rejection_locality_report(vec![intent.into_request()]);
+    let report = prepare_primitive_construction_rejection_locality_report(vec![intent]);
     match report.rows() {
         [row] => Ok(row.clone()),
         [] => Err(

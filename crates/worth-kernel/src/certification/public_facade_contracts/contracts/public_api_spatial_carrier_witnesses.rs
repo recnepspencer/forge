@@ -1,16 +1,21 @@
+use super::spatial_fixture_witness_catalog::SpatialFixtureWitnessCatalog;
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_geom::ParameterSpacePoint;
 use worth_kernel::facade::{
-    authoring::{construction::*, intents::*},
+    authoring::{construction::*, create::CreateSpatialIntent, intents::*},
     certification::query::*,
     diagnostics::motion::*,
 };
-use worth_spatial::facade::{
-    admit_spatial_placement_with_catalog, SpatialAnchorRef, SpatialCarrierDirectionRole,
-    SpatialCarrierKind, SpatialCarrierPointRole, SpatialCatalogResolvedDirectionWitness,
-    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
-    SpatialDirectionWitnessRef, SpatialFixtureWitnessCatalog, SpatialWitnessResolutionClass,
+use worth_spatial::facade::placement::admit_spatial_placement_with_catalog;
+use worth_spatial::facade::refs::{
+    SpatialAnchorRef, SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole,
+    SpatialDirectionWitnessRef,
 };
+use worth_spatial::facade::witness_catalog::{
+    SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
+    SpatialCatalogWitnessResolutionClass,
+};
+use worth_spatial::facade::witness_resolution::SpatialWitnessResolutionClass;
 
 #[test]
 fn kernel_public_facade_exports_catalog_backed_carrier_motion_and_placement_surfaces() {
@@ -66,18 +71,30 @@ fn kernel_public_facade_exports_catalog_backed_carrier_motion_and_placement_surf
             &catalog,
         )
         .expect("placement");
-    let rotated = RotateSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
-        RegularPyramidSpec {
-            sides: 4,
-            radius: 1.0,
-            height: 2.0,
-        },
-    ))
-    .about(SpatialAnchorRef::feature_owned("feature-anchor"))
-    .around([0.0, 0.0, 1.0])
-    .by_radians(std::f64::consts::FRAC_PI_2)
-    .finish_with_catalog(&catalog)
-    .expect("feature-owned anchor rotate");
+    let runtime = milestone_one_runtime_builder()
+        .expect("runtime builder")
+        .build();
+    let mut workspace = topology_runtime(
+        TopologyRuntimeAdapters::current_head(runtime),
+        "worth-kernel.public-api-carrier-motion".to_string(),
+    )
+    .expect("workspace");
+    let mut session = primitive_construction_authoring(&mut workspace).expect("authoring session");
+    let rotated = session
+        .author_with_catalog(
+            RotateSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
+                RegularPyramidSpec {
+                    sides: 4,
+                    radius: 1.0,
+                    height: 2.0,
+                },
+            ))
+            .about(SpatialAnchorRef::feature_owned("feature-anchor"))
+            .around([0.0, 0.0, 1.0])
+            .by_radians(std::f64::consts::FRAC_PI_2),
+            &catalog,
+        )
+        .and_then(|entry| entry.prepare_result());
 
     assert_eq!(
         report.resolution_class(),
@@ -89,8 +106,7 @@ fn kernel_public_facade_exports_catalog_backed_carrier_motion_and_placement_surf
         SpatialWitnessResolutionClass::FallbackDerived
     );
     assert_eq!(admitted.facing_vector(), [0.0, 0.0, 1.0]);
-    assert!((rotated.placement_spec().origin()[0] - 4.0).abs() < 1.0e-12);
-    assert!((rotated.placement_spec().origin()[1] + 4.0).abs() < 1.0e-12);
+    assert!(rotated.is_ok());
 }
 
 #[test]

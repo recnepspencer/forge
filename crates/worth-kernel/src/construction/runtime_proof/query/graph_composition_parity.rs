@@ -8,8 +8,7 @@ use crate::construction::authoring::{
     WorthKernelAuthorityError,
 };
 use crate::construction::digest::digest_owned_parts;
-use crate::construction::intent::PrimitiveConstructionIntent;
-use crate::construction::request::PrimitiveConstructionFamily;
+use crate::construction::{PrimitiveConstructionAuthoringInput, PrimitiveConstructionFamily};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionQueryGraphCompositionParityReport {
     family: PrimitiveConstructionFamily,
@@ -110,7 +109,7 @@ impl std::error::Error for PrimitiveConstructionQueryGraphCompositionParityError
 
 pub fn prepare_primitive_construction_query_graph_composition_parity_report(
     workspace: &mut ForgeQueryWorkspace,
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: impl PrimitiveConstructionAuthoringInput,
 ) -> Result<
     PrimitiveConstructionQueryGraphCompositionParityReport,
     PrimitiveConstructionQueryGraphCompositionParityError,
@@ -124,19 +123,17 @@ pub fn prepare_primitive_construction_query_graph_composition_parity_report(
         let mut session = primitive_construction_authoring(workspace)
             .map_err(PrimitiveConstructionQueryGraphCompositionParityError::Authority)?;
         session
-            .prepare_result(intent)
+            .author(intent)
+            .map_err(PrimitiveConstructionQueryGraphCompositionParityError::QueryEntry)?
+            .prepare_result()
             .map_err(PrimitiveConstructionQueryGraphCompositionParityError::QueryEntry)?
     };
-    let artifact = prepared.canonical_artifact();
-    let topology_query_envelope = prepared
-        .evidence()
-        .topology_query_handoff()
-        .topology_query_envelope();
+    let topology_query_envelope = prepared.topology_query_handoff().topology_query_envelope();
     Ok(PrimitiveConstructionQueryGraphCompositionParityReport::new(
         prepared.family(),
         query_contract_digest,
         topology_query_envelope.mutation_surface(),
-        artifact.mutation_surface(),
+        prepared.mutation_surface(),
         topology_query_envelope.required_query_families(),
     ))
 }

@@ -9,7 +9,3 @@ pub use crate::construction::{
     PrimitiveConstructionContinuitySurfaceReport,
     PrimitiveConstructionContinuitySurfaceReportError,
 };
-pub use crate::spatial_intent::{
-    SpatialIdentityContinuityAssessment, SpatialIdentityContinuityClass,
-    SpatialIdentityContinuityExplanationClass,
-};

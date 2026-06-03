@@ -1,4 +1,4 @@
-use worth_spatial::facade::SpatialPlacementSpec;
+use worth_spatial::facade::placement::SpatialPlacementSpec;
 
 use super::PrimitiveConstructionGeometry;
 

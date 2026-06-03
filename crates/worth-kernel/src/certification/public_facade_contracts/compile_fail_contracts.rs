@@ -8,10 +8,25 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
         "{compile_fail}/authority/public_authoring_session_constructor_not_exported.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/authority/public_authoring_session_prepare_helpers_demoted.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/phases/public_raw_request_cannot_skip_admission.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/phases/public_intent_admission_phase_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/phases/public_spatial_intent_direct_admission_helpers_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/phases/public_spatial_intent_catalog_admission_helpers_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/phases/public_spatial_intent_finish_helpers_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/phases/public_spatial_intent_catalog_finish_helpers_demoted.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/phases/public_admitted_intent_not_exported.rs"
@@ -29,16 +44,22 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
         "{compile_fail}/phases/public_execution_phase_exports_demoted.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/phases/public_authoring_input_traits_are_sealed.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/authority/public_kernel_certification_plan_not_exported.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/results/public_canonical_artifact_constructor_not_exported.rs"
+        "{compile_fail}/results/public_canonical_artifact_not_exported.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/results/public_prepared_result_constructor_not_exported.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/results/public_root_happy_path_exports_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/results/public_create_placement_exports_demoted.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/results/public_outcome_prepared_happy_path_helpers_demoted.rs"
@@ -75,6 +96,15 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
     ));
     t.compile_fail(format!(
         "{compile_fail}/reports/public_authoring_bucket_exports_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/reports/public_top_level_spatial_intent_exports_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/reports/public_spatial_intent_lowering_error_not_exported_from_intents.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/reports/public_prelude_spatial_intent_exports_demoted.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/reports/public_diagnostics_bucket_exports_demoted.rs"

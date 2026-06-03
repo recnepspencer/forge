@@ -1,5 +1,5 @@
 use worth_kernel::facade::{authoring::intents::*, diagnostics::arbitration::*};
-use worth_spatial::facade::SpatialBlockedCapability;
+use worth_spatial::facade::arbitration::SpatialBlockedCapability;
 
 #[test]
 fn kernel_public_facade_exports_artifact_style_intent_arbitration_analysis_surface() {

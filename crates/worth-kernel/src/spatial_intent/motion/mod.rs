@@ -1,14 +1,17 @@
 use crate::spatial_intent::relations::{
     ConstraintMoveSpatialIntent, ConstraintReorientSpatialIntent,
 };
-use worth_spatial::facade::{
+use worth_spatial::facade::motion::{
     admit_spatial_move, admit_spatial_move_with_catalog, admit_spatial_offset,
     admit_spatial_reorient, admit_spatial_reorient_with_catalog, admit_spatial_rotate,
     admit_spatial_rotate_with_catalog, AdmittedSpatialMove, AdmittedSpatialOffset,
-    AdmittedSpatialReorient, AdmittedSpatialRotate, SpatialAnchorRef, SpatialDirectionWitnessRef,
-    SpatialFrameRef, SpatialMotionError, SpatialMoveSpec, SpatialOffsetSpec,
-    SpatialPointWitnessRef, SpatialReorientSpec, SpatialRotateSpec, SpatialWitnessCatalog,
+    AdmittedSpatialReorient, AdmittedSpatialRotate, SpatialMotionError, SpatialMoveSpec,
+    SpatialOffsetSpec, SpatialReorientSpec, SpatialRotateSpec,
 };
+use worth_spatial::facade::refs::{
+    SpatialAnchorRef, SpatialDirectionWitnessRef, SpatialFrameRef, SpatialPointWitnessRef,
+};
+use worth_spatial::facade::witness_catalog::SpatialWitnessCatalog;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MoveSpatialIntent<S> {
@@ -55,11 +58,11 @@ impl<S> MoveSpatialIntent<S> {
     pub fn motion_spec(&self) -> SpatialMoveSpec {
         self.spec.clone()
     }
-    pub fn admit(&self) -> Result<AdmittedSpatialMove, SpatialMotionError> {
+    pub(crate) fn admit(&self) -> Result<AdmittedSpatialMove, SpatialMotionError> {
         admit_spatial_move(self.spec.clone())
     }
 
-    pub fn admit_with_catalog(
+    pub(crate) fn admit_with_catalog(
         &self,
         catalog: &impl SpatialWitnessCatalog,
     ) -> Result<AdmittedSpatialMove, SpatialMotionError> {
@@ -119,11 +122,11 @@ impl<S> RotateSpatialIntent<S> {
     pub fn motion_spec(&self) -> SpatialRotateSpec {
         self.spec.clone()
     }
-    pub fn admit(&self) -> Result<AdmittedSpatialRotate, SpatialMotionError> {
+    pub(crate) fn admit(&self) -> Result<AdmittedSpatialRotate, SpatialMotionError> {
         admit_spatial_rotate(self.spec.clone())
     }
 
-    pub fn admit_with_catalog(
+    pub(crate) fn admit_with_catalog(
         &self,
         catalog: &impl SpatialWitnessCatalog,
     ) -> Result<AdmittedSpatialRotate, SpatialMotionError> {
@@ -197,11 +200,11 @@ impl<S> ReorientSpatialIntent<S> {
     pub fn motion_spec(&self) -> SpatialReorientSpec {
         self.spec.clone()
     }
-    pub fn admit(&self) -> Result<AdmittedSpatialReorient, SpatialMotionError> {
+    pub(crate) fn admit(&self) -> Result<AdmittedSpatialReorient, SpatialMotionError> {
         admit_spatial_reorient(self.spec.clone())
     }
 
-    pub fn admit_with_catalog(
+    pub(crate) fn admit_with_catalog(
         &self,
         catalog: &impl SpatialWitnessCatalog,
     ) -> Result<AdmittedSpatialReorient, SpatialMotionError> {
@@ -257,7 +260,7 @@ impl<S> OffsetSpatialIntent<S> {
     pub fn motion_spec(&self) -> SpatialOffsetSpec {
         self.spec.clone()
     }
-    pub fn admit(&self) -> Result<AdmittedSpatialOffset, SpatialMotionError> {
+    pub(crate) fn admit(&self) -> Result<AdmittedSpatialOffset, SpatialMotionError> {
         admit_spatial_offset(self.spec.clone())
     }
 }

@@ -6,11 +6,11 @@ use worth_geom::facade::{
 };
 
 use crate::construction::digest::digest_owned_parts;
-use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::runtime_basis::{
     prepare_primitive_construction_branch_preview_runtime_report,
     PrimitiveConstructionBranchPreviewRuntimeReport, PrimitiveConstructionRuntimeBasisError,
 };
+use crate::construction::PrimitiveConstructionAuthoringInput;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionQueryBasisPreviewParityReport {
@@ -181,7 +181,7 @@ impl PrimitiveConstructionQueryBasisPreviewParityReport {
 
 pub fn prepare_primitive_construction_query_basis_preview_parity_report(
     workspace: &mut forge_query::facade::ForgeQueryWorkspace,
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: impl PrimitiveConstructionAuthoringInput,
 ) -> Result<
     PrimitiveConstructionQueryBasisPreviewParityReport,
     PrimitiveConstructionRuntimeBasisError,

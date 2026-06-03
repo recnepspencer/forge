@@ -1,3 +1,18 @@
+use serde_json::json;
+
+use forge_query::facade::{
+    admit_runtime_intent_request, forge_query_intent_admission_support_matrix,
+    forge_query_intent_admission_support_traceability_report,
+    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryGraphCompositionCapabilitySupportRow,
+    ForgeQueryGraphCompositionInvariantPackViolation, ForgeQueryIntentAdmissionDecision,
+    ForgeQueryIntentAdmissionEligibility, ForgeQueryIntentAdmissionSupportMatrix,
+    ForgeQueryIntentAdmissionSupportTraceabilityReport, ForgeQueryIntentDeclaration,
+    ForgeQueryIntentViolationDecision, ForgeQueryRawIntentAdmissionRequest,
+    ForgeQueryRuntimeSupportProfile,
+};
+
+use crate::spatial_intent::policy::SpatialIntentPolicyProfile;
+
 use super::candidates::SpatialIntentCandidate;
 use super::capabilities::{
     SpatialBlockedCapability, SpatialIntentCandidateAvailability, SpatialIntentCapabilitySummary,
@@ -116,7 +131,7 @@ pub struct SpatialIntentArbitrationDeclaration {
     conflict_class: SpatialIntentConflictClass,
     escalation: SpatialIntentEscalation,
     chosen_candidate: Option<SpatialIntentCandidate>,
-    policy_profile_name: &'static str,
+    policy_profile: SpatialIntentPolicyProfile,
     capability_summary: SpatialIntentCapabilitySummary,
 }
 
@@ -129,7 +144,7 @@ impl SpatialIntentArbitrationDeclaration {
         conflict_class: SpatialIntentConflictClass,
         escalation: SpatialIntentEscalation,
         chosen_candidate: Option<SpatialIntentCandidate>,
-        policy_profile_name: &'static str,
+        policy_profile: SpatialIntentPolicyProfile,
         capability_summary: SpatialIntentCapabilitySummary,
     ) -> Self {
         Self {
@@ -139,7 +154,7 @@ impl SpatialIntentArbitrationDeclaration {
             conflict_class,
             escalation,
             chosen_candidate,
-            policy_profile_name,
+            policy_profile,
             capability_summary,
         }
     }
@@ -168,12 +183,124 @@ impl SpatialIntentArbitrationDeclaration {
         self.chosen_candidate
     }
 
+    pub fn policy_profile(&self) -> SpatialIntentPolicyProfile {
+        self.policy_profile
+    }
+
     pub fn policy_profile_name(&self) -> &'static str {
-        self.policy_profile_name
+        self.policy_profile.name()
     }
 
     pub fn capability_summary(&self) -> &SpatialIntentCapabilitySummary {
         &self.capability_summary
+    }
+
+    pub fn to_query_intent_declaration(&self) -> ForgeQueryIntentDeclaration {
+        ForgeQueryIntentDeclaration::strategy_commit(
+            "worth.spatial.arbitration".to_string(),
+            "worth.spatial.arbitration.query_handoff",
+            "1.0",
+            "worth.spatial.arbitration.declaration.v1",
+            json!({
+                "authored_act": self.authored_act().as_str(),
+                "conflict_class": format!("{:?}", self.conflict_class()),
+                "escalation": format!("{:?}", self.escalation()),
+                "chosen_candidate": self.chosen_candidate().map(|candidate| candidate.as_str()),
+                "policy_profile_name": self.policy_profile_name(),
+                "capability_summary": {
+                    "supported": self.capability_summary().supported().iter().map(|capability| capability.as_str()).collect::<Vec<_>>(),
+                    "blocked": self.capability_summary().blocked().iter().map(|capability| capability.as_str()).collect::<Vec<_>>(),
+                },
+                "candidates": self.candidates().iter().map(|candidate| json!({
+                    "candidate": candidate.candidate().as_str(),
+                    "availability": match candidate.availability() {
+                        SpatialIntentCandidateAvailability::Available => "available",
+                        SpatialIntentCandidateAvailability::Blocked(capability) => capability.as_str(),
+                    },
+                    "explanation": format!("{:?}", candidate.explanation()),
+                    "priority": candidate.priority(),
+                    "baseline": candidate.is_baseline(),
+                    "policy_preferred": candidate.is_policy_preferred(),
+                })).collect::<Vec<_>>(),
+            }),
+        )
+    }
+
+    pub fn to_query_runtime_request(
+        &self,
+    ) -> Result<ForgeQueryRawIntentAdmissionRequest, ForgeQueryIntentViolationDecision> {
+        ForgeQueryRawIntentAdmissionRequest::authoritative_runtime_entrypoint(
+            self.to_query_intent_declaration(),
+        )
+    }
+
+    pub fn to_query_eligibility(
+        &self,
+    ) -> Result<ForgeQueryIntentAdmissionEligibility, ForgeQueryIntentViolationDecision> {
+        self.to_query_runtime_request()
+            .map(ForgeQueryIntentAdmissionEligibility::from_request)
+    }
+
+    pub fn admit_query_intent(
+        &self,
+    ) -> Result<ForgeQueryIntentAdmissionDecision, ForgeQueryIntentViolationDecision> {
+        self.to_query_runtime_request()
+            .map(admit_runtime_intent_request)
+    }
+
+    pub fn query_support_matrix(&self) -> ForgeQueryIntentAdmissionSupportMatrix {
+        let _ = self;
+        forge_query_intent_admission_support_matrix()
+    }
+
+    pub fn query_support_traceability_report(
+        &self,
+    ) -> ForgeQueryIntentAdmissionSupportTraceabilityReport {
+        let _ = self;
+        forge_query_intent_admission_support_traceability_report()
+    }
+
+    pub fn graph_composition_capability_support_rows(
+        &self,
+    ) -> Vec<ForgeQueryGraphCompositionCapabilitySupportRow> {
+        let support = ForgeQueryAuthoritativeMutationEvidenceSupport::derive(
+            &ForgeQueryRuntimeSupportProfile::bridge_backed(
+                "worth-spatial arbitration subscription activation",
+                "worth-spatial arbitration preview basis",
+                "worth-spatial arbitration inspection",
+            ),
+        );
+        let relevant_families = graph_composition_capability_families(self);
+        support
+            .graph_composition_capability_support_rows()
+            .iter()
+            .filter(|row| {
+                relevant_families
+                    .iter()
+                    .any(|family| *family == row.capability_family())
+            })
+            .cloned()
+            .collect()
+    }
+
+    pub fn graph_composition_invariant_violations(
+        &self,
+    ) -> Vec<ForgeQueryGraphCompositionInvariantPackViolation> {
+        self.candidates()
+            .iter()
+            .filter_map(|candidate| {
+                candidate.blocked_capability().map(|capability| {
+                    ForgeQueryGraphCompositionInvariantPackViolation::new(
+                        invariant_family(capability),
+                        format!(
+                            "spatial arbitration candidate `{}` is blocked by missing capability `{}`",
+                            candidate.candidate().as_str(),
+                            capability.as_str()
+                        ),
+                    )
+                })
+            })
+            .collect()
     }
 
     pub fn preview_hint(&self) -> SpatialArbitrationPreviewHint {
@@ -233,3 +360,40 @@ impl SpatialIntentArbitrationDeclaration {
 }
 
 pub type SpatialIntentArbitrationAnalysis = SpatialIntentArbitrationDeclaration;
+
+fn graph_composition_capability_families(
+    declaration: &SpatialIntentArbitrationDeclaration,
+) -> Vec<&'static str> {
+    let mut families = Vec::new();
+    if declaration.candidates().iter().any(|candidate| {
+        matches!(
+            candidate.candidate(),
+            SpatialIntentCandidate::AttachRelationally
+                | SpatialIntentCandidate::NestInside
+                | SpatialIntentCandidate::MergeCandidate
+                | SpatialIntentCandidate::SubtractCandidate
+                | SpatialIntentCandidate::CutOpeningCandidate
+                | SpatialIntentCandidate::JoinCandidate
+        )
+    }) {
+        families.push("same_batch_entity_relation_identity_edges");
+    }
+    if matches!(
+        declaration.escalation(),
+        SpatialIntentEscalation::AutoResolve(_)
+            | SpatialIntentEscalation::BlockedByMissingCapability(_)
+    ) {
+        families.push("mixed_existing_target_followup_mutation");
+    }
+    families
+}
+
+fn invariant_family(capability: SpatialBlockedCapability) -> &'static str {
+    match capability {
+        SpatialBlockedCapability::MergeBoolean => "worth_spatial.merge_boolean_capability",
+        SpatialBlockedCapability::SubtractBoolean => "worth_spatial.subtract_boolean_capability",
+        SpatialBlockedCapability::CutOpening => "worth_spatial.cut_opening_capability",
+        SpatialBlockedCapability::Join => "worth_spatial.join_capability",
+        SpatialBlockedCapability::HostAttach => "worth_spatial.host_attach_capability",
+    }
+}

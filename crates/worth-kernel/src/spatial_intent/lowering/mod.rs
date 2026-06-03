@@ -5,22 +5,25 @@ use crate::spatial_intent::motion::{
 use crate::spatial_intent::relations::{
     AnchorMatchSpatialIntent, LiesOnSpatialIntent, PointsTowardSpatialIntent,
 };
-use worth_spatial::facade::{
-    admit_spatial_anchor_match_constraint, admit_spatial_lies_on_constraint, admit_spatial_move,
-    admit_spatial_offset, admit_spatial_points_toward_constraint, admit_spatial_reorient,
-    admit_spatial_rotate, apply_admitted_anchor_match_constraint_to_placement,
+use worth_spatial::facade::constraints::{
+    apply_admitted_anchor_match_constraint_to_placement,
     apply_admitted_anchor_match_constraint_to_placement_with_catalog,
     apply_admitted_lies_on_constraint_to_placement,
-    apply_admitted_lies_on_constraint_to_placement_with_catalog, apply_admitted_move_to_placement,
-    apply_admitted_move_to_placement_with_catalog, apply_admitted_offset_to_placement,
-    apply_admitted_offset_to_placement_with_catalog,
+    apply_admitted_lies_on_constraint_to_placement_with_catalog,
     apply_admitted_points_toward_constraint_to_placement,
-    apply_admitted_points_toward_constraint_to_placement_with_catalog,
-    apply_admitted_reorient_to_placement, apply_admitted_reorient_to_placement_with_catalog,
-    apply_admitted_rotate_to_placement, apply_admitted_rotate_to_placement_with_catalog,
-    SpatialConstraintError, SpatialMotionError, SpatialPlacementConstraintError,
-    SpatialPlacementMotionError, SpatialWitnessCatalog,
+    apply_admitted_points_toward_constraint_to_placement_with_catalog, SpatialConstraintError,
 };
+use worth_spatial::facade::motion::{
+    admit_spatial_offset, apply_admitted_move_to_placement,
+    apply_admitted_move_to_placement_with_catalog, apply_admitted_offset_to_placement,
+    apply_admitted_offset_to_placement_with_catalog, apply_admitted_reorient_to_placement,
+    apply_admitted_reorient_to_placement_with_catalog, apply_admitted_rotate_to_placement,
+    apply_admitted_rotate_to_placement_with_catalog, SpatialMotionError,
+};
+use worth_spatial::facade::placement::{
+    SpatialPlacementConstraintError, SpatialPlacementMotionError,
+};
+use worth_spatial::facade::witness_catalog::SpatialWitnessCatalog;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PrimitiveConstructionSpatialIntentError {
@@ -44,17 +47,18 @@ impl std::fmt::Display for PrimitiveConstructionSpatialIntentError {
 impl std::error::Error for PrimitiveConstructionSpatialIntentError {}
 
 impl MoveSpatialIntent<PrimitiveConstructionIntent> {
-    pub fn finish(
+    pub(crate) fn finish(
         self,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
-        let admitted = admit_spatial_move(self.motion_spec())
+        let admitted = self
+            .admit()
             .map_err(PrimitiveConstructionSpatialIntentError::MotionAdmission)?;
         let updated = apply_admitted_move_to_placement(self.subject().placement_spec(), &admitted)
             .map_err(PrimitiveConstructionSpatialIntentError::PlacementLowering)?;
         Ok(self.subject().clone().with_placement_spec(updated))
     }
 
-    pub fn finish_with_catalog(
+    pub(crate) fn finish_with_catalog(
         self,
         catalog: &impl SpatialWitnessCatalog,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
@@ -72,7 +76,7 @@ impl MoveSpatialIntent<PrimitiveConstructionIntent> {
 }
 
 impl OffsetSpatialIntent<PrimitiveConstructionIntent> {
-    pub fn finish(
+    pub(crate) fn finish(
         self,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
         let admitted = admit_spatial_offset(self.motion_spec())
@@ -83,11 +87,12 @@ impl OffsetSpatialIntent<PrimitiveConstructionIntent> {
         Ok(self.subject().clone().with_placement_spec(updated))
     }
 
-    pub fn finish_with_catalog(
+    pub(crate) fn finish_with_catalog(
         self,
         catalog: &impl SpatialWitnessCatalog,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
-        let admitted = admit_spatial_offset(self.motion_spec())
+        let admitted = self
+            .admit()
             .map_err(PrimitiveConstructionSpatialIntentError::MotionAdmission)?;
         let updated = apply_admitted_offset_to_placement_with_catalog(
             self.subject().placement_spec(),
@@ -100,10 +105,11 @@ impl OffsetSpatialIntent<PrimitiveConstructionIntent> {
 }
 
 impl ReorientSpatialIntent<PrimitiveConstructionIntent> {
-    pub fn finish(
+    pub(crate) fn finish(
         self,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
-        let admitted = admit_spatial_reorient(self.motion_spec())
+        let admitted = self
+            .admit()
             .map_err(PrimitiveConstructionSpatialIntentError::MotionAdmission)?;
         let updated =
             apply_admitted_reorient_to_placement(self.subject().placement_spec(), &admitted)
@@ -111,7 +117,7 @@ impl ReorientSpatialIntent<PrimitiveConstructionIntent> {
         Ok(self.subject().clone().with_placement_spec(updated))
     }
 
-    pub fn finish_with_catalog(
+    pub(crate) fn finish_with_catalog(
         self,
         catalog: &impl SpatialWitnessCatalog,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
@@ -129,10 +135,11 @@ impl ReorientSpatialIntent<PrimitiveConstructionIntent> {
 }
 
 impl RotateSpatialIntent<PrimitiveConstructionIntent> {
-    pub fn finish(
+    pub(crate) fn finish(
         self,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
-        let admitted = admit_spatial_rotate(self.motion_spec())
+        let admitted = self
+            .admit()
             .map_err(PrimitiveConstructionSpatialIntentError::MotionAdmission)?;
         let updated =
             apply_admitted_rotate_to_placement(self.subject().placement_spec(), &admitted)
@@ -140,7 +147,7 @@ impl RotateSpatialIntent<PrimitiveConstructionIntent> {
         Ok(self.subject().clone().with_placement_spec(updated))
     }
 
-    pub fn finish_with_catalog(
+    pub(crate) fn finish_with_catalog(
         self,
         catalog: &impl SpatialWitnessCatalog,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
@@ -158,10 +165,11 @@ impl RotateSpatialIntent<PrimitiveConstructionIntent> {
 }
 
 impl LiesOnSpatialIntent<PrimitiveConstructionIntent> {
-    pub fn finish(
+    pub(crate) fn finish(
         self,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
-        let admitted = admit_spatial_lies_on_constraint(self.constraint_spec().clone())
+        let admitted = self
+            .admit()
             .map_err(PrimitiveConstructionSpatialIntentError::ConstraintAdmission)?;
         let updated = apply_admitted_lies_on_constraint_to_placement(
             self.subject().placement_spec(),
@@ -171,11 +179,12 @@ impl LiesOnSpatialIntent<PrimitiveConstructionIntent> {
         Ok(self.subject().clone().with_placement_spec(updated))
     }
 
-    pub fn finish_with_catalog(
+    pub(crate) fn finish_with_catalog(
         self,
         catalog: &impl SpatialWitnessCatalog,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
-        let admitted = admit_spatial_lies_on_constraint(self.constraint_spec().clone())
+        let admitted = self
+            .admit()
             .map_err(PrimitiveConstructionSpatialIntentError::ConstraintAdmission)?;
         let updated = apply_admitted_lies_on_constraint_to_placement_with_catalog(
             self.subject().placement_spec(),
@@ -188,10 +197,11 @@ impl LiesOnSpatialIntent<PrimitiveConstructionIntent> {
 }
 
 impl PointsTowardSpatialIntent<PrimitiveConstructionIntent> {
-    pub fn finish(
+    pub(crate) fn finish(
         self,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
-        let admitted = admit_spatial_points_toward_constraint(self.constraint_spec().clone())
+        let admitted = self
+            .admit()
             .map_err(PrimitiveConstructionSpatialIntentError::ConstraintAdmission)?;
         let updated = apply_admitted_points_toward_constraint_to_placement(
             self.subject().placement_spec(),
@@ -201,7 +211,7 @@ impl PointsTowardSpatialIntent<PrimitiveConstructionIntent> {
         Ok(self.subject().clone().with_placement_spec(updated))
     }
 
-    pub fn finish_with_catalog(
+    pub(crate) fn finish_with_catalog(
         self,
         catalog: &impl SpatialWitnessCatalog,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
@@ -219,10 +229,11 @@ impl PointsTowardSpatialIntent<PrimitiveConstructionIntent> {
 }
 
 impl AnchorMatchSpatialIntent<PrimitiveConstructionIntent> {
-    pub fn finish(
+    pub(crate) fn finish(
         self,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
-        let admitted = admit_spatial_anchor_match_constraint(self.constraint_spec().clone())
+        let admitted = self
+            .admit()
             .map_err(PrimitiveConstructionSpatialIntentError::ConstraintAdmission)?;
         let updated = apply_admitted_anchor_match_constraint_to_placement(
             self.subject().placement_spec(),
@@ -232,11 +243,12 @@ impl AnchorMatchSpatialIntent<PrimitiveConstructionIntent> {
         Ok(self.subject().clone().with_placement_spec(updated))
     }
 
-    pub fn finish_with_catalog(
+    pub(crate) fn finish_with_catalog(
         self,
         catalog: &impl SpatialWitnessCatalog,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
-        let admitted = admit_spatial_anchor_match_constraint(self.constraint_spec().clone())
+        let admitted = self
+            .admit()
             .map_err(PrimitiveConstructionSpatialIntentError::ConstraintAdmission)?;
         let updated = apply_admitted_anchor_match_constraint_to_placement_with_catalog(
             self.subject().placement_spec(),

@@ -1,6 +1,6 @@
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::{PrimitiveConstructionContinuityCase, PrimitiveConstructionPreviewCase};
-use worth_spatial::facade::{
+use worth_spatial::facade::arbitration::{
     SpatialArbitrationPosture, SpatialIntentPolicyProfile, SpatialPreviewRichness,
     SpatialThresholdPosture,
 };
@@ -197,7 +197,7 @@ mod tests {
         prepare_primitive_construction_policy_profile_report,
         PrimitiveConstructionPolicyProfileCase,
     };
-    use worth_spatial::facade::{SpatialArbitrationPosture, SpatialPreviewRichness};
+    use worth_spatial::facade::arbitration::{SpatialArbitrationPosture, SpatialPreviewRichness};
 
     #[test]
     fn policy_profile_report_preserves_shared_profile_posture_truth() {

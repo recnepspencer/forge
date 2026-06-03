@@ -1,5 +1,5 @@
 use crate::construction::digest::digest_owned_parts;
-use worth_spatial::facade::{
+use worth_spatial::facade::arbitration::{
     SpatialAuthoredActKind, SpatialBlockedCapability, SpatialIntentCandidate,
     SpatialIntentEscalation,
 };

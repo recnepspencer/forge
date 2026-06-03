@@ -3,7 +3,7 @@ use crate::construction::{
     PrimitiveConstructionChosenIntentResolutionAuthority,
     PrimitiveConstructionPreservedIntentResolutionCase, PrimitiveConstructionPreservedIntentTruth,
 };
-use worth_spatial::facade::{
+use worth_spatial::facade::arbitration::{
     SpatialBlockedCapability, SpatialIntentCandidate, SpatialIntentEscalation,
 };
 

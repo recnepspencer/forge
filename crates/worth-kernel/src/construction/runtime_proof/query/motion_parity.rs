@@ -60,11 +60,12 @@ impl PrimitiveConstructionMotionQueryFactProvenance {
 pub struct PrimitiveConstructionQueryMotionWitnessParityReport {
     kind: PrimitiveConstructionMotionWitnessResolutionKind,
     subject_family: crate::construction::PrimitiveConstructionFamily,
-    anchor: worth_spatial::facade::SpatialAnchorRef,
+    anchor: worth_spatial::facade::refs::SpatialAnchorRef,
     requested_witness: PrimitiveConstructionRequestedMotionWitness,
     status: PrimitiveConstructionMotionWitnessResolutionStatus,
     resolved_witness: Option<PrimitiveConstructionResolvedMotionWitness>,
-    resolution_class: Option<worth_spatial::facade::SpatialWitnessResolutionClass>,
+    resolution_class:
+        Option<worth_spatial::facade::witness_resolution::SpatialWitnessResolutionClass>,
     failure_kind: Option<PrimitiveConstructionMotionWitnessResolutionFailureKind>,
     query_contract_digest: String,
     required_query_families: Vec<ForgeQueryRuntimeFacadeFamily>,
@@ -159,7 +160,7 @@ impl PrimitiveConstructionQueryMotionWitnessParityReport {
         self.subject_family
     }
 
-    pub fn anchor(&self) -> &worth_spatial::facade::SpatialAnchorRef {
+    pub fn anchor(&self) -> &worth_spatial::facade::refs::SpatialAnchorRef {
         &self.anchor
     }
 
@@ -175,7 +176,9 @@ impl PrimitiveConstructionQueryMotionWitnessParityReport {
         self.resolved_witness
     }
 
-    pub fn resolution_class(&self) -> Option<worth_spatial::facade::SpatialWitnessResolutionClass> {
+    pub fn resolution_class(
+        &self,
+    ) -> Option<worth_spatial::facade::witness_resolution::SpatialWitnessResolutionClass> {
         self.resolution_class
     }
 
@@ -283,11 +286,11 @@ mod tests {
         PrimitiveConstructionMotionWitnessResolutionKind,
         PrimitiveConstructionMotionWitnessResolutionStatus, WireBodySpec,
     };
-    use crate::facade::{MoveSpatialIntent, RotateSpatialIntent};
+    use crate::facade::authoring::intents::{MoveSpatialIntent, RotateSpatialIntent};
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,
     };
-    use worth_spatial::facade::SpatialPointWitnessRef;
+    use worth_spatial::facade::refs::SpatialPointWitnessRef;
 
     #[test]
     fn query_motion_inspection_parity_report_preserves_admitted_witness_truth() {

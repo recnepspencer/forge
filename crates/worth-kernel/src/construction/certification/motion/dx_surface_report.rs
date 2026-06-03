@@ -11,7 +11,7 @@ use crate::construction::{
     PrimitiveConstructionMotionRuntimeSurfaceStatus,
     PrimitiveConstructionMotionWitnessResolutionStatus,
 };
-use worth_spatial::facade::SpatialWitnessResolutionClass;
+use worth_spatial::facade::witness_resolution::SpatialWitnessResolutionClass;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionMotionDxSurface {

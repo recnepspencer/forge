@@ -3,6 +3,9 @@ mod admitted_scaffold;
 #[path = "result_surface/artifact.rs"]
 mod artifact;
 mod authoring;
+mod authoring_authority;
+mod authoring_entry;
+mod authoring_input;
 #[path = "certification/mod.rs"]
 mod certification;
 #[path = "runtime_proof/continuity_branch_runtime.rs"]
@@ -51,11 +54,15 @@ mod runtime_basis;
 #[path = "phase_chain/specs.rs"]
 mod specs;
 
-pub use artifact::CanonicalPrimitiveConstructionArtifact;
+pub use crate::spatial_intent::PrimitiveConstructionSpatialIntentError;
 pub use authoring::{
     primitive_construction_authoring, PrimitiveConstructionAuthoringSession,
     PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionQueryEntryError,
     WorthKernelAuthorityError,
+};
+pub use authoring_entry::PrimitiveConstructionAuthoringEntry;
+pub use authoring_input::{
+    PrimitiveConstructionAuthoringInput, PrimitiveConstructionCatalogAuthoringInput,
 };
 pub use certification::{
     prepare_primitive_chosen_intent_resolution_report,

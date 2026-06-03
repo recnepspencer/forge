@@ -1,8 +1,6 @@
 use crate::construction::digest::digest_owned_parts;
-use crate::spatial_intent::arbitration::{
-    analyze_primitive_intent_conflict, analyze_primitive_intent_conflict_with_capabilities,
-};
-use worth_spatial::facade::{
+use crate::spatial_intent::PrimitiveIntentConflict;
+use worth_spatial::facade::arbitration::{
     SpatialAuthoredActKind, SpatialBlockedCapability, SpatialIntentArbitrationAnalysis,
     SpatialIntentCandidate, SpatialIntentCandidateAvailability, SpatialIntentCapabilitySet,
     SpatialIntentConflictClass, SpatialIntentEscalation, SpatialObservedRelationFact,
@@ -214,45 +212,57 @@ pub fn prepare_primitive_intent_arbitration_policy_report() -> Result<
         vec![
             PrimitiveConstructionIntentArbitrationPolicyRow::new(
                 PrimitiveConstructionIntentArbitrationPolicyCase::DirectMoveOnly,
-                analyze_primitive_intent_conflict(SpatialAuthoredActKind::Move, &[]),
+                PrimitiveIntentConflict::analyze(SpatialAuthoredActKind::Move, &[])
+                    .analysis()
+                    .clone(),
             ),
             PrimitiveConstructionIntentArbitrationPolicyRow::new(
                 PrimitiveConstructionIntentArbitrationPolicyCase::GrazingSnapConflict,
-                analyze_primitive_intent_conflict(
+                PrimitiveIntentConflict::analyze(
                     SpatialAuthoredActKind::Move,
                     &[SpatialObservedRelationFact::GrazingContact],
-                ),
+                )
+                .analysis()
+                .clone(),
             ),
             PrimitiveConstructionIntentArbitrationPolicyRow::new(
                 PrimitiveConstructionIntentArbitrationPolicyCase::OverlapBlockedCandidates,
-                analyze_primitive_intent_conflict(
+                PrimitiveIntentConflict::analyze(
                     SpatialAuthoredActKind::Move,
                     &[SpatialObservedRelationFact::Overlap],
-                ),
+                )
+                .analysis()
+                .clone(),
             ),
             PrimitiveConstructionIntentArbitrationPolicyRow::new(
                 PrimitiveConstructionIntentArbitrationPolicyCase::HostPenetrationBlockedCut,
-                analyze_primitive_intent_conflict(
+                PrimitiveIntentConflict::analyze(
                     SpatialAuthoredActKind::Move,
                     &[SpatialObservedRelationFact::HostPenetration],
-                ),
+                )
+                .analysis()
+                .clone(),
             ),
             PrimitiveConstructionIntentArbitrationPolicyRow::new(
                 PrimitiveConstructionIntentArbitrationPolicyCase::FrameAlignedIntent,
-                analyze_primitive_intent_conflict(
+                PrimitiveIntentConflict::analyze(
                     SpatialAuthoredActKind::Align,
                     &[SpatialObservedRelationFact::FrameAligned],
-                ),
+                )
+                .analysis()
+                .clone(),
             ),
             PrimitiveConstructionIntentArbitrationPolicyRow::new(
                 PrimitiveConstructionIntentArbitrationPolicyCase::OverlapAdvancedCapabilities,
-                analyze_primitive_intent_conflict_with_capabilities(
+                PrimitiveIntentConflict::analyze_with_capabilities(
                     SpatialAuthoredActKind::Move,
                     &[SpatialObservedRelationFact::Overlap],
                     SpatialIntentCapabilitySet::blocked_defaults()
                         .with_merge_boolean()
                         .with_subtract_boolean(),
-                ),
+                )
+                .analysis()
+                .clone(),
             ),
         ],
     ))

@@ -30,7 +30,7 @@ use crate::construction::prepare_primitive_construction_realization_exhaustion_w
 use crate::construction::{
     PrimitiveConstructionResultError, PrimitiveConstructionRuntimeBasisError,
 };
-use crate::facade::PrimitiveConstructionSpatialIntentError;
+use crate::facade::authoring::construction::PrimitiveConstructionSpatialIntentError;
 
 #[derive(Debug)]
 pub enum PrimitiveConstructionCompoundAdversarialSiegeError {

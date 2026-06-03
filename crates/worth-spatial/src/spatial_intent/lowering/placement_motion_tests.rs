@@ -7,11 +7,17 @@ use super::{
 };
 use crate::facade::{
     admit_spatial_move, admit_spatial_offset, admit_spatial_placement, admit_spatial_reorient,
-    admit_spatial_rotate, SpatialAnchorRef, SpatialCarrierPointRole,
-    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
-    SpatialDirectionWitnessRef, SpatialFrameRef, SpatialGeometricTagFailureClass, SpatialMoveSpec,
-    SpatialOffsetSpec, SpatialPlacementSpec, SpatialPointWitnessRef, SpatialReorientSpec,
-    SpatialRotateSpec, SpatialWitnessFailureClass,
+    admit_spatial_rotate,
+    refs::{
+        SpatialAnchorRef, SpatialCarrierPointRole, SpatialDirectionWitnessRef, SpatialFrameRef,
+        SpatialPointWitnessRef,
+    },
+    witness_catalog::{
+        SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
+        SpatialCatalogWitnessResolutionClass, SpatialGeometricTagFailureClass,
+    },
+    witness_resolution::SpatialWitnessFailureClass, SpatialMoveSpec, SpatialOffsetSpec,
+    SpatialPlacementSpec, SpatialReorientSpec, SpatialRotateSpec,
 };
 use crate::test_support::SpatialFixtureWitnessCatalog;
 
@@ -326,7 +332,7 @@ fn lowering_preserves_direction_like_and_unsupported_tag_classes() {
         .expect("move"),
         &SpatialFixtureWitnessCatalog::new().with_geometric_tag_direction(
             "tag-direction",
-            Ok(crate::facade::SpatialCatalogResolvedDirectionWitness::new(
+            Ok(crate::facade::witness_catalog::SpatialCatalogResolvedDirectionWitness::new(
                 [0.0, 1.0, 0.0],
                 SpatialCatalogWitnessResolutionClass::CarrierDerived,
             )),
@@ -366,7 +372,7 @@ fn lowering_rejects_non_point_like_anchors_for_current_placement_model() {
         SpatialPlacementSpec::world(),
         &admit_spatial_move(
             SpatialMoveSpec::shape_origin()
-                .from(SpatialAnchorRef::shape_axis(crate::facade::SpatialAxis::W))
+                .from(SpatialAnchorRef::shape_axis(crate::facade::refs::SpatialAxis::W))
                 .to_witness(SpatialPointWitnessRef::world_point([1.0, 2.0, 3.0])),
         )
         .expect("move"),

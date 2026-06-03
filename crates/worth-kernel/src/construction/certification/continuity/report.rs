@@ -1,15 +1,10 @@
 use crate::construction::digest::digest_owned_parts;
-use crate::spatial_intent::arbitration::resolve_primitive_intent_conflict_by_choice;
-use crate::spatial_intent::preview::{
-    preview_primitive_intent_continuity_with_capabilities_and_profile,
-    preview_primitive_intent_with_capabilities_and_profile,
-};
 use crate::spatial_intent::{
-    SpatialAuthoredActKind, SpatialBlockedCapability, SpatialIdentityContinuityClass,
+    PrimitiveIntentConflict, PrimitiveIntentPreviewAssessment, SpatialAuthoredActKind,
+    SpatialBlockedCapability, SpatialIdentityContinuityClass,
     SpatialIdentityContinuityExplanationClass, SpatialIntentCandidate, SpatialIntentCapabilitySet,
     SpatialIntentConflictClass, SpatialIntentPolicyProfile, SpatialObservedRelationFact,
 };
-use worth_spatial::facade::assess_spatial_identity_continuity_from_resolution;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionContinuityCase {
@@ -49,7 +44,7 @@ impl PrimitiveConstructionContinuityRow {
     ) -> Result<Self, PrimitiveConstructionContinuitySurfaceReportError> {
         let (authored_act, observed_relations, capabilities, profile, explicit_choice) =
             case.fixture();
-        let preview = preview_primitive_intent_with_capabilities_and_profile(
+        let preview = PrimitiveIntentPreviewAssessment::analyze_with_capabilities(
             authored_act,
             &observed_relations,
             capabilities,
@@ -58,22 +53,22 @@ impl PrimitiveConstructionContinuityRow {
         let analysis = preview.analysis().clone();
         let (source, continuity) = match explicit_choice {
             Some(choice) => {
-                let resolution =
-                    resolve_primitive_intent_conflict_by_choice(analysis.clone(), choice)
-                        .map_err(PrimitiveConstructionContinuitySurfaceReportError::Resolution)?;
-                (
-                    PrimitiveConstructionContinuityResolutionSource::ExplicitChoice,
-                    assess_spatial_identity_continuity_from_resolution(&resolution),
-                )
-            }
-            None => {
-                let continuity = preview_primitive_intent_continuity_with_capabilities_and_profile(
+                let resolution = PrimitiveIntentConflict::analyze_with_capabilities_and_profile(
                     authored_act,
                     &observed_relations,
                     capabilities,
                     profile,
-                );
-                let source = if preview.analysis().chosen_candidate().is_some() {
+                )
+                .resolve_by_choice(choice)
+                .map_err(PrimitiveConstructionContinuitySurfaceReportError::Resolution)?;
+                (
+                    PrimitiveConstructionContinuityResolutionSource::ExplicitChoice,
+                    resolution.identity_continuity_assessment(),
+                )
+            }
+            None => {
+                let continuity = preview.continuity().clone();
+                let source = if analysis.chosen_candidate().is_some() {
                     PrimitiveConstructionContinuityResolutionSource::PolicyAutoResolve
                 } else {
                     PrimitiveConstructionContinuityResolutionSource::PreviewAnalysis

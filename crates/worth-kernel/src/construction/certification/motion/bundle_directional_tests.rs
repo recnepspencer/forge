@@ -1,10 +1,9 @@
 use crate::construction::runtime_basis::prepare_primitive_construction_branch_preview_runtime_report;
 use crate::construction::{PrimitiveConstructionIntent, RegularPyramidSpec};
-use crate::facade::{
-    diagnostics::motion::PrimitiveConstructionMotionRuntimeSurfaceStatus, ReorientSpatialIntent,
-};
+use crate::facade::authoring::intents::ReorientSpatialIntent;
+use crate::facade::diagnostics::motion::PrimitiveConstructionMotionRuntimeSurfaceStatus;
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
-use worth_spatial::facade::{SpatialAnchorRef, SpatialAxis, SpatialDirectionWitnessRef};
+use worth_spatial::facade::refs::{SpatialAnchorRef, SpatialAxis, SpatialDirectionWitnessRef};
 
 fn workspace(name: &str) -> forge_query::facade::ForgeQueryWorkspace {
     let runtime = milestone_one_runtime_builder()
@@ -50,7 +49,7 @@ fn frame_axis_intent() -> ReorientSpatialIntent<PrimitiveConstructionIntent> {
         },
     ))
     .about(SpatialAnchorRef::frame_axis(
-        worth_spatial::facade::SpatialFrameRef::world(),
+        worth_spatial::facade::refs::SpatialFrameRef::world(),
         SpatialAxis::U,
     ))
     .toward_witness(SpatialDirectionWitnessRef::world_direction([0.0, 0.0, 1.0]))

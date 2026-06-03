@@ -145,7 +145,7 @@ impl PrimitiveConstructionRejectionLocalityReport {
 }
 
 pub fn prepare_primitive_construction_rejection_locality_report(
-    intents: impl IntoIterator<Item = impl Into<PrimitiveConstructionIntent>>,
+    intents: impl IntoIterator<Item = PrimitiveConstructionIntent>,
 ) -> PrimitiveConstructionRejectionLocalityReport {
     let mut accepted_count = 0;
     let mut rows = Vec::new();

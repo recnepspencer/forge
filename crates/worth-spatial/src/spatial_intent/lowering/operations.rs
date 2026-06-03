@@ -3,12 +3,14 @@ use crate::spatial_intent::constraints::{
     AdmittedSpatialPointsTowardConstraint,
 };
 use crate::spatial_intent::lowering::lowered_intents::{
-    lower_admitted_anchor_match_constraint_intent_with_catalog,
-    lower_admitted_lies_on_constraint_intent_with_catalog, lower_admitted_move_intent_with_catalog,
-    lower_admitted_offset_intent_with_catalog,
-    lower_admitted_points_toward_constraint_intent_with_catalog,
-    lower_admitted_reorient_intent_with_catalog, lower_admitted_rotate_intent_with_catalog,
-    LoweredSpatialOperation, SpatialLoweringDenial,
+    lower_admitted_anchor_match_constraint_semantic_intent_with_catalog,
+    lower_admitted_lies_on_constraint_semantic_intent_with_catalog,
+    lower_admitted_move_semantic_intent_with_catalog,
+    lower_admitted_offset_semantic_intent_with_catalog,
+    lower_admitted_points_toward_constraint_semantic_intent_with_catalog,
+    lower_admitted_reorient_semantic_intent_with_catalog,
+    lower_admitted_rotate_semantic_intent_with_catalog, LoweredSpatialOperation,
+    SpatialLoweringDenial,
 };
 pub use crate::spatial_intent::lowering::operations_errors::{
     SpatialPlacementConstraintError, SpatialPlacementMotionError,
@@ -84,9 +86,10 @@ pub fn apply_admitted_move_to_placement_with_catalog(
     motion: &AdmittedSpatialMove,
     catalog: &impl SpatialWitnessCatalog,
 ) -> Result<SpatialPlacementSpec, SpatialPlacementMotionError> {
-    let lowered = lower_admitted_move_intent_with_catalog(placement.clone(), motion, catalog)
-        .map_err(map_move_denial)?;
-    apply_lowered_intent_to_placement(placement, lowered.payload().operation())
+    let lowered =
+        lower_admitted_move_semantic_intent_with_catalog(placement.clone(), motion, catalog)
+            .map_err(map_move_denial)?;
+    apply_lowered_intent_to_placement(placement, lowered.operation())
         .ok_or(SpatialPlacementMotionError::InvalidExistingPlacement)
 }
 pub fn apply_admitted_offset_to_placement_with_catalog(
@@ -94,9 +97,10 @@ pub fn apply_admitted_offset_to_placement_with_catalog(
     motion: &AdmittedSpatialOffset,
     catalog: &impl SpatialWitnessCatalog,
 ) -> Result<SpatialPlacementSpec, SpatialPlacementMotionError> {
-    let lowered = lower_admitted_offset_intent_with_catalog(placement.clone(), motion, catalog)
-        .map_err(map_offset_denial)?;
-    apply_lowered_intent_to_placement(placement, lowered.payload().operation())
+    let lowered =
+        lower_admitted_offset_semantic_intent_with_catalog(placement.clone(), motion, catalog)
+            .map_err(map_offset_denial)?;
+    apply_lowered_intent_to_placement(placement, lowered.operation())
         .ok_or(SpatialPlacementMotionError::InvalidExistingPlacement)
 }
 pub fn apply_admitted_rotate_to_placement_with_catalog(
@@ -104,9 +108,10 @@ pub fn apply_admitted_rotate_to_placement_with_catalog(
     motion: &AdmittedSpatialRotate,
     catalog: &impl SpatialWitnessCatalog,
 ) -> Result<SpatialPlacementSpec, SpatialPlacementMotionError> {
-    let lowered = lower_admitted_rotate_intent_with_catalog(placement.clone(), motion, catalog)
-        .map_err(map_rotate_denial)?;
-    apply_lowered_intent_to_placement(placement, lowered.payload().operation())
+    let lowered =
+        lower_admitted_rotate_semantic_intent_with_catalog(placement.clone(), motion, catalog)
+            .map_err(map_rotate_denial)?;
+    apply_lowered_intent_to_placement(placement, lowered.operation())
         .ok_or(SpatialPlacementMotionError::InvalidExistingPlacement)
 }
 pub fn apply_admitted_reorient_to_placement_with_catalog(
@@ -114,9 +119,10 @@ pub fn apply_admitted_reorient_to_placement_with_catalog(
     motion: &AdmittedSpatialReorient,
     catalog: &impl SpatialWitnessCatalog,
 ) -> Result<SpatialPlacementSpec, SpatialPlacementMotionError> {
-    let lowered = lower_admitted_reorient_intent_with_catalog(placement.clone(), motion, catalog)
-        .map_err(map_reorient_denial)?;
-    apply_lowered_intent_to_placement(placement, lowered.payload().operation())
+    let lowered =
+        lower_admitted_reorient_semantic_intent_with_catalog(placement.clone(), motion, catalog)
+            .map_err(map_reorient_denial)?;
+    apply_lowered_intent_to_placement(placement, lowered.operation())
         .ok_or(SpatialPlacementMotionError::InvalidExistingPlacement)
 }
 pub fn apply_admitted_lies_on_constraint_to_placement_with_catalog(
@@ -124,13 +130,13 @@ pub fn apply_admitted_lies_on_constraint_to_placement_with_catalog(
     constraint: &AdmittedSpatialLiesOnConstraint,
     catalog: &impl SpatialWitnessCatalog,
 ) -> Result<SpatialPlacementSpec, SpatialPlacementConstraintError> {
-    let lowered = lower_admitted_lies_on_constraint_intent_with_catalog(
+    let lowered = lower_admitted_lies_on_constraint_semantic_intent_with_catalog(
         placement.clone(),
         constraint,
         catalog,
     )
     .map_err(map_lies_on_denial)?;
-    apply_lowered_intent_to_placement(placement, lowered.payload().operation()).ok_or(
+    apply_lowered_intent_to_placement(placement, lowered.operation()).ok_or(
         SpatialPlacementConstraintError::InvalidReferenceFrame(SpatialFrameError::InvalidNormal),
     )
 }
@@ -139,13 +145,13 @@ pub fn apply_admitted_points_toward_constraint_to_placement_with_catalog(
     constraint: &AdmittedSpatialPointsTowardConstraint,
     catalog: &impl SpatialWitnessCatalog,
 ) -> Result<SpatialPlacementSpec, SpatialPlacementConstraintError> {
-    let lowered = lower_admitted_points_toward_constraint_intent_with_catalog(
+    let lowered = lower_admitted_points_toward_constraint_semantic_intent_with_catalog(
         placement.clone(),
         constraint,
         catalog,
     )
     .map_err(map_points_toward_denial)?;
-    apply_lowered_intent_to_placement(placement, lowered.payload().operation()).ok_or(
+    apply_lowered_intent_to_placement(placement, lowered.operation()).ok_or(
         SpatialPlacementConstraintError::InvalidReferenceFrame(SpatialFrameError::InvalidNormal),
     )
 }
@@ -154,13 +160,13 @@ pub fn apply_admitted_anchor_match_constraint_to_placement_with_catalog(
     constraint: &AdmittedSpatialAnchorMatchConstraint,
     catalog: &impl SpatialWitnessCatalog,
 ) -> Result<SpatialPlacementSpec, SpatialPlacementConstraintError> {
-    let lowered = lower_admitted_anchor_match_constraint_intent_with_catalog(
+    let lowered = lower_admitted_anchor_match_constraint_semantic_intent_with_catalog(
         placement.clone(),
         constraint,
         catalog,
     )
     .map_err(map_anchor_match_denial)?;
-    apply_lowered_intent_to_placement(placement, lowered.payload().operation()).ok_or(
+    apply_lowered_intent_to_placement(placement, lowered.operation()).ok_or(
         SpatialPlacementConstraintError::InvalidReferenceFrame(SpatialFrameError::InvalidNormal),
     )
 }

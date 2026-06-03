@@ -3,7 +3,7 @@ use worth_kernel::facade::{
     certification::{arbitration::*, query::*},
     diagnostics::arbitration::*,
 };
-use worth_spatial::facade::SpatialIntentCandidate;
+use worth_spatial::facade::arbitration::SpatialIntentCandidate;
 
 #[test]
 fn kernel_public_facade_exports_intent_arbitration_report_bundle() {
@@ -29,10 +29,10 @@ fn kernel_public_facade_exports_intent_arbitration_report_bundle() {
     assert_eq!(
         unresolved.truth().preserved_truth(),
         PrimitiveConstructionPreservedIntentTruth::Unresolved {
-            escalation: worth_spatial::facade::SpatialIntentEscalation::BlockedByMissingCapability(
-                worth_spatial::facade::SpatialBlockedCapability::CutOpening
+            escalation: worth_spatial::facade::arbitration::SpatialIntentEscalation::BlockedByMissingCapability(
+                worth_spatial::facade::arbitration::SpatialBlockedCapability::CutOpening
             ),
-            blocked_capability: Some(worth_spatial::facade::SpatialBlockedCapability::CutOpening),
+            blocked_capability: Some(worth_spatial::facade::arbitration::SpatialBlockedCapability::CutOpening),
         }
     );
     assert!(unresolved.replay_parity_report().parity_verified());

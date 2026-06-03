@@ -13,7 +13,7 @@ use crate::construction::{
     PrimitiveConstructionIntentChosenTruth,
     PrimitiveConstructionQueryIntentArbitrationParityReport,
 };
-use worth_spatial::facade::{
+use worth_spatial::facade::arbitration::{
     SpatialAuthoredActKind, SpatialBlockedCapability, SpatialIntentCandidate,
     SpatialIntentEscalation,
 };

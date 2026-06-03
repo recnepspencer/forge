@@ -2,661 +2,614 @@
 
 ## Goal
 
-Define the refactor program that makes `worth-spatial` Query-native end to
-end.
+Rewrite `worth-spatial` into a crate that owns spatial semantics cleanly and
+uses `forge-query` honestly for runtime-facing lifecycle.
 
-This document exists to drive a folder-by-folder rewrite of `worth-spatial`
-until:
+This refactor is folder-driven. The work should proceed in dependency order
+through the crate, not by scattering edits across unrelated subsystems.
 
-- `forge-query` is the front door for runtime-facing spatial work
-- `worth-spatial` owns domain semantics instead of runtime-shaped ceremony
-- numeric truth is admitted through `worth-math` instead of ambient `f64`
-- spatial code stops rebuilding local proof, diagnostics, workflow, binding,
-  and recovery subsystems
-- the crate becomes a clean semantic partner to Query rather than a second
-  platform pretending runtime has not started yet
+The intended end state is:
 
-This document was explored incrementally, but it should now be implemented in
-clear dependency order rather than the order in which the sections were first
-written.
+- `worth-spatial` owns irreducible spatial meaning
+- `forge-query` owns runtime-facing handle, binding, declaration, inspection,
+  recovery, and workflow lifecycle
+- numeric admission is explicit and typed
+- public entry no longer starts in a Worth-local pseudo-platform
+- each folder has one defensible authority story
 
-## Why This Refactor Exists
+## Recommendation
 
-`worth-spatial` has real domain value, but too much of the crate still carries
-an older architecture:
+Rewrite this plan from scratch and treat the old one as historical context
+only.
 
-- local proof ceremony
-- local foundational materialization
-- local workflow-like staging
-- local runtime declaration adapters
-- local support and explanation shaping
-- local public seams that behave as if Query only comes later
+The previous document had the right diagnosis, but it mixed:
 
-That is no longer the honest model.
+- migration history
+- stale Query-era framing
+- architectural thesis
+- implementation notes
+- acceptance rules
 
-After `forge-query` `9.3.8`, serious spatial work does not need to begin in a
-pre-runtime holding area and eventually get promoted into Query. Query can now
-be the entrypoint.
+That shape is no longer useful. The crate now needs one fresh plan organized by
+folder authority and current Query surfaces.
 
-That changes the role of `worth-spatial`.
+## Governing Rules
 
-`worth-spatial` should now:
-
-- own authored spatial vocabulary
-- own local geometric and numeric admission rules
-- own family-specific semantic meaning
-- define how spatial families lower onto Query declaration families, helpers,
-  grouped surfaces, continuation seams, and recovery surfaces
-- preserve the semantic facts Query must retain, narrow, inspect, bind, and
-  recover from
-
-`worth-spatial` should not:
-
-- own a second proof pipeline once work is Query-facing
-- own a second diagnostics or evidence pipeline once work is Query-facing
-- own a second workflow story once work is Query-facing
-- own adapter-era glue that translates finished local products into old Query
-  request forms
-
-This refactor exists because the crate currently does some of the right domain
-work with too much local infrastructure wrapped around it.
-
-## Governing Summaries
+This refactor is constrained by:
 
 - `MENTALITY.md`
-  - Protects: solving the hard structural problem first instead of nibbling at
-    features.
-  - Main constraint here: this refactor must attack the real architectural
-    failure mode first, which is duplicate platform behavior around otherwise
-    valuable domain semantics.
-
+  - solve the real structural problem first
 - `arch_laws.md`
-  - Protects: authority separation, proof-bearing progression, declared
-    effects, and explicit boundary artifacts.
-  - Main constraint here: once a spatial family is Query-facing, Query should
-    own the public artifact and lifecycle boundary rather than Worth faking one
-    locally.
-
+  - authority, lifecycle, and proof boundaries must be explicit
 - `composition_laws.md`
-  - Protects: named semantic steps instead of god files and helper swamps.
-  - Main constraint here: local semantic kernels should stay local, but local
-    proof/materialization/runtime adapter layers should collapse into Query
-    surfaces rather than accumulating wrappers.
-
+  - semantic steps must stay named and narrow
 - `domain_structure_laws.md`
-  - Protects: physical structure that preserves meaning, authority, and
-    lifecycle distinctions.
-  - Main constraint here: `worth-spatial` must separate authored semantics,
-    local numeric admission, family-specific semantic kernels, Query-family
-    lowering, and public helper seams instead of flattening them into one broad
-    "lowering" or "runtime handoff" area.
-
+  - folder layout must preserve meaning and authority
 - `perf_laws.md`
-  - Protects: explicit cost surfaces, no repeated rediscovery, and no hidden
-    breadth.
-  - Main constraint here: spatial flows must not repeatedly re-admit anchors,
-    re-resolve witness meaning, or re-explain support posture when that meaning
-    could be retained once by Query artifacts.
+  - do not repeatedly rediscover admitted meaning
 
-- `worth_roadmap.md`
-  - Protects: Worth as a manufacturing-grade geometry system that uses Forge
-    runtimes honestly.
-  - Main constraint here: geometry meaning should remain a Worth strength, but
-    runtime-facing lifecycle and composition should enter through Query and stay
-    there.
+The practical consequence is simple:
 
-- `worth/test-requirements.md`
-  - Protects: typed failure, replay honesty, diagnostics sufficiency, and
-    workflow-class closure.
-  - Main constraint here: the refactor must improve typed denial, inspection,
-    and recovery rather than merely shuffling code.
+- keep spatial semantics local
+- delete local Query-shaped lifecycle duplication
+- add Query runtime capability when a real runtime gap exists
+- do not protect old local glue just because code already exists
 
-- `forge_query_vision.md`
-  - Protects: Query as the typed, aspect-aware, live-promotable public layer.
-  - Main constraint here: Query should carry spatial meaning as retained,
-    aspect-qualified declaration truth rather than as a late wrapper over a
-    Worth-local pseudo-platform.
+This plan assumes zero backward compatibility with the pre-refactor seam
+shapes.
 
-- `forge_query_roadmap.md`
-  - Protects: Query as the finished runtime-facing composition layer.
-  - Main constraint here: this refactor should target the shipped Query surface
-    categories that the docs now teach: platform entry, configured handles,
-    binding, declaration pipeline, helpers, workflows, recipes, inspection,
-    recovery, grouped work, continuation, and certification.
+That means:
 
-- `crates/forge-query/docs/README.md`
-  - Protects: Query docs are organized by job, not by implementation order.
-  - Main constraint here: this refactor should describe spatial integration in
-    terms of the public Query doc roots a user would actually reach for, not in
-    terms of old internal adapter history.
+- do not preserve old local seam names just to avoid churn
+- do not keep compatibility wrappers, aliases, or adapter facades once the new
+  boundary exists
+- do not keep legacy progression, materialization, or support seams alive in
+  tests after production no longer owns them
+- do not treat test-only survival of an old seam as an acceptable end state
 
-- `crates/forge-query/docs/domain-capabilities/README.md`
-  - Protects: domain work should start from admitted handles, binding,
-    ordinary outcomes, recovery, helpers, declaration pipeline, and
-    continuation seams.
-  - Main constraint here: `worth-spatial` should align its public story to that
-    TOC instead of teaching private proof/materialization subsystems first.
+## Query Alignment
+
+The relevant Query docs for this plan are:
+
+- `crates/forge-query/docs/domain-capabilities/platform-entry.md`
+- `crates/forge-query/docs/domain-capabilities/canonical-domain-declarations.md`
+- `crates/forge-query/docs/domain-capabilities/configured-domain-handles.md`
+- `crates/forge-query/docs/domain-capabilities/typed-binding-pipeline.md`
+- `crates/forge-query/docs/domain-capabilities/declaration-legality.md`
+- `crates/forge-query/docs/domain-capabilities/declaration-progression.md`
+- `crates/forge-query/docs/domain-capabilities/declaration-entry-orchestration.md`
+- `crates/forge-query/docs/domain-capabilities/declaration-entry-inspection.md`
+- `crates/forge-query/docs/domain-capabilities/declaration-entry-readiness.md`
+- `crates/forge-query/docs/domain-capabilities/declaration-boundary-receipts.md`
+- `crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md`
+- `crates/forge-query/docs/domain-capabilities/ordinary-outcomes.md`
+- `crates/forge-query/docs/domain-capabilities/family-helpers.md`
+- `crates/forge-query/docs/domain-capabilities/grouped-authoring.md`
+- `crates/forge-query/docs/domain-capabilities/grouped-contributions.md`
+- `crates/forge-query/docs/domain-capabilities/grouped-products.md`
+- `crates/forge-query/docs/domain-capabilities/continuation-pipeline.md`
+- `crates/forge-query/docs/domain-capabilities/signal-compatibility-orchestration.md`
+- `crates/forge-query/docs/domain-capabilities/recovery-boundary.md`
+- `crates/forge-query/docs/domain-capabilities/aftermath/aftermath-review-support-eligibility-and-materialization.md`
+- `crates/forge-query/docs/domain-capabilities/workflow/README.md`
+- `crates/forge-query/docs/domain-capabilities/workflow/preview-inspection-and-mutation-planning.md`
+- `crates/forge-query/docs/domain-capabilities/workflow/grouped-neighborhood-workflow.md`
+- `crates/forge-query/docs/domain-capabilities/workflow/retained-artifact-to-next-step.md`
+- `crates/forge-query/docs/domain-capabilities/workflow/stop-to-recovery.md`
+- `crates/forge-query/docs/domain-capabilities/recipes/README.md`
+- `crates/forge-query/docs/capabilities/existing-truth.md`
+- `crates/forge-query/docs/capabilities/inspection.md`
+- `crates/forge-query/docs/capabilities/lineage-and-correspondence.md`
+- `crates/forge-query/docs/capabilities/projection-consumption.md`
+
+The boundary rule those docs imply is:
+
+- `worth-spatial` owns spatial identity, witness meaning, frame meaning,
+  geometric legality, and family-specific semantics
+- `forge-query` owns admitted handle posture, binding, declaration entry,
+  runtime progression, retained artifacts, inspection, recovery, grouped work,
+  continuation, and workflow routing
+
+If a `worth-spatial` folder owns `progression`, `materialization`,
+`runtime_declaration`, or a binding-like seam after runtime-facing semantics
+already exist, that folder should be treated as suspect.
+
+The docs above are not all equally important in every folder. The working set
+by folder should be:
+
+- `refs`
+  - configured handles
+  - canonical declarations
+  - family helpers
+- `resolution`
+  - typed binding
+  - declaration legality
+  - declaration entry inspection
+  - ordinary outcomes
+  - recovery
+- `lowering`
+  - declaration entry orchestration
+  - receipts
+  - envelopes
+  - retained-artifact-to-next-step
+- `arbitration`
+  - declaration entry readiness
+  - inspection
+  - recovery
+  - stop-to-recovery
+- `preview` / `constraints` / `continuity`
+  - preview-inspection-and-mutation-planning
+  - grouped-neighborhood-workflow
+  - continuation pipeline
+  - signal compatibility
+  - lineage and correspondence
+- `bindings`
+  - aftermath review/support/eligibility/materialization
+  - projection consumption
+  - existing truth
+- `certification` / `facade`
+  - platform entry
+  - public workflow README surfaces
+  - inspection
+  - recovery
 
 ## Adversarial Constraint
 
-`worth-spatial` must survive this hostile condition:
+This refactor succeeds only if the same spatial ask preserves the same meaning
+and stop posture regardless of entry mode:
 
-> A long-lived branch-bearing geometry system with ambiguous anchors,
-> feature-owned and tag-owned references, preview and replay posture,
-> hostile numeric edge cases, identity evolution, grouped authoring, and
-> AI-authored spatial requests must preserve the same semantic admission
-> result, the same numeric legality result, the same retained aspect posture,
-> the same workflow classification, and the same repair guidance regardless of
-> whether the ask entered through a helper, a bound context request, a direct
-> declaration input, a grouped surface, or a continuation-facing next-step
-> surface.
+- direct declaration input
+- helper entry
+- bound next-step entry
+- grouped contribution
+- continuation-facing entry
+- inspection or recovery revisit
 
-If `worth-spatial`:
+The crate fails this refactor if it:
 
-- lets raw `f64` values masquerade as admitted semantic truth
-- lets witness or anchor meaning remain disposable local glue
-- rebuilds proof/materialization/workflow/binding/recovery surfaces locally
-- loses semantic slice meaning across Query handoff boundaries
-- or forces Query-facing layers to rediscover spatial meaning from old local
-  adapter artifacts
+- admits raw numeric values as if they were already semantic truth
+- forces Query-facing code to rediscover witness or frame meaning
+- rebuilds proof, diagnostics, workflow, or recovery as a local second system
+- loses spatial family meaning across retained Query artifacts
 
-then the refactor has failed.
+## Folder Order
 
-## Query-First Mental Model
+Implementation order:
 
-Relational is the truth-bearing graph and state authority. Signal is the
-derived DAG and invalidation engine. Bridge keeps truth and derivation coherent
-across runtime boundaries. Query is the ergonomic public operating layer that
-turns all of that lower machinery into:
+1. `spatial_intent/refs`
+2. `spatial_intent/resolution`
+3. `spatial_intent/lowering`
+4. `spatial_intent/arbitration`
+5. `spatial_intent/preview`, `constraints`, `continuity`
+6. `bindings`
+7. `certification`, `facade`, README/doc alignment
 
-- platform entry
-- configured handles
-- declarations
-- progression
-- foundational evidence
-- routes
-- receipts
-- envelopes
-- binding
-- grouped work
-- helper ergonomics
-- continuation
+This order follows dependency truth. `refs` defines the authored vocabulary
+floor. `resolution` interprets that vocabulary. `lowering` projects admitted
+meaning onto Query declaration lanes. `arbitration` depends on earlier semantic
+shapes. The remaining folders should only be cleaned up after the core
+spatial-intent chain is honest.
+
+## Per-Folder Questions
+
+Every folder rewrite must answer the same questions:
+
+1. What irreducible spatial authority lives here?
+2. What current contents are actually Query lifecycle duplication?
+3. What must stay local?
+4. What must collapse onto Query?
+5. What test or certification evidence closes this folder?
+
+## Folder 1: `spatial_intent/refs`
+
+### Purpose
+
+This folder should be the authored vocabulary floor for spatial asks.
+
+### Local Authority That Must Stay
+
+- anchor vocabulary
+- frame vocabulary
+- witness vocabulary
+- witness catalog identity
+- authored reference semantics
+
+### What Must Not Live Here
+
+- runtime progression
+- support-report ecosystems
+- public proof ladders
+- materialized explanation layers
+- fake binding or request staging
+
+### Target Shape
+
+`refs` should become a clean semantic substrate consumed by later folders. It
+should not present itself as a runtime-facing subsystem.
+
+### Acceptance
+
+- the folder reads as authored vocabulary, not workflow
+- public exports are semantic nouns, not progression nouns
+- no local runtime-facing explanation surface competes with Query
+
+### Current Status
+
+- complete
+- public `refs` and witness-catalog vocabulary now lives under explicit facade
+  namespaces instead of flat top-level exports
+- `spatial_intent` no longer blanket-reexports `refs::*`
+- compile-fail proof now enforces that the old flat top-level `refs` and
+  witness-catalog seam is actually gone
+
+## Folder 2: `spatial_intent/resolution`
+
+### Purpose
+
+This folder should resolve witness, frame, and anchor meaning against admitted
+spatial context.
+
+### Local Authority That Must Stay
+
+- witness-resolution semantics
+- frame-resolution semantics
+- numeric admission rules tied to resolution meaning
+- catalog-backed interpretation logic
+- ambiguity and denial classification that is genuinely spatial
+
+### Suspect Contents
+
+This folder currently appears to mix semantic resolution with:
+
+- `frame_admission`
+- `materialization`
+- `progression`
+- support-style explanation shaping
+
+Those are likely the first major duplicate-lifecycle seams to remove.
+
+### Target Shape
+
+`resolution` should own semantic resolution only. Runtime-facing entry,
+progression, inspection, and recovery should project through Query declaration
+and inspection surfaces.
+
+### Query Mapping
+
+- configured domain handles
+- typed binding pipeline
+- declaration entry orchestration
+- inspection
+- ordinary outcomes
+- recovery boundary
+
+### Acceptance
+
+- the same resolution meaning can enter through explicit declaration input or a
+  helper projection
+- denial and ambiguity posture are inspectable through Query-native surfaces
+- local materialization/support glue is deleted, not preserved as long-lived
+  compatibility scaffolding
+- old progression/materialization/support seams are removed from tests once the
+  replacement boundary exists
+
+### Current Status
+
+- complete
+- witness materialization and progression compatibility seams are deleted rather
+  than hidden
+- witness helper entry is isolated as an explicit boundary instead of ambient
+  kernel API
+- the public facade now exposes witness helper entry only through
+  `facade::witness_resolution::*`
+- resolved witness truth and witness failure classes no longer survive as flat
+  facade exports
+- public contracts, compile-fail proof, and internal tests have all been
+  rewritten onto the new boundary
+
+## Folder 3: `spatial_intent/lowering`
+
+### Purpose
+
+This folder should lower admitted spatial meaning onto Query declaration
+families.
+
+### Local Authority That Must Stay
+
+- anchor interpretation
+- movement, placement, and directional semantics
+- witness-fed geometric intent
+- family-specific lowering rules
+- local normalization required before Query declaration
+
+### Suspect Contents
+
+Any artifact shaped like:
+
+- local runtime declaration wrappers
+- local target-binding posture
+- local support report materialization
+- old adapter-era handoff types
+
+should be treated as duplication unless it is the minimal semantic carrier
+required before Query declaration entry.
+
+### Target Shape
+
+`lowering` should end at the first honest Query declaration boundary. It should
+not continue into a local pseudo-platform that imitates Query progression.
+
+### Query Mapping
+
+- canonical domain declarations
+- declaration entry orchestration
+- boundary receipts
+- boundary envelopes
+- typed binding for next-step reuse
+
+### Acceptance
+
+- lowered spatial families flow through real Query declaration entry
+- later workflow steps consume retained Query artifacts, not Worth-local handoff
+  structs
+- aspect-qualified spatial meaning survives into inspection and later binding
+
+### Current Status
+
+- complete
+- public lowering entry now returns Query intent declarations directly instead
+  of a local proof-artifact or lowered-intent handoff type
+- the old top-level runtime-admission, runtime-declaration,
+  target-binding-posture, and support-materialization seam is removed from the
+  facade and enforced by compile-fail proof
+- lowering support-report materialization is deleted rather than preserved as a
+  test-only compatibility lane
+- lowering now ends at the first honest public Query declaration boundary,
+  while the remaining internal lowered-intent carrier is private support for
+  local placement application only
+
+## Folder 4: `spatial_intent/arbitration`
+
+### Purpose
+
+This folder should decide among competing spatial candidates and capability
+postures.
+
+### Local Authority That Must Stay
+
+- candidate generation
+- ranking and policy interaction
+- capability-sensitive conflict classification
+- escalation and clarification semantics
+
+### Suspect Contents
+
+Current names like:
+
+- `progression`
+- `materialization`
+- `runtime_declaration`
+
+strongly suggest the folder still mixes semantic arbitration with duplicated
+runtime lifecycle.
+
+### Current Status
+
+Complete.
+
+The fake proof ladder, runtime declaration wrapper, and support-materialization
+sidecar are deleted. `SpatialIntentArbitrationDeclaration` now carries the one
+surviving Query handoff directly, and the public facade no longer exposes a
+second arbitration runtime system.
+
+### Target Shape
+
+`arbitration` should keep the semantic decision core and lose the local runtime
+ladder. Public stop, readiness, inspection, and recovery posture should ride
+Query surfaces.
+
+### Query Mapping
+
+- canonical domain declarations
 - inspection
 - readiness
 - recovery
+- helper projections where common arbitration jobs deserve them
 
-This matters here because spatial work no longer needs a "before Query" public
-life cycle.
+### Acceptance
 
-The honest model is:
+- arbitration enters through Query directly
+- blocked, advisory, and clarification posture map onto Query stop and recovery
+  seams
+- the local semantic core remains visible without exporting a second runtime
+  system
+- old progression/materialization/runtime-declaration seams are deleted from
+  production code and tests
 
-1. Query is the front door for runtime-facing spatial work.
-2. `worth-spatial` contributes domain semantics to that door.
-3. Query retains and carries the public lifecycle.
-4. Worth stays responsible for domain meaning, not duplicate platform glue.
+## Folder 5: `spatial_intent/preview`, `constraints`, `continuity`
 
-## End-To-End Workflow
+### Purpose
 
-This refactor should now be judged against one explicit end-to-end spatial
-workflow.
+These folders should model downstream spatial workflow meaning, not fake a
+parallel workflow engine.
 
-### Ordinary Path
-
-1. enter Query through platform entry
-2. admit a configured geometry domain handle
-3. optionally bind the next declaration input from current context or retained
-   artifacts
-4. declare one spatial family through Query
-5. run legality and progression through Query
-6. materialize route, receipt, and envelope through Query when that family is
-   runtime-facing
-7. move to grouped work, signal compatibility, continuation, inspection, or
-   recovery through Query-owned seams
-
-### Helper Path
-
-1. enter Query through the admitted geometry handle
-2. call a family-native helper
-3. lower onto the same canonical Query declaration, binding, and orchestration
-   seams
-4. receive the same ordinary, checked, or proof-visible posture as the generic
-   Query surfaces
-
-### Recovery Path
-
-1. a spatial family stops on denial, ambiguity, unsupported posture,
-   stale/rebind posture, wrong-world posture, or authority mismatch
-2. Query inspection explains the retained stop truth
-3. Query recovery provides the next-step class
-4. Worth-specific semantics remain visible as family meaning, not as a second
-   local recovery engine
-
-## Folder-By-Folder Program
-
-This refactor will proceed folder by folder through `worth-spatial`.
-
-For each folder we must answer:
-
-1. what is irreducible local spatial meaning?
-2. what is actually local numeric admission?
-3. what Query-facing lifecycle is being rebuilt locally?
-4. what should be deleted, collapsed, or moved into `worth-math`?
-5. what should become a declaration family, helper surface, binding seam,
-   grouped surface, inspection surface, or recovery surface in Query?
-
-The implementation order should be:
-
-1. `spatial_intent/refs` + `spatial_intent/resolution`
-   - turn witness and frame resolution from a local proof/materialization
-     subsystem into a Query-declared witness family with helper entrypoints
-2. `spatial_intent/lowering`
-   - rebuild the runtime-facing lowering story around real Query declaration
-     pipeline artifacts instead of old intent/effect-era adapter thinking
-3. `spatial_intent/arbitration`
-   - keep the semantic arbitration core, delete the fake proof ladder and
-     runtime/materialization glue, and move the public story onto Query
-     declaration/inspection/recovery seams
-4. `spatial_intent/preview` + `spatial_intent/constraints` +
-   `spatial_intent/continuity`
-   - rebuild these as downstream Query workflow and continuation families over
-     retained spatial meaning instead of local workflow-shaped summaries
-5. `bindings`
-   - center primitive birth as domain semantics and consequence truth, then
-     project its runtime-facing lifecycle through Query
-6. `certification` + `facade`
-   - narrow the public Worth surface to local semantics plus explicit Query
-     helper/integration seams
-7. README and doc alignment
-   - update `worth-spatial` README and related Worth docs so they teach the
-     Query-first story and stop centering adapter-era local lifecycles
-
-## Current Status
-
-The refactor is not starting from zero.
-
-### What Is Already Valuable
-
-- `refs` contains real authored vocabulary
-- `resolution` contains real witness semantics
-- `lowering` already exposed that local proof/materialization/runtime adapter
-  layers were separable concerns
-- `arbitration` already isolated real conflict semantics from policy and
-  capability posture
-
-### What Is Now Stale
-
-- "pre-runtime" as the primary public framing
-- local `forge-proof` progression as a public-facing transition story
-- local `forge-foundational` materialization as the normal public explanation
-  path
-- old `ForgeQueryIntent*` and effect-era adapter thinking as the target Query
-  seam
-- Worth-local runtime declaration wrappers that exist mainly to translate a
-  finished local product into legacy Query nouns
-
-### Immediate Consequence
-
-The old Query mapping sections should not be used as implementation authority
-without reinterpretation. Their broad architectural instinct was useful, but
-their Query-facing noun set and staging model no longer match the current
-public Query product.
-
-## Query Surface Map For This Refactor
-
-This section replaces the old "Query API mapping" mindset.
-
-The right question is no longer:
-
-> which old Query type name do we translate this local product into?
-
-The right questions are:
-
-- what Query surface category should this family enter through?
-- does this job need binding, declaration entry, grouped work, continuation, or
-  recovery?
-- should the ergonomic story be generic, helper-driven, or both?
-
-### Start Here
-
-The most important Query doc roots for this refactor are:
-
-- `crates/forge-query/docs/README.md`
-- `crates/forge-query/docs/domain-capabilities/README.md`
-- `crates/forge-query/docs/domain-capabilities/choosing/README.md`
-- `crates/forge-query/docs/domain-capabilities/workflow/README.md`
-- `crates/forge-query/docs/domain-capabilities/recipes/README.md`
-
-### Core Surface Categories
-
-For runtime-facing spatial work, prefer:
-
-- platform entry
-- configured domain handles
-- typed binding pipeline
-- ordinary outcomes
-- recovery boundary
-- family helpers
-- canonical domain declarations
-- declaration progression
-- declaration foundational evidence
-- declaration route plans, receipts, and envelopes
-- declaration entry orchestration
-- declaration entry inspection and readiness
-- grouped authoring, grouped products, and grouped contributions
-- signal compatibility orchestration
-- continuation pipeline
-- support and traceability docs
-
-### Rules For Using The Map
-
-When refactoring any spatial slice:
-
-1. identify the irreducible spatial semantics
-2. identify the first honest Query-facing job
-3. choose the Query surface category for that job
-4. only then choose the local Worth helper or declaration family shape
-
-The burden of proof is now on local lifecycle reinvention, not on Query use.
-
-## `spatial_intent/refs` + `spatial_intent/resolution`
-
-This slice should become the clearest early example of the new architecture.
-
-### What Must Stay Local
-
-- authored witness vocabulary
-- frame vocabulary
-- anchor vocabulary
-- carrier and parameter-space semantics
-- numeric admission rules
-- catalog-backed resolution semantics
-
-### What Is Currently Stale
-
-This slice still behaves like a local mini-platform:
-
-- local request/admit/resolve proof ladders
-- local public resolution entrypoints
-- local foundational support/explanation/provenance materialization
-
-Those are no longer the right public seams.
-
-### Rewrite Direction
-
-This slice should become:
-
-- one or more spatial witness declaration families
-- optional typed binding from current context or retained artifacts
-- helper-driven geometry entrypoints for common witness jobs
-- Query-owned progression, inspection, ordinary outcomes, and recovery
-
-The old local proof and materialization code may still exist briefly as
-internal transition machinery, but it should stop being the public story and
-should be deleted once the Query-family seam lands cleanly.
-
-### Query Surface Target
-
-- configured domain handles
-- typed binding pipeline
-- canonical domain declarations
-- declaration progression
-- declaration entry inspection
-- recovery boundary
-- family helpers
-
-### Acceptance Evidence
-
-- witness resolution can begin through Query, not only through local helper
-  chains
-- the same witness meaning can enter through explicit declaration input or
-  helper ergonomics
-- support, ambiguity, and denial posture are visible through Query inspection
-  and recovery rather than only through local foundational report builders
-
-## `spatial_intent/lowering`
-
-This slice remains important, but the target Query seam has changed.
-
-### What Must Stay Local
-
-- local movement, rotation, and placement semantics
-- anchor interpretation
-- witness-fed geometric meaning
-- numeric and directional normalization rules
-
-### What Must Change
-
-Lowering should stop aiming at old Query adapter nouns and instead target:
-
-- declaration families that preserve aspect-qualified spatial meaning
-- route/receipt/envelope posture retained by Query
-- binding-ready retained artifacts for later workflow or continuation steps
-- Query inspection and recovery instead of Worth-local explanation surfaces
-
-### Query Surface Target
-
-- canonical domain declarations
-- declaration progression
-- declaration foundational evidence
-- declaration route plans
-- declaration boundary receipts
-- declaration boundary envelopes
-- declaration entry orchestration
-- declaration entry inspection
-- typed binding pipeline
-
-### Acceptance Evidence
-
-- a lowered spatial family can flow end to end through declaration to envelope
-- later binding and continuation work consume retained Query artifacts rather
-  than Worth-local handoff structs
-- aspect-qualified spatial meaning survives into inspection and later binding
-
-## `spatial_intent/arbitration`
-
-Arbitration has one of the cleanest semantic cores and one of the stalest glue
-layers.
-
-### What Must Stay Local
-
-- candidate generation
-- candidate ranking
-- policy profile interaction
-- capability-sensitive conflict classification
-- escalation choice
-
-### What Should Be Deleted
-
-- infallible local proof ladders that only wrap the same payload
-- local runtime declaration adapters that translate finished local products
-  into old Query request forms
-- local foundational support/explanation materialization as the normal public
-  story
-
-### Rewrite Direction
-
-Arbitration should become:
-
-- one Query declaration family over Worth-owned semantic analysis
-- one helper surface for common arbitration jobs
-- one Query inspection and recovery story
-- one typed support/readiness story where blocked capability posture matters
-
-### Query Surface Target
-
-- canonical domain declarations
-- declaration progression
-- declaration entry inspection
-- declaration entry readiness
-- recovery boundary
-- family helpers
-- support and traceability
-
-### Acceptance Evidence
-
-- arbitration can enter through Query directly
-- blocked, advisory, and clarification posture project onto Query-native stop
-  and recovery surfaces
-- the local semantic core remains visible without exposing the old adapter
-  layers as durable public seams
-
-## `spatial_intent/preview` + `spatial_intent/constraints` + `spatial_intent/continuity`
-
-These folders should no longer be described as local workflow stand-ins.
-
-### What Must Stay Local
+### Local Authority That Must Stay
 
 - preview-local geometric semantics
 - constraint semantics
-- continuity and identity evolution semantics that are genuinely spatial
+- continuity and identity-evolution semantics
 
-### Rewrite Direction
+### What Must Collapse
 
-These slices should compile onto:
+- workflow summary objects that act like local public runtime products
+- local continuation ladders
+- local grouped-work stand-ins
+- local recovery ecosystems that restate Query-owned stop posture
 
-- workflow guides
-- signal compatibility orchestration
+### Current Status
+
+Complete.
+
+The separate `preview/` and `continuity/` helper pipelines are deleted. Their
+surviving semantic contributions now live directly on arbitration declaration
+and resolution artifacts, while `constraints/` remains the honest semantic
+admission surface for placement-style constraints.
+
+### Target Shape
+
+These folders should become semantic contributors to Query workflow,
+continuation, grouped-work, and recovery surfaces.
+
+### Query Mapping
+
+- workflow families
 - continuation pipeline
-- grouped surfaces where neighborhood meaning matters
-- recovery boundary for stop classification
+- grouped authoring and grouped products
+- signal compatibility where relevant
+- recovery boundary
 
-The public story should be:
+### Acceptance
 
-- Query workflow family
-- Query continuation family
-- Query grouped family
+- preview and continuity are explainable as Query workflows
+- next-step classification uses Query inspection/recovery
+- grouped and continuation steps reuse retained Query artifacts instead of
+  Worth-local pseudo-artifacts
+- old preview/continuity helper entrypoints, wrapper objects, and tests are
+  deleted rather than hidden behind compatibility seams
 
-not:
+## Folder 6: `bindings`
 
-- Worth-local workflow summary objects that later happen to hand off into Query
+### Purpose
 
-### Acceptance Evidence
+This folder should own primitive-birth semantics and consequence meaning.
 
-- preview and continuity can be described as end-to-end Query workflows
-- the next-step classification after preview/continuity work uses Query
-  inspection and recovery
-- grouped and continuation seams reuse retained Query artifacts instead of
-  local pseudo-artifacts
-
-## `bindings`
-
-This slice is really about primitive birth and consequence posture.
-
-### What Must Stay Local
+### Local Authority That Must Stay
 
 - primitive family semantics
-- topology birth class semantics
-- geometric/topology admission
-- primitive birth planning
+- topology-birth class semantics
+- geometric and topology admission
+- primitive-birth planning
+- primitive-birth validation and rejection meaning
 
-### What Must Change
+### What Must Collapse
 
-This slice should stop producing a thick local report ecology as if that were
-the final product surface.
+- thick local report ecologies treated as the final public surface
+- local consequence packaging that makes Query rediscover primitive-birth truth
+- local runtime-lifecycle wrappers around already-admitted primitive meaning
 
-It should instead center:
+### Target Shape
 
-- one admitted primitive birth artifact family
-- one clear consequence model
-- one Query-facing consequence and aftermath story for runtime-facing cases
+`bindings` should produce one honest primitive-birth semantic artifact family
+and one consequence model that Query can carry forward for runtime-facing
+aftermath.
 
-### Query Surface Target
+### Query Mapping
 
 - canonical domain declarations
-- declaration progression
-- aftermath review/support/eligibility/materialization
-- support and traceability
-- recovery boundary
-- family helpers where common birth workflows deserve them
+- aftermath review/support/materialization surfaces
+- recovery
+- helper projections where common primitive-birth flows justify them
 
-### Acceptance Evidence
+### Acceptance
 
-- primitive birth consequence posture no longer depends on many parallel local
+- primitive-birth consequence posture is not scattered across parallel local
   report families
-- Query can carry the runtime-facing consequence story without rediscovering
-  primitive birth meaning from scattered adapters
+- Query carries the runtime-facing consequence story without archaeology over
+  adapter structs
 
-## `certification` + `facade`
+### Current Status
 
-This slice must now certify the new public honesty.
+- complete
+- primitive birth now exposes one public plan surface plus one consequence
+  model instead of separate public authority, completeness-report,
+  mapping-report, rejection-row, and contract-count ecologies
+- legacy bindings aftermath/report products are removed from the facade and
+  enforced dead by boundary and compile-fail proof
+
+## Folder 7: `certification`, `facade`, docs
+
+### Purpose
+
+This phase narrows the public surface and proves the crate boundary is honest.
 
 ### Public Surface Goal
 
-`worth-spatial` should expose:
+`worth-spatial` should export:
 
 - authored spatial vocabulary
-- irreducible local semantic kernels
+- irreducible spatial semantic kernels
 - explicit Query-facing helper and integration seams
 
-It should stop behaving like the final runtime-facing operating surface.
+It should not present itself as the final runtime-facing public operating
+surface.
 
 ### Certification Goal
 
-Certification should prove:
+Certification must prove:
 
-1. the local semantic surface is honest
-2. the Query-facing seam is honest
-3. the public surface is intentionally narrow
-4. helper ergonomics are projections over canonical Query lanes, not second
-   engines
+1. local semantics stay local
+2. Query-facing entry is the runtime front door
+3. helper ergonomics are projections over canonical Query lanes
+4. hidden implementation folders do not leak back into the facade
 
-### README Goal
+### Documentation Goal
 
-The README must teach:
+The README and nearby docs must teach:
 
-- Query-first entry
-- what local semantics Worth owns
-- what public lifecycle Query owns
-- one or two small end-to-end code paths through the modern Query surface
+- Query-first runtime entry
+- what `worth-spatial` owns
+- what Query owns
+- one or two end-to-end modern examples
 
-It must stop centering:
+They must stop teaching:
 
-- local `forge-proof` artifacts
-- local `forge-foundational` materialization helpers
+- pre-runtime-first framing
+- local proof-first framing
 - adapter-era runtime declaration wrappers
 
-### Acceptance Evidence
+### Acceptance
 
-- facade exports are narrower and more intentional
-- compile-fail tests grow where local implementation details should stay hidden
-- public API tests are grouped by real surface family
-- README and spec teach the same Query-first story
+- facade exports are intentionally narrow
+- compile-fail and public API tests enforce that narrowness
+- certification targets real boundary rules, not just file names
+- docs match the code and the plan
 
-## Concrete Rewrite Rules
+### Current Status
 
-When touching a spatial slice during this refactor:
+- complete
+- the public facade is now namespaced instead of flat, so semantic entry
+  points live under explicit modules rather than one top-level operating
+  surface
+- compile-fail and boundary proof now enforce that the old flat semantic
+  facade is actually dead
+- crate docs now teach the same Query-first namespaced surface that the code
+  exposes
 
-1. keep the domain semantics
-2. delete fake proof ladders with no real semantic authority
-3. delete local foundational materialization layers when Query inspection or
-   recovery should own the public story
-4. replace old Query adapter nouns with current Query surface categories
-5. add helper ergonomics only as projections over canonical Query lanes
-6. update the README or nearby docs when the public mental model changes
+## Rewrite Rules
 
-## What This Refactor Is Not
+When rewriting any folder:
 
-This refactor is not:
+1. preserve domain semantics
+2. delete fake lifecycle layers with no independent authority
+3. do not keep local materialization or support ecosystems when Query
+   inspection/recovery should own the public story
+4. add Query runtime capability when there is a real gap
+5. document new Query runtime capability in Query docs when added
+6. close each folder with hostile QA on the actual boundary
+7. remove backward-compatibility shims once the replacement boundary lands
+8. rewrite or delete tests that hold old seam shapes in place
+9. treat "internal only" or "`#[cfg(test)]` only" legacy seam survival as
+   temporary at most, not a valid closeout state
 
-- a demand that every local spatial helper disappear
-- a demand that every domain type become generic Query vocabulary
-- a claim that Query owns spatial semantics
-- a claim that all old internal code must be deleted before any new seam lands
+## Done Condition
 
-It is a demand that:
+This refactor is complete only if:
 
-- runtime-facing entry begins honestly in Query
-- Worth owns semantic truth, not duplicate platform glue
-- public spatial workflows align to the Query product that actually exists now
-
-## Acceptance Standard
-
-This document is only fulfilled if:
-
-- Query is the clear runtime-facing front door for spatial work
-- the old "pre-runtime first, Query later" framing is gone
-- the public story is organized around current Query surfaces
-- local proof/materialization/runtime adapter glue is systematically collapsed
-- the folder-by-folder plan preserves strong spatial semantics while deleting
-  stale platform duplication
-- the README, spec, and public API all teach the same architecture
+- folder order was followed
+- each folder has one coherent authority story
+- Query is the runtime-facing front door
+- local spatial semantics remain strong
+- local duplicate lifecycle glue is systematically removed
+- old seam names, compatibility wrappers, and test-only legacy ladders are
+  gone
+- certification and docs teach the same architecture

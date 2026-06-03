@@ -1,5 +1,5 @@
 use worth_kernel::facade::diagnostics::arbitration::*;
-use worth_spatial::facade::{
+use worth_spatial::facade::arbitration::{
     SpatialBlockedCapability, SpatialIntentCandidate, SpatialIntentEscalation,
 };
 

@@ -27,10 +27,11 @@ pub struct PrimitiveConstructionQueryContinuityParityReport {
     case: crate::construction::certification::PrimitiveConstructionContinuityCase,
     profile_name: &'static str,
     source: crate::construction::certification::PrimitiveConstructionContinuityResolutionSource,
-    continuity_class: worth_spatial::facade::SpatialIdentityContinuityClass,
-    explanation_class: worth_spatial::facade::SpatialIdentityContinuityExplanationClass,
-    candidate: Option<worth_spatial::facade::SpatialIntentCandidate>,
-    blocked_capability: Option<worth_spatial::facade::SpatialBlockedCapability>,
+    continuity_class: worth_spatial::facade::arbitration::SpatialIdentityContinuityClass,
+    explanation_class:
+        worth_spatial::facade::arbitration::SpatialIdentityContinuityExplanationClass,
+    candidate: Option<worth_spatial::facade::arbitration::SpatialIntentCandidate>,
+    blocked_capability: Option<worth_spatial::facade::arbitration::SpatialBlockedCapability>,
     preserves_subject_identity: bool,
     preserves_anchor_identity: bool,
     query_contract_digest: String,
@@ -100,21 +101,25 @@ impl PrimitiveConstructionQueryContinuityParityReport {
         self.source
     }
 
-    pub fn continuity_class(&self) -> worth_spatial::facade::SpatialIdentityContinuityClass {
+    pub fn continuity_class(
+        &self,
+    ) -> worth_spatial::facade::arbitration::SpatialIdentityContinuityClass {
         self.continuity_class
     }
 
     pub fn explanation_class(
         &self,
-    ) -> worth_spatial::facade::SpatialIdentityContinuityExplanationClass {
+    ) -> worth_spatial::facade::arbitration::SpatialIdentityContinuityExplanationClass {
         self.explanation_class
     }
 
-    pub fn candidate(&self) -> Option<worth_spatial::facade::SpatialIntentCandidate> {
+    pub fn candidate(&self) -> Option<worth_spatial::facade::arbitration::SpatialIntentCandidate> {
         self.candidate
     }
 
-    pub fn blocked_capability(&self) -> Option<worth_spatial::facade::SpatialBlockedCapability> {
+    pub fn blocked_capability(
+        &self,
+    ) -> Option<worth_spatial::facade::arbitration::SpatialBlockedCapability> {
         self.blocked_capability
     }
 
@@ -246,7 +251,7 @@ mod tests {
         );
         assert_eq!(
             inspection.continuity_class(),
-            worth_spatial::facade::SpatialIdentityContinuityClass::IdentityMerged
+            worth_spatial::facade::arbitration::SpatialIdentityContinuityClass::IdentityMerged
         );
         assert!(inspection.parity_verified());
         assert!(projection.parity_verified());

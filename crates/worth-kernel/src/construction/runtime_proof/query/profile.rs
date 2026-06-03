@@ -26,10 +26,10 @@ pub enum PrimitiveConstructionPolicyProfileQueryFactProvenance {
 pub struct PrimitiveConstructionQueryPolicyProfileParityReport {
     case: crate::construction::certification::PrimitiveConstructionPolicyProfileCase,
     profile_name: &'static str,
-    proximity_posture: worth_spatial::facade::SpatialThresholdPosture,
-    alignment_posture: worth_spatial::facade::SpatialThresholdPosture,
-    arbitration_posture: worth_spatial::facade::SpatialArbitrationPosture,
-    preview_richness: worth_spatial::facade::SpatialPreviewRichness,
+    proximity_posture: worth_spatial::facade::arbitration::SpatialThresholdPosture,
+    alignment_posture: worth_spatial::facade::arbitration::SpatialThresholdPosture,
+    arbitration_posture: worth_spatial::facade::arbitration::SpatialArbitrationPosture,
+    preview_richness: worth_spatial::facade::arbitration::SpatialPreviewRichness,
     representative_preview_case: crate::construction::PrimitiveConstructionPreviewCase,
     representative_continuity_case:
         Option<crate::construction::PrimitiveConstructionContinuityCase>,
@@ -94,19 +94,21 @@ impl PrimitiveConstructionQueryPolicyProfileParityReport {
         self.profile_name
     }
 
-    pub fn proximity_posture(&self) -> worth_spatial::facade::SpatialThresholdPosture {
+    pub fn proximity_posture(&self) -> worth_spatial::facade::arbitration::SpatialThresholdPosture {
         self.proximity_posture
     }
 
-    pub fn alignment_posture(&self) -> worth_spatial::facade::SpatialThresholdPosture {
+    pub fn alignment_posture(&self) -> worth_spatial::facade::arbitration::SpatialThresholdPosture {
         self.alignment_posture
     }
 
-    pub fn arbitration_posture(&self) -> worth_spatial::facade::SpatialArbitrationPosture {
+    pub fn arbitration_posture(
+        &self,
+    ) -> worth_spatial::facade::arbitration::SpatialArbitrationPosture {
         self.arbitration_posture
     }
 
-    pub fn preview_richness(&self) -> worth_spatial::facade::SpatialPreviewRichness {
+    pub fn preview_richness(&self) -> worth_spatial::facade::arbitration::SpatialPreviewRichness {
         self.preview_richness
     }
 

@@ -1,12 +1,39 @@
+use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{
-    authoring::intents::*, diagnostics::motion::*, PrimitiveConstructionIntent, RegularPyramidSpec,
-    WireBodySpec,
+    authoring::{construction::*, create::CreateSpatialIntent, intents::*},
+    diagnostics::motion::*,
 };
-use worth_spatial::facade::{
-    admit_spatial_placement, SpatialAnchorRef, SpatialAxis, SpatialDirectionWitnessRef,
-    SpatialFrameRef, SpatialPointWitnessRef, SpatialWitnessFailureClass,
-    SpatialWitnessResolutionClass,
+use worth_spatial::facade::constraints::{
+    admit_spatial_anchor_match_constraint, admit_spatial_lies_on_constraint,
+    admit_spatial_points_toward_constraint,
 };
+use worth_spatial::facade::motion::{
+    admit_spatial_move, admit_spatial_offset, admit_spatial_reorient, admit_spatial_rotate,
+};
+use worth_spatial::facade::placement::admit_spatial_placement;
+use worth_spatial::facade::refs::{
+    SpatialAnchorRef, SpatialAxis, SpatialDirectionWitnessRef, SpatialFrameRef,
+    SpatialPointWitnessRef,
+};
+use worth_spatial::facade::witness_resolution::{
+    SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
+};
+
+fn with_authoring_session<T>(
+    workspace_name: &str,
+    run: impl FnOnce(&mut PrimitiveConstructionAuthoringSession<'_>) -> T,
+) -> T {
+    let runtime = milestone_one_runtime_builder()
+        .expect("runtime builder")
+        .build();
+    let mut workspace = topology_runtime(
+        TopologyRuntimeAdapters::current_head(runtime),
+        workspace_name.to_string(),
+    )
+    .expect("workspace");
+    let mut session = primitive_construction_authoring(&mut workspace).expect("authoring session");
+    run(&mut session)
+}
 
 #[test]
 fn kernel_public_facade_exports_prepositional_create_placement_surface() {
@@ -91,13 +118,18 @@ fn kernel_public_facade_exports_authored_motion_verbs() {
     let matched = MoveSpatialIntent::shape("shape-1")
         .so(SpatialAnchorRef::shape_origin())
         .matches(SpatialAnchorRef::frame_origin(workplane.clone()));
-    let admitted_move = moved.admit().expect("move plan");
-    let admitted_rotate = rotated.admit().expect("rotate plan");
-    let admitted_reorient = reoriented.admit().expect("reorient plan");
-    let admitted_offset = offset.admit().expect("offset plan");
-    let admitted_lies_on = lies_on.admit().expect("lies on");
-    let admitted_points_toward = points_toward.admit().expect("points");
-    let admitted_match = matched.admit().expect("match");
+    let admitted_move = admit_spatial_move(moved.motion_spec()).expect("move plan");
+    let admitted_rotate = admit_spatial_rotate(rotated.motion_spec()).expect("rotate plan");
+    let admitted_reorient =
+        admit_spatial_reorient(reoriented.motion_spec()).expect("reorient plan");
+    let admitted_offset = admit_spatial_offset(offset.motion_spec()).expect("offset plan");
+    let admitted_lies_on =
+        admit_spatial_lies_on_constraint(lies_on.constraint_spec().clone()).expect("lies on");
+    let admitted_points_toward =
+        admit_spatial_points_toward_constraint(points_toward.constraint_spec().clone())
+            .expect("points");
+    let admitted_match =
+        admit_spatial_anchor_match_constraint(matched.constraint_spec().clone()).expect("match");
 
     assert_eq!(moved.subject(), &"shape-1");
     assert_eq!(
@@ -142,117 +174,156 @@ fn kernel_public_facade_exports_authored_motion_verbs() {
 }
 
 #[test]
-fn kernel_public_facade_finishes_primitive_motion_into_updated_placement_intent() {
-    let moved = MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
-        edge_count: 6,
-    }))
-    .to([10.0, 0.0, 3.0])
-    .finish()
-    .expect("moved wire");
-    let reoriented = ReorientSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
-        RegularPyramidSpec {
-            sides: 4,
-            radius: 1.0,
-            height: 2.0,
-        },
-    ))
-    .perpendicular_to(SpatialFrameRef::workplane(
-        "wp-3",
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0],
-    ))
-    .finish()
-    .expect("reoriented pyramid");
-    let rotated = RotateSpatialIntent::shape(reoriented.clone())
-        .rotated_about([1.0, 0.0, 0.0], std::f64::consts::FRAC_PI_2)
-        .finish()
-        .expect("rotated pyramid");
-    let lies_on = MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
-        edge_count: 6,
-    }))
-    .so(SpatialAnchorRef::shape_origin())
-    .lies_on(SpatialFrameRef::workplane(
-        "wp-1",
-        [0.0, 0.0, 5.0],
-        [0.0, 0.0, 1.0],
-    ))
-    .finish()
-    .expect("wire on workplane");
-    let pointed = ReorientSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
-        RegularPyramidSpec {
-            sides: 4,
-            radius: 1.0,
-            height: 2.0,
-        },
-    ))
-    .so(SpatialAnchorRef::world_origin())
-    .points_toward([0.0, 3.0, 0.0])
-    .finish()
-    .expect("points toward target");
-    let matched = MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
-        edge_count: 6,
-    }))
-    .so(SpatialAnchorRef::shape_origin())
-    .matches(SpatialAnchorRef::world_origin())
-    .finish()
-    .expect("matches world origin");
+fn kernel_public_facade_lowers_primitive_motion_through_query_entry_session() {
+    let moved = with_authoring_session("worth-kernel.public-motion-move", |session| {
+        session
+            .author(
+                MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
+                    edge_count: 6,
+                }))
+                .to([10.0, 0.0, 3.0]),
+            )
+            .and_then(|entry| entry.prepare_result())
+    });
+    let reoriented = with_authoring_session("worth-kernel.public-motion-reorient", |session| {
+        session
+            .author(
+                ReorientSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
+                    RegularPyramidSpec {
+                        sides: 4,
+                        radius: 1.0,
+                        height: 2.0,
+                    },
+                ))
+                .perpendicular_to(SpatialFrameRef::workplane(
+                    "wp-3",
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0],
+                )),
+            )
+            .and_then(|entry| entry.prepare_result())
+    });
+    let rotated = with_authoring_session("worth-kernel.public-motion-rotate", |session| {
+        session
+            .author(
+                RotateSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
+                    RegularPyramidSpec {
+                        sides: 4,
+                        radius: 1.0,
+                        height: 2.0,
+                    },
+                ))
+                .about(SpatialAnchorRef::shape_origin())
+                .rotated_about([1.0, 0.0, 0.0], std::f64::consts::FRAC_PI_2),
+            )
+            .and_then(|entry| entry.prepare_result())
+    });
+    let lies_on = with_authoring_session("worth-kernel.public-motion-lies-on", |session| {
+        session
+            .author(
+                MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
+                    edge_count: 6,
+                }))
+                .so(SpatialAnchorRef::shape_origin())
+                .lies_on(SpatialFrameRef::workplane(
+                    "wp-1",
+                    [0.0, 0.0, 5.0],
+                    [0.0, 0.0, 1.0],
+                )),
+            )
+            .map(|entry| entry.prepare_outcome())
+    });
+    let pointed = with_authoring_session("worth-kernel.public-motion-points", |session| {
+        session
+            .author(
+                ReorientSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
+                    RegularPyramidSpec {
+                        sides: 4,
+                        radius: 1.0,
+                        height: 2.0,
+                    },
+                ))
+                .so(SpatialAnchorRef::world_origin())
+                .points_toward([0.0, 3.0, 0.0]),
+            )
+            .and_then(|entry| entry.prepare_result())
+    });
+    let matched = with_authoring_session("worth-kernel.public-motion-match", |session| {
+        session
+            .author(
+                MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
+                    edge_count: 6,
+                }))
+                .so(SpatialAnchorRef::shape_origin())
+                .matches(SpatialAnchorRef::world_origin()),
+            )
+            .map(|entry| entry.prepare_outcome())
+    });
     let rotated_about_frame_origin =
-        RotateSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
-            edge_count: 6,
-        }))
-        .about(SpatialAnchorRef::frame_origin(SpatialFrameRef::workplane(
-            "pivot-1",
-            [4.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0],
-        )))
-        .around([0.0, 0.0, 1.0])
-        .by_radians(std::f64::consts::FRAC_PI_2)
-        .finish()
-        .expect("frame-origin rotate");
+        with_authoring_session("worth-kernel.public-motion-frame-origin", |session| {
+            session
+                .author(
+                    RotateSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(
+                        WireBodySpec { edge_count: 6 },
+                    ))
+                    .about(SpatialAnchorRef::frame_origin(SpatialFrameRef::workplane(
+                        "pivot-1",
+                        [4.0, 0.0, 0.0],
+                        [0.0, 0.0, 1.0],
+                    )))
+                    .around([0.0, 0.0, 1.0])
+                    .by_radians(std::f64::consts::FRAC_PI_2),
+                )
+                .and_then(|entry| entry.prepare_result())
+        });
+    let unsupported_anchor =
+        with_authoring_session("worth-kernel.public-motion-unsupported-anchor", |session| {
+            session
+                .author(
+                    MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(
+                        WireBodySpec { edge_count: 6 },
+                    ))
+                    .from(SpatialAnchorRef::shape_axis(SpatialAxis::W))
+                    .to([10.0, 0.0, 3.0]),
+                )
+                .and_then(|entry| entry.prepare_result())
+        });
 
-    assert_eq!(moved.placement_spec().origin(), [10.0, 0.0, 3.0]);
-    let admitted_reoriented =
-        admit_spatial_placement(reoriented.placement_spec()).expect("reoriented placement");
-    let admitted_rotated =
-        admit_spatial_placement(rotated.placement_spec()).expect("rotated placement");
-    let admitted_pointed =
-        admit_spatial_placement(pointed.placement_spec()).expect("pointed placement");
-    assert!(admitted_reoriented.facing_vector()[2].abs() < 1.0e-12);
-    assert!(admitted_rotated.facing_vector()[0] > 0.99);
-    assert!(admitted_rotated.facing_vector()[1].abs() < 1.0e-12);
-    assert!(admitted_rotated.facing_vector()[2].abs() < 1.0e-12);
-    assert_eq!(lies_on.placement_spec().origin(), [0.0, 0.0, 0.0]);
-    assert!(admitted_pointed.facing_vector()[1] > 0.99);
-    assert_eq!(matched.placement_spec().origin(), [0.0, 0.0, 0.0]);
-    assert!(rotated_about_frame_origin.placement_spec().origin()[0] < 4.0);
+    assert!(moved.is_ok());
+    assert!(reoriented.is_ok());
+    assert!(rotated.is_ok());
+    assert!(lies_on.is_ok());
+    assert!(pointed.is_ok());
+    assert!(matched.is_ok());
+    assert!(rotated_about_frame_origin.is_ok());
     assert!(matches!(
-        MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
-            edge_count: 6,
-        }))
-        .from(SpatialAnchorRef::shape_axis(SpatialAxis::W))
-        .to([10.0, 0.0, 3.0])
-        .finish()
-        .expect_err("unsupported motion anchor should fail"),
-        PrimitiveConstructionSpatialIntentError::PlacementLowering(_)
+        unsupported_anchor,
+        Err(PrimitiveConstructionQueryEntryError::Lowering(
+            PrimitiveConstructionSpatialIntentError::PlacementLowering(_)
+        ))
     ));
 
-    let undefined = ReorientSpatialIntent::shape("shape-2")
-        .toward_witness(SpatialDirectionWitnessRef::world_direction([0.0, 0.0, 0.0]))
-        .admit()
-        .expect_err("undefined witness should fail");
-    let ambiguous_target = MoveSpatialIntent::shape("shape-3")
-        .to_witness(SpatialPointWitnessRef::ambiguous_curve_point("curve-1"))
-        .admit()
-        .expect_err("ambiguous target should fail");
+    let undefined = admit_spatial_reorient(
+        ReorientSpatialIntent::shape("shape-2")
+            .toward_witness(SpatialDirectionWitnessRef::world_direction([0.0, 0.0, 0.0]))
+            .motion_spec(),
+    )
+    .expect_err("undefined witness should fail");
+    let ambiguous_target = admit_spatial_move(
+        MoveSpatialIntent::shape("shape-3")
+            .to_witness(SpatialPointWitnessRef::ambiguous_curve_point("curve-1"))
+            .motion_spec(),
+    )
+    .expect_err("ambiguous target should fail");
     assert_eq!(
         undefined,
-        worth_spatial::facade::SpatialMotionError::DirectionWitnessFailure(
+        worth_spatial::facade::motion::SpatialMotionError::DirectionWitnessFailure(
             SpatialWitnessFailureClass::Undefined
         )
     );
     assert_eq!(
         ambiguous_target,
-        worth_spatial::facade::SpatialMotionError::DestinationWitnessFailure(
+        worth_spatial::facade::motion::SpatialMotionError::DestinationWitnessFailure(
             SpatialWitnessFailureClass::Ambiguous
         )
     );

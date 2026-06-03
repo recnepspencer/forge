@@ -10,10 +10,13 @@ use super::{
 use crate::facade::{
     admit_spatial_anchor_match_constraint, admit_spatial_frame, admit_spatial_lies_on_constraint,
     admit_spatial_placement, admit_spatial_points_toward_constraint,
-    SpatialAnchorMatchConstraintSpec, SpatialAnchorRef, SpatialCarrierPointRole,
-    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass, SpatialFrameRef,
-    SpatialGeometricTagFailureClass, SpatialLiesOnConstraintSpec, SpatialPlacementSpec,
-    SpatialPointsTowardConstraintSpec, SpatialWitnessFailureClass,
+    refs::{SpatialAnchorRef, SpatialCarrierPointRole, SpatialFrameRef},
+    witness_catalog::{
+        SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
+        SpatialCatalogWitnessResolutionClass, SpatialGeometricTagFailureClass,
+    },
+    witness_resolution::SpatialWitnessFailureClass, SpatialAnchorMatchConstraintSpec,
+    SpatialLiesOnConstraintSpec, SpatialPlacementSpec, SpatialPointsTowardConstraintSpec,
 };
 use crate::test_support::SpatialFixtureWitnessCatalog;
 
@@ -343,7 +346,7 @@ fn constraint_lowering_preserves_direction_like_and_unsupported_tag_classes() {
         .expect("anchor match to tag"),
         &SpatialFixtureWitnessCatalog::new().with_geometric_tag_direction(
             "tag-direction",
-            Ok(crate::facade::SpatialCatalogResolvedDirectionWitness::new(
+            Ok(crate::facade::witness_catalog::SpatialCatalogResolvedDirectionWitness::new(
                 [0.0, 1.0, 0.0],
                 SpatialCatalogWitnessResolutionClass::CarrierDerived,
             )),
@@ -381,7 +384,7 @@ fn constraint_lowering_rejects_non_point_like_constraint_anchors() {
     let error = apply_admitted_lies_on_constraint_to_placement(
         SpatialPlacementSpec::world(),
         &admit_spatial_lies_on_constraint(SpatialLiesOnConstraintSpec::new(
-            SpatialAnchorRef::shape_axis(crate::facade::SpatialAxis::W),
+            SpatialAnchorRef::shape_axis(crate::facade::refs::SpatialAxis::W),
             SpatialFrameRef::world(),
         ))
         .expect("lies-on"),

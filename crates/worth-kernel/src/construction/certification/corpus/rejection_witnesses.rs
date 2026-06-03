@@ -13,10 +13,10 @@ use topology::facade::{
     TopologyConstructionQueryHandoffError, TopologyConstructionQueryReceiptError,
 };
 use worth_geom::facade::Plane;
-use worth_spatial::facade::{
-    impossible_primitive_construction_birth_attachment, plan_primitive_construction_birth,
+use worth_spatial::facade::bindings::{
+    evaluate_primitive_construction_birth_consequence, plan_primitive_construction_birth,
     PrimitiveConstructionBirthFamily, PrimitiveConstructionBirthScaffoldInput,
-    SpatialConstructionBirthRejectionRow,
+    RejectedPrimitiveConstructionBirthConsequence, SpatialConstructionBirthConsequence,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -163,7 +163,7 @@ fn witness(
     }
 }
 
-fn impossible_birth_attachment_witness() -> SpatialConstructionBirthRejectionRow {
+fn impossible_birth_attachment_witness() -> RejectedPrimitiveConstructionBirthConsequence {
     let input = PrimitiveConstructionBirthScaffoldInput::new(
         PrimitiveConstructionBirthFamily::WireBody,
         "planar_wire_body",
@@ -203,8 +203,12 @@ fn impossible_birth_attachment_witness() -> SpatialConstructionBirthRejectionRow
         1,
     );
     let plan = plan_primitive_construction_birth(input).expect("birth plan");
-    impossible_primitive_construction_birth_attachment(&mismatched, &plan)
-        .expect("impossible birth attachment witness")
+    match evaluate_primitive_construction_birth_consequence(&mismatched, &plan) {
+        SpatialConstructionBirthConsequence::Admitted(_) => {
+            panic!("mismatched birth should be rejected")
+        }
+        SpatialConstructionBirthConsequence::Rejected(rejected) => rejected,
+    }
 }
 
 fn plane() -> Plane {

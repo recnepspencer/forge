@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_spatial::facade::RequestedSpatialPointWitnessArtifact`
- --> src/certification/public_facade_contracts/compile_fail/public_spatial_witness_progression_artifacts_not_exported.rs:1:5
-  |
-1 | use worth_spatial::facade::RequestedSpatialPointWitnessArtifact;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `RequestedSpatialPointWitnessArtifact` in `facade`

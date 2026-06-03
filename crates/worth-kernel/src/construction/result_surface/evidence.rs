@@ -1,60 +1,35 @@
-use crate::construction::admitted_scaffold::PreparedPrimitiveConstructionAdmittedResultInput;
-use crate::construction::request::PrimitiveConstructionFamily;
-use topology::facade::{
-    TopologyConstructionQueryMutationSurface, TopologyPrimitiveConstructionQueryAdmittedHandoff,
-};
-use worth_spatial::facade::{
-    SpatialConstructionBirthCompletenessReport, SpatialConstructionBirthMappingReport,
-};
+use crate::construction::admitted_scaffold::PreparedPrimitiveConstructionAdmittedArtifact;
+use topology::facade::TopologyPrimitiveConstructionQueryAdmittedHandoff;
+use worth_spatial::facade::bindings::AdmittedPrimitiveConstructionBirthConsequence;
 
 use super::digest::digest_owned_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PrimitiveConstructionResultAssemblyReport {
-    family: PrimitiveConstructionFamily,
-    topology_query_admitted_handoff_digest: String,
-    mutation_surface: TopologyConstructionQueryMutationSurface,
+pub(crate) struct PrimitiveConstructionResultAssemblyReport {
     report_digest: String,
 }
 
 impl PrimitiveConstructionResultAssemblyReport {
-    pub(crate) fn from_admitted_result_input(
-        result_input: &PreparedPrimitiveConstructionAdmittedResultInput,
+    pub(crate) fn from_admitted_artifact(
+        admitted_artifact: &PreparedPrimitiveConstructionAdmittedArtifact,
     ) -> Self {
-        let topology_query_handoff = result_input
+        let topology_query_handoff = admitted_artifact
             .topology_query_admitted_handoff()
             .topology_query_handoff();
         let topology_query_envelope = topology_query_handoff.topology_query_envelope();
         let parts = [
-            result_input.family().as_str().to_string(),
-            result_input.scaffold_digest().to_string(),
+            admitted_artifact.family().as_str().to_string(),
+            admitted_artifact.scaffold_digest().to_string(),
             topology_query_handoff.source_birth_digest().to_string(),
-            result_input.admitted_handoff_digest().to_string(),
+            admitted_artifact.admitted_handoff_digest().to_string(),
             topology_query_envelope
                 .mutation_surface()
                 .as_str()
                 .to_string(),
         ];
         Self {
-            family: result_input.family(),
-            topology_query_admitted_handoff_digest: result_input
-                .admitted_handoff_digest()
-                .to_string(),
-            mutation_surface: topology_query_envelope.mutation_surface(),
             report_digest: digest_owned_parts(&parts),
         }
-    }
-
-    pub fn family(&self) -> PrimitiveConstructionFamily {
-        self.family
-    }
-
-    pub fn mutation_surface(&self) -> TopologyConstructionQueryMutationSurface {
-        self.mutation_surface
-    }
-
-    pub fn topology_query_admitted_handoff_digest(&self) -> &str {
-        &self.topology_query_admitted_handoff_digest
     }
 
     pub fn report_digest(&self) -> &str {
@@ -63,25 +38,25 @@ impl PrimitiveConstructionResultAssemblyReport {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PrimitiveConstructionResultEvidence {
+pub(crate) struct PrimitiveConstructionResultEvidence {
     result_assembly_report: PrimitiveConstructionResultAssemblyReport,
     topology_query_admitted_handoff: TopologyPrimitiveConstructionQueryAdmittedHandoff,
-    birth_completeness_report: SpatialConstructionBirthCompletenessReport,
-    birth_mapping_report: SpatialConstructionBirthMappingReport,
+    birth_consequence: AdmittedPrimitiveConstructionBirthConsequence,
+    birth_mapping_digest: String,
 }
 
 impl PrimitiveConstructionResultEvidence {
-    pub(crate) fn from_admitted_result_input(
-        result_input: &PreparedPrimitiveConstructionAdmittedResultInput,
+    pub(crate) fn from_admitted_artifact(
+        admitted_artifact: &PreparedPrimitiveConstructionAdmittedArtifact,
     ) -> Self {
         let topology_query_admitted_handoff =
-            result_input.topology_query_admitted_handoff().clone();
+            admitted_artifact.topology_query_admitted_handoff().clone();
         Self {
             result_assembly_report:
-                PrimitiveConstructionResultAssemblyReport::from_admitted_result_input(result_input),
+                PrimitiveConstructionResultAssemblyReport::from_admitted_artifact(admitted_artifact),
             topology_query_admitted_handoff,
-            birth_completeness_report: result_input.birth_completeness_report().clone(),
-            birth_mapping_report: result_input.birth_mapping_report().clone(),
+            birth_consequence: admitted_artifact.birth_consequence().clone(),
+            birth_mapping_digest: admitted_artifact.birth_mapping_digest(),
         }
     }
 
@@ -95,16 +70,12 @@ impl PrimitiveConstructionResultEvidence {
         &self.topology_query_admitted_handoff
     }
 
-    pub fn birth_completeness_report(
-        &self,
-    ) -> &worth_spatial::facade::SpatialConstructionBirthCompletenessReport {
-        &self.birth_completeness_report
+    pub fn birth_consequence(&self) -> &AdmittedPrimitiveConstructionBirthConsequence {
+        &self.birth_consequence
     }
 
-    pub fn birth_mapping_report(
-        &self,
-    ) -> &worth_spatial::facade::SpatialConstructionBirthMappingReport {
-        &self.birth_mapping_report
+    pub fn birth_mapping_digest(&self) -> &str {
+        &self.birth_mapping_digest
     }
 
     pub fn topology_query_handoff(

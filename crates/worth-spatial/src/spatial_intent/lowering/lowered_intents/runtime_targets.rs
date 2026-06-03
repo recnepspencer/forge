@@ -52,15 +52,6 @@ impl RuntimeFrameTarget {
         }
     }
 
-    pub fn support_code(&self) -> &'static str {
-        match self {
-            Self::World => "worth.spatial.lowering.frame.world",
-            Self::ShapeLocal => "worth.spatial.lowering.frame.shape_local",
-            Self::Workplane { .. } => "worth.spatial.lowering.frame.workplane",
-            Self::FeatureLocal { .. } => "worth.spatial.lowering.frame.feature_local",
-        }
-    }
-
     pub fn to_frame_ref(&self) -> SpatialFrameRef {
         match self {
             Self::World => SpatialFrameRef::world(),
@@ -172,25 +163,6 @@ impl RuntimeDirectionWitnessTarget {
                     feature: feature.clone(),
                     role: *role,
                 }
-            }
-        }
-    }
-
-    pub fn support_code(&self) -> &'static str {
-        match self {
-            Self::WorldDirection(_) => "worth.spatial.lowering.direction_target.world",
-            Self::FrameAxis { .. } => "worth.spatial.lowering.direction_target.frame_axis",
-            Self::FramePerpendicularAxis { .. } => {
-                "worth.spatial.lowering.direction_target.frame_perpendicular_axis"
-            }
-            Self::CarrierDirection { .. } => {
-                "worth.spatial.lowering.direction_target.carrier_direction"
-            }
-            Self::ParameterSpaceDirection { .. } => {
-                "worth.spatial.lowering.direction_target.parameter_space_direction"
-            }
-            Self::FeatureOwnedDirection { .. } => {
-                "worth.spatial.lowering.direction_target.feature_direction"
             }
         }
     }

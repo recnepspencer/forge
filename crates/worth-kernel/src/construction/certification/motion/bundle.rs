@@ -30,7 +30,7 @@ use crate::construction::{
 use crate::spatial_intent::{
     MoveSpatialIntent, PointsTowardSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
 };
-use worth_spatial::facade::SpatialWitnessCatalog;
+use worth_spatial::facade::witness_catalog::SpatialWitnessCatalog;
 
 #[derive(Debug)]
 pub enum PrimitiveConstructionMotionReportBundleError {
@@ -65,7 +65,7 @@ pub fn prepare_primitive_construction_move_motion_report_bundle(
     prepare_primitive_construction_move_motion_report_bundle_with_catalog(
         workspace,
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 
@@ -97,7 +97,7 @@ pub fn prepare_primitive_construction_rotate_motion_report_bundle(
     prepare_primitive_construction_rotate_motion_report_bundle_with_catalog(
         workspace,
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 
@@ -129,7 +129,7 @@ pub fn prepare_primitive_construction_reorient_motion_report_bundle(
     prepare_primitive_construction_reorient_motion_report_bundle_with_catalog(
         workspace,
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 
@@ -161,7 +161,7 @@ pub fn prepare_primitive_construction_points_toward_motion_report_bundle(
     prepare_primitive_construction_points_toward_motion_report_bundle_with_catalog(
         workspace,
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 

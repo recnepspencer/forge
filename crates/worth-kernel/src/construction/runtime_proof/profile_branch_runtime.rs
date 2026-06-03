@@ -133,7 +133,7 @@ mod tests {
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,
     };
-    use worth_spatial::facade::SpatialPreviewRichness;
+    use worth_spatial::facade::arbitration::SpatialPreviewRichness;
 
     #[test]
     fn policy_profile_branch_runtime_preserves_profile_truth_and_runtime_lanes() {
