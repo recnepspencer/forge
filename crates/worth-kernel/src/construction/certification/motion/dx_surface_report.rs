@@ -1,12 +1,11 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
+use crate::construction::certification::motion::policy_report::PrimitiveConstructionMotionResolutionPolicyRow;
+use crate::construction::certification::motion::representative_evidence::prepare_primitive_construction_motion_representative_evidence;
+use crate::construction::certification::motion::representative_inputs::required_motion_representative_cases;
 use crate::construction::digest::digest_owned_parts;
 
-use super::{
-    prepare_primitive_construction_motion_resolution_policy_report,
-    PrimitiveConstructionMotionResolutionPolicyCase,
-    PrimitiveConstructionMotionResolutionPolicyReportError,
-};
+use super::PrimitiveConstructionMotionResolutionPolicyCase;
 use crate::construction::{
     PrimitiveConstructionMotionRuntimeSurfaceStatus,
     PrimitiveConstructionMotionWitnessResolutionStatus,
@@ -56,6 +55,40 @@ impl PrimitiveConstructionMotionDxSurfaceRow {
     }
 }
 
+pub(crate) fn build_motion_dx_surface_row_from_policy_row(
+    row: &PrimitiveConstructionMotionResolutionPolicyRow,
+) -> PrimitiveConstructionMotionDxSurfaceRow {
+    let dx_surface = match (row.status(), row.resolution_class()) {
+        (
+            PrimitiveConstructionMotionWitnessResolutionStatus::Admitted,
+            Some(SpatialWitnessResolutionClass::DirectWorld),
+        ) => PrimitiveConstructionMotionDxSurface::CommonPath,
+        (
+            PrimitiveConstructionMotionWitnessResolutionStatus::Admitted,
+            Some(
+                SpatialWitnessResolutionClass::FrameDerived
+                | SpatialWitnessResolutionClass::CarrierDerived,
+            ),
+        ) => PrimitiveConstructionMotionDxSurface::AdvancedPath,
+        _ => PrimitiveConstructionMotionDxSurface::UnsafeOrDegradedPath,
+    };
+    let row_digest = digest_owned_parts(&[
+        format!("{:?}", row.case()),
+        format!("{dx_surface:?}"),
+        format!("{:?}", row.status()),
+        format!("{:?}", row.resolution_class()),
+        format!("{:?}", row.runtime_surface_status()),
+    ]);
+    PrimitiveConstructionMotionDxSurfaceRow {
+        case: row.case(),
+        dx_surface,
+        status: row.status(),
+        resolution_class: row.resolution_class(),
+        runtime_surface_status: row.runtime_surface_status(),
+        row_digest,
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionMotionDxSurfaceReport {
     rows: Vec<PrimitiveConstructionMotionDxSurfaceRow>,
@@ -80,7 +113,7 @@ impl PrimitiveConstructionMotionDxSurfaceReport {
 }
 
 pub type PrimitiveConstructionMotionDxSurfaceReportError =
-    PrimitiveConstructionMotionResolutionPolicyReportError;
+    crate::construction::certification::motion::representative_evidence::PrimitiveConstructionMotionRepresentativeEvidenceError;
 
 pub fn prepare_primitive_construction_motion_dx_surface_report(
     workspace: &mut ForgeQueryWorkspace,
@@ -88,42 +121,14 @@ pub fn prepare_primitive_construction_motion_dx_surface_report(
     PrimitiveConstructionMotionDxSurfaceReport,
     PrimitiveConstructionMotionDxSurfaceReportError,
 > {
-    let policy_report = prepare_primitive_construction_motion_resolution_policy_report(workspace)?;
-    let rows = policy_report
-        .rows()
+    let rows = required_motion_representative_cases()
         .iter()
-        .map(|row| {
-            let dx_surface = match (row.status(), row.resolution_class()) {
-                (
-                    PrimitiveConstructionMotionWitnessResolutionStatus::Admitted,
-                    Some(SpatialWitnessResolutionClass::DirectWorld),
-                ) => PrimitiveConstructionMotionDxSurface::CommonPath,
-                (
-                    PrimitiveConstructionMotionWitnessResolutionStatus::Admitted,
-                    Some(
-                        SpatialWitnessResolutionClass::FrameDerived
-                        | SpatialWitnessResolutionClass::CarrierDerived,
-                    ),
-                ) => PrimitiveConstructionMotionDxSurface::AdvancedPath,
-                _ => PrimitiveConstructionMotionDxSurface::UnsafeOrDegradedPath,
-            };
-            let row_digest = digest_owned_parts(&[
-                format!("{:?}", row.case()),
-                format!("{dx_surface:?}"),
-                format!("{:?}", row.status()),
-                format!("{:?}", row.resolution_class()),
-                format!("{:?}", row.runtime_surface_status()),
-            ]);
-            PrimitiveConstructionMotionDxSurfaceRow {
-                case: row.case(),
-                dx_surface,
-                status: row.status(),
-                resolution_class: row.resolution_class(),
-                runtime_surface_status: row.runtime_surface_status(),
-                row_digest,
-            }
+        .copied()
+        .map(|case| {
+            prepare_primitive_construction_motion_representative_evidence(workspace, case)
+                .map(|evidence| evidence.dx_row().clone())
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
     let report_digest = digest_owned_parts(
         &rows
             .iter()

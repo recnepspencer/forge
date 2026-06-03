@@ -1,15 +1,13 @@
-error[E0432]: unresolved imports `worth_kernel::facade::certification::arbitration::prepare_primitive_construction_intent_arbitration_report_bundle`, `worth_kernel::facade::certification::continuity::prepare_primitive_construction_continuity_report_bundle`, `worth_kernel::facade::certification::motion`, `worth_kernel::facade::certification::policy`, `worth_kernel::facade::certification::preview::prepare_primitive_construction_preview_report_bundle`
+error[E0432]: unresolved imports `worth_kernel::facade::certification::arbitration::prepare_primitive_construction_intent_arbitration_report_bundle`, `worth_kernel::facade::certification::continuity::prepare_primitive_construction_continuity_report_bundle`, `worth_kernel::facade::certification::policy`, `worth_kernel::facade::certification::preview::prepare_primitive_construction_preview_report_bundle`
  --> src/certification/public_facade_contracts/compile_fail/reports/public_subject_certification_bundle_exports_demoted.rs:2:5
   |
 2 |     arbitration::prepare_primitive_construction_intent_arbitration_report_bundle,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_primitive_construction_intent_arbitration_report_bundle` in `facade::certification::arbitration`
 3 |     continuity::prepare_primitive_construction_continuity_report_bundle,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_primitive_construction_continuity_report_bundle` in `facade::certification::continuity`
-4 |     motion::prepare_primitive_construction_move_motion_report_bundle,
-  |     ^^^^^^ could not find `motion` in `certification`
-5 |     policy::prepare_primitive_construction_policy_profile_report_bundle,
+4 |     policy::prepare_primitive_construction_policy_profile_report_bundle,
   |     ^^^^^^ could not find `policy` in `certification`
-6 |     preview::prepare_primitive_construction_preview_report_bundle,
+5 |     preview::prepare_primitive_construction_preview_report_bundle,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_primitive_construction_preview_report_bundle` in `facade::certification::preview`
   |
 help: a similar name exists in the module

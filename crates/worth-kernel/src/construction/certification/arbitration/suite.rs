@@ -3,62 +3,64 @@ use forge_query::facade::ForgeQueryWorkspace;
 use crate::construction::digest::digest_owned_parts;
 
 use super::{
-    prepare_primitive_construction_intent_arbitration_report_bundle,
-    PrimitiveConstructionIntentArbitrationBundleCase,
-    PrimitiveConstructionIntentArbitrationReportBundleError,
-    PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
+    prepare_primitive_construction_intent_arbitration_representative_evidence,
+    required_arbitration_representative_cases, PrimitiveConstructionIntentArbitrationBundleCase,
+    PrimitiveConstructionIntentArbitrationRepresentativeEvidence,
+    PrimitiveConstructionIntentArbitrationRepresentativeEvidenceError,
 };
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionIntentArbitrationHostilitySuiteReport {
-    bundles: Vec<PrimitiveConstructionVerifiedIntentArbitrationReportBundle>,
+    evidence_rows: Vec<PrimitiveConstructionIntentArbitrationRepresentativeEvidence>,
     suite_verified: bool,
     report_digest: String,
 }
 
 impl PrimitiveConstructionIntentArbitrationHostilitySuiteReport {
-    fn new(bundles: Vec<PrimitiveConstructionVerifiedIntentArbitrationReportBundle>) -> Self {
-        let expected_cases = [
-            PrimitiveConstructionIntentArbitrationBundleCase::DirectMoveOnlyPolicy,
-            PrimitiveConstructionIntentArbitrationBundleCase::GrazingSnapExplicitChoice,
-            PrimitiveConstructionIntentArbitrationBundleCase::OverlapMoveOnlyWithBlockedMerge,
-            PrimitiveConstructionIntentArbitrationBundleCase::HostPenetrationBlockedCut,
-            PrimitiveConstructionIntentArbitrationBundleCase::FrameAlignedIntent,
-            PrimitiveConstructionIntentArbitrationBundleCase::OverlapAdvancedCapabilities,
-        ];
-        let suite_verified = bundles.len() == expected_cases.len()
-            && expected_cases
-                .iter()
-                .all(|case| bundles.iter().any(|bundle| bundle.case() == *case))
-            && {
-                let unique_digests = bundles
+    fn new(
+        evidence_rows: Vec<PrimitiveConstructionIntentArbitrationRepresentativeEvidence>,
+    ) -> Self {
+        let expected_cases = required_arbitration_representative_cases();
+        let suite_verified = evidence_rows.len() == expected_cases.len()
+            && expected_cases.iter().all(|case| {
+                evidence_rows
                     .iter()
-                    .map(|bundle| bundle.bundle_digest())
+                    .any(|evidence| evidence.case() == *case)
+            })
+            && {
+                let unique_digests = evidence_rows
+                    .iter()
+                    .map(|evidence| evidence.report_digest())
                     .collect::<std::collections::BTreeSet<_>>();
-                unique_digests.len() == bundles.len()
-            };
-        let report_digest = digest_owned_parts(
-            &bundles
+                unique_digests.len() == evidence_rows.len()
+            }
+            && evidence_rows
                 .iter()
-                .map(|bundle| format!("{:?}:{}", bundle.case(), bundle.bundle_digest()))
+                .all(|evidence| evidence.parity_verified());
+        let report_digest = digest_owned_parts(
+            &evidence_rows
+                .iter()
+                .map(|evidence| format!("{:?}:{}", evidence.case(), evidence.report_digest()))
                 .collect::<Vec<_>>(),
         );
         Self {
-            bundles,
+            evidence_rows,
             suite_verified,
             report_digest,
         }
     }
 
-    pub fn bundles(&self) -> &[PrimitiveConstructionVerifiedIntentArbitrationReportBundle] {
-        &self.bundles
+    pub fn evidence_rows(&self) -> &[PrimitiveConstructionIntentArbitrationRepresentativeEvidence] {
+        &self.evidence_rows
     }
 
-    pub fn bundle(
+    pub fn evidence(
         &self,
         case: PrimitiveConstructionIntentArbitrationBundleCase,
-    ) -> Option<&PrimitiveConstructionVerifiedIntentArbitrationReportBundle> {
-        self.bundles.iter().find(|bundle| bundle.case() == case)
+    ) -> Option<&PrimitiveConstructionIntentArbitrationRepresentativeEvidence> {
+        self.evidence_rows
+            .iter()
+            .find(|evidence| evidence.case() == case)
     }
 
     pub fn suite_verified(&self) -> bool {
@@ -74,20 +76,18 @@ pub fn prepare_primitive_construction_intent_arbitration_hostility_suite_report(
     workspace: &mut ForgeQueryWorkspace,
 ) -> Result<
     PrimitiveConstructionIntentArbitrationHostilitySuiteReport,
-    PrimitiveConstructionIntentArbitrationReportBundleError,
+    PrimitiveConstructionIntentArbitrationRepresentativeEvidenceError,
 > {
-    let bundles = [
-        PrimitiveConstructionIntentArbitrationBundleCase::DirectMoveOnlyPolicy,
-        PrimitiveConstructionIntentArbitrationBundleCase::GrazingSnapExplicitChoice,
-        PrimitiveConstructionIntentArbitrationBundleCase::OverlapMoveOnlyWithBlockedMerge,
-        PrimitiveConstructionIntentArbitrationBundleCase::HostPenetrationBlockedCut,
-        PrimitiveConstructionIntentArbitrationBundleCase::FrameAlignedIntent,
-        PrimitiveConstructionIntentArbitrationBundleCase::OverlapAdvancedCapabilities,
-    ]
-    .into_iter()
-    .map(|case| prepare_primitive_construction_intent_arbitration_report_bundle(workspace, case))
-    .collect::<Result<Vec<_>, _>>()?;
-    Ok(PrimitiveConstructionIntentArbitrationHostilitySuiteReport::new(bundles))
+    let evidence_rows = required_arbitration_representative_cases()
+        .iter()
+        .copied()
+        .map(|case| {
+            prepare_primitive_construction_intent_arbitration_representative_evidence(
+                workspace, case,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(PrimitiveConstructionIntentArbitrationHostilitySuiteReport::new(evidence_rows))
 }
 
 #[cfg(test)]
@@ -116,11 +116,13 @@ mod tests {
 
         assert!(report.suite_verified());
         assert!(report
-            .bundle(PrimitiveConstructionIntentArbitrationBundleCase::GrazingSnapExplicitChoice)
+            .evidence(PrimitiveConstructionIntentArbitrationBundleCase::GrazingSnapExplicitChoice)
             .is_some());
         assert_eq!(
             report
-                .bundle(PrimitiveConstructionIntentArbitrationBundleCase::HostPenetrationBlockedCut)
+                .evidence(
+                    PrimitiveConstructionIntentArbitrationBundleCase::HostPenetrationBlockedCut
+                )
                 .expect("host")
                 .policy_row()
                 .escalation(),

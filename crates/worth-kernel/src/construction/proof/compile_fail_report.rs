@@ -1,7 +1,6 @@
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 
 pub(crate) const PROOF_BOUNDARY_COMPILE_FAIL_FIXTURES: &[&str] = &[
-    "src/certification/public_facade_contracts/compile_fail/reports/public_verified_motion_report_bundle_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/reports/public_verified_intent_arbitration_report_bundle_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/reports/public_compound_parity_report_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/reports/public_policy_pressure_report_bundle_constructor_not_exported.rs",

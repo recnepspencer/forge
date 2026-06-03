@@ -6,8 +6,9 @@ use crate::construction::certification::closeout::milestone_four_kernel_represen
 use crate::construction::certification::{
     PrimitiveConstructionContinuitySurfaceReport,
     PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-    PrimitiveConstructionIntentArbitrationPolicyReport, PrimitiveConstructionMotionDxSurfaceReport,
-    PrimitiveConstructionMotionResolutionPolicyReport,
+    PrimitiveConstructionIntentArbitrationPolicyReport,
+    PrimitiveConstructionIntentArbitrationRepresentativeEvidence,
+    PrimitiveConstructionMotionDxSurfaceReport, PrimitiveConstructionMotionResolutionPolicyReport,
     PrimitiveConstructionPhaseFiveSixCloseoutReport,
     PrimitiveConstructionPolicyProfileSurfaceReport, PrimitiveConstructionPreviewSurfaceReport,
     PrimitiveConstructionRealizationExhaustionWitnessReport,
@@ -21,7 +22,6 @@ use crate::construction::query::{
 use crate::construction::{
     PrimitiveConstructionProofSubstrateCloseoutReport,
     PrimitiveConstructionQueryExistingTruthBindingReport,
-    PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -42,8 +42,8 @@ pub(crate) struct PrimitiveConstructionMilestoneFourKernelCloseoutAssembly {
     pub(super) intent_arbitration_policy_report: PrimitiveConstructionIntentArbitrationPolicyReport,
     pub(super) intent_conflict_dx_surface_report:
         PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-    pub(super) representative_intent_bundle:
-        PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
+    pub(super) representative_intent_evidence:
+        PrimitiveConstructionIntentArbitrationRepresentativeEvidence,
     pub(super) preview_surface_report: PrimitiveConstructionPreviewSurfaceReport,
     pub(super) representative_preview_evidence: PrimitiveConstructionPreviewRepresentativeEvidence,
     pub(super) continuity_surface_report: PrimitiveConstructionContinuitySurfaceReport,
@@ -70,7 +70,7 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutAssembly {
         motion_dx_surface_report: PrimitiveConstructionMotionDxSurfaceReport,
         intent_arbitration_policy_report: PrimitiveConstructionIntentArbitrationPolicyReport,
         intent_conflict_dx_surface_report: PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-        representative_intent_bundle: PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
+        representative_intent_evidence: PrimitiveConstructionIntentArbitrationRepresentativeEvidence,
         preview_surface_report: PrimitiveConstructionPreviewSurfaceReport,
         representative_preview_evidence: PrimitiveConstructionPreviewRepresentativeEvidence,
         continuity_surface_report: PrimitiveConstructionContinuitySurfaceReport,
@@ -91,7 +91,7 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutAssembly {
             motion_dx_surface_report,
             intent_arbitration_policy_report,
             intent_conflict_dx_surface_report,
-            representative_intent_bundle,
+            representative_intent_evidence,
             preview_surface_report,
             representative_preview_evidence,
             continuity_surface_report,

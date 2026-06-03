@@ -8,7 +8,7 @@ mod public_api_intent_arbitration_bundle;
 mod public_api_intent_arbitration_query;
 mod public_api_intent_arbitration_replay;
 mod public_api_milestone_four_kernel_closeout;
-mod public_api_motion_bundle;
+mod public_api_motion_diagnostics;
 mod public_api_motion_dx_surface;
 mod public_api_motion_policy;
 mod public_api_motion_query;

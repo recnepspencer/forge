@@ -9,8 +9,9 @@ use crate::construction::certification::{
     PrimitiveConstructionContinuityCase, PrimitiveConstructionContinuitySurfaceReport,
     PrimitiveConstructionIntentArbitrationDxSurfaceReport,
     PrimitiveConstructionIntentArbitrationPolicyCase,
-    PrimitiveConstructionIntentArbitrationPolicyReport, PrimitiveConstructionMotionDxSurfaceReport,
-    PrimitiveConstructionMotionResolutionPolicyCase,
+    PrimitiveConstructionIntentArbitrationPolicyReport,
+    PrimitiveConstructionIntentArbitrationRepresentativeEvidence,
+    PrimitiveConstructionMotionDxSurfaceReport, PrimitiveConstructionMotionResolutionPolicyCase,
     PrimitiveConstructionMotionResolutionPolicyReport,
     PrimitiveConstructionPhaseFiveSixCloseoutReport, PrimitiveConstructionPolicyProfileCase,
     PrimitiveConstructionPolicyProfileSurfaceReport, PrimitiveConstructionPreviewCase,
@@ -29,7 +30,6 @@ use crate::construction::{
     PrimitiveConstructionExistingTruthBindingPosture,
     PrimitiveConstructionProofSubstrateCloseoutReport,
     PrimitiveConstructionQueryExistingTruthBindingReport,
-    PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
 };
 
 use super::milestone_four_kernel_evidence_verified_assembly::PrimitiveConstructionMilestoneFourKernelCloseoutAssembly;
@@ -69,7 +69,7 @@ pub struct PrimitiveConstructionMilestoneFourKernelCloseoutVerificationFailure {
     motion_dx_surface_report: PrimitiveConstructionMotionDxSurfaceReport,
     intent_arbitration_policy_report: PrimitiveConstructionIntentArbitrationPolicyReport,
     intent_conflict_dx_surface_report: PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-    representative_intent_bundle: PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
+    representative_intent_evidence: PrimitiveConstructionIntentArbitrationRepresentativeEvidence,
     preview_surface_report: PrimitiveConstructionPreviewSurfaceReport,
     representative_preview_evidence: PrimitiveConstructionPreviewRepresentativeEvidence,
     continuity_surface_report: PrimitiveConstructionContinuitySurfaceReport,
@@ -208,7 +208,9 @@ pub(crate) fn verify_closeout(
         );
     }
     if !missing_arbitration_cases.is_empty()
-        || assembly.representative_intent_bundle.case() != registry.required_intent_bundle_case
+        || !assembly.representative_intent_evidence.parity_verified()
+        || assembly.representative_intent_evidence.case()
+            != registry.required_intent_representative_case
     {
         mismatches.push(
             PrimitiveConstructionMilestoneFourKernelCloseoutVerificationMismatch::IntentArbitrationPolicyInventoryDrift,
@@ -309,8 +311,8 @@ pub(crate) fn verify_closeout(
                 .report_digest()
                 .to_string(),
             assembly
-                .representative_intent_bundle
-                .bundle_digest()
+                .representative_intent_evidence
+                .report_digest()
                 .to_string(),
             assembly.preview_surface_report.report_digest().to_string(),
             assembly
@@ -357,7 +359,7 @@ pub(crate) fn verify_closeout(
             motion_dx_surface_report: assembly.motion_dx_surface_report,
             intent_arbitration_policy_report: assembly.intent_arbitration_policy_report,
             intent_conflict_dx_surface_report: assembly.intent_conflict_dx_surface_report,
-            representative_intent_bundle: assembly.representative_intent_bundle,
+            representative_intent_evidence: assembly.representative_intent_evidence,
             preview_surface_report: assembly.preview_surface_report,
             representative_preview_evidence: assembly.representative_preview_evidence,
             continuity_surface_report: assembly.continuity_surface_report,

@@ -18,7 +18,7 @@ fn kernel_public_facade_exports_motion_diagnostics_without_certification_bundle_
         .build();
     let mut workspace = topology_runtime(
         TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.public-api.motion-bundle".to_string(),
+        "worth-kernel.public-api.motion-diagnostics".to_string(),
     )
     .expect("workspace");
     let intent = MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
@@ -52,11 +52,11 @@ fn kernel_public_facade_exports_catalog_backed_motion_diagnostics_without_certif
         .build();
     let mut workspace = topology_runtime(
         TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.public-api.motion-bundle.catalog".to_string(),
+        "worth-kernel.public-api.motion-diagnostics.catalog".to_string(),
     )
     .expect("workspace");
     let catalog = SpatialFixtureWitnessCatalog::new().with_feature_owned_point(
-        "feature-public-bundle",
+        "feature-public-motion",
         SpatialCarrierPointRole::Origin,
         Ok(SpatialCatalogResolvedPointWitness::new(
             [4.0, 5.0, 6.0],
@@ -69,7 +69,7 @@ fn kernel_public_facade_exports_catalog_backed_motion_diagnostics_without_certif
         }))
         .so(SpatialAnchorRef::shape_origin())
         .points_toward_witness(SpatialPointWitnessRef::feature_origin(
-            "feature-public-bundle",
+            "feature-public-motion",
         ));
     let witness =
         prepare_primitive_construction_points_toward_witness_resolution_report_with_catalog(

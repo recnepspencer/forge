@@ -37,39 +37,16 @@ impl PrimitiveConstructionTruthProjectionMatrix {
 
 pub fn prepare_primitive_construction_truth_projection_matrix(
 ) -> PrimitiveConstructionTruthProjectionMatrix {
-    let rows = vec![
-        PrimitiveConstructionTruthProjectionRow {
-            subject: PrimitiveConstructionProofSubject::Motion,
-            canonical_truth_type: "PrimitiveConstructionMotionCanonicalTruth",
-            projections: &[
-                "witness_report",
-                "replay_parity_report",
-                "query_motion_reports",
-                "branch_preview_runtime_report",
-            ],
-        },
-        PrimitiveConstructionTruthProjectionRow {
-            subject: PrimitiveConstructionProofSubject::IntentArbitration,
-            canonical_truth_type: "PrimitiveConstructionIntentArbitrationCanonicalTruth",
-            projections: &[
-                "policy_row",
-                "chosen_row",
-                "dx_surface_report",
-                "replay_parity_report",
-                "query_arbitration_reports",
-            ],
-        },
-        PrimitiveConstructionTruthProjectionRow {
-            subject: PrimitiveConstructionProofSubject::CompoundParity,
-            canonical_truth_type: "PrimitiveConstructionCompoundParityCanonicalTruth",
-            projections: &[
-                "ordering_report",
-                "motion_parity_report",
-                "grazing_boundary_report",
-                "exhaustion_witness_parity_report",
-            ],
-        },
-    ];
+    let rows = vec![PrimitiveConstructionTruthProjectionRow {
+        subject: PrimitiveConstructionProofSubject::CompoundParity,
+        canonical_truth_type: "PrimitiveConstructionCompoundParityCanonicalTruth",
+        projections: &[
+            "ordering_report",
+            "motion_parity_report",
+            "grazing_boundary_report",
+            "exhaustion_witness_parity_report",
+        ],
+    }];
     let report_digest = digest_owned_parts_with_scope(
         ConstructionDigestScope::ArtifactIdentity,
         &rows

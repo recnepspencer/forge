@@ -12,6 +12,7 @@ use crate::construction::certification::closeout::milestone_four_kernel_represen
 use crate::construction::certification::{
     prepare_primitive_construction_continuity_hostility_suite_report,
     prepare_primitive_construction_continuity_surface_report,
+    prepare_primitive_construction_intent_arbitration_representative_evidence,
     prepare_primitive_construction_motion_dx_surface_report,
     prepare_primitive_construction_motion_resolution_policy_report,
     prepare_primitive_construction_phase_five_six_closeout_report,
@@ -25,7 +26,7 @@ use crate::construction::certification::{
     PrimitiveConstructionContinuitySurfaceReportError,
     PrimitiveConstructionIntentArbitrationBundleCase,
     PrimitiveConstructionIntentArbitrationPolicyReportError,
-    PrimitiveConstructionIntentArbitrationReportBundleError,
+    PrimitiveConstructionIntentArbitrationRepresentativeEvidenceError,
     PrimitiveConstructionMotionDxSurfaceReportError,
     PrimitiveConstructionMotionResolutionPolicyReportError,
     PrimitiveConstructionPhaseFiveSixCloseoutReportError, PrimitiveConstructionPolicyProfileCase,
@@ -41,7 +42,6 @@ use crate::construction::query::{
     PrimitiveConstructionQueryGraphCompositionParityError,
 };
 use crate::construction::{
-    prepare_primitive_construction_intent_arbitration_report_bundle,
     prepare_primitive_construction_proof_substrate_closeout_report, OrthotopeSpec,
     PrimitiveConstructionIntent, PrimitiveConstructionProofSubstrateCloseoutReportError,
     PrimitiveConstructionRuntimeBasisError, SimplexSolidSpec, WorthKernelAuthorityError,
@@ -58,7 +58,7 @@ pub enum PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError {
     MotionDx(PrimitiveConstructionMotionDxSurfaceReportError),
     IntentPolicy(PrimitiveConstructionIntentArbitrationPolicyReportError),
     IntentDx(PrimitiveConstructionIntentArbitrationPolicyReportError),
-    IntentBundle(PrimitiveConstructionIntentArbitrationReportBundleError),
+    IntentRepresentative(PrimitiveConstructionIntentArbitrationRepresentativeEvidenceError),
     PreviewSurface(PrimitiveConstructionPreviewSurfaceReportError),
     PreviewRepresentative(String),
     ContinuitySurface(PrimitiveConstructionContinuitySurfaceReportError),
@@ -80,7 +80,7 @@ impl std::fmt::Display for PrimitiveConstructionMilestoneFourKernelCloseoutEvide
             Self::MotionDx(error) => write!(f, "{error}"),
             Self::IntentPolicy(error) => write!(f, "{error}"),
             Self::IntentDx(error) => write!(f, "{error}"),
-            Self::IntentBundle(error) => write!(f, "{error}"),
+            Self::IntentRepresentative(error) => write!(f, "{error}"),
             Self::PreviewSurface(error) => write!(f, "{error}"),
             Self::PreviewRepresentative(error) => write!(f, "{error}"),
             Self::ContinuitySurface(error) => write!(f, "{error}"),
@@ -157,13 +157,13 @@ pub fn prepare_primitive_construction_milestone_four_kernel_closeout_evidence_re
         .map_err(
         PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError::IntentDx,
     )?;
-    let representative_intent_bundle =
-        prepare_primitive_construction_intent_arbitration_report_bundle(
+    let representative_intent_evidence =
+        prepare_primitive_construction_intent_arbitration_representative_evidence(
             workspace,
             PrimitiveConstructionIntentArbitrationBundleCase::GrazingSnapExplicitChoice,
         )
         .map_err(
-            PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError::IntentBundle,
+            PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError::IntentRepresentative,
         )?;
     let preview_surface_report = prepare_primitive_construction_preview_surface_report().map_err(
         PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError::PreviewSurface,
@@ -231,7 +231,7 @@ pub fn prepare_primitive_construction_milestone_four_kernel_closeout_evidence_re
             motion_dx_surface_report,
             intent_arbitration_policy_report,
             intent_conflict_dx_surface_report,
-            representative_intent_bundle,
+            representative_intent_evidence,
             preview_surface_report,
             representative_preview_evidence,
             continuity_surface_report,

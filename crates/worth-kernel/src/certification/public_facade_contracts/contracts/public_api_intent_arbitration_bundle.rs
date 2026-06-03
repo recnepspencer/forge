@@ -54,6 +54,6 @@ fn kernel_public_facade_exports_intent_arbitration_hostility_suite_surface() {
 
     assert!(report.suite_verified());
     assert!(report
-        .bundle(PrimitiveConstructionIntentArbitrationBundleCase::HostPenetrationBlockedCut)
+        .evidence(PrimitiveConstructionIntentArbitrationBundleCase::HostPenetrationBlockedCut)
         .is_some());
 }

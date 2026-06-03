@@ -198,10 +198,10 @@ pub fn prepare_primitive_construction_proof_substrate_closeout_report() -> Resul
     if digest_protocol_report.version_prefix() != "worth-kernel.v1" {
         mismatches.push(PrimitiveConstructionProofSubstrateCloseoutVerificationMismatch::DigestProtocolVersionDrift);
     }
-    if verified_artifact_surface_report.rows().len() != 5 {
+    if verified_artifact_surface_report.rows().len() != 3 {
         mismatches.push(PrimitiveConstructionProofSubstrateCloseoutVerificationMismatch::VerifiedArtifactCoverageDrift);
     }
-    if truth_projection_matrix.rows().len() != 3 {
+    if truth_projection_matrix.rows().len() != 1 {
         mismatches.push(PrimitiveConstructionProofSubstrateCloseoutVerificationMismatch::TruthProjectionCoverageDrift);
     }
     if proof_boundary_compile_fail_report.fixtures().len()

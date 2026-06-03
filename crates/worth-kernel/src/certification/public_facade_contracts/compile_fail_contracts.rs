@@ -83,9 +83,6 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
         "{compile_fail}/reports/public_corpus_replay_siege_report_constructor_not_exported.rs"
     ));
     t.compile_fail(format!(
-        "{compile_fail}/reports/public_motion_report_bundle_constructor_not_exported.rs"
-    ));
-    t.compile_fail(format!(
         "{compile_fail}/reports/public_intent_arbitration_report_bundle_constructor_not_exported.rs"
     ));
     t.compile_fail(format!(

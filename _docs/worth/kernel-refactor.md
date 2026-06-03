@@ -814,11 +814,18 @@ time we question one local production seam.
   the policy-pressure canonical-truth and verified-bundle seam is deleted, and
   closeout consumes direct representative evidence built from the direct report,
   delta report, and explicit required-case coverage instead
-- the remaining work is now narrower and deeper in the certification corpus:
-  motion and arbitration verified bundle internals still survive under
-  `construction/certification`, and Folder 9 is not honest to
-  mark complete until those residual proof packages are either consumed by
-  corpus-only closeout or deleted
+- the arbitration canonical-truth and verified-bundle seam is now deleted too:
+  hostility coverage and milestone-four closeout consume direct representative
+  evidence built from policy rows, chosen/preserved truth, DX surface rows,
+  replay parity, and query inspection/projection parity
+- the motion canonical-truth and verified-bundle seam is now deleted too:
+  motion policy and DX surfaces are built from direct witness, replay,
+  query-inspection, query-projection, and branch-runtime evidence, while
+  representative evidence replaces the old bundle coherence lane
+- the proof substrate inventories no longer teach motion or arbitration
+  canonical truth / verified bundle currency as if those were still
+  first-class proof products
+- complete
 
 ## Folder 10: `facade`, root certification harness, and docs
 

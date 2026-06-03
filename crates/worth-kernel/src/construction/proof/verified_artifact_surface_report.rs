@@ -49,20 +49,6 @@ pub fn prepare_primitive_construction_verified_artifact_surface_report(
 ) -> PrimitiveConstructionVerifiedArtifactSurfaceReport {
     let rows = vec![
         PrimitiveConstructionVerifiedArtifactSurfaceRow {
-            subject: PrimitiveConstructionProofSubject::Motion,
-            grade: PrimitiveConstructionProofGrade::BundleCoherence,
-            truth_type: "PrimitiveConstructionMotionCanonicalTruth",
-            verified_type: "PrimitiveConstructionVerifiedMotionReportBundle",
-            failure_type: "PrimitiveConstructionMotionBundleVerificationFailure",
-        },
-        PrimitiveConstructionVerifiedArtifactSurfaceRow {
-            subject: PrimitiveConstructionProofSubject::IntentArbitration,
-            grade: PrimitiveConstructionProofGrade::BundleCoherence,
-            truth_type: "PrimitiveConstructionIntentArbitrationCanonicalTruth",
-            verified_type: "PrimitiveConstructionVerifiedIntentArbitrationReportBundle",
-            failure_type: "PrimitiveConstructionIntentArbitrationBundleVerificationFailure",
-        },
-        PrimitiveConstructionVerifiedArtifactSurfaceRow {
             subject: PrimitiveConstructionProofSubject::CompoundParity,
             grade: PrimitiveConstructionProofGrade::BundleCoherence,
             truth_type: "PrimitiveConstructionCompoundParityCanonicalTruth",

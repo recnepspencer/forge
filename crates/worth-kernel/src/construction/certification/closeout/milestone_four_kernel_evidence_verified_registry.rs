@@ -23,7 +23,8 @@ pub(super) struct PrimitiveConstructionMilestoneFourKernelCloseoutRegistry {
     pub(super) required_policy_profile_cases: &'static [PrimitiveConstructionPolicyProfileCase],
     pub(super) required_realization_witness_kinds:
         &'static [PrimitiveRealizationExhaustionWitnessKind],
-    pub(super) required_intent_bundle_case: PrimitiveConstructionIntentArbitrationBundleCase,
+    pub(super) required_intent_representative_case:
+        PrimitiveConstructionIntentArbitrationBundleCase,
     pub(super) required_preview_representative_case: PrimitiveConstructionPreviewCase,
     pub(super) required_continuity_representative_case: PrimitiveConstructionContinuityCase,
     pub(super) required_policy_profile_representative_case: PrimitiveConstructionPolicyProfileCase,
@@ -39,7 +40,7 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutRegistry {
         let required_continuity_cases = required_continuity_cases();
         let required_policy_profile_cases = required_policy_profile_cases();
         let required_realization_witness_kinds = required_realization_witness_kinds();
-        let required_intent_bundle_case =
+        let required_intent_representative_case =
             PrimitiveConstructionIntentArbitrationBundleCase::GrazingSnapExplicitChoice;
         let required_preview_representative_case =
             PrimitiveConstructionPreviewCase::OverlapHighFidelity;
@@ -80,7 +81,7 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutRegistry {
                         .map(|kind| format!("{kind:?}")),
                 )
                 .chain([
-                    format!("{required_intent_bundle_case:?}"),
+                    format!("{required_intent_representative_case:?}"),
                     format!("{required_preview_representative_case:?}"),
                     format!("{required_continuity_representative_case:?}"),
                     format!("{required_policy_profile_representative_case:?}"),
@@ -95,7 +96,7 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutRegistry {
             required_continuity_cases,
             required_policy_profile_cases,
             required_realization_witness_kinds,
-            required_intent_bundle_case,
+            required_intent_representative_case,
             required_preview_representative_case,
             required_continuity_representative_case,
             required_policy_profile_representative_case,
