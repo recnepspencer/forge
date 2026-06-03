@@ -741,8 +741,16 @@ objects.
 
 ### Current Status
 
-- major active concern
-- this is likely the largest remaining source of API inflation in the crate
+- complete
+- public `facade::diagnostics::{query,realization}` buckets are gone; the
+  surviving public diagnostics surface now stays on family, witness,
+  preview, arbitration, policy, continuity, motion, and rejection semantics
+- the matching public-contract and compile-fail proof no longer certify
+  query-proof or realization-proof report products as part of the public
+  operating API
+- internal `construction::proof` and `construction::runtime_proof::query`
+  re-export posture is narrowed to crate-local use instead of continuing to
+  advertise those report families as ambient broad surfaces
 
 ## Folder 9: residual `construction/certification` corpus closeout
 
@@ -796,15 +804,14 @@ time we question one local production seam.
 
 ### Current Status
 
-- materially advanced, not closed
+- complete
 - the first large public certification bundle collapse is done:
   `facade::certification::{motion,policy}` no longer survive as public
   operating buckets, and the surviving `preview`, `continuity`, and
   `arbitration` certification lanes now expose hostility-suite truth instead
   of public bundle constructors
-- public contract and compile-fail proof now certify that direct diagnostics
-  and query-proof lanes are the public surface instead of
-  preview/continuity/policy/motion/arbitration certification bundles
+- public contract and compile-fail proof now certify that semantic
+  diagnostics, not certification buckets, are the public surface
 - the milestone-four closeout path no longer treats preview, continuity, and
   policy-profile bundle artifacts as canonical internal proof currency; those
   bundles are deleted and replaced by direct representative evidence built from
@@ -825,7 +832,6 @@ time we question one local production seam.
 - the proof substrate inventories no longer teach motion or arbitration
   canonical truth / verified bundle currency as if those were still
   first-class proof products
-- complete
 
 ## Folder 10: `facade`, root certification harness, and docs
 
@@ -883,9 +889,24 @@ They must stop teaching:
 
 ### Current Status
 
-- not yet rewritten in this style
-- current facade shape already suggests a subject-first export history rather
-  than a folder-first authority story
+- the public facade is now narrowed to `authoring`, `outcome`, and
+  `diagnostics`
+- the public `certification` bucket is deleted, and the compile-fail harness
+  now proves boundary denials through real external `cargo check` runs instead
+  of an in-crate shortcut path
+- the public `diagnostics` bucket no longer exposes `query` or `realization`
+  sub-buckets; those proof/report families remain internal certification and
+  runtime-proof machinery
+- the public `diagnostics` bucket also no longer exposes replay,
+  branch-preview-runtime, or hostility-suite proof products from motion,
+  preview, continuity, policy, or arbitration; those surfaces remain internal
+  runtime-proof or certification machinery
+- the README and crate docs now teach Query-first authoring/outcome/inspection
+  instead of a flat happy-path or public certification/report warehouse story
+- complete
+- residual warning debt still exists in deeper internal
+  `construction/certification/*` and `construction/proof/*` corpus/proof
+  modules; that is cleanup work, not an open public-boundary phase failure
 
 ## Rewrite Rules
 

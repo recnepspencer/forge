@@ -1,8 +1,9 @@
 use super::support::siege_workspace;
 use crate::construction::certification::prepare_primitive_construction_family_boundary_report;
+use crate::construction::certification::PrimitiveConstructionFamilyBoundaryTransitionClass;
 use crate::construction::{
     PrimitiveConstructionBlockingBoundary, PrimitiveConstructionFamily,
-    PrimitiveConstructionFamilyBoundaryTransitionClass, PrimitiveConstructionRejectionLocality,
+    PrimitiveConstructionRejectionLocality,
 };
 use worth_geom::facade::{
     PrimitiveNormalizationDisposition, PrimitiveRealizationExhaustionReason,

@@ -26,20 +26,11 @@ fn kernel_public_facade_exports_motion_diagnostics_without_certification_bundle_
     }))
     .to([10.0, 0.0, 3.0]);
     let witness = prepare_primitive_construction_move_witness_resolution_report(intent.clone());
-    let replay = prepare_primitive_construction_move_replay_parity_report(intent.clone());
-    let branch =
-        prepare_primitive_construction_move_branch_preview_runtime_report(&mut workspace, intent)
-            .expect("branch");
     let dx = prepare_primitive_construction_motion_dx_surface_report(&mut workspace).expect("dx");
 
     assert_eq!(
         witness.status(),
         PrimitiveConstructionMotionWitnessResolutionStatus::Admitted
-    );
-    assert!(replay.parity_verified());
-    assert_eq!(
-        branch.runtime_surface_status(),
-        PrimitiveConstructionMotionRuntimeSurfaceStatus::Available
     );
     assert!(!dx.rows().is_empty());
 }
@@ -76,24 +67,11 @@ fn kernel_public_facade_exports_catalog_backed_motion_diagnostics_without_certif
             intent.clone(),
             &catalog,
         );
-    let branch =
-        prepare_primitive_construction_points_toward_branch_preview_runtime_report_with_catalog(
-            &mut workspace,
-            intent.clone(),
-            &catalog,
-        )
-        .expect("catalog branch");
-    let replay = prepare_primitive_construction_points_toward_replay_parity_report_with_catalog(
-        intent, &catalog,
-    );
+    let dx = prepare_primitive_construction_motion_dx_surface_report(&mut workspace).expect("dx");
 
     assert_eq!(
         witness.kind(),
         PrimitiveConstructionMotionWitnessResolutionKind::PointsToward
     );
-    assert_eq!(
-        branch.runtime_surface_status(),
-        PrimitiveConstructionMotionRuntimeSurfaceStatus::Available
-    );
-    assert!(replay.parity_verified());
+    assert!(!dx.rows().is_empty());
 }

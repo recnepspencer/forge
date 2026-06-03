@@ -1,8 +1,5 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
-use worth_geom::facade::{PrimitiveRealizationStrategy, PrimitiveStabilityClass};
-use worth_kernel::facade::{
-    authoring::construction::*, certification::query::*, diagnostics::family::*,
-};
+use worth_kernel::facade::{authoring::construction::*, diagnostics::family::*};
 
 #[test]
 fn kernel_public_facade_exports_query_construction_entry_surface() {
@@ -72,49 +69,5 @@ fn kernel_public_facade_exports_phase_three_family_ladder() {
             .expect("wire row")
             .status(),
         PrimitiveConstructionFamilyCoverageStatus::AdmittedPlanarConstruction
-    );
-}
-
-#[test]
-fn kernel_public_facade_exports_branch_preview_runtime_report() {
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.public-branch-preview".to_string(),
-    )
-    .expect("workspace");
-    let report = prepare_primitive_construction_branch_preview_runtime_report(
-        &mut workspace,
-        PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(1.0)),
-    )
-    .expect("branch preview report");
-
-    assert_eq!(report.family(), PrimitiveConstructionFamily::SimplexSolid);
-    assert!(report.authority_chain_report().query_gap_rows().is_empty());
-    assert_eq!(
-        report.realization_strategy(),
-        Some(PrimitiveRealizationStrategy::DirectWorld)
-    );
-    assert_eq!(
-        report.attempted_realization_strategies(),
-        &[PrimitiveRealizationStrategy::DirectWorld]
-    );
-    assert_eq!(
-        report.stability_class(),
-        Some(PrimitiveStabilityClass::StableDirect)
-    );
-    assert_ne!(
-        report.outcome().outcome_digest(),
-        report.preview_lane().admission_digest()
-    );
-    assert_ne!(
-        report.outcome().outcome_digest(),
-        report.branch_lane().admission_digest()
-    );
-    assert_ne!(
-        report.preview_lane().admission_digest(),
-        report.branch_lane().admission_digest()
     );
 }

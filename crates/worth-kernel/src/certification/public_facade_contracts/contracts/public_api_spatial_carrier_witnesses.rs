@@ -3,7 +3,6 @@ use topology::facade::{milestone_one_runtime_builder, topology_runtime, Topology
 use worth_geom::ParameterSpacePoint;
 use worth_kernel::facade::{
     authoring::{construction::*, create::CreateSpatialIntent, intents::*},
-    certification::query::*,
     diagnostics::motion::*,
 };
 use worth_spatial::facade::placement::admit_spatial_placement_with_catalog;
@@ -107,55 +106,4 @@ fn kernel_public_facade_exports_catalog_backed_carrier_motion_and_placement_surf
     );
     assert_eq!(admitted.facing_vector(), [0.0, 0.0, 1.0]);
     assert!(rotated.is_ok());
-}
-
-#[test]
-fn kernel_public_facade_exports_query_motion_parity_for_catalog_backed_carrier_reports() {
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.public-api-spatial-carrier-witnesses".to_string(),
-    )
-    .expect("workspace");
-    let catalog = SpatialFixtureWitnessCatalog::new().with_parameter_space_direction(
-        SpatialCarrierKind::Curve,
-        "curve-5",
-        ParameterSpacePoint::try_new([0.125, 0.0]).unwrap(),
-        SpatialCarrierDirectionRole::Tangent,
-        Ok(SpatialCatalogResolvedDirectionWitness::new(
-            [1.0, 1.0, 0.0],
-            SpatialCatalogWitnessResolutionClass::CarrierDerived,
-        )),
-    );
-    let query_report = prepare_primitive_construction_query_motion_inspection_parity_report(
-        &mut workspace,
-        prepare_primitive_construction_reorient_witness_resolution_report_with_catalog(
-            ReorientSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
-                RegularPyramidSpec {
-                    sides: 3,
-                    radius: 1.0,
-                    height: 1.0,
-                },
-            ))
-            .toward_witness(SpatialDirectionWitnessRef::curve_tangent("curve-5", 0.125)),
-            &catalog,
-        ),
-    )
-    .expect("query report");
-
-    assert_eq!(
-        query_report.read_surface(),
-        PrimitiveConstructionMotionQueryReadSurface::MotionWitnessReportInspection
-    );
-    assert_eq!(
-        query_report.fact_provenance(),
-        PrimitiveConstructionMotionQueryFactProvenance::DirectMotionWitnessReport
-    );
-    assert_eq!(
-        query_report.resolution_class(),
-        Some(SpatialWitnessResolutionClass::CarrierDerived)
-    );
-    assert!(query_report.parity_verified());
 }

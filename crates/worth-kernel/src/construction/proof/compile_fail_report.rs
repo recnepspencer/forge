@@ -2,11 +2,7 @@ use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDig
 
 pub(crate) const PROOF_BOUNDARY_COMPILE_FAIL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/reports/public_verified_intent_arbitration_report_bundle_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_compound_parity_report_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_policy_pressure_report_bundle_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_phase_five_six_closeout_report_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_milestone_four_kernel_closeout_report_constructor_not_exported.rs",
-    "src/certification/public_facade_contracts/compile_fail/reports/public_proof_substrate_closeout_report_constructor_not_exported.rs",
+    "src/certification/public_facade_contracts/compile_fail/reports/public_certification_bucket_not_exported.rs",
 ];
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -3,9 +3,8 @@ use crate::construction::certification::{
     prepare_primitive_construction_family_boundary_drift_report,
     prepare_primitive_construction_simplex_realization_exhaustion_witness_report,
     prepare_primitive_construction_simplex_realization_strategy_ladder_report,
-    PrimitiveConstructionSimplexQuerySurfaceStatus,
+    PrimitiveConstructionCorpusParameterRole, PrimitiveConstructionSimplexQuerySurfaceStatus,
 };
-use crate::construction::PrimitiveConstructionCorpusParameterRole;
 use crate::construction::PrimitiveConstructionRealizationExhaustionStatus;
 use std::collections::BTreeSet;
 use worth_geom::facade::{

@@ -1,4 +1,4 @@
-use worth_kernel::facade::PrimitiveConstructionQueryBoundaryGapRegister;
+use worth_kernel::facade::diagnostics::query::PrimitiveConstructionQueryBoundaryGapRegister;
 
 fn main() {
     let _ = PrimitiveConstructionQueryBoundaryGapRegister {
