@@ -8,9 +8,10 @@ use forge_foundational::facade::{
 
 use crate::application::declaration_publication::foundational_publication_for_profile;
 use crate::application::{
-    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
-    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectPublication,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryAdmittedWorldBasis, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationAspectCoverageBasis,
+    ForgeQueryDeclarationAspectPublication, ForgeQueryDeclarationInput,
+    ForgeQueryDomainEntryMarker,
 };
 
 use super::{
@@ -26,8 +27,7 @@ pub struct ForgeQueryDeclarationFoundationalEvidence<
 > {
     subject: ForgeQueryDeclarationFoundationalEvidenceInput<D, I>,
     class: ForgeQueryDeclarationFoundationalEvidenceClass,
-    handle_identity_digest: String,
-    operating_context_identity_digest: String,
+    world_basis: ForgeQueryAdmittedWorldBasis,
     declaration_family_key: &'static str,
     declaration_digest: String,
     support_digest: String,
@@ -52,8 +52,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         subject: ForgeQueryDeclarationFoundationalEvidenceInput<D, I>,
-        handle_identity_digest: String,
-        operating_context_identity_digest: String,
+        world_basis: ForgeQueryAdmittedWorldBasis,
         provenance: FoundationalBoundaryEvidenceProvenanceArtifact,
         planning_receipt: Option<FoundationalBoundaryEvidencePlanningReceiptArtifact>,
         receipt: Option<FoundationalBoundaryEvidenceCompletedReceiptArtifact>,
@@ -76,8 +75,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         Self {
             subject,
             class,
-            handle_identity_digest,
-            operating_context_identity_digest,
+            world_basis,
             declaration_family_key,
             declaration_digest,
             support_digest,
@@ -102,11 +100,11 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub fn handle_identity_digest(&self) -> &str {
-        &self.handle_identity_digest
+        self.world_basis.handle_identity_digest()
     }
 
     pub fn operating_context_identity_digest(&self) -> &str {
-        &self.operating_context_identity_digest
+        self.world_basis.operating_context_identity_digest()
     }
 
     pub fn declaration_family_key(&self) -> &'static str {
@@ -192,32 +190,37 @@ pub(crate) fn forge_query_declaration_foundational_evidence<
     D: ForgeQueryDomainEntryMarker,
     I: ForgeQueryDeclarationInput<D>,
 >(
-    expected_handle_identity_digest: &str,
-    expected_operating_context_identity_digest: &str,
+    expected_world_basis: &ForgeQueryAdmittedWorldBasis,
     subject: ForgeQueryDeclarationFoundationalEvidenceInput<D, I>,
     profile: FoundationalBoundaryEvidenceMaterializationProfile,
 ) -> Result<
     ForgeQueryDeclarationFoundationalEvidence<D, I>,
     ForgeQueryDeclarationFoundationalEvidenceDenial<D, I>,
 > {
-    if subject.handle_identity_digest() != expected_handle_identity_digest {
+    if subject.handle_identity_digest() != expected_world_basis.handle_identity_digest() {
         return Err(
             ForgeQueryDeclarationFoundationalEvidenceDenial::wrong_world(
                 subject.class(),
-                expected_handle_identity_digest.to_string(),
+                expected_world_basis.handle_identity_digest().to_string(),
                 subject.handle_identity_digest().to_string(),
-                expected_operating_context_identity_digest.to_string(),
+                expected_world_basis
+                    .operating_context_identity_digest()
+                    .to_string(),
                 Some(subject.operating_context_identity_digest().to_string()),
             ),
         );
     }
-    if subject.operating_context_identity_digest() != expected_operating_context_identity_digest {
+    if subject.operating_context_identity_digest()
+        != expected_world_basis.operating_context_identity_digest()
+    {
         return Err(
             ForgeQueryDeclarationFoundationalEvidenceDenial::wrong_world(
                 subject.class(),
-                expected_handle_identity_digest.to_string(),
+                expected_world_basis.handle_identity_digest().to_string(),
                 subject.handle_identity_digest().to_string(),
-                expected_operating_context_identity_digest.to_string(),
+                expected_world_basis
+                    .operating_context_identity_digest()
+                    .to_string(),
                 Some(subject.operating_context_identity_digest().to_string()),
             ),
         );
@@ -237,8 +240,13 @@ pub(crate) fn forge_query_declaration_foundational_evidence<
         support_attachment.clone(),
         profile,
     )?;
-    let retained_operating_context_identity_digest =
-        subject.operating_context_identity_digest().to_string();
+    let retained_world_basis = ForgeQueryAdmittedWorldBasis::new(
+        expected_world_basis.domain_key(),
+        expected_world_basis.display_name(),
+        subject.operating_context_identity_digest().to_string(),
+        expected_world_basis.handle_identity_digest().to_string(),
+        expected_world_basis.support_snapshot_digest().to_string(),
+    );
     let aspect_contract = subject.aspect_contract().clone();
     let aspect_coverage = subject.aspect_coverage();
     let aspect_coverage_basis = subject.aspect_coverage_basis();
@@ -247,8 +255,7 @@ pub(crate) fn forge_query_declaration_foundational_evidence<
 
     Ok(ForgeQueryDeclarationFoundationalEvidence::new(
         subject,
-        expected_handle_identity_digest.to_string(),
-        retained_operating_context_identity_digest,
+        retained_world_basis,
         provenance,
         planning_receipt,
         receipt,

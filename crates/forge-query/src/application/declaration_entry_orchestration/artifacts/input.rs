@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 
 use crate::application::{
-    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
-    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryAdmittedWorldBasis, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationAspectCoverageBasis,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
 };
 
 use super::exposure::ForgeQueryDeclarationEntryOrchestrationExposureLevel;
@@ -14,8 +14,7 @@ pub struct ForgeQueryDeclarationEntryOrchestrationInput<
     I: ForgeQueryDeclarationInput<D>,
 > {
     declaration_family_key: &'static str,
-    handle_identity_digest: String,
-    operating_context_identity_digest: String,
+    world_basis: ForgeQueryAdmittedWorldBasis,
     aspect_contract: ForgeQueryDeclarationAspectContract,
     aspect_coverage: ForgeQueryDeclarationAspectCoverage,
     aspect_coverage_basis: ForgeQueryDeclarationAspectCoverageBasis,
@@ -28,8 +27,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     ForgeQueryDeclarationEntryOrchestrationInput<D, I>
 {
     pub(crate) fn new(
-        handle_identity_digest: &str,
-        operating_context_identity_digest: &str,
+        world_basis: ForgeQueryAdmittedWorldBasis,
         aspect_contract: ForgeQueryDeclarationAspectContract,
         aspect_coverage: ForgeQueryDeclarationAspectCoverage,
         aspect_coverage_basis: ForgeQueryDeclarationAspectCoverageBasis,
@@ -38,8 +36,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     ) -> Self {
         Self {
             declaration_family_key: I::Family::semantic_family_key(),
-            handle_identity_digest: handle_identity_digest.to_string(),
-            operating_context_identity_digest: operating_context_identity_digest.to_string(),
+            world_basis,
             aspect_contract,
             aspect_coverage,
             aspect_coverage_basis,
@@ -54,11 +51,11 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub fn handle_identity_digest(&self) -> &str {
-        &self.handle_identity_digest
+        self.world_basis.handle_identity_digest()
     }
 
     pub fn operating_context_identity_digest(&self) -> &str {
-        &self.operating_context_identity_digest
+        self.world_basis.operating_context_identity_digest()
     }
 
     pub fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
@@ -88,8 +85,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>> Clone
     fn clone(&self) -> Self {
         Self {
             declaration_family_key: self.declaration_family_key,
-            handle_identity_digest: self.handle_identity_digest.clone(),
-            operating_context_identity_digest: self.operating_context_identity_digest.clone(),
+            world_basis: self.world_basis.clone(),
             aspect_contract: self.aspect_contract.clone(),
             aspect_coverage: self.aspect_coverage.clone(),
             aspect_coverage_basis: self.aspect_coverage_basis,

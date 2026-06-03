@@ -8,8 +8,8 @@ error[E0624]: associated function `new` is private
    |
    | /     pub(crate) fn new(
    | |         subject: ForgeQueryDeclarationFoundationalEvidenceInput<D, I>,
-   | |         handle_identity_digest: String,
-   | |         operating_context_identity_digest: String,
+   | |         world_basis: ForgeQueryAdmittedWorldBasis,
+   | |         provenance: FoundationalBoundaryEvidenceProvenanceArtifact,
 ...  |
    | |         aspect_publication: ForgeQueryDeclarationAspectPublication,
    | |     ) -> Self {

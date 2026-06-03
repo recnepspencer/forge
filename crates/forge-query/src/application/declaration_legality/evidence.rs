@@ -4,9 +4,10 @@ use forge_foundational::facade::{
 };
 
 use crate::application::{
-    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryDeclarationAspectContract,
-    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationFamilySupportReport,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryAdmittedWorldBasis, ForgeQueryCanonicalDeclarationArtifact,
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryDeclarationFamilySupportReport, ForgeQueryDeclarationInput,
+    ForgeQueryDomainEntryMarker,
 };
 
 use super::contract::ForgeQueryDeclarationLegalityContract;
@@ -19,7 +20,7 @@ pub struct ForgeQueryDeclarationLegalityEvidence<
     support_report: ForgeQueryDeclarationFamilySupportReport<D, I::Family>,
     legality_contract: ForgeQueryDeclarationLegalityContract,
     reviewed_aspect_coverage: ForgeQueryDeclarationAspectCoverage,
-    operating_context_identity_digest: String,
+    world_basis: ForgeQueryAdmittedWorldBasis,
     role_claim_category: FoundationalBoundaryArtifactCategory,
     role_claim_role: FoundationalBoundaryArtifactRole,
     surface_disposition: FoundationalBoundarySurfaceDispositionLegality,
@@ -34,7 +35,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         support_report: ForgeQueryDeclarationFamilySupportReport<D, I::Family>,
         legality_contract: ForgeQueryDeclarationLegalityContract,
         reviewed_aspect_coverage: ForgeQueryDeclarationAspectCoverage,
-        operating_context_identity_digest: String,
+        world_basis: ForgeQueryAdmittedWorldBasis,
         role_claim_category: FoundationalBoundaryArtifactCategory,
         role_claim_role: FoundationalBoundaryArtifactRole,
         surface_disposition: FoundationalBoundarySurfaceDispositionLegality,
@@ -45,7 +46,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             support_report,
             legality_contract,
             reviewed_aspect_coverage,
-            operating_context_identity_digest,
+            world_basis,
             role_claim_category,
             role_claim_role,
             surface_disposition,
@@ -78,7 +79,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub fn operating_context_identity_digest(&self) -> &str {
-        &self.operating_context_identity_digest
+        self.world_basis.operating_context_identity_digest()
     }
 
     pub fn role_claim_category(&self) -> FoundationalBoundaryArtifactCategory {
@@ -111,7 +112,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>> Clone
             support_report: self.support_report.clone(),
             legality_contract: self.legality_contract,
             reviewed_aspect_coverage: self.reviewed_aspect_coverage.clone(),
-            operating_context_identity_digest: self.operating_context_identity_digest.clone(),
+            world_basis: self.world_basis.clone(),
             role_claim_category: self.role_claim_category,
             role_claim_role: self.role_claim_role,
             surface_disposition: self.surface_disposition,

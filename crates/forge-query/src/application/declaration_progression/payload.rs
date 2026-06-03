@@ -1,5 +1,5 @@
 use crate::application::{
-    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
+    ForgeQueryAdmittedWorldBasis, ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationLegalityEvidence, ForgeQueryDomainEntryMarker,
 };
 use crate::identity::hash_parts;
@@ -13,8 +13,7 @@ pub struct ForgeQueryDeclarationProgressionPayload<
     I: ForgeQueryDeclarationInput<D>,
 > {
     legality_evidence: ForgeQueryDeclarationLegalityEvidence<D, I>,
-    handle_identity_digest: String,
-    operating_context_identity_digest: String,
+    world_basis: ForgeQueryAdmittedWorldBasis,
     declaration_digest: String,
     support_digest: String,
     legality_digest: String,
@@ -26,12 +25,8 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 {
     pub(crate) fn new(
         legality_evidence: ForgeQueryDeclarationLegalityEvidence<D, I>,
-        operating_context_identity_digest: String,
+        world_basis: ForgeQueryAdmittedWorldBasis,
     ) -> Self {
-        let handle_identity_digest = legality_evidence
-            .canonical_declaration()
-            .handle_identity_digest()
-            .to_string();
         let declaration_digest = format!(
             "{:?}",
             legality_evidence
@@ -44,14 +39,13 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             .to_string();
         let legality_digest = legality_evidence.legality_digest().to_string();
         let progression_contract = I::Family::progression_contract(
-            &handle_identity_digest,
-            &operating_context_identity_digest,
+            world_basis.handle_identity_digest(),
+            world_basis.operating_context_identity_digest(),
         );
 
         Self {
             legality_evidence,
-            handle_identity_digest,
-            operating_context_identity_digest,
+            world_basis,
             declaration_digest,
             support_digest,
             legality_digest,
@@ -68,7 +62,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub fn handle_identity_digest(&self) -> &str {
-        &self.handle_identity_digest
+        self.world_basis.handle_identity_digest()
     }
 
     pub fn declaration_digest(&self) -> &str {
@@ -76,7 +70,11 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub fn operating_context_identity_digest(&self) -> &str {
-        &self.operating_context_identity_digest
+        self.world_basis.operating_context_identity_digest()
+    }
+
+    pub(crate) fn world_basis(&self) -> &ForgeQueryAdmittedWorldBasis {
+        &self.world_basis
     }
 
     pub fn support_digest(&self) -> &str {
@@ -119,8 +117,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>> Clone
     fn clone(&self) -> Self {
         Self {
             legality_evidence: self.legality_evidence.clone(),
-            handle_identity_digest: self.handle_identity_digest.clone(),
-            operating_context_identity_digest: self.operating_context_identity_digest.clone(),
+            world_basis: self.world_basis.clone(),
             declaration_digest: self.declaration_digest.clone(),
             support_digest: self.support_digest.clone(),
             legality_digest: self.legality_digest.clone(),

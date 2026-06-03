@@ -227,10 +227,10 @@ pub use domain_entry::{
     ForgeQueryDomainEntrySupportSnapshot, ForgeQueryDomainEntryUnsupported,
 };
 pub use domain_handle::{
-    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryConfiguredDomainHandleAdmissionError,
-    ForgeQueryConfiguredDomainHandleChecked, ForgeQueryConfiguredDomainHandleDeferred,
-    ForgeQueryConfiguredDomainHandleDraft, ForgeQueryConfiguredDomainHandleInvalidContext,
-    ForgeQueryConfiguredDomainHandleUnsupported,
+    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryAdmittedWorldBasis,
+    ForgeQueryConfiguredDomainHandleAdmissionError, ForgeQueryConfiguredDomainHandleChecked,
+    ForgeQueryConfiguredDomainHandleDeferred, ForgeQueryConfiguredDomainHandleDraft,
+    ForgeQueryConfiguredDomainHandleInvalidContext, ForgeQueryConfiguredDomainHandleUnsupported,
     ForgeQueryContinuationExecutionReadmissionObservation,
     ForgeQueryDeclarationEntryProgressionError, ForgeQueryDomainOperatingContext,
     ForgeQueryValidatedConfiguredDomainHandle,

@@ -43,8 +43,7 @@ pub(crate) fn forge_query_lower_declaration_entry_orchestration_on_handle<
     artifact_policy: ForgeQueryDeclarationEntryOrchestrationArtifactPolicy,
 ) -> ForgeQueryLoweredDeclarationEntryOrchestration<D, I> {
     let orchestration_input = ForgeQueryDeclarationEntryOrchestrationInput::new(
-        handle.handle_identity_digest(),
-        handle.operating_context_identity_digest(),
+        handle.retained_world_basis(),
         I::Family::aspect_contract(),
         I::Family::aspect_coverage(),
         crate::application::ForgeQueryDeclarationAspectCoverageBasis::DeclaredFamilyCoverage,

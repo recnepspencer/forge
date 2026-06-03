@@ -46,8 +46,6 @@ pub struct ForgeQueryDeclarationReceipt<
     class: ForgeQueryDeclarationReceiptClass,
     kind: ForgeQueryDeclarationReceiptKind,
     declaration_family_key: &'static str,
-    handle_identity_digest: String,
-    operating_context_identity_digest: String,
     declaration_digest: String,
     progression_digest: Option<String>,
     route_plan_digest: Option<String>,
@@ -96,9 +94,6 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             ForgeQueryDeclarationReceiptEvidenceOwner::Standalone(evidence) => evidence,
         };
         let declaration_family_key = evidence.declaration_family_key();
-        let handle_identity_digest = evidence.handle_identity_digest().to_string();
-        let operating_context_identity_digest =
-            evidence.operating_context_identity_digest().to_string();
         let declaration_digest = evidence.declaration_digest().to_string();
         let progression_digest = evidence.progression_digest().map(ToOwned::to_owned);
         let route_plan_digest = match &evidence_owner {
@@ -112,8 +107,6 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             class,
             kind,
             declaration_family_key,
-            handle_identity_digest,
-            operating_context_identity_digest,
             declaration_digest,
             progression_digest,
             route_plan_digest,
@@ -142,11 +135,12 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub fn handle_identity_digest(&self) -> &str {
-        &self.handle_identity_digest
+        self.foundational_evidence().handle_identity_digest()
     }
 
     pub fn operating_context_identity_digest(&self) -> &str {
-        &self.operating_context_identity_digest
+        self.foundational_evidence()
+            .operating_context_identity_digest()
     }
 
     pub fn declaration_digest(&self) -> &str {

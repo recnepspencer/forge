@@ -54,8 +54,7 @@ pub(crate) fn forge_query_lower_declaration_entry_product_orchestration_from_pro
         .admitted_declaration_progression()
         .expect("resolved progression target should retain admitted progression semantics");
     let orchestration_input = ForgeQueryDeclarationEntryOrchestrationInput::new(
-        handle.handle_identity_digest(),
-        handle.operating_context_identity_digest(),
+        handle.retained_world_basis(),
         aspect_contract.clone(),
         reviewed_aspect_coverage.clone(),
         crate::application::ForgeQueryDeclarationAspectCoverageBasis::ReviewedRetainedCoverage,

@@ -33,8 +33,6 @@ pub struct ForgeQueryDeclarationEnvelope<
     owner: ForgeQueryDeclarationEnvelopeOwner<D, I>,
     evidence_origin: ForgeQueryDeclarationEnvelopeEvidenceOrigin,
     declaration_family_key: &'static str,
-    handle_identity_digest: String,
-    operating_context_identity_digest: String,
     declaration_digest: String,
     progression_digest: Option<String>,
     route_plan_digest: Option<String>,
@@ -109,8 +107,6 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         let (
             evidence_origin,
             declaration_family_key,
-            handle_identity_digest,
-            operating_context_identity_digest,
             declaration_digest,
             progression_digest,
             route_plan_digest,
@@ -125,8 +121,6 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
                     evidence.class(),
                 ),
                 receipt.declaration_family_key(),
-                receipt.handle_identity_digest().to_string(),
-                receipt.operating_context_identity_digest().to_string(),
                 receipt.declaration_digest().to_string(),
                 receipt.progression_digest().map(ToOwned::to_owned),
                 receipt.route_plan_digest().map(ToOwned::to_owned),
@@ -140,8 +134,6 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             owner,
             evidence_origin,
             declaration_family_key,
-            handle_identity_digest,
-            operating_context_identity_digest,
             declaration_digest,
             progression_digest,
             route_plan_digest,
@@ -162,11 +154,11 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub fn handle_identity_digest(&self) -> &str {
-        &self.handle_identity_digest
+        self.receipt().handle_identity_digest()
     }
 
     pub fn operating_context_identity_digest(&self) -> &str {
-        &self.operating_context_identity_digest
+        self.receipt().operating_context_identity_digest()
     }
 
     pub fn declaration_digest(&self) -> &str {

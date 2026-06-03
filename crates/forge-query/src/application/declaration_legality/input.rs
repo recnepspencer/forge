@@ -1,6 +1,7 @@
 use crate::application::{
-    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryDeclarationFamilySupportReport,
-    ForgeQueryDeclarationFamilyTaxonomy, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryAdmittedWorldBasis, ForgeQueryCanonicalDeclarationArtifact,
+    ForgeQueryDeclarationFamilySupportReport, ForgeQueryDeclarationFamilyTaxonomy,
+    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
 };
 
 use super::contract::ForgeQueryDeclarationLegalityContract;
@@ -12,7 +13,7 @@ pub struct ForgeQueryDeclarationLegalityInput<
     declaration: ForgeQueryCanonicalDeclarationArtifact<D, I>,
     support_report: ForgeQueryDeclarationFamilySupportReport<D, I::Family>,
     legality_contract: ForgeQueryDeclarationLegalityContract,
-    operating_context_identity_digest: String,
+    world_basis: ForgeQueryAdmittedWorldBasis,
 }
 
 impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
@@ -22,13 +23,13 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         declaration: ForgeQueryCanonicalDeclarationArtifact<D, I>,
         support_report: ForgeQueryDeclarationFamilySupportReport<D, I::Family>,
         legality_contract: ForgeQueryDeclarationLegalityContract,
-        operating_context_identity_digest: String,
+        world_basis: ForgeQueryAdmittedWorldBasis,
     ) -> Self {
         Self {
             declaration,
             support_report,
             legality_contract,
-            operating_context_identity_digest,
+            world_basis,
         }
     }
 
@@ -53,11 +54,11 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub fn handle_identity_digest(&self) -> &str {
-        self.declaration.handle_identity_digest()
+        self.world_basis.handle_identity_digest()
     }
 
     pub fn operating_context_identity_digest(&self) -> &str {
-        &self.operating_context_identity_digest
+        self.world_basis.operating_context_identity_digest()
     }
 
     pub(crate) fn into_parts(
@@ -66,13 +67,13 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         ForgeQueryCanonicalDeclarationArtifact<D, I>,
         ForgeQueryDeclarationFamilySupportReport<D, I::Family>,
         ForgeQueryDeclarationLegalityContract,
-        String,
+        ForgeQueryAdmittedWorldBasis,
     ) {
         (
             self.declaration,
             self.support_report,
             self.legality_contract,
-            self.operating_context_identity_digest,
+            self.world_basis,
         )
     }
 }

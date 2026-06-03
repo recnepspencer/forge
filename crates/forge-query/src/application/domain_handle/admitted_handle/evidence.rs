@@ -55,11 +55,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
     where
         I: ForgeQueryDeclarationInput<D>,
     {
-        forge_query_declaration_foundational_evidence(
-            self.handle_identity_digest(),
-            self.operating_context_identity_digest(),
-            subject,
-            profile,
-        )
+        let world_basis = self.retained_world_basis();
+        forge_query_declaration_foundational_evidence(&world_basis, subject, profile)
     }
 }
