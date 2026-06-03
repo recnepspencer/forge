@@ -40,13 +40,13 @@ pub fn milestone_two_invalidation_declarations() -> Vec<TruthToDerivedInvalidati
         TruthToDerivedInvalidationDeclaration {
             declaration_id: "relation-source-structural",
             truth_patch_field: "source",
-            truth_surface_kind: DerivedTruthSurfaceKind::EntityRelationEndpoint,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityField,
             target: DerivedInvalidationTarget::TopologyStructure,
         },
         TruthToDerivedInvalidationDeclaration {
             declaration_id: "relation-target-structural",
             truth_patch_field: "target",
-            truth_surface_kind: DerivedTruthSurfaceKind::EntityRelationEndpoint,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityField,
             target: DerivedInvalidationTarget::TopologyStructure,
         },
         TruthToDerivedInvalidationDeclaration {
@@ -64,25 +64,37 @@ pub fn milestone_two_invalidation_declarations() -> Vec<TruthToDerivedInvalidati
         TruthToDerivedInvalidationDeclaration {
             declaration_id: "topology-ownership",
             truth_patch_field: "topology.ownership",
-            truth_surface_kind: DerivedTruthSurfaceKind::EntityRelationEndpoint,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityField,
             target: DerivedInvalidationTarget::TopologyOwnership,
         },
         TruthToDerivedInvalidationDeclaration {
             declaration_id: "topology-boundary",
             truth_patch_field: "topology.boundary",
-            truth_surface_kind: DerivedTruthSurfaceKind::EntityRelationEndpoint,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityField,
             target: DerivedInvalidationTarget::TopologyBoundary,
         },
         TruthToDerivedInvalidationDeclaration {
             declaration_id: "topology-radial",
             truth_patch_field: "topology.radial",
-            truth_surface_kind: DerivedTruthSurfaceKind::EntityRelationEndpoint,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityField,
             target: DerivedInvalidationTarget::TopologyRadial,
         },
         TruthToDerivedInvalidationDeclaration {
             declaration_id: "naming-persistent-name",
             truth_patch_field: "naming.persistent_name",
-            truth_surface_kind: DerivedTruthSurfaceKind::EntityRelationEndpoint,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityField,
+            target: DerivedInvalidationTarget::NamingPersistentName,
+        },
+        TruthToDerivedInvalidationDeclaration {
+            declaration_id: "naming-source-identity",
+            truth_patch_field: "naming.source_identity",
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityField,
+            target: DerivedInvalidationTarget::NamingPersistentName,
+        },
+        TruthToDerivedInvalidationDeclaration {
+            declaration_id: "naming-target-identity",
+            truth_patch_field: "naming.target_identity",
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityField,
             target: DerivedInvalidationTarget::NamingPersistentName,
         },
     ]
@@ -98,7 +110,7 @@ mod tests {
     fn milestone_two_invalidation_declarations_cover_unique_fields_and_targets() {
         let declarations = milestone_two_invalidation_declarations();
 
-        assert_eq!(declarations.len(), 8);
+        assert_eq!(declarations.len(), 10);
         let unique_ids = declarations
             .iter()
             .map(|declaration| declaration.declaration_id)

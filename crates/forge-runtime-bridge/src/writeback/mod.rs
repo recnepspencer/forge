@@ -52,9 +52,9 @@ pub use declaration::{
     BridgeWritebackStrategyDescriptorBasis,
 };
 pub use effect::{
-    BridgeDerivedWritebackEffect, BridgeWritebackCausalityBasis, BridgeWritebackCausalityEvidence,
-    BridgeWritebackCausalityIdentity, BridgeWritebackEffectIdentity,
-    BridgeWritebackFeedbackContext, BridgeWritebackFeedbackProvenance,
+    BridgeDerivedWritebackEffect, BridgeWritebackCausalityBasis, BridgeWritebackCausalityIdentity,
+    BridgeWritebackEffectIdentity, BridgeWritebackFeedbackContext,
+    BridgeWritebackFeedbackProvenance, BridgeWritebackNativeCausalityInputs,
 };
 pub use execution::{BridgeWritebackExecutionRecord, BridgeWritebackExecutionRecordIdentity};
 pub use execution_contract::{

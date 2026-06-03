@@ -78,16 +78,29 @@ fn native_aspect_selector(aspect: &str) -> AspectKeySelector {
 }
 
 fn native_snapshot_read_contract(aspect: &str) -> SnapshotReadContract {
-    SnapshotReadContract::scalar(native_aspect_key(aspect), ScalarAspectType::String)
+    SnapshotReadContract::scalar(native_aspect_key(aspect), native_scalar_type(aspect))
 }
 
 fn native_aspect_key(aspect: &str) -> AspectKey {
     AspectKey::new(aspect).expect("worth schema declarations use native aspect keys")
 }
 
+fn native_scalar_type(aspect: &str) -> ScalarAspectType {
+    match aspect {
+        "source"
+        | "target"
+        | "naming.source_identity"
+        | "naming.target_identity"
+        | "topology.ownership"
+        | "topology.boundary"
+        | "topology.radial" => ScalarAspectType::EntityRef,
+        _ => ScalarAspectType::String,
+    }
+}
+
 fn native_target_selector(truth_surface_kind: DerivedTruthSurfaceKind) -> TruthPatchTargetSelector {
     match truth_surface_kind {
-        DerivedTruthSurfaceKind::EntityField => TruthPatchTargetSelector::any(),
+        DerivedTruthSurfaceKind::EntityField => TruthPatchTargetSelector::region(),
         DerivedTruthSurfaceKind::EntityRelationEndpoint => {
             TruthPatchTargetSelector::relation_endpoint()
         }

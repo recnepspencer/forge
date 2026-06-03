@@ -6,8 +6,8 @@ use crate::adapter::{TruthWritebackReceipt, TruthWritebackRequest};
 use crate::writeback::{
     AdmittedBridgeWritebackContract, BridgeDerivedWritebackEffect,
     BridgeValidatedWritebackCandidate, BridgeWritebackAuthorityOutcome,
-    BridgeWritebackCausalityBasis, BridgeWritebackIdempotenceBasis,
-    BridgeWritebackLoopPreventionReport, BridgeWritebackReplayBundle,
+    BridgeWritebackIdempotenceBasis, BridgeWritebackLoopPreventionReport,
+    BridgeWritebackNativeCausalityInputs, BridgeWritebackReplayBundle,
     BridgeWritebackStrategyCoherenceReport,
 };
 
@@ -24,7 +24,8 @@ pub(in crate::harness::adapter::adapter_impl) use replay_and_idempotence::{
 pub(in crate::harness::adapter::adapter_impl) struct WritebackDuplicateAuthorityMatrixEvidence<'a> {
     pub(in crate::harness::adapter::adapter_impl) contract: &'a AdmittedBridgeWritebackContract,
     pub(in crate::harness::adapter::adapter_impl) effect: &'a BridgeDerivedWritebackEffect,
-    pub(in crate::harness::adapter::adapter_impl) causality: &'a BridgeWritebackCausalityBasis,
+    pub(in crate::harness::adapter::adapter_impl) causality:
+        &'a BridgeWritebackNativeCausalityInputs,
     pub(in crate::harness::adapter::adapter_impl) replay_bundle: &'a BridgeWritebackReplayBundle,
     pub(in crate::harness::adapter::adapter_impl) first_bundle: &'a BridgeWritebackReplayBundle,
     pub(in crate::harness::adapter::adapter_impl) repeated_bundle: &'a BridgeWritebackReplayBundle,
@@ -61,7 +62,7 @@ pub(in crate::harness::adapter::adapter_impl) struct WritebackDuplicateAuthority
 pub(in crate::harness::adapter::adapter_impl) struct WritebackDuplicateAuthorityMatrix {
     writeback_digest: String,
     effect: BridgeDerivedWritebackEffect,
-    causality: BridgeWritebackCausalityBasis,
+    causality: BridgeWritebackNativeCausalityInputs,
     replay_digest: String,
     mutation_plan_digest: String,
     replay_bundle_report: DuplicateReplayBundleReport,
@@ -164,7 +165,7 @@ impl WritebackDuplicateAuthorityMatrix {
 
     pub(in crate::harness::adapter::adapter_impl) fn causality(
         &self,
-    ) -> &BridgeWritebackCausalityBasis {
+    ) -> &BridgeWritebackNativeCausalityInputs {
         &self.causality
     }
 

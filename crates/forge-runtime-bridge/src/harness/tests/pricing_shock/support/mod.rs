@@ -20,7 +20,7 @@ pub(in crate::harness::tests::pricing_shock) use crate::facade::{
     BridgeSourceCapabilitySet, BridgeSpeculativeBranchBinding,
     BridgeSpeculativeBranchBindingIdentity, BridgeSpeculativeSessionRequest,
     BridgeStandardRouteError, BridgeTruthViewEvaluationRequest, BridgeTruthViewSelector,
-    BridgeWritebackCausalityBasis, BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
+    BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
     BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackEffectIdentity,
     BridgeWritebackEffectIntent, BridgeWritebackErrorKind, BridgeWritebackFailureClass,
     BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass, BridgeWritebackIdempotenceIdentity,

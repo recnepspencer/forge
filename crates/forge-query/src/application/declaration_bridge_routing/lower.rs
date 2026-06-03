@@ -3,14 +3,14 @@ use forge_runtime_bridge::facade::{
     BridgeDeliveryIntent, BridgeDiagnosticsTier, BridgePreviewRetainedArtifactSchema,
     BridgePreviewSessionBasis, BridgePreviewSessionDeclaration,
     BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeReplayMode,
-    BridgeRequestKind, BridgeRouteRequest, BridgeSignalBranchIdentity, BridgeSourceCapability,
-    BridgeSourceCapabilitySet, BridgeSpeculativeBranchBinding,
+    BridgeRequestKind, BridgeRouteIdentity, BridgeRouteRequest, BridgeSignalBranchIdentity,
+    BridgeSourceCapability, BridgeSourceCapabilitySet, BridgeSpeculativeBranchBinding,
     BridgeSpeculativeBranchBindingIdentity, BridgeSpeculativeSessionRequest,
     BridgeSubscriptionContinuationCandidateInput, BridgeTruthViewEvaluationRequest,
-    BridgeTruthViewSelector, BridgeWritebackCausalityBasis, BridgeWritebackCausalityEvidence,
-    BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
+    BridgeTruthViewSelector, BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
     BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackEffectIntent,
-    BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass, BridgeWritebackStrategyClass,
+    BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass,
+    BridgeWritebackNativeCausalityInputs, BridgeWritebackStrategyClass,
     HistoricalEvaluationDeclaration, TruthBranchIdentity, TruthCommitIdentity,
     TruthSnapshotIdentity,
 };
@@ -303,14 +303,15 @@ fn writeback_preparation_request<
         BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
-    let causality = BridgeWritebackCausalityBasis::from_evidence(
+    let causality = BridgeWritebackNativeCausalityInputs::new(
         BridgeWritebackCausalityIdentity::new(format!("query.causality:{basis_digest}")),
-        BridgeWritebackCausalityEvidence::from_native_bases(
-            format!("truth-trigger:{}", envelope.handle_identity_digest()),
-            lowering.runtime_surface_digest().to_string(),
-            format!("evaluation:{}", envelope.declaration_digest()),
-            basis_digest,
-        ),
+        TruthCommitIdentity::new(format!(
+            "truth-trigger:{}",
+            envelope.handle_identity_digest()
+        )),
+        BridgeRouteIdentity::new(lowering.runtime_surface_digest().to_string()),
+        TruthSnapshotIdentity::new(format!("evaluation:{}", envelope.declaration_digest())),
+        TruthSnapshotIdentity::new(basis_digest),
     );
     let effect_intent = BridgeWritebackEffectIntent::validated_scalar_patch(
         BridgeWritebackEffectClass::ProjectedStateDiff,

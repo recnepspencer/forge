@@ -7,16 +7,17 @@ use crate::policy::{BridgePolicyDeclaration, BridgePolicyRejection};
 use super::{
     AdmittedBridgeWritebackContract, BridgeDerivedWritebackEffect,
     BridgeWritebackAuthoritativeStateBasis, BridgeWritebackAuthorityOutcome,
-    BridgeWritebackCausalityBasis, BridgeWritebackDeclaration, BridgeWritebackEffectIdentity,
-    BridgeWritebackEffectIntent, BridgeWritebackIdempotenceBasis, BridgeWritebackIdempotenceClass,
-    BridgeWritebackIdempotenceIdentity, BridgeWritebackReplayBundle,
+    BridgeWritebackDeclaration, BridgeWritebackEffectIdentity, BridgeWritebackEffectIntent,
+    BridgeWritebackIdempotenceBasis, BridgeWritebackIdempotenceClass,
+    BridgeWritebackIdempotenceIdentity, BridgeWritebackNativeCausalityInputs,
+    BridgeWritebackReplayBundle,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeAdmittedWritebackExecutionRequest {
     policy_declaration: BridgePolicyDeclaration,
     writeback_declaration: BridgeWritebackDeclaration,
-    causality: BridgeWritebackCausalityBasis,
+    causality: BridgeWritebackNativeCausalityInputs,
     effect_identity: BridgeWritebackEffectIdentity,
     effect_intent: BridgeWritebackEffectIntent,
     authoritative_state_basis: BridgeWritebackAuthoritativeStateBasis,
@@ -31,7 +32,7 @@ impl BridgeAdmittedWritebackExecutionRequest {
     pub fn new(
         policy_declaration: BridgePolicyDeclaration,
         writeback_declaration: BridgeWritebackDeclaration,
-        causality: BridgeWritebackCausalityBasis,
+        causality: BridgeWritebackNativeCausalityInputs,
         effect_identity: BridgeWritebackEffectIdentity,
         effect_intent: BridgeWritebackEffectIntent,
         idempotence_identity: BridgeWritebackIdempotenceIdentity,
@@ -80,8 +81,12 @@ impl BridgeAdmittedWritebackExecutionRequest {
         &self.writeback_declaration
     }
 
-    pub fn causality(&self) -> &BridgeWritebackCausalityBasis {
+    pub(crate) fn causality(&self) -> &BridgeWritebackNativeCausalityInputs {
         &self.causality
+    }
+
+    pub fn causality_digest(&self) -> &str {
+        self.causality.digest()
     }
 
     pub fn effect_identity(&self) -> &BridgeWritebackEffectIdentity {

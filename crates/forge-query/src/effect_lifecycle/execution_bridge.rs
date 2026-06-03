@@ -2,10 +2,10 @@ use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_runtime_bridge::facade::{
     BridgeAdmittedWritebackExecution, BridgeAdmittedWritebackExecutionError,
     BridgeAdmittedWritebackExecutionRequest, BridgeDiagnosticsTier, BridgeExecutionPolicyClass,
-    BridgePolicyDeclaration, BridgePolicyDeclarationIdentity, BridgeWritebackCausalityBasis,
-    BridgeWritebackCausalityEvidence, BridgeWritebackCausalityIdentity,
-    BridgeWritebackEffectIdentity, BridgeWritebackEffectIntent, BridgeWritebackIdempotenceIdentity,
-    RuntimeBridge,
+    BridgePolicyDeclaration, BridgePolicyDeclarationIdentity, BridgeRouteIdentity,
+    BridgeWritebackCausalityIdentity, BridgeWritebackEffectIdentity, BridgeWritebackEffectIntent,
+    BridgeWritebackIdempotenceIdentity, BridgeWritebackNativeCausalityInputs, RuntimeBridge,
+    TruthCommitIdentity, TruthSnapshotIdentity,
 };
 
 use crate::workflow::QueryWritebackDeclaration;
@@ -29,23 +29,26 @@ pub(super) fn execute_lowered_writeback(
             true,
         ),
         declaration.bridge_declaration().clone(),
-        BridgeWritebackCausalityBasis::from_evidence(
+        BridgeWritebackNativeCausalityInputs::new(
             BridgeWritebackCausalityIdentity::new(format!(
                 "causality:{}",
                 declaration.lowering_digest()
             )),
-            BridgeWritebackCausalityEvidence::from_native_bases(
+            TruthCommitIdentity::new(
                 declaration
                     .causality_binding()
                     .causality_digest()
                     .to_string(),
-                format!(
-                    "route:{}",
-                    declaration.declaration().report().declaration_digest()
-                ),
-                format!("evaluation:{}", declaration.bridge_declaration().digest()),
-                declaration.causality_binding().basis_digest().to_string(),
             ),
+            BridgeRouteIdentity::new(format!(
+                "route:{}",
+                declaration.declaration().report().declaration_digest()
+            )),
+            TruthSnapshotIdentity::new(format!(
+                "evaluation:{}",
+                declaration.bridge_declaration().digest()
+            )),
+            TruthSnapshotIdentity::new(declaration.causality_binding().basis_digest().to_string()),
         ),
         BridgeWritebackEffectIdentity::new(format!("effect:{}", declaration.lowering_digest())),
         query_writeback_effect_intent(declaration)?,

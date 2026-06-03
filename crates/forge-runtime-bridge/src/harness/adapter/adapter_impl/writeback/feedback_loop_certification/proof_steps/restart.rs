@@ -16,7 +16,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback::feedback_loop_certifica
     runtime: &crate::harness::adapter::BridgeHarnessSession,
     runtime_bridge: &crate::facade::RuntimeBridge,
     fixture: &BridgeHarnessFixture,
-    replayed_causality: &crate::facade::BridgeWritebackCausalityBasis,
+    replayed_causality: &crate::facade::BridgeWritebackNativeCausalityInputs,
     carried_feedback_context: &crate::facade::BridgeWritebackFeedbackContext,
 ) -> Result<RestartFeedbackReplayProof, BridgeHarnessError> {
     let rebuilt_runtime = build_writeback_runtime(runtime, fixture, true)?;

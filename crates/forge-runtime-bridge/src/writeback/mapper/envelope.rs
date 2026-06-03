@@ -4,8 +4,8 @@ use sha2::{Digest, Sha256};
 
 use super::BridgeWritebackMapperEnvelopeIdentity;
 use crate::writeback::{
-    AdmittedBridgeWritebackContract, BridgeWritebackCausalityBasis, BridgeWritebackEffectClass,
-    BridgeWritebackEffectIntent, BridgeWritebackFamilyKind, BridgeWritebackStrategyClass,
+    AdmittedBridgeWritebackContract, BridgeWritebackEffectClass, BridgeWritebackEffectIntent,
+    BridgeWritebackFamilyKind, BridgeWritebackNativeCausalityInputs, BridgeWritebackStrategyClass,
     BridgeWritebackStrategyDescriptorBasis,
 };
 
@@ -26,7 +26,7 @@ pub struct BridgeWritebackMapperEnvelope {
 impl BridgeWritebackMapperEnvelope {
     pub(crate) fn new(
         contract: &AdmittedBridgeWritebackContract,
-        causality: &BridgeWritebackCausalityBasis,
+        causality: &BridgeWritebackNativeCausalityInputs,
         effect_intent: BridgeWritebackEffectIntent,
     ) -> Self {
         let family_basis = contract

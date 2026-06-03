@@ -5,12 +5,13 @@ use crate::memory_workspace::ForgeQueryMutationKind;
 use forge_runtime_bridge::facade::{
     BridgeDiagnosticsTier, BridgeExecutionPolicyClass, BridgeExistingTruthBindingBundle,
     BridgeMutationAuthorityBundle, BridgePolicyDeclaration, BridgePolicyDeclarationIdentity,
-    BridgeRequestKind, BridgeWritebackAuthoritativeStateBasis, BridgeWritebackCausalityBasis,
-    BridgeWritebackCausalityEvidence, BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
+    BridgeRequestKind, BridgeRouteIdentity, BridgeWritebackAuthoritativeStateBasis,
+    BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
     BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackEffectIdentity,
     BridgeWritebackEffectIntent, BridgeWritebackFamilyKind, BridgeWritebackFeedbackProvenance,
     BridgeWritebackIdempotenceClass, BridgeWritebackIdempotenceIdentity,
-    BridgeWritebackStrategyClass, RuntimeBridge,
+    BridgeWritebackNativeCausalityInputs, BridgeWritebackStrategyClass, RuntimeBridge,
+    TruthCommitIdentity, TruthSnapshotIdentity,
 };
 
 pub(super) fn build_bridge_authority_bundle(
@@ -49,14 +50,12 @@ pub(super) fn build_bridge_authority_bundle(
             &policy,
         )
         .map_err(|error| ForgeQueryWorkspaceError::new(format!("{error:?}")))?;
-    let causality = BridgeWritebackCausalityBasis::from_evidence(
+    let causality = BridgeWritebackNativeCausalityInputs::new(
         BridgeWritebackCausalityIdentity::new(format!("causality:{writeback_digest}")),
-        BridgeWritebackCausalityEvidence::from_native_bases(
-            format!("truth-trigger:{writeback_digest}"),
-            "route:forge-query-stateful-bridge",
-            format!("evaluation:{collection}:{entity_identity}"),
-            snapshot_token.to_string(),
-        ),
+        TruthCommitIdentity::new(format!("truth-trigger:{writeback_digest}")),
+        BridgeRouteIdentity::new("route:forge-query-stateful-bridge"),
+        TruthSnapshotIdentity::new(format!("evaluation:{collection}:{entity_identity}")),
+        TruthSnapshotIdentity::new(snapshot_token.to_string()),
     );
     let effect = bridge.lower_writeback_effect(
         &contract,

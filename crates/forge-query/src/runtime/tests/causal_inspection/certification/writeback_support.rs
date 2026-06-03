@@ -1,12 +1,12 @@
 use forge_runtime_bridge::facade::{
     BridgeDiagnosticsTier, BridgeExecutionPolicyClass, BridgePolicyDeclaration,
-    BridgePolicyDeclarationIdentity, BridgeRequestKind, BridgeWritebackAuthoritativeStateBasis,
-    BridgeWritebackCausalityBasis, BridgeWritebackCausalityEvidence,
-    BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
-    BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackEffectIdentity,
-    BridgeWritebackEffectIntent, BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass,
-    BridgeWritebackIdempotenceIdentity, BridgeWritebackStrategyClass, LoweredBridgeExecutionPolicy,
-    RuntimeBridge,
+    BridgePolicyDeclarationIdentity, BridgeRequestKind, BridgeRouteIdentity,
+    BridgeWritebackAuthoritativeStateBasis, BridgeWritebackCausalityIdentity,
+    BridgeWritebackDeclaration, BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass,
+    BridgeWritebackEffectIdentity, BridgeWritebackEffectIntent, BridgeWritebackFamilyKind,
+    BridgeWritebackIdempotenceClass, BridgeWritebackIdempotenceIdentity,
+    BridgeWritebackNativeCausalityInputs, BridgeWritebackStrategyClass,
+    LoweredBridgeExecutionPolicy, RuntimeBridge, TruthCommitIdentity, TruthSnapshotIdentity,
 };
 
 pub(super) struct RetainedWritebackRecordIdentities {
@@ -30,14 +30,12 @@ pub(super) fn retain_writeback_record_identities(
         .diagnostics()
         .last_writeback_admission_record()
         .expect("writeback admission record should be retained");
-    let causality = BridgeWritebackCausalityBasis::from_evidence(
+    let causality = BridgeWritebackNativeCausalityInputs::new(
         BridgeWritebackCausalityIdentity::new(format!("causality:slot:{suffix}")),
-        BridgeWritebackCausalityEvidence::from_native_bases(
-            format!("query-trigger:{suffix}"),
-            "query-route:slot",
-            "query-evaluation:slot",
-            "query-truth-view:slot",
-        ),
+        TruthCommitIdentity::new(format!("query-trigger:{suffix}")),
+        BridgeRouteIdentity::new("query-route:slot"),
+        TruthSnapshotIdentity::new("query-evaluation:slot"),
+        TruthSnapshotIdentity::new("query-truth-view:slot"),
     );
     let mapped_input = runtime.map_writeback_family_input(
         &contract,

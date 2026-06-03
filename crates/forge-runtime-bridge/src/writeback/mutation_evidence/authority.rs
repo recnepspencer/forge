@@ -12,8 +12,8 @@ use super::{
 use crate::writeback::{
     BridgeContinuityMutationBundle, BridgeDerivedWritebackEffect, BridgeNamingMutationBundle,
     BridgeSymbolicTargetReferenceBundle, BridgeWritebackAuthorityOutcome,
-    BridgeWritebackCausalityBasis, BridgeWritebackExecutionRecord,
-    BridgeWritebackFeedbackProvenance,
+    BridgeWritebackExecutionRecord, BridgeWritebackFeedbackProvenance,
+    BridgeWritebackNativeCausalityInputs,
 };
 
 /// One bridge-authored carry-forward packet suitable for Query receipt lowering.
@@ -29,7 +29,7 @@ pub struct BridgeMutationAuthorityBundle {
 
 impl BridgeMutationAuthorityBundle {
     pub fn from_writeback_artifacts(
-        causality: &BridgeWritebackCausalityBasis,
+        causality: &BridgeWritebackNativeCausalityInputs,
         effect: &BridgeDerivedWritebackEffect,
         feedback: &BridgeWritebackFeedbackProvenance,
         execution_record: &BridgeWritebackExecutionRecord,

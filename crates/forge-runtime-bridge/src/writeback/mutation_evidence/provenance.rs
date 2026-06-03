@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use super::super::{
-    BridgeDerivedWritebackEffect, BridgeWritebackAuthorityOutcome, BridgeWritebackCausalityBasis,
-    BridgeWritebackExecutionRecord, BridgeWritebackFailureClass, BridgeWritebackFeedbackProvenance,
-    BridgeWritebackOutcomeClass, BridgeWritebackStrategyDescriptorBasis,
+    BridgeDerivedWritebackEffect, BridgeWritebackAuthorityOutcome, BridgeWritebackExecutionRecord,
+    BridgeWritebackFailureClass, BridgeWritebackFeedbackProvenance,
+    BridgeWritebackNativeCausalityInputs, BridgeWritebackOutcomeClass,
+    BridgeWritebackStrategyDescriptorBasis,
 };
 use crate::adapter::{TruthWritebackReceipt, TruthWritebackRequest};
 
@@ -18,7 +19,7 @@ pub struct BridgeMutationCausalityBundle {
 }
 
 impl BridgeMutationCausalityBundle {
-    pub fn from_writeback_causality(causality: &BridgeWritebackCausalityBasis) -> Self {
+    pub fn from_writeback_causality(causality: &BridgeWritebackNativeCausalityInputs) -> Self {
         Self {
             causality_digest: Arc::from(causality.digest().to_owned()),
             truth_trigger_digest: Arc::from(causality.truth_trigger_digest().to_owned()),

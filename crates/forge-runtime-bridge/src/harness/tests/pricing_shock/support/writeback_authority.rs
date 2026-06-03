@@ -45,14 +45,12 @@ pub(in crate::harness::tests::pricing_shock) fn pricing_lowered_policy(
 pub(in crate::harness::tests::pricing_shock) fn pricing_writeback_causality_basis(
     identity: &str,
     truth_trigger_evidence_text: &str,
-) -> BridgeWritebackCausalityBasis {
-    BridgeWritebackCausalityBasis::from_evidence(
+) -> crate::facade::BridgeWritebackNativeCausalityInputs {
+    crate::facade::BridgeWritebackNativeCausalityInputs::new(
         BridgeWritebackCausalityIdentity::new(identity),
-        crate::facade::BridgeWritebackCausalityEvidence::from_native_bases(
-            truth_trigger_evidence_text,
-            identity,
-            identity,
-            identity,
-        ),
+        crate::facade::TruthCommitIdentity::new(truth_trigger_evidence_text),
+        crate::facade::BridgeRouteIdentity::new(identity),
+        crate::facade::TruthSnapshotIdentity::new(identity),
+        crate::facade::TruthSnapshotIdentity::new(identity),
     )
 }

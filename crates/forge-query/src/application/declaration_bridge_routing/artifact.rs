@@ -1,7 +1,7 @@
 use forge_runtime_bridge::facade::{
     BridgeRouteRequest, BridgeSpeculativeSessionRequest,
     BridgeSubscriptionContinuationCandidateInput, BridgeTruthViewEvaluationRequest,
-    BridgeWritebackCausalityBasis, BridgeWritebackDeclaration, BridgeWritebackEffectIntent,
+    BridgeWritebackDeclaration, BridgeWritebackEffectIntent, BridgeWritebackNativeCausalityInputs,
 };
 
 use crate::application::{
@@ -58,14 +58,14 @@ impl ForgeQueryDeclarationBridgeBinding {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ForgeQueryWritebackPreparationBinding {
     declaration: BridgeWritebackDeclaration,
-    causality: BridgeWritebackCausalityBasis,
+    causality: BridgeWritebackNativeCausalityInputs,
     effect_intent: BridgeWritebackEffectIntent,
 }
 
 impl ForgeQueryWritebackPreparationBinding {
     pub(crate) fn new(
         declaration: BridgeWritebackDeclaration,
-        causality: BridgeWritebackCausalityBasis,
+        causality: BridgeWritebackNativeCausalityInputs,
         effect_intent: BridgeWritebackEffectIntent,
     ) -> Self {
         Self {
@@ -79,7 +79,7 @@ impl ForgeQueryWritebackPreparationBinding {
         &self.declaration
     }
 
-    pub fn causality(&self) -> &BridgeWritebackCausalityBasis {
+    pub fn causality(&self) -> &BridgeWritebackNativeCausalityInputs {
         &self.causality
     }
 

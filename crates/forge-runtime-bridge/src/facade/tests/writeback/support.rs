@@ -3,13 +3,15 @@ pub(super) use crate::facade::{
     BridgeContinuityAuthoritativeIdentity, BridgeContinuityResolvedTargetIdentity,
     BridgeContinuityTargetCollection, BridgeDerivedWritebackEffect, BridgeExecutionPolicyClass,
     BridgePolicyDeclaration, BridgePolicyDeclarationIdentity, BridgeRequestKind,
-    BridgeRuntimePolicy, BridgeWritebackAuthoritativeStateBasis, BridgeWritebackCausalityIdentity,
-    BridgeWritebackDeclaration, BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass,
-    BridgeWritebackEffectIdentity, BridgeWritebackEffectIntent, BridgeWritebackErrorKind,
-    BridgeWritebackFailureClass, BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass,
-    BridgeWritebackIdempotenceIdentity, BridgeWritebackLoopDisposition, BridgeWritebackRequestMode,
-    BridgeWritebackStrategyClass, BridgeWritebackStrategyCoherenceDisposition,
-    BridgeWritebackStrategyDescriptorBasis,
+    BridgeRouteIdentity, BridgeRuntimePolicy, BridgeWritebackAuthoritativeStateBasis,
+    BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
+    BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackEffectIdentity,
+    BridgeWritebackEffectIntent, BridgeWritebackErrorKind, BridgeWritebackFailureClass,
+    BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass, BridgeWritebackIdempotenceIdentity,
+    BridgeWritebackLoopDisposition, BridgeWritebackNativeCausalityInputs,
+    BridgeWritebackRequestMode, BridgeWritebackStrategyClass,
+    BridgeWritebackStrategyCoherenceDisposition, BridgeWritebackStrategyDescriptorBasis,
+    TruthCommitIdentity, TruthSnapshotIdentity,
 };
 use forge_foundational::facade::{AspectKey, AspectValue};
 use std::sync::{Arc, RwLock};
@@ -280,15 +282,13 @@ pub(super) fn writeback_declaration_with_shape(
 pub(super) fn causality_basis(
     identity: BridgeWritebackCausalityIdentity,
     truth_trigger_evidence_text: &str,
-) -> crate::facade::BridgeWritebackCausalityBasis {
-    crate::facade::BridgeWritebackCausalityBasis::from_evidence(
+) -> BridgeWritebackNativeCausalityInputs {
+    BridgeWritebackNativeCausalityInputs::new(
         identity.clone(),
-        crate::facade::BridgeWritebackCausalityEvidence::from_native_bases(
-            truth_trigger_evidence_text,
-            identity.as_str(),
-            identity.as_str(),
-            identity.as_str(),
-        ),
+        TruthCommitIdentity::new(truth_trigger_evidence_text),
+        BridgeRouteIdentity::new(identity.as_str()),
+        TruthSnapshotIdentity::new(identity.as_str()),
+        TruthSnapshotIdentity::new(identity.as_str()),
     )
 }
 

@@ -6,7 +6,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback::feedback_loop_certifica
     pub contract: crate::facade::AdmittedBridgeWritebackContract,
     pub original_commit: crate::facade::BridgeCommittedPatchEnvelope,
     pub initial_route_digest: String,
-    pub original_causality: crate::facade::BridgeWritebackCausalityBasis,
+    pub original_causality: crate::facade::BridgeWritebackNativeCausalityInputs,
     pub effect: crate::writeback::BridgeDerivedWritebackEffect,
     pub feedback_provenance: crate::facade::BridgeWritebackFeedbackProvenance,
     pub feedback_context: crate::facade::BridgeWritebackFeedbackContext,

@@ -243,14 +243,6 @@ fn route_digest_for_first_patch(
     .to_string())
 }
 
-fn route_digest_for_commit(
-    runtime_bridge: &crate::facade::RuntimeBridge,
-    commit_identity: crate::facade::TruthCommitIdentity,
-) -> Result<String, BridgeHarnessError> {
-    let route_identity = route_identity_for_commit(runtime_bridge, commit_identity)?;
-    Ok(writeback_route_digest_from_identity(&route_identity))
-}
-
 fn route_identity_for_commit(
     runtime_bridge: &crate::facade::RuntimeBridge,
     commit_identity: crate::facade::TruthCommitIdentity,
@@ -275,12 +267,6 @@ fn route_identity_for_commit(
             ))
         })?;
     Ok(result.result_summary().route_identity().clone())
-}
-
-fn writeback_route_digest_from_identity(
-    route_identity: &crate::facade::BridgeRouteIdentity,
-) -> String {
-    digest_string("bridge-writeback-route-digest", route_identity.as_str()).to_string()
 }
 
 #[derive(Clone, Copy)]
@@ -319,15 +305,13 @@ fn writeback_causality_basis(
     route_basis: impl Into<String>,
     evaluation_basis: impl Into<String>,
     truth_view_basis: impl Into<String>,
-) -> crate::facade::BridgeWritebackCausalityBasis {
-    crate::facade::BridgeWritebackCausalityBasis::from_evidence(
+) -> crate::facade::BridgeWritebackNativeCausalityInputs {
+    crate::facade::BridgeWritebackNativeCausalityInputs::new(
         crate::facade::BridgeWritebackCausalityIdentity::new(identity.into()),
-        crate::facade::BridgeWritebackCausalityEvidence::from_native_bases(
-            truth_trigger_basis.into(),
-            route_basis.into(),
-            evaluation_basis.into(),
-            truth_view_basis.into(),
-        ),
+        crate::facade::TruthCommitIdentity::new(truth_trigger_basis.into()),
+        crate::facade::BridgeRouteIdentity::new(route_basis.into()),
+        crate::facade::TruthSnapshotIdentity::new(evaluation_basis.into()),
+        crate::facade::TruthSnapshotIdentity::new(truth_view_basis.into()),
     )
 }
 
@@ -337,8 +321,8 @@ fn authority_denial_causality(
     identity: &'static str,
     commit_identity: crate::facade::TruthCommitIdentity,
     evidence_class: &str,
-) -> Result<crate::facade::BridgeWritebackCausalityBasis, BridgeHarnessError> {
-    let route_digest = route_digest_for_commit(runtime_bridge, commit_identity.clone())?;
+) -> Result<crate::facade::BridgeWritebackNativeCausalityInputs, BridgeHarnessError> {
+    let route_identity = route_identity_for_commit(runtime_bridge, commit_identity.clone())?;
     let truth_view_basis = fixture
         .snapshots()
         .first()
@@ -347,7 +331,7 @@ fn authority_denial_causality(
     Ok(writeback_causality_basis(
         identity,
         commit_identity.as_str(),
-        route_digest,
+        route_identity.as_str(),
         evidence_class,
         truth_view_basis,
     ))

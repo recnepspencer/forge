@@ -17,7 +17,7 @@ pub(crate) fn milestone_one_bridge_mapping_registrations() -> Vec<BridgeMappingR
             BridgeMappingRegistration::new(
                 BridgeMappingId::new(format!(":m2:{}", declaration.declaration_id)),
                 native_truth_patch_scope(aspect_key.clone(), declaration.truth_surface_kind),
-                SnapshotReadContract::scalar(aspect_key, ScalarAspectType::String),
+                native_snapshot_read_contract(declaration.truth_patch_field, aspect_key),
                 SignalInvalidationScope::new(declaration.target.bridge_scope()),
                 CoarseRoutingMode::Direct,
             )
@@ -36,7 +36,7 @@ pub(crate) fn milestone_one_bridge_aspect_registrations() -> Vec<BridgeAspectReg
                     declaration.declaration_id
                 )),
                 native_truth_patch_scope(aspect_key.clone(), declaration.truth_surface_kind),
-                SnapshotReadContract::scalar(aspect_key, ScalarAspectType::String),
+                native_snapshot_read_contract(declaration.truth_patch_field, aspect_key),
                 match declaration.truth_surface_kind {
                     DerivedTruthSurfaceKind::EntityField => TruthDeltaSurfaceKind::EntityField,
                     DerivedTruthSurfaceKind::EntityRelationEndpoint => {
@@ -54,6 +54,23 @@ fn native_aspect_key(aspect: &str) -> AspectKey {
     AspectKey::new(aspect).expect("worth schema declarations use native aspect keys")
 }
 
+fn native_snapshot_read_contract(aspect: &str, aspect_key: AspectKey) -> SnapshotReadContract {
+    SnapshotReadContract::scalar(aspect_key, native_scalar_type(aspect))
+}
+
+fn native_scalar_type(aspect: &str) -> ScalarAspectType {
+    match aspect {
+        "source"
+        | "target"
+        | "naming.source_identity"
+        | "naming.target_identity"
+        | "topology.ownership"
+        | "topology.boundary"
+        | "topology.radial" => ScalarAspectType::EntityRef,
+        _ => ScalarAspectType::String,
+    }
+}
+
 fn native_truth_patch_scope(
     aspect_key: AspectKey,
     truth_surface_kind: DerivedTruthSurfaceKind,
@@ -69,7 +86,7 @@ fn native_truth_patch_target_selector(
     truth_surface_kind: DerivedTruthSurfaceKind,
 ) -> TruthPatchTargetSelector {
     match truth_surface_kind {
-        DerivedTruthSurfaceKind::EntityField => TruthPatchTargetSelector::any(),
+        DerivedTruthSurfaceKind::EntityField => TruthPatchTargetSelector::region(),
         DerivedTruthSurfaceKind::EntityRelationEndpoint => {
             TruthPatchTargetSelector::relation_endpoint()
         }

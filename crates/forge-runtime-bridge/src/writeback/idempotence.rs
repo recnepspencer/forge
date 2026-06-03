@@ -31,7 +31,7 @@ impl BridgeWritebackAuthoritativeStateBasis {
 
     pub fn from_effect_intent_and_causality(
         effect_intent: &super::BridgeWritebackEffectIntent,
-        causality: &super::BridgeWritebackCausalityBasis,
+        causality: &super::BridgeWritebackNativeCausalityInputs,
     ) -> Self {
         Self::from_native_basis(format!(
             "bridge-writeback-authoritative-state-basis|effect-intent={}|effect-intent-basis={}|causality={}",

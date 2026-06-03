@@ -3,11 +3,84 @@ use std::sync::Arc;
 use sha2::{Digest, Sha256};
 
 use crate::identity::{BridgeIdentity, WritebackCausalityIdentityTag};
+use crate::input::envelope::TruthCommitIdentity;
+use crate::routing::BridgeRouteIdentity;
+use crate::snapshot::TruthSnapshotIdentity;
 
 pub type BridgeWritebackCausalityIdentity = BridgeIdentity<WritebackCausalityIdentityTag>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BridgeWritebackCausalityEvidence {
+pub struct BridgeWritebackNativeCausalityInputs {
+    causality_identity: BridgeWritebackCausalityIdentity,
+    truth_trigger_identity: TruthCommitIdentity,
+    route_identity: BridgeRouteIdentity,
+    evaluation_snapshot_identity: TruthSnapshotIdentity,
+    truth_view_snapshot_identity: TruthSnapshotIdentity,
+    causality_digest: Arc<str>,
+    truth_trigger_digest: Arc<str>,
+    route_digest: Arc<str>,
+    evaluation_surface_digest: Arc<str>,
+    truth_view_digest: Arc<str>,
+}
+
+impl BridgeWritebackNativeCausalityInputs {
+    pub fn new(
+        causality_identity: BridgeWritebackCausalityIdentity,
+        truth_trigger_identity: TruthCommitIdentity,
+        route_identity: BridgeRouteIdentity,
+        evaluation_snapshot_identity: TruthSnapshotIdentity,
+        truth_view_snapshot_identity: TruthSnapshotIdentity,
+    ) -> Self {
+        let basis = BridgeWritebackCausalityBasis::from_evidence(
+            causality_identity.clone(),
+            BridgeWritebackCausalityEvidence::from_native_bases(
+                truth_trigger_identity.as_str(),
+                route_identity.as_str(),
+                evaluation_snapshot_identity.as_str(),
+                truth_view_snapshot_identity.as_str(),
+            ),
+        );
+        Self {
+            causality_identity,
+            truth_trigger_identity,
+            route_identity,
+            evaluation_snapshot_identity,
+            truth_view_snapshot_identity,
+            causality_digest: Arc::from(basis.digest().to_owned()),
+            truth_trigger_digest: Arc::from(basis.truth_trigger_digest().to_owned()),
+            route_digest: Arc::from(basis.route_digest().to_owned()),
+            evaluation_surface_digest: Arc::from(basis.evaluation_surface_digest().to_owned()),
+            truth_view_digest: Arc::from(basis.truth_view_digest().to_owned()),
+        }
+    }
+
+    pub fn causality_identity(&self) -> &BridgeWritebackCausalityIdentity {
+        &self.causality_identity
+    }
+
+    pub fn digest(&self) -> &str {
+        self.causality_digest.as_ref()
+    }
+
+    pub fn truth_trigger_digest(&self) -> &str {
+        self.truth_trigger_digest.as_ref()
+    }
+
+    pub fn route_digest(&self) -> &str {
+        self.route_digest.as_ref()
+    }
+
+    pub fn evaluation_surface_digest(&self) -> &str {
+        self.evaluation_surface_digest.as_ref()
+    }
+
+    pub fn truth_view_digest(&self) -> &str {
+        self.truth_view_digest.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct BridgeWritebackCausalityEvidence {
     truth_trigger_basis: Arc<str>,
     route_basis: Arc<str>,
     evaluation_basis: Arc<str>,
@@ -15,7 +88,7 @@ pub struct BridgeWritebackCausalityEvidence {
 }
 
 impl BridgeWritebackCausalityEvidence {
-    pub fn from_native_bases(
+    pub(crate) fn from_native_bases(
         truth_trigger_basis: impl Into<Arc<str>>,
         route_basis: impl Into<Arc<str>>,
         evaluation_basis: impl Into<Arc<str>>,
@@ -58,7 +131,7 @@ pub struct BridgeWritebackCausalityBasis {
 }
 
 impl BridgeWritebackCausalityBasis {
-    pub fn from_evidence(
+    pub(crate) fn from_evidence(
         causality_identity: BridgeWritebackCausalityIdentity,
         evidence: BridgeWritebackCausalityEvidence,
     ) -> Self {

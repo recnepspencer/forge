@@ -2,7 +2,7 @@ use super::super::*;
 
 pub(in crate::harness::adapter::adapter_impl::writeback::feedback_loop_certification) struct FeedbackReplayContextProof
 {
-    pub replayed_causality: crate::facade::BridgeWritebackCausalityBasis,
+    pub replayed_causality: crate::facade::BridgeWritebackNativeCausalityInputs,
     pub replayed_feedback_provenance: crate::facade::BridgeWritebackFeedbackProvenance,
 }
 
@@ -64,7 +64,7 @@ pub(in crate::harness::adapter::adapter_impl::writeback::feedback_loop_certifica
     runtime_bridge: &crate::facade::RuntimeBridge,
     contract: &crate::facade::AdmittedBridgeWritebackContract,
     lowered_policy_bundle: &crate::facade::LoweredBridgeExecutionPolicy,
-    replayed_causality: &crate::facade::BridgeWritebackCausalityBasis,
+    replayed_causality: &crate::facade::BridgeWritebackNativeCausalityInputs,
     effect: &crate::writeback::BridgeDerivedWritebackEffect,
     carried_feedback_context: &crate::facade::BridgeWritebackFeedbackContext,
 ) -> ChangedEffectFeedbackDenialProof {

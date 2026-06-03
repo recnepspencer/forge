@@ -171,6 +171,10 @@ pub(super) fn snapshot_aspect_value_for_relation_aspect(
         Some(entity_identity_value(record.source))
     } else if aspect_label == "topology.target_identity" {
         Some(entity_identity_value(record.target))
+    } else if aspect_label == "naming.source_identity" {
+        Some(entity_identity_value(record.source))
+    } else if aspect_label == "naming.target_identity" {
+        Some(entity_identity_value(record.target))
     } else {
         return None;
     }

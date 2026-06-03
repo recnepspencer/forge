@@ -1,9 +1,9 @@
 use crate::adapter::{TruthWritebackReceipt, TruthWritebackRequest};
 use crate::facade::{
-    BridgeRouteIdentity, BridgeWritebackAuthorityOutcome, BridgeWritebackCausalityBasis,
-    BridgeWritebackError, BridgeWritebackFeedbackContext, BridgeWritebackFeedbackProvenance,
+    BridgeRouteIdentity, BridgeWritebackAuthorityOutcome, BridgeWritebackError,
+    BridgeWritebackFeedbackContext, BridgeWritebackFeedbackProvenance,
     BridgeWritebackIdempotenceBasis, BridgeWritebackLoopPreventionReport,
-    BridgeWritebackReplayBundle, TruthCommitIdentity,
+    BridgeWritebackNativeCausalityInputs, BridgeWritebackReplayBundle, TruthCommitIdentity,
 };
 use crate::writeback::{
     AdmittedBridgeWritebackContract, BridgeDerivedWritebackEffect,
@@ -17,7 +17,7 @@ mod terminal_projection_access;
 pub(in crate::harness::adapter::adapter_impl) struct WritebackFeedbackLoopMatrixEvidence<'a> {
     pub contract: &'a AdmittedBridgeWritebackContract,
     pub effect: &'a BridgeDerivedWritebackEffect,
-    pub original_causality: &'a BridgeWritebackCausalityBasis,
+    pub original_causality: &'a BridgeWritebackNativeCausalityInputs,
     pub replayed_bundle: &'a BridgeWritebackReplayBundle,
     pub initial_outcome: &'a BridgeWritebackAuthorityOutcome,
     pub initial_idempotence: &'a BridgeWritebackIdempotenceBasis,
@@ -49,7 +49,7 @@ pub(in crate::harness::adapter::adapter_impl) struct WritebackFeedbackLoopMatrix
 
 pub(in crate::harness::adapter::adapter_impl) struct WritebackFeedbackLoopMatrix {
     effect: BridgeDerivedWritebackEffect,
-    causality: BridgeWritebackCausalityBasis,
+    causality: BridgeWritebackNativeCausalityInputs,
     initial_outcome: BridgeWritebackAuthorityOutcome,
     replay_bundle_report: FeedbackReplayBundleReport,
     idempotence_report: FeedbackIdempotenceReport,
@@ -216,7 +216,7 @@ impl WritebackFeedbackLoopMatrix {
 
     pub(in crate::harness::adapter::adapter_impl) fn causality(
         &self,
-    ) -> &BridgeWritebackCausalityBasis {
+    ) -> &BridgeWritebackNativeCausalityInputs {
         &self.causality
     }
 

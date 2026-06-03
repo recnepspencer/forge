@@ -34,7 +34,7 @@ impl RuntimeBridge {
     pub fn lower_writeback_effect(
         &self,
         contract: &AdmittedBridgeWritebackContract,
-        causality: &BridgeWritebackCausalityBasis,
+        causality: &BridgeWritebackNativeCausalityInputs,
         effect_identity: BridgeWritebackEffectIdentity,
         effect_intent: BridgeWritebackEffectIntent,
     ) -> BridgeDerivedWritebackEffect {
@@ -46,7 +46,7 @@ impl RuntimeBridge {
     pub fn lower_writeback_mapper_envelope(
         &self,
         contract: &AdmittedBridgeWritebackContract,
-        causality: &BridgeWritebackCausalityBasis,
+        causality: &BridgeWritebackNativeCausalityInputs,
         effect_intent: BridgeWritebackEffectIntent,
     ) -> BridgeWritebackMapperEnvelope {
         let envelope = BridgeWritebackMapperEnvelope::new(contract, causality, effect_intent);
@@ -59,7 +59,7 @@ impl RuntimeBridge {
     pub fn map_writeback_family_input(
         &self,
         contract: &AdmittedBridgeWritebackContract,
-        causality: &BridgeWritebackCausalityBasis,
+        causality: &BridgeWritebackNativeCausalityInputs,
         effect_intent: BridgeWritebackEffectIntent,
     ) -> BridgeMappedWritebackFamilyInput {
         let envelope = self.lower_writeback_mapper_envelope(contract, causality, effect_intent);
