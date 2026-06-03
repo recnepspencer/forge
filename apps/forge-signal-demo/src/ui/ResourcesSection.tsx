@@ -365,8 +365,8 @@ export function ResourcesSection({ onNavigate }: ResourcesSectionProps) {
           <button className="resources-control-button resources-control-button-ghost" onClick={() => void runBoth("reset", "idle")} type="button">
             Reset both
           </button>
-          <button className="resources-control-button resources-control-button-ghost" onClick={() => onNavigate("/demo/2")} type="button">
-            Open live demos
+          <button className="resources-control-button resources-control-button-ghost" onClick={() => onNavigate("#/demos")} type="button">
+            Open demo ladder
           </button>
         </div>
       </div>

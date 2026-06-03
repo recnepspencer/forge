@@ -26,11 +26,11 @@ export default defineConfig({
     alias: [
       {
         find: "forge-signal-wasm/react",
-        replacement: path.resolve(__dirname, "../../crates/forge-signal-wasm/pkg/react/index.js"),
+        replacement: path.resolve(__dirname, "../../crates/forge-signal-wasm/react/index.ts"),
       },
       {
         find: "forge-signal-wasm",
-        replacement: path.resolve(__dirname, "../../crates/forge-signal-wasm/pkg/index.js"),
+        replacement: path.resolve(__dirname, "./src/runtime/forgeSignalWasmBridge.ts"),
       },
       {
         find: "@forge/signal/wasm",
