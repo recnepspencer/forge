@@ -1,18 +1,26 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
+use forge_foundational::facade::{
+    AspectKey, AspectLocator, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
+    ScalarAspectType,
+};
 use forge_runtime_bridge::facade::{
-    AdmittedBridgeSubscription, BridgeAspectRegistration, BridgeAspectRegistrationId,
-    BridgeContinuityAuthorityBasis, BridgeDeliveredContinuityResult, BridgeDeliveryReceipt,
-    BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest, BridgeLineageContext,
-    BridgeLineageSourceError, BridgeMappingId, BridgeMappingRegistration, BridgeProducerMetadata,
+    AdmittedBridgeSubscription, AspectKeySelector, BridgeAspectRegistration,
+    BridgeAspectRegistrationId, BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity,
+    BridgeCommittedPatchItem, BridgeCommittedPatchTarget, BridgeContinuityAuthorityBasis,
+    BridgeDeliveredContinuityResult, BridgeDeliveryReceipt, BridgeHistoricalLineageAuthority,
+    BridgeHistoricalLineageRequest, BridgeHistoricalResolvedLineageIdentity,
+    BridgeHistoricalResolvedRecordIdentity, BridgeLineageContext, BridgeLineageSourceError,
+    BridgeMappingId, BridgeMappingRegistration, BridgeProducerMetadata,
     BridgeSignalInvalidationDelivery, CoarseRoutingMode, CommittedPatchSource,
     ContinuityLineageSource, InvalidationSink, MappingSelector, NormalizedSubscriptionSliceIntent,
-    RawCommittedPatchEnvelope, RelationalBridgeSourceError, RuntimeBridge, RuntimeBridgeBuilder,
-    SignalBridgeSinkError, SignalInvalidationScope, SliceFallbackPolicy, SnapshotReadPacket,
+    RelationalBridgeSourceError, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SliceWideningPolicy, SnapshotReadContract, SnapshotReadPacket,
     SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource, SubscriptionSliceKind,
     TruthBranchHeadSource, TruthBranchIdentity, TruthCommitIdentity, TruthDeltaSurfaceKind,
-    TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
+    TruthPatchIdentity, TruthPatchScope, TruthPatchTargetSelector, TruthSnapshotIdentity,
+    TruthSnapshotReader,
 };
 
 pub(crate) const PHASE_SIX_MAIN_BRANCH: &str = "main";
@@ -21,7 +29,7 @@ const SNAPSHOT_A: &str = "snapshot-a";
 
 #[derive(Debug, Clone, Default)]
 struct TestRelationalState {
-    committed_patches: BTreeMap<String, RawCommittedPatchEnvelope>,
+    committed_patches: BTreeMap<String, BridgeCommittedPatchEnvelope>,
     branch_heads: BTreeMap<String, String>,
     snapshots: BTreeMap<String, Vec<SnapshotReadRecord>>,
 }
@@ -32,7 +40,7 @@ struct TestRelationalSource {
 }
 
 impl TestRelationalSource {
-    fn insert_committed_patch(&self, patch: RawCommittedPatchEnvelope) {
+    fn insert_committed_patch(&self, patch: BridgeCommittedPatchEnvelope) {
         let mut state = self
             .state
             .write()
@@ -59,12 +67,12 @@ impl CommittedPatchSource for TestRelationalSource {
     fn load_committed_patch(
         &self,
         request: forge_runtime_bridge::facade::RelationalCommittedPatchRequest,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         self.state
             .read()
             .expect("fixture bridge source lock poisoned")
             .committed_patches
-            .get(request.commit_identity())
+            .get(request.commit_identity().as_str())
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
@@ -104,7 +112,7 @@ impl TruthBranchHeadSource for TestRelationalSource {
     fn load_branch_head_patch(
         &self,
         branch_identity: &TruthBranchIdentity,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         let state = self
             .state
             .read()
@@ -148,15 +156,16 @@ impl TruthSnapshotReader for TestSnapshotReader {
         request: &SnapshotReadPacket,
     ) -> Result<SnapshotReadPacketResult, forge_runtime_bridge::facade::BridgeSnapshotReadError>
     {
-        let lookup = self
+        let fixture_value = self
             .records
-            .iter()
-            .map(|record| (record.request_key().to_string(), record.clone()))
-            .collect::<BTreeMap<_, _>>();
+            .first()
+            .and_then(SnapshotReadRecord::scalar_aspect_value)
+            .cloned()
+            .unwrap_or_else(|| AspectValue::String("unknown".into()));
         let records = request
             .reads()
             .iter()
-            .filter_map(|read| lookup.get(read.request_key()).cloned())
+            .map(|read| SnapshotReadRecord::for_request(read, fixture_value.clone()))
             .collect::<Vec<_>>();
         Ok(SnapshotReadPacketResult::new(
             self.snapshot_identity.clone(),
@@ -190,8 +199,10 @@ impl ContinuityLineageSource for FixedLineageSource {
     ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError> {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            vec![Arc::from("lineage:successor")],
-            vec![Arc::from("entity:0:4:2")],
+            vec![BridgeHistoricalResolvedLineageIdentity::new(
+                "lineage:successor",
+            )],
+            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
             vec![1],
         )
     }
@@ -213,10 +224,10 @@ pub(crate) fn detail_subscription(runtime: &RuntimeBridge) -> AdmittedBridgeSubs
     let declaration = runtime
         .declare_subscription(
             forge_runtime_bridge::facade::BridgeSubscriptionDeclarationFamilyKind::DetailExact,
-            vec![NormalizedSubscriptionSliceIntent::try_new(
+            vec![NormalizedSubscriptionSliceIntent::try_new_entity_field(
                 "entity-1",
-                "profile",
-                "name",
+                aspect_key("profile"),
+                field_key("name"),
                 SubscriptionSliceKind::SignalField,
             )
             .expect("detail slice intent should validate")],
@@ -236,7 +247,9 @@ pub(crate) fn detail_subscription(runtime: &RuntimeBridge) -> AdmittedBridgeSubs
 pub(crate) fn delivered_continuity(runtime: &RuntimeBridge) -> BridgeDeliveredContinuityResult {
     let route = runtime
         .plan_committed_patch_with_mapping_context(
-            forge_runtime_bridge::facade::BridgeRouteRequest::for_commit(COMMIT_A),
+            forge_runtime_bridge::facade::BridgeRouteRequest::for_commit(TruthCommitIdentity::new(
+                COMMIT_A,
+            )),
             forge_runtime_bridge::facade::BridgeMappingContext::default().with_lineage_context(
                 BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
                     TruthBranchIdentity::new(PHASE_SIX_MAIN_BRANCH),
@@ -262,9 +275,10 @@ fn registration() -> BridgeMappingRegistration {
         BridgeMappingId::new("profile-name"),
         TruthPatchScope::new(
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            AspectKeySelector::exact(aspect_key("profile")),
+            TruthPatchTargetSelector::entity_field(field_key("name")),
         ),
+        SnapshotReadContract::scalar(aspect_key("profile"), ScalarAspectType::String),
         SignalInvalidationScope::new("signal.profile"),
         CoarseRoutingMode::Direct,
     )
@@ -275,12 +289,13 @@ fn field_aspect_registration() -> BridgeAspectRegistration {
         BridgeAspectRegistrationId::new("profile-name-field"),
         TruthPatchScope::new(
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            AspectKeySelector::exact(aspect_key("profile")),
+            TruthPatchTargetSelector::entity_field(field_key("name")),
         ),
+        SnapshotReadContract::scalar(aspect_key("profile"), ScalarAspectType::String),
         TruthDeltaSurfaceKind::EntityField,
         SubscriptionSliceKind::SignalField,
-        SliceFallbackPolicy::Disallow,
+        SliceWideningPolicy::Disallow,
     )
 }
 
@@ -334,22 +349,41 @@ fn committed_patch(
     commit: &str,
     snapshot: &str,
     surface: &str,
-) -> RawCommittedPatchEnvelope {
-    RawCommittedPatchEnvelope::new_with_metadata(
-        BridgeProducerMetadata::bridge_harness_fixture(),
-        TruthCommitIdentity::new(commit),
-        TruthPatchIdentity::new(format!("patch-{commit}")),
-        TruthSnapshotIdentity::new(snapshot),
-        TruthBranchIdentity::new(branch),
-        vec![forge_runtime_bridge::facade::BridgeCommittedPatchItem::new(
+) -> BridgeCommittedPatchEnvelope {
+    BridgeCommittedPatchEnvelope::new(
+        BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
+            BridgeProducerMetadata::bridge_harness_fixture(),
+            TruthCommitIdentity::new(commit),
+            TruthPatchIdentity::new(format!("patch-{commit}")),
+            TruthSnapshotIdentity::new(snapshot),
+            TruthBranchIdentity::new(branch),
+        ),
+        vec![BridgeCommittedPatchItem::with_target(
             "user",
-            forge_foundational::facade::AspectKey::new("profile")
-                .expect("valid bridge patch aspect key"),
-            surface,
+            BridgeCommittedPatchTarget::entity_field_path(
+                AspectLocator::new(LocatorAuthority::Authoritative, aspect_key("profile")),
+                CanonicalFieldPath::single(field_key(surface)),
+            ),
         )],
     )
+    .expect("readmission fixture committed patch envelope should construct")
 }
 
-fn snapshot_records(key: &str, value: &str) -> Vec<SnapshotReadRecord> {
-    vec![SnapshotReadRecord::new(key, value.as_bytes().to_vec())]
+fn snapshot_records(_key: &str, value: &str) -> Vec<SnapshotReadRecord> {
+    let read = forge_runtime_bridge::facade::SnapshotReadRequest::for_coarse(
+        "user",
+        SnapshotReadContract::scalar(aspect_key("profile"), ScalarAspectType::String),
+    );
+    vec![SnapshotReadRecord::for_request(
+        &read,
+        AspectValue::String(value.into()),
+    )]
+}
+
+fn aspect_key(value: &str) -> AspectKey {
+    AspectKey::new(value).expect("valid phase-six bridge aspect key")
+}
+
+fn field_key(value: &str) -> FieldKey {
+    FieldKey::new(value.to_owned()).expect("valid phase-six bridge field key")
 }

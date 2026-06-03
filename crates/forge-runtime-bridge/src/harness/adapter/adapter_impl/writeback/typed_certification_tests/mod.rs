@@ -1,0 +1,114 @@
+mod duplicate_authority;
+mod family_extension;
+mod feedback_loop;
+mod mapper_parity;
+mod other_certifications;
+mod replay_loop;
+
+use forge_harness::facade::{ExecutionProfile, HarnessAdapter, ScenarioPlan};
+
+use crate::facade::{
+    BridgeCommittedPatchEnvelope, BridgeMappingId, BridgeMappingRegistration,
+    BridgeProducerMetadata, BridgeRuntimePolicy, MappingSelector, SignalInvalidationScope,
+    SnapshotReadRecord, SnapshotReadRequest, TruthBranchIdentity, TruthPatchIdentity,
+    TruthPatchScope, TruthSnapshotIdentity,
+};
+use crate::harness::adapter::BridgeHarnessAdapter;
+use crate::harness::fixtures::{BridgeHarnessFixture, SnapshotFixture};
+
+use super::*;
+
+fn certified_execution(target: WritebackHarnessTarget) -> WritebackHarnessExecution {
+    let adapter = BridgeHarnessAdapter;
+    let fixture = writeback_fixture("typed-writeback-certification");
+    let mut runtime = adapter
+        .create_runtime()
+        .expect("writeback typed certification runtime");
+    adapter
+        .prepare_runtime(&mut runtime, &ExecutionProfile::development("typed-host"))
+        .expect("writeback typed certification prepare");
+    adapter
+        .load_fixture(&mut runtime, &fixture)
+        .expect("writeback typed certification fixture");
+    let runtime_bridge = runtime
+        .runtime
+        .as_ref()
+        .expect("writeback typed certification bridge");
+    execute_writeback_request(&runtime, runtime_bridge, &fixture.fixture, target)
+        .expect("writeback typed certification execution")
+}
+
+fn writeback_fixture(name: &str) -> forge_harness::facade::ScenarioFixture<BridgeHarnessFixture> {
+    ScenarioPlan::new(
+        name,
+        BridgeHarnessFixture::new(vec![registration()])
+            .with_policy(BridgeRuntimePolicy::development())
+            .with_committed_patch(committed_patch())
+            .with_snapshot(snapshot()),
+    )
+    .declare_input("writeback")
+    .declare_observation("writeback")
+    .compile()
+}
+
+fn registration() -> BridgeMappingRegistration {
+    BridgeMappingRegistration::new(
+        BridgeMappingId::new("typed-profile-name"),
+        TruthPatchScope::for_entity_field(
+            MappingSelector::exact("user"),
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::FieldKey::new("name".to_owned())
+                .expect("valid native field key"),
+        ),
+        crate::snapshot::SnapshotReadContract::scalar(
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::ScalarAspectType::String,
+        ),
+        SignalInvalidationScope::new("signal.profile.typed"),
+        crate::facade::CoarseRoutingMode::Direct,
+    )
+}
+
+fn committed_patch() -> BridgeCommittedPatchEnvelope {
+    BridgeCommittedPatchEnvelope::new(
+        crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
+            BridgeProducerMetadata::bridge_harness_fixture(),
+            crate::facade::TruthCommitIdentity::new("commit-a"),
+            TruthPatchIdentity::new("patch-a"),
+            TruthSnapshotIdentity::new("snapshot-a"),
+            TruthBranchIdentity::new("main"),
+        ),
+        vec![crate::facade::BridgeCommittedPatchItem::with_target(
+            "user",
+            crate::facade::BridgeCommittedPatchTarget::entity_field_path(
+                forge_foundational::facade::AspectLocator::new(
+                    forge_foundational::facade::LocatorAuthority::Authoritative,
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid typed certification aspect key"),
+                ),
+                forge_foundational::facade::CanonicalFieldPath::single(
+                    forge_foundational::facade::FieldKey::new("name".to_owned())
+                        .expect("valid foundational field key"),
+                ),
+            ),
+        )],
+    )
+    .expect("typed certification committed patch")
+}
+
+fn snapshot() -> SnapshotFixture {
+    SnapshotFixture::new(
+        TruthSnapshotIdentity::new("snapshot-a"),
+        vec![SnapshotReadRecord::for_request(
+            &SnapshotReadRequest::for_coarse(
+                "user",
+                crate::snapshot::SnapshotReadContract::scalar(
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid writeback snapshot aspect key"),
+                    forge_foundational::facade::ScalarAspectType::String,
+                ),
+            ),
+            forge_foundational::facade::AspectValue::String("alice".into()),
+        )],
+    )
+}

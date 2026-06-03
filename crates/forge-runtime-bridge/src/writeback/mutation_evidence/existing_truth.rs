@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::digest::aggregate_digest;
+use super::digest::existing_truth_binding_digest;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeExistingTruthBindingFamily {
@@ -59,23 +59,20 @@ impl BridgeExistingTruthBindingBundle {
         let authoritative_identity: Arc<str> = authoritative_identity.into();
         let resolved_target_identity: Arc<str> = resolved_target_identity.into();
         let target_collection = target_collection.map(|value| Arc::from(value.to_owned()));
-        let target_collection_label: &str = match target_collection.as_ref() {
+        let target_collection_basis: &str = match target_collection.as_ref() {
             Some(value) => value,
             None => "none",
         };
-        let binding_digest = aggregate_digest(
-            "bridge-existing-truth-binding",
-            [
-                format!("family:{family:?}"),
-                format!(
-                    "outcome:{:?}",
-                    BridgeExistingTruthBindingOutcome::ExistingAuthoritativeTarget
-                ),
-                format!("authoritative:{}", authoritative_identity.as_ref()),
-                format!("resolved:{}", resolved_target_identity.as_ref()),
-                format!("collection:{target_collection_label}"),
-            ],
-        );
+        let binding_digest = existing_truth_binding_digest([
+            format!("family:{family:?}"),
+            format!(
+                "outcome:{:?}",
+                BridgeExistingTruthBindingOutcome::ExistingAuthoritativeTarget
+            ),
+            format!("authoritative:{}", authoritative_identity.as_ref()),
+            format!("resolved:{}", resolved_target_identity.as_ref()),
+            format!("collection:{target_collection_basis}"),
+        ]);
         Self {
             family,
             outcome: BridgeExistingTruthBindingOutcome::ExistingAuthoritativeTarget,

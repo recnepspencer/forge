@@ -1,64 +1,142 @@
 use super::{
     BridgeSubscriptionCertificationAssemblyPlan, BridgeSubscriptionCertificationBundleDraft,
     BridgeSubscriptionCertificationBundleSealed, BridgeSubscriptionCertificationCostProfile,
-    BridgeSubscriptionCertificationDensityPosture, BridgeSubscriptionCertificationScratch,
-    BridgeSubscriptionReferenceWorkloadManifestDraft,
-    BridgeSubscriptionReferenceWorkloadManifestSealed, BridgeSubscriptionSourceArtifactIndex,
+    BridgeSubscriptionCertificationDensityPosture, BridgeSubscriptionCertificationFieldExpectation,
+    BridgeSubscriptionCertificationScratch, BridgeSubscriptionReferenceWorkloadComponentIdSet,
+    BridgeSubscriptionReferenceWorkloadLaneIdSet, BridgeSubscriptionReferenceWorkloadManifestDraft,
+    BridgeSubscriptionReferenceWorkloadManifestSealed,
+    BridgeSubscriptionReferenceWorkloadProductIdSet, BridgeSubscriptionSourceArtifactIndex,
     BridgeSubscriptionSourceArtifactInput, BridgeSubscriptionSourceArtifactKind,
+    BridgeSubscriptionSourceArtifactRole, BridgeSubscriptionSourceArtifactScenario,
 };
 
-#[derive(Debug, Clone)]
-pub(crate) struct BridgeSubscriptionCertificationReportBundleInput {
-    pub(crate) declaration_digest: &'static str,
-    pub(crate) basis_digest: &'static str,
-    pub(crate) lifecycle_digest: &'static str,
-    pub(crate) active_delivery_digest: &'static str,
-    pub(crate) fanout_digest: &'static str,
-    pub(crate) checkpoint_digest: &'static str,
-    pub(crate) replay_digest: &'static str,
-    pub(crate) continuation_digest: &'static str,
-    pub(crate) preview_digest: &'static str,
-    pub(crate) strategy_digest: &'static str,
-    pub(crate) failure_digest: Option<&'static str>,
-    pub(crate) rich_diagnostics: bool,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum BridgeSubscriptionCertificationReportBundleScenario {
+    StableAdmitted,
+    LatestUnretainedBasis,
+    DivergentFanout,
+    DeniedContinuation,
+    CollectionMembershipStrategyLowering,
+    BundleInsufficiency,
 }
 
-impl BridgeSubscriptionCertificationReportBundleInput {
-    pub(crate) const fn stable() -> Self {
+impl BridgeSubscriptionCertificationReportBundleScenario {
+    const fn source_artifact_roles(self) -> BridgeSubscriptionCertificationReportArtifactRoles {
+        match self {
+            Self::StableAdmitted => BridgeSubscriptionCertificationReportArtifactRoles::stable(),
+            Self::LatestUnretainedBasis => {
+                BridgeSubscriptionCertificationReportArtifactRoles::latest_unretained_basis()
+            }
+            Self::DivergentFanout => {
+                BridgeSubscriptionCertificationReportArtifactRoles::divergent_fanout()
+            }
+            Self::DeniedContinuation => {
+                BridgeSubscriptionCertificationReportArtifactRoles::denied_continuation()
+            }
+            Self::CollectionMembershipStrategyLowering => {
+                BridgeSubscriptionCertificationReportArtifactRoles::collection_membership_strategy_lowering()
+            }
+            Self::BundleInsufficiency => BridgeSubscriptionCertificationReportArtifactRoles::stable(),
+        }
+    }
+
+    const fn field_expectation(self) -> BridgeSubscriptionCertificationFieldExpectation {
+        match self {
+            Self::BundleInsufficiency => {
+                BridgeSubscriptionCertificationFieldExpectation::RetainedArtifactCompletenessRequirement
+            }
+            Self::StableAdmitted
+            | Self::LatestUnretainedBasis
+            | Self::DivergentFanout
+            | Self::DeniedContinuation
+            | Self::CollectionMembershipStrategyLowering => {
+                BridgeSubscriptionCertificationFieldExpectation::CompleteReferenceBundle
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct BridgeSubscriptionCertificationReportArtifactRoles {
+    declaration_role: BridgeSubscriptionSourceArtifactRole,
+    basis_role: BridgeSubscriptionSourceArtifactRole,
+    lifecycle_role: BridgeSubscriptionSourceArtifactRole,
+    active_delivery_role: BridgeSubscriptionSourceArtifactRole,
+    fanout_role: BridgeSubscriptionSourceArtifactRole,
+    checkpoint_role: BridgeSubscriptionSourceArtifactRole,
+    replay_role: BridgeSubscriptionSourceArtifactRole,
+    continuation_role: BridgeSubscriptionSourceArtifactRole,
+    preview_role: BridgeSubscriptionSourceArtifactRole,
+    strategy_role: BridgeSubscriptionSourceArtifactRole,
+    failure_role: Option<BridgeSubscriptionSourceArtifactRole>,
+    rich_diagnostics: bool,
+}
+
+impl BridgeSubscriptionCertificationReportArtifactRoles {
+    const fn stable() -> Self {
         Self {
-            declaration_digest: "report-declaration-digest-stable",
-            basis_digest: "report-basis-digest-stable",
-            lifecycle_digest: "report-lifecycle-digest-stable",
-            active_delivery_digest: "report-active-delivery-digest-stable",
-            fanout_digest: "report-fanout-digest-stable",
-            checkpoint_digest: "report-checkpoint-digest-stable",
-            replay_digest: "report-replay-digest-stable",
-            continuation_digest: "report-continuation-digest-stable",
-            preview_digest: "report-preview-digest-stable",
-            strategy_digest: "report-strategy-digest-stable",
-            failure_digest: None,
+            declaration_role: BridgeSubscriptionSourceArtifactRole::Stable,
+            basis_role: BridgeSubscriptionSourceArtifactRole::Stable,
+            lifecycle_role: BridgeSubscriptionSourceArtifactRole::Stable,
+            active_delivery_role: BridgeSubscriptionSourceArtifactRole::Stable,
+            fanout_role: BridgeSubscriptionSourceArtifactRole::Stable,
+            checkpoint_role: BridgeSubscriptionSourceArtifactRole::Stable,
+            replay_role: BridgeSubscriptionSourceArtifactRole::Stable,
+            continuation_role: BridgeSubscriptionSourceArtifactRole::Stable,
+            preview_role: BridgeSubscriptionSourceArtifactRole::Stable,
+            strategy_role: BridgeSubscriptionSourceArtifactRole::Stable,
+            failure_role: None,
             rich_diagnostics: false,
+        }
+    }
+
+    const fn latest_unretained_basis() -> Self {
+        Self {
+            basis_role: BridgeSubscriptionSourceArtifactRole::Divergent,
+            ..Self::stable()
+        }
+    }
+
+    const fn divergent_fanout() -> Self {
+        Self {
+            fanout_role: BridgeSubscriptionSourceArtifactRole::DivergentFanout,
+            ..Self::stable()
+        }
+    }
+
+    const fn denied_continuation() -> Self {
+        Self {
+            continuation_role: BridgeSubscriptionSourceArtifactRole::DeniedContinuation,
+            ..Self::stable()
+        }
+    }
+
+    const fn collection_membership_strategy_lowering() -> Self {
+        Self {
+            strategy_role: BridgeSubscriptionSourceArtifactRole::CollectionMembershipIndex,
+            ..Self::stable()
         }
     }
 }
 
 pub(crate) fn reference_manifest() -> BridgeSubscriptionReferenceWorkloadManifestSealed {
     BridgeSubscriptionReferenceWorkloadManifestDraft::new(
-        (0..128)
-            .map(|slot| format!("product-{slot:03}"))
-            .collect::<Vec<_>>(),
-        ["steel", "rubber", "copper", "glass", "labor"].to_vec(),
-        [
+        BridgeSubscriptionReferenceWorkloadProductIdSet::from_declared_product_labels(
+            (0..128).map(|slot| format!("product-{slot:03}")),
+        ),
+        BridgeSubscriptionReferenceWorkloadComponentIdSet::from_declared_component_labels([
+            "steel", "rubber", "copper", "glass", "labor",
+        ]),
+        BridgeSubscriptionReferenceWorkloadLaneIdSet::from_declared_lane_labels([
             "authoritative-live",
             "historical-replay",
             "branch-local",
             "shared-fanout",
-            "incompatible-sharing-rejection",
+            "divergent-sharing-rejection",
             "denied-continuation",
             "bundle-insufficiency",
             "strategy-lowering-provenance",
-        ]
-        .to_vec(),
+        ]),
     )
     .seal()
     .expect("certification report fixture manifest should seal")
@@ -66,89 +144,94 @@ pub(crate) fn reference_manifest() -> BridgeSubscriptionReferenceWorkloadManifes
 
 pub(crate) fn assemble_reference_bundle(
     manifest: &BridgeSubscriptionReferenceWorkloadManifestSealed,
-    input: BridgeSubscriptionCertificationReportBundleInput,
+    scenario: BridgeSubscriptionCertificationReportBundleScenario,
 ) -> BridgeSubscriptionCertificationBundleSealed {
+    let artifact_roles = scenario.source_artifact_roles();
     let mut inputs = vec![
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::LaneIdentity,
-            "report-lane",
-            "report-lane-digest-stable",
+            BridgeSubscriptionSourceArtifactRole::Stable,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::Declaration,
-            "report-declaration",
-            input.declaration_digest,
+            artifact_roles.declaration_role,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::BasisBinding,
-            "report-basis",
-            input.basis_digest,
+            artifact_roles.basis_role,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::Lifecycle,
-            "report-lifecycle",
-            input.lifecycle_digest,
+            artifact_roles.lifecycle_role,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::AdmittedSubscription,
-            "report-admitted-subscription",
-            "report-admitted-digest-stable",
+            BridgeSubscriptionSourceArtifactRole::Stable,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::ActiveDelivery,
-            "report-active-delivery",
-            input.active_delivery_digest,
+            artifact_roles.active_delivery_role,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::Fanout,
-            "report-fanout",
-            input.fanout_digest,
+            artifact_roles.fanout_role,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::Checkpoint,
-            "report-checkpoint",
-            input.checkpoint_digest,
+            artifact_roles.checkpoint_role,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::RetainedReplay,
-            "report-replay",
-            input.replay_digest,
+            artifact_roles.replay_role,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::Continuation,
-            "report-continuation",
-            input.continuation_digest,
+            artifact_roles.continuation_role,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::Preview,
-            "report-preview",
-            input.preview_digest,
+            artifact_roles.preview_role,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::StrategyLowering,
-            "report-strategy",
-            input.strategy_digest,
+            artifact_roles.strategy_role,
         ),
     ];
-    if let Some(failure_digest) = input.failure_digest {
-        inputs.push(BridgeSubscriptionSourceArtifactInput::new(
+    if let Some(failure_role) = artifact_roles.failure_role {
+        inputs.push(source_artifact(
             BridgeSubscriptionSourceArtifactKind::Failure,
-            "report-failure",
-            failure_digest,
+            failure_role,
         ));
     }
     let index = BridgeSubscriptionSourceArtifactIndex::build(inputs);
-    let plan = BridgeSubscriptionCertificationAssemblyPlan::plan(manifest, &index);
+    let plan = BridgeSubscriptionCertificationAssemblyPlan::plan_with_field_expectation(
+        manifest,
+        &index,
+        scenario.field_expectation(),
+    );
     let cost_profile = BridgeSubscriptionCertificationCostProfile::admit(
         BridgeSubscriptionCertificationDensityPosture::SparseCertificationWindow,
         16,
         16,
         32,
-        input.rich_diagnostics,
+        artifact_roles.rich_diagnostics,
     )
     .expect("certification report sparse cost profile should admit");
     let scratch = BridgeSubscriptionCertificationScratch::prepare(&cost_profile);
     BridgeSubscriptionCertificationBundleDraft::assemble(plan, cost_profile, scratch)
         .expect("certification report bundle should assemble")
         .seal()
+}
+
+fn source_artifact(
+    artifact_kind: BridgeSubscriptionSourceArtifactKind,
+    role: BridgeSubscriptionSourceArtifactRole,
+) -> BridgeSubscriptionSourceArtifactInput {
+    BridgeSubscriptionSourceArtifactInput::from_evidence(
+        super::BridgeSubscriptionSourceArtifactEvidence::scenario(
+            artifact_kind,
+            BridgeSubscriptionSourceArtifactScenario::CertificationReport,
+            role,
+        ),
+    )
 }

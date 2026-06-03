@@ -1,4 +1,4 @@
-﻿use crate::mapping::SubscriptionSliceKind;
+use crate::mapping::SubscriptionSliceKind;
 
 use super::super::{
     BridgeSubscriptionDeclaration, BridgeSubscriptionDeliveryIntentClass,
@@ -19,10 +19,12 @@ fn same_inputs_produce_identical_declaration_digest() {
     let left = BridgeSubscriptionDeclaration::new(
         BridgeSubscriptionDeclarationFamilyKind::DetailExact,
         BridgeSubscriptionDeliveryIntentClass::None,
-        vec![NormalizedSubscriptionSliceIntent::try_new(
+        vec![NormalizedSubscriptionSliceIntent::try_new_entity_field(
             "entity-1",
-            "profile",
-            "name",
+            forge_foundational::facade::AspectKey::new("profile")
+                .expect("valid native subscription aspect key"),
+            forge_foundational::facade::FieldKey::new("name".to_owned())
+                .expect("valid native subscription field key"),
             SubscriptionSliceKind::SignalField,
         )
         .expect("slice intent should validate")],
@@ -32,10 +34,12 @@ fn same_inputs_produce_identical_declaration_digest() {
     let right = BridgeSubscriptionDeclaration::new(
         BridgeSubscriptionDeclarationFamilyKind::DetailExact,
         BridgeSubscriptionDeliveryIntentClass::None,
-        vec![NormalizedSubscriptionSliceIntent::try_new(
+        vec![NormalizedSubscriptionSliceIntent::try_new_entity_field(
             "entity-1",
-            "profile",
-            "name",
+            forge_foundational::facade::AspectKey::new("profile")
+                .expect("valid native subscription aspect key"),
+            forge_foundational::facade::FieldKey::new("name".to_owned())
+                .expect("valid native subscription field key"),
             SubscriptionSliceKind::SignalField,
         )
         .expect("slice intent should validate")],
@@ -45,6 +49,10 @@ fn same_inputs_produce_identical_declaration_digest() {
 
     assert_eq!(left, right);
     assert_eq!(left.digest(), right.digest());
+    assert!(left
+        .canonical_basis()
+        .contains("subscription-slice-target:sha256:"));
+    assert!(!left.canonical_basis().contains("committed-patch-target"));
 }
 
 #[test]
@@ -59,17 +67,17 @@ fn slice_order_normalizes_canonically() {
         BridgeSubscriptionDeclarationFamilyKind::CollectionMembership,
         BridgeSubscriptionDeliveryIntentClass::None,
         vec![
-            NormalizedSubscriptionSliceIntent::try_new(
+            NormalizedSubscriptionSliceIntent::try_new_entity_region(
                 "entity-1",
-                "profile",
-                "west",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
                 SubscriptionSliceKind::SignalRegion,
             )
             .expect("slice intent should validate"),
-            NormalizedSubscriptionSliceIntent::try_new(
+            NormalizedSubscriptionSliceIntent::try_new_entity_partition(
                 "entity-1",
-                "profile",
-                "west-partition",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
                 SubscriptionSliceKind::SignalPartition,
             )
             .expect("slice intent should validate"),
@@ -81,17 +89,17 @@ fn slice_order_normalizes_canonically() {
         BridgeSubscriptionDeclarationFamilyKind::CollectionMembership,
         BridgeSubscriptionDeliveryIntentClass::None,
         vec![
-            NormalizedSubscriptionSliceIntent::try_new(
+            NormalizedSubscriptionSliceIntent::try_new_entity_partition(
                 "entity-1",
-                "profile",
-                "west-partition",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
                 SubscriptionSliceKind::SignalPartition,
             )
             .expect("slice intent should validate"),
-            NormalizedSubscriptionSliceIntent::try_new(
+            NormalizedSubscriptionSliceIntent::try_new_entity_region(
                 "entity-1",
-                "profile",
-                "west",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
                 SubscriptionSliceKind::SignalRegion,
             )
             .expect("slice intent should validate"),
@@ -115,17 +123,21 @@ fn duplicate_slice_intents_collapse_canonically() {
         BridgeSubscriptionDeclarationFamilyKind::DetailExact,
         BridgeSubscriptionDeliveryIntentClass::None,
         vec![
-            NormalizedSubscriptionSliceIntent::try_new(
+            NormalizedSubscriptionSliceIntent::try_new_entity_field(
                 "entity-1",
-                "profile",
-                "name",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native subscription field key"),
                 SubscriptionSliceKind::SignalField,
             )
             .expect("slice intent should validate"),
-            NormalizedSubscriptionSliceIntent::try_new(
+            NormalizedSubscriptionSliceIntent::try_new_entity_field(
                 "entity-1",
-                "profile",
-                "name",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native subscription field key"),
                 SubscriptionSliceKind::SignalField,
             )
             .expect("slice intent should validate"),
@@ -153,10 +165,10 @@ fn wrong_slice_kind_for_family_rejects_deterministically() {
     let error = BridgeSubscriptionDeclaration::new(
         BridgeSubscriptionDeclarationFamilyKind::DetailExact,
         BridgeSubscriptionDeliveryIntentClass::None,
-        vec![NormalizedSubscriptionSliceIntent::try_new(
+        vec![NormalizedSubscriptionSliceIntent::try_new_entity_region(
             "entity-1",
-            "profile",
-            "west",
+            forge_foundational::facade::AspectKey::new("profile")
+                .expect("valid native subscription aspect key"),
             SubscriptionSliceKind::SignalRegion,
         )
         .expect("slice intent should validate")],
@@ -182,10 +194,10 @@ fn non_identity_delivery_intent_is_canonicalized_away() {
     let declaration = BridgeSubscriptionDeclaration::new(
         BridgeSubscriptionDeclarationFamilyKind::CollectionMembership,
         BridgeSubscriptionDeliveryIntentClass::CanonicalMeaningfulChange,
-        vec![NormalizedSubscriptionSliceIntent::try_new(
+        vec![NormalizedSubscriptionSliceIntent::try_new_entity_region(
             "entity-1",
-            "profile",
-            "west",
+            forge_foundational::facade::AspectKey::new("profile")
+                .expect("valid native subscription aspect key"),
             SubscriptionSliceKind::SignalRegion,
         )
         .expect("slice intent should validate")],
@@ -201,10 +213,12 @@ fn non_identity_delivery_intent_is_canonicalized_away() {
 
 #[test]
 fn slice_intent_rejects_empty_identity_bearing_fields() {
-    let error = NormalizedSubscriptionSliceIntent::try_new(
+    let error = NormalizedSubscriptionSliceIntent::try_new_entity_field(
         "",
-        "profile",
-        "name",
+        forge_foundational::facade::AspectKey::new("profile")
+            .expect("valid native subscription aspect key"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid native subscription field key"),
         SubscriptionSliceKind::SignalField,
     )
     .expect_err("empty entity identity should reject");
@@ -216,31 +230,151 @@ fn slice_intent_rejects_empty_identity_bearing_fields() {
 }
 
 #[test]
-fn slice_intent_rejects_invalid_aspect_key_before_routing() {
-    let error = NormalizedSubscriptionSliceIntent::try_new(
+fn slice_intent_rejects_missing_field_locator_for_field_target() {
+    let aspect_locator = forge_foundational::facade::AspectLocator::new(
+        forge_foundational::facade::LocatorAuthority::Authoritative,
+        forge_foundational::facade::AspectKey::new("profile")
+            .expect("valid native subscription aspect key"),
+    );
+    let error = NormalizedSubscriptionSliceIntent::try_new_native(
         "entity-1",
-        "not a canonical aspect key",
-        "name",
+        aspect_locator,
+        None,
+        forge_foundational::facade::AspectMask::whole_aspect(),
+        crate::mapping::TruthDeltaSurfaceKind::EntityField,
         SubscriptionSliceKind::SignalField,
     )
-    .expect_err("subscription intent should reject non-foundational aspect keys");
+    .expect_err("field targets must carry a foundational field locator");
 
     assert_eq!(
         error.kind(),
-        NormalizedSubscriptionSliceIntentErrorKind::InvalidAspectKey
+        NormalizedSubscriptionSliceIntentErrorKind::MissingFieldLocator
     );
 }
 
 #[test]
-fn slice_intent_exposes_foundational_aspect_key() {
-    let intent = NormalizedSubscriptionSliceIntent::try_new(
+fn slice_intent_rejects_projection_mask_that_omits_field_target() {
+    let aspect_locator = forge_foundational::facade::AspectLocator::new(
+        forge_foundational::facade::LocatorAuthority::Authoritative,
+        forge_foundational::facade::AspectKey::new("profile.name")
+            .expect("valid native subscription aspect key"),
+    );
+    let field_locator = forge_foundational::facade::AspectFieldLocator::from_aspect(
+        aspect_locator.clone(),
+        forge_foundational::facade::CanonicalFieldPath::single(
+            forge_foundational::facade::FieldKey::new("name".to_owned())
+                .expect("valid native subscription field key"),
+        ),
+    );
+    let error = NormalizedSubscriptionSliceIntent::try_new_native(
         "entity-1",
-        "profile.name",
-        "name",
+        aspect_locator,
+        Some(field_locator),
+        forge_foundational::facade::AspectMask::whole_aspect(),
+        crate::mapping::TruthDeltaSurfaceKind::EntityField,
+        SubscriptionSliceKind::SignalField,
+    )
+    .expect_err("field targets must carry a matching projection mask");
+
+    assert_eq!(
+        error.kind(),
+        NormalizedSubscriptionSliceIntentErrorKind::ProjectionMaskTargetMismatch
+    );
+}
+
+#[test]
+fn slice_intent_target_basis_uses_committed_patch_target_proof() {
+    let intent = NormalizedSubscriptionSliceIntent::try_new_entity_field(
+        "entity-1",
+        forge_foundational::facade::AspectKey::new("profile.name")
+            .expect("valid native subscription aspect key"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid native subscription field key"),
         SubscriptionSliceKind::SignalField,
     )
     .expect("valid aspect key should admit");
 
     assert_eq!(intent.aspect_key().as_str(), "profile.name");
-    assert_eq!(intent.aspect_label(), "profile.name");
+    assert_eq!(intent.aspect_key().as_str(), "profile.name");
+    assert!(intent.field_locator().is_some());
+    assert!(!intent.projection_mask().is_whole_aspect());
+    assert!(intent
+        .slice_target_identity()
+        .as_str()
+        .starts_with("subscription-slice-target:sha256:"));
+    assert!(!intent
+        .slice_target_identity()
+        .as_str()
+        .contains("committed-patch-target"));
+    assert!(!intent.canonical_basis().contains("committed-patch-target"));
+    assert_eq!(
+        intent.native_target_basis(),
+        "committed-patch-target|locator=version=bridge.committed-patch-target.v1;domain=locator;entries=[locus=named:aspect_field.aspect_key,kind=locator,value=exact-text:profile.name;locus=named:aspect_field.authority,kind=locator,value=exact-text:authoritative;locus=named:aspect_field.field_path,kind=locator,value=exact-text:name;locus=named:aspect_field.kind,kind=locator,value=exact-text:aspect]|mutation-mask=version=bridge.committed-patch-target.v1;domain=aspect-mask;entries=[locus=named:profile.name.mutation.field.name,kind=mask,value=exact-text:name]|projection-mask=version=bridge.committed-patch-target.v1;domain=aspect-mask;entries=[locus=named:profile.name.projection.field.name,kind=mask,value=exact-text:name]|kind=entity-field"
+    );
+}
+
+#[test]
+fn slice_intent_named_whole_target_constructors_cover_native_matrix() {
+    let cases = [
+        (
+            NormalizedSubscriptionSliceIntent::try_new_entity_relation_endpoint(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                SubscriptionSliceKind::SignalLens,
+            )
+            .expect("relation-endpoint slice intent should validate"),
+            crate::mapping::TruthDeltaSurfaceKind::EntityRelationEndpoint,
+            "entity-relation-endpoint",
+        ),
+        (
+            NormalizedSubscriptionSliceIntent::try_new_entity_region(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                SubscriptionSliceKind::SignalRegion,
+            )
+            .expect("region slice intent should validate"),
+            crate::mapping::TruthDeltaSurfaceKind::EntityRegion,
+            "entity-region",
+        ),
+        (
+            NormalizedSubscriptionSliceIntent::try_new_entity_partition(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                SubscriptionSliceKind::SignalPartition,
+            )
+            .expect("partition slice intent should validate"),
+            crate::mapping::TruthDeltaSurfaceKind::EntityPartition,
+            "entity-partition",
+        ),
+        (
+            NormalizedSubscriptionSliceIntent::try_new_entity_facet(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                SubscriptionSliceKind::SignalFacet,
+            )
+            .expect("facet slice intent should validate"),
+            crate::mapping::TruthDeltaSurfaceKind::EntityFacet,
+            "entity-facet",
+        ),
+    ];
+
+    for (intent, expected_surface_kind, expected_target_kind) in cases {
+        assert_eq!(intent.field_locator(), None);
+        assert!(intent.projection_mask().is_whole_aspect());
+        assert_eq!(intent.surface_kind(), expected_surface_kind);
+        assert!(intent
+            .slice_target_identity()
+            .as_str()
+            .starts_with("subscription-slice-target:sha256:"));
+        assert!(intent
+            .native_target_basis()
+            .contains(&format!("|kind={expected_target_kind}")));
+        assert!(intent
+            .native_target_basis()
+            .contains("profile.projection.whole,kind=mask,value=exact-text:whole"));
+    }
 }

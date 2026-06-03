@@ -2,7 +2,7 @@ use forge_runtime_bridge::facade::{
     BridgeHistoricalEvaluationDecisionLog, BridgeHistoricalMaterializationPath,
     BridgeTruthViewKind, BridgeTruthViewPolicyResolution, HistoricalEvaluationDeclaration,
     LoweredHistoricalEvaluationArtifact, ResolvedTruthViewPolicy, SourceMaterializationRecord,
-    TruthViewReplayCompatibility, TruthViewRetentionAdmission, TruthViewSourceCapability,
+    TruthViewReplayContinuity, TruthViewRetentionAdmission, TruthViewSourceCapability,
 };
 
 use super::contracts::HistoricalPathReuseDescriptor;
@@ -68,15 +68,14 @@ fn lower_admitted_policy(
     let replay_permitted = declaration.replay_mode()
         != forge_runtime_bridge::facade::BridgeReplayMode::Disabled
         && matches!(
-            policy.replay_compatibility(),
-            TruthViewReplayCompatibility::ReplayPermitted
-                | TruthViewReplayCompatibility::ReplayRequired
+            policy.replay_continuity(),
+            TruthViewReplayContinuity::ReplayPermitted | TruthViewReplayContinuity::ReplayRequired
         );
     let replay_required = declaration.replay_mode()
         == forge_runtime_bridge::facade::BridgeReplayMode::Required
         && matches!(
-            policy.replay_compatibility(),
-            TruthViewReplayCompatibility::ReplayRequired
+            policy.replay_continuity(),
+            TruthViewReplayContinuity::ReplayRequired
         );
     let historical_lookup_available = matches!(
         policy.source_capability(),

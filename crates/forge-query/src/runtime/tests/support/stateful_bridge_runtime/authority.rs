@@ -5,9 +5,10 @@ use crate::memory_workspace::ForgeQueryMutationKind;
 use forge_runtime_bridge::facade::{
     BridgeDiagnosticsTier, BridgeExecutionPolicyClass, BridgeExistingTruthBindingBundle,
     BridgeMutationAuthorityBundle, BridgePolicyDeclaration, BridgePolicyDeclarationIdentity,
-    BridgeRequestKind, BridgeWritebackCausalityBasis, BridgeWritebackCausalityIdentity,
-    BridgeWritebackDeclaration, BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass,
-    BridgeWritebackEffectIdentity, BridgeWritebackFamilyKind, BridgeWritebackFeedbackProvenance,
+    BridgeRequestKind, BridgeWritebackAuthoritativeStateBasis, BridgeWritebackCausalityBasis,
+    BridgeWritebackCausalityEvidence, BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
+    BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackEffectIdentity,
+    BridgeWritebackEffectIntent, BridgeWritebackFamilyKind, BridgeWritebackFeedbackProvenance,
     BridgeWritebackIdempotenceClass, BridgeWritebackIdempotenceIdentity,
     BridgeWritebackStrategyClass, RuntimeBridge,
 };
@@ -43,30 +44,35 @@ pub(super) fn build_bridge_authority_bundle(
                 BridgeWritebackFamilyKind::AspectReconciliation,
                 BridgeWritebackEffectClass::AspectReconciliation,
                 BridgeWritebackStrategyClass::AspectReconciliationCommit,
-                format!("strategy:{writeback_digest}"),
                 BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
             ),
             &policy,
         )
         .map_err(|error| ForgeQueryWorkspaceError::new(format!("{error:?}")))?;
-    let causality = BridgeWritebackCausalityBasis::new(
+    let causality = BridgeWritebackCausalityBasis::from_evidence(
         BridgeWritebackCausalityIdentity::new(format!("causality:{writeback_digest}")),
-        format!("truth-trigger:{writeback_digest}"),
-        "route:forge-query-stateful-bridge",
-        format!("evaluation:{collection}:{entity_identity}"),
-        snapshot_token.to_string(),
+        BridgeWritebackCausalityEvidence::from_native_bases(
+            format!("truth-trigger:{writeback_digest}"),
+            "route:forge-query-stateful-bridge",
+            format!("evaluation:{collection}:{entity_identity}"),
+            snapshot_token.to_string(),
+        ),
     );
     let effect = bridge.lower_writeback_effect(
         &contract,
         &causality,
         BridgeWritebackEffectIdentity::new(format!("effect:{writeback_digest}")),
-        format!("effect:{writeback_digest}"),
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::AspectReconciliation,
+            &writeback_digest,
+        ),
     );
+    let authoritative_state_basis = BridgeWritebackAuthoritativeStateBasis::from_effect(&effect);
     let feedback = BridgeWritebackFeedbackProvenance::new(&effect);
     let idempotence = bridge.classify_writeback_idempotence(
         &effect,
         &policy,
-        snapshot_token.to_string(),
+        &authoritative_state_basis,
         BridgeWritebackIdempotenceIdentity::new(format!("idempotence:{writeback_digest}")),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
@@ -91,6 +97,19 @@ pub(super) fn build_bridge_authority_bundle(
         ),
         command,
     ))
+}
+
+fn writeback_effect_intent(
+    effect_class: BridgeWritebackEffectClass,
+    writeback_digest: &str,
+) -> BridgeWritebackEffectIntent {
+    BridgeWritebackEffectIntent::validated_scalar_patch(
+        effect_class,
+        forge_foundational::facade::AspectKey::new("forge.query.writeback")
+            .expect("valid writeback effect aspect key"),
+        forge_foundational::facade::AspectValue::String(writeback_digest.to_string().into()),
+    )
+    .expect("stateful bridge writeback effect intent should validate")
 }
 
 fn writeback_digest(

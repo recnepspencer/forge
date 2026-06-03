@@ -36,7 +36,7 @@ The bridge should make that answer:
 In ordinary code, that begins with one call:
 
 ```rust
-let route = bridge.route("commit:steel-main")?;
+let route = bridge.route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))?;
 ```
 
 That route is the canonical bridge view of the truth change, not just a casual
@@ -115,7 +115,7 @@ After a route, the most common next question is:
 That is the role of `evaluate_current(...)`:
 
 ```rust
-let route = bridge.route("commit:steel-main")?;
+let route = bridge.route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))?;
 let evaluation = bridge.evaluate_current(route.target())?;
 ```
 
@@ -180,7 +180,7 @@ possible.
 Diagnostics should be attached to these jobs directly:
 
 ```rust
-let route = bridge.route("commit:steel-main")?;
+let route = bridge.route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))?;
 let evaluation = bridge.evaluate_current(route.target())?;
 
 let diagnostics = bridge.diagnostics();

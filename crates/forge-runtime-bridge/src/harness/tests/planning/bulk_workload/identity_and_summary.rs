@@ -1,3 +1,4 @@
+use crate::facade::TruthSnapshotIdentity;
 #[test]
 fn bridge_bulk_planning_rejects_empty_workloads() {
     let source = InMemoryRelationalBridgeSource::default();
@@ -21,19 +22,21 @@ fn bridge_bulk_planning_rejects_empty_workloads() {
 fn bridge_bulk_planning_identity_is_stable_across_input_order() {
     let left_source = InMemoryRelationalBridgeSource::default();
     left_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
     left_source.insert_committed_patch(committed_patch(
-        "commit-b",
-        "patch-b",
-        "snapshot-b",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-b"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
-    left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
-    left_source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
     let left_runtime = build_runtime(
         left_source,
         RecordingSignalBridgeSink::default(),
@@ -42,19 +45,21 @@ fn bridge_bulk_planning_identity_is_stable_across_input_order() {
 
     let right_source = InMemoryRelationalBridgeSource::default();
     right_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
     right_source.insert_committed_patch(committed_patch(
-        "commit-b",
-        "patch-b",
-        "snapshot-b",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-b"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
-    right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
-    right_source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
     let right_runtime = build_runtime(
         right_source,
         RecordingSignalBridgeSink::default(),
@@ -63,14 +68,22 @@ fn bridge_bulk_planning_identity_is_stable_across_input_order() {
 
     let left = left_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-b"),
+            )),
         ]))
         .expect("left bulk workload should plan");
     let right = right_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-b"),
+            )),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
         ]))
         .expect("right bulk workload should plan");
 
@@ -108,12 +121,13 @@ fn bridge_bulk_planning_identity_is_stable_across_input_order() {
 fn bridge_bulk_planning_separates_canonical_plan_identity_from_admission_profile_identity() {
     let standard_source = InMemoryRelationalBridgeSource::default();
     standard_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
-    standard_source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    standard_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
     let standard_runtime = crate::facade::RuntimeBridgeBuilder::new()
         .with_policy(
             BridgeRuntimePolicy::development()
@@ -129,12 +143,13 @@ fn bridge_bulk_planning_separates_canonical_plan_identity_from_admission_profile
 
     let exhaustive_source = InMemoryRelationalBridgeSource::default();
     exhaustive_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
-    exhaustive_source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    exhaustive_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
     let exhaustive_runtime = crate::facade::RuntimeBridgeBuilder::new()
         .with_policy(
             BridgeRuntimePolicy::forensic()
@@ -149,7 +164,7 @@ fn bridge_bulk_planning_separates_canonical_plan_identity_from_admission_profile
         .expect("exhaustive runtime should build");
 
     let request = BridgeBulkWorkloadRequest::new(vec![BridgeBulkWorkloadSegment::new(
-        BridgeRouteRequest::for_commit("commit-a"),
+        BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
     )]);
     let standard = standard_runtime
         .plan_bulk_workload(request.clone())
@@ -187,6 +202,96 @@ fn bridge_bulk_planning_separates_canonical_plan_identity_from_admission_profile
         BridgeDiagnosticsTier::Exhaustive,
         exhaustive_runtime.policy().diagnostics_tier()
     );
+}
+
+#[test]
+fn bridge_bulk_planning_identity_uses_frozen_registration_identity_without_leaking_signal_scope() {
+    let left_source = InMemoryRelationalBridgeSource::default();
+    left_source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    let left_runtime = build_runtime(
+        left_source,
+        RecordingSignalBridgeSink::default(),
+        vec![registration_with_signal_scope(
+            crate::facade::SignalInvalidationScope::new("signal.profile.left"),
+        )],
+    );
+
+    let right_source = InMemoryRelationalBridgeSource::default();
+    right_source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    let right_runtime = build_runtime(
+        right_source,
+        RecordingSignalBridgeSink::default(),
+        vec![registration_with_signal_scope(
+            crate::facade::SignalInvalidationScope::new("signal.profile.right"),
+        )],
+    );
+
+    let request = BridgeBulkWorkloadRequest::new(vec![BridgeBulkWorkloadSegment::new(
+        BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
+    )]);
+    let left = left_runtime
+        .plan_bulk_workload(request.clone())
+        .expect("left workload should plan");
+    let right = right_runtime
+        .plan_bulk_workload(request)
+        .expect("right workload should plan");
+
+    assert_ne!(
+        left.canonical_planning_identity(),
+        right.canonical_planning_identity()
+    );
+    assert!(left
+        .canonical_planning_identity()
+        .as_str()
+        .starts_with("bulk-planning-identity:sha256:"));
+    assert!(right
+        .canonical_planning_identity()
+        .as_str()
+        .starts_with("bulk-planning-identity:sha256:"));
+    assert!(!left
+        .canonical_planning_identity()
+        .as_str()
+        .contains("signal.profile.left"));
+    assert!(!right
+        .canonical_planning_identity()
+        .as_str()
+        .contains("signal.profile.right"));
+}
+
+fn registration_with_signal_scope(
+    signal_scope: crate::facade::SignalInvalidationScope,
+) -> crate::facade::BridgeMappingRegistration {
+    crate::facade::BridgeMappingRegistration::new(
+        crate::facade::BridgeMappingId::new("profile-name"),
+        crate::facade::TruthPatchScope::for_entity_field(
+            crate::facade::MappingSelector::exact("user"),
+            forge_foundational::facade::AspectKey::new("profile")
+                .expect("valid bulk planning aspect key"),
+            forge_foundational::facade::FieldKey::new("name".to_owned())
+                .expect("valid bulk planning field key"),
+        ),
+        crate::snapshot::SnapshotReadContract::scalar(
+            forge_foundational::facade::AspectKey::new("profile")
+                .expect("valid bulk planning aspect key"),
+            forge_foundational::facade::ScalarAspectType::String,
+        ),
+        signal_scope,
+        crate::facade::CoarseRoutingMode::Direct,
+    )
 }
 
 use super::*;

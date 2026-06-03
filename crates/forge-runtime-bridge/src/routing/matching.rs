@@ -1,14 +1,15 @@
 use crate::mapping::{
-    BridgeAspectRegistrationId, FrozenAspectMappingRegistry, SliceFallbackPolicy,
+    BridgeAspectRegistrationId, FrozenAspectMappingRegistry, SliceWideningPolicy,
     SubscriptionSliceKind, TruthDeltaSurfaceKind,
 };
+use crate::snapshot::SnapshotReadContract;
 
 use super::surfaces::TruthDeltaSurface;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum FineGrainedMatchStatus {
     Matched,
-    FallbackAdmitted,
+    WideningAdmitted,
     SuppressedByRegistrationPolicy,
     UnsupportedSurfaceCategory,
     AmbiguousRegistration,
@@ -20,13 +21,15 @@ pub enum FineGrainedMatchOutcome {
     Matched {
         truth_surface_kind: TruthDeltaSurfaceKind,
         aspect_registration_id: BridgeAspectRegistrationId,
+        snapshot_read_contract: SnapshotReadContract,
         subscription_slice_kind: SubscriptionSliceKind,
     },
-    FallbackAdmitted {
+    WideningAdmitted {
         truth_surface_kind: TruthDeltaSurfaceKind,
         aspect_registration_id: BridgeAspectRegistrationId,
+        snapshot_read_contract: SnapshotReadContract,
         subscription_slice_kind: SubscriptionSliceKind,
-        fallback_policy: SliceFallbackPolicy,
+        widening_policy: SliceWideningPolicy,
     },
     SuppressedByRegistrationPolicy {
         truth_surface_kind: TruthDeltaSurfaceKind,
@@ -43,7 +46,7 @@ impl FineGrainedMatchOutcome {
     pub fn status(&self) -> FineGrainedMatchStatus {
         match self {
             Self::Matched { .. } => FineGrainedMatchStatus::Matched,
-            Self::FallbackAdmitted { .. } => FineGrainedMatchStatus::FallbackAdmitted,
+            Self::WideningAdmitted { .. } => FineGrainedMatchStatus::WideningAdmitted,
             Self::SuppressedByRegistrationPolicy { .. } => {
                 FineGrainedMatchStatus::SuppressedByRegistrationPolicy
             }
@@ -60,10 +63,26 @@ impl FineGrainedMatchOutcome {
                 subscription_slice_kind,
                 ..
             }
-            | Self::FallbackAdmitted {
+            | Self::WideningAdmitted {
                 subscription_slice_kind,
                 ..
             } => Some(subscription_slice_kind),
+            Self::SuppressedByRegistrationPolicy { .. }
+            | Self::UnsupportedSurfaceCategory { .. }
+            | Self::AmbiguousRegistration { .. } => None,
+        }
+    }
+
+    pub fn snapshot_read_contract(&self) -> Option<&SnapshotReadContract> {
+        match self {
+            Self::Matched {
+                snapshot_read_contract,
+                ..
+            }
+            | Self::WideningAdmitted {
+                snapshot_read_contract,
+                ..
+            } => Some(snapshot_read_contract),
             Self::SuppressedByRegistrationPolicy { .. }
             | Self::UnsupportedSurfaceCategory { .. }
             | Self::AmbiguousRegistration { .. } => None,
@@ -79,8 +98,8 @@ pub(crate) fn classify_truth_delta_surface(
 ) -> FineGrainedSurfaceMatch {
     let Some(registration) = aspect_registry.lookup(
         surface.entity_identity(),
-        surface.aspect_label(),
-        surface.surface_label(),
+        surface.aspect_key(),
+        surface.field_locator().map(|locator| locator.field_path()),
         surface.surface_kind(),
     ) else {
         return FineGrainedSurfaceMatch::SuppressedByRegistrationPolicy {
@@ -88,33 +107,43 @@ pub(crate) fn classify_truth_delta_surface(
         };
     };
 
-    match registration.fallback_policy() {
-        SliceFallbackPolicy::Disallow => FineGrainedSurfaceMatch::Matched {
+    match registration.widening_policy() {
+        SliceWideningPolicy::Disallow => FineGrainedSurfaceMatch::Matched {
             truth_surface_kind: surface.surface_kind(),
             aspect_registration_id: registration.registration_id().clone(),
+            snapshot_read_contract: registration.snapshot_read_contract().clone(),
             subscription_slice_kind: registration.subscription_slice_kind().clone(),
         },
-        fallback_policy => FineGrainedSurfaceMatch::FallbackAdmitted {
+        widening_policy => FineGrainedSurfaceMatch::WideningAdmitted {
             truth_surface_kind: surface.surface_kind(),
             aspect_registration_id: registration.registration_id().clone(),
+            snapshot_read_contract: registration.snapshot_read_contract().clone(),
             subscription_slice_kind: registration.subscription_slice_kind().clone(),
-            fallback_policy,
+            widening_policy,
         },
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use forge_foundational::facade::AspectKey;
-
-    use crate::mapping::{
-        BridgeAspectRegistration, BridgeAspectRegistrationId, FrozenAspectMappingRegistry,
-        MappingSelector, SliceFallbackPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind,
-        TruthPatchScope,
+    use forge_foundational::facade::{
+        AspectKey, AspectLocator, CanonicalFieldPath, FieldKey, LocatorAuthority, ScalarAspectType,
     };
 
+    use crate::input::envelope::{
+        BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity,
+        BridgeCommittedPatchItem, BridgeCommittedPatchTarget, BridgeProducerMetadata,
+        TruthBranchIdentity, TruthPatchIdentity,
+    };
+    use crate::mapping::{
+        BridgeAspectRegistration, BridgeAspectRegistrationId, FrozenAspectMappingRegistry,
+        MappingSelector, SliceWideningPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind,
+        TruthPatchScope,
+    };
+    use crate::snapshot::TruthSnapshotIdentity;
+
     use super::{classify_truth_delta_surface, FineGrainedMatchStatus};
-    use crate::routing::surfaces::TruthDeltaSurface;
+    use crate::routing::surfaces::{derive_normalized_truth_delta_surface_set, TruthDeltaSurface};
 
     fn registry(registrations: Vec<BridgeAspectRegistration>) -> FrozenAspectMappingRegistry {
         FrozenAspectMappingRegistry::freeze(registrations).expect("aspect registry should freeze")
@@ -122,12 +151,7 @@ mod tests {
 
     #[test]
     fn classify_surface_as_suppressed_when_no_registration_matches() {
-        let surface = TruthDeltaSurface::new(
-            "user",
-            aspect_key("profile"),
-            "name",
-            TruthDeltaSurfaceKind::EntityField,
-        );
+        let surface = field_surface("user", "profile", "name");
 
         let classification =
             classify_truth_delta_surface(&surface, &FrozenAspectMappingRegistry::default());
@@ -141,22 +165,23 @@ mod tests {
 
     #[test]
     fn classify_surface_as_matched_when_direct_registration_exists() {
-        let surface = TruthDeltaSurface::new(
-            "user",
-            aspect_key("profile"),
-            "name",
-            TruthDeltaSurfaceKind::EntityField,
-        );
+        let surface = field_surface("user", "profile", "name");
         let registry = registry(vec![BridgeAspectRegistration::new(
             BridgeAspectRegistrationId::new("field"),
-            TruthPatchScope::new(
+            TruthPatchScope::for_entity_field(
                 MappingSelector::exact("user"),
-                MappingSelector::exact("profile"),
-                MappingSelector::exact("name"),
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native field key"),
+            ),
+            crate::snapshot::SnapshotReadContract::scalar(
+                aspect_key("profile"),
+                ScalarAspectType::String,
             ),
             TruthDeltaSurfaceKind::EntityField,
             SubscriptionSliceKind::SignalField,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         )]);
 
         let classification = classify_truth_delta_surface(&surface, &registry);
@@ -169,38 +194,66 @@ mod tests {
     }
 
     #[test]
-    fn classify_surface_as_fallback_when_registration_admits_widening() {
-        let surface = TruthDeltaSurface::new(
-            "user",
-            aspect_key("profile"),
-            "name",
-            TruthDeltaSurfaceKind::EntityField,
-        );
+    fn classify_surface_as_widening_when_registration_admits_widening() {
+        let surface = field_surface("user", "profile", "name");
         let registry = registry(vec![BridgeAspectRegistration::new(
-            BridgeAspectRegistrationId::new("field-fallback"),
-            TruthPatchScope::new(
+            BridgeAspectRegistrationId::new("field-widening"),
+            TruthPatchScope::for_entity_field(
                 MappingSelector::exact("user"),
-                MappingSelector::exact("profile"),
-                MappingSelector::exact("name"),
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native field key"),
+            ),
+            crate::snapshot::SnapshotReadContract::scalar(
+                aspect_key("profile"),
+                ScalarAspectType::String,
             ),
             TruthDeltaSurfaceKind::EntityField,
-            SubscriptionSliceKind::RegisteredCoarseFallback,
-            SliceFallbackPolicy::RegisteredEntityCoarseFallback,
+            SubscriptionSliceKind::RegisteredCoarseWidening,
+            SliceWideningPolicy::RegisteredEntityCoarseWidening,
         )]);
 
         let classification = classify_truth_delta_surface(&surface, &registry);
 
         assert_eq!(
             classification.status(),
-            FineGrainedMatchStatus::FallbackAdmitted
+            FineGrainedMatchStatus::WideningAdmitted
         );
         assert_eq!(
             classification.subscription_slice_kind(),
-            Some(&SubscriptionSliceKind::RegisteredCoarseFallback)
+            Some(&SubscriptionSliceKind::RegisteredCoarseWidening)
         );
     }
 
     fn aspect_key(value: &str) -> AspectKey {
         AspectKey::new(value).expect("valid truth delta surface aspect key")
+    }
+
+    fn field_surface(entity_identity: &str, aspect: &str, field: &str) -> TruthDeltaSurface {
+        let envelope = BridgeCommittedPatchEnvelope::new(
+            BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
+                BridgeProducerMetadata::bridge_harness_fixture(),
+                crate::facade::TruthCommitIdentity::new("commit:routing-match"),
+                TruthPatchIdentity::new("patch:routing-match"),
+                TruthSnapshotIdentity::new("snapshot:routing-match"),
+                TruthBranchIdentity::new("main"),
+            ),
+            vec![BridgeCommittedPatchItem::with_target(
+                entity_identity,
+                BridgeCommittedPatchTarget::entity_field_path(
+                    AspectLocator::new(LocatorAuthority::Authoritative, aspect_key(aspect)),
+                    field_path(field),
+                ),
+            )],
+        )
+        .expect("matching test envelope should validate");
+        derive_normalized_truth_delta_surface_set(&envelope).item_surfaces()[0].clone()
+    }
+
+    fn field_path(value: &str) -> CanonicalFieldPath {
+        CanonicalFieldPath::single(
+            FieldKey::new(value.to_owned()).expect("valid truth delta surface field key"),
+        )
     }
 }

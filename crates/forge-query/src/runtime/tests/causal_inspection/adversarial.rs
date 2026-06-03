@@ -1,3 +1,5 @@
+use forge_runtime_bridge::facade::TruthCommitIdentity;
+
 use super::super::super::*;
 use super::materialization::support::*;
 
@@ -126,7 +128,9 @@ fn future_explanation_families_deny_without_bridge_assembly() {
 #[test]
 fn redaction_and_materialization_policy_matrix_preserves_causal_identity() {
     let runtime = bridge_runtime();
-    let routed = runtime.route("commit-causal-adversarial-policy").unwrap();
+    let routed = runtime
+        .route(TruthCommitIdentity::new("commit-causal-adversarial-policy"))
+        .unwrap();
     let mut causal_identity_digest = None;
     let mut policy_digests = Vec::new();
     let mut artifact_digests = Vec::new();

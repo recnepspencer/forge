@@ -1,6 +1,6 @@
 use crate::facade::{
     BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeBuildErrorKind, MappingSelector,
-    RuntimeBridgeBuilder, SliceFallbackPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind,
+    RuntimeBridgeBuilder, SliceWideningPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind,
     TruthPatchScope,
 };
 
@@ -20,23 +20,38 @@ fn ambiguous_slice_registration_fails_explicitly() {
             BridgeAspectRegistrationId::new("entity-wide"),
             TruthPatchScope::new(
                 MappingSelector::exact("user"),
-                MappingSelector::any(),
-                MappingSelector::exact("name"),
+                crate::facade::AspectKeySelector::exact(
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid native aspect key"),
+                ),
+                crate::facade::TruthPatchTargetSelector::any(),
+            ),
+            crate::snapshot::SnapshotReadContract::scalar(
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::ScalarAspectType::String,
             ),
             TruthDeltaSurfaceKind::EntityField,
             SubscriptionSliceKind::SignalField,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         ))
         .register_aspect_mapping(BridgeAspectRegistration::new(
             BridgeAspectRegistrationId::new("aspect-wide"),
-            TruthPatchScope::new(
+            TruthPatchScope::for_entity_field(
                 MappingSelector::any(),
-                MappingSelector::exact("profile"),
-                MappingSelector::exact("name"),
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native field key"),
+            ),
+            crate::snapshot::SnapshotReadContract::scalar(
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::ScalarAspectType::String,
             ),
             TruthDeltaSurfaceKind::EntityField,
             SubscriptionSliceKind::SignalField,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         ))
         .build()
         .expect_err("ambiguous aspect registrations must fail at freeze time");

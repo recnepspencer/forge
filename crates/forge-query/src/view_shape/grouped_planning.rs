@@ -1,12 +1,13 @@
 use crate::planning::ExecutionPlanBundle;
 use crate::validation::ValidatedQueryBundle;
+use forge_foundational::facade::AspectKey;
 
 use super::grouped_binding::QueryResultBindingProof;
 use super::grouped_policy::{GroupedDeltaAdmissionPolicy, GroupedReplayDeliveryPosture};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GroupedBaselineMaterializationContract {
-    grouping_aspect: String,
+    grouping_aspect: AspectKey,
     identity_binding: QueryResultBindingProof,
     grouping_binding: QueryResultBindingProof,
     grouped_binding_width: usize,
@@ -14,6 +15,10 @@ pub struct GroupedBaselineMaterializationContract {
 
 impl GroupedBaselineMaterializationContract {
     pub fn grouping_aspect(&self) -> &str {
+        self.grouping_aspect.as_str()
+    }
+
+    pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
 
@@ -40,7 +45,7 @@ impl GroupedBaselineMaterializationContract {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GroupedViewPlanningArtifact {
-    grouping_aspect: String,
+    grouping_aspect: AspectKey,
     identity_binding: QueryResultBindingProof,
     grouping_binding: QueryResultBindingProof,
     grouped_binding_width: usize,
@@ -56,6 +61,10 @@ pub struct GroupedViewPlanningArtifact {
 
 impl GroupedViewPlanningArtifact {
     pub fn grouping_aspect(&self) -> &str {
+        self.grouping_aspect.as_str()
+    }
+
+    pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
 
@@ -114,7 +123,7 @@ impl GroupedViewPlanningArtifact {
     pub(crate) fn derive(
         validated_view: &ValidatedQueryBundle,
         execution_plan: &ExecutionPlanBundle,
-        grouping_aspect: &str,
+        grouping_aspect: &AspectKey,
     ) -> Option<Self> {
         let identity_binding = validated_view
             .result_shape()
@@ -130,20 +139,20 @@ impl GroupedViewPlanningArtifact {
                     binding.source_field(),
                     binding_index,
                 )
-            })?;
+            })??;
         let grouping_binding = validated_view
             .result_shape()
             .bindings()
             .iter()
             .enumerate()
-            .find(|(_, binding)| binding.source_aspect() == grouping_aspect)
+            .find(|(_, binding)| binding.source_aspect() == grouping_aspect.as_str())
             .map(|(binding_index, binding)| {
                 QueryResultBindingProof::new(
                     binding.source_aspect(),
                     binding.source_field(),
                     binding_index,
                 )
-            })?;
+            })??;
 
         let grouped_binding_width = validated_view.result_shape().bindings().len();
         let grouped_projection_width = execution_plan.query().projection_count();
@@ -153,7 +162,7 @@ impl GroupedViewPlanningArtifact {
         let fallback = execution_plan.query().fallback().clone();
 
         let seed = Self {
-            grouping_aspect: grouping_aspect.to_string(),
+            grouping_aspect: grouping_aspect.clone(),
             identity_binding: identity_binding.clone(),
             grouping_binding: grouping_binding.clone(),
             grouped_binding_width,
@@ -163,7 +172,7 @@ impl GroupedViewPlanningArtifact {
             predicate_count,
             fallback,
             baseline_materialization: GroupedBaselineMaterializationContract {
-                grouping_aspect: grouping_aspect.to_string(),
+                grouping_aspect: grouping_aspect.clone(),
                 identity_binding,
                 grouping_binding,
                 grouped_binding_width,

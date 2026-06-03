@@ -24,7 +24,8 @@ pub use causal_envelope::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEnvelopeCounters, BridgeCausalEnvelopeDenial,
     BridgeCausalEnvelopeDenialKind, BridgeCausalEnvelopeIdentity, BridgeCausalEnvelopeReceipt,
     BridgeCausalEvidenceBinding, BridgeCausalEvidenceBindingClass, BridgeCausalEvidenceFamily,
-    BridgeCausalEvidenceOwner, BridgeCausalEvidenceReference, BridgeCausalExplanationEnvelope,
+    BridgeCausalEvidenceOwner, BridgeCausalEvidenceReference,
+    BridgeCausalEvidenceReferenceIdentity, BridgeCausalExplanationEnvelope,
     BridgeCausalInspectionAdmissionSummary, BridgeCausalInspectionAdmissionSummaryKind,
 };
 pub use continuity::{
@@ -37,8 +38,9 @@ pub use handle::BridgeDiagnosticsHandle;
 pub use history::{
     BridgeCanonicalHistoricalEvaluationRecord, BridgeHistoricalEvaluationCounters,
     BridgeHistoricalEvaluationDecisionLog, BridgeHistoricalEvaluationExplanation,
-    BridgeHistoricalEvaluationFailureClass, BridgeHistoricalEvaluationFailureRecord,
-    BridgeHistoricalEvaluationRecord, BridgeHistoricalEvaluationReplaySummary,
+    BridgeHistoricalEvaluationFailureClass, BridgeHistoricalEvaluationFailureIdentity,
+    BridgeHistoricalEvaluationFailureRecord, BridgeHistoricalEvaluationRecord,
+    BridgeHistoricalEvaluationRecordIdentity, BridgeHistoricalEvaluationReplaySummary,
     BridgeHistoricalMaterializationPath, BRIDGE_CANONICAL_HISTORICAL_EVALUATION_RECORD_SCHEMA_V1,
 };
 pub use merge::{
@@ -80,7 +82,7 @@ pub use writeback::{
     BridgeWritebackLoopPreventionExplanation, BridgeWritebackMapperEnvelopeExplanation,
     BridgeWritebackMapperExplanation, BridgeWritebackOutcomeExplanation,
     BridgeWritebackReplayExplanation, BridgeWritebackReplayRecordExplanation,
-    BridgeWritebackStrategyCompatibilityExplanation,
+    BridgeWritebackStrategyCoherenceExplanation,
 };
 
 pub(crate) use failure_source::BridgeFailureSource;

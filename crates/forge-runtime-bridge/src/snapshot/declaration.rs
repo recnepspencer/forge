@@ -280,7 +280,7 @@ mod tests {
         BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewKind, BridgeTruthViewSelector,
         HistoricalEvaluationDeclaration,
     };
-    use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity};
+    use crate::input::envelope::TruthBranchIdentity;
     use crate::policy::BridgeDiagnosticsTier;
     use crate::snapshot::TruthSnapshotIdentity;
 
@@ -297,7 +297,10 @@ mod tests {
 
         assert_eq!(left, right);
         assert_eq!(left.view_kind(), BridgeTruthViewKind::BranchSnapshot);
-        assert!(left.canonical_basis().contains("branch:analysis"));
+        assert_eq!(
+            left.canonical_basis(),
+            "truth-view-selector|kind:BranchSnapshot|branch:analysis|commit:-|snapshot:snapshot-a"
+        );
     }
 
     #[test]
@@ -305,7 +308,7 @@ mod tests {
         let left = HistoricalEvaluationDeclaration::new(
             BridgeTruthViewSelector::historical_commit(
                 TruthBranchIdentity::new("main"),
-                TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthCommitIdentity::new("commit-a"),
             ),
             BridgeReplayMode::Required,
             BridgeDiagnosticsTier::Exhaustive,
@@ -314,7 +317,7 @@ mod tests {
         let right = HistoricalEvaluationDeclaration::new(
             BridgeTruthViewSelector::historical_commit(
                 TruthBranchIdentity::new("main"),
-                TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthCommitIdentity::new("commit-a"),
             ),
             BridgeReplayMode::Required,
             BridgeDiagnosticsTier::Exhaustive,
@@ -322,16 +325,20 @@ mod tests {
         );
 
         assert_eq!(left, right);
-        assert!(left
-            .canonical_basis()
-            .contains("replay:Required|delivery:PrepareSignalEvaluation"));
+        assert_eq!(
+            left.canonical_basis(),
+            format!(
+                "historical-evaluation-declaration|selectors={}|replay:Required|delivery:PrepareSignalEvaluation",
+                left.validated_selector_set().canonical_basis(),
+            )
+        );
     }
 
     #[test]
     fn declaration_identity_is_invariant_across_diagnostics_tiers() {
         let selector = BridgeTruthViewSelector::historical_commit(
             TruthBranchIdentity::new("main"),
-            TruthCommitIdentity::new("commit-a"),
+            crate::facade::TruthCommitIdentity::new("commit-a"),
         );
         let left = HistoricalEvaluationDeclaration::new(
             selector.clone(),

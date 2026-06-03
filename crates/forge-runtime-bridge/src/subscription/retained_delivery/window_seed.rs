@@ -130,13 +130,4 @@ impl BridgeSubscriptionRetainedDeliveryWindowSeed {
     pub fn digest(&self) -> &str {
         self.digest.as_ref()
     }
-
-    #[cfg(test)]
-    pub(crate) fn with_canonical_member_count_for_test(
-        mut self,
-        canonical_member_count: usize,
-    ) -> Self {
-        self.canonical_member_count = canonical_member_count;
-        self
-    }
 }

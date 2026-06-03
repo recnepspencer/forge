@@ -38,16 +38,7 @@ impl BridgeContinuityArtifact {
             remapped_slices
                 .slices()
                 .iter()
-                .map(|slice| {
-                    format!(
-                        "{}|{}|{}|{:?}|{:?}",
-                        slice.entity_identity(),
-                        slice.aspect_label(),
-                        slice.surface_label(),
-                        slice.slice_kind(),
-                        slice.match_status(),
-                    )
-                })
+                .map(|slice| slice.canonical_basis())
                 .collect::<Vec<_>>()
                 .join(","),
         );

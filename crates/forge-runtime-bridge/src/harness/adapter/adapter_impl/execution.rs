@@ -2,7 +2,7 @@ use super::*;
 
 pub(super) enum HarnessTarget {
     CommittedRoute {
-        commit_identity: String,
+        commit_identity: TruthCommitIdentity,
     },
     Stream(super::stream::StreamHarnessTarget),
     Source(super::source::SourceHarnessTarget),
@@ -17,10 +17,6 @@ pub(super) enum HarnessTarget {
     },
     BranchHead {
         branch_identity: TruthBranchIdentity,
-    },
-    BranchCommit {
-        branch_identity: TruthBranchIdentity,
-        commit_identity: TruthCommitIdentity,
     },
 }
 
@@ -44,143 +40,6 @@ pub(super) enum HarnessExecution {
     Speculation(super::speculation::SpeculationHarnessExecution),
     Structural(super::structural::StructuralHarnessExecution),
     Writeback(super::writeback::WritebackHarnessExecution),
-}
-
-impl HarnessExecution {
-    pub(super) fn summary_json(&self) -> serde_json::Value {
-        match self {
-            Self::Route {
-                result,
-                continuity_summary,
-            } => json!({
-                "route_identity": result.result_summary().route_identity().as_str(),
-                "invalidation_identity": result.result_summary().invalidation_identity().as_str(),
-                "subscription_slice_identity": result.result_summary().subscription_slice_identity().as_str(),
-                "snapshot_identity": result.result_summary().snapshot_identity().as_str(),
-                "subscription_slice_count": result.result_summary().subscription_slice_count(),
-                "delivered_target_count": result.result_summary().delivered_target_count(),
-                "continuity_identity": continuity_summary
-                    .as_ref()
-                    .map(|(artifact, _)| artifact.continuity_identity().as_str()),
-                "continuity_resolution_digest": continuity_summary
-                    .as_ref()
-                    .map(|(artifact, _)| artifact.continuity_resolution_digest()),
-            }),
-            Self::Historical {
-                artifact,
-                record,
-                explanation,
-            } => json!({
-                "historical_artifact_identity": artifact.artifact_identity().as_str(),
-                "historical_record_identity": record.record_identity().as_str(),
-                "declaration_identity": record.declaration().declaration_identity().as_str(),
-                "snapshot_identity": explanation.snapshot_identity().as_str(),
-                "branch_identity": explanation.branch_identity().as_str(),
-                "commit_identity": explanation.commit_identity().as_str(),
-                "materialization_path": format!("{:?}", explanation.materialization_path()),
-                "selector_width": record.counters().selector_width(),
-                "branch_width": record.counters().branch_width(),
-            }),
-            Self::Stream(execution) => execution.summary_json(),
-            Self::Source(execution) => execution.summary_json(),
-            Self::Merge(execution) => execution.summary_json(),
-            Self::Policy(execution) => execution.summary_json(),
-            Self::Speculation(execution) => execution.summary_json(),
-            Self::Structural(execution) => execution.summary_json(),
-            Self::Writeback(execution) => execution.summary_json(),
-        }
-    }
-
-    pub(super) fn extensions_json(
-        &self,
-        runtime_bridge: &crate::facade::RuntimeBridge,
-    ) -> BTreeMap<String, serde_json::Value> {
-        match self {
-            Self::Route {
-                result,
-                continuity_summary,
-            } => BTreeMap::from([
-                (
-                    "bridge_delivery_receipt".to_string(),
-                    json!({
-                        "delivered_target_count": result.receipt().delivered_target_count(),
-                        "snapshot_identity": result.receipt().snapshot_identity().as_str(),
-                    }),
-                ),
-                (
-                    "bridge_route_record".to_string(),
-                    runtime_bridge
-                        .diagnostics()
-                        .last_route_record()
-                        .map(route_record_json)
-                        .unwrap_or_else(|| json!(null)),
-                ),
-                (
-                    "bridge_continuity_record".to_string(),
-                    continuity_summary
-                        .as_ref()
-                        .map(|(artifact, canonical)| json!({
-                            "route_identity": canonical.route_identity().as_str(),
-                            "continuity_request_digest": canonical.continuity_request_digest(),
-                            "continuity_resolution_digest": canonical.continuity_resolution_digest(),
-                            "continuity_artifact_identity": canonical.continuity_artifact_identity().as_str(),
-                            "source_snapshot": canonical.source_snapshot().as_str(),
-                            "source_branch": canonical.source_branch().as_str(),
-                            "outcome_classes": artifact
-                                .continuity_outcomes()
-                                .iter()
-                                .map(|entry| format!("{:?}", entry.outcome_class()))
-                                .collect::<Vec<_>>(),
-                        }))
-                        .unwrap_or_else(|| json!(null)),
-                ),
-            ]),
-            Self::Historical {
-                artifact,
-                record,
-                explanation,
-            } => BTreeMap::from([(
-                "bridge_historical_evaluation_record".to_string(),
-                json!({
-                    "artifact_identity": artifact.artifact_identity().as_str(),
-                    "artifact_digest": artifact.digest(),
-                    "record_identity": record.record_identity().as_str(),
-                    "decision_log_identity": record.decision_log().decision_log_identity().as_str(),
-                    "declaration_identity": record.declaration().declaration_identity().as_str(),
-                    "snapshot_identity": explanation.snapshot_identity().as_str(),
-                    "branch_identity": explanation.branch_identity().as_str(),
-                    "commit_identity": explanation.commit_identity().as_str(),
-                    "materialization_path": format!("{:?}", explanation.materialization_path()),
-                    "counters": {
-                        "truth_view_selector_count": record.counters().truth_view_selector_count(),
-                        "historical_truth_view_count": record.counters().historical_truth_view_count(),
-                        "branch_truth_view_count": record.counters().branch_truth_view_count(),
-                        "planned_truth_view_packet_count": record.counters().planned_truth_view_packet_count(),
-                        "resolved_truth_view_policy_count": record.counters().resolved_truth_view_policy_count(),
-                        "materialized_truth_view_count": record.counters().materialized_truth_view_count(),
-                        "truth_view_unavailable_count": record.counters().truth_view_unavailable_count(),
-                        "truth_view_branch_mismatch_count": record.counters().truth_view_branch_mismatch_count(),
-                        "truth_view_snapshot_mismatch_count": record.counters().truth_view_snapshot_mismatch_count(),
-                        "historical_replay_mismatch_count": record.counters().historical_replay_mismatch_count(),
-                        "branch_local_evaluation_count": record.counters().branch_local_evaluation_count(),
-                        "truth_view_decision_log_count": record.counters().truth_view_decision_log_count(),
-                        "selector_width": record.counters().selector_width(),
-                        "branch_width": record.counters().branch_width(),
-                        "direct_snapshot_materialization_count": record.counters().direct_snapshot_materialization_count(),
-                        "commit_envelope_materialization_count": record.counters().commit_envelope_materialization_count(),
-                        "branch_head_materialization_count": record.counters().branch_head_materialization_count(),
-                    },
-                }),
-            )]),
-            Self::Stream(execution) => execution.extensions_json(runtime_bridge),
-            Self::Source(execution) => execution.extensions_json(runtime_bridge),
-            Self::Merge(execution) => execution.extensions_json(runtime_bridge),
-            Self::Policy(execution) => execution.extensions_json(runtime_bridge),
-            Self::Speculation(execution) => execution.extensions_json(runtime_bridge),
-            Self::Structural(execution) => execution.extensions_json(runtime_bridge),
-            Self::Writeback(execution) => execution.extensions_json(runtime_bridge),
-        }
-    }
 }
 
 pub(super) fn execute_historical_request(
@@ -210,62 +69,241 @@ pub(super) fn execute_historical_request(
     })
 }
 
-pub(super) fn parse_harness_target(target: &str) -> Result<HarnessTarget, BridgeHarnessError> {
-    if let Some(stream_target) = super::stream::parse_stream_harness_target(target) {
-        return stream_target.map(HarnessTarget::Stream);
+pub(super) fn harness_target_from_id(
+    target: &BridgeHarnessTargetId,
+) -> Result<HarnessTarget, BridgeHarnessError> {
+    match target {
+        BridgeHarnessTargetId::CommittedRoute { commit_identity } => Ok(HarnessTarget::CommittedRoute {
+            commit_identity: commit_identity.clone(),
+        }),
+        BridgeHarnessTargetId::StreamRouting { commit_window } => {
+            stream_window_target(commit_window).map(|window| {
+                HarnessTarget::Stream(super::stream::StreamHarnessTarget::RoutingWindow { window })
+            })
+        }
+        BridgeHarnessTargetId::StreamReplayAudit { commit_window } => {
+            stream_window_target(commit_window).map(|window| {
+                HarnessTarget::Stream(super::stream::StreamHarnessTarget::ReplayAuditWindow {
+                    window,
+                })
+            })
+        }
+        BridgeHarnessTargetId::SourceMaterialize {
+            declaration_identity,
+        } => Ok(HarnessTarget::Source(
+            super::source::SourceHarnessTarget::Materialize {
+                declaration_identity: declaration_identity.clone(),
+            },
+        )),
+        BridgeHarnessTargetId::SourceMaterializeBatch {
+            declaration_identity,
+        } => Ok(HarnessTarget::Source(
+            super::source::SourceHarnessTarget::MaterializeBatch {
+                declaration_identity: declaration_identity.clone(),
+            },
+        )),
+        BridgeHarnessTargetId::SourceReplay {
+            declaration_identity,
+        } => Ok(HarnessTarget::Source(
+            super::source::SourceHarnessTarget::Replay {
+                declaration_identity: declaration_identity.clone(),
+            },
+        )),
+        BridgeHarnessTargetId::SourceRejectUnregistered {
+            declaration_identity,
+        } => Ok(HarnessTarget::Source(
+            super::source::SourceHarnessTarget::RejectUnregistered {
+                declaration_identity: declaration_identity.clone(),
+            },
+        )),
+        BridgeHarnessTargetId::SourceRejectOpenSnapshot {
+            declaration_identity,
+        } => Ok(HarnessTarget::Source(
+            super::source::SourceHarnessTarget::RejectOpenSnapshot {
+                declaration_identity: declaration_identity.clone(),
+            },
+        )),
+        BridgeHarnessTargetId::SourceRejectSnapshotDrift {
+            declaration_identity,
+        } => Ok(HarnessTarget::Source(
+            super::source::SourceHarnessTarget::RejectSnapshotDrift {
+                declaration_identity: declaration_identity.clone(),
+            },
+        )),
+        BridgeHarnessTargetId::MergeExecute {
+            declaration_identity,
+        } => Ok(HarnessTarget::Merge(
+            super::merge::MergeHarnessTarget::Execute {
+                declaration_identity: declaration_identity.clone(),
+            },
+        )),
+        BridgeHarnessTargetId::MergeReplay {
+            declaration_identity,
+        } => Ok(HarnessTarget::Merge(
+            super::merge::MergeHarnessTarget::Replay {
+                declaration_identity: declaration_identity.clone(),
+            },
+        )),
+        BridgeHarnessTargetId::PolicyProvenanceCertification => Ok(HarnessTarget::Policy(
+            super::policy::PolicyHarnessTarget::ProvenanceCertification,
+        )),
+        BridgeHarnessTargetId::PolicyRejectionCertification => Ok(HarnessTarget::Policy(
+            super::policy::PolicyHarnessTarget::RejectionCertification,
+        )),
+        BridgeHarnessTargetId::PolicyAmbientLeakCertification => Ok(HarnessTarget::Policy(
+            super::policy::PolicyHarnessTarget::AmbientLeakCertification,
+        )),
+        BridgeHarnessTargetId::SpeculationDiscardCertification => Ok(HarnessTarget::Speculation(
+            super::speculation::SpeculationHarnessTarget::DiscardCertification,
+        )),
+        BridgeHarnessTargetId::SpeculationPromotionCertification => Ok(HarnessTarget::Speculation(
+            super::speculation::SpeculationHarnessTarget::PromotionCertification,
+        )),
+        BridgeHarnessTargetId::SpeculationChurnCertification => Ok(HarnessTarget::Speculation(
+            super::speculation::SpeculationHarnessTarget::ChurnCertification,
+        )),
+        BridgeHarnessTargetId::StructuralRemapExact {
+            declaration_identity,
+        } => structural_target(declaration_identity, StructuralTargetKind::RemapExact),
+        BridgeHarnessTargetId::StructuralRemapAmbiguous {
+            declaration_identity,
+        } => structural_target(declaration_identity, StructuralTargetKind::RemapAmbiguous),
+        BridgeHarnessTargetId::StructuralRemapNoSafeMatch {
+            declaration_identity,
+        } => structural_target(declaration_identity, StructuralTargetKind::RemapNoSafeMatch),
+        BridgeHarnessTargetId::StructuralRemapLineageDivergence {
+            declaration_identity,
+        } => structural_target(
+            declaration_identity,
+            StructuralTargetKind::RemapLineageDivergence,
+        ),
+        BridgeHarnessTargetId::StructuralRemapIdentityConflict {
+            declaration_identity,
+        } => structural_target(
+            declaration_identity,
+            StructuralTargetKind::RemapIdentityConflict,
+        ),
+        BridgeHarnessTargetId::StructuralRemapReplay {
+            declaration_identity,
+        } => structural_target(declaration_identity, StructuralTargetKind::RemapReplay),
+        BridgeHarnessTargetId::StructuralBranchCompare {
+            declaration_identity,
+        } => structural_target(declaration_identity, StructuralTargetKind::BranchCompare),
+        BridgeHarnessTargetId::StructuralBranchReplay {
+            declaration_identity,
+        } => structural_target(declaration_identity, StructuralTargetKind::BranchReplay),
+        BridgeHarnessTargetId::WritebackDuplicateCertification => Ok(HarnessTarget::Writeback(
+            super::writeback::WritebackHarnessTarget::DuplicateCertification,
+        )),
+        BridgeHarnessTargetId::WritebackAuthorityDenialCertification => {
+            Ok(HarnessTarget::Writeback(
+                super::writeback::WritebackHarnessTarget::AuthorityDenialCertification,
+            ))
+        }
+        BridgeHarnessTargetId::WritebackFeedbackLoopCertification => Ok(HarnessTarget::Writeback(
+            super::writeback::WritebackHarnessTarget::FeedbackLoopCertification,
+        )),
+        BridgeHarnessTargetId::WritebackReplayMismatchCertification => {
+            Ok(HarnessTarget::Writeback(
+                super::writeback::WritebackHarnessTarget::ReplayMismatchCertification,
+            ))
+        }
+        BridgeHarnessTargetId::WritebackExtensibleFamilyCertification => {
+            Ok(HarnessTarget::Writeback(
+                super::writeback::WritebackHarnessTarget::ExtensibleFamilyCertification,
+            ))
+        }
+        BridgeHarnessTargetId::WritebackMultiFamilyAdmissionBoundaryCertification => {
+            Ok(HarnessTarget::Writeback(
+                super::writeback::WritebackHarnessTarget::MultiFamilyAdmissionBoundaryCertification,
+            ))
+        }
+        BridgeHarnessTargetId::WritebackCrossFamilyReplayLoopIsolationCertification => {
+            Ok(HarnessTarget::Writeback(
+                super::writeback::WritebackHarnessTarget::CrossFamilyReplayLoopIsolationCertification,
+            ))
+        }
+        BridgeHarnessTargetId::WritebackHostMapperParityCertification => {
+            Ok(HarnessTarget::Writeback(
+                super::writeback::WritebackHarnessTarget::HostMapperParityCertification,
+            ))
+        }
+        BridgeHarnessTargetId::HistoricalCommit {
+            branch_identity,
+            commit_identity,
+        } => Ok(HarnessTarget::HistoricalCommit {
+            branch_identity: branch_identity.clone(),
+            commit_identity: commit_identity.clone(),
+        }),
+        BridgeHarnessTargetId::BranchHead { branch_identity } => Ok(HarnessTarget::BranchHead {
+            branch_identity: branch_identity.clone(),
+        }),
     }
-    if let Some(source_target) = super::source::parse_source_harness_target(target) {
-        return source_target.map(HarnessTarget::Source);
-    }
-    if let Some(merge_target) = super::merge::parse_merge_harness_target(target) {
-        return merge_target.map(HarnessTarget::Merge);
-    }
-    if let Some(policy_target) = super::policy::parse_policy_harness_target(target) {
-        return policy_target.map(HarnessTarget::Policy);
-    }
-    if let Some(speculation_target) = super::speculation::parse_speculation_harness_target(target) {
-        return speculation_target.map(HarnessTarget::Speculation);
-    }
-    if let Some(structural_target) = super::structural::parse_structural_harness_target(target) {
-        return structural_target.map(HarnessTarget::Structural);
-    }
-    if let Some(writeback_target) = super::writeback::parse_writeback_harness_target(target) {
-        return writeback_target.map(HarnessTarget::Writeback);
-    }
+}
 
-    if let Some(rest) = target.strip_prefix("history-commit:") {
-        let mut parts = rest.splitn(2, ':');
-        let branch = parts
-            .next()
-            .ok_or_else(|| BridgeHarnessError::new("history-commit target requires branch"))?;
-        let commit = parts
-            .next()
-            .ok_or_else(|| BridgeHarnessError::new("history-commit target requires commit"))?;
-        return Ok(HarnessTarget::HistoricalCommit {
-            branch_identity: TruthBranchIdentity::new(branch),
-            commit_identity: TruthCommitIdentity::new(commit),
-        });
-    }
-    if let Some(rest) = target.strip_prefix("branch-head:") {
-        return Ok(HarnessTarget::BranchHead {
-            branch_identity: TruthBranchIdentity::new(rest),
-        });
-    }
-    if let Some(rest) = target.strip_prefix("branch-commit:") {
-        let mut parts = rest.splitn(2, ':');
-        let branch = parts
-            .next()
-            .ok_or_else(|| BridgeHarnessError::new("branch-commit target requires branch"))?;
-        let commit = parts
-            .next()
-            .ok_or_else(|| BridgeHarnessError::new("branch-commit target requires commit"))?;
-        return Ok(HarnessTarget::BranchCommit {
-            branch_identity: TruthBranchIdentity::new(branch),
-            commit_identity: TruthCommitIdentity::new(commit),
-        });
-    }
+fn stream_window_target(
+    commit_window: &[TruthCommitIdentity],
+) -> Result<super::stream::NativeStreamCommitWindow, BridgeHarnessError> {
+    super::stream::NativeStreamCommitWindow::from_commits(commit_window.iter().cloned())
+}
 
-    Ok(HarnessTarget::CommittedRoute {
-        commit_identity: target.to_string(),
-    })
+enum StructuralTargetKind {
+    RemapExact,
+    RemapAmbiguous,
+    RemapNoSafeMatch,
+    RemapLineageDivergence,
+    RemapIdentityConflict,
+    RemapReplay,
+    BranchCompare,
+    BranchReplay,
+}
+
+fn structural_target(
+    declaration_identity: &crate::structural::StructuralIdentityDeclarationIdentity,
+    kind: StructuralTargetKind,
+) -> Result<HarnessTarget, BridgeHarnessError> {
+    let declaration_identity = declaration_identity.clone();
+    let target = match kind {
+        StructuralTargetKind::RemapExact => {
+            super::structural::StructuralHarnessTarget::RemapExact {
+                declaration_identity,
+            }
+        }
+        StructuralTargetKind::RemapAmbiguous => {
+            super::structural::StructuralHarnessTarget::RemapAmbiguous {
+                declaration_identity,
+            }
+        }
+        StructuralTargetKind::RemapNoSafeMatch => {
+            super::structural::StructuralHarnessTarget::RemapNoSafeMatch {
+                declaration_identity,
+            }
+        }
+        StructuralTargetKind::RemapLineageDivergence => {
+            super::structural::StructuralHarnessTarget::RemapLineageDivergence {
+                declaration_identity,
+            }
+        }
+        StructuralTargetKind::RemapIdentityConflict => {
+            super::structural::StructuralHarnessTarget::RemapIdentityConflict {
+                declaration_identity,
+            }
+        }
+        StructuralTargetKind::RemapReplay => {
+            super::structural::StructuralHarnessTarget::RemapReplay {
+                declaration_identity,
+            }
+        }
+        StructuralTargetKind::BranchCompare => {
+            super::structural::StructuralHarnessTarget::BranchCompare {
+                declaration_identity,
+            }
+        }
+        StructuralTargetKind::BranchReplay => {
+            super::structural::StructuralHarnessTarget::BranchReplay {
+                declaration_identity,
+            }
+        }
+    };
+    Ok(HarnessTarget::Structural(target))
 }

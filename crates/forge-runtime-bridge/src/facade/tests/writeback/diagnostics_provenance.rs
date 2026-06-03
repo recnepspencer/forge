@@ -11,10 +11,10 @@ fn writeback_diagnostics_tier_variation_preserves_replay_meaning() {
     let standard_contract = standard_runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                "writeback:diagnostics-tier-standard",
+                BridgeWritebackDeclarationIdentity::new("writeback:diagnostics-tier-standard"),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
-                "strategy:sha256:diagnostics-tier",
+                "diagnostics-tier",
             ),
             &standard_lowered_policy,
         )
@@ -22,10 +22,10 @@ fn writeback_diagnostics_tier_variation_preserves_replay_meaning() {
     let exhaustive_contract = exhaustive_runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                "writeback:diagnostics-tier-exhaustive",
+                BridgeWritebackDeclarationIdentity::new("writeback:diagnostics-tier-exhaustive"),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
-                "strategy:sha256:diagnostics-tier",
+                "diagnostics-tier",
             ),
             &exhaustive_lowered_policy,
         )
@@ -33,28 +33,40 @@ fn writeback_diagnostics_tier_variation_preserves_replay_meaning() {
 
     let standard_effect = standard_runtime.lower_writeback_effect(
         &standard_contract,
-        &causality_basis("causality:diagnostics-tier", "trigger:sha256:commit-a"),
+        &causality_basis(
+            BridgeWritebackCausalityIdentity::new("causality:diagnostics-tier"),
+            "commit-a",
+        ),
         BridgeWritebackEffectIdentity::new("effect:diagnostics-tier"),
-        "effect:sha256:diagnostics-tier",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "diagnostics-tier",
+        ),
     );
     let exhaustive_effect = exhaustive_runtime.lower_writeback_effect(
         &exhaustive_contract,
-        &causality_basis("causality:diagnostics-tier", "trigger:sha256:commit-a"),
+        &causality_basis(
+            BridgeWritebackCausalityIdentity::new("causality:diagnostics-tier"),
+            "commit-a",
+        ),
         BridgeWritebackEffectIdentity::new("effect:diagnostics-tier"),
-        "effect:sha256:diagnostics-tier",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "diagnostics-tier",
+        ),
     );
 
     let standard_idempotence = standard_runtime.classify_writeback_idempotence(
         &standard_effect,
         &standard_lowered_policy,
-        "truth-state:sha256:diagnostics-tier",
+        &truth_state_basis(&standard_effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:diagnostics-tier"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let exhaustive_idempotence = exhaustive_runtime.classify_writeback_idempotence(
         &exhaustive_effect,
         &exhaustive_lowered_policy,
-        "truth-state:sha256:diagnostics-tier",
+        &truth_state_basis(&exhaustive_effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:diagnostics-tier"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
@@ -130,10 +142,10 @@ fn writeback_feedback_provenance_is_diagnostics_invariant_for_semantically_equal
     let standard_contract = standard_runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                "writeback:feedback-provenance-standard",
+                BridgeWritebackDeclarationIdentity::new("writeback:feedback-provenance-standard"),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
-                "strategy:sha256:feedback-provenance",
+                "feedback-provenance",
             ),
             &standard_lowered_policy,
         )
@@ -141,10 +153,10 @@ fn writeback_feedback_provenance_is_diagnostics_invariant_for_semantically_equal
     let exhaustive_contract = exhaustive_runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                "writeback:feedback-provenance-exhaustive",
+                BridgeWritebackDeclarationIdentity::new("writeback:feedback-provenance-exhaustive"),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
-                "strategy:sha256:feedback-provenance",
+                "feedback-provenance",
             ),
             &exhaustive_lowered_policy,
         )
@@ -152,15 +164,27 @@ fn writeback_feedback_provenance_is_diagnostics_invariant_for_semantically_equal
 
     let standard_effect = standard_runtime.lower_writeback_effect(
         &standard_contract,
-        &causality_basis("causality:feedback-provenance", "trigger:sha256:commit-a"),
+        &causality_basis(
+            BridgeWritebackCausalityIdentity::new("causality:feedback-provenance"),
+            "commit-a",
+        ),
         BridgeWritebackEffectIdentity::new("effect:feedback-provenance"),
-        "effect:sha256:feedback-provenance",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "feedback-provenance",
+        ),
     );
     let exhaustive_effect = exhaustive_runtime.lower_writeback_effect(
         &exhaustive_contract,
-        &causality_basis("causality:feedback-provenance", "trigger:sha256:commit-a"),
+        &causality_basis(
+            BridgeWritebackCausalityIdentity::new("causality:feedback-provenance"),
+            "commit-a",
+        ),
         BridgeWritebackEffectIdentity::new("effect:feedback-provenance"),
-        "effect:sha256:feedback-provenance",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "feedback-provenance",
+        ),
     );
 
     let standard_provenance =
@@ -171,8 +195,8 @@ fn writeback_feedback_provenance_is_diagnostics_invariant_for_semantically_equal
     assert_ne!(standard_contract.digest(), exhaustive_contract.digest());
     assert_ne!(standard_effect.digest(), exhaustive_effect.digest());
     assert_eq!(
-        standard_provenance.effect_digest(),
-        exhaustive_provenance.effect_digest()
+        standard_provenance.effect_intent_digest(),
+        exhaustive_provenance.effect_intent_digest()
     );
     assert_eq!(
         standard_provenance.causality_digest(),

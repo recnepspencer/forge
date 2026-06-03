@@ -13,19 +13,19 @@ pub(crate) fn replay_route_record(
     let planned_result = match record.contract_proof().route_planning_policy() {
         Some(route_policy) => runtime
             .plan_committed_patch_with_mapping_context_and_route_policy_for_replay(
-                BridgeRouteRequest::for_commit(record.source_commit().as_str()),
+                BridgeRouteRequest::for_commit(record.source_commit().clone()),
                 record.mapping_context().clone(),
                 route_policy,
             ),
         None => match record.contract_proof().route_planning_policy_digest() {
             Some(route_policy_digest) => runtime
                 .plan_committed_patch_with_mapping_context_and_route_policy_digest_for_replay(
-                    BridgeRouteRequest::for_commit(record.source_commit().as_str()),
+                    BridgeRouteRequest::for_commit(record.source_commit().clone()),
                     record.mapping_context().clone(),
                     route_policy_digest,
                 ),
             None => runtime.plan_committed_patch_with_mapping_context(
-                BridgeRouteRequest::for_commit(record.source_commit().as_str()),
+                BridgeRouteRequest::for_commit(record.source_commit().clone()),
                 record.mapping_context().clone(),
             ),
         },

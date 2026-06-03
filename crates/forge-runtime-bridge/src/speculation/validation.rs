@@ -7,6 +7,41 @@ use crate::error::{BridgeSpeculationError, BridgeSpeculationErrorKind};
 use super::declaration::BridgePreviewSessionDeclaration;
 use super::taxonomy::BridgeRequestKind;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PreviewSessionDeclarationDigestRequirement {
+    TruthViewBasis,
+    SourceCapability,
+    RequestShape,
+    RetainedArtifactSchema,
+}
+
+impl PreviewSessionDeclarationDigestRequirement {
+    const ALL: [Self; 4] = [
+        Self::TruthViewBasis,
+        Self::SourceCapability,
+        Self::RequestShape,
+        Self::RetainedArtifactSchema,
+    ];
+
+    fn digest<'a>(self, declaration: &'a BridgePreviewSessionDeclaration) -> &'a str {
+        match self {
+            Self::TruthViewBasis => declaration.truth_view_basis_digest(),
+            Self::SourceCapability => declaration.source_capability_digest(),
+            Self::RequestShape => declaration.request_shape_digest(),
+            Self::RetainedArtifactSchema => declaration.retained_artifact_schema_digest(),
+        }
+    }
+
+    fn failure_subject(self) -> &'static str {
+        match self {
+            Self::TruthViewBasis => "truth-view basis",
+            Self::SourceCapability => "source capability",
+            Self::RequestShape => "request shape",
+            Self::RetainedArtifactSchema => "retained artifact schema",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidatedBridgePreviewSessionDeclaration {
     declaration: BridgePreviewSessionDeclaration,
@@ -49,22 +84,14 @@ impl ValidatedBridgePreviewSessionDeclaration {
             ));
         }
 
-        for (label, digest) in [
-            ("truth-view basis", declaration.truth_view_basis_digest()),
-            ("source capability", declaration.source_capability_digest()),
-            ("request shape", declaration.request_shape_digest()),
-            (
-                "retained artifact schema",
-                declaration.retained_artifact_schema_digest(),
-            ),
-        ] {
-            if digest.is_empty() {
+        for requirement in PreviewSessionDeclarationDigestRequirement::ALL {
+            if requirement.digest(&declaration).is_empty() {
                 return Err(BridgeSpeculationError::new(
                     BridgeSpeculationErrorKind::PromotionAdmissibilityMismatch,
                     format!(
                         "Preview session declaration `{}` requires non-empty {} digest.",
                         declaration.declaration_identity().as_str(),
-                        label,
+                        requirement.failure_subject(),
                     ),
                 ));
             }
@@ -102,11 +129,25 @@ impl ValidatedBridgePreviewSessionDeclaration {
 mod tests {
     use super::ValidatedBridgePreviewSessionDeclaration;
     use crate::input::envelope::TruthBranchIdentity;
+    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+    use crate::source::{BridgeSourceCapability, BridgeSourceCapabilitySet};
     use crate::speculation::{
+        BridgePreviewRetainedArtifactSchema, BridgePreviewSessionBasis,
         BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
         BridgeRequestKind, BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
         BridgeSpeculativeBranchBindingIdentity,
     };
+
+    fn preview_session_basis() -> BridgePreviewSessionBasis {
+        BridgePreviewSessionBasis::new(
+            BridgeTruthViewSelector::committed_snapshot(
+                TruthBranchIdentity::new("truth-branch"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+            ),
+            BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
+            BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,
+        )
+    }
 
     #[test]
     fn validation_rejects_authoritative_request_kind_for_preview_session() {
@@ -118,10 +159,7 @@ mod tests {
                 TruthBranchIdentity::new("truth-branch"),
                 BridgeSignalBranchIdentity::new("signal-branch"),
             ),
-            "truth-view-digest",
-            "source-capability-digest",
-            "request-shape-digest",
-            "artifact-schema-digest",
+            preview_session_basis(),
         );
 
         let error = ValidatedBridgePreviewSessionDeclaration::new(declaration)

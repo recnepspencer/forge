@@ -15,6 +15,9 @@ pub(crate) fn parallel_legality_reason_label(reason: BridgeParallelLegalityReaso
         BridgeParallelLegalityReason::ContinuityRemapRequiresSerialPreparation => {
             "continuity-remap-requires-serial-preparation"
         }
+        BridgeParallelLegalityReason::PacketRegionOverlapDetected => {
+            "packet-region-overlap-detected"
+        }
         BridgeParallelLegalityReason::DisjointPacketRegionsCertified => {
             "disjoint-packet-regions-certified"
         }
@@ -69,6 +72,9 @@ pub(crate) fn parallel_admission_reason_label(
         }
         BridgeParallelAdmissionReason::ContinuityRemapRequiresSerialPreparation => {
             "continuity-remap-requires-serial-preparation"
+        }
+        BridgeParallelAdmissionReason::PacketRegionOverlapDetected => {
+            "packet-region-overlap-detected"
         }
         BridgeParallelAdmissionReason::AdmittedOperational => "admitted-operational",
     }

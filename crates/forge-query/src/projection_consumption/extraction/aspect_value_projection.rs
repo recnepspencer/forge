@@ -1,4 +1,20 @@
-use forge_foundational::facade::{AspectValue, InternedString};
+use forge_foundational::facade::{
+    AspectValue, ContractValidatedAspectArtifact, ContractValidatedAspectValueView, InternedString,
+    StructAspectValue,
+};
+
+pub(super) fn project_validated_aspect_value_for_consumption_json(
+    value: &ContractValidatedAspectArtifact,
+) -> serde_json::Value {
+    match value.payload().view() {
+        ContractValidatedAspectValueView::Scalar(value) => {
+            project_aspect_value_for_consumption_json(value)
+        }
+        ContractValidatedAspectValueView::Struct(value) => {
+            project_struct_aspect_value_for_consumption_json(value)
+        }
+    }
+}
 
 pub(super) fn project_aspect_value_for_consumption_json(value: &AspectValue) -> serde_json::Value {
     match value {
@@ -52,6 +68,22 @@ pub(super) fn project_aspect_value_for_consumption_json(value: &AspectValue) -> 
             serde_json::Value::String(format!("content-ref:{}", value.0))
         }
     }
+}
+
+fn project_struct_aspect_value_for_consumption_json(
+    value: &StructAspectValue,
+) -> serde_json::Value {
+    serde_json::Value::Object(
+        value
+            .fields()
+            .map(|(field, value)| {
+                (
+                    field.as_str().to_string(),
+                    project_aspect_value_for_consumption_json(value),
+                )
+            })
+            .collect(),
+    )
 }
 
 fn float_value_to_json(value: f64, label: &str, bits: u64) -> serde_json::Value {

@@ -74,7 +74,7 @@ impl ReducedMergeRoutingArtifact {
 #[cfg(test)]
 mod tests {
     use super::ReducedMergeRoutingArtifact;
-    use crate::input::envelope::TruthCommitIdentity;
+
     use crate::merge::{
         AdmittedMergeRegistry, BridgeMergeAuthorityBasis, BridgeMergeAuthorityBasisKind,
         BridgeMergeConsumptionClass, BridgeMergeOntologyMappingSurface,
@@ -94,8 +94,8 @@ mod tests {
                 "rel-merge-v1",
                 "schema-policy-v1",
                 BridgeMergeParentOrderProof::new(vec![
-                    TruthCommitIdentity::new("parent-a"),
-                    TruthCommitIdentity::new("parent-b"),
+                    crate::facade::TruthCommitIdentity::new("parent-a"),
+                    crate::facade::TruthCommitIdentity::new("parent-b"),
                 ]),
             ),
         );

@@ -8,7 +8,7 @@ pub enum BridgeSourceCapability {
     HistoricalRead,
     BranchRead,
     FacetRead,
-    ReplayCompatibleRead,
+    ReplayContinuityRead,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -87,6 +87,33 @@ mod tests {
                 BridgeSourceCapability::SnapshotRead,
                 BridgeSourceCapability::FacetRead
             ]
+        );
+        assert_eq!(
+            left.canonical_basis(),
+            "source-capability-set|capabilities=SnapshotRead,FacetRead"
+        );
+    }
+
+    #[test]
+    fn source_capability_set_names_replay_continuity_as_native_capability() {
+        let capabilities = BridgeSourceCapabilitySet::new(vec![
+            BridgeSourceCapability::ReplayContinuityRead,
+            BridgeSourceCapability::FacetRead,
+            BridgeSourceCapability::SnapshotRead,
+            BridgeSourceCapability::ReplayContinuityRead,
+        ]);
+
+        assert_eq!(
+            capabilities.capabilities(),
+            &[
+                BridgeSourceCapability::SnapshotRead,
+                BridgeSourceCapability::FacetRead,
+                BridgeSourceCapability::ReplayContinuityRead,
+            ]
+        );
+        assert_eq!(
+            capabilities.canonical_basis(),
+            "source-capability-set|capabilities=SnapshotRead,FacetRead,ReplayContinuityRead"
         );
     }
 }

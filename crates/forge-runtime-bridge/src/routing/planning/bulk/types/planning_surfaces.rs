@@ -7,7 +7,7 @@ pub struct BridgeBulkPlanningCounters {
     bulk_packet_entry_count: usize,
     bulk_reduction_input_count: usize,
     bulk_reduction_output_count: usize,
-    bulk_fallback_count: usize,
+    bulk_widening_count: usize,
     bulk_packet_queue_depth_peak: usize,
     bulk_reducer_input_buffer_peak: usize,
     bulk_replay_mismatch_count: usize,
@@ -17,7 +17,7 @@ pub struct BridgeBulkPlanningCounters {
     bulk_parallel_profitable_count: usize,
     bulk_parallel_preparation_admitted_count: usize,
     bulk_parallel_preparation_rejected_count: usize,
-    bulk_parallel_fallback_to_serial_count: usize,
+    bulk_parallel_serial_reduction_count: usize,
 }
 
 impl BridgeBulkPlanningCounters {
@@ -28,7 +28,7 @@ impl BridgeBulkPlanningCounters {
         bulk_packet_entry_count: usize,
         bulk_reduction_input_count: usize,
         bulk_reduction_output_count: usize,
-        bulk_fallback_count: usize,
+        bulk_widening_count: usize,
         bulk_packet_queue_depth_peak: usize,
         bulk_reducer_input_buffer_peak: usize,
         bulk_replay_mismatch_count: usize,
@@ -61,7 +61,7 @@ impl BridgeBulkPlanningCounters {
             bulk_packet_entry_count,
             bulk_reduction_input_count,
             bulk_reduction_output_count,
-            bulk_fallback_count,
+            bulk_widening_count,
             bulk_packet_queue_depth_peak,
             bulk_reducer_input_buffer_peak,
             bulk_replay_mismatch_count,
@@ -71,7 +71,7 @@ impl BridgeBulkPlanningCounters {
             bulk_parallel_profitable_count: usize::from(parallel_profitable),
             bulk_parallel_preparation_admitted_count: usize::from(parallel_admitted),
             bulk_parallel_preparation_rejected_count: usize::from(parallel_rejected),
-            bulk_parallel_fallback_to_serial_count: usize::from(
+            bulk_parallel_serial_reduction_count: usize::from(
                 parallel_legal && !parallel_profitable,
             ),
         }
@@ -117,8 +117,8 @@ impl BridgeBulkPlanningCounters {
     pub fn bulk_reduction_output_count(&self) -> usize {
         self.bulk_reduction_output_count
     }
-    pub fn bulk_fallback_count(&self) -> usize {
-        self.bulk_fallback_count
+    pub fn bulk_widening_count(&self) -> usize {
+        self.bulk_widening_count
     }
     pub fn bulk_packet_queue_depth_peak(&self) -> usize {
         self.bulk_packet_queue_depth_peak
@@ -147,8 +147,8 @@ impl BridgeBulkPlanningCounters {
     pub fn bulk_parallel_preparation_rejected_count(&self) -> usize {
         self.bulk_parallel_preparation_rejected_count
     }
-    pub fn bulk_parallel_fallback_to_serial_count(&self) -> usize {
-        self.bulk_parallel_fallback_to_serial_count
+    pub fn bulk_parallel_serial_reduction_count(&self) -> usize {
+        self.bulk_parallel_serial_reduction_count
     }
 }
 

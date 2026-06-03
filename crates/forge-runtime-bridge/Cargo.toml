@@ -11,6 +11,7 @@ categories = ["data-structures", "science"]
 [dependencies]
 forge-foundational.workspace = true
 forge-harness.workspace = true
+forge-proof.workspace = true
 serde_json.workspace = true
 sha2 = "0.10"
 

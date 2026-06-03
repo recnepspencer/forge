@@ -11,7 +11,7 @@ fn main() {
         bridge_envelope_slope_counter: 0,
         materialization_slope_counter: 0,
         artifact_serialization_slope_counter: 0,
-        bridge_scan_fallback_count: 0,
+        bridge_unindexed_scan_count: 0,
         bridge_readmission_proof_digest: None,
         snapshot_digest: String::new(),
     };

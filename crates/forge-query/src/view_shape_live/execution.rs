@@ -362,8 +362,8 @@ fn execute_live_view_shape_change_inner(
             let next_grouped_state = desired_state_from_members(
                 next_grouped_execution
                     .grouped_planning()
-                    .grouping_aspect()
-                    .to_string(),
+                    .native_grouping_aspect_key()
+                    .clone(),
                 next_grouped_execution
                     .member_rows()
                     .iter()

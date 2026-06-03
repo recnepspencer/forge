@@ -14,14 +14,14 @@ pub(crate) fn lower_lineage_authority(
     match authority.topology() {
         BridgeHistoricalLineageTopology::SingleSuccessor => {
             let canonical_subject = authority
-                .canonical_resolved_lineage_keys()
+                .canonical_resolved_lineage_identities()
                 .first()
-                .map(|key| key.as_ref())
+                .map(|identity| identity.as_str())
                 .unwrap_or(authority.lineage_digest());
             let authoritative_counterpart = authority
-                .canonical_resolved_record_keys()
+                .canonical_resolved_record_identities()
                 .first()
-                .map(|key| key.as_ref())
+                .map(|identity| identity.as_str())
                 .unwrap_or(authority.lineage_digest());
 
             LineageEvidenceInput::AuthoritativeContinuity {

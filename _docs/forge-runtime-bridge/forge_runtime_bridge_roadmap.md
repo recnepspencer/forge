@@ -24,6 +24,10 @@ The governing rule remains:
 
 Current cross-runtime hardening gate:
 
+- [aspect_native_refactor.md](aspect_native_refactor.md) is the active
+  crate-wide hard-break spec for replacing bridge-local JSON, raw byte,
+  string-label, and digest-only authority residue with `forge-foundational`
+  aspect contracts, masks, authoritative state, and patch/effect carriers.
 - [../forge-query/runtime-authoritative-mutation-evidence-plan.md](../forge-query/runtime-authoritative-mutation-evidence-plan.md)
   freezes the shared Query-facing and bridge-facing authority-evidence contract
   for target identity, causality, provenance, naming/writeback evidence, and
@@ -992,6 +996,7 @@ The bridge roadmap is complete only when:
 ## Companion Documents
 
 - [_docs/forge-runtime-bridge/forge_runtime_bridge_vision.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_vision.md)
+- [_docs/forge-runtime-bridge/aspect_native_refactor.md](aspect_native_refactor.md)
 - [_docs/forge-runtime-bridge/test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/test-requirements.md)
 - [_docs/forge-relational/forge_relational_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-relational/forge_relational_roadmap.md)
 - [_docs/forge_signal/forge_signal_vision.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge_signal/forge_signal_vision.md)

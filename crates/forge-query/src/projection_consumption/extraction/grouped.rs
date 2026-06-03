@@ -1,3 +1,4 @@
+use forge_foundational::facade::AspectKey;
 use forge_relational::facade::grouped_truth::RelationalGroupedProjectionArtifact;
 use forge_runtime_bridge::facade::BridgeGroupedTruthViewArtifact;
 
@@ -19,7 +20,7 @@ pub(super) fn extract_relational_grouped_facts(
         contract,
         ProjectionSourceFamily::RelationalGroupedProjection,
         projection.digest().as_str(),
-        projection.contract().grouping_aspect().as_str(),
+        projection.contract().grouping_aspect(),
         projection.members().iter().map(|member| {
             (
                 member.row_identity().as_str(),
@@ -38,7 +39,7 @@ pub(super) fn extract_bridge_grouped_facts(
         contract,
         ProjectionSourceFamily::BridgeGroupedTruthView,
         grouped_truth_view.digest().as_str(),
-        grouped_truth_view.contract().grouping_aspect(),
+        grouped_truth_view.contract().native_grouping_aspect_key(),
         grouped_truth_view.members().iter().map(|member| {
             (
                 member.row_identity().as_str(),
@@ -53,7 +54,7 @@ fn extract_grouped_facts<'a, Members>(
     contract: &MaterializedProjectionContract,
     expected_family: ProjectionSourceFamily,
     source_identity: &str,
-    grouping_aspect: &str,
+    grouping_aspect: &AspectKey,
     members: Members,
 ) -> Result<ConsumedProjectionFactSet, ProjectionFactExtractionError>
 where
@@ -92,7 +93,7 @@ where
                     memberships.push(ConsumedMembershipFact::new(
                         *row_identity,
                         member_identity.clone(),
-                        grouping_aspect,
+                        grouping_aspect.clone(),
                         grouping_value.clone(),
                     ));
                 }
@@ -100,7 +101,7 @@ where
                     relation_endpoints.push(ConsumedRelationEndpointFact::grouped(
                         *row_identity,
                         member_identity.clone(),
-                        grouping_aspect,
+                        grouping_aspect.clone(),
                         grouping_value.clone(),
                     ));
                 }

@@ -2,41 +2,75 @@ use super::*;
 use crate::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEnvelopeDenialKind,
     BridgeCausalEvidenceBinding, BridgeCausalEvidenceBindingClass, BridgeCausalEvidenceFamily,
-    BridgeCausalEvidenceOwner, BridgeCausalEvidenceReference, BridgeTruthViewEvaluationRequest,
+    BridgeCausalEvidenceOwner, BridgeCausalEvidenceReference,
+    BridgeCausalEvidenceReferenceIdentity, BridgeTruthViewEvaluationRequest,
 };
 
 mod admission_summary;
 mod external_authority;
 mod mapping;
+mod mapping_scale;
+mod mapping_support;
 mod receipt;
 mod retained_mapping;
 mod retained_mapping_bulk;
+mod retained_mapping_digest_support;
 mod retained_mapping_edges;
 mod retained_mapping_stream_history;
 mod retained_mapping_support;
 
+use retained_mapping_digest_support::{
+    expected_retained_causal_digest, ExpectedRetainedCausalDigestArtifact,
+};
+
 fn bridge_reference(
-    family: BridgeCausalEvidenceFamily,
-    identity: &str,
+    identity: BridgeCausalEvidenceReferenceIdentity,
 ) -> BridgeCausalEvidenceReference {
+    let family = identity.family();
     BridgeCausalEvidenceReference::new(BridgeCausalEvidenceOwner::RuntimeBridge, family, identity)
         .expect("bridge reference should be valid")
 }
 
 fn external_reference(
     owner: BridgeCausalEvidenceOwner,
-    family: BridgeCausalEvidenceFamily,
-    identity: &str,
+    identity: BridgeCausalEvidenceReferenceIdentity,
 ) -> BridgeCausalEvidenceReference {
+    let family = identity.family();
     BridgeCausalEvidenceReference::new(owner, family, identity)
         .expect("external reference should be valid")
 }
 
-fn query_observation_reference(identity: &str) -> BridgeCausalEvidenceReference {
-    external_reference(
-        BridgeCausalEvidenceOwner::Query,
-        BridgeCausalEvidenceFamily::QueryObservation,
-        identity,
+fn query_observation_reference(
+    identity: BridgeCausalEvidenceReferenceIdentity,
+) -> BridgeCausalEvidenceReference {
+    external_reference(BridgeCausalEvidenceOwner::Query, identity)
+}
+
+fn missing_bridge_reference(
+    family: BridgeCausalEvidenceFamily,
+    identity: &str,
+) -> BridgeCausalEvidenceReference {
+    bridge_reference(
+        BridgeCausalEvidenceReferenceIdentity::runtime_bridge(family, identity)
+            .expect("bridge reference identity should be valid"),
+    )
+}
+
+fn bridge_route_reference(
+    route_summary: &crate::routing::BridgeRouteResultSummary,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeRoute,
+        route_summary.route_identity().as_str(),
+    )
+}
+
+fn bridge_historical_evaluation_reference(
+    record: &crate::diagnostics::BridgeCanonicalHistoricalEvaluationRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeHistoricalEvaluation,
+        record.record_identity().as_str(),
     )
 }
 
@@ -63,8 +97,8 @@ fn expected_retained_route_digest(
     planning_summary_digest: &str,
     lowering_summary_digest: &str,
 ) -> String {
-    digest(
-        "bridge-causal-retained-route-record",
+    expected_retained_causal_digest(
+        ExpectedRetainedCausalDigestArtifact::RouteRecord,
         &[
             route_identity,
             invalidation_identity,
@@ -80,26 +114,14 @@ fn expected_retained_historical_digest(
     decision_log_identity: &str,
     snapshot_identity: &str,
 ) -> String {
-    digest(
-        "bridge-causal-retained-historical-record",
+    expected_retained_causal_digest(
+        ExpectedRetainedCausalDigestArtifact::HistoricalEvaluationRecord,
         &[record_identity, decision_log_identity, snapshot_identity],
     )
 }
 
-fn digest(label: &str, parts: &[&str]) -> String {
-    use sha2::{Digest, Sha256};
-
-    let mut canonical = String::from(label);
-    for part in parts {
-        canonical.push('|');
-        canonical.push_str(part);
-    }
-    let digest = Sha256::digest(canonical.as_bytes());
-    format!("{label}:sha256:{digest:x}")
-}
-
 #[test]
-fn causal_envelope_denies_missing_retained_bridge_record_without_scan_fallback() {
+fn causal_envelope_denies_missing_retained_bridge_record_without_unindexed_scan() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
@@ -108,8 +130,13 @@ fn causal_envelope_denies_missing_retained_bridge_record_without_scan_fallback()
         )
         .expect("query admission summary should be valid"),
         vec![
-            query_observation_reference("query-observation:missing-route"),
-            bridge_reference(
+            query_observation_reference(
+                BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    "query-observation:missing-route",
+                )
+                .expect("query observation reference identity should be valid"),
+            ),
+            missing_bridge_reference(
                 BridgeCausalEvidenceFamily::BridgeRoute,
                 "missing-route-identity",
             ),
@@ -129,14 +156,16 @@ fn causal_envelope_denies_missing_retained_bridge_record_without_scan_fallback()
     assert_eq!(denial.family(), BridgeCausalEvidenceFamily::BridgeRoute);
     assert_eq!(denial.counters().bridge_retained_lookup_count(), 1);
     assert_eq!(denial.counters().missing_bridge_record_count(), 1);
-    assert_eq!(denial.counters().bridge_record_scan_fallback_count(), 0);
+    assert_eq!(denial.counters().bridge_record_unindexed_scan_count(), 0);
 }
 
 #[test]
 fn causal_envelope_missing_historical_record_preserves_prior_lookup_counters() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let routed = runtime
-        .route("commit-causal-before-missing-history")
+        .route(crate::facade::TruthCommitIdentity::new(
+            "commit-causal-before-missing-history",
+        ))
         .expect("route should succeed");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
@@ -145,12 +174,14 @@ fn causal_envelope_missing_historical_record_preserves_prior_lookup_counters() {
         )
         .expect("query admission summary should be valid"),
         vec![
-            query_observation_reference("query-observation:missing-history"),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeRoute,
-                routed.result().result_summary().route_identity().as_str(),
+            query_observation_reference(
+                BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    "query-observation:missing-history",
+                )
+                .expect("query observation reference identity should be valid"),
             ),
-            bridge_reference(
+            bridge_route_reference(routed.result().result_summary()),
+            missing_bridge_reference(
                 BridgeCausalEvidenceFamily::BridgeHistoricalEvaluation,
                 "missing-historical-record",
             ),
@@ -175,7 +206,7 @@ fn causal_envelope_missing_historical_record_preserves_prior_lookup_counters() {
     assert_eq!(denial.counters().bridge_retained_lookup_count(), 2);
     assert_eq!(denial.counters().retained_bridge_binding_count(), 1);
     assert_eq!(denial.counters().missing_bridge_record_count(), 1);
-    assert_eq!(denial.counters().bridge_record_scan_fallback_count(), 0);
+    assert_eq!(denial.counters().bridge_record_unindexed_scan_count(), 0);
 }
 
 #[test]
@@ -190,13 +221,18 @@ fn causal_envelope_denies_external_authority_without_bridge_route_evidence() {
         vec![
             external_reference(
                 BridgeCausalEvidenceOwner::Query,
-                BridgeCausalEvidenceFamily::QueryObservation,
-                "query-observation:external-only",
+                BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    "query-observation:external-only",
+                )
+                .expect("query observation reference identity should be valid"),
             ),
             external_reference(
                 BridgeCausalEvidenceOwner::Signal,
-                BridgeCausalEvidenceFamily::SignalInvalidation,
-                "signal-invalidation:external-only",
+                BridgeCausalEvidenceReferenceIdentity::signal(
+                    BridgeCausalEvidenceFamily::SignalInvalidation,
+                    "signal-invalidation:external-only",
+                )
+                .expect("signal reference identity should be valid"),
             ),
         ],
     )
@@ -215,7 +251,7 @@ fn causal_envelope_denies_external_authority_without_bridge_route_evidence() {
     assert_eq!(denial.counters().evidence_reference_count(), 2);
     assert_eq!(denial.counters().bridge_retained_lookup_count(), 0);
     assert_eq!(denial.counters().external_authority_reference_count(), 2);
-    assert_eq!(denial.counters().bridge_record_scan_fallback_count(), 0);
+    assert_eq!(denial.counters().bridge_record_unindexed_scan_count(), 0);
 }
 
 #[test]
@@ -226,7 +262,7 @@ fn causal_envelope_request_denies_missing_query_observation_anchor() {
             "causal-anchor:missing-query-anchor",
         )
         .expect("query admission summary should be valid"),
-        vec![bridge_reference(
+        vec![missing_bridge_reference(
             BridgeCausalEvidenceFamily::BridgeRoute,
             "route:missing-query-anchor",
         )],
@@ -243,7 +279,7 @@ fn causal_envelope_request_denies_missing_query_observation_anchor() {
     );
     assert_eq!(denial.supplied_owner(), BridgeCausalEvidenceOwner::Query);
     assert_eq!(denial.expected_owner(), BridgeCausalEvidenceOwner::Query);
-    assert_eq!(denial.counters().bridge_record_scan_fallback_count(), 0);
+    assert_eq!(denial.counters().bridge_record_unindexed_scan_count(), 0);
 }
 
 #[test]
@@ -255,9 +291,19 @@ fn causal_envelope_request_denies_multiple_query_observation_anchors() {
         )
         .expect("query admission summary should be valid"),
         vec![
-            query_observation_reference("query-observation:primary"),
-            query_observation_reference("query-observation:overclaim"),
-            bridge_reference(
+            query_observation_reference(
+                BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    "query-observation:primary",
+                )
+                .expect("query observation reference identity should be valid"),
+            ),
+            query_observation_reference(
+                BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    "query-observation:overclaim",
+                )
+                .expect("query observation reference identity should be valid"),
+            ),
+            missing_bridge_reference(
                 BridgeCausalEvidenceFamily::BridgeRoute,
                 "route:query-anchor-overclaim",
             ),
@@ -277,7 +323,7 @@ fn causal_envelope_request_denies_multiple_query_observation_anchors() {
         denial.reference_identity(),
         "query-observation-anchor-count:2"
     );
-    assert_eq!(denial.counters().bridge_record_scan_fallback_count(), 0);
+    assert_eq!(denial.counters().bridge_record_unindexed_scan_count(), 0);
 }
 
 #[test]
@@ -285,7 +331,11 @@ fn causal_reference_denies_owner_mismatch_before_envelope_assembly() {
     let denial = BridgeCausalEvidenceReference::new(
         BridgeCausalEvidenceOwner::Signal,
         BridgeCausalEvidenceFamily::BridgeRoute,
-        "route-owned-by-bridge",
+        BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
+            BridgeCausalEvidenceFamily::BridgeRoute,
+            "route-owned-by-bridge",
+        )
+        .expect("bridge reference identity should be valid"),
     )
     .expect_err("owner mismatch should deny");
 
@@ -306,11 +356,15 @@ fn causal_envelope_lookup_cost_ignores_unrelated_retained_routes() {
         let runtime = runtime(BridgeRuntimePolicy::default());
         for index in 0..unrelated_routes {
             runtime
-                .route(format!("unrelated-causal-{index}"))
+                .route(crate::facade::TruthCommitIdentity::new(format!(
+                    "unrelated-causal-{index}"
+                )))
                 .expect("unrelated route should succeed");
         }
         let routed = runtime
-            .route("commit-causal-target")
+            .route(crate::facade::TruthCommitIdentity::new(
+                "commit-causal-target",
+            ))
             .expect("target route should succeed");
         let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
             crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
@@ -319,11 +373,13 @@ fn causal_envelope_lookup_cost_ignores_unrelated_retained_routes() {
             )
             .expect("query admission summary should be valid"),
             vec![
-                query_observation_reference("query-observation:scale"),
-                bridge_reference(
-                    BridgeCausalEvidenceFamily::BridgeRoute,
-                    routed.result().result_summary().route_identity().as_str(),
+                query_observation_reference(
+                    BridgeCausalEvidenceReferenceIdentity::query_observation(
+                        "query-observation:scale",
+                    )
+                    .expect("query observation reference identity should be valid"),
                 ),
+                bridge_route_reference(routed.result().result_summary()),
             ],
         )
         .expect("request should be valid");
@@ -339,6 +395,6 @@ fn causal_envelope_lookup_cost_ignores_unrelated_retained_routes() {
         );
         assert_eq!(envelope.counters().bridge_retained_lookup_count(), 1);
         assert_eq!(envelope.counters().retained_bridge_binding_count(), 1);
-        assert_eq!(envelope.counters().bridge_record_scan_fallback_count(), 0);
+        assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
     }
 }

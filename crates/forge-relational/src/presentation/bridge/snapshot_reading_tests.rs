@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
-use forge_foundational::facade::{AspectKey, AspectValue};
+use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
 
 use crate::config::data::CascadeDeletePolicy;
 use crate::tests::support::{
     changed_relations, create_entity, create_entity_outcome, create_relation_outcome,
     runtime_with_declared_aspect_schema,
 };
-use forge_runtime_bridge::facade::{SnapshotReadPacket, SnapshotReadRequest, TruthSnapshotReader};
+use forge_runtime_bridge::facade::{
+    SnapshotReadContract, SnapshotReadPacket, SnapshotReadRequest, TruthSnapshotReader,
+};
 
 use super::bridge_snapshot_identity_for_handle;
 use crate::presentation::bridge::snapshot_reading::RuntimePublicationSnapshotReader;
@@ -39,7 +41,7 @@ fn snapshot_reader_reads_published_entity_values_without_projection_surface() {
             published_entity.local_slot.0,
             published_entity.generation.0
         ),
-        aspect_key("name"),
+        scalar_string_contract("name"),
     )]);
 
     let result = reader.read_packet(&packet).expect("published packet read");
@@ -47,8 +49,8 @@ fn snapshot_reader_reads_published_entity_values_without_projection_surface() {
     assert_eq!(result.snapshot_identity(), &snapshot_identity);
     assert_eq!(result.records().len(), 1);
     assert_eq!(
-        decode_snapshot_aspect_bytes(result.records()[0].aspect_bytes()),
-        AspectValue::String("visible".into())
+        result.records()[0].scalar_aspect_value(),
+        Some(&AspectValue::String("visible".into()))
     );
 }
 
@@ -72,7 +74,7 @@ fn snapshot_reader_reads_published_relation_field_aspects_from_authoritative_sta
             "relation:{}:{}:{}",
             relation.partition_id.0, relation.local_slot.0, relation.generation.0
         ),
-        aspect_key("label"),
+        scalar_string_contract("label"),
     )]);
 
     let result = reader
@@ -82,8 +84,8 @@ fn snapshot_reader_reads_published_relation_field_aspects_from_authoritative_sta
     assert_eq!(result.snapshot_identity(), &snapshot_identity);
     assert_eq!(result.records().len(), 1);
     assert_eq!(
-        decode_snapshot_aspect_bytes(result.records()[0].aspect_bytes()),
-        AspectValue::String("visible-edge".into())
+        result.records()[0].scalar_aspect_value(),
+        Some(&AspectValue::String("visible-edge".into()))
     );
 }
 
@@ -108,7 +110,7 @@ fn snapshot_reader_rejects_undeclared_dotted_document_paths() {
             published_entity.local_slot.0,
             published_entity.generation.0
         ),
-        aspect_key("profile.name"),
+        scalar_string_contract("profile.name"),
     )]);
 
     let error = reader
@@ -127,10 +129,10 @@ fn runtime_with_test_schema() -> crate::facade::runtime::RelationalRuntime {
     runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations)
 }
 
-fn decode_snapshot_aspect_bytes(aspect_bytes: &[u8]) -> AspectValue {
-    crate::aspect_wire::decode_aspect_value(aspect_bytes).expect("snapshot aspect bytes")
-}
-
 fn aspect_key(value: &str) -> AspectKey {
     AspectKey::new(value).expect("valid test aspect key")
+}
+
+fn scalar_string_contract(aspect: &str) -> SnapshotReadContract {
+    SnapshotReadContract::scalar(aspect_key(aspect), ScalarAspectType::String)
 }

@@ -12,7 +12,7 @@ pub(crate) fn detect_failures(
         || left.digest_algorithm() != right.digest_algorithm()
     {
         return vec![
-            BridgeSubscriptionCertificationFailureBoundary::BundleSchemaOrDigestIncompatibility,
+            BridgeSubscriptionCertificationFailureBoundary::BundleSchemaOrDigestDivergence,
         ];
     }
     if !left.completeness_report().is_sufficient() || !right.completeness_report().is_sufficient() {
@@ -70,7 +70,7 @@ pub(crate) fn detect_failures(
             .push(BridgeSubscriptionCertificationFailureBoundary::ContinuationDenialOrAmbiguity);
     }
     if left.semantic_digests().checkpoint_digest() != right.semantic_digests().checkpoint_digest() {
-        failures.push(BridgeSubscriptionCertificationFailureBoundary::CheckpointIncompatibility);
+        failures.push(BridgeSubscriptionCertificationFailureBoundary::CheckpointDivergence);
     }
     if left.semantic_digests().replay_digest() != right.semantic_digests().replay_digest() {
         failures.push(BridgeSubscriptionCertificationFailureBoundary::ReplayMismatch);

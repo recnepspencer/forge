@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 use crate::identity::{BridgeIdentity, WritebackStrategyIdentityTag};
 
-use super::BridgeWritebackDeclaration;
+use super::{BridgeWritebackDeclaration, BridgeWritebackStrategyDescriptorBasis};
 
 pub type BridgeWritebackStrategyIdentity = BridgeIdentity<WritebackStrategyIdentityTag>;
 
@@ -15,7 +15,7 @@ pub struct BridgeWritebackStrategyBasis {
     family_digest: Arc<str>,
     family_kind: crate::writeback::BridgeWritebackFamilyKind,
     strategy_class: crate::writeback::BridgeWritebackStrategyClass,
-    strategy_descriptor_digest: Arc<str>,
+    strategy_descriptor_basis: BridgeWritebackStrategyDescriptorBasis,
     canonical_basis: Arc<str>,
     digest: Arc<str>,
 }
@@ -34,8 +34,10 @@ impl BridgeWritebackStrategyBasis {
         ));
         let declaration_digest = Arc::<str>::from(declaration.digest().to_owned());
         let family_digest = Arc::<str>::from(family_basis.digest().to_owned());
-        let strategy_descriptor_digest =
-            Arc::<str>::from(declaration.strategy_descriptor_digest().to_owned());
+        let strategy_descriptor_basis = declaration
+            .strategy_descriptor_basis()
+            .expect("writeback strategy basis requires native strategy descriptor basis")
+            .clone();
         let canonical_basis = Arc::<str>::from(format!(
             "bridge-writeback-strategy-basis|id={}|declaration={}|family={}|family-kind:{:?}|request-mode:{:?}|effect:{:?}|strategy-class:{strategy_class:?}|strategy={}",
             strategy_identity.as_str(),
@@ -44,7 +46,7 @@ impl BridgeWritebackStrategyBasis {
             family_basis.family_kind(),
             declaration.request_mode(),
             declaration.effect_class(),
-            strategy_descriptor_digest.as_ref(),
+            strategy_descriptor_basis.digest(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
@@ -54,7 +56,7 @@ impl BridgeWritebackStrategyBasis {
             family_digest,
             family_kind: family_basis.family_kind(),
             strategy_class,
-            strategy_descriptor_digest,
+            strategy_descriptor_basis,
             canonical_basis,
             digest: Arc::from(format!("bridge-writeback-strategy-basis:sha256:{digest:x}")),
         }
@@ -80,8 +82,12 @@ impl BridgeWritebackStrategyBasis {
         self.strategy_class
     }
 
+    pub fn strategy_descriptor_basis(&self) -> &BridgeWritebackStrategyDescriptorBasis {
+        &self.strategy_descriptor_basis
+    }
+
     pub fn strategy_descriptor_digest(&self) -> &str {
-        self.strategy_descriptor_digest.as_ref()
+        self.strategy_descriptor_basis.digest()
     }
 
     pub fn canonical_basis(&self) -> &str {

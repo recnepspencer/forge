@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use forge_runtime_bridge::facade::{
     BridgeDeliveryReceipt, BridgeSignalInvalidationDelivery, BridgeTruthViewEvaluationRequest,
-    InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity,
+    InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity, TruthCommitIdentity,
 };
 
 use crate::certification::error::MilestoneOneCertificationError;
@@ -106,7 +106,7 @@ pub(crate) fn certify_milestone_one_bridge_proof(
                     ))
                 })?;
         let _route = bridge
-            .route(format!("commit-{commit_id}"))
+            .route(TruthCommitIdentity::new(format!("commit-{commit_id}")))
             .map_err(|error| {
                 MilestoneOneCertificationError::ReadView(format!(
                     " milestone one bridge proof could not route committed truth: {error:?}"
@@ -160,7 +160,11 @@ pub(crate) fn certify_milestone_one_bridge_proof(
                 "historical:{}:{}:{}:{}:{:?}",
                 record.record_identity(),
                 record.decision_log().branch_identity(),
-                record.decision_log().commit_identity(),
+                record
+                    .decision_log()
+                    .commit_identity()
+                    .map(|identity| identity.as_str())
+                    .unwrap_or("none"),
                 record.decision_log().snapshot_identity(),
                 record.decision_log().materialization_path()
             )

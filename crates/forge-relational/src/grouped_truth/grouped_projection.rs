@@ -131,16 +131,16 @@ impl GroupedProjectionSource for RelationalGroupedProjectionArtifact {
         &self.snapshot_identity
     }
 
-    fn grouping_aspect(&self) -> &str {
-        self.contract.grouping_aspect().as_str()
+    fn grouping_aspect_key(&self) -> &AspectKey {
+        self.contract.grouping_aspect()
     }
 
-    fn identity_binding_aspect_key(&self) -> &str {
-        self.contract.identity_binding_aspect_key().as_str()
+    fn identity_binding_aspect_key(&self) -> &AspectKey {
+        self.contract.identity_binding_aspect_key()
     }
 
-    fn grouping_binding_aspect_key(&self) -> &str {
-        self.contract.grouping_binding_aspect_key().as_str()
+    fn grouping_binding_aspect_key(&self) -> &AspectKey {
+        self.contract.grouping_binding_aspect_key()
     }
 
     fn members(&self) -> &[Self::Member] {
@@ -213,10 +213,10 @@ pub fn project_relational_grouped_truth(
 
 #[cfg(test)]
 mod tests {
-    use forge_foundational::facade::{AspectKey, AspectValue};
+    use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
     use forge_runtime_bridge::facade::{
-        SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
-        TruthSnapshotIdentity,
+        SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
+        SnapshotReadRequest, TruthSnapshotIdentity,
     };
 
     use super::{project_relational_grouped_truth, GroupedProjectionContract};
@@ -225,30 +225,18 @@ mod tests {
     #[test]
     fn relational_grouped_projection_preserves_member_and_grouping_pairing() {
         let packet = SnapshotReadPacket::new(vec![
-            SnapshotReadRequest::for_coarse("entity-1", aspect_key("identity.id")),
-            SnapshotReadRequest::for_coarse("entity-1", aspect_key("status.lane")),
-            SnapshotReadRequest::for_coarse("entity-2", aspect_key("identity.id")),
-            SnapshotReadRequest::for_coarse("entity-2", aspect_key("status.lane")),
+            string_read("entity-1", "identity.id"),
+            string_read("entity-1", "status.lane"),
+            string_read("entity-2", "identity.id"),
+            string_read("entity-2", "status.lane"),
         ]);
         let result = SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
             vec![
-                SnapshotReadRecord::new(
-                    "entity-1:identity.id",
-                    aspect_bytes(AspectValue::String("task-1".into())),
-                ),
-                SnapshotReadRecord::new(
-                    "entity-1:status.lane",
-                    aspect_bytes(AspectValue::String("todo".into())),
-                ),
-                SnapshotReadRecord::new(
-                    "entity-2:identity.id",
-                    aspect_bytes(AspectValue::String("task-2".into())),
-                ),
-                SnapshotReadRecord::new(
-                    "entity-2:status.lane",
-                    aspect_bytes(AspectValue::String("doing".into())),
-                ),
+                read_record(&packet, 0, AspectValue::String("task-1".into())),
+                read_record(&packet, 1, AspectValue::String("todo".into())),
+                read_record(&packet, 2, AspectValue::String("task-2".into())),
+                read_record(&packet, 3, AspectValue::String("doing".into())),
             ],
         );
         let row_set = materialize_relational_authoritative_row_set(&packet, &result).unwrap();
@@ -273,16 +261,10 @@ mod tests {
 
     #[test]
     fn relational_grouped_projection_missing_identity_error_carries_typed_row_identity() {
-        let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
-            "entity-1",
-            aspect_key("status.lane"),
-        )]);
+        let packet = SnapshotReadPacket::new(vec![string_read("entity-1", "status.lane")]);
         let result = SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
-            vec![SnapshotReadRecord::new(
-                "entity-1:status.lane",
-                aspect_bytes(AspectValue::String("todo".into())),
-            )],
+            vec![read_record(&packet, 0, AspectValue::String("todo".into()))],
         );
         let row_set = materialize_relational_authoritative_row_set(&packet, &result).unwrap();
 
@@ -308,8 +290,19 @@ mod tests {
         }
     }
 
-    fn aspect_bytes(value: AspectValue) -> Vec<u8> {
-        crate::aspect_wire::encode_aspect_value(&value)
+    fn read_record(
+        packet: &SnapshotReadPacket,
+        index: usize,
+        value: impl Into<forge_runtime_bridge::facade::SnapshotReadValue>,
+    ) -> SnapshotReadRecord {
+        SnapshotReadRecord::for_request(&packet.reads()[index], value)
+    }
+
+    fn string_read(entity_identity: &str, aspect: &str) -> SnapshotReadRequest {
+        SnapshotReadRequest::for_coarse(
+            entity_identity,
+            SnapshotReadContract::scalar(aspect_key(aspect), ScalarAspectType::String),
+        )
     }
 
     fn aspect_key(value: &str) -> AspectKey {

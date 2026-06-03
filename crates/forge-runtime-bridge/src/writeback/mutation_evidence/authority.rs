@@ -1,7 +1,11 @@
 use std::sync::Arc;
 
 use super::{
-    digest::{aggregate_digest, aggregate_optional_digest},
+    digest::{
+        batch_continuity_mutation_digest, batch_existing_truth_binding_digest,
+        batch_mutation_causality_digest, batch_mutation_provenance_digest,
+        batch_naming_mutation_digest, batch_symbolic_target_reference_digest,
+    },
     existing_truth::BridgeExistingTruthBindingBundle,
     provenance::{BridgeMutationCausalityBundle, BridgeMutationProvenanceBundle},
 };
@@ -108,8 +112,8 @@ pub struct BridgeBatchMutationAuthorityBundle {
     naming_mutation_count: usize,
     continuity_mutation_count: usize,
     outcome_class_count: usize,
-    request_digest_count: usize,
-    receipt_digest_count: usize,
+    authority_request_count: usize,
+    authority_receipt_count: usize,
     aggregate_existing_truth_binding_digest: Option<Arc<str>>,
     aggregate_symbolic_target_reference_digest: Option<Arc<str>>,
     aggregate_naming_mutation_digest: Option<Arc<str>>,
@@ -128,13 +132,13 @@ impl BridgeBatchMutationAuthorityBundle {
             .iter()
             .filter(|component| component.provenance().outcome_class().is_some())
             .count();
-        let request_digest_count = components
+        let authority_request_count = components
             .iter()
-            .filter(|component| component.provenance().request_digest().is_some())
+            .filter(|component| component.provenance().authority_request().is_some())
             .count();
-        let receipt_digest_count = components
+        let authority_receipt_count = components
             .iter()
-            .filter(|component| component.provenance().receipt_digest().is_some())
+            .filter(|component| component.provenance().authority_receipt().is_some())
             .count();
         let existing_truth_bindings = components
             .iter()
@@ -149,13 +153,11 @@ impl BridgeBatchMutationAuthorityBundle {
             .iter()
             .filter_map(|component| component.continuity_mutation());
 
-        let aggregate_existing_truth_binding_digest = aggregate_optional_digest(
-            "bridge-batch-existing-truth-binding",
+        let aggregate_existing_truth_binding_digest = batch_existing_truth_binding_digest(
             existing_truth_bindings.map(|binding| binding.binding_digest().to_string()),
         );
-        let aggregate_symbolic_target_reference_digest = aggregate_optional_digest(
-            "bridge-batch-symbolic-target-reference",
-            symbolic_target_references.map(|reference| {
+        let aggregate_symbolic_target_reference_digest =
+            batch_symbolic_target_reference_digest(symbolic_target_references.map(|reference| {
                 format!(
                     "{:?}:{}:{}:{}",
                     reference.family(),
@@ -163,11 +165,9 @@ impl BridgeBatchMutationAuthorityBundle {
                     reference.resolved_entity_identity(),
                     reference.target_collection().unwrap_or("none")
                 )
-            }),
-        );
-        let aggregate_naming_mutation_digest = aggregate_optional_digest(
-            "bridge-batch-naming-mutation",
-            naming_mutations.map(|naming| {
+            }));
+        let aggregate_naming_mutation_digest =
+            batch_naming_mutation_digest(naming_mutations.map(|naming| {
                 format!(
                     "{:?}:{:?}:{}:{}:{}:{}:{}",
                     naming.family(),
@@ -178,26 +178,15 @@ impl BridgeBatchMutationAuthorityBundle {
                     naming.resolved_target_entity_identity().unwrap_or("none"),
                     naming.target_collection().unwrap_or("none")
                 )
-            }),
-        );
-        let aggregate_continuity_mutation_digest = aggregate_optional_digest(
-            "bridge-batch-continuity-mutation",
-            continuity_mutations.map(|continuity| {
+            }));
+        let aggregate_continuity_mutation_digest =
+            batch_continuity_mutation_digest(continuity_mutations.map(|continuity| {
                 format!(
                     "{:?}:{:?}:{}:{}:{}:{}:{}:{}:{}",
                     continuity.family(),
                     continuity.outcome_class(),
                     continuity.prior_authoritative_identity(),
-                    if continuity.successor_authoritative_identities().is_empty() {
-                        "none".to_string()
-                    } else {
-                        continuity
-                            .successor_authoritative_identities()
-                            .iter()
-                            .map(|value| value.as_ref())
-                            .collect::<Vec<_>>()
-                            .join("|")
-                    },
+                    format_continuity_successor_identities(continuity),
                     continuity.basis_binding_digest().unwrap_or("none"),
                     continuity
                         .resolved_target_entity_identity()
@@ -206,12 +195,10 @@ impl BridgeBatchMutationAuthorityBundle {
                     continuity.lineage_digest(),
                     continuity.continuity_resolution_digest()
                 )
-            }),
-        );
+            }));
 
-        let aggregate_causality_digest = aggregate_digest(
-            "bridge-batch-mutation-causality",
-            components.iter().flat_map(|component| {
+        let aggregate_causality_digest =
+            batch_mutation_causality_digest(components.iter().flat_map(|component| {
                 [
                     format!("causality:{}", component.causality().causality_digest()),
                     format!(
@@ -225,22 +212,31 @@ impl BridgeBatchMutationAuthorityBundle {
                     ),
                     format!("truth-view:{}", component.causality().truth_view_digest()),
                 ]
-            }),
-        );
-        let aggregate_provenance_digest = aggregate_digest(
-            "bridge-batch-mutation-provenance",
-            components.iter().flat_map(|component| {
+            }));
+        let aggregate_provenance_digest =
+            batch_mutation_provenance_digest(components.iter().flat_map(|component| {
                 let provenance = component.provenance();
                 [
                     format!("contract:{}", provenance.contract_digest()),
-                    format!("derived-effect:{}", provenance.derived_effect_digest()),
-                    format!("proposed-effect:{}", provenance.proposed_effect_digest()),
+                    format!(
+                        "writeback-effect-artifact:{}",
+                        provenance.writeback_effect_artifact_digest()
+                    ),
+                    format!("effect-intent:{}", provenance.effect_intent_digest()),
+                    format!(
+                        "effect-intent-basis:{}",
+                        provenance.effect_intent_patch_canonical_basis()
+                    ),
                     format!(
                         "feedback-provenance:{}",
                         provenance.feedback_provenance_digest()
                     ),
                     format!("causality:{}", provenance.causality_digest()),
-                    format!("strategy:{}", provenance.strategy_descriptor_digest()),
+                    format!(
+                        "strategy-basis:{}:{}",
+                        provenance.strategy_descriptor_basis().canonical_basis(),
+                        provenance.strategy_descriptor_basis().digest()
+                    ),
                     format!("execution:{}", provenance.execution_record_digest()),
                     format!(
                         "outcome:{}",
@@ -250,7 +246,7 @@ impl BridgeBatchMutationAuthorityBundle {
                             .unwrap_or_else(|| "none".to_string())
                     ),
                     format!(
-                        "authoritative-artifact:{}",
+                        "authority-artifact-proof:{}",
                         provenance.authoritative_artifact_digest().unwrap_or("none")
                     ),
                     format!("request:{}", provenance.request_digest().unwrap_or("none")),
@@ -263,8 +259,7 @@ impl BridgeBatchMutationAuthorityBundle {
                             .unwrap_or_else(|| "none".to_string())
                     ),
                 ]
-            }),
-        );
+            }));
 
         Some(Self {
             component_count: components.len(),
@@ -287,8 +282,8 @@ impl BridgeBatchMutationAuthorityBundle {
                 .filter(|component| component.continuity_mutation().is_some())
                 .count(),
             outcome_class_count,
-            request_digest_count,
-            receipt_digest_count,
+            authority_request_count,
+            authority_receipt_count,
             aggregate_existing_truth_binding_digest,
             aggregate_symbolic_target_reference_digest,
             aggregate_naming_mutation_digest,
@@ -330,12 +325,12 @@ impl BridgeBatchMutationAuthorityBundle {
         self.outcome_class_count
     }
 
-    pub fn request_digest_count(&self) -> usize {
-        self.request_digest_count
+    pub fn authority_request_count(&self) -> usize {
+        self.authority_request_count
     }
 
-    pub fn receipt_digest_count(&self) -> usize {
-        self.receipt_digest_count
+    pub fn authority_receipt_count(&self) -> usize {
+        self.authority_receipt_count
     }
 
     pub fn aggregate_existing_truth_binding_digest(&self) -> Option<&str> {
@@ -361,4 +356,17 @@ impl BridgeBatchMutationAuthorityBundle {
     pub fn aggregate_provenance_digest(&self) -> &str {
         self.aggregate_provenance_digest.as_ref()
     }
+}
+
+fn format_continuity_successor_identities(continuity: &BridgeContinuityMutationBundle) -> String {
+    if continuity.successor_authoritative_identities().is_empty() {
+        return "none".to_string();
+    }
+
+    continuity
+        .successor_authoritative_identities()
+        .iter()
+        .map(|identity| identity.as_str())
+        .collect::<Vec<_>>()
+        .join("|")
 }

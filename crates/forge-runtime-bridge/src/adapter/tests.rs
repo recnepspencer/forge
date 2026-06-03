@@ -1,29 +1,47 @@
-use std::sync::Arc;
-
 use crate::continuity::BridgeContinuityAuthorityBasis;
+use crate::error::BridgeLineageSourceErrorKind;
 use crate::input::envelope::TruthBranchIdentity;
 use crate::snapshot::TruthSnapshotIdentity;
 
-use super::BridgeHistoricalLineageAuthority;
+use super::{
+    BridgeHistoricalLineageAuthority, BridgeHistoricalResolvedLineageIdentity,
+    BridgeHistoricalResolvedRecordIdentity,
+};
+
+fn authority_basis() -> BridgeContinuityAuthorityBasis {
+    BridgeContinuityAuthorityBasis::new(
+        TruthBranchIdentity::new("main"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+    )
+}
 
 #[test]
 fn historical_lineage_authority_digest_is_canonical_for_same_inputs() {
-    let authority_basis = BridgeContinuityAuthorityBasis::new(
-        TruthBranchIdentity::new("main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
-    );
+    let authority_basis = authority_basis();
 
     let left = BridgeHistoricalLineageAuthority::try_new(
         authority_basis.clone(),
-        vec![Arc::from("lineage:1"), Arc::from("lineage:2")],
-        vec![Arc::from("entity:0:4:2"), Arc::from("entity:0:5:2")],
+        vec![
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
+        ],
+        vec![
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+        ],
         vec![3, 7],
     )
     .expect("canonical lineage authority should build");
     let right = BridgeHistoricalLineageAuthority::try_new(
         authority_basis,
-        vec![Arc::from("lineage:1"), Arc::from("lineage:2")],
-        vec![Arc::from("entity:0:4:2"), Arc::from("entity:0:5:2")],
+        vec![
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
+        ],
+        vec![
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+        ],
         vec![3, 7],
     )
     .expect("canonical lineage authority should build");
@@ -35,19 +53,133 @@ fn historical_lineage_authority_digest_is_canonical_for_same_inputs() {
 }
 
 #[test]
-fn historical_lineage_authority_rejects_noncanonical_inputs() {
-    let authority_basis = BridgeContinuityAuthorityBasis::new(
-        TruthBranchIdentity::new("main"),
-        TruthSnapshotIdentity::new("snapshot-a"),
-    );
-
+fn historical_lineage_authority_rejects_noncanonical_lineage_identities() {
     let error = BridgeHistoricalLineageAuthority::try_new(
-        authority_basis,
-        vec![Arc::from("lineage:2"), Arc::from("lineage:1")],
-        vec![Arc::from("entity:0:5:2"), Arc::from("entity:0:4:2")],
-        vec![7, 3],
+        authority_basis(),
+        vec![
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
+        ],
+        vec![
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+        ],
+        vec![3, 7],
     )
     .expect_err("noncanonical lineage authority should be rejected");
 
-    assert!(error.to_string().contains("canonical order"));
+    assert_eq!(
+        error.kind(),
+        BridgeLineageSourceErrorKind::NonCanonicalResolvedLineageIdentities
+    );
+}
+
+#[test]
+fn historical_lineage_authority_rejects_noncanonical_record_identities() {
+    let error = BridgeHistoricalLineageAuthority::try_new(
+        authority_basis(),
+        vec![
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
+        ],
+        vec![
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+        ],
+        vec![3, 7],
+    )
+    .expect_err("noncanonical record authority should be rejected");
+
+    assert_eq!(
+        error.kind(),
+        BridgeLineageSourceErrorKind::NonCanonicalResolvedRecordIdentities
+    );
+}
+
+#[test]
+fn historical_lineage_authority_rejects_duplicate_lineage_identities() {
+    let error = BridgeHistoricalLineageAuthority::try_new(
+        authority_basis(),
+        vec![
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
+        ],
+        vec![
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+        ],
+        vec![3, 7],
+    )
+    .expect_err("duplicate lineage authority should be rejected");
+
+    assert_eq!(
+        error.kind(),
+        BridgeLineageSourceErrorKind::DuplicateResolvedLineageIdentities
+    );
+}
+
+#[test]
+fn historical_lineage_authority_rejects_duplicate_record_identities() {
+    let error = BridgeHistoricalLineageAuthority::try_new(
+        authority_basis(),
+        vec![
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
+        ],
+        vec![
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+        ],
+        vec![3, 7],
+    )
+    .expect_err("duplicate record authority should be rejected");
+
+    assert_eq!(
+        error.kind(),
+        BridgeLineageSourceErrorKind::DuplicateResolvedRecordIdentities
+    );
+}
+
+#[test]
+fn historical_lineage_authority_rejects_duplicate_event_ids() {
+    let error = BridgeHistoricalLineageAuthority::try_new(
+        authority_basis(),
+        vec![
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
+        ],
+        vec![
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+        ],
+        vec![3, 3],
+    )
+    .expect_err("duplicate event authority should be rejected");
+
+    assert_eq!(
+        error.kind(),
+        BridgeLineageSourceErrorKind::DuplicateTraversedEventIds
+    );
+}
+
+#[test]
+fn historical_lineage_authority_rejects_noncanonical_event_ids() {
+    let error = BridgeHistoricalLineageAuthority::try_new(
+        authority_basis(),
+        vec![
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:1"),
+            BridgeHistoricalResolvedLineageIdentity::new("lineage:2"),
+        ],
+        vec![
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+            BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+        ],
+        vec![7, 3],
+    )
+    .expect_err("noncanonical event authority should be rejected");
+
+    assert_eq!(
+        error.kind(),
+        BridgeLineageSourceErrorKind::NonCanonicalTraversedEventIds
+    );
 }

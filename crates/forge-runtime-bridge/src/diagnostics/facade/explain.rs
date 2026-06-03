@@ -209,11 +209,11 @@ impl BridgeDiagnosticsFacade {
         BridgeWritebackLoopPreventionExplanation::from_report(report)
     }
 
-    pub fn explain_writeback_strategy_compatibility(
+    pub fn explain_writeback_strategy_coherence(
         &self,
-        report: &crate::writeback::BridgeWritebackStrategyCompatibilityReport,
-    ) -> BridgeWritebackStrategyCompatibilityExplanation {
-        BridgeWritebackStrategyCompatibilityExplanation::from_report(report)
+        report: &crate::writeback::BridgeWritebackStrategyCoherenceReport,
+    ) -> BridgeWritebackStrategyCoherenceExplanation {
+        BridgeWritebackStrategyCoherenceExplanation::from_report(report)
     }
 
     pub fn explain_writeback_outcome(

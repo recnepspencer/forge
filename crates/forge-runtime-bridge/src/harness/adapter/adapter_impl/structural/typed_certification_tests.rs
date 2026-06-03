@@ -1,0 +1,313 @@
+use super::*;
+use crate::facade::{
+    BridgeMappingId, BridgeMappingRegistration, BridgeProducerMetadata, BridgeTruthViewSelector,
+    CoarseRoutingMode, MappingSelector, SignalInvalidationScope, SnapshotReadRecord,
+    SnapshotReadRequest, StructuralFingerprintEquivalenceContract, StructuralFingerprintFamily,
+    StructuralFingerprintNormalizationRule, StructuralFingerprintOmissionPolicy,
+    StructuralFingerprintOrderingRule, StructuralIdentityDeclaration,
+    StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity, StructuralTruthViewBasis,
+    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
+    TruthSnapshotIdentity,
+};
+use crate::harness::fixtures::{BridgeHarnessFixture, SnapshotFixture};
+use forge_harness::facade::{ExecutionProfile, ScenarioPlan};
+use forge_harness::runtime::HarnessAdapter;
+use std::collections::BTreeSet;
+
+fn execute(target: StructuralHarnessTarget) -> StructuralHarnessExecution {
+    let adapter = crate::harness::adapter::BridgeHarnessAdapter;
+    let fixture = structural_fixture();
+    let mut runtime = adapter.create_runtime().expect("structural runtime");
+    let profile = ExecutionProfile::development("typed-structural-certification");
+    adapter
+        .prepare_runtime(&mut runtime, &profile)
+        .expect("structural prepare");
+    adapter
+        .load_fixture(&mut runtime, &fixture)
+        .expect("structural fixture");
+    let runtime_bridge = runtime.runtime.as_ref().expect("runtime bridge");
+    execute_structural_request(runtime_bridge, &fixture.fixture, target)
+        .expect("typed structural execution")
+}
+
+#[test]
+fn structural_remap_certification_is_typed_before_terminal_export() {
+    let execution = execute(StructuralHarnessTarget::RemapExact {
+        declaration_identity: crate::structural::StructuralIdentityDeclarationIdentity::new(
+            "structural:analysis-remap",
+        ),
+    });
+    let summary = execution.summary();
+    let bundle = execution.certification_bundle();
+
+    assert!(summary.structural_match_digest.is_some());
+    assert_eq!(
+        bundle.structural_match_digest,
+        summary.structural_match_digest
+    );
+    assert_eq!(
+        bundle.remap_artifact_digest,
+        summary.structural_reuse_digest
+    );
+    assert_eq!(
+        bundle.structural_reuse_digest,
+        summary.structural_reuse_digest
+    );
+    assert!(bundle.ambiguity_report.is_none());
+    assert!(bundle.identity_separation_report.is_none());
+    assert_eq!(bundle.counter_snapshot.structural_replay_mismatch_count, 0);
+}
+
+fn structural_fixture() -> forge_harness::facade::ScenarioFixture<BridgeHarnessFixture> {
+    ScenarioPlan::new(
+        "typed-structural-certification",
+        BridgeHarnessFixture::new(vec![registration()])
+            .with_policy(crate::facade::BridgeRuntimePolicy::development())
+            .with_structural_declaration(remap_declaration())
+            .with_structural_declaration(branch_declaration())
+            .with_committed_patch(committed_patch_on_branch(
+                TruthBranchIdentity::new("analysis"),
+                TruthCommitIdentity::new("commit-a"),
+                TruthPatchIdentity::new("patch-a"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+            ))
+            .with_committed_patch(committed_patch_on_branch(
+                TruthBranchIdentity::new("left"),
+                TruthCommitIdentity::new("commit-left-a"),
+                TruthPatchIdentity::new("patch-left-a"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+            ))
+            .with_committed_patch(committed_patch_on_branch(
+                TruthBranchIdentity::new("right"),
+                TruthCommitIdentity::new("commit-right-b"),
+                TruthPatchIdentity::new("patch-right-b"),
+                TruthSnapshotIdentity::new("snapshot-b"),
+            ))
+            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"))
+            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob")),
+    )
+    .declare_input("structural")
+    .declare_observation("structural")
+    .compile()
+}
+
+fn registration() -> BridgeMappingRegistration {
+    BridgeMappingRegistration::new(
+        BridgeMappingId::new("profile-name"),
+        TruthPatchScope::for_entity_field(
+            MappingSelector::exact("user"),
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::FieldKey::new("name".to_owned())
+                .expect("valid native field key"),
+        ),
+        crate::snapshot::SnapshotReadContract::scalar(
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::ScalarAspectType::String,
+        ),
+        SignalInvalidationScope::new("signal.profile"),
+        CoarseRoutingMode::Direct,
+    )
+}
+
+fn committed_patch_on_branch(
+    branch_identity: TruthBranchIdentity,
+    commit_identity: TruthCommitIdentity,
+    patch_identity: TruthPatchIdentity,
+    snapshot_identity: TruthSnapshotIdentity,
+) -> crate::facade::BridgeCommittedPatchEnvelope {
+    crate::facade::BridgeCommittedPatchEnvelope::new(
+        crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
+            BridgeProducerMetadata::bridge_harness_fixture(),
+            commit_identity,
+            patch_identity,
+            snapshot_identity,
+            branch_identity,
+        ),
+        vec![crate::facade::BridgeCommittedPatchItem::with_target(
+            "user",
+            crate::facade::BridgeCommittedPatchTarget::entity_field_path(
+                forge_foundational::facade::AspectLocator::new(
+                    forge_foundational::facade::LocatorAuthority::Authoritative,
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid bridge patch aspect key"),
+                ),
+                forge_foundational::facade::CanonicalFieldPath::single(
+                    forge_foundational::facade::FieldKey::new("name".to_owned())
+                        .expect("valid foundational field key"),
+                ),
+            ),
+        )],
+    )
+    .expect("harness committed patch envelope should construct")
+}
+
+fn snapshot(snapshot_identity: TruthSnapshotIdentity, value: &str) -> SnapshotFixture {
+    let mismatch_identity = snapshot_identity.as_str().to_owned();
+    SnapshotFixture::new(
+        snapshot_identity,
+        vec![
+            structural_snapshot_record(
+                "entity-1",
+                forge_foundational::facade::AspectValue::String((value).into()),
+            ),
+            structural_snapshot_record(
+                "entity-2",
+                forge_foundational::facade::AspectValue::String((value).into()),
+            ),
+            structural_snapshot_record(
+                "entity-3",
+                forge_foundational::facade::AspectValue::String(
+                    (format!("shape-mismatch-{mismatch_identity}")).into(),
+                ),
+            ),
+        ],
+    )
+}
+
+fn structural_snapshot_record(
+    entity_identity: &str,
+    value: forge_foundational::facade::AspectValue,
+) -> SnapshotReadRecord {
+    SnapshotReadRecord::for_request(
+        &SnapshotReadRequest::for_coarse(
+            entity_identity,
+            crate::snapshot::SnapshotReadContract::scalar(
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid typed structural aspect key"),
+                forge_foundational::facade::ScalarAspectType::String,
+            ),
+        ),
+        value,
+    )
+}
+
+fn remap_declaration() -> StructuralIdentityDeclaration {
+    StructuralIdentityDeclaration::advisory_remap(
+        StructuralIdentityDeclarationIdentity::new("structural:analysis-remap"),
+        StructuralSchemaIdentity::new("schema:geometry"),
+        fingerprint_contract(StructuralFingerprintFamily::TopologyFingerprint),
+        StructuralTruthViewBasis::explicit_snapshot(BridgeTruthViewSelector::branch_snapshot(
+            TruthBranchIdentity::new("analysis"),
+            TruthSnapshotIdentity::new("snapshot-a"),
+        )),
+    )
+}
+
+fn branch_declaration() -> StructuralIdentityDeclaration {
+    StructuralIdentityDeclaration::branch_comparison(
+        StructuralIdentityDeclarationIdentity::new("structural:analysis-branch-compare"),
+        StructuralSchemaIdentity::new("schema:geometry"),
+        fingerprint_contract(StructuralFingerprintFamily::BranchComparisonFingerprint),
+        StructuralTruthViewBasis::explicit_branch_pair(
+            BridgeTruthViewSelector::branch_snapshot(
+                TruthBranchIdentity::new("left"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+            ),
+            BridgeTruthViewSelector::branch_snapshot(
+                TruthBranchIdentity::new("right"),
+                TruthSnapshotIdentity::new("snapshot-b"),
+            ),
+        ),
+    )
+}
+
+fn fingerprint_contract(
+    family: StructuralFingerprintFamily,
+) -> StructuralFingerprintEquivalenceContract {
+    StructuralFingerprintEquivalenceContract::new(
+        StructuralSchemaIdentity::new("schema:geometry"),
+        family,
+        "geometry-typed-certification-v1",
+        StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
+        StructuralFingerprintOrderingRule::SchemaDeclaredCanonicalOrder,
+        StructuralFingerprintOmissionPolicy::SchemaDeclaredOmissionPolicy,
+    )
+}
+
+#[test]
+fn structural_ambiguity_certification_retains_typed_rejection_evidence() {
+    let execution = execute(StructuralHarnessTarget::RemapAmbiguous {
+        declaration_identity: crate::structural::StructuralIdentityDeclarationIdentity::new(
+            "structural:analysis-remap",
+        ),
+    });
+    let summary = execution.summary();
+    let bundle = execution.certification_bundle();
+    let ambiguity = bundle
+        .ambiguity_report
+        .as_ref()
+        .expect("typed ambiguity report");
+
+    assert_eq!(bundle.failure_digest, summary.failure_digest);
+    assert_eq!(
+        ambiguity.outcome_class,
+        crate::structural::StructuralMatchOutcomeClass::RejectedAmbiguousStructuralMatch
+    );
+    assert_eq!(
+        ambiguity.retained_candidates.len(),
+        bundle.counter_snapshot.structural_candidate_count
+    );
+    assert!(
+        ambiguity
+            .retained_candidates
+            .candidates()
+            .iter()
+            .all(|candidate| !candidate.identity().is_empty()),
+        "ambiguity report must retain non-empty typed structural candidate identities before terminal export"
+    );
+    assert_eq!(
+        retained_candidate_identity_count(&ambiguity.retained_candidates),
+        ambiguity.retained_candidates.len(),
+        "ambiguity report must retain a unique typed candidate set, not a duplicated presentation list"
+    );
+    assert_eq!(bundle.counter_snapshot.structural_ambiguity_count, 1);
+    assert!(bundle.remap_artifact_digest.is_none());
+}
+
+#[test]
+fn structural_branch_certification_retains_typed_diff_and_replay_evidence() {
+    let execution = execute(StructuralHarnessTarget::BranchReplay {
+        declaration_identity: crate::structural::StructuralIdentityDeclarationIdentity::new(
+            "structural:analysis-branch-compare",
+        ),
+    });
+    let summary = execution.summary();
+    let bundle = execution.certification_bundle();
+    let diff = bundle
+        .structural_diff_report
+        .as_ref()
+        .expect("typed structural diff report");
+
+    assert_eq!(bundle.branch_compare_digest, summary.branch_compare_digest);
+    assert_eq!(bundle.replay_digest, summary.replay_digest);
+    assert_eq!(diff.branch_diff_count, 1);
+    assert!(!diff.retained_candidates.is_empty());
+    assert_eq!(
+        diff.retained_candidates.len(),
+        bundle.counter_snapshot.structural_candidate_count
+    );
+    assert!(
+        diff.retained_candidates
+            .candidates()
+            .iter()
+            .all(|candidate| candidate.identity().starts_with("branch-diff:")),
+        "branch diff report must retain typed structural candidate identities before terminal export"
+    );
+    assert_eq!(
+        retained_candidate_identity_count(&diff.retained_candidates),
+        diff.retained_candidates.len(),
+        "branch diff report must retain a unique typed candidate set, not a duplicated presentation list"
+    );
+    assert_eq!(bundle.counter_snapshot.structural_replay_request_count, 1);
+}
+
+fn retained_candidate_identity_count(
+    candidates: &super::certification_bundle::StructuralRetainedCandidateSet,
+) -> usize {
+    candidates
+        .candidates()
+        .iter()
+        .map(|candidate| candidate.identity())
+        .collect::<BTreeSet<_>>()
+        .len()
+}

@@ -1,14 +1,12 @@
-use std::sync::Arc;
-
 /// Standard-path request for routing one committed truth change.
 ///
-/// Most callers can construct this implicitly from a commit identity string:
+/// Callers must carry the typed committed truth identity across this boundary:
 ///
 /// ```rust
-/// use forge_runtime_bridge::facade::BridgeRouteRequest;
+/// use forge_runtime_bridge::facade::{BridgeRouteRequest, TruthCommitIdentity};
 ///
-/// let request = BridgeRouteRequest::for_commit("commit:steel-main");
-/// assert_eq!(request.commit_identity(), "commit:steel-main");
+/// let request = BridgeRouteRequest::for_commit(TruthCommitIdentity::new("commit:steel-main"));
+/// assert_eq!(request.commit_identity().as_str(), "commit:steel-main");
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeRouteRequest {
@@ -17,14 +15,14 @@ pub struct BridgeRouteRequest {
 
 impl BridgeRouteRequest {
     /// Builds a route request from one committed truth identity.
-    pub fn for_commit(commit_identity: impl Into<Arc<str>>) -> Self {
+    pub fn for_commit(commit_identity: crate::input::envelope::TruthCommitIdentity) -> Self {
         Self {
             committed_patch: crate::adapter::RelationalCommittedPatchRequest::new(commit_identity),
         }
     }
 
     /// Returns the authoritative truth commit identity carried by this request.
-    pub fn commit_identity(&self) -> &str {
+    pub fn commit_identity(&self) -> &crate::input::envelope::TruthCommitIdentity {
         self.committed_patch.commit_identity()
     }
 
@@ -43,20 +41,8 @@ impl From<crate::adapter::RelationalCommittedPatchRequest> for BridgeRouteReques
     }
 }
 
-impl From<String> for BridgeRouteRequest {
-    fn from(value: String) -> Self {
-        Self::for_commit(value)
-    }
-}
-
-impl From<&str> for BridgeRouteRequest {
-    fn from(value: &str) -> Self {
-        Self::for_commit(value)
-    }
-}
-
-impl From<Arc<str>> for BridgeRouteRequest {
-    fn from(value: Arc<str>) -> Self {
+impl From<crate::input::envelope::TruthCommitIdentity> for BridgeRouteRequest {
+    fn from(value: crate::input::envelope::TruthCommitIdentity) -> Self {
         Self::for_commit(value)
     }
 }

@@ -21,7 +21,7 @@ pub enum BridgeBuildErrorKind {
     StructuralComparisonModeMismatch,
     SourceCapabilityMismatch,
     BuilderConfigurationConflict,
-    InvalidFineGrainedFallbackPolicy,
+    InvalidFineGrainedWideningPolicy,
 }
 
 pub type BridgeBuildError = BridgeTypedError<BridgeBuildErrorKind>;
@@ -46,7 +46,7 @@ pub type BridgeRouteError = BridgeTypedError<BridgeRouteErrorKind>;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeDeliveryErrorKind {
     SourceContractMismatch,
-    InvalidFallbackAdmission,
+    InvalidWideningAdmission,
     BulkDeliveryRejected,
     HistoricalPolicyRejected,
     HistoricalTruthViewUnavailable,
@@ -67,7 +67,7 @@ pub type BridgeDeliveryError = BridgeTypedError<BridgeDeliveryErrorKind>;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeReplayErrorKind {
     ReplayArtifactsDisabled,
-    CanonicalArtifactCompatibilityFailure,
+    CanonicalArtifactCoherenceFailure,
     StructuralReplayBasisTruncated,
     BulkPlanReplayMismatch,
     HistoricalEvaluationDeclarationMismatch,
@@ -156,7 +156,7 @@ pub enum BridgeWritebackErrorKind {
     StrategyFailed,
     StrategyPanicked,
     ReplayMismatch,
-    AuthorityBypassRejected,
+    AuthorityDenied,
     PreviewWritebackRejected,
 }
 
@@ -166,6 +166,12 @@ pub type BridgeWritebackError = BridgeTypedError<BridgeWritebackErrorKind>;
 pub enum BridgeLineageSourceErrorKind {
     UnsupportedContinuityClass,
     HistoricalResolutionFailure,
+    DuplicateResolvedLineageIdentities,
+    NonCanonicalResolvedLineageIdentities,
+    DuplicateResolvedRecordIdentities,
+    NonCanonicalResolvedRecordIdentities,
+    DuplicateTraversedEventIds,
+    NonCanonicalTraversedEventIds,
 }
 
 pub type BridgeLineageSourceError = BridgeTypedError<BridgeLineageSourceErrorKind>;

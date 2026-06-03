@@ -17,10 +17,12 @@ fn runtime_declares_detail_exact_subscription() {
     let declaration = runtime
         .declare_subscription(
             BridgeSubscriptionDeclarationFamilyKind::DetailExact,
-            vec![NormalizedSubscriptionSliceIntent::try_new(
+            vec![NormalizedSubscriptionSliceIntent::try_new_entity_field(
                 "entity-1",
-                "profile",
-                "name",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native subscription field key"),
                 SubscriptionSliceKind::SignalField,
             )
             .expect("slice intent should validate")],
@@ -42,10 +44,10 @@ fn runtime_declares_collection_membership_subscription() {
     let declaration = runtime
         .declare_subscription(
             BridgeSubscriptionDeclarationFamilyKind::CollectionMembership,
-            vec![NormalizedSubscriptionSliceIntent::try_new(
+            vec![NormalizedSubscriptionSliceIntent::try_new_entity_region(
                 "entity-1",
-                "profile",
-                "collection",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
                 SubscriptionSliceKind::SignalRegion,
             )
             .expect("slice intent should validate")],
@@ -67,10 +69,10 @@ fn runtime_rejects_unsupported_family_slice_combinations() {
     let rejection = runtime
         .declare_subscription(
             BridgeSubscriptionDeclarationFamilyKind::DetailExact,
-            vec![NormalizedSubscriptionSliceIntent::try_new(
+            vec![NormalizedSubscriptionSliceIntent::try_new_entity_region(
                 "entity-1",
-                "profile",
-                "collection",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
                 SubscriptionSliceKind::SignalRegion,
             )
             .expect("slice intent should validate")],
@@ -92,17 +94,21 @@ fn runtime_declares_equivalent_subscriptions_canonically() {
         .declare_subscription(
             BridgeSubscriptionDeclarationFamilyKind::DetailExact,
             vec![
-                NormalizedSubscriptionSliceIntent::try_new(
+                NormalizedSubscriptionSliceIntent::try_new_entity_field(
                     "entity-1",
-                    "profile",
-                    "name",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid native subscription aspect key"),
+                    forge_foundational::facade::FieldKey::new("name".to_owned())
+                        .expect("valid native subscription field key"),
                     SubscriptionSliceKind::SignalField,
                 )
                 .expect("slice intent should validate"),
-                NormalizedSubscriptionSliceIntent::try_new(
+                NormalizedSubscriptionSliceIntent::try_new_entity_field(
                     "entity-1",
-                    "profile",
-                    "name",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid native subscription aspect key"),
+                    forge_foundational::facade::FieldKey::new("name".to_owned())
+                        .expect("valid native subscription field key"),
                     SubscriptionSliceKind::SignalField,
                 )
                 .expect("slice intent should validate"),
@@ -113,10 +119,12 @@ fn runtime_declares_equivalent_subscriptions_canonically() {
     let right = runtime
         .declare_subscription(
             BridgeSubscriptionDeclarationFamilyKind::DetailExact,
-            vec![NormalizedSubscriptionSliceIntent::try_new(
+            vec![NormalizedSubscriptionSliceIntent::try_new_entity_field(
                 "entity-1",
-                "profile",
-                "name",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native subscription field key"),
                 SubscriptionSliceKind::SignalField,
             )
             .expect("slice intent should validate")],

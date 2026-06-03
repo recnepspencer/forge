@@ -20,24 +20,24 @@ fn bridge_harness_subscription_suite_28_declaration_equivalence_is_canonical_and
         .declare_subscription(
             BridgeSubscriptionDeclarationFamilyKind::CollectionMembership,
             vec![
-                NormalizedSubscriptionSliceIntent::try_new(
+                NormalizedSubscriptionSliceIntent::try_new_entity_partition(
                     "entity-1",
-                    "profile",
-                    "west-partition",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid native subscription aspect key"),
                     SubscriptionSliceKind::SignalPartition,
                 )
                 .expect("slice intent should validate"),
-                NormalizedSubscriptionSliceIntent::try_new(
+                NormalizedSubscriptionSliceIntent::try_new_entity_region(
                     "entity-1",
-                    "profile",
-                    "west",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid native subscription aspect key"),
                     SubscriptionSliceKind::SignalRegion,
                 )
                 .expect("slice intent should validate"),
-                NormalizedSubscriptionSliceIntent::try_new(
+                NormalizedSubscriptionSliceIntent::try_new_entity_region(
                     "entity-1",
-                    "profile",
-                    "west",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid native subscription aspect key"),
                     SubscriptionSliceKind::SignalRegion,
                 )
                 .expect("slice intent should validate"),
@@ -49,17 +49,17 @@ fn bridge_harness_subscription_suite_28_declaration_equivalence_is_canonical_and
         .declare_subscription(
             BridgeSubscriptionDeclarationFamilyKind::CollectionMembership,
             vec![
-                NormalizedSubscriptionSliceIntent::try_new(
+                NormalizedSubscriptionSliceIntent::try_new_entity_region(
                     "entity-1",
-                    "profile",
-                    "west",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid native subscription aspect key"),
                     SubscriptionSliceKind::SignalRegion,
                 )
                 .expect("slice intent should validate"),
-                NormalizedSubscriptionSliceIntent::try_new(
+                NormalizedSubscriptionSliceIntent::try_new_entity_partition(
                     "entity-1",
-                    "profile",
-                    "west-partition",
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid native subscription aspect key"),
                     SubscriptionSliceKind::SignalPartition,
                 )
                 .expect("slice intent should validate"),

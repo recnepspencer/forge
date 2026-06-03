@@ -41,7 +41,7 @@ pub struct BridgeHarnessFixture {
     structural_declarations: Vec<crate::structural::StructuralIdentityDeclaration>,
     merge_declarations: Vec<crate::merge::MergeHistoryDeclaration>,
     source_adapter_capabilities: Option<crate::source::BridgeSourceCapabilitySet>,
-    committed_patches: Vec<RawCommittedPatchEnvelope>,
+    committed_patches: Vec<BridgeCommittedPatchEnvelope>,
     snapshots: Vec<SnapshotFixture>,
     lineage_context: Option<BridgeLineageContext>,
     continuity_authorities: Vec<(String, BridgeHistoricalLineageAuthority)>,
@@ -69,7 +69,7 @@ impl BridgeHarnessFixture {
         self
     }
 
-    pub fn with_committed_patch(mut self, patch: RawCommittedPatchEnvelope) -> Self {
+    pub fn with_committed_patch(mut self, patch: BridgeCommittedPatchEnvelope) -> Self {
         self.committed_patches.push(patch);
         self
     }
@@ -139,7 +139,7 @@ impl BridgeHarnessFixture {
         &self.mappings
     }
 
-    pub fn committed_patches(&self) -> &[RawCommittedPatchEnvelope] {
+    pub fn committed_patches(&self) -> &[BridgeCommittedPatchEnvelope] {
         &self.committed_patches
     }
 

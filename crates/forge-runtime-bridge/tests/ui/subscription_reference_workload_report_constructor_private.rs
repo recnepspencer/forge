@@ -3,30 +3,34 @@ use forge_runtime_bridge::facade::{
     BridgeSubscriptionOfflineAuditReport, BridgeSubscriptionReferenceWorkloadCoverageReport,
     BridgeSubscriptionReferenceWorkloadReport,
 };
-use std::sync::Arc;
+
 
 fn main() {
     let _report = BridgeSubscriptionReferenceWorkloadReport {
-        manifest_digest: Arc::from("manifest"),
+        manifest_digest: sealed_authority_placeholder(),
         lane_reports: Vec::new(),
         comparison_reports: Vec::new(),
         offline_audit_report: make_audit_report(),
         outcome_summary: make_summary(),
         coverage_report: make_coverage_report(),
         counters: BridgeSubscriptionCertificationCounterSnapshot::default(),
-        canonical_basis: Arc::from("basis"),
-        digest: Arc::from("digest"),
+        canonical_basis: sealed_authority_placeholder(),
+        digest: sealed_authority_placeholder(),
     };
 }
 
 fn make_audit_report() -> BridgeSubscriptionOfflineAuditReport {
-    unimplemented!()
+    sealed_authority_placeholder()
 }
 
 fn make_summary() -> BridgeSubscriptionOfflineAuditOutcomeSummary {
-    unimplemented!()
+    sealed_authority_placeholder()
 }
 
 fn make_coverage_report() -> BridgeSubscriptionReferenceWorkloadCoverageReport {
-    unimplemented!()
+    sealed_authority_placeholder()
+}
+
+fn sealed_authority_placeholder<T>() -> T {
+    panic!("compile-fail fixture never executes")
 }

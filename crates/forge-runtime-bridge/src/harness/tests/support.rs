@@ -2,106 +2,229 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use crate::facade::{
-    BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeMappingId,
-    BridgeMappingRegistration, BridgeProducerMetadata, CoarseRoutingMode, InvalidationSink,
-    MappingSelector, RawCommittedPatchEnvelope, RuntimeBridgeBuilder, SignalBridgeSinkError,
-    SignalInvalidationScope, SliceFallbackPolicy, SnapshotReadRecord, SnapshotReaderPool,
-    SubscriptionSliceKind, TruthBranchIdentity, TruthCommitIdentity, TruthDeltaSurfaceKind,
-    TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity,
+    BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeCommittedPatchEnvelope,
+    BridgeMappingId, BridgeMappingRegistration, BridgeProducerMetadata, CoarseRoutingMode,
+    InvalidationSink, MappingSelector, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SliceWideningPolicy, SnapshotReadRecord, SnapshotReadRequest,
+    SnapshotReaderPool, SubscriptionSliceKind, TruthBranchIdentity, TruthCommitIdentity,
+    TruthDeltaSurfaceKind, TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity,
 };
-
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, SnapshotFixture};
 
 pub(super) fn registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
         BridgeMappingId::new("profile-name"),
-        TruthPatchScope::new(
+        TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::FieldKey::new("name".to_owned())
+                .expect("valid native field key"),
+        ),
+        crate::snapshot::SnapshotReadContract::scalar(
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::ScalarAspectType::String,
         ),
         SignalInvalidationScope::new("signal.profile"),
         CoarseRoutingMode::Direct,
     )
 }
 
-pub(super) fn surface_fallback_registration() -> BridgeMappingRegistration {
+pub(super) fn surface_widening_registration() -> BridgeMappingRegistration {
     BridgeMappingRegistration::new(
-        BridgeMappingId::new("profile-surface-fallback"),
-        TruthPatchScope::new(
+        BridgeMappingId::new("profile-surface-widening"),
+        TruthPatchScope::for_target(
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::any(),
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            crate::facade::TruthPatchTargetSelector::any(),
         ),
-        SignalInvalidationScope::new("signal.profile.fallback"),
+        crate::snapshot::SnapshotReadContract::scalar(
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::ScalarAspectType::String,
+        ),
+        SignalInvalidationScope::new("signal.profile.widening"),
         CoarseRoutingMode::Direct,
     )
 }
 
 pub(super) fn committed_patch(
-    commit: &str,
-    patch: &str,
-    snapshot: &str,
-    surface: &str,
-) -> RawCommittedPatchEnvelope {
-    committed_patch_on_branch("main", commit, patch, snapshot, surface)
+    commit_identity: TruthCommitIdentity,
+    patch_identity: TruthPatchIdentity,
+    snapshot_identity: TruthSnapshotIdentity,
+    field_key: forge_foundational::facade::FieldKey,
+) -> BridgeCommittedPatchEnvelope {
+    committed_patch_on_branch(
+        TruthBranchIdentity::new("main"),
+        commit_identity,
+        patch_identity,
+        snapshot_identity,
+        field_key,
+    )
 }
 
 pub(super) fn committed_patch_on_branch(
-    branch: &str,
-    commit: &str,
-    patch: &str,
-    snapshot: &str,
-    surface: &str,
-) -> RawCommittedPatchEnvelope {
-    RawCommittedPatchEnvelope::new_with_metadata(
-        BridgeProducerMetadata::bridge_harness_fixture(),
-        TruthCommitIdentity::new(commit),
-        TruthPatchIdentity::new(patch),
-        TruthSnapshotIdentity::new(snapshot),
-        TruthBranchIdentity::new(branch),
-        vec![crate::facade::BridgeCommittedPatchItem::new(
+    branch_identity: TruthBranchIdentity,
+    commit_identity: TruthCommitIdentity,
+    patch_identity: TruthPatchIdentity,
+    snapshot_identity: TruthSnapshotIdentity,
+    field_key: forge_foundational::facade::FieldKey,
+) -> BridgeCommittedPatchEnvelope {
+    BridgeCommittedPatchEnvelope::new(
+        crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
+            BridgeProducerMetadata::bridge_harness_fixture(),
+            commit_identity,
+            patch_identity,
+            snapshot_identity,
+            branch_identity,
+        ),
+        vec![crate::facade::BridgeCommittedPatchItem::with_target(
             "user",
-            forge_foundational::facade::AspectKey::new("profile")
-                .expect("valid bridge patch aspect key"),
-            surface,
+            crate::facade::BridgeCommittedPatchTarget::entity_field_path(
+                forge_foundational::facade::AspectLocator::new(
+                    forge_foundational::facade::LocatorAuthority::Authoritative,
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid bridge patch aspect key"),
+                ),
+                forge_foundational::facade::CanonicalFieldPath::single(field_key),
+            ),
+        )],
+    )
+    .expect("harness committed patch envelope should construct")
+}
+
+pub(super) fn committed_region_patch(
+    commit_identity: TruthCommitIdentity,
+    patch_identity: TruthPatchIdentity,
+    snapshot_identity: TruthSnapshotIdentity,
+) -> BridgeCommittedPatchEnvelope {
+    committed_patch_items(
+        commit_identity,
+        patch_identity,
+        snapshot_identity,
+        vec![crate::facade::BridgeCommittedPatchItem::with_target(
+            "user",
+            crate::facade::BridgeCommittedPatchTarget::entity_region(
+                forge_foundational::facade::AspectLocator::new(
+                    forge_foundational::facade::LocatorAuthority::Authoritative,
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid bridge patch aspect key"),
+                ),
+            ),
+        )],
+    )
+}
+
+pub(super) fn committed_partition_patch(
+    commit_identity: TruthCommitIdentity,
+    patch_identity: TruthPatchIdentity,
+    snapshot_identity: TruthSnapshotIdentity,
+) -> BridgeCommittedPatchEnvelope {
+    committed_patch_items(
+        commit_identity,
+        patch_identity,
+        snapshot_identity,
+        vec![crate::facade::BridgeCommittedPatchItem::with_target(
+            "user",
+            crate::facade::BridgeCommittedPatchTarget::entity_partition(
+                forge_foundational::facade::AspectLocator::new(
+                    forge_foundational::facade::LocatorAuthority::Authoritative,
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid bridge patch aspect key"),
+                ),
+            ),
         )],
     )
 }
 
 pub(super) fn committed_patch_items(
-    commit: &str,
-    patch: &str,
-    snapshot: &str,
+    commit_identity: TruthCommitIdentity,
+    patch_identity: TruthPatchIdentity,
+    snapshot_identity: TruthSnapshotIdentity,
     items: Vec<crate::facade::BridgeCommittedPatchItem>,
-) -> RawCommittedPatchEnvelope {
-    RawCommittedPatchEnvelope::new_with_metadata(
-        BridgeProducerMetadata::bridge_harness_fixture(),
-        TruthCommitIdentity::new(commit),
-        TruthPatchIdentity::new(patch),
-        TruthSnapshotIdentity::new(snapshot),
-        TruthBranchIdentity::new("main"),
+) -> BridgeCommittedPatchEnvelope {
+    BridgeCommittedPatchEnvelope::new(
+        crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new_with_metadata(
+            BridgeProducerMetadata::bridge_harness_fixture(),
+            commit_identity,
+            patch_identity,
+            snapshot_identity,
+            TruthBranchIdentity::new("main"),
+        ),
         items,
     )
+    .expect("harness committed patch envelope should construct")
 }
 
-pub(super) fn snapshot(snapshot: &str, value: &str) -> SnapshotFixture {
+pub(super) fn snapshot(snapshot_identity: TruthSnapshotIdentity, value: &str) -> SnapshotFixture {
     SnapshotFixture::new(
-        TruthSnapshotIdentity::new(snapshot),
-        vec![SnapshotReadRecord::new(
-            "user:profile",
-            value.as_bytes().to_vec(),
+        snapshot_identity,
+        vec![coarse_snapshot_record(
+            "user",
+            "profile",
+            forge_foundational::facade::AspectValue::String((value).into()),
         )],
     )
 }
 
-pub(super) fn field_slice_snapshot(snapshot: &str, value: &str) -> SnapshotFixture {
+pub(super) fn field_slice_snapshot(
+    snapshot_identity: TruthSnapshotIdentity,
+    value: &str,
+) -> SnapshotFixture {
+    let field_slice_request = field_slice_snapshot_read_request("user", "profile", "name");
     SnapshotFixture::new(
-        TruthSnapshotIdentity::new(snapshot),
-        vec![SnapshotReadRecord::new(
-            "user:profile:signal-field:name",
-            value.as_bytes().to_vec(),
+        snapshot_identity,
+        vec![SnapshotReadRecord::for_request(
+            &field_slice_request,
+            forge_foundational::facade::AspectValue::String((value).into()),
         )],
+    )
+}
+
+pub(super) fn coarse_snapshot_record(
+    entity: &str,
+    aspect: &str,
+    value: forge_foundational::facade::AspectValue,
+) -> SnapshotReadRecord {
+    SnapshotReadRecord::for_request(
+        &SnapshotReadRequest::for_coarse(
+            entity,
+            crate::snapshot::SnapshotReadContract::scalar(
+                forge_foundational::facade::AspectKey::new(aspect)
+                    .expect("valid coarse snapshot aspect key"),
+                forge_foundational::facade::ScalarAspectType::String,
+            ),
+        ),
+        value,
+    )
+}
+
+fn field_slice_snapshot_read_request(
+    entity: &str,
+    aspect: &str,
+    field: &str,
+) -> SnapshotReadRequest {
+    let aspect_key =
+        forge_foundational::facade::AspectKey::new(aspect).expect("valid field-slice aspect key");
+    let aspect_locator = forge_foundational::facade::AspectLocator::new(
+        forge_foundational::facade::LocatorAuthority::Authoritative,
+        aspect_key.clone(),
+    );
+    let field_path = forge_foundational::facade::CanonicalFieldPath::single(
+        forge_foundational::facade::FieldKey::new(field.to_owned()).expect("valid field key"),
+    );
+    let field_locator = forge_foundational::facade::AspectFieldLocator::from_aspect(
+        aspect_locator.clone(),
+        field_path.clone(),
+    );
+    SnapshotReadRequest::for_native_subscription_slice(
+        entity,
+        crate::snapshot::SnapshotReadContract::scalar(
+            aspect_key,
+            forge_foundational::facade::ScalarAspectType::String,
+        ),
+        aspect_locator,
+        Some(field_locator),
+        forge_foundational::facade::AspectMask::new([field_path]),
+        SubscriptionSliceKind::SignalField,
     )
 }
 
@@ -202,14 +325,19 @@ impl SnapshotReaderPool for CountingSnapshotReaderPool {
 pub(super) fn field_aspect_registration() -> BridgeAspectRegistration {
     BridgeAspectRegistration::new(
         BridgeAspectRegistrationId::new("profile-name-field"),
-        TruthPatchScope::new(
+        TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::FieldKey::new("name".to_owned())
+                .expect("valid native field key"),
+        ),
+        crate::snapshot::SnapshotReadContract::scalar(
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::ScalarAspectType::String,
         ),
         TruthDeltaSurfaceKind::EntityField,
         SubscriptionSliceKind::SignalField,
-        SliceFallbackPolicy::Disallow,
+        SliceWideningPolicy::Disallow,
     )
 }
 
@@ -220,37 +348,38 @@ pub(super) fn field_aspect_registration_with_kind(
 ) -> BridgeAspectRegistration {
     BridgeAspectRegistration::new(
         BridgeAspectRegistrationId::new(registration_id),
-        TruthPatchScope::new(
+        TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::FieldKey::new("name".to_owned())
+                .expect("valid native field key"),
+        ),
+        crate::snapshot::SnapshotReadContract::scalar(
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::ScalarAspectType::String,
         ),
         surface_kind,
         slice_kind,
-        SliceFallbackPolicy::Disallow,
+        SliceWideningPolicy::Disallow,
     )
 }
 
 pub(super) fn merge_declaration(
-    id: &str,
+    declaration_identity: crate::facade::MergeHistoryDeclarationIdentity,
     class: crate::facade::BridgeMergeConsumptionClass,
-    parents: Vec<&str>,
+    parents: impl IntoIterator<Item = crate::facade::TruthCommitIdentity>,
 ) -> crate::facade::MergeHistoryDeclaration {
+    let authority_artifact_identity = format!("merge-artifact:{}", declaration_identity.as_str());
     crate::facade::MergeHistoryDeclaration::new(
-        crate::facade::MergeHistoryDeclarationIdentity::new(id),
+        declaration_identity,
         class,
         crate::facade::BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1"),
         crate::facade::BridgeMergeAuthorityBasis::new(
             crate::facade::BridgeMergeAuthorityBasisKind::OrderedMergeCommit,
-            format!("merge-artifact:{id}"),
+            authority_artifact_identity,
             "rel-merge-v1",
             "schema-policy-v1",
-            crate::facade::BridgeMergeParentOrderProof::new(
-                parents
-                    .into_iter()
-                    .map(crate::facade::TruthCommitIdentity::new)
-                    .collect(),
-            ),
+            crate::facade::BridgeMergeParentOrderProof::new(parents.into_iter().collect()),
         ),
     )
 }

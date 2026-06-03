@@ -1,10 +1,12 @@
 use forge_runtime_bridge::facade::{
     BridgeDiagnosticsTier, BridgeExecutionPolicyClass, BridgePolicyDeclaration,
-    BridgePolicyDeclarationIdentity, BridgeRequestKind, BridgeWritebackCausalityBasis,
+    BridgePolicyDeclarationIdentity, BridgeRequestKind, BridgeWritebackAuthoritativeStateBasis,
+    BridgeWritebackCausalityBasis, BridgeWritebackCausalityEvidence,
     BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
     BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackEffectIdentity,
-    BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass, BridgeWritebackIdempotenceIdentity,
-    BridgeWritebackStrategyClass, LoweredBridgeExecutionPolicy, RuntimeBridge,
+    BridgeWritebackEffectIntent, BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass,
+    BridgeWritebackIdempotenceIdentity, BridgeWritebackStrategyClass, LoweredBridgeExecutionPolicy,
+    RuntimeBridge,
 };
 
 pub(super) struct RetainedWritebackRecordIdentities {
@@ -28,18 +30,19 @@ pub(super) fn retain_writeback_record_identities(
         .diagnostics()
         .last_writeback_admission_record()
         .expect("writeback admission record should be retained");
-    let causality = BridgeWritebackCausalityBasis::new(
+    let causality = BridgeWritebackCausalityBasis::from_evidence(
         BridgeWritebackCausalityIdentity::new(format!("causality:slot:{suffix}")),
-        format!("trigger:sha256:{suffix}"),
-        "route:sha256:slot",
-        "evaluation:sha256:slot",
-        "truth-view:sha256:slot",
+        BridgeWritebackCausalityEvidence::from_native_bases(
+            format!("query-trigger:{suffix}"),
+            "query-route:slot",
+            "query-evaluation:slot",
+            "query-truth-view:slot",
+        ),
     );
     let mapped_input = runtime.map_writeback_family_input(
         &contract,
         &causality,
-        format!("effect:sha256:{suffix}"),
-        format!("evidence:sha256:{suffix}"),
+        writeback_effect_intent(BridgeWritebackEffectClass::ProjectedStateDiff, suffix),
     );
     let mapper_envelope = runtime
         .diagnostics()
@@ -49,12 +52,13 @@ pub(super) fn retain_writeback_record_identities(
         &contract,
         &causality,
         BridgeWritebackEffectIdentity::new(format!("effect:slot:{suffix}")),
-        format!("effect:sha256:{suffix}"),
+        writeback_effect_intent(BridgeWritebackEffectClass::ProjectedStateDiff, suffix),
     );
+    let authoritative_state_basis = BridgeWritebackAuthoritativeStateBasis::from_effect(&effect);
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
-        format!("truth-state:sha256:{suffix}"),
+        &authoritative_state_basis,
         BridgeWritebackIdempotenceIdentity::new(format!("idempotence:slot:{suffix}")),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
@@ -74,12 +78,17 @@ pub(super) fn retain_writeback_record_identities(
         &contract,
         &causality,
         BridgeWritebackEffectIdentity::new(format!("effect:slot:{suffix}:drifted")),
-        format!("effect:sha256:{suffix}:drifted"),
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            &format!("{suffix}:drifted"),
+        ),
     );
+    let drifted_authoritative_state_basis =
+        BridgeWritebackAuthoritativeStateBasis::from_effect(&drifted_effect);
     let drifted_idempotence = runtime.classify_writeback_idempotence(
         &drifted_effect,
         &lowered_policy,
-        format!("truth-state:sha256:{suffix}"),
+        &drifted_authoritative_state_basis,
         BridgeWritebackIdempotenceIdentity::new(format!("idempotence:slot:{suffix}:drifted")),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
@@ -103,6 +112,19 @@ pub(super) fn retain_writeback_record_identities(
     }
 }
 
+fn writeback_effect_intent(
+    effect_class: BridgeWritebackEffectClass,
+    suffix: &str,
+) -> BridgeWritebackEffectIntent {
+    BridgeWritebackEffectIntent::validated_scalar_patch(
+        effect_class,
+        forge_foundational::facade::AspectKey::new("forge.query.writeback")
+            .expect("valid writeback effect aspect key"),
+        forge_foundational::facade::AspectValue::String(format!("query-effect:{suffix}").into()),
+    )
+    .expect("causal certification writeback effect intent should validate")
+}
+
 fn lowered_writeback_policy(runtime: &RuntimeBridge) -> LoweredBridgeExecutionPolicy {
     let contract = runtime
         .admit_policy_declaration(BridgePolicyDeclaration::new(
@@ -124,7 +146,6 @@ fn writeback_declaration(suffix: &str) -> BridgeWritebackDeclaration {
         BridgeWritebackFamilyKind::ProjectedStateDiff,
         BridgeWritebackEffectClass::ProjectedStateDiff,
         BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
-        format!("strategy:sha256:{suffix}"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     )
 }

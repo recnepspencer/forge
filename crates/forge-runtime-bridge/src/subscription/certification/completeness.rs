@@ -11,7 +11,7 @@ pub struct BridgeSubscriptionCertificationCompletenessReport {
     not_exercised_field_count: usize,
     rejected_before_produced_field_count: usize,
     unavailable_prior_artifact_field_count: usize,
-    unavailable_schema_incompatible_field_count: usize,
+    unavailable_schema_divergent_field_count: usize,
     canonical_basis: Arc<str>,
     digest: Arc<str>,
 }
@@ -25,7 +25,7 @@ impl BridgeSubscriptionCertificationCompletenessReport {
         let mut not_exercised_field_count = 0;
         let mut rejected_before_produced_field_count = 0;
         let mut unavailable_prior_artifact_field_count = 0;
-        let mut unavailable_schema_incompatible_field_count = 0;
+        let mut unavailable_schema_divergent_field_count = 0;
         for field in fields {
             match field.field_state() {
                 BridgeSubscriptionBundleFieldState::Present => present_field_count += 1,
@@ -36,8 +36,8 @@ impl BridgeSubscriptionCertificationCompletenessReport {
                 BridgeSubscriptionBundleFieldState::UnavailableBecausePriorArtifactMissing => {
                     unavailable_prior_artifact_field_count += 1;
                 }
-                BridgeSubscriptionBundleFieldState::UnavailableBecauseSchemaIncompatible => {
-                    unavailable_schema_incompatible_field_count += 1;
+                BridgeSubscriptionBundleFieldState::UnavailableBecauseSchemaDivergent => {
+                    unavailable_schema_divergent_field_count += 1;
                 }
             }
         }
@@ -45,14 +45,14 @@ impl BridgeSubscriptionCertificationCompletenessReport {
             concat!(
                 "bridge-subscription-certification-completeness|required={}|",
                 "present={}|not-exercised={}|rejected-before-produced={}|",
-                "unavailable-prior-artifact={}|unavailable-schema-incompatible={}"
+                "unavailable-prior-artifact={}|unavailable-schema-divergent={}"
             ),
             required_field_count,
             present_field_count,
             not_exercised_field_count,
             rejected_before_produced_field_count,
             unavailable_prior_artifact_field_count,
-            unavailable_schema_incompatible_field_count,
+            unavailable_schema_divergent_field_count,
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
@@ -61,7 +61,7 @@ impl BridgeSubscriptionCertificationCompletenessReport {
             not_exercised_field_count,
             rejected_before_produced_field_count,
             unavailable_prior_artifact_field_count,
-            unavailable_schema_incompatible_field_count,
+            unavailable_schema_divergent_field_count,
             canonical_basis,
             digest: Arc::from(format!(
                 "bridge-subscription-certification-completeness:sha256:{digest:x}"
@@ -89,8 +89,8 @@ impl BridgeSubscriptionCertificationCompletenessReport {
         self.unavailable_prior_artifact_field_count
     }
 
-    pub fn unavailable_schema_incompatible_field_count(&self) -> usize {
-        self.unavailable_schema_incompatible_field_count
+    pub fn unavailable_schema_divergent_field_count(&self) -> usize {
+        self.unavailable_schema_divergent_field_count
     }
 
     pub fn accounted_field_count(&self) -> usize {
@@ -98,7 +98,7 @@ impl BridgeSubscriptionCertificationCompletenessReport {
             + self.not_exercised_field_count
             + self.rejected_before_produced_field_count
             + self.unavailable_prior_artifact_field_count
-            + self.unavailable_schema_incompatible_field_count
+            + self.unavailable_schema_divergent_field_count
     }
 
     pub fn is_sufficient(&self) -> bool {

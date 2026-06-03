@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::digest;
+use super::{causal_envelope_digest, digest_basis::BridgeCausalEnvelopeDigestArtifact};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeCausalEnvelopeCounters {
@@ -11,7 +11,7 @@ pub struct BridgeCausalEnvelopeCounters {
     external_authority_reference_count: usize,
     materialized_detail_count: usize,
     missing_bridge_record_count: usize,
-    bridge_record_scan_fallback_count: usize,
+    bridge_record_unindexed_scan_count: usize,
     counter_digest: Arc<str>,
 }
 
@@ -29,16 +29,24 @@ impl BridgeCausalEnvelopeCounters {
         materialized_detail_count: usize,
         missing_bridge_record_count: usize,
     ) -> Self {
-        let counter_digest = digest(
-            "bridge-causal-envelope-counters",
+        let evidence_reference_count_text = evidence_reference_count.to_string();
+        let lower_runtime_family_count_text = lower_runtime_family_count.to_string();
+        let bridge_retained_lookup_count_text = bridge_retained_lookup_count.to_string();
+        let retained_bridge_binding_count_text = retained_bridge_binding_count.to_string();
+        let external_authority_reference_count_text =
+            external_authority_reference_count.to_string();
+        let materialized_detail_count_text = materialized_detail_count.to_string();
+        let missing_bridge_record_count_text = missing_bridge_record_count.to_string();
+        let counter_digest = causal_envelope_digest(
+            BridgeCausalEnvelopeDigestArtifact::Counters,
             &[
-                &evidence_reference_count.to_string(),
-                &lower_runtime_family_count.to_string(),
-                &bridge_retained_lookup_count.to_string(),
-                &retained_bridge_binding_count.to_string(),
-                &external_authority_reference_count.to_string(),
-                &materialized_detail_count.to_string(),
-                &missing_bridge_record_count.to_string(),
+                evidence_reference_count_text.as_str(),
+                lower_runtime_family_count_text.as_str(),
+                bridge_retained_lookup_count_text.as_str(),
+                retained_bridge_binding_count_text.as_str(),
+                external_authority_reference_count_text.as_str(),
+                materialized_detail_count_text.as_str(),
+                missing_bridge_record_count_text.as_str(),
                 "0",
             ],
         );
@@ -50,7 +58,7 @@ impl BridgeCausalEnvelopeCounters {
             external_authority_reference_count,
             materialized_detail_count,
             missing_bridge_record_count,
-            bridge_record_scan_fallback_count: 0,
+            bridge_record_unindexed_scan_count: 0,
             counter_digest: Arc::from(counter_digest),
         }
     }
@@ -83,8 +91,8 @@ impl BridgeCausalEnvelopeCounters {
         self.missing_bridge_record_count
     }
 
-    pub fn bridge_record_scan_fallback_count(&self) -> usize {
-        self.bridge_record_scan_fallback_count
+    pub fn bridge_record_unindexed_scan_count(&self) -> usize {
+        self.bridge_record_unindexed_scan_count
     }
 
     pub fn counter_digest(&self) -> &str {

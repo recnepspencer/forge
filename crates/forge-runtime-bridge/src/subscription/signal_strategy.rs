@@ -48,8 +48,8 @@ impl BridgeSignalStrategyDescriptor {
 
         let canonical_basis = Arc::<str>::from(format!(
             "bridge-subscription-signal-strategy|declaration={}|basis={}|family={}|strategy={}|slice-count={}",
-            declaration.declaration_identity().as_str(),
-            basis_binding.basis_identity().as_str(),
+            declaration.digest(),
+            basis_binding.digest(),
             declaration.requested_family_kind().as_str(),
             strategy_kind.as_str(),
             declaration.normalized_slice_intent_count(),

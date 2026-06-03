@@ -15,10 +15,12 @@ pub(crate) fn activation_ready_detail_subscription_in_runtime(
     let declaration = runtime
         .declare_subscription(
             BridgeSubscriptionDeclarationFamilyKind::DetailExact,
-            vec![NormalizedSubscriptionSliceIntent::try_new(
+            vec![NormalizedSubscriptionSliceIntent::try_new_entity_field(
                 "entity-1",
-                "profile",
-                "name",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native subscription field key"),
                 SubscriptionSliceKind::SignalField,
             )
             .expect("slice intent should validate")],
@@ -42,10 +44,10 @@ pub(crate) fn activation_ready_collection_subscription() -> (
     let declaration = runtime
         .declare_subscription(
             BridgeSubscriptionDeclarationFamilyKind::CollectionMembership,
-            vec![NormalizedSubscriptionSliceIntent::try_new(
+            vec![NormalizedSubscriptionSliceIntent::try_new_entity_region(
                 "entity-1",
-                "profile",
-                "west",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
                 SubscriptionSliceKind::SignalRegion,
             )
             .expect("slice intent should validate")],
@@ -81,22 +83,6 @@ pub(crate) fn active_detail_subscription_with_fanout(
     let (runtime, ready) = activation_ready_detail_subscription();
     let cost_profile = runtime
         .admit_subscription_delivery_cost_profile(posture, 4, 4, max_fanout_width)
-        .expect("cost profile should admit");
-    let consumer = canonical_consumer_contract(&runtime);
-    let active = runtime.activate_subscription_delivery(ready, cost_profile, consumer);
-    (runtime, active)
-}
-
-pub(crate) fn active_detail_subscription_with_member_limit(
-    posture: BridgeSubscriptionDeliveryDensityPosture,
-    max_member_count: usize,
-) -> (
-    crate::facade::RuntimeBridge,
-    crate::facade::BridgeActiveSubscription,
-) {
-    let (runtime, ready) = activation_ready_detail_subscription();
-    let cost_profile = runtime
-        .admit_subscription_delivery_cost_profile(posture, max_member_count, max_member_count, 1)
         .expect("cost profile should admit");
     let consumer = canonical_consumer_contract(&runtime);
     let active = runtime.activate_subscription_delivery(ready, cost_profile, consumer);
@@ -139,10 +125,10 @@ pub(crate) fn active_collection_subscription_with_fanout(
     let declaration = runtime
         .declare_subscription(
             BridgeSubscriptionDeclarationFamilyKind::CollectionMembership,
-            vec![NormalizedSubscriptionSliceIntent::try_new(
+            vec![NormalizedSubscriptionSliceIntent::try_new_entity_region(
                 "entity-1",
-                "profile",
-                "west",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
                 SubscriptionSliceKind::SignalRegion,
             )
             .expect("slice intent should validate")],

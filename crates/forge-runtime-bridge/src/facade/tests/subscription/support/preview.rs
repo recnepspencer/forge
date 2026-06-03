@@ -46,13 +46,7 @@ pub(crate) fn preview_promotion_detail_subscription(
     );
     let proof = active_preview_session.promotion_admissibility_proof();
     let (_promoted_session, promotion_record) = runtime
-        .promote_preview_session(
-            active_preview_session,
-            &execution_record,
-            &proof,
-            format!("commit-boundary:{suffix}"),
-            format!("authoritative-artifact:{suffix}"),
-        )
+        .promote_preview_session(active_preview_session, &execution_record, &proof)
         .expect("speculation promotion should succeed");
     let promoted_ready = activation_ready_detail_subscription_in_runtime(&runtime);
 
@@ -62,20 +56,16 @@ pub(crate) fn preview_promotion_detail_subscription(
 pub(crate) fn preview_work_trace(
     runtime: &crate::facade::RuntimeBridge,
     preview_active: &crate::facade::BridgePreviewActiveSubscription,
-    suffix: &str,
+    _suffix: &str,
 ) -> BridgeSubscriptionPreviewWorkTrace {
     runtime
         .record_preview_subscription_work(
             preview_active,
             vec![
-                BridgeSubscriptionPreviewWorkInput::routing(format!("preview-routing:{suffix}")),
-                BridgeSubscriptionPreviewWorkInput::delivery(format!("preview-delivery:{suffix}")),
-                BridgeSubscriptionPreviewWorkInput::diagnostics(format!(
-                    "preview-diagnostics:{suffix}"
-                )),
-                BridgeSubscriptionPreviewWorkInput::continuation(format!(
-                    "preview-continuation:{suffix}"
-                )),
+                BridgeSubscriptionPreviewWorkInput::routing(preview_active),
+                BridgeSubscriptionPreviewWorkInput::delivery(preview_active),
+                BridgeSubscriptionPreviewWorkInput::diagnostics(preview_active),
+                BridgeSubscriptionPreviewWorkInput::continuation(preview_active),
             ],
         )
         .expect("preview work trace should bind all preview work categories")
@@ -144,51 +134,43 @@ pub(crate) fn subscription_preview_declaration(
             TruthBranchIdentity::new(format!("truth-branch:{suffix}")),
             crate::facade::BridgeSignalBranchIdentity::new(format!("signal-branch:{suffix}")),
         ),
-        format!("truth-view:{suffix}"),
-        format!("source-capability:{suffix}"),
-        format!("request-shape:{suffix}"),
-        format!("artifact-schema:{suffix}"),
+        crate::facade::BridgePreviewSessionBasis::new(
+            crate::facade::BridgeTruthViewSelector::branch_snapshot(
+                TruthBranchIdentity::new(format!("truth-branch:{suffix}")),
+                crate::facade::TruthSnapshotIdentity::new(format!("snapshot:{suffix}")),
+            ),
+            crate::facade::BridgeSourceCapabilitySet::new(vec![
+                crate::facade::BridgeSourceCapability::SnapshotRead,
+                crate::facade::BridgeSourceCapability::BranchRead,
+            ]),
+            crate::facade::BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,
+        ),
     )
 }
 
 pub(crate) fn zero_preview_residue_inputs(
-    suffix: &str,
+    runtime: &crate::facade::RuntimeBridge,
+    preview_active: &crate::facade::BridgePreviewActiveSubscription,
 ) -> Vec<crate::facade::BridgeSubscriptionPreviewResidueArtifactInput> {
-    [
-        crate::facade::BridgeSubscriptionPreviewResidueCategory::AuthoritativeTruthSubscription,
-        crate::facade::BridgeSubscriptionPreviewResidueCategory::BridgeSubscriptionRegistry,
-        crate::facade::BridgeSubscriptionPreviewResidueCategory::ActiveDelivery,
-        crate::facade::BridgeSubscriptionPreviewResidueCategory::FanoutConsumerContract,
-        crate::facade::BridgeSubscriptionPreviewResidueCategory::Continuation,
-        crate::facade::BridgeSubscriptionPreviewResidueCategory::CheckpointReplay,
-        crate::facade::BridgeSubscriptionPreviewResidueCategory::SignalVisible,
-    ]
-    .into_iter()
-    .map(|category| {
-        crate::facade::BridgeSubscriptionPreviewResidueArtifactInput::zero(
-            category,
-            format!("preview-residue-evidence:{suffix}:{}", category.as_str()),
-        )
-    })
-    .collect()
+    preview_work_trace(runtime, preview_active, "preview-residue").zero_residue_inputs()
 }
 
 pub(crate) fn preview_residue_inputs_with_count(
-    suffix: &str,
+    runtime: &crate::facade::RuntimeBridge,
+    preview_active: &crate::facade::BridgePreviewActiveSubscription,
     nonzero_category: crate::facade::BridgeSubscriptionPreviewResidueCategory,
     residue_count: usize,
 ) -> Vec<crate::facade::BridgeSubscriptionPreviewResidueArtifactInput> {
-    zero_preview_residue_inputs(suffix)
+    let work_trace = preview_work_trace(runtime, preview_active, "preview-residue");
+    work_trace
+        .zero_residue_inputs()
         .into_iter()
         .map(|input| {
             if input.category() == nonzero_category {
-                crate::facade::BridgeSubscriptionPreviewResidueArtifactInput::new(
+                crate::facade::BridgeSubscriptionPreviewResidueArtifactInput::from_preview_work_trace(
                     nonzero_category,
                     residue_count,
-                    format!(
-                        "preview-residue-evidence:{suffix}:{}:nonzero",
-                        nonzero_category.as_str()
-                    ),
+                    &work_trace,
                 )
             } else {
                 input

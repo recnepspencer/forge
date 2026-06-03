@@ -172,16 +172,30 @@ where
 #[cfg(test)]
 mod tests {
     use crate::input::envelope::TruthBranchIdentity;
+    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+    use crate::source::{BridgeSourceCapability, BridgeSourceCapabilitySet};
 
     use super::{
         BridgePreviewSession, BridgePreviewSessionIdentity, PreviewExecutionRecordIdentity,
         PreviewSessionActivation,
     };
     use crate::speculation::{
+        BridgePreviewRetainedArtifactSchema, BridgePreviewSessionBasis,
         BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
         BridgeRequestKind, BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
         BridgeSpeculativeBranchBindingIdentity, PreviewAdmitted, PreviewDeclared,
     };
+
+    fn preview_session_basis() -> BridgePreviewSessionBasis {
+        BridgePreviewSessionBasis::new(
+            BridgeTruthViewSelector::committed_snapshot(
+                TruthBranchIdentity::new("truth-branch"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+            ),
+            BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
+            BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,
+        )
+    }
 
     #[test]
     fn preview_session_typestate_progression_is_canonical() {
@@ -193,19 +207,22 @@ mod tests {
                 TruthBranchIdentity::new("truth-branch"),
                 BridgeSignalBranchIdentity::new("signal-branch"),
             ),
-            "truth-view-digest",
-            "source-capability-digest",
-            "request-shape-digest",
-            "artifact-schema-digest",
+            preview_session_basis(),
         )
         .validate()
         .expect("preview declaration should validate");
 
         let declared = BridgePreviewSession::<PreviewDeclared>::declare(
             BridgePreviewSessionIdentity::new("preview-session"),
-            declaration,
+            declaration.clone(),
         );
-        assert!(declared.canonical_basis().contains("state:Declared"));
+        assert_eq!(
+            declared.canonical_basis(),
+            format!(
+                "preview-session|id=preview-session|declaration={}|state:Declared|execution-record=none",
+                declaration.digest(),
+            )
+        );
         let admitted: BridgePreviewSession<PreviewAdmitted> = declared.admit();
         let active = admitted.activate(PreviewSessionActivation::new(
             PreviewExecutionRecordIdentity::new("preview-execution"),
@@ -224,7 +241,19 @@ mod tests {
         ));
         let discarded = active.discard();
 
-        assert!(promoted.canonical_basis().contains("state:Promoted"));
-        assert!(discarded.canonical_basis().contains("state:Discarded"));
+        assert_eq!(
+            promoted.canonical_basis(),
+            format!(
+                "preview-session|id=preview-session|declaration={}|state:Promoted|execution-record=preview-execution",
+                promoted.declaration().digest(),
+            )
+        );
+        assert_eq!(
+            discarded.canonical_basis(),
+            format!(
+                "preview-session|id=preview-session-discard|declaration={}|state:Discarded|execution-record=preview-execution-discard",
+                discarded.declaration().digest(),
+            )
+        );
     }
 }

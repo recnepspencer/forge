@@ -61,7 +61,7 @@ pub enum BridgeWritebackFailureClass {
     StrategyFailed,
     StrategyPanicked,
     ReplayMismatch,
-    AuthorityBypassRejected,
+    AuthorityDenied,
     PreviewWritebackRejected,
 }
 
@@ -152,7 +152,7 @@ mod tests {
                 BridgeWritebackFailureClass::StrategyFailed,
                 BridgeWritebackFailureClass::StrategyPanicked,
                 BridgeWritebackFailureClass::ReplayMismatch,
-                BridgeWritebackFailureClass::AuthorityBypassRejected,
+                BridgeWritebackFailureClass::AuthorityDenied,
                 BridgeWritebackFailureClass::PreviewWritebackRejected,
             ]
             .len(),

@@ -4,12 +4,12 @@ use super::{
     SignalInvalidationScope, StaticSink, StaticSource, StaticSourceAdapter, TruthBranchIdentity,
     TruthPatchScope, TruthSnapshotIdentity,
 };
-use crate::facade::{BridgeSpeculativePromotionRequest, BridgeSpeculativeSessionRequest};
+use crate::facade::BridgeSpeculativeSessionRequest;
 use crate::speculation::{
-    BridgePreviewResidueClass, BridgePreviewSessionDeclaration,
-    BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeRequestKind,
-    BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
-    BridgeSpeculativeBranchBindingIdentity,
+    BridgePreviewResidueClass, BridgePreviewRetainedArtifactSchema, BridgePreviewSessionBasis,
+    BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
+    BridgePreviewSessionIdentity, BridgeRequestKind, BridgeSignalBranchIdentity,
+    BridgeSpeculativeBranchBinding, BridgeSpeculativeBranchBindingIdentity,
 };
 
 fn preview_declaration() -> BridgePreviewSessionDeclaration {
@@ -21,10 +21,17 @@ fn preview_declaration() -> BridgePreviewSessionDeclaration {
             TruthBranchIdentity::new("truth:analysis"),
             BridgeSignalBranchIdentity::new("signal:analysis"),
         ),
-        "truth-view:analysis",
-        "source-capability:analysis",
-        "request-shape:analysis",
-        "artifact-schema:analysis",
+        BridgePreviewSessionBasis::new(
+            BridgeTruthViewSelector::branch_snapshot(
+                TruthBranchIdentity::new("truth:analysis"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+            ),
+            crate::facade::BridgeSourceCapabilitySet::new(vec![
+                crate::facade::BridgeSourceCapability::SnapshotRead,
+                crate::facade::BridgeSourceCapability::BranchRead,
+            ]),
+            BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,
+        ),
     )
 }
 
@@ -49,10 +56,17 @@ fn standard_builder_aliases_build_runtime() {
         ))
         .register_mapping(BridgeMappingRegistration::new(
             BridgeMappingId::new("mapping"),
-            TruthPatchScope::new(
+            TruthPatchScope::for_entity_field(
                 MappingSelector::exact("entity-1"),
-                MappingSelector::exact("profile"),
-                MappingSelector::exact("name"),
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native field key"),
+            ),
+            crate::snapshot::SnapshotReadContract::scalar(
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::ScalarAspectType::String,
             ),
             SignalInvalidationScope::new("signal:profile"),
             CoarseRoutingMode::Direct,
@@ -68,7 +82,7 @@ fn standard_route_flows_from_commit_string_to_evaluation_target() {
     let runtime = runtime(BridgeRuntimePolicy::default());
 
     let routed = runtime
-        .route("commit-std")
+        .route(crate::facade::TruthCommitIdentity::new("commit-std"))
         .expect("standard route should succeed");
     let evaluation = runtime
         .evaluate_current(routed.target())
@@ -135,7 +149,7 @@ fn standard_truth_view_evaluation_flows_from_branch_head_request() {
     assert_eq!(
         runtime
             .diagnostics()
-            .explain_evaluation(evaluation.record().record_identity().as_str())
+            .explain_evaluation(evaluation.record().record_identity())
             .expect("standard diagnostics should explain a named evaluation")
             .record_identity(),
         evaluation.record().record_identity()
@@ -204,10 +218,7 @@ fn standard_speculation_flow_activates_discards_and_promotes() {
             2,
         ))
         .expect("standard speculation should activate")
-        .promote(BridgeSpeculativePromotionRequest::new(
-            "commit-boundary:std",
-            "authoritative-artifact:std",
-        ))
+        .promote()
         .expect("standard promotion should succeed");
 
     assert_eq!(
@@ -217,10 +228,12 @@ fn standard_speculation_flow_activates_discards_and_promotes() {
     assert_eq!(runtime.diagnostics().preview_execution_records().len(), 3);
     assert_eq!(runtime.diagnostics().preview_discard_records().len(), 1);
     assert_eq!(runtime.diagnostics().preview_promotion_records().len(), 1);
+    let promoted_session_identity =
+        BridgePreviewSessionIdentity::new("preview-session:std-promote");
     assert!(matches!(
         runtime
             .diagnostics()
-            .explain_session("preview-session:std-promote"),
+            .explain_session(&promoted_session_identity),
         Some(crate::facade::BridgeStandardSessionExplanation::PreviewPromotion(_))
     ));
     assert!(matches!(

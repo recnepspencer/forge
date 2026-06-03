@@ -1,20 +1,27 @@
+use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_runtime_bridge::facade::{
-    BridgeDeliveryIntent, BridgeDiagnosticsTier, BridgePreviewSessionDeclaration,
+    BridgeDeliveryIntent, BridgeDiagnosticsTier, BridgePreviewRetainedArtifactSchema,
+    BridgePreviewSessionBasis, BridgePreviewSessionDeclaration,
     BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeReplayMode,
-    BridgeRequestKind, BridgeRouteRequest, BridgeSignalBranchIdentity,
-    BridgeSpeculativeBranchBinding, BridgeSpeculativeBranchBindingIdentity,
-    BridgeSpeculativePromotionRequest, BridgeSpeculativeSessionRequest,
+    BridgeRequestKind, BridgeRouteRequest, BridgeSignalBranchIdentity, BridgeSourceCapability,
+    BridgeSourceCapabilitySet, BridgeSpeculativeBranchBinding,
+    BridgeSpeculativeBranchBindingIdentity, BridgeSpeculativeSessionRequest,
     BridgeSubscriptionContinuationCandidateInput, BridgeTruthViewEvaluationRequest,
-    BridgeTruthViewSelector, BridgeWritebackEffectClass, BridgeWritebackFamilyKind,
-    BridgeWritebackIdempotenceClass, BridgeWritebackLoopDisposition, BridgeWritebackStrategyClass,
+    BridgeTruthViewSelector, BridgeWritebackCausalityBasis, BridgeWritebackCausalityEvidence,
+    BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
+    BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackEffectIntent,
+    BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass, BridgeWritebackStrategyClass,
     HistoricalEvaluationDeclaration, TruthBranchIdentity, TruthCommitIdentity,
-    TruthSnapshotIdentity, TruthWritebackRequest,
+    TruthSnapshotIdentity,
 };
 
 use crate::application::ForgeQueryDeclarationEnvelope;
 
 use super::{
-    artifact::ForgeQueryDeclarationBridgeBinding,
+    artifact::{
+        ForgeQueryDeclarationBridgeBinding, ForgeQueryPreviewPromotionContinuationBinding,
+        ForgeQueryWritebackPreparationBinding,
+    },
     contract::{
         ForgeQueryDeclarationBridgeContinuationContract,
         ForgeQueryDeclarationBridgeContinuationFamily,
@@ -53,8 +60,8 @@ pub(crate) fn forge_query_lower_bridge_binding<
             ))
         }
         ForgeQueryDeclarationBridgeContinuationMode::PreviewPromotion => {
-            ForgeQueryDeclarationBridgeBinding::PreviewPromotion(preview_promotion_request(
-                envelope,
+            ForgeQueryDeclarationBridgeBinding::PreviewPromotion(preview_promotion_binding(
+                envelope, &lowering, request,
             ))
         }
         ForgeQueryDeclarationBridgeContinuationMode::SubscriptionPreparation => {
@@ -141,6 +148,21 @@ impl BridgeLoweringContext {
         declaration.digest().to_string()
     }
 
+    fn preview_session_basis<
+        D: crate::application::ForgeQueryDomainEntryMarker,
+        I: crate::application::ForgeQueryDeclarationInput<D>,
+    >(
+        &self,
+        envelope: &ForgeQueryDeclarationEnvelope<D, I>,
+        truth_context: ForgeQueryDeclarationBridgeTruthContext,
+    ) -> BridgePreviewSessionBasis {
+        BridgePreviewSessionBasis::new(
+            self.truth_view_selector(envelope, truth_context),
+            BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
+            BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,
+        )
+    }
+
     fn runtime_surface_digest(&self) -> &str {
         &self.runtime_surface_digest
     }
@@ -152,10 +174,10 @@ fn runtime_route_request<
 >(
     envelope: &ForgeQueryDeclarationEnvelope<D, I>,
 ) -> BridgeRouteRequest {
-    BridgeRouteRequest::for_commit(format!(
+    BridgeRouteRequest::for_commit(TruthCommitIdentity::new(format!(
         "query.bridge.route:{}",
         envelope.declaration_digest()
-    ))
+    )))
 }
 
 fn truth_view_request<
@@ -199,13 +221,7 @@ fn preview_session_request<
         )),
         BridgeRequestKind::Preview,
         binding,
-        lowering.truth_view_basis_digest(envelope, request.truth_context()),
-        lowering.runtime_surface_digest().to_string(),
-        format!("request-shape:{}", envelope.declaration_family_key()),
-        format!(
-            "artifact-schema:{}",
-            envelope.route_plan_digest().unwrap_or("none")
-        ),
+        lowering.preview_session_basis(envelope, request.truth_context()),
     );
     BridgeSpeculativeSessionRequest::new(
         BridgePreviewSessionIdentity::new(format!(
@@ -219,15 +235,21 @@ fn preview_session_request<
     )
 }
 
-fn preview_promotion_request<
+fn preview_promotion_binding<
     D: crate::application::ForgeQueryDomainEntryMarker,
     I: crate::application::ForgeQueryDeclarationInput<D>,
 >(
     envelope: &ForgeQueryDeclarationEnvelope<D, I>,
-) -> BridgeSpeculativePromotionRequest {
-    BridgeSpeculativePromotionRequest::new(
+    lowering: &BridgeLoweringContext,
+    request: ForgeQueryDeclarationBridgeContinuationRequest,
+) -> ForgeQueryPreviewPromotionContinuationBinding {
+    let preview_basis_digest = lowering.truth_view_basis_digest(envelope, request.truth_context());
+    let promotion_continuation_digest = crate::identity::hash_parts(&[
+        "forge_query_preview_promotion_continuation_v1".to_string(),
+        preview_basis_digest.clone(),
+        envelope.declaration_digest().to_string(),
         format!(
-            "boundary:{}",
+            "basis-algorithm:{}",
             envelope
                 .envelope_digest()
                 .metadata()
@@ -235,7 +257,11 @@ fn preview_promotion_request<
                 .id()
                 .as_str()
         ),
-        format!("artifact:{}", envelope.declaration_digest()),
+    ]);
+    ForgeQueryPreviewPromotionContinuationBinding::new(
+        preview_basis_digest,
+        promotion_continuation_digest,
+        envelope.declaration_digest().to_string(),
     )
 }
 
@@ -264,36 +290,37 @@ fn writeback_preparation_request<
     envelope: &ForgeQueryDeclarationEnvelope<D, I>,
     lowering: &BridgeLoweringContext,
     request: ForgeQueryDeclarationBridgeContinuationRequest,
-) -> TruthWritebackRequest {
+) -> ForgeQueryWritebackPreparationBinding {
     let basis_digest = lowering.truth_view_basis_digest(envelope, request.truth_context());
-    TruthWritebackRequest::new(
+    let declaration = BridgeWritebackDeclaration::writeback_capable(
+        BridgeWritebackDeclarationIdentity::new(format!(
+            "query.writeback.preparation:{}",
+            envelope.declaration_digest()
+        )),
+        BridgeRequestKind::Authoritative,
         BridgeWritebackFamilyKind::ProjectedStateDiff,
-        format!("contract:{}", envelope.declaration_family_key()),
-        format!("candidate:{}", envelope.declaration_digest()),
-        format!("mapped-input:{}", envelope.declaration_digest()),
-        format!("mapper-witness:{basis_digest}"),
-        format!("derived-effect:{basis_digest}"),
-        format!(
-            "proposed-effect:{}",
-            envelope.route_plan_digest().unwrap_or("none")
-        ),
         BridgeWritebackEffectClass::ProjectedStateDiff,
         BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
-        format!("feedback:{}", envelope.handle_identity_digest()),
-        format!(
-            "loop-prevention:{}",
-            envelope.operating_context_identity_digest()
-        ),
-        BridgeWritebackLoopDisposition::AllowAuthoritativeAttempt,
-        format!(
-            "strategy-compatibility:{}",
-            lowering.runtime_surface_digest()
-        ),
-        format!("causality:{basis_digest}"),
-        format!("idempotence:{}", envelope.declaration_digest()),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
-        format!("strategy-descriptor:{}", envelope.declaration_family_key()),
+    );
+    let causality = BridgeWritebackCausalityBasis::from_evidence(
+        BridgeWritebackCausalityIdentity::new(format!("query.causality:{basis_digest}")),
+        BridgeWritebackCausalityEvidence::from_native_bases(
+            format!("truth-trigger:{}", envelope.handle_identity_digest()),
+            lowering.runtime_surface_digest().to_string(),
+            format!("evaluation:{}", envelope.declaration_digest()),
+            basis_digest,
+        ),
+    );
+    let effect_intent = BridgeWritebackEffectIntent::validated_scalar_patch(
+        BridgeWritebackEffectClass::ProjectedStateDiff,
+        AspectKey::new("query.writeback.preparation")
+            .expect("static query writeback preparation aspect key is valid"),
+        AspectValue::String(envelope.declaration_digest().to_string().into()),
     )
+    .expect("query writeback preparation effect intent should validate");
+
+    ForgeQueryWritebackPreparationBinding::new(declaration, causality, effect_intent)
 }
 
 fn preview_branch_binding<

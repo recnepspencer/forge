@@ -10,6 +10,7 @@ pub enum BridgeParallelLegalityReason {
     BelowMinWorkloadWidth,
     SharedTruthViewMaterializationTarget,
     ContinuityRemapRequiresSerialPreparation,
+    PacketRegionOverlapDetected,
     DisjointPacketRegionsCertified,
 }
 
@@ -115,6 +116,7 @@ pub enum BridgeParallelAdmissionReason {
     SharedPublicationReductionTarget,
     SharedTruthViewMaterializationTarget,
     ContinuityRemapRequiresSerialPreparation,
+    PacketRegionOverlapDetected,
     AdmittedOperational,
 }
 
@@ -126,16 +128,16 @@ pub enum BridgePreparationMode {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DisjointPacketRegionSet {
-    regions: Arc<[Arc<str>]>,
+    regions: Arc<[BulkPacketRegionIdentity]>,
     digest: Arc<str>,
 }
 
 impl DisjointPacketRegionSet {
-    pub(crate) fn new(regions: Vec<Arc<str>>) -> Self {
+    pub(crate) fn new(regions: Vec<BulkPacketRegionIdentity>) -> Self {
         let mut basis = format!("disjoint-packet-region-set|region-count={}", regions.len());
         for region in &regions {
             basis.push_str("|region=");
-            basis.push_str(region);
+            basis.push_str(region.as_str());
         }
         Self {
             regions: regions.into(),
@@ -143,7 +145,7 @@ impl DisjointPacketRegionSet {
         }
     }
 
-    pub fn regions(&self) -> &[Arc<str>] {
+    pub fn regions(&self) -> &[BulkPacketRegionIdentity] {
         &self.regions
     }
 
@@ -154,19 +156,19 @@ impl DisjointPacketRegionSet {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedPreparationPartitionSet {
-    partitions: Arc<[Arc<str>]>,
+    partitions: Arc<[BulkPacketRegionIdentity]>,
     digest: Arc<str>,
 }
 
 impl AdmittedPreparationPartitionSet {
-    pub(crate) fn new(partitions: Vec<Arc<str>>) -> Self {
+    pub(crate) fn new(partitions: Vec<BulkPacketRegionIdentity>) -> Self {
         let mut basis = format!(
             "admitted-preparation-partition-set|partition-count={}",
             partitions.len()
         );
         for partition in &partitions {
             basis.push_str("|partition=");
-            basis.push_str(partition);
+            basis.push_str(partition.as_str());
         }
         Self {
             partitions: partitions.into(),
@@ -174,7 +176,7 @@ impl AdmittedPreparationPartitionSet {
         }
     }
 
-    pub fn partitions(&self) -> &[Arc<str>] {
+    pub fn partitions(&self) -> &[BulkPacketRegionIdentity] {
         &self.partitions
     }
 

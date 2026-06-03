@@ -37,15 +37,73 @@ fn runtime_admits_collection_membership_subscription_against_snapshot_basis() {
 }
 
 #[test]
+fn signal_strategy_identity_is_derived_from_validated_basis_evidence() {
+    let runtime = runtime(BridgeRuntimePolicy::development());
+    let declaration = runtime
+        .declare_subscription(
+            BridgeSubscriptionDeclarationFamilyKind::DetailExact,
+            vec![NormalizedSubscriptionSliceIntent::try_new_entity_field(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native subscription field key"),
+                SubscriptionSliceKind::SignalField,
+            )
+            .expect("slice intent should validate")],
+            BridgeSubscriptionDeliveryIntentClass::None,
+        )
+        .expect("declaration should succeed");
+
+    let snapshot_admission = runtime
+        .admit_subscription(
+            &declaration,
+            BridgeSubscriptionBasisRequest::snapshot(TruthSnapshotIdentity::new("snapshot-a")),
+        )
+        .expect("snapshot basis should admit");
+    let branch_head_admission = runtime
+        .admit_subscription(
+            &declaration,
+            BridgeSubscriptionBasisRequest::branch_head(TruthBranchIdentity::new("main")),
+        )
+        .expect("branch-head basis should admit");
+
+    assert_ne!(
+        snapshot_admission.basis_binding().digest(),
+        branch_head_admission.basis_binding().digest()
+    );
+    assert_ne!(
+        snapshot_admission.signal_strategy().digest(),
+        branch_head_admission.signal_strategy().digest()
+    );
+    assert!(snapshot_admission
+        .signal_strategy()
+        .canonical_basis()
+        .contains(snapshot_admission.basis_binding().digest()));
+    assert!(branch_head_admission
+        .signal_strategy()
+        .canonical_basis()
+        .contains(branch_head_admission.basis_binding().digest()));
+    assert!(snapshot_admission
+        .canonical_basis()
+        .contains(snapshot_admission.signal_strategy().digest()));
+    assert!(branch_head_admission
+        .canonical_basis()
+        .contains(branch_head_admission.signal_strategy().digest()));
+}
+
+#[test]
 fn runtime_rejects_subscription_admission_when_snapshot_basis_cannot_bind() {
     let runtime = runtime(BridgeRuntimePolicy::development());
     let declaration = runtime
         .declare_subscription(
             BridgeSubscriptionDeclarationFamilyKind::DetailExact,
-            vec![NormalizedSubscriptionSliceIntent::try_new(
+            vec![NormalizedSubscriptionSliceIntent::try_new_entity_field(
                 "entity-1",
-                "profile",
-                "name",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native subscription field key"),
                 SubscriptionSliceKind::SignalField,
             )
             .expect("slice intent should validate")],

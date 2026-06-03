@@ -2,8 +2,9 @@ use forge_harness::facade::{
     replay_id, HarnessAdapter, RecordSchemaVersion, ReplayHarnessAdapter, ReplayRecord,
     ReplayRequest, ScenarioFixture,
 };
-use serde_json::json;
 
+use super::target_id::BridgeHarnessTargetId;
+use super::terminal_report_export::{historical_replay_summary_json, route_replay_summary_json};
 use super::types::{BridgeHarnessAdapter, BridgeHarnessError, BridgeHarnessSession};
 
 impl ReplayHarnessAdapter for BridgeHarnessAdapter {
@@ -11,8 +12,8 @@ impl ReplayHarnessAdapter for BridgeHarnessAdapter {
         &self,
         runtime: &BridgeHarnessSession,
         fixture: &ScenarioFixture<crate::harness::fixtures::BridgeHarnessFixture>,
-        replay: &ReplayRequest<String>,
-    ) -> Result<ReplayRecord<String>, BridgeHarnessError> {
+        replay: &ReplayRequest<BridgeHarnessTargetId>,
+    ) -> Result<ReplayRecord<BridgeHarnessTargetId>, BridgeHarnessError> {
         let runtime_bridge = runtime
             .runtime
             .as_ref()
@@ -35,11 +36,7 @@ impl ReplayHarnessAdapter for BridgeHarnessAdapter {
                 scenario_name: fixture.name.clone(),
                 replay_name: replay.name.clone(),
                 requested_targets: replay.request.targets.clone(),
-                summary: json!({
-                    "historical_record_identity": replay_record.record_identity().as_str(),
-                    "decision_log_identity": replay_record.decision_log_identity().as_str(),
-                    "source_snapshot": replay_record.snapshot_identity().as_str(),
-                }),
+                summary: historical_replay_summary_json(&replay_record),
                 attachments: Vec::new(),
             });
         }
@@ -60,14 +57,7 @@ impl ReplayHarnessAdapter for BridgeHarnessAdapter {
             scenario_name: fixture.name.clone(),
             replay_name: replay.name.clone(),
             requested_targets: replay.request.targets.clone(),
-            summary: json!({
-                "route_identity": replay_record.route_identity().as_str(),
-                "invalidation_identity": replay_record.invalidation_identity().as_str(),
-                "subscription_slice_identity": replay_record.subscription_slice_identity().as_str(),
-                "source_commit": replay_record.source_commit().as_str(),
-                "source_patch": replay_record.source_patch().as_str(),
-                "source_snapshot": replay_record.source_snapshot().as_str(),
-            }),
+            summary: route_replay_summary_json(&replay_record),
             attachments: Vec::new(),
         })
     }

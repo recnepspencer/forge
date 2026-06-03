@@ -6,8 +6,14 @@ mod history;
 mod materialization;
 mod packet;
 mod policy;
+mod read_contract;
+mod read_correlation;
+mod read_error;
+mod read_result;
+mod read_target;
 mod selection;
 pub(crate) mod token;
+pub(crate) mod validated_value_basis;
 
 pub use context::{AdmittedSnapshotContext, BridgeSnapshotContext, TruthSnapshotReader};
 pub use declaration::{
@@ -19,17 +25,21 @@ pub use history::{
     LoweredHistoricalEvaluationArtifact, LoweredHistoricalEvaluationArtifactIdentity,
 };
 pub use materialization::{MaterializedTruthViewObservation, TruthViewObservationReader};
-pub(crate) use packet::{
-    canonical_subscription_slice_kind_label, validate_snapshot_read_result_contract,
-};
-pub use packet::{
-    BridgeSnapshotReadError, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
-    SnapshotReadRequest, ValidatedSnapshotReadPacketResult,
-};
+pub(crate) use packet::validate_snapshot_read_result_contract;
+pub use packet::{SnapshotReadPacket, SnapshotReadRequest};
 pub use policy::{
     BridgeTruthViewPolicyRejection, BridgeTruthViewPolicyResolution, ResolvedTruthViewPolicy,
-    TruthViewPolicyRejectionKind, TruthViewReplayCompatibility, TruthViewRetentionAdmission,
+    TruthViewPolicyRejectionKind, TruthViewReplayContinuity, TruthViewRetentionAdmission,
     TruthViewSourceCapability,
 };
+pub use read_contract::SnapshotReadContract;
+pub use read_correlation::SnapshotReadCorrelationId;
+pub use read_error::{BridgeSnapshotReadError, BridgeSnapshotReadErrorKind};
+pub(crate) use read_result::contract_validated_scalar_aspect_value;
+pub use read_result::{
+    SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadValue,
+    ValidatedSnapshotReadPacketResult, ValidatedSnapshotReadRecord,
+};
+pub use read_target::{SnapshotReadTarget, SnapshotReadTargetIdentity};
 pub use selection::{BridgeTruthViewAuthorityBasis, PlannedTruthViewPacket};
 pub use token::{BridgeSnapshotToken, TruthSnapshotIdentity};

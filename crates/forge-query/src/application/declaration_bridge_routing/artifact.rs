@@ -1,7 +1,7 @@
 use forge_runtime_bridge::facade::{
-    BridgeRouteRequest, BridgeSpeculativePromotionRequest, BridgeSpeculativeSessionRequest,
+    BridgeRouteRequest, BridgeSpeculativeSessionRequest,
     BridgeSubscriptionContinuationCandidateInput, BridgeTruthViewEvaluationRequest,
-    TruthWritebackRequest,
+    BridgeWritebackCausalityBasis, BridgeWritebackDeclaration, BridgeWritebackEffectIntent,
 };
 
 use crate::application::{
@@ -29,9 +29,9 @@ pub enum ForgeQueryDeclarationBridgeBinding {
     RuntimeRoute(BridgeRouteRequest),
     TruthView(BridgeTruthViewEvaluationRequest),
     PreviewSession(BridgeSpeculativeSessionRequest),
-    PreviewPromotion(BridgeSpeculativePromotionRequest),
+    PreviewPromotion(ForgeQueryPreviewPromotionContinuationBinding),
     SubscriptionPreparation(BridgeSubscriptionContinuationCandidateInput),
-    WritebackPreparation(TruthWritebackRequest),
+    WritebackPreparation(ForgeQueryWritebackPreparationBinding),
 }
 
 impl ForgeQueryDeclarationBridgeBinding {
@@ -43,13 +43,81 @@ impl ForgeQueryDeclarationBridgeBinding {
                 "forge_runtime_bridge::facade::BridgeSpeculativeSessionRequest"
             }
             Self::PreviewPromotion(_) => {
-                "forge_runtime_bridge::facade::BridgeSpeculativePromotionRequest"
+                "forge_query::application::ForgeQueryPreviewPromotionContinuationBinding"
             }
             Self::SubscriptionPreparation(_) => {
                 "forge_runtime_bridge::facade::BridgeSubscriptionContinuationCandidateInput"
             }
-            Self::WritebackPreparation(_) => "forge_runtime_bridge::facade::TruthWritebackRequest",
+            Self::WritebackPreparation(_) => {
+                "forge_query::application::ForgeQueryWritebackPreparationBinding"
+            }
         }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ForgeQueryWritebackPreparationBinding {
+    declaration: BridgeWritebackDeclaration,
+    causality: BridgeWritebackCausalityBasis,
+    effect_intent: BridgeWritebackEffectIntent,
+}
+
+impl ForgeQueryWritebackPreparationBinding {
+    pub(crate) fn new(
+        declaration: BridgeWritebackDeclaration,
+        causality: BridgeWritebackCausalityBasis,
+        effect_intent: BridgeWritebackEffectIntent,
+    ) -> Self {
+        Self {
+            declaration,
+            causality,
+            effect_intent,
+        }
+    }
+
+    pub fn declaration(&self) -> &BridgeWritebackDeclaration {
+        &self.declaration
+    }
+
+    pub fn causality(&self) -> &BridgeWritebackCausalityBasis {
+        &self.causality
+    }
+
+    pub fn effect_intent(&self) -> &BridgeWritebackEffectIntent {
+        &self.effect_intent
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ForgeQueryPreviewPromotionContinuationBinding {
+    preview_basis_digest: String,
+    promotion_continuation_digest: String,
+    declaration_digest: String,
+}
+
+impl ForgeQueryPreviewPromotionContinuationBinding {
+    pub(crate) fn new(
+        preview_basis_digest: String,
+        promotion_continuation_digest: String,
+        declaration_digest: String,
+    ) -> Self {
+        Self {
+            preview_basis_digest,
+            promotion_continuation_digest,
+            declaration_digest,
+        }
+    }
+
+    pub fn preview_basis_digest(&self) -> &str {
+        &self.preview_basis_digest
+    }
+
+    pub fn promotion_continuation_digest(&self) -> &str {
+        &self.promotion_continuation_digest
+    }
+
+    pub fn declaration_digest(&self) -> &str {
+        &self.declaration_digest
     }
 }
 

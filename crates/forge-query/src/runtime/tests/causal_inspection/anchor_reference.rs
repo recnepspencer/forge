@@ -287,7 +287,7 @@ fn evidence_reference_resolution_consumes_anchor_and_emits_sealed_reference_set(
     assert_eq!(counters.index_lookup_count(), 3);
     assert_eq!(counters.resolved_reference_count(), 3);
     assert_eq!(counters.missing_required_reference_count(), 0);
-    assert_eq!(counters.bridge_record_scan_fallback_count(), 0);
+    assert_eq!(counters.bridge_record_unindexed_scan_count(), 0);
     assert_eq!(counters.retained_record_scan_count(), 0);
     assert_eq!(counters.runtime_graph_scan_count(), 0);
 }
@@ -332,7 +332,7 @@ fn evidence_reference_resolution_denies_requested_family_missing_from_anchor() {
     assert_eq!(counters.index_lookup_count(), 2);
     assert_eq!(counters.resolved_reference_count(), 1);
     assert_eq!(counters.missing_required_reference_count(), 1);
-    assert_eq!(counters.bridge_record_scan_fallback_count(), 0);
+    assert_eq!(counters.bridge_record_unindexed_scan_count(), 0);
     assert_eq!(counters.retained_record_scan_count(), 0);
     assert_eq!(counters.runtime_graph_scan_count(), 0);
 }

@@ -10,11 +10,11 @@ pub(crate) fn sealed_window(
         active,
         family_kind,
         0,
-        BridgeSubscriptionDeliveryMemberInput::payload_digest(
+        BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
             "slice:entity-1/profile/name",
             "routing:fixture",
             BridgeSubscriptionDeliveryMemberClass::Update,
-            "payload:fixture",
+            BridgeSubscriptionDeliveryContentDigest::new("content:fixture"),
         ),
     )
 }
@@ -50,11 +50,11 @@ pub(crate) fn sealed_window_with_members(
 pub(crate) fn fixture_members(count: usize) -> Vec<BridgeSubscriptionDeliveryMemberInput> {
     (0..count)
         .map(|index| {
-            BridgeSubscriptionDeliveryMemberInput::payload_digest(
+            BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
                 "slice:entity-1/profile/name",
                 format!("routing:fixture:{index}"),
                 BridgeSubscriptionDeliveryMemberClass::Update,
-                format!("payload:fixture:{index}"),
+                BridgeSubscriptionDeliveryContentDigest::new(format!("content:fixture:{index}")),
             )
         })
         .collect()
@@ -69,12 +69,7 @@ pub(crate) fn checkpoint_from_sealed(
 ) -> crate::facade::BridgeSubscriptionCheckpoint {
     let acknowledged = &sealed.members()[acknowledged_sequence];
     let frontier = runtime
-        .admit_subscription_acknowledgement_frontier(
-            sealed,
-            acknowledged_sequence,
-            acknowledged.delivery_member_identity(),
-            acknowledged.digest(),
-        )
+        .admit_subscription_acknowledgement_frontier(sealed, acknowledged_sequence, acknowledged)
         .expect("frontier should admit");
     runtime
         .publish_subscription_checkpoint(

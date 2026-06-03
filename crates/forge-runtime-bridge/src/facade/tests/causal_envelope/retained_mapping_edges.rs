@@ -1,10 +1,14 @@
+use super::retained_mapping_digest_support::{
+    expected_retained_causal_digest, ExpectedRetainedCausalDigestArtifact,
+};
 use super::retained_mapping_support::{
-    binding_for, bridge_reference, digest, query_observation_reference,
+    binding_for, bridge_route_reference, bridge_source_failure_reference,
+    bridge_source_materialization_reference, missing_bridge_reference, query_observation_reference,
 };
 use super::{
     registered_source, runtime, runtime_with_source_adapter, BridgeRuntimePolicy,
     BridgeSourceCapability, BridgeTruthViewSelector, RejectingSourceAdapter, SnapshotReadPacket,
-    TruthBranchIdentity, TruthCommitIdentity,
+    TruthBranchIdentity,
 };
 use crate::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEnvelopeDenialKind, BridgeCausalEvidenceFamily,
@@ -15,20 +19,22 @@ fn causal_envelope_maps_source_failure_by_exact_failure_identity() {
     let runtime =
         runtime_with_source_adapter(BridgeRuntimePolicy::default(), RejectingSourceAdapter);
     let routed = runtime
-        .route("commit-causal-source-failure")
+        .route(crate::facade::TruthCommitIdentity::new(
+            "commit-causal-source-failure",
+        ))
         .expect("route should succeed");
     let contract = runtime
         .admit_source(registered_source(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
                 TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthCommitIdentity::new("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
                 BridgeSourceCapability::HistoricalRead,
                 BridgeSourceCapability::BranchRead,
-                BridgeSourceCapability::ReplayCompatibleRead,
+                BridgeSourceCapability::ReplayContinuityRead,
             ],
         ))
         .expect("source should admit");
@@ -50,15 +56,14 @@ fn causal_envelope_maps_source_failure_by_exact_failure_identity() {
         )
         .expect("query admission summary should be valid"),
         vec![
-            query_observation_reference("query-observation:source-failure"),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeRoute,
-                routed.result().result_summary().route_identity().as_str(),
+            query_observation_reference(
+                crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    "query-observation:source-failure",
+                )
+                .expect("query observation reference identity should be valid"),
             ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeSourceFailure,
-                failure.failure_identity().as_str(),
-            ),
+            bridge_route_reference(routed.result().result_summary()),
+            bridge_source_failure_reference(&failure),
         ],
     )
     .expect("request should be valid");
@@ -71,7 +76,7 @@ fn causal_envelope_maps_source_failure_by_exact_failure_identity() {
 
     assert_eq!(envelope.counters().bridge_retained_lookup_count(), 2);
     assert_eq!(envelope.counters().retained_bridge_binding_count(), 2);
-    assert_eq!(envelope.counters().bridge_record_scan_fallback_count(), 0);
+    assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
     assert_eq!(
         binding_for(
             envelope.bindings(),
@@ -80,8 +85,8 @@ fn causal_envelope_maps_source_failure_by_exact_failure_identity() {
         )
         .retained_record_digest(),
         Some(
-            digest(
-                "bridge-causal-retained-source-failure-record",
+            expected_retained_causal_digest(
+                ExpectedRetainedCausalDigestArtifact::SourceFailureRecord,
                 &[
                     failure.failure_identity().as_str(),
                     failure.declaration_identity().as_str(),
@@ -98,10 +103,12 @@ fn causal_envelope_maps_source_failure_by_exact_failure_identity() {
 }
 
 #[test]
-fn causal_envelope_denies_missing_retained_expansion_record_without_scan_fallback() {
+fn causal_envelope_denies_missing_retained_expansion_record_without_unindexed_scan() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let routed = runtime
-        .route("commit-causal-missing-retained-expansion")
+        .route(crate::facade::TruthCommitIdentity::new(
+            "commit-causal-missing-retained-expansion",
+        ))
         .expect("route should succeed");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
@@ -110,12 +117,14 @@ fn causal_envelope_denies_missing_retained_expansion_record_without_scan_fallbac
         )
         .expect("query admission summary should be valid"),
         vec![
-            query_observation_reference("query-observation:missing-retained-expansion"),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeRoute,
-                routed.result().result_summary().route_identity().as_str(),
+            query_observation_reference(
+                crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    "query-observation:missing-retained-expansion",
+                )
+                .expect("query observation reference identity should be valid"),
             ),
-            bridge_reference(
+            bridge_route_reference(routed.result().result_summary()),
+            missing_bridge_reference(
                 BridgeCausalEvidenceFamily::BridgeStructuralBranchComparison,
                 "missing-branch-comparison-record",
             ),
@@ -139,7 +148,7 @@ fn causal_envelope_denies_missing_retained_expansion_record_without_scan_fallbac
     assert_eq!(denial.counters().bridge_retained_lookup_count(), 2);
     assert_eq!(denial.counters().retained_bridge_binding_count(), 1);
     assert_eq!(denial.counters().missing_bridge_record_count(), 1);
-    assert_eq!(denial.counters().bridge_record_scan_fallback_count(), 0);
+    assert_eq!(denial.counters().bridge_record_unindexed_scan_count(), 0);
 }
 
 #[test]
@@ -153,13 +162,13 @@ fn causal_envelope_source_materialization_lookup_cost_ignores_unrelated_records(
                 "source:analysis-history",
                 BridgeTruthViewSelector::historical_commit(
                     TruthBranchIdentity::new("analysis"),
-                    TruthCommitIdentity::new("commit-a"),
+                    crate::facade::TruthCommitIdentity::new("commit-a"),
                 ),
                 vec![
                     BridgeSourceCapability::SnapshotRead,
                     BridgeSourceCapability::HistoricalRead,
                     BridgeSourceCapability::BranchRead,
-                    BridgeSourceCapability::ReplayCompatibleRead,
+                    BridgeSourceCapability::ReplayContinuityRead,
                 ],
             ))
             .expect("source should admit");
@@ -167,8 +176,11 @@ fn causal_envelope_source_materialization_lookup_cost_ignores_unrelated_records(
             let packet =
                 SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
                     format!("entity-noise-{index}"),
-                    forge_foundational::facade::AspectKey::new("profile")
-                        .expect("valid snapshot aspect key"),
+                    crate::snapshot::SnapshotReadContract::scalar(
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid snapshot aspect key"),
+                        forge_foundational::facade::ScalarAspectType::String,
+                    ),
                 )]);
             let observation = runtime
                 .materialize_source_packet(&contract, packet)
@@ -178,7 +190,9 @@ fn causal_envelope_source_materialization_lookup_cost_ignores_unrelated_records(
                 .expect("noise source should canonicalize");
         }
         let routed = runtime
-            .route("commit-causal-source-scale")
+            .route(crate::facade::TruthCommitIdentity::new(
+                "commit-causal-source-scale",
+            ))
             .expect("route should succeed");
         let target_observation = runtime
             .materialize_source_packet(&contract, SnapshotReadPacket::new(vec![]))
@@ -193,15 +207,14 @@ fn causal_envelope_source_materialization_lookup_cost_ignores_unrelated_records(
             )
             .expect("query admission summary should be valid"),
             vec![
-                query_observation_reference("query-observation:source-scale"),
-                bridge_reference(
-                    BridgeCausalEvidenceFamily::BridgeRoute,
-                    routed.result().result_summary().route_identity().as_str(),
+                query_observation_reference(
+                    crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
+                        "query-observation:source-scale",
+                    )
+                    .expect("query observation reference identity should be valid"),
                 ),
-                bridge_reference(
-                    BridgeCausalEvidenceFamily::BridgeSourceMaterialization,
-                    target_record.record_identity().as_str(),
-                ),
+                bridge_route_reference(routed.result().result_summary()),
+                bridge_source_materialization_reference(&target_record),
             ],
         )
         .expect("request should be valid");
@@ -217,7 +230,7 @@ fn causal_envelope_source_materialization_lookup_cost_ignores_unrelated_records(
         );
         assert_eq!(envelope.counters().bridge_retained_lookup_count(), 2);
         assert_eq!(envelope.counters().retained_bridge_binding_count(), 2);
-        assert_eq!(envelope.counters().bridge_record_scan_fallback_count(), 0);
+        assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
         envelope_identities.push(envelope.identity().identity_digest().to_string());
     }
 

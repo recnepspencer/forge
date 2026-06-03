@@ -346,26 +346,6 @@ impl BridgeSubscriptionFanoutDeliveryProjectionSet {
     pub fn digest(&self) -> &str {
         self.digest.as_ref()
     }
-
-    #[cfg(test)]
-    pub(crate) fn with_canonical_member_digest_basis_for_test(
-        &self,
-        canonical_member_digest_basis: impl Into<Arc<str>>,
-    ) -> Self {
-        let mut tampered = self.clone();
-        tampered.canonical_member_digest_basis = canonical_member_digest_basis.into();
-        tampered
-    }
-
-    #[cfg(test)]
-    pub(crate) fn with_consumer_binding_digest_basis_for_test(
-        &self,
-        consumer_binding_digest_basis: impl Into<Arc<str>>,
-    ) -> Self {
-        let mut tampered = self.clone();
-        tampered.consumer_binding_digest_basis = consumer_binding_digest_basis.into();
-        tampered
-    }
 }
 
 impl std::ops::Deref for BridgeSubscriptionFanoutDeliveryProjectionSet {

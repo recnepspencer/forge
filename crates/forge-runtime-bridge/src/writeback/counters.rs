@@ -19,7 +19,7 @@ pub struct BridgeWritebackCounters {
     writeback_noop_count: usize,
     writeback_commit_count: usize,
     writeback_failure_count: usize,
-    writeback_authority_bypass_rejection_count: usize,
+    writeback_authority_denial_count: usize,
     writeback_validation_rejection_count: usize,
     writeback_replay_request_count: usize,
     writeback_replay_mismatch_count: usize,
@@ -45,13 +45,13 @@ impl BridgeWritebackCounters {
         writeback_noop_count: usize,
         writeback_commit_count: usize,
         writeback_failure_count: usize,
-        writeback_authority_bypass_rejection_count: usize,
+        writeback_authority_denial_count: usize,
         writeback_validation_rejection_count: usize,
         writeback_replay_request_count: usize,
         writeback_replay_mismatch_count: usize,
     ) -> Self {
         let canonical_basis = Arc::<str>::from(format!(
-            "bridge-writeback-counters|family-lookup-count:{}|family-dispatch-count:{}|mapper-lowering-count:{}|decision-record-append-count:{}|request-count:{}|effect-width:{}|strategy-contract-count:{}|strategy-rejection-count:{}|idempotence-check-count:{}|causality-match-count:{}|loop-prevention-check-count:{}|loop-prevention-rejection-count:{}|noop-count:{}|commit-count:{}|failure-count:{}|authority-bypass-rejection-count:{}|validation-rejection-count:{}|replay-request-count:{}|replay-mismatch-count:{}",
+            "bridge-writeback-counters|family-lookup-count:{}|family-dispatch-count:{}|mapper-lowering-count:{}|decision-record-append-count:{}|request-count:{}|effect-width:{}|strategy-contract-count:{}|strategy-rejection-count:{}|idempotence-check-count:{}|causality-match-count:{}|loop-prevention-check-count:{}|loop-prevention-rejection-count:{}|noop-count:{}|commit-count:{}|failure-count:{}|authority-denial-count:{}|validation-rejection-count:{}|replay-request-count:{}|replay-mismatch-count:{}",
             writeback_family_lookup_count,
             writeback_family_dispatch_count,
             writeback_mapper_lowering_count,
@@ -67,7 +67,7 @@ impl BridgeWritebackCounters {
             writeback_noop_count,
             writeback_commit_count,
             writeback_failure_count,
-            writeback_authority_bypass_rejection_count,
+            writeback_authority_denial_count,
             writeback_validation_rejection_count,
             writeback_replay_request_count,
             writeback_replay_mismatch_count,
@@ -89,37 +89,13 @@ impl BridgeWritebackCounters {
             writeback_noop_count,
             writeback_commit_count,
             writeback_failure_count,
-            writeback_authority_bypass_rejection_count,
+            writeback_authority_denial_count,
             writeback_validation_rejection_count,
             writeback_replay_request_count,
             writeback_replay_mismatch_count,
             canonical_basis,
             digest: Arc::from(format!("bridge-writeback-counters:sha256:{digest:x}")),
         }
-    }
-
-    pub fn json(&self) -> serde_json::Value {
-        serde_json::json!({
-            "writeback_family_lookup_count": self.writeback_family_lookup_count,
-            "writeback_family_dispatch_count": self.writeback_family_dispatch_count,
-            "writeback_mapper_lowering_count": self.writeback_mapper_lowering_count,
-            "writeback_decision_record_append_count": self.writeback_decision_record_append_count,
-            "writeback_request_count": self.writeback_request_count,
-            "writeback_effect_width": self.writeback_effect_width,
-            "writeback_strategy_contract_count": self.writeback_strategy_contract_count,
-            "writeback_strategy_rejection_count": self.writeback_strategy_rejection_count,
-            "writeback_idempotence_check_count": self.writeback_idempotence_check_count,
-            "writeback_causality_match_count": self.writeback_causality_match_count,
-            "writeback_loop_prevention_check_count": self.writeback_loop_prevention_check_count,
-            "writeback_loop_prevention_rejection_count": self.writeback_loop_prevention_rejection_count,
-            "writeback_noop_count": self.writeback_noop_count,
-            "writeback_commit_count": self.writeback_commit_count,
-            "writeback_failure_count": self.writeback_failure_count,
-            "writeback_authority_bypass_rejection_count": self.writeback_authority_bypass_rejection_count,
-            "writeback_validation_rejection_count": self.writeback_validation_rejection_count,
-            "writeback_replay_request_count": self.writeback_replay_request_count,
-            "writeback_replay_mismatch_count": self.writeback_replay_mismatch_count,
-        })
     }
 
     pub fn canonical_basis(&self) -> &str {
@@ -186,8 +162,8 @@ impl BridgeWritebackCounters {
         self.writeback_failure_count
     }
 
-    pub fn writeback_authority_bypass_rejection_count(&self) -> usize {
-        self.writeback_authority_bypass_rejection_count
+    pub fn writeback_authority_denial_count(&self) -> usize {
+        self.writeback_authority_denial_count
     }
 
     pub fn writeback_validation_rejection_count(&self) -> usize {

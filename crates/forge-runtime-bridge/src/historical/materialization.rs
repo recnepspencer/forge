@@ -4,7 +4,7 @@ use crate::facade::{
     BridgeCanonicalHistoricalEvaluationRecord, BridgeDeliveryError, BridgeDeliveryErrorKind,
     BridgeHistoricalEvaluationCounters, BridgeHistoricalEvaluationDecisionLog,
     BridgeHistoricalEvaluationFailureClass, BridgeHistoricalEvaluationRecord, RuntimeBridge,
-    TruthCommitIdentity, TruthSnapshotIdentity,
+    TruthSnapshotIdentity,
 };
 use crate::historical::failures::{
     historical_failure_class_for_delivery_error, historical_failure_counters_for_delivery_error,
@@ -105,10 +105,7 @@ impl RuntimeBridge {
             Arc::from(authority_basis.digest()),
             materialization_path,
             authority_basis.branch_identity().clone(),
-            authority_basis
-                .commit_identity()
-                .cloned()
-                .unwrap_or_else(|| TruthCommitIdentity::new("-")),
+            authority_basis.commit_identity().cloned(),
             authority_basis
                 .snapshot_identity()
                 .cloned()

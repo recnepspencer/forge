@@ -1,12 +1,17 @@
 use super::*;
 use crate::facade::{
+    BridgeCanonicalBulkPlanRecord, BridgeCanonicalContinuityRecord, BridgeCanonicalMergeRecord,
+    BridgeCanonicalStructuralBranchComparisonRecord, BridgeCanonicalStructuralRemapRecord,
     BridgeCausalEvidenceBinding, BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner,
-    BridgeCausalEvidenceReference, BridgeMergeAuthorityBasis, BridgeMergeAuthorityBasisKind,
-    BridgeMergeConsumptionClass, BridgeMergeOntologyMappingSurface, BridgeMergeParentOrderProof,
-    BridgeMergeStructuralAdvisoryDisposition, MergeHistoryDeclaration,
-    MergeHistoryDeclarationIdentity,
+    BridgeCausalEvidenceReference, BridgeCausalEvidenceReferenceIdentity,
+    BridgeHistoricalEvaluationFailureRecord, BridgeHistoricalResolvedLineageIdentity,
+    BridgeHistoricalResolvedRecordIdentity, BridgeMergeAuthorityBasis,
+    BridgeMergeAuthorityBasisKind, BridgeMergeConsumptionClass, BridgeMergeOntologyMappingSurface,
+    BridgeMergeParentOrderProof, BridgeMergeStructuralAdvisoryDisposition,
+    BridgeRouteResultSummary, CanonicalStreamReplayRecord, ConsumerCheckpointToken,
+    MergeHistoryDeclaration, MergeHistoryDeclarationIdentity, SourceFailureRecord,
+    SourceMaterializationRecord,
 };
-use std::sync::Arc;
 
 #[derive(Clone)]
 struct CausalLineageSource;
@@ -21,28 +26,143 @@ impl crate::adapter::ContinuityLineageSource for CausalLineageSource {
     > {
         crate::adapter::BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            vec![Arc::from("lineage:causal-successor")],
-            vec![Arc::from("record:causal-successor")],
+            vec![BridgeHistoricalResolvedLineageIdentity::new(
+                "lineage:causal-successor",
+            )],
+            vec![BridgeHistoricalResolvedRecordIdentity::new(
+                "record:causal-successor",
+            )],
             vec![1],
         )
     }
 }
 
 pub(super) fn bridge_reference(
-    family: BridgeCausalEvidenceFamily,
-    identity: &str,
+    identity: BridgeCausalEvidenceReferenceIdentity,
 ) -> BridgeCausalEvidenceReference {
+    let family = identity.family();
     BridgeCausalEvidenceReference::new(BridgeCausalEvidenceOwner::RuntimeBridge, family, identity)
         .expect("bridge reference should be valid")
 }
 
-pub(super) fn query_observation_reference(identity: &str) -> BridgeCausalEvidenceReference {
+pub(super) fn query_observation_reference(
+    identity: BridgeCausalEvidenceReferenceIdentity,
+) -> BridgeCausalEvidenceReference {
     BridgeCausalEvidenceReference::new(
         BridgeCausalEvidenceOwner::Query,
         BridgeCausalEvidenceFamily::QueryObservation,
         identity,
     )
     .expect("query observation reference should be valid")
+}
+
+pub(super) fn missing_bridge_reference(
+    family: BridgeCausalEvidenceFamily,
+    identity: &str,
+) -> BridgeCausalEvidenceReference {
+    bridge_reference(
+        BridgeCausalEvidenceReferenceIdentity::runtime_bridge(family, identity)
+            .expect("bridge reference identity should be valid"),
+    )
+}
+
+pub(super) fn bridge_route_reference(
+    route_summary: &BridgeRouteResultSummary,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeRoute,
+        route_summary.route_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_bulk_planning_reference(
+    record: &BridgeCanonicalBulkPlanRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeBulkPlanning,
+        record.workload_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_source_materialization_reference(
+    record: &SourceMaterializationRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeSourceMaterialization,
+        record.record_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_source_failure_reference(
+    record: &SourceFailureRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeSourceFailure,
+        record.failure_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_structural_remap_reference(
+    record: &BridgeCanonicalStructuralRemapRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeStructuralRemap,
+        record.record_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_structural_branch_comparison_reference(
+    record: &BridgeCanonicalStructuralBranchComparisonRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeStructuralBranchComparison,
+        record.record_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_stream_replay_reference(
+    record: &CanonicalStreamReplayRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeStreamReplay,
+        record.replay_record_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_stream_checkpoint_reference(
+    checkpoint: &ConsumerCheckpointToken,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeStreamCheckpoint,
+        checkpoint.checkpoint_token_identity(),
+    )
+}
+
+pub(super) fn bridge_continuity_reference(
+    record: &BridgeCanonicalContinuityRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeContinuity,
+        record.route_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_merge_reference(
+    record: &BridgeCanonicalMergeRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeMerge,
+        record.record_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_historical_evaluation_failure_reference(
+    record: &BridgeHistoricalEvaluationFailureRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeHistoricalEvaluationFailure,
+        record.failure_identity().as_str(),
+    )
 }
 
 pub(super) fn binding_for<'a>(
@@ -60,40 +180,33 @@ pub(super) fn binding_for<'a>(
         .expect("expected retained bridge binding should be present")
 }
 
-pub(super) fn digest(label: &str, parts: &[&str]) -> String {
-    use sha2::{Digest, Sha256};
-
-    let mut canonical = String::from(label);
-    for part in parts {
-        canonical.push('|');
-        canonical.push_str(part);
-    }
-    let digest = Sha256::digest(canonical.as_bytes());
-    format!("{label}:sha256:{digest:x}")
-}
-
-pub(super) fn registered_causal_merge(id: &str) -> MergeHistoryDeclaration {
+pub(super) fn registered_causal_merge(
+    declaration_identity: MergeHistoryDeclarationIdentity,
+) -> MergeHistoryDeclaration {
+    let authority_artifact_identity = format!("merge-artifact:{}", declaration_identity.as_str());
     MergeHistoryDeclaration::new(
-        MergeHistoryDeclarationIdentity::new(id),
+        declaration_identity,
         BridgeMergeConsumptionClass::AspectReconciliationMerge,
         BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1"),
         BridgeMergeAuthorityBasis::new(
             BridgeMergeAuthorityBasisKind::OrderedMergeCommit,
-            format!("merge-artifact:{id}"),
+            authority_artifact_identity,
             "rel-merge-v1",
             "schema-policy-v1",
             BridgeMergeParentOrderProof::new(vec![
-                TruthCommitIdentity::new("parent-a"),
-                TruthCommitIdentity::new("parent-b"),
+                crate::facade::TruthCommitIdentity::new("parent-a"),
+                crate::facade::TruthCommitIdentity::new("parent-b"),
             ]),
         ),
     )
     .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent)
 }
 
-pub(super) fn branch_comparison_declaration(id: &str) -> StructuralIdentityDeclaration {
+pub(super) fn branch_comparison_declaration(
+    declaration_identity: StructuralIdentityDeclarationIdentity,
+) -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::branch_comparison(
-        StructuralIdentityDeclarationIdentity::new(id),
+        declaration_identity,
         StructuralSchemaIdentity::new("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
             StructuralSchemaIdentity::new("schema:geometry"),
@@ -142,13 +255,13 @@ pub(super) fn retained_runtime(
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
                 TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthCommitIdentity::new("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
                 BridgeSourceCapability::HistoricalRead,
                 BridgeSourceCapability::BranchRead,
-                BridgeSourceCapability::ReplayCompatibleRead,
+                BridgeSourceCapability::ReplayContinuityRead,
             ],
         ))
         .register_structural(registered_structural(
@@ -163,10 +276,17 @@ pub(super) fn retained_runtime(
         .register_merge(merge_declaration)
         .register_mapping(BridgeMappingRegistration::new(
             BridgeMappingId::new("mapping"),
-            TruthPatchScope::new(
+            TruthPatchScope::for_entity_field(
                 MappingSelector::exact("entity-1"),
-                MappingSelector::exact("profile"),
-                MappingSelector::exact("name"),
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native field key"),
+            ),
+            crate::snapshot::SnapshotReadContract::scalar(
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::ScalarAspectType::String,
             ),
             SignalInvalidationScope::new("signal:profile"),
             CoarseRoutingMode::Direct,

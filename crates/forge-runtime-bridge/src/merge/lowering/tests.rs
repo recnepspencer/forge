@@ -1,4 +1,3 @@
-use crate::input::envelope::TruthCommitIdentity;
 use crate::merge::{
     AdmittedMergeHistoryContract, AdmittedMergeRegistry, BridgeMergeAuthorityBasis,
     BridgeMergeAuthorityBasisKind, BridgeMergeConsumptionClass, BridgeMergeOntologyMappingSurface,
@@ -17,8 +16,8 @@ fn contract(structural: BridgeMergeStructuralAdvisoryDisposition) -> AdmittedMer
             "rel-merge-v1",
             "schema-policy-v1",
             BridgeMergeParentOrderProof::new(vec![
-                TruthCommitIdentity::new("parent-a"),
-                TruthCommitIdentity::new("parent-b"),
+                crate::facade::TruthCommitIdentity::new("parent-a"),
+                crate::facade::TruthCommitIdentity::new("parent-b"),
             ]),
         ),
     )

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::error::{BridgeRouteError, BridgeRouteErrorKind};
 use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity};
 use crate::routing::canonicalization::{
@@ -44,19 +42,12 @@ impl BridgeLoweringPlan {
         source_commit: TruthCommitIdentity,
         source_patch: TruthPatchIdentity,
         source_snapshot: TruthSnapshotIdentity,
-        invalidation_targets: Vec<(Arc<str>, crate::mapping::CoarseRoutingMode)>,
+        invalidation_targets: Vec<BridgeInvalidationTarget>,
         subscription_slices: Vec<BridgeSubscriptionSlice>,
         planned_read_count: usize,
         provenance: BridgeLoweringProvenance,
     ) -> Self {
-        let invalidation_targets = CanonicalInvalidationTargets::new(
-            invalidation_targets
-                .into_iter()
-                .map(|(signal_scope, routing_mode)| {
-                    BridgeInvalidationTarget::new(signal_scope, routing_mode)
-                })
-                .collect(),
-        );
+        let invalidation_targets = CanonicalInvalidationTargets::new(invalidation_targets);
         let subscription_slices = CanonicalSubscriptionSlices::new(subscription_slices);
         let subscription_slice_basis =
             subscription_slice_digest_basis(source_snapshot.as_str(), subscription_slices.slices());

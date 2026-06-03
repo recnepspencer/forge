@@ -6,31 +6,32 @@ use crate::adapter::BridgeHistoricalLineageAuthority;
 use crate::routing::{BridgeRouteIdentity, BridgeSubscriptionSliceIdentity};
 
 use super::{
-    BridgeContinuityAuthorityBasis, BridgeEligibleContinuityRequestSet, PriorSubscriptionSlice,
+    BridgeContinuityAuthorityBasis, BridgeContinuityCorrelationId,
+    BridgeEligibleContinuityRequestSet, PriorSubscriptionSlice,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeHistoricalLineagePacketEntry {
-    request_key: Arc<str>,
+    correlation_id: BridgeContinuityCorrelationId,
     prior_slice: PriorSubscriptionSlice,
     lineage_authority: BridgeHistoricalLineageAuthority,
 }
 
 impl BridgeHistoricalLineagePacketEntry {
     pub(crate) fn new(
-        request_key: impl Into<Arc<str>>,
+        correlation_id: BridgeContinuityCorrelationId,
         prior_slice: PriorSubscriptionSlice,
         lineage_authority: BridgeHistoricalLineageAuthority,
     ) -> Self {
         Self {
-            request_key: request_key.into(),
+            correlation_id,
             prior_slice,
             lineage_authority,
         }
     }
 
-    pub fn request_key(&self) -> &str {
-        self.request_key.as_ref()
+    pub fn correlation_id(&self) -> &BridgeContinuityCorrelationId {
+        &self.correlation_id
     }
 
     pub fn prior_slice(&self) -> &PriorSubscriptionSlice {
@@ -66,7 +67,7 @@ impl BridgeHistoricalLineagePacket {
             entries.len(),
             entries
                 .iter()
-                .map(|entry| format!("{}:{}", entry.request_key(), entry.lineage_authority().lineage_digest()))
+                .map(|entry| format!("{}:{}", entry.correlation_id().as_str(), entry.lineage_authority().lineage_digest()))
                 .collect::<Vec<_>>()
                 .join(","),
         );

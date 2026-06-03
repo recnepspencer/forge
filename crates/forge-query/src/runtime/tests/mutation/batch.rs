@@ -74,8 +74,14 @@ fn workspace_batch_aggregates_touched_surfaces_and_remains_inspectable() {
         2
     );
     assert_eq!(receipt.batch_mutation_evidence().outcome_class_count(), 2);
-    assert_eq!(receipt.batch_mutation_evidence().request_digest_count(), 2);
-    assert_eq!(receipt.batch_mutation_evidence().receipt_digest_count(), 2);
+    assert_eq!(
+        receipt.batch_mutation_evidence().authority_request_count(),
+        2
+    );
+    assert_eq!(
+        receipt.batch_mutation_evidence().authority_receipt_count(),
+        2
+    );
     assert!(!receipt
         .batch_mutation_evidence()
         .aggregate_target_digest()

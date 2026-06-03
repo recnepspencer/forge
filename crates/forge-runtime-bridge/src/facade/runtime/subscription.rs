@@ -1,452 +1,10 @@
+mod certification;
+mod delivery_admission;
+mod lifecycle;
+
 use super::*;
 
 impl RuntimeBridge {
-    /// Declares and seals the canonical Milestone 16 subscription reference
-    /// workload manifest. Canonicalization happens before any workload lane
-    /// executes.
-    pub fn declare_subscription_reference_workload_manifest(
-        &self,
-        product_ids: Vec<impl Into<std::sync::Arc<str>>>,
-        component_ids: Vec<impl Into<std::sync::Arc<str>>>,
-        lane_ids: Vec<impl Into<std::sync::Arc<str>>>,
-    ) -> Result<
-        BridgeSubscriptionReferenceWorkloadManifestSealed,
-        BridgeSubscriptionReferenceWorkloadManifestRejection,
-    > {
-        let _ = self;
-        BridgeSubscriptionReferenceWorkloadManifestDraft::new(product_ids, component_ids, lane_ids)
-            .seal()
-    }
-
-    /// Builds an indexed source-artifact view over retained subscription
-    /// protocol artifacts. Later bundle assembly consumes this index rather
-    /// than scanning host object graphs or retained history.
-    pub fn build_subscription_certification_source_index(
-        &self,
-        inputs: Vec<BridgeSubscriptionSourceArtifactInput>,
-    ) -> BridgeSubscriptionSourceArtifactIndex {
-        let _ = self;
-        BridgeSubscriptionSourceArtifactIndex::build(inputs)
-    }
-
-    /// Admits the certification assembly cost profile before bundle assembly.
-    pub fn admit_subscription_certification_cost_profile(
-        &self,
-        density_posture: BridgeSubscriptionCertificationDensityPosture,
-        max_source_artifact_entries: usize,
-        max_bundle_field_count: usize,
-        scratch_capacity: usize,
-        rich_diagnostics_admitted: bool,
-    ) -> Result<
-        BridgeSubscriptionCertificationCostProfile,
-        BridgeSubscriptionCertificationCostProfileRejection,
-    > {
-        let _ = self;
-        BridgeSubscriptionCertificationCostProfile::admit(
-            density_posture,
-            max_source_artifact_entries,
-            max_bundle_field_count,
-            scratch_capacity,
-            rich_diagnostics_admitted,
-        )
-    }
-
-    /// Certifies the Milestone 16 cost posture matrix without assembling a
-    /// semantic bundle. Dense and over-budget posture decisions are proven at
-    /// admission time, before bundle assembly can allocate or reconstruct.
-    pub fn certify_subscription_certification_cost_posture(
-        &self,
-    ) -> BridgeSubscriptionCertificationCostPostureReport {
-        let _ = self;
-        BridgeSubscriptionCertificationCostPostureReport::certify()
-    }
-
-    /// Certifies that bundle schema or digest incompatibility is the highest
-    /// precedence comparison failure and short-circuits lower semantic drift.
-    pub fn certify_subscription_certification_schema_compatibility(
-        &self,
-    ) -> BridgeSubscriptionCertificationSchemaCompatibilityReport {
-        let _ = self;
-        BridgeSubscriptionCertificationSchemaCompatibilityReport::certify()
-    }
-
-    /// Certifies multi-failure precedence using injected basis, checkpoint,
-    /// replay, and diagnostics drift in one comparison.
-    pub fn certify_subscription_certification_multi_failure_precedence(
-        &self,
-    ) -> BridgeSubscriptionCertificationMultiFailurePrecedenceReport {
-        let _ = self;
-        BridgeSubscriptionCertificationMultiFailurePrecedenceReport::certify()
-    }
-
-    /// Certifies that hostile retained-artifact insertion order cannot change
-    /// source index, semantic digest, field ordering, or sealed bundle meaning.
-    pub fn certify_subscription_certification_ordering_hostility(
-        &self,
-    ) -> BridgeSubscriptionCertificationOrderingHostilityReport {
-        let _ = self;
-        BridgeSubscriptionCertificationOrderingHostilityReport::certify()
-    }
-
-    /// Certifies that stale checkpoint drift localizes at the checkpoint/resume
-    /// boundary without being misreported as retained replay mismatch.
-    pub fn certify_subscription_certification_stale_checkpoint(
-        &self,
-    ) -> BridgeSubscriptionCertificationStaleCheckpointReport {
-        let _ = self;
-        BridgeSubscriptionCertificationStaleCheckpointReport::certify()
-    }
-
-    /// Certifies missing required bundle fields as typed bundle insufficiency.
-    pub fn certify_subscription_certification_bundle_insufficiency(
-        &self,
-    ) -> BridgeSubscriptionCertificationBundleInsufficiencyReport {
-        let _ = self;
-        BridgeSubscriptionCertificationBundleInsufficiencyReport::certify()
-    }
-
-    /// Certifies retained historical basis evidence and rejects latest-truth
-    /// fallback as basis drift.
-    pub fn certify_subscription_certification_historical_basis(
-        &self,
-    ) -> BridgeSubscriptionCertificationHistoricalBasisReport {
-        let _ = self;
-        BridgeSubscriptionCertificationHistoricalBasisReport::certify()
-    }
-
-    /// Certifies family-aware strategy-lowering provenance without signal
-    /// rediscovery.
-    pub fn certify_subscription_certification_strategy_lowering(
-        &self,
-    ) -> BridgeSubscriptionCertificationStrategyLoweringReport {
-        let _ = self;
-        BridgeSubscriptionCertificationStrategyLoweringReport::certify()
-    }
-
-    /// Certifies shared fanout equivalence separately from incompatible
-    /// sharing rejection.
-    pub fn certify_subscription_certification_fanout(
-        &self,
-    ) -> BridgeSubscriptionCertificationFanoutReport {
-        let _ = self;
-        BridgeSubscriptionCertificationFanoutReport::certify()
-    }
-
-    /// Certifies authority-denied continuation localization before delivery
-    /// drift can masquerade as subscription truth.
-    pub fn certify_subscription_certification_denied_continuation(
-        &self,
-    ) -> BridgeSubscriptionCertificationDeniedContinuationReport {
-        let _ = self;
-        BridgeSubscriptionCertificationDeniedContinuationReport::certify()
-    }
-
-    /// Prepares the explicit scratch lifetime admitted by the certification
-    /// cost profile. Bundle assembly consumes this proof instead of allocating
-    /// per record group.
-    pub fn prepare_subscription_certification_scratch(
-        &self,
-        cost_profile: &BridgeSubscriptionCertificationCostProfile,
-    ) -> BridgeSubscriptionCertificationScratch {
-        let _ = self;
-        BridgeSubscriptionCertificationScratch::prepare(cost_profile)
-    }
-
-    /// Plans certification bundle assembly from a sealed manifest and indexed
-    /// source artifact view.
-    pub fn plan_subscription_certification_bundle(
-        &self,
-        manifest: &BridgeSubscriptionReferenceWorkloadManifestSealed,
-        source_artifact_index: &BridgeSubscriptionSourceArtifactIndex,
-    ) -> BridgeSubscriptionCertificationAssemblyPlan {
-        let _ = self;
-        BridgeSubscriptionCertificationAssemblyPlan::plan(manifest, source_artifact_index)
-    }
-
-    /// Assembles a draft certification bundle from explicit plan, cost profile,
-    /// and scratch proofs.
-    pub fn assemble_subscription_certification_bundle(
-        &self,
-        assembly_plan: BridgeSubscriptionCertificationAssemblyPlan,
-        cost_profile: BridgeSubscriptionCertificationCostProfile,
-        scratch: BridgeSubscriptionCertificationScratch,
-    ) -> Result<
-        BridgeSubscriptionCertificationBundleDraft,
-        BridgeSubscriptionCertificationAssemblyRejection,
-    > {
-        let _ = self;
-        BridgeSubscriptionCertificationBundleDraft::assemble(assembly_plan, cost_profile, scratch)
-    }
-
-    /// Seals a draft bundle so later comparison phases cannot mutate the
-    /// canonical field set after digest computation.
-    pub fn seal_subscription_certification_bundle(
-        &self,
-        draft: BridgeSubscriptionCertificationBundleDraft,
-    ) -> BridgeSubscriptionCertificationBundleSealed {
-        let _ = self;
-        draft.seal()
-    }
-
-    /// Admits a first-class comparison plan before sealed bundles are compared.
-    pub fn plan_subscription_certification_comparison(
-        &self,
-        relationship: BridgeSubscriptionCertificationComparisonRelationship,
-        expected_failure_boundary: Option<BridgeSubscriptionCertificationFailureBoundary>,
-        divergence_axis: Option<BridgeSubscriptionCertificationDivergenceAxis>,
-    ) -> Result<
-        BridgeSubscriptionCertificationComparisonPlan,
-        BridgeSubscriptionCertificationComparisonPlanRejection,
-    > {
-        let _ = self;
-        BridgeSubscriptionCertificationComparisonPlan::admit(
-            relationship,
-            expected_failure_boundary,
-            divergence_axis,
-        )
-    }
-
-    /// Compares sealed certification bundles through an admitted relationship
-    /// plan. Draft bundles cannot reach this phase.
-    pub fn compare_subscription_certification_bundles(
-        &self,
-        plan: BridgeSubscriptionCertificationComparisonPlan,
-        left: &BridgeSubscriptionCertificationBundleSealed,
-        right: &BridgeSubscriptionCertificationBundleSealed,
-    ) -> BridgeSubscriptionCertificationComparisonReport {
-        let _ = self;
-        BridgeSubscriptionCertificationComparisonReport::compare(plan, left, right)
-    }
-
-    /// Builds an offline audit index from sealed certification bundles. This is
-    /// the only bundle collection shape accepted by the offline audit phase.
-    pub fn build_subscription_offline_audit_bundle_index(
-        &self,
-        bundles: Vec<&BridgeSubscriptionCertificationBundleSealed>,
-    ) -> BridgeSubscriptionOfflineAuditBundleIndex {
-        let _ = self;
-        BridgeSubscriptionOfflineAuditBundleIndex::build(bundles)
-    }
-
-    /// Admits an offline audit plan from sealed bundle indexes and comparison
-    /// reports. Host logs and live runtime handles are explicitly rejected.
-    pub fn plan_subscription_offline_audit(
-        &self,
-        bundle_index: &BridgeSubscriptionOfflineAuditBundleIndex,
-        comparison_reports: Vec<&BridgeSubscriptionCertificationComparisonReport>,
-        host_log_dependency_requested: bool,
-        live_state_dependency_requested: bool,
-    ) -> Result<BridgeSubscriptionOfflineAuditPlan, BridgeSubscriptionOfflineAuditPlanRejection>
-    {
-        let _ = self;
-        BridgeSubscriptionOfflineAuditPlan::admit(
-            bundle_index,
-            comparison_reports,
-            host_log_dependency_requested,
-            live_state_dependency_requested,
-        )
-    }
-
-    /// Diagnoses subscription certification offline from an admitted audit
-    /// plan. This does not replay host behavior or query live runtime state.
-    pub fn audit_subscription_certification_bundle_offline(
-        &self,
-        audit_plan: BridgeSubscriptionOfflineAuditPlan,
-    ) -> BridgeSubscriptionOfflineAuditReport {
-        let _ = self;
-        BridgeSubscriptionOfflineAuditReport::audit(audit_plan)
-    }
-
-    /// Produces the public certification inspection view for the diagnostics
-    /// entrypoint from an offline audit report.
-    pub fn inspect_subscription_certification(
-        &self,
-        report: &BridgeSubscriptionOfflineAuditReport,
-    ) -> BridgeSubscriptionCertificationInspection {
-        let _ = self;
-        BridgeSubscriptionCertificationInspection::from_offline_audit(report)
-    }
-
-    /// Produces the public certification inspection view for a complete
-    /// Milestone 16 reference workload report without reopening sealed bundles
-    /// or replaying host behavior.
-    pub fn inspect_subscription_reference_workload_certification(
-        &self,
-        report: &BridgeSubscriptionReferenceWorkloadReport,
-    ) -> BridgeSubscriptionReferenceWorkloadInspection {
-        let _ = self;
-        BridgeSubscriptionReferenceWorkloadInspection::from_reference_workload(report)
-    }
-
-    /// Runs the Milestone 16 reference workload certification lanes from a
-    /// sealed manifest. The returned report is derived entirely from emitted
-    /// certification bundles, comparison reports, and offline audit evidence.
-    pub fn run_subscription_reference_workload(
-        &self,
-        manifest: &BridgeSubscriptionReferenceWorkloadManifestSealed,
-        lane_requests: Vec<BridgeSubscriptionReferenceWorkloadLaneRequest>,
-    ) -> Result<
-        BridgeSubscriptionReferenceWorkloadReport,
-        BridgeSubscriptionReferenceWorkloadRejection,
-    > {
-        let _ = self;
-        BridgeSubscriptionReferenceWorkloadReport::run(manifest, lane_requests)
-    }
-
-    /// Declares one bridge subscription artifact using the runtime's frozen
-    /// Phase 1 declaration-family registry.
-    pub fn declare_subscription(
-        &self,
-        requested_family_kind: BridgeSubscriptionDeclarationFamilyKind,
-        normalized_slice_intents: Vec<NormalizedSubscriptionSliceIntent>,
-        delivery_intent_class: BridgeSubscriptionDeliveryIntentClass,
-    ) -> Result<BridgeSubscriptionDeclaration, BridgeSubscriptionDeclarationRejection> {
-        let family_registration = self
-            .subscription_family_registry
-            .family_for_kind(requested_family_kind);
-
-        BridgeSubscriptionDeclaration::new(
-            requested_family_kind,
-            delivery_intent_class,
-            normalized_slice_intents,
-            family_registration,
-        )
-    }
-
-    /// Returns the frozen subscription-family registry identity bound into this
-    /// runtime.
-    pub fn subscription_family_registry_identity(
-        &self,
-    ) -> &BridgeSubscriptionFamilyRegistryIdentity {
-        self.subscription_family_registry.registry_identity()
-    }
-
-    /// Returns the frozen subscription-family registry counters bound into this
-    /// runtime.
-    pub fn subscription_family_registry_counters(&self) -> &BridgeSubscriptionCounters {
-        self.subscription_family_registry.counters()
-    }
-
-    /// Admits one declared bridge subscription against an explicit truth basis
-    /// and lowers it to a canonical signal strategy descriptor.
-    pub fn admit_subscription(
-        &self,
-        declaration: &BridgeSubscriptionDeclaration,
-        basis_request: BridgeSubscriptionBasisRequest,
-    ) -> Result<AdmittedBridgeSubscription, BridgeSubscriptionAdmissionRejection> {
-        AdmittedBridgeSubscription::admit(self, declaration, basis_request)
-    }
-
-    /// Prepares an admitted subscription for activation without performing any
-    /// signal registration or delivery fanout.
-    pub fn prepare_subscription_activation(
-        &self,
-        admitted: &AdmittedBridgeSubscription,
-    ) -> BridgeSubscriptionActivationReady {
-        BridgeSubscriptionActivationReady::prepare(
-            self.subscription_family_registry_identity(),
-            admitted,
-        )
-    }
-
-    /// Produces a deactivated retained artifact from one activation-ready
-    /// subscription handle.
-    pub fn deactivate_subscription(
-        &self,
-        activation_ready: BridgeSubscriptionActivationReady,
-    ) -> BridgeSubscriptionDeactivated {
-        let _ = self;
-        activation_ready.deactivate()
-    }
-
-    /// Builds a retained explanation for one activation-ready subscription.
-    pub fn inspect_activation_ready_subscription(
-        &self,
-        activation_ready: &BridgeSubscriptionActivationReady,
-    ) -> BridgeSubscriptionExplanation {
-        let _ = self;
-        BridgeSubscriptionExplanation::from_activation_ready(activation_ready)
-    }
-
-    /// Builds a retained explanation for one deactivated subscription.
-    pub fn inspect_deactivated_subscription(
-        &self,
-        deactivated: &BridgeSubscriptionDeactivated,
-    ) -> BridgeSubscriptionExplanation {
-        let _ = self;
-        BridgeSubscriptionExplanation::from_deactivated(deactivated)
-    }
-
-    /// Builds a retained explanation for one subscription admission rejection.
-    pub fn inspect_subscription_admission_rejection(
-        &self,
-        rejection: &BridgeSubscriptionAdmissionRejection,
-    ) -> BridgeSubscriptionExplanation {
-        let _ = self;
-        BridgeSubscriptionExplanation::from_rejection(rejection)
-    }
-
-    /// Reconstructs retained subscription meaning from a canonical bundle.
-    pub fn replay_subscription(
-        &self,
-        retained_bundle: &BridgeRetainedSubscriptionBundle,
-    ) -> Result<BridgeSubscriptionReplaySummary, BridgeSubscriptionReplayMismatch> {
-        BridgeSubscriptionReplaySummary::replay(
-            self.subscription_family_registry_identity(),
-            retained_bundle,
-        )
-    }
-
-    /// Admits one Phase 1 delivery cost profile before active delivery.
-    pub fn admit_subscription_delivery_cost_profile(
-        &self,
-        density_posture: BridgeSubscriptionDeliveryDensityPosture,
-        max_member_count: usize,
-        max_coalesced_member_width: usize,
-        max_fanout_width: usize,
-    ) -> Result<BridgeSubscriptionDeliveryCostProfile, BridgeSubscriptionDeliveryCostProfileRejection>
-    {
-        let _ = self;
-        BridgeSubscriptionDeliveryCostProfile::admit(
-            density_posture,
-            max_member_count,
-            max_coalesced_member_width,
-            max_fanout_width,
-        )
-    }
-
-    /// Admits a single-consumer Phase 1 contract. Callback and channel
-    /// identity are intentionally absent from this API.
-    pub fn admit_subscription_consumer_contract(
-        &self,
-        family: BridgeSubscriptionConsumerContractFamily,
-        pacing_capability: BridgeSubscriptionConsumerPacingCapability,
-        backpressure_posture: BridgeSubscriptionConsumerBackpressurePosture,
-        coalescing_admitted: bool,
-        diagnostics_retention: BridgeSubscriptionConsumerDiagnosticsRetention,
-    ) -> Result<BridgeSubscriptionConsumerContract, BridgeSubscriptionConsumerContractRejection>
-    {
-        let _ = self;
-        BridgeSubscriptionConsumerContract::admit(
-            family,
-            pacing_capability,
-            backpressure_posture,
-            coalescing_admitted,
-            diagnostics_retention,
-        )
-    }
-
-    /// Consumes an activation-ready subscription into an active delivery proof.
-    pub fn activate_subscription_delivery(
-        &self,
-        activation_ready: BridgeSubscriptionActivationReady,
-        cost_profile: BridgeSubscriptionDeliveryCostProfile,
-        consumer_contract: BridgeSubscriptionConsumerContract,
-    ) -> BridgeActiveSubscription {
-        let _ = self;
-        BridgeActiveSubscription::activate(activation_ready, cost_profile, consumer_contract)
-    }
-
     /// Opens a phase-typed delivery window for one active subscription.
     pub fn open_subscription_delivery_window(
         &self,
@@ -518,7 +76,7 @@ impl RuntimeBridge {
     }
 
     /// Retains descriptor evidence for a sealed delivery window without
-    /// reconstructing payloads or rich diagnostics.
+    /// reconstructing delivered content or rich diagnostics.
     pub fn retain_subscription_delivery_window_seed(
         &self,
         sealed_window: &BridgeSubscriptionDeliveryWindowSealed,
@@ -561,7 +119,7 @@ impl RuntimeBridge {
 
     /// Plans retained delivery replay from checkpoint-approved resume evidence.
     /// This only admits ordered retained window descriptors; it does not
-    /// dispatch callbacks, replay payloads, or materialize rich diagnostics.
+    /// dispatch callbacks, replay delivered content, or materialize rich diagnostics.
     pub fn plan_subscription_delivery_replay(
         &self,
         active_subscription: &BridgeActiveSubscription,
@@ -685,8 +243,7 @@ impl RuntimeBridge {
         &self,
         sealed_window: &BridgeSubscriptionDeliveryWindowSealed,
         acknowledged_sequence: usize,
-        acknowledged_member_identity: &BridgeSubscriptionDeliveryMemberIdentity,
-        acknowledged_member_digest: &str,
+        acknowledged_member: &BridgeSubscriptionDeliveryMemberRecord,
     ) -> Result<
         BridgeSubscriptionAcknowledgementFrontier,
         BridgeSubscriptionAcknowledgementFrontierRejection,
@@ -695,8 +252,7 @@ impl RuntimeBridge {
         BridgeSubscriptionAcknowledgementFrontier::admit(
             sealed_window,
             acknowledged_sequence,
-            acknowledged_member_identity,
-            acknowledged_member_digest,
+            acknowledged_member,
         )
     }
 
@@ -746,7 +302,7 @@ impl RuntimeBridge {
     }
 
     /// Admits a checkpoint for resume against the matching active subscription
-    /// without reopening delivery or reconstructing retained payloads.
+    /// without reopening delivery or reconstructing retained delivery content.
     pub fn admit_subscription_resume(
         &self,
         active_subscription: &BridgeActiveSubscription,

@@ -1,4 +1,4 @@
-﻿use std::sync::Arc;
+use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
@@ -14,7 +14,6 @@ pub enum BridgeSubscriptionDeliveryReplayPlanRejectionKind {
     RetainedWindowReplayReadinessBlocked,
     RetainedWindowNotAfterCheckpoint,
     RetainedWindowSequenceAmbiguous,
-    RetainedWindowExceedsCostProfile,
 }
 
 impl BridgeSubscriptionDeliveryReplayPlanRejectionKind {
@@ -30,7 +29,6 @@ impl BridgeSubscriptionDeliveryReplayPlanRejectionKind {
             }
             Self::RetainedWindowNotAfterCheckpoint => "retained_window_not_after_checkpoint",
             Self::RetainedWindowSequenceAmbiguous => "retained_window_sequence_ambiguous",
-            Self::RetainedWindowExceedsCostProfile => "retained_window_exceeds_cost_profile",
         }
     }
 }
@@ -59,10 +57,7 @@ impl BridgeSubscriptionDeliveryReplayPlanRejection {
         Self {
             rejection_kind,
             rejection_context,
-            counters: BridgeSubscriptionCounters::from_delivery_replay_plan_rejection(matches!(
-                rejection_kind,
-                BridgeSubscriptionDeliveryReplayPlanRejectionKind::RetainedWindowExceedsCostProfile
-            )),
+            counters: BridgeSubscriptionCounters::from_delivery_replay_plan_rejection(),
             canonical_basis,
             digest: Arc::from(format!(
                 "bridge-subscription-delivery-replay-plan-rejection:sha256:{digest:x}"

@@ -1,5 +1,5 @@
 use forge_runtime_bridge::facade::{
-    RawCommittedPatchEnvelope, RelationalBridgeSourceError, TruthBranchHeadSource,
+    BridgeCommittedPatchEnvelope, RelationalBridgeSourceError, TruthBranchHeadSource,
     TruthBranchIdentity,
 };
 
@@ -11,7 +11,7 @@ impl TruthBranchHeadSource for RuntimeBridgeRelationalSource {
     fn load_branch_head_patch(
         &self,
         branch_identity: &TruthBranchIdentity,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         let branch_id = crate::history::data::BranchId(branch_identity.as_str().to_string());
         let history = self.runtime.history();
         let head = history.branch_head(&branch_id).ok_or_else(|| {

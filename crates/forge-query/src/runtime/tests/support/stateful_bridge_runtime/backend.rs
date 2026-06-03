@@ -288,6 +288,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         else {
             return Ok(None);
         };
+        let grouping_aspect_text = grouping_aspect.as_str();
         let identity_path = request
             .projection()
             .iter()
@@ -297,9 +298,9 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         let grouping_path = request
             .projection()
             .iter()
-            .find(|field| field.aspect() == grouping_aspect)
+            .find(|field| field.aspect() == grouping_aspect_text)
             .map(|field| format!("{}.{}", field.aspect(), field.field()))
-            .unwrap_or_else(|| format!("{grouping_aspect}.value"));
+            .unwrap_or_else(|| format!("{grouping_aspect_text}.value"));
         let members = self
             .state
             .borrow()

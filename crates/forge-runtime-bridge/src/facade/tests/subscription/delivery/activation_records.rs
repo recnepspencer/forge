@@ -121,23 +121,27 @@ fn delivery_window_identity_changes_with_canonical_member_truth() {
     let left = runtime
         .seal_subscription_delivery_window(
             left_open,
-            vec![BridgeSubscriptionDeliveryMemberInput::payload_digest(
-                "slice:entity-1/profile/name",
-                "routing:fixture",
-                BridgeSubscriptionDeliveryMemberClass::Update,
-                "payload:left",
-            )],
+            vec![
+                BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
+                    "slice:entity-1/profile/name",
+                    "routing:fixture",
+                    BridgeSubscriptionDeliveryMemberClass::Update,
+                    BridgeSubscriptionDeliveryContentDigest::new("content:left"),
+                ),
+            ],
         )
         .expect("left delivery window should seal");
     let right = runtime
         .seal_subscription_delivery_window(
             right_open,
-            vec![BridgeSubscriptionDeliveryMemberInput::payload_digest(
-                "slice:entity-1/profile/name",
-                "routing:fixture",
-                BridgeSubscriptionDeliveryMemberClass::Update,
-                "payload:right",
-            )],
+            vec![
+                BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
+                    "slice:entity-1/profile/name",
+                    "routing:fixture",
+                    BridgeSubscriptionDeliveryMemberClass::Update,
+                    BridgeSubscriptionDeliveryContentDigest::new("content:right"),
+                ),
+            ],
         )
         .expect("right delivery window should seal");
 
@@ -172,11 +176,11 @@ fn delivery_window_identity_changes_with_occurrence_sequence() {
     );
 
     let member = || {
-        BridgeSubscriptionDeliveryMemberInput::payload_digest(
+        BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
             "slice:entity-1/profile/name",
             "routing:fixture",
             BridgeSubscriptionDeliveryMemberClass::Update,
-            "payload:same",
+            BridgeSubscriptionDeliveryContentDigest::new("content:same"),
         )
     };
     let left = runtime

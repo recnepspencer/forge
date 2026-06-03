@@ -27,7 +27,7 @@ pub(super) struct LoweredWriteCommand {
     pub(super) declared_aspect_paths: Vec<String>,
     pub(super) expected_observable_patch_count: usize,
     pub(super) patch_match: LoweredPatchMatch,
-    pub(super) fallback_collection: Option<String>,
+    pub(super) declared_target_collection: Option<String>,
 }
 
 pub(super) fn lower_write_command(
@@ -140,7 +140,7 @@ fn lower_entity_insert_command(
                 },
             ),
         },
-        fallback_collection: None,
+        declared_target_collection: None,
     })
 }
 
@@ -169,7 +169,7 @@ fn lower_relation_insert_command(
             source_identity: relation_endpoint_identity(&relation.source)?,
             target_identity: relation_endpoint_identity(&relation.target)?,
         },
-        fallback_collection: None,
+        declared_target_collection: None,
     })
 }
 
@@ -254,7 +254,7 @@ fn existing_target_command(
         patch_match: LoweredPatchMatch::ExistingTargetIdentity {
             resolved_target_identity: resolved_target_identity.to_string(),
         },
-        fallback_collection: Some(collection),
+        declared_target_collection: Some(collection),
     }
 }
 

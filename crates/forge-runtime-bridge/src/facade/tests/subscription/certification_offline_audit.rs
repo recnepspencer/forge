@@ -1,27 +1,29 @@
 use super::support::*;
-use crate::facade::RuntimeBridge;
+use crate::facade::{
+    BridgeSubscriptionReferenceWorkloadComponentIdSet,
+    BridgeSubscriptionReferenceWorkloadLaneIdSet, BridgeSubscriptionReferenceWorkloadProductIdSet,
+    BridgeSubscriptionSourceArtifactRole as SourceArtifactRole, RuntimeBridge,
+};
 
-fn product_ids() -> Vec<String> {
-    (0..128).map(|slot| format!("product-{slot:03}")).collect()
+fn product_ids() -> BridgeSubscriptionReferenceWorkloadProductIdSet {
+    BridgeSubscriptionReferenceWorkloadProductIdSet::from_declared_product_labels(
+        (0..128).map(|slot| format!("product-{slot:03}")),
+    )
 }
 
-fn component_ids() -> Vec<String> {
-    ["steel", "rubber", "copper", "glass", "labor"]
-        .into_iter()
-        .map(str::to_owned)
-        .collect()
+fn component_ids() -> BridgeSubscriptionReferenceWorkloadComponentIdSet {
+    BridgeSubscriptionReferenceWorkloadComponentIdSet::from_declared_component_labels([
+        "steel", "rubber", "copper", "glass", "labor",
+    ])
 }
 
-fn lane_ids() -> Vec<String> {
-    [
+fn lane_ids() -> BridgeSubscriptionReferenceWorkloadLaneIdSet {
+    BridgeSubscriptionReferenceWorkloadLaneIdSet::from_declared_lane_labels([
         "authoritative-live",
         "historical-replay",
         "branch-local",
         "preview-discard",
-    ]
-    .into_iter()
-    .map(str::to_owned)
-    .collect()
+    ])
 }
 
 fn sealed_certification_bundle(
@@ -55,50 +57,54 @@ fn sealed_certification_bundle(
 }
 
 fn active_source_inputs(
-    active: &crate::facade::BridgeActiveSubscription,
-    declaration_digest: &str,
-    strategy_digest: &str,
+    declaration_role: SourceArtifactRole,
+    strategy_role: SourceArtifactRole,
 ) -> Vec<crate::facade::BridgeSubscriptionSourceArtifactInput> {
     vec![
-        crate::facade::BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             crate::facade::BridgeSubscriptionSourceArtifactKind::Declaration,
-            "detail-declaration",
-            declaration_digest,
+            declaration_role,
         ),
-        crate::facade::BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             crate::facade::BridgeSubscriptionSourceArtifactKind::AdmittedSubscription,
-            active
-                .activation_ready()
-                .admitted()
-                .admitted_subscription_identity()
-                .as_str(),
-            active.activation_ready().digest(),
+            SourceArtifactRole::Stable,
         ),
-        crate::facade::BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             crate::facade::BridgeSubscriptionSourceArtifactKind::ActiveDelivery,
-            active.active_subscription_identity().as_str(),
-            active.digest(),
+            SourceArtifactRole::Stable,
         ),
-        crate::facade::BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             crate::facade::BridgeSubscriptionSourceArtifactKind::StrategyLowering,
-            "detail-strategy",
-            strategy_digest,
+            strategy_role,
         ),
     ]
 }
 
+fn source_artifact(
+    artifact_kind: crate::facade::BridgeSubscriptionSourceArtifactKind,
+    role: SourceArtifactRole,
+) -> crate::facade::BridgeSubscriptionSourceArtifactInput {
+    crate::facade::BridgeSubscriptionSourceArtifactInput::from_evidence(
+        crate::facade::BridgeSubscriptionSourceArtifactEvidence::scenario(
+            artifact_kind,
+            crate::facade::BridgeSubscriptionSourceArtifactScenario::OfflineAudit,
+            role,
+        ),
+    )
+}
+
 #[test]
 fn offline_audit_diagnoses_from_canonicalized_sealed_bundles_and_reports() {
-    let (runtime, active) =
+    let (runtime, _active) =
         active_detail_subscription(BridgeSubscriptionDeliveryDensityPosture::SparseMemberDelivery);
     let left = sealed_certification_bundle(
         &runtime,
-        active_source_inputs(&active, "declaration-digest-v1", "strategy-digest-v1"),
+        active_source_inputs(SourceArtifactRole::Stable, SourceArtifactRole::Stable),
         false,
     );
     let right = sealed_certification_bundle(
         &runtime,
-        active_source_inputs(&active, "declaration-digest-v2", "strategy-digest-v1"),
+        active_source_inputs(SourceArtifactRole::Divergent, SourceArtifactRole::Stable),
         false,
     );
     let comparison_plan = runtime
@@ -167,16 +173,16 @@ fn offline_audit_diagnoses_from_canonicalized_sealed_bundles_and_reports() {
 
 #[test]
 fn offline_audit_rejects_host_log_and_live_state_dependencies() {
-    let (runtime, active) =
+    let (runtime, _active) =
         active_detail_subscription(BridgeSubscriptionDeliveryDensityPosture::SparseMemberDelivery);
     let left = sealed_certification_bundle(
         &runtime,
-        active_source_inputs(&active, "declaration-digest-v1", "strategy-digest-v1"),
+        active_source_inputs(SourceArtifactRole::Stable, SourceArtifactRole::Stable),
         false,
     );
     let right = sealed_certification_bundle(
         &runtime,
-        active_source_inputs(&active, "declaration-digest-v1", "strategy-digest-v1"),
+        active_source_inputs(SourceArtifactRole::Stable, SourceArtifactRole::Stable),
         false,
     );
     let comparison_plan = runtime
@@ -216,11 +222,11 @@ fn offline_audit_rejects_host_log_and_live_state_dependencies() {
 
 #[test]
 fn offline_audit_requires_bundles_and_comparison_reports() {
-    let (runtime, active) =
+    let (runtime, _active) =
         active_detail_subscription(BridgeSubscriptionDeliveryDensityPosture::SparseMemberDelivery);
     let left = sealed_certification_bundle(
         &runtime,
-        active_source_inputs(&active, "declaration-digest-v1", "strategy-digest-v1"),
+        active_source_inputs(SourceArtifactRole::Stable, SourceArtifactRole::Stable),
         false,
     );
     let empty_index = runtime.build_subscription_offline_audit_bundle_index(Vec::new());

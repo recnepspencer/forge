@@ -20,9 +20,9 @@ pub use context::{BridgeLineageContext, BridgeMappingContext};
 pub use counters::BridgeRoutingCounters;
 pub use lowering::{
     BridgeInvalidationArtifact, BridgeInvalidationIdentity, BridgeInvalidationTarget,
-    BridgeLoweringPlanSummary, BridgeLoweringProvenance, BridgeLoweringSummary,
-    BridgeSignalInvalidationDelivery, BridgeSubscriptionSlice, BridgeSubscriptionSliceIdentity,
-    CanonicalInvalidationTargets, CanonicalSubscriptionSlices,
+    BridgeInvalidationTargetIdentity, BridgeLoweringPlanSummary, BridgeLoweringProvenance,
+    BridgeLoweringSummary, BridgeSignalInvalidationDelivery, BridgeSubscriptionSlice,
+    BridgeSubscriptionSliceIdentity, CanonicalInvalidationTargets, CanonicalSubscriptionSlices,
 };
 pub use matching::{FineGrainedMatchOutcome, FineGrainedMatchStatus};
 pub use outcome::BridgeRouteOutcomeReference;
@@ -32,21 +32,23 @@ pub use planning::{
     BridgeBulkPlanningCounters, BridgeBulkPlanningFailure, BridgeBulkPlanningFailureKind,
     BridgeBulkPlanningSummary, BridgeBulkWorkloadPlan, BridgeBulkWorkloadRequest,
     BridgeBulkWorkloadSegment, BridgeCanonicalBulkPlanRecord, BridgeCanonicalPlanningIdentity,
-    BridgeExecutionCounts, BridgeLocalityFootprint, BridgeParallelAdmission,
-    BridgeParallelAdmissionClass, BridgeParallelAdmissionReason, BridgeParallelLegalityClass,
-    BridgeParallelLegalityDecision, BridgeParallelLegalityReason, BridgeParallelProfitabilityClass,
-    BridgeParallelProfitabilityDecision, BridgeParallelProfitabilityReason, BridgePlannedRoute,
-    BridgePlanningProvenance, BridgePlanningSummary, BridgePreparationMode, BridgeRouteIdentity,
-    BridgeRouteSourceSummary, BridgeRoutingSummary, BridgeWorkloadIdentity,
+    BridgeExecutionCounts, BridgeInvalidationReductionFamily, BridgeLocalityFootprint,
+    BridgeParallelAdmission, BridgeParallelAdmissionClass, BridgeParallelAdmissionReason,
+    BridgeParallelLegalityClass, BridgeParallelLegalityDecision, BridgeParallelLegalityReason,
+    BridgeParallelProfitabilityClass, BridgeParallelProfitabilityDecision,
+    BridgeParallelProfitabilityReason, BridgePlannedRoute, BridgePlanningProvenance,
+    BridgePlanningSummary, BridgePreparationMode, BridgeRouteIdentity, BridgeRouteSourceSummary,
+    BridgeRoutingSummary, BridgeWorkloadIdentity, BulkContinuityMemberIdentity,
+    BulkPacketRegionIdentity, BulkTruthViewMemberIdentity, BulkWorkloadSegmentIdentity,
     CanonicalBridgeWorkloadRequest, ContinuityPacketIdentity, ContinuityRemapPacket,
-    DisjointPacketRegionSet, FallbackAggregationPacket, FallbackPacketIdentity,
-    InvalidationReductionPacket, NormalizedBridgeWorkloadSummary, ParallelPreparationLegalityProof,
-    PlannedBridgePacketSet, ReducedBridgePublication, ReducedBridgeWorkloadArtifact,
-    ReducedContinuityIdentity, ReducedContinuityRemap, ReducedFallbackAggregation,
-    ReducedFallbackIdentity, ReducedPublicationIdentity, ReducedRoutingTargetIdentity,
-    ReducedTruthViewIdentity, ReducedTruthViewMaterialization, ReductionPacketIdentity,
-    RoutingPacketIdentity, TruthDeltaRoutingPacket, TruthViewMaterializationPacket,
-    TruthViewPacketIdentity, BRIDGE_CANONICAL_BULK_PLAN_RECORD_SCHEMA_V1,
+    DisjointPacketRegionSet, InvalidationReductionPacket, NormalizedBridgeWorkloadSummary,
+    ParallelPreparationLegalityProof, PlannedBridgePacketSet, ReducedBridgePublication,
+    ReducedBridgeWorkloadArtifact, ReducedContinuityIdentity, ReducedContinuityRemap,
+    ReducedPublicationIdentity, ReducedRoutingTargetIdentity, ReducedTruthViewIdentity,
+    ReducedTruthViewMaterialization, ReducedWideningAggregation, ReducedWideningIdentity,
+    ReductionPacketIdentity, RoutingPacketIdentity, TruthDeltaRoutingPacket,
+    TruthViewMaterializationPacket, TruthViewPacketIdentity, WideningAggregationPacket,
+    WideningPacketIdentity, BRIDGE_CANONICAL_BULK_PLAN_RECORD_SCHEMA_V1,
 };
 pub use proof::BridgeRouteContractProof;
 pub use result::{

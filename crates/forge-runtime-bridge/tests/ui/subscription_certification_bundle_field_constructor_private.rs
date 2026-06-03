@@ -6,8 +6,12 @@ fn main() {
     let _field = BridgeSubscriptionBundleField {
         field_name: "comparison_inputs".into(),
         field_state: BridgeSubscriptionBundleFieldState::Present,
-        field_digest: "forged-digest".into(),
-        canonical_basis: "forged-basis".into(),
-        digest: "forged-field-digest".into(),
+        field_digest: sealed_authority_placeholder(),
+        canonical_basis: sealed_authority_placeholder(),
+        digest: sealed_authority_placeholder(),
     };
+}
+
+fn sealed_authority_placeholder<T>() -> T {
+    panic!("compile-fail fixture never executes")
 }

@@ -2,7 +2,7 @@ use forge_runtime_bridge::facade::{
     BridgeSubscriptionConsumerContract, BridgeSubscriptionDeliveryFamilyKind, RuntimeBridge,
 };
 
-fn cannot_build_layout_from_raw_consumers(
+fn cannot_build_layout_from_unplanned_consumers(
     runtime: &RuntimeBridge,
     consumers: Vec<BridgeSubscriptionConsumerContract>,
 ) {

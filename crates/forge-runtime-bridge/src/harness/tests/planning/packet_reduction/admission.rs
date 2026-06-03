@@ -1,8 +1,14 @@
 #[test]
 fn bridge_bulk_execution_plan_rejects_parallel_preparation_for_shared_truth_view_targets() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -11,8 +17,12 @@ fn bridge_bulk_execution_plan_rejects_parallel_preparation_for_shared_truth_view
 
     let planned = runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
         ]))
         .expect("shared truth-view workload should plan");
 
@@ -51,7 +61,7 @@ fn bridge_bulk_execution_plan_rejects_parallel_preparation_for_shared_truth_view
         planned
             .execution_plan()
             .counters()
-            .bulk_parallel_fallback_to_serial_count(),
+            .bulk_parallel_serial_reduction_count(),
         0
     );
     assert_eq!(planned.execution_plan().planning_failures().len(), 1);
@@ -77,9 +87,21 @@ fn bridge_bulk_execution_plan_rejects_parallel_preparation_for_shared_truth_view
 #[test]
 fn bridge_bulk_execution_plan_rejects_parallel_preparation_for_continuity_remap_workloads() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-a", "name"));
-    source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -92,14 +114,18 @@ fn bridge_bulk_execution_plan_rejects_parallel_preparation_for_continuity_remap_
 
     let planned = runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a"))
-                .with_mapping_context(
-                    BridgeMappingContext::default().with_lineage_context(lineage_context.clone()),
-                ),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b"))
-                .with_mapping_context(
-                    BridgeMappingContext::default().with_lineage_context(lineage_context),
-                ),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            ))
+            .with_mapping_context(
+                BridgeMappingContext::default().with_lineage_context(lineage_context.clone()),
+            ),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-b"),
+            ))
+            .with_mapping_context(
+                BridgeMappingContext::default().with_lineage_context(lineage_context),
+            ),
         ]))
         .expect("continuity remap workload should plan");
 

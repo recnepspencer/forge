@@ -3,7 +3,7 @@ use crate::mapping::SubscriptionSliceKind;
 
 use super::ids::BridgeAspectRegistrationId;
 use super::registration::BridgeAspectRegistration;
-use super::types::{SliceFallbackPolicy, TruthDeltaSurfaceKind};
+use super::types::{SliceWideningPolicy, TruthDeltaSurfaceKind};
 use super::validation::{
     canonical_aspect_registration_order, validate_registration_set, validate_registration_values,
 };
@@ -30,12 +30,16 @@ impl FrozenAspectRegistration {
         self.registration.truth_scope()
     }
 
+    pub(crate) fn snapshot_read_contract(&self) -> &crate::snapshot::SnapshotReadContract {
+        self.registration.snapshot_read_contract()
+    }
+
     pub(crate) fn subscription_slice_kind(&self) -> &SubscriptionSliceKind {
         self.registration.subscription_slice_kind()
     }
 
-    pub(crate) fn fallback_policy(&self) -> SliceFallbackPolicy {
-        self.registration.fallback_policy()
+    pub(crate) fn widening_policy(&self) -> SliceWideningPolicy {
+        self.registration.widening_policy()
     }
 }
 

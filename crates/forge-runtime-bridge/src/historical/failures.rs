@@ -88,7 +88,7 @@ pub(crate) fn historical_failure_class_for_delivery_error(
         | BridgeDeliveryErrorKind::HistoricalPolicyRejected
         | BridgeDeliveryErrorKind::HistoricalCommitMismatch
         | BridgeDeliveryErrorKind::HistoricalSelectorMissingCommit
-        | BridgeDeliveryErrorKind::InvalidFallbackAdmission
+        | BridgeDeliveryErrorKind::InvalidWideningAdmission
         | BridgeDeliveryErrorKind::SnapshotReadFailure
         | BridgeDeliveryErrorKind::SnapshotReadContractViolation
         | BridgeDeliveryErrorKind::SignalSinkRejection => {

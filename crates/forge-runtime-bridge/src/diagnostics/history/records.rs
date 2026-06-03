@@ -39,7 +39,7 @@ pub struct BridgeHistoricalEvaluationDecisionLog {
     authority_digest: Arc<str>,
     materialization_path: BridgeHistoricalMaterializationPath,
     branch_identity: TruthBranchIdentity,
-    commit_identity: TruthCommitIdentity,
+    commit_identity: Option<TruthCommitIdentity>,
     snapshot_identity: TruthSnapshotIdentity,
 }
 
@@ -53,9 +53,13 @@ impl BridgeHistoricalEvaluationDecisionLog {
         authority_digest: Arc<str>,
         materialization_path: BridgeHistoricalMaterializationPath,
         branch_identity: TruthBranchIdentity,
-        commit_identity: TruthCommitIdentity,
+        commit_identity: Option<TruthCommitIdentity>,
         snapshot_identity: TruthSnapshotIdentity,
     ) -> Self {
+        let commit_identity_basis = commit_identity
+            .as_ref()
+            .map(TruthCommitIdentity::as_str)
+            .unwrap_or("none");
         let canonical_basis = format!(
             "historical-evaluation-decision-log|declaration={}|selector={}|policy={}|planned={}|authority={}|path={materialization_path:?}|branch={}|commit={}|snapshot={}",
             declaration_identity.as_str(),
@@ -64,7 +68,7 @@ impl BridgeHistoricalEvaluationDecisionLog {
             planned_packet_digest.as_ref(),
             authority_digest.as_ref(),
             branch_identity.as_str(),
-            commit_identity.as_str(),
+            commit_identity_basis,
             snapshot_identity.as_str(),
         );
         let digest = Sha256::digest(canonical_basis.as_bytes());
@@ -116,8 +120,8 @@ impl BridgeHistoricalEvaluationDecisionLog {
         &self.branch_identity
     }
 
-    pub fn commit_identity(&self) -> &TruthCommitIdentity {
-        &self.commit_identity
+    pub fn commit_identity(&self) -> Option<&TruthCommitIdentity> {
+        self.commit_identity.as_ref()
     }
 
     pub fn snapshot_identity(&self) -> &TruthSnapshotIdentity {
@@ -218,19 +222,10 @@ impl BridgeCanonicalHistoricalEvaluationRecord {
         self.record.counters()
     }
 
-    #[cfg(test)]
-    pub(crate) fn with_schema_version_for_test(
-        mut self,
-        schema_version: impl Into<Arc<str>>,
-    ) -> Self {
-        self.schema_version = schema_version.into();
-        self
-    }
-
     pub(crate) fn decode(&self) -> Result<BridgeHistoricalEvaluationRecord, BridgeReplayError> {
         if self.schema_version() != BRIDGE_CANONICAL_HISTORICAL_EVALUATION_RECORD_SCHEMA_V1 {
             return Err(BridgeReplayError::new(
-                BridgeReplayErrorKind::CanonicalArtifactCompatibilityFailure,
+                BridgeReplayErrorKind::CanonicalArtifactCoherenceFailure,
                 format!(
                     "Bridge canonical historical evaluation record schema `{}` is not supported; expected `{}`.",
                     self.schema_version(),
@@ -249,7 +244,7 @@ pub struct BridgeHistoricalEvaluationExplanation {
     record_identity: BridgeHistoricalEvaluationRecordIdentity,
     declaration_identity: HistoricalEvaluationDeclarationIdentity,
     branch_identity: TruthBranchIdentity,
-    commit_identity: TruthCommitIdentity,
+    commit_identity: Option<TruthCommitIdentity>,
     snapshot_identity: TruthSnapshotIdentity,
     materialization_path: BridgeHistoricalMaterializationPath,
 }
@@ -261,7 +256,7 @@ impl BridgeHistoricalEvaluationExplanation {
             record_identity: record.record_identity().clone(),
             declaration_identity: record.declaration().declaration_identity().clone(),
             branch_identity: record.decision_log().branch_identity().clone(),
-            commit_identity: record.decision_log().commit_identity().clone(),
+            commit_identity: record.decision_log().commit_identity().cloned(),
             snapshot_identity: record.decision_log().snapshot_identity().clone(),
             materialization_path: record.decision_log().materialization_path(),
         }
@@ -279,8 +274,8 @@ impl BridgeHistoricalEvaluationExplanation {
         &self.branch_identity
     }
 
-    pub fn commit_identity(&self) -> &TruthCommitIdentity {
-        &self.commit_identity
+    pub fn commit_identity(&self) -> Option<&TruthCommitIdentity> {
+        self.commit_identity.as_ref()
     }
 
     pub fn snapshot_identity(&self) -> &TruthSnapshotIdentity {

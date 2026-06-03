@@ -1,4 +1,4 @@
-use crate::facade::RawCommittedPatchEnvelope;
+use crate::facade::BridgeCommittedPatchEnvelope;
 
 use super::super::fixtures::{
     InMemoryRelationalBridgeSource, RecordingSignalBridgeSink, RecordingTruthWritebackAuthority,
@@ -7,7 +7,7 @@ use super::super::fixtures::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BridgeHarnessMutation {
-    PublishCommittedPatch(RawCommittedPatchEnvelope),
+    PublishCommittedPatch(BridgeCommittedPatchEnvelope),
     PublishSnapshot(SnapshotFixture),
 }
 

@@ -1,8 +1,15 @@
+use crate::facade::TruthSnapshotIdentity;
 #[test]
 fn bridge_bulk_reduction_collapses_duplicate_publications_deterministically() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -11,8 +18,12 @@ fn bridge_bulk_reduction_collapses_duplicate_publications_deterministically() {
 
     let planned = runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
         ]))
         .expect("duplicate bulk workload should plan");
     let reduced_artifact = planned.execution_plan().reduced_artifact();
@@ -29,6 +40,15 @@ fn bridge_bulk_reduction_collapses_duplicate_publications_deterministically() {
         2
     );
     assert_eq!(
+        reduced_artifact.reduced_publications()[0].reduced_route_identities(),
+        planned
+            .packet_set()
+            .routing_packets()
+            .iter()
+            .map(|packet| packet.route_identity().clone())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
         reduced_artifact.reduced_publications()[0].invalidation_target_count(),
         2
     );
@@ -38,19 +58,21 @@ fn bridge_bulk_reduction_collapses_duplicate_publications_deterministically() {
 fn bridge_bulk_reduction_artifact_is_stable_across_input_order() {
     let left_source = InMemoryRelationalBridgeSource::default();
     left_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
     left_source.insert_committed_patch(committed_patch(
-        "commit-b",
-        "patch-b",
-        "snapshot-b",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-b"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
-    left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
-    left_source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
     let left_runtime = build_runtime(
         left_source,
         RecordingSignalBridgeSink::default(),
@@ -59,19 +81,21 @@ fn bridge_bulk_reduction_artifact_is_stable_across_input_order() {
 
     let right_source = InMemoryRelationalBridgeSource::default();
     right_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
     right_source.insert_committed_patch(committed_patch(
-        "commit-b",
-        "patch-b",
-        "snapshot-b",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-b"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
-    right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
-    right_source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
     let right_runtime = build_runtime(
         right_source,
         RecordingSignalBridgeSink::default(),
@@ -80,14 +104,22 @@ fn bridge_bulk_reduction_artifact_is_stable_across_input_order() {
 
     let left = left_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-b"),
+            )),
         ]))
         .expect("left workload should plan");
     let right = right_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-b"),
+            )),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
         ]))
         .expect("right workload should plan");
 
@@ -113,19 +145,21 @@ fn bridge_bulk_reduction_artifact_is_stable_across_input_order() {
 fn bridge_bulk_packet_set_is_stable_across_input_order() {
     let left_source = InMemoryRelationalBridgeSource::default();
     left_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
     left_source.insert_committed_patch(committed_patch(
-        "commit-b",
-        "patch-b",
-        "snapshot-b",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-b"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
-    left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
-    left_source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
     let left_runtime = build_runtime(
         left_source,
         RecordingSignalBridgeSink::default(),
@@ -134,19 +168,21 @@ fn bridge_bulk_packet_set_is_stable_across_input_order() {
 
     let right_source = InMemoryRelationalBridgeSource::default();
     right_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
     right_source.insert_committed_patch(committed_patch(
-        "commit-b",
-        "patch-b",
-        "snapshot-b",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-b"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
-    right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
-    right_source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
     let right_runtime = build_runtime(
         right_source,
         RecordingSignalBridgeSink::default(),
@@ -155,14 +191,22 @@ fn bridge_bulk_packet_set_is_stable_across_input_order() {
 
     let left = left_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-b"),
+            )),
         ]))
         .expect("left workload should plan");
     let right = right_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-b"),
+            )),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
         ]))
         .expect("right workload should plan");
 
@@ -198,8 +242,14 @@ fn bridge_bulk_packet_set_is_stable_across_input_order() {
 #[test]
 fn bridge_bulk_packet_reduction_collapses_duplicate_slice_targets() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -208,8 +258,12 @@ fn bridge_bulk_packet_reduction_collapses_duplicate_slice_targets() {
 
     let planned = runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
         ]))
         .expect("duplicate workload should plan");
 
@@ -218,10 +272,10 @@ fn bridge_bulk_packet_reduction_collapses_duplicate_slice_targets() {
     assert_eq!(planned.packet_set().reduction_packets().len(), 1);
     assert_eq!(
         planned.packet_set().reduction_packets()[0].reduction_family(),
-        "publication"
+        crate::facade::BridgeInvalidationReductionFamily::Publication
     );
     assert_eq!(
-        planned.packet_set().reduction_packets()[0].reduced_target_scope(),
+        planned.packet_set().reduction_packets()[0].reduced_subscription_slice_identity(),
         planned.packet_set().routing_packets()[0].subscription_slice_identity()
     );
     assert_eq!(planned.packet_set().counters().bulk_packet_count(), 4);
@@ -239,37 +293,73 @@ fn bridge_bulk_packet_reduction_collapses_duplicate_slice_targets() {
 }
 
 #[test]
-fn bridge_bulk_packet_set_emits_fallback_packets_for_fallback_admitted_slices() {
+fn bridge_bulk_packet_set_emits_widening_packets_for_widening_admitted_slices() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
-        vec![surface_fallback_registration()],
+        vec![surface_widening_registration()],
     );
 
     let planned = runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
         ]))
-        .expect("fallback workload should plan");
+        .expect("widening workload should plan");
 
     assert_eq!(planned.packet_set().routing_packets().len(), 1);
-    assert_eq!(planned.packet_set().fallback_packets().len(), 1);
+    assert_eq!(planned.packet_set().widening_packets().len(), 1);
     assert_eq!(
-        planned.packet_set().fallback_packets()[0].fallback_class(),
-        "surface"
+        planned.packet_set().widening_packets()[0].originating_route_identity(),
+        planned.packet_set().routing_packets()[0].route_identity()
     );
+    assert_eq!(
+        planned.packet_set().widening_packets()[0].widening_class(),
+        crate::facade::BridgeMappingWideningClass::Surface
+    );
+    assert!(planned.packet_set().widening_packets()[0]
+        .bounded_scope_identity()
+        .starts_with("truth-delta-surface:sha256:"));
+    assert!(!planned.packet_set().widening_packets()[0]
+        .bounded_scope_identity()
+        .contains("committed-patch-target"));
     assert_eq!(planned.packet_set().truth_view_packets().len(), 1);
     assert_eq!(planned.packet_set().counters().bulk_packet_count(), 4);
     assert_eq!(
         planned
             .execution_plan()
             .reduced_artifact()
-            .reduced_fallbacks()
+            .reduced_widenings()
             .len(),
         1
+    );
+    assert_eq!(
+        planned.packet_set().widening_packets()[0].bounded_truth_delta_surface_identity(),
+        planned
+            .execution_plan()
+            .reduced_artifact()
+            .reduced_widenings()[0]
+            .bounded_truth_delta_surface_identity()
+    );
+    assert_eq!(
+        planned
+            .execution_plan()
+            .reduced_artifact()
+            .reduced_widenings()[0]
+            .reduced_route_identities(),
+        &[planned.packet_set().routing_packets()[0]
+            .route_identity()
+            .clone()]
     );
     assert_eq!(
         planned

@@ -5,9 +5,9 @@ error[E0451]: fields `kind`, `query_admission_digest`, `causal_observation_ancho
    |             -------------------------------------- in this type
  7 |         kind: BridgeCausalInspectionAdmissionSummaryKind::Admitted,
    |         ^^^^ private field
- 8 |         query_admission_digest: "admission".into(),
+ 8 |         query_admission_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         causal_observation_anchor_digest: "anchor".into(),
+ 9 |         causal_observation_anchor_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         summary_digest: "summary".into(),
+10 |         summary_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^ private field

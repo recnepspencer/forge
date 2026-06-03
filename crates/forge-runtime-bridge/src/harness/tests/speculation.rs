@@ -1,3 +1,4 @@
+use crate::facade::TruthSnapshotIdentity;
 use crate::facade::{
     BridgePreviewLifecycleStateKind, BridgePreviewResidueClass, BridgePreviewSessionDeclaration,
     BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeRequestKind,
@@ -17,10 +18,17 @@ fn preview_declaration() -> BridgePreviewSessionDeclaration {
             TruthBranchIdentity::new("main"),
             BridgeSignalBranchIdentity::new("signal:harness"),
         ),
-        "truth-view:harness",
-        "source-capability:harness",
-        "request-shape:harness",
-        "artifact-schema:harness",
+        crate::facade::BridgePreviewSessionBasis::new(
+            crate::facade::BridgeTruthViewSelector::branch_snapshot(
+                TruthBranchIdentity::new("main"),
+                TruthSnapshotIdentity::new("snapshot:harness"),
+            ),
+            crate::facade::BridgeSourceCapabilitySet::new(vec![
+                crate::facade::BridgeSourceCapability::SnapshotRead,
+                crate::facade::BridgeSourceCapability::BranchRead,
+            ]),
+            crate::facade::BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,
+        ),
     )
 }
 
@@ -41,17 +49,14 @@ fn bridge_harness_speculation_records_are_queryable_across_execution_promotion_a
     let (active, execution_record) = runtime.activate_preview_session(admitted, 3, 1, 2);
     let proof = active.promotion_admissibility_proof();
     let (_promoted, promotion_record) = runtime
-        .promote_preview_session(
-            active,
-            &execution_record,
-            &proof,
-            "commit-boundary:harness",
-            "authoritative-artifact:harness",
-        )
+        .promote_preview_session(active, &execution_record, &proof)
         .expect("promotion should succeed");
     let replay_bundle = runtime
-        .replay_preview_bundle("harness:preview-session")
+        .replay_preview_bundle(&BridgePreviewSessionIdentity::new(
+            "harness:preview-session",
+        ))
         .expect("replay bundle should exist");
+    let preview_session_identity = BridgePreviewSessionIdentity::new("harness:preview-session");
 
     let diagnostics = runtime.diagnostics();
     let handle = diagnostics.handle();
@@ -60,14 +65,14 @@ fn bridge_harness_speculation_records_are_queryable_across_execution_promotion_a
     assert_eq!(diagnostics.preview_promotion_records().len(), 1);
     assert_eq!(
         diagnostics
-            .preview_execution_record_for_session_identity("harness:preview-session")
+            .preview_execution_record_for_session_identity(&preview_session_identity)
             .expect("execution record should be queryable by session identity")
             .record_identity(),
         execution_record.record_identity()
     );
     assert_eq!(
         handle
-            .preview_promotion_record_for_session_identity("harness:preview-session")
+            .preview_promotion_record_for_session_identity(&preview_session_identity)
             .expect("promotion record should be queryable through diagnostics handle")
             .record_identity(),
         promotion_record.record_identity()
@@ -106,7 +111,9 @@ fn bridge_harness_speculation_discard_replay_remains_queryable() {
         )
         .expect("discard should succeed");
     let replay_bundle = runtime
-        .replay_preview_bundle("harness:preview-discard")
+        .replay_preview_bundle(&BridgePreviewSessionIdentity::new(
+            "harness:preview-discard",
+        ))
         .expect("discard replay bundle should exist");
 
     let diagnostics = runtime.diagnostics();

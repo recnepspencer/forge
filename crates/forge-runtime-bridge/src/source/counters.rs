@@ -14,7 +14,7 @@ pub struct SourceMaterializationCounters {
     source_facet_read_count: usize,
     source_capability_rejection_count: usize,
     source_contract_mismatch_count: usize,
-    source_adapter_fallback_count: usize,
+    source_adapter_non_native_escape_count: usize,
     source_builder_configuration_conflict_count: usize,
 }
 
@@ -51,7 +51,7 @@ impl SourceMaterializationCounters {
             ),
             source_capability_rejection_count: 0,
             source_contract_mismatch_count: 0,
-            source_adapter_fallback_count: 0,
+            source_adapter_non_native_escape_count: 0,
             source_builder_configuration_conflict_count: 0,
         }
     }
@@ -90,7 +90,7 @@ impl SourceMaterializationCounters {
             ),
             source_capability_rejection_count: 0,
             source_contract_mismatch_count: 0,
-            source_adapter_fallback_count: 0,
+            source_adapter_non_native_escape_count: 0,
             source_builder_configuration_conflict_count: 0,
         }
     }
@@ -139,8 +139,8 @@ impl SourceMaterializationCounters {
         self.source_contract_mismatch_count
     }
 
-    pub fn source_adapter_fallback_count(&self) -> usize {
-        self.source_adapter_fallback_count
+    pub fn source_adapter_non_native_escape_count(&self) -> usize {
+        self.source_adapter_non_native_escape_count
     }
 
     pub fn source_builder_configuration_conflict_count(&self) -> usize {

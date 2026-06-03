@@ -11,6 +11,6 @@ error[E0624]: associated function `new` is private
   | |         effect: &BridgeDerivedWritebackEffect,
   | |         idempotence: &BridgeWritebackIdempotenceBasis,
   | |         loop_prevention: &BridgeWritebackLoopPreventionReport,
-  | |         strategy_compatibility: &BridgeWritebackStrategyCompatibilityReport,
+  | |         strategy_coherence: &BridgeWritebackStrategyCoherenceReport,
   | |     ) -> Result<Self, BridgeWritebackError> {
   | |___________________________________________- private associated function defined here

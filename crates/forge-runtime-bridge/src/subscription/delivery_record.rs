@@ -4,7 +4,8 @@ use sha2::{Digest, Sha256};
 
 use super::{
     BridgeAdmittedSubscriptionIdentity, BridgeSubscriptionBasisIdentity,
-    BridgeSubscriptionCounters, BridgeSubscriptionDeliveryDiagnosticsReferenceIdentity,
+    BridgeSubscriptionCounters, BridgeSubscriptionDeliveryContentDigest,
+    BridgeSubscriptionDeliveryDiagnosticsReferenceIdentity,
     BridgeSubscriptionDeliveryFamilyIdentity, BridgeSubscriptionDeliveryMemberIdentity,
     BridgeSubscriptionDeliveryWindowIdentity,
 };
@@ -31,16 +32,16 @@ impl BridgeSubscriptionDeliveryMemberClass {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum BridgeSubscriptionPayloadOmissionReason {
-    PayloadDigestOnly,
+pub enum BridgeSubscriptionDeliveryContentOmissionReason {
+    ContentDigestOnly,
     RouteFocusedDelivery,
     HeartbeatNoOp,
 }
 
-impl BridgeSubscriptionPayloadOmissionReason {
+impl BridgeSubscriptionDeliveryContentOmissionReason {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::PayloadDigestOnly => "payload_digest_only",
+            Self::ContentDigestOnly => "content_digest_only",
             Self::RouteFocusedDelivery => "route_focused_delivery",
             Self::HeartbeatNoOp => "heartbeat_no_op",
         }
@@ -52,38 +53,38 @@ pub struct BridgeSubscriptionDeliveryMemberInput {
     route_or_slice_identity: Arc<str>,
     upstream_causality_digest: Arc<str>,
     member_class: BridgeSubscriptionDeliveryMemberClass,
-    payload_digest: Option<Arc<str>>,
-    payload_omitted_reason: Option<BridgeSubscriptionPayloadOmissionReason>,
+    delivery_content_digest: Option<BridgeSubscriptionDeliveryContentDigest>,
+    content_omitted_reason: Option<BridgeSubscriptionDeliveryContentOmissionReason>,
 }
 
 impl BridgeSubscriptionDeliveryMemberInput {
-    pub fn payload_digest(
+    pub fn delivery_content_digest(
         route_or_slice_identity: impl Into<Arc<str>>,
         upstream_causality_digest: impl Into<Arc<str>>,
         member_class: BridgeSubscriptionDeliveryMemberClass,
-        payload_digest: impl Into<Arc<str>>,
+        delivery_content_digest: BridgeSubscriptionDeliveryContentDigest,
     ) -> Self {
         Self {
             route_or_slice_identity: route_or_slice_identity.into(),
             upstream_causality_digest: upstream_causality_digest.into(),
             member_class,
-            payload_digest: Some(payload_digest.into()),
-            payload_omitted_reason: None,
+            delivery_content_digest: Some(delivery_content_digest),
+            content_omitted_reason: None,
         }
     }
 
-    pub fn omitted_payload(
+    pub fn omitted_content(
         route_or_slice_identity: impl Into<Arc<str>>,
         upstream_causality_digest: impl Into<Arc<str>>,
         member_class: BridgeSubscriptionDeliveryMemberClass,
-        payload_omitted_reason: BridgeSubscriptionPayloadOmissionReason,
+        content_omitted_reason: BridgeSubscriptionDeliveryContentOmissionReason,
     ) -> Self {
         Self {
             route_or_slice_identity: route_or_slice_identity.into(),
             upstream_causality_digest: upstream_causality_digest.into(),
             member_class,
-            payload_digest: None,
-            payload_omitted_reason: Some(payload_omitted_reason),
+            delivery_content_digest: None,
+            content_omitted_reason: Some(content_omitted_reason),
         }
     }
 
@@ -99,30 +100,34 @@ impl BridgeSubscriptionDeliveryMemberInput {
         self.member_class
     }
 
-    pub fn payload_digest_value(&self) -> Option<&str> {
-        self.payload_digest.as_deref()
+    pub fn delivery_content_digest_value(&self) -> Option<&str> {
+        self.delivery_content_digest
+            .as_ref()
+            .map(BridgeSubscriptionDeliveryContentDigest::as_str)
     }
 
-    pub fn payload_omitted_reason(&self) -> Option<BridgeSubscriptionPayloadOmissionReason> {
-        self.payload_omitted_reason
+    pub fn content_omitted_reason(
+        &self,
+    ) -> Option<BridgeSubscriptionDeliveryContentOmissionReason> {
+        self.content_omitted_reason
     }
 
     pub(crate) fn canonical_input_basis(&self) -> String {
-        let payload_basis = self
-            .payload_digest_value()
+        let content_basis = self
+            .delivery_content_digest_value()
             .map(str::to_owned)
             .unwrap_or_else(|| {
-                self.payload_omitted_reason()
-                    .map(BridgeSubscriptionPayloadOmissionReason::as_str)
-                    .unwrap_or("missing_payload_basis")
+                self.content_omitted_reason()
+                    .map(BridgeSubscriptionDeliveryContentOmissionReason::as_str)
+                    .unwrap_or("missing_content_basis")
                     .to_owned()
             });
         format!(
-            "route-or-slice={}|causality={}|class={}|payload={}",
+            "route-or-slice={}|causality={}|class={}|content={}",
             self.route_or_slice_identity(),
             self.upstream_causality_digest(),
             self.member_class().as_str(),
-            payload_basis,
+            content_basis,
         )
     }
 }
@@ -138,8 +143,8 @@ pub struct BridgeSubscriptionDeliveryMemberRecord {
     basis_identity: BridgeSubscriptionBasisIdentity,
     upstream_causality_digest: Arc<str>,
     member_class: BridgeSubscriptionDeliveryMemberClass,
-    payload_digest: Option<Arc<str>>,
-    payload_omitted_reason: Option<BridgeSubscriptionPayloadOmissionReason>,
+    delivery_content_digest: Option<BridgeSubscriptionDeliveryContentDigest>,
+    content_omitted_reason: Option<BridgeSubscriptionDeliveryContentOmissionReason>,
     diagnostics_tier_class: Arc<str>,
     counter_digest: Arc<str>,
     canonical_basis: Arc<str>,
@@ -157,18 +162,18 @@ impl BridgeSubscriptionDeliveryMemberRecord {
         counter_digest: Arc<str>,
         input: BridgeSubscriptionDeliveryMemberInput,
     ) -> Self {
-        let payload_basis = input
-            .payload_digest_value()
+        let content_basis = input
+            .delivery_content_digest_value()
             .map(str::to_owned)
             .unwrap_or_else(|| {
                 input
-                    .payload_omitted_reason()
-                    .map(BridgeSubscriptionPayloadOmissionReason::as_str)
-                    .unwrap_or("missing_payload_basis")
+                    .content_omitted_reason()
+                    .map(BridgeSubscriptionDeliveryContentOmissionReason::as_str)
+                    .unwrap_or("missing_content_basis")
                     .to_owned()
             });
         let canonical_basis = Arc::<str>::from(format!(
-            "bridge-subscription-delivery-member|admitted={}|family={}|window={}|sequence={}|route-or-slice={}|basis={}|causality={}|class={}|payload={}|diagnostics-tier={}|counter-digest={}",
+            "bridge-subscription-delivery-member|admitted={}|family={}|window={}|sequence={}|route-or-slice={}|basis={}|causality={}|class={}|content={}|diagnostics-tier={}|counter-digest={}",
             admitted_subscription_identity.as_str(),
             delivery_family_identity.as_str(),
             delivery_window_identity.as_str(),
@@ -177,7 +182,7 @@ impl BridgeSubscriptionDeliveryMemberRecord {
             basis_identity.as_str(),
             input.upstream_causality_digest(),
             input.member_class().as_str(),
-            payload_basis,
+            content_basis,
             diagnostics_tier_class.as_ref(),
             counter_digest.as_ref(),
         ));
@@ -194,8 +199,8 @@ impl BridgeSubscriptionDeliveryMemberRecord {
             basis_identity,
             upstream_causality_digest: input.upstream_causality_digest,
             member_class: input.member_class,
-            payload_digest: input.payload_digest,
-            payload_omitted_reason: input.payload_omitted_reason,
+            delivery_content_digest: input.delivery_content_digest,
+            content_omitted_reason: input.content_omitted_reason,
             diagnostics_tier_class,
             counter_digest,
             canonical_basis,
@@ -237,12 +242,16 @@ impl BridgeSubscriptionDeliveryMemberRecord {
         self.member_class
     }
 
-    pub fn payload_digest_value(&self) -> Option<&str> {
-        self.payload_digest.as_deref()
+    pub fn delivery_content_digest_value(&self) -> Option<&str> {
+        self.delivery_content_digest
+            .as_ref()
+            .map(BridgeSubscriptionDeliveryContentDigest::as_str)
     }
 
-    pub fn payload_omitted_reason(&self) -> Option<BridgeSubscriptionPayloadOmissionReason> {
-        self.payload_omitted_reason
+    pub fn content_omitted_reason(
+        &self,
+    ) -> Option<BridgeSubscriptionDeliveryContentOmissionReason> {
+        self.content_omitted_reason
     }
 
     pub fn diagnostics_tier_class(&self) -> &str {

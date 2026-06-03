@@ -1,96 +1,159 @@
-use super::{shared, BridgeHarnessError, SpeculationHarnessExecution};
+use super::{
+    churn_certification::{
+        SpeculationBranchIsolationMatrix, SpeculationBranchIsolationRow,
+        SpeculationChurnCertification, SpeculationChurnCounterSnapshot,
+        SpeculationPreviewReplayBundleSet, SpeculationResourceBoundReport,
+    },
+    shared, BridgeHarnessError, SpeculationHarnessExecution,
+};
 use crate::harness::fixtures::BridgeHarnessFixture;
-use serde_json::json;
 
 pub(super) fn execute_churn_certification(
     runtime_bridge: &crate::facade::RuntimeBridge,
     fixture: &BridgeHarnessFixture,
 ) -> Result<SpeculationHarnessExecution, BridgeHarnessError> {
-    let mut lifecycle_digests = Vec::new();
-    let mut branch_rows = Vec::new();
-    let mut max_preview_artifacts = 0usize;
-    let mut max_replay_width = 0usize;
     let baseline_authoritative_route_digest =
         shared::first_commit_routing_digest(runtime_bridge, fixture)?;
-    let mut authoritative_route_digests_after_discard = Vec::new();
-
-    for index in 0..3 {
-        let branch = format!("branch-{index}");
-        let session_id = format!("harness:speculation-churn:{index}");
-        let signal_branch = format!("signal:{index}");
-        let admitted = runtime_bridge
-            .admit_preview_session(
-                crate::facade::BridgePreviewSessionIdentity::new(session_id.clone()),
-                shared::preview_declaration(&session_id, &branch, &signal_branch),
-            )
-            .map_err(|error| {
-                BridgeHarnessError::new(format!("speculation churn admission failed: {error}"))
-            })?;
-        let (active, execution_record) =
-            runtime_bridge.activate_preview_session(admitted, index + 1, 1, 1);
-        let (_discarded, discard_record) = runtime_bridge
-            .discard_preview_session(
-                active,
-                &execution_record,
-                vec![
-                    crate::facade::BridgePreviewResidueClass::PreviewDiagnosticsRetained,
-                    crate::facade::BridgePreviewResidueClass::TemporaryDiagnosticsResidue,
-                ],
-            )
-            .map_err(|error| {
-                BridgeHarnessError::new(format!("speculation churn discard failed: {error}"))
-            })?;
-        let replay_bundle = runtime_bridge
-            .replay_preview_bundle(&session_id)
-            .map_err(|error| {
-                BridgeHarnessError::new(format!("speculation churn replay failed: {error}"))
-            })?;
-        lifecycle_digests.push(replay_bundle.digest().to_string());
-        max_preview_artifacts =
-            max_preview_artifacts.max(execution_record.counters().preview_artifact_count());
-        max_replay_width = max_replay_width.max(replay_bundle.counters().replay_bundle_width());
-        let authoritative_route_digest_after_discard =
-            shared::first_commit_routing_digest(runtime_bridge, fixture)?;
-        authoritative_route_digests_after_discard
-            .push(authoritative_route_digest_after_discard.clone());
-        branch_rows.push(json!({
-            "preview_session_identity": session_id,
-            "truth_branch_identity": branch,
-            "execution_record_identity": execution_record.record_identity().as_str(),
-            "discard_record_identity": discard_record.record_identity().as_str(),
-            "lifecycle_outcome": format!("{:?}", replay_bundle.lifecycle_outcome()),
-            "authoritative_route_digest_after_discard": authoritative_route_digest_after_discard,
-        }));
-    }
-
+    let branch_executions = execute_churn_branches(runtime_bridge, fixture)?;
     let final_authoritative_route_digest =
         shared::first_commit_routing_digest(runtime_bridge, fixture)?;
-    let preview_session_count_touched = lifecycle_digests.len();
-    let authoritative_route_observation_count = authoritative_route_digests_after_discard.len() + 2;
+
+    let resource_bound_report =
+        build_churn_resource_bound_report(runtime_bridge, branch_executions.as_slice());
+    let counter_snapshot = SpeculationChurnCounterSnapshot::from_churn_report(
+        branch_executions.len(),
+        &resource_bound_report,
+    );
 
     Ok(SpeculationHarnessExecution::Churn {
-        lifecycle_digests,
-        branch_isolation_matrix: json!({
-            "rows": branch_rows,
-            "baseline_authoritative_route_digest": baseline_authoritative_route_digest,
-            "final_authoritative_route_digest": final_authoritative_route_digest,
-        }),
-        resource_bound_report: json!({
-            "retained_preview_execution_record_count": runtime_bridge.diagnostics().preview_execution_records().len(),
-            "retained_preview_discard_record_count": runtime_bridge.diagnostics().preview_discard_records().len(),
-            "retained_preview_promotion_record_count": runtime_bridge.diagnostics().preview_promotion_records().len(),
-            "max_preview_artifact_count": max_preview_artifacts,
-            "max_replay_bundle_width": max_replay_width,
-            "authoritative_route_observation_count": authoritative_route_observation_count,
-        }),
-        counter_snapshot: json!({
-            "preview_session_count_touched": preview_session_count_touched,
-            "max_preview_artifact_count": max_preview_artifacts,
-            "max_replay_bundle_width": max_replay_width,
-            "retained_preview_execution_record_count": runtime_bridge.diagnostics().preview_execution_records().len(),
-            "retained_preview_discard_record_count": runtime_bridge.diagnostics().preview_discard_records().len(),
-            "retained_preview_promotion_record_count": runtime_bridge.diagnostics().preview_promotion_records().len(),
-            "authoritative_route_observation_count": authoritative_route_observation_count,
-        }),
+        certification: SpeculationChurnCertification::new(
+            SpeculationPreviewReplayBundleSet::from_replay_bundles(
+                branch_executions
+                    .iter()
+                    .map(|execution| execution.replay_bundle.clone()),
+            ),
+            SpeculationBranchIsolationMatrix::new(
+                branch_executions
+                    .into_iter()
+                    .map(|execution| execution.branch_isolation_row)
+                    .collect(),
+                baseline_authoritative_route_digest,
+                final_authoritative_route_digest,
+            ),
+            resource_bound_report,
+            counter_snapshot,
+        ),
     })
+}
+
+struct SpeculationChurnBranchExecution {
+    replay_bundle: crate::facade::BridgePreviewReplayBundle,
+    branch_isolation_row: SpeculationBranchIsolationRow,
+    preview_artifact_count: usize,
+    replay_bundle_width: usize,
+}
+
+fn execute_churn_branches(
+    runtime_bridge: &crate::facade::RuntimeBridge,
+    fixture: &BridgeHarnessFixture,
+) -> Result<Vec<SpeculationChurnBranchExecution>, BridgeHarnessError> {
+    (0..3)
+        .map(|index| execute_one_churn_branch(runtime_bridge, fixture, index))
+        .collect()
+}
+
+fn execute_one_churn_branch(
+    runtime_bridge: &crate::facade::RuntimeBridge,
+    fixture: &BridgeHarnessFixture,
+    index: usize,
+) -> Result<SpeculationChurnBranchExecution, BridgeHarnessError> {
+    let session_id = format!("harness:speculation-churn:{index}");
+    let preview_session_identity =
+        crate::facade::BridgePreviewSessionIdentity::new(session_id.clone());
+    let preview_declaration_identity =
+        crate::facade::BridgePreviewSessionDeclarationIdentity::new(session_id.clone());
+    let binding_identity =
+        crate::facade::BridgeSpeculativeBranchBindingIdentity::new(format!("{session_id}:binding"));
+    let truth_branch_identity = crate::facade::TruthBranchIdentity::new(format!("branch-{index}"));
+    let signal_branch_identity =
+        crate::facade::BridgeSignalBranchIdentity::new(format!("signal:{index}"));
+    let snapshot_identity =
+        crate::facade::TruthSnapshotIdentity::new(format!("{session_id}:snapshot"));
+    let admitted = runtime_bridge
+        .admit_preview_session(
+            preview_session_identity.clone(),
+            shared::preview_declaration(
+                preview_declaration_identity,
+                binding_identity,
+                truth_branch_identity.clone(),
+                signal_branch_identity,
+                snapshot_identity,
+            ),
+        )
+        .map_err(|error| {
+            BridgeHarnessError::new(format!("speculation churn admission failed: {error}"))
+        })?;
+    let (active, execution_record) =
+        runtime_bridge.activate_preview_session(admitted, index + 1, 1, 1);
+    let (_discarded, discard_record) = runtime_bridge
+        .discard_preview_session(
+            active,
+            &execution_record,
+            vec![
+                crate::facade::BridgePreviewResidueClass::PreviewDiagnosticsRetained,
+                crate::facade::BridgePreviewResidueClass::TemporaryDiagnosticsResidue,
+            ],
+        )
+        .map_err(|error| {
+            BridgeHarnessError::new(format!("speculation churn discard failed: {error}"))
+        })?;
+    let replay_bundle = runtime_bridge
+        .replay_preview_bundle(&preview_session_identity)
+        .map_err(|error| {
+            BridgeHarnessError::new(format!("speculation churn replay failed: {error}"))
+        })?;
+    let authoritative_route_digest_after_discard =
+        shared::first_commit_routing_digest(runtime_bridge, fixture)?;
+
+    Ok(SpeculationChurnBranchExecution {
+        replay_bundle: replay_bundle.clone(),
+        branch_isolation_row: SpeculationBranchIsolationRow::new(
+            preview_session_identity,
+            truth_branch_identity,
+            execution_record.record_identity().clone(),
+            discard_record.record_identity().clone(),
+            replay_bundle.lifecycle_outcome(),
+            authoritative_route_digest_after_discard,
+        ),
+        preview_artifact_count: execution_record.counters().preview_artifact_count(),
+        replay_bundle_width: replay_bundle.counters().replay_bundle_width(),
+    })
+}
+
+fn build_churn_resource_bound_report(
+    runtime_bridge: &crate::facade::RuntimeBridge,
+    branch_executions: &[SpeculationChurnBranchExecution],
+) -> SpeculationResourceBoundReport {
+    SpeculationResourceBoundReport::new(
+        runtime_bridge
+            .diagnostics()
+            .preview_execution_records()
+            .len(),
+        runtime_bridge.diagnostics().preview_discard_records().len(),
+        runtime_bridge
+            .diagnostics()
+            .preview_promotion_records()
+            .len(),
+        branch_executions
+            .iter()
+            .map(|execution| execution.preview_artifact_count)
+            .max()
+            .unwrap_or(0),
+        branch_executions
+            .iter()
+            .map(|execution| execution.replay_bundle_width)
+            .max()
+            .unwrap_or(0),
+        branch_executions.len() + 2,
+    )
 }

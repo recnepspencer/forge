@@ -9,9 +9,12 @@ use super::{
     BridgeSubscriptionCertificationComparisonRelationship,
     BridgeSubscriptionCertificationComparisonReport, BridgeSubscriptionCertificationCostProfile,
     BridgeSubscriptionCertificationCounterSnapshot, BridgeSubscriptionCertificationDensityPosture,
-    BridgeSubscriptionCertificationScratch, BridgeSubscriptionReferenceWorkloadManifestDraft,
+    BridgeSubscriptionCertificationScratch, BridgeSubscriptionReferenceWorkloadComponentIdSet,
+    BridgeSubscriptionReferenceWorkloadLaneIdSet, BridgeSubscriptionReferenceWorkloadManifestDraft,
+    BridgeSubscriptionReferenceWorkloadProductIdSet, BridgeSubscriptionSourceArtifactEvidence,
     BridgeSubscriptionSourceArtifactIndex, BridgeSubscriptionSourceArtifactInput,
-    BridgeSubscriptionSourceArtifactKind,
+    BridgeSubscriptionSourceArtifactKind, BridgeSubscriptionSourceArtifactRole,
+    BridgeSubscriptionSourceArtifactScenario,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,8 +38,12 @@ impl BridgeSubscriptionCertificationOrderingHostilityReport {
     pub(crate) fn certify() -> Self {
         let manifest = BridgeSubscriptionReferenceWorkloadManifestDraft::new(
             ordering_product_ids(),
-            vec!["steel", "rubber", "copper", "glass", "labor"],
-            vec!["canonical-ordering-hostility"],
+            BridgeSubscriptionReferenceWorkloadComponentIdSet::from_declared_component_labels([
+                "steel", "rubber", "copper", "glass", "labor",
+            ]),
+            BridgeSubscriptionReferenceWorkloadLaneIdSet::from_declared_lane_labels([
+                "canonical-ordering-hostility",
+            ]),
         )
         .seal()
         .expect("ordering hostility manifest is valid by construction");
@@ -191,86 +198,36 @@ fn assemble_bundle(
 
 fn ordering_hostility_source_inputs() -> Vec<BridgeSubscriptionSourceArtifactInput> {
     [
-        (
-            BridgeSubscriptionSourceArtifactKind::Declaration,
-            "ordering:declaration",
-            "digest:ordering:declaration",
-        ),
-        (
-            BridgeSubscriptionSourceArtifactKind::BasisBinding,
-            "ordering:basis",
-            "digest:ordering:basis",
-        ),
-        (
-            BridgeSubscriptionSourceArtifactKind::AdmittedSubscription,
-            "ordering:admitted",
-            "digest:ordering:admitted",
-        ),
-        (
-            BridgeSubscriptionSourceArtifactKind::Lifecycle,
-            "ordering:lifecycle",
-            "digest:ordering:lifecycle",
-        ),
-        (
-            BridgeSubscriptionSourceArtifactKind::ActiveDelivery,
-            "ordering:active-delivery",
-            "digest:ordering:active-delivery",
-        ),
-        (
-            BridgeSubscriptionSourceArtifactKind::DeliveryWindow,
-            "ordering:delivery-window",
-            "digest:ordering:delivery-window",
-        ),
-        (
-            BridgeSubscriptionSourceArtifactKind::Fanout,
-            "ordering:fanout",
-            "digest:ordering:fanout",
-        ),
-        (
-            BridgeSubscriptionSourceArtifactKind::Checkpoint,
-            "ordering:checkpoint",
-            "digest:ordering:checkpoint",
-        ),
-        (
-            BridgeSubscriptionSourceArtifactKind::Resume,
-            "ordering:resume",
-            "digest:ordering:resume",
-        ),
-        (
-            BridgeSubscriptionSourceArtifactKind::Continuation,
-            "ordering:continuation",
-            "digest:ordering:continuation",
-        ),
-        (
-            BridgeSubscriptionSourceArtifactKind::Preview,
-            "ordering:preview",
-            "digest:ordering:preview",
-        ),
-        (
-            BridgeSubscriptionSourceArtifactKind::RetainedReplay,
-            "ordering:retained-replay",
-            "digest:ordering:retained-replay",
-        ),
-        (
-            BridgeSubscriptionSourceArtifactKind::StrategyLowering,
-            "ordering:strategy-lowering",
-            "digest:ordering:strategy-lowering",
-        ),
-        (
-            BridgeSubscriptionSourceArtifactKind::Failure,
-            "ordering:failure",
-            "digest:ordering:failure",
-        ),
+        BridgeSubscriptionSourceArtifactKind::Declaration,
+        BridgeSubscriptionSourceArtifactKind::BasisBinding,
+        BridgeSubscriptionSourceArtifactKind::AdmittedSubscription,
+        BridgeSubscriptionSourceArtifactKind::Lifecycle,
+        BridgeSubscriptionSourceArtifactKind::ActiveDelivery,
+        BridgeSubscriptionSourceArtifactKind::DeliveryWindow,
+        BridgeSubscriptionSourceArtifactKind::Fanout,
+        BridgeSubscriptionSourceArtifactKind::Checkpoint,
+        BridgeSubscriptionSourceArtifactKind::Resume,
+        BridgeSubscriptionSourceArtifactKind::Continuation,
+        BridgeSubscriptionSourceArtifactKind::Preview,
+        BridgeSubscriptionSourceArtifactKind::RetainedReplay,
+        BridgeSubscriptionSourceArtifactKind::StrategyLowering,
+        BridgeSubscriptionSourceArtifactKind::Failure,
     ]
     .into_iter()
-    .map(|(artifact_kind, identity, digest)| {
-        BridgeSubscriptionSourceArtifactInput::new(artifact_kind, identity, digest)
+    .map(|artifact_kind| {
+        BridgeSubscriptionSourceArtifactInput::from_evidence(
+            BridgeSubscriptionSourceArtifactEvidence::scenario(
+                artifact_kind,
+                BridgeSubscriptionSourceArtifactScenario::OrderingHostility,
+                BridgeSubscriptionSourceArtifactRole::Stable,
+            ),
+        )
     })
     .collect()
 }
 
-fn ordering_product_ids() -> Vec<String> {
-    (0..128)
-        .map(|slot| format!("ordering-product-{slot:03}"))
-        .collect()
+fn ordering_product_ids() -> BridgeSubscriptionReferenceWorkloadProductIdSet {
+    BridgeSubscriptionReferenceWorkloadProductIdSet::from_declared_product_labels(
+        (0..128).map(|slot| format!("ordering-product-{slot:03}")),
+    )
 }

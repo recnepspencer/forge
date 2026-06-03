@@ -77,9 +77,14 @@ mod tests {
         let right = ValidatedSourceDeclaration::from_contract(&contract);
 
         assert_eq!(left, right);
-        assert!(left
-            .canonical_basis()
-            .contains("validated-source-declaration"));
+        assert_eq!(
+            left.canonical_basis(),
+            format!(
+                "validated-source-declaration|contract={}|declaration={}",
+                contract.digest(),
+                declaration.digest(),
+            )
+        );
         assert_eq!(
             left.contract_identity(),
             contract.contract_identity().as_str()

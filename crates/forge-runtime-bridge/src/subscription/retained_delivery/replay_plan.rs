@@ -122,7 +122,7 @@ impl BridgeSubscriptionDeliveryReplayPlan {
             match seed.replay_readiness_class() {
                 BridgeSubscriptionDeliveryReplayReadinessClass::DescriptorOnlyReplayReady
                 | BridgeSubscriptionDeliveryReplayReadinessClass::CanonicalMemberReplayReady => {}
-                BridgeSubscriptionDeliveryReplayReadinessClass::ReplayBlockedByOmittedPayload
+                BridgeSubscriptionDeliveryReplayReadinessClass::ReplayBlockedByOmittedContent
                 | BridgeSubscriptionDeliveryReplayReadinessClass::ReplayBlockedByDiagnosticsPolicy
                 | BridgeSubscriptionDeliveryReplayReadinessClass::ReplayBlockedByUnsupportedFamily => {
                     return Err(BridgeSubscriptionDeliveryReplayPlanRejection::new(
@@ -157,19 +157,6 @@ impl BridgeSubscriptionDeliveryReplayPlan {
                         seed.retained_delivery_window_seed_identity().as_str(),
                         seed.delivery_window_identity().as_str(),
                         seed.delivery_window_sequence()
-                    ),
-                ));
-            }
-            if seed.canonical_member_count() > active_subscription.cost_profile().max_member_count()
-            {
-                return Err(BridgeSubscriptionDeliveryReplayPlanRejection::new(
-                    BridgeSubscriptionDeliveryReplayPlanRejectionKind::RetainedWindowExceedsCostProfile,
-                    format!(
-                        "seed={}|window={}|member-count={}|max-member-count={}",
-                        seed.retained_delivery_window_seed_identity().as_str(),
-                        seed.delivery_window_identity().as_str(),
-                        seed.canonical_member_count(),
-                        active_subscription.cost_profile().max_member_count()
                     ),
                 ));
             }

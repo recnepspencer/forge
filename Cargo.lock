@@ -1481,6 +1481,7 @@ version = "0.1.0"
 dependencies = [
  "forge-foundational",
  "forge-harness",
+ "forge-proof",
  "serde_json",
  "sha2",
  "trybuild",

@@ -97,7 +97,7 @@ fn shared_and_separate_equivalent_consumers_preserve_canonical_delivery_truth() 
 }
 
 #[test]
-fn incompatible_replay_audit_consumer_rejects_shared_fanout() {
+fn divergent_replay_audit_consumer_rejects_shared_fanout() {
     let (runtime, active) = active_detail_subscription_with_fanout(
         BridgeSubscriptionDeliveryDensityPosture::SparseMemberDelivery,
         2,

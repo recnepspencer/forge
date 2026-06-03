@@ -89,6 +89,13 @@ mod tests {
         );
 
         assert_eq!(left, right);
-        assert!(left.canonical_basis().contains("id=source:profile"));
+        assert_eq!(
+            left.canonical_basis(),
+            format!(
+                "source-declaration|id=source:profile|selector={}|capabilities={}",
+                left.selector().canonical_basis(),
+                left.required_capabilities().digest(),
+            )
+        );
     }
 }

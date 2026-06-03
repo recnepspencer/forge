@@ -1,23 +1,101 @@
 use crate::facade::{
     BridgeCausalEvidenceBinding, BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner,
-    BridgeCausalEvidenceReference,
+    BridgeCausalEvidenceReference, BridgeCausalEvidenceReferenceIdentity,
+    BridgeMappedWritebackFamilyInput, BridgeRouteResultSummary, BridgeWritebackExecutionRecord,
+    BridgeWritebackFamilyAdmissionRecord, BridgeWritebackMapperEnvelope,
+    BridgeWritebackMapperRecord, BridgeWritebackReplayRecord,
 };
 
 pub(super) fn bridge_reference(
-    family: BridgeCausalEvidenceFamily,
-    identity: &str,
+    identity: BridgeCausalEvidenceReferenceIdentity,
 ) -> BridgeCausalEvidenceReference {
+    let family = identity.family();
     BridgeCausalEvidenceReference::new(BridgeCausalEvidenceOwner::RuntimeBridge, family, identity)
         .expect("bridge reference should be valid")
 }
 
-pub(super) fn query_observation_reference(identity: &str) -> BridgeCausalEvidenceReference {
+pub(super) fn query_observation_reference(
+    identity: BridgeCausalEvidenceReferenceIdentity,
+) -> BridgeCausalEvidenceReference {
     BridgeCausalEvidenceReference::new(
         BridgeCausalEvidenceOwner::Query,
         BridgeCausalEvidenceFamily::QueryObservation,
         identity,
     )
     .expect("query observation reference should be valid")
+}
+
+pub(super) fn missing_bridge_reference(
+    family: BridgeCausalEvidenceFamily,
+    identity: &str,
+) -> BridgeCausalEvidenceReference {
+    bridge_reference(
+        BridgeCausalEvidenceReferenceIdentity::runtime_bridge(family, identity)
+            .expect("bridge reference identity should be valid"),
+    )
+}
+
+pub(super) fn bridge_route_reference(
+    route_summary: &BridgeRouteResultSummary,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeRoute,
+        route_summary.route_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_writeback_admission_reference(
+    record: &BridgeWritebackFamilyAdmissionRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeWritebackAdmission,
+        record.record_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_writeback_mapper_envelope_reference(
+    envelope: &BridgeWritebackMapperEnvelope,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeWritebackMapperEnvelope,
+        envelope.envelope_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_writeback_mapped_input_reference(
+    mapped_input: &BridgeMappedWritebackFamilyInput,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeWritebackMappedFamilyInput,
+        mapped_input.mapped_input_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_writeback_mapper_record_reference(
+    record: &BridgeWritebackMapperRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeWritebackMapper,
+        record.record_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_writeback_execution_reference(
+    record: &BridgeWritebackExecutionRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeWritebackExecution,
+        record.record_identity().as_str(),
+    )
+}
+
+pub(super) fn bridge_writeback_replay_reference(
+    record: &BridgeWritebackReplayRecord,
+) -> BridgeCausalEvidenceReference {
+    missing_bridge_reference(
+        BridgeCausalEvidenceFamily::BridgeWritebackReplay,
+        record.record_identity().as_str(),
+    )
 }
 
 pub(super) fn binding_for<'a>(
@@ -43,8 +121,8 @@ pub(super) fn writeback_admission_digest(
     let strategy_class = format!("{:?}", record.strategy_class());
     let diagnostics_tier = format!("{:?}", record.diagnostics_tier());
     let replay_permitted = record.replay_artifacts_permitted().to_string();
-    digest(
-        "bridge-causal-retained-writeback-admission-record",
+    expected_writeback_retained_digest(
+        ExpectedWritebackRetainedDigestArtifact::AdmissionRecord,
         &[
             record.record_identity().as_str(),
             record.declaration_identity(),
@@ -69,8 +147,8 @@ pub(super) fn writeback_mapper_envelope_digest(
     let family_kind = format!("{:?}", envelope.family_kind());
     let effect_class = format!("{:?}", envelope.effect_class());
     let strategy_class = format!("{:?}", envelope.strategy_class());
-    digest(
-        "bridge-causal-retained-writeback-mapper-envelope",
+    expected_writeback_retained_digest(
+        ExpectedWritebackRetainedDigestArtifact::MapperEnvelope,
         &[
             envelope.envelope_identity().as_str(),
             envelope.contract_digest(),
@@ -79,8 +157,7 @@ pub(super) fn writeback_mapper_envelope_digest(
             strategy_class.as_str(),
             envelope.strategy_descriptor_digest(),
             envelope.causality_digest(),
-            envelope.domain_payload_digest(),
-            envelope.domain_evidence_digest(),
+            envelope.effect_intent_digest(),
             envelope.digest(),
         ],
     )
@@ -92,8 +169,8 @@ pub(super) fn writeback_mapped_input_digest(
     let family_kind = format!("{:?}", mapped_input.family_kind());
     let effect_class = format!("{:?}", mapped_input.effect_class());
     let strategy_class = format!("{:?}", mapped_input.strategy_class());
-    digest(
-        "bridge-causal-retained-writeback-mapped-family-input",
+    expected_writeback_retained_digest(
+        ExpectedWritebackRetainedDigestArtifact::MappedFamilyInput,
         &[
             mapped_input.mapped_input_identity().as_str(),
             mapped_input.mapper_envelope_digest(),
@@ -103,8 +180,7 @@ pub(super) fn writeback_mapped_input_digest(
             strategy_class.as_str(),
             mapped_input.strategy_descriptor_digest(),
             mapped_input.causality_digest(),
-            mapped_input.domain_payload_digest(),
-            mapped_input.domain_evidence_digest(),
+            mapped_input.effect_intent_digest(),
             mapped_input.digest(),
         ],
     )
@@ -116,8 +192,8 @@ pub(super) fn writeback_mapper_record_digest(
     let family_kind = format!("{:?}", record.family_kind());
     let effect_class = format!("{:?}", record.effect_class());
     let strategy_class = format!("{:?}", record.strategy_class());
-    digest(
-        "bridge-causal-retained-writeback-mapper-record",
+    expected_writeback_retained_digest(
+        ExpectedWritebackRetainedDigestArtifact::MapperRecord,
         &[
             record.record_identity().as_str(),
             record.mapper_envelope_digest(),
@@ -129,7 +205,7 @@ pub(super) fn writeback_mapper_record_digest(
             strategy_class.as_str(),
             record.strategy_descriptor_digest(),
             record.causality_digest(),
-            record.proposed_effect_digest(),
+            record.effect_intent_digest(),
             record.digest(),
         ],
     )
@@ -148,19 +224,19 @@ pub(super) fn writeback_execution_digest(
         .failure_class()
         .map(|value| format!("{value:?}"))
         .unwrap_or_else(|| "none".to_string());
-    digest(
-        "bridge-causal-retained-writeback-execution-record",
+    expected_writeback_retained_digest(
+        ExpectedWritebackRetainedDigestArtifact::ExecutionRecord,
         &[
             record.record_identity().as_str(),
             record.contract_digest(),
-            record.derived_effect_digest(),
-            record.proposed_effect_digest(),
+            record.writeback_effect_artifact_digest(),
+            record.effect_intent_digest(),
             family_kind.as_str(),
             strategy_class.as_str(),
             record.causality_digest(),
             record.idempotence_digest(),
             record.loop_prevention_digest(),
-            record.strategy_compatibility_digest(),
+            record.strategy_coherence_digest(),
             record.mapper_record_digest().unwrap_or("none"),
             record.candidate_digest().unwrap_or("none"),
             record.outcome_digest().unwrap_or("none"),
@@ -184,8 +260,8 @@ pub(super) fn writeback_replay_digest(
         .failure_class()
         .map(|value| format!("{value:?}"))
         .unwrap_or_else(|| "none".to_string());
-    digest(
-        "bridge-causal-retained-writeback-replay-record",
+    expected_writeback_retained_digest(
+        ExpectedWritebackRetainedDigestArtifact::ReplayRecord,
         &[
             record.record_identity().as_str(),
             family_kind.as_str(),
@@ -193,6 +269,10 @@ pub(super) fn writeback_replay_digest(
             record.replayed_replay_digest(),
             record.expected_semantic_digest(),
             record.replayed_semantic_digest(),
+            record.expected_effect_intent_digest(),
+            record.replayed_effect_intent_digest(),
+            record.expected_effect_intent_patch_canonical_basis(),
+            record.replayed_effect_intent_patch_canonical_basis(),
             record.expected_causality_digest(),
             record.replayed_causality_digest(),
             failure_class.as_str(),
@@ -202,14 +282,41 @@ pub(super) fn writeback_replay_digest(
     )
 }
 
-fn digest(label: &str, parts: &[&str]) -> String {
+#[derive(Clone, Copy)]
+enum ExpectedWritebackRetainedDigestArtifact {
+    AdmissionRecord,
+    ExecutionRecord,
+    MappedFamilyInput,
+    MapperEnvelope,
+    MapperRecord,
+    ReplayRecord,
+}
+
+impl ExpectedWritebackRetainedDigestArtifact {
+    fn digest_domain(self) -> &'static str {
+        match self {
+            Self::AdmissionRecord => "bridge-causal-retained-writeback-admission-record",
+            Self::ExecutionRecord => "bridge-causal-retained-writeback-execution-record",
+            Self::MappedFamilyInput => "bridge-causal-retained-writeback-mapped-family-input",
+            Self::MapperEnvelope => "bridge-causal-retained-writeback-mapper-envelope",
+            Self::MapperRecord => "bridge-causal-retained-writeback-mapper-record",
+            Self::ReplayRecord => "bridge-causal-retained-writeback-replay-record",
+        }
+    }
+}
+
+fn expected_writeback_retained_digest(
+    artifact: ExpectedWritebackRetainedDigestArtifact,
+    parts: &[&str],
+) -> String {
     use sha2::{Digest, Sha256};
 
-    let mut canonical = String::from(label);
+    let digest_domain = artifact.digest_domain();
+    let mut canonical = String::from(digest_domain);
     for part in parts {
         canonical.push('|');
         canonical.push_str(part);
     }
     let digest = Sha256::digest(canonical.as_bytes());
-    format!("{label}:sha256:{digest:x}")
+    format!("{digest_domain}:sha256:{digest:x}")
 }

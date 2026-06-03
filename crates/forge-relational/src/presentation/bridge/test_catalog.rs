@@ -4,7 +4,7 @@ use std::sync::{Arc, RwLock};
 use crate::history::data::CommitId;
 use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
 use forge_runtime_bridge::facade::{
-    CommittedPatchSource, RawCommittedPatchEnvelope, RelationalBridgeSourceError,
+    BridgeCommittedPatchEnvelope, CommittedPatchSource, RelationalBridgeSourceError,
     RelationalCommittedPatchRequest, SnapshotReadPacket, SnapshotReadPacketResult,
     SnapshotReadRecord, SnapshotReadSource, TruthBranchHeadSource, TruthBranchIdentity,
     TruthSnapshotIdentity, TruthSnapshotReader,
@@ -36,7 +36,7 @@ pub struct PublicationBridgeCatalog {
 
 #[derive(Debug, Default)]
 struct PublicationBridgeCatalogState {
-    committed_patches: BTreeMap<String, RawCommittedPatchEnvelope>,
+    committed_patches: BTreeMap<String, BridgeCommittedPatchEnvelope>,
     snapshots: BTreeMap<String, PublicationBridgeSnapshot>,
 }
 
@@ -74,12 +74,12 @@ impl CommittedPatchSource for PublicationBridgeCatalog {
     fn load_committed_patch(
         &self,
         request: RelationalCommittedPatchRequest,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         self.state
             .read()
             .expect("publication bridge catalog lock poisoned")
             .committed_patches
-            .get(request.commit_identity())
+            .get(request.commit_identity().as_str())
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
@@ -116,7 +116,7 @@ impl TruthBranchHeadSource for PublicationBridgeCatalog {
     fn load_branch_head_patch(
         &self,
         branch_identity: &TruthBranchIdentity,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         self.state
             .read()
             .expect("publication bridge catalog lock poisoned")
@@ -153,12 +153,12 @@ impl TruthSnapshotReader for PublicationSnapshotReader {
             .snapshot
             .records
             .iter()
-            .map(|record| (record.request_key().to_string(), record.clone()))
+            .map(|record| (record.correlation_id().clone(), record.clone()))
             .collect::<BTreeMap<_, _>>();
         let records = request
             .reads()
             .iter()
-            .filter_map(|read| records_by_key.get(read.request_key()).cloned())
+            .filter_map(|read| records_by_key.get(read.correlation_id()).cloned())
             .collect::<Vec<_>>();
         Ok(SnapshotReadPacketResult::new(
             self.snapshot.read_result_identity.clone(),

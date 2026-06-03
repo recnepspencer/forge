@@ -9,15 +9,15 @@ use crate::projection_consumption::{
     ProjectionConsumptionBindingContext, ProjectionConsumptionDeclaration,
     ProjectionConsumptionEligibility, ProjectionConsumptionSource,
 };
-use forge_foundational::facade::{AspectKey, AspectValue};
+use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
 use forge_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
     project_relational_grouped_truth, RelationalAuthoritativeRowSetArtifact,
     RelationalGroupedProjectionArtifact,
 };
 use forge_runtime_bridge::facade::{
-    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
-    TruthSnapshotIdentity,
+    SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
+    SnapshotReadRequest, TruthSnapshotIdentity,
 };
 
 use super::super::consumed::ConsumedProjectionFactSet;
@@ -285,38 +285,31 @@ pub fn certification_row_set(row_count: usize) -> RelationalAuthoritativeRowSetA
         let task = format!("task-{}", index + 1);
         let lane = if index % 2 == 0 { "todo" } else { "doing" };
         let name = format!("Task {}", index + 1);
-        reads.push(SnapshotReadRequest::for_coarse(
+        let identity_read = string_read(entity.as_str(), "identity.id");
+        let lane_read = string_read(entity.as_str(), "status.lane");
+        let display_name_read = string_read(entity.as_str(), "profile.display_name");
+        let priority_read = scalar_read(
             entity.as_str(),
-            snapshot_aspect_key("identity.id"),
+            "metrics.priority",
+            ScalarAspectType::UInt64,
+        );
+        records.push(SnapshotReadRecord::for_request(
+            &identity_read,
+            aspect_value(AspectValue::String(task.into())),
         ));
-        reads.push(SnapshotReadRequest::for_coarse(
-            entity.as_str(),
-            snapshot_aspect_key("status.lane"),
+        records.push(SnapshotReadRecord::for_request(
+            &lane_read,
+            aspect_value(AspectValue::String(lane.into())),
         ));
-        reads.push(SnapshotReadRequest::for_coarse(
-            entity.as_str(),
-            snapshot_aspect_key("profile.display_name"),
+        records.push(SnapshotReadRecord::for_request(
+            &display_name_read,
+            aspect_value(AspectValue::String(name.into())),
         ));
-        reads.push(SnapshotReadRequest::for_coarse(
-            entity.as_str(),
-            snapshot_aspect_key("metrics.priority"),
+        records.push(SnapshotReadRecord::for_request(
+            &priority_read,
+            aspect_value(AspectValue::UInt64((index + 1) as u64)),
         ));
-        records.push(SnapshotReadRecord::new(
-            format!("{entity}:identity.id"),
-            aspect_bytes(AspectValue::String(task.into())),
-        ));
-        records.push(SnapshotReadRecord::new(
-            format!("{entity}:status.lane"),
-            aspect_bytes(AspectValue::String(lane.into())),
-        ));
-        records.push(SnapshotReadRecord::new(
-            format!("{entity}:profile.display_name"),
-            aspect_bytes(AspectValue::String(name.into())),
-        ));
-        records.push(SnapshotReadRecord::new(
-            format!("{entity}:metrics.priority"),
-            aspect_bytes(AspectValue::UInt64((index + 1) as u64)),
-        ));
+        reads.extend([identity_read, lane_read, display_name_read, priority_read]);
     }
     materialize_relational_authoritative_row_set(
         &SnapshotReadPacket::new(reads),
@@ -332,7 +325,18 @@ fn snapshot_aspect_key(value: &str) -> AspectKey {
     AspectKey::new(value).expect("valid certification snapshot aspect key")
 }
 
-fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+fn string_read(entity: &str, aspect: &str) -> SnapshotReadRequest {
+    scalar_read(entity, aspect, ScalarAspectType::String)
+}
+
+fn scalar_read(entity: &str, aspect: &str, scalar_type: ScalarAspectType) -> SnapshotReadRequest {
+    SnapshotReadRequest::for_coarse(
+        entity,
+        SnapshotReadContract::scalar(snapshot_aspect_key(aspect), scalar_type),
+    )
+}
+
+fn aspect_value(value: AspectValue) -> AspectValue {
     encode_snapshot_aspect_read_value(&value)
 }
 

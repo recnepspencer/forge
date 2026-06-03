@@ -27,20 +27,15 @@ For ordinary preview flows, promotion is surfaced through the speculative
 session:
 
 ```rust
-use forge_runtime_bridge::facade::BridgeSpeculativePromotionRequest;
-
-let promoted = session.promote(BridgeSpeculativePromotionRequest::new(
-    "commit-boundary:pricing",
-    "authoritative-artifact:pricing",
-))?;
+let promoted = session.promote()?;
 ```
 
 That is the everyday "make this real" path.
 
-The important thing is not the literal strings in the example.
 The important thing is the boundary:
 
 - preview does not become authoritative accidentally
+- promotion authority is derived from the active session and admissibility proof
 
 ## No-Op Versus Commit
 
@@ -80,7 +75,7 @@ Promotion should be explainable through the same diagnostics door as the rest
 of the bridge:
 
 ```rust
-let promoted = session.promote(promotion_request)?;
+let promoted = session.promote()?;
 
 let diagnostics = bridge.diagnostics();
 let last_promotion = diagnostics.explain_last_promotion();

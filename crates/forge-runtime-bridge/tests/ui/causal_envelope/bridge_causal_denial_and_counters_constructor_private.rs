@@ -12,8 +12,8 @@ fn main() {
         external_authority_reference_count: 0,
         materialized_detail_count: 0,
         missing_bridge_record_count: 1,
-        bridge_record_scan_fallback_count: 0,
-        counter_digest: "counter".into(),
+        bridge_record_unindexed_scan_count: 0,
+        counter_digest: sealed_authority_placeholder(),
     };
 
     let _ = BridgeCausalEnvelopeDenial {
@@ -23,6 +23,10 @@ fn main() {
         expected_owner: BridgeCausalEvidenceOwner::RuntimeBridge,
         reference_identity: "route".into(),
         counters,
-        failure_digest: "failure".into(),
+        failure_digest: sealed_authority_placeholder(),
     };
+}
+
+fn sealed_authority_placeholder<T>() -> T {
+    panic!("compile-fail fixture never executes")
 }

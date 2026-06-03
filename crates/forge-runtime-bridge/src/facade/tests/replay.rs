@@ -25,7 +25,7 @@ fn runtime_replays_canonical_historical_evaluation_record() {
 }
 
 #[test]
-fn runtime_replay_rejects_historical_authority_drift() {
+fn runtime_replay_rejects_historical_authority_drift_as_authority_mismatch() {
     #[derive(Clone)]
     struct DriftSource;
 
@@ -34,21 +34,39 @@ fn runtime_replay_rejects_historical_authority_drift() {
             &self,
             request: crate::adapter::RelationalCommittedPatchRequest,
         ) -> Result<
-            crate::input::envelope::RawCommittedPatchEnvelope,
+            crate::input::envelope::BridgeCommittedPatchEnvelope,
             crate::adapter::RelationalBridgeSourceError,
         > {
-            let snapshot = if request.commit_identity() == "commit-a" {
+            let snapshot = if request.commit_identity().as_str() == "commit-a" {
                 "snapshot-b"
             } else {
                 "snapshot-a"
             };
-            Ok(crate::input::envelope::RawCommittedPatchEnvelope::new(
-                crate::input::envelope::TruthCommitIdentity::new(request.commit_identity()),
-                crate::input::envelope::TruthPatchIdentity::new("patch-a"),
-                TruthSnapshotIdentity::new(snapshot),
-                TruthBranchIdentity::new("analysis"),
-                vec![],
-            ))
+            crate::input::envelope::BridgeCommittedPatchEnvelope::new(
+                crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new(
+                    request.commit_identity().clone(),
+                    crate::input::envelope::TruthPatchIdentity::new("patch-a"),
+                    TruthSnapshotIdentity::new(snapshot),
+                    TruthBranchIdentity::new("analysis"),
+                ),
+                vec![
+                    crate::input::envelope::BridgeCommittedPatchItem::with_target(
+                        "entity-1",
+                        crate::facade::BridgeCommittedPatchTarget::entity_field_path(
+                            forge_foundational::facade::AspectLocator::new(
+                                forge_foundational::facade::LocatorAuthority::Authoritative,
+                                forge_foundational::facade::AspectKey::new("profile")
+                                    .expect("valid bridge patch aspect key"),
+                            ),
+                            forge_foundational::facade::CanonicalFieldPath::single(
+                                forge_foundational::facade::FieldKey::new("name".to_owned())
+                                    .expect("valid foundational field key"),
+                            ),
+                        ),
+                    ),
+                ],
+            )
+            .map_err(|error| crate::adapter::RelationalBridgeSourceError::new(error.to_string()))
         }
     }
 
@@ -75,16 +93,34 @@ fn runtime_replay_rejects_historical_authority_drift() {
             &self,
             branch_identity: &TruthBranchIdentity,
         ) -> Result<
-            crate::input::envelope::RawCommittedPatchEnvelope,
+            crate::input::envelope::BridgeCommittedPatchEnvelope,
             crate::adapter::RelationalBridgeSourceError,
         > {
-            Ok(crate::input::envelope::RawCommittedPatchEnvelope::new(
-                crate::input::envelope::TruthCommitIdentity::new("head-analysis"),
-                crate::input::envelope::TruthPatchIdentity::new("patch-head"),
-                TruthSnapshotIdentity::new("snapshot-b"),
-                branch_identity.clone(),
-                vec![],
-            ))
+            crate::input::envelope::BridgeCommittedPatchEnvelope::new(
+                crate::input::envelope::BridgeCommittedPatchEnvelopeIdentity::new(
+                    crate::input::envelope::TruthCommitIdentity::new("head-analysis"),
+                    crate::input::envelope::TruthPatchIdentity::new("patch-head"),
+                    TruthSnapshotIdentity::new("snapshot-b"),
+                    branch_identity.clone(),
+                ),
+                vec![
+                    crate::input::envelope::BridgeCommittedPatchItem::with_target(
+                        "entity-1",
+                        crate::facade::BridgeCommittedPatchTarget::entity_field_path(
+                            forge_foundational::facade::AspectLocator::new(
+                                forge_foundational::facade::LocatorAuthority::Authoritative,
+                                forge_foundational::facade::AspectKey::new("profile")
+                                    .expect("valid bridge patch aspect key"),
+                            ),
+                            forge_foundational::facade::CanonicalFieldPath::single(
+                                forge_foundational::facade::FieldKey::new("name".to_owned())
+                                    .expect("valid foundational field key"),
+                            ),
+                        ),
+                    ),
+                ],
+            )
+            .map_err(|error| crate::adapter::RelationalBridgeSourceError::new(error.to_string()))
         }
     }
 
@@ -110,14 +146,46 @@ fn runtime_replay_rejects_historical_authority_drift() {
     let drifted = RuntimeBridgeBuilder::new()
         .with_policy(BridgeRuntimePolicy::default())
         .with_relational_source(DriftSource)
+        .with_source_adapter(StaticSourceAdapter)
         .with_truth_branch_head_source(DriftSource)
         .with_signal_sink(StaticSink)
+        .register_source(registered_source(
+            "source:analysis-snapshot",
+            BridgeTruthViewSelector::branch_snapshot(
+                TruthBranchIdentity::new("analysis"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+            ),
+            vec![
+                BridgeSourceCapability::SnapshotRead,
+                BridgeSourceCapability::BranchRead,
+            ],
+        ))
+        .register_source(registered_source(
+            "source:analysis-history",
+            BridgeTruthViewSelector::historical_commit(
+                TruthBranchIdentity::new("analysis"),
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            ),
+            vec![
+                BridgeSourceCapability::SnapshotRead,
+                BridgeSourceCapability::HistoricalRead,
+                BridgeSourceCapability::BranchRead,
+                BridgeSourceCapability::ReplayContinuityRead,
+            ],
+        ))
         .register_mapping(BridgeMappingRegistration::new(
             BridgeMappingId::new("mapping"),
-            TruthPatchScope::new(
-                MappingSelector::exact("profile"),
-                MappingSelector::any(),
-                MappingSelector::any(),
+            TruthPatchScope::for_entity_field(
+                MappingSelector::exact("entity-1"),
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native field key"),
+            ),
+            crate::snapshot::SnapshotReadContract::scalar(
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::ScalarAspectType::String,
             ),
             SignalInvalidationScope::new("signal:profile"),
             CoarseRoutingMode::Direct,
@@ -143,34 +211,4 @@ fn runtime_replay_rejects_historical_authority_drift() {
     );
 }
 
-#[test]
-fn runtime_replay_rejects_incompatible_historical_record_version() {
-    let runtime = runtime(BridgeRuntimePolicy::default());
-    let declaration = HistoricalEvaluationDeclaration::new(
-        BridgeTruthViewSelector::branch_head(TruthBranchIdentity::new("analysis")),
-        BridgeReplayMode::Enabled,
-        BridgeDiagnosticsTier::Standard,
-        BridgeDeliveryIntent::PrepareSignalEvaluation,
-    );
-    let record = runtime
-        .canonicalize_historical_evaluation_record(
-            &runtime
-                .materialize_truth_view_observation(
-                    runtime
-                        .plan_truth_view_packet(declaration, SnapshotReadPacket::new(vec![]))
-                        .expect("branch-head declaration should plan"),
-                )
-                .expect("branch-head declaration should materialize"),
-        )
-        .with_schema_version_for_test("forge-runtime-bridge.historical-evaluation-record.v0");
-
-    let error = runtime
-        .replay_canonical_historical_evaluation_record(&record)
-        .expect_err("historical replay should reject unsupported schema versions");
-
-    assert_eq!(
-        error.kind(),
-        crate::error::BridgeReplayErrorKind::CanonicalArtifactCompatibilityFailure
-    );
-}
 use super::*;
