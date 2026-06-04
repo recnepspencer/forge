@@ -19,11 +19,14 @@ use super::schema::{
 };
 use crate::construction::diagnostics::prepare_primitive_construction_rejection_locality_report;
 use crate::construction::digest::digest_owned_parts;
+use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
-use crate::construction::{
+use crate::construction::query::inspection_parity::{
     prepare_primitive_construction_query_inspection_parity_report,
+    PrimitiveConstructionQueryInspectionParityError,
+};
+use crate::construction::query::projection_consumption_receipt::{
     prepare_primitive_construction_query_projection_consumption_receipt_report,
-    PrimitiveConstructionIntent, PrimitiveConstructionQueryInspectionParityError,
     PrimitiveConstructionQueryProjectionConsumptionReceiptError,
 };
 
@@ -307,7 +310,7 @@ fn grazing_digest(
 fn rejected_locality(
     intent: PrimitiveConstructionIntent,
 ) -> Result<
-    crate::construction::PrimitiveConstructionRejectionLocalityRow,
+    crate::construction::diagnostics::PrimitiveConstructionRejectionLocalityRow,
     PrimitiveConstructionCompoundAdversarialSiegeError,
 > {
     let report = prepare_primitive_construction_rejection_locality_report(vec![intent]);

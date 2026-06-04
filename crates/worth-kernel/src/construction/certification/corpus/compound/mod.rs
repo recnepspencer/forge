@@ -9,38 +9,7 @@ mod row_builder;
 mod rows;
 mod schema;
 
-pub(super) use cases::PrimitiveConstructionCompoundScenario;
-pub use lane_report::{
-    PrimitiveConstructionCompoundAuthoringOrderRow, PrimitiveConstructionCompoundOrderLaneReport,
-};
-pub use milestone_closeout::PrimitiveConstructionCompoundMilestoneCloseoutReport;
-pub use ordering_report::{
-    PrimitiveConstructionCompoundOrderingParityReport,
-    PrimitiveConstructionCompoundOrderingScenarioRow,
-};
-pub use parity::PrimitiveConstructionCompoundParityCanonicalTruth;
-pub use parity::{
-    PrimitiveConstructionCompoundParityReport,
-    PrimitiveConstructionCompoundParityVerificationFailure,
-    PrimitiveConstructionCompoundParityVerificationMismatch,
-};
-pub use report::{
-    PrimitiveConstructionCompoundAdversarialSiegeReport,
-    PrimitiveConstructionCompoundExhaustionWitnessParityReport,
-    PrimitiveConstructionCompoundGrazingBoundaryReport,
-    PrimitiveConstructionCompoundMotionParityReport,
-};
-pub use rows::{
-    PrimitiveConstructionCompoundExhaustionWitnessParityRow,
-    PrimitiveConstructionCompoundGrazingBoundaryRow, PrimitiveConstructionCompoundMotionParityRow,
-    PrimitiveConstructionCompoundRow,
-};
-pub use schema::{
-    PrimitiveConstructionCompoundGrazingKind, PrimitiveConstructionCompoundMotionKind,
-    PrimitiveConstructionCompoundRowClass, PrimitiveConstructionCompoundTopologyClass,
-    PrimitiveConstructionCompoundWorkloadFamily,
-};
-
+#[cfg(test)]
 pub use builder::{
     prepare_primitive_construction_compound_adversarial_siege_report,
     prepare_primitive_construction_compound_exhaustion_witness_parity_report,
@@ -50,7 +19,25 @@ pub use builder::{
     prepare_primitive_construction_compound_parity_report,
     PrimitiveConstructionCompoundAdversarialSiegeError,
 };
+pub(super) use cases::PrimitiveConstructionCompoundScenario;
 pub use milestone_closeout::prepare_primitive_construction_compound_milestone_closeout_report;
+pub use milestone_closeout::PrimitiveConstructionCompoundMilestoneCloseoutReport;
+#[cfg(test)]
+pub use ordering_report::PrimitiveConstructionCompoundOrderingParityReport;
+#[cfg(test)]
+pub use parity::PrimitiveConstructionCompoundParityCanonicalTruth;
+#[cfg(test)]
+pub use report::{
+    PrimitiveConstructionCompoundAdversarialSiegeReport,
+    PrimitiveConstructionCompoundMotionParityReport,
+};
+pub use rows::PrimitiveConstructionCompoundRow;
+pub use schema::PrimitiveConstructionCompoundRowClass;
+#[cfg(test)]
+pub use schema::{
+    PrimitiveConstructionCompoundGrazingKind, PrimitiveConstructionCompoundMotionKind,
+    PrimitiveConstructionCompoundTopologyClass, PrimitiveConstructionCompoundWorkloadFamily,
+};
 
 #[cfg(test)]
 mod tests;

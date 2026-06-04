@@ -9,13 +9,16 @@ use super::{
     prepare_primitive_construction_corpus_replay_siege, PrimitiveConstructionCorpusParameterRole,
     PrimitiveConstructionCorpusReplaySiegeError, PrimitiveConstructionCorpusReplaySiegeReport,
 };
-use crate::construction::certification::prepare_primitive_construction_realization_exhaustion_witness_report;
-use crate::construction::digest::digest_owned_parts;
-use crate::construction::{
-    PrimitiveConstructionBlockingBoundary, PrimitiveConstructionFamily,
-    PrimitiveConstructionRealizationExhaustionWitnessReport, PrimitiveConstructionRejectionClass,
-    PrimitiveConstructionRejectionLocality,
+use crate::construction::certification::realization::{
+    prepare_primitive_construction_realization_exhaustion_witness_report,
+    PrimitiveConstructionRealizationExhaustionWitnessReport,
 };
+use crate::construction::diagnostics::PrimitiveConstructionBlockingBoundary;
+use crate::construction::digest::digest_owned_parts;
+use crate::construction::outcome::{
+    PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
+};
+use crate::construction::PrimitiveConstructionFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionFamilyBoundaryTransitionClass {
@@ -97,24 +100,13 @@ impl PrimitiveConstructionFamilyBoundaryRow {
         self.admitted_stability_class
     }
 
-    pub fn admitted_feature_conditioning_class(&self) -> PrimitiveFeatureConditioningClass {
-        self.admitted_feature_conditioning_class
-    }
-
-    pub fn admitted_support_normal_class(&self) -> PrimitiveSupportNormalClass {
-        self.admitted_support_normal_class
-    }
-
-    pub fn admitted_normalization_disposition(&self) -> PrimitiveNormalizationDisposition {
-        self.admitted_normalization_disposition
-    }
-
-    pub fn rejected_rejection_class(&self) -> PrimitiveConstructionRejectionClass {
-        self.rejected_rejection_class
-    }
-
     pub fn rejected_rejection_locality(&self) -> PrimitiveConstructionRejectionLocality {
         self.rejected_rejection_locality
+    }
+
+    #[cfg(test)]
+    pub fn admitted_normalization_disposition(&self) -> PrimitiveNormalizationDisposition {
+        self.admitted_normalization_disposition
     }
 
     pub fn rejected_blocking_boundary(&self) -> PrimitiveConstructionBlockingBoundary {

@@ -3,7 +3,7 @@ use forge_query::facade::{
     ForgeQueryRuntimeFacadeFamily, ForgeQueryWorkspace,
 };
 
-use crate::construction::certification::{
+use crate::construction::certification::profile::{
     prepare_primitive_construction_policy_profile_report, PrimitiveConstructionPolicyProfileCase,
     PrimitiveConstructionPolicyProfileRow,
 };
@@ -129,7 +129,7 @@ mod tests {
     use forge_query::facade::ForgeQueryAuthorityLane;
 
     use super::prepare_primitive_construction_policy_profile_branch_preview_runtime_report;
-    use crate::construction::PrimitiveConstructionPolicyProfileCase;
+    use crate::construction::certification::profile::PrimitiveConstructionPolicyProfileCase;
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,
     };

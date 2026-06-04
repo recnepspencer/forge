@@ -25,6 +25,7 @@ forge-foundational.workspace = true
 forge-query.workspace = true
 forge-relational.workspace = true
 forge-runtime-bridge.workspace = true
+worth-primitives.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 schema = { package = "worth-schema", path = "../worth-schema" }

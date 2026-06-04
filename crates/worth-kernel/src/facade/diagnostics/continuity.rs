@@ -1,10 +1,5 @@
-pub use crate::construction::{
-    prepare_primitive_construction_continuity_branch_preview_runtime_report,
-    prepare_primitive_construction_continuity_surface_report,
-    PrimitiveConstructionContinuityBranchPreviewRuntimeError,
-    PrimitiveConstructionContinuityBranchPreviewRuntimeReport, PrimitiveConstructionContinuityCase,
-    PrimitiveConstructionContinuityReplayParityError,
-    PrimitiveConstructionContinuityReplayParityReport,
+pub use crate::construction::certification::continuity::{
+    prepare_primitive_construction_continuity_surface_report, PrimitiveConstructionContinuityCase,
     PrimitiveConstructionContinuityResolutionSource, PrimitiveConstructionContinuityRow,
     PrimitiveConstructionContinuitySurfaceReport,
     PrimitiveConstructionContinuitySurfaceReportError,

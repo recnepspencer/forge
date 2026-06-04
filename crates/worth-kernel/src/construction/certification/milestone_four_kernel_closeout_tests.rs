@@ -1,4 +1,4 @@
-use super::prepare_primitive_construction_milestone_four_kernel_closeout_evidence_report;
+use super::closeout::prepare_primitive_construction_milestone_four_kernel_closeout_evidence_report;
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 
 #[test]

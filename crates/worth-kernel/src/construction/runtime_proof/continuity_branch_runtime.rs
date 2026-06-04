@@ -2,7 +2,7 @@ use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryWorkspace,
 };
 
-use crate::construction::certification::{
+use crate::construction::certification::continuity::{
     prepare_primitive_construction_continuity_surface_report, PrimitiveConstructionContinuityCase,
     PrimitiveConstructionContinuityRow, PrimitiveConstructionContinuitySurfaceReportError,
 };
@@ -42,10 +42,6 @@ impl PrimitiveConstructionContinuityBranchPreviewRuntimeReport {
             branch_lane,
             report_digest,
         }
-    }
-
-    pub fn case(&self) -> PrimitiveConstructionContinuityCase {
-        self.case
     }
 
     pub fn continuity_row(&self) -> &PrimitiveConstructionContinuityRow {
@@ -140,7 +136,7 @@ mod tests {
     use forge_query::facade::ForgeQueryAuthorityLane;
 
     use super::prepare_primitive_construction_continuity_branch_preview_runtime_report;
-    use crate::construction::PrimitiveConstructionContinuityCase;
+    use crate::construction::certification::continuity::PrimitiveConstructionContinuityCase;
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,
     };

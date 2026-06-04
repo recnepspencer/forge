@@ -1,20 +1,21 @@
+use super::digest::digest_owned_parts;
 use crate::construction::admitted_scaffold::prepare_primitive_construction_admitted_artifact;
 use crate::construction::artifact::CanonicalPrimitiveConstructionArtifact;
 use crate::construction::evidence::PrimitiveConstructionResultEvidence;
 use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
 use crate::construction::PrimitiveConstructionIntent;
+#[cfg(test)]
+use topology::facade::TopologyPrimitiveConstructionQueryHandoff;
 use topology::facade::{
     TopologyConstructionQueryInspectionSurface, TopologyConstructionQueryMutationSurface,
-    TopologyPrimitiveConstructionQueryHandoff,
 };
 use worth_geom::facade::{
     PrimitiveFeatureConditioningClass, PrimitiveNormalizationDisposition,
     PrimitiveRealizationReport, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
     PrimitiveSupportNormalClass,
 };
+#[cfg(test)]
 use worth_spatial::facade::bindings::AdmittedPrimitiveConstructionBirthConsequence;
-
-use super::digest::digest_owned_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreparedPrimitiveConstructionResult {
@@ -124,10 +125,12 @@ impl PreparedPrimitiveConstructionResult {
         self.canonical_artifact.supported_body_count()
     }
 
+    #[cfg(test)]
     pub(crate) fn birth_consequence(&self) -> &AdmittedPrimitiveConstructionBirthConsequence {
         self.evidence.birth_consequence()
     }
 
+    #[cfg(test)]
     pub(crate) fn topology_query_handoff(&self) -> &TopologyPrimitiveConstructionQueryHandoff {
         self.evidence.topology_query_handoff()
     }
@@ -170,9 +173,9 @@ pub fn prepare_primitive_construction_result<I: Into<PrimitiveConstructionIntent
 
 #[cfg(test)]
 mod tests {
-    use crate::construction::{
-        PrimitiveConstructionFamily, PrimitiveConstructionIntent, RegularPrismSpec,
-    };
+    use crate::construction::intent::PrimitiveConstructionIntent;
+    use crate::construction::request::PrimitiveConstructionFamily;
+    use crate::construction::specs::RegularPrismSpec;
     use worth_spatial::facade::bindings::SpatialConstructionBirthMappingKind;
 
     use super::prepare_primitive_construction_result;

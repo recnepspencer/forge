@@ -1,5 +1,5 @@
 use crate::construction::certification::continuity::prepare_primitive_construction_continuity_row;
-use crate::construction::certification::{
+use crate::construction::certification::continuity::{
     prepare_primitive_construction_continuity_surface_report, PrimitiveConstructionContinuityCase,
     PrimitiveConstructionContinuityRow, PrimitiveConstructionContinuitySurfaceReportError,
 };
@@ -34,10 +34,6 @@ impl PrimitiveConstructionContinuityReplayParityReport {
             parity_verified,
             report_digest,
         }
-    }
-
-    pub fn case(&self) -> PrimitiveConstructionContinuityCase {
-        self.case
     }
 
     pub fn direct_row(&self) -> &PrimitiveConstructionContinuityRow {
@@ -98,7 +94,7 @@ pub fn prepare_primitive_construction_continuity_replay_parity_report(
 #[cfg(test)]
 mod tests {
     use super::prepare_primitive_construction_continuity_replay_parity_report;
-    use crate::construction::PrimitiveConstructionContinuityCase;
+    use crate::construction::certification::continuity::PrimitiveConstructionContinuityCase;
 
     #[test]
     fn continuity_replay_parity_preserves_blocked_pending_choice_truth() {

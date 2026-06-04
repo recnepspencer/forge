@@ -1,5 +1,5 @@
 use super::prepare_primitive_construction_intent_arbitration_replay_parity_report;
-use crate::construction::{
+use crate::construction::certification::arbitration::{
     PrimitiveConstructionChosenIntentResolutionAuthority,
     PrimitiveConstructionPreservedIntentResolutionCase, PrimitiveConstructionPreservedIntentTruth,
 };

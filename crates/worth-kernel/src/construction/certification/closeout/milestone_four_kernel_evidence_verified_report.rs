@@ -3,26 +3,14 @@ use forge_proof::raw::{
     FreshnessScopedBasis, PhaseMarker, Proof, ProofMarker,
 };
 
-use crate::construction::certification::{
-    PrimitiveConstructionContinuitySurfaceReport,
-    PrimitiveConstructionMotionResolutionPolicyReport,
-    PrimitiveConstructionPhaseFiveSixCloseoutReport,
-    PrimitiveConstructionPolicyProfileSurfaceReport, PrimitiveConstructionPreviewSurfaceReport,
-    PrimitiveConstructionRealizationExhaustionWitnessReport,
-};
-use crate::construction::proof::{
-    PrimitiveConstructionProofGrade, PrimitiveConstructionProofSubject,
-};
-use crate::construction::query::{
-    PrimitiveConstructionQueryBasisPreviewParityReport,
-    PrimitiveConstructionQueryBoundaryGapRegister,
-    PrimitiveConstructionQueryGraphCompositionParityReport,
-    PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit,
-};
-use crate::construction::{
-    PrimitiveConstructionProofSubstrateCloseoutReport,
-    PrimitiveConstructionQueryExistingTruthBindingReport,
-};
+use crate::construction::certification::closeout::PrimitiveConstructionPhaseFiveSixCloseoutReport;
+use crate::construction::certification::continuity::PrimitiveConstructionContinuitySurfaceReport;
+use crate::construction::certification::motion::PrimitiveConstructionMotionResolutionPolicyReport;
+use crate::construction::certification::preview::PrimitiveConstructionPreviewSurfaceReport;
+use crate::construction::certification::profile::PrimitiveConstructionPolicyProfileSurfaceReport;
+use crate::construction::certification::realization::PrimitiveConstructionRealizationExhaustionWitnessReport;
+use crate::construction::proof::substrate_closeout_report::PrimitiveConstructionProofSubstrateCloseoutReport;
+use crate::construction::query::boundary_gap_register::PrimitiveConstructionQueryBoundaryGapRegister;
 
 use super::milestone_four_kernel_evidence_verified_assembly::PrimitiveConstructionMilestoneFourKernelCloseoutAssembly;
 use super::milestone_four_kernel_evidence_verified_registry::PrimitiveConstructionMilestoneFourKernelCloseoutRegistry;
@@ -116,42 +104,6 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport {
         &self.0.payload().assembly.proof_substrate_closeout
     }
 
-    pub fn query_no_local_runtime_workaround_audit(
-        &self,
-    ) -> &PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit {
-        &self
-            .0
-            .payload()
-            .assembly
-            .query_no_local_runtime_workaround_audit
-    }
-
-    pub fn query_existing_truth_binding_report(
-        &self,
-    ) -> &PrimitiveConstructionQueryExistingTruthBindingReport {
-        &self
-            .0
-            .payload()
-            .assembly
-            .query_existing_truth_binding_report
-    }
-
-    pub fn query_graph_composition_parity_report(
-        &self,
-    ) -> &PrimitiveConstructionQueryGraphCompositionParityReport {
-        &self
-            .0
-            .payload()
-            .assembly
-            .query_graph_composition_parity_report
-    }
-
-    pub fn query_basis_preview_parity_report(
-        &self,
-    ) -> &PrimitiveConstructionQueryBasisPreviewParityReport {
-        &self.0.payload().assembly.query_basis_preview_parity_report
-    }
-
     pub fn motion_policy_report(&self) -> &PrimitiveConstructionMotionResolutionPolicyReport {
         &self.0.payload().assembly.motion_policy_report
     }
@@ -180,13 +132,5 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport {
 
     pub fn report_digest(&self) -> &str {
         &self.0.payload().report_digest
-    }
-
-    pub fn proof_grade(&self) -> PrimitiveConstructionProofGrade {
-        PrimitiveConstructionProofGrade::MilestoneCloseout
-    }
-
-    pub fn proof_subject(&self) -> PrimitiveConstructionProofSubject {
-        PrimitiveConstructionProofSubject::MilestoneFourKernelCloseout
     }
 }

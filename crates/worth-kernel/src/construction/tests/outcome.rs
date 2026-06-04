@@ -2,12 +2,13 @@ use super::{
     prepare_primitive_construction_outcome, rejected_outcome, PrimitiveConstructionPreparedOutcome,
     PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
 };
+use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::request::{
     PrimitiveConstructionFamily, PrimitiveConstructionGeometryError,
     PrimitiveConstructionPhaseError,
 };
 use crate::construction::result::PrimitiveConstructionResultError;
-use crate::construction::{OrthotopeSpec, PrimitiveConstructionIntent, WireBodySpec};
+use crate::construction::specs::{OrthotopeSpec, WireBodySpec};
 use topology::facade::{
     TopologyConstructionQueryAdmittedHandoffError, TopologyConstructionQueryEnvelopeError,
     TopologyConstructionQueryHandoffError, TopologyConstructionQueryReceiptError,

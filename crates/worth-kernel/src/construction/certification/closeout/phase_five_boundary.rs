@@ -1,5 +1,5 @@
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::query::{
+use crate::construction::query::no_local_runtime_workaround_audit::{
     prepare_primitive_construction_query_no_local_runtime_workaround_audit,
     PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit,
 };
@@ -126,10 +126,6 @@ impl PrimitiveConstructionPhaseFiveBoundaryCloseoutRow {
 
     pub fn verified(&self) -> bool {
         self.verified
-    }
-
-    pub fn evidence(&self) -> &[String] {
-        &self.evidence
     }
 
     pub fn evidence_digest(&self) -> &str {

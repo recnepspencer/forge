@@ -1,7 +1,9 @@
+#[cfg(test)]
 use crate::construction::certification::profile::pressure::{
     PrimitiveConstructionPolicyPressureCase, PrimitiveConstructionPolicyPressureDeltaCase,
 };
 
+#[cfg(test)]
 pub(crate) fn required_policy_pressure_direct_cases(
 ) -> &'static [PrimitiveConstructionPolicyPressureCase] {
     &[
@@ -15,6 +17,7 @@ pub(crate) fn required_policy_pressure_direct_cases(
     ]
 }
 
+#[cfg(test)]
 pub(crate) fn required_policy_pressure_delta_cases(
 ) -> &'static [PrimitiveConstructionPolicyPressureDeltaCase] {
     &[

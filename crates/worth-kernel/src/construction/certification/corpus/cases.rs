@@ -1,6 +1,8 @@
-use crate::construction::{
-    OrthotopeSpec, PrimitiveConstructionFamily, PrimitiveConstructionIntent, RegularPrismSpec,
-    RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec, WireBodySpec,
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::request::PrimitiveConstructionFamily;
+use crate::construction::specs::{
+    OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
+    WireBodySpec,
 };
 
 use super::replay_siege_report::PrimitiveConstructionCorpusParameterRole;

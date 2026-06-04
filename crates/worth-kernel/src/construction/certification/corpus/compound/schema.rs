@@ -45,10 +45,8 @@ impl PrimitiveConstructionCompoundTopologyClass {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionCompoundRowClass {
     DirectStable,
-    EscalatedStableLocalNormalized,
     EscalatedStableExactSupport,
     StructuredRealizationExhaustion,
-    StructuredAdmissionRejection,
     BoundaryDriftGuardCase,
     MotionStableRelocation,
     MotionHostileReorientation,
@@ -60,10 +58,8 @@ impl PrimitiveConstructionCompoundRowClass {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::DirectStable => "direct_stable",
-            Self::EscalatedStableLocalNormalized => "escalated_stable_local_normalized",
             Self::EscalatedStableExactSupport => "escalated_stable_exact_support",
             Self::StructuredRealizationExhaustion => "structured_realization_exhaustion",
-            Self::StructuredAdmissionRejection => "structured_admission_rejection",
             Self::BoundaryDriftGuardCase => "boundary_drift_guard_case",
             Self::MotionStableRelocation => "motion_stable_relocation",
             Self::MotionHostileReorientation => "motion_hostile_reorientation",

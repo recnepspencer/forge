@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_kernel::facade::certification::policy`
- --> src/certification/public_facade_contracts/compile_fail/reports/public_policy_pressure_report_bundle_constructor_not_exported.rs:1:42
-  |
-1 | use worth_kernel::facade::certification::policy::PrimitiveConstructionPolicyPressureReportBundle;
-  |                                          ^^^^^^ could not find `policy` in `certification`

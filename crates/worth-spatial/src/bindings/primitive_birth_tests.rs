@@ -7,6 +7,10 @@ use worth_geom::facade::{
     PrimitiveNormalizationDisposition, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
     PrimitiveSupportNormalClass,
 };
+use worth_primitives::{
+    canonical_simplex_vertices, PrimitiveConstructionFamilyContractRegistry,
+    PrimitiveWitnessDescriptor,
+};
 
 #[test]
 fn primitive_birth_admits_closed_and_planar_phase_three_families() {
@@ -15,12 +19,7 @@ fn primitive_birth_admits_closed_and_planar_phase_three_families() {
         "closed_simplex_body",
         "simplex".to_string(),
         tetrahedron([0.0, 0.0, 0.0], 1.0).expect("planes"),
-        vec![
-            [0.0, 0.0, 1.0],
-            [0.0, 1.0, -1.0],
-            [-0.7071, -0.5, -1.0],
-            [0.7071, -0.5, -1.0],
-        ],
+        canonical_simplex_vertices(1.0, 0.0).local_vertices().to_vec(),
         4,
         6,
         4,
@@ -195,6 +194,9 @@ fn primitive_birth_preserves_escalated_realization_provenance() {
         realize_pyramid_support([0.0, 0.0, 0.0], 3, 1.0e-200, 1.0e-200).expect("realization");
     let input = PrimitiveConstructionBirthScaffoldInput::new_with_realization(
         PrimitiveConstructionBirthFamily::RegularPyramid,
+        PrimitiveConstructionFamilyContractRegistry::contract_for(
+            &PrimitiveWitnessDescriptor::RegularPyramid { side_count: 3 },
+        ),
         "closed_regular_pyramid_body",
         "tiny-pyramid".to_string(),
         realization.planes().to_vec(),

@@ -2,12 +2,13 @@ use super::{
     prepare_primitive_construction_motion_resolution_policy_report,
     PrimitiveConstructionMotionResolutionPolicyCase,
 };
-use crate::construction::{
-    PrimitiveConstructionFamily, PrimitiveConstructionMotionRuntimeSurfaceStatus,
+use crate::construction::certification::motion::{
     PrimitiveConstructionMotionWitnessResolutionFailureKind,
     PrimitiveConstructionMotionWitnessResolutionKind,
     PrimitiveConstructionMotionWitnessResolutionStatus,
 };
+use crate::construction::motion_branch_runtime::PrimitiveConstructionMotionRuntimeSurfaceStatus;
+use crate::construction::PrimitiveConstructionFamily;
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_spatial::facade::placement::SpatialPlacementConstraintError;
 use worth_spatial::facade::witness_resolution::{

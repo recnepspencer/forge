@@ -2,8 +2,9 @@ use super::{
     prepare_primitive_construction_reorient_branch_preview_runtime_report,
     PrimitiveConstructionMotionRuntimeSurfaceStatus,
 };
+use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::runtime_basis::prepare_primitive_construction_branch_preview_runtime_report;
-use crate::construction::{PrimitiveConstructionIntent, RegularPyramidSpec};
+use crate::construction::specs::RegularPyramidSpec;
 use crate::facade::authoring::intents::ReorientSpatialIntent;
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_spatial::facade::refs::{SpatialAnchorRef, SpatialAxis, SpatialDirectionWitnessRef};

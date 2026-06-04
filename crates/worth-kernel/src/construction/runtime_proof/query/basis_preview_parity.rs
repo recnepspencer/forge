@@ -5,12 +5,12 @@ use worth_geom::facade::{
     PrimitiveSupportNormalClass,
 };
 
+use crate::construction::authoring_input::PrimitiveConstructionAuthoringInput;
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::runtime_basis::{
     prepare_primitive_construction_branch_preview_runtime_report,
     PrimitiveConstructionBranchPreviewRuntimeReport, PrimitiveConstructionRuntimeBasisError,
 };
-use crate::construction::PrimitiveConstructionAuthoringInput;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionQueryBasisPreviewParityReport {
@@ -122,10 +122,6 @@ impl PrimitiveConstructionQueryBasisPreviewParityReport {
         &self.branch_preview_contract_digest
     }
 
-    pub fn authority_chain_digest(&self) -> &str {
-        &self.authority_chain_digest
-    }
-
     pub fn query_gap_free(&self) -> bool {
         self.query_gap_free
     }
@@ -142,20 +138,12 @@ impl PrimitiveConstructionQueryBasisPreviewParityReport {
         self.realization_strategy
     }
 
-    pub fn attempted_realization_strategy_count(&self) -> usize {
-        self.attempted_realization_strategies.len()
-    }
-
     pub fn attempted_realization_strategies(&self) -> &[PrimitiveRealizationStrategy] {
         &self.attempted_realization_strategies
     }
 
     pub fn stability_class(&self) -> Option<PrimitiveStabilityClass> {
         self.stability_class
-    }
-
-    pub fn feature_conditioning_class(&self) -> Option<PrimitiveFeatureConditioningClass> {
-        self.feature_conditioning_class
     }
 
     pub fn support_normal_class(&self) -> Option<PrimitiveSupportNormalClass> {
@@ -196,10 +184,9 @@ pub fn prepare_primitive_construction_query_basis_preview_parity_report(
 #[cfg(test)]
 mod tests {
     use super::prepare_primitive_construction_query_basis_preview_parity_report;
-    use crate::construction::{
-        PrimitiveConstructionFamily, PrimitiveConstructionIntent, RegularPrismSpec,
-        RegularPyramidSpec,
-    };
+    use crate::construction::intent::PrimitiveConstructionIntent;
+    use crate::construction::request::PrimitiveConstructionFamily;
+    use crate::construction::specs::{RegularPrismSpec, RegularPyramidSpec};
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,
     };

@@ -85,6 +85,7 @@ fn build_topology_query_birth_synopsis(
 ) -> TopologyPrimitiveConstructionQueryBirthSynopsis {
     TopologyPrimitiveConstructionQueryBirthSynopsis::new(
         topology_family_from_spatial_family(birth_plan.family()),
+        birth_plan.birth_contract(),
         birth_plan.scaffold_digest().to_string(),
         birth_plan.birth_digest().to_string(),
         birth_plan.topology_birth_class().to_string(),

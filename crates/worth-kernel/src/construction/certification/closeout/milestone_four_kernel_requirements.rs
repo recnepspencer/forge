@@ -1,10 +1,10 @@
 use worth_geom::facade::PrimitiveRealizationExhaustionWitnessKind;
 
-use crate::construction::certification::{
-    PrimitiveConstructionContinuityCase, PrimitiveConstructionIntentArbitrationPolicyCase,
-    PrimitiveConstructionMotionResolutionPolicyCase, PrimitiveConstructionPolicyProfileCase,
-    PrimitiveConstructionPreviewCase,
-};
+use crate::construction::certification::arbitration::PrimitiveConstructionIntentArbitrationPolicyCase;
+use crate::construction::certification::continuity::PrimitiveConstructionContinuityCase;
+use crate::construction::certification::motion::PrimitiveConstructionMotionResolutionPolicyCase;
+use crate::construction::certification::preview::PrimitiveConstructionPreviewCase;
+use crate::construction::certification::profile::PrimitiveConstructionPolicyProfileCase;
 
 pub(crate) fn required_motion_cases() -> &'static [PrimitiveConstructionMotionResolutionPolicyCase]
 {

@@ -19,6 +19,7 @@ forge-proof.workspace = true
 forge-query.workspace = true
 worth-geom.workspace = true
 worth-math.workspace = true
+worth-primitives.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]

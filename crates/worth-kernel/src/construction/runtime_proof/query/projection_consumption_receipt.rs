@@ -14,9 +14,9 @@ use crate::construction::authoring::{
     primitive_construction_authoring, PrimitiveConstructionQueryEntryError,
     WorthKernelAuthorityError,
 };
+use crate::construction::authoring_input::PrimitiveConstructionAuthoringInput;
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::realization_truth::PrimitiveConstructionRuntimeRealizationTruth;
-use crate::construction::PrimitiveConstructionAuthoringInput;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionQueryProjectionConsumptionReceiptReport {
     family: crate::construction::request::PrimitiveConstructionFamily,
@@ -133,10 +133,6 @@ impl PrimitiveConstructionQueryProjectionConsumptionReceiptReport {
         self.stability_class
     }
 
-    pub fn feature_conditioning_class(&self) -> Option<PrimitiveFeatureConditioningClass> {
-        self.feature_conditioning_class
-    }
-
     pub fn support_normal_class(&self) -> Option<PrimitiveSupportNormalClass> {
         self.support_normal_class
     }
@@ -205,10 +201,9 @@ pub fn prepare_primitive_construction_query_projection_consumption_receipt_repor
 #[cfg(test)]
 mod tests {
     use super::prepare_primitive_construction_query_projection_consumption_receipt_report;
-    use crate::construction::{
-        PrimitiveConstructionFamily, PrimitiveConstructionIntent, RegularPrismSpec,
-        RegularPyramidSpec,
-    };
+    use crate::construction::intent::PrimitiveConstructionIntent;
+    use crate::construction::request::PrimitiveConstructionFamily;
+    use crate::construction::specs::{RegularPrismSpec, RegularPyramidSpec};
     use forge_query::facade::ForgeQueryRuntimeFacadeFamily;
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyConstructionQueryFactProvenance,

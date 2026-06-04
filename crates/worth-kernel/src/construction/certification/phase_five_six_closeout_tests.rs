@@ -1,4 +1,4 @@
-use super::prepare_primitive_construction_phase_five_six_closeout_report;
+use super::closeout::prepare_primitive_construction_phase_five_six_closeout_report;
 use crate::construction::certification::corpus::{
     required_simplex_exhaustion_witness_kinds, required_simplex_ladder_scenarios,
 };

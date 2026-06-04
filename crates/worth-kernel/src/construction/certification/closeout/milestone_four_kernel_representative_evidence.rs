@@ -1,43 +1,64 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
-use crate::construction::certification::{
+use crate::construction::certification::continuity::{
     PrimitiveConstructionContinuityCase, PrimitiveConstructionContinuityHostilitySuiteReport,
-    PrimitiveConstructionContinuityRow, PrimitiveConstructionPolicyProfileCase,
-    PrimitiveConstructionPolicyProfileRow, PrimitiveConstructionPreviewCase,
+    PrimitiveConstructionContinuityRow,
+};
+use crate::construction::certification::preview::{
+    PrimitiveConstructionPreviewCase, PrimitiveConstructionPreviewHostilitySuiteReport,
+    PrimitiveConstructionPreviewRow,
+};
+use crate::construction::certification::profile::{
+    PrimitiveConstructionPolicyProfileCase, PrimitiveConstructionPolicyProfileRow,
     PrimitiveConstructionPreviewContinuityHostilityRow,
     PrimitiveConstructionPreviewContinuityHostilitySuiteReport,
-    PrimitiveConstructionPreviewHostilitySuiteReport, PrimitiveConstructionPreviewRow,
 };
-use crate::construction::digest::digest_owned_parts;
-use crate::construction::{
+use crate::construction::continuity_branch_runtime::{
     prepare_primitive_construction_continuity_branch_preview_runtime_report,
-    prepare_primitive_construction_continuity_replay_parity_report,
-    prepare_primitive_construction_policy_profile_branch_preview_runtime_report,
-    prepare_primitive_construction_policy_profile_replay_parity_report,
-    prepare_primitive_construction_preview_branch_preview_runtime_report,
-    prepare_primitive_construction_preview_replay_parity_report,
-    prepare_primitive_construction_query_continuity_inspection_parity_report,
-    prepare_primitive_construction_query_continuity_projection_consumption_receipt_report,
-    prepare_primitive_construction_query_policy_profile_inspection_parity_report,
-    prepare_primitive_construction_query_policy_profile_projection_consumption_receipt_report,
-    prepare_primitive_construction_query_preview_inspection_parity_report,
-    prepare_primitive_construction_query_preview_projection_consumption_receipt_report,
     PrimitiveConstructionContinuityBranchPreviewRuntimeError,
     PrimitiveConstructionContinuityBranchPreviewRuntimeReport,
+};
+use crate::construction::continuity_replay::{
+    prepare_primitive_construction_continuity_replay_parity_report,
     PrimitiveConstructionContinuityReplayParityError,
     PrimitiveConstructionContinuityReplayParityReport,
-    PrimitiveConstructionPolicyProfileBranchPreviewRuntimeError,
-    PrimitiveConstructionPolicyProfileBranchPreviewRuntimeReport,
-    PrimitiveConstructionPolicyProfileReplayParityError,
-    PrimitiveConstructionPolicyProfileReplayParityReport,
+};
+use crate::construction::digest::digest_owned_parts;
+use crate::construction::preview_branch_runtime::{
+    prepare_primitive_construction_preview_branch_preview_runtime_report,
     PrimitiveConstructionPreviewBranchPreviewRuntimeError,
     PrimitiveConstructionPreviewBranchPreviewRuntimeReport,
+};
+use crate::construction::preview_replay::{
+    prepare_primitive_construction_preview_replay_parity_report,
     PrimitiveConstructionPreviewReplayParityError, PrimitiveConstructionPreviewReplayParityReport,
+};
+use crate::construction::profile_branch_runtime::{
+    prepare_primitive_construction_policy_profile_branch_preview_runtime_report,
+    PrimitiveConstructionPolicyProfileBranchPreviewRuntimeError,
+    PrimitiveConstructionPolicyProfileBranchPreviewRuntimeReport,
+};
+use crate::construction::profile_replay::{
+    prepare_primitive_construction_policy_profile_replay_parity_report,
+    PrimitiveConstructionPolicyProfileReplayParityError,
+    PrimitiveConstructionPolicyProfileReplayParityReport,
+};
+use crate::construction::query::continuity::{
+    prepare_primitive_construction_query_continuity_inspection_parity_report,
+    prepare_primitive_construction_query_continuity_projection_consumption_receipt_report,
     PrimitiveConstructionQueryContinuityParityError,
     PrimitiveConstructionQueryContinuityParityReport,
+};
+use crate::construction::query::preview::{
+    prepare_primitive_construction_query_preview_inspection_parity_report,
+    prepare_primitive_construction_query_preview_projection_consumption_receipt_report,
+    PrimitiveConstructionQueryPreviewParityError, PrimitiveConstructionQueryPreviewParityReport,
+};
+use crate::construction::query::profile::{
+    prepare_primitive_construction_query_policy_profile_inspection_parity_report,
+    prepare_primitive_construction_query_policy_profile_projection_consumption_receipt_report,
     PrimitiveConstructionQueryPolicyProfileParityError,
     PrimitiveConstructionQueryPolicyProfileParityReport,
-    PrimitiveConstructionQueryPreviewParityError, PrimitiveConstructionQueryPreviewParityReport,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -455,13 +476,18 @@ mod tests {
         prepare_continuity_representative_evidence, prepare_policy_profile_representative_evidence,
         prepare_preview_representative_evidence,
     };
-    use crate::construction::{
+    use crate::construction::certification::continuity::{
         prepare_primitive_construction_continuity_hostility_suite_report,
+        PrimitiveConstructionContinuityCase,
+    };
+    use crate::construction::certification::preview::{
+        prepare_primitive_construction_preview_hostility_suite_report,
+        PrimitiveConstructionPreviewCase,
+    };
+    use crate::construction::certification::profile::{
         prepare_primitive_construction_policy_profile_report,
         prepare_primitive_construction_preview_continuity_hostility_suite_report,
-        prepare_primitive_construction_preview_hostility_suite_report,
-        PrimitiveConstructionContinuityCase, PrimitiveConstructionPolicyProfileCase,
-        PrimitiveConstructionPreviewCase,
+        PrimitiveConstructionPolicyProfileCase,
     };
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,

@@ -1,6 +1,6 @@
 use worth_kernel::facade::{
-    PrimitiveConstructionFamily, PrimitiveConstructionRealizationExhaustionReport,
-    PrimitiveConstructionRealizationExhaustionStatus,
+    diagnostics::realization::PrimitiveConstructionRealizationExhaustionReport,
+    PrimitiveConstructionFamily, PrimitiveConstructionRealizationExhaustionStatus,
 };
 
 fn main() {
