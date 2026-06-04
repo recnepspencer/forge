@@ -11,6 +11,10 @@ fn main() {
     let _ = BridgeCausalEnvelopeAssemblyRequest {
         admission_summary,
         references: references.into(),
-        request_digest: "request".into(),
+        request_digest: sealed_authority_placeholder(),
     };
+}
+
+fn sealed_authority_placeholder<T>() -> T {
+    panic!("compile-fail fixture never executes")
 }

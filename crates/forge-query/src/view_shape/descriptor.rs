@@ -1,11 +1,12 @@
 use super::family::ViewShapeFamily;
 use super::identity::ViewShapeIdentityConsumption;
+use forge_foundational::facade::AspectKey;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ViewShapeDescriptor {
     family: ViewShapeFamily,
     focused_aspect: Option<String>,
-    grouping_aspect: Option<String>,
+    grouping_aspect: Option<AspectKey>,
     identity_consumption: ViewShapeIdentityConsumption,
 }
 
@@ -70,11 +71,11 @@ impl ViewShapeDescriptor {
         }
     }
 
-    pub fn kanban_grouped(grouping_aspect: impl Into<String>) -> Self {
+    pub fn kanban_grouped(grouping_aspect: AspectKey) -> Self {
         Self {
             family: ViewShapeFamily::KanbanGrouped,
             focused_aspect: None,
-            grouping_aspect: Some(grouping_aspect.into()),
+            grouping_aspect: Some(grouping_aspect),
             identity_consumption: ViewShapeIdentityConsumption::none(),
         }
     }
@@ -88,7 +89,11 @@ impl ViewShapeDescriptor {
     }
 
     pub fn grouping_aspect(&self) -> Option<&str> {
-        self.grouping_aspect.as_deref()
+        self.grouping_aspect.as_ref().map(AspectKey::as_str)
+    }
+
+    pub fn native_grouping_aspect_key(&self) -> Option<&AspectKey> {
+        self.grouping_aspect.as_ref()
     }
 
     pub fn identity_consumption(&self) -> &ViewShapeIdentityConsumption {

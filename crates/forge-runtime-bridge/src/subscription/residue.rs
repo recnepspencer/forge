@@ -1,14 +1,24 @@
-use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
+mod proof;
+mod rejection;
+
+pub use proof::BridgeSubscriptionPreviewDiscardResidueProof;
+pub use rejection::{
+    BridgeSubscriptionPreviewDiscardResidueRejection,
+    BridgeSubscriptionPreviewDiscardResidueRejectionContext,
+    BridgeSubscriptionPreviewDiscardResidueRejectionKind,
+    BridgeSubscriptionPreviewResidueCategoryCount,
+};
+
 use super::{
     BridgePreviewActiveSubscription, BridgePreviewActiveSubscriptionIdentity,
-    BridgeSubscriptionCounters, BridgeSubscriptionPreviewDiscardResidueProofIdentity,
-    BridgeSubscriptionPreviewResidueArtifactIdentity,
+    BridgeSubscriptionCounters, BridgeSubscriptionPreviewResidueArtifactIdentity,
     BridgeSubscriptionPreviewResidueScopeIdentity,
-    BridgeSubscriptionPreviewResidueScopeIndexIdentity,
+    BridgeSubscriptionPreviewResidueScopeIndexIdentity, BridgeSubscriptionPreviewWorkKind,
+    BridgeSubscriptionPreviewWorkTrace,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -35,7 +45,7 @@ impl BridgeSubscriptionPreviewResidueCategory {
         }
     }
 
-    const fn all() -> [Self; 7] {
+    pub(super) const fn all() -> [Self; 7] {
         [
             Self::AuthoritativeTruthSubscription,
             Self::BridgeSubscriptionRegistry,
@@ -56,28 +66,63 @@ pub struct BridgeSubscriptionPreviewResidueArtifactInput {
 }
 
 impl BridgeSubscriptionPreviewResidueArtifactInput {
-    pub fn new(
+    pub fn from_preview_work_trace(
         category: BridgeSubscriptionPreviewResidueCategory,
         residue_count: usize,
-        evidence_digest: impl Into<Arc<str>>,
+        preview_work_trace: &BridgeSubscriptionPreviewWorkTrace,
     ) -> Self {
+        let evidence_digest =
+            preview_residue_evidence_digest_from_work_trace(category, preview_work_trace);
         Self {
             category,
             residue_count,
-            evidence_digest: evidence_digest.into(),
+            evidence_digest,
         }
     }
 
-    pub fn zero(
+    pub fn zero_from_preview_work_trace(
         category: BridgeSubscriptionPreviewResidueCategory,
-        evidence_digest: impl Into<Arc<str>>,
+        preview_work_trace: &BridgeSubscriptionPreviewWorkTrace,
     ) -> Self {
-        Self::new(category, 0, evidence_digest)
+        Self::from_preview_work_trace(category, 0, preview_work_trace)
     }
 
     pub fn category(&self) -> BridgeSubscriptionPreviewResidueCategory {
         self.category
     }
+
+    pub fn evidence_digest(&self) -> &str {
+        self.evidence_digest.as_ref()
+    }
+}
+
+fn preview_residue_evidence_digest_from_work_trace(
+    category: BridgeSubscriptionPreviewResidueCategory,
+    preview_work_trace: &BridgeSubscriptionPreviewWorkTrace,
+) -> Arc<str> {
+    let record_digest = match category {
+        BridgeSubscriptionPreviewResidueCategory::AuthoritativeTruthSubscription
+        | BridgeSubscriptionPreviewResidueCategory::BridgeSubscriptionRegistry => {
+            preview_work_trace.record_digest_for(BridgeSubscriptionPreviewWorkKind::Routing)
+        }
+        BridgeSubscriptionPreviewResidueCategory::ActiveDelivery
+        | BridgeSubscriptionPreviewResidueCategory::FanoutConsumerContract => {
+            preview_work_trace.record_digest_for(BridgeSubscriptionPreviewWorkKind::Delivery)
+        }
+        BridgeSubscriptionPreviewResidueCategory::Continuation
+        | BridgeSubscriptionPreviewResidueCategory::CheckpointReplay => {
+            preview_work_trace.record_digest_for(BridgeSubscriptionPreviewWorkKind::Continuation)
+        }
+        BridgeSubscriptionPreviewResidueCategory::SignalVisible => {
+            preview_work_trace.record_digest_for(BridgeSubscriptionPreviewWorkKind::Diagnostics)
+        }
+    };
+    Arc::from(format!(
+        "preview-work-zero-residue|trace={}|scope={}|record={record_digest}|category={}",
+        preview_work_trace.digest(),
+        preview_work_trace.preview_residue_scope_identity().as_str(),
+        category.as_str(),
+    ))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -222,271 +267,6 @@ impl BridgeSubscriptionPreviewResidueScopeIndex {
 
     pub fn artifact_records(&self) -> &[BridgeSubscriptionPreviewResidueArtifactRecord] {
         &self.artifact_records
-    }
-
-    pub fn counters(&self) -> &BridgeSubscriptionCounters {
-        &self.counters
-    }
-
-    pub fn digest(&self) -> &str {
-        self.digest.as_ref()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BridgeSubscriptionPreviewDiscardResidueRejectionKind {
-    PreviewActiveMismatch,
-    PreviewResidueScopeMismatch,
-    MissingResidueCategory,
-    DuplicateResidueCategory,
-    NonzeroResidue,
-}
-
-impl BridgeSubscriptionPreviewDiscardResidueRejectionKind {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::PreviewActiveMismatch => "preview_active_mismatch",
-            Self::PreviewResidueScopeMismatch => "preview_residue_scope_mismatch",
-            Self::MissingResidueCategory => "missing_residue_category",
-            Self::DuplicateResidueCategory => "duplicate_residue_category",
-            Self::NonzeroResidue => "nonzero_residue",
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BridgeSubscriptionPreviewDiscardResidueRejection {
-    rejection_kind: BridgeSubscriptionPreviewDiscardResidueRejectionKind,
-    rejection_context: Arc<str>,
-    counters: BridgeSubscriptionCounters,
-    canonical_basis: Arc<str>,
-    digest: Arc<str>,
-}
-
-impl BridgeSubscriptionPreviewDiscardResidueRejection {
-    fn new(
-        rejection_kind: BridgeSubscriptionPreviewDiscardResidueRejectionKind,
-        rejection_context: impl Into<Arc<str>>,
-        nonzero_residue: bool,
-        residue_check_count: usize,
-    ) -> Self {
-        let rejection_context = rejection_context.into();
-        let canonical_basis = Arc::<str>::from(format!(
-            "bridge-subscription-preview-discard-residue-rejection|kind={}|context={}",
-            rejection_kind.as_str(),
-            rejection_context.as_ref(),
-        ));
-        let digest = Sha256::digest(canonical_basis.as_bytes());
-        Self {
-            rejection_kind,
-            rejection_context,
-            counters: BridgeSubscriptionCounters::from_subscription_preview_discard_rejection(
-                nonzero_residue,
-                residue_check_count,
-            ),
-            canonical_basis,
-            digest: Arc::from(format!(
-                "bridge-subscription-preview-discard-residue-rejection:sha256:{digest:x}"
-            )),
-        }
-    }
-
-    pub fn rejection_kind(&self) -> BridgeSubscriptionPreviewDiscardResidueRejectionKind {
-        self.rejection_kind
-    }
-
-    pub fn rejection_context(&self) -> &str {
-        self.rejection_context.as_ref()
-    }
-
-    pub fn counters(&self) -> &BridgeSubscriptionCounters {
-        &self.counters
-    }
-
-    pub fn digest(&self) -> &str {
-        self.digest.as_ref()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BridgeSubscriptionPreviewDiscardResidueProof {
-    proof_identity: BridgeSubscriptionPreviewDiscardResidueProofIdentity,
-    preview_active_subscription_identity: BridgePreviewActiveSubscriptionIdentity,
-    preview_residue_scope_index_identity: BridgeSubscriptionPreviewResidueScopeIndexIdentity,
-    preview_residue_scope_identity: BridgeSubscriptionPreviewResidueScopeIdentity,
-    artifact_records: Arc<[BridgeSubscriptionPreviewResidueArtifactRecord]>,
-    total_residue_count: usize,
-    counters: BridgeSubscriptionCounters,
-    canonical_basis: Arc<str>,
-    digest: Arc<str>,
-}
-
-impl BridgeSubscriptionPreviewDiscardResidueProof {
-    pub(crate) fn prove(
-        preview_active: BridgePreviewActiveSubscription,
-        residue_scope_index: BridgeSubscriptionPreviewResidueScopeIndex,
-    ) -> Result<Self, BridgeSubscriptionPreviewDiscardResidueRejection> {
-        if residue_scope_index.preview_active_subscription_identity()
-            != preview_active.preview_active_subscription_identity()
-        {
-            return Err(BridgeSubscriptionPreviewDiscardResidueRejection::new(
-                BridgeSubscriptionPreviewDiscardResidueRejectionKind::PreviewActiveMismatch,
-                format!(
-                    "preview-active={}|index-preview-active={}",
-                    preview_active
-                        .preview_active_subscription_identity()
-                        .as_str(),
-                    residue_scope_index
-                        .preview_active_subscription_identity()
-                        .as_str(),
-                ),
-                false,
-                0,
-            ));
-        }
-        if residue_scope_index.preview_residue_scope_identity()
-            != preview_active.preview_residue_scope_identity()
-        {
-            return Err(BridgeSubscriptionPreviewDiscardResidueRejection::new(
-                BridgeSubscriptionPreviewDiscardResidueRejectionKind::PreviewResidueScopeMismatch,
-                format!(
-                    "preview-scope={}|index-scope={}",
-                    preview_active.preview_residue_scope_identity().as_str(),
-                    residue_scope_index
-                        .preview_residue_scope_identity()
-                        .as_str(),
-                ),
-                false,
-                0,
-            ));
-        }
-
-        let residue_check_count = residue_scope_index.artifact_records().len();
-        let mut category_counts =
-            BTreeMap::<BridgeSubscriptionPreviewResidueCategory, usize>::new();
-        let mut seen_categories = BTreeSet::<BridgeSubscriptionPreviewResidueCategory>::new();
-        for record in residue_scope_index.artifact_records() {
-            if !seen_categories.insert(record.category()) {
-                return Err(BridgeSubscriptionPreviewDiscardResidueRejection::new(
-                    BridgeSubscriptionPreviewDiscardResidueRejectionKind::DuplicateResidueCategory,
-                    format!(
-                        "preview-active={}|duplicate-category={}",
-                        preview_active
-                            .preview_active_subscription_identity()
-                            .as_str(),
-                        record.category().as_str(),
-                    ),
-                    false,
-                    residue_check_count,
-                ));
-            }
-            *category_counts.entry(record.category()).or_default() += record.residue_count();
-        }
-        for required_category in BridgeSubscriptionPreviewResidueCategory::all() {
-            if !seen_categories.contains(&required_category) {
-                return Err(BridgeSubscriptionPreviewDiscardResidueRejection::new(
-                    BridgeSubscriptionPreviewDiscardResidueRejectionKind::MissingResidueCategory,
-                    format!(
-                        "preview-active={}|missing-category={}",
-                        preview_active
-                            .preview_active_subscription_identity()
-                            .as_str(),
-                        required_category.as_str(),
-                    ),
-                    false,
-                    residue_check_count,
-                ));
-            }
-        }
-
-        let total_residue_count = category_counts.values().sum::<usize>();
-        if total_residue_count != 0 {
-            let nonzero_categories = category_counts
-                .iter()
-                .filter_map(|(category, count)| {
-                    (*count != 0).then(|| format!("{}={count}", category.as_str()))
-                })
-                .collect::<Vec<_>>()
-                .join(",");
-            return Err(BridgeSubscriptionPreviewDiscardResidueRejection::new(
-                BridgeSubscriptionPreviewDiscardResidueRejectionKind::NonzeroResidue,
-                format!(
-                    "preview-active={}|nonzero={}",
-                    preview_active
-                        .preview_active_subscription_identity()
-                        .as_str(),
-                    nonzero_categories,
-                ),
-                true,
-                residue_check_count,
-            ));
-        }
-
-        let artifact_digest_list = residue_scope_index
-            .artifact_records()
-            .iter()
-            .map(BridgeSubscriptionPreviewResidueArtifactRecord::digest)
-            .collect::<Vec<_>>()
-            .join(",");
-        let canonical_basis = Arc::<str>::from(format!(
-            "bridge-subscription-preview-discard-residue-proof|preview-active={}|preview-basis={}|scope-index={}|residue-scope={}|artifacts={}|total-residue={}",
-            preview_active.preview_active_subscription_identity().as_str(),
-            preview_active.preview_basis_identity().as_str(),
-            residue_scope_index
-                .preview_residue_scope_index_identity()
-                .as_str(),
-            preview_active.preview_residue_scope_identity().as_str(),
-            artifact_digest_list,
-            total_residue_count,
-        ));
-        let digest = Sha256::digest(canonical_basis.as_bytes());
-        Ok(Self {
-            proof_identity: BridgeSubscriptionPreviewDiscardResidueProofIdentity::new(format!(
-                "bridge-subscription-preview-discard-residue-proof-id:sha256:{digest:x}"
-            )),
-            preview_active_subscription_identity: preview_active
-                .preview_active_subscription_identity()
-                .clone(),
-            preview_residue_scope_index_identity: residue_scope_index
-                .preview_residue_scope_index_identity()
-                .clone(),
-            preview_residue_scope_identity: preview_active.preview_residue_scope_identity().clone(),
-            artifact_records: Arc::from(residue_scope_index.artifact_records().to_vec()),
-            total_residue_count,
-            counters: BridgeSubscriptionCounters::from_subscription_preview_discard(
-                residue_check_count,
-            ),
-            canonical_basis,
-            digest: Arc::from(format!(
-                "bridge-subscription-preview-discard-residue-proof:sha256:{digest:x}"
-            )),
-        })
-    }
-
-    pub fn proof_identity(&self) -> &BridgeSubscriptionPreviewDiscardResidueProofIdentity {
-        &self.proof_identity
-    }
-
-    pub fn preview_active_subscription_identity(&self) -> &BridgePreviewActiveSubscriptionIdentity {
-        &self.preview_active_subscription_identity
-    }
-
-    pub fn preview_residue_scope_index_identity(
-        &self,
-    ) -> &BridgeSubscriptionPreviewResidueScopeIndexIdentity {
-        &self.preview_residue_scope_index_identity
-    }
-
-    pub fn preview_residue_scope_identity(&self) -> &BridgeSubscriptionPreviewResidueScopeIdentity {
-        &self.preview_residue_scope_identity
-    }
-
-    pub fn artifact_records(&self) -> &[BridgeSubscriptionPreviewResidueArtifactRecord] {
-        &self.artifact_records
-    }
-
-    pub fn total_residue_count(&self) -> usize {
-        self.total_residue_count
     }
 
     pub fn counters(&self) -> &BridgeSubscriptionCounters {

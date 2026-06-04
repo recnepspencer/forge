@@ -109,6 +109,14 @@ fn grouped_sources_extract_memberships_and_grouped_relation_endpoints() {
         Some("status")
     );
     assert_eq!(
+        relational_consumed.memberships()[0].native_grouping_aspect_key(),
+        &aspect_key("status")
+    );
+    assert_eq!(
+        relational_consumed.relation_endpoints()[0].native_grouping_aspect_key(),
+        Some(&aspect_key("status"))
+    );
+    assert_eq!(
         relational_consumed.counters().source_row_width_consumed(),
         6
     );

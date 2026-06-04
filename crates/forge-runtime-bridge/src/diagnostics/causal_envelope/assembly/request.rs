@@ -4,8 +4,8 @@ use std::sync::Arc;
 use super::super::authority::{BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner};
 use super::super::counters::BridgeCausalEnvelopeCounters;
 use super::super::denial::{BridgeCausalEnvelopeDenial, BridgeCausalEnvelopeDenialKind};
-use super::super::digest;
 use super::super::evidence_reference::BridgeCausalEvidenceReference;
+use super::super::{causal_envelope_digest, digest_basis::BridgeCausalEnvelopeDigestArtifact};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BridgeCausalInspectionAdmissionSummaryKind {
@@ -64,8 +64,8 @@ impl BridgeCausalInspectionAdmissionSummary {
             query_admission_digest.as_ref(),
             causal_observation_anchor_digest.as_ref(),
         )?;
-        let summary_digest = digest(
-            "bridge-causal-inspection-admission-summary",
+        let summary_digest = causal_envelope_digest(
+            BridgeCausalEnvelopeDigestArtifact::AdmissionSummary,
             &[
                 kind.as_str(),
                 query_admission_digest.as_ref(),
@@ -115,8 +115,8 @@ impl BridgeCausalEnvelopeAssemblyRequest {
             .map(BridgeCausalEvidenceReference::reference_digest)
             .collect::<Vec<_>>()
             .join("|");
-        let request_digest = digest(
-            "bridge-causal-envelope-assembly-request",
+        let request_digest = causal_envelope_digest(
+            BridgeCausalEnvelopeDigestArtifact::AssemblyRequest,
             &[admission_summary.summary_digest(), &reference_part],
         );
         Ok(Self {

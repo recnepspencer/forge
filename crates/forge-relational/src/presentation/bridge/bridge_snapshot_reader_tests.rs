@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use forge_foundational::facade::{AspectKey, AspectValue};
-use forge_runtime_bridge::facade::SnapshotReadSource;
+use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
+use forge_runtime_bridge::facade::{SnapshotReadContract, SnapshotReadSource};
 
 use crate::config::data::CascadeDeletePolicy;
 use crate::facade::identity::PartitionId;
@@ -33,7 +33,7 @@ fn runtime_bridge_snapshot_reader_prefers_active_snapshot_binding_over_later_com
     let packet = forge_runtime_bridge::facade::SnapshotReadPacket::new(vec![
         forge_runtime_bridge::facade::SnapshotReadRequest::for_coarse(
             active_entity_identity,
-            aspect_key("name"),
+            SnapshotReadContract::scalar(aspect_key("name"), ScalarAspectType::String),
         ),
     ]);
     let result = reader
@@ -43,8 +43,8 @@ fn runtime_bridge_snapshot_reader_prefers_active_snapshot_binding_over_later_com
     assert_eq!(result.snapshot_identity(), &active_snapshot_identity);
     assert_eq!(result.records().len(), 1);
     assert_eq!(
-        decode_snapshot_aspect_bytes(result.records()[0].aspect_bytes()),
-        AspectValue::String("alice".into())
+        result.records()[0].scalar_aspect_value(),
+        Some(&AspectValue::String("alice".into()))
     );
 }
 
@@ -83,10 +83,6 @@ fn replace_entity_after_snapshot(
 
 fn runtime_with_test_schema() -> crate::facade::runtime::RelationalRuntime {
     runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations)
-}
-
-fn decode_snapshot_aspect_bytes(aspect_bytes: &[u8]) -> AspectValue {
-    crate::aspect_wire::decode_aspect_value(aspect_bytes).expect("snapshot aspect bytes")
 }
 
 fn aspect_key(value: &str) -> AspectKey {

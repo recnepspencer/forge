@@ -373,9 +373,13 @@ mod tests {
             ),
         );
 
-        assert!(declaration.canonical_basis().contains("mode:AdvisoryRemap"));
-        assert!(declaration
-            .canonical_basis()
-            .contains("scope:DeclaredStructuralIndexCohort"));
+        assert_eq!(
+            declaration.canonical_basis(),
+            format!(
+                "structural-declaration|id=structural:geometry-remap|schema=schema:geometry|equivalence={}|mode:AdvisoryRemap|truth-view={}|scope:DeclaredStructuralIndexCohort",
+                declaration.equivalence_contract().digest(),
+                declaration.truth_view_basis().digest(),
+            )
+        );
     }
 }

@@ -10,9 +10,13 @@ use super::{
     BridgeSubscriptionCertificationCounterSnapshot, BridgeSubscriptionCertificationDensityPosture,
     BridgeSubscriptionCertificationFailureBoundary,
     BridgeSubscriptionCertificationFailurePrecedenceStage, BridgeSubscriptionCertificationScratch,
-    BridgeSubscriptionReferenceWorkloadManifestDraft,
-    BridgeSubscriptionReferenceWorkloadManifestSealed, BridgeSubscriptionSourceArtifactIndex,
-    BridgeSubscriptionSourceArtifactInput, BridgeSubscriptionSourceArtifactKind,
+    BridgeSubscriptionReferenceWorkloadComponentIdSet,
+    BridgeSubscriptionReferenceWorkloadLaneIdSet, BridgeSubscriptionReferenceWorkloadManifestDraft,
+    BridgeSubscriptionReferenceWorkloadManifestSealed,
+    BridgeSubscriptionReferenceWorkloadProductIdSet, BridgeSubscriptionSourceArtifactEvidence,
+    BridgeSubscriptionSourceArtifactIndex, BridgeSubscriptionSourceArtifactInput,
+    BridgeSubscriptionSourceArtifactKind, BridgeSubscriptionSourceArtifactRole,
+    BridgeSubscriptionSourceArtifactScenario,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,11 +38,11 @@ pub struct BridgeSubscriptionCertificationStaleCheckpointReport {
 impl BridgeSubscriptionCertificationStaleCheckpointReport {
     pub(crate) fn certify() -> Self {
         let manifest = reference_manifest();
-        let fresh = assemble_bundle(&manifest, "checkpoint-digest-fresh");
-        let stale = assemble_bundle(&manifest, "checkpoint-digest-stale");
+        let fresh = assemble_bundle(&manifest, BridgeSubscriptionSourceArtifactRole::Fresh);
+        let stale = assemble_bundle(&manifest, BridgeSubscriptionSourceArtifactRole::Stale);
         let plan = BridgeSubscriptionCertificationComparisonPlan::admit(
             BridgeSubscriptionCertificationComparisonRelationship::ExpectedRejection,
-            Some(BridgeSubscriptionCertificationFailureBoundary::CheckpointIncompatibility),
+            Some(BridgeSubscriptionCertificationFailureBoundary::CheckpointDivergence),
             None,
         )
         .expect("stale checkpoint report names its expected checkpoint boundary");
@@ -60,7 +64,7 @@ impl BridgeSubscriptionCertificationStaleCheckpointReport {
             .expect("stale checkpoint comparison must expose primary precedence");
         let suppressed_failure_boundary_count = comparison.suppressed_failure_boundaries().len();
         let checkpoint_drift_is_primary_without_replay_mismatch = primary_failure_boundary
-            == BridgeSubscriptionCertificationFailureBoundary::CheckpointIncompatibility
+            == BridgeSubscriptionCertificationFailureBoundary::CheckpointDivergence
             && primary_failure_precedence_stage
                 == BridgeSubscriptionCertificationFailurePrecedenceStage::CheckpointResumeOrReplay
             && fresh.semantic_digests().checkpoint_digest()
@@ -153,17 +157,18 @@ impl BridgeSubscriptionCertificationStaleCheckpointReport {
 
 fn reference_manifest() -> BridgeSubscriptionReferenceWorkloadManifestSealed {
     BridgeSubscriptionReferenceWorkloadManifestDraft::new(
-        (0..128)
-            .map(|slot| format!("product-{slot:03}"))
-            .collect::<Vec<_>>(),
-        ["steel", "rubber", "copper", "glass", "labor"].to_vec(),
-        [
+        BridgeSubscriptionReferenceWorkloadProductIdSet::from_declared_product_labels(
+            (0..128).map(|slot| format!("product-{slot:03}")),
+        ),
+        BridgeSubscriptionReferenceWorkloadComponentIdSet::from_declared_component_labels([
+            "steel", "rubber", "copper", "glass", "labor",
+        ]),
+        BridgeSubscriptionReferenceWorkloadLaneIdSet::from_declared_lane_labels([
             "authoritative-live",
             "stale-checkpoint-rejection",
             "historical-replay",
             "branch-local",
-        ]
-        .to_vec(),
+        ]),
     )
     .seal()
     .expect("stale checkpoint fixture manifest should seal")
@@ -171,33 +176,28 @@ fn reference_manifest() -> BridgeSubscriptionReferenceWorkloadManifestSealed {
 
 fn assemble_bundle(
     manifest: &BridgeSubscriptionReferenceWorkloadManifestSealed,
-    checkpoint_digest: &str,
+    checkpoint_role: BridgeSubscriptionSourceArtifactRole,
 ) -> BridgeSubscriptionCertificationBundleSealed {
     let index = BridgeSubscriptionSourceArtifactIndex::build(vec![
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::Declaration,
-            "stale-checkpoint-declaration",
-            "declaration-digest-stable",
+            BridgeSubscriptionSourceArtifactRole::Stable,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::AdmittedSubscription,
-            "stale-checkpoint-admitted-subscription",
-            "admitted-digest-stable",
+            BridgeSubscriptionSourceArtifactRole::Stable,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::ActiveDelivery,
-            "stale-checkpoint-active-delivery",
-            "active-delivery-digest-stable",
+            BridgeSubscriptionSourceArtifactRole::Stable,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::Checkpoint,
-            "stale-checkpoint-boundary",
-            checkpoint_digest,
+            checkpoint_role,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::StrategyLowering,
-            "stale-checkpoint-strategy",
-            "strategy-digest-stable",
+            BridgeSubscriptionSourceArtifactRole::Stable,
         ),
     ]);
     let plan = BridgeSubscriptionCertificationAssemblyPlan::plan(manifest, &index);
@@ -213,4 +213,17 @@ fn assemble_bundle(
     BridgeSubscriptionCertificationBundleDraft::assemble(plan, cost_profile, scratch)
         .expect("stale checkpoint bundle should assemble")
         .seal()
+}
+
+fn source_artifact(
+    artifact_kind: BridgeSubscriptionSourceArtifactKind,
+    role: BridgeSubscriptionSourceArtifactRole,
+) -> BridgeSubscriptionSourceArtifactInput {
+    BridgeSubscriptionSourceArtifactInput::from_evidence(
+        BridgeSubscriptionSourceArtifactEvidence::scenario(
+            artifact_kind,
+            BridgeSubscriptionSourceArtifactScenario::StaleCheckpoint,
+            role,
+        ),
+    )
 }

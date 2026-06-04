@@ -4,7 +4,7 @@ pub enum BridgeSubscriptionBundleFieldState {
     NotExercised,
     RejectedBeforeProduced,
     UnavailableBecausePriorArtifactMissing,
-    UnavailableBecauseSchemaIncompatible,
+    UnavailableBecauseSchemaDivergent,
 }
 
 impl BridgeSubscriptionBundleFieldState {
@@ -16,7 +16,7 @@ impl BridgeSubscriptionBundleFieldState {
             Self::UnavailableBecausePriorArtifactMissing => {
                 "unavailable_because_prior_artifact_missing"
             }
-            Self::UnavailableBecauseSchemaIncompatible => "unavailable_because_schema_incompatible",
+            Self::UnavailableBecauseSchemaDivergent => "unavailable_because_schema_divergent",
         }
     }
 }

@@ -130,7 +130,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
             declaration,
             support_report,
             legality_contract,
-            self.operating_context_identity_digest().to_string(),
+            self.retained_world_basis(),
         );
         review_declaration_legality(self.handle_identity_digest(), input)
     }

@@ -118,12 +118,7 @@ and left no authoritative residue behind.
 Promotion is the "this branch becomes authoritative" path:
 
 ```rust
-use forge_runtime_bridge::facade::BridgeSpeculativePromotionRequest;
-
-let promoted = session.promote(BridgeSpeculativePromotionRequest::new(
-    "commit-boundary:pricing",
-    "authoritative-artifact:pricing",
-))?;
+let promoted = session.promote()?;
 ```
 
 Promotion should always feel explicit.

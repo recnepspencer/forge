@@ -66,11 +66,9 @@ impl RuntimeBridge {
         &self,
         request: BridgeRouteRequest,
     ) -> Result<BridgeCommittedPatchEnvelope, BridgeRouteError> {
-        Ok(
-            crate::input::ingress::ingest_committed_patch(self, request)?
-                .envelope()
-                .clone(),
-        )
+        Ok(crate::input::source::ingest_committed_patch(self, request)?
+            .envelope()
+            .clone())
     }
 
     /// Plans one already-ingested committed-patch envelope with default mapping context.
@@ -104,7 +102,7 @@ impl RuntimeBridge {
         mapping_context: BridgeMappingContext,
         route_policy: &BridgeRoutePlanningPolicy,
     ) -> Result<BridgePlannedRoute, BridgeRouteError> {
-        self.ensure_route_planning_policy_compatible(route_policy)?;
+        self.ensure_route_planning_policy_coherent(route_policy)?;
         crate::routing::planning::plan_ingested_patch(
             self,
             crate::routing::IngestedBridgePatch::new(
@@ -133,7 +131,7 @@ impl RuntimeBridge {
         request: BridgeRouteRequest,
         mapping_context: BridgeMappingContext,
     ) -> Result<BridgePlannedRoute, BridgeRouteError> {
-        let ingested = crate::input::ingress::ingest_committed_patch(self, request)?;
+        let ingested = crate::input::source::ingest_committed_patch(self, request)?;
         crate::routing::planning::plan_ingested_patch(
             self,
             ingested.with_mapping_context(mapping_context),
@@ -160,8 +158,8 @@ impl RuntimeBridge {
         mapping_context: BridgeMappingContext,
         route_policy: &BridgeRoutePlanningPolicy,
     ) -> Result<BridgePlannedRoute, BridgeRouteError> {
-        self.ensure_route_planning_policy_compatible(route_policy)?;
-        let ingested = crate::input::ingress::ingest_committed_patch(self, request)?;
+        self.ensure_route_planning_policy_coherent(route_policy)?;
+        let ingested = crate::input::source::ingest_committed_patch(self, request)?;
         crate::routing::planning::plan_ingested_patch(
             self,
             ingested
@@ -179,7 +177,7 @@ impl RuntimeBridge {
         mapping_context: BridgeMappingContext,
         route_policy_digest: &str,
     ) -> Result<BridgePlannedRoute, BridgeRouteError> {
-        let ingested = crate::input::ingress::ingest_committed_patch(self, request)?;
+        let ingested = crate::input::source::ingest_committed_patch(self, request)?;
         crate::routing::planning::plan_ingested_patch(
             self,
             ingested
@@ -197,7 +195,7 @@ impl RuntimeBridge {
         mapping_context: BridgeMappingContext,
         route_policy: &BridgeRoutePlanningPolicy,
     ) -> Result<BridgePlannedRoute, BridgeRouteError> {
-        let ingested = crate::input::ingress::ingest_committed_patch(self, request)?;
+        let ingested = crate::input::source::ingest_committed_patch(self, request)?;
         crate::routing::planning::plan_ingested_patch(
             self,
             ingested
@@ -226,7 +224,7 @@ impl RuntimeBridge {
         request: BridgeBulkWorkloadRequest,
         route_policy: &BridgeRoutePlanningPolicy,
     ) -> Result<BridgeBulkWorkloadPlan, BridgeRouteError> {
-        self.ensure_route_planning_policy_compatible(route_policy)?;
+        self.ensure_route_planning_policy_coherent(route_policy)?;
         crate::routing::planning::plan_bulk_workload_with_route_policy(self, request, route_policy)
     }
 
@@ -338,7 +336,7 @@ impl RuntimeBridge {
     /// Opens the standard diagnostics door for this bridge.
     ///
     /// The returned wrapper keeps the everyday, job-shaped helpers in front
-    /// while still allowing access to the raw diagnostics facade when needed.
+    /// while still exposing retained diagnostic artifacts when needed.
     pub fn diagnostics(&self) -> BridgeDiagnostics<'_> {
         BridgeDiagnostics::new(&self.diagnostics)
     }
@@ -349,85 +347,13 @@ impl RuntimeBridge {
         lowered: &LoweredBridgeExecutionPolicy,
     ) -> Result<BridgeRoutePlanningPolicy, BridgeRouteError> {
         let route_policy = lowered.route_planning_policy();
-        self.ensure_route_planning_policy_compatible(&route_policy)?;
+        self.ensure_route_planning_policy_coherent(&route_policy)?;
         Ok(route_policy)
-    }
-
-    /// Returns the configured continuity lineage source, if one is bound.
-    pub fn continuity_lineage_source(&self) -> Option<&dyn ContinuityLineageSource> {
-        self.continuity_lineage_source.as_deref()
-    }
-
-    /// Plans continuity requests from one retained route record.
-    pub fn plan_continuity_requests(
-        &self,
-        prior_route_record: &BridgeRouteRecord,
-    ) -> Result<BridgeEligibleContinuityRequestSet, BridgeContinuityError> {
-        let planned = crate::continuity::BridgePlannedContinuityRequestSet::from_route_record(
-            prior_route_record,
-        )?;
-        crate::continuity::BridgeEligibleContinuityRequestSet::from_planned(planned)
-    }
-
-    /// Materializes one historical lineage packet from eligible continuity requests.
-    pub fn plan_historical_lineage_packet(
-        &self,
-        requests: &BridgeEligibleContinuityRequestSet,
-    ) -> Result<BridgeHistoricalLineagePacket, BridgeContinuityError> {
-        let source = self.continuity_lineage_source().ok_or_else(|| {
-            BridgeContinuityError::new(
-                BridgeContinuityErrorKind::MissingLineageSource,
-                "Bridge historical lineage planning requires a configured continuity lineage source.",
-            )
-        })?;
-        let mut entries = Vec::with_capacity(requests.requests().len());
-        for request in requests.requests() {
-            let lineage_authority = source
-                .historical_lineage(BridgeHistoricalLineageRequest::new(
-                    requests.authority_basis().clone(),
-                    request.prior_slice().clone(),
-                ))
-                .map_err(|error| match error.kind() {
-                    BridgeLineageSourceErrorKind::UnsupportedContinuityClass => {
-                        BridgeContinuityError::new(
-                            BridgeContinuityErrorKind::UnsupportedContinuityClass,
-                            format!(
-                                "Bridge continuity request `{}` targeted an unsupported continuity class: {error}",
-                                request.request_key()
-                            ),
-                        )
-                    }
-                    BridgeLineageSourceErrorKind::HistoricalResolutionFailure => {
-                        BridgeContinuityError::new(
-                            BridgeContinuityErrorKind::HistoricalResolutionFailure,
-                            format!(
-                                "Bridge failed to resolve historical lineage for continuity request `{}`: {error}",
-                                request.request_key()
-                            ),
-                        )
-                    }
-                })?;
-            if lineage_authority.authority_basis() != requests.authority_basis() {
-                return Err(BridgeContinuityError::new(
-                    BridgeContinuityErrorKind::LineageAuthorityMismatch,
-                    format!(
-                        "Bridge historical lineage authority for continuity request `{}` did not match the planned branch/snapshot authority basis.",
-                        request.request_key()
-                    ),
-                ));
-            }
-            entries.push(crate::continuity::BridgeHistoricalLineagePacketEntry::new(
-                request.request_key(),
-                request.prior_slice().clone(),
-                lineage_authority,
-            ));
-        }
-        Ok(crate::continuity::BridgeHistoricalLineagePacket::from_entries(requests, entries))
     }
 }
 
 impl RuntimeBridge {
-    fn ensure_route_planning_policy_compatible(
+    fn ensure_route_planning_policy_coherent(
         &self,
         route_policy: &BridgeRoutePlanningPolicy,
     ) -> Result<(), BridgeRouteError> {

@@ -1,7 +1,10 @@
 use super::*;
 
 impl BridgeDiagnosticsFacade {
-    pub(crate) fn reserve_preview_session_identity(&self, session_identity: &str) -> bool {
+    pub(crate) fn reserve_preview_session_identity(
+        &self,
+        session_identity: &BridgePreviewSessionIdentity,
+    ) -> bool {
         self.state
             .write()
             .expect("bridge diagnostics lock poisoned")

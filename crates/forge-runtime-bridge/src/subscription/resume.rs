@@ -19,7 +19,7 @@ pub enum BridgeSubscriptionResumeAdmissionRejectionKind {
     BasisMismatch,
     CostProfileMismatch,
     ConsumerContractMismatch,
-    RawStreamCheckpointNotAccepted,
+    UnsealedStreamCheckpointNotAccepted,
     CheckpointTruncated,
     PreviewDiscardedCheckpointNotAccepted,
 }
@@ -32,7 +32,7 @@ impl BridgeSubscriptionResumeAdmissionRejectionKind {
             Self::BasisMismatch => "basis_mismatch",
             Self::CostProfileMismatch => "cost_profile_mismatch",
             Self::ConsumerContractMismatch => "consumer_contract_mismatch",
-            Self::RawStreamCheckpointNotAccepted => "raw_stream_checkpoint_not_accepted",
+            Self::UnsealedStreamCheckpointNotAccepted => "unsealed_stream_checkpoint_not_accepted",
             Self::CheckpointTruncated => "checkpoint_truncated",
             Self::PreviewDiscardedCheckpointNotAccepted => {
                 "preview_discarded_checkpoint_not_accepted"
@@ -61,7 +61,7 @@ impl BridgeSubscriptionResumeAdmissionRejection {
             counters: BridgeSubscriptionCounters::from_resume_admission_rejection(
                 matches!(
                     rejection_kind,
-                    BridgeSubscriptionResumeAdmissionRejectionKind::RawStreamCheckpointNotAccepted
+                    BridgeSubscriptionResumeAdmissionRejectionKind::UnsealedStreamCheckpointNotAccepted
                 ),
                 matches!(
                     rejection_kind,

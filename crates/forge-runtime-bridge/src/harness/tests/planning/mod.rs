@@ -6,19 +6,21 @@ use std::sync::Arc;
 use crate::facade::{
     BridgeBulkDecisionRecordKind, BridgeBulkPlanningFailureKind, BridgeBulkWorkloadRequest,
     BridgeBulkWorkloadSegment, BridgeContinuityAuthorityBasis, BridgeDiagnosticsTier,
-    BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest, BridgeLineageContext,
-    BridgeLineageSourceError, BridgeMappingContext, BridgeParallelAdmissionClass,
-    BridgeParallelAdmissionReason, BridgeParallelLegalityClass, BridgeParallelLegalityReason,
-    BridgeParallelProfitabilityClass, BridgeParallelProfitabilityReason, BridgePreparationMode,
-    BridgeRouteRequest, BridgeRuntimePolicy, ContinuityLineageSource, FineGrainedMatchStatus,
-    SubscriptionSliceKind, TruthSnapshotIdentity,
+    BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest,
+    BridgeHistoricalResolvedLineageIdentity, BridgeHistoricalResolvedRecordIdentity,
+    BridgeLineageContext, BridgeLineageSourceError, BridgeMappingContext,
+    BridgeParallelAdmissionClass, BridgeParallelAdmissionReason, BridgeParallelLegalityClass,
+    BridgeParallelLegalityReason, BridgeParallelProfitabilityClass,
+    BridgeParallelProfitabilityReason, BridgePreparationMode, BridgeRouteRequest,
+    BridgeRuntimePolicy, ContinuityLineageSource, FineGrainedMatchStatus, SubscriptionSliceKind,
+    TruthSnapshotIdentity,
 };
 
 use super::support::{
     build_runtime, committed_patch, committed_patch_items, field_aspect_registration,
-    field_slice_snapshot, registration, snapshot, surface_fallback_registration,
+    field_slice_snapshot, registration, snapshot, surface_widening_registration,
 };
-use crate::harness::adapter::BridgeHarnessAdapter;
+use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessTargetId};
 use crate::harness::fixtures::{
     BridgeHarnessFixture, InMemoryRelationalBridgeSource, RecordingSignalBridgeSink,
 };
@@ -33,8 +35,10 @@ impl ContinuityLineageSource for TestContinuityLineageSource {
     ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError> {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            vec![Arc::from("lineage:test-successor")],
-            vec![Arc::from("entity:0:4:2")],
+            vec![BridgeHistoricalResolvedLineageIdentity::new(
+                "lineage:test-successor",
+            )],
+            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
             vec![7],
         )
     }
@@ -53,8 +57,10 @@ impl ContinuityLineageSource for TestMismatchedAuthorityLineageSource {
                 crate::facade::TruthBranchIdentity::new("wrong-branch"),
                 TruthSnapshotIdentity::new("snapshot-a"),
             ),
-            vec![Arc::from("lineage:test-successor")],
-            vec![Arc::from("entity:0:4:2")],
+            vec![BridgeHistoricalResolvedLineageIdentity::new(
+                "lineage:test-successor",
+            )],
+            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
             vec![7],
         )
     }
@@ -86,10 +92,13 @@ impl ContinuityLineageSource for TestSplitContinuityLineageSource {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
             vec![
-                Arc::from("lineage:test-split-a"),
-                Arc::from("lineage:test-split-b"),
+                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-split-a"),
+                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-split-b"),
             ],
-            vec![Arc::from("entity:0:4:2"), Arc::from("entity:0:5:2")],
+            vec![
+                BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+                BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+            ],
             vec![7, 8],
         )
     }
@@ -106,10 +115,10 @@ impl ContinuityLineageSource for TestMergeLikeContinuityLineageSource {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
             vec![
-                Arc::from("lineage:test-merge-a"),
-                Arc::from("lineage:test-merge-b"),
+                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-merge-a"),
+                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-merge-b"),
             ],
-            vec![Arc::from("entity:0:9:3")],
+            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:9:3")],
             vec![7, 8],
         )
     }
@@ -126,11 +135,14 @@ impl ContinuityLineageSource for TestAmbiguousContinuityLineageSource {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
             vec![
-                Arc::from("lineage:test-ambiguous-a"),
-                Arc::from("lineage:test-ambiguous-b"),
-                Arc::from("lineage:test-ambiguous-c"),
+                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-ambiguous-a"),
+                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-ambiguous-b"),
+                BridgeHistoricalResolvedLineageIdentity::new("lineage:test-ambiguous-c"),
             ],
-            vec![Arc::from("entity:0:4:2"), Arc::from("entity:0:5:2")],
+            vec![
+                BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+                BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+            ],
             vec![7, 8, 9],
         )
     }
@@ -178,8 +190,10 @@ impl ContinuityLineageSource for CountingContinuityLineageSource {
         self.call_count.fetch_add(1, Ordering::SeqCst);
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            vec![Arc::from("lineage:test-successor")],
-            vec![Arc::from("entity:0:4:2")],
+            vec![BridgeHistoricalResolvedLineageIdentity::new(
+                "lineage:test-successor",
+            )],
+            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
             vec![7],
         )
     }

@@ -1,5 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use forge_foundational::facade::AspectKey;
+
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, GuidedAuthoringPath,
     IntegerComparisonOperator, IntegerComparisonPredicate, OrderingDirection, OrderingSelector,
@@ -325,7 +327,7 @@ pub enum DeclarativeLiveViewShape {
         classification: InspectorIdentityClassification,
     },
     KanbanGrouped {
-        grouping_aspect: String,
+        grouping_aspect: AspectKey,
     },
 }
 
@@ -362,10 +364,8 @@ impl DeclarativeLiveViewShape {
         }
     }
 
-    pub fn kanban_grouped(grouping_aspect: impl Into<String>) -> Self {
-        Self::KanbanGrouped {
-            grouping_aspect: grouping_aspect.into(),
-        }
+    pub fn kanban_grouped(grouping_aspect: AspectKey) -> Self {
+        Self::KanbanGrouped { grouping_aspect }
     }
 
     pub fn as_str(&self) -> &'static str {
@@ -403,7 +403,7 @@ impl DeclarativeLiveViewShape {
                 *classification,
             ),
             Self::KanbanGrouped { grouping_aspect } => {
-                ViewShapeDescriptor::kanban_grouped(grouping_aspect)
+                ViewShapeDescriptor::kanban_grouped(grouping_aspect.clone())
             }
         }
     }

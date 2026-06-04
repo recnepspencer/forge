@@ -13,7 +13,7 @@ pub struct CausalInspectionPerformanceEnvelope {
     artifact_serialization_count: usize,
     bridge_binding_count: usize,
     bridge_lookup_count: usize,
-    bridge_scan_fallback_count: usize,
+    bridge_unindexed_scan_count: usize,
     materialized_detail_count: usize,
     performance_digest: String,
 }
@@ -34,7 +34,7 @@ impl CausalInspectionPerformanceEnvelope {
             1,
             counters.evidence_reference_count(),
             counters.bridge_retained_lookup_count(),
-            counters.bridge_record_scan_fallback_count(),
+            counters.bridge_record_unindexed_scan_count(),
             counters.materialized_detail_count(),
         )
     }
@@ -55,7 +55,7 @@ impl CausalInspectionPerformanceEnvelope {
             1,
             counters.evidence_reference_count(),
             counters.bridge_retained_lookup_count(),
-            counters.bridge_record_scan_fallback_count(),
+            counters.bridge_record_unindexed_scan_count(),
             counters.materialized_detail_count(),
         )
     }
@@ -70,7 +70,7 @@ impl CausalInspectionPerformanceEnvelope {
         artifact_serialization_count: usize,
         bridge_binding_count: usize,
         bridge_lookup_count: usize,
-        bridge_scan_fallback_count: usize,
+        bridge_unindexed_scan_count: usize,
         materialized_detail_count: usize,
     ) -> Self {
         let performance_digest = hash_parts(&[
@@ -84,7 +84,7 @@ impl CausalInspectionPerformanceEnvelope {
             format!("artifact-serialization:{artifact_serialization_count}"),
             format!("bridge-bindings:{bridge_binding_count}"),
             format!("bridge-lookups:{bridge_lookup_count}"),
-            format!("bridge-scan-fallback:{bridge_scan_fallback_count}"),
+            format!("bridge-unindexed-scan:{bridge_unindexed_scan_count}"),
             format!("materialized-detail:{materialized_detail_count}"),
         ]);
         Self {
@@ -97,7 +97,7 @@ impl CausalInspectionPerformanceEnvelope {
             artifact_serialization_count,
             bridge_binding_count,
             bridge_lookup_count,
-            bridge_scan_fallback_count,
+            bridge_unindexed_scan_count,
             materialized_detail_count,
             performance_digest,
         }
@@ -139,8 +139,8 @@ impl CausalInspectionPerformanceEnvelope {
         self.bridge_lookup_count
     }
 
-    pub fn bridge_scan_fallback_count(&self) -> usize {
-        self.bridge_scan_fallback_count
+    pub fn bridge_unindexed_scan_count(&self) -> usize {
+        self.bridge_unindexed_scan_count
     }
 
     pub fn materialized_detail_count(&self) -> usize {

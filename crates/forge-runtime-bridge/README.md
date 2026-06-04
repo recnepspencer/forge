@@ -53,7 +53,7 @@ fn demo(
         ))
         .build()?;
 
-    let route = bridge.route("commit:steel-main")?;
+    let route = bridge.route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))?;
     let evaluation = bridge.evaluate_current(route.target())?;
     let explanation = bridge.diagnostics().explain_last_route();
 

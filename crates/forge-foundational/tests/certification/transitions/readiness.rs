@@ -1,7 +1,10 @@
 use forge_foundational::{
     certify_foundational_transition_milestone5_production_test_readiness,
+    certify_foundational_transition_milestone9_scoped_merge_production_test_readiness,
     foundational_transition_milestone5_readiness_report,
+    foundational_transition_milestone9_scoped_merge_readiness_report,
     require_foundational_transition_milestone5_production_test_readiness,
+    require_foundational_transition_milestone9_scoped_merge_production_test_readiness,
     FoundationalTransitionCertifiedSurface, FoundationalTransitionCompileFailBoundary,
     FoundationalTransitionForgeProofApi, FoundationalTransitionForgeProofForbiddenSurface,
     FoundationalTransitionForgeProofSurface, FoundationalTransitionMilestone5PhaseGate,
@@ -71,6 +74,129 @@ fn production_readiness_artifact_carries_complete_machine_checkable_inventory() 
                 .count(),
             1,
             "each certified surface must have exactly one evidence row"
+        );
+    }
+}
+
+#[test]
+fn scoped_merge_readiness_artifact_carries_milestone9_basis_and_inventory() {
+    let readiness =
+        certify_foundational_transition_milestone9_scoped_merge_production_test_readiness();
+    let report = require_foundational_transition_milestone9_scoped_merge_production_test_readiness(
+        &readiness,
+    );
+
+    accepts_transition_readiness_artifact(&readiness);
+    accepts_transition_readiness_proof(readiness.proofs());
+    assert!(report.passes_readiness_checklist());
+    assert_eq!(
+        readiness.strong_basis().value().milestone(),
+        "forge-foundational.milestone-9.scoped-merge"
+    );
+    assert_eq!(
+        report.scope().milestone(),
+        "forge-foundational.milestone-9.scoped-merge"
+    );
+
+    assert_exact_inventory(
+        "scoped certified surfaces",
+        report.certified_surfaces(),
+        &[
+            FoundationalTransitionCertifiedSurface::ScopedMergeRequestVocabulary,
+            FoundationalTransitionCertifiedSurface::ScopedMergeAdmissionEvidence,
+            FoundationalTransitionCertifiedSurface::ScopedMergeDenialUnavailableTopology,
+            FoundationalTransitionCertifiedSurface::ScopedMergeCanonicalLocatorDiagnostics,
+            FoundationalTransitionCertifiedSurface::ScopedMergeAdoptionContract,
+        ],
+    );
+    assert_exact_inventory(
+        "scoped compile-fail boundaries",
+        report.compile_fail_boundaries(),
+        &[
+            FoundationalTransitionCompileFailBoundary::ScopedMergeScopeRequiresTypedLoci,
+            FoundationalTransitionCompileFailBoundary::SelectedScopeLocatorRequiresTypedLoci,
+            FoundationalTransitionCompileFailBoundary::SelectedNodeAndAspectRequestsAreNotSubstitutable,
+            FoundationalTransitionCompileFailBoundary::TransitionReadinessRequiresCertifiedArtifact,
+            FoundationalTransitionCompileFailBoundary::TransitionReadinessAuthorityCannotBeMinted,
+        ],
+    );
+}
+
+#[test]
+fn scoped_merge_readiness_names_runtime_handoff_and_residual_debt() {
+    let report = foundational_transition_milestone9_scoped_merge_readiness_report();
+
+    assert_exact_inventory(
+        "scoped hostile pressures",
+        report.synthetic_pressures(),
+        &[
+            FoundationalTransitionSyntheticRuntimePressure::ScopedMergeCategorySubstitutionHostility,
+            FoundationalTransitionSyntheticRuntimePressure::ScopedMergeProducerDiversityHostility,
+            FoundationalTransitionSyntheticRuntimePressure::ScopedMergeUnavailableDenialHonesty,
+            FoundationalTransitionSyntheticRuntimePressure::ScopedMergeCanonicalLocatorStability,
+            FoundationalTransitionSyntheticRuntimePressure::ScopedMergeRuntimeBoundaryHonesty,
+        ],
+    );
+    assert!(report.assumptions().contains(
+        &FoundationalTransitionRuntimeAssumption::ScopedMergeVocabularyMustPrecedeRuntimeExecution
+    ));
+    assert!(report.non_assumptions().contains(
+        &FoundationalTransitionRuntimeNonAssumption::FoundationalExecutesScopedMergeOrCherryPick
+    ));
+    assert!(report.non_assumptions().contains(
+        &FoundationalTransitionRuntimeNonAssumption::AdoptingCratesMayInventScopedMergeDialect
+    ));
+    assert_exact_inventory(
+        "scoped residual debt",
+        report.residual_debt(),
+        &[
+            FoundationalTransitionResidualDebt::AdoptingCrateScopedMergeExecutionDeferred,
+            FoundationalTransitionResidualDebt::NativeCherryPickExecutionDeferred,
+            FoundationalTransitionResidualDebt::RuntimeConflictMaterializationDeferred,
+        ],
+    );
+}
+
+#[test]
+fn scoped_merge_readiness_evidence_paths_and_forge_proof_snippets_are_real() {
+    let report = foundational_transition_milestone9_scoped_merge_readiness_report();
+
+    for evidence in report.certified_surface_evidence() {
+        assert!(report.certified_surfaces().contains(&evidence.surface()));
+        assert!(crate_root_path(evidence.owning_test_path()).is_file());
+        assert!(crate_root_path(evidence.compile_fail_evidence_path()).is_file());
+        assert!(crate_root_path(evidence.blind_consumer_evidence_path()).is_file());
+        assert!(
+            evidence.owning_test_path().starts_with("tests/"),
+            "scoped surface evidence must name a test owner, not only docs"
+        );
+    }
+
+    let adoption_evidence = report
+        .certified_surface_evidence()
+        .iter()
+        .find(|evidence| {
+            evidence.surface()
+                == FoundationalTransitionCertifiedSurface::ScopedMergeAdoptionContract
+        })
+        .expect("scoped adoption contract evidence");
+    assert_eq!(
+        adoption_evidence.blind_consumer_evidence_path(),
+        "docs/scoped-merge-adoption.md"
+    );
+
+    for evidence in report.synthetic_pressure_evidence() {
+        assert!(report.synthetic_pressures().contains(&evidence.pressure()));
+        assert!(crate_root_path(evidence.owning_test_path()).is_file());
+    }
+
+    for evidence in report.forge_proof_api_evidence() {
+        let source = std::fs::read_to_string(crate_root_path(evidence.source_path()))
+            .expect("scoped forge-proof evidence source");
+        assert!(
+            source.contains(evidence.source_snippet()),
+            "scoped forge-proof evidence for {:?} drifted",
+            evidence.api()
         );
     }
 }

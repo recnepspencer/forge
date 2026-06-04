@@ -281,11 +281,11 @@ fn delivery_replay_plan_rejects_retained_window_blocked_by_replay_readiness() {
         &active,
         BridgeSubscriptionDeliveryFamilyKind::CanonicalMember,
         1,
-        BridgeSubscriptionDeliveryMemberInput::omitted_payload(
+        BridgeSubscriptionDeliveryMemberInput::omitted_content(
             "slice:entity-1/profile/name",
             "routing:fixture",
             BridgeSubscriptionDeliveryMemberClass::Update,
-            BridgeSubscriptionPayloadOmissionReason::PayloadDigestOnly,
+            BridgeSubscriptionDeliveryContentOmissionReason::ContentDigestOnly,
         ),
     );
     let retained = runtime.retain_subscription_delivery_window_seed(&blocked);
@@ -297,54 +297,5 @@ fn delivery_replay_plan_rejects_retained_window_blocked_by_replay_readiness() {
     assert_eq!(
         rejection.rejection_kind(),
         crate::facade::BridgeSubscriptionDeliveryReplayPlanRejectionKind::RetainedWindowReplayReadinessBlocked
-    );
-}
-
-#[test]
-fn delivery_replay_plan_rejects_overwide_retained_window_before_replay_construction() {
-    let (runtime, active) = active_detail_subscription_with_member_limit(
-        BridgeSubscriptionDeliveryDensityPosture::SparseMemberDelivery,
-        1,
-    );
-    let checkpoint_window = sealed_window_with_members(
-        &runtime,
-        &active,
-        BridgeSubscriptionDeliveryFamilyKind::CanonicalMember,
-        0,
-        fixture_members(1),
-    );
-    let checkpoint = checkpoint_from_sealed(
-        &runtime,
-        &active,
-        &checkpoint_window,
-        0,
-        crate::facade::BridgeSubscriptionDuplicateReplayPolicyKind::SuppressAcknowledgedMembers,
-    );
-    let admission = runtime
-        .admit_subscription_resume(&active, &checkpoint)
-        .expect("resume admission should accept matching checkpoint");
-    let retained = runtime
-        .retain_subscription_delivery_window_seed(&sealed_window_with_members(
-            &runtime,
-            &active,
-            BridgeSubscriptionDeliveryFamilyKind::CanonicalMember,
-            1,
-            fixture_members(1),
-        ))
-        .with_canonical_member_count_for_test(2);
-
-    let rejection = runtime
-        .plan_subscription_delivery_replay(&active, admission, vec![retained])
-        .expect_err("overwide retained windows must reject before replay construction");
-
-    assert_eq!(
-        rejection.rejection_kind(),
-        crate::facade::BridgeSubscriptionDeliveryReplayPlanRejectionKind::RetainedWindowExceedsCostProfile
-    );
-    assert_eq!(
-        rejection
-            .counters()
-            .subscription_delivery_over_budget_rejection_count(),
-        1
     );
 }

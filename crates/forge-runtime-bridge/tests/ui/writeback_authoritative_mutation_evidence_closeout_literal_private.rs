@@ -1,11 +1,18 @@
-use forge_runtime_bridge::facade::BridgeAuthoritativeMutationEvidenceCloseout;
+use forge_runtime_bridge::facade::{
+    BridgeAuthoritativeMutationEvidenceCloseout, BridgeAuthorityEvidenceDeferredBoundary,
+    BridgeAuthorityEvidenceReadyCapability, BridgeAuthorityEvidenceVerificationGate,
+};
 
 fn main() {
     let _ = BridgeAuthoritativeMutationEvidenceCloseout {
-        support_digest: String::new(),
-        safe_to_build_now: Vec::new(),
-        must_not_assume_yet: Vec::new(),
-        required_verification_commands: Vec::new(),
-        closeout_digest: String::new(),
+        support_digest: sealed_authority_placeholder(),
+        ready_capabilities: Vec::<BridgeAuthorityEvidenceReadyCapability>::new(),
+        deferred_boundaries: Vec::<BridgeAuthorityEvidenceDeferredBoundary>::new(),
+        verification_gates: Vec::<BridgeAuthorityEvidenceVerificationGate>::new(),
+        closeout_digest: sealed_authority_placeholder(),
     };
+}
+
+fn sealed_authority_placeholder<T>() -> T {
+    panic!("compile-fail fixture never executes")
 }

@@ -6,13 +6,21 @@ pub(super) fn execute_promotion_certification(
     runtime_bridge: &crate::facade::RuntimeBridge,
     fixture: &BridgeHarnessFixture,
 ) -> Result<SpeculationHarnessExecution, BridgeHarnessError> {
+    let promotion_session_identity =
+        crate::facade::BridgePreviewSessionIdentity::new("harness:speculation-promotion");
     let admitted = runtime_bridge
         .admit_preview_session(
-            crate::facade::BridgePreviewSessionIdentity::new("harness:speculation-promotion"),
+            promotion_session_identity.clone(),
             shared::preview_declaration(
-                "harness:speculation-promotion",
-                "main",
-                "signal:promotion",
+                crate::facade::BridgePreviewSessionDeclarationIdentity::new(
+                    "harness:speculation-promotion",
+                ),
+                crate::facade::BridgeSpeculativeBranchBindingIdentity::new(
+                    "harness:speculation-promotion:binding",
+                ),
+                crate::facade::TruthBranchIdentity::new("main"),
+                crate::facade::BridgeSignalBranchIdentity::new("signal:promotion"),
+                crate::facade::TruthSnapshotIdentity::new("harness:speculation-promotion:snapshot"),
             ),
         )
         .map_err(|error| {
@@ -22,27 +30,31 @@ pub(super) fn execute_promotion_certification(
         runtime_bridge.activate_preview_session(admitted, 3, 1, 2);
     let proof = promoted_active.promotion_admissibility_proof();
     let (_promoted, promotion_record) = runtime_bridge
-        .promote_preview_session(
-            promoted_active,
-            &promoted_execution_record,
-            &proof,
-            "commit-boundary:harness",
-            "authoritative-artifact:harness",
-        )
+        .promote_preview_session(promoted_active, &promoted_execution_record, &proof)
         .map_err(|error| {
             BridgeHarnessError::new(format!("speculation promotion failed: {error}"))
         })?;
     let promoted_replay_bundle = runtime_bridge
-        .replay_preview_bundle("harness:speculation-promotion")
+        .replay_preview_bundle(&promotion_session_identity)
         .map_err(|error| BridgeHarnessError::new(format!("speculation replay failed: {error}")))?;
 
+    let discard_sibling_session_identity =
+        crate::facade::BridgePreviewSessionIdentity::new("harness:speculation-discard-sibling");
     let discarded_admitted = runtime_bridge
         .admit_preview_session(
-            crate::facade::BridgePreviewSessionIdentity::new("harness:speculation-discard-sibling"),
+            discard_sibling_session_identity.clone(),
             shared::preview_declaration(
-                "harness:speculation-discard-sibling",
-                "main",
-                "signal:promotion",
+                crate::facade::BridgePreviewSessionDeclarationIdentity::new(
+                    "harness:speculation-discard-sibling",
+                ),
+                crate::facade::BridgeSpeculativeBranchBindingIdentity::new(
+                    "harness:speculation-discard-sibling:binding",
+                ),
+                crate::facade::TruthBranchIdentity::new("main"),
+                crate::facade::BridgeSignalBranchIdentity::new("signal:promotion"),
+                crate::facade::TruthSnapshotIdentity::new(
+                    "harness:speculation-discard-sibling:snapshot",
+                ),
             ),
         )
         .map_err(|error| {
@@ -65,7 +77,7 @@ pub(super) fn execute_promotion_certification(
             BridgeHarnessError::new(format!("speculation sibling discard failed: {error}"))
         })?;
     let discarded_replay_bundle = runtime_bridge
-        .replay_preview_bundle("harness:speculation-discard-sibling")
+        .replay_preview_bundle(&discard_sibling_session_identity)
         .map_err(|error| {
             BridgeHarnessError::new(format!("speculation sibling replay failed: {error}"))
         })?;

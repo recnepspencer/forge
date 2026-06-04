@@ -4,12 +4,16 @@ use forge_runtime_bridge::facade::{
 
 fn main() {
     let _report = BridgeSubscriptionCertificationFanoutReport {
-        shared_equivalence_report_digest: "shared".into(),
-        incompatible_rejection_report_digest: "incompatible".into(),
+        shared_equivalence_report_digest: sealed_authority_placeholder(),
+        divergent_rejection_report_digest: sealed_authority_placeholder(),
         shared_fanout_equivalent: true,
-        incompatible_sharing_rejected_before_delivery: true,
+        divergent_sharing_rejected_before_delivery: true,
         counters: BridgeSubscriptionCertificationCounterSnapshot::default(),
-        canonical_basis: "basis".into(),
-        digest: "digest".into(),
+        canonical_basis: sealed_authority_placeholder(),
+        digest: sealed_authority_placeholder(),
     };
+}
+
+fn sealed_authority_placeholder<T>() -> T {
+    panic!("compile-fail fixture never executes")
 }

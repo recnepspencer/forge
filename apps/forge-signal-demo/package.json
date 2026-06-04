@@ -12,11 +12,15 @@
   },
   "dependencies": {
     "@forge/signal": "file:../../packages/forge-signal",
+    "@tanstack/react-query": "^5.100.14",
+    "@types/three": "^0.184.1",
     "flubber": "^0.4.2",
+    "forge-signal-wasm": "file:../../crates/forge-signal-wasm/pkg",
     "lucide-react": "^1.7.0",
     "motion": "^12.38.0",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

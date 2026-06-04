@@ -2,10 +2,14 @@ use forge_runtime_bridge::facade::BridgeSymbolicTargetReferenceBundle;
 
 fn main() {
     let _ = BridgeSymbolicTargetReferenceBundle {
-        family: todo!(),
-        outcome: todo!(),
-        symbol: todo!(),
-        resolved_entity_identity: todo!(),
+        family: sealed_authority_placeholder(),
+        outcome: sealed_authority_placeholder(),
+        symbol: sealed_authority_placeholder(),
+        resolved_entity_identity: sealed_authority_placeholder(),
         target_collection: None,
     };
+}
+
+fn sealed_authority_placeholder<T>() -> T {
+    panic!("compile-fail fixture never executes")
 }

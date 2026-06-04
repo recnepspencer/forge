@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use super::authority::{BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner};
 use super::counters::BridgeCausalEnvelopeCounters;
-use super::digest;
+use super::{causal_envelope_digest, digest_basis::BridgeCausalEnvelopeDigestArtifact};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BridgeCausalEnvelopeDenialKind {
@@ -10,6 +10,7 @@ pub enum BridgeCausalEnvelopeDenialKind {
     EmptyEvidenceReference,
     DuplicateEvidenceReference,
     EvidenceOwnerMismatch,
+    EvidenceReferenceFamilyMismatch,
     MissingEvidenceReference,
     MissingQueryObservationAnchor,
     QueryObservationAnchorOverclaim,
@@ -24,6 +25,7 @@ impl BridgeCausalEnvelopeDenialKind {
             Self::EmptyEvidenceReference => "empty_evidence_reference",
             Self::DuplicateEvidenceReference => "duplicate_evidence_reference",
             Self::EvidenceOwnerMismatch => "evidence_owner_mismatch",
+            Self::EvidenceReferenceFamilyMismatch => "evidence_reference_family_mismatch",
             Self::MissingEvidenceReference => "missing_evidence_reference",
             Self::MissingQueryObservationAnchor => "missing_query_observation_anchor",
             Self::QueryObservationAnchorOverclaim => "query_observation_anchor_overclaim",
@@ -53,8 +55,8 @@ impl BridgeCausalEnvelopeDenial {
         reference_identity: Arc<str>,
         counters: BridgeCausalEnvelopeCounters,
     ) -> Self {
-        let failure_digest = digest(
-            "bridge-causal-envelope-denial",
+        let failure_digest = causal_envelope_digest(
+            BridgeCausalEnvelopeDigestArtifact::Denial,
             &[
                 &format!("{kind:?}"),
                 family.as_str(),

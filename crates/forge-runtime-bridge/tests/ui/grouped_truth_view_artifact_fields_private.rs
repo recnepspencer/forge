@@ -1,13 +1,17 @@
 use forge_runtime_bridge::facade::{
-    BridgeGroupedTruthViewArtifact, BridgeGroupedTruthViewDigest, TruthSnapshotIdentity,
+    BridgeGroupedTruthViewArtifact, TruthSnapshotIdentity,
 };
 
 fn main() {
     let _ = BridgeGroupedTruthViewArtifact {
-        truth_view_digest: "truth-view".into(),
+        truth_view_digest: sealed_authority_placeholder(),
         basis_snapshot_identity: TruthSnapshotIdentity::new("snapshot-a"),
-        contract: todo!(),
+        contract: sealed_authority_placeholder(),
         members: vec![],
-        digest: BridgeGroupedTruthViewDigest::new(&[]),
+        digest: sealed_authority_placeholder(),
     };
+}
+
+fn sealed_authority_placeholder<T>() -> T {
+    panic!("compile-fail fixture never executes")
 }

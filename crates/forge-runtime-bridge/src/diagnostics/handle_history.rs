@@ -1,7 +1,10 @@
 use super::handle::BridgeDiagnosticsHandle;
 use super::history::{
-    BridgeCanonicalHistoricalEvaluationRecord, BridgeHistoricalEvaluationFailureRecord,
+    BridgeCanonicalHistoricalEvaluationRecord, BridgeHistoricalEvaluationDecisionLogIdentity,
+    BridgeHistoricalEvaluationFailureIdentity, BridgeHistoricalEvaluationFailureRecord,
+    BridgeHistoricalEvaluationRecordIdentity,
 };
+use crate::policy::BridgePolicyDeclarationIdentity;
 
 impl BridgeDiagnosticsHandle {
     pub fn historical_evaluation_records(&self) -> Vec<BridgeCanonicalHistoricalEvaluationRecord> {
@@ -20,7 +23,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn historical_record_for_record_identity(
         &self,
-        record_identity: &str,
+        record_identity: &BridgeHistoricalEvaluationRecordIdentity,
     ) -> Option<BridgeCanonicalHistoricalEvaluationRecord> {
         self.state
             .read()
@@ -30,7 +33,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn historical_record_for_decision_log_identity(
         &self,
-        decision_log_identity: &str,
+        decision_log_identity: &BridgeHistoricalEvaluationDecisionLogIdentity,
     ) -> Option<BridgeCanonicalHistoricalEvaluationRecord> {
         self.state
             .read()
@@ -49,7 +52,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn historical_failure_for_declaration_identity(
         &self,
-        declaration_identity: &str,
+        declaration_identity: &BridgePolicyDeclarationIdentity,
     ) -> Option<BridgeHistoricalEvaluationFailureRecord> {
         self.state
             .read()
@@ -59,7 +62,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn historical_failure_for_identity(
         &self,
-        failure_identity: &str,
+        failure_identity: &BridgeHistoricalEvaluationFailureIdentity,
     ) -> Option<BridgeHistoricalEvaluationFailureRecord> {
         self.state
             .read()

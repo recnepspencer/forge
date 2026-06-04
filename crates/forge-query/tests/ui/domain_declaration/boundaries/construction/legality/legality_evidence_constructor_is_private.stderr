@@ -19,10 +19,12 @@ error: cannot construct `ForgeQueryDeclarationLegalityEvidence<GeometryDomain, S
 61 | |         )
 62 | |         .unwrap(),
    | |_________________- private field
-63 |           legality_digest: String::new(),
+63 |           world_basis: unsafe { std::mem::zeroed::<ForgeQueryAdmittedWorldBasis>() },
+   |           -------------------------------------------------------------------------- private field
+64 |           legality_digest: String::new(),
    |           ------------------------------ private field
    |
-   = note: ...and other private fields `reviewed_aspect_coverage` and `operating_context_identity_digest` that were not provided
+   = note: ...and other private field `reviewed_aspect_coverage` that was not provided
 help: you might have meant to use the `new` associated function
    |
 52 -     let _ = ForgeQueryDeclarationLegalityEvidence::<GeometryDomain, SplitEdgeDeclaration> {
@@ -36,7 +38,8 @@ help: you might have meant to use the `new` associated function
 60 -             fake(),
 61 -         )
 62 -         .unwrap(),
-63 -         legality_digest: String::new(),
-64 -     };
+63 -         world_basis: unsafe { std::mem::zeroed::<ForgeQueryAdmittedWorldBasis>() },
+64 -         legality_digest: String::new(),
+65 -     };
 52 +     let _ = ForgeQueryDeclarationLegalityEvidence::<GeometryDomain, SplitEdgeDeclaration>::new(_, _, _, _, _, _, _, _, _);
    |

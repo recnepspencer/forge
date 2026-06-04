@@ -1,116 +1,37 @@
 use std::sync::Arc;
 
-use forge_foundational::facade::AspectKey;
 use sha2::{Digest, Sha256};
 
 use crate::diagnostics::BridgeRouteRecord;
 use crate::error::{BridgeContinuityError, BridgeContinuityErrorKind};
-use crate::mapping::SubscriptionSliceKind;
-use crate::routing::{
-    BridgeRouteIdentity, BridgeSubscriptionSlice, BridgeSubscriptionSliceIdentity,
-    FineGrainedMatchStatus,
-};
+use crate::routing::{BridgeRouteIdentity, BridgeSubscriptionSliceIdentity};
 
 use super::BridgeContinuityAuthorityBasis;
+mod prior_slice;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct PriorSubscriptionSlice {
-    prior_subscription_slice_identity: BridgeSubscriptionSliceIdentity,
-    entity_identity: Arc<str>,
-    aspect_key: AspectKey,
-    surface_label: Arc<str>,
-    slice_kind: SubscriptionSliceKind,
-    match_status: FineGrainedMatchStatus,
+pub use prior_slice::PriorSubscriptionSlice;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BridgeContinuityCorrelationId {
+    value: Arc<str>,
 }
 
-impl PriorSubscriptionSlice {
-    pub fn from_parts(
-        prior_subscription_slice_identity: BridgeSubscriptionSliceIdentity,
-        entity_identity: impl Into<Arc<str>>,
-        aspect_key: AspectKey,
-        surface_label: impl Into<Arc<str>>,
-        slice_kind: SubscriptionSliceKind,
-        match_status: FineGrainedMatchStatus,
-    ) -> Self {
+impl BridgeContinuityCorrelationId {
+    fn from_planned_request_basis(canonical_basis: &str) -> Self {
+        let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            prior_subscription_slice_identity,
-            entity_identity: entity_identity.into(),
-            aspect_key,
-            surface_label: surface_label.into(),
-            slice_kind,
-            match_status,
+            value: Arc::from(format!("continuity-correlation:sha256:{digest:x}")),
         }
     }
 
-    pub(crate) fn new(
-        prior_subscription_slice_identity: BridgeSubscriptionSliceIdentity,
-        slice: &BridgeSubscriptionSlice,
-    ) -> Self {
-        Self::from_parts(
-            prior_subscription_slice_identity,
-            slice.entity_identity(),
-            slice.aspect_key().clone(),
-            slice.surface_label(),
-            slice.slice_kind().clone(),
-            slice.match_status(),
-        )
-    }
-
-    pub fn prior_subscription_slice_identity(&self) -> &BridgeSubscriptionSliceIdentity {
-        &self.prior_subscription_slice_identity
-    }
-
-    pub fn entity_identity(&self) -> &str {
-        self.entity_identity.as_ref()
-    }
-
-    pub fn aspect_label(&self) -> &str {
-        self.aspect_key.as_str()
-    }
-
-    pub fn aspect_key(&self) -> &AspectKey {
-        &self.aspect_key
-    }
-
-    pub fn surface_label(&self) -> &str {
-        self.surface_label.as_ref()
-    }
-
-    pub fn slice_kind(&self) -> SubscriptionSliceKind {
-        self.slice_kind.clone()
-    }
-
-    pub fn match_status(&self) -> FineGrainedMatchStatus {
-        self.match_status
-    }
-
-    pub fn canonical_basis(&self) -> String {
-        format!(
-            "prior-slice|slice-set={}|entity={}|aspect={}|surface={}|kind={:?}|match={:?}",
-            self.prior_subscription_slice_identity.as_str(),
-            self.entity_identity(),
-            self.aspect_label(),
-            self.surface_label(),
-            self.slice_kind(),
-            self.match_status(),
-        )
-    }
-
-    pub(crate) fn logical_dedup_basis(&self) -> String {
-        format!(
-            "prior-slice-logical|entity={}|aspect={}|surface={}|kind={:?}|match={:?}",
-            self.entity_identity(),
-            self.aspect_label(),
-            self.surface_label(),
-            self.slice_kind(),
-            self.match_status(),
-        )
+    pub fn as_str(&self) -> &str {
+        self.value.as_ref()
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgePlannedContinuityRequest {
-    request_key: Arc<str>,
+    correlation_id: BridgeContinuityCorrelationId,
     prior_route_identity: BridgeRouteIdentity,
     prior_slice: PriorSubscriptionSlice,
 }
@@ -122,16 +43,17 @@ impl BridgePlannedContinuityRequest {
             prior_route_identity.as_str(),
             prior_slice.canonical_basis()
         );
-        let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            request_key: Arc::from(format!("continuity-request:sha256:{digest:x}")),
+            correlation_id: BridgeContinuityCorrelationId::from_planned_request_basis(
+                &canonical_basis,
+            ),
             prior_route_identity,
             prior_slice,
         }
     }
 
-    pub fn request_key(&self) -> &str {
-        self.request_key.as_ref()
+    pub fn correlation_id(&self) -> &BridgeContinuityCorrelationId {
+        &self.correlation_id
     }
 
     pub fn prior_route_identity(&self) -> &BridgeRouteIdentity {
@@ -215,7 +137,11 @@ impl BridgePlannedContinuityRequestSet {
             })
             .collect::<Vec<_>>();
         let mut requests = requests;
-        requests.sort_by(|left, right| left.request_key().cmp(right.request_key()));
+        requests.sort_by(|left, right| {
+            left.correlation_id()
+                .as_str()
+                .cmp(right.correlation_id().as_str())
+        });
         let canonical_basis = format!(
             "planned-continuity-request-set|route={}|slice-set={}|authority={}|prior-slice-count={}|request-count={}|requests={}",
             prior_route_identity.as_str(),
@@ -225,7 +151,7 @@ impl BridgePlannedContinuityRequestSet {
             requests.len(),
             requests
                 .iter()
-                .map(|request| request.request_key())
+                .map(|request| request.correlation_id().as_str())
                 .collect::<Vec<_>>()
                 .join(","),
         );
@@ -275,25 +201,25 @@ impl BridgeEligibleContinuityRequestSet {
     pub(crate) fn from_planned(
         planned: BridgePlannedContinuityRequestSet,
     ) -> Result<Self, BridgeContinuityError> {
-        let mut request_keys = planned
+        let mut correlation_ids = planned
             .requests()
             .iter()
-            .map(|request| request.request_key())
+            .map(|request| request.correlation_id().as_str())
             .collect::<Vec<_>>();
-        let mut sorted = request_keys.clone();
+        let mut sorted = correlation_ids.clone();
         sorted.sort_unstable();
         sorted.dedup();
-        if sorted.len() != request_keys.len() {
+        if sorted.len() != correlation_ids.len() {
             return Err(BridgeContinuityError::new(
                 BridgeContinuityErrorKind::InvalidContinuityRequestSet,
-                "Bridge continuity request-set contained duplicate request keys after canonical planning.",
+                "Bridge continuity request-set contained duplicate correlation ids after canonical planning.",
             ));
         }
-        request_keys.sort_unstable();
-        if request_keys != sorted {
+        correlation_ids.sort_unstable();
+        if correlation_ids != sorted {
             return Err(BridgeContinuityError::new(
                 BridgeContinuityErrorKind::InvalidContinuityRequestSet,
-                "Bridge continuity request-set was not emitted in canonical request-key order.",
+                "Bridge continuity request-set was not emitted in canonical correlation order.",
             ));
         }
         Ok(Self { planned })

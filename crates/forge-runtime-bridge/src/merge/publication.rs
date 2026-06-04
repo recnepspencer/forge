@@ -112,7 +112,7 @@ impl PublishedMergeRemapArtifact {
 #[cfg(test)]
 mod tests {
     use super::{PublishedMergeContinuityArtifact, PublishedMergeRemapArtifact};
-    use crate::input::envelope::TruthCommitIdentity;
+
     use crate::merge::{
         AdmittedMergeRegistry, BridgeMergeAuthorityBasis, BridgeMergeAuthorityBasisKind,
         BridgeMergeConsumptionClass, BridgeMergeOntologyMappingSurface,
@@ -134,8 +134,8 @@ mod tests {
                 "rel-merge-v1",
                 "schema-policy-v1",
                 BridgeMergeParentOrderProof::new(vec![
-                    TruthCommitIdentity::new("parent-a"),
-                    TruthCommitIdentity::new("parent-b"),
+                    crate::facade::TruthCommitIdentity::new("parent-a"),
+                    crate::facade::TruthCommitIdentity::new("parent-b"),
                 ]),
             ),
         )
@@ -151,13 +151,15 @@ mod tests {
 
     #[test]
     fn merge_continuity_publication_accepts_continuity_candidate() {
-        let artifact = PublishedMergeContinuityArtifact::from_reduced_routing_artifact(reduced(
-            BridgeMergeStructuralAdvisoryDisposition::NotConsulted,
-        ))
-        .expect("continuity candidate should publish");
-        assert!(artifact
-            .canonical_basis()
-            .contains("published-merge-continuity-artifact"));
+        let reduced = reduced(BridgeMergeStructuralAdvisoryDisposition::NotConsulted);
+        let artifact =
+            PublishedMergeContinuityArtifact::from_reduced_routing_artifact(reduced.clone())
+                .expect("continuity candidate should publish");
+        assert_eq!(artifact.reduced_routing_artifact(), &reduced);
+        assert_eq!(
+            artifact.reduced_routing_artifact().outcome_class(),
+            crate::merge::BridgeMergeRoutingOutcomeClass::ContinuityCandidate
+        );
     }
 
     #[test]

@@ -8,9 +8,9 @@ use crate::adapter::{
 };
 use crate::delivery::BridgeDeliveryReceipt;
 use crate::facade::{
-    BridgeAspectRegistration, BridgeLineageContext, BridgeLineageSourceError,
-    BridgeLineageSourceErrorKind, BridgeMappingRegistration, BridgeRuntimePolicy,
-    RawCommittedPatchEnvelope, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
+    BridgeAspectRegistration, BridgeCommittedPatchEnvelope, BridgeLineageContext,
+    BridgeLineageSourceError, BridgeLineageSourceErrorKind, BridgeMappingRegistration,
+    BridgeRuntimePolicy, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
     TruthSnapshotIdentity, TruthSnapshotReader,
 };
 

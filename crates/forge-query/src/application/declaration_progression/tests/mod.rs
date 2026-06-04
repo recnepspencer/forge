@@ -10,6 +10,7 @@ use fixtures::{admitted_handle, legal, progressed, AdmittedFamily, Declaration};
 #[test]
 fn admitted_progression_yields_proof_bearing_artifact() {
     let handle = admitted_handle("collaborative");
+    let world_basis = handle.retained_world_basis();
     let progressed = handle
         .progress_declaration(legal(
             &handle,
@@ -23,6 +24,16 @@ fn admitted_progression_yields_proof_bearing_artifact() {
     assert_eq!(
         progressed.legality_contract(),
         ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    );
+    assert_eq!(
+        progressed.canonical_declaration().handle_identity_digest(),
+        world_basis.handle_identity_digest()
+    );
+    assert_eq!(
+        progressed
+            .legality_evidence()
+            .operating_context_identity_digest(),
+        world_basis.operating_context_identity_digest()
     );
 }
 

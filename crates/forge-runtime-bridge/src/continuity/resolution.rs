@@ -1,14 +1,11 @@
 use std::sync::Arc;
 
-use forge_foundational::facade::AspectKey;
 use sha2::{Digest, Sha256};
 
-use crate::adapter::BridgeHistoricalLineageTopology;
+use crate::adapter::{BridgeHistoricalLineageTopology, BridgeHistoricalResolvedRecordIdentity};
 use crate::error::BridgeContinuityError;
-use crate::mapping::SubscriptionSliceKind;
 use crate::routing::{
     BridgeRouteIdentity, BridgeSubscriptionSlice, BridgeSubscriptionSliceIdentity,
-    FineGrainedMatchStatus,
 };
 
 use super::{
@@ -80,19 +77,16 @@ impl ResolvedLineageContinuitySet {
         );
 
         for entry in packet.entries() {
-            let successor_record_keys = entry
+            let successor_record_identities = entry
                 .lineage_authority()
-                .canonical_resolved_record_keys()
-                .iter()
-                .map(|key| key.as_ref())
-                .collect::<Vec<_>>();
+                .canonical_resolved_record_identities();
             counters =
-                counters.with_lineage_resolution_candidate_count(successor_record_keys.len());
+                counters.with_lineage_resolution_candidate_count(successor_record_identities.len());
 
             let (outcome_class, successor_slices) = classify_continuity(
                 entry.prior_slice(),
                 entry.lineage_authority().topology(),
-                successor_record_keys.as_slice(),
+                successor_record_identities,
             );
             counters = match outcome_class {
                 BridgeContinuityOutcomeClass::ContinuesAsSingleSuccessor => {
@@ -189,7 +183,7 @@ impl ResolvedLineageContinuitySet {
 fn classify_continuity(
     prior_slice: &PriorSubscriptionSlice,
     topology: BridgeHistoricalLineageTopology,
-    successor_record_keys: &[&str],
+    successor_record_identities: &[BridgeHistoricalResolvedRecordIdentity],
 ) -> (BridgeContinuityOutcomeClass, Vec<BridgeSubscriptionSlice>) {
     match topology {
         BridgeHistoricalLineageTopology::NoAuthoritativeSuccessor => (
@@ -203,35 +197,23 @@ fn classify_continuity(
         BridgeHistoricalLineageTopology::SingleSuccessor => (
             BridgeContinuityOutcomeClass::ContinuesAsSingleSuccessor,
             vec![successor_slice_from_record_key(
-                successor_record_keys[0],
-                prior_slice.aspect_key().clone(),
-                prior_slice.surface_label(),
-                prior_slice.slice_kind(),
-                prior_slice.match_status(),
+                successor_record_identities[0].as_str(),
+                prior_slice,
             )],
         ),
         BridgeHistoricalLineageTopology::MergeLikeSuccessor => (
             BridgeContinuityOutcomeClass::ContinuesViaTruthLoweredCanonicalMergeSuccessor,
             vec![successor_slice_from_record_key(
-                successor_record_keys[0],
-                prior_slice.aspect_key().clone(),
-                prior_slice.surface_label(),
-                prior_slice.slice_kind(),
-                prior_slice.match_status(),
+                successor_record_identities[0].as_str(),
+                prior_slice,
             )],
         ),
         BridgeHistoricalLineageTopology::SplitSuccessors => (
             BridgeContinuityOutcomeClass::ContinuesAsSplitSuccessors,
-            successor_record_keys
+            successor_record_identities
                 .iter()
-                .map(|record_key| {
-                    successor_slice_from_record_key(
-                        record_key,
-                        prior_slice.aspect_key().clone(),
-                        prior_slice.surface_label(),
-                        prior_slice.slice_kind(),
-                        prior_slice.match_status(),
-                    )
+                .map(|record_identity| {
+                    successor_slice_from_record_key(record_identity.as_str(), prior_slice)
                 })
                 .collect(),
         ),
@@ -244,49 +226,41 @@ fn classify_continuity(
 
 fn successor_slice_from_record_key(
     record_key: &str,
-    aspect_key: AspectKey,
-    surface_label: &str,
-    slice_kind: SubscriptionSliceKind,
-    match_status: FineGrainedMatchStatus,
+    prior_slice: &PriorSubscriptionSlice,
 ) -> BridgeSubscriptionSlice {
-    BridgeSubscriptionSlice::new(
+    BridgeSubscriptionSlice::from_continuity_parts(
         record_key,
-        aspect_key,
-        surface_label,
-        slice_kind,
-        match_status,
+        prior_slice.aspect_locator().clone(),
+        prior_slice.field_locator().cloned(),
+        prior_slice.projection_mask().clone(),
+        prior_slice.snapshot_read_contract().clone(),
+        prior_slice.surface_kind(),
+        prior_slice.slice_kind(),
+        prior_slice.match_status(),
     )
 }
 
 fn successor_slice_canonical_basis(slice: &BridgeSubscriptionSlice) -> String {
-    format!(
-        "{}|{}|{}|{:?}|{:?}",
-        slice.entity_identity(),
-        slice.aspect_label(),
-        slice.surface_label(),
-        slice.slice_kind(),
-        slice.match_status(),
-    )
+    slice.canonical_basis().to_string()
 }
 
 #[cfg(test)]
 mod tests {
     use super::classify_continuity;
+    use crate::adapter::BridgeHistoricalResolvedRecordIdentity;
     use crate::continuity::PriorSubscriptionSlice;
-    use crate::mapping::SubscriptionSliceKind;
-    use crate::routing::{BridgeSubscriptionSliceIdentity, FineGrainedMatchStatus};
-    use forge_foundational::facade::AspectKey;
+    use crate::mapping::{SubscriptionSliceKind, TruthDeltaSurfaceKind};
+    use crate::routing::{
+        BridgeSubscriptionSlice, BridgeSubscriptionSliceIdentity, FineGrainedMatchStatus,
+    };
+    use forge_foundational::facade::{
+        AspectFieldLocator, AspectKey, AspectLocator, AspectMask, CanonicalFieldPath, FieldKey,
+        LocatorAuthority, ScalarAspectType,
+    };
 
     #[test]
     fn resolution_rejects_no_authoritative_successor_when_lineage_is_empty() {
-        let prior_slice = PriorSubscriptionSlice::from_parts(
-            BridgeSubscriptionSliceIdentity::new("slice-set:test"),
-            "entity:0:1:1",
-            aspect_key("profile.name"),
-            "name",
-            SubscriptionSliceKind::SignalField,
-            FineGrainedMatchStatus::Matched,
-        );
+        let prior_slice = prior_field_slice("entity:0:1:1", "profile.name", "name");
         let (outcome, successor_slices) = classify_continuity(
             &prior_slice,
             crate::adapter::BridgeHistoricalLineageTopology::NoAuthoritativeSuccessor,
@@ -302,14 +276,7 @@ mod tests {
 
     #[test]
     fn resolution_rejects_unsupported_when_lineage_exists_without_successor_records() {
-        let prior_slice = PriorSubscriptionSlice::from_parts(
-            BridgeSubscriptionSliceIdentity::new("slice-set:test"),
-            "entity:0:1:1",
-            aspect_key("profile.name"),
-            "name",
-            SubscriptionSliceKind::SignalField,
-            FineGrainedMatchStatus::Matched,
-        );
+        let prior_slice = prior_field_slice("entity:0:1:1", "profile.name", "name");
         let (outcome, successor_slices) = classify_continuity(
             &prior_slice,
             crate::adapter::BridgeHistoricalLineageTopology::UnsupportedWithoutSuccessor,
@@ -325,18 +292,11 @@ mod tests {
 
     #[test]
     fn resolution_classifies_single_record_with_multiple_lineages_as_merge_like() {
-        let prior_slice = PriorSubscriptionSlice::from_parts(
-            BridgeSubscriptionSliceIdentity::new("slice-set:test"),
-            "entity:0:1:1",
-            aspect_key("profile.name"),
-            "name",
-            SubscriptionSliceKind::SignalField,
-            FineGrainedMatchStatus::Matched,
-        );
+        let prior_slice = prior_field_slice("entity:0:1:1", "profile.name", "name");
         let (outcome, successor_slices) = classify_continuity(
             &prior_slice,
             crate::adapter::BridgeHistoricalLineageTopology::MergeLikeSuccessor,
-            &["entity:0:4:2"],
+            &[BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
         );
 
         assert_eq!(
@@ -344,22 +304,22 @@ mod tests {
             crate::continuity::BridgeContinuityOutcomeClass::ContinuesViaTruthLoweredCanonicalMergeSuccessor
         );
         assert_eq!(successor_slices.len(), 1);
+        assert_eq!(
+            successor_slices[0].native_target_basis(),
+            "committed-patch-target|locator=version=bridge.committed-patch-target.v1;domain=locator;entries=[locus=named:aspect_field.aspect_key,kind=locator,value=exact-text:profile.name;locus=named:aspect_field.authority,kind=locator,value=exact-text:authoritative;locus=named:aspect_field.field_path,kind=locator,value=exact-text:name;locus=named:aspect_field.kind,kind=locator,value=exact-text:aspect]|mutation-mask=version=bridge.committed-patch-target.v1;domain=aspect-mask;entries=[locus=named:profile.name.mutation.field.name,kind=mask,value=exact-text:name]|projection-mask=version=bridge.committed-patch-target.v1;domain=aspect-mask;entries=[locus=named:profile.name.projection.field.name,kind=mask,value=exact-text:name]|kind=entity-field"
+        );
     }
 
     #[test]
     fn resolution_rejects_competing_successor_sets_as_ambiguous() {
-        let prior_slice = PriorSubscriptionSlice::from_parts(
-            BridgeSubscriptionSliceIdentity::new("slice-set:test"),
-            "entity:0:1:1",
-            aspect_key("profile.name"),
-            "name",
-            SubscriptionSliceKind::SignalField,
-            FineGrainedMatchStatus::Matched,
-        );
+        let prior_slice = prior_field_slice("entity:0:1:1", "profile.name", "name");
         let (outcome, successor_slices) = classify_continuity(
             &prior_slice,
             crate::adapter::BridgeHistoricalLineageTopology::AmbiguousSuccessor,
-            &["entity:0:4:2", "entity:0:5:2"],
+            &[
+                BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2"),
+                BridgeHistoricalResolvedRecordIdentity::new("entity:0:5:2"),
+            ],
         );
 
         assert_eq!(
@@ -367,6 +327,40 @@ mod tests {
             crate::continuity::BridgeContinuityOutcomeClass::RejectedAmbiguousSuccessor
         );
         assert!(successor_slices.is_empty());
+    }
+
+    fn prior_field_slice(
+        entity_identity: &str,
+        aspect: &str,
+        field: &str,
+    ) -> PriorSubscriptionSlice {
+        let aspect_locator =
+            AspectLocator::new(LocatorAuthority::Authoritative, aspect_key(aspect));
+        let field_locator = AspectFieldLocator::from_aspect(
+            aspect_locator.clone(),
+            CanonicalFieldPath::single(
+                FieldKey::new(field.to_owned()).expect("test field key should be valid"),
+            ),
+        );
+        let projection_mask = AspectMask::new([field_locator.field_path().clone()]);
+        let native_slice = BridgeSubscriptionSlice::from_continuity_parts(
+            entity_identity,
+            aspect_locator,
+            Some(field_locator),
+            projection_mask,
+            crate::snapshot::SnapshotReadContract::scalar(
+                aspect_key(aspect),
+                ScalarAspectType::String,
+            ),
+            TruthDeltaSurfaceKind::EntityField,
+            SubscriptionSliceKind::SignalField,
+            FineGrainedMatchStatus::Matched,
+        );
+
+        PriorSubscriptionSlice::new(
+            BridgeSubscriptionSliceIdentity::new("slice-set:test"),
+            &native_slice,
+        )
     }
 
     fn aspect_key(value: &str) -> AspectKey {

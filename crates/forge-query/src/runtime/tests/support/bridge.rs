@@ -7,18 +7,14 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for TestBridgeSource {
     fn load_committed_patch(
         &self,
         request: RelationalCommittedPatchRequest,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        Ok(RawCommittedPatchEnvelope::new(
-            TruthCommitIdentity::new(request.commit_identity()),
-            TruthPatchIdentity::new(format!("patch:{}", request.commit_identity())),
-            TruthSnapshotIdentity::new("external-snapshot"),
-            TruthBranchIdentity::new("main"),
-            vec![BridgeCommittedPatchItem::new(
-                "entity",
-                forge_foundational::facade::AspectKey::new("aspect")
-                    .expect("valid bridge patch aspect key"),
-                "field",
-            )],
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        Ok(native_patch_envelope(
+            request.commit_identity().clone(),
+            "external-snapshot",
+            "main",
+            "entity",
+            "aspect",
+            "field",
         ))
     }
 }
@@ -53,7 +49,12 @@ impl TruthSnapshotReader for TestSnapshotReader {
             request
                 .reads()
                 .iter()
-                .map(|read| SnapshotReadRecord::new(read.request_key(), Vec::new()))
+                .map(|read| {
+                    SnapshotReadRecord::for_request(
+                        read,
+                        forge_foundational::facade::AspectValue::Null,
+                    )
+                })
                 .collect(),
         ))
     }
@@ -86,7 +87,6 @@ impl forge_runtime_bridge::facade::TruthWritebackAuthority for StaticWritebackAu
     > {
         Ok(forge_runtime_bridge::facade::TruthWritebackReceipt::new(
             forge_runtime_bridge::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
-            format!("authoritative-artifact:{}", request.digest()),
             &request,
         ))
     }
@@ -98,11 +98,12 @@ pub(in crate::runtime::tests) fn test_bridge() -> RuntimeBridge {
         .with_signal_sink(TestBridgeSink)
         .register_mapping(BridgeMappingRegistration::new(
             BridgeMappingId::new("external-test"),
-            TruthPatchScope::new(
+            TruthPatchScope::for_entity_field(
                 MappingSelector::any(),
-                MappingSelector::any(),
-                MappingSelector::any(),
+                aspect_key("aspect"),
+                field_key("field"),
             ),
+            SnapshotReadContract::scalar(aspect_key("aspect"), ScalarAspectType::String),
             SignalInvalidationScope::new("external-test"),
             CoarseRoutingMode::Direct,
         ))
@@ -117,14 +118,50 @@ pub(in crate::runtime::tests) fn test_bridge_with_writeback_authority() -> Runti
         .with_writeback_authority(StaticWritebackAuthority)
         .register_mapping(BridgeMappingRegistration::new(
             BridgeMappingId::new("external-test"),
-            TruthPatchScope::new(
+            TruthPatchScope::for_entity_field(
                 MappingSelector::any(),
-                MappingSelector::any(),
-                MappingSelector::any(),
+                aspect_key("aspect"),
+                field_key("field"),
             ),
+            SnapshotReadContract::scalar(aspect_key("aspect"), ScalarAspectType::String),
             SignalInvalidationScope::new("external-test"),
             CoarseRoutingMode::Direct,
         ))
         .build()
         .expect("test bridge with writeback authority should build")
+}
+
+fn native_patch_envelope(
+    commit_identity: TruthCommitIdentity,
+    snapshot_identity: &str,
+    branch_identity: &str,
+    entity_identity: &str,
+    aspect: &str,
+    field: &str,
+) -> BridgeCommittedPatchEnvelope {
+    let patch_identity = TruthPatchIdentity::new(format!("patch:{}", commit_identity.as_str()));
+    BridgeCommittedPatchEnvelope::new(
+        BridgeCommittedPatchEnvelopeIdentity::new(
+            commit_identity,
+            patch_identity,
+            TruthSnapshotIdentity::new(snapshot_identity),
+            TruthBranchIdentity::new(branch_identity),
+        ),
+        vec![BridgeCommittedPatchItem::with_target(
+            entity_identity,
+            BridgeCommittedPatchTarget::entity_field_path(
+                AspectLocator::new(LocatorAuthority::Authoritative, aspect_key(aspect)),
+                CanonicalFieldPath::single(field_key(field)),
+            ),
+        )],
+    )
+    .expect("runtime test fixture must build a native patch envelope")
+}
+
+fn aspect_key(value: &str) -> AspectKey {
+    AspectKey::new(value).expect("valid runtime bridge test aspect key")
+}
+
+fn field_key(value: &str) -> FieldKey {
+    FieldKey::new(value.to_owned()).expect("valid runtime bridge test field key")
 }

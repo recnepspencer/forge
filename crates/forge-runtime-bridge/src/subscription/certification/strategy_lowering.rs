@@ -9,7 +9,7 @@ use super::{
     BridgeSubscriptionCertificationCounterSnapshot, BridgeSubscriptionCertificationDivergenceAxis,
     BridgeSubscriptionCertificationFailureBoundary,
     BridgeSubscriptionCertificationFailurePrecedenceStage,
-    BridgeSubscriptionCertificationReportBundleInput,
+    BridgeSubscriptionCertificationReportBundleScenario,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,11 +30,12 @@ impl BridgeSubscriptionCertificationStrategyLoweringReport {
         let manifest = reference_manifest();
         let detail = assemble_reference_bundle(
             &manifest,
-            BridgeSubscriptionCertificationReportBundleInput::stable(),
+            BridgeSubscriptionCertificationReportBundleScenario::StableAdmitted,
         );
-        let mut collection_input = BridgeSubscriptionCertificationReportBundleInput::stable();
-        collection_input.strategy_digest = "report-strategy-digest-collection-membership";
-        let collection = assemble_reference_bundle(&manifest, collection_input);
+        let collection = assemble_reference_bundle(
+            &manifest,
+            BridgeSubscriptionCertificationReportBundleScenario::CollectionMembershipStrategyLowering,
+        );
         let plan = BridgeSubscriptionCertificationComparisonPlan::admit(
             BridgeSubscriptionCertificationComparisonRelationship::IntentionalDivergence,
             None,

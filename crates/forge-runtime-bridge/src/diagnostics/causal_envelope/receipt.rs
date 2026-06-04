@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use super::counters::BridgeCausalEnvelopeCounters;
-use super::digest;
 use super::identity::BridgeCausalEnvelopeIdentity;
+use super::{causal_envelope_digest, digest_basis::BridgeCausalEnvelopeDigestArtifact};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeCausalEnvelopeReceipt {
@@ -18,8 +18,8 @@ impl BridgeCausalEnvelopeReceipt {
         envelope_digest: &str,
         counters: &BridgeCausalEnvelopeCounters,
     ) -> Self {
-        let receipt_digest = digest(
-            "bridge-causal-envelope-receipt",
+        let receipt_digest = causal_envelope_digest(
+            BridgeCausalEnvelopeDigestArtifact::Receipt,
             &[
                 identity.identity_digest(),
                 envelope_digest,

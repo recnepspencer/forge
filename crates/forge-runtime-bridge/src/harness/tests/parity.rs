@@ -1,5 +1,6 @@
 use forge_harness::facade::{parity_suite, ExecutionProfile, ExecutionRequest, ScenarioPlan};
-use std::sync::Arc;
+
+use crate::harness::adapter::BridgeHarnessTargetId;
 
 use super::support::{
     build_runtime, committed_patch, field_aspect_registration, field_slice_snapshot, registration,
@@ -7,23 +8,30 @@ use super::support::{
 };
 use crate::facade::{
     BridgeBulkWorkloadRequest, BridgeBulkWorkloadSegment, BridgeContinuityAuthorityBasis,
-    BridgeHistoricalLineageAuthority, BridgeLineageContext, BridgeRouteRequest,
+    BridgeHistoricalLineageAuthority, BridgeHistoricalResolvedLineageIdentity,
+    BridgeHistoricalResolvedRecordIdentity, BridgeLineageContext, BridgeRouteRequest,
     TruthBranchIdentity, TruthSnapshotIdentity,
 };
 use crate::harness::adapter::BridgeHarnessAdapter;
 use crate::harness::fixtures::BridgeHarnessFixture;
 
-fn continuity_authority(branch: &str, snapshot: &str) -> BridgeHistoricalLineageAuthority {
+fn continuity_authority(
+    branch_identity: TruthBranchIdentity,
+    snapshot_identity: TruthSnapshotIdentity,
+) -> BridgeHistoricalLineageAuthority {
     BridgeHistoricalLineageAuthority::try_new(
-        BridgeContinuityAuthorityBasis::new(
-            TruthBranchIdentity::new(branch),
-            TruthSnapshotIdentity::new(snapshot),
-        ),
-        vec![Arc::from("lineage:test-successor")],
-        vec![Arc::from("entity:0:4:2")],
+        BridgeContinuityAuthorityBasis::new(branch_identity, snapshot_identity),
+        vec![BridgeHistoricalResolvedLineageIdentity::new(
+            "lineage:test-successor",
+        )],
+        vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
         vec![7],
     )
     .expect("continuity authority should be canonical")
+}
+
+fn name_field_key() -> forge_foundational::facade::FieldKey {
+    forge_foundational::facade::FieldKey::new("name".to_owned()).expect("valid harness field key")
 }
 
 #[test]
@@ -32,13 +40,21 @@ fn bridge_harness_parity_proves_routing_truth_is_invariant_across_diagnostics_ti
         "bridge-parity",
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
-            .with_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"))
-            .with_snapshot(snapshot("snapshot-a", "alice")),
+            .with_committed_patch(committed_patch(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthPatchIdentity::new("patch-a"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+                name_field_key(),
+            ))
+            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
     )
     .declare_input("commit-a")
     .declare_observation("route")
     .compile();
-    let request = ExecutionRequest::target("deliver-commit-a", "commit-a".to_string());
+    let request = ExecutionRequest::target(
+        "deliver-commit-a",
+        BridgeHarnessTargetId::committed_route(crate::facade::TruthCommitIdentity::new("commit-a")),
+    );
 
     let report = parity_suite(
         BridgeHarnessAdapter,
@@ -64,13 +80,24 @@ fn bridge_harness_parity_proves_fine_grained_slice_truth_is_invariant_across_dia
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
             .with_aspect_mapping(field_aspect_registration())
-            .with_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"))
-            .with_snapshot(field_slice_snapshot("snapshot-a", "alice")),
+            .with_committed_patch(committed_patch(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthPatchIdentity::new("patch-a"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+                name_field_key(),
+            ))
+            .with_snapshot(field_slice_snapshot(
+                TruthSnapshotIdentity::new("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("commit-a")
     .declare_observation("route")
     .compile();
-    let request = ExecutionRequest::target("deliver-commit-a", "commit-a".to_string());
+    let request = ExecutionRequest::target(
+        "deliver-commit-a",
+        BridgeHarnessTargetId::committed_route(crate::facade::TruthCommitIdentity::new("commit-a")),
+    );
 
     let report = parity_suite(
         BridgeHarnessAdapter,
@@ -102,14 +129,31 @@ fn bridge_harness_parity_proves_continuity_truth_is_invariant_across_diagnostics
                     TruthSnapshotIdentity::new("snapshot-a"),
                 ),
             ))
-            .with_continuity_authority("user", continuity_authority("main", "snapshot-a"))
-            .with_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"))
-            .with_snapshot(field_slice_snapshot("snapshot-a", "alice")),
+            .with_continuity_authority(
+                "user",
+                continuity_authority(
+                    TruthBranchIdentity::new("main"),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                ),
+            )
+            .with_committed_patch(committed_patch(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthPatchIdentity::new("patch-a"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+                name_field_key(),
+            ))
+            .with_snapshot(field_slice_snapshot(
+                TruthSnapshotIdentity::new("snapshot-a"),
+                "alice",
+            )),
     )
     .declare_input("commit-a")
     .declare_observation("route")
     .compile();
-    let request = ExecutionRequest::target("deliver-commit-a", "commit-a".to_string());
+    let request = ExecutionRequest::target(
+        "deliver-commit-a",
+        BridgeHarnessTargetId::committed_route(crate::facade::TruthCommitIdentity::new("commit-a")),
+    );
 
     let report = parity_suite(
         BridgeHarnessAdapter,
@@ -134,15 +178,23 @@ fn bridge_harness_parity_proves_historical_truth_is_invariant_across_diagnostics
         "bridge-historical-parity",
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
-            .with_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"))
-            .with_snapshot(snapshot("snapshot-a", "alice")),
+            .with_committed_patch(committed_patch(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthPatchIdentity::new("patch-a"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+                name_field_key(),
+            ))
+            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
     )
     .declare_input("history-commit:main:commit-a")
     .declare_observation("historical")
     .compile();
     let request = ExecutionRequest::target(
         "historical-commit-a",
-        "history-commit:main:commit-a".to_string(),
+        BridgeHarnessTargetId::historical_commit(
+            crate::facade::TruthBranchIdentity::new("main"),
+            crate::facade::TruthCommitIdentity::new("commit-a"),
+        ),
     );
 
     let report = parity_suite(
@@ -165,25 +217,29 @@ fn bridge_harness_parity_proves_historical_truth_is_invariant_across_diagnostics
 #[test]
 fn bridge_bulk_planning_truth_is_invariant_across_diagnostics_tiers() {
     let request = BridgeBulkWorkloadRequest::new(vec![
-        BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
-        BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
+        BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+            crate::facade::TruthCommitIdentity::new("commit-a"),
+        )),
+        BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+            crate::facade::TruthCommitIdentity::new("commit-b"),
+        )),
     ]);
 
     let development_source = crate::harness::fixtures::InMemoryRelationalBridgeSource::default();
     development_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        name_field_key(),
     ));
     development_source.insert_committed_patch(committed_patch(
-        "commit-b",
-        "patch-b",
-        "snapshot-b",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-b"),
+        name_field_key(),
     ));
-    development_source.insert_snapshot(snapshot("snapshot-a", "alice"));
-    development_source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    development_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    development_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
     let development = crate::facade::RuntimeBridge::builder()
         .with_relational_source(development_source)
         .with_signal_sink(crate::harness::fixtures::RecordingSignalBridgeSink::default())
@@ -194,19 +250,19 @@ fn bridge_bulk_planning_truth_is_invariant_across_diagnostics_tiers() {
 
     let operational_source = crate::harness::fixtures::InMemoryRelationalBridgeSource::default();
     operational_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        name_field_key(),
     ));
     operational_source.insert_committed_patch(committed_patch(
-        "commit-b",
-        "patch-b",
-        "snapshot-b",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-b"),
+        name_field_key(),
     ));
-    operational_source.insert_snapshot(snapshot("snapshot-a", "alice"));
-    operational_source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    operational_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    operational_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
     let operational = crate::facade::RuntimeBridge::builder()
         .with_relational_source(operational_source)
         .with_signal_sink(crate::harness::fixtures::RecordingSignalBridgeSink::default())
@@ -266,19 +322,20 @@ fn bridge_bulk_planning_truth_is_invariant_across_diagnostics_tiers() {
 fn parallel_preparation_admission_remains_parity_safe_with_serial_required_path() {
     let admitted_source = crate::harness::fixtures::InMemoryRelationalBridgeSource::default();
     admitted_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        name_field_key(),
     ));
     admitted_source.insert_committed_patch(committed_patch(
-        "commit-b",
-        "patch-b",
-        "snapshot-b",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-b"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
-    admitted_source.insert_snapshot(snapshot("snapshot-a", "alice"));
-    admitted_source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    admitted_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    admitted_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
     let admitted_sink = crate::harness::fixtures::RecordingSignalBridgeSink::default();
     let admitted_runtime =
         build_runtime(admitted_source, admitted_sink.clone(), vec![registration()]);
@@ -287,8 +344,12 @@ fn parallel_preparation_admission_remains_parity_safe_with_serial_required_path(
         .deliver_bulk_workload_plan(
             admitted_runtime
                 .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-                    BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
-                    BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
+                    BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                        crate::facade::TruthCommitIdentity::new("commit-a"),
+                    )),
+                    BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                        crate::facade::TruthCommitIdentity::new("commit-b"),
+                    )),
                 ]))
                 .expect("parallel-admitted bulk workload should plan"),
         )
@@ -296,18 +357,19 @@ fn parallel_preparation_admission_remains_parity_safe_with_serial_required_path(
 
     let serial_source = crate::harness::fixtures::InMemoryRelationalBridgeSource::default();
     serial_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
     serial_source.insert_committed_patch(committed_patch(
-        "commit-b",
-        "patch-b",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        name_field_key(),
     ));
-    serial_source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    serial_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
     let serial_sink = crate::harness::fixtures::RecordingSignalBridgeSink::default();
     let serial_runtime = build_runtime(serial_source, serial_sink.clone(), vec![registration()]);
 
@@ -315,8 +377,12 @@ fn parallel_preparation_admission_remains_parity_safe_with_serial_required_path(
         .deliver_bulk_workload_plan(
             serial_runtime
                 .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-                    BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
-                    BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
+                    BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                        crate::facade::TruthCommitIdentity::new("commit-a"),
+                    )),
+                    BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                        crate::facade::TruthCommitIdentity::new("commit-b"),
+                    )),
                 ]))
                 .expect("serial-required bulk workload should plan"),
         )

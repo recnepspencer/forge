@@ -84,7 +84,7 @@ fn indexed_evidence_reference_resolution_uses_index_records_without_scan_fallbac
     assert_eq!(counters.index_lookup_count(), 2);
     assert_eq!(counters.resolved_reference_count(), 2);
     assert_eq!(counters.missing_required_reference_count(), 0);
-    assert_eq!(counters.bridge_record_scan_fallback_count(), 0);
+    assert_eq!(counters.bridge_record_unindexed_scan_count(), 0);
     assert_eq!(counters.retained_record_scan_count(), 0);
     assert_eq!(counters.runtime_graph_scan_count(), 0);
 }
@@ -121,7 +121,7 @@ fn indexed_reference_resolution_denies_missing_index_record_for_anchor_carried_f
     assert_eq!(counters.index_lookup_count(), 1);
     assert_eq!(counters.resolved_reference_count(), 0);
     assert_eq!(counters.missing_required_reference_count(), 1);
-    assert_eq!(counters.bridge_record_scan_fallback_count(), 0);
+    assert_eq!(counters.bridge_record_unindexed_scan_count(), 0);
     assert_eq!(counters.retained_record_scan_count(), 0);
     assert_eq!(counters.runtime_graph_scan_count(), 0);
 }
@@ -174,7 +174,7 @@ fn indexed_reference_resolution_ignores_unrelated_retained_index_records() {
     assert_eq!(counters.index_lookup_count(), 1);
     assert_eq!(counters.resolved_reference_count(), 1);
     assert_eq!(counters.missing_required_reference_count(), 0);
-    assert_eq!(counters.bridge_record_scan_fallback_count(), 0);
+    assert_eq!(counters.bridge_record_unindexed_scan_count(), 0);
     assert_eq!(counters.retained_record_scan_count(), 0);
     assert_eq!(counters.runtime_graph_scan_count(), 0);
 }
@@ -218,7 +218,7 @@ fn indexed_reference_resolution_lookup_cost_follows_anchor_reference_width_not_r
         assert_eq!(counters.index_lookup_count(), 1);
         assert_eq!(counters.resolved_reference_count(), 1);
         assert_eq!(counters.missing_required_reference_count(), 0);
-        assert_eq!(counters.bridge_record_scan_fallback_count(), 0);
+        assert_eq!(counters.bridge_record_unindexed_scan_count(), 0);
         assert_eq!(counters.retained_record_scan_count(), 0);
         assert_eq!(counters.runtime_graph_scan_count(), 0);
     }

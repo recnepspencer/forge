@@ -8,6 +8,83 @@ use super::{
     BridgeSubscriptionCertificationScratch, BridgeSubscriptionCertificationSemanticSourceKind,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BridgeSubscriptionCertificationSemanticDigestField {
+    Subscription,
+    SubscriptionRegistry,
+    SubscriptionBasis,
+    SubscriptionLifecycle,
+    SubscriptionDelivery,
+    SubscriptionShare,
+    SubscriptionContinuation,
+    ConsumerContract,
+    Checkpoint,
+    Routing,
+    Replay,
+    Diagnostics,
+    Failure,
+    Residue,
+    StrategyLowering,
+}
+
+impl BridgeSubscriptionCertificationSemanticDigestField {
+    const fn digest_domain(self) -> &'static str {
+        match self {
+            Self::Subscription => "subscription-digest",
+            Self::SubscriptionRegistry => "subscription-registry-digest",
+            Self::SubscriptionBasis => "subscription-basis-digest",
+            Self::SubscriptionLifecycle => "subscription-lifecycle-digest",
+            Self::SubscriptionDelivery => "subscription-delivery-digest",
+            Self::SubscriptionShare => "subscription-share-digest",
+            Self::SubscriptionContinuation => "subscription-continuation-digest",
+            Self::ConsumerContract => "consumer-contract-digest",
+            Self::Checkpoint => "checkpoint-digest",
+            Self::Routing => "routing-digest",
+            Self::Replay => "replay-digest",
+            Self::Diagnostics => "diagnostics-digest",
+            Self::Failure => "failure-digest",
+            Self::Residue => "residue-digest",
+            Self::StrategyLowering => "strategy-lowering-digest",
+        }
+    }
+
+    const fn source_kind(self) -> BridgeSubscriptionCertificationSemanticSourceKind {
+        match self {
+            Self::Subscription => BridgeSubscriptionCertificationSemanticSourceKind::Subscription,
+            Self::SubscriptionRegistry => {
+                BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionRegistry
+            }
+            Self::SubscriptionBasis => {
+                BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionBasis
+            }
+            Self::SubscriptionLifecycle => {
+                BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionLifecycle
+            }
+            Self::SubscriptionDelivery => {
+                BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionDelivery
+            }
+            Self::SubscriptionShare => {
+                BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionShare
+            }
+            Self::SubscriptionContinuation => {
+                BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionContinuation
+            }
+            Self::ConsumerContract => {
+                BridgeSubscriptionCertificationSemanticSourceKind::ConsumerContract
+            }
+            Self::Checkpoint => BridgeSubscriptionCertificationSemanticSourceKind::Checkpoint,
+            Self::Routing => BridgeSubscriptionCertificationSemanticSourceKind::Routing,
+            Self::Replay => BridgeSubscriptionCertificationSemanticSourceKind::Replay,
+            Self::Diagnostics => BridgeSubscriptionCertificationSemanticSourceKind::Diagnostics,
+            Self::Failure => BridgeSubscriptionCertificationSemanticSourceKind::Failure,
+            Self::Residue => BridgeSubscriptionCertificationSemanticSourceKind::Residue,
+            Self::StrategyLowering => {
+                BridgeSubscriptionCertificationSemanticSourceKind::StrategyLowering
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeSubscriptionCertificationSemanticDigests {
     subscription_digest: Arc<str>,
@@ -37,157 +114,92 @@ impl BridgeSubscriptionCertificationSemanticDigests {
         scratch: &BridgeSubscriptionCertificationScratch,
         counters: &BridgeSubscriptionCertificationCounterSnapshot,
     ) -> Self {
-        let present = |label: &str,
-                       source_kind: BridgeSubscriptionCertificationSemanticSourceKind|
-         -> Arc<str> {
-            let source_digest = assembly_plan
-                .semantic_source_digests()
-                .source_digest_for(source_kind);
-            let digest = Sha256::digest(
-                format!(
-                    "{label}|source-kind={}|source-present={}|source-digest={}",
-                    source_kind.as_str(),
-                    source_digest.source_present(),
-                    source_digest.digest()
-                )
-                .as_bytes(),
-            );
-            Arc::from(format!(
-                "bridge-subscription-certification-{label}:sha256:{digest:x}"
-            ))
-        };
-        let optional_field_state =
-            |source_kind: BridgeSubscriptionCertificationSemanticSourceKind,
-             absent_state: BridgeSubscriptionBundleFieldState|
-             -> BridgeSubscriptionBundleFieldState {
-                let source_digest = assembly_plan
-                    .semantic_source_digests()
-                    .source_digest_for(source_kind);
-                if source_digest.source_present() {
-                    BridgeSubscriptionBundleFieldState::Present
-                } else {
-                    absent_state
-                }
-            };
-        let field_state = |label: &str,
-                           state: BridgeSubscriptionBundleFieldState,
-                           source_kind: BridgeSubscriptionCertificationSemanticSourceKind|
-         -> Arc<str> {
-            let source_digest = assembly_plan
-                .semantic_source_digests()
-                .source_digest_for(source_kind);
-            let digest = Sha256::digest(
-                format!(
-                    "{label}|field-state={}|source-kind={}|source-present={}|source-digest={}",
-                    state.as_str(),
-                    source_kind.as_str(),
-                    source_digest.source_present(),
-                    source_digest.digest()
-                )
-                .as_bytes(),
-            );
-            Arc::from(format!(
-                "bridge-subscription-certification-{label}:sha256:{digest:x}"
-            ))
-        };
-
-        let subscription_digest = present(
-            "subscription-digest",
-            BridgeSubscriptionCertificationSemanticSourceKind::Subscription,
+        let subscription_digest = semantic_present_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::Subscription,
+            assembly_plan,
         );
-        let subscription_registry_digest = present(
-            "subscription-registry-digest",
-            BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionRegistry,
+        let subscription_registry_digest = semantic_present_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::SubscriptionRegistry,
+            assembly_plan,
         );
-        let subscription_basis_digest = present(
-            "subscription-basis-digest",
-            BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionBasis,
+        let subscription_basis_digest = semantic_present_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::SubscriptionBasis,
+            assembly_plan,
         );
-        let subscription_lifecycle_digest = present(
-            "subscription-lifecycle-digest",
-            BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionLifecycle,
+        let subscription_lifecycle_digest = semantic_present_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::SubscriptionLifecycle,
+            assembly_plan,
         );
-        let subscription_delivery_digest = present(
-            "subscription-delivery-digest",
-            BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionDelivery,
+        let subscription_delivery_digest = semantic_present_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::SubscriptionDelivery,
+            assembly_plan,
         );
-        let subscription_share_digest = field_state(
-            "subscription-share-digest",
-            optional_field_state(
-                BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionShare,
+        let subscription_share_digest = semantic_field_state_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::SubscriptionShare,
+            optional_semantic_field_state(
+                BridgeSubscriptionCertificationSemanticDigestField::SubscriptionShare,
                 BridgeSubscriptionBundleFieldState::NotExercised,
+                assembly_plan,
             ),
-            BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionShare,
+            assembly_plan,
         );
-        let subscription_continuation_digest = field_state(
-            "subscription-continuation-digest",
-            optional_field_state(
-                BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionContinuation,
+        let subscription_continuation_digest = semantic_field_state_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::SubscriptionContinuation,
+            optional_semantic_field_state(
+                BridgeSubscriptionCertificationSemanticDigestField::SubscriptionContinuation,
                 BridgeSubscriptionBundleFieldState::NotExercised,
+                assembly_plan,
             ),
-            BridgeSubscriptionCertificationSemanticSourceKind::SubscriptionContinuation,
+            assembly_plan,
         );
-        let consumer_contract_digest = present(
-            "consumer-contract-digest",
-            BridgeSubscriptionCertificationSemanticSourceKind::ConsumerContract,
+        let consumer_contract_digest = semantic_present_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::ConsumerContract,
+            assembly_plan,
         );
-        let checkpoint_digest = field_state(
-            "checkpoint-digest",
-            optional_field_state(
-                BridgeSubscriptionCertificationSemanticSourceKind::Checkpoint,
+        let checkpoint_digest = semantic_field_state_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::Checkpoint,
+            optional_semantic_field_state(
+                BridgeSubscriptionCertificationSemanticDigestField::Checkpoint,
                 BridgeSubscriptionBundleFieldState::NotExercised,
+                assembly_plan,
             ),
-            BridgeSubscriptionCertificationSemanticSourceKind::Checkpoint,
+            assembly_plan,
         );
-        let routing_digest = present(
-            "routing-digest",
-            BridgeSubscriptionCertificationSemanticSourceKind::Routing,
+        let routing_digest = semantic_present_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::Routing,
+            assembly_plan,
         );
-        let replay_digest = field_state(
-            "replay-digest",
-            optional_field_state(
-                BridgeSubscriptionCertificationSemanticSourceKind::Replay,
+        let replay_digest = semantic_field_state_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::Replay,
+            optional_semantic_field_state(
+                BridgeSubscriptionCertificationSemanticDigestField::Replay,
                 BridgeSubscriptionBundleFieldState::RejectedBeforeProduced,
+                assembly_plan,
             ),
-            BridgeSubscriptionCertificationSemanticSourceKind::Replay,
+            assembly_plan,
         );
-        let diagnostics_source = assembly_plan
-            .semantic_source_digests()
-            .source_digest_for(BridgeSubscriptionCertificationSemanticSourceKind::Diagnostics);
-        let diagnostics_digest = {
-            let digest = Sha256::digest(
-                format!(
-                    "diagnostics-digest|source-kind={}|source-present={}|source-digest={}|cost-profile={}",
-                    BridgeSubscriptionCertificationSemanticSourceKind::Diagnostics.as_str(),
-                    diagnostics_source.source_present(),
-                    diagnostics_source.digest(),
-                    cost_profile.digest(),
-                )
-                .as_bytes(),
-            );
-            Arc::from(format!(
-                "bridge-subscription-certification-diagnostics-digest:sha256:{digest:x}"
-            ))
-        };
-        let failure_digest = field_state(
-            "failure-digest",
-            optional_field_state(
-                BridgeSubscriptionCertificationSemanticSourceKind::Failure,
+        let diagnostics_digest = semantic_diagnostics_digest(assembly_plan, cost_profile);
+        let failure_digest = semantic_field_state_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::Failure,
+            optional_semantic_field_state(
+                BridgeSubscriptionCertificationSemanticDigestField::Failure,
                 BridgeSubscriptionBundleFieldState::RejectedBeforeProduced,
+                assembly_plan,
             ),
-            BridgeSubscriptionCertificationSemanticSourceKind::Failure,
+            assembly_plan,
         );
-        let residue_digest = field_state(
-            "residue-digest",
-            optional_field_state(
-                BridgeSubscriptionCertificationSemanticSourceKind::Residue,
+        let residue_digest = semantic_field_state_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::Residue,
+            optional_semantic_field_state(
+                BridgeSubscriptionCertificationSemanticDigestField::Residue,
                 BridgeSubscriptionBundleFieldState::NotExercised,
+                assembly_plan,
             ),
-            BridgeSubscriptionCertificationSemanticSourceKind::Residue,
+            assembly_plan,
         );
-        let strategy_lowering_digest = present(
-            "strategy-lowering-digest",
-            BridgeSubscriptionCertificationSemanticSourceKind::StrategyLowering,
+        let strategy_lowering_digest = semantic_present_digest(
+            BridgeSubscriptionCertificationSemanticDigestField::StrategyLowering,
+            assembly_plan,
         );
         let counter_snapshot_digest = counters.digest();
         let canonical_basis = Arc::<str>::from(format!(
@@ -307,4 +319,92 @@ impl BridgeSubscriptionCertificationSemanticDigests {
     pub fn digest(&self) -> &str {
         self.digest.as_ref()
     }
+}
+
+fn semantic_present_digest(
+    field: BridgeSubscriptionCertificationSemanticDigestField,
+    assembly_plan: &BridgeSubscriptionCertificationAssemblyPlan,
+) -> Arc<str> {
+    let source_kind = field.source_kind();
+    let source_digest = assembly_plan
+        .semantic_source_digests()
+        .source_digest_for(source_kind);
+    let digest_domain = field.digest_domain();
+    let digest = Sha256::digest(
+        format!(
+            "{digest_domain}|source-kind={}|source-present={}|source-digest={}",
+            source_kind.as_str(),
+            source_digest.source_present(),
+            source_digest.digest()
+        )
+        .as_bytes(),
+    );
+    Arc::from(format!(
+        "bridge-subscription-certification-{digest_domain}:sha256:{digest:x}"
+    ))
+}
+
+fn optional_semantic_field_state(
+    field: BridgeSubscriptionCertificationSemanticDigestField,
+    absent_state: BridgeSubscriptionBundleFieldState,
+    assembly_plan: &BridgeSubscriptionCertificationAssemblyPlan,
+) -> BridgeSubscriptionBundleFieldState {
+    let source_digest = assembly_plan
+        .semantic_source_digests()
+        .source_digest_for(field.source_kind());
+    if source_digest.source_present() {
+        BridgeSubscriptionBundleFieldState::Present
+    } else {
+        absent_state
+    }
+}
+
+fn semantic_field_state_digest(
+    field: BridgeSubscriptionCertificationSemanticDigestField,
+    field_state: BridgeSubscriptionBundleFieldState,
+    assembly_plan: &BridgeSubscriptionCertificationAssemblyPlan,
+) -> Arc<str> {
+    let source_kind = field.source_kind();
+    let source_digest = assembly_plan
+        .semantic_source_digests()
+        .source_digest_for(source_kind);
+    let digest_domain = field.digest_domain();
+    let digest = Sha256::digest(
+        format!(
+            "{digest_domain}|field-state={}|source-kind={}|source-present={}|source-digest={}",
+            field_state.as_str(),
+            source_kind.as_str(),
+            source_digest.source_present(),
+            source_digest.digest()
+        )
+        .as_bytes(),
+    );
+    Arc::from(format!(
+        "bridge-subscription-certification-{digest_domain}:sha256:{digest:x}"
+    ))
+}
+
+fn semantic_diagnostics_digest(
+    assembly_plan: &BridgeSubscriptionCertificationAssemblyPlan,
+    cost_profile: &BridgeSubscriptionCertificationCostProfile,
+) -> Arc<str> {
+    let field = BridgeSubscriptionCertificationSemanticDigestField::Diagnostics;
+    let source_kind = field.source_kind();
+    let source_digest = assembly_plan
+        .semantic_source_digests()
+        .source_digest_for(source_kind);
+    let digest_domain = field.digest_domain();
+    let digest = Sha256::digest(
+        format!(
+            "{digest_domain}|source-kind={}|source-present={}|source-digest={}|cost-profile={}",
+            source_kind.as_str(),
+            source_digest.source_present(),
+            source_digest.digest(),
+            cost_profile.digest(),
+        )
+        .as_bytes(),
+    );
+    Arc::from(format!(
+        "bridge-subscription-certification-{digest_domain}:sha256:{digest:x}"
+    ))
 }

@@ -1,0 +1,56 @@
+use super::*;
+
+pub(in crate::harness::tests::pricing_shock) fn pricing_writeback_declaration(
+    declaration_identity: &str,
+    request_kind: BridgeRequestKind,
+    request_mode: BridgeWritebackRequestMode,
+    _strategy_descriptor_evidence_text: &str,
+) -> BridgeWritebackDeclaration {
+    match request_mode {
+        BridgeWritebackRequestMode::ReadOnly => BridgeWritebackDeclaration::read_only(
+            BridgeWritebackDeclarationIdentity::new(declaration_identity),
+            request_kind,
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
+        ),
+        BridgeWritebackRequestMode::WritebackCapable => {
+            BridgeWritebackDeclaration::writeback_capable(
+                BridgeWritebackDeclarationIdentity::new(declaration_identity),
+                request_kind,
+                BridgeWritebackFamilyKind::ProjectedStateDiff,
+                BridgeWritebackEffectClass::ProjectedStateDiff,
+                BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
+                BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
+            )
+        }
+    }
+}
+
+pub(in crate::harness::tests::pricing_shock) fn pricing_lowered_policy(
+    runtime: &RuntimeBridge,
+) -> crate::facade::LoweredBridgeExecutionPolicy {
+    let policy_contract = runtime
+        .admit_policy_declaration(BridgePolicyDeclaration::new(
+            BridgePolicyDeclarationIdentity::new("policy:pricing-writeback"),
+            BridgeRequestKind::Authoritative,
+            BridgeExecutionPolicyClass::DeterministicCanonical,
+            BridgeDiagnosticsTier::Standard,
+            true,
+            true,
+        ))
+        .expect("pricing writeback policy should admit");
+    runtime.lower_admitted_policy(&policy_contract)
+}
+
+pub(in crate::harness::tests::pricing_shock) fn pricing_writeback_causality_basis(
+    identity: &str,
+    truth_trigger_evidence_text: &str,
+) -> crate::facade::BridgeWritebackNativeCausalityInputs {
+    crate::facade::BridgeWritebackNativeCausalityInputs::new(
+        BridgeWritebackCausalityIdentity::new(identity),
+        crate::facade::TruthCommitIdentity::new(truth_trigger_evidence_text),
+        crate::facade::BridgeRouteIdentity::new(identity),
+        crate::facade::TruthSnapshotIdentity::new(identity),
+        crate::facade::TruthSnapshotIdentity::new(identity),
+    )
+}

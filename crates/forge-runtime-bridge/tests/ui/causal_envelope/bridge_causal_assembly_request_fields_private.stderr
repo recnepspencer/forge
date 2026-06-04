@@ -7,5 +7,5 @@ error[E0451]: fields `admission_summary`, `references` and `request_digest` of s
    |         ^^^^^^^^^^^^^^^^^ private field
 13 |         references: references.into(),
    |         ^^^^^^^^^^ private field
-14 |         request_digest: "request".into(),
+14 |         request_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^ private field

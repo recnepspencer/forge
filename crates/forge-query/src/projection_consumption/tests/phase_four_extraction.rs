@@ -1,10 +1,10 @@
-use forge_foundational::facade::AspectValue;
+use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
 use forge_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
 };
 use forge_runtime_bridge::facade::{
-    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
-    TruthSnapshotIdentity,
+    SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
+    SnapshotReadRequest, TruthSnapshotIdentity,
 };
 
 use super::super::{
@@ -101,29 +101,24 @@ fn extraction_rejects_missing_field_evidence_and_family_mismatch() {
         ProjectionFactExtractionError::MissingDeclaredFieldEvidence { .. }
     ));
 
+    let entity_one_display_read = string_snapshot_read("entity-1", "profile.display_name");
+    let entity_two_display_read = string_snapshot_read("entity-2", "profile.display_name");
+    let missing_identity_packet = SnapshotReadPacket::new(vec![
+        entity_one_display_read.clone(),
+        entity_two_display_read.clone(),
+    ]);
     let missing_identity_row_set = materialize_relational_authoritative_row_set(
-        &SnapshotReadPacket::new(vec![
-            SnapshotReadRequest::for_coarse(
-                "entity-1",
-                forge_foundational::facade::AspectKey::new("profile.display_name")
-                    .expect("valid snapshot aspect key"),
-            ),
-            SnapshotReadRequest::for_coarse(
-                "entity-2",
-                forge_foundational::facade::AspectKey::new("profile.display_name")
-                    .expect("valid snapshot aspect key"),
-            ),
-        ]),
+        &missing_identity_packet,
         &SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
             vec![
-                SnapshotReadRecord::new(
-                    "entity-1:profile.display_name",
-                    aspect_bytes(AspectValue::String("Task One".into())),
+                SnapshotReadRecord::for_request(
+                    &entity_one_display_read,
+                    aspect_value(AspectValue::String("Task One".into())),
                 ),
-                SnapshotReadRecord::new(
-                    "entity-2:profile.display_name",
-                    aspect_bytes(AspectValue::String("Task Two".into())),
+                SnapshotReadRecord::for_request(
+                    &entity_two_display_read,
+                    aspect_value(AspectValue::String("Task Two".into())),
                 ),
             ],
         ),
@@ -149,8 +144,18 @@ fn extraction_rejects_missing_field_evidence_and_family_mismatch() {
     let _ = ProjectionSourceFamily::BridgeTruthViewRowSet;
 }
 
-fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+fn aspect_value(value: AspectValue) -> AspectValue {
     encode_snapshot_aspect_read_value(&value)
+}
+
+fn string_snapshot_read(entity: &str, aspect: &str) -> SnapshotReadRequest {
+    SnapshotReadRequest::for_coarse(
+        entity,
+        SnapshotReadContract::scalar(
+            AspectKey::new(aspect).expect("valid snapshot aspect key"),
+            ScalarAspectType::String,
+        ),
+    )
 }
 
 #[test]

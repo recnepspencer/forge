@@ -17,6 +17,10 @@ import {
   createTimedOutLineStatus,
 } from "../state/line_status_value.js";
 import { areLineValuesSemanticallyEqual } from "../state/line_value_semantic_equality.js";
+import {
+  patchLineBindingState,
+  readLineBindingState,
+} from "../state/line_binding_state.js";
 
 function executeLineHistoryExactRestore(materialization, historyRead) {
   const availability = historyRead.availability.restoreExact;
@@ -188,7 +192,7 @@ function isPromiseLike(value) {
 
 function readPreviousDiagnosticsFallback(materialization) {
   try {
-    return materialization.binding.diagnosticsSignal();
+    return readLineBindingState(materialization.binding).diagnostics;
   } catch {
     return null;
   }
@@ -202,45 +206,46 @@ function adoptRestoredMaterialization(
   previousValue,
 ) {
   const effectivePreviousDiagnostics =
-    previousDiagnostics ?? restoredMaterialization.binding.diagnosticsSignal();
+    previousDiagnostics ?? readLineBindingState(restoredMaterialization.binding).diagnostics;
   cloneLifecycleHistory(
     previousLifecycleEntries,
     restoredMaterialization.lifecycleHistory,
   );
-  const status = restoredMaterialization.binding.statusSignal();
+  const restoredState = readLineBindingState(restoredMaterialization.binding);
+  const status = restoredState.status;
   if (status.kind === "fulfilled") {
     const diagnostics = createRestoreReloadDiagnostics(
       createReloadFulfilledDiagnostics(
         effectivePreviousDiagnostics,
         "restore",
-        restoredMaterialization.binding.processingSignal(),
-        restoredMaterialization.binding.uploadSignal(),
-        restoredMaterialization.binding.downloadSignal(),
+        restoredState.processing,
+        restoredState.upload,
+        restoredState.download,
         !areLineValuesSemanticallyEqual(
-          restoredMaterialization.binding.valueSignal(),
+          restoredState.value,
           previousValue,
         ),
         0,
       ),
       restoredRequestDescriptor,
     );
-    restoredMaterialization.binding.statusSignal.set(
-      createFulfilledLineStatus("restore"),
-    );
-    restoredMaterialization.binding.diagnosticsSignal.set(diagnostics);
+    const nextStatus = createFulfilledLineStatus("restore");
+    patchLineBindingState(restoredMaterialization.binding, {
+      status: nextStatus,
+      diagnostics,
+    });
     recordLineHistoryEntry(
       restoredMaterialization.lifecycleHistory,
       restoredMaterialization.binding,
       "restored",
     );
-    return restoredMaterialization.binding.statusSignal();
+    return nextStatus;
   }
   if (status.kind === "pending") {
-    restoredMaterialization.binding.statusSignal.set(
-      createPendingLineStatus("restore", previousValue !== null),
-    );
-    restoredMaterialization.binding.diagnosticsSignal.set(
-      createRestoreReloadDiagnostics(
+    const nextStatus = createPendingLineStatus("restore", previousValue !== null);
+    patchLineBindingState(restoredMaterialization.binding, {
+      status: nextStatus,
+      diagnostics: createRestoreReloadDiagnostics(
         createPendingReloadDiagnostics(
           effectivePreviousDiagnostics,
           "restore",
@@ -248,20 +253,19 @@ function adoptRestoredMaterialization(
         ),
         restoredRequestDescriptor,
       ),
-    );
+    });
     recordLineHistoryEntry(
       restoredMaterialization.lifecycleHistory,
       restoredMaterialization.binding,
       "pending",
     );
-    return restoredMaterialization.binding.statusSignal();
+    return nextStatus;
   }
   if (status.kind === "timedOut") {
-    restoredMaterialization.binding.statusSignal.set(
-      createTimedOutLineStatus("restore", previousValue !== null),
-    );
-    restoredMaterialization.binding.diagnosticsSignal.set(
-      createRestoreReloadDiagnostics(
+    const nextStatus = createTimedOutLineStatus("restore", previousValue !== null);
+    patchLineBindingState(restoredMaterialization.binding, {
+      status: nextStatus,
+      diagnostics: createRestoreReloadDiagnostics(
         createTimedOutReloadDiagnostics(
           effectivePreviousDiagnostics,
           "restore",
@@ -269,23 +273,22 @@ function adoptRestoredMaterialization(
         ),
         restoredRequestDescriptor,
       ),
-    );
+    });
     recordLineHistoryEntry(
       restoredMaterialization.lifecycleHistory,
       restoredMaterialization.binding,
       "timedOut",
     );
-    return restoredMaterialization.binding.statusSignal();
+    return nextStatus;
   }
-  restoredMaterialization.binding.statusSignal.set(
-    createRejectedLineStatus(
-      "restore",
-      status.message,
-      previousValue !== null,
-    ),
+  const nextStatus = createRejectedLineStatus(
+    "restore",
+    status.message,
+    previousValue !== null,
   );
-  restoredMaterialization.binding.diagnosticsSignal.set(
-    createRestoreReloadDiagnostics(
+  patchLineBindingState(restoredMaterialization.binding, {
+    status: nextStatus,
+    diagnostics: createRestoreReloadDiagnostics(
       createReloadRejectedDiagnostics(
         effectivePreviousDiagnostics,
         "restore",
@@ -294,13 +297,13 @@ function adoptRestoredMaterialization(
       ),
       restoredRequestDescriptor,
     ),
-  );
+  });
   recordLineHistoryEntry(
     restoredMaterialization.lifecycleHistory,
     restoredMaterialization.binding,
     "rejected",
   );
-  return restoredMaterialization.binding.statusSignal();
+  return nextStatus;
 }
 
 function cloneLifecycleHistory(entries, lifecycleHistory) {
@@ -361,7 +364,7 @@ function readRequestDescriptorFallback(materialization) {
 
 function readPreviousValueFallback(materialization) {
   try {
-    return materialization.binding.valueSignal();
+    return readLineBindingState(materialization.binding).value;
   } catch {
     return null;
   }

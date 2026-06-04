@@ -180,7 +180,7 @@ The advanced lane executes in this order:
      - `forge_runtime_bridge::facade::BridgeRouteRequest`
      - `forge_runtime_bridge::facade::BridgeTruthViewEvaluationRequest`
      - `forge_runtime_bridge::facade::BridgeSpeculativeSessionRequest`
-     - `forge_runtime_bridge::facade::BridgeSpeculativePromotionRequest`
+     - `forge_query::application::ForgeQueryPreviewPromotionContinuationBinding`
      - `forge_runtime_bridge::facade::BridgeSubscriptionContinuationCandidateInput`
      - `forge_runtime_bridge::facade::TruthWritebackRequest`
    - derives one bridge-routing digest from retained proof

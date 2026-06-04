@@ -1,3 +1,5 @@
+import { readLineBindingState } from "../lines/state/line_binding_state.js";
+
 function createMutationResponseTargetBasisSnapshots(declaration, mutationParams) {
   return createMutationResponseTargetBasisSnapshotsForTargets(
     declaration.targets,
@@ -22,7 +24,10 @@ function createMutationResponseTargetBasisSnapshot(target, mutationParams) {
     lineIdentity.residency === "resident"
       ? target.lookupResidentTargetMaterialization(targetParams)
       : null;
-  const diagnostics = materialization?.binding.diagnosticsSignal() ?? null;
+  const diagnostics =
+    materialization === null
+      ? null
+      : readLineBindingState(materialization.binding).diagnostics;
   const basisId = materialization?.requestState.currentBasisId() ?? null;
   const visibleValueVersion = diagnostics?.visibleValueVersion ?? null;
   return Object.freeze({
@@ -73,7 +78,7 @@ function readMutationResponseTargetStaleness(
       "runtimeLineIdChanged",
     );
   }
-  const diagnostics = targetMaterialization.binding.diagnosticsSignal();
+  const diagnostics = readLineBindingState(targetMaterialization.binding).diagnostics;
   const currentBasisId = targetMaterialization.requestState.currentBasisId();
   if (submittedTarget.basisId !== currentBasisId) {
     return createTargetStaleness(

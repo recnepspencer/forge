@@ -135,7 +135,7 @@ function isProductSignalHandle(target) {
 
 function invalidTargetError(operation) {
   return new TypeError(
-    `${operation} expects a string id or a product signal handle created by this package`,
+    `${operation} expects a string id, a product signal handle created by this package, or a callable view handle with a stable id`,
   );
 }
 
@@ -164,6 +164,14 @@ export function requireProductSignalHandle(target, rawSignals, operation) {
 export function unwrapSignalTarget(target, rawSignals, operation = "signal operation") {
   if (typeof target === "string") {
     return target;
+  }
+  if (
+    target
+    && typeof target === "function"
+    && typeof target.id === "string"
+    && typeof target.get === "function"
+  ) {
+    return target.id;
   }
   return requireProductSignalHandle(target, rawSignals, operation)[RAW_SIGNAL_HANDLE];
 }

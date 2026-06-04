@@ -3,8 +3,6 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
-use crate::mapping::SubscriptionSliceKind;
-
 use super::super::{
     BridgeSubscriptionCounters, BridgeSubscriptionDeclarationFamilyKind,
     BridgeSubscriptionDeclarationIdentity, BridgeSubscriptionDeclarationRejection,
@@ -224,13 +222,7 @@ fn declaration_basis(
     basis.push_str(&normalized_slice_intents.len().to_string());
     for intent in normalized_slice_intents {
         basis.push_str("|slice=");
-        basis.push_str(intent.entity_identity());
-        basis.push('/');
-        basis.push_str(intent.aspect_label());
-        basis.push('/');
-        basis.push_str(intent.surface_label());
-        basis.push('/');
-        basis.push_str(subscription_slice_kind_label(intent.slice_kind()));
+        basis.push_str(intent.slice_target_identity().as_str());
     }
     Arc::from(basis)
 }
@@ -251,15 +243,4 @@ fn declaration_identity_for_semantics(
     BridgeSubscriptionDeclarationIdentity::new(format!(
         "bridge-subscription-declaration-id:sha256:{digest:x}"
     ))
-}
-
-fn subscription_slice_kind_label(slice_kind: &SubscriptionSliceKind) -> &'static str {
-    match slice_kind {
-        SubscriptionSliceKind::SignalField => "signal_field",
-        SubscriptionSliceKind::SignalLens => "signal_lens",
-        SubscriptionSliceKind::SignalRegion => "signal_region",
-        SubscriptionSliceKind::SignalPartition => "signal_partition",
-        SubscriptionSliceKind::SignalFacet => "signal_facet",
-        SubscriptionSliceKind::RegisteredCoarseFallback => "registered_coarse_fallback",
-    }
 }

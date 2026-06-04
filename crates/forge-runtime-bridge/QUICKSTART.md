@@ -40,9 +40,9 @@ shape real.
 
 ```rust
 use forge_runtime_bridge::facade::{
-    BridgeMappingId, BridgeMappingRegistration, BridgeSpeculativePromotionRequest,
-    BridgeTruthViewEvaluationRequest, CoarseRoutingMode, MappingSelector, RuntimeBridge,
-    SignalInvalidationScope, TruthBranchIdentity, TruthPatchScope,
+    BridgeMappingId, BridgeMappingRegistration, BridgeTruthViewEvaluationRequest,
+    CoarseRoutingMode, MappingSelector, RuntimeBridge, SignalInvalidationScope,
+    TruthBranchIdentity, TruthPatchScope,
 };
 ```
 
@@ -56,7 +56,7 @@ If you already have a bound truth source, branch-head source, compute sink, and
 at least one mapping, the standard path is:
 
 ```rust
-let route = bridge.route("commit:steel-main")?;
+let route = bridge.route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))?;
 let evaluation = bridge.evaluate_current(route.target())?;
 let diagnostics = bridge.diagnostics().explain_last();
 ```
@@ -95,7 +95,7 @@ Normal setup should feel like:
 ## 4. Route A Truth Change
 
 ```rust
-let route = bridge.route("commit:steel-main")?;
+let route = bridge.route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))?;
 ```
 
 For ordinary work, `route(...)` is the front door.
@@ -154,16 +154,13 @@ let discarded = session.discard(vec![
 Promote:
 
 ```rust
-let promoted = session.promote(BridgeSpeculativePromotionRequest::new(
-    "commit-boundary:pricing",
-    "authoritative-artifact:pricing",
-))?;
+let promoted = session.promote()?;
 ```
 
 The important part is the boundary:
 
 - discard stays non-authoritative
-- promotion is explicit
+- promotion is explicit and derives authority from the active preview proof
 
 ## 8. Inspect What Happened
 

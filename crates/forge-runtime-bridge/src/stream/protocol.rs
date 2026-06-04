@@ -105,7 +105,7 @@ impl AdmittedConsumerContract {
             _ => {
                 return Err(BridgeStreamError::new(
                     BridgeStreamErrorKind::UnsupportedConsumerShape,
-                    "The declared delivery intent is incompatible with the selected stream consumer shape.",
+                    "The declared delivery intent diverges from the selected stream consumer shape.",
                 ));
             }
         };
@@ -125,7 +125,7 @@ impl AdmittedConsumerContract {
             super::declaration::StreamCoalescingIntent::Prefer(_) => {
                 return Err(BridgeStreamError::new(
                     BridgeStreamErrorKind::IllegalCoalescingBoundary,
-                    "The requested coalescing family is incompatible with the declared stream consumer shape.",
+                    "The requested coalescing family diverges from the declared stream consumer shape.",
                 ));
             }
         };

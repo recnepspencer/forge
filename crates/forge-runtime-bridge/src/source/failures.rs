@@ -19,7 +19,7 @@ pub enum SourceFailureClass {
     HistoricalReadUnavailable,
     BranchReadUnavailable,
     FacetReadUnavailable,
-    ReplayIncompatibleSourceRequest,
+    ReplaySourceRequestCoherenceFailure,
     SourceMaterializationRejected,
     AdapterCapabilityDrift,
     BuilderConfigurationConflict,

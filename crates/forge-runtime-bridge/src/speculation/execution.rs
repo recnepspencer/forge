@@ -25,12 +25,11 @@ impl BridgePreviewExecutionRecord {
     ) -> Self {
         let declaration = session.declaration().declaration();
         let canonical_basis = Arc::<str>::from(format!(
-            "preview-execution-record|session={}|declaration={}|binding={}|truth-view={}|merge-basis={}|structural-basis={}|source-capability={}|request-shape={}|artifact-schema={}|preview-artifacts={}|discard-artifacts={}|retained-non-authoritative={}",
+            "preview-execution-record|session={}|declaration={}|binding={}|truth-view={}|structural-basis={}|source-capability={}|request-shape={}|artifact-schema={}|preview-artifacts={}|discard-artifacts={}|retained-non-authoritative={}",
             session.session_identity().as_str(),
             session.declaration().digest(),
             declaration.branch_binding().digest(),
             declaration.truth_view_basis_digest(),
-            declaration.merge_history_basis_digest().unwrap_or("none"),
             declaration.structural_basis_digest().unwrap_or("none"),
             declaration.source_capability_digest(),
             declaration.request_shape_digest(),
@@ -63,12 +62,11 @@ impl BridgePreviewExecutionRecord {
     ) -> Self {
         let declaration = target_session.declaration().declaration();
         let canonical_basis = Arc::<str>::from(format!(
-            "preview-execution-record|session={}|declaration={}|binding={}|truth-view={}|merge-basis={}|structural-basis={}|source-capability={}|request-shape={}|artifact-schema={}|reused-from-session={}|reused-from-execution-record={}|reuse-equivalence={}|preview-artifacts={}|discard-artifacts={}|retained-non-authoritative={}",
+            "preview-execution-record|session={}|declaration={}|binding={}|truth-view={}|structural-basis={}|source-capability={}|request-shape={}|artifact-schema={}|reused-from-session={}|reused-from-execution-record={}|reuse-equivalence={}|preview-artifacts={}|discard-artifacts={}|retained-non-authoritative={}",
             target_session.session_identity().as_str(),
             target_session.declaration().digest(),
             declaration.branch_binding().digest(),
             declaration.truth_view_basis_digest(),
-            declaration.merge_history_basis_digest().unwrap_or("none"),
             declaration.structural_basis_digest().unwrap_or("none"),
             declaration.source_capability_digest(),
             declaration.request_shape_digest(),

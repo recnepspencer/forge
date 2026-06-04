@@ -13,7 +13,7 @@ fn certification_stale_checkpoint_report_is_not_replay_mismatch() {
     );
     assert_eq!(
         report.primary_failure_boundary(),
-        crate::facade::BridgeSubscriptionCertificationFailureBoundary::CheckpointIncompatibility
+        crate::facade::BridgeSubscriptionCertificationFailureBoundary::CheckpointDivergence
     );
     assert_eq!(
         report.primary_failure_precedence_stage(),

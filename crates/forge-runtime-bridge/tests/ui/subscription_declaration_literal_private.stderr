@@ -11,9 +11,9 @@ error: cannot construct `BridgeSubscriptionDeclaration` with struct literal synt
    |         ------------------------------------------------------------------ private field
 14 |         normalized_slice_intents: Arc::<[NormalizedSubscriptionSliceIntent]>::from([]),
    |         ------------------------------------------------------------------------------ private field
-15 |         canonical_basis: Arc::from("basis"),
-   |         ----------------------------------- private field
-16 |         digest: Arc::from("digest"),
-   |         --------------------------- private field
+15 |         canonical_basis: sealed_authority_placeholder(),
+   |         ----------------------------------------------- private field
+16 |         digest: sealed_authority_placeholder(),
+   |         -------------------------------------- private field
    |
    = note: ...and other private field `counters` that was not provided

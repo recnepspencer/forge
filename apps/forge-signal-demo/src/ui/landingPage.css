@@ -1,9 +1,10 @@
 .xai-landing {
   min-height: calc(100vh - 72px);
   background:
-    radial-gradient(circle at 15% 12%, rgba(122, 162, 255, 0.12), transparent 24%),
-    radial-gradient(circle at 86% 10%, rgba(255, 255, 255, 0.08), transparent 20%),
-    linear-gradient(180deg, #050608 0%, #090b10 40%, #050608 100%);
+    radial-gradient(circle at 14% 11%, rgba(255, 255, 255, 0.055), transparent 23%),
+    radial-gradient(circle at 84% 8%, rgba(255, 255, 255, 0.035), transparent 18%),
+    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.015), transparent 26%),
+    linear-gradient(180deg, #000000 0%, #020202 42%, #000000 100%);
 }
 
 .xai-hero {

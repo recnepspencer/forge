@@ -14,7 +14,7 @@ use super::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeSubscriptionAdmissionRejectionKind {
-    IncompatibleBasisKind,
+    BasisKindDivergence,
     BasisResolutionFailure,
 }
 
@@ -31,16 +31,16 @@ pub struct BridgeSubscriptionAdmissionRejection {
 }
 
 impl BridgeSubscriptionAdmissionRejection {
-    fn incompatible_basis_kind(
+    fn basis_kind_divergence(
         declaration: &BridgeSubscriptionDeclaration,
         requested_basis_kind: BridgeSubscriptionBasisKind,
     ) -> Self {
         Self::new(
             declaration,
             requested_basis_kind,
-            BridgeSubscriptionAdmissionRejectionKind::IncompatibleBasisKind,
+            BridgeSubscriptionAdmissionRejectionKind::BasisKindDivergence,
             None,
-            BridgeSubscriptionCounters::from_incompatible_basis_kind_rejection(),
+            BridgeSubscriptionCounters::from_basis_kind_divergence_rejection(),
         )
     }
 
@@ -128,7 +128,7 @@ impl BridgeSubscriptionAdmissionRejection {
 impl BridgeSubscriptionAdmissionRejectionKind {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::IncompatibleBasisKind => "incompatible_basis_kind",
+            Self::BasisKindDivergence => "basis_kind_divergence",
             Self::BasisResolutionFailure => "basis_resolution_failure",
         }
     }
@@ -153,12 +153,10 @@ impl AdmittedBridgeSubscription {
     ) -> Result<Self, BridgeSubscriptionAdmissionRejection> {
         let requested_basis_kind = basis_request.basis_kind();
         if !family_supports_basis_kind(declaration.requested_family_kind(), requested_basis_kind) {
-            return Err(
-                BridgeSubscriptionAdmissionRejection::incompatible_basis_kind(
-                    declaration,
-                    requested_basis_kind,
-                ),
-            );
+            return Err(BridgeSubscriptionAdmissionRejection::basis_kind_divergence(
+                declaration,
+                requested_basis_kind,
+            ));
         }
 
         let basis_binding =
@@ -175,9 +173,9 @@ impl AdmittedBridgeSubscription {
 
         let canonical_basis = Arc::<str>::from(format!(
             "bridge-admitted-subscription|declaration={}|basis={}|strategy={}",
-            declaration.declaration_identity().as_str(),
-            basis_binding.basis_identity().as_str(),
-            signal_strategy.strategy_identity().as_str(),
+            declaration.digest(),
+            basis_binding.digest(),
+            signal_strategy.digest(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
 

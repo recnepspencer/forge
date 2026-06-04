@@ -244,6 +244,7 @@ fn certify_live_artifact_contract_row(
 fn source_text(path: &str) -> Result<String, TopologyCertificationError> {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(path);
     std::fs::read_to_string(&path)
+        .map(|source| source.replace("\r\n", "\n"))
         .map_err(|error| TopologyCertificationError::ReadView(format!("{path:?}: {error}")))
 }
 

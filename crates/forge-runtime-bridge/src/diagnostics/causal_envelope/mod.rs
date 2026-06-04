@@ -3,6 +3,7 @@ mod authority;
 mod binding;
 mod counters;
 mod denial;
+mod digest_basis;
 mod evidence_reference;
 mod explanation_envelope;
 mod identity;
@@ -17,19 +18,24 @@ pub use authority::{BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner};
 pub use binding::{BridgeCausalEvidenceBinding, BridgeCausalEvidenceBindingClass};
 pub use counters::BridgeCausalEnvelopeCounters;
 pub use denial::{BridgeCausalEnvelopeDenial, BridgeCausalEnvelopeDenialKind};
-pub use evidence_reference::BridgeCausalEvidenceReference;
+pub use evidence_reference::{
+    BridgeCausalEvidenceReference, BridgeCausalEvidenceReferenceIdentity,
+};
 pub use explanation_envelope::BridgeCausalExplanationEnvelope;
 pub use identity::BridgeCausalEnvelopeIdentity;
 pub use receipt::BridgeCausalEnvelopeReceipt;
 
-fn digest(label: &str, parts: &[&str]) -> String {
+use digest_basis::BridgeCausalEnvelopeDigestArtifact;
+
+fn causal_envelope_digest(artifact: BridgeCausalEnvelopeDigestArtifact, parts: &[&str]) -> String {
     use sha2::{Digest, Sha256};
 
-    let mut canonical = String::from(label);
+    let digest_domain = artifact.digest_domain();
+    let mut canonical = String::from(digest_domain);
     for part in parts {
         canonical.push('|');
         canonical.push_str(part);
     }
     let digest = Sha256::digest(canonical.as_bytes());
-    format!("{label}:sha256:{digest:x}")
+    format!("{digest_domain}:sha256:{digest:x}")
 }

@@ -159,3 +159,7 @@ pub(crate) fn plan_ingested_patch(
         ),
     ))
 }
+
+#[cfg(test)]
+#[path = "planner_tests.rs"]
+mod planner_tests;

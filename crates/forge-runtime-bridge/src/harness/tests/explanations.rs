@@ -1,16 +1,15 @@
-use std::sync::Arc;
-
 use crate::facade::{
     BridgeBulkWorkloadRequest, BridgeBulkWorkloadSegment, BridgeContinuityAuthorityBasis,
-    BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest, BridgeLineageContext,
-    BridgeLineageSourceError, BridgePreparationMode, BridgeRouteRequest, ContinuityLineageSource,
-    FineGrainedMatchStatus, SliceFallbackPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind,
-    TruthSnapshotIdentity,
+    BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest,
+    BridgeHistoricalResolvedLineageIdentity, BridgeHistoricalResolvedRecordIdentity,
+    BridgeLineageContext, BridgeLineageSourceError, BridgePreparationMode, BridgeRouteRequest,
+    ContinuityLineageSource, FineGrainedMatchStatus, SliceWideningPolicy, SubscriptionSliceKind,
+    TruthDeltaSurfaceKind, TruthSnapshotIdentity,
 };
 
 use super::support::{
     build_runtime, build_runtime_with_aspects, committed_patch, field_aspect_registration,
-    field_slice_snapshot, registration, snapshot, surface_fallback_registration,
+    field_slice_snapshot, registration, snapshot, surface_widening_registration,
 };
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 
@@ -24,8 +23,10 @@ impl ContinuityLineageSource for ExplanationContinuityLineageSource {
     ) -> Result<BridgeHistoricalLineageAuthority, BridgeLineageSourceError> {
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            vec![Arc::from("lineage:explanation-successor")],
-            vec![Arc::from("entity:0:4:2")],
+            vec![BridgeHistoricalResolvedLineageIdentity::new(
+                "lineage:explanation-successor",
+            )],
+            vec![BridgeHistoricalResolvedRecordIdentity::new("entity:0:4:2")],
             vec![7],
         )
     }
@@ -34,21 +35,25 @@ impl ContinuityLineageSource for ExplanationContinuityLineageSource {
 #[test]
 fn bridge_route_explanation_reconstructs_patch_to_invalidation_mapping() {
     let source = InMemoryRelationalBridgeSource::default();
+    let avatar_field = forge_foundational::facade::FieldKey::new("avatar".to_owned())
+        .expect("valid harness field key");
     source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "avatar",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        avatar_field.clone(),
     ));
-    source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
-        vec![surface_fallback_registration()],
+        vec![surface_widening_registration()],
     );
 
     let route = runtime
-        .plan_committed_patch(BridgeRouteRequest::for_commit("commit-a"))
+        .plan_committed_patch(BridgeRouteRequest::for_commit(
+            crate::facade::TruthCommitIdentity::new("commit-a"),
+        ))
         .expect("bridge should plan route for explanation reconstruction");
     runtime
         .deliver_invalidation(route)
@@ -64,21 +69,49 @@ fn bridge_route_explanation_reconstructs_patch_to_invalidation_mapping() {
     assert_eq!(explanation.snapshot_identity().as_str(), "snapshot-a");
     let entry = &explanation.route_entries()[0];
     assert_eq!(entry.entity_identity(), "user");
-    assert_eq!(entry.aspect_label(), "profile");
-    assert_eq!(entry.surface_label(), "avatar");
-    assert_eq!(entry.mapping_id().as_str(), "profile-surface-fallback");
-    assert_eq!(entry.signal_scope(), "signal.profile.fallback");
+    assert_eq!(entry.aspect_key().as_str(), "profile");
+    assert_eq!(
+        entry.target_canonical_basis(),
+        expected_field_target_basis(&avatar_field),
+    );
+    assert_eq!(
+        entry
+            .target()
+            .field_locator()
+            .expect("route diagnostics should retain typed target field locator")
+            .field_path()
+            .fields()[0]
+            .as_str(),
+        "avatar"
+    );
+    assert!(!entry.target().projection_mask().is_whole_aspect());
+    assert_eq!(
+        entry.source_target().surface_kind(),
+        TruthDeltaSurfaceKind::EntityField
+    );
+    assert_eq!(entry.mapping_id().as_str(), "profile-surface-widening");
+    assert_eq!(entry.signal_scope(), "signal.profile.widening");
     assert_eq!(
         explanation.invalidation_targets()[0].signal_scope(),
-        "signal.profile.fallback"
+        "signal.profile.widening"
     );
 }
 
 #[test]
 fn bridge_route_explanation_exposes_fine_grained_match_status() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
+    let name_field = forge_foundational::facade::FieldKey::new("name".to_owned())
+        .expect("valid harness field key");
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        name_field.clone(),
+    ));
+    source.insert_snapshot(field_slice_snapshot(
+        TruthSnapshotIdentity::new("snapshot-a"),
+        "alice",
+    ));
     let runtime = build_runtime_with_aspects(
         source,
         RecordingSignalBridgeSink::default(),
@@ -87,7 +120,9 @@ fn bridge_route_explanation_exposes_fine_grained_match_status() {
     );
 
     let route = runtime
-        .plan_committed_patch(BridgeRouteRequest::for_commit("commit-a"))
+        .plan_committed_patch(BridgeRouteRequest::for_commit(
+            crate::facade::TruthCommitIdentity::new("commit-a"),
+        ))
         .expect("bridge should plan route with fine-grained aspect registration");
     runtime
         .deliver_invalidation(route)
@@ -116,22 +151,41 @@ fn bridge_route_explanation_exposes_fine_grained_match_status() {
         Some(&SubscriptionSliceKind::SignalField)
     );
     assert_eq!(
-        entry.slice_fallback_policy(),
-        Some(SliceFallbackPolicy::Disallow)
+        entry.slice_widening_policy(),
+        Some(SliceWideningPolicy::Disallow)
     );
     assert_eq!(explanation.subscription_slices().len(), 1);
     assert_eq!(
         explanation.subscription_slices()[0].slice_kind(),
         &SubscriptionSliceKind::SignalField
     );
-    assert_eq!(explanation.subscription_slices()[0].surface_label(), "name");
+    assert_eq!(
+        explanation.subscription_slices()[0].native_target_basis(),
+        expected_field_target_basis(&name_field),
+    );
+}
+
+fn expected_field_target_basis(field: &forge_foundational::facade::FieldKey) -> String {
+    let field = field.as_str();
+    format!(
+        "committed-patch-target|locator=version=bridge.committed-patch-target.v1;domain=locator;entries=[locus=named:aspect_field.aspect_key,kind=locator,value=exact-text:profile;locus=named:aspect_field.authority,kind=locator,value=exact-text:authoritative;locus=named:aspect_field.field_path,kind=locator,value=exact-text:{field};locus=named:aspect_field.kind,kind=locator,value=exact-text:aspect]|mutation-mask=version=bridge.committed-patch-target.v1;domain=aspect-mask;entries=[locus=named:profile.mutation.field.{field},kind=mask,value=exact-text:{field}]|projection-mask=version=bridge.committed-patch-target.v1;domain=aspect-mask;entries=[locus=named:profile.projection.field.{field},kind=mask,value=exact-text:{field}]|kind=entity-field"
+    )
 }
 
 #[test]
 fn bridge_continuity_explanation_reconstructs_canonical_continuity_truth() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(field_slice_snapshot(
+        TruthSnapshotIdentity::new("snapshot-a"),
+        "alice",
+    ));
     let runtime = crate::facade::RuntimeBridgeBuilder::new()
         .with_relational_source(source)
         .with_signal_sink(RecordingSignalBridgeSink::default())
@@ -143,7 +197,7 @@ fn bridge_continuity_explanation_reconstructs_canonical_continuity_truth() {
 
     let route = runtime
         .plan_committed_patch_with_mapping_context(
-            BridgeRouteRequest::for_commit("commit-a"),
+            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
             crate::facade::BridgeMappingContext::default().with_lineage_context(
                 BridgeLineageContext::new(BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
@@ -157,7 +211,7 @@ fn bridge_continuity_explanation_reconstructs_canonical_continuity_truth() {
         .expect("delivery should succeed");
     let route_record = runtime
         .diagnostics()
-        .route_record_for_route_identity(result.result_summary().route_identity().as_str())
+        .route_record_for_route_identity(result.result_summary().route_identity())
         .expect("route record should be retained");
     let requests = runtime
         .plan_continuity_requests(&route_record)
@@ -191,10 +245,22 @@ fn bridge_continuity_explanation_reconstructs_canonical_continuity_truth() {
 #[test]
 fn bridge_bulk_explanation_reconstructs_canonical_bulk_plan_truth() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-b", "name"));
-    source.insert_snapshot(snapshot("snapshot-a", "alice"));
-    source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-b"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -203,8 +269,12 @@ fn bridge_bulk_explanation_reconstructs_canonical_bulk_plan_truth() {
 
     let plan = runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-b"),
+            )),
         ]))
         .expect("bulk workload should plan before explanation reconstruction");
     let record = runtime.canonicalize_bulk_workload_plan(&plan);
@@ -253,11 +323,23 @@ fn bridge_bulk_explanation_reconstructs_canonical_bulk_plan_truth() {
 }
 
 #[test]
-fn bridge_bulk_explanation_retains_typed_parallel_fallback_failures() {
+fn bridge_bulk_explanation_retains_typed_parallel_serial_reduction_failures() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-a", "name"));
-    source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -266,8 +348,12 @@ fn bridge_bulk_explanation_retains_typed_parallel_fallback_failures() {
 
     let plan = runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-b"),
+            )),
         ]))
         .expect("bulk workload should plan before explanation reconstruction");
     let explanation = runtime

@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
+use crate::adapter::TruthWritebackReceipt;
+
 use super::{BridgeWritebackIdempotenceBasis, BridgeWritebackOutcomeClass};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,38 +20,30 @@ impl BridgeWritebackAuthorityOutcome {
         Self::new(
             BridgeWritebackOutcomeClass::CanonicalNoop,
             idempotence,
-            "bridge-writeback-authority-outcome:noop",
+            derive_authority_outcome_artifact_digest(
+                BridgeWritebackOutcomeClass::CanonicalNoop,
+                idempotence,
+                None,
+            ),
         )
     }
 
     pub fn authoritative_commit(
         idempotence: &BridgeWritebackIdempotenceBasis,
-        authoritative_artifact_digest: impl Into<Arc<str>>,
+        authority_receipt: &TruthWritebackReceipt,
     ) -> Self {
         Self::new(
             BridgeWritebackOutcomeClass::AuthoritativeCommit,
             idempotence,
-            authoritative_artifact_digest,
-        )
-    }
-
-    pub fn rejected(
-        idempotence: &BridgeWritebackIdempotenceBasis,
-        rejection_digest: impl Into<Arc<str>>,
-    ) -> Self {
-        Self::new(
-            BridgeWritebackOutcomeClass::Rejected,
-            idempotence,
-            rejection_digest,
+            Arc::from(authority_receipt.authoritative_artifact_digest()),
         )
     }
 
     fn new(
         outcome_class: BridgeWritebackOutcomeClass,
         idempotence: &BridgeWritebackIdempotenceBasis,
-        authoritative_artifact_digest: impl Into<Arc<str>>,
+        authoritative_artifact_digest: Arc<str>,
     ) -> Self {
-        let authoritative_artifact_digest = authoritative_artifact_digest.into();
         let canonical_basis = Arc::<str>::from(format!(
             "bridge-writeback-authority-outcome|class:{outcome_class:?}|idempotence={}|authoritative={}",
             idempotence.digest(),
@@ -82,4 +76,21 @@ impl BridgeWritebackAuthorityOutcome {
     pub fn authoritative_artifact_digest(&self) -> &str {
         self.authoritative_artifact_digest.as_ref()
     }
+}
+
+fn derive_authority_outcome_artifact_digest(
+    outcome_class: BridgeWritebackOutcomeClass,
+    idempotence: &BridgeWritebackIdempotenceBasis,
+    authority_receipt: Option<&TruthWritebackReceipt>,
+) -> Arc<str> {
+    let canonical_basis = format!(
+        "bridge-writeback-authority-outcome-artifact|class:{outcome_class:?}|idempotence={}|causality={}|receipt={}",
+        idempotence.digest(),
+        idempotence.causality_digest(),
+        authority_receipt.map_or("none", TruthWritebackReceipt::digest),
+    );
+    let digest = Sha256::digest(canonical_basis.as_bytes());
+    Arc::from(format!(
+        "bridge-writeback-authority-artifact:sha256:{digest:x}"
+    ))
 }

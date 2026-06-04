@@ -7,6 +7,7 @@ use crate::identity::{BridgeIdentity, PreviewPromotionRecordIdentityTag};
 use super::contracts::BridgePromotionAdmissibilityProof;
 use super::counters::BridgeSpeculationCounters;
 use super::execution::BridgePreviewExecutionRecord;
+use super::promotion_basis::BridgePreviewPromotionAuthorityBasis;
 use super::session::{BridgePreviewSession, PreviewExecutionRecordIdentity};
 use super::taxonomy::PreviewActive;
 
@@ -30,24 +31,22 @@ impl BridgePreviewPromotionRecord {
         session: &BridgePreviewSession<PreviewActive>,
         execution_record: &BridgePreviewExecutionRecord,
         proof: &BridgePromotionAdmissibilityProof,
-        authoritative_commit_boundary_digest: impl Into<Arc<str>>,
-        authoritative_artifact_digest: impl Into<Arc<str>>,
+        authority_basis: &BridgePreviewPromotionAuthorityBasis,
         counters: BridgeSpeculationCounters,
     ) -> Self {
         let execution_record_identity = session
             .execution_record_identity()
             .expect("active preview sessions must carry execution record identity")
             .clone();
-        let authoritative_commit_boundary_digest = authoritative_commit_boundary_digest.into();
-        let authoritative_artifact_digest = authoritative_artifact_digest.into();
         let canonical_basis = Arc::<str>::from(format!(
-            "preview-promotion-record|session={}|execution-record={}|execution-digest={}|proof={}|commit-boundary={}|authoritative-artifact={}|proof-width={}|proof-checks={}|replay-width={}",
+            "preview-promotion-record|session={}|execution-record={}|execution-digest={}|proof={}|authority-basis={}|commit-boundary={}|authoritative-artifact={}|proof-width={}|proof-checks={}|replay-width={}",
             session.session_identity().as_str(),
             execution_record_identity.as_str(),
             execution_record.digest(),
             proof.digest(),
-            authoritative_commit_boundary_digest.as_ref(),
-            authoritative_artifact_digest.as_ref(),
+            authority_basis.digest(),
+            authority_basis.authoritative_commit_boundary_digest(),
+            authority_basis.authoritative_artifact_digest(),
             counters.admissibility_proof_width(),
             counters.promotion_proof_checks(),
             counters.replay_bundle_width(),
@@ -61,8 +60,12 @@ impl BridgePreviewPromotionRecord {
             preview_session_identity: Arc::from(session.session_identity().as_str()),
             preview_execution_record_identity: execution_record_identity,
             promotion_proof_digest: Arc::from(proof.digest()),
-            authoritative_commit_boundary_digest,
-            authoritative_artifact_digest,
+            authoritative_commit_boundary_digest: Arc::from(
+                authority_basis.authoritative_commit_boundary_digest(),
+            ),
+            authoritative_artifact_digest: Arc::from(
+                authority_basis.authoritative_artifact_digest(),
+            ),
             counters,
             canonical_basis,
             digest: Arc::from(format!("preview-promotion-record:sha256:{digest:x}")),

@@ -8,7 +8,6 @@ error[E0624]: associated function `new` is private
   |
   | /     pub(crate) fn new(
   | |         outcome: BridgeWritebackAuthorityOutcome,
-  | |         authority_receipt: crate::adapter::TruthWritebackReceipt,
   | |         execution_receipt: BridgeAdmittedWritebackExecutionReceipt,
   | |     ) -> Self {
   | |_____________- private associated function defined here

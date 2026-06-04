@@ -13,15 +13,15 @@ use crate::runtime::{
     ForgeQueryContinuityOutcomeClass, ForgeQueryMutationTargetClass, ForgeQueryReadExecutionEngine,
     ForgeQueryReadReceipt, ForgeQueryReadResult, ForgeQueryWriteReceipt,
 };
-use forge_foundational::facade::{AspectKey, AspectValue};
+use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
 use forge_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
     project_relational_grouped_truth, GroupedProjectionContract,
     RelationalAuthoritativeRowSetArtifact, RelationalGroupedProjectionArtifact,
 };
 use forge_runtime_bridge::facade::{
-    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
-    TruthSnapshotIdentity,
+    SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
+    SnapshotReadRequest, TruthSnapshotIdentity,
 };
 use serde_json::json;
 
@@ -96,64 +96,46 @@ pub(super) fn admitted(
 }
 
 pub(super) fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
+    let entity_one_identity = string_snapshot_read("entity-1", "identity.id");
+    let entity_one_lane = string_snapshot_read("entity-1", "status.lane");
+    let entity_one_display = string_snapshot_read("entity-1", "profile.display_name");
+    let entity_two_identity = string_snapshot_read("entity-2", "identity.id");
+    let entity_two_lane = string_snapshot_read("entity-2", "status.lane");
+    let entity_two_display = string_snapshot_read("entity-2", "profile.display_name");
     let packet = SnapshotReadPacket::new(vec![
-        SnapshotReadRequest::for_coarse(
-            "entity-1",
-            forge_foundational::facade::AspectKey::new("identity.id")
-                .expect("valid snapshot aspect key"),
-        ),
-        SnapshotReadRequest::for_coarse(
-            "entity-1",
-            forge_foundational::facade::AspectKey::new("status.lane")
-                .expect("valid snapshot aspect key"),
-        ),
-        SnapshotReadRequest::for_coarse(
-            "entity-1",
-            forge_foundational::facade::AspectKey::new("profile.display_name")
-                .expect("valid snapshot aspect key"),
-        ),
-        SnapshotReadRequest::for_coarse(
-            "entity-2",
-            forge_foundational::facade::AspectKey::new("identity.id")
-                .expect("valid snapshot aspect key"),
-        ),
-        SnapshotReadRequest::for_coarse(
-            "entity-2",
-            forge_foundational::facade::AspectKey::new("status.lane")
-                .expect("valid snapshot aspect key"),
-        ),
-        SnapshotReadRequest::for_coarse(
-            "entity-2",
-            forge_foundational::facade::AspectKey::new("profile.display_name")
-                .expect("valid snapshot aspect key"),
-        ),
+        entity_one_identity.clone(),
+        entity_one_lane.clone(),
+        entity_one_display.clone(),
+        entity_two_identity.clone(),
+        entity_two_lane.clone(),
+        entity_two_display.clone(),
     ]);
     let result = SnapshotReadPacketResult::new(
         TruthSnapshotIdentity::new("snapshot-a"),
         vec![
-            SnapshotReadRecord::new(
-                "entity-1:identity.id",
-                aspect_bytes(AspectValue::String("task-1".into())),
+            SnapshotReadRecord::for_request(
+                &entity_one_identity,
+                aspect_value(AspectValue::String("task-1".into())),
             ),
-            SnapshotReadRecord::new(
-                "entity-1:status.lane",
-                aspect_bytes(AspectValue::String("todo".into())),
+            SnapshotReadRecord::for_request(
+                &entity_one_lane,
+                aspect_value(AspectValue::String("todo".into())),
             ),
-            SnapshotReadRecord::new(
-                "entity-1:profile.display_name",
-                aspect_bytes(AspectValue::String("Task One".into())),
+            SnapshotReadRecord::for_request(
+                &entity_one_display,
+                aspect_value(AspectValue::String("Task One".into())),
             ),
-            SnapshotReadRecord::new(
-                "entity-2:identity.id",
-                aspect_bytes(AspectValue::String("task-2".into())),
+            SnapshotReadRecord::for_request(
+                &entity_two_identity,
+                aspect_value(AspectValue::String("task-2".into())),
             ),
-            SnapshotReadRecord::new(
-                "entity-2:status.lane",
-                aspect_bytes(AspectValue::String("doing".into())),
+            SnapshotReadRecord::for_request(
+                &entity_two_lane,
+                aspect_value(AspectValue::String("doing".into())),
             ),
-            SnapshotReadRecord::new(
-                "entity-2:profile.display_name",
-                aspect_bytes(AspectValue::String("Task Two".into())),
+            SnapshotReadRecord::for_request(
+                &entity_two_display,
+                aspect_value(AspectValue::String("Task Two".into())),
             ),
         ],
     );
@@ -168,8 +150,15 @@ pub(super) fn relational_grouped_projection() -> RelationalGroupedProjectionArti
     .expect("grouped projection")
 }
 
-fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+fn aspect_value(value: AspectValue) -> AspectValue {
     encode_snapshot_aspect_read_value(&value)
+}
+
+fn string_snapshot_read(entity: &str, aspect: &str) -> SnapshotReadRequest {
+    SnapshotReadRequest::for_coarse(
+        entity,
+        SnapshotReadContract::scalar(aspect_key(aspect), ScalarAspectType::String),
+    )
 }
 
 fn grouped_projection_contract(

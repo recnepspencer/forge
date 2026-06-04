@@ -9,7 +9,6 @@ error[E0624]: associated function `admit` is private
   | /     pub(crate) fn admit(
   | |         sealed_window: &BridgeSubscriptionDeliveryWindowSealed,
   | |         acknowledged_sequence: usize,
-  | |         acknowledged_member_identity: &BridgeSubscriptionDeliveryMemberIdentity,
-  | |         acknowledged_member_digest: &str,
+  | |         acknowledged_member: &BridgeSubscriptionDeliveryMemberRecord,
   | |     ) -> Result<Self, BridgeSubscriptionAcknowledgementFrontierRejection> {
   | |_________________________________________________________________________- private associated function defined here

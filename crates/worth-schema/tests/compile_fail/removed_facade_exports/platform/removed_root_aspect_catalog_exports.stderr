@@ -11,7 +11,9 @@ error[E0432]: unresolved imports `schema::facade::Aspect`, `schema::facade::Topo
           forge_foundational::BoundarySourceLocator::Aspect
           forge_foundational::CanonicalBasisLocus::Aspect
           forge_foundational::CanonicalLocatorInput::Aspect
-          forge_runtime_bridge::facade::BridgeMappingFallbackClass::Aspect
+          forge_foundational::FoundationalDeniedScopeLocus::Aspect
+          forge_foundational::FoundationalSelectedScopeLocus::Aspect
+          forge_runtime_bridge::facade::BridgeMappingWideningClass::Aspect
           forge_signal::facade::Aspect
           schema::facade::QueryLiveField::Aspect
           schema::facade::platform::aspects::Aspect

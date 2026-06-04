@@ -1,27 +1,40 @@
+use super::retained_mapping_digest_support::{
+    expected_retained_causal_digest, ExpectedRetainedCausalDigestArtifact,
+};
 use super::retained_mapping_support::{
-    binding_for, branch_comparison_declaration, bridge_reference, digest,
-    query_observation_reference, registered_causal_merge, retained_runtime,
+    binding_for, branch_comparison_declaration, bridge_continuity_reference,
+    bridge_merge_reference, bridge_route_reference, bridge_source_materialization_reference,
+    bridge_stream_replay_reference, bridge_structural_branch_comparison_reference,
+    bridge_structural_remap_reference, query_observation_reference, registered_causal_merge,
+    retained_runtime,
 };
 use super::{
     canonical_envelope, registered_source, registered_structural, BridgeSourceCapability,
     BridgeTruthViewSelector, SnapshotReadPacket, StructuralFingerprintFamily,
-    StructuralTruthViewBasis, TruthBranchIdentity, TruthCommitIdentity, TruthSnapshotIdentity,
+    StructuralTruthViewBasis, TruthBranchIdentity, TruthSnapshotIdentity,
 };
 use crate::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceBindingClass,
     BridgeCausalEvidenceFamily, BridgeContinuityAuthorityBasis, BridgeLineageContext,
-    BridgeMappingContext, BridgeRouteRequest, StructuralCandidateIdentity,
-    StructuralComparisonMode, StructuralMatchCandidate, StructuralMatchCandidateKind,
+    BridgeMappingContext, BridgeRouteRequest, MergeHistoryDeclarationIdentity,
+    StructuralCandidateIdentity, StructuralComparisonMode, StructuralMatchCandidate,
+    StructuralMatchCandidateKind, TruthCommitIdentity, TruthPatchIdentity,
 };
 
 #[test]
 fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_records() {
-    let merge_declaration = registered_causal_merge("merge:causal-retained");
-    let branch_declaration = branch_comparison_declaration("structural:branch-causal");
+    let merge_declaration = registered_causal_merge(MergeHistoryDeclarationIdentity::new(
+        "merge:causal-retained",
+    ));
+    let branch_declaration = branch_comparison_declaration(
+        crate::facade::StructuralIdentityDeclarationIdentity::new("structural:branch-causal"),
+    );
     let runtime = retained_runtime(merge_declaration.clone(), branch_declaration.clone());
     let planned_route = runtime
         .plan_committed_patch_with_mapping_context(
-            BridgeRouteRequest::for_commit("commit-causal-retained"),
+            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new(
+                "commit-causal-retained",
+            )),
             BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
                 BridgeContinuityAuthorityBasis::new(
                     TruthBranchIdentity::new("analysis"),
@@ -48,13 +61,13 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
             "source:analysis-history",
             BridgeTruthViewSelector::historical_commit(
                 TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthCommitIdentity::new("commit-a"),
             ),
             vec![
                 BridgeSourceCapability::SnapshotRead,
                 BridgeSourceCapability::HistoricalRead,
                 BridgeSourceCapability::BranchRead,
-                BridgeSourceCapability::ReplayCompatibleRead,
+                BridgeSourceCapability::ReplayContinuityRead,
             ],
         ))
         .expect("historical source should admit");
@@ -85,8 +98,11 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
     let structural_read =
         SnapshotReadPacket::new(vec![crate::snapshot::SnapshotReadRequest::for_coarse(
             "entity-1",
-            forge_foundational::facade::AspectKey::new("profile")
-                .expect("valid snapshot aspect key"),
+            crate::snapshot::SnapshotReadContract::scalar(
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid snapshot aspect key"),
+                forge_foundational::facade::ScalarAspectType::String,
+            ),
         )]);
     let structural_planned = runtime
         .plan_structural_match_packet_set_from_read_packets(
@@ -154,10 +170,10 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
         .plan_change_stream_window(
             &stream_contract,
             vec![canonical_envelope(
-                "main",
-                "commit-a",
-                "patch-a",
-                "snapshot-a",
+                TruthBranchIdentity::new("main"),
+                TruthCommitIdentity::new("commit-a"),
+                TruthPatchIdentity::new("patch-a"),
+                TruthSnapshotIdentity::new("snapshot-a"),
             )],
         )
         .expect("stream window should plan");
@@ -185,35 +201,19 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
         )
         .expect("query admission summary should be valid"),
         vec![
-            query_observation_reference("query-observation:retained-expansion"),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeRoute,
-                route_result.result_summary().route_identity().as_str(),
+            query_observation_reference(
+                crate::facade::BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    "query-observation:retained-expansion",
+                )
+                .expect("query observation reference identity should be valid"),
             ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeSourceMaterialization,
-                source_record.record_identity().as_str(),
-            ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeStructuralRemap,
-                structural_record.record_identity().as_str(),
-            ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeStructuralBranchComparison,
-                branch_record.record_identity().as_str(),
-            ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeStreamReplay,
-                stream_record.replay_record_identity().as_str(),
-            ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeContinuity,
-                continuity.route_identity().as_str(),
-            ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeMerge,
-                merge_record.record_identity().as_str(),
-            ),
+            bridge_route_reference(route_result.result_summary()),
+            bridge_source_materialization_reference(&source_record),
+            bridge_structural_remap_reference(&structural_record),
+            bridge_structural_branch_comparison_reference(&branch_record),
+            bridge_stream_replay_reference(&stream_record),
+            bridge_continuity_reference(&continuity),
+            bridge_merge_reference(&merge_record),
         ],
     )
     .expect("request should be valid");
@@ -226,7 +226,7 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
     assert_eq!(envelope.bindings().len(), 8);
     assert_eq!(envelope.counters().bridge_retained_lookup_count(), 7);
     assert_eq!(envelope.counters().retained_bridge_binding_count(), 7);
-    assert_eq!(envelope.counters().bridge_record_scan_fallback_count(), 0);
+    assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
     assert_eq!(
         binding_for(
             envelope.bindings(),
@@ -244,8 +244,8 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
         )
         .retained_record_digest(),
         Some(
-            digest(
-                "bridge-causal-retained-source-materialization-record",
+            expected_retained_causal_digest(
+                ExpectedRetainedCausalDigestArtifact::SourceMaterializationRecord,
                 &[
                     source_record.record_identity().as_str(),
                     source_record.source_contract_identity(),
@@ -268,8 +268,8 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
         )
         .retained_record_digest(),
         Some(
-            digest(
-                "bridge-causal-retained-structural-remap-record",
+            expected_retained_causal_digest(
+                ExpectedRetainedCausalDigestArtifact::StructuralRemapRecord,
                 &[
                     structural_record.record_identity().as_str(),
                     structural_record.schema_version(),
@@ -290,8 +290,8 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
         )
         .retained_record_digest(),
         Some(
-            digest(
-                "bridge-causal-retained-structural-branch-comparison-record",
+            expected_retained_causal_digest(
+                ExpectedRetainedCausalDigestArtifact::StructuralBranchComparisonRecord,
                 &[
                     branch_record.record_identity().as_str(),
                     branch_record.schema_version(),
@@ -312,8 +312,8 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
         )
         .retained_record_digest(),
         Some(
-            digest(
-                "bridge-causal-retained-stream-replay-record",
+            expected_retained_causal_digest(
+                ExpectedRetainedCausalDigestArtifact::StreamReplayRecord,
                 &[
                     stream_record.replay_record_identity().as_str(),
                     stream_record.consumer_contract_identity().as_str(),
@@ -335,8 +335,8 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
         )
         .retained_record_digest(),
         Some(
-            digest(
-                "bridge-causal-retained-continuity-record",
+            expected_retained_causal_digest(
+                ExpectedRetainedCausalDigestArtifact::ContinuityRecord,
                 &[
                     continuity.route_identity().as_str(),
                     continuity.schema_version(),
@@ -357,8 +357,8 @@ fn causal_envelope_maps_retained_source_structural_stream_continuity_and_merge_r
         )
         .retained_record_digest(),
         Some(
-            digest(
-                "bridge-causal-retained-merge-record",
+            expected_retained_causal_digest(
+                ExpectedRetainedCausalDigestArtifact::MergeRecord,
                 &[
                     merge_record.record_identity().as_str(),
                     merge_record.schema_version(),

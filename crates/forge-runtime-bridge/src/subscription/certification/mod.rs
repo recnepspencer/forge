@@ -26,7 +26,7 @@ mod ordering_hostility;
 mod reference_workload;
 mod relationship;
 mod report_assembly;
-mod schema_compatibility;
+mod schema_parity;
 mod scratch;
 mod semantic_digests;
 mod semantic_sources;
@@ -39,6 +39,10 @@ mod workload_lanes;
 pub use assembly_plan::{
     BridgeSubscriptionCertificationAssemblyPlan, BridgeSubscriptionCertificationAssemblyRejection,
     BridgeSubscriptionCertificationAssemblyRejectionKind,
+};
+pub(crate) use assembly_plan::{
+    BridgeSubscriptionCertificationBundleSchemaIdentity,
+    BridgeSubscriptionCertificationFieldExpectation,
 };
 pub use audit_outcome_summary::BridgeSubscriptionOfflineAuditOutcomeSummary;
 pub use audit_plan::{
@@ -79,10 +83,13 @@ pub use fanout::BridgeSubscriptionCertificationFanoutReport;
 pub use field_state::BridgeSubscriptionBundleFieldState;
 pub use historical_basis::BridgeSubscriptionCertificationHistoricalBasisReport;
 pub use manifest::{
-    BridgeSubscriptionReferenceWorkloadManifestDraft,
+    BridgeSubscriptionReferenceWorkloadComponentId,
+    BridgeSubscriptionReferenceWorkloadComponentIdSet, BridgeSubscriptionReferenceWorkloadLaneId,
+    BridgeSubscriptionReferenceWorkloadLaneIdSet, BridgeSubscriptionReferenceWorkloadManifestDraft,
     BridgeSubscriptionReferenceWorkloadManifestRejection,
     BridgeSubscriptionReferenceWorkloadManifestRejectionKind,
     BridgeSubscriptionReferenceWorkloadManifestSealed,
+    BridgeSubscriptionReferenceWorkloadProductId, BridgeSubscriptionReferenceWorkloadProductIdSet,
 };
 pub use multi_failure::BridgeSubscriptionCertificationMultiFailurePrecedenceReport;
 pub use offline_audit::{
@@ -98,9 +105,10 @@ pub use relationship::{
     BridgeSubscriptionCertificationDivergenceAxis,
 };
 pub(crate) use report_assembly::{
-    assemble_reference_bundle, reference_manifest, BridgeSubscriptionCertificationReportBundleInput,
+    assemble_reference_bundle, reference_manifest,
+    BridgeSubscriptionCertificationReportBundleScenario,
 };
-pub use schema_compatibility::BridgeSubscriptionCertificationSchemaCompatibilityReport;
+pub use schema_parity::BridgeSubscriptionCertificationSchemaParityReport;
 pub use scratch::BridgeSubscriptionCertificationScratch;
 pub use semantic_digests::BridgeSubscriptionCertificationSemanticDigests;
 pub use semantic_sources::{
@@ -109,8 +117,10 @@ pub use semantic_sources::{
     BridgeSubscriptionCertificationSemanticSourceKind,
 };
 pub use source_artifact_index::{
-    BridgeSubscriptionSourceArtifactIndex, BridgeSubscriptionSourceArtifactInput,
-    BridgeSubscriptionSourceArtifactKind, BridgeSubscriptionSourceArtifactRecord,
+    BridgeSubscriptionSourceArtifactEvidence, BridgeSubscriptionSourceArtifactIndex,
+    BridgeSubscriptionSourceArtifactInput, BridgeSubscriptionSourceArtifactKind,
+    BridgeSubscriptionSourceArtifactRecord, BridgeSubscriptionSourceArtifactRole,
+    BridgeSubscriptionSourceArtifactScenario,
 };
 pub use stale_checkpoint::BridgeSubscriptionCertificationStaleCheckpointReport;
 pub use strategy_lowering::BridgeSubscriptionCertificationStrategyLoweringReport;

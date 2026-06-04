@@ -19,7 +19,7 @@ error[E0451]: fields `lane_kinds`, `family_kinds`, `lane_coverage_rows`, `first_
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 16 |         counters: BridgeSubscriptionCertificationCounterSnapshot::default(),
    |         ^^^^^^^^ private field
-17 |         canonical_basis: Arc::from("basis"),
+17 |         canonical_basis: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^ private field
-18 |         digest: Arc::from("digest"),
+18 |         digest: sealed_authority_placeholder(),
    |         ^^^^^^ private field

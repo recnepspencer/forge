@@ -260,10 +260,11 @@ fn maintenance_delta_kind_for_live_change(
             Some(QuerySubscriptionMaintenanceDeltaKind::InspectorFocusDelta)
         }
         DeclarativeLiveViewShape::KanbanGrouped { grouping_aspect } => {
+            let grouping_aspect_text = grouping_aspect.as_str();
             if is_membership_change(mutation_kind)
                 || aspect_paths
                     .iter()
-                    .any(|path| path.starts_with(grouping_aspect))
+                    .any(|path| path.starts_with(grouping_aspect_text))
             {
                 Some(QuerySubscriptionMaintenanceDeltaKind::GroupedMembershipDelta)
             } else {
@@ -305,7 +306,7 @@ fn live_change_is_relevant(
                 changed.starts_with(focused_aspect)
             }
             DeclarativeLiveViewShape::KanbanGrouped { grouping_aspect } => {
-                changed.starts_with(grouping_aspect)
+                changed.starts_with(grouping_aspect.as_str())
             }
             _ => false,
         }

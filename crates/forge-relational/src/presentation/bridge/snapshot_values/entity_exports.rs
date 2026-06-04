@@ -2,19 +2,17 @@ use forge_foundational::facade::{AspectKey, AspectValue, ContractValidatedAspect
 
 use crate::storage::data::EntityReadRecord;
 
-use super::aspect_encoding::encode_snapshot_aspect_value;
 use super::lifecycle_snapshot_values::lifecycle_aspect_value;
 
-pub(crate) fn export_entity_aspect_snapshot_bytes(
+pub(crate) fn export_entity_aspect_snapshot_value(
     record: &EntityReadRecord,
     aspect_key: &AspectKey,
-) -> Option<Vec<u8>> {
-    let value = if aspect_key.as_str() == "lifecycle" {
+) -> Option<AspectValue> {
+    Some(if aspect_key.as_str() == "lifecycle" {
         lifecycle_aspect_value(record.lifecycle)
     } else {
         authoritative_entity_scalar_aspect_value(record, aspect_key)?
-    };
-    Some(encode_snapshot_aspect_value(&value))
+    })
 }
 
 fn authoritative_entity_scalar_aspect_value(

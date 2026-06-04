@@ -16,6 +16,10 @@ pub struct BridgeWritebackReplayRecord {
     replayed_replay_digest: Arc<str>,
     expected_semantic_digest: Arc<str>,
     replayed_semantic_digest: Arc<str>,
+    expected_effect_intent_digest: Arc<str>,
+    replayed_effect_intent_digest: Arc<str>,
+    expected_effect_intent_patch_canonical_basis: Arc<str>,
+    replayed_effect_intent_patch_canonical_basis: Arc<str>,
     expected_causality_digest: Arc<str>,
     replayed_causality_digest: Arc<str>,
     failure_class: Option<BridgeWritebackFailureClass>,
@@ -32,12 +36,16 @@ impl BridgeWritebackReplayRecord {
         counters: BridgeWritebackCounters,
     ) -> Self {
         let canonical_basis = Arc::<str>::from(format!(
-            "bridge-writeback-replay-record|family:{:?}|expected-replay={}|replayed-replay={}|expected-semantic={}|replayed-semantic={}|expected-causality={}|replayed-causality={}|failure-class={}|counter-digest={}",
+            "bridge-writeback-replay-record|family:{:?}|expected-replay={}|replayed-replay={}|expected-semantic={}|replayed-semantic={}|expected-effect-intent={}|replayed-effect-intent={}|expected-effect-intent-patch-basis={}|replayed-effect-intent-patch-basis={}|expected-causality={}|replayed-causality={}|failure-class={}|counter-digest={}",
             expected.family_kind(),
             expected.digest(),
             replayed.digest(),
             expected.semantic_digest(),
             replayed.semantic_digest(),
+            expected.effect_intent_digest(),
+            replayed.effect_intent_digest(),
+            expected.effect_intent_patch_canonical_basis(),
+            replayed.effect_intent_patch_canonical_basis(),
             expected.causality_digest(),
             replayed.causality_digest(),
             failure_class
@@ -55,6 +63,14 @@ impl BridgeWritebackReplayRecord {
             replayed_replay_digest: Arc::from(replayed.digest().to_owned()),
             expected_semantic_digest: Arc::from(expected.semantic_digest().to_owned()),
             replayed_semantic_digest: Arc::from(replayed.semantic_digest().to_owned()),
+            expected_effect_intent_digest: Arc::from(expected.effect_intent_digest().to_owned()),
+            replayed_effect_intent_digest: Arc::from(replayed.effect_intent_digest().to_owned()),
+            expected_effect_intent_patch_canonical_basis: Arc::from(
+                expected.effect_intent_patch_canonical_basis().to_owned(),
+            ),
+            replayed_effect_intent_patch_canonical_basis: Arc::from(
+                replayed.effect_intent_patch_canonical_basis().to_owned(),
+            ),
             expected_causality_digest: Arc::from(expected.causality_digest().to_owned()),
             replayed_causality_digest: Arc::from(replayed.causality_digest().to_owned()),
             failure_class,
@@ -86,6 +102,22 @@ impl BridgeWritebackReplayRecord {
 
     pub fn replayed_semantic_digest(&self) -> &str {
         self.replayed_semantic_digest.as_ref()
+    }
+
+    pub fn expected_effect_intent_digest(&self) -> &str {
+        self.expected_effect_intent_digest.as_ref()
+    }
+
+    pub fn replayed_effect_intent_digest(&self) -> &str {
+        self.replayed_effect_intent_digest.as_ref()
+    }
+
+    pub fn expected_effect_intent_patch_canonical_basis(&self) -> &str {
+        self.expected_effect_intent_patch_canonical_basis.as_ref()
+    }
+
+    pub fn replayed_effect_intent_patch_canonical_basis(&self) -> &str {
+        self.replayed_effect_intent_patch_canonical_basis.as_ref()
     }
 
     pub fn expected_causality_digest(&self) -> &str {

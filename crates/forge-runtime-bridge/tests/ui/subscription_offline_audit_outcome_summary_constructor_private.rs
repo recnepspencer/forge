@@ -11,7 +11,11 @@ fn main() {
         replay_mismatch_count: 0,
         counter_contract_violation_count: 0,
         bundle_completeness_violation_count: 0,
-        canonical_basis: "forged-basis".into(),
-        digest: "forged-digest".into(),
+        canonical_basis: sealed_authority_placeholder(),
+        digest: sealed_authority_placeholder(),
     };
+}
+
+fn sealed_authority_placeholder<T>() -> T {
+    panic!("compile-fail fixture never executes")
 }

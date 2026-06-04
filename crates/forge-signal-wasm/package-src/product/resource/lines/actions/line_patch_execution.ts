@@ -12,19 +12,24 @@ import {
 } from "./line_detail_patch_execution.js";
 import { applyItemScopedPatch } from "./line_collection_patch_execution.js";
 import { areLineValuesSemanticallyEqual } from "../state/line_value_semantic_equality.js";
+import {
+  patchLineBindingState,
+  readLineBindingState,
+} from "../state/line_binding_state.js";
 
 function executeLinePatch(materialization, patch) {
   const patchValue = requireResourcePatch(
     patch,
     materialization.patch.familyKind,
   );
-  const previousDiagnostics = materialization.binding.diagnosticsSignal();
+  const previousState = readLineBindingState(materialization.binding);
+  const previousDiagnostics = previousState.diagnostics;
   if (previousDiagnostics.pendingOperation !== null) {
     throw new TypeError(
       `${materialization.patch.familyKind} resource lines do not admit patch(...) while reload is pending`,
     );
   }
-  const currentValue = materialization.binding.valueSignal();
+  const currentValue = previousState.value;
   if (currentValue === null) {
     throw new TypeError(
       `${materialization.patch.familyKind} resource lines do not admit patch(...) before visible value exists`,
@@ -49,7 +54,10 @@ function executeLinePatch(materialization, patch) {
     patchOutcome.diagnostics,
     effectEnvelope,
   );
-  materialization.binding.diagnosticsSignal.set(diagnostics);
+  patchLineBindingState(materialization.binding, {
+    value: patchOutcome.nextValue,
+    diagnostics,
+  });
   recordLineHistoryEntry(
     materialization.lifecycleHistory,
     materialization.binding,
@@ -78,8 +86,8 @@ function applyReplacePatch(materialization, patch, currentValue) {
     patch.nextValue,
     currentValue,
   );
-  materialization.binding.valueSignal.set(patch.nextValue);
   return Object.freeze({
+    nextValue: patch.nextValue,
     result: Object.freeze({
       kind: "replaced",
       scope: "line",
@@ -143,8 +151,8 @@ function applySummaryPatch(materialization, patch, currentValue) {
     currentItems,
     nextValue,
   );
-  materialization.binding.valueSignal.set(nextValue);
   return Object.freeze({
+    nextValue,
     result: Object.freeze({
       kind: "narrowed",
       scope: "summary",

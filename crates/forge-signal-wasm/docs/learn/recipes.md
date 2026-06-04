@@ -369,32 +369,39 @@ line.patch(
 );
 ```
 
-## Recipe: Branch-Native Effect With Lifecycle Reads
+## Recipe: Branch-Native Detail Effect With Lifecycle Reads
 
 ```ts
 const branchNativeApi = signals.api({
   effects: signals.resource.effects.branchNative(),
 });
 
-const tasks = branchNativeApi.url("/branch-native-tasks")
-  .items((task: { id: string }) => task.id)
-  .aspect("title", (task) => task.title, (task, title: string) => ({
-    ...task,
-    title,
+const article = branchNativeApi.url("/articles/:articleId")
+  .response(signals.resource.response.detail<{
+    id: string;
+    title: string;
+    status: "draft" | "published";
+  }>()({
+    title: "title",
+    status: "status",
   }))
-  .list({
-    load: () => [{ id: "task:1", title: "First" }],
+  .detail({
+    load: ({ articleId }) => ({
+      id: articleId,
+      title: "First",
+      status: "draft",
+    }),
   });
 
-const line = tasks.line({});
-line.patch(tasks.patch.itemAspect({
-  itemId: "task:1",
-  aspect: "title",
+const line = article.line({ articleId: "article:1" });
+line.patch(article.patch.field({
+  field: "title",
   value: "Draft",
 }));
 
 const effect = line.diagnostics().lastEffect;
 const events = line.history().lifecycle.map((entry) => entry.lastOutcome);
+const rollback = line.history().rollbackLastEffect();
 ```
 
 ## Recipe: Inspect An Effect Envelope

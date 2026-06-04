@@ -4,19 +4,71 @@ use sha2::{Digest, Sha256};
 
 use crate::identity::{BridgeIdentity, WritebackIdempotenceIdentityTag};
 
-use super::{BridgeDerivedWritebackEffect, BridgeWritebackIdempotenceClass};
+use super::{
+    BridgeDerivedWritebackEffect, BridgeWritebackIdempotenceClass,
+    BridgeWritebackStrategyDescriptorBasis,
+};
 
 pub type BridgeWritebackIdempotenceIdentity = BridgeIdentity<WritebackIdempotenceIdentityTag>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BridgeWritebackAuthoritativeStateBasis {
+    canonical_basis: Arc<str>,
+    digest: Arc<str>,
+}
+
+impl BridgeWritebackAuthoritativeStateBasis {
+    pub fn from_effect(effect: &BridgeDerivedWritebackEffect) -> Self {
+        Self::from_native_basis(format!(
+            "bridge-writeback-authoritative-state-basis|effect-intent={}|causality={}|family:{:?}|strategy-class:{:?}|strategy={}",
+            effect.effect_intent_digest(),
+            effect.causality_digest(),
+            effect.family_kind(),
+            effect.strategy_class(),
+            effect.strategy_descriptor_basis().digest(),
+        ))
+    }
+
+    pub fn from_effect_intent_and_causality(
+        effect_intent: &super::BridgeWritebackEffectIntent,
+        causality: &super::BridgeWritebackNativeCausalityInputs,
+    ) -> Self {
+        Self::from_native_basis(format!(
+            "bridge-writeback-authoritative-state-basis|effect-intent={}|effect-intent-basis={}|causality={}",
+            effect_intent.digest(),
+            effect_intent.patch_canonical_basis(),
+            causality.digest(),
+        ))
+    }
+
+    fn from_native_basis(canonical_basis: String) -> Self {
+        let digest = Sha256::digest(canonical_basis.as_bytes());
+        Self {
+            canonical_basis: Arc::from(canonical_basis),
+            digest: Arc::from(format!(
+                "bridge-writeback-authoritative-state-basis:sha256:{digest:x}"
+            )),
+        }
+    }
+
+    pub fn canonical_basis(&self) -> &str {
+        self.canonical_basis.as_ref()
+    }
+
+    pub fn digest(&self) -> &str {
+        self.digest.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeWritebackIdempotenceBasis {
     idempotence_identity: BridgeWritebackIdempotenceIdentity,
-    effect_digest: Arc<str>,
+    effect_intent_digest: Arc<str>,
     causality_digest: Arc<str>,
     lowered_policy_digest: Arc<str>,
     family_kind: crate::writeback::BridgeWritebackFamilyKind,
     strategy_class: crate::writeback::BridgeWritebackStrategyClass,
-    strategy_descriptor_digest: Arc<str>,
+    strategy_descriptor_basis: BridgeWritebackStrategyDescriptorBasis,
     authoritative_state_digest: Arc<str>,
     idempotence_class: BridgeWritebackIdempotenceClass,
     canonical_basis: Arc<str>,
@@ -28,32 +80,33 @@ impl BridgeWritebackIdempotenceBasis {
         idempotence_identity: BridgeWritebackIdempotenceIdentity,
         effect: &BridgeDerivedWritebackEffect,
         lowered_policy_digest: impl Into<Arc<str>>,
-        authoritative_state_digest: impl Into<Arc<str>>,
+        authoritative_state_basis: &BridgeWritebackAuthoritativeStateBasis,
         idempotence_class: BridgeWritebackIdempotenceClass,
     ) -> Self {
         let lowered_policy_digest = lowered_policy_digest.into();
-        let authoritative_state_digest = authoritative_state_digest.into();
+        let authoritative_state_digest: Arc<str> =
+            Arc::from(authoritative_state_basis.digest().to_owned());
         let canonical_basis = Arc::<str>::from(format!(
-            "bridge-writeback-idempotence-basis|id={}|effect={}|causality={}|lowered-policy={}|family:{:?}|strategy-class:{:?}|strategy={}|authoritative-state={}|class:{idempotence_class:?}",
+            "bridge-writeback-idempotence-basis|id={}|effect-intent={}|causality={}|lowered-policy={}|family:{:?}|strategy-class:{:?}|strategy={}|authoritative-state={}|class:{idempotence_class:?}",
             idempotence_identity.as_str(),
-            effect.effect_digest(),
+            effect.effect_intent_digest(),
             effect.causality_digest(),
             lowered_policy_digest.as_ref(),
             effect.family_kind(),
             effect.strategy_class(),
-            effect.strategy_descriptor_digest(),
+            effect.strategy_descriptor_basis().digest(),
             authoritative_state_digest.as_ref(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
 
         Self {
             idempotence_identity,
-            effect_digest: Arc::from(effect.effect_digest().to_owned()),
+            effect_intent_digest: Arc::from(effect.effect_intent_digest().to_owned()),
             causality_digest: Arc::from(effect.causality_digest().to_owned()),
             lowered_policy_digest,
             family_kind: effect.family_kind(),
             strategy_class: effect.strategy_class(),
-            strategy_descriptor_digest: Arc::from(effect.strategy_descriptor_digest().to_owned()),
+            strategy_descriptor_basis: effect.strategy_descriptor_basis().clone(),
             authoritative_state_digest,
             idempotence_class,
             canonical_basis,
@@ -71,8 +124,8 @@ impl BridgeWritebackIdempotenceBasis {
         &self.idempotence_identity
     }
 
-    pub fn effect_digest(&self) -> &str {
-        self.effect_digest.as_ref()
+    pub fn effect_intent_digest(&self) -> &str {
+        self.effect_intent_digest.as_ref()
     }
 
     pub fn causality_digest(&self) -> &str {
@@ -91,8 +144,12 @@ impl BridgeWritebackIdempotenceBasis {
         self.family_kind
     }
 
+    pub fn strategy_descriptor_basis(&self) -> &BridgeWritebackStrategyDescriptorBasis {
+        &self.strategy_descriptor_basis
+    }
+
     pub fn strategy_descriptor_digest(&self) -> &str {
-        self.strategy_descriptor_digest.as_ref()
+        self.strategy_descriptor_basis.digest()
     }
 
     pub fn authoritative_state_digest(&self) -> &str {

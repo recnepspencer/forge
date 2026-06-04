@@ -7,10 +7,12 @@ fn writeback_batch_naming_digest_changes_with_attachment_identity() {
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                "writeback:batch-mutation-authority-naming-digest",
+                BridgeWritebackDeclarationIdentity::new(
+                    "writeback:batch-mutation-authority-naming-digest",
+                ),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
-                "strategy:sha256:batch-mutation-authority-naming-digest",
+                "batch-mutation-authority-naming-digest",
             ),
             &lowered_policy,
         )
@@ -20,12 +22,15 @@ fn writeback_batch_naming_digest_changes_with_attachment_identity() {
         &runtime,
         &lowered_policy,
         &contract,
-        "causality:batch-mutation-authority-naming-digest:left",
-        "trigger:sha256:batch-mutation-authority-naming-digest:left",
-        "effect:batch-mutation-authority-naming-digest:left",
-        "effect:sha256:batch-mutation-authority-naming-digest:left",
-        "idempotence:batch-mutation-authority-naming-digest:left",
-        "truth-state:sha256:batch-mutation-authority-naming-digest:left",
+        BridgeWritebackCausalityIdentity::new(
+            "causality:batch-mutation-authority-naming-digest:left",
+        ),
+        "batch-mutation-authority-naming-digest:left",
+        BridgeWritebackEffectIdentity::new("effect:batch-mutation-authority-naming-digest:left"),
+        "batch-mutation-authority-naming-digest:left",
+        BridgeWritebackIdempotenceIdentity::new(
+            "idempotence:batch-mutation-authority-naming-digest:left",
+        ),
     )
     .with_naming_mutation(
         crate::facade::BridgeNamingMutationBundle::attach_new_target(
@@ -38,12 +43,15 @@ fn writeback_batch_naming_digest_changes_with_attachment_identity() {
         &runtime,
         &lowered_policy,
         &contract,
-        "causality:batch-mutation-authority-naming-digest:right",
-        "trigger:sha256:batch-mutation-authority-naming-digest:right",
-        "effect:batch-mutation-authority-naming-digest:right",
-        "effect:sha256:batch-mutation-authority-naming-digest:right",
-        "idempotence:batch-mutation-authority-naming-digest:right",
-        "truth-state:sha256:batch-mutation-authority-naming-digest:right",
+        BridgeWritebackCausalityIdentity::new(
+            "causality:batch-mutation-authority-naming-digest:right",
+        ),
+        "batch-mutation-authority-naming-digest:right",
+        BridgeWritebackEffectIdentity::new("effect:batch-mutation-authority-naming-digest:right"),
+        "batch-mutation-authority-naming-digest:right",
+        BridgeWritebackIdempotenceIdentity::new(
+            "idempotence:batch-mutation-authority-naming-digest:right",
+        ),
     )
     .with_naming_mutation(
         crate::facade::BridgeNamingMutationBundle::attach_new_target(
@@ -71,26 +79,28 @@ fn execute_bridge_mutation_bundle(
     runtime: &RuntimeBridge,
     lowered_policy: &crate::facade::LoweredBridgeExecutionPolicy,
     contract: &crate::facade::AdmittedBridgeWritebackContract,
-    causality_identity: &str,
-    truth_trigger_digest: &str,
-    effect_identity: &str,
-    effect_digest: &str,
-    idempotence_identity: &str,
-    truth_state_digest: &str,
+    causality_identity: BridgeWritebackCausalityIdentity,
+    truth_trigger_evidence_text: &str,
+    effect_identity: BridgeWritebackEffectIdentity,
+    effect_intent_value: &str,
+    idempotence_identity: BridgeWritebackIdempotenceIdentity,
 ) -> crate::facade::BridgeMutationAuthorityBundle {
-    let causality = causality_basis(causality_identity, truth_trigger_digest);
+    let causality = causality_basis(causality_identity, truth_trigger_evidence_text);
     let effect = runtime.lower_writeback_effect(
         contract,
         &causality,
-        BridgeWritebackEffectIdentity::new(effect_identity),
-        effect_digest,
+        effect_identity,
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            effect_intent_value,
+        ),
     );
     let feedback = crate::facade::BridgeWritebackFeedbackProvenance::new(&effect);
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         lowered_policy,
-        truth_state_digest,
-        BridgeWritebackIdempotenceIdentity::new(idempotence_identity),
+        &truth_state_basis(&effect),
+        idempotence_identity,
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let (outcome, _) = runtime

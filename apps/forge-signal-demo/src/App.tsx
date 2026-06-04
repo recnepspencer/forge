@@ -6,6 +6,10 @@ import { DocsPage } from "./ui/DocsPage";
 import { DemosIndex } from "./ui/DemosIndex";
 import { DemosContainer } from "./ui/Demos";
 import { createSignals } from "forge-signal-wasm";
+import "./ui/landingShell.css";
+import "./ui/landingPage.css";
+import "./ui/landingMarketing.css";
+import "./ui/landingDemoRoute.css";
 
 function App() {
   const { route, navigate } = useRouter();

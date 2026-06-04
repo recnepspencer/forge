@@ -1,26 +1,15 @@
-warning: unreachable expression
- --> tests/ui/writeback_symbolic_target_reference_bundle_literal_private.rs:6:18
-  |
-5 |         family: todo!(),
-  |                 ------- any code following this expression is unreachable
-6 |         outcome: todo!(),
-  |                  ^^^^^^^ unreachable expression
-  |
-  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
-  = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
-
 error[E0451]: fields `family`, `outcome`, `symbol`, `resolved_entity_identity` and `target_collection` of struct `BridgeSymbolicTargetReferenceBundle` are private
  --> tests/ui/writeback_symbolic_target_reference_bundle_literal_private.rs:5:9
   |
 4 |     let _ = BridgeSymbolicTargetReferenceBundle {
   |             ----------------------------------- in this type
-5 |         family: todo!(),
+5 |         family: sealed_authority_placeholder(),
   |         ^^^^^^ private field
-6 |         outcome: todo!(),
+6 |         outcome: sealed_authority_placeholder(),
   |         ^^^^^^^ private field
-7 |         symbol: todo!(),
+7 |         symbol: sealed_authority_placeholder(),
   |         ^^^^^^ private field
-8 |         resolved_entity_identity: todo!(),
+8 |         resolved_entity_identity: sealed_authority_placeholder(),
   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
 9 |         target_collection: None,
   |         ^^^^^^^^^^^^^^^^^ private field

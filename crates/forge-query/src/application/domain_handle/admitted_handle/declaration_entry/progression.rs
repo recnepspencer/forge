@@ -19,10 +19,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
     where
         I: ForgeQueryDeclarationInput<D>,
     {
-        forge_query_declaration_progression_recipe(
-            legal,
-            self.operating_context_identity_digest().to_string(),
-        )
+        forge_query_declaration_progression_recipe(legal, self.retained_world_basis())
     }
 
     pub fn progress_declaration<I>(

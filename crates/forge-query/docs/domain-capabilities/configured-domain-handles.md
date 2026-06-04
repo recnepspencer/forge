@@ -329,6 +329,21 @@ binding and declaration-entry orchestration:
 `..._outcome(...)` entry points when you want one compact public result type
 without dropping the checked topology underneath.
 
+When downstream authority code needs one retained admitted-world witness without
+carrying the full admitted handle, call `retained_world_basis()`. It returns
+`ForgeQueryAdmittedWorldBasis`, a Query-owned artifact with read-only accessors
+for:
+
+- `domain_key()`
+- `display_name()`
+- `operating_context_identity_digest()`
+- `handle_identity_digest()`
+- `support_snapshot_digest()`
+
+That retained world basis is public to read, compare, and store, but Query owns
+construction. Downstream crates can bind to admitted-world truth without
+fabricating the witness from raw strings.
+
 The admitted handle also owns one explicit prepared/executed continuation lane
 on top of binding and retained bridge or signal truth:
 continuation lane instead of leaving callers to manually rebuild continuation

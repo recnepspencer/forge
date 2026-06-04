@@ -3,7 +3,7 @@ use forge_runtime_bridge::facade::{
     BridgeSubscriptionDeliveryCostProfile, RuntimeBridge,
 };
 
-fn cannot_activate_delivery_from_raw_admitted_subscription(
+fn cannot_activate_delivery_from_unactivated_subscription_admission(
     runtime: &RuntimeBridge,
     admitted: AdmittedBridgeSubscription,
     cost_profile: BridgeSubscriptionDeliveryCostProfile,

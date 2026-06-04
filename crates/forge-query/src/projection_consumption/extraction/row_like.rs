@@ -10,7 +10,9 @@ use super::super::consumed::{
 use super::super::contracts::{BoundProjectionFactFamily, MaterializedProjectionContract};
 use super::super::facts::ProjectionFactKind;
 use super::super::source::ProjectionSourceFamily;
-use super::aspect_value_projection::project_aspect_value_for_consumption_json;
+use super::aspect_value_projection::{
+    project_aspect_value_for_consumption_json, project_validated_aspect_value_for_consumption_json,
+};
 use crate::memory_workspace::ForgeQueryEntity;
 use crate::projection_consumption::ProjectionFactExtractionError;
 use crate::runtime::ForgeQueryReadResult;
@@ -57,8 +59,10 @@ pub(super) fn extract_bridge_row_set_facts(
                 row.row_identity().as_str(),
                 row.fields().iter().map(|(key, value)| {
                     (
-                        key.as_ref(),
-                        project_aspect_value_for_consumption_json(value.value()),
+                        key.as_str(),
+                        project_validated_aspect_value_for_consumption_json(
+                            value.validated_value(),
+                        ),
                     )
                 }),
             )

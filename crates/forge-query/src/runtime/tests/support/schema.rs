@@ -37,11 +37,14 @@ pub(in crate::runtime::tests) fn issue_schema() -> QuerySchemaView {
 }
 
 pub(in crate::runtime::tests) fn grouped_task_live_request() -> DeclarativeLiveQueryRequest {
-    DeclarativeLiveQueryRequest::new("Task", DeclarativeLiveViewShape::kanban_grouped("status"))
-        .project(DeclarativeProjectionField::new("identity", "id").delivered_as("identity.id"))
-        .project(DeclarativeProjectionField::new("title", "value").delivered_as("title"))
-        .project(DeclarativeProjectionField::new("status", "value").delivered_as("status"))
-        .order_by(DeclarativeProjectionField::new("title", "value"))
+    DeclarativeLiveQueryRequest::new(
+        "Task",
+        DeclarativeLiveViewShape::kanban_grouped(aspect_key("status")),
+    )
+    .project(DeclarativeProjectionField::new("identity", "id").delivered_as("identity.id"))
+    .project(DeclarativeProjectionField::new("title", "value").delivered_as("title"))
+    .project(DeclarativeProjectionField::new("status", "value").delivered_as("status"))
+    .order_by(DeclarativeProjectionField::new("title", "value"))
 }
 
 pub(in crate::runtime::tests) fn grouped_task_table_live_request() -> DeclarativeLiveQueryRequest {
@@ -62,4 +65,9 @@ pub(in crate::runtime::tests) fn grouped_task_schema() -> QuerySchemaView {
         ],
         [],
     )
+}
+
+fn aspect_key(value: &str) -> forge_foundational::facade::AspectKey {
+    forge_foundational::facade::AspectKey::new(value)
+        .expect("runtime test grouped aspect must be foundational")
 }

@@ -65,7 +65,7 @@ impl RuntimeBridge {
             validated_declaration.declaration().selector().clone(),
             if contract
                 .required_capabilities()
-                .contains(BridgeSourceCapability::ReplayCompatibleRead)
+                .contains(BridgeSourceCapability::ReplayContinuityRead)
             {
                 BridgeReplayMode::Required
             } else {

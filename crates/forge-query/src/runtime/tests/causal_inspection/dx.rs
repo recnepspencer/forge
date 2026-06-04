@@ -1,6 +1,7 @@
 use forge_runtime_bridge::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceFamily,
-    BridgeCausalInspectionAdmissionSummary,
+    BridgeCausalEvidenceReferenceIdentity, BridgeCausalInspectionAdmissionSummary,
+    TruthCommitIdentity,
 };
 
 use super::super::super::*;
@@ -9,7 +10,9 @@ use super::materialization::support::*;
 #[test]
 fn common_changed_observation_plans_and_materializes_admitted() {
     let runtime = bridge_runtime();
-    let routed = runtime.route("commit-causal-dx-changed").unwrap();
+    let routed = runtime
+        .route(TruthCommitIdentity::new("commit-causal-dx-changed"))
+        .unwrap();
     let plan = CausalInspection::for_observation(receipt_with_route(
         CausalObservationOutcome::Changed,
         routed.route_identity().as_str(),
@@ -72,7 +75,9 @@ fn support_discovery_names_supported_advisory_and_deferred_lanes() {
 #[test]
 fn common_suppressed_observation_uses_reason_helper() {
     let runtime = bridge_runtime();
-    let routed = runtime.route("commit-causal-dx-suppressed").unwrap();
+    let routed = runtime
+        .route(TruthCommitIdentity::new("commit-causal-dx-suppressed"))
+        .unwrap();
     let plan = CausalInspection::for_observation(receipt_with_route(
         CausalObservationOutcome::Suppressed,
         routed.route_identity().as_str(),
@@ -93,7 +98,9 @@ fn common_suppressed_observation_uses_reason_helper() {
 #[test]
 fn materialized_detail_common_path_is_advisory_before_bridge_materialization() {
     let runtime = bridge_runtime();
-    let routed = runtime.route("commit-causal-dx-advisory").unwrap();
+    let routed = runtime
+        .route(TruthCommitIdentity::new("commit-causal-dx-advisory"))
+        .unwrap();
     let plan = CausalInspection::for_observation(receipt_with_route(
         CausalObservationOutcome::Changed,
         routed.route_identity().as_str(),
@@ -205,7 +212,9 @@ fn bridge_envelope_denial_materializes_denied_artifact_with_bridge_fields() {
 #[test]
 fn common_path_preserves_core_digests_from_explicit_pipeline() {
     let runtime = bridge_runtime();
-    let routed = runtime.route("commit-causal-dx-parity").unwrap();
+    let routed = runtime
+        .route(TruthCommitIdentity::new("commit-causal-dx-parity"))
+        .unwrap();
     let receipt = receipt_with_route(
         CausalObservationOutcome::Changed,
         routed.route_identity().as_str(),
@@ -271,10 +280,18 @@ fn common_path_preserves_core_digests_from_explicit_pipeline() {
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         summary,
         vec![
-            query_reference(explicit_admitted.subject().query_observation_digest()),
+            query_reference(
+                BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    explicit_admitted.subject().query_observation_digest(),
+                )
+                .expect("query observation reference identity should be valid"),
+            ),
             bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeRoute,
-                routed.route_identity().as_str(),
+                BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
+                    BridgeCausalEvidenceFamily::BridgeRoute,
+                    routed.route_identity().as_str(),
+                )
+                .expect("route evidence reference identity should be valid"),
             ),
         ],
     )

@@ -21,8 +21,8 @@ function applyDetailFieldPatch(materialization, patch, currentValue) {
   }
   const nextValue = fieldDefinition.write(currentValue, patch.value);
   const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-  materialization.binding.valueSignal.set(nextValue);
   return Object.freeze({
+    nextValue,
     result: Object.freeze({
       kind: "narrowed",
       scope: "field",
@@ -67,8 +67,8 @@ function applyDetailRegionPatch(materialization, patch, currentValue) {
   }
   const nextValue = regionDefinition.write(currentValue, patch.value);
   const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-  materialization.binding.valueSignal.set(nextValue);
   return Object.freeze({
+    nextValue,
     result: Object.freeze({
       kind: "narrowed",
       scope: "region",
@@ -114,8 +114,8 @@ function applyDetailJsonPathPatch(materialization, patch, currentValue) {
   }
   const nextValue = pathDefinition.write(currentValue, patch.value);
   const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-  materialization.binding.valueSignal.set(nextValue);
   return Object.freeze({
+    nextValue,
     result: Object.freeze({
       kind: "narrowed",
       scope: "jsonPath",

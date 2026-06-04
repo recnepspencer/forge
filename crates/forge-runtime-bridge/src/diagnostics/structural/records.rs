@@ -133,19 +133,10 @@ impl BridgeCanonicalStructuralRemapRecord {
         self.record.counters()
     }
 
-    #[cfg(test)]
-    pub(crate) fn with_schema_version_for_test(
-        mut self,
-        schema_version: impl Into<Arc<str>>,
-    ) -> Self {
-        self.schema_version = schema_version.into();
-        self
-    }
-
     pub(crate) fn decode(&self) -> Result<BridgeStructuralRemapRecord, BridgeReplayError> {
         if self.schema_version() != BRIDGE_CANONICAL_STRUCTURAL_REMAP_RECORD_SCHEMA_V1 {
             return Err(BridgeReplayError::new(
-                BridgeReplayErrorKind::CanonicalArtifactCompatibilityFailure,
+                BridgeReplayErrorKind::CanonicalArtifactCoherenceFailure,
                 format!(
                     "Bridge canonical structural remap record schema `{}` is not supported; expected `{}`.",
                     self.schema_version(),
@@ -272,21 +263,12 @@ impl BridgeCanonicalStructuralBranchComparisonRecord {
         self.record.counters()
     }
 
-    #[cfg(test)]
-    pub(crate) fn with_schema_version_for_test(
-        mut self,
-        schema_version: impl Into<Arc<str>>,
-    ) -> Self {
-        self.schema_version = schema_version.into();
-        self
-    }
-
     pub(crate) fn decode(
         &self,
     ) -> Result<BridgeStructuralBranchComparisonRecord, BridgeReplayError> {
         if self.schema_version() != BRIDGE_CANONICAL_STRUCTURAL_BRANCH_COMPARISON_RECORD_SCHEMA_V1 {
             return Err(BridgeReplayError::new(
-                BridgeReplayErrorKind::CanonicalArtifactCompatibilityFailure,
+                BridgeReplayErrorKind::CanonicalArtifactCoherenceFailure,
                 format!(
                     "Bridge canonical structural branch comparison record schema `{}` is not supported; expected `{}`.",
                     self.schema_version(),

@@ -2,6 +2,7 @@ import { resourceDelivery } from "../../delivery/resource_delivery.js";
 import { executeLineDelivery } from "../../lines/actions/line_delivery_execution.js";
 import { createMutationResponseTargetEffectProof } from "../resource_mutation_response_lifecycle_proof.js";
 import { resourcePatch } from "../../reconciliation/resource_patch.js";
+import { readLineBindingState } from "../../lines/state/line_binding_state.js";
 import {
   createIdentityMigrationFallbackDigest,
   createIdentityMigrationTargetDigest,
@@ -105,7 +106,9 @@ function createExecutedExactIdentityMigrationTarget(target, result) {
 }
 
 function executePreparedDetailChildRegionMigration(target, preparedExecution) {
-  const diagnostics = preparedExecution.targetMaterialization.binding.diagnosticsSignal();
+  const diagnostics = readLineBindingState(
+    preparedExecution.targetMaterialization.binding,
+  ).diagnostics;
   const delivery = resourceDelivery.patch({
     packetId: preparedExecution.packetId,
     basisId: null,
@@ -134,7 +137,9 @@ function executePreparedDetailChildRegionMigration(target, preparedExecution) {
       }),
     );
   }
-  const nextDiagnostics = preparedExecution.targetMaterialization.binding.diagnosticsSignal();
+  const nextDiagnostics = readLineBindingState(
+    preparedExecution.targetMaterialization.binding,
+  ).diagnostics;
   const effect = nextDiagnostics.lastEffect ?? null;
   const detail = [
     readIdentityMigrationExecutionLabel(target),

@@ -14,12 +14,7 @@ fn acknowledgement_frontier_binds_member_identity_digest_and_prefix() {
     let acknowledged = &sealed.members()[1];
 
     let frontier = runtime
-        .admit_subscription_acknowledgement_frontier(
-            &sealed,
-            1,
-            acknowledged.delivery_member_identity(),
-            acknowledged.digest(),
-        )
+        .admit_subscription_acknowledgement_frontier(&sealed, 1, acknowledged)
         .expect("acknowledgement frontier should admit");
 
     assert_eq!(frontier.delivery_window_sequence(), 7);
@@ -34,7 +29,7 @@ fn acknowledgement_frontier_binds_member_identity_digest_and_prefix() {
 }
 
 #[test]
-fn acknowledgement_frontier_rejects_mismatched_member_digest() {
+fn acknowledgement_frontier_rejects_member_from_another_window() {
     let (runtime, active) =
         active_detail_subscription(BridgeSubscriptionDeliveryDensityPosture::SparseMemberDelivery);
     let sealed = sealed_window(
@@ -42,19 +37,21 @@ fn acknowledgement_frontier_rejects_mismatched_member_digest() {
         &active,
         BridgeSubscriptionDeliveryFamilyKind::CanonicalMember,
     );
+    let other_sealed = sealed_window_with_members(
+        &runtime,
+        &active,
+        BridgeSubscriptionDeliveryFamilyKind::CanonicalMember,
+        99,
+        fixture_members(1),
+    );
 
     let rejection = runtime
-        .admit_subscription_acknowledgement_frontier(
-            &sealed,
-            0,
-            sealed.members()[0].delivery_member_identity(),
-            "wrong-digest",
-        )
-        .expect_err("wrong member digest should reject");
+        .admit_subscription_acknowledgement_frontier(&sealed, 0, &other_sealed.members()[0])
+        .expect_err("member from another sealed window should reject");
 
     assert_eq!(
         rejection.rejection_kind(),
-        crate::facade::BridgeSubscriptionAcknowledgementFrontierRejectionKind::AcknowledgedMemberDigestMismatch
+        crate::facade::BridgeSubscriptionAcknowledgementFrontierRejectionKind::AcknowledgedMemberIdentityMismatch
     );
     assert_eq!(
         rejection
@@ -118,12 +115,7 @@ fn descriptor_only_family_cannot_publish_canonical_checkpoint_frontier() {
     );
 
     let rejection = runtime
-        .admit_subscription_acknowledgement_frontier(
-            &sealed,
-            0,
-            sealed.members()[0].delivery_member_identity(),
-            sealed.members()[0].digest(),
-        )
+        .admit_subscription_acknowledgement_frontier(&sealed, 0, &sealed.members()[0])
         .expect_err("descriptor-only delivery cannot publish canonical checkpoint frontier");
 
     assert_eq!(

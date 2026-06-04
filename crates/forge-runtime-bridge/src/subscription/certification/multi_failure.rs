@@ -10,9 +10,13 @@ use super::{
     BridgeSubscriptionCertificationCounterSnapshot, BridgeSubscriptionCertificationDensityPosture,
     BridgeSubscriptionCertificationFailureBoundary,
     BridgeSubscriptionCertificationFailurePrecedenceStage, BridgeSubscriptionCertificationScratch,
-    BridgeSubscriptionReferenceWorkloadManifestDraft,
-    BridgeSubscriptionReferenceWorkloadManifestSealed, BridgeSubscriptionSourceArtifactIndex,
-    BridgeSubscriptionSourceArtifactInput, BridgeSubscriptionSourceArtifactKind,
+    BridgeSubscriptionReferenceWorkloadComponentIdSet,
+    BridgeSubscriptionReferenceWorkloadLaneIdSet, BridgeSubscriptionReferenceWorkloadManifestDraft,
+    BridgeSubscriptionReferenceWorkloadManifestSealed,
+    BridgeSubscriptionReferenceWorkloadProductIdSet, BridgeSubscriptionSourceArtifactEvidence,
+    BridgeSubscriptionSourceArtifactIndex, BridgeSubscriptionSourceArtifactInput,
+    BridgeSubscriptionSourceArtifactKind, BridgeSubscriptionSourceArtifactRole,
+    BridgeSubscriptionSourceArtifactScenario,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,16 +39,16 @@ impl BridgeSubscriptionCertificationMultiFailurePrecedenceReport {
         let manifest = reference_manifest();
         let control = assemble_bundle(
             &manifest,
-            "basis-digest-v1",
-            "checkpoint-digest-v1",
-            "replay-digest-v1",
+            BridgeSubscriptionSourceArtifactRole::Control,
+            BridgeSubscriptionSourceArtifactRole::Control,
+            BridgeSubscriptionSourceArtifactRole::Control,
             false,
         );
         let hostile = assemble_bundle(
             &manifest,
-            "basis-digest-v2",
-            "checkpoint-digest-v2",
-            "replay-digest-v2",
+            BridgeSubscriptionSourceArtifactRole::Hostile,
+            BridgeSubscriptionSourceArtifactRole::Hostile,
+            BridgeSubscriptionSourceArtifactRole::Hostile,
             true,
         );
         let plan = BridgeSubscriptionCertificationComparisonPlan::admit(
@@ -86,7 +90,7 @@ impl BridgeSubscriptionCertificationMultiFailurePrecedenceReport {
             && control.semantic_digests().subscription_basis_digest()
                 != hostile.semantic_digests().subscription_basis_digest();
         let suppressed_checkpoint_replay_and_diagnostics = suppressed_failure_boundaries
-            .contains(&BridgeSubscriptionCertificationFailureBoundary::CheckpointIncompatibility)
+            .contains(&BridgeSubscriptionCertificationFailureBoundary::CheckpointDivergence)
             && suppressed_failure_boundaries
                 .contains(&BridgeSubscriptionCertificationFailureBoundary::ReplayMismatch)
             && suppressed_failure_boundaries
@@ -174,17 +178,18 @@ impl BridgeSubscriptionCertificationMultiFailurePrecedenceReport {
 
 fn reference_manifest() -> BridgeSubscriptionReferenceWorkloadManifestSealed {
     BridgeSubscriptionReferenceWorkloadManifestDraft::new(
-        (0..128)
-            .map(|slot| format!("product-{slot:03}"))
-            .collect::<Vec<_>>(),
-        ["steel", "rubber", "copper", "glass", "labor"].to_vec(),
-        [
+        BridgeSubscriptionReferenceWorkloadProductIdSet::from_declared_product_labels(
+            (0..128).map(|slot| format!("product-{slot:03}")),
+        ),
+        BridgeSubscriptionReferenceWorkloadComponentIdSet::from_declared_component_labels([
+            "steel", "rubber", "copper", "glass", "labor",
+        ]),
+        BridgeSubscriptionReferenceWorkloadLaneIdSet::from_declared_lane_labels([
             "authoritative-live",
             "historical-replay",
             "branch-local",
             "preview-discard",
-        ]
-        .to_vec(),
+        ]),
     )
     .seal()
     .expect("multi-failure fixture manifest should seal")
@@ -192,46 +197,39 @@ fn reference_manifest() -> BridgeSubscriptionReferenceWorkloadManifestSealed {
 
 fn assemble_bundle(
     manifest: &BridgeSubscriptionReferenceWorkloadManifestSealed,
-    basis_digest: &str,
-    checkpoint_digest: &str,
-    replay_digest: &str,
+    basis_role: BridgeSubscriptionSourceArtifactRole,
+    checkpoint_role: BridgeSubscriptionSourceArtifactRole,
+    replay_role: BridgeSubscriptionSourceArtifactRole,
     rich_diagnostics: bool,
 ) -> BridgeSubscriptionCertificationBundleSealed {
     let index = BridgeSubscriptionSourceArtifactIndex::build(vec![
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::Declaration,
-            "multi-failure-declaration",
-            "declaration-digest-stable",
+            BridgeSubscriptionSourceArtifactRole::Stable,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::BasisBinding,
-            "multi-failure-basis",
-            basis_digest,
+            basis_role,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::AdmittedSubscription,
-            "multi-failure-admitted-subscription",
-            "admitted-digest-stable",
+            BridgeSubscriptionSourceArtifactRole::Stable,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::ActiveDelivery,
-            "multi-failure-active-delivery",
-            "active-delivery-digest-stable",
+            BridgeSubscriptionSourceArtifactRole::Stable,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::Checkpoint,
-            "multi-failure-checkpoint",
-            checkpoint_digest,
+            checkpoint_role,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::RetainedReplay,
-            "multi-failure-replay",
-            replay_digest,
+            replay_role,
         ),
-        BridgeSubscriptionSourceArtifactInput::new(
+        source_artifact(
             BridgeSubscriptionSourceArtifactKind::StrategyLowering,
-            "multi-failure-strategy",
-            "strategy-digest-stable",
+            BridgeSubscriptionSourceArtifactRole::Stable,
         ),
     ]);
     let plan = BridgeSubscriptionCertificationAssemblyPlan::plan(manifest, &index);
@@ -247,4 +245,17 @@ fn assemble_bundle(
     BridgeSubscriptionCertificationBundleDraft::assemble(plan, cost_profile, scratch)
         .expect("multi-failure bundle should assemble")
         .seal()
+}
+
+fn source_artifact(
+    artifact_kind: BridgeSubscriptionSourceArtifactKind,
+    role: BridgeSubscriptionSourceArtifactRole,
+) -> BridgeSubscriptionSourceArtifactInput {
+    BridgeSubscriptionSourceArtifactInput::from_evidence(
+        BridgeSubscriptionSourceArtifactEvidence::scenario(
+            artifact_kind,
+            BridgeSubscriptionSourceArtifactScenario::MultiFailurePrecedence,
+            role,
+        ),
+    )
 }

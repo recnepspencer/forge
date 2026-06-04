@@ -144,7 +144,7 @@ pub(super) fn validate_scale_slope(
             && snapshot.bridge_envelope_slope_counter() == 1
             && snapshot.materialization_slope_counter() == 1
             && snapshot.artifact_serialization_slope_counter() == 1
-            && snapshot.bridge_scan_fallback_count() == 0
+            && snapshot.bridge_unindexed_scan_count() == 0
             && snapshot.bridge_readmission_proof_digest().is_some()
     });
     if !stable_slope {

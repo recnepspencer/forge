@@ -3,7 +3,7 @@ error[E0451]: fields `manifest_digest`, `lane_reports`, `comparison_reports`, `o
    |
  9 |     let _report = BridgeSubscriptionReferenceWorkloadReport {
    |                   ----------------------------------------- in this type
-10 |         manifest_digest: Arc::from("manifest"),
+10 |         manifest_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^ private field
 11 |         lane_reports: Vec::new(),
    |         ^^^^^^^^^^^^ private field
@@ -17,7 +17,7 @@ error[E0451]: fields `manifest_digest`, `lane_reports`, `comparison_reports`, `o
    |         ^^^^^^^^^^^^^^^ private field
 16 |         counters: BridgeSubscriptionCertificationCounterSnapshot::default(),
    |         ^^^^^^^^ private field
-17 |         canonical_basis: Arc::from("basis"),
+17 |         canonical_basis: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^ private field
-18 |         digest: Arc::from("digest"),
+18 |         digest: sealed_authority_placeholder(),
    |         ^^^^^^ private field

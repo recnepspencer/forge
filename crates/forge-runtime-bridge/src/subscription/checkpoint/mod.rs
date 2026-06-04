@@ -1,4 +1,4 @@
-﻿mod ack_frontier;
+mod ack_frontier;
 mod checkpoint;
 mod checkpoint_rejection;
 mod duplicate_policy;

@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 use crate::identity::{BridgeIdentity, WritebackAdmissionRecordIdentityTag};
 
-use super::AdmittedBridgeWritebackContract;
+use super::{AdmittedBridgeWritebackContract, BridgeWritebackStrategyDescriptorBasis};
 
 pub type BridgeWritebackFamilyAdmissionRecordIdentity =
     BridgeIdentity<WritebackAdmissionRecordIdentityTag>;
@@ -17,7 +17,7 @@ pub struct BridgeWritebackFamilyAdmissionRecord {
     family_kind: crate::writeback::BridgeWritebackFamilyKind,
     effect_class: crate::writeback::BridgeWritebackEffectClass,
     strategy_class: crate::writeback::BridgeWritebackStrategyClass,
-    strategy_descriptor_digest: Arc<str>,
+    strategy_descriptor_basis: BridgeWritebackStrategyDescriptorBasis,
     family_basis_digest: Arc<str>,
     strategy_basis_digest: Arc<str>,
     lowered_policy_digest: Arc<str>,
@@ -46,7 +46,10 @@ impl BridgeWritebackFamilyAdmissionRecord {
             declaration
                 .strategy_class()
                 .expect("family admission record requires strategy class"),
-            declaration.strategy_descriptor_digest(),
+            declaration
+                .strategy_descriptor_basis()
+                .expect("family admission record requires strategy descriptor basis")
+                .digest(),
             family_basis.digest(),
             strategy_basis.digest(),
             contract.lowered_policy_digest(),
@@ -68,9 +71,10 @@ impl BridgeWritebackFamilyAdmissionRecord {
             strategy_class: declaration
                 .strategy_class()
                 .expect("family admission record requires strategy class"),
-            strategy_descriptor_digest: Arc::from(
-                declaration.strategy_descriptor_digest().to_owned(),
-            ),
+            strategy_descriptor_basis: declaration
+                .strategy_descriptor_basis()
+                .expect("family admission record requires strategy descriptor basis")
+                .clone(),
             family_basis_digest: Arc::from(family_basis.digest().to_owned()),
             strategy_basis_digest: Arc::from(strategy_basis.digest().to_owned()),
             lowered_policy_digest: Arc::from(contract.lowered_policy_digest().to_owned()),
@@ -107,8 +111,12 @@ impl BridgeWritebackFamilyAdmissionRecord {
         self.strategy_class
     }
 
+    pub fn strategy_descriptor_basis(&self) -> &BridgeWritebackStrategyDescriptorBasis {
+        &self.strategy_descriptor_basis
+    }
+
     pub fn strategy_descriptor_digest(&self) -> &str {
-        self.strategy_descriptor_digest.as_ref()
+        self.strategy_descriptor_basis.digest()
     }
 
     pub fn family_basis_digest(&self) -> &str {

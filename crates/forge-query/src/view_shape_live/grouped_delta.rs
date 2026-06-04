@@ -99,7 +99,7 @@ pub(crate) fn build_grouped_delta(
             prior_state: prior_state.clone(),
         };
     }
-    if prior_state.grouping_aspect() != next_state.grouping_aspect() {
+    if prior_state.native_grouping_aspect_key() != next_state.native_grouping_aspect_key() {
         return GroupedDeltaComputation::RefreshDeferredDebt {
             reason: GroupedRefreshReason::PolicyExceeded,
             prior_state: prior_state.clone(),

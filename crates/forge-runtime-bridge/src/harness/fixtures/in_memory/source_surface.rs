@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, Default)]
 struct InMemoryRelationalState {
-    committed_patches: BTreeMap<String, RawCommittedPatchEnvelope>,
+    committed_patches: BTreeMap<String, BridgeCommittedPatchEnvelope>,
     branch_heads: BTreeMap<String, String>,
     snapshots: BTreeMap<String, SnapshotFixture>,
     continuity_authorities: BTreeMap<String, BridgeHistoricalLineageAuthority>,
@@ -12,7 +12,7 @@ pub struct InMemoryRelationalBridgeSource {
 }
 
 impl InMemoryRelationalBridgeSource {
-    pub fn insert_committed_patch(&self, patch: RawCommittedPatchEnvelope) {
+    pub fn insert_committed_patch(&self, patch: BridgeCommittedPatchEnvelope) {
         let mut state = self.state.write().expect("bridge source lock poisoned");
         state
             .committed_patches
@@ -63,12 +63,12 @@ impl CommittedPatchSource for InMemoryRelationalBridgeSource {
     fn load_committed_patch(
         &self,
         request: crate::adapter::RelationalCommittedPatchRequest,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         self.state
             .read()
             .expect("bridge source lock poisoned")
             .committed_patches
-            .get(request.commit_identity())
+            .get(request.commit_identity().as_str())
             .cloned()
             .ok_or_else(|| {
                 RelationalBridgeSourceError::new(format!(
@@ -105,7 +105,7 @@ impl TruthBranchHeadSource for InMemoryRelationalBridgeSource {
     fn load_branch_head_patch(
         &self,
         branch_identity: &crate::facade::TruthBranchIdentity,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         let state = self.state.read().expect("bridge source lock poisoned");
         let commit_identity = state
             .branch_heads
@@ -171,12 +171,12 @@ impl TruthSnapshotReader for InMemorySnapshotReader {
             .snapshot
             .records()
             .iter()
-            .map(|record| (record.request_key().to_string(), record.clone()))
+            .map(|record| (record.correlation_id().clone(), record.clone()))
             .collect::<BTreeMap<_, _>>();
         let records = request
             .reads()
             .iter()
-            .filter_map(|read| record_lookup.get(read.request_key()).cloned())
+            .filter_map(|read| record_lookup.get(read.correlation_id()).cloned())
             .collect::<Vec<_>>();
         Ok(SnapshotReadPacketResult::new(
             self.snapshot.read_result_identity().clone(),

@@ -87,6 +87,8 @@ fn evidence_digest_changes_with_world_and_progression_outcome() {
 fn legality_only_evidence_preserves_world_identity_and_world_sensitive_digest() {
     let collaborative = admitted_handle("collaborative");
     let mirror = admitted_handle("mirror");
+    let collaborative_world_basis = collaborative.retained_world_basis();
+    let mirror_world_basis = mirror.retained_world_basis();
     let collaborative_evidence = collaborative
         .describe_foundational(
             ForgeQueryDeclarationFoundationalEvidenceInput::legality_evidence(
@@ -108,11 +110,19 @@ fn legality_only_evidence_preserves_world_identity_and_world_sensitive_digest() 
 
     assert_eq!(
         collaborative_evidence.operating_context_identity_digest(),
-        "geometry.collaborative"
+        collaborative_world_basis.operating_context_identity_digest()
+    );
+    assert_eq!(
+        collaborative_evidence.handle_identity_digest(),
+        collaborative_world_basis.handle_identity_digest()
     );
     assert_eq!(
         mirror_evidence.operating_context_identity_digest(),
-        "geometry.mirror"
+        mirror_world_basis.operating_context_identity_digest()
+    );
+    assert_eq!(
+        mirror_evidence.handle_identity_digest(),
+        mirror_world_basis.handle_identity_digest()
     );
     assert_ne!(
         digest_text(collaborative_evidence.attachment_bundle_digest()),

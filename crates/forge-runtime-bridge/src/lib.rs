@@ -14,8 +14,10 @@
 //! ```no_run
 //! use forge_runtime_bridge::facade::{
 //!     BridgeMappingId, BridgeMappingRegistration, CoarseRoutingMode, MappingSelector,
-//!     RuntimeBridge, SignalInvalidationScope, TruthPatchScope,
+//!     RuntimeBridge, SignalInvalidationScope, SnapshotReadContract, TruthPatchScope,
+//!     TruthCommitIdentity,
 //! };
+//! use forge_foundational::facade::{AspectKey, FieldKey, ScalarAspectType};
 //!
 //! fn standard_path_example<
 //!     TruthSource,
@@ -37,17 +39,21 @@
 //!         .with_compute_sink(compute_sink)
 //!         .register_mapping(BridgeMappingRegistration::new(
 //!             BridgeMappingId::new("pricing:steel"),
-//!             TruthPatchScope::new(
+//!             TruthPatchScope::for_entity_field(
 //!                 MappingSelector::exact("component:steel"),
-//!                 MappingSelector::exact("cost"),
-//!                 MappingSelector::exact("usd"),
+//!                 AspectKey::new("cost").expect("valid aspect key"),
+//!                 FieldKey::new("usd".to_owned()).expect("valid field key"),
+//!             ),
+//!             SnapshotReadContract::scalar(
+//!                 AspectKey::new("cost").expect("valid aspect key"),
+//!                 ScalarAspectType::String,
 //!             ),
 //!             SignalInvalidationScope::new("price:bicycle"),
 //!             CoarseRoutingMode::Direct,
 //!         ))
 //!         .build()?;
 //!
-//!     let route = bridge.route("commit:steel-main")?;
+//!     let route = bridge.route(TruthCommitIdentity::new("commit:steel-main"))?;
 //!     let evaluation = bridge.evaluate_current(route.target())?;
 //!     let diagnostics = bridge.diagnostics().explain_last();
 //!
@@ -61,6 +67,7 @@
 
 mod adapter;
 mod builder;
+mod canonical_basis;
 mod clone_budget;
 mod continuity;
 mod delivery;

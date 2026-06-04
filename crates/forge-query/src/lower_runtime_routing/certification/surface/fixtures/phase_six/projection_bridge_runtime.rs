@@ -1,12 +1,18 @@
+use forge_foundational::facade::{
+    AspectKey, AspectLocator, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
+    ScalarAspectType,
+};
 use forge_runtime_bridge::facade::{
-    BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration, BridgeRuntimePolicy,
-    BridgeSignalInvalidationDelivery, BridgeSnapshotReadError, BridgeSourceAdapter,
-    BridgeSourceCapability, BridgeSourceCapabilitySet, BridgeTruthViewSelector, CoarseRoutingMode,
-    InvalidationSink, MappingSelector, RawCommittedPatchEnvelope, RelationalBridgeSourceError,
-    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
-    SignalInvalidationScope, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
-    SnapshotReadSource, SourceDeclaration, SourceDeclarationIdentity, TruthBranchHeadSource,
-    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
+    AspectKeySelector, BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity,
+    BridgeCommittedPatchItem, BridgeCommittedPatchTarget, BridgeDeliveryReceipt, BridgeMappingId,
+    BridgeMappingRegistration, BridgeRuntimePolicy, BridgeSignalInvalidationDelivery,
+    BridgeSnapshotReadError, BridgeSourceAdapter, BridgeSourceCapability,
+    BridgeSourceCapabilitySet, BridgeTruthViewSelector, CoarseRoutingMode, InvalidationSink,
+    MappingSelector, RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
+    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
+    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
+    SourceDeclaration, SourceDeclarationIdentity, TruthBranchHeadSource, TruthBranchIdentity,
+    TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope, TruthPatchTargetSelector,
     TruthSnapshotIdentity, TruthSnapshotReader,
 };
 use std::sync::Arc;
@@ -47,9 +53,10 @@ pub(super) fn projection_bridge_runtime() -> RuntimeBridge {
             BridgeMappingId::new("projection-bridge-mapping"),
             TruthPatchScope::new(
                 MappingSelector::exact("entity-1"),
-                MappingSelector::exact("status"),
-                MappingSelector::exact("lane"),
+                AspectKeySelector::exact(aspect_key("status")),
+                TruthPatchTargetSelector::entity_field(field_key("lane")),
             ),
+            SnapshotReadContract::scalar(aspect_key("status"), ScalarAspectType::String),
             SignalInvalidationScope::new("signal:projection-bridge"),
             CoarseRoutingMode::Direct,
         ))
@@ -66,13 +73,12 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for ProjectionBridgeSour
     fn load_committed_patch(
         &self,
         request: RelationalCommittedPatchRequest,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        Ok(RawCommittedPatchEnvelope::new(
-            TruthCommitIdentity::new(request.commit_identity()),
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        Ok(native_projection_patch_envelope(
+            request.commit_identity().clone(),
             TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
             TruthSnapshotIdentity::new("snapshot-a"),
             TruthBranchIdentity::new("main"),
-            vec![],
         ))
     }
 }
@@ -102,15 +108,18 @@ impl TruthSnapshotReader for ProjectionBridgeSnapshotReader {
                         .iter()
                         .find_map(|(entity_identity, identity_value, grouping_value)| {
                             (read.entity_identity() == entity_identity.as_str()).then(|| match read
-                                .aspect_label()
+                                .aspect_key()
+                                .as_str()
                             {
-                                "identity.id" => identity_value.as_bytes().to_vec(),
-                                "status" => grouping_value.as_bytes().to_vec(),
-                                _ => b"unknown".to_vec(),
+                                "identity.id" => {
+                                    AspectValue::String(identity_value.as_str().into())
+                                }
+                                "status" => AspectValue::String(grouping_value.as_str().into()),
+                                _ => AspectValue::String("unknown".into()),
                             })
                         })
-                        .unwrap_or_else(|| b"unknown".to_vec());
-                    SnapshotReadRecord::new(read.request_key(), payload)
+                        .unwrap_or_else(|| AspectValue::String("unknown".into()));
+                    SnapshotReadRecord::for_request(read, payload)
                 })
                 .collect(),
         ))
@@ -139,13 +148,12 @@ impl TruthBranchHeadSource for ProjectionBridgeSource {
     fn load_branch_head_patch(
         &self,
         branch_identity: &TruthBranchIdentity,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        Ok(RawCommittedPatchEnvelope::new(
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        Ok(native_projection_patch_envelope(
             TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
             TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
             TruthSnapshotIdentity::new("snapshot-a"),
             branch_identity.clone(),
-            vec![],
         ))
     }
 }
@@ -172,6 +180,38 @@ impl BridgeSourceAdapter for ProjectionBridgeSourceAdapter {
         }
         .open_snapshot(identity)
     }
+}
+
+fn native_projection_patch_envelope(
+    commit_identity: TruthCommitIdentity,
+    patch_identity: TruthPatchIdentity,
+    snapshot_identity: TruthSnapshotIdentity,
+    branch_identity: TruthBranchIdentity,
+) -> BridgeCommittedPatchEnvelope {
+    BridgeCommittedPatchEnvelope::new(
+        BridgeCommittedPatchEnvelopeIdentity::new(
+            commit_identity,
+            patch_identity,
+            snapshot_identity,
+            branch_identity,
+        ),
+        vec![BridgeCommittedPatchItem::with_target(
+            "entity-1",
+            BridgeCommittedPatchTarget::entity_field_path(
+                AspectLocator::new(LocatorAuthority::Authoritative, aspect_key("status")),
+                CanonicalFieldPath::single(field_key("lane")),
+            ),
+        )],
+    )
+    .expect("projection bridge fixture must build a native patch envelope")
+}
+
+fn aspect_key(value: &str) -> AspectKey {
+    AspectKey::new(value).expect("valid projection bridge aspect key")
+}
+
+fn field_key(value: &str) -> FieldKey {
+    FieldKey::new(value.to_owned()).expect("valid projection bridge field key")
 }
 
 struct ProjectionBridgeSink;

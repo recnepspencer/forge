@@ -1,8 +1,7 @@
-use std::sync::Arc;
-
 use forge_runtime_bridge::facade::{
-    BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest, BridgeLineageSourceError,
-    BridgeLineageSourceErrorKind, ContinuityLineageSource,
+    BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest,
+    BridgeHistoricalResolvedLineageIdentity, BridgeHistoricalResolvedRecordIdentity,
+    BridgeLineageSourceError, BridgeLineageSourceErrorKind, ContinuityLineageSource,
 };
 
 use super::snapshot_authority::resolve_snapshot_version;
@@ -53,13 +52,15 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
                     ),
                 )
             })?;
-        let mut canonical_resolved_lineage_keys = resolution
+        let mut canonical_resolved_lineage_identities = resolution
             .resolved
             .iter()
-            .map(|lineage| Arc::<str>::from(format!("lineage:{}", lineage.0)))
+            .map(|lineage| {
+                BridgeHistoricalResolvedLineageIdentity::new(format!("lineage:{}", lineage.0))
+            })
             .collect::<Vec<_>>();
-        canonical_resolved_lineage_keys.sort_unstable();
-        canonical_resolved_lineage_keys.dedup();
+        canonical_resolved_lineage_identities.sort_unstable();
+        canonical_resolved_lineage_identities.dedup();
 
         let snapshot_version_id =
             resolve_snapshot_version(&self.runtime, request.authority_basis().snapshot_identity())
@@ -69,15 +70,19 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
                         error.to_string(),
                     )
                 })?;
-        let mut canonical_resolved_record_keys = self
+        let mut canonical_resolved_record_identities = self
             .runtime
             .lineage_access()
             .visible_entity_ids_for_lineages_at_version(&resolution.resolved, snapshot_version_id)
             .into_iter()
-            .map(|entity_id| Arc::<str>::from(record_ref_identity(&RecordRef::Entity(entity_id))))
+            .map(|entity_id| {
+                BridgeHistoricalResolvedRecordIdentity::new(record_ref_identity(
+                    &RecordRef::Entity(entity_id),
+                ))
+            })
             .collect::<Vec<_>>();
-        canonical_resolved_record_keys.sort_unstable();
-        canonical_resolved_record_keys.dedup();
+        canonical_resolved_record_identities.sort_unstable();
+        canonical_resolved_record_identities.dedup();
 
         let mut traversed_event_ids = resolution.traversed_event_ids.clone();
         traversed_event_ids.sort_unstable();
@@ -85,8 +90,8 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
 
         BridgeHistoricalLineageAuthority::try_new(
             request.authority_basis().clone(),
-            canonical_resolved_lineage_keys,
-            canonical_resolved_record_keys,
+            canonical_resolved_lineage_identities,
+            canonical_resolved_record_identities,
             traversed_event_ids,
         )
     }

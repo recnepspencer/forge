@@ -1,4 +1,3 @@
-mod aspect_values;
 mod capabilities;
 mod contracts;
 mod counters;
@@ -7,8 +6,8 @@ mod failures;
 mod grouped_contract;
 mod grouped_truth_view;
 mod materialization;
+mod packet_set_digest_basis;
 mod planning;
-mod record_digests;
 mod records;
 mod row_set;
 mod validation;
@@ -20,16 +19,16 @@ pub use declaration::{SourceDeclaration, SourceDeclarationIdentity};
 pub use failures::{SourceFailureClass, SourceFailureRecord, SourceFailureRecordIdentity};
 pub use grouped_contract::{GroupedProjectionMemberSource, GroupedProjectionSource};
 pub use grouped_truth_view::{
-    materialize_bridge_grouped_truth_view_from_projection, BridgeGroupedLaneValue,
-    BridgeGroupedMemberRow, BridgeGroupedTruthViewArtifact, BridgeGroupedTruthViewDigest,
-    BridgeGroupedTruthViewError,
+    materialize_bridge_grouped_truth_view_from_projection, BridgeGroupedBindingValueFamily,
+    BridgeGroupedLaneValue, BridgeGroupedMemberRow, BridgeGroupedTruthViewArtifact,
+    BridgeGroupedTruthViewDigest, BridgeGroupedTruthViewError,
 };
 pub use materialization::MaterializedTruthViewPacketSet;
 pub use planning::PlannedSourceReadPacketSet;
 pub use records::{SourceMaterializationRecord, SourceMaterializationRecordIdentity};
 pub use row_set::{
-    materialize_bridge_row_set, BridgeMaterializedFieldValue, BridgeMaterializedRowArtifact,
-    BridgeMaterializedRowSetArtifact, BridgeMaterializedRowSetDigest, BridgeRowIdentity,
-    BridgeRowSetMaterializationError,
+    materialize_bridge_row_set, BridgeMaterializedFieldIdentity, BridgeMaterializedFieldProjection,
+    BridgeMaterializedFieldValue, BridgeMaterializedRowArtifact, BridgeMaterializedRowSetArtifact,
+    BridgeMaterializedRowSetDigest, BridgeRowIdentity, BridgeRowSetMaterializationError,
 };
 pub use validation::ValidatedSourceDeclaration;

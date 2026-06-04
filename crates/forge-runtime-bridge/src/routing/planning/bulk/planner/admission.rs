@@ -42,6 +42,11 @@ pub(super) fn classify_parallel_legality(
             BridgeParallelLegalityClass::ParallelPreparationIllegal,
             BridgeParallelLegalityReason::SharedTruthViewMaterializationTarget,
         )
+    } else if !packet_region_identities_are_disjoint(packet_set) {
+        (
+            BridgeParallelLegalityClass::ParallelPreparationIllegal,
+            BridgeParallelLegalityReason::PacketRegionOverlapDetected,
+        )
     } else {
         (
             BridgeParallelLegalityClass::ParallelPreparationLegal,
@@ -98,6 +103,9 @@ fn classify_parallel_admission_components(
                 }
                 BridgeParallelLegalityReason::ContinuityRemapRequiresSerialPreparation => {
                     BridgeParallelAdmissionReason::ContinuityRemapRequiresSerialPreparation
+                }
+                BridgeParallelLegalityReason::PacketRegionOverlapDetected => {
+                    BridgeParallelAdmissionReason::PacketRegionOverlapDetected
                 }
                 BridgeParallelLegalityReason::BelowMinWorkloadWidth
                 | BridgeParallelLegalityReason::DisjointPacketRegionsCertified => {
@@ -258,9 +266,9 @@ fn reduction_identity_conflict_detected(reduced_artifact: &ReducedBridgeWorkload
             .map(|continuity| continuity.continuity_identity().as_str()),
     ) || has_duplicate_keys(
         reduced_artifact
-            .reduced_fallbacks()
+            .reduced_widenings()
             .iter()
-            .map(|fallback| fallback.fallback_identity().as_str()),
+            .map(|widening| widening.widening_identity().as_str()),
     )
 }
 
@@ -275,23 +283,24 @@ fn has_duplicate_keys<'a>(keys: impl IntoIterator<Item = &'a str>) -> bool {
 }
 
 pub(super) fn locality_footprint(packet_set: &PlannedBridgePacketSet) -> BridgeLocalityFootprint {
-    let mut branch_scopes = std::collections::BTreeSet::<Arc<str>>::new();
-    let mut snapshot_scopes = std::collections::BTreeSet::<Arc<str>>::new();
-    let mut publication_scopes = std::collections::BTreeSet::<Arc<str>>::new();
+    let mut branch_scopes =
+        std::collections::BTreeSet::<crate::input::envelope::TruthBranchIdentity>::new();
+    let mut snapshot_scopes =
+        std::collections::BTreeSet::<crate::snapshot::TruthSnapshotIdentity>::new();
+    let mut publication_scopes =
+        std::collections::BTreeSet::<crate::routing::BridgeSubscriptionSliceIdentity>::new();
     for packet in packet_set.routing_packets() {
-        branch_scopes.insert(Arc::<str>::from(packet.source_branch().to_owned()));
-        snapshot_scopes.insert(Arc::<str>::from(packet.source_snapshot().to_owned()));
-        publication_scopes.insert(Arc::<str>::from(
-            packet.subscription_slice_identity().to_owned(),
-        ));
+        branch_scopes.insert(packet.typed_source_branch().clone());
+        snapshot_scopes.insert(packet.typed_source_snapshot().clone());
+        publication_scopes.insert(packet.subscription_slice_identity().clone());
     }
     for packet in packet_set.truth_view_packets() {
-        branch_scopes.insert(Arc::<str>::from(packet.source_branch().to_owned()));
-        snapshot_scopes.insert(Arc::<str>::from(packet.source_snapshot().to_owned()));
+        branch_scopes.insert(packet.typed_source_branch().clone());
+        snapshot_scopes.insert(packet.typed_source_snapshot().clone());
     }
     for packet in packet_set.continuity_packets() {
-        branch_scopes.insert(Arc::<str>::from(packet.branch_identity().to_owned()));
-        snapshot_scopes.insert(Arc::<str>::from(packet.snapshot_identity().to_owned()));
+        branch_scopes.insert(packet.typed_branch_identity().clone());
+        snapshot_scopes.insert(packet.typed_snapshot_identity().clone());
     }
     BridgeLocalityFootprint::new(
         branch_scopes.len().max(1),
@@ -302,13 +311,13 @@ pub(super) fn locality_footprint(packet_set: &PlannedBridgePacketSet) -> BridgeL
 
 pub(super) fn reduced_publication_packet_digest_basis(
     workload_identity: &BridgeWorkloadIdentity,
-    subscription_slice_identity: &str,
+    subscription_slice_identity: &crate::routing::BridgeSubscriptionSliceIdentity,
     packets: &[&TruthDeltaRoutingPacket],
 ) -> String {
     let mut basis = format!(
         "reduced-publication|workload={}|subscription-slice={}|packet-count={}",
         workload_identity.as_str(),
-        subscription_slice_identity,
+        subscription_slice_identity.as_str(),
         packets.len(),
     );
     for packet in packets {

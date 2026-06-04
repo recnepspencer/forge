@@ -188,7 +188,7 @@ fn writeback_preview_freshness_denial(
 fn writeback_bridge_declaration(
     declaration: &QueryWorkflowDeclaration,
     family: &WritebackDeclarationFamily,
-    causality_digest: &str,
+    _causality_digest: &str,
     request_kind: BridgeRequestKind,
 ) -> BridgeWritebackDeclaration {
     let (family_kind, effect_class, strategy_class, idempotence_class) =
@@ -202,11 +202,6 @@ fn writeback_bridge_declaration(
         family_kind,
         effect_class,
         strategy_class,
-        hash_parts(&[
-            format!("workflow:{}", declaration.report().declaration_digest()),
-            format!("family:{}", family.as_str()),
-            format!("causality:{causality_digest}"),
-        ]),
         idempotence_class,
     )
 }

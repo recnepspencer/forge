@@ -18,6 +18,46 @@ export function FormsSectionCodeSample(): React.ReactElement {
   return (
     <div className="forms-code-block" role="presentation">
       <CodeLine>
+        <Tok kind="kw">function</Tok> <Tok kind="fn">validatePrice</Tok>(<Tok kind="var">price</Tok>) <Tok kind="plain">{"{"}</Tok>
+      </CodeLine>
+      <CodeLine>
+        {"  "}
+        <Tok kind="kw">return</Tok> <Tok kind="var">price</Tok> <Tok kind="op">&gt;</Tok> <Tok kind="plain">0</Tok>
+      </CodeLine>
+      <CodeLine>
+        {"    "}
+        <Tok kind="op">?</Tok> <Tok kind="plain">null</Tok> <Tok kind="op">:</Tok> <Tok kind="str">"Enter a valid retail price"</Tok>;
+      </CodeLine>
+      <CodeLine>
+        <Tok kind="plain">{"}"}</Tok>
+      </CodeLine>
+      <CodeLine />
+      <CodeLine>
+        <Tok kind="kw">function</Tok> <Tok kind="fn">validateMarginFloor</Tok>(
+        <Tok kind="var">price</Tok>, <Tok kind="var">baseCost</Tok>, <Tok kind="var">targetMargin</Tok>) <Tok kind="plain">{"{"}</Tok>
+      </CodeLine>
+      <CodeLine>
+        {"  "}
+        <Tok kind="kw">const</Tok> <Tok kind="var">requiredPrice</Tok> <Tok kind="op">=</Tok>{" "}
+        <Tok kind="fn">getRequiredPrice</Tok>(<Tok kind="var">baseCost</Tok>, <Tok kind="var">targetMargin</Tok>);
+      </CodeLine>
+      <CodeLine>
+        {"  "}
+        <Tok kind="kw">return</Tok> <Tok kind="var">price</Tok> <Tok kind="op">&gt;=</Tok> <Tok kind="var">requiredPrice</Tok>
+      </CodeLine>
+      <CodeLine>
+        {"    "}
+        <Tok kind="op">?</Tok> <Tok kind="plain">null</Tok>
+      </CodeLine>
+      <CodeLine>
+        {"    "}
+        <Tok kind="op">:</Tok> <Tok kind="str">"Raise price until the current margin target is still true"</Tok>;
+      </CodeLine>
+      <CodeLine>
+        <Tok kind="plain">{"}"}</Tok>
+      </CodeLine>
+      <CodeLine />
+      <CodeLine>
         <Tok kind="kw">function</Tok> <Tok kind="fn">validateShippingRegions</Tok>(
         <Tok kind="var">regions</Tok>, <Tok kind="var">approvalLine</Tok>) <Tok kind="plain">{"{"}</Tok>
       </CodeLine>
@@ -123,7 +163,8 @@ export function FormsSectionCodeSample(): React.ReactElement {
       <CodeLine>
         {"        "}
         <Tok kind="prop">validate</Tok>: ({ "{" } <Tok kind="var">value</Tok>, <Tok kind="var">draft</Tok> { "}" }) <Tok kind="op">=&gt;</Tok>{" "}
-        <Tok kind="fn">validatePrice</Tok>(<Tok kind="var">value</Tok>, <Tok kind="var">draft</Tok>.<Tok kind="prop">baseCost</Tok>, <Tok kind="var">draft</Tok>.<Tok kind="prop">targetMargin</Tok>),
+        <Tok kind="fn">validatePrice</Tok>(<Tok kind="var">value</Tok>) <Tok kind="op">??</Tok>{" "}
+        <Tok kind="fn">validateMarginFloor</Tok>(<Tok kind="var">value</Tok>, <Tok kind="var">draft</Tok>.<Tok kind="prop">baseCost</Tok>, <Tok kind="var">draft</Tok>.<Tok kind="prop">targetMargin</Tok>),
       </CodeLine>
       <CodeLine>
         {"      "}
@@ -136,6 +177,10 @@ export function FormsSectionCodeSample(): React.ReactElement {
       <CodeLine>
         {"        "}
         <Tok kind="prop">readOnly</Tok>: <Tok kind="plain">true</Tok>,
+      </CodeLine>
+      <CodeLine>
+        {"        "}
+        <Tok kind="plain">{`// backend policy field: price validation reads this margin floor`}</Tok>
       </CodeLine>
       <CodeLine>
         {"      "}

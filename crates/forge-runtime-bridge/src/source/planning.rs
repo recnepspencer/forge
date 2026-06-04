@@ -87,13 +87,13 @@ impl PlannedSourceReadPacketSet {
 #[cfg(test)]
 mod tests {
     use super::PlannedSourceReadPacketSet;
-    use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity};
+    use crate::input::envelope::TruthBranchIdentity;
     use crate::policy::BridgeDiagnosticsTier;
     use crate::snapshot::{
         BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewAuthorityBasis,
         BridgeTruthViewSelector, HistoricalEvaluationDeclaration, PlannedTruthViewPacket,
         ResolvedTruthViewPolicy, SnapshotReadPacket, TruthSnapshotIdentity,
-        TruthViewReplayCompatibility, TruthViewRetentionAdmission, TruthViewSourceCapability,
+        TruthViewReplayContinuity, TruthViewRetentionAdmission, TruthViewSourceCapability,
     };
     use crate::source::{
         AdmittedSourceContract, BridgeSourceCapability, BridgeSourceCapabilitySet,
@@ -105,7 +105,7 @@ mod tests {
             SourceDeclarationIdentity::new("source:analysis-history"),
             BridgeTruthViewSelector::historical_commit(
                 TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthCommitIdentity::new("commit-a"),
             ),
             BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,
@@ -133,11 +133,11 @@ mod tests {
                 &declaration,
                 TruthViewRetentionAdmission::HistoricalLookupRequired,
                 TruthViewSourceCapability::HistoricalLookupAndSnapshotRead,
-                TruthViewReplayCompatibility::ReplayPermitted,
+                TruthViewReplayContinuity::ReplayPermitted,
             ),
             BridgeTruthViewAuthorityBasis::from_resolved_envelope(
                 declaration.selector(),
-                TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthCommitIdentity::new("commit-a"),
                 TruthSnapshotIdentity::new("snapshot-a"),
             ),
             SnapshotReadPacket::new(vec![]),

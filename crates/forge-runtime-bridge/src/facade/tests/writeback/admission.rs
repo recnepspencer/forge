@@ -4,10 +4,10 @@ use super::support::*;
 fn runtime_rejects_preview_writeback_declarations() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let declaration = writeback_declaration(
-        "writeback:preview",
+        BridgeWritebackDeclarationIdentity::new("writeback:preview"),
         BridgeRequestKind::Preview,
         BridgeWritebackRequestMode::WritebackCapable,
-        "strategy:sha256:preview",
+        "preview",
     );
 
     let error = runtime
@@ -30,7 +30,7 @@ fn runtime_rejects_read_only_writeback_declarations_with_strategy_binding() {
         None,
         BridgeWritebackEffectClass::ProjectedStateDiff,
         None,
-        "strategy:sha256:readonly",
+        Some(projected_strategy_descriptor_basis()),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -54,7 +54,7 @@ fn runtime_rejects_read_only_writeback_declarations_with_strategy_class_binding(
         None,
         BridgeWritebackEffectClass::ProjectedStateDiff,
         Some(BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation),
-        "",
+        None,
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -78,7 +78,7 @@ fn runtime_rejects_read_only_writeback_declarations_with_family_binding() {
         Some(BridgeWritebackFamilyKind::ProjectedStateDiff),
         BridgeWritebackEffectClass::ProjectedStateDiff,
         None,
-        "",
+        None,
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -95,11 +95,15 @@ fn runtime_rejects_read_only_writeback_declarations_with_family_binding() {
 #[test]
 fn runtime_rejects_writeback_capable_declaration_without_strategy_descriptor() {
     let runtime = runtime(BridgeRuntimePolicy::default());
-    let declaration = writeback_declaration(
-        "writeback:missing-strategy",
+    let declaration = BridgeWritebackDeclaration::new(
+        BridgeWritebackDeclarationIdentity::new("writeback:missing-strategy"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
-        "   ",
+        Some(BridgeWritebackFamilyKind::ProjectedStateDiff),
+        BridgeWritebackEffectClass::ProjectedStateDiff,
+        Some(BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation),
+        None,
+        BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
     let error = runtime
@@ -122,7 +126,7 @@ fn runtime_rejects_writeback_capable_declaration_without_family_kind() {
         None,
         BridgeWritebackEffectClass::ProjectedStateDiff,
         Some(BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation),
-        "strategy:sha256:missing-family",
+        Some(projected_strategy_descriptor_basis()),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -146,7 +150,7 @@ fn runtime_rejects_writeback_capable_declaration_without_strategy_class() {
         Some(BridgeWritebackFamilyKind::ProjectedStateDiff),
         BridgeWritebackEffectClass::ProjectedStateDiff,
         None,
-        "strategy:sha256:missing-class",
+        Some(projected_strategy_descriptor_basis()),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -161,15 +165,46 @@ fn runtime_rejects_writeback_capable_declaration_without_strategy_class() {
 }
 
 #[test]
+fn runtime_rejects_writeback_capable_declaration_with_contradictory_strategy_descriptor_basis() {
+    let runtime = runtime(BridgeRuntimePolicy::default());
+    let declaration = BridgeWritebackDeclaration::new(
+        BridgeWritebackDeclarationIdentity::new("writeback:contradictory-strategy-basis"),
+        BridgeRequestKind::Authoritative,
+        BridgeWritebackRequestMode::WritebackCapable,
+        Some(BridgeWritebackFamilyKind::ProjectedStateDiff),
+        BridgeWritebackEffectClass::ProjectedStateDiff,
+        Some(BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation),
+        Some(
+            BridgeWritebackStrategyDescriptorBasis::for_writeback_contract(
+                BridgeWritebackFamilyKind::AspectReconciliation,
+                BridgeWritebackEffectClass::AspectReconciliation,
+                BridgeWritebackStrategyClass::AspectReconciliationCommit,
+                BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
+            ),
+        ),
+        BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
+    );
+
+    let error = runtime
+        .validate_writeback_declaration(declaration)
+        .expect_err("contradictory strategy descriptor basis must fail closed");
+
+    assert_eq!(
+        error.kind(),
+        BridgeWritebackErrorKind::StrategyDescriptorMismatch
+    );
+}
+
+#[test]
 fn runtime_rejects_writeback_admission_when_runtime_disables_replay_artifacts() {
     let permissive_runtime = runtime(BridgeRuntimePolicy::default());
     let runtime = runtime(BridgeRuntimePolicy::operational().with_replay_artifacts(false));
     let lowered_policy = lowered_policy(&permissive_runtime);
     let declaration = writeback_declaration(
-        "writeback:replay-disabled",
+        BridgeWritebackDeclarationIdentity::new("writeback:replay-disabled"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
-        "strategy:sha256:authoritative",
+        "authoritative",
     );
 
     let error = runtime
@@ -184,11 +219,11 @@ fn runtime_admits_family_distinct_aspect_reconciliation_writeback() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration_with_shape(
-        "writeback:aspect-reconciliation",
+        BridgeWritebackDeclarationIdentity::new("writeback:aspect-reconciliation"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         BridgeWritebackEffectClass::AspectReconciliation,
-        "strategy:sha256:aspect-reconciliation",
+        "aspect-reconciliation",
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
@@ -200,14 +235,17 @@ fn runtime_admits_family_distinct_aspect_reconciliation_writeback() {
         .family_basis()
         .expect("admitted writeback contract should preserve family basis");
     let causality = causality_basis(
-        "writeback:aspect-reconciliation:causality",
+        BridgeWritebackCausalityIdentity::new("writeback:aspect-reconciliation:causality"),
         "truth-trigger:aspect",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
         BridgeWritebackEffectIdentity::new("writeback:aspect-reconciliation:effect"),
-        "effect:sha256:aspect-reconciliation",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::AspectReconciliation,
+            "aspect-reconciliation",
+        ),
     );
 
     assert_eq!(
@@ -235,6 +273,7 @@ fn runtime_admits_family_distinct_aspect_reconciliation_writeback() {
         admission_record.family_kind(),
         BridgeWritebackFamilyKind::AspectReconciliation
     );
+    assert_eq!(admission_explanation.record(), &admission_record);
     assert_eq!(admission_explanation.contract_digest(), contract.digest());
     assert_eq!(
         admission_explanation.family_kind(),
@@ -247,11 +286,11 @@ fn runtime_rejects_phase_1_unadmitted_repeated_authority_attempts() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration_with_shape(
-        "writeback:repeated-authority-attempt",
+        BridgeWritebackDeclarationIdentity::new("writeback:repeated-authority-attempt"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
         BridgeWritebackEffectClass::ProjectedStateDiff,
-        "strategy:sha256:repeated-authority-attempt",
+        "repeated-authority-attempt",
         BridgeWritebackIdempotenceClass::AllowRepeatedAuthorityAttempt,
     );
 
@@ -263,5 +302,8 @@ fn runtime_rejects_phase_1_unadmitted_repeated_authority_attempts() {
         error.kind(),
         BridgeWritebackErrorKind::FamilyBindingMismatch
     );
-    assert!(error.to_string().contains("RequireSemanticNoopSuppression"));
+    assert!(runtime
+        .diagnostics()
+        .last_writeback_admission_record()
+        .is_none());
 }

@@ -3,15 +3,15 @@ error[E0451]: fields `sparse_cost_profile_digest`, `dense_cost_profile_digest`, 
    |
  8 |     let _report = BridgeSubscriptionCertificationCostPostureReport {
    |                   ------------------------------------------------ in this type
- 9 |         sparse_cost_profile_digest: Arc::from("sparse"),
+ 9 |         sparse_cost_profile_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         dense_cost_profile_digest: Arc::from("dense"),
+10 |         dense_cost_profile_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         over_budget_rejection_digest: Arc::from("over-budget"),
+11 |         over_budget_rejection_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-12 |         first_scratch_digest: Arc::from("scratch-1"),
+12 |         first_scratch_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^ private field
-13 |         repeated_scratch_digest: Arc::from("scratch-2"),
+13 |         repeated_scratch_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
 14 |         dense_selected_before_assembly: true,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
@@ -21,7 +21,7 @@ error[E0451]: fields `sparse_cost_profile_digest`, `dense_cost_profile_digest`, 
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 17 |         counters: BridgeSubscriptionCertificationCounterSnapshot::default(),
    |         ^^^^^^^^ private field
-18 |         canonical_basis: Arc::from("basis"),
+18 |         canonical_basis: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^ private field
-19 |         digest: Arc::from("digest"),
+19 |         digest: sealed_authority_placeholder(),
    |         ^^^^^^ private field

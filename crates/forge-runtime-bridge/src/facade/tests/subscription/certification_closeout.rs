@@ -29,20 +29,20 @@ fn certification_bundle_insufficiency_is_typed_without_semantic_drift() {
 }
 
 #[test]
-fn certification_historical_basis_rejects_latest_fallback() {
+fn certification_historical_basis_rejects_latest_unretained_basis() {
     let runtime = runtime(BridgeRuntimePolicy::development());
 
     let report = runtime.certify_subscription_certification_historical_basis();
 
     assert_ne!(
         report.retained_basis_bundle_digest(),
-        report.latest_fallback_bundle_digest()
+        report.latest_unretained_bundle_digest()
     );
     assert_eq!(
         report.primary_failure_boundary(),
         crate::facade::BridgeSubscriptionCertificationFailureBoundary::BasisDrift
     );
-    assert_eq!(report.latest_truth_fallback_count(), 0);
+    assert_eq!(report.latest_truth_reconstruction_count(), 0);
     assert!(report.retained_basis_is_explicit());
     assert_eq!(report.counters().historical_basis_report_count(), 1);
     assert_eq!(report.counters().global_history_scan_count(), 0);
@@ -76,10 +76,10 @@ fn certification_fanout_splits_equivalence_from_illegal_sharing() {
     let report = runtime.certify_subscription_certification_fanout();
 
     assert!(report.shared_fanout_equivalent());
-    assert!(report.incompatible_sharing_rejected_before_delivery());
+    assert!(report.divergent_sharing_rejected_before_delivery());
     assert_ne!(
         report.shared_equivalence_report_digest(),
-        report.incompatible_rejection_report_digest()
+        report.divergent_rejection_report_digest()
     );
     assert_eq!(report.counters().bundle_comparison_count(), 2);
     assert_eq!(report.counters().fanout_report_count(), 1);

@@ -1,7 +1,7 @@
 use crate::basis::ResolvedSnapshotBasis;
 use crate::identity::{hash_parts, BasisDigest};
 use crate::view_shape::{GroupedViewPlanningArtifact, ViewShapePlanArtifact, ViewShapePlanDigest};
-use forge_foundational::facade::{AspectValue, InternedString};
+use forge_foundational::facade::{AspectKey, AspectValue, InternedString};
 use forge_runtime_bridge::facade::BridgeGroupedTruthViewArtifact;
 
 use super::counters::ViewShapeLiveCounters;
@@ -9,12 +9,16 @@ use super::error::{ViewShapeLiveError, ViewShapeLiveFailureClass};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GroupedExecutionLaneValue {
-    grouping_aspect: String,
+    grouping_aspect: AspectKey,
     lane_key: String,
 }
 
 impl GroupedExecutionLaneValue {
     pub fn grouping_aspect(&self) -> &str {
+        self.grouping_aspect.as_str()
+    }
+
+    pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
 
@@ -108,7 +112,9 @@ pub fn materialize_grouped_execution_surface_from_truth_view(
             ViewShapeLiveCounters::default(),
         )
     })?;
-    if truth_view.contract().grouping_aspect() != grouped_planning.grouping_aspect() {
+    if truth_view.contract().native_grouping_aspect_key()
+        != grouped_planning.native_grouping_aspect_key()
+    {
         return Err(ViewShapeLiveError::new(
             ViewShapeLiveFailureClass::GroupedBaselineMismatch,
             format!(
@@ -130,8 +136,10 @@ pub fn materialize_grouped_execution_surface_from_truth_view(
             ViewShapeLiveCounters::default(),
         ));
     }
-    if truth_view.contract().identity_binding().aspect_key()
-        != grouped_planning.identity_binding().field_key()
+    if truth_view.contract().identity_binding().native_aspect_key()
+        != grouped_planning
+            .identity_binding()
+            .native_binding_aspect_key()
     {
         return Err(ViewShapeLiveError::new(
             ViewShapeLiveFailureClass::GroupedBaselineMismatch,
@@ -143,8 +151,10 @@ pub fn materialize_grouped_execution_surface_from_truth_view(
             ViewShapeLiveCounters::default(),
         ));
     }
-    if truth_view.contract().grouping_binding().aspect_key()
-        != grouped_planning.grouping_binding().field_key()
+    if truth_view.contract().grouping_binding().native_aspect_key()
+        != grouped_planning
+            .grouping_binding()
+            .native_binding_aspect_key()
     {
         return Err(ViewShapeLiveError::new(
             ViewShapeLiveFailureClass::GroupedBaselineMismatch,
@@ -163,7 +173,7 @@ pub fn materialize_grouped_execution_surface_from_truth_view(
         .map(|member| GroupedExecutionMemberRow {
             member_key: canonical_value_text(member.identity_value()),
             lane: GroupedExecutionLaneValue {
-                grouping_aspect: grouped_planning.grouping_aspect().to_string(),
+                grouping_aspect: grouped_planning.native_grouping_aspect_key().clone(),
                 lane_key: canonical_value_text(member.lane().value()),
             },
         })

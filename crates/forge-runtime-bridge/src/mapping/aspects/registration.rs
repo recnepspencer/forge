@@ -1,31 +1,35 @@
 use crate::mapping::{SubscriptionSliceKind, TruthPatchScope};
+use crate::snapshot::SnapshotReadContract;
 
 use super::ids::BridgeAspectRegistrationId;
-use super::types::{SliceFallbackPolicy, TruthDeltaSurfaceKind};
+use super::types::{SliceWideningPolicy, TruthDeltaSurfaceKind};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeAspectRegistration {
     registration_id: BridgeAspectRegistrationId,
     truth_scope: TruthPatchScope,
+    snapshot_read_contract: SnapshotReadContract,
     truth_surface_kind: TruthDeltaSurfaceKind,
     subscription_slice_kind: SubscriptionSliceKind,
-    fallback_policy: SliceFallbackPolicy,
+    widening_policy: SliceWideningPolicy,
 }
 
 impl BridgeAspectRegistration {
     pub fn new(
         registration_id: BridgeAspectRegistrationId,
         truth_scope: TruthPatchScope,
+        snapshot_read_contract: SnapshotReadContract,
         truth_surface_kind: TruthDeltaSurfaceKind,
         subscription_slice_kind: SubscriptionSliceKind,
-        fallback_policy: SliceFallbackPolicy,
+        widening_policy: SliceWideningPolicy,
     ) -> Self {
         Self {
             registration_id,
             truth_scope,
+            snapshot_read_contract,
             truth_surface_kind,
             subscription_slice_kind,
-            fallback_policy,
+            widening_policy,
         }
     }
 
@@ -37,6 +41,10 @@ impl BridgeAspectRegistration {
         &self.truth_scope
     }
 
+    pub fn snapshot_read_contract(&self) -> &SnapshotReadContract {
+        &self.snapshot_read_contract
+    }
+
     pub fn truth_surface_kind(&self) -> TruthDeltaSurfaceKind {
         self.truth_surface_kind
     }
@@ -45,14 +53,15 @@ impl BridgeAspectRegistration {
         &self.subscription_slice_kind
     }
 
-    pub fn fallback_policy(&self) -> SliceFallbackPolicy {
-        self.fallback_policy
+    pub fn widening_policy(&self) -> SliceWideningPolicy {
+        self.widening_policy
     }
 
     pub(super) fn semantic_duplicate_of(&self, other: &Self) -> bool {
         self.truth_scope == other.truth_scope
+            && self.snapshot_read_contract == other.snapshot_read_contract
             && self.truth_surface_kind == other.truth_surface_kind
             && self.subscription_slice_kind == other.subscription_slice_kind
-            && self.fallback_policy == other.fallback_policy
+            && self.widening_policy == other.widening_policy
     }
 }

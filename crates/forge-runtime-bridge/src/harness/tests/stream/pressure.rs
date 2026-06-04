@@ -1,4 +1,5 @@
 use crate::facade::BridgeRuntimePolicy;
+use crate::facade::TruthSnapshotIdentity;
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
 
 use super::super::support::{build_runtime, committed_patch, registration, snapshot};
@@ -6,9 +7,21 @@ use super::super::support::{build_runtime, committed_patch, registration, snapsh
 #[test]
 fn bridge_stream_checkpoint_fracture_equivalence_fails_explicitly_for_stale_anchor() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-a", "name"));
-    source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
     let runtime = crate::facade::RuntimeBridge::builder()
         .with_relational_source(source.clone())
         .with_truth_branch_head_source(source)
@@ -42,7 +55,9 @@ fn bridge_stream_checkpoint_fracture_equivalence_fails_explicitly_for_stale_anch
         .plan_change_stream_window(
             &contract,
             vec![runtime
-                .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit("commit-a"))
+                .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit(
+                    crate::facade::TruthCommitIdentity::new("commit-a"),
+                ))
                 .expect("first envelope should ingest")],
         )
         .expect("first window should plan");
@@ -55,7 +70,9 @@ fn bridge_stream_checkpoint_fracture_equivalence_fails_explicitly_for_stale_anch
         .plan_change_stream_window(
             &contract,
             vec![runtime
-                .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit("commit-b"))
+                .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit(
+                    crate::facade::TruthCommitIdentity::new("commit-b"),
+                ))
                 .expect("second envelope should ingest")],
         )
         .expect("second window should plan");
@@ -69,7 +86,9 @@ fn bridge_stream_checkpoint_fracture_equivalence_fails_explicitly_for_stale_anch
         .resume_stream_window_from_checkpoint(
             &contract,
             vec![runtime
-                .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit("commit-b"))
+                .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit(
+                    crate::facade::TruthCommitIdentity::new("commit-b"),
+                ))
                 .expect("second envelope should ingest")],
             first_checkpoint.checkpoint_token_identity(),
         )
@@ -84,9 +103,21 @@ fn bridge_stream_checkpoint_fracture_equivalence_fails_explicitly_for_stale_anch
 #[test]
 fn bridge_stream_backpressure_changes_pacing_class_without_changing_member_truth() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_committed_patch(committed_patch("commit-b", "patch-b", "snapshot-a", "name"));
-    source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
     let runtime = build_runtime(
         source,
         RecordingSignalBridgeSink::default(),
@@ -113,7 +144,9 @@ fn bridge_stream_backpressure_changes_pacing_class_without_changing_member_truth
         .plan_change_stream_window(
             &contract,
             vec![runtime
-                .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit("commit-a"))
+                .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit(
+                    crate::facade::TruthCommitIdentity::new("commit-a"),
+                ))
                 .expect("first envelope should ingest")],
         )
         .expect("single window should plan");
@@ -123,12 +156,12 @@ fn bridge_stream_backpressure_changes_pacing_class_without_changing_member_truth
             vec![
                 runtime
                     .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit(
-                        "commit-a",
+                        crate::facade::TruthCommitIdentity::new("commit-a"),
                     ))
                     .expect("first envelope should ingest"),
                 runtime
                     .ingest_committed_patch(crate::facade::BridgeRouteRequest::for_commit(
-                        "commit-b",
+                        crate::facade::TruthCommitIdentity::new("commit-b"),
                     ))
                     .expect("second envelope should ingest"),
             ],

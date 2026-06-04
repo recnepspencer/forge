@@ -145,10 +145,13 @@ pub fn materialize_relational_authoritative_row_set(
 
 #[cfg(test)]
 mod tests {
-    use forge_foundational::facade::{AspectKey, AspectValue, InternedString, Symbol};
+    use forge_foundational::facade::{
+        AspectKey, AspectValue, FieldKey, InternedString, ScalarAspectType, StructAspectValue,
+        Symbol,
+    };
     use forge_runtime_bridge::facade::{
-        SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
-        TruthSnapshotIdentity,
+        SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
+        SnapshotReadRequest, TruthSnapshotIdentity,
     };
 
     use super::materialize_relational_authoritative_row_set;
@@ -156,30 +159,18 @@ mod tests {
     #[test]
     fn relational_row_set_preserves_row_identity_and_aspect_values() {
         let packet = SnapshotReadPacket::new(vec![
-            SnapshotReadRequest::for_coarse("entity-1", aspect_key("identity.id")),
-            SnapshotReadRequest::for_coarse("entity-1", aspect_key("status.lane")),
-            SnapshotReadRequest::for_coarse("entity-2", aspect_key("identity.id")),
-            SnapshotReadRequest::for_coarse("entity-2", aspect_key("status.lane")),
+            string_read("entity-1", "identity.id"),
+            string_read("entity-1", "status.lane"),
+            string_read("entity-2", "identity.id"),
+            string_read("entity-2", "status.lane"),
         ]);
         let result = SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
             vec![
-                SnapshotReadRecord::new(
-                    "entity-1:identity.id",
-                    aspect_bytes(AspectValue::String("task-1".into())),
-                ),
-                SnapshotReadRecord::new(
-                    "entity-1:status.lane",
-                    aspect_bytes(AspectValue::String("todo".into())),
-                ),
-                SnapshotReadRecord::new(
-                    "entity-2:identity.id",
-                    aspect_bytes(AspectValue::String("task-2".into())),
-                ),
-                SnapshotReadRecord::new(
-                    "entity-2:status.lane",
-                    aspect_bytes(AspectValue::String("doing".into())),
-                ),
+                read_record(&packet, 0, AspectValue::String("task-1".into())),
+                read_record(&packet, 1, AspectValue::String("todo".into())),
+                read_record(&packet, 2, AspectValue::String("task-2".into())),
+                read_record(&packet, 3, AspectValue::String("doing".into())),
             ],
         );
 
@@ -199,26 +190,28 @@ mod tests {
     }
 
     #[test]
-    fn relational_row_set_rejects_malformed_aspect_bytes_at_snapshot_boundary() {
-        let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
-            "entity-1",
-            aspect_key("identity.id"),
-        )]);
+    fn relational_row_set_rejects_non_scalar_snapshot_values_at_grouped_boundary() {
+        let packet = SnapshotReadPacket::new(vec![string_read("entity-1", "identity.id")]);
         let result = SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
-            vec![SnapshotReadRecord::new(
-                "entity-1:identity.id",
-                b"bad".to_vec(),
+            vec![read_record(
+                &packet,
+                0,
+                StructAspectValue::new([(
+                    FieldKey::new("name").expect("valid field key"),
+                    AspectValue::String("bad".into()),
+                )])
+                .expect("valid struct aspect value"),
             )],
         );
 
         let error = materialize_relational_authoritative_row_set(&packet, &result)
-            .expect_err("malformed snapshot aspect bytes must fail grouped truth materialization");
+            .expect_err("non-scalar snapshot values must fail grouped truth materialization");
 
         assert_eq!(
             error,
             super::RelationalGroupedTruthError::AspectValueDecodeFailure {
-                request_key: "entity-1:identity.id".to_string()
+                request_key: packet.reads()[0].correlation_id().as_str().to_string()
             }
         );
     }
@@ -237,22 +230,27 @@ mod tests {
     fn row_set_with_identity_value(
         value: AspectValue,
     ) -> super::RelationalAuthoritativeRowSetArtifact {
-        let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
-            "entity-1",
-            aspect_key("identity.id"),
-        )]);
+        let packet = SnapshotReadPacket::new(vec![string_read("entity-1", "identity.id")]);
         let result = SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
-            vec![SnapshotReadRecord::new(
-                "entity-1:identity.id",
-                aspect_bytes(value),
-            )],
+            vec![read_record(&packet, 0, value)],
         );
         materialize_relational_authoritative_row_set(&packet, &result).unwrap()
     }
 
-    fn aspect_bytes(value: AspectValue) -> Vec<u8> {
-        crate::aspect_wire::encode_aspect_value(&value)
+    fn read_record(
+        packet: &SnapshotReadPacket,
+        index: usize,
+        value: impl Into<forge_runtime_bridge::facade::SnapshotReadValue>,
+    ) -> SnapshotReadRecord {
+        SnapshotReadRecord::for_request(&packet.reads()[index], value)
+    }
+
+    fn string_read(entity_identity: &str, aspect: &str) -> SnapshotReadRequest {
+        SnapshotReadRequest::for_coarse(
+            entity_identity,
+            SnapshotReadContract::scalar(aspect_key(aspect), ScalarAspectType::String),
+        )
     }
 
     fn aspect_key(value: &str) -> AspectKey {

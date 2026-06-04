@@ -5,39 +5,57 @@ fn runtime_classifies_writeback_idempotence_stably_for_same_inputs() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        "writeback:idempotence",
+        BridgeWritebackDeclarationIdentity::new("writeback:idempotence"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
-        "strategy:sha256:idempotence",
+        "idempotence",
     );
     let contract = runtime
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let effect = runtime.lower_writeback_effect(
         &contract,
-        &causality_basis("causality:idempotence", "trigger:sha256:commit-a"),
+        &causality_basis(
+            BridgeWritebackCausalityIdentity::new("causality:idempotence"),
+            "commit-a",
+        ),
         BridgeWritebackEffectIdentity::new("effect:idempotence"),
-        "effect:sha256:canonical-upsert",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "canonical-upsert",
+        ),
     );
 
     let left = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
-        "truth-state:sha256:stable",
+        &truth_state_basis(&effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:stable"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let right = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
-        "truth-state:sha256:stable",
+        &truth_state_basis(&effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:stable"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
+    let drifted_effect = runtime.lower_writeback_effect(
+        &contract,
+        &causality_basis(
+            BridgeWritebackCausalityIdentity::new("causality:idempotence:drifted"),
+            "commit-b",
+        ),
+        BridgeWritebackEffectIdentity::new("effect:idempotence:drifted"),
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "canonical-upsert-drifted",
+        ),
+    );
     let drifted = runtime.classify_writeback_idempotence(
-        &effect,
+        &drifted_effect,
         &lowered_policy,
-        "truth-state:sha256:drifted",
+        &truth_state_basis(&drifted_effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:stable"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
@@ -52,35 +70,33 @@ fn runtime_validates_writeback_candidate_stably_for_same_inputs() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        "writeback:candidate",
+        BridgeWritebackDeclarationIdentity::new("writeback:candidate"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
-        "strategy:sha256:candidate",
+        "candidate",
     );
     let contract = runtime
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let effect = runtime.lower_writeback_effect(
         &contract,
-        &causality_basis("causality:candidate", "trigger:sha256:commit-a"),
+        &causality_basis(
+            BridgeWritebackCausalityIdentity::new("causality:candidate"),
+            "commit-a",
+        ),
         BridgeWritebackEffectIdentity::new("effect:candidate"),
-        "effect:sha256:candidate",
+        writeback_effect_intent(BridgeWritebackEffectClass::ProjectedStateDiff, "candidate"),
     );
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
-        "truth-state:sha256:candidate",
+        &truth_state_basis(&effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:candidate"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
-    let loop_prevention = runtime.classify_writeback_loop_prevention(
-        &effect,
-        &idempotence,
-        None::<std::sync::Arc<str>>,
-        None::<std::sync::Arc<str>>,
-    );
-    let strategy_compatibility =
-        runtime.classify_writeback_strategy_compatibility(&contract, &effect, &idempotence);
+    let loop_prevention = runtime.classify_writeback_loop_prevention(&effect, &idempotence, None);
+    let strategy_coherence =
+        runtime.classify_writeback_strategy_coherence(&contract, &effect, &idempotence);
 
     let left = runtime
         .validate_writeback_candidate(
@@ -88,7 +104,7 @@ fn runtime_validates_writeback_candidate_stably_for_same_inputs() {
             &effect,
             &idempotence,
             &loop_prevention,
-            &strategy_compatibility,
+            &strategy_coherence,
         )
         .expect("candidate validation should succeed");
     let right = runtime
@@ -97,12 +113,18 @@ fn runtime_validates_writeback_candidate_stably_for_same_inputs() {
             &effect,
             &idempotence,
             &loop_prevention,
-            &strategy_compatibility,
+            &strategy_coherence,
         )
         .expect("candidate validation should remain stable");
 
     assert_eq!(left, right);
     assert_eq!(left.digest(), right.digest());
+    assert_eq!(left.writeback_effect_artifact_digest(), effect.digest());
+    assert_eq!(left.effect_intent_digest(), effect.effect_intent_digest());
+    assert_eq!(
+        left.effect_intent_patch_canonical_basis(),
+        effect.effect_intent().patch_canonical_basis()
+    );
     assert_eq!(
         left.retry_disposition(),
         crate::facade::BridgeWritebackRetryDisposition::SemanticNoopSuppressionRequired
@@ -110,14 +132,14 @@ fn runtime_validates_writeback_candidate_stably_for_same_inputs() {
 }
 
 #[test]
-fn runtime_classifies_strategy_compatibility_for_matching_shapes() {
+fn runtime_classifies_strategy_coherence_for_matching_shapes() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        "writeback:strategy-compatibility",
+        BridgeWritebackDeclarationIdentity::new("writeback:strategy-coherence"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
-        "strategy:sha256:strategy-compatibility",
+        "strategy-coherence",
     );
     let contract = runtime
         .admit_writeback_declaration(declaration, &lowered_policy)
@@ -125,25 +147,33 @@ fn runtime_classifies_strategy_compatibility_for_matching_shapes() {
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality_basis(
-            "causality:strategy-compatibility",
-            "trigger:sha256:commit-a",
+            BridgeWritebackCausalityIdentity::new("causality:strategy-coherence"),
+            "commit-a",
         ),
-        BridgeWritebackEffectIdentity::new("effect:strategy-compatibility"),
-        "effect:sha256:strategy-compatibility",
+        BridgeWritebackEffectIdentity::new("effect:strategy-coherence"),
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "strategy-coherence",
+        ),
     );
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
-        "truth-state:sha256:strategy-compatibility",
-        BridgeWritebackIdempotenceIdentity::new("idempotence:strategy-compatibility"),
+        &truth_state_basis(&effect),
+        BridgeWritebackIdempotenceIdentity::new("idempotence:strategy-coherence"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
-    let report =
-        runtime.classify_writeback_strategy_compatibility(&contract, &effect, &idempotence);
+    let report = runtime.classify_writeback_strategy_coherence(&contract, &effect, &idempotence);
 
     assert_eq!(
         report.disposition(),
-        BridgeWritebackStrategyCompatibilityDisposition::Compatible
+        BridgeWritebackStrategyCoherenceDisposition::Coherent
+    );
+    assert_eq!(report.writeback_effect_artifact_digest(), effect.digest());
+    assert_eq!(report.effect_intent_digest(), effect.effect_intent_digest());
+    assert_eq!(
+        report.effect_intent_patch_canonical_basis(),
+        effect.effect_intent().patch_canonical_basis()
     );
 }

@@ -1,19 +1,19 @@
-error[E0451]: fields `carry_forward_sections`, `existing_truth_binding_families`, `symbolic_target_reference_families`, `naming_mutation_families`, `continuity_mutation_families`, `aggregate_evidence_sections` and `support_digest` of struct `BridgeAuthoritativeMutationEvidenceSupport` are private
-  --> tests/ui/writeback_authoritative_mutation_evidence_support_literal_private.rs:5:9
+error[E0451]: fields `carry_forward_sections`, `existing_truth_binding_families`, `symbolic_target_reference_families`, `naming_mutation_families`, `continuity_mutation_families`, `aggregate_evidence_digests` and `support_digest` of struct `BridgeAuthoritativeMutationEvidenceSupport` are private
+  --> tests/ui/writeback_authoritative_mutation_evidence_support_literal_private.rs:10:9
    |
- 4 |     let _ = BridgeAuthoritativeMutationEvidenceSupport {
+ 9 |     let _ = BridgeAuthoritativeMutationEvidenceSupport {
    |             ------------------------------------------ in this type
- 5 |         carry_forward_sections: Vec::new(),
+10 |         carry_forward_sections: Vec::<BridgeMutationEvidenceCarryForwardSection>::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
- 6 |         existing_truth_binding_families: Vec::new(),
+11 |         existing_truth_binding_families: Vec::<BridgeMutationEvidenceExistingTruthBindingFamily>::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 7 |         symbolic_target_reference_families: Vec::new(),
+12 |         symbolic_target_reference_families: Vec::<BridgeMutationEvidenceSymbolicTargetReferenceFamily>::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 8 |         naming_mutation_families: Vec::new(),
+13 |         naming_mutation_families: Vec::<BridgeMutationEvidenceNamingFamily>::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         continuity_mutation_families: Vec::new(),
+14 |         continuity_mutation_families: Vec::<BridgeMutationEvidenceContinuityFamily>::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         aggregate_evidence_sections: Vec::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         support_digest: String::new(),
+15 |         aggregate_evidence_digests: Vec::<BridgeAggregateMutationEvidenceDigest>::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         support_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^ private field

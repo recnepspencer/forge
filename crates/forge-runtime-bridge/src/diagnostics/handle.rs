@@ -1,13 +1,18 @@
 use std::sync::{Arc, RwLock};
 
-use crate::routing::BridgeCanonicalBulkPlanRecord;
+use crate::routing::{BridgeCanonicalBulkPlanRecord, BridgeWorkloadIdentity};
 use crate::speculation::{
-    BridgePreviewDiscardRecord, BridgePreviewExecutionRecord, BridgePreviewPromotionRecord,
+    BridgePreviewDiscardRecord, BridgePreviewDiscardRecordIdentity, BridgePreviewExecutionRecord,
+    BridgePreviewPromotionRecord, BridgePreviewPromotionRecordIdentity,
+    BridgePreviewSessionIdentity, PreviewExecutionRecordIdentity,
 };
 use crate::writeback::{
-    BridgeMappedWritebackFamilyInput, BridgeWritebackExecutionRecord,
-    BridgeWritebackFamilyAdmissionRecord, BridgeWritebackMapperEnvelope,
-    BridgeWritebackMapperRecord, BridgeWritebackReplayRecord,
+    BridgeMappedWritebackFamilyInput, BridgeMappedWritebackFamilyInputIdentity,
+    BridgeWritebackExecutionRecord, BridgeWritebackExecutionRecordIdentity,
+    BridgeWritebackFamilyAdmissionRecord, BridgeWritebackFamilyAdmissionRecordIdentity,
+    BridgeWritebackMapperEnvelope, BridgeWritebackMapperEnvelopeIdentity,
+    BridgeWritebackMapperRecord, BridgeWritebackMapperRecordIdentity, BridgeWritebackReplayRecord,
+    BridgeWritebackReplayRecordIdentity,
 };
 
 use super::continuity::BridgeCanonicalContinuityRecord;
@@ -197,7 +202,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn preview_execution_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &PreviewExecutionRecordIdentity,
     ) -> Option<BridgePreviewExecutionRecord> {
         self.state
             .read()
@@ -207,7 +212,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn preview_execution_record_for_session_identity(
         &self,
-        session_identity: &str,
+        session_identity: &BridgePreviewSessionIdentity,
     ) -> Option<BridgePreviewExecutionRecord> {
         self.state
             .read()
@@ -217,7 +222,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn preview_discard_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &BridgePreviewDiscardRecordIdentity,
     ) -> Option<BridgePreviewDiscardRecord> {
         self.state
             .read()
@@ -227,7 +232,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn preview_discard_record_for_session_identity(
         &self,
-        session_identity: &str,
+        session_identity: &BridgePreviewSessionIdentity,
     ) -> Option<BridgePreviewDiscardRecord> {
         self.state
             .read()
@@ -237,7 +242,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn preview_promotion_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &BridgePreviewPromotionRecordIdentity,
     ) -> Option<BridgePreviewPromotionRecord> {
         self.state
             .read()
@@ -247,7 +252,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn preview_promotion_record_for_session_identity(
         &self,
-        session_identity: &str,
+        session_identity: &BridgePreviewSessionIdentity,
     ) -> Option<BridgePreviewPromotionRecord> {
         self.state
             .read()
@@ -257,7 +262,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn writeback_admission_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &BridgeWritebackFamilyAdmissionRecordIdentity,
     ) -> Option<BridgeWritebackFamilyAdmissionRecord> {
         self.state
             .read()
@@ -277,7 +282,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn writeback_execution_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &BridgeWritebackExecutionRecordIdentity,
     ) -> Option<BridgeWritebackExecutionRecord> {
         self.state
             .read()
@@ -297,7 +302,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn writeback_mapper_envelope_for_identity(
         &self,
-        envelope_identity: &str,
+        envelope_identity: &BridgeWritebackMapperEnvelopeIdentity,
     ) -> Option<BridgeWritebackMapperEnvelope> {
         self.state
             .read()
@@ -317,7 +322,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn writeback_mapped_family_input_for_identity(
         &self,
-        mapped_input_identity: &str,
+        mapped_input_identity: &BridgeMappedWritebackFamilyInputIdentity,
     ) -> Option<BridgeMappedWritebackFamilyInput> {
         self.state
             .read()
@@ -337,7 +342,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn writeback_mapper_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &BridgeWritebackMapperRecordIdentity,
     ) -> Option<BridgeWritebackMapperRecord> {
         self.state
             .read()
@@ -357,7 +362,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn writeback_replay_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &BridgeWritebackReplayRecordIdentity,
     ) -> Option<BridgeWritebackReplayRecord> {
         self.state
             .read()
@@ -367,7 +372,7 @@ impl BridgeDiagnosticsHandle {
 
     pub fn bulk_record_for_workload_identity(
         &self,
-        workload_identity: &str,
+        workload_identity: &BridgeWorkloadIdentity,
     ) -> Option<BridgeCanonicalBulkPlanRecord> {
         self.state
             .read()

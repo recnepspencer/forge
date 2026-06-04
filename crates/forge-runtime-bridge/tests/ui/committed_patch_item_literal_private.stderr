@@ -1,0 +1,9 @@
+error[E0451]: fields `entity_identity` and `target` of struct `BridgeCommittedPatchItem` are private
+  --> tests/ui/committed_patch_item_literal_private.rs:9:9
+   |
+ 8 |     let _item = BridgeCommittedPatchItem {
+   |                 ------------------------ in this type
+ 9 |         entity_identity: sealed_authority_placeholder(),
+   |         ^^^^^^^^^^^^^^^ private field
+10 |         target: BridgeCommittedPatchTarget::entity_field_path(
+   |         ^^^^^^ private field

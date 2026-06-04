@@ -24,9 +24,9 @@ impl TruthSnapshotReader for MisbindingSnapshotReader {
                 .reads()
                 .iter()
                 .map(|read| {
-                    crate::snapshot::SnapshotReadRecord::new(
-                        read.request_key(),
-                        b"fixture-value".to_vec(),
+                    crate::snapshot::SnapshotReadRecord::for_request(
+                        read,
+                        forge_foundational::facade::AspectValue::String("fixture-value".into()),
                     )
                 })
                 .collect(),
@@ -38,19 +38,33 @@ impl crate::adapter::CommittedPatchSource for MisbindingSource {
     fn load_committed_patch(
         &self,
         request: crate::adapter::RelationalCommittedPatchRequest,
-    ) -> Result<RawCommittedPatchEnvelope, crate::adapter::RelationalBridgeSourceError> {
-        Ok(RawCommittedPatchEnvelope::new(
-            TruthCommitIdentity::new(request.commit_identity()),
-            TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("analysis"),
-            vec![BridgeCommittedPatchItem::new(
+    ) -> Result<
+        crate::input::envelope::BridgeCommittedPatchEnvelope,
+        crate::adapter::RelationalBridgeSourceError,
+    > {
+        BridgeCommittedPatchEnvelope::new(
+            BridgeCommittedPatchEnvelopeIdentity::new(
+                request.commit_identity().clone(),
+                TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
+                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthBranchIdentity::new("analysis"),
+            ),
+            vec![BridgeCommittedPatchItem::with_target(
                 "entity-1",
-                forge_foundational::facade::AspectKey::new("profile")
-                    .expect("valid bridge patch aspect key"),
-                "name",
+                crate::facade::BridgeCommittedPatchTarget::entity_field_path(
+                    forge_foundational::facade::AspectLocator::new(
+                        forge_foundational::facade::LocatorAuthority::Authoritative,
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid bridge patch aspect key"),
+                    ),
+                    forge_foundational::facade::CanonicalFieldPath::single(
+                        forge_foundational::facade::FieldKey::new("name".to_owned())
+                            .expect("valid foundational field key"),
+                    ),
+                ),
             )],
-        ))
+        )
+        .map_err(|error| crate::adapter::RelationalBridgeSourceError::new(error.to_string()))
     }
 }
 
@@ -74,19 +88,36 @@ impl crate::adapter::TruthBranchHeadSource for MisbindingSource {
     fn load_branch_head_patch(
         &self,
         branch_identity: &TruthBranchIdentity,
-    ) -> Result<RawCommittedPatchEnvelope, crate::adapter::RelationalBridgeSourceError> {
-        Ok(RawCommittedPatchEnvelope::new(
-            TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
-            TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            branch_identity.clone(),
-            vec![BridgeCommittedPatchItem::new(
+    ) -> Result<
+        crate::input::envelope::BridgeCommittedPatchEnvelope,
+        crate::adapter::RelationalBridgeSourceError,
+    > {
+        BridgeCommittedPatchEnvelope::new(
+            BridgeCommittedPatchEnvelopeIdentity::new(
+                crate::facade::TruthCommitIdentity::new(format!(
+                    "head-{}",
+                    branch_identity.as_str()
+                )),
+                TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
+                TruthSnapshotIdentity::new("snapshot-a"),
+                branch_identity.clone(),
+            ),
+            vec![BridgeCommittedPatchItem::with_target(
                 "entity-1",
-                forge_foundational::facade::AspectKey::new("profile")
-                    .expect("valid bridge patch aspect key"),
-                "name",
+                crate::facade::BridgeCommittedPatchTarget::entity_field_path(
+                    forge_foundational::facade::AspectLocator::new(
+                        forge_foundational::facade::LocatorAuthority::Authoritative,
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid bridge patch aspect key"),
+                    ),
+                    forge_foundational::facade::CanonicalFieldPath::single(
+                        forge_foundational::facade::FieldKey::new("name".to_owned())
+                            .expect("valid foundational field key"),
+                    ),
+                ),
             )],
-        ))
+        )
+        .map_err(|error| crate::adapter::RelationalBridgeSourceError::new(error.to_string()))
     }
 }
 
@@ -94,19 +125,33 @@ impl crate::adapter::CommittedPatchSource for WrongBranchHeadSource {
     fn load_committed_patch(
         &self,
         request: crate::adapter::RelationalCommittedPatchRequest,
-    ) -> Result<RawCommittedPatchEnvelope, crate::adapter::RelationalBridgeSourceError> {
-        Ok(RawCommittedPatchEnvelope::new(
-            TruthCommitIdentity::new(request.commit_identity()),
-            TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("analysis"),
-            vec![BridgeCommittedPatchItem::new(
+    ) -> Result<
+        crate::input::envelope::BridgeCommittedPatchEnvelope,
+        crate::adapter::RelationalBridgeSourceError,
+    > {
+        BridgeCommittedPatchEnvelope::new(
+            BridgeCommittedPatchEnvelopeIdentity::new(
+                request.commit_identity().clone(),
+                TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
+                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthBranchIdentity::new("analysis"),
+            ),
+            vec![BridgeCommittedPatchItem::with_target(
                 "entity-1",
-                forge_foundational::facade::AspectKey::new("profile")
-                    .expect("valid bridge patch aspect key"),
-                "name",
+                crate::facade::BridgeCommittedPatchTarget::entity_field_path(
+                    forge_foundational::facade::AspectLocator::new(
+                        forge_foundational::facade::LocatorAuthority::Authoritative,
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid bridge patch aspect key"),
+                    ),
+                    forge_foundational::facade::CanonicalFieldPath::single(
+                        forge_foundational::facade::FieldKey::new("name".to_owned())
+                            .expect("valid foundational field key"),
+                    ),
+                ),
             )],
-        ))
+        )
+        .map_err(|error| crate::adapter::RelationalBridgeSourceError::new(error.to_string()))
     }
 }
 
@@ -130,18 +175,32 @@ impl crate::adapter::TruthBranchHeadSource for WrongBranchHeadSource {
     fn load_branch_head_patch(
         &self,
         _branch_identity: &TruthBranchIdentity,
-    ) -> Result<RawCommittedPatchEnvelope, crate::adapter::RelationalBridgeSourceError> {
-        Ok(RawCommittedPatchEnvelope::new(
-            TruthCommitIdentity::new("head-wrong"),
-            TruthPatchIdentity::new("patch-wrong"),
-            TruthSnapshotIdentity::new("snapshot-a"),
-            TruthBranchIdentity::new("wrong-branch"),
-            vec![BridgeCommittedPatchItem::new(
+    ) -> Result<
+        crate::input::envelope::BridgeCommittedPatchEnvelope,
+        crate::adapter::RelationalBridgeSourceError,
+    > {
+        BridgeCommittedPatchEnvelope::new(
+            BridgeCommittedPatchEnvelopeIdentity::new(
+                crate::facade::TruthCommitIdentity::new("head-wrong"),
+                TruthPatchIdentity::new("patch-wrong"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+                TruthBranchIdentity::new("wrong-branch"),
+            ),
+            vec![BridgeCommittedPatchItem::with_target(
                 "entity-1",
-                forge_foundational::facade::AspectKey::new("profile")
-                    .expect("valid bridge patch aspect key"),
-                "name",
+                crate::facade::BridgeCommittedPatchTarget::entity_field_path(
+                    forge_foundational::facade::AspectLocator::new(
+                        forge_foundational::facade::LocatorAuthority::Authoritative,
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid bridge patch aspect key"),
+                    ),
+                    forge_foundational::facade::CanonicalFieldPath::single(
+                        forge_foundational::facade::FieldKey::new("name".to_owned())
+                            .expect("valid foundational field key"),
+                    ),
+                ),
             )],
-        ))
+        )
+        .map_err(|error| crate::adapter::RelationalBridgeSourceError::new(error.to_string()))
     }
 }

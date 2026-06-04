@@ -1,0 +1,117 @@
+use super::super::pricing_support::PricingWorkloadCertificationBundle;
+
+impl PricingWorkloadCertificationBundle {
+    pub(in crate::harness::tests) fn showcase_markdown_report(&self) -> String {
+        let main_vs_speculative_delta = self.matrix.reference.speculative_rubber_cost_cents
+            - self.matrix.reference.main_rubber_cost_cents;
+        let top_damage_material = self
+            .simulation
+            .ranked_materials_by_damage
+            .first_material()
+            .map(str::to_owned)
+            .unwrap_or_default();
+        format!(
+            concat!(
+                "# Pricing Shock Showcase Report\n\n",
+                "## Executive Summary\n\n",
+                "- Main branch: `{}`\n",
+                "- Speculative branch: `{}`\n",
+                "- Shock commit: `{}`\n",
+                "- Shock regime: `{}`\n",
+                "- Shock multiplier (per mille): `{}`\n",
+                "- Main vs speculative rubber delta (cents): `{}`\n",
+                "- High-fanout target count: `{}`\n",
+                "- Products with positive retail delta: `{}`\n",
+                "- Total retail delta (cents): `{}`\n",
+                "- Largest retail delta SKU: `{}` (`{}` cents)\n",
+                "- Top margin erosion family: `{}` (`{}` cents)\n",
+                "- Most shipping-sensitive family: `{}` (`{}` cents)\n",
+                "- Most material-sensitive family: `{}` (`{}` cents)\n",
+                "- Crisis name: `{}`\n",
+                "- Affected products under crisis: `{}`\n",
+                "- Top impacted family: `{}` (`{}` cents)\n",
+                "- Policy pressure family: `{}` (`{} bps`)\n",
+                "- Top exposure material: `{}` (`{} microunits`)\n",
+                "- Recommended strategy: `{}`\n",
+                "- Promotion strategy: `{}`\n",
+                "- Top damaging shock material across simulation: `{}`\n",
+                "- Discard proved zero residue: `{}`\n",
+                "- Promotion outcome: `{}`\n",
+                "- Writeback commit outcome: `{}`\n\n",
+                "## Trust Attacks\n\n",
+                "- Missing snapshot basis: `{}`\n",
+                "- Restart replay drift: `{}`\n",
+                "- Writeback authority denial: `{}`\n\n",
+                "## Retained Commit Explorer\n\n",
+                "- Main historical provenance commit: `{}` on `{}`\n",
+                "- Shock historical provenance commit: `{}` on `{}`\n",
+                "- Representative SKU: `{}`\n",
+                "- Representative retail price (cents): `{}`\n",
+                "- Representative shipping cost (cents): `{}`\n",
+                "- Representative fuel shipping component (cents): `{}`\n\n",
+                "## Demo Flow\n\n",
+                "1. Stabilize main live pricing world\n",
+                "2. Fork speculative crisis branch\n",
+                "3. Inspect split reality and retained shock lineage\n",
+                "4. Measure portfolio blast radius\n",
+                "5. Choose discard or promotion path\n",
+                "6. Replay and trust-check canonical evidence\n\n",
+                "## Trust Proof\n\n",
+                "- Bundle digest: `{}`\n",
+                "- Suite 25 digest: `{}`\n",
+                "- Suite 26 digest: `{}`\n",
+                "- Suite 27 digest: `{}`\n"
+            ),
+            self.matrix.reference.source_branch.as_str(),
+            self.matrix.reference.speculative_truth_branch.as_str(),
+            self.provenance.shock_commit.as_str(),
+            self.provenance.shock_regime,
+            self.provenance.shock_multiplier_per_mille,
+            main_vs_speculative_delta,
+            self.fanout.second_delivery_target_count,
+            self.portfolio.positive_retail_delta_count,
+            self.portfolio.total_retail_delta_cents,
+            self.portfolio.max_retail_delta_sku,
+            self.portfolio.max_retail_delta_cents,
+            self.portfolio.top_margin_erosion_family,
+            self.portfolio.top_margin_erosion_cents,
+            self.portfolio.most_shipping_sensitive_family,
+            self.portfolio.most_shipping_sensitive_delta_cents,
+            self.portfolio.most_material_sensitive_family,
+            self.portfolio.most_material_sensitive_delta_cents,
+            self.crisis.crisis_name,
+            self.crisis.affected_product_count,
+            self.crisis.top_impacted_family,
+            self.crisis.top_impacted_family_delta_cents,
+            self.crisis.policy_pressure_family,
+            self.crisis.policy_pressure_bps,
+            self.crisis.top_exposure_material,
+            self.crisis.top_exposure_material_delta_cents,
+            self.strategy.recommended_strategy,
+            self.strategy.promotion_strategy,
+            top_damage_material,
+            self.discard.has_discard_record
+                && !self.discard.has_promotion_record
+                && self.discard.promotion_record_count == 0,
+            format!("{:?}", self.promotion.lifecycle_state),
+            format!("{:?}", self.writeback.commit_outcome_class),
+            format!("{:?}", self.hostile_failure.failure_class),
+            format!("{:?}", self.restart_failure.error_kind),
+            format!("{:?}", self.writeback.rejection_error_kind),
+            self.provenance.main_commit.as_str(),
+            self.provenance.main_snapshot.as_str(),
+            self.provenance.shock_commit.as_str(),
+            self.provenance.shock_snapshot.as_str(),
+            self.provenance.representative_sku,
+            self.provenance.representative_retail_price_cents,
+            self.provenance.representative_shipping_cost_cents,
+            self.provenance.representative_fuel_shipping_component_cents,
+            self.digest(),
+            self.suite_25_digest_evidence()
+                .reference_workload_bundle_digest,
+            self.suite_26_digest_evidence()
+                .reference_workload_failure_bundle_digest,
+            self.suite_27_digest_evidence().certification_bundle_digest,
+        )
+    }
+}

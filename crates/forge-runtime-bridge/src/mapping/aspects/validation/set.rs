@@ -1,7 +1,7 @@
 use crate::error::{BridgeBuildError, BridgeBuildErrorKind};
 
 use super::super::registration::BridgeAspectRegistration;
-use super::super::types::{SliceFallbackPolicy, TruthDeltaSurfaceKind};
+use super::super::types::{SliceWideningPolicy, TruthDeltaSurfaceKind};
 
 pub(crate) fn validate_registration_set(
     registrations: &[BridgeAspectRegistration],
@@ -52,7 +52,7 @@ pub(crate) fn validate_registration_set(
                 return Err(BridgeBuildError::new(
                     BridgeBuildErrorKind::AmbiguousAspectRegistration,
                     format!(
-                        "Aspect registrations `{}` and `{}` overlap within the same fallback rank.",
+                        "Aspect registrations `{}` and `{}` overlap within the same admitted-widening rank.",
                         left.registration_id().as_str(),
                         right.registration_id().as_str()
                     ),
@@ -82,9 +82,9 @@ pub(crate) fn validate_registration_set(
 
 pub(crate) fn registration_rank_group(
     registration: &BridgeAspectRegistration,
-) -> (TruthDeltaSurfaceKind, SliceFallbackPolicy) {
+) -> (TruthDeltaSurfaceKind, SliceWideningPolicy) {
     (
         registration.truth_surface_kind(),
-        registration.fallback_policy(),
+        registration.widening_policy(),
     )
 }

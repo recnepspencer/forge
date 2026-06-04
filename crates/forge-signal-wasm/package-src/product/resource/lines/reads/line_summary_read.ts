@@ -4,8 +4,8 @@ import { readLineProcessing } from "./line_processing_read.js";
 import { readLineRequest } from "./line_request_read.js";
 import { readLineUpload } from "./line_upload_read.js";
 
-function readLineSummary(materialization) {
-  const diagnostics = readLineDiagnosticsSummary(materialization);
+function readLineSummary(materialization, options = undefined) {
+  const diagnostics = readLineDiagnosticsSummary(materialization, options);
   return Object.freeze({
     current: diagnostics.current,
     request: readLineRequest(materialization),

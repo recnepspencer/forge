@@ -214,9 +214,9 @@ impl BridgeSubscriptionCounters {
     pub fn subscription_resume_plan_count(&self) -> usize {
         self.values.subscription_resume_plan_count
     }
-    pub fn subscription_raw_stream_checkpoint_rejection_count(&self) -> usize {
+    pub fn subscription_unsealed_stream_checkpoint_rejection_count(&self) -> usize {
         self.values
-            .subscription_raw_stream_checkpoint_rejection_count
+            .subscription_unsealed_stream_checkpoint_rejection_count
     }
     pub fn subscription_checkpoint_truncation_rejection_count(&self) -> usize {
         self.values

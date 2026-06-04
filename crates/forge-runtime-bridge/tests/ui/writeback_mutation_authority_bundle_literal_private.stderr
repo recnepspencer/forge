@@ -1,43 +1,43 @@
 error: cannot construct `BridgeMutationAuthorityBundle` with struct literal syntax due to private fields
-  --> tests/ui/writeback_mutation_authority_bundle_literal_private.rs:28:13
+  --> tests/ui/writeback_mutation_authority_bundle_literal_private.rs:29:13
    |
-28 |     let _ = BridgeMutationAuthorityBundle {
+29 |     let _ = BridgeMutationAuthorityBundle {
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-29 |         causality,
+30 |         causality,
    |         --------- private field
-30 |         provenance,
+31 |         provenance,
    |         ---------- private field
    |
    = note: ...and other private fields `existing_truth_binding`, `symbolic_target_reference`, `naming_mutation` and `continuity_mutation` that were not provided
 help: you might have meant to use the `from_writeback_artifacts` associated function
    |
-28 -     let _ = BridgeMutationAuthorityBundle {
-29 -         causality,
-30 -         provenance,
-31 -     };
-28 +     let _ = BridgeMutationAuthorityBundle::from_writeback_artifacts(_, _, _, _, _);
+29 -     let _ = BridgeMutationAuthorityBundle {
+30 -         causality,
+31 -         provenance,
+32 -     };
+29 +     let _ = BridgeMutationAuthorityBundle::from_writeback_artifacts(_, _, _, _, _);
    |
 
 error: cannot construct `BridgeBatchMutationAuthorityBundle` with struct literal syntax due to private fields
-  --> tests/ui/writeback_mutation_authority_bundle_literal_private.rs:32:13
+  --> tests/ui/writeback_mutation_authority_bundle_literal_private.rs:33:13
    |
-32 |     let _ = BridgeBatchMutationAuthorityBundle {
+33 |     let _ = BridgeBatchMutationAuthorityBundle {
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-33 |         component_count: 0,
+34 |         component_count: 0,
    |         ------------------ private field
-34 |         causality_bundle_count: 0,
+35 |         causality_bundle_count: 0,
    |         ------------------------- private field
-35 |         provenance_bundle_count: 0,
+36 |         provenance_bundle_count: 0,
    |         -------------------------- private field
-36 |         outcome_class_count: 0,
+37 |         outcome_class_count: 0,
    |         ---------------------- private field
-37 |         request_digest_count: 0,
-   |         ----------------------- private field
-38 |         receipt_digest_count: 0,
-   |         ----------------------- private field
-39 |         aggregate_causality_digest: String::new().into(),
-   |         ------------------------------------------------ private field
-40 |         aggregate_provenance_digest: String::new().into(),
-   |         ------------------------------------------------- private field
+38 |         authority_request_count: 0,
+   |         -------------------------- private field
+39 |         authority_receipt_count: 0,
+   |         -------------------------- private field
+40 |         aggregate_causality_digest: sealed_authority_placeholder(),
+   |         ---------------------------------------------------------- private field
+41 |         aggregate_provenance_digest: sealed_authority_placeholder(),
+   |         ----------------------------------------------------------- private field
    |
    = note: ...and other private fields that were not provided

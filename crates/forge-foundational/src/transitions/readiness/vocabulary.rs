@@ -10,6 +10,12 @@ impl FoundationalTransitionProductionReadinessScope {
         }
     }
 
+    pub(super) const fn milestone_9_scoped_merge() -> Self {
+        Self {
+            milestone: "forge-foundational.milestone-9.scoped-merge",
+        }
+    }
+
     pub const fn milestone(&self) -> &'static str {
         self.milestone
     }
@@ -23,6 +29,11 @@ pub enum FoundationalTransitionCertifiedSurface {
     CommitReceiptsAndBundles,
     CanonicalBasisAndLocatorIntegration,
     ProfileRichnessAndCurrentBasisBehavior,
+    ScopedMergeRequestVocabulary,
+    ScopedMergeAdmissionEvidence,
+    ScopedMergeDenialUnavailableTopology,
+    ScopedMergeCanonicalLocatorDiagnostics,
+    ScopedMergeAdoptionContract,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -118,6 +129,11 @@ pub enum FoundationalTransitionSyntheticRuntimePressure {
     ThinReceiptRejection,
     GenericTransitionResultBagRejection,
     CheapConvenienceBypassRejection,
+    ScopedMergeCategorySubstitutionHostility,
+    ScopedMergeProducerDiversityHostility,
+    ScopedMergeUnavailableDenialHonesty,
+    ScopedMergeCanonicalLocatorStability,
+    ScopedMergeRuntimeBoundaryHonesty,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -129,6 +145,9 @@ pub enum FoundationalTransitionCompileFailBoundary {
     Phase5BasisAndCurrentBasisRequireStrengthenedArtifacts,
     TransitionReadinessRequiresCertifiedArtifact,
     TransitionReadinessAuthorityCannotBeMinted,
+    ScopedMergeScopeRequiresTypedLoci,
+    SelectedScopeLocatorRequiresTypedLoci,
+    SelectedNodeAndAspectRequestsAreNotSubstitutable,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -193,6 +212,7 @@ pub enum FoundationalTransitionForgeProofForbiddenSurface {
     PlainMergeVerdictVocabulary,
     PlainReceiptAndBundleVocabulary,
     PlainCanonicalBasisAndLocatorVocabulary,
+    PlainScopedMergeStrings,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -201,6 +221,7 @@ pub enum FoundationalTransitionRuntimeAssumption {
     Milestone3ProfilesGovernTransitionAttachmentAndElision,
     StrongerCommittedAuthorityAndReceiptClaimsUseForgeProof,
     TransitionMeaningRemainsFacadeControlled,
+    ScopedMergeVocabularyMustPrecedeRuntimeExecution,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -210,6 +231,8 @@ pub enum FoundationalTransitionRuntimeNonAssumption {
     AdoptingRuntimeMergeStrategyParityAlreadyProven,
     BoundaryCrossingPreservesCurrentBasisWithoutReadmission,
     GenericBranchOrMergeEngineExistsInFoundational,
+    FoundationalExecutesScopedMergeOrCherryPick,
+    AdoptingCratesMayInventScopedMergeDialect,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -218,6 +241,9 @@ pub enum FoundationalTransitionResidualDebt {
     LaterDiagnosticsAndProvenanceOntologyDeferred,
     RuntimeStrategyRegistryAndExecutionDeferred,
     FullLineageSupportBeyondTransitionRowsDeferred,
+    AdoptingCrateScopedMergeExecutionDeferred,
+    NativeCherryPickExecutionDeferred,
+    RuntimeConflictMaterializationDeferred,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -228,6 +254,11 @@ pub enum FoundationalTransitionMilestone5PhaseGate {
     CommitReceiptsAndBundles,
     CanonicalBasisLocatorAndProfileIntegration,
     ProductionReadiness,
+    ScopedMergeRequestVocabulary,
+    ScopedMergeAdmissionEvidence,
+    ScopedMergeDenialUnavailableTopology,
+    ScopedMergeCanonicalLocatorDiagnostics,
+    ScopedMergeProductionReadiness,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

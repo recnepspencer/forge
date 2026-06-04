@@ -5,5 +5,5 @@ pub enum SubscriptionSliceKind {
     SignalRegion,
     SignalPartition,
     SignalFacet,
-    RegisteredCoarseFallback,
+    RegisteredCoarseWidening,
 }

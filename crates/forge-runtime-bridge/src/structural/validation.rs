@@ -116,10 +116,11 @@ mod tests {
     use crate::input::envelope::TruthBranchIdentity;
     use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
     use crate::structural::{
-        StructuralFingerprintEquivalenceContract, StructuralFingerprintFamily,
-        StructuralFingerprintNormalizationRule, StructuralFingerprintOmissionPolicy,
-        StructuralFingerprintOrderingRule, StructuralIdentityDeclaration,
-        StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity, StructuralTruthViewBasis,
+        StructuralComparisonMode, StructuralFingerprintEquivalenceContract,
+        StructuralFingerprintFamily, StructuralFingerprintNormalizationRule,
+        StructuralFingerprintOmissionPolicy, StructuralFingerprintOrderingRule,
+        StructuralIdentityDeclaration, StructuralIdentityDeclarationIdentity,
+        StructuralSchemaIdentity, StructuralTruthViewBasis, StructuralTruthViewBasisKind,
     };
 
     fn contract(schema: &str) -> StructuralFingerprintEquivalenceContract {
@@ -173,8 +174,13 @@ mod tests {
 
         let validated = ValidatedStructuralIdentityDeclaration::new(declaration)
             .expect("branch comparison declaration should validate");
-        assert!(validated
-            .canonical_basis()
-            .contains("validated-structural-declaration"));
+        assert_eq!(
+            validated.declaration().comparison_mode(),
+            StructuralComparisonMode::BranchComparison
+        );
+        assert_eq!(
+            validated.declaration().truth_view_basis().basis_kind(),
+            StructuralTruthViewBasisKind::ExplicitBranchPairComparison
+        );
     }
 }

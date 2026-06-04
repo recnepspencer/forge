@@ -8,8 +8,8 @@ pub enum TruthDeltaSurfaceKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum SliceFallbackPolicy {
+pub enum SliceWideningPolicy {
     Disallow,
-    RegisteredEntityCoarseFallback,
-    RegisteredPartitionFallback,
+    RegisteredEntityCoarseWidening,
+    RegisteredPartitionWidening,
 }

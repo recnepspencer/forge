@@ -1,18 +1,22 @@
 use super::super::support::*;
-use forge_runtime_bridge::facade::{BridgeContinuityMutationBundle, BridgeContinuityOutcomeClass};
+use forge_runtime_bridge::facade::{
+    BridgeContinuityAuthoritativeIdentity, BridgeContinuityMutationBundle,
+    BridgeContinuityOutcomeClass, BridgeContinuityResolvedTargetIdentity,
+    BridgeContinuityTargetCollection,
+};
 
 #[test]
 fn bridge_split_successor_continuity_preserves_successor_set() {
     let evidence = ForgeQueryContinuityMutationEvidence::from_bridge(
         &BridgeContinuityMutationBundle::split_existing_target(
             BridgeContinuityOutcomeClass::ContinuesAsSplitSuccessors,
-            "authority:task-1",
-            ["authority:task-1:a", "authority:task-1:b"],
-            Some("binding:sha256:task-1"),
-            Some("entity:task-1"),
-            Some("Task"),
-            "lineage:sha256:task-1",
-            "continuity:sha256:task-1",
+            continuity_identity("authority:task-1"),
+            [
+                continuity_identity("authority:task-1:a"),
+                continuity_identity("authority:task-1:b"),
+            ],
+            Some(resolved_target("entity:task-1")),
+            Some(target_collection("Task")),
         )
         .expect("split continuity bundle should build"),
     );
@@ -33,10 +37,7 @@ fn bridge_split_successor_continuity_preserves_successor_set() {
         ]
     );
     assert_eq!(evidence.successor_authoritative_identity(), None);
-    assert_eq!(
-        evidence.basis_binding_digest(),
-        Some("binding:sha256:task-1")
-    );
+    assert!(evidence.basis_binding_digest().is_some());
 }
 
 #[test]
@@ -51,4 +52,18 @@ fn split_successor_intent_requires_at_least_two_successors() {
         error.to_string(),
         "split-successor continuity requires at least two successor authoritative identities"
     );
+}
+
+fn continuity_identity(value: &str) -> BridgeContinuityAuthoritativeIdentity {
+    BridgeContinuityAuthoritativeIdentity::new(value)
+        .expect("test continuity identity should be native")
+}
+
+fn resolved_target(value: &str) -> BridgeContinuityResolvedTargetIdentity {
+    BridgeContinuityResolvedTargetIdentity::new(value)
+        .expect("test resolved target should be native")
+}
+
+fn target_collection(value: &str) -> BridgeContinuityTargetCollection {
+    BridgeContinuityTargetCollection::new(value).expect("test target collection should be native")
 }

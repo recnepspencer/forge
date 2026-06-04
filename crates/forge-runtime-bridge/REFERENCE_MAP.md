@@ -20,7 +20,7 @@ Use [`forge_runtime_bridge::facade`] for the standard path:
 - `BridgeSpeculativeSessionRequest`
 - `BridgeSpeculativeSessionHandle`
 - `BridgeSpeculativeComparison`
-- `BridgeSpeculativePromotionRequest`
+- `BridgeSpeculativePromotionOutcome`
 - `BridgeDiagnostics`
 - `BridgeStandardDiagnosticsExplanation`
 

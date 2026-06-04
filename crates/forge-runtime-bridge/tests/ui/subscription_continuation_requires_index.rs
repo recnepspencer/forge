@@ -2,7 +2,7 @@ use forge_runtime_bridge::facade::{
     BridgeActiveSubscription, BridgeSubscriptionContinuationCandidateInput, RuntimeBridge,
 };
 
-fn plan_from_raw_candidate(
+fn plan_from_unindexed_continuation_candidate(
     runtime: &RuntimeBridge,
     active: &BridgeActiveSubscription,
     candidate: BridgeSubscriptionContinuationCandidateInput,

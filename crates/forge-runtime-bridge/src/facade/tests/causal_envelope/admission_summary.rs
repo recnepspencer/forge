@@ -1,6 +1,6 @@
-use super::{bridge_reference, query_observation_reference, runtime, BridgeRuntimePolicy};
+use super::{bridge_route_reference, query_observation_reference, runtime, BridgeRuntimePolicy};
 use crate::facade::{
-    BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceFamily,
+    BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceReferenceIdentity,
     BridgeCausalInspectionAdmissionSummary, BridgeCausalInspectionAdmissionSummaryKind,
 };
 
@@ -8,7 +8,9 @@ use crate::facade::{
 fn causal_envelope_request_carries_advisory_query_admission_summary() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let routed = runtime
-        .route("commit-causal-advisory-summary")
+        .route(crate::facade::TruthCommitIdentity::new(
+            "commit-causal-advisory-summary",
+        ))
         .expect("route should succeed");
     let admission_summary = BridgeCausalInspectionAdmissionSummary::advisory(
         "query-admission:advisory",
@@ -18,11 +20,13 @@ fn causal_envelope_request_carries_advisory_query_admission_summary() {
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         admission_summary,
         vec![
-            query_observation_reference("query-observation:advisory"),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeRoute,
-                routed.result().result_summary().route_identity().as_str(),
+            query_observation_reference(
+                BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    "query-observation:advisory",
+                )
+                .expect("query observation reference identity should be valid"),
             ),
+            bridge_route_reference(routed.result().result_summary()),
         ],
     )
     .expect("request should be valid");

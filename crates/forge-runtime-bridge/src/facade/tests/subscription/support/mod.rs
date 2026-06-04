@@ -6,15 +6,16 @@ pub(crate) use crate::facade::{
     BridgeSubscriptionBasisResolutionFailureKind, BridgeSubscriptionConsumerBackpressurePosture,
     BridgeSubscriptionConsumerContractFamily, BridgeSubscriptionConsumerDiagnosticsRetention,
     BridgeSubscriptionConsumerPacingCapability, BridgeSubscriptionDeclarationFamilyKind,
+    BridgeSubscriptionDeliveryContentDigest, BridgeSubscriptionDeliveryContentOmissionReason,
     BridgeSubscriptionDeliveryDensityPosture, BridgeSubscriptionDeliveryFamilyKind,
     BridgeSubscriptionDeliveryIntentClass, BridgeSubscriptionDeliveryMemberClass,
-    BridgeSubscriptionDeliveryMemberInput, BridgeSubscriptionPayloadOmissionReason,
-    BridgeSubscriptionPreviewWorkInput, BridgeSubscriptionPreviewWorkTrace,
-    NormalizedSubscriptionSliceIntent,
+    BridgeSubscriptionDeliveryMemberInput, BridgeSubscriptionPreviewWorkInput,
+    BridgeSubscriptionPreviewWorkTrace, NormalizedSubscriptionSliceIntent,
 };
 pub(crate) use crate::input::envelope::TruthBranchIdentity;
 pub(crate) use crate::input::envelope::{
-    BridgeCommittedPatchItem, RawCommittedPatchEnvelope, TruthCommitIdentity, TruthPatchIdentity,
+    BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem,
+    TruthCommitIdentity, TruthPatchIdentity,
 };
 pub(crate) use crate::mapping::SubscriptionSliceKind;
 pub(crate) use crate::policy::BridgeRuntimePolicy;

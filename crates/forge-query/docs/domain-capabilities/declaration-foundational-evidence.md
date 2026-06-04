@@ -42,6 +42,9 @@ Good to know:
 
 - the admitted handle stays the entry surface because foundational description
   still depends on retained admitted-world proof
+- later retained declaration-side artifacts compose the same
+  `ForgeQueryAdmittedWorldBasis` witness rather than re-retaining raw admitted
+  handle and operating-context digests independently
 - foundational evidence starts from legality or progression truth, not from raw
   declaration input or canonical declarations alone
 - Query owns the declaration-side lowering boundary; `forge-foundational` owns

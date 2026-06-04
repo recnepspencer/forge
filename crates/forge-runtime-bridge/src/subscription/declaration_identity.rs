@@ -6,7 +6,8 @@ use crate::identity::{
     SubscriptionContinuationCandidateIdentityTag, SubscriptionContinuationChildIdentityTag,
     SubscriptionContinuationDecisionIdentityTag, SubscriptionContinuationIndexIdentityTag,
     SubscriptionDeclarationFamilyIdentityTag, SubscriptionDeclarationIdentityTag,
-    SubscriptionDeliveryBufferLifecycleIdentityTag, SubscriptionDeliveryCostProfileIdentityTag,
+    SubscriptionDeliveryBufferLifecycleIdentityTag, SubscriptionDeliveryContentDigestTag,
+    SubscriptionDeliveryCostProfileIdentityTag,
     SubscriptionDeliveryDiagnosticsReferenceIdentityTag, SubscriptionDeliveryFamilyIdentityTag,
     SubscriptionDeliveryMemberIdentityTag, SubscriptionDeliveryReplayPlanIdentityTag,
     SubscriptionDeliveryReplayReadinessIdentityTag, SubscriptionDeliveryWindowIdentityTag,
@@ -51,6 +52,8 @@ pub type BridgeSubscriptionDeliveryWindowIdentity =
     BridgeIdentity<SubscriptionDeliveryWindowIdentityTag>;
 pub type BridgeSubscriptionDeliveryMemberIdentity =
     BridgeIdentity<SubscriptionDeliveryMemberIdentityTag>;
+pub type BridgeSubscriptionDeliveryContentDigest =
+    BridgeIdentity<SubscriptionDeliveryContentDigestTag>;
 pub type BridgeSubscriptionDeliveryDiagnosticsReferenceIdentity =
     BridgeIdentity<SubscriptionDeliveryDiagnosticsReferenceIdentityTag>;
 pub type BridgeSubscriptionDeliveryBufferLifecycleIdentity =

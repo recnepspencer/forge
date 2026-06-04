@@ -3,7 +3,7 @@ use forge_runtime_bridge::facade::{
     BridgeSubscriptionDuplicateReplayPolicyKind, RuntimeBridge,
 };
 
-fn publish_raw_frontier(
+fn publish_unsealed_acknowledgement_frontier(
     runtime: &RuntimeBridge,
     frontier: BridgeSubscriptionAcknowledgementFrontier,
     active: &BridgeActiveSubscription,

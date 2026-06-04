@@ -1,20 +1,21 @@
 use forge_runtime_bridge::facade::{
-    BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner, BridgeCausalEvidenceReference,
-    BridgeCommittedPatchItem, BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration,
-    BridgeRouteIdentity, BridgeSignalInvalidationDelivery, BridgeSnapshotReadError,
-    BridgeSourceAdapter, BridgeSourceCapability, BridgeSourceCapabilitySet,
-    BridgeTruthViewSelector, CoarseRoutingMode, InvalidationSink, MappingSelector,
-    RawCommittedPatchEnvelope, RelationalBridgeSourceError, RelationalCommittedPatchRequest,
-    RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope,
+    AspectKeySelector, BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner,
+    BridgeCausalEvidenceReference, BridgeCausalEvidenceReferenceIdentity,
+    BridgeCommittedPatchEnvelope, BridgeCommittedPatchItem, BridgeDeliveryReceipt, BridgeMappingId,
+    BridgeMappingRegistration, BridgeRouteIdentity, BridgeSignalInvalidationDelivery,
+    BridgeSnapshotReadError, BridgeSourceAdapter, BridgeSourceCapability,
+    BridgeSourceCapabilitySet, BridgeTruthViewSelector, CoarseRoutingMode, InvalidationSink,
+    MappingSelector, RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
+    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
     SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
     SourceDeclaration, SourceDeclarationIdentity, StructuralFingerprintEquivalenceContract,
     StructuralFingerprintFamily, StructuralFingerprintNormalizationRule,
     StructuralFingerprintOmissionPolicy, StructuralFingerprintOrderingRule,
     StructuralIdentityDeclaration, StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity,
     StructuralTruthViewBasis, TruthBranchHeadSource, TruthBranchIdentity, TruthCommitIdentity,
-    TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
-    TruthWritebackAuthority, TruthWritebackAuthorityError, TruthWritebackReceipt,
-    TruthWritebackRequest,
+    TruthPatchIdentity, TruthPatchScope, TruthPatchTargetSelector, TruthSnapshotIdentity,
+    TruthSnapshotReader, TruthWritebackAuthority, TruthWritebackAuthorityError,
+    TruthWritebackReceipt, TruthWritebackRequest,
 };
 
 use super::super::super::super::*;
@@ -25,19 +26,30 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for MaterializationSourc
     fn load_committed_patch(
         &self,
         request: RelationalCommittedPatchRequest,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        Ok(RawCommittedPatchEnvelope::new(
-            TruthCommitIdentity::new(request.commit_identity()),
-            TruthPatchIdentity::new(format!("patch-{}", request.commit_identity())),
-            TruthSnapshotIdentity::new("snapshot-causal-materialization"),
-            TruthBranchIdentity::new("analysis"),
-            vec![BridgeCommittedPatchItem::new(
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        Ok(BridgeCommittedPatchEnvelope::new(
+            forge_runtime_bridge::facade::BridgeCommittedPatchEnvelopeIdentity::new(
+                request.commit_identity().clone(),
+                TruthPatchIdentity::new(format!("patch-{}", request.commit_identity())),
+                TruthSnapshotIdentity::new("snapshot-causal-materialization"),
+                TruthBranchIdentity::new("analysis"),
+            ),
+            vec![BridgeCommittedPatchItem::with_target(
                 "entity-1",
-                forge_foundational::facade::AspectKey::new("profile")
-                    .expect("valid bridge patch aspect key"),
-                "name",
+                forge_runtime_bridge::facade::BridgeCommittedPatchTarget::entity_field_path(
+                    forge_foundational::facade::AspectLocator::new(
+                        forge_foundational::facade::LocatorAuthority::Authoritative,
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid native bridge patch aspect key"),
+                    ),
+                    forge_foundational::facade::CanonicalFieldPath::single(
+                        forge_foundational::facade::FieldKey::new("name".to_owned())
+                            .expect("valid native bridge patch field key"),
+                    ),
+                ),
             )],
-        ))
+        )
+        .expect("native bridge patch envelope fixture must construct"))
     }
 }
 
@@ -54,19 +66,30 @@ impl TruthBranchHeadSource for MaterializationSource {
     fn load_branch_head_patch(
         &self,
         branch_identity: &TruthBranchIdentity,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        Ok(RawCommittedPatchEnvelope::new(
-            TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
-            TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
-            TruthSnapshotIdentity::new("snapshot-causal-materialization"),
-            branch_identity.clone(),
-            vec![BridgeCommittedPatchItem::new(
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        Ok(BridgeCommittedPatchEnvelope::new(
+            forge_runtime_bridge::facade::BridgeCommittedPatchEnvelopeIdentity::new(
+                TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
+                TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
+                TruthSnapshotIdentity::new("snapshot-causal-materialization"),
+                branch_identity.clone(),
+            ),
+            vec![BridgeCommittedPatchItem::with_target(
                 "entity-1",
-                forge_foundational::facade::AspectKey::new("profile")
-                    .expect("valid bridge patch aspect key"),
-                "name",
+                forge_runtime_bridge::facade::BridgeCommittedPatchTarget::entity_field_path(
+                    forge_foundational::facade::AspectLocator::new(
+                        forge_foundational::facade::LocatorAuthority::Authoritative,
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid native bridge patch aspect key"),
+                    ),
+                    forge_foundational::facade::CanonicalFieldPath::single(
+                        forge_foundational::facade::FieldKey::new("name".to_owned())
+                            .expect("valid native bridge patch field key"),
+                    ),
+                ),
             )],
-        ))
+        )
+        .expect("native bridge branch head envelope fixture must construct"))
     }
 }
 
@@ -76,7 +99,7 @@ impl BridgeSourceAdapter for MaterializationSource {
             BridgeSourceCapability::SnapshotRead,
             BridgeSourceCapability::HistoricalRead,
             BridgeSourceCapability::BranchRead,
-            BridgeSourceCapability::ReplayCompatibleRead,
+            BridgeSourceCapability::ReplayContinuityRead,
         ])
     }
 
@@ -111,7 +134,12 @@ impl TruthSnapshotReader for MaterializationSnapshotReader {
             request
                 .reads()
                 .iter()
-                .map(|read| SnapshotReadRecord::new(read.request_key(), b"fixture".to_vec()))
+                .map(|read| {
+                    SnapshotReadRecord::for_request(
+                        read,
+                        forge_foundational::facade::AspectValue::String("fixture".into()),
+                    )
+                })
                 .collect(),
         ))
     }
@@ -140,7 +168,6 @@ impl TruthWritebackAuthority for MaterializationWritebackAuthority {
     ) -> Result<TruthWritebackReceipt, TruthWritebackAuthorityError> {
         Ok(TruthWritebackReceipt::new(
             forge_runtime_bridge::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
-            format!("authoritative-artifact:{}", request.digest()),
             &request,
         ))
     }
@@ -163,7 +190,7 @@ pub(in crate::runtime::tests::causal_inspection) fn bridge_runtime() -> RuntimeB
                 BridgeSourceCapability::SnapshotRead,
                 BridgeSourceCapability::HistoricalRead,
                 BridgeSourceCapability::BranchRead,
-                BridgeSourceCapability::ReplayCompatibleRead,
+                BridgeSourceCapability::ReplayContinuityRead,
             ],
         ))
         .register_structural(registered_structural(
@@ -178,8 +205,19 @@ pub(in crate::runtime::tests::causal_inspection) fn bridge_runtime() -> RuntimeB
             BridgeMappingId::new("mapping:causal-materialization"),
             TruthPatchScope::new(
                 MappingSelector::exact("entity-1"),
-                MappingSelector::exact("profile"),
-                MappingSelector::exact("name"),
+                AspectKeySelector::exact(
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid native mapping aspect key"),
+                ),
+                TruthPatchTargetSelector::entity_field(
+                    forge_foundational::facade::FieldKey::new("name".to_owned())
+                        .expect("valid native mapping field key"),
+                ),
+            ),
+            SnapshotReadContract::scalar(
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native snapshot aspect key"),
+                forge_foundational::facade::ScalarAspectType::String,
             ),
             SignalInvalidationScope::new("signal:profile"),
             CoarseRoutingMode::Direct,
@@ -221,24 +259,23 @@ pub(in crate::runtime::tests::causal_inspection) fn registered_structural(
 }
 
 pub(in crate::runtime::tests::causal_inspection) fn bridge_reference(
-    family: BridgeCausalEvidenceFamily,
-    identity: &str,
+    identity: BridgeCausalEvidenceReferenceIdentity,
 ) -> BridgeCausalEvidenceReference {
+    let family = identity.family();
     BridgeCausalEvidenceReference::new(BridgeCausalEvidenceOwner::RuntimeBridge, family, identity)
         .expect("bridge causal reference should be valid")
 }
 
 pub(in crate::runtime::tests::causal_inspection) fn external_reference(
     owner: BridgeCausalEvidenceOwner,
-    family: BridgeCausalEvidenceFamily,
-    identity: &str,
+    identity: BridgeCausalEvidenceReferenceIdentity,
 ) -> BridgeCausalEvidenceReference {
-    BridgeCausalEvidenceReference::new(owner, family, identity)
+    BridgeCausalEvidenceReference::new(owner, identity.family(), identity)
         .expect("external causal reference should be valid")
 }
 
 pub(in crate::runtime::tests::causal_inspection) fn query_reference(
-    identity: &str,
+    identity: BridgeCausalEvidenceReferenceIdentity,
 ) -> BridgeCausalEvidenceReference {
     BridgeCausalEvidenceReference::new(
         BridgeCausalEvidenceOwner::Query,

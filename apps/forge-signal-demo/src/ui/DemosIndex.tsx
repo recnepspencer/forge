@@ -6,6 +6,8 @@ interface DemosIndexProps {
 }
 
 export const DemosIndex: React.FC<DemosIndexProps> = ({ onNavigate }) => {
+  const demos = React.useMemo(() => demoRegistry.filter((demo) => demo.id !== 6), []);
+
   return (
     <div style={{ background: "var(--bg-primary)", minHeight: "calc(100vh - 72px)", padding: "4rem 2rem" }}>
       <div className="container" style={{ maxWidth: "960px" }}>
@@ -68,7 +70,7 @@ export const DemosIndex: React.FC<DemosIndexProps> = ({ onNavigate }) => {
             }}
           />
 
-          {demoRegistry.map((demo) => {
+          {demos.map((demo) => {
             const accentColor = 
               demo.id === 1 ? "var(--accent-signals)" :
               demo.id === 2 ? "var(--accent-forms)" :
@@ -145,7 +147,7 @@ export const DemosIndex: React.FC<DemosIndexProps> = ({ onNavigate }) => {
                         padding: "0.5rem 1rem",
                       }}
                     >
-                      Initialize Workspace
+                      Open Demo
                     </button>
                     <button
                       className="btn"

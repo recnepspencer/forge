@@ -7,13 +7,13 @@ error[E0451]: fields `lane_kind`, `family_kind`, `source_artifact_index_digest`,
    |         ^^^^^^^^^ private field
 10 |         family_kind: BridgeSubscriptionReferenceWorkloadFamilyKind::DetailExact,
    |         ^^^^^^^^^^^ private field
-11 |         source_artifact_index_digest: Arc::from("source-index"),
+11 |         source_artifact_index_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-12 |         certification_bundle_digest: Arc::from("bundle"),
+12 |         certification_bundle_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 13 |         counters: BridgeSubscriptionCertificationCounterSnapshot::default(),
    |         ^^^^^^^^ private field
-14 |         canonical_basis: Arc::from("basis"),
+14 |         canonical_basis: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^ private field
-15 |         digest: Arc::from("digest"),
+15 |         digest: sealed_authority_placeholder(),
    |         ^^^^^^ private field

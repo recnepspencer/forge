@@ -177,18 +177,22 @@ pub(super) fn build_write_receipt_inspection_digest(
             )
         ),
         format!(
-            "provenance-evidence:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+            "provenance-evidence:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
             provenance_evidence.map_or(
                 "none",
                 ForgeQueryMutationProvenanceEvidence::contract_digest
             ),
             provenance_evidence.map_or(
                 "none",
-                ForgeQueryMutationProvenanceEvidence::derived_effect_digest
+                ForgeQueryMutationProvenanceEvidence::writeback_effect_artifact_digest
             ),
             provenance_evidence.map_or(
                 "none",
-                ForgeQueryMutationProvenanceEvidence::proposed_effect_digest
+                ForgeQueryMutationProvenanceEvidence::effect_intent_digest
+            ),
+            provenance_evidence.map_or(
+                "none",
+                ForgeQueryMutationProvenanceEvidence::effect_intent_patch_canonical_basis
             ),
             provenance_evidence.map_or(
                 "none",

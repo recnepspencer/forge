@@ -16,7 +16,7 @@ pub struct CausalInspectionScaleCounterSnapshot {
     bridge_envelope_slope_counter: usize,
     materialization_slope_counter: usize,
     artifact_serialization_slope_counter: usize,
-    bridge_scan_fallback_count: usize,
+    bridge_unindexed_scan_count: usize,
     bridge_readmission_proof_digest: Option<String>,
     snapshot_digest: String,
 }
@@ -35,7 +35,7 @@ impl CausalInspectionScaleCounterSnapshot {
         let bridge_envelope_slope_counter = performance.bridge_envelope_assembly_count();
         let materialization_slope_counter = performance.materialization_count();
         let artifact_serialization_slope_counter = performance.artifact_serialization_count();
-        let bridge_scan_fallback_count = performance.bridge_scan_fallback_count();
+        let bridge_unindexed_scan_count = performance.bridge_unindexed_scan_count();
         let bridge_readmission_proof_digest = artifact
             .bridge_readmission_proof_digest()
             .map(str::to_string);
@@ -49,7 +49,7 @@ impl CausalInspectionScaleCounterSnapshot {
             bridge_envelope_slope_counter,
             materialization_slope_counter,
             artifact_serialization_slope_counter,
-            bridge_scan_fallback_count,
+            bridge_unindexed_scan_count,
             bridge_readmission_proof_digest: bridge_readmission_proof_digest.as_deref(),
         });
         Self {
@@ -62,7 +62,7 @@ impl CausalInspectionScaleCounterSnapshot {
             bridge_envelope_slope_counter,
             materialization_slope_counter,
             artifact_serialization_slope_counter,
-            bridge_scan_fallback_count,
+            bridge_unindexed_scan_count,
             bridge_readmission_proof_digest,
             snapshot_digest,
         }
@@ -104,8 +104,8 @@ impl CausalInspectionScaleCounterSnapshot {
         self.artifact_serialization_slope_counter
     }
 
-    pub fn bridge_scan_fallback_count(&self) -> usize {
-        self.bridge_scan_fallback_count
+    pub fn bridge_unindexed_scan_count(&self) -> usize {
+        self.bridge_unindexed_scan_count
     }
 
     pub fn bridge_readmission_proof_digest(&self) -> Option<&str> {
@@ -132,7 +132,7 @@ impl CausalInspectionScaleCounterSnapshot {
             bridge_envelope_slope_counter,
             materialization_slope_counter: self.materialization_slope_counter,
             artifact_serialization_slope_counter: self.artifact_serialization_slope_counter,
-            bridge_scan_fallback_count: self.bridge_scan_fallback_count,
+            bridge_unindexed_scan_count: self.bridge_unindexed_scan_count,
             bridge_readmission_proof_digest: self.bridge_readmission_proof_digest.as_deref(),
         });
         self
@@ -308,7 +308,7 @@ struct SnapshotDigestParts<'a> {
     bridge_envelope_slope_counter: usize,
     materialization_slope_counter: usize,
     artifact_serialization_slope_counter: usize,
-    bridge_scan_fallback_count: usize,
+    bridge_unindexed_scan_count: usize,
     bridge_readmission_proof_digest: Option<&'a str>,
 }
 
@@ -336,7 +336,10 @@ fn snapshot_digest(parts: SnapshotDigestParts<'_>) -> String {
             "serialization-slope:{}",
             parts.artifact_serialization_slope_counter
         ),
-        format!("bridge-scan-fallback:{}", parts.bridge_scan_fallback_count),
+        format!(
+            "bridge-unindexed-scan:{}",
+            parts.bridge_unindexed_scan_count
+        ),
         format!(
             "readmission:{}",
             parts.bridge_readmission_proof_digest.unwrap_or("none")

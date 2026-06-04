@@ -13,6 +13,7 @@ Read by capability area:
 - [Diagnostics And Explanation Ontology](./diagnostics-and-explanation-ontology/README.md)
 - [Lineage, Provenance, Receipts, And Support Truth](./lineage-provenance-receipts-and-support-truth/README.md)
 - [Performance, Layout, And Enforcement Vocabulary](./performance/README.md)
+- [Scoped Merge And Cherry-Pick Vocabulary](./scoped-merge-adoption.md)
 
 If you are working through the milestones in order, Milestone 7 is where the
 crate stops talking only about artifacts, transitions, and diagnostics, and
@@ -34,3 +35,14 @@ talk about:
 - proof-bearing certified/readmitted performance bundles when stronger claims
   are real
 - grouped public lanes and performance readiness closure
+
+Milestone 9 adds the shared scoped merge/cherry-pick vocabulary that adopting
+runtime crates must lower into before implementing branch execution:
+
+- full-branch, selected-node, and selected-aspect scope requests
+- admitted scope evidence with direct-source or identity-corresponded basis
+- selected no-op evidence distinct from skipped-out-of-scope candidates
+- scoped denial and unavailable posture mapped through `forge-proof`
+  progression categories
+- canonical basis, transition locators, diagnostic explanations, and
+  production readiness evidence for downstream runtime adoption

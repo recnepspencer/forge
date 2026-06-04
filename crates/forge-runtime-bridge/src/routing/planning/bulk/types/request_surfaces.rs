@@ -53,28 +53,28 @@ impl BridgeBulkWorkloadRequest {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CanonicalBridgeWorkloadRequest {
     workload_identity: BridgeWorkloadIdentity,
-    route_members: Arc<[Arc<str>]>,
-    subscription_slice_members: Arc<[Arc<str>]>,
-    continuity_members: Arc<[Arc<str>]>,
-    truth_view_members: Arc<[Arc<str>]>,
-    commit_members: Arc<[Arc<str>]>,
-    snapshot_members: Arc<[Arc<str>]>,
-    branch_members: Arc<[Arc<str>]>,
-    workload_segment_digests: Arc<[Arc<str>]>,
+    route_members: Arc<[BridgeRouteIdentity]>,
+    subscription_slice_members: Arc<[BridgeSubscriptionSliceIdentity]>,
+    continuity_members: Arc<[BulkContinuityMemberIdentity]>,
+    truth_view_members: Arc<[BulkTruthViewMemberIdentity]>,
+    commit_members: Arc<[TruthCommitIdentity]>,
+    snapshot_members: Arc<[TruthSnapshotIdentity]>,
+    branch_members: Arc<[TruthBranchIdentity]>,
+    workload_segment_identities: Arc<[BulkWorkloadSegmentIdentity]>,
     digest: Arc<str>,
 }
 
 impl CanonicalBridgeWorkloadRequest {
     pub(crate) fn new(
         workload_identity: BridgeWorkloadIdentity,
-        route_members: Vec<Arc<str>>,
-        subscription_slice_members: Vec<Arc<str>>,
-        continuity_members: Vec<Arc<str>>,
-        truth_view_members: Vec<Arc<str>>,
-        commit_members: Vec<Arc<str>>,
-        snapshot_members: Vec<Arc<str>>,
-        branch_members: Vec<Arc<str>>,
-        workload_segment_digests: Vec<Arc<str>>,
+        route_members: Vec<BridgeRouteIdentity>,
+        subscription_slice_members: Vec<BridgeSubscriptionSliceIdentity>,
+        continuity_members: Vec<BulkContinuityMemberIdentity>,
+        truth_view_members: Vec<BulkTruthViewMemberIdentity>,
+        commit_members: Vec<TruthCommitIdentity>,
+        snapshot_members: Vec<TruthSnapshotIdentity>,
+        branch_members: Vec<TruthBranchIdentity>,
+        workload_segment_identities: Vec<BulkWorkloadSegmentIdentity>,
     ) -> Self {
         let mut basis = format!(
             "canonical-bridge-workload-request|workload={}|route-count={}|slice-count={}|continuity-count={}|truth-view-count={}|commit-count={}|snapshot-count={}|branch-count={}|segment-count={}",
@@ -86,39 +86,39 @@ impl CanonicalBridgeWorkloadRequest {
             commit_members.len(),
             snapshot_members.len(),
             branch_members.len(),
-            workload_segment_digests.len(),
+            workload_segment_identities.len(),
         );
         for member in &route_members {
             basis.push_str("|route=");
-            basis.push_str(member);
+            basis.push_str(member.as_str());
         }
         for member in &subscription_slice_members {
             basis.push_str("|slice=");
-            basis.push_str(member);
+            basis.push_str(member.as_str());
         }
         for member in &continuity_members {
             basis.push_str("|continuity=");
-            basis.push_str(member);
+            basis.push_str(member.as_str());
         }
         for member in &truth_view_members {
             basis.push_str("|truth-view=");
-            basis.push_str(member);
+            basis.push_str(member.as_str());
         }
         for member in &commit_members {
             basis.push_str("|commit=");
-            basis.push_str(member);
+            basis.push_str(member.as_str());
         }
         for member in &snapshot_members {
             basis.push_str("|snapshot=");
-            basis.push_str(member);
+            basis.push_str(member.as_str());
         }
         for member in &branch_members {
             basis.push_str("|branch=");
-            basis.push_str(member);
+            basis.push_str(member.as_str());
         }
-        for segment in &workload_segment_digests {
+        for segment in &workload_segment_identities {
             basis.push_str("|segment=");
-            basis.push_str(segment);
+            basis.push_str(segment.as_str());
         }
         Self {
             workload_identity,
@@ -129,7 +129,7 @@ impl CanonicalBridgeWorkloadRequest {
             commit_members: commit_members.into(),
             snapshot_members: snapshot_members.into(),
             branch_members: branch_members.into(),
-            workload_segment_digests: workload_segment_digests.into(),
+            workload_segment_identities: workload_segment_identities.into(),
             digest: digest_string("canonical-bridge-workload-request", &basis),
         }
     }
@@ -137,29 +137,29 @@ impl CanonicalBridgeWorkloadRequest {
     pub fn workload_identity(&self) -> &BridgeWorkloadIdentity {
         &self.workload_identity
     }
-    pub fn route_members(&self) -> &[Arc<str>] {
+    pub fn route_members(&self) -> &[BridgeRouteIdentity] {
         &self.route_members
     }
-    pub fn subscription_slice_members(&self) -> &[Arc<str>] {
+    pub fn subscription_slice_members(&self) -> &[BridgeSubscriptionSliceIdentity] {
         &self.subscription_slice_members
     }
-    pub fn continuity_members(&self) -> &[Arc<str>] {
+    pub fn continuity_members(&self) -> &[BulkContinuityMemberIdentity] {
         &self.continuity_members
     }
-    pub fn truth_view_members(&self) -> &[Arc<str>] {
+    pub fn truth_view_members(&self) -> &[BulkTruthViewMemberIdentity] {
         &self.truth_view_members
     }
-    pub fn commit_members(&self) -> &[Arc<str>] {
+    pub fn commit_members(&self) -> &[TruthCommitIdentity] {
         &self.commit_members
     }
-    pub fn snapshot_members(&self) -> &[Arc<str>] {
+    pub fn snapshot_members(&self) -> &[TruthSnapshotIdentity] {
         &self.snapshot_members
     }
-    pub fn branch_members(&self) -> &[Arc<str>] {
+    pub fn branch_members(&self) -> &[TruthBranchIdentity] {
         &self.branch_members
     }
-    pub fn workload_segment_digests(&self) -> &[Arc<str>] {
-        &self.workload_segment_digests
+    pub fn workload_segment_identities(&self) -> &[BulkWorkloadSegmentIdentity] {
+        &self.workload_segment_identities
     }
     pub fn digest(&self) -> &str {
         self.digest.as_ref()

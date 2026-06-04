@@ -281,7 +281,7 @@ fn fact_set_digest(
                 format!(
                     "membership:{}:{}:{}",
                     fact.source_row_identity(),
-                    fact.grouping_aspect(),
+                    fact.native_grouping_aspect_key().as_str(),
                     json_value_digest(fact.grouping_value())
                 )
             }))
@@ -345,7 +345,7 @@ fn relation_endpoint_digest(fact: &ConsumedRelationEndpointFact) -> String {
         } => format!(
             "relation_endpoint:grouped:{}:{}:{}",
             source_row_identity,
-            grouping_aspect,
+            grouping_aspect.as_str(),
             json_value_digest(grouping_value)
         ),
     }

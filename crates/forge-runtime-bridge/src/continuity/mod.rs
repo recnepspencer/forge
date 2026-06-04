@@ -14,8 +14,8 @@ pub use counters::BridgeContinuityCounters;
 pub use lineage_packet::{BridgeHistoricalLineagePacket, BridgeHistoricalLineagePacketEntry};
 pub use lowering::{BridgeContinuityArtifact, BridgeContinuityIdentity};
 pub use requests::{
-    BridgeEligibleContinuityRequestSet, BridgePlannedContinuityRequest,
-    BridgePlannedContinuityRequestSet, PriorSubscriptionSlice,
+    BridgeContinuityCorrelationId, BridgeEligibleContinuityRequestSet,
+    BridgePlannedContinuityRequest, BridgePlannedContinuityRequestSet, PriorSubscriptionSlice,
 };
 pub use resolution::{ResolvedLineageContinuity, ResolvedLineageContinuitySet};
 pub use taxonomy::{

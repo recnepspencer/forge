@@ -24,29 +24,31 @@ where
 {
     let actual_handle_identity_digest = input.handle_identity_digest().to_string();
     if actual_handle_identity_digest != expected_handle_identity_digest {
-        let (declaration, support_report, legality_contract, operating_context_identity_digest) =
-            input.into_parts();
+        let (declaration, support_report, legality_contract, world_basis) = input.into_parts();
         return ForgeQueryDeclarationLegalityChecked::Illegal(
             ForgeQueryDeclarationLegalityDenial::WrongAdmittedWorld {
                 declaration,
                 expected_handle_identity_digest: expected_handle_identity_digest.to_string(),
                 actual_handle_identity_digest,
-                operating_context_identity_digest,
+                operating_context_identity_digest: world_basis
+                    .operating_context_identity_digest()
+                    .to_string(),
                 support_report,
                 legality_contract,
             },
         );
     }
 
-    let (declaration, support_report, legality_contract, operating_context_identity_digest) =
-        input.into_parts();
+    let (declaration, support_report, legality_contract, world_basis) = input.into_parts();
 
     match legality_contract.legality_class() {
         ForgeQueryDeclarationLegalityClass::DeferredBoundary => {
             return ForgeQueryDeclarationLegalityChecked::Illegal(
                 ForgeQueryDeclarationLegalityDenial::DeferredByLegalityBoundary {
                     declaration,
-                    operating_context_identity_digest,
+                    operating_context_identity_digest: world_basis
+                        .operating_context_identity_digest()
+                        .to_string(),
                     support_report,
                     legality_contract,
                 },
@@ -56,7 +58,9 @@ where
             return ForgeQueryDeclarationLegalityChecked::Illegal(
                 ForgeQueryDeclarationLegalityDenial::UnsupportedLegalityClass {
                     declaration,
-                    operating_context_identity_digest,
+                    operating_context_identity_digest: world_basis
+                        .operating_context_identity_digest()
+                        .to_string(),
                     support_report,
                     legality_contract,
                 },
@@ -73,7 +77,9 @@ where
             ForgeQueryDeclarationLegalityDenial::IllegalRoleClaim {
                 declaration,
                 denial,
-                operating_context_identity_digest,
+                operating_context_identity_digest: world_basis
+                    .operating_context_identity_digest()
+                    .to_string(),
                 support_report,
                 legality_contract,
             },
@@ -90,7 +96,9 @@ where
                 ForgeQueryDeclarationLegalityDenial::IllegalSurfaceDisposition {
                     declaration,
                     denial,
-                    operating_context_identity_digest,
+                    operating_context_identity_digest: world_basis
+                        .operating_context_identity_digest()
+                        .to_string(),
                     support_report,
                     legality_contract,
                 },
@@ -109,7 +117,7 @@ where
         support_report,
         legality_contract,
         reviewed_aspect_coverage,
-        operating_context_identity_digest,
+        world_basis,
         legality_contract.category(),
         legality_contract.role(),
         surface_disposition,

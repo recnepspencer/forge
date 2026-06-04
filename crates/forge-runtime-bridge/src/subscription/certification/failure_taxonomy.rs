@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BridgeSubscriptionCertificationFailureBoundary {
-    BundleSchemaOrDigestIncompatibility,
+    BundleSchemaOrDigestDivergence,
     MissingRequiredRetainedArtifact,
     TypedFieldStateMismatch,
     DeclarationEquivalenceDrift,
@@ -13,7 +13,7 @@ pub enum BridgeSubscriptionCertificationFailureBoundary {
     DeliveryFamilyMismatch,
     DeliveryDigestDrift,
     ContinuationDenialOrAmbiguity,
-    CheckpointIncompatibility,
+    CheckpointDivergence,
     ReplayMismatch,
     PreviewResidueMismatch,
     PromotionBoundaryMismatch,
@@ -27,7 +27,7 @@ pub enum BridgeSubscriptionCertificationFailureBoundary {
 impl BridgeSubscriptionCertificationFailureBoundary {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::BundleSchemaOrDigestIncompatibility => "bundle_schema_or_digest_incompatibility",
+            Self::BundleSchemaOrDigestDivergence => "bundle_schema_or_digest_divergence",
             Self::MissingRequiredRetainedArtifact => "missing_required_retained_artifact",
             Self::TypedFieldStateMismatch => "typed_field_state_mismatch",
             Self::DeclarationEquivalenceDrift => "declaration_equivalence_drift",
@@ -40,7 +40,7 @@ impl BridgeSubscriptionCertificationFailureBoundary {
             Self::DeliveryFamilyMismatch => "delivery_family_mismatch",
             Self::DeliveryDigestDrift => "delivery_digest_drift",
             Self::ContinuationDenialOrAmbiguity => "continuation_denial_or_ambiguity",
-            Self::CheckpointIncompatibility => "checkpoint_incompatibility",
+            Self::CheckpointDivergence => "checkpoint_divergence",
             Self::ReplayMismatch => "replay_mismatch",
             Self::PreviewResidueMismatch => "preview_residue_mismatch",
             Self::PromotionBoundaryMismatch => "promotion_boundary_mismatch",

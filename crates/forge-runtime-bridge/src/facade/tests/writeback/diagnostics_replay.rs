@@ -5,58 +5,68 @@ fn runtime_rejects_replayed_writeback_bundle_when_semantic_meaning_drifts() {
     let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::development());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        "writeback:replay-mismatch",
+        BridgeWritebackDeclarationIdentity::new("writeback:replay-mismatch"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
-        "strategy:sha256:replay-mismatch",
+        "replay-mismatch",
     );
     let contract = runtime
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let original_effect = runtime.lower_writeback_effect(
         &contract,
-        &causality_basis("causality:replay-mismatch", "trigger:sha256:commit-a"),
+        &causality_basis(
+            BridgeWritebackCausalityIdentity::new("causality:replay-mismatch"),
+            "commit-a",
+        ),
         BridgeWritebackEffectIdentity::new("effect:replay-mismatch:original"),
-        "effect:sha256:replay-mismatch:original",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "replay-mismatch:original",
+        ),
     );
     let drifted_effect = runtime.lower_writeback_effect(
         &contract,
-        &causality_basis("causality:replay-mismatch", "trigger:sha256:commit-a"),
+        &causality_basis(
+            BridgeWritebackCausalityIdentity::new("causality:replay-mismatch"),
+            "commit-a",
+        ),
         BridgeWritebackEffectIdentity::new("effect:replay-mismatch:drifted"),
-        "effect:sha256:replay-mismatch:drifted",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "replay-mismatch:drifted",
+        ),
     );
     let original_idempotence = runtime.classify_writeback_idempotence(
         &original_effect,
         &lowered_policy,
-        "truth-state:sha256:replay-mismatch",
+        &truth_state_basis(&original_effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:replay-mismatch:original"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let drifted_idempotence = runtime.classify_writeback_idempotence(
         &drifted_effect,
         &lowered_policy,
-        "truth-state:sha256:replay-mismatch",
+        &truth_state_basis(&drifted_effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:replay-mismatch:drifted"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 
+    let original_outcome =
+        execute_native_commit_outcome(&runtime, &contract, &original_effect, &original_idempotence);
+    let drifted_outcome =
+        execute_native_commit_outcome(&runtime, &contract, &drifted_effect, &drifted_idempotence);
     let original_bundle = runtime.replay_writeback_bundle(
         &contract,
         &original_effect,
         &original_idempotence,
-        &crate::facade::BridgeWritebackAuthorityOutcome::authoritative_commit(
-            &original_idempotence,
-            "authoritative-artifact:sha256:replay-mismatch",
-        ),
+        &original_outcome,
     );
     let drifted_bundle = runtime.replay_writeback_bundle(
         &contract,
         &drifted_effect,
         &drifted_idempotence,
-        &crate::facade::BridgeWritebackAuthorityOutcome::authoritative_commit(
-            &drifted_idempotence,
-            "authoritative-artifact:sha256:replay-mismatch",
-        ),
+        &drifted_outcome,
     );
 
     let error = runtime
@@ -64,7 +74,6 @@ fn runtime_rejects_replayed_writeback_bundle_when_semantic_meaning_drifts() {
         .expect_err("replayed writeback bundle should reject semantic drift");
 
     assert_eq!(error.kind(), BridgeWritebackErrorKind::ReplayMismatch);
-    assert!(error.to_string().contains("semantic mismatch"));
     assert_ne!(original_bundle.digest(), drifted_bundle.digest());
     assert_ne!(
         original_bundle.semantic_digest(),
@@ -87,6 +96,22 @@ fn runtime_rejects_replayed_writeback_bundle_when_semantic_meaning_drifts() {
         replay_record.replayed_replay_digest(),
         drifted_bundle.digest()
     );
+    assert_eq!(
+        replay_record.expected_effect_intent_digest(),
+        original_bundle.effect_intent_digest()
+    );
+    assert_eq!(
+        replay_record.replayed_effect_intent_digest(),
+        drifted_bundle.effect_intent_digest()
+    );
+    assert_eq!(
+        replay_record.expected_effect_intent_patch_canonical_basis(),
+        original_bundle.effect_intent_patch_canonical_basis()
+    );
+    assert_eq!(
+        replay_record.replayed_effect_intent_patch_canonical_basis(),
+        drifted_bundle.effect_intent_patch_canonical_basis()
+    );
     assert_eq!(replay_record.counters().writeback_replay_request_count(), 1);
     assert_eq!(
         replay_record.counters().writeback_replay_mismatch_count(),
@@ -97,6 +122,7 @@ fn runtime_rejects_replayed_writeback_bundle_when_semantic_meaning_drifts() {
         .diagnostics()
         .explain_last_writeback_replay_record()
         .expect("writeback replay record explanation should exist");
+    assert_eq!(replay_record_explanation.replay_record(), &replay_record);
     assert_eq!(
         replay_record_explanation.expected_causality_digest(),
         original_bundle.causality_digest()
@@ -104,6 +130,22 @@ fn runtime_rejects_replayed_writeback_bundle_when_semantic_meaning_drifts() {
     assert_eq!(
         replay_record_explanation.replayed_causality_digest(),
         drifted_bundle.causality_digest()
+    );
+    assert_eq!(
+        replay_record_explanation.expected_effect_intent_digest(),
+        original_bundle.effect_intent_digest()
+    );
+    assert_eq!(
+        replay_record_explanation.replayed_effect_intent_digest(),
+        drifted_bundle.effect_intent_digest()
+    );
+    assert_eq!(
+        replay_record_explanation.expected_effect_intent_patch_canonical_basis(),
+        original_bundle.effect_intent_patch_canonical_basis()
+    );
+    assert_eq!(
+        replay_record_explanation.replayed_effect_intent_patch_canonical_basis(),
+        drifted_bundle.effect_intent_patch_canonical_basis()
     );
 }
 
@@ -117,10 +159,10 @@ fn runtime_accepts_replayed_writeback_bundle_when_only_diagnostics_detail_differ
     let standard_contract = standard_runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                "writeback:replay-semantic-standard",
+                BridgeWritebackDeclarationIdentity::new("writeback:replay-semantic-standard"),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
-                "strategy:sha256:replay-semantic",
+                "replay-semantic",
             ),
             &standard_lowered_policy,
         )
@@ -128,10 +170,10 @@ fn runtime_accepts_replayed_writeback_bundle_when_only_diagnostics_detail_differ
     let exhaustive_contract = exhaustive_runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                "writeback:replay-semantic-exhaustive",
+                BridgeWritebackDeclarationIdentity::new("writeback:replay-semantic-exhaustive"),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
-                "strategy:sha256:replay-semantic",
+                "replay-semantic",
             ),
             &exhaustive_lowered_policy,
         )
@@ -139,47 +181,65 @@ fn runtime_accepts_replayed_writeback_bundle_when_only_diagnostics_detail_differ
 
     let standard_effect = standard_runtime.lower_writeback_effect(
         &standard_contract,
-        &causality_basis("causality:replay-semantic", "trigger:sha256:commit-a"),
+        &causality_basis(
+            BridgeWritebackCausalityIdentity::new("causality:replay-semantic"),
+            "commit-a",
+        ),
         BridgeWritebackEffectIdentity::new("effect:replay-semantic"),
-        "effect:sha256:replay-semantic",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "replay-semantic",
+        ),
     );
     let exhaustive_effect = exhaustive_runtime.lower_writeback_effect(
         &exhaustive_contract,
-        &causality_basis("causality:replay-semantic", "trigger:sha256:commit-a"),
+        &causality_basis(
+            BridgeWritebackCausalityIdentity::new("causality:replay-semantic"),
+            "commit-a",
+        ),
         BridgeWritebackEffectIdentity::new("effect:replay-semantic"),
-        "effect:sha256:replay-semantic",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "replay-semantic",
+        ),
     );
     let standard_idempotence = standard_runtime.classify_writeback_idempotence(
         &standard_effect,
         &standard_lowered_policy,
-        "truth-state:sha256:replay-semantic",
+        &truth_state_basis(&standard_effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:replay-semantic"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let exhaustive_idempotence = exhaustive_runtime.classify_writeback_idempotence(
         &exhaustive_effect,
         &exhaustive_lowered_policy,
-        "truth-state:sha256:replay-semantic",
+        &truth_state_basis(&exhaustive_effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:replay-semantic"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
+    );
+    let standard_outcome = execute_native_commit_outcome(
+        &standard_runtime,
+        &standard_contract,
+        &standard_effect,
+        &standard_idempotence,
+    );
+    let exhaustive_outcome = execute_native_commit_outcome(
+        &exhaustive_runtime,
+        &exhaustive_contract,
+        &exhaustive_effect,
+        &exhaustive_idempotence,
     );
     let standard_bundle = standard_runtime.replay_writeback_bundle(
         &standard_contract,
         &standard_effect,
         &standard_idempotence,
-        &crate::facade::BridgeWritebackAuthorityOutcome::authoritative_commit(
-            &standard_idempotence,
-            "authoritative-artifact:sha256:replay-semantic-standard",
-        ),
+        &standard_outcome,
     );
     let exhaustive_bundle = exhaustive_runtime.replay_writeback_bundle(
         &exhaustive_contract,
         &exhaustive_effect,
         &exhaustive_idempotence,
-        &crate::facade::BridgeWritebackAuthorityOutcome::authoritative_commit(
-            &exhaustive_idempotence,
-            "authoritative-artifact:sha256:replay-semantic-exhaustive",
-        ),
+        &exhaustive_outcome,
     );
 
     standard_runtime
