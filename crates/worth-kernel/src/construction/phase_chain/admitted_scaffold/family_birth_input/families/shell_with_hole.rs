@@ -8,6 +8,10 @@ use super::super::topology_counts::PrimitiveConstructionTopologyCounts;
 use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
 use worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldInput;
 use worth_spatial::facade::placement::AdmittedSpatialPlacement;
+use worth_primitives::{
+    derive_shell_with_hole_layout, PrimitiveConstructionFamilyContractRegistry,
+    PrimitiveWitnessDescriptor, ShellWithHoleWitnessLayoutPolicy,
+};
 
 struct AdmittedShellWithHoleBirthParameters {
     outer_loop_edge_count: u32,
@@ -22,33 +26,30 @@ pub(in super::super) fn build_shell_with_hole_birth_input(
 ) -> Result<PrimitiveConstructionBirthScaffoldInput, PrimitiveConstructionPhaseError> {
     let admitted =
         admit_shell_with_hole_birth_parameters(outer_loop_edge_count, hole_loop_edge_counts)?;
+    derive_shell_with_hole_layout(
+        admitted.outer_loop_edge_count,
+        &admitted.hole_loop_edge_counts,
+        ShellWithHoleWitnessLayoutPolicy::default(),
+    )
+    .map_err(map_shell_with_hole_layout)?;
     let support_planes = vec![planar_support_plane().map_err(map_support_plane)?];
-    let edge_count = admitted.outer_loop_edge_count as usize
-        + admitted
-            .hole_loop_edge_counts
-            .iter()
-            .map(|count| *count as usize)
-            .sum::<usize>();
+    let birth_contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+        &PrimitiveWitnessDescriptor::ShellWithHole {
+            outer_loop_edge_count: admitted.outer_loop_edge_count,
+            hole_loop_edge_counts: admitted.hole_loop_edge_counts.clone(),
+        },
+    );
     lower_family_birth_scaffold_plan(
         intent_digest,
         placement,
         PrimitiveConstructionBirthScaffoldPlan::from_direct_planar_support(
             PrimitiveConstructionFamily::ShellWithHole,
+            birth_contract,
             "shell_with_hole",
             support_planes,
-            shell_with_hole_vertices(
-                admitted.outer_loop_edge_count,
-                &admitted.hole_loop_edge_counts,
-            ),
-            PrimitiveConstructionTopologyCounts::new(
-                edge_count,
-                edge_count,
-                1 + admitted.hole_loop_edge_counts.len(),
-                0,
-                1,
-                1,
-                1,
-            ),
+            shell_with_hole_vertices(admitted.outer_loop_edge_count, &admitted.hole_loop_edge_counts)
+                .map_err(map_shell_with_hole_layout)?,
+            PrimitiveConstructionTopologyCounts::from_contract(birth_contract.topology_contract()),
         ),
     )
 }
@@ -74,4 +75,23 @@ fn admit_shell_with_hole_birth_parameters(
         outer_loop_edge_count,
         hole_loop_edge_counts,
     })
+}
+
+fn map_shell_with_hole_layout(
+    error: worth_primitives::ShellWithHoleWitnessLayoutError,
+) -> PrimitiveConstructionPhaseError {
+    PrimitiveConstructionPhaseError::InvalidRequest {
+        family: PrimitiveConstructionFamily::ShellWithHole,
+        reason: match error {
+            worth_primitives::ShellWithHoleWitnessLayoutError::OuterLoopTooSmall => {
+                "shell-with-hole outer loop must admit at least three edges"
+            }
+            worth_primitives::ShellWithHoleWitnessLayoutError::HoleLoopTooSmall => {
+                "shell-with-hole hole loops must admit at least three edges"
+            }
+            worth_primitives::ShellWithHoleWitnessLayoutError::MissingHoleLoop => {
+                "shell-with-hole requires at least one inner hole loop"
+            }
+        },
+    }
 }

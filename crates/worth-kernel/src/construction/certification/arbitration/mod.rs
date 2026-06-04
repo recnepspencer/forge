@@ -2,7 +2,9 @@ mod chosen_report;
 mod dx_surface_report;
 mod policy_report;
 mod preserved_report;
+#[cfg(test)]
 mod representative_evidence;
+#[cfg(test)]
 mod suite;
 
 pub use chosen_report::{
@@ -34,16 +36,14 @@ pub use preserved_report::{
     PrimitiveConstructionPreservedIntentResolutionReportError,
     PrimitiveConstructionPreservedIntentResolutionRow, PrimitiveConstructionPreservedIntentTruth,
 };
+#[cfg(test)]
 pub(crate) use representative_evidence::required_arbitration_representative_cases;
+#[cfg(test)]
 pub use representative_evidence::{
     prepare_primitive_construction_intent_arbitration_representative_evidence,
     PrimitiveConstructionIntentArbitrationBundleCase,
     PrimitiveConstructionIntentArbitrationRepresentativeEvidence,
     PrimitiveConstructionIntentArbitrationRepresentativeEvidenceError,
-};
-pub use suite::{
-    prepare_primitive_construction_intent_arbitration_hostility_suite_report,
-    PrimitiveConstructionIntentArbitrationHostilitySuiteReport,
 };
 #[cfg(test)]
 mod preserved_report_tests;

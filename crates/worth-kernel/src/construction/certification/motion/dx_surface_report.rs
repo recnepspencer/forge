@@ -1,15 +1,12 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
+use super::PrimitiveConstructionMotionResolutionPolicyCase;
 use crate::construction::certification::motion::policy_report::PrimitiveConstructionMotionResolutionPolicyRow;
 use crate::construction::certification::motion::representative_evidence::prepare_primitive_construction_motion_representative_evidence;
 use crate::construction::certification::motion::representative_inputs::required_motion_representative_cases;
+use crate::construction::certification::motion::PrimitiveConstructionMotionWitnessResolutionStatus;
 use crate::construction::digest::digest_owned_parts;
-
-use super::PrimitiveConstructionMotionResolutionPolicyCase;
-use crate::construction::{
-    PrimitiveConstructionMotionRuntimeSurfaceStatus,
-    PrimitiveConstructionMotionWitnessResolutionStatus,
-};
+use crate::construction::motion_branch_runtime::PrimitiveConstructionMotionRuntimeSurfaceStatus;
 use worth_spatial::facade::witness_resolution::SpatialWitnessResolutionClass;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -1,17 +1,17 @@
 use worth_geom::facade::PrimitiveRealizationExhaustionWitnessKind;
 
+use crate::construction::certification::arbitration::PrimitiveConstructionIntentArbitrationBundleCase;
+use crate::construction::certification::arbitration::PrimitiveConstructionIntentArbitrationPolicyCase;
 use crate::construction::certification::closeout::milestone_four_kernel_requirements::{
     required_arbitration_cases, required_continuity_cases, required_motion_cases,
     required_policy_profile_cases, required_preview_cases, required_realization_witness_kinds,
 };
-use crate::construction::certification::{
-    PrimitiveConstructionContinuityCase, PrimitiveConstructionIntentArbitrationPolicyCase,
-    PrimitiveConstructionMotionResolutionPolicyCase, PrimitiveConstructionPolicyProfileCase,
-    PrimitiveConstructionPreviewCase,
-};
+use crate::construction::certification::continuity::PrimitiveConstructionContinuityCase;
+use crate::construction::certification::motion::PrimitiveConstructionMotionResolutionPolicyCase;
+use crate::construction::certification::preview::PrimitiveConstructionPreviewCase;
+use crate::construction::certification::profile::PrimitiveConstructionPolicyProfileCase;
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::proof::PrimitiveConstructionProofSubject;
-use crate::construction::PrimitiveConstructionIntentArbitrationBundleCase;
+use crate::construction::proof::proof_grade::PrimitiveConstructionProofSubject;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct PrimitiveConstructionMilestoneFourKernelCloseoutRegistry {

@@ -1,36 +1,42 @@
 use worth_geom::facade::PrimitiveRealizationExhaustionWitnessKind;
 
+use crate::construction::certification::arbitration::{
+    PrimitiveConstructionIntentArbitrationDxSurfaceReport,
+    PrimitiveConstructionIntentArbitrationPolicyCase,
+    PrimitiveConstructionIntentArbitrationPolicyReport,
+    PrimitiveConstructionIntentArbitrationRepresentativeEvidence,
+};
 use crate::construction::certification::closeout::milestone_four_kernel_representative_evidence::{
     PrimitiveConstructionContinuityRepresentativeEvidence,
     PrimitiveConstructionPolicyProfileRepresentativeEvidence,
     PrimitiveConstructionPreviewRepresentativeEvidence,
 };
-use crate::construction::certification::{
+use crate::construction::certification::closeout::PrimitiveConstructionPhaseFiveSixCloseoutReport;
+use crate::construction::certification::continuity::{
     PrimitiveConstructionContinuityCase, PrimitiveConstructionContinuitySurfaceReport,
-    PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-    PrimitiveConstructionIntentArbitrationPolicyCase,
-    PrimitiveConstructionIntentArbitrationPolicyReport,
-    PrimitiveConstructionIntentArbitrationRepresentativeEvidence,
+};
+use crate::construction::certification::motion::{
     PrimitiveConstructionMotionDxSurfaceReport, PrimitiveConstructionMotionResolutionPolicyCase,
     PrimitiveConstructionMotionResolutionPolicyReport,
-    PrimitiveConstructionPhaseFiveSixCloseoutReport, PrimitiveConstructionPolicyProfileCase,
-    PrimitiveConstructionPolicyProfileSurfaceReport, PrimitiveConstructionPreviewCase,
-    PrimitiveConstructionPreviewSurfaceReport,
-    PrimitiveConstructionRealizationExhaustionWitnessReport,
 };
+use crate::construction::certification::preview::{
+    PrimitiveConstructionPreviewCase, PrimitiveConstructionPreviewSurfaceReport,
+};
+use crate::construction::certification::profile::{
+    PrimitiveConstructionPolicyProfileCase, PrimitiveConstructionPolicyProfileSurfaceReport,
+};
+use crate::construction::certification::realization::PrimitiveConstructionRealizationExhaustionWitnessReport;
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::proof::PrimitiveConstructionProofGrade;
-use crate::construction::query::{
-    PrimitiveConstructionQueryBasisPreviewParityReport,
-    PrimitiveConstructionQueryBoundaryGapRegister,
-    PrimitiveConstructionQueryGraphCompositionParityReport,
-    PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit,
-};
-use crate::construction::{
+use crate::construction::proof::proof_grade::PrimitiveConstructionProofGrade;
+use crate::construction::proof::substrate_closeout_report::PrimitiveConstructionProofSubstrateCloseoutReport;
+use crate::construction::query::basis_preview_parity::PrimitiveConstructionQueryBasisPreviewParityReport;
+use crate::construction::query::boundary_gap_register::PrimitiveConstructionQueryBoundaryGapRegister;
+use crate::construction::query::existing_truth_binding::{
     PrimitiveConstructionExistingTruthBindingPosture,
-    PrimitiveConstructionProofSubstrateCloseoutReport,
     PrimitiveConstructionQueryExistingTruthBindingReport,
 };
+use crate::construction::query::graph_composition_parity::PrimitiveConstructionQueryGraphCompositionParityReport;
+use crate::construction::query::no_local_runtime_workaround_audit::PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit;
 
 use super::milestone_four_kernel_evidence_verified_assembly::PrimitiveConstructionMilestoneFourKernelCloseoutAssembly;
 use super::milestone_four_kernel_evidence_verified_registry::PrimitiveConstructionMilestoneFourKernelCloseoutRegistry;
@@ -93,10 +99,6 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutVerificationFailure {
         &self,
     ) -> &[PrimitiveConstructionMilestoneFourKernelCloseoutVerificationMismatch] {
         &self.mismatches
-    }
-
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
     }
 }
 

@@ -1,38 +1,21 @@
-mod compile_fail_report;
-mod digest_protocol;
-mod digest_protocol_report;
-mod proof_grade;
-mod substrate_closeout_report;
-mod truth_projection_matrix;
-mod verified_artifact_surface_report;
-
-pub(crate) use compile_fail_report::PROOF_BOUNDARY_COMPILE_FAIL_FIXTURES;
-pub(crate) use compile_fail_report::{
-    prepare_primitive_construction_proof_boundary_compile_fail_report,
-    PrimitiveConstructionProofBoundaryCompileFailFixture,
-    PrimitiveConstructionProofBoundaryCompileFailReport,
-};
-pub(crate) use digest_protocol::{
-    digest_owned_parts, digest_owned_parts_with_scope, ConstructionDigestScope,
-};
-pub(crate) use digest_protocol_report::{
-    prepare_primitive_construction_digest_protocol_report,
-    PrimitiveConstructionDigestProtocolReport,
-};
-pub(crate) use proof_grade::{PrimitiveConstructionProofGrade, PrimitiveConstructionProofSubject};
-pub(crate) use substrate_closeout_report::{
-    prepare_primitive_construction_proof_substrate_closeout_report,
-    PrimitiveConstructionProofSubstrateCloseoutReport,
-    PrimitiveConstructionProofSubstrateCloseoutReportError,
-    PrimitiveConstructionProofSubstrateCloseoutVerificationFailure,
-    PrimitiveConstructionProofSubstrateCloseoutVerificationMismatch,
-};
-pub(crate) use truth_projection_matrix::{
-    prepare_primitive_construction_truth_projection_matrix,
-    PrimitiveConstructionTruthProjectionMatrix, PrimitiveConstructionTruthProjectionRow,
-};
-pub(crate) use verified_artifact_surface_report::{
-    prepare_primitive_construction_verified_artifact_surface_report,
-    PrimitiveConstructionVerifiedArtifactSurfaceReport,
-    PrimitiveConstructionVerifiedArtifactSurfaceRow,
-};
+#[cfg(test)]
+pub(crate) mod canonical_witness_parity_report;
+#[cfg(test)]
+pub(crate) mod compile_fail_report;
+pub(crate) mod digest_protocol;
+#[cfg(test)]
+pub(crate) mod digest_protocol_report;
+#[cfg(test)]
+pub(crate) mod geometry_digest_sensitivity_report;
+#[cfg(test)]
+pub(crate) mod proof_grade;
+#[cfg(test)]
+pub(crate) mod shell_with_hole_layout_hostility_suite;
+#[cfg(test)]
+pub(crate) mod simplex_canonical_ratio_report;
+#[cfg(test)]
+pub(crate) mod substrate_closeout_report;
+#[cfg(test)]
+pub(crate) mod truth_projection_matrix;
+#[cfg(test)]
+pub(crate) mod verified_artifact_surface_report;

@@ -1,23 +1,11 @@
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::proof::PrimitiveConstructionProofSubject;
+use crate::construction::proof::proof_grade::PrimitiveConstructionProofSubject;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionTruthProjectionRow {
     subject: PrimitiveConstructionProofSubject,
     canonical_truth_type: &'static str,
     projections: &'static [&'static str],
-}
-
-impl PrimitiveConstructionTruthProjectionRow {
-    pub fn subject(&self) -> PrimitiveConstructionProofSubject {
-        self.subject
-    }
-    pub fn canonical_truth_type(&self) -> &'static str {
-        self.canonical_truth_type
-    }
-    pub fn projections(&self) -> &'static [&'static str] {
-        self.projections
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -37,16 +25,49 @@ impl PrimitiveConstructionTruthProjectionMatrix {
 
 pub fn prepare_primitive_construction_truth_projection_matrix(
 ) -> PrimitiveConstructionTruthProjectionMatrix {
-    let rows = vec![PrimitiveConstructionTruthProjectionRow {
-        subject: PrimitiveConstructionProofSubject::CompoundParity,
-        canonical_truth_type: "PrimitiveConstructionCompoundParityCanonicalTruth",
-        projections: &[
-            "ordering_report",
-            "motion_parity_report",
-            "grazing_boundary_report",
-            "exhaustion_witness_parity_report",
-        ],
-    }];
+    let rows = vec![
+        PrimitiveConstructionTruthProjectionRow {
+            subject: PrimitiveConstructionProofSubject::CompoundParity,
+            canonical_truth_type: "PrimitiveConstructionCompoundParityCanonicalTruth",
+            projections: &[
+                "ordering_report",
+                "motion_parity_report",
+                "grazing_boundary_report",
+                "exhaustion_witness_parity_report",
+            ],
+        },
+        PrimitiveConstructionTruthProjectionRow {
+            subject: PrimitiveConstructionProofSubject::GeometryDigestSensitivity,
+            canonical_truth_type: "PrimitiveGeometryIdentityBundle",
+            projections: &[
+                "PrimitiveRealizationReport.geometry_digest",
+                "SpatialConstructionBirthPlan.realization_geometry_digest",
+                "TopologyPrimitiveConstructionQueryBirthSynopsis.source_birth_digest",
+            ],
+        },
+        PrimitiveConstructionTruthProjectionRow {
+            subject: PrimitiveConstructionProofSubject::CanonicalWitnessParity,
+            canonical_truth_type: "PrimitiveCanonicalWitnessGeometry",
+            projections: &[
+                "kernel family birth witness geometry",
+                "geom simplex realization geometry",
+                "shared canonical witness substrate",
+            ],
+        },
+        PrimitiveConstructionTruthProjectionRow {
+            subject: PrimitiveConstructionProofSubject::ShellWithHoleLayoutHostility,
+            canonical_truth_type: "ShellWithHoleWitnessLayout",
+            projections: &[
+                "planar containment proof",
+                "planar non-overlap proof",
+            ],
+        },
+        PrimitiveConstructionTruthProjectionRow {
+            subject: PrimitiveConstructionProofSubject::SimplexCanonicalRatio,
+            canonical_truth_type: "SimplexCanonicalWitnessDefinition",
+            projections: &["shared canonical simplex ratio surface"],
+        },
+    ];
     let report_digest = digest_owned_parts_with_scope(
         ConstructionDigestScope::ArtifactIdentity,
         &rows

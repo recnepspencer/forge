@@ -31,28 +31,8 @@ pub struct PrimitiveConstructionCorpusRejectionWitnessRow {
 }
 
 impl PrimitiveConstructionCorpusRejectionWitnessRow {
-    pub fn witness_id(&self) -> &str {
-        &self.witness_id
-    }
-
-    pub fn family(&self) -> PrimitiveConstructionFamily {
-        self.family
-    }
-
-    pub fn rejection_class(&self) -> PrimitiveConstructionRejectionClass {
-        self.rejection_class
-    }
-
-    pub fn rejection_locality(&self) -> PrimitiveConstructionRejectionLocality {
-        self.rejection_locality
-    }
-
     pub fn blocking_boundary(&self) -> PrimitiveConstructionBlockingBoundary {
         self.blocking_boundary
-    }
-
-    pub fn failure_digest(&self) -> &str {
-        &self.failure_digest
     }
 
     pub fn row_digest(&self) -> &str {

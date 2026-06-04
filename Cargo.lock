@@ -5196,6 +5196,7 @@ dependencies = [
  "serde",
  "serde_json",
  "worth-math",
+ "worth-primitives",
 ]
 
 [[package]]
@@ -5208,6 +5209,7 @@ dependencies = [
  "trybuild",
  "worth-geom",
  "worth-math",
+ "worth-primitives",
  "worth-spatial",
  "worth-topo",
 ]
@@ -5224,6 +5226,13 @@ dependencies = [
  "serde",
  "serde_json",
  "trybuild",
+]
+
+[[package]]
+name = "worth-primitives"
+version = "0.1.0"
+dependencies = [
+ "sha2",
 ]
 
 [[package]]
@@ -5253,6 +5262,7 @@ dependencies = [
  "trybuild",
  "worth-geom",
  "worth-math",
+ "worth-primitives",
 ]
 
 [[package]]
@@ -5266,6 +5276,7 @@ dependencies = [
  "serde",
  "serde_json",
  "trybuild",
+ "worth-primitives",
  "worth-schema",
 ]
 

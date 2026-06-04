@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/forge-harness",
+    "crates/worth-primitives",
     "crates/worth-math",
     "crates/worth-schema",
     "crates/worth-topo",
@@ -42,6 +43,7 @@ license = "UNLICENSED"
 [workspace.dependencies]
 forge-harness = { path = "crates/forge-harness", version = "0.1.0" }
 # Internal crates — kernel
+worth-primitives = { path = "crates/worth-primitives" }
 worth-math = { path = "crates/worth-math" }
 worth-schema = { path = "crates/worth-schema" }
 worth-topo = { path = "crates/worth-topo" }

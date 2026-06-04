@@ -1,12 +1,11 @@
+use crate::construction::authoring::PrimitiveConstructionQueryEntryError;
 use crate::construction::outcome::{
     prepare_primitive_construction_outcome, PrimitiveConstructionPreparedOutcome,
 };
 use crate::construction::result::{
     prepare_primitive_construction_result, PreparedPrimitiveConstructionResult,
 };
-use crate::construction::{
-    PrimitiveConstructionFamily, PrimitiveConstructionIntent, PrimitiveConstructionQueryEntryError,
-};
+use crate::construction::{PrimitiveConstructionFamily, PrimitiveConstructionIntent};
 
 #[derive(Clone, Debug)]
 pub struct PrimitiveConstructionAuthoringEntry {

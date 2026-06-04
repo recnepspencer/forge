@@ -179,10 +179,9 @@ mod tests {
         prepare_primitive_construction_rejection_locality_report,
         PrimitiveConstructionBlockingBoundary,
     };
-    use crate::construction::{
-        OrthotopeSpec, PrimitiveConstructionFamily, PrimitiveConstructionIntent, ShellWithHoleSpec,
-        WireBodySpec,
-    };
+    use crate::construction::intent::PrimitiveConstructionIntent;
+    use crate::construction::request::PrimitiveConstructionFamily;
+    use crate::construction::specs::{OrthotopeSpec, ShellWithHoleSpec, WireBodySpec};
 
     #[test]
     fn rejection_locality_report_tracks_mixed_accepted_and_rejected_workloads() {

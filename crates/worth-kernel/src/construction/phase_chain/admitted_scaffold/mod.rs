@@ -1,6 +1,6 @@
 mod admitted_artifact;
 mod birth_input;
-mod family_birth_input;
+pub(crate) mod family_birth_input;
 mod placement_admission;
 mod topology_ready_birth;
 

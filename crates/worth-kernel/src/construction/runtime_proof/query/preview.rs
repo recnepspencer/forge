@@ -2,7 +2,9 @@ use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryWorkspace,
 };
 
-use crate::construction::certification::PrimitiveConstructionPreviewRow;
+use crate::construction::certification::preview::{
+    PrimitiveConstructionPreviewCase, PrimitiveConstructionPreviewRow,
+};
 use crate::construction::digest::digest_owned_parts;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -24,7 +26,7 @@ pub enum PrimitiveConstructionPreviewQueryFactProvenance {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionQueryPreviewParityReport {
-    case: crate::construction::certification::PrimitiveConstructionPreviewCase,
+    case: PrimitiveConstructionPreviewCase,
     profile_name: &'static str,
     authored_act: worth_spatial::facade::arbitration::SpatialAuthoredActKind,
     proximity_posture: worth_spatial::facade::arbitration::SpatialThresholdPosture,
@@ -95,14 +97,6 @@ impl PrimitiveConstructionQueryPreviewParityReport {
         }
     }
 
-    pub fn case(&self) -> crate::construction::certification::PrimitiveConstructionPreviewCase {
-        self.case
-    }
-
-    pub fn profile_name(&self) -> &'static str {
-        self.profile_name
-    }
-
     pub fn commit_disposition(
         &self,
     ) -> worth_spatial::facade::arbitration::SpatialIntentPreviewCommitDisposition {
@@ -111,10 +105,6 @@ impl PrimitiveConstructionQueryPreviewParityReport {
 
     pub fn proximity_posture(&self) -> worth_spatial::facade::arbitration::SpatialThresholdPosture {
         self.proximity_posture
-    }
-
-    pub fn alignment_posture(&self) -> worth_spatial::facade::arbitration::SpatialThresholdPosture {
-        self.alignment_posture
     }
 
     pub fn preview_richness(&self) -> worth_spatial::facade::arbitration::SpatialPreviewRichness {
@@ -205,7 +195,7 @@ mod tests {
         prepare_primitive_construction_query_preview_projection_consumption_receipt_report,
         PrimitiveConstructionPreviewQueryReadSurface,
     };
-    use crate::construction::{
+    use crate::construction::certification::preview::{
         prepare_primitive_construction_preview_surface_report, PrimitiveConstructionPreviewCase,
     };
     use topology::facade::{

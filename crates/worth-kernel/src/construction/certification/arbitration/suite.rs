@@ -50,10 +50,6 @@ impl PrimitiveConstructionIntentArbitrationHostilitySuiteReport {
         }
     }
 
-    pub fn evidence_rows(&self) -> &[PrimitiveConstructionIntentArbitrationRepresentativeEvidence] {
-        &self.evidence_rows
-    }
-
     pub fn evidence(
         &self,
         case: PrimitiveConstructionIntentArbitrationBundleCase,
@@ -65,10 +61,6 @@ impl PrimitiveConstructionIntentArbitrationHostilitySuiteReport {
 
     pub fn suite_verified(&self) -> bool {
         self.suite_verified
-    }
-
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
     }
 }
 
@@ -93,7 +85,7 @@ pub fn prepare_primitive_construction_intent_arbitration_hostility_suite_report(
 #[cfg(test)]
 mod tests {
     use super::prepare_primitive_construction_intent_arbitration_hostility_suite_report;
-    use crate::construction::PrimitiveConstructionIntentArbitrationBundleCase;
+    use crate::construction::certification::arbitration::PrimitiveConstructionIntentArbitrationBundleCase;
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,
     };

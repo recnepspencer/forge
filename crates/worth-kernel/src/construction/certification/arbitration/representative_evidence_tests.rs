@@ -1,9 +1,8 @@
 use super::{
     prepare_primitive_construction_intent_arbitration_representative_evidence,
     PrimitiveConstructionChosenIntentResolutionAuthority,
-    PrimitiveConstructionIntentArbitrationBundleCase,
+    PrimitiveConstructionIntentArbitrationBundleCase, PrimitiveConstructionPreservedIntentTruth,
 };
-use crate::construction::PrimitiveConstructionPreservedIntentTruth;
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_spatial::facade::arbitration::{SpatialIntentCandidate, SpatialIntentEscalation};
 

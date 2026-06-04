@@ -101,7 +101,7 @@ pub fn prepare_primitive_construction_continuity_hostility_suite_report() -> Res
 #[cfg(test)]
 mod tests {
     use super::prepare_primitive_construction_continuity_hostility_suite_report;
-    use crate::construction::PrimitiveConstructionContinuityCase;
+    use crate::construction::certification::continuity::PrimitiveConstructionContinuityCase;
 
     #[test]
     fn continuity_hostility_suite_fails_closed_on_exact_hostile_case_coverage() {

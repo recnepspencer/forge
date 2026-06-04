@@ -4,18 +4,17 @@ use worth_geom::facade::{
     PrimitiveStabilityClass, PrimitiveSupportNormalClass,
 };
 
-use crate::construction::certification::{
-    prepare_primitive_construction_conditioning_witness_report,
-    prepare_primitive_construction_realization_exhaustion_report,
-    prepare_primitive_construction_realization_exhaustion_witness_report,
-    prepare_primitive_construction_realization_report_bundle,
-    prepare_primitive_construction_realization_strategy_report,
-    prepare_primitive_construction_stability_class_report,
-    PrimitiveConstructionRealizationExhaustionStatus,
-};
-use crate::construction::{
-    OrthotopeSpec, PrimitiveConstructionFamily, PrimitiveConstructionIntent, RegularPyramidSpec,
-    SimplexSolidSpec, WireBodySpec,
+use crate::construction::certification::realization::bundle::prepare_primitive_construction_realization_report_bundle;
+use crate::construction::certification::realization::conditioning_witness_report::prepare_primitive_construction_conditioning_witness_report;
+use crate::construction::certification::realization::exhaustion_report::prepare_primitive_construction_realization_exhaustion_report;
+use crate::construction::certification::realization::exhaustion_witness_report::prepare_primitive_construction_realization_exhaustion_witness_report;
+use crate::construction::certification::realization::stability_class_report::prepare_primitive_construction_stability_class_report;
+use crate::construction::certification::realization::strategy_report::prepare_primitive_construction_realization_strategy_report;
+use crate::construction::certification::realization::PrimitiveConstructionRealizationExhaustionStatus;
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::request::PrimitiveConstructionFamily;
+use crate::construction::specs::{
+    OrthotopeSpec, RegularPyramidSpec, SimplexSolidSpec, WireBodySpec,
 };
 
 #[test]

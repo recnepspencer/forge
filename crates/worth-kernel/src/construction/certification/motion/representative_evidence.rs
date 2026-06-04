@@ -9,14 +9,13 @@ use crate::construction::certification::motion::policy_report::{
 use crate::construction::certification::motion::representative_inputs::prepare_motion_representative_inputs;
 use crate::construction::certification::motion::witness_report::PrimitiveConstructionMotionWitnessResolutionReport;
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::query::{
+use crate::construction::motion_branch_runtime::PrimitiveConstructionMotionBranchPreviewRuntimeReport;
+use crate::construction::motion_replay::PrimitiveConstructionMotionReplayParityReport;
+use crate::construction::query::motion_parity::{
     PrimitiveConstructionQueryMotionWitnessParityError,
     PrimitiveConstructionQueryMotionWitnessParityReport,
 };
-use crate::construction::{
-    PrimitiveConstructionMotionBranchPreviewRuntimeReport,
-    PrimitiveConstructionMotionReplayParityReport, PrimitiveConstructionRuntimeBasisError,
-};
+use crate::construction::runtime_basis::PrimitiveConstructionRuntimeBasisError;
 use forge_query::facade::ForgeQueryWorkspace;
 
 #[derive(Clone, Debug, PartialEq)]

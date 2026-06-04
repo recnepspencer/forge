@@ -7,7 +7,7 @@ use worth_spatial::facade::placement::AdmittedSpatialPlacement;
 mod birth_scaffold;
 mod error_mapping;
 mod families;
-mod geometry;
+pub(crate) mod geometry;
 mod scalar_admission;
 mod spatial_family_bridge;
 mod topology_counts;

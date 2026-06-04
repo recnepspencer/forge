@@ -84,20 +84,8 @@ impl PrimitiveConstructionRealizationExhaustionReport {
         }
     }
 
-    pub fn family(&self) -> PrimitiveConstructionFamily {
-        self.family
-    }
-
     pub fn status(&self) -> PrimitiveConstructionRealizationExhaustionStatus {
         self.status
-    }
-
-    pub fn attempted_strategies(&self) -> &[PrimitiveRealizationStrategy] {
-        &self.attempted_strategies
-    }
-
-    pub fn stability_class(&self) -> Option<PrimitiveStabilityClass> {
-        self.stability_class
     }
 
     pub fn exhaustion_reason(&self) -> Option<PrimitiveRealizationExhaustionReason> {

@@ -11,7 +11,8 @@ use super::{
     PrimitiveConstructionMotionWitnessResolutionStatus,
     PrimitiveConstructionRequestedMotionWitness, PrimitiveConstructionResolvedMotionWitness,
 };
-use crate::construction::{PrimitiveConstructionIntent, RegularPyramidSpec, WireBodySpec};
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::specs::{RegularPyramidSpec, WireBodySpec};
 use crate::facade::authoring::intents::{
     MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
 };

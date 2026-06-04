@@ -1,5 +1,6 @@
+use crate::construction::certification::continuity::PrimitiveConstructionContinuityCase;
+use crate::construction::certification::preview::PrimitiveConstructionPreviewCase;
 use crate::construction::digest::digest_owned_parts;
-use crate::construction::{PrimitiveConstructionContinuityCase, PrimitiveConstructionPreviewCase};
 use worth_spatial::facade::arbitration::{
     SpatialArbitrationPosture, SpatialIntentPolicyProfile, SpatialPreviewRichness,
     SpatialThresholdPosture,
@@ -197,6 +198,7 @@ mod tests {
         prepare_primitive_construction_policy_profile_report,
         PrimitiveConstructionPolicyProfileCase,
     };
+    use crate::construction::certification::continuity::PrimitiveConstructionContinuityCase;
     use worth_spatial::facade::arbitration::{SpatialArbitrationPosture, SpatialPreviewRichness};
 
     #[test]
@@ -219,9 +221,7 @@ mod tests {
         );
         assert_eq!(
             aggressive.representative_continuity_case(),
-            Some(
-                crate::construction::PrimitiveConstructionContinuityCase::GrazingSnapAnchorContinuity
-            )
+            Some(PrimitiveConstructionContinuityCase::GrazingSnapAnchorContinuity)
         );
     }
 }

@@ -1,4 +1,4 @@
-pub use crate::construction::{
+pub use crate::construction::outcome::{
     PrimitiveConstructionAcceptedOutcome, PrimitiveConstructionRejectedOutcome,
     PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
 };

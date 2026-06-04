@@ -1,4 +1,4 @@
-use super::{
+use super::closeout::{
     prepare_primitive_construction_phase_five_boundary_closeout_report,
     PrimitiveConstructionPhaseFiveBoundaryCloseoutKind,
 };

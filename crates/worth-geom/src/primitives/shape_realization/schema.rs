@@ -1,8 +1,8 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-
 use crate::primitives::plane::Plane;
 use crate::spatial::coordinate::local_space::ScaleAnalysis;
+use worth_primitives::{truth_digest_parts, TruthDigestScope};
+
+use super::geometry_identity::geometry_identity_bundle;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveRealizationStrategy {
@@ -195,6 +195,7 @@ pub struct PrimitiveRealizationReport {
     attempted_strategies: Vec<PrimitiveRealizationStrategy>,
     stability_class: PrimitiveStabilityClass,
     conditioning_witness: PrimitiveConditioningWitness,
+    geometry_digest: String,
     report_digest: String,
 }
 
@@ -205,7 +206,13 @@ impl PrimitiveRealizationReport {
         attempted_strategies: Vec<PrimitiveRealizationStrategy>,
         stability_class: PrimitiveStabilityClass,
         conditioning_witness: PrimitiveConditioningWitness,
+        points: &[[f64; 3]],
+        planes: &[Plane],
     ) -> Self {
+        let geometry_digest = geometry_identity_bundle(planes, points)
+            .realization_geometry_digest()
+            .as_str()
+            .to_string();
         let report_digest = digest_parts(&[
             family.to_string(),
             strategy.as_str().to_string(),
@@ -258,6 +265,7 @@ impl PrimitiveRealizationReport {
                 .normalization_disposition()
                 .as_str()
                 .to_string(),
+            geometry_digest.clone(),
         ]);
         Self {
             family,
@@ -265,6 +273,7 @@ impl PrimitiveRealizationReport {
             attempted_strategies,
             stability_class,
             conditioning_witness,
+            geometry_digest,
             report_digest,
         }
     }
@@ -291,6 +300,10 @@ impl PrimitiveRealizationReport {
 
     pub fn report_digest(&self) -> &str {
         &self.report_digest
+    }
+
+    pub fn geometry_digest(&self) -> &str {
+        &self.geometry_digest
     }
 }
 
@@ -329,13 +342,11 @@ pub fn build_direct_realization_report(
         vec![PrimitiveRealizationStrategy::DirectWorld],
         PrimitiveStabilityClass::StableDirect,
         super::conditioning_witness(points, planes),
+        points,
+        planes,
     )
 }
 
 fn digest_parts(parts: &[String]) -> String {
-    let mut hasher = DefaultHasher::new();
-    for part in parts {
-        part.hash(&mut hasher);
-    }
-    format!("{:016x}", hasher.finish())
+    truth_digest_parts(TruthDigestScope::ArtifactIdentity, parts)
 }

@@ -1,4 +1,4 @@
-pub use crate::construction::{
+pub use crate::construction::certification::motion::{
     prepare_primitive_construction_motion_dx_surface_report,
     prepare_primitive_construction_motion_resolution_policy_report,
     prepare_primitive_construction_move_witness_resolution_report,
@@ -15,10 +15,10 @@ pub use crate::construction::{
     PrimitiveConstructionMotionResolutionPolicyReport,
     PrimitiveConstructionMotionResolutionPolicyReportError,
     PrimitiveConstructionMotionResolutionPolicyRow,
-    PrimitiveConstructionMotionRuntimeSurfaceStatus,
     PrimitiveConstructionMotionWitnessResolutionFailureKind,
     PrimitiveConstructionMotionWitnessResolutionKind,
     PrimitiveConstructionMotionWitnessResolutionReport,
     PrimitiveConstructionMotionWitnessResolutionStatus,
     PrimitiveConstructionRequestedMotionWitness,
 };
+pub use crate::construction::motion_branch_runtime::PrimitiveConstructionMotionRuntimeSurfaceStatus;

@@ -1,7 +1,7 @@
 use super::primitive_birth::{
-    PrimitiveConstructionBirthFamily, PrimitiveConstructionBirthScaffoldInput,
-    SpatialConstructionBirthPlan,
+    PrimitiveConstructionBirthScaffoldInput, SpatialConstructionBirthPlan,
 };
+use worth_primitives::PrimitiveConstructionBirthSynopsisContract;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct PrimitiveConstructionBirthContractCounts {
@@ -28,122 +28,36 @@ impl PrimitiveConstructionBirthContractCounts {
     }
 
     pub(crate) fn from_plan(plan: &SpatialConstructionBirthPlan) -> Self {
+        let topology = plan.birth_contract().topology_contract();
         Self {
-            vertex_count: plan.supported_vertex_count(),
-            edge_count: plan.supported_edge_count(),
-            loop_count: plan.supported_loop_count(),
-            wire_count: plan.supported_wire_count(),
-            face_count: plan.supported_face_count(),
-            shell_count: plan.supported_shell_count(),
-            body_count: plan.supported_body_count(),
+            vertex_count: topology.vertex_count(),
+            edge_count: topology.edge_count(),
+            loop_count: topology.loop_count(),
+            wire_count: topology.wire_count(),
+            face_count: topology.face_count(),
+            shell_count: topology.shell_count(),
+            body_count: topology.body_count(),
         }
-    }
-
-    pub fn vertex_count(self) -> usize {
-        self.vertex_count
-    }
-
-    pub fn edge_count(self) -> usize {
-        self.edge_count
-    }
-
-    pub fn loop_count(self) -> usize {
-        self.loop_count
-    }
-
-    pub fn wire_count(self) -> usize {
-        self.wire_count
-    }
-
-    pub fn face_count(self) -> usize {
-        self.face_count
-    }
-
-    pub fn shell_count(self) -> usize {
-        self.shell_count
-    }
-
-    pub fn body_count(self) -> usize {
-        self.body_count
     }
 }
 
 pub(crate) fn primitive_birth_contract_matches_counts(
-    family: PrimitiveConstructionBirthFamily,
+    contract: PrimitiveConstructionBirthSynopsisContract,
     counts: PrimitiveConstructionBirthContractCounts,
 ) -> bool {
-    match family {
-        PrimitiveConstructionBirthFamily::SimplexSolid => {
-            counts.vertex_count() == 4
-                && counts.edge_count() == 6
-                && counts.loop_count() == 4
-                && counts.wire_count() == 0
-                && counts.face_count() == 4
-                && counts.shell_count() == 1
-                && counts.body_count() == 1
-        }
-        PrimitiveConstructionBirthFamily::Orthotope => {
-            counts.vertex_count() == 8
-                && counts.edge_count() == 12
-                && counts.loop_count() == 6
-                && counts.wire_count() == 0
-                && counts.face_count() == 6
-                && counts.shell_count() == 1
-                && counts.body_count() == 1
-        }
-        PrimitiveConstructionBirthFamily::RegularPrism => {
-            counts.vertex_count() >= 6
-                && counts.vertex_count() % 2 == 0
-                && counts.edge_count() == counts.vertex_count() * 3 / 2
-                && counts.face_count() == counts.vertex_count() / 2 + 2
-                && counts.loop_count() == counts.face_count()
-                && counts.wire_count() == 0
-                && counts.shell_count() == 1
-                && counts.body_count() == 1
-        }
-        PrimitiveConstructionBirthFamily::RegularPyramid => {
-            counts.vertex_count() >= 4
-                && counts.edge_count() == (counts.vertex_count() - 1) * 2
-                && counts.face_count() == counts.vertex_count()
-                && counts.loop_count() == counts.face_count()
-                && counts.wire_count() == 0
-                && counts.shell_count() == 1
-                && counts.body_count() == 1
-        }
-        PrimitiveConstructionBirthFamily::WireBody => {
-            counts.vertex_count() >= 3
-                && counts.edge_count() == counts.vertex_count()
-                && counts.loop_count() == 1
-                && counts.wire_count() == 1
-                && counts.face_count() == 0
-                && counts.shell_count() == 0
-                && counts.body_count() == 1
-        }
-        PrimitiveConstructionBirthFamily::ShellWithHole => {
-            counts.vertex_count() >= 6
-                && counts.edge_count() == counts.vertex_count()
-                && counts.loop_count() >= 2
-                && counts.wire_count() == 0
-                && counts.face_count() == 1
-                && counts.shell_count() == 1
-                && counts.body_count() == 1
-        }
-    }
+    let topology = contract.topology_contract();
+    counts.vertex_count == topology.vertex_count()
+        && counts.edge_count == topology.edge_count()
+        && counts.loop_count == topology.loop_count()
+        && counts.wire_count == topology.wire_count()
+        && counts.face_count == topology.face_count()
+        && counts.shell_count == topology.shell_count()
+        && counts.body_count == topology.body_count()
 }
 
 pub(crate) fn primitive_birth_contract_matches_support_planes(
-    family: PrimitiveConstructionBirthFamily,
+    contract: PrimitiveConstructionBirthSynopsisContract,
     support_plane_count: usize,
-    counts: PrimitiveConstructionBirthContractCounts,
 ) -> bool {
-    match family {
-        PrimitiveConstructionBirthFamily::SimplexSolid => support_plane_count == 4,
-        PrimitiveConstructionBirthFamily::Orthotope => support_plane_count == 6,
-        PrimitiveConstructionBirthFamily::RegularPrism
-        | PrimitiveConstructionBirthFamily::RegularPyramid => {
-            support_plane_count == counts.face_count()
-        }
-        PrimitiveConstructionBirthFamily::WireBody
-        | PrimitiveConstructionBirthFamily::ShellWithHole => support_plane_count == 1,
-    }
+    support_plane_count == contract.support_contract().support_plane_count()
 }

@@ -5,10 +5,9 @@ use super::{
     prepare_primitive_construction_rotate_branch_preview_runtime_report,
     PrimitiveConstructionMotionRuntimeSurfaceStatus,
 };
-use crate::construction::{
-    PrimitiveConstructionIntent, PrimitiveConstructionMotionWitnessResolutionStatus,
-    RegularPyramidSpec, WireBodySpec,
-};
+use crate::construction::certification::motion::PrimitiveConstructionMotionWitnessResolutionStatus;
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::specs::{RegularPyramidSpec, WireBodySpec};
 use crate::facade::authoring::intents::{
     MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
 };

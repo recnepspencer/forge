@@ -306,6 +306,13 @@ fn reject_mismatched_birth_consequence(
             "primitive birth consequence requires the same topology birth class across scaffold and plan",
         ));
     }
+    if input.birth_contract() != plan.birth_contract() {
+        return Some(RejectedPrimitiveConstructionBirthConsequence::new(
+            SpatialConstructionBirthRejectionKind::ContractCountsOrSupportMismatch,
+            input,
+            "primitive birth consequence requires the same canonical primitive family contract across scaffold and plan",
+        ));
+    }
     None
 }
 
@@ -317,11 +324,10 @@ pub fn evaluate_primitive_construction_birth_consequence(
         return SpatialConstructionBirthConsequence::Rejected(rejected);
     }
     let counts = PrimitiveConstructionBirthContractCounts::from_plan(plan);
-    if !primitive_birth_contract_matches_counts(plan.family(), counts)
+    if !primitive_birth_contract_matches_counts(plan.birth_contract(), counts)
         || !primitive_birth_contract_matches_support_planes(
-            plan.family(),
+            plan.birth_contract(),
             input.support_planes().len(),
-            counts,
         )
     {
         return SpatialConstructionBirthConsequence::Rejected(

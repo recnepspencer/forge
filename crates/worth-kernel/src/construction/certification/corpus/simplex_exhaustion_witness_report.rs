@@ -1,9 +1,10 @@
 use super::PrimitiveConstructionCorpusParameterRole;
-use crate::construction::digest::digest_owned_parts;
-use crate::construction::{
+use crate::construction::certification::realization::{
     prepare_primitive_construction_realization_exhaustion_witness_report,
-    PrimitiveConstructionFamily, PrimitiveConstructionRealizationExhaustionWitnessReport,
+    PrimitiveConstructionRealizationExhaustionWitnessReport,
 };
+use crate::construction::digest::digest_owned_parts;
+use crate::construction::PrimitiveConstructionFamily;
 use worth_geom::facade::{
     PrimitiveRealizationExhaustionReason, PrimitiveRealizationExhaustionWitnessKind,
     PrimitiveRealizationStrategy,

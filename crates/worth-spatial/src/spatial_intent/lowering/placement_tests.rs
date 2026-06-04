@@ -1,6 +1,7 @@
 use super::{admit_spatial_placement, apply_spatial_placement, SpatialPlacementSpec};
 use crate::facade::{refs, witness_resolution};
 use worth_geom::facade::{realize_tetrahedron_support_with_altitude_component, Plane};
+use worth_primitives::CANONICAL_SIMPLEX_LATERAL_RATIO;
 
 #[test]
 fn admitted_spatial_placement_builds_deterministic_frame_from_requested_witness() {
@@ -134,8 +135,16 @@ fn placement_embeds_world_collapsed_exact_support_planes_without_invalidating_th
         &[
             [0.0, 0.0, 1.0e-200],
             [0.0, 1.0e-200, -1.0e-200],
-            [-1.0e-200 * 0.7071, -1.0e-200 * 0.5, -1.0e-200],
-            [1.0e-200 * 0.7071, -1.0e-200 * 0.5, -1.0e-200 + 1.0e-220],
+            [
+                -1.0e-200 * CANONICAL_SIMPLEX_LATERAL_RATIO,
+                -1.0e-200 * 0.5,
+                -1.0e-200,
+            ],
+            [
+                1.0e-200 * CANONICAL_SIMPLEX_LATERAL_RATIO,
+                -1.0e-200 * 0.5,
+                -1.0e-200 + 1.0e-220,
+            ],
         ],
     )
     .expect("embedded geometry");

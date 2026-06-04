@@ -13,18 +13,25 @@ use super::{
     prepare_primitive_construction_corpus_replay_siege, PrimitiveConstructionCorpusParameterRole,
     PrimitiveConstructionCorpusReplaySiegeError, PrimitiveConstructionCorpusReplaySiegeRow,
 };
-use crate::construction::digest::digest_owned_parts;
-use crate::construction::request::PrimitiveConstructionGeometryError;
-use crate::construction::{
-    prepare_primitive_construction_query_inspection_parity_report,
-    prepare_primitive_construction_query_projection_consumption_receipt_report,
+use crate::construction::authoring::PrimitiveConstructionQueryEntryError;
+use crate::construction::certification::realization::{
     prepare_primitive_construction_realization_exhaustion_report,
-    prepare_primitive_construction_realization_strategy_report, PrimitiveConstructionFamily,
-    PrimitiveConstructionIntent, PrimitiveConstructionPhaseError,
-    PrimitiveConstructionQueryEntryError, PrimitiveConstructionQueryInspectionParityError,
-    PrimitiveConstructionQueryProjectionConsumptionReceiptError,
-    PrimitiveConstructionRealizationExhaustionStatus, PrimitiveConstructionResultError,
+    prepare_primitive_construction_realization_strategy_report,
+    PrimitiveConstructionRealizationExhaustionStatus,
 };
+use crate::construction::digest::digest_owned_parts;
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::query::inspection_parity::{
+    prepare_primitive_construction_query_inspection_parity_report,
+    PrimitiveConstructionQueryInspectionParityError,
+};
+use crate::construction::query::projection_consumption_receipt::{
+    prepare_primitive_construction_query_projection_consumption_receipt_report,
+    PrimitiveConstructionQueryProjectionConsumptionReceiptError,
+};
+use crate::construction::request::PrimitiveConstructionGeometryError;
+use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
+use crate::construction::result::PrimitiveConstructionResultError;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionSimplexQuerySurfaceStatus {

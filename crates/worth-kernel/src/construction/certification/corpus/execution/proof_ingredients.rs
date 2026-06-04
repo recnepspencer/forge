@@ -1,12 +1,13 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
+use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
-use crate::construction::{
+use crate::construction::parity::{
     prepare_primitive_construction_branch_local_parity_report,
-    prepare_primitive_construction_replay_parity_report, PrimitiveConstructionIntent,
-    PrimitiveConstructionReplayParityReport, PrimitiveConstructionRequest,
-    PrimitiveConstructionRuntimeBasisError,
+    prepare_primitive_construction_replay_parity_report, PrimitiveConstructionReplayParityReport,
 };
+use crate::construction::request::PrimitiveConstructionRequest;
+use crate::construction::runtime_basis::PrimitiveConstructionRuntimeBasisError;
 
 #[derive(Clone, Debug)]
 pub(crate) struct PrimitiveConstructionCorpusExecutionProofIngredients {

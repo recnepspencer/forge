@@ -1,5 +1,5 @@
 use crate::construction::certification::preview::prepare_primitive_construction_preview_row;
-use crate::construction::certification::{
+use crate::construction::certification::preview::{
     prepare_primitive_construction_preview_surface_report, PrimitiveConstructionPreviewCase,
     PrimitiveConstructionPreviewRow, PrimitiveConstructionPreviewSurfaceReportError,
 };
@@ -34,10 +34,6 @@ impl PrimitiveConstructionPreviewReplayParityReport {
             parity_verified,
             report_digest,
         }
-    }
-
-    pub fn case(&self) -> PrimitiveConstructionPreviewCase {
-        self.case
     }
 
     pub fn direct_row(&self) -> &PrimitiveConstructionPreviewRow {
@@ -95,7 +91,7 @@ pub fn prepare_primitive_construction_preview_replay_parity_report(
 #[cfg(test)]
 mod tests {
     use super::prepare_primitive_construction_preview_replay_parity_report;
-    use crate::construction::PrimitiveConstructionPreviewCase;
+    use crate::construction::certification::preview::PrimitiveConstructionPreviewCase;
 
     #[test]
     fn preview_replay_parity_preserves_profile_and_blocked_candidate_truth() {

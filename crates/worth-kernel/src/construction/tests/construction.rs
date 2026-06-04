@@ -1,17 +1,22 @@
 use crate::construction::admitted_scaffold::prepare_primitive_construction_admitted_artifact;
 use crate::construction::artifact::build_canonical_primitive_construction_artifact;
-use crate::construction::result::prepare_primitive_construction_result;
-use crate::construction::{
+use crate::construction::diagnostics::prepare_primitive_construction_rejection_locality_report;
+use crate::construction::family_coverage::primitive_construction_family_coverage_report;
+use crate::construction::family_coverage::PrimitiveConstructionFamilyCoverageStatus;
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::parity::{
     prepare_primitive_construction_branch_local_parity_report,
-    prepare_primitive_construction_branch_preview_runtime_report,
-    prepare_primitive_construction_query_basis_preview_parity_report,
-    prepare_primitive_construction_query_inspection_parity_report,
-    prepare_primitive_construction_rejection_locality_report,
     prepare_primitive_construction_replay_parity_report,
-    primitive_construction_family_coverage_report, OrthotopeSpec, PrimitiveConstructionFamily,
-    PrimitiveConstructionFamilyCoverageStatus, PrimitiveConstructionIntent,
-    PrimitiveConstructionRequest, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec,
-    SimplexSolidSpec, WireBodySpec,
+};
+use crate::construction::query::basis_preview_parity::prepare_primitive_construction_query_basis_preview_parity_report;
+use crate::construction::query::inspection_parity::prepare_primitive_construction_query_inspection_parity_report;
+use crate::construction::request::PrimitiveConstructionFamily;
+use crate::construction::request::PrimitiveConstructionRequest;
+use crate::construction::result::prepare_primitive_construction_result;
+use crate::construction::runtime_basis::prepare_primitive_construction_branch_preview_runtime_report;
+use crate::construction::specs::{
+    OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
+    WireBodySpec,
 };
 use forge_query::facade::ForgeQueryAuthorityLane;
 use topology::facade::{

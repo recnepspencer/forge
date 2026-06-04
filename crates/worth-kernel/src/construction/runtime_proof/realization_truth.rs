@@ -1,5 +1,6 @@
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
+#[cfg(test)]
 use crate::construction::result::PreparedPrimitiveConstructionResult;
 use worth_geom::facade::{
     PrimitiveFeatureConditioningClass, PrimitiveNormalizationDisposition,
@@ -32,6 +33,7 @@ impl PrimitiveConstructionRuntimeRealizationTruth {
         )
     }
 
+    #[cfg(test)]
     pub(crate) fn from_prepared_result(prepared: &PreparedPrimitiveConstructionResult) -> Self {
         Self::new(
             Some(prepared.realization_strategy()),
@@ -90,34 +92,37 @@ impl PrimitiveConstructionRuntimeRealizationTruth {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn selected_strategy(&self) -> Option<PrimitiveRealizationStrategy> {
         self.selected_strategy
     }
 
-    pub(crate) fn attempted_strategy_count(&self) -> usize {
-        self.attempted_strategies.len()
-    }
-
+    #[cfg(test)]
     pub(crate) fn attempted_strategies(&self) -> &[PrimitiveRealizationStrategy] {
         &self.attempted_strategies
     }
 
+    #[cfg(test)]
     pub(crate) fn stability_class(&self) -> Option<PrimitiveStabilityClass> {
         self.stability_class
     }
 
+    #[cfg(test)]
     pub(crate) fn feature_conditioning_class(&self) -> Option<PrimitiveFeatureConditioningClass> {
         self.feature_conditioning_class
     }
 
+    #[cfg(test)]
     pub(crate) fn support_normal_class(&self) -> Option<PrimitiveSupportNormalClass> {
         self.support_normal_class
     }
 
+    #[cfg(test)]
     pub(crate) fn normalization_disposition(&self) -> Option<PrimitiveNormalizationDisposition> {
         self.normalization_disposition
     }
 
+    #[cfg(test)]
     pub(crate) fn exhaustion_reason(&self) -> Option<PrimitiveRealizationExhaustionReason> {
         self.exhaustion_reason
     }

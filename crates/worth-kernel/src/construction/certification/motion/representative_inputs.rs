@@ -13,23 +13,26 @@ use crate::construction::certification::motion::witness_report::{
     prepare_primitive_construction_reorient_witness_resolution_report_with_catalog,
     prepare_primitive_construction_rotate_witness_resolution_report_with_catalog,
 };
-use crate::construction::query::{
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::motion_branch_runtime::{
+    prepare_primitive_construction_move_branch_preview_runtime_report,
+    prepare_primitive_construction_points_toward_branch_preview_runtime_report_with_catalog,
+    prepare_primitive_construction_reorient_branch_preview_runtime_report,
+    prepare_primitive_construction_reorient_branch_preview_runtime_report_with_catalog,
+    prepare_primitive_construction_rotate_branch_preview_runtime_report_with_catalog,
+};
+use crate::construction::motion_replay::{
+    prepare_primitive_construction_move_replay_parity_report,
+    prepare_primitive_construction_points_toward_replay_parity_report_with_catalog,
+    prepare_primitive_construction_reorient_replay_parity_report,
+    prepare_primitive_construction_reorient_replay_parity_report_with_catalog,
+    prepare_primitive_construction_rotate_replay_parity_report_with_catalog,
+};
+use crate::construction::query::motion_parity::{
     prepare_primitive_construction_query_motion_inspection_parity_report,
     prepare_primitive_construction_query_motion_projection_consumption_receipt_report,
 };
-use crate::construction::{
-    prepare_primitive_construction_move_branch_preview_runtime_report,
-    prepare_primitive_construction_move_replay_parity_report,
-    prepare_primitive_construction_points_toward_branch_preview_runtime_report_with_catalog,
-    prepare_primitive_construction_points_toward_replay_parity_report_with_catalog,
-    prepare_primitive_construction_reorient_branch_preview_runtime_report,
-    prepare_primitive_construction_reorient_branch_preview_runtime_report_with_catalog,
-    prepare_primitive_construction_reorient_replay_parity_report,
-    prepare_primitive_construction_reorient_replay_parity_report_with_catalog,
-    prepare_primitive_construction_rotate_branch_preview_runtime_report_with_catalog,
-    prepare_primitive_construction_rotate_replay_parity_report_with_catalog,
-    PrimitiveConstructionIntent, RegularPyramidSpec, WireBodySpec,
-};
+use crate::construction::specs::{RegularPyramidSpec, WireBodySpec};
 use crate::spatial_intent::{MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent};
 use crate::test_support::SpatialFixtureWitnessCatalog;
 use worth_spatial::facade::refs::{

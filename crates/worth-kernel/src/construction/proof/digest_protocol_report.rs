@@ -13,14 +13,6 @@ impl PrimitiveConstructionDigestProtocolReport {
         self.version_prefix
     }
 
-    pub fn algorithm(&self) -> &'static str {
-        self.algorithm
-    }
-
-    pub fn scopes(&self) -> &'static [&'static str] {
-        self.scopes
-    }
-
     pub fn report_digest(&self) -> &str {
         &self.report_digest
     }
@@ -28,13 +20,13 @@ impl PrimitiveConstructionDigestProtocolReport {
 
 pub fn prepare_primitive_construction_digest_protocol_report(
 ) -> PrimitiveConstructionDigestProtocolReport {
-    let version_prefix = "worth-kernel.v1";
+    let version_prefix = "worth-primitives-digest:v1";
     let algorithm = "sha256";
     let scopes = &[
-        "artifact_identity",
-        "replay_identity",
-        "parity_identity",
-        "cache_identity",
+        "artifact-identity",
+        "geometry-identity",
+        "witness-identity",
+        "contract-identity",
     ];
     let report_digest = digest_owned_parts_with_scope(
         ConstructionDigestScope::ArtifactIdentity,

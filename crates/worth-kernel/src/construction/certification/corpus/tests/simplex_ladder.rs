@@ -1,11 +1,12 @@
 use super::support::siege_workspace;
-use crate::construction::certification::{
-    prepare_primitive_construction_family_boundary_drift_report,
-    prepare_primitive_construction_simplex_realization_exhaustion_witness_report,
+use crate::construction::certification::corpus::family_boundary_drift_report::prepare_primitive_construction_family_boundary_drift_report;
+use crate::construction::certification::corpus::simplex_exhaustion_witness_report::prepare_primitive_construction_simplex_realization_exhaustion_witness_report;
+use crate::construction::certification::corpus::simplex_ladder_report::{
     prepare_primitive_construction_simplex_realization_strategy_ladder_report,
-    PrimitiveConstructionCorpusParameterRole, PrimitiveConstructionSimplexQuerySurfaceStatus,
+    PrimitiveConstructionSimplexQuerySurfaceStatus,
 };
-use crate::construction::PrimitiveConstructionRealizationExhaustionStatus;
+use crate::construction::certification::corpus::PrimitiveConstructionCorpusParameterRole;
+use crate::construction::certification::realization::PrimitiveConstructionRealizationExhaustionStatus;
 use std::collections::BTreeSet;
 use worth_geom::facade::{
     PrimitiveNormalizationDisposition, PrimitiveRealizationExhaustionReason,

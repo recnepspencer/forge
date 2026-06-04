@@ -7,6 +7,7 @@ use super::super::scalar_admission::{decode_non_negative_scalar, decode_positive
 use super::super::topology_counts::PrimitiveConstructionTopologyCounts;
 use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
 use worth_geom::facade::realize_tetrahedron_support_with_altitude_component;
+use worth_primitives::{PrimitiveConstructionFamilyContractRegistry, PrimitiveWitnessDescriptor};
 use worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldInput;
 use worth_spatial::facade::placement::AdmittedSpatialPlacement;
 
@@ -29,15 +30,19 @@ pub(in super::super) fn build_simplex_solid_birth_input(
         admitted.auxiliary_altitude_component,
     )
     .map_err(map_realization_geometry)?;
+    let birth_contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+        &PrimitiveWitnessDescriptor::SimplexSolid,
+    );
     lower_family_birth_scaffold_plan(
         intent_digest,
         placement,
         PrimitiveConstructionBirthScaffoldPlan::from_realized_support(
             PrimitiveConstructionFamily::SimplexSolid,
+            birth_contract,
             realization.planes().to_vec(),
             simplex_vertices(admitted.scale, admitted.auxiliary_altitude_component),
             realization.report().clone(),
-            PrimitiveConstructionTopologyCounts::new(4, 6, 4, 0, 4, 1, 1),
+            PrimitiveConstructionTopologyCounts::from_contract(birth_contract.topology_contract()),
         ),
     )
 }

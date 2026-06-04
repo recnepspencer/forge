@@ -1,4 +1,4 @@
-pub use crate::construction::{
-    PreparedPrimitiveConstructionResult, PrimitiveConstructionPreparedOutcome,
-    PrimitiveConstructionResultError,
+pub use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
+pub use crate::construction::result::{
+    PreparedPrimitiveConstructionResult, PrimitiveConstructionResultError,
 };

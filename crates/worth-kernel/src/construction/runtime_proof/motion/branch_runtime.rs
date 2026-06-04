@@ -1,6 +1,6 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
-use crate::construction::certification::{
+use crate::construction::certification::motion::{
     prepare_primitive_construction_move_witness_resolution_report_with_catalog,
     prepare_primitive_construction_points_toward_witness_resolution_report_with_catalog,
     prepare_primitive_construction_reorient_witness_resolution_report_with_catalog,
@@ -118,6 +118,7 @@ impl PrimitiveConstructionMotionBranchPreviewRuntimeReport {
     pub fn runtime_surface_status(&self) -> PrimitiveConstructionMotionRuntimeSurfaceStatus {
         self.runtime_surface_status
     }
+    #[cfg(test)]
     pub fn runtime_report(&self) -> Option<&PrimitiveConstructionBranchPreviewRuntimeReport> {
         self.runtime_report.as_ref()
     }
@@ -189,6 +190,7 @@ pub fn prepare_primitive_construction_reorient_branch_preview_runtime_report_wit
     })
 }
 
+#[cfg(test)]
 pub fn prepare_primitive_construction_rotate_branch_preview_runtime_report(
     workspace: &mut ForgeQueryWorkspace,
     intent: RotateSpatialIntent<PrimitiveConstructionIntent>,
@@ -219,20 +221,6 @@ pub fn prepare_primitive_construction_rotate_branch_preview_runtime_report_with_
     prepare_branch_report(workspace, motion_report, || {
         intent.finish_with_catalog(catalog)
     })
-}
-
-pub fn prepare_primitive_construction_points_toward_branch_preview_runtime_report(
-    workspace: &mut ForgeQueryWorkspace,
-    intent: PointsTowardSpatialIntent<PrimitiveConstructionIntent>,
-) -> Result<
-    PrimitiveConstructionMotionBranchPreviewRuntimeReport,
-    PrimitiveConstructionRuntimeBasisError,
-> {
-    prepare_primitive_construction_points_toward_branch_preview_runtime_report_with_catalog(
-        workspace,
-        intent,
-        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
-    )
 }
 
 pub fn prepare_primitive_construction_points_toward_branch_preview_runtime_report_with_catalog(

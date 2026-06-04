@@ -1,5 +1,6 @@
 mod conditioning;
 mod exhaustion;
+mod geometry_identity;
 mod schema;
 mod support;
 mod witnesses;

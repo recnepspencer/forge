@@ -1,6 +1,6 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
-use crate::construction::certification::{
+use crate::construction::certification::arbitration::{
     prepare_primitive_chosen_intent_resolution_report,
     prepare_primitive_construction_preserved_intent_resolution_report,
     prepare_primitive_intent_arbitration_policy_report,
@@ -17,16 +17,16 @@ use crate::construction::certification::{
     PrimitiveConstructionPreservedIntentResolutionRow,
 };
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::query::{
+use crate::construction::intent_arbitration_replay::{
+    prepare_primitive_construction_intent_arbitration_replay_parity_report,
+    PrimitiveConstructionIntentArbitrationReplayParityError,
+    PrimitiveConstructionIntentArbitrationReplayParityReport,
+};
+use crate::construction::query::intent_arbitration::{
     prepare_primitive_construction_query_intent_arbitration_inspection_parity_report,
     prepare_primitive_construction_query_intent_arbitration_projection_consumption_receipt_report,
     PrimitiveConstructionQueryIntentArbitrationParityError,
     PrimitiveConstructionQueryIntentArbitrationParityReport,
-};
-use crate::construction::{
-    prepare_primitive_construction_intent_arbitration_replay_parity_report,
-    PrimitiveConstructionIntentArbitrationReplayParityError,
-    PrimitiveConstructionIntentArbitrationReplayParityReport,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

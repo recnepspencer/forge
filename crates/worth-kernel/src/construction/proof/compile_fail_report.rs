@@ -10,12 +10,6 @@ pub struct PrimitiveConstructionProofBoundaryCompileFailFixture {
     path: &'static str,
 }
 
-impl PrimitiveConstructionProofBoundaryCompileFailFixture {
-    pub fn path(&self) -> &'static str {
-        self.path
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionProofBoundaryCompileFailReport {
     fixtures: Vec<PrimitiveConstructionProofBoundaryCompileFailFixture>,
