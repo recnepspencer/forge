@@ -1,5 +1,3 @@
-import React from "react";
-
 import type {
   AdminProductsPageJson,
   CatalogPageJson,
@@ -19,7 +17,7 @@ export function RouterSectionBrowserSurface({
   statusKind,
   pageData,
   isNavigating,
-}: RouterSectionBrowserSurfaceProps): React.ReactElement {
+}: RouterSectionBrowserSurfaceProps) {
   if (!outcome || isNavigating || (outcome.kind === "admitted" && statusKind !== "fulfilled")) {
     return (
       <div className="router-browser-stage is-loading">

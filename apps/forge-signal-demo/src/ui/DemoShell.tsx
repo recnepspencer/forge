@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { demoRegistry, type DemoMetadata } from "../state/demoData";
 
 interface DemoShellProps {
   demo: DemoMetadata;
   onNavigate: (path: string) => void;
-  children: React.ReactNode; // Interactive demo component
-  inspectorContent?: React.ReactNode; // Telemetry inspector printing active WASM variables
-  customCodeBlock?: React.ReactNode;
+  children: any; // Interactive demo component
+  inspectorContent?: any; // Telemetry inspector printing active WASM variables
+  customCodeBlock?: any;
 }
 
 export const DemoShell: React.FC<DemoShellProps> = ({
@@ -73,8 +73,8 @@ export const DemoShell: React.FC<DemoShellProps> = ({
             </div>
             <h2 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-primary)" }}>{demo.title}</h2>
           </div>
-          <button className="btn" onClick={() => onNavigate("#/demos")} style={{ fontSize: "0.85rem" }}>
-            ← Back to Ladder
+          <button className="btn" onClick={() => onNavigate("#/")} style={{ fontSize: "0.85rem" }}>
+            Back home
           </button>
         </div>
       </div>

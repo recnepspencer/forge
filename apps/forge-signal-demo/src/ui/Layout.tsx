@@ -1,27 +1,21 @@
-import React from "react";
 import type { RouteState } from "./router";
 
 interface LayoutProps {
   currentRoute: RouteState;
   onNavigate: (path: string) => void;
-  children: React.ReactNode;
+  children: any;
 }
 
 const navItems = [
-  { href: "#/", label: "Products", match: (route: RouteState) => route.type === "landing" },
-  { href: "#/docs", label: "Developer", match: (route: RouteState) => route.type === "docs" },
-  {
-    href: "#/demos",
-    label: "Demos",
-    match: (route: RouteState) => route.type === "demos" || route.type === "demo-detail",
-  },
+  { href: "#/", label: "Home", match: (route: RouteState) => route.type === "landing" },
+  { href: "#/docs", label: "Docs", match: (route: RouteState) => route.type === "docs" },
 ];
 
-export const Layout: React.FC<LayoutProps> = ({
+export function Layout({
   currentRoute,
   onNavigate,
   children,
-}) => {
+}: LayoutProps) {
   return (
     <div className="site-shell">
       <header className="nav-bar">
@@ -60,17 +54,14 @@ export const Layout: React.FC<LayoutProps> = ({
           </div>
           <div className="site-footer-links">
             <a href="#/" onClick={(event) => { event.preventDefault(); onNavigate("#/"); }}>
-              Products
+              Home
             </a>
             <a href="#/docs" onClick={(event) => { event.preventDefault(); onNavigate("#/docs"); }}>
               Docs
-            </a>
-            <a href="#/demos" onClick={(event) => { event.preventDefault(); onNavigate("#/demos"); }}>
-              Demos
             </a>
           </div>
         </div>
       </footer>
     </div>
   );
-};
+}

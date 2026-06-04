@@ -7,17 +7,16 @@ import {
   useResourceLine,
 } from "forge-signal-wasm/react";
 
+import { DemoPreface } from "./DemoPreface";
 import { ResourcesSectionCodeSample } from "./ResourcesSectionCodeSample";
-import { DiagnosticsComparison, ResourcePanel } from "./ResourcesSectionParts";
+import { DiagnosticsComparison, ResourceFeedbackGuide, ResourcePanel } from "./ResourcesSectionParts";
 import "./resourcesSection.css";
 import {
   comparisonApiUrls,
   createComparisonStore,
   createPanelEvent,
   formatItemRows,
-  latestMutationSummary,
   optimisticItem,
-  summarizeForgeLifecycle,
   summarizeRecovery,
   type ListItem,
   type PanelEvent,
@@ -45,7 +44,6 @@ interface PanelController {
 
 type SignalsRuntime = Awaited<ReturnType<typeof createSignals>>;
 type ScenarioPhase = "idle" | "optimistic" | "confirmed" | "rolledBack";
-
 function createDeferred<T>(): Deferred<T> {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -105,10 +103,10 @@ function TanStackPanel({
     schema: "resource-demo-diagnostics.v1",
     runtime: "tanstack",
     blocks: [
-      { label: "queryClient.getQueryData(['section4', 'items'])", mode: "rows", value: formatItemRows(items.data ?? null) },
+        { label: "queryClient.getQueryData(['section4', 'items'])", mode: "rows", value: formatItemRows(items.data ?? null) },
       { label: "mutation.status", value: mutation.status },
-      { label: "rollbackSnapshot", value: rollbackSnapshot ? `${rollbackSnapshot.length} cached rows` : null },
-      { label: "toastFeed[0]", value: events[0] ? `${events[0].tone}: ${events[0].title}` : null },
+      { label: "rollback source", value: rollbackSnapshot ? `feature snapshot with ${rollbackSnapshot.length} rows` : "none captured" },
+      { label: "toastFeed[0]", value: events[0] ? `${events[0].tone}: ${events[0].title}` : "none" },
     ],
   }), [events, items.data, mutation.status, rollbackSnapshot]);
 
@@ -244,31 +242,38 @@ function ForgePanel({
   const statusKind = forge ? forge.itemsLine.status().kind : "booting";
   const diagnostics = useMemo<ResourceDemoDiagnostics>(() => {
     const latestResult = write.lastResult;
-    const lineLatest = lineView.diagnosticsSummary?.latest ?? null;
-    const writeLatest = latestResult?.diagnosticsSummary.latest ?? null;
     const lastEffect = forge?.itemsLine.diagnostics().lastEffect ?? null;
+    const lifecycle = forge?.itemsLine.history().lifecycle ?? [];
     return {
       schema: "resource-demo-diagnostics.v1",
       runtime: "forge",
       blocks: [
         { label: "useResourceLine(...).value", mode: "rows", value: formatItemRows(items ?? null) },
-        { label: "line.summary().diagnostics.latest", value: {
-          lifecycle: summarizeForgeLifecycle(lastEffect),
-          mutation: latestMutationSummary(lineLatest, "no write response has reconciled this resident list line"),
-        } },
+        { label: "line.diagnostics().lastEffect", value: lastEffect ? {
+          provenance: lastEffect.provenance ?? null,
+          optimisticKind: lastEffect.optimistic?.kind ?? null,
+          rollbackKind: lastEffect.optimistic?.rollback?.kind ?? null,
+        } : null },
         { label: "useManagedResourceWrite(...).lastResult", value: latestResult ? {
           resultKind: latestResult.resultKind,
           confirmation: latestResult.confirmationKind,
           recovery: summarizeRecovery(latestResult),
-          mutation: latestMutationSummary(
-            writeLatest,
-            latestResult.resultKind === "rejected"
-              ? "server rejected before a canonical mutation-response plan existed"
-              : "write has no mutation response evidence yet",
-          ),
         } : null },
-        { label: "rollbackLastEffect()", value: lastRollback && typeof lastRollback === "object" && "kind" in lastRollback ? (lastRollback as { kind: unknown }).kind : lastRollback ?? null },
-        { label: "toastFeed[0]", value: events[0] ? `${events[0].tone}: ${events[0].title}` : null },
+        { label: "line.history().rollbackLastEffect()", value: lastRollback },
+        { label: "line.history().lifecycle.slice(-3)", value: lifecycle.slice(-3).map((entry: any) => ({
+          event: entry.event,
+          lastPatchKind: entry.lastPatchKind,
+          lastPatchedItemId: entry.lastPatchedItemId,
+          visibleSelection: entry.visibleSelection ? {
+            kind: entry.visibleSelection.kind,
+            source: entry.visibleSelection.source,
+            effectId: entry.visibleSelection.effectId ?? null,
+            branchId: entry.visibleSelection.branchId ?? null,
+            snapshotId: entry.visibleSelection.snapshotId ?? null,
+            rollbackKind: entry.visibleSelection.rollbackKind ?? null,
+          } : null,
+        })) },
+        { label: "toastFeed[0]", value: events[0] ? `${events[0].tone}: ${events[0].title}` : "none" },
       ],
     };
   }, [events, forge, items, lastRollback, lineView.diagnosticsSummary, write.lastResult]);
@@ -345,10 +350,14 @@ export function ResourcesSection({ onNavigate }: ResourcesSectionProps) {
   return (
     <div className="xai-section-band accent-resources">
       <div className="xai-section-heading">
-        <span className="xai-section-eyebrow">04 / Resources</span>
+        <span className="xai-section-eyebrow">05 / Optimistic Resources</span>
         <h2>Optimistic updates should be inspectable.</h2>
         <p>Add one item to the same list in both implementations, then inspect the actual runtime output below.</p>
       </div>
+
+      <DemoPreface demoId={5} />
+
+      <ResourceFeedbackGuide />
 
       <div className="resources-control-bar">
         <span>One shared add-item flow. Both windows move together.</span>
@@ -365,8 +374,8 @@ export function ResourcesSection({ onNavigate }: ResourcesSectionProps) {
           <button className="resources-control-button resources-control-button-ghost" onClick={() => void runBoth("reset", "idle")} type="button">
             Reset both
           </button>
-          <button className="resources-control-button resources-control-button-ghost" onClick={() => onNavigate("#/demos")} type="button">
-            Open demo ladder
+          <button className="resources-control-button resources-control-button-ghost" onClick={() => onNavigate("#/demos/5")} type="button">
+            Open full demo
           </button>
         </div>
       </div>

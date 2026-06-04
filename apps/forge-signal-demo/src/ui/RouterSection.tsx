@@ -1,6 +1,5 @@
-import React from "react";
-
 import "./routerSection.css";
+import { DemoPreface } from "./DemoPreface";
 import { RouterSectionBrowserSurface } from "./RouterSectionBrowserSurface";
 import { RouterSectionCodeSample } from "./RouterSectionCodeSample";
 import {
@@ -19,7 +18,7 @@ function RouterRoleToggle({
 }: {
   activeRole: SessionRole;
   onSelect: (role: SessionRole) => void;
-}): React.ReactElement {
+}) {
   return (
     <div className="router-role-toggle">
       {(["loggedOut", "user", "admin"] as SessionRole[]).map((nextRole) => (
@@ -36,7 +35,7 @@ function RouterRoleToggle({
   );
 }
 
-export function RouterSection({ onNavigate }: RouterSectionProps): React.ReactElement {
+export function RouterSection({ onNavigate }: RouterSectionProps) {
   const {
     activeTarget,
     bootError,
@@ -66,7 +65,7 @@ export function RouterSection({ onNavigate }: RouterSectionProps): React.ReactEl
     return (
       <div className="xai-section-band accent-router">
         <div className="xai-section-heading">
-          <span className="xai-section-eyebrow">03 / Router</span>
+          <span className="xai-section-eyebrow">04 / Router</span>
           <h2>Routing is where guards, loading, and permissions meet.</h2>
         </div>
         <article className="router-browser-card">
@@ -81,13 +80,15 @@ export function RouterSection({ onNavigate }: RouterSectionProps): React.ReactEl
   return (
     <div className="xai-section-band accent-router">
       <div className="xai-section-heading">
-        <span className="xai-section-eyebrow">03 / Router</span>
+        <span className="xai-section-eyebrow">04 / Router</span>
         <h2>Routing is where guards, loading, and permissions meet.</h2>
         <p>
           Browser ingress, route admission, route-local resources, and replayable
           history all come from the same router surface.
         </p>
       </div>
+
+      <DemoPreface demoId={4} />
 
       <article className="router-test-card">
         <div className="forms-card-topline">
@@ -178,7 +179,7 @@ export function RouterSection({ onNavigate }: RouterSectionProps): React.ReactEl
           history in one click.
         </div>
         <div className="xai-section-actions">
-          <button className="xai-button xai-button-primary" onClick={() => onNavigate("#/demos/3")} type="button">
+          <button className="xai-button xai-button-primary" onClick={() => onNavigate("#/demos/4")} type="button">
             Open router demo
           </button>
           <button className="xai-button xai-button-secondary" onClick={() => onNavigate("#/docs/router/index")} type="button">

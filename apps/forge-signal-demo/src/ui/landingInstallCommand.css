@@ -1,0 +1,42 @@
+.xai-install-command {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  width: min(31rem, calc(100vw - 3rem));
+  min-height: 3.65rem;
+  padding: 0.45rem 0.5rem 0.45rem 1.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(125, 199, 255, 0.14), transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.03)),
+    rgba(0, 0, 0, 0.48);
+  color: #f5f7fb;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.92rem;
+  box-shadow:
+    0 22px 64px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.xai-install-command code {
+  overflow: hidden;
+  color: inherit;
+  font-family: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xai-install-command button {
+  min-height: 2.7rem;
+  padding: 0 1rem;
+  border: 1px solid rgba(125, 199, 255, 0.28);
+  border-radius: 10px;
+  background: rgba(125, 199, 255, 0.12);
+  color: #f5f7fb;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 760;
+}

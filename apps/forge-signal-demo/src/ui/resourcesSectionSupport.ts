@@ -119,21 +119,6 @@ export function createPanelEvent(
   };
 }
 
-export function summarizeForgeLifecycle(effect: {
-  provenance?: string;
-  optimistic?: { kind?: string; rollback?: { kind?: string } };
-} | null): string {
-  if (!effect) {
-    return "No effect admitted yet.";
-  }
-
-  return [
-    effect.provenance ?? "unknown provenance",
-    effect.optimistic?.kind ?? "unknown lifecycle",
-    effect.optimistic?.rollback?.kind ?? "unknown rollback",
-  ].join(" / ");
-}
-
 function formatJsonBlock(label: string, value: unknown): string[] {
   return [`> ${label}`, ...JSON.stringify(value, null, 2).split("\n")];
 }

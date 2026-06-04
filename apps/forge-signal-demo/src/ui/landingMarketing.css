@@ -249,8 +249,18 @@
   background: transparent;
 }
 
-.xai-slide-artifact-form::before {
+.xai-slide-artifact-form::before,
+.xai-slide-artifact-resource::before,
+.xai-slide-artifact-composition::before {
   content: none;
+}
+
+.xai-slide-artifact-resource {
+  padding: 0.85rem;
+}
+
+.xai-slide-artifact-composition {
+  padding: 0.85rem;
 }
 
 .xai-value-field {

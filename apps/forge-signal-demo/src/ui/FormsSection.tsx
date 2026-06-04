@@ -1,5 +1,5 @@
-import React from "react";
 import { FormsSectionCodeSample } from "./FormsSectionCodeSample";
+import { DemoPreface } from "./DemoPreface";
 import "./formsSection.css";
 import { COUNTRY_OPTIONS, currency } from "./formsSectionSupport";
 import { selectedRegionSummary, useFormsSectionState } from "./formsSectionHooks";
@@ -8,11 +8,11 @@ interface FormsSectionProps {
   onNavigate: (path: string) => void;
 }
 
-function fieldNote(message?: string): React.ReactElement {
+function fieldNote(message?: string) {
   return <small className={message ? "" : "forms-field-spacer"}>{message ?? "placeholder"}</small>;
 }
 
-export function FormsSection({ onNavigate }: FormsSectionProps): React.ReactElement {
+export function FormsSection({ onNavigate }: FormsSectionProps) {
   const {
     draft,
     regionsOpen,
@@ -33,14 +33,15 @@ export function FormsSection({ onNavigate }: FormsSectionProps): React.ReactElem
   return (
     <div className="xai-section-band accent-forms">
       <div className="xai-section-heading">
-        <span className="xai-section-eyebrow">02 / Forms</span>
-        <h2>Edit rollout settings and watch the controller keep score.</h2>
+        <span className="xai-section-eyebrow">03 / Forms</span>
+        <h2>Edit a product form. Watch Forge track the state.</h2>
         <p>
-          Pricing policy already moved to a 25% margin. This edit needs a higher
-          retail price, country approval truth from the backend, and carrier emails
-          for every selected shipping region.
+          Change the price, margin, shipping regions, or reviewer email. Forge shows
+          what changed, what is invalid, and whether the form can submit.
         </p>
       </div>
+
+      <DemoPreface demoId={3} />
 
       <article className="forms-code-card">
         <div className="forms-card-topline">
@@ -55,8 +56,8 @@ export function FormsSection({ onNavigate }: FormsSectionProps): React.ReactElem
           <div className="forms-card-topline">
             <span>Live edit form</span>
           </div>
-          <h3>Edit rollout settings.</h3>
-          <p>Raise the price, pick shipping regions, and watch approval and carrier-email rules gate save automatically.</p>
+          <h3>Edit a product form.</h3>
+          <p>Change fields and watch validation, dirty state, and submit readiness update.</p>
 
           <form className="forms-edit-form" onSubmit={(event) => event.preventDefault()}>
             <div className="forms-meta-row">
@@ -199,9 +200,9 @@ export function FormsSection({ onNavigate }: FormsSectionProps): React.ReactElem
       </div>
 
       <div className="signals-cta-row">
-        <div className="signals-cta-copy">Change the rollout, select blocked countries, and watch the form shut down save until the backend rules are satisfied.</div>
+        <div className="signals-cta-copy">Change the form and inspect the exact state Forge uses to enable or block submit.</div>
         <div className="xai-section-actions">
-          <button className="xai-button xai-button-primary" onClick={() => onNavigate("#/demos/2")} type="button">
+          <button className="xai-button xai-button-primary" onClick={() => onNavigate("#/demos/3")} type="button">
             Open forms demo
           </button>
           <button className="xai-button xai-button-secondary" onClick={() => onNavigate("#/docs/forms/index")} type="button">
