@@ -21,7 +21,7 @@ pub enum TruthViewSourceCapability {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum TruthViewReplayCompatibility {
+pub enum TruthViewReplayContinuity {
     ReplayPermitted,
     ReplayRequired,
 }
@@ -124,7 +124,7 @@ pub struct ResolvedTruthViewPolicy {
     branch_identity: TruthBranchIdentity,
     retention_admission: TruthViewRetentionAdmission,
     source_capability: TruthViewSourceCapability,
-    replay_compatibility: TruthViewReplayCompatibility,
+    replay_continuity: TruthViewReplayContinuity,
     replay_mode: BridgeReplayMode,
     delivery_intent: BridgeDeliveryIntent,
     canonical_basis: Arc<str>,
@@ -136,10 +136,10 @@ impl ResolvedTruthViewPolicy {
         declaration: &HistoricalEvaluationDeclaration,
         retention_admission: TruthViewRetentionAdmission,
         source_capability: TruthViewSourceCapability,
-        replay_compatibility: TruthViewReplayCompatibility,
+        replay_continuity: TruthViewReplayContinuity,
     ) -> Self {
         let canonical_basis = Arc::<str>::from(format!(
-            "resolved-truth-view-policy|declaration={}|validated-selectors={}|selector={}|branch={}|retention:{retention_admission:?}|source:{source_capability:?}|replay-compatibility:{replay_compatibility:?}|replay-mode:{:?}|delivery:{:?}",
+            "resolved-truth-view-policy|declaration={}|validated-selectors={}|selector={}|branch={}|retention:{retention_admission:?}|source:{source_capability:?}|replay-continuity:{replay_continuity:?}|replay-mode:{:?}|delivery:{:?}",
             declaration.declaration_identity().as_str(),
             declaration.validated_selector_set().digest(),
             declaration.selector().selector_identity().as_str(),
@@ -154,7 +154,7 @@ impl ResolvedTruthViewPolicy {
             branch_identity: declaration.selector().branch_identity().clone(),
             retention_admission,
             source_capability,
-            replay_compatibility,
+            replay_continuity,
             replay_mode: declaration.replay_mode(),
             delivery_intent: declaration.delivery_intent(),
             canonical_basis,
@@ -182,8 +182,8 @@ impl ResolvedTruthViewPolicy {
         self.source_capability
     }
 
-    pub fn replay_compatibility(&self) -> TruthViewReplayCompatibility {
-        self.replay_compatibility
+    pub fn replay_continuity(&self) -> TruthViewReplayContinuity {
+        self.replay_continuity
     }
 
     pub fn replay_mode(&self) -> BridgeReplayMode {
@@ -229,7 +229,7 @@ impl BridgeTruthViewPolicyResolution {
 mod tests {
     use super::{
         BridgeTruthViewPolicyRejection, BridgeTruthViewPolicyResolution, ResolvedTruthViewPolicy,
-        TruthViewPolicyRejectionKind, TruthViewReplayCompatibility, TruthViewRetentionAdmission,
+        TruthViewPolicyRejectionKind, TruthViewReplayContinuity, TruthViewRetentionAdmission,
         TruthViewSourceCapability,
     };
     use crate::input::envelope::TruthBranchIdentity;
@@ -254,19 +254,28 @@ mod tests {
             &declaration,
             TruthViewRetentionAdmission::SnapshotResident,
             TruthViewSourceCapability::DirectSnapshotRead,
-            TruthViewReplayCompatibility::ReplayPermitted,
+            TruthViewReplayContinuity::ReplayPermitted,
         );
         let right = ResolvedTruthViewPolicy::admitted(
             &declaration,
             TruthViewRetentionAdmission::SnapshotResident,
             TruthViewSourceCapability::DirectSnapshotRead,
-            TruthViewReplayCompatibility::ReplayPermitted,
+            TruthViewReplayContinuity::ReplayPermitted,
         );
 
         assert_eq!(left, right);
-        assert!(left
-            .canonical_basis()
-            .contains("retention:SnapshotResident|source:DirectSnapshotRead"));
+        assert_eq!(
+            left.retention_admission(),
+            TruthViewRetentionAdmission::SnapshotResident
+        );
+        assert_eq!(
+            left.source_capability(),
+            TruthViewSourceCapability::DirectSnapshotRead
+        );
+        assert_eq!(
+            left.replay_continuity(),
+            TruthViewReplayContinuity::ReplayPermitted
+        );
     }
 
     #[test]
@@ -292,6 +301,13 @@ mod tests {
             resolution.selector_identity(),
             declaration.selector().selector_identity()
         );
-        assert!(rejection.detail().contains("unavailable"));
+        assert_eq!(
+            rejection.kind(),
+            TruthViewPolicyRejectionKind::UnavailableTruthView
+        );
+        assert_eq!(
+            rejection.branch_identity(),
+            declaration.selector().branch_identity()
+        );
     }
 }

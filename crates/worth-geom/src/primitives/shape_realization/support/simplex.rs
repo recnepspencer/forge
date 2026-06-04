@@ -1,4 +1,5 @@
 use worth_math::MathError;
+use worth_primitives::canonical_simplex_vertices;
 
 use crate::primitives::plane::Plane;
 use crate::primitives::shape_realization::{
@@ -95,20 +96,11 @@ fn tetrahedron_vertices(
     scale: f64,
     auxiliary_altitude_component: f64,
 ) -> Vec<[f64; 3]> {
-    vec![
-        [center[0], center[1], center[2] + scale],
-        [center[0], center[1] + scale, center[2] - scale],
-        [
-            center[0] - scale * 0.7071,
-            center[1] - scale * 0.5,
-            center[2] - scale,
-        ],
-        [
-            center[0] + scale * 0.7071,
-            center[1] - scale * 0.5,
-            center[2] - scale + auxiliary_altitude_component,
-        ],
-    ]
+    canonical_simplex_vertices(scale, auxiliary_altitude_component)
+        .local_vertices()
+        .iter()
+        .map(|vertex| [vertex[0] + center[0], vertex[1] + center[1], vertex[2] + center[2]])
+        .collect()
 }
 
 fn tetrahedron_planes_from_points(

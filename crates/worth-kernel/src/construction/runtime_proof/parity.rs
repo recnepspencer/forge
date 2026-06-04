@@ -1,14 +1,15 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
 use crate::construction::digest::digest_owned_parts;
+use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::outcome::{
     prepare_primitive_construction_outcome, PrimitiveConstructionPreparedOutcome,
 };
+use crate::construction::request::PrimitiveConstructionFamily;
 use crate::construction::runtime_basis::{
     prepare_primitive_construction_branch_preview_runtime_report,
     PrimitiveConstructionBranchPreviewRuntimeReport, PrimitiveConstructionRuntimeBasisError,
 };
-use crate::construction::{PrimitiveConstructionFamily, PrimitiveConstructionIntent};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionReplayParityReport {
@@ -121,9 +122,8 @@ impl PrimitiveConstructionBranchLocalParityReport {
 }
 
 pub fn prepare_primitive_construction_replay_parity_report(
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: PrimitiveConstructionIntent,
 ) -> PrimitiveConstructionReplayParityReport {
-    let intent = intent.into();
     let family = intent.family();
     let request = intent.request().clone();
     let direct_outcome = prepare_primitive_construction_outcome(request.clone());
@@ -133,12 +133,11 @@ pub fn prepare_primitive_construction_replay_parity_report(
 
 pub fn prepare_primitive_construction_branch_local_parity_report(
     workspace: &mut ForgeQueryWorkspace,
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: PrimitiveConstructionIntent,
 ) -> Result<PrimitiveConstructionBranchLocalParityReport, PrimitiveConstructionRuntimeBasisError> {
-    let intent = intent.into();
     let family = intent.family();
     let request = intent.request().clone();
-    let direct_outcome = prepare_primitive_construction_outcome(request.clone());
+    let direct_outcome = prepare_primitive_construction_outcome(request);
     let branch_preview_runtime_report =
         prepare_primitive_construction_branch_preview_runtime_report(workspace, intent)?;
     Ok(PrimitiveConstructionBranchLocalParityReport::new(
@@ -154,10 +153,11 @@ mod tests {
         prepare_primitive_construction_branch_local_parity_report,
         prepare_primitive_construction_replay_parity_report,
     };
+    use crate::construction::intent::PrimitiveConstructionIntent;
     use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
-    use crate::construction::{
-        OrthotopeSpec, PrimitiveConstructionFamily, PrimitiveConstructionIntent, RegularPrismSpec,
-        RegularPyramidSpec, ShellWithHoleSpec, WireBodySpec,
+    use crate::construction::request::PrimitiveConstructionFamily;
+    use crate::construction::specs::{
+        OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, WireBodySpec,
     };
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,

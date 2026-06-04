@@ -2,20 +2,22 @@ use super::{
     prepare_primitive_construction_outcome, rejected_outcome, PrimitiveConstructionPreparedOutcome,
     PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
 };
+use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::request::{
     PrimitiveConstructionFamily, PrimitiveConstructionGeometryError,
     PrimitiveConstructionPhaseError,
 };
 use crate::construction::result::PrimitiveConstructionResultError;
-use crate::construction::{OrthotopeSpec, PrimitiveConstructionIntent, WireBodySpec};
+use crate::construction::specs::{OrthotopeSpec, WireBodySpec};
 use topology::facade::{
     TopologyConstructionQueryAdmittedHandoffError, TopologyConstructionQueryEnvelopeError,
     TopologyConstructionQueryHandoffError, TopologyConstructionQueryReceiptError,
 };
 use worth_geom::facade::Plane;
-use worth_spatial::facade::{
-    impossible_primitive_construction_birth_attachment, plan_primitive_construction_birth,
+use worth_spatial::facade::bindings::{
+    evaluate_primitive_construction_birth_consequence, plan_primitive_construction_birth,
     PrimitiveConstructionBirthFamily, PrimitiveConstructionBirthScaffoldInput,
+    SpatialConstructionBirthConsequence,
 };
 
 #[test]
@@ -144,8 +146,12 @@ fn rejected_outcome_maps_spatial_birth_and_impossible_attachment_distinctly() {
         1,
     );
     let plan = plan_primitive_construction_birth(input).expect("birth plan");
-    let impossible = impossible_primitive_construction_birth_attachment(&mismatched, &plan)
-        .expect("impossible attachment");
+    let impossible = match evaluate_primitive_construction_birth_consequence(&mismatched, &plan) {
+        SpatialConstructionBirthConsequence::Admitted(_) => {
+            panic!("mismatched birth should be rejected")
+        }
+        SpatialConstructionBirthConsequence::Rejected(rejected) => rejected,
+    };
     let completeness = rejected_outcome(
         PrimitiveConstructionFamily::WireBody,
         &PrimitiveConstructionResultError::Phase(

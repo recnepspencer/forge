@@ -1,0 +1,111 @@
+.xai-signal-wave {
+  position: relative;
+  min-height: 13.4rem;
+  overflow: hidden;
+  border: 1px solid rgba(118, 194, 255, 0.24);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 12% 54%, rgba(68, 169, 255, 0.28), transparent 28%),
+    radial-gradient(circle at 84% 20%, rgba(135, 221, 255, 0.16), transparent 30%),
+    linear-gradient(135deg, rgba(3, 10, 19, 0.98), rgba(1, 4, 10, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -44px 72px rgba(0, 0, 0, 0.42),
+    0 26px 64px rgba(0, 0, 0, 0.34),
+    0 0 54px rgba(68, 169, 255, 0.13);
+  isolation: isolate;
+}
+
+.xai-signal-wave::before,
+.xai-signal-wave::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.xai-signal-wave::before {
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.16), transparent 18%, transparent 72%, rgba(125, 199, 255, 0.14)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 58px);
+  mix-blend-mode: screen;
+  opacity: 0.38;
+}
+
+.xai-signal-wave::after {
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 0 82px rgba(0, 0, 0, 0.34);
+}
+
+.xai-signal-tree {
+  position: absolute;
+  inset: -0.6rem -0.9rem;
+  z-index: 1;
+  width: calc(100% + 1.8rem);
+  height: calc(100% + 1.2rem);
+}
+
+.xai-signal-tree-backdrop {
+  fill: rgba(0, 0, 0, 0.1);
+  stroke: rgba(142, 213, 255, 0.08);
+}
+
+.xai-signal-branch-base path {
+  fill: none;
+  stroke: rgba(166, 224, 255, 0.08);
+  stroke-linecap: round;
+  stroke-width: 1.1;
+}
+
+.xai-signal-trail {
+  fill: none;
+  opacity: 0;
+  filter: drop-shadow(0 0 8px rgba(85, 199, 255, 0.44));
+  stroke: rgba(105, 211, 255, 0.72);
+  stroke-linecap: round;
+  stroke-width: 2.4;
+}
+
+.xai-signal-pulse {
+  fill: none;
+  filter: url("#signalGlow");
+  opacity: 0;
+  stroke: url("#signalPulse");
+  stroke-linecap: round;
+  stroke-width: 5.2;
+}
+
+.xai-signal-node-halo circle {
+  fill: url("#signalNodeGlow");
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.xai-signal-nodes circle {
+  fill: #9fddff;
+  filter: drop-shadow(0 0 12px rgba(98, 197, 255, 0.5));
+  opacity: 0.42;
+  stroke: rgba(245, 252, 255, 0.7);
+  stroke-width: 1;
+}
+
+.xai-signal-nodes .is-root {
+  fill: #f3fbff;
+  opacity: 0.88;
+  stroke-width: 1.4;
+}
+
+@media (max-width: 720px) {
+  .xai-signal-wave {
+    min-height: 9.6rem;
+  }
+
+  .xai-signal-tree {
+    inset: -0.5rem -1.4rem;
+    width: calc(100% + 2.8rem);
+  }
+}

@@ -1,6 +1,6 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
-use crate::construction::certification::{
+use crate::construction::certification::motion::{
     prepare_primitive_construction_move_witness_resolution_report_with_catalog,
     prepare_primitive_construction_points_toward_witness_resolution_report_with_catalog,
     prepare_primitive_construction_reorient_witness_resolution_report_with_catalog,
@@ -21,9 +21,10 @@ use crate::spatial_intent::{
     MoveSpatialIntent, PointsTowardSpatialIntent, PrimitiveConstructionSpatialIntentError,
     ReorientSpatialIntent, RotateSpatialIntent,
 };
-use worth_spatial::facade::{
-    SpatialPlacementConstraintError, SpatialPlacementMotionError, SpatialWitnessCatalog,
+use worth_spatial::facade::placement::{
+    SpatialPlacementConstraintError, SpatialPlacementMotionError,
 };
+use worth_spatial::facade::witness_catalog::SpatialWitnessCatalog;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionMotionRuntimeSurfaceStatus {
@@ -37,11 +38,12 @@ pub enum PrimitiveConstructionMotionRuntimeSurfaceStatus {
 pub struct PrimitiveConstructionMotionBranchPreviewRuntimeReport {
     kind: PrimitiveConstructionMotionWitnessResolutionKind,
     family: PrimitiveConstructionFamily,
-    anchor: worth_spatial::facade::SpatialAnchorRef,
+    anchor: worth_spatial::facade::refs::SpatialAnchorRef,
     requested_witness: PrimitiveConstructionRequestedMotionWitness,
     motion_status: PrimitiveConstructionMotionWitnessResolutionStatus,
     resolved_witness: Option<PrimitiveConstructionResolvedMotionWitness>,
-    resolution_class: Option<worth_spatial::facade::SpatialWitnessResolutionClass>,
+    resolution_class:
+        Option<worth_spatial::facade::witness_resolution::SpatialWitnessResolutionClass>,
     failure_kind: Option<PrimitiveConstructionMotionWitnessResolutionFailureKind>,
     runtime_surface_status: PrimitiveConstructionMotionRuntimeSurfaceStatus,
     runtime_report: Option<PrimitiveConstructionBranchPreviewRuntimeReport>,
@@ -93,7 +95,7 @@ impl PrimitiveConstructionMotionBranchPreviewRuntimeReport {
     pub fn family(&self) -> PrimitiveConstructionFamily {
         self.family
     }
-    pub fn anchor(&self) -> &worth_spatial::facade::SpatialAnchorRef {
+    pub fn anchor(&self) -> &worth_spatial::facade::refs::SpatialAnchorRef {
         &self.anchor
     }
     pub fn requested_witness(&self) -> &PrimitiveConstructionRequestedMotionWitness {
@@ -105,7 +107,9 @@ impl PrimitiveConstructionMotionBranchPreviewRuntimeReport {
     pub fn resolved_witness(&self) -> Option<PrimitiveConstructionResolvedMotionWitness> {
         self.resolved_witness
     }
-    pub fn resolution_class(&self) -> Option<worth_spatial::facade::SpatialWitnessResolutionClass> {
+    pub fn resolution_class(
+        &self,
+    ) -> Option<worth_spatial::facade::witness_resolution::SpatialWitnessResolutionClass> {
         self.resolution_class
     }
     pub fn failure_kind(&self) -> Option<PrimitiveConstructionMotionWitnessResolutionFailureKind> {
@@ -114,6 +118,7 @@ impl PrimitiveConstructionMotionBranchPreviewRuntimeReport {
     pub fn runtime_surface_status(&self) -> PrimitiveConstructionMotionRuntimeSurfaceStatus {
         self.runtime_surface_status
     }
+    #[cfg(test)]
     pub fn runtime_report(&self) -> Option<&PrimitiveConstructionBranchPreviewRuntimeReport> {
         self.runtime_report.as_ref()
     }
@@ -132,7 +137,7 @@ pub fn prepare_primitive_construction_move_branch_preview_runtime_report(
     prepare_primitive_construction_move_branch_preview_runtime_report_with_catalog(
         workspace,
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 
@@ -163,7 +168,7 @@ pub fn prepare_primitive_construction_reorient_branch_preview_runtime_report(
     prepare_primitive_construction_reorient_branch_preview_runtime_report_with_catalog(
         workspace,
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 
@@ -185,6 +190,7 @@ pub fn prepare_primitive_construction_reorient_branch_preview_runtime_report_wit
     })
 }
 
+#[cfg(test)]
 pub fn prepare_primitive_construction_rotate_branch_preview_runtime_report(
     workspace: &mut ForgeQueryWorkspace,
     intent: RotateSpatialIntent<PrimitiveConstructionIntent>,
@@ -195,7 +201,7 @@ pub fn prepare_primitive_construction_rotate_branch_preview_runtime_report(
     prepare_primitive_construction_rotate_branch_preview_runtime_report_with_catalog(
         workspace,
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 
@@ -215,20 +221,6 @@ pub fn prepare_primitive_construction_rotate_branch_preview_runtime_report_with_
     prepare_branch_report(workspace, motion_report, || {
         intent.finish_with_catalog(catalog)
     })
-}
-
-pub fn prepare_primitive_construction_points_toward_branch_preview_runtime_report(
-    workspace: &mut ForgeQueryWorkspace,
-    intent: PointsTowardSpatialIntent<PrimitiveConstructionIntent>,
-) -> Result<
-    PrimitiveConstructionMotionBranchPreviewRuntimeReport,
-    PrimitiveConstructionRuntimeBasisError,
-> {
-    prepare_primitive_construction_points_toward_branch_preview_runtime_report_with_catalog(
-        workspace,
-        intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
-    )
 }
 
 pub fn prepare_primitive_construction_points_toward_branch_preview_runtime_report_with_catalog(

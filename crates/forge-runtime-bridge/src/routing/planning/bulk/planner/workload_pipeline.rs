@@ -123,18 +123,15 @@ fn canonical_workload_request(
 ) -> CanonicalBridgeWorkloadRequest {
     let route_members = planned_routes
         .iter()
-        .map(|route| Arc::<str>::from(route.route_identity().as_str().to_owned()))
+        .map(|route| route.route_identity().clone())
         .collect::<Vec<_>>();
     let mut subscription_slice_members = planned_routes
         .iter()
         .map(|route| {
-            Arc::<str>::from(
-                route
-                    .lowering_summary()
-                    .subscription_slice_identity()
-                    .as_str()
-                    .to_owned(),
-            )
+            route
+                .lowering_summary()
+                .subscription_slice_identity()
+                .clone()
         })
         .collect::<Vec<_>>();
     subscription_slice_members.sort();
@@ -145,55 +142,40 @@ fn canonical_workload_request(
             route
                 .mapping_context()
                 .lineage_context()
-                .map(|lineage_context| {
-                    Arc::<str>::from(lineage_context.authority_basis().digest().to_owned())
-                })
+                .map(bulk_continuity_member_identity)
         })
         .collect::<Vec<_>>();
     continuity_members.sort();
     continuity_members.dedup();
     let mut truth_view_members = planned_routes
         .iter()
-        .map(|route| {
-            Arc::<str>::from(format!(
-                "{}:{}:{}",
-                route.source_branch().as_str(),
-                route.source_snapshot().as_str(),
-                route.source_commit().as_str()
-            ))
-        })
+        .map(bulk_truth_view_member_identity)
         .collect::<Vec<_>>();
     truth_view_members.sort();
     truth_view_members.dedup();
     let mut commit_members = planned_routes
         .iter()
-        .map(|route| Arc::<str>::from(route.source_commit().as_str().to_owned()))
+        .map(|route| route.source_commit().clone())
         .collect::<Vec<_>>();
     commit_members.sort();
     commit_members.dedup();
     let mut snapshot_members = planned_routes
         .iter()
-        .map(|route| Arc::<str>::from(route.source_snapshot().as_str().to_owned()))
+        .map(|route| route.source_snapshot().clone())
         .collect::<Vec<_>>();
     snapshot_members.sort();
     snapshot_members.dedup();
     let mut branch_members = planned_routes
         .iter()
-        .map(|route| Arc::<str>::from(route.source_branch().as_str().to_owned()))
+        .map(|route| route.source_branch().clone())
         .collect::<Vec<_>>();
     branch_members.sort();
     branch_members.dedup();
-    let mut workload_segment_digests = segments
+    let mut workload_segment_identities = segments
         .iter()
-        .map(|segment| {
-            Arc::<str>::from(format!(
-                "segment|commit={}|mapping-context={}",
-                segment.request().commit_identity(),
-                segment.mapping_context().digest()
-            ))
-        })
+        .map(bulk_workload_segment_identity)
         .collect::<Vec<_>>();
-    workload_segment_digests.sort();
+    workload_segment_identities.sort();
 
     CanonicalBridgeWorkloadRequest::new(
         workload_identity,
@@ -204,21 +186,34 @@ fn canonical_workload_request(
         commit_members,
         snapshot_members,
         branch_members,
-        workload_segment_digests,
+        workload_segment_identities,
     )
+}
+
+fn bulk_workload_segment_identity(
+    segment: &BridgeBulkWorkloadSegment,
+) -> BulkWorkloadSegmentIdentity {
+    BulkWorkloadSegmentIdentity::new(digest_string(
+        "bulk-workload-segment",
+        &format!(
+            "bulk-workload-segment|commit={}|mapping-context={}",
+            segment.request().commit_identity().as_str(),
+            segment.mapping_context().digest()
+        ),
+    ))
 }
 
 fn normalized_workload_summary(
     canonical_request: &CanonicalBridgeWorkloadRequest,
     planned_routes: &[BridgePlannedRoute],
 ) -> NormalizedBridgeWorkloadSummary {
-    let mut branch_scopes = std::collections::BTreeSet::<Arc<str>>::new();
-    let mut snapshot_scopes = std::collections::BTreeSet::<Arc<str>>::new();
+    let mut branch_scopes =
+        std::collections::BTreeSet::<crate::input::envelope::TruthBranchIdentity>::new();
+    let mut snapshot_scopes =
+        std::collections::BTreeSet::<crate::snapshot::TruthSnapshotIdentity>::new();
     for route in planned_routes {
-        branch_scopes.insert(Arc::<str>::from(route.source_branch().as_str().to_owned()));
-        snapshot_scopes.insert(Arc::<str>::from(
-            route.source_snapshot().as_str().to_owned(),
-        ));
+        branch_scopes.insert(route.source_branch().clone());
+        snapshot_scopes.insert(route.source_snapshot().clone());
     }
     NormalizedBridgeWorkloadSummary::new(
         canonical_request.workload_identity().clone(),
@@ -290,7 +285,7 @@ fn admitted_execution_plan(
     admission_profile_identity: BridgeAdmissionProfileIdentity,
     planning_basis: BridgeBulkPlanningBasis,
 ) -> AdmittedBridgeExecutionPlan {
-    let route_regions = route_region_keys(&planning_basis.packet_set);
+    let route_regions = route_region_identities(&planning_basis.packet_set);
     let disjoint_packet_regions = if matches!(
         planning_basis.parallel_admission.class(),
         BridgeParallelAdmissionClass::ParallelPreparationAdmitted
@@ -334,4 +329,4 @@ fn admitted_execution_plan(
         planning_basis.planning_failures,
     )
 }
-use super::{admission::*, packet_reduction::*, support::*, *};
+use super::{admission::*, member_identities::*, packet_reduction::*, support::*, *};

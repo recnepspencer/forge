@@ -1,12 +1,15 @@
 use forge_runtime_bridge::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceFamily,
-    BridgeCausalInspectionAdmissionSummary,
+    BridgeCausalEvidenceReferenceIdentity, BridgeCausalInspectionAdmissionSummary,
+    TruthCommitIdentity,
 };
 
 use super::super::super::super::*;
 use super::super::materialization::*;
 
-pub(super) fn admitted_artifact(commit_identity: &str) -> QueryCausalInspectionArtifact {
+pub(super) fn admitted_artifact(
+    commit_identity: TruthCommitIdentity,
+) -> QueryCausalInspectionArtifact {
     admitted_artifact_for(
         commit_identity,
         CausalObservationOutcome::Changed,
@@ -15,7 +18,7 @@ pub(super) fn admitted_artifact(commit_identity: &str) -> QueryCausalInspectionA
 }
 
 pub(super) fn admitted_artifact_for(
-    commit_identity: &str,
+    commit_identity: TruthCommitIdentity,
     outcome: CausalObservationOutcome,
     reason: CausalInspectionReason,
 ) -> QueryCausalInspectionArtifact {
@@ -37,10 +40,18 @@ pub(super) fn admitted_artifact_for(
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         summary,
         vec![
-            query_reference(admitted.subject().query_observation_digest()),
+            query_reference(
+                BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    admitted.subject().query_observation_digest(),
+                )
+                .expect("query observation reference identity should be valid"),
+            ),
             bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeRoute,
-                routed.route_identity().as_str(),
+                BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
+                    BridgeCausalEvidenceFamily::BridgeRoute,
+                    routed.route_identity().as_str(),
+                )
+                .expect("route evidence reference identity should be valid"),
             ),
         ],
     )
@@ -60,7 +71,7 @@ pub(super) fn admitted_artifact_for(
 }
 
 pub(super) fn advisory_artifacts(
-    commit_identity: &str,
+    commit_identity: TruthCommitIdentity,
 ) -> (QueryCausalInspectionArtifact, QueryCausalInspectionArtifact) {
     let runtime = bridge_runtime();
     let routed = runtime.route(commit_identity).unwrap();
@@ -80,10 +91,18 @@ pub(super) fn advisory_artifacts(
     let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         summary,
         vec![
-            query_reference(advisory.subject().query_observation_digest()),
+            query_reference(
+                BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    advisory.subject().query_observation_digest(),
+                )
+                .expect("query observation reference identity should be valid"),
+            ),
             bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeRoute,
-                routed.route_identity().as_str(),
+                BridgeCausalEvidenceReferenceIdentity::runtime_bridge(
+                    BridgeCausalEvidenceFamily::BridgeRoute,
+                    routed.route_identity().as_str(),
+                )
+                .expect("route evidence reference identity should be valid"),
             ),
         ],
     )
@@ -111,7 +130,9 @@ pub(super) fn advisory_artifacts(
 
 pub(super) fn denied_artifact_and_missing_evidence() -> (QueryCausalInspectionArtifact, String) {
     let runtime = bridge_runtime();
-    let routed = runtime.route("commit-query-cert-denied").unwrap();
+    let routed = runtime
+        .route(TruthCommitIdentity::new("commit-query-cert-denied"))
+        .unwrap();
     let reference_set = changed_reference_set(routed.route_identity());
     let missing_resolution = resolve_causal_evidence_references(
         reference_set.anchor().clone(),

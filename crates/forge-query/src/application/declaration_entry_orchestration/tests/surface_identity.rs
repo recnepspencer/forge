@@ -135,6 +135,7 @@ fn proof_surface_records_the_full_envelope_ceiling_sequence() {
 #[test]
 fn canonical_lowering_tracks_publication_identity_across_exposure_levels() {
     let handle = admitted_handle("collaborative");
+    let world_basis = handle.retained_world_basis();
 
     let ordinary = forge_query_lower_declaration_entry_orchestration_on_handle(
         &handle,
@@ -174,6 +175,14 @@ fn canonical_lowering_tracks_publication_identity_across_exposure_levels() {
     assert_eq!(
         checked.outcome.outcome_identity_digest(),
         proof.outcome.outcome_identity_digest()
+    );
+    assert_eq!(
+        ordinary.plan.handle_identity_digest(),
+        world_basis.handle_identity_digest()
+    );
+    assert_eq!(
+        ordinary.plan.operating_context_identity_digest(),
+        world_basis.operating_context_identity_digest()
     );
     assert_eq!(
         ordinary.plan.foundational_evidence_profile(),

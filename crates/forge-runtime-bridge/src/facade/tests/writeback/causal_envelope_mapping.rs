@@ -1,28 +1,34 @@
 use super::causal_envelope_mapping_support::{
-    binding_for, bridge_reference, query_observation_reference, writeback_admission_digest,
-    writeback_execution_digest, writeback_mapped_input_digest, writeback_mapper_envelope_digest,
-    writeback_mapper_record_digest, writeback_replay_digest,
+    binding_for, bridge_route_reference, bridge_writeback_admission_reference,
+    bridge_writeback_execution_reference, bridge_writeback_mapped_input_reference,
+    bridge_writeback_mapper_envelope_reference, bridge_writeback_mapper_record_reference,
+    bridge_writeback_replay_reference, missing_bridge_reference, query_observation_reference,
+    writeback_admission_digest, writeback_execution_digest, writeback_mapped_input_digest,
+    writeback_mapper_envelope_digest, writeback_mapper_record_digest, writeback_replay_digest,
 };
 use super::support::*;
 use crate::facade::{
     BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEnvelopeDenialKind,
     BridgeCausalEvidenceBindingClass, BridgeCausalEvidenceFamily,
+    BridgeCausalEvidenceReferenceIdentity,
 };
 
 #[test]
 fn causal_envelope_maps_retained_writeback_records_into_bridge_owned_bindings() {
     let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::development());
     let routed = runtime
-        .route("commit-causal-writeback")
+        .route(crate::facade::TruthCommitIdentity::new(
+            "commit-causal-writeback",
+        ))
         .expect("route should succeed");
     let lowered_policy = lowered_policy(&runtime);
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                "writeback:causal-envelope",
+                BridgeWritebackDeclarationIdentity::new("writeback:causal-envelope"),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
-                "strategy:sha256:causal-envelope",
+                "causal-envelope",
             ),
             &lowered_policy,
         )
@@ -31,47 +37,52 @@ fn causal_envelope_maps_retained_writeback_records_into_bridge_owned_bindings() 
         .diagnostics()
         .last_writeback_admission_record()
         .expect("writeback admission should be retained");
-    let causality = causality_basis("causality:causal-envelope", "trigger:sha256:commit-a");
+    let causality = causality_basis(
+        BridgeWritebackCausalityIdentity::new("causality:causal-envelope"),
+        "commit-a",
+    );
     let mapper_envelope = runtime.lower_writeback_mapper_envelope(
         &contract,
         &causality,
-        "effect:sha256:causal-envelope",
-        "evidence:sha256:causal-envelope",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "causal-envelope",
+        ),
     );
     let mapped_input = runtime.map_writeback_family_input(
         &contract,
         &causality,
-        "effect:sha256:causal-envelope",
-        "evidence:sha256:causal-envelope",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "causal-envelope",
+        ),
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
         BridgeWritebackEffectIdentity::new("effect:causal-envelope"),
-        "effect:sha256:causal-envelope",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "causal-envelope",
+        ),
     );
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
-        "truth-state:sha256:causal-envelope",
+        &truth_state_basis(&effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:causal-envelope"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
-    let loop_prevention = runtime.classify_writeback_loop_prevention(
-        &effect,
-        &idempotence,
-        None::<std::sync::Arc<str>>,
-        None::<std::sync::Arc<str>>,
-    );
-    let strategy_compatibility =
-        runtime.classify_writeback_strategy_compatibility(&contract, &effect, &idempotence);
+    let loop_prevention = runtime.classify_writeback_loop_prevention(&effect, &idempotence, None);
+    let strategy_coherence =
+        runtime.classify_writeback_strategy_coherence(&contract, &effect, &idempotence);
     let candidate = runtime
         .validate_writeback_candidate(
             &contract,
             &effect,
             &idempotence,
             &loop_prevention,
-            &strategy_compatibility,
+            &strategy_coherence,
         )
         .expect("candidate should validate");
     let (outcome, _) = runtime
@@ -90,12 +101,15 @@ fn causal_envelope_maps_retained_writeback_records_into_bridge_owned_bindings() 
         &contract,
         &causality,
         BridgeWritebackEffectIdentity::new("effect:causal-envelope-drifted"),
-        "effect:sha256:causal-envelope-drifted",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "causal-envelope-drifted",
+        ),
     );
     let drifted_idempotence = runtime.classify_writeback_idempotence(
         &drifted,
         &lowered_policy,
-        "truth-state:sha256:causal-envelope",
+        &truth_state_basis(&drifted),
         BridgeWritebackIdempotenceIdentity::new("idempotence:causal-envelope-drifted"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
@@ -116,35 +130,19 @@ fn causal_envelope_maps_retained_writeback_records_into_bridge_owned_bindings() 
         )
         .expect("query admission summary should be valid"),
         vec![
-            query_observation_reference("query-observation:writeback"),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeRoute,
-                routed.result().result_summary().route_identity().as_str(),
+            query_observation_reference(
+                BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    "query-observation:writeback",
+                )
+                .expect("query observation reference identity should be valid"),
             ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeWritebackAdmission,
-                admission.record_identity().as_str(),
-            ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeWritebackMapperEnvelope,
-                mapper_envelope.envelope_identity().as_str(),
-            ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeWritebackMappedFamilyInput,
-                mapped_input.mapped_input_identity().as_str(),
-            ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeWritebackMapper,
-                mapper_record.record_identity().as_str(),
-            ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeWritebackExecution,
-                execution.record_identity().as_str(),
-            ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeWritebackReplay,
-                replay.record_identity().as_str(),
-            ),
+            bridge_route_reference(routed.result().result_summary()),
+            bridge_writeback_admission_reference(&admission),
+            bridge_writeback_mapper_envelope_reference(&mapper_envelope),
+            bridge_writeback_mapped_input_reference(&mapped_input),
+            bridge_writeback_mapper_record_reference(&mapper_record),
+            bridge_writeback_execution_reference(&execution),
+            bridge_writeback_replay_reference(&replay),
         ],
     )
     .expect("request should be valid");
@@ -157,7 +155,7 @@ fn causal_envelope_maps_retained_writeback_records_into_bridge_owned_bindings() 
     assert_eq!(envelope.bindings().len(), 8);
     assert_eq!(envelope.counters().bridge_retained_lookup_count(), 7);
     assert_eq!(envelope.counters().retained_bridge_binding_count(), 7);
-    assert_eq!(envelope.counters().bridge_record_scan_fallback_count(), 0);
+    assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
     assert_eq!(
         binding_for(
             envelope.bindings(),
@@ -225,10 +223,12 @@ fn causal_envelope_maps_retained_writeback_records_into_bridge_owned_bindings() 
 }
 
 #[test]
-fn causal_envelope_denies_missing_writeback_replay_without_scan_fallback() {
+fn causal_envelope_denies_missing_writeback_replay_without_unindexed_scan() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let routed = runtime
-        .route("commit-causal-missing-writeback-replay")
+        .route(crate::facade::TruthCommitIdentity::new(
+            "commit-causal-missing-writeback-replay",
+        ))
         .expect("route should succeed");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
@@ -237,12 +237,14 @@ fn causal_envelope_denies_missing_writeback_replay_without_scan_fallback() {
         )
         .expect("query admission summary should be valid"),
         vec![
-            query_observation_reference("query-observation:missing-writeback-replay"),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeRoute,
-                routed.result().result_summary().route_identity().as_str(),
+            query_observation_reference(
+                BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    "query-observation:missing-writeback-replay",
+                )
+                .expect("query observation reference identity should be valid"),
             ),
-            bridge_reference(
+            bridge_route_reference(routed.result().result_summary()),
+            missing_bridge_reference(
                 BridgeCausalEvidenceFamily::BridgeWritebackReplay,
                 "missing-writeback-replay-record",
             ),
@@ -266,7 +268,7 @@ fn causal_envelope_denies_missing_writeback_replay_without_scan_fallback() {
     assert_eq!(denial.counters().bridge_retained_lookup_count(), 2);
     assert_eq!(denial.counters().retained_bridge_binding_count(), 1);
     assert_eq!(denial.counters().missing_bridge_record_count(), 1);
-    assert_eq!(denial.counters().bridge_record_scan_fallback_count(), 0);
+    assert_eq!(denial.counters().bridge_record_unindexed_scan_count(), 0);
 }
 
 #[test]
@@ -280,10 +282,10 @@ fn causal_envelope_writeback_admission_lookup_cost_ignores_unrelated_records() {
             runtime
                 .admit_writeback_declaration(
                     writeback_declaration(
-                        &format!("writeback:noise-{index}"),
+                        BridgeWritebackDeclarationIdentity::new(format!("writeback:noise-{index}")),
                         BridgeRequestKind::Authoritative,
                         BridgeWritebackRequestMode::WritebackCapable,
-                        &format!("strategy:sha256:noise-{index}"),
+                        &format!("noise-{index}"),
                     ),
                     &lowered_policy,
                 )
@@ -292,16 +294,18 @@ fn causal_envelope_writeback_admission_lookup_cost_ignores_unrelated_records() {
         let target = runtime
             .admit_writeback_declaration(
                 writeback_declaration(
-                    "writeback:causal-scale",
+                    BridgeWritebackDeclarationIdentity::new("writeback:causal-scale"),
                     BridgeRequestKind::Authoritative,
                     BridgeWritebackRequestMode::WritebackCapable,
-                    "strategy:sha256:causal-scale",
+                    "causal-scale",
                 ),
                 &lowered_policy,
             )
             .expect("target writeback declaration should admit");
         let routed = runtime
-            .route("commit-causal-writeback-scale")
+            .route(crate::facade::TruthCommitIdentity::new(
+                "commit-causal-writeback-scale",
+            ))
             .expect("route should succeed");
         let target_record = runtime
             .diagnostics()
@@ -314,15 +318,14 @@ fn causal_envelope_writeback_admission_lookup_cost_ignores_unrelated_records() {
             )
             .expect("query admission summary should be valid"),
             vec![
-                query_observation_reference("query-observation:writeback-scale"),
-                bridge_reference(
-                    BridgeCausalEvidenceFamily::BridgeRoute,
-                    routed.result().result_summary().route_identity().as_str(),
+                query_observation_reference(
+                    BridgeCausalEvidenceReferenceIdentity::query_observation(
+                        "query-observation:writeback-scale",
+                    )
+                    .expect("query observation reference identity should be valid"),
                 ),
-                bridge_reference(
-                    BridgeCausalEvidenceFamily::BridgeWritebackAdmission,
-                    target_record.record_identity().as_str(),
-                ),
+                bridge_route_reference(routed.result().result_summary()),
+                bridge_writeback_admission_reference(&target_record),
             ],
         )
         .expect("request should be valid");
@@ -338,7 +341,7 @@ fn causal_envelope_writeback_admission_lookup_cost_ignores_unrelated_records() {
         );
         assert_eq!(envelope.counters().bridge_retained_lookup_count(), 2);
         assert_eq!(envelope.counters().retained_bridge_binding_count(), 2);
-        assert_eq!(envelope.counters().bridge_record_scan_fallback_count(), 0);
+        assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
         envelope_identities.push(envelope.identity().identity_digest().to_string());
     }
 

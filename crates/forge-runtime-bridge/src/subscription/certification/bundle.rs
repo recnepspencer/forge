@@ -67,8 +67,8 @@ impl BridgeSubscriptionCertificationBundleDraft {
                 BridgeSubscriptionBundleFieldState::Present,
                 format!(
                     "{}:{}",
-                    BRIDGE_SUBSCRIPTION_CERTIFICATION_BUNDLE_SCHEMA_V1,
-                    BRIDGE_SUBSCRIPTION_CERTIFICATION_DIGEST_ALGORITHM_V1
+                    assembly_plan.bundle_schema_version(),
+                    assembly_plan.bundle_digest_algorithm()
                 ),
             ),
             BridgeSubscriptionBundleField::new(
@@ -119,8 +119,8 @@ impl BridgeSubscriptionCertificationBundleDraft {
             .join(",");
         let canonical_basis = Arc::<str>::from(format!(
             "bridge-subscription-certification-bundle-draft|schema={}|algorithm={}|plan={}|cost-profile={}|scratch={}|semantic-digests={}|completeness={}|counters={}|fields={field_digests}",
-            BRIDGE_SUBSCRIPTION_CERTIFICATION_BUNDLE_SCHEMA_V1,
-            BRIDGE_SUBSCRIPTION_CERTIFICATION_DIGEST_ALGORITHM_V1,
+            assembly_plan.bundle_schema_version(),
+            assembly_plan.bundle_digest_algorithm(),
             assembly_plan.digest(),
             cost_profile.digest(),
             scratch.digest(),
@@ -130,8 +130,8 @@ impl BridgeSubscriptionCertificationBundleDraft {
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {
-            schema_version: Arc::from(BRIDGE_SUBSCRIPTION_CERTIFICATION_BUNDLE_SCHEMA_V1),
-            digest_algorithm: Arc::from(BRIDGE_SUBSCRIPTION_CERTIFICATION_DIGEST_ALGORITHM_V1),
+            schema_version: Arc::from(assembly_plan.bundle_schema_version()),
+            digest_algorithm: Arc::from(assembly_plan.bundle_digest_algorithm()),
             assembly_plan_digest: Arc::from(assembly_plan.digest()),
             cost_profile_digest: Arc::from(cost_profile.digest()),
             scratch_digest: Arc::from(scratch.digest()),
@@ -276,66 +276,6 @@ pub struct BridgeSubscriptionCertificationBundleSealed {
 }
 
 impl BridgeSubscriptionCertificationBundleSealed {
-    pub(crate) fn with_schema_digest_identity_for_certification(
-        self,
-        schema_version: impl Into<Arc<str>>,
-        digest_algorithm: impl Into<Arc<str>>,
-    ) -> Self {
-        let schema_version = schema_version.into();
-        let digest_algorithm = digest_algorithm.into();
-        let canonical_basis = Arc::<str>::from(format!(
-            "bridge-subscription-certification-bundle-sealed|schema={schema_version}|algorithm={digest_algorithm}|draft={}",
-            self.digest
-        ));
-        let digest = Sha256::digest(canonical_basis.as_bytes());
-        Self {
-            schema_version,
-            digest_algorithm,
-            assembly_plan_digest: self.assembly_plan_digest,
-            cost_profile_digest: self.cost_profile_digest,
-            scratch_digest: self.scratch_digest,
-            fields: self.fields,
-            semantic_digests: self.semantic_digests,
-            completeness_report: self.completeness_report,
-            counters: self.counters,
-            canonical_basis,
-            digest: Arc::from(format!(
-                "bridge-subscription-certification-bundle-sealed:sha256:{digest:x}"
-            )),
-        }
-    }
-
-    pub(crate) fn with_required_field_count_for_certification(
-        self,
-        required_field_count: usize,
-    ) -> Self {
-        let completeness_report = BridgeSubscriptionCertificationCompletenessReport::from_fields(
-            required_field_count,
-            &self.fields,
-        );
-        let canonical_basis = Arc::<str>::from(format!(
-            "bridge-subscription-certification-bundle-sealed|completeness={}|draft={}",
-            completeness_report.digest(),
-            self.digest
-        ));
-        let digest = Sha256::digest(canonical_basis.as_bytes());
-        Self {
-            schema_version: self.schema_version,
-            digest_algorithm: self.digest_algorithm,
-            assembly_plan_digest: self.assembly_plan_digest,
-            cost_profile_digest: self.cost_profile_digest,
-            scratch_digest: self.scratch_digest,
-            fields: self.fields,
-            semantic_digests: self.semantic_digests,
-            completeness_report,
-            counters: self.counters,
-            canonical_basis,
-            digest: Arc::from(format!(
-                "bridge-subscription-certification-bundle-sealed:sha256:{digest:x}"
-            )),
-        }
-    }
-
     pub fn schema_version(&self) -> &str {
         self.schema_version.as_ref()
     }

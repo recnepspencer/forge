@@ -7,12 +7,12 @@ pub struct BridgeRoutingCounters {
     truth_delta_surface_count: usize,
     normalized_truth_delta_surface_count: usize,
     planned_slice_match_count: usize,
-    slice_fallback_count: usize,
+    slice_widening_count: usize,
     slice_suppression_count: usize,
     routing_entry_count: usize,
     invalidation_target_count: usize,
     mapping_lookup_count: usize,
-    mapping_fallback_count: usize,
+    mapping_widening_count: usize,
     snapshot_read_count: usize,
     snapshot_read_packet_count: usize,
     validation_record_count: usize,
@@ -57,8 +57,8 @@ impl BridgeRoutingCounters {
         self.planned_slice_match_count
     }
 
-    pub fn slice_fallback_count(&self) -> usize {
-        self.slice_fallback_count
+    pub fn slice_widening_count(&self) -> usize {
+        self.slice_widening_count
     }
 
     pub fn slice_suppression_count(&self) -> usize {
@@ -77,8 +77,8 @@ impl BridgeRoutingCounters {
         self.mapping_lookup_count
     }
 
-    pub fn mapping_fallback_count(&self) -> usize {
-        self.mapping_fallback_count
+    pub fn mapping_widening_count(&self) -> usize {
+        self.mapping_widening_count
     }
 
     pub fn snapshot_read_count(&self) -> usize {
@@ -133,8 +133,8 @@ impl BridgeRoutingCounters {
         self
     }
 
-    pub(crate) fn with_slice_fallback(mut self) -> Self {
-        self.slice_fallback_count += 1;
+    pub(crate) fn with_slice_widening(mut self) -> Self {
+        self.slice_widening_count += 1;
         self
     }
 
@@ -143,8 +143,8 @@ impl BridgeRoutingCounters {
         self
     }
 
-    pub(crate) fn with_mapping_fallback(mut self) -> Self {
-        self.mapping_fallback_count += 1;
+    pub(crate) fn with_mapping_widening(mut self) -> Self {
+        self.mapping_widening_count += 1;
         self
     }
 

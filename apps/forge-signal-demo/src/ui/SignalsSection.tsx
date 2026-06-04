@@ -1,4 +1,5 @@
 import React from "react";
+import { DemoPreface } from "./DemoPreface";
 import "./signalsSection.css";
 
 interface SignalsSectionProps {
@@ -40,6 +41,8 @@ export function SignalsSection({ onNavigate }: SignalsSectionProps): React.React
           path instead of a chain of hand-managed recalculations.
         </p>
       </div>
+
+      <DemoPreface demoId={1} />
 
       <div className="signals-teach-grid">
         <article className="signals-code-card">

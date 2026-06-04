@@ -1,18 +1,15 @@
-mod bundle;
 mod report;
+#[cfg(test)]
 mod suite;
 
-pub use bundle::{
-    prepare_primitive_construction_preview_bundle_from_hostility_suite,
-    prepare_primitive_construction_preview_report_bundle, PrimitiveConstructionPreviewReportBundle,
-    PrimitiveConstructionPreviewReportBundleError,
-};
+#[cfg(test)]
 pub(crate) use report::prepare_primitive_construction_preview_row;
 pub use report::{
     prepare_primitive_construction_preview_surface_report, PrimitiveConstructionPreviewCase,
     PrimitiveConstructionPreviewRow, PrimitiveConstructionPreviewSurfaceReport,
     PrimitiveConstructionPreviewSurfaceReportError,
 };
+#[cfg(test)]
 pub use suite::{
     prepare_primitive_construction_preview_hostility_suite_report,
     PrimitiveConstructionPreviewHostilitySuiteReport,
@@ -45,7 +42,7 @@ mod tests {
                 .expect("aggressive")
                 .commit_disposition(),
             SpatialIntentPreviewCommitDisposition::WouldAutoResolve(
-                worth_spatial::facade::SpatialIntentCandidate::SnapFlush
+                worth_spatial::facade::arbitration::SpatialIntentCandidate::SnapFlush
             )
         );
         assert!(report
@@ -53,7 +50,7 @@ mod tests {
             .expect("blocked")
             .warnings()
             .contains(&SpatialIntentPreviewWarning::BlockedFutureCandidate(
-                worth_spatial::facade::SpatialBlockedCapability::MergeBoolean
+                worth_spatial::facade::arbitration::SpatialBlockedCapability::MergeBoolean
             )));
         assert_eq!(
             report

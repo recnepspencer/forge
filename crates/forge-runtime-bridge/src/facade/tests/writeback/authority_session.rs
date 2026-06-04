@@ -7,10 +7,12 @@ fn writeback_batch_mutation_authority_bundle_aggregates_component_evidence() {
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                "writeback:batch-mutation-authority-bundle",
+                BridgeWritebackDeclarationIdentity::new(
+                    "writeback:batch-mutation-authority-bundle",
+                ),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
-                "strategy:sha256:batch-mutation-authority-bundle",
+                "batch-mutation-authority-bundle",
             ),
             &lowered_policy,
         )
@@ -20,23 +22,21 @@ fn writeback_batch_mutation_authority_bundle_aggregates_component_evidence() {
         &runtime,
         &lowered_policy,
         &contract,
-        "causality:batch-mutation-authority-bundle:a",
-        "trigger:sha256:batch-mutation-authority-bundle:a",
-        "effect:batch-mutation-authority-bundle:a",
-        "effect:sha256:batch-mutation-authority-bundle:a",
-        "idempotence:batch-mutation-authority-bundle:a",
-        "truth-state:sha256:batch-mutation-authority-bundle:a",
+        BridgeWritebackCausalityIdentity::new("causality:batch-mutation-authority-bundle:a"),
+        "batch-mutation-authority-bundle:a",
+        BridgeWritebackEffectIdentity::new("effect:batch-mutation-authority-bundle:a"),
+        "batch-mutation-authority-bundle:a",
+        BridgeWritebackIdempotenceIdentity::new("idempotence:batch-mutation-authority-bundle:a"),
     );
     let component_b = execute_bridge_mutation_bundle(
         &runtime,
         &lowered_policy,
         &contract,
-        "causality:batch-mutation-authority-bundle:b",
-        "trigger:sha256:batch-mutation-authority-bundle:b",
-        "effect:batch-mutation-authority-bundle:b",
-        "effect:sha256:batch-mutation-authority-bundle:b",
-        "idempotence:batch-mutation-authority-bundle:b",
-        "truth-state:sha256:batch-mutation-authority-bundle:b",
+        BridgeWritebackCausalityIdentity::new("causality:batch-mutation-authority-bundle:b"),
+        "batch-mutation-authority-bundle:b",
+        BridgeWritebackEffectIdentity::new("effect:batch-mutation-authority-bundle:b"),
+        "batch-mutation-authority-bundle:b",
+        BridgeWritebackIdempotenceIdentity::new("idempotence:batch-mutation-authority-bundle:b"),
     );
 
     let aggregate = crate::facade::BridgeBatchMutationAuthorityBundle::from_components(&[
@@ -49,8 +49,8 @@ fn writeback_batch_mutation_authority_bundle_aggregates_component_evidence() {
     assert_eq!(aggregate.causality_bundle_count(), 2);
     assert_eq!(aggregate.provenance_bundle_count(), 2);
     assert_eq!(aggregate.outcome_class_count(), 2);
-    assert_eq!(aggregate.request_digest_count(), 2);
-    assert_eq!(aggregate.receipt_digest_count(), 2);
+    assert_eq!(aggregate.authority_request_count(), 2);
+    assert_eq!(aggregate.authority_receipt_count(), 2);
     assert!(!aggregate.aggregate_causality_digest().is_empty());
     assert!(!aggregate.aggregate_provenance_digest().is_empty());
 }
@@ -59,26 +59,28 @@ fn execute_bridge_mutation_bundle(
     runtime: &RuntimeBridge,
     lowered_policy: &crate::facade::LoweredBridgeExecutionPolicy,
     contract: &crate::facade::AdmittedBridgeWritebackContract,
-    causality_identity: &str,
-    truth_trigger_digest: &str,
-    effect_identity: &str,
-    effect_digest: &str,
-    idempotence_identity: &str,
-    truth_state_digest: &str,
+    causality_identity: BridgeWritebackCausalityIdentity,
+    truth_trigger_evidence_text: &str,
+    effect_identity: BridgeWritebackEffectIdentity,
+    effect_intent_value: &str,
+    idempotence_identity: BridgeWritebackIdempotenceIdentity,
 ) -> crate::facade::BridgeMutationAuthorityBundle {
-    let causality = causality_basis(causality_identity, truth_trigger_digest);
+    let causality = causality_basis(causality_identity, truth_trigger_evidence_text);
     let effect = runtime.lower_writeback_effect(
         contract,
         &causality,
-        BridgeWritebackEffectIdentity::new(effect_identity),
-        effect_digest,
+        effect_identity,
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            effect_intent_value,
+        ),
     );
     let feedback = crate::facade::BridgeWritebackFeedbackProvenance::new(&effect);
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         lowered_policy,
-        truth_state_digest,
-        BridgeWritebackIdempotenceIdentity::new(idempotence_identity),
+        &truth_state_basis(&effect),
+        idempotence_identity,
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
     let (outcome, _) = runtime
@@ -105,29 +107,46 @@ fn runtime_records_native_writeback_execution_record_on_pre_authority_failure() 
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                "writeback:execution-record-failure",
+                BridgeWritebackDeclarationIdentity::new("writeback:execution-record-failure"),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
-                "strategy:sha256:execution-record-failure",
+                "execution-record-failure",
             ),
             &lowered_policy,
         )
         .expect("writeback declaration should admit");
+    let causality = causality_basis(
+        BridgeWritebackCausalityIdentity::new("causality:execution-record-failure"),
+        "commit-a",
+    );
     let effect = runtime.lower_writeback_effect(
         &contract,
-        &causality_basis(
-            "causality:execution-record-failure",
-            "trigger:sha256:commit-a",
-        ),
+        &causality,
         BridgeWritebackEffectIdentity::new("effect:execution-record-failure"),
-        "effect:sha256:execution-record-failure",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "execution-record-failure",
+        ),
     );
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
-        "truth-state:sha256:execution-record-failure",
+        &truth_state_basis(&effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:execution-record-failure"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
+    );
+    let changed_effect = runtime.lower_writeback_effect(
+        &contract,
+        &causality,
+        BridgeWritebackEffectIdentity::new("effect:execution-record-failure:changed"),
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "execution-record-failure:changed",
+        ),
+    );
+    let changed_feedback_provenance = runtime.derive_writeback_feedback_provenance(&changed_effect);
+    let changed_feedback_context = crate::facade::BridgeWritebackFeedbackContext::from_provenance(
+        &changed_feedback_provenance,
     );
 
     let error = runtime
@@ -135,10 +154,9 @@ fn runtime_records_native_writeback_execution_record_on_pre_authority_failure() 
             &contract,
             &effect,
             &idempotence,
-            Some("feedback-provenance:sha256:contradictory"),
-            None::<&str>,
+            Some(&changed_feedback_context),
         )
-        .expect_err("partial feedback should fail closed before authority execution");
+        .expect_err("different-effect feedback sharing causality must fail closed before authority execution");
     let record = runtime
         .diagnostics()
         .last_writeback_execution_record()
@@ -163,59 +181,74 @@ fn runtime_passes_explicit_semantic_fields_to_bound_authority() {
         runtime_with_custom_writeback_authority(BridgeRuntimePolicy::default(), authority.clone());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        "writeback:authority-request-shape",
+        BridgeWritebackDeclarationIdentity::new("writeback:authority-request-shape"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
-        "strategy:sha256:authority-request-shape",
+        "authority-request-shape",
     );
     let contract = runtime
         .admit_writeback_declaration(declaration.clone(), &lowered_policy)
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        "causality:authority-request-shape",
-        "trigger:sha256:commit-a",
+        BridgeWritebackCausalityIdentity::new("causality:authority-request-shape"),
+        "commit-a",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
         BridgeWritebackEffectIdentity::new("effect:authority-request-shape"),
-        "effect:sha256:authority-request-shape",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "authority-request-shape",
+        ),
     );
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
-        "truth-state:sha256:authority-request-shape",
+        &truth_state_basis(&effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:authority-request-shape"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
-    let loop_prevention = runtime.classify_writeback_loop_prevention(
-        &effect,
-        &idempotence,
-        None::<std::sync::Arc<str>>,
-        None::<std::sync::Arc<str>>,
-    );
-    let strategy_compatibility =
-        runtime.classify_writeback_strategy_compatibility(&contract, &effect, &idempotence);
+    let loop_prevention = runtime.classify_writeback_loop_prevention(&effect, &idempotence, None);
+    let strategy_coherence =
+        runtime.classify_writeback_strategy_coherence(&contract, &effect, &idempotence);
     let candidate = runtime
         .validate_writeback_candidate(
             &contract,
             &effect,
             &idempotence,
             &loop_prevention,
-            &strategy_compatibility,
+            &strategy_coherence,
         )
         .expect("writeback candidate validation should succeed");
 
-    runtime
+    let (_, receipt) = runtime
         .execute_writeback_authority(&contract, &effect, &idempotence)
         .expect("bound writeback authority should execute");
+    assert_eq!(receipt.effect_intent(), effect.effect_intent());
+    assert_eq!(
+        receipt.effect_intent().authoritative_patch(),
+        effect.effect_intent().authoritative_patch()
+    );
 
     let request = authority
         .take_last_request()
         .expect("authority should have received exactly one request");
     assert_eq!(request.contract_digest(), contract.digest());
-    assert_eq!(request.derived_effect_digest(), effect.digest());
-    assert_eq!(request.proposed_effect_digest(), effect.effect_digest());
+    assert_eq!(request.writeback_effect_artifact_digest(), effect.digest());
+    assert_eq!(request.effect_intent(), effect.effect_intent());
+    assert_eq!(
+        request.effect_intent().authoritative_patch(),
+        effect.effect_intent().authoritative_patch()
+    );
+    assert_eq!(
+        request.effect_intent_digest(),
+        effect.effect_intent_digest()
+    );
+    assert_eq!(
+        request.effect_intent_patch_canonical_basis(),
+        effect.effect_intent().patch_canonical_basis()
+    );
     assert_eq!(request.family_kind(), effect.family_kind());
     assert_eq!(request.effect_class(), effect.effect_class());
     assert_eq!(request.strategy_class(), effect.strategy_class());
@@ -234,8 +267,8 @@ fn runtime_passes_explicit_semantic_fields_to_bound_authority() {
         BridgeWritebackLoopDisposition::AllowAuthoritativeAttempt
     );
     assert_eq!(
-        request.strategy_compatibility_digest(),
-        strategy_compatibility.digest()
+        request.strategy_coherence_digest(),
+        strategy_coherence.digest()
     );
     let mapper_record = runtime
         .diagnostics()

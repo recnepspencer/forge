@@ -1,0 +1,12 @@
+error[E0624]: method `finish` is private
+ --> src/certification/public_facade_contracts/compile_fail/phases/public_spatial_intent_finish_helpers_demoted.rs:9:6
+  |
+9 |       .finish();
+  |        ^^^^^^ private method
+  |
+ ::: src/spatial_intent/lowering/mod.rs
+  |
+  | /     pub(crate) fn finish(
+  | |         self,
+  | |     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
+  | |_____________________________________________________________________________________- private method defined here

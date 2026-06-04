@@ -1,10 +1,10 @@
 use crate::construction::digest::digest_owned_parts;
 use crate::spatial_intent::{
-    PrimitiveIntentClarificationRequestError, PrimitiveIntentConflict, PrimitiveIntentPreview,
-    SpatialArbitrationPosture, SpatialBlockedCapability, SpatialChosenIntentAuthority,
-    SpatialIdentityContinuityClass, SpatialIdentityContinuityExplanationClass,
-    SpatialIntentCandidate, SpatialIntentConflictClass, SpatialIntentEscalation,
-    SpatialIntentPreviewCommitDisposition, SpatialIntentPreviewWarning,
+    PrimitiveIntentClarificationRequestError, PrimitiveIntentConflict,
+    PrimitiveIntentPreviewAssessment, SpatialArbitrationPosture, SpatialBlockedCapability,
+    SpatialChosenIntentAuthority, SpatialIdentityContinuityClass,
+    SpatialIdentityContinuityExplanationClass, SpatialIntentCandidate, SpatialIntentConflictClass,
+    SpatialIntentEscalation, SpatialIntentPreviewCommitDisposition, SpatialIntentPreviewWarning,
     SpatialIntentResolutionError, SpatialPreviewRichness, SpatialThresholdPosture,
 };
 
@@ -62,7 +62,7 @@ impl PrimitiveConstructionPolicyPressureRow {
             capabilities,
             profile,
         );
-        let assessment = PrimitiveIntentPreview::analyze_with_capabilities(
+        let assessment = PrimitiveIntentPreviewAssessment::analyze_with_capabilities(
             authored_act,
             &observed_relations,
             capabilities,
@@ -161,7 +161,7 @@ impl PrimitiveConstructionPolicyPressureRow {
             proximity_posture: profile.proximity_posture(),
             alignment_posture: profile.alignment_posture(),
             arbitration_posture: profile.arbitration_posture(),
-            preview_richness: assessment.preview().preview_richness(),
+            preview_richness: assessment.preview_richness(),
             conflict_class: conflict.conflict_class(),
             escalation,
             chosen_candidate,

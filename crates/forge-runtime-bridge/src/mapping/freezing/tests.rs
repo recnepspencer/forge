@@ -1,24 +1,113 @@
 use super::FrozenMappingRegistry;
-use crate::error::BridgeBuildErrorKind;
+use crate::error::{BridgeBuildErrorKind, BridgeMappingFreezeContext};
 use crate::mapping::lookup::BridgeMappingLookupKey;
 use crate::mapping::{
-    BridgeMappingFallbackClass, BridgeMappingId, BridgeMappingRegistration, CoarseRoutingMode,
-    MappingSelector, SignalInvalidationScope, TruthPatchScope,
+    AspectKeySelector, BridgeMappingId, BridgeMappingRegistration, BridgeMappingWideningClass,
+    CoarseRoutingMode, MappingSelector, SignalInvalidationScope, TruthPatchScope,
+    TruthPatchTargetSelector,
 };
+use forge_foundational::facade::{AspectKey, FieldKey, ScalarAspectType};
+mod registration_identity;
+mod target_selector_basis;
 
 fn registration(
     mapping_id: &str,
     entity: MappingSelector,
-    aspect: MappingSelector,
-    surface: MappingSelector,
+    aspect: AspectKeySelector,
+    target: TruthPatchTargetSelector,
     signal_scope: &str,
 ) -> BridgeMappingRegistration {
+    let snapshot_read_contract = declared_read_contract(&aspect);
     BridgeMappingRegistration::new(
         BridgeMappingId::new(mapping_id),
-        TruthPatchScope::new(entity, aspect, surface),
+        TruthPatchScope::new(entity, aspect, target),
+        snapshot_read_contract,
         SignalInvalidationScope::new(signal_scope),
         CoarseRoutingMode::Direct,
     )
+}
+
+fn declared_read_contract(aspect: &AspectKeySelector) -> crate::snapshot::SnapshotReadContract {
+    let AspectKeySelector::Exact(aspect_key) = aspect else {
+        panic!("mapping registrations must declare an exact aspect read contract")
+    };
+    crate::snapshot::SnapshotReadContract::scalar(aspect_key.clone(), ScalarAspectType::String)
+}
+
+fn aspect(value: &str) -> AspectKeySelector {
+    AspectKeySelector::exact(AspectKey::new(value).expect("valid native aspect key"))
+}
+
+fn field(value: &str) -> TruthPatchTargetSelector {
+    TruthPatchTargetSelector::entity_field(
+        FieldKey::new(value.to_owned()).expect("valid native field key"),
+    )
+}
+
+fn any_target() -> TruthPatchTargetSelector {
+    TruthPatchTargetSelector::any()
+}
+
+fn lookup_key<'a>(
+    entity: &'a str,
+    aspect_key: &'a AspectKey,
+    target: &'a TruthPatchTargetSelector,
+) -> BridgeMappingLookupKey<'a> {
+    match target {
+        TruthPatchTargetSelector::EntityField(path) => BridgeMappingLookupKey::new(
+            entity,
+            aspect_key,
+            Some(path),
+            crate::mapping::TruthDeltaSurfaceKind::EntityField,
+        ),
+        TruthPatchTargetSelector::EntityRegion => BridgeMappingLookupKey::new(
+            entity,
+            aspect_key,
+            None,
+            crate::mapping::TruthDeltaSurfaceKind::EntityRegion,
+        ),
+        TruthPatchTargetSelector::EntityPartition => BridgeMappingLookupKey::new(
+            entity,
+            aspect_key,
+            None,
+            crate::mapping::TruthDeltaSurfaceKind::EntityPartition,
+        ),
+        TruthPatchTargetSelector::EntityRelationEndpoint => BridgeMappingLookupKey::new(
+            entity,
+            aspect_key,
+            None,
+            crate::mapping::TruthDeltaSurfaceKind::EntityRelationEndpoint,
+        ),
+        TruthPatchTargetSelector::EntityFacet => BridgeMappingLookupKey::new(
+            entity,
+            aspect_key,
+            None,
+            crate::mapping::TruthDeltaSurfaceKind::EntityFacet,
+        ),
+        TruthPatchTargetSelector::Any => panic!("lookup keys must use exact native targets"),
+    }
+}
+
+fn freeze_context(error: &crate::error::BridgeBuildError) -> &BridgeMappingFreezeContext {
+    error
+        .context()
+        .mapping_freeze_context()
+        .expect("mapping freeze denial should retain typed freeze context")
+}
+
+fn sorted_context_mapping_id_assertion_pair(context: &BridgeMappingFreezeContext) -> [&str; 2] {
+    let mut mapping_ids = [
+        context
+            .mapping_id()
+            .expect("primary mapping id should be retained")
+            .as_str(),
+        context
+            .conflicting_mapping_id()
+            .expect("conflicting mapping id should be retained")
+            .as_str(),
+    ];
+    mapping_ids.sort_unstable();
+    mapping_ids
 }
 
 #[test]
@@ -38,15 +127,15 @@ fn freeze_rejects_duplicate_semantic_registrations() {
         registration(
             "alpha",
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            aspect("profile"),
+            field("name"),
             "signal.user.profile",
         ),
         registration(
             "beta",
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            aspect("profile"),
+            field("name"),
             "signal.user.profile",
         ),
     ])
@@ -56,6 +145,11 @@ fn freeze_rejects_duplicate_semantic_registrations() {
         error.kind(),
         BridgeBuildErrorKind::DuplicateMappingRegistration
     );
+    let context = freeze_context(&error);
+    assert_eq!(
+        sorted_context_mapping_id_assertion_pair(context),
+        ["alpha", "beta"]
+    );
 }
 
 #[test]
@@ -64,15 +158,15 @@ fn freeze_rejects_duplicate_mapping_ids_even_when_scopes_differ() {
         registration(
             "shared-id",
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            aspect("profile"),
+            field("name"),
             "signal.user.profile.name",
         ),
         registration(
             "shared-id",
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("avatar"),
+            aspect("profile"),
+            field("avatar"),
             "signal.user.profile.avatar",
         ),
     ])
@@ -82,7 +176,21 @@ fn freeze_rejects_duplicate_mapping_ids_even_when_scopes_differ() {
         error.kind(),
         BridgeBuildErrorKind::DuplicateMappingRegistration
     );
-    assert!(error.to_string().contains("shared-id"));
+    let context = freeze_context(&error);
+    assert_eq!(
+        context
+            .mapping_id()
+            .expect("primary mapping id should be retained")
+            .as_str(),
+        "shared-id"
+    );
+    assert_eq!(
+        context
+            .conflicting_mapping_id()
+            .expect("conflicting mapping id should be retained")
+            .as_str(),
+        "shared-id"
+    );
 }
 
 #[test]
@@ -91,15 +199,15 @@ fn freeze_rejects_same_rank_overlap() {
         registration(
             "entity-wide",
             MappingSelector::exact("user"),
-            MappingSelector::any(),
-            MappingSelector::exact("name"),
+            aspect("profile"),
+            any_target(),
             "signal.entity-wide",
         ),
         registration(
             "aspect-wide",
             MappingSelector::any(),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            aspect("profile"),
+            field("name"),
             "signal.aspect-wide",
         ),
     ])
@@ -109,6 +217,11 @@ fn freeze_rejects_same_rank_overlap() {
         error.kind(),
         BridgeBuildErrorKind::AmbiguousMappingRegistration
     );
+    let context = freeze_context(&error);
+    assert_eq!(
+        sorted_context_mapping_id_assertion_pair(context),
+        ["aspect-wide", "entity-wide"]
+    );
 }
 
 #[test]
@@ -117,15 +230,15 @@ fn freeze_allows_identical_truth_scope_for_distinct_signal_targets() {
         registration(
             "steel-bicycle",
             MappingSelector::exact("component:steel"),
-            MappingSelector::exact("cost"),
-            MappingSelector::exact("usd"),
+            aspect("cost"),
+            field("usd"),
             "price:bicycle",
         ),
         registration(
             "steel-scooter",
             MappingSelector::exact("component:steel"),
-            MappingSelector::exact("cost"),
-            MappingSelector::exact("usd"),
+            aspect("cost"),
+            field("usd"),
             "price:scooter",
         ),
     ])
@@ -143,24 +256,24 @@ fn freeze_allows_identical_truth_scope_for_distinct_signal_targets() {
 fn freeze_canonicalizes_iteration_order() {
     let registry = FrozenMappingRegistry::freeze(vec![
         registration(
-            "fallback",
+            "widening",
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::any(),
-            "signal.surface-fallback",
+            aspect("profile"),
+            any_target(),
+            "signal.surface-widening",
         ),
         registration(
             "exact",
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            aspect("profile"),
+            field("name"),
             "signal.exact",
         ),
         registration(
             "broad",
             MappingSelector::any(),
-            MappingSelector::exact("profile"),
-            MappingSelector::any(),
+            aspect("profile"),
+            any_target(),
             "signal.broad",
         ),
     ])
@@ -172,30 +285,31 @@ fn freeze_canonicalizes_iteration_order() {
         .map(|registration| registration.mapping_id().as_str())
         .collect();
 
-    assert_eq!(ordered_ids, vec!["exact", "fallback", "broad"]);
+    assert_eq!(ordered_ids, vec!["exact", "widening", "broad"]);
 }
 
 #[test]
-fn lookup_prefers_more_specific_match_before_fallback() {
+fn lookup_prefers_more_specific_match_before_widening() {
     let registry = FrozenMappingRegistry::freeze(vec![
         registration(
-            "fallback",
+            "widening",
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::any(),
-            "signal.surface-fallback",
+            aspect("profile"),
+            any_target(),
+            "signal.surface-widening",
         ),
         registration(
             "exact",
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            aspect("profile"),
+            field("name"),
             "signal.exact",
         ),
     ])
     .expect("registry freeze should succeed");
 
-    match registry.lookup(BridgeMappingLookupKey::new("user", "profile", "name")) {
+    let profile = AspectKey::new("profile").expect("valid native aspect key");
+    match registry.lookup(lookup_key("user", &profile, &field("name"))) {
         crate::mapping::BridgeMappingLookup::Exact { resolved } => {
             let matched_ids = resolved
                 .registrations()
@@ -206,17 +320,17 @@ fn lookup_prefers_more_specific_match_before_fallback() {
         other => panic!("expected exact match, found {other:?}"),
     }
 
-    match registry.lookup(BridgeMappingLookupKey::new("user", "profile", "avatar")) {
-        crate::mapping::BridgeMappingLookup::Fallback { resolved } => {
+    match registry.lookup(lookup_key("user", &profile, &field("avatar"))) {
+        crate::mapping::BridgeMappingLookup::Widening { resolved } => {
             let matched = resolved.registrations().collect::<Vec<_>>();
             assert_eq!(matched.len(), 1);
-            assert_eq!(matched[0].mapping_id().as_str(), "fallback");
+            assert_eq!(matched[0].mapping_id().as_str(), "widening");
             assert_eq!(
-                matched[0].fallback_class(),
-                Some(BridgeMappingFallbackClass::Surface)
+                matched[0].widening_class(),
+                Some(BridgeMappingWideningClass::Surface)
             );
         }
-        other => panic!("expected fallback match, found {other:?}"),
+        other => panic!("expected widening match, found {other:?}"),
     }
 }
 
@@ -224,34 +338,31 @@ fn lookup_prefers_more_specific_match_before_fallback() {
 fn lookup_returns_all_fanout_matches_at_the_most_specific_scope() {
     let registry = FrozenMappingRegistry::freeze(vec![
         registration(
-            "fallback",
+            "widening",
             MappingSelector::exact("component:steel"),
-            MappingSelector::exact("cost"),
-            MappingSelector::any(),
-            "price:fallback",
+            aspect("cost"),
+            any_target(),
+            "price:widening",
         ),
         registration(
             "bicycle",
             MappingSelector::exact("component:steel"),
-            MappingSelector::exact("cost"),
-            MappingSelector::exact("usd"),
+            aspect("cost"),
+            field("usd"),
             "price:bicycle",
         ),
         registration(
             "wheelbarrow",
             MappingSelector::exact("component:steel"),
-            MappingSelector::exact("cost"),
-            MappingSelector::exact("usd"),
+            aspect("cost"),
+            field("usd"),
             "price:wheelbarrow",
         ),
     ])
     .expect("fanout and specificity should coexist");
 
-    match registry.lookup(BridgeMappingLookupKey::new(
-        "component:steel",
-        "cost",
-        "usd",
-    )) {
+    let cost = AspectKey::new("cost").expect("valid native aspect key");
+    match registry.lookup(lookup_key("component:steel", &cost, &field("usd"))) {
         crate::mapping::BridgeMappingLookup::Exact { resolved } => {
             let matched_ids = resolved
                 .registrations()
@@ -268,8 +379,8 @@ fn freeze_rejects_empty_mapping_values() {
     let error = FrozenMappingRegistry::freeze(vec![registration(
         " ",
         MappingSelector::exact("user"),
-        MappingSelector::exact("profile"),
-        MappingSelector::exact("name"),
+        aspect("profile"),
+        field("name"),
         "signal.valid",
     )])
     .expect_err("empty mapping identifiers must fail");
@@ -278,5 +389,13 @@ fn freeze_rejects_empty_mapping_values() {
         error.kind(),
         BridgeBuildErrorKind::AmbiguousMappingRegistration
     );
-    assert!(error.to_string().contains("mapping id"));
+    let context = freeze_context(&error);
+    assert_eq!(
+        context
+            .mapping_id()
+            .expect("invalid mapping id should be retained")
+            .as_str(),
+        " "
+    );
+    assert_eq!(context.invalid_field(), Some("mapping id"));
 }

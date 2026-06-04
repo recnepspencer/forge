@@ -2,7 +2,10 @@
 
 use std::sync::Arc;
 
-use forge_foundational::facade::AspectKey;
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectKey, AspectLocator, AspectMask, CanonicalFieldPath, MutationMask,
+    ProjectionMask,
+};
 
 use crate::clone_budget::CheapClone;
 use crate::identity::{
@@ -11,7 +14,10 @@ use crate::identity::{
 use crate::snapshot::TruthSnapshotIdentity;
 
 mod canonical;
-mod producer_and_raw;
+mod construction;
+mod core;
+mod target;
 
 pub use canonical::*;
-pub use producer_and_raw::*;
+pub use core::*;
+pub use target::*;

@@ -130,7 +130,7 @@ pub(super) fn forge_proof_api_evidence() -> Vec<FoundationalTransitionForgeProof
     vec![
         FoundationalTransitionForgeProofApiEvidence::new(
             FoundationalTransitionForgeProofApi::TransitionOutcomeStructuredCategories,
-            "src/transitions/merges/builder.rs",
+            "src/transitions/merges/admission.rs",
             "TransitionOutcome::",
         ),
         FoundationalTransitionForgeProofApiEvidence::new(

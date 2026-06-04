@@ -106,14 +106,17 @@ mod tests {
     fn advisory_classification_prefers_exact_for_equal_snapshot() {
         let contract = contract();
         let packet = crate::snapshot::SnapshotReadPacket::new(vec![]);
-        let target =
-            StructuralFingerprint::from_snapshot_read_packet(&contract, &packet, "snapshot-a");
+        let target = StructuralFingerprint::from_snapshot_read_packet(
+            &contract,
+            &packet,
+            TruthSnapshotIdentity::new("snapshot-a"),
+        );
         let candidates = classify_advisory_candidates(
             &target,
             vec![StructuralFingerprint::from_snapshot_read_packet(
                 &contract,
                 &packet,
-                "snapshot-a",
+                TruthSnapshotIdentity::new("snapshot-a"),
             )],
         );
         assert_eq!(candidates.len(), 1);
@@ -129,18 +132,21 @@ mod tests {
         let left = StructuralFingerprint::from_snapshot_read_packet(
             &contract,
             &crate::snapshot::SnapshotReadPacket::new(vec![]),
-            "snapshot-a",
+            TruthSnapshotIdentity::new("snapshot-a"),
         );
         let right = StructuralFingerprint::from_snapshot_read_packet(
             &contract,
             &crate::snapshot::SnapshotReadPacket::new(vec![
                 crate::snapshot::SnapshotReadRequest::for_coarse(
                     "entity-1",
-                    forge_foundational::facade::AspectKey::new("profile")
-                        .expect("valid snapshot aspect key"),
+                    crate::snapshot::SnapshotReadContract::scalar(
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid snapshot aspect key"),
+                        forge_foundational::facade::ScalarAspectType::String,
+                    ),
                 ),
             ]),
-            "snapshot-a",
+            TruthSnapshotIdentity::new("snapshot-a"),
         );
         assert_eq!(classify_branch_comparison(&left, &right).len(), 1);
     }
@@ -149,14 +155,17 @@ mod tests {
     fn advisory_candidate_identity_uses_stable_semantic_kind_name() {
         let contract = contract();
         let packet = crate::snapshot::SnapshotReadPacket::new(vec![]);
-        let target =
-            StructuralFingerprint::from_snapshot_read_packet(&contract, &packet, "snapshot-a");
+        let target = StructuralFingerprint::from_snapshot_read_packet(
+            &contract,
+            &packet,
+            TruthSnapshotIdentity::new("snapshot-a"),
+        );
         let candidates = classify_advisory_candidates(
             &target,
             vec![StructuralFingerprint::from_snapshot_read_packet(
                 &contract,
                 &packet,
-                "snapshot-a",
+                TruthSnapshotIdentity::new("snapshot-a"),
             )],
         );
 

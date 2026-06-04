@@ -1,13 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use forge_runtime_bridge::facade::{
-        BridgeCommittedPatchItem, BridgeDeliveryReceipt, BridgeHistoricalLineageAuthority,
-        BridgeMappingId, BridgeMappingRegistration, BridgeRuntimePolicy,
-        BridgeSignalInvalidationDelivery, BridgeSnapshotReadError, BridgeSourceAdapter,
-        BridgeSourceCapability, BridgeSourceCapabilitySet, BridgeTruthViewSelector,
-        CoarseRoutingMode, CommittedPatchSource, InvalidationSink, RawCommittedPatchEnvelope,
+        BridgeCommittedPatchEnvelope, BridgeCommittedPatchItem, BridgeDeliveryReceipt,
+        BridgeHistoricalLineageAuthority, BridgeHistoricalResolvedLineageIdentity,
+        BridgeHistoricalResolvedRecordIdentity, BridgeMappingId, BridgeMappingRegistration,
+        BridgeRuntimePolicy, BridgeSignalInvalidationDelivery, BridgeSnapshotReadError,
+        BridgeSourceAdapter, BridgeSourceCapability, BridgeSourceCapabilitySet,
+        BridgeTruthViewSelector, CoarseRoutingMode, CommittedPatchSource, InvalidationSink,
         ReducedStructuralMatchSet, RelationalBridgeSourceError, RelationalCommittedPatchRequest,
         RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope,
         SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource,
@@ -48,19 +47,30 @@ mod tests {
         fn load_committed_patch(
             &self,
             request: RelationalCommittedPatchRequest,
-        ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
-            Ok(RawCommittedPatchEnvelope::new(
-                TruthCommitIdentity::new(request.commit_identity()),
-                TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
-                TruthSnapshotIdentity::new("snapshot-a"),
-                TruthBranchIdentity::new("analysis"),
-                vec![BridgeCommittedPatchItem::new(
+        ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
+            Ok(BridgeCommittedPatchEnvelope::new(
+                forge_runtime_bridge::facade::BridgeCommittedPatchEnvelopeIdentity::new(
+                    request.commit_identity().clone(),
+                    TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                    TruthBranchIdentity::new("analysis"),
+                ),
+                vec![BridgeCommittedPatchItem::with_target(
                     "entity-1",
-                    forge_foundational::facade::AspectKey::new("profile")
-                        .expect("valid bridge patch aspect key"),
-                    "name",
+                    forge_runtime_bridge::facade::BridgeCommittedPatchTarget::entity_field_path(
+                        forge_foundational::facade::AspectLocator::new(
+                            forge_foundational::facade::LocatorAuthority::Authoritative,
+                            forge_foundational::facade::AspectKey::new("profile")
+                                .expect("valid native bridge patch aspect key"),
+                        ),
+                        forge_foundational::facade::CanonicalFieldPath::single(
+                            forge_foundational::facade::FieldKey::new("name".to_owned())
+                                .expect("valid native bridge patch field key"),
+                        ),
+                    ),
                 )],
-            ))
+            )
+            .expect("native bridge patch envelope fixture must construct"))
         }
     }
 
@@ -81,7 +91,12 @@ mod tests {
                 request
                     .reads()
                     .iter()
-                    .map(|read| SnapshotReadRecord::new(read.request_key(), b"fixture".to_vec()))
+                    .map(|read| {
+                        SnapshotReadRecord::for_request(
+                            read,
+                            forge_foundational::facade::AspectValue::String("fixture".into()),
+                        )
+                    })
                     .collect(),
             ))
         }
@@ -107,19 +122,30 @@ mod tests {
         fn load_branch_head_patch(
             &self,
             branch_identity: &TruthBranchIdentity,
-        ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
-            Ok(RawCommittedPatchEnvelope::new(
-                TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
-                TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
-                TruthSnapshotIdentity::new("snapshot-a"),
-                branch_identity.clone(),
-                vec![BridgeCommittedPatchItem::new(
+        ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
+            Ok(BridgeCommittedPatchEnvelope::new(
+                forge_runtime_bridge::facade::BridgeCommittedPatchEnvelopeIdentity::new(
+                    TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
+                    TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                    branch_identity.clone(),
+                ),
+                vec![BridgeCommittedPatchItem::with_target(
                     "entity-1",
-                    forge_foundational::facade::AspectKey::new("profile")
-                        .expect("valid bridge patch aspect key"),
-                    "name",
+                    forge_runtime_bridge::facade::BridgeCommittedPatchTarget::entity_field_path(
+                        forge_foundational::facade::AspectLocator::new(
+                            forge_foundational::facade::LocatorAuthority::Authoritative,
+                            forge_foundational::facade::AspectKey::new("profile")
+                                .expect("valid native bridge patch aspect key"),
+                        ),
+                        forge_foundational::facade::CanonicalFieldPath::single(
+                            forge_foundational::facade::FieldKey::new("name".to_owned())
+                                .expect("valid native bridge patch field key"),
+                        ),
+                    ),
                 )],
-            ))
+            )
+            .expect("native bridge branch head envelope fixture must construct"))
         }
     }
 
@@ -132,7 +158,7 @@ mod tests {
                 BridgeSourceCapability::SnapshotRead,
                 BridgeSourceCapability::HistoricalRead,
                 BridgeSourceCapability::BranchRead,
-                BridgeSourceCapability::ReplayCompatibleRead,
+                BridgeSourceCapability::ReplayContinuityRead,
             ])
         }
 
@@ -447,8 +473,10 @@ mod tests {
                 TruthBranchIdentity::new("main"),
                 TruthSnapshotIdentity::new("snapshot-a"),
             ),
-            vec![Arc::<str>::from("lineage:subject-a")],
-            vec![Arc::<str>::from("record:a")],
+            vec![BridgeHistoricalResolvedLineageIdentity::new(
+                "lineage:subject-a",
+            )],
+            vec![BridgeHistoricalResolvedRecordIdentity::new("record:a")],
             vec![1],
         )
         .expect("lineage authority should build");
@@ -477,8 +505,14 @@ mod tests {
                 TruthBranchIdentity::new("main"),
                 TruthSnapshotIdentity::new("snapshot-a"),
             ),
-            vec![Arc::<str>::from("lineage:a"), Arc::<str>::from("lineage:b")],
-            vec![Arc::<str>::from("record:a"), Arc::<str>::from("record:b")],
+            vec![
+                BridgeHistoricalResolvedLineageIdentity::new("lineage:a"),
+                BridgeHistoricalResolvedLineageIdentity::new("lineage:b"),
+            ],
+            vec![
+                BridgeHistoricalResolvedRecordIdentity::new("record:a"),
+                BridgeHistoricalResolvedRecordIdentity::new("record:b"),
+            ],
             vec![1, 2],
         )
         .expect("split lineage authority should build");
@@ -633,7 +667,7 @@ mod tests {
                     BridgeSourceCapability::SnapshotRead,
                     BridgeSourceCapability::HistoricalRead,
                     BridgeSourceCapability::BranchRead,
-                    BridgeSourceCapability::ReplayCompatibleRead,
+                    BridgeSourceCapability::ReplayContinuityRead,
                 ],
             ))
             .register_structural(registered_structural(
@@ -650,8 +684,19 @@ mod tests {
                 BridgeMappingId::new("mapping"),
                 TruthPatchScope::new(
                     forge_runtime_bridge::facade::MappingSelector::exact("entity-1"),
-                    forge_runtime_bridge::facade::MappingSelector::exact("profile"),
-                    forge_runtime_bridge::facade::MappingSelector::exact("name"),
+                    forge_runtime_bridge::facade::AspectKeySelector::exact(
+                        forge_foundational::facade::AspectKey::new("profile")
+                            .expect("valid native mapping aspect key"),
+                    ),
+                    forge_runtime_bridge::facade::TruthPatchTargetSelector::entity_field(
+                        forge_foundational::facade::FieldKey::new("name".to_owned())
+                            .expect("valid native mapping field key"),
+                    ),
+                ),
+                forge_runtime_bridge::facade::SnapshotReadContract::scalar(
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid native snapshot aspect key"),
+                    forge_foundational::facade::ScalarAspectType::String,
                 ),
                 SignalInvalidationScope::new("signal:profile"),
                 CoarseRoutingMode::Direct,

@@ -1,37 +1,30 @@
-import React, { useState, useEffect, useSyncExternalStore } from "react";
-import { createSignals } from "forge-signal-wasm";
+import React, { useSyncExternalStore } from "react";
 import { demoRegistry } from "../state/demoData";
-import { DemoOne } from "./demos/DemoOne";
-import { DemoTwo } from "./demos/DemoTwo";
-import { DemoThree } from "./demos/DemoThree";
-import { DemoFour } from "./demos/DemoFour";
-import { DemoFive } from "./demos/DemoFive";
-import { DemoSix } from "./demos/DemoSix";
+import { CompositionSection } from "./CompositionSection";
+import { FormsSection } from "./FormsSection";
+import { ResourceLinesSection } from "./ResourceLinesSection";
+import { ResourcesSection } from "./ResourcesSection";
+import { RouterSection } from "./RouterSection";
+import { SignalsSection } from "./SignalsSection";
 
-// React hook to safely subscribe to Forge signal handles
 export function useSignal<T>(signals: any, handle: any): T {
   const cacheRef = React.useRef<{ lastValue: T | undefined }>({ lastValue: undefined });
 
   const getSnapshot = React.useCallback(() => {
-    if (!signals || !handle) return undefined as any;
+    if (!signals || !handle) return undefined as T;
     const rawValue = typeof handle.value === "function" ? handle.value() : handle;
-    
-    // Perform structural equality check to keep the returned reference stable
     const last = cacheRef.current.lastValue;
-    if (rawValue === last) {
-      return last;
-    }
+    if (rawValue === last) return last as T;
     if (
       typeof rawValue === "object" &&
       rawValue !== null &&
       typeof last === "object" &&
-      last !== null
+      last !== null &&
+      JSON.stringify(rawValue) === JSON.stringify(last)
     ) {
-      if (JSON.stringify(rawValue) === JSON.stringify(last)) {
-        return last;
-      }
+      return last as T;
     }
-    
+
     cacheRef.current.lastValue = rawValue;
     return rawValue;
   }, [signals, handle]);
@@ -40,9 +33,7 @@ export function useSignal<T>(signals: any, handle: any): T {
     React.useCallback((onChange) => {
       if (!signals || !handle) return () => {};
       const disposable = signals.watch(handle, onChange);
-      return () => {
-        signals.nuke(disposable);
-      };
+      return () => signals.nuke(disposable);
     }, [signals, handle]),
     getSnapshot,
     getSnapshot,
@@ -54,46 +45,65 @@ interface DemosContainerProps {
   onNavigate: (path: string) => void;
 }
 
+const liveSections = {
+  1: SignalsSection,
+  2: ResourceLinesSection,
+  3: FormsSection,
+  4: RouterSection,
+  5: ResourcesSection,
+  6: CompositionSection,
+} as const;
+
+const liveDemoIds = [1, 2, 3, 4, 5, 6] as const;
+
 export const DemosContainer: React.FC<DemosContainerProps> = ({ demoId, onNavigate }) => {
-  const [signals, setSignals] = useState<any>(null);
-  const [booting, setBooting] = useState(true);
+  const demo = demoRegistry.find((entry) => entry.id === demoId);
+  const Section = liveSections[demoId as keyof typeof liveSections];
+  const demoIndex = liveDemoIds.findIndex((id) => id === demoId);
+  const previousDemoId = demoIndex >= 0 ? liveDemoIds[(demoIndex - 1 + liveDemoIds.length) % liveDemoIds.length] : null;
+  const nextDemoId = demoIndex >= 0 ? liveDemoIds[(demoIndex + 1) % liveDemoIds.length] : null;
 
-  useEffect(() => {
-    createSignals({ deployment: "mainThreadCompatibility" })
-      .then((instance) => {
-        setSignals(instance);
-        setBooting(false);
-      })
-      .catch((err) => {
-        console.error("Failed to initialize WASM signals", err);
-        setBooting(false);
-      });
-  }, []);
+  if (!demo) return <div className="xai-demo-offline">Demo not found.</div>;
 
-  const demo = demoRegistry.find((d) => d.id === demoId);
-
-  if (booting) {
-    return (
-      <div style={{ padding: "4rem", textAlign: "center", color: "var(--accent-signals)" }}>
-        <div className="spinner" style={{ border: "3px solid rgba(6,182,212,0.1)", borderTop: "3px solid var(--accent-signals)", borderRadius: "50%", width: "40px", height: "40px", animation: "spin 1s linear infinite", margin: "0 auto 1.5rem auto" }} />
-        <h3 style={{ fontWeight: 600 }}>BOOTING WEBASSEMBLY RELATIONAL CORE...</h3>
-        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
-
-  if (!demo || !signals) {
-    return <div style={{ padding: "4rem", textAlign: "center" }}>Demo not found or engine failed to initialize.</div>;
-  }
+  if (!Section) return <div className="xai-demo-offline">This route is not wired yet.</div>;
 
   return (
-    <>
-      {demoId === 1 && <DemoOne signals={signals} demo={demo} onNavigate={onNavigate} />}
-      {demoId === 2 && <DemoTwo signals={signals} demo={demo} onNavigate={onNavigate} />}
-      {demoId === 3 && <DemoThree signals={signals} demo={demo} onNavigate={onNavigate} />}
-      {demoId === 4 && <DemoFour signals={signals} demo={demo} onNavigate={onNavigate} />}
-      {demoId === 5 && <DemoFive signals={signals} demo={demo} onNavigate={onNavigate} />}
-      {demoId === 6 && <DemoSix signals={signals} demo={demo} onNavigate={onNavigate} />}
-    </>
+    <div className="xai-landing xai-demo-route">
+      <section className="xai-hero xai-demo-route-hero">
+        <div className="container xai-demo-route-shell">
+          <div className="xai-demo-route-copy">
+            <span className="xai-eyebrow">{`Demo 0${demo.id}`}</span>
+            <h1>{demo.title}</h1>
+            <p>{demo.purpose}</p>
+            <code>{demo.primaryMessage}</code>
+          </div>
+          <div className="xai-demo-route-nav-row">
+            {previousDemoId ? (
+              <button className="xai-demo-pager-button" onClick={() => onNavigate(`#/demos/${previousDemoId}`)} type="button">
+                <span aria-hidden="true">←</span>
+                <span>Previous</span>
+              </button>
+            ) : null}
+            {nextDemoId ? (
+              <button className="xai-demo-pager-button xai-demo-pager-button-next" onClick={() => onNavigate(`#/demos/${nextDemoId}`)} type="button">
+                <span>Next</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            ) : null}
+            <div className="xai-demo-route-count" aria-label="Jump to demo">
+              {liveDemoIds.map((id) => (
+                <button className={id === demoId ? "active" : ""} key={id} onClick={() => onNavigate(`#/demos/${id}`)} type="button">
+                  {`0${id}`}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="container xai-demo-route-body">
+        <Section onNavigate={onNavigate} />
+      </div>
+    </div>
   );
 };

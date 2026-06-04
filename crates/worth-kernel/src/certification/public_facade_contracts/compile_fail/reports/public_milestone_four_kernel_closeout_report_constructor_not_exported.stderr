@@ -1,8 +1,0 @@
-error[E0599]: no function or associated item named `new` found for struct `PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport` in the current scope
- --> src/certification/public_facade_contracts/compile_fail/reports/public_milestone_four_kernel_closeout_report_constructor_not_exported.rs:4:77
-  |
-4 |     let _ = PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport::new();
-  |                                                                             ^^^ function or associated item not found in `PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport`
-  |
-help: there is a method `ne` with a similar name, but with different arguments
- --> $RUST/core/src/cmp.rs

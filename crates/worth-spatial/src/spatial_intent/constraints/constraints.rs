@@ -2,9 +2,10 @@ use crate::spatial_intent::refs::{
     EmptySpatialWitnessCatalog, SpatialAnchorRef, SpatialFrameRef, SpatialPointWitnessRef,
     SpatialWitnessCatalog,
 };
+use crate::spatial_intent::resolution::witness_resolution::resolve_spatial_point_witness_with_catalog;
 use crate::spatial_intent::resolution::{
-    admit_spatial_frame, resolve_spatial_point_witness_with_catalog, AdmittedSpatialFrameRef,
-    ResolvedSpatialPointWitness, SpatialFrameError, SpatialWitnessFailureClass,
+    admit_spatial_frame, AdmittedSpatialFrameRef, ResolvedSpatialPointWitness, SpatialFrameError,
+    SpatialWitnessFailureClass,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -184,8 +185,8 @@ mod tests {
         SpatialConstraintError, SpatialLiesOnConstraintSpec, SpatialPointsTowardConstraintSpec,
     };
     use crate::facade::{
-        SpatialAnchorRef, SpatialAxis, SpatialFrameRef, SpatialPointWitnessRef,
-        SpatialWitnessFailureClass,
+        refs::{SpatialAnchorRef, SpatialAxis, SpatialFrameRef, SpatialPointWitnessRef},
+        witness_resolution::SpatialWitnessFailureClass,
     };
 
     #[test]

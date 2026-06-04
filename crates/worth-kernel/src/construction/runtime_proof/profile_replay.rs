@@ -1,5 +1,5 @@
 use crate::construction::certification::profile::prepare_primitive_construction_policy_profile_row;
-use crate::construction::certification::{
+use crate::construction::certification::profile::{
     prepare_primitive_construction_policy_profile_report, PrimitiveConstructionPolicyProfileCase,
     PrimitiveConstructionPolicyProfileRow,
 };
@@ -90,7 +90,7 @@ pub fn prepare_primitive_construction_policy_profile_replay_parity_report(
 #[cfg(test)]
 mod tests {
     use super::prepare_primitive_construction_policy_profile_replay_parity_report;
-    use crate::construction::PrimitiveConstructionPolicyProfileCase;
+    use crate::construction::certification::profile::PrimitiveConstructionPolicyProfileCase;
 
     #[test]
     fn policy_profile_replay_parity_preserves_profile_posture_truth() {

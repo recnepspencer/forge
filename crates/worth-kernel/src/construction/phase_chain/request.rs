@@ -9,7 +9,7 @@ pub(crate) use request_placement::PrimitiveConstructionPlacement;
 use request_placement::{map_geometry_placement, request_digest_parts};
 use topology::facade::TopologyConstructionQueryAdmittedHandoffError;
 use worth_geom::facade::{PrimitiveRealizationError, PrimitiveRealizationExhaustionReport};
-use worth_spatial::facade::SpatialPlacementSpec;
+use worth_spatial::facade::placement::SpatialPlacementSpec;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum PrimitiveConstructionFamily {

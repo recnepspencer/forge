@@ -1,11 +1,10 @@
 use forge_runtime_bridge::facade::BridgeWritebackFamilyKind;
 
-fn family_label(kind: BridgeWritebackFamilyKind) -> &'static str {
-    match kind {
-        BridgeWritebackFamilyKind::ProjectedStateDiff => "projected",
-    }
-}
+const ACKNOWLEDGED_WRITEBACK_FAMILY_COUNT: usize = 1;
 
 fn main() {
-    let _ = family_label(BridgeWritebackFamilyKind::ProjectedStateDiff);
+    let _acknowledged_families: [BridgeWritebackFamilyKind; ACKNOWLEDGED_WRITEBACK_FAMILY_COUNT] = [
+        BridgeWritebackFamilyKind::ProjectedStateDiff,
+        BridgeWritebackFamilyKind::AspectReconciliation,
+    ];
 }

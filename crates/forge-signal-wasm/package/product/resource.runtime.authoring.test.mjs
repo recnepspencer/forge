@@ -47,6 +47,7 @@ import "./resource_runtime/authoring/external_definition_compatibility.test.mjs"
 import "./resource_runtime/authoring/family_identity_equivalence.test.mjs";
 import "./resource_runtime/authoring/line_facade_stability.test.mjs";
 import "./resource_runtime/authoring/line_view_ownership.test.mjs";
+import "./resource_runtime/authoring/resource_react_summary_signal_boundary.test.mjs";
 import "./resource_runtime/authoring/phase1_surface_convergence.test.mjs";
 import "./resource_runtime/requests/continuation_parity_closeout.test.mjs";
 import "./resource_runtime/requests/continuation_posture.test.mjs";

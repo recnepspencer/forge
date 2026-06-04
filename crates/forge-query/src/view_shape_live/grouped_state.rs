@@ -1,13 +1,18 @@
 use crate::identity::hash_parts;
+use forge_foundational::facade::AspectKey;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct GroupedLaneIdentity {
-    grouping_aspect: String,
+    grouping_aspect: AspectKey,
     lane_key: String,
 }
 
 impl GroupedLaneIdentity {
     pub fn grouping_aspect(&self) -> &str {
+        self.grouping_aspect.as_str()
+    }
+
+    pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
 
@@ -15,9 +20,9 @@ impl GroupedLaneIdentity {
         &self.lane_key
     }
 
-    pub(crate) fn new(grouping_aspect: impl Into<String>, lane_key: impl Into<String>) -> Self {
+    pub(crate) fn new(grouping_aspect: AspectKey, lane_key: impl Into<String>) -> Self {
         Self {
-            grouping_aspect: grouping_aspect.into(),
+            grouping_aspect,
             lane_key: lane_key.into(),
         }
     }
@@ -41,7 +46,7 @@ impl GroupedMemberState {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GroupedViewResultArtifact {
-    grouping_aspect: String,
+    grouping_aspect: AspectKey,
     lane_identities: Vec<GroupedLaneIdentity>,
     member_states: Vec<GroupedMemberState>,
     row_count: usize,
@@ -49,6 +54,10 @@ pub struct GroupedViewResultArtifact {
 
 impl GroupedViewResultArtifact {
     pub fn grouping_aspect(&self) -> &str {
+        self.grouping_aspect.as_str()
+    }
+
+    pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
 
@@ -87,10 +96,14 @@ impl GroupedDesiredStateArtifact {
     pub fn grouping_aspect(&self) -> &str {
         self.result.grouping_aspect()
     }
+
+    pub fn native_grouping_aspect_key(&self) -> &AspectKey {
+        self.result.native_grouping_aspect_key()
+    }
 }
 
 pub(crate) fn desired_state_from_members(
-    grouping_aspect: String,
+    grouping_aspect: AspectKey,
     mut members: Vec<(String, String)>,
 ) -> GroupedDesiredStateArtifact {
     members.sort_by(|left, right| left.0.cmp(&right.0).then_with(|| left.1.cmp(&right.1)));
@@ -115,7 +128,7 @@ pub(crate) fn desired_state_from_members(
         row_count,
     };
     let digest = hash_parts(&[
-        format!("grouping:{grouping_aspect}"),
+        format!("grouping:{}", grouping_aspect.as_str()),
         format!("row_count:{row_count}"),
         format!(
             "members:{}",

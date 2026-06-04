@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::digest;
+use super::{causal_envelope_digest, digest_basis::BridgeCausalEnvelopeDigestArtifact};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeCausalEnvelopeIdentity {
@@ -22,8 +22,8 @@ impl BridgeCausalEnvelopeIdentity {
         let causal_observation_anchor_digest = causal_observation_anchor_digest.into();
         let evidence_binding_digest = evidence_binding_digest.into();
         let counter_digest = counter_digest.into();
-        let identity_digest = digest(
-            "bridge-causal-envelope-identity",
+        let identity_digest = causal_envelope_digest(
+            BridgeCausalEnvelopeDigestArtifact::Identity,
             &[
                 request_digest.as_ref(),
                 causal_observation_anchor_digest.as_ref(),

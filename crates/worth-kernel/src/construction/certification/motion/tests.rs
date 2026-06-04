@@ -11,15 +11,23 @@ use super::{
     PrimitiveConstructionMotionWitnessResolutionStatus,
     PrimitiveConstructionRequestedMotionWitness, PrimitiveConstructionResolvedMotionWitness,
 };
-use crate::construction::{PrimitiveConstructionIntent, RegularPyramidSpec, WireBodySpec};
-use crate::facade::{MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent};
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::specs::{RegularPyramidSpec, WireBodySpec};
+use crate::facade::authoring::intents::{
+    MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
+};
+use crate::test_support::SpatialFixtureWitnessCatalog;
 use std::collections::BTreeSet;
 use worth_geom::ParameterSpacePoint;
-use worth_spatial::facade::{
+use worth_spatial::facade::refs::{
     SpatialAnchorRef, SpatialAxis, SpatialCarrierDirectionRole, SpatialCarrierKind,
-    SpatialCarrierPointRole, SpatialCatalogResolvedDirectionWitness,
-    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
-    SpatialDirectionWitnessRef, SpatialFixtureWitnessCatalog, SpatialPointWitnessRef,
+    SpatialCarrierPointRole, SpatialDirectionWitnessRef, SpatialPointWitnessRef,
+};
+use worth_spatial::facade::witness_catalog::{
+    SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
+    SpatialCatalogWitnessResolutionClass,
+};
+use worth_spatial::facade::witness_resolution::{
     SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
 };
 
@@ -48,7 +56,7 @@ fn motion_witness_resolution_reports_preserve_requested_and_resolved_witness_tru
                 height: 2.0,
             },
         ))
-        .parallel_to(worth_spatial::facade::SpatialFrameRef::workplane(
+        .parallel_to(worth_spatial::facade::refs::SpatialFrameRef::workplane(
             "wp-1",
             [0.0, 0.0, 5.0],
             [0.0, 0.0, 1.0],

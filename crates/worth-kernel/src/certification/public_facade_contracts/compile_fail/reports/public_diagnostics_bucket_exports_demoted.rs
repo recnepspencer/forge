@@ -1,12 +1,9 @@
 use worth_kernel::facade::diagnostics::{
-    prepare_primitive_construction_move_witness_resolution_report,
-    prepare_primitive_construction_preview_surface_report, PrimitiveConstructionQueryBoundaryGapRegister,
-    PrimitiveIntentConflict,
+    prepare_primitive_construction_branch_preview_runtime_report,
 };
 
 fn main() {
-    let _ = PrimitiveIntentConflict::analyze;
-    let _ = prepare_primitive_construction_preview_surface_report;
-    let _ = prepare_primitive_construction_move_witness_resolution_report;
-    let _ = std::mem::size_of::<PrimitiveConstructionQueryBoundaryGapRegister>();
+    let _ = prepare_primitive_construction_branch_preview_runtime_report::<
+        worth_kernel::facade::authoring::construction::PrimitiveConstructionIntent,
+    >;
 }

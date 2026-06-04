@@ -1,7 +1,6 @@
 use worth_kernel::facade::{
     authoring::{intents::*, policy::*},
-    certification::policy::*,
-    diagnostics::{arbitration::*, continuity::*, policy::*, preview::*},
+    diagnostics::{arbitration::*, policy::*},
 };
 
 #[test]
@@ -143,17 +142,14 @@ fn kernel_public_facade_exports_policy_pressure_delta_surface() {
 }
 
 #[test]
-fn kernel_public_facade_exports_policy_pressure_bundle_surface() {
-    let bundle = prepare_primitive_construction_policy_pressure_report_bundle().expect("bundle");
+fn kernel_public_facade_exports_policy_pressure_direct_surfaces_without_bundle_lane() {
+    let direct = prepare_primitive_construction_policy_pressure_report().expect("direct");
+    let delta = prepare_primitive_construction_policy_pressure_delta_report().expect("delta");
 
+    assert_eq!(direct.rows().len(), 7);
+    assert_eq!(delta.rows().len(), 5);
     assert_eq!(
-        bundle.direct_report().report_digest(),
-        bundle.delta_report().direct_report().report_digest()
-    );
-    assert_eq!(bundle.required_direct_cases().len(), 7);
-    assert_eq!(bundle.required_delta_cases().len(), 5);
-    assert_eq!(
-        bundle.truth().required_direct_cases(),
-        bundle.required_direct_cases()
+        direct.report_digest(),
+        delta.direct_report().report_digest()
     );
 }

@@ -89,12 +89,12 @@ pub(super) fn closeout_digest(
                 .report_digest()
                 .to_string(),
             assembly
-                .representative_intent_bundle
-                .bundle_digest()
+                .representative_intent_evidence
+                .report_digest()
                 .to_string(),
             assembly.preview_surface_report.report_digest().to_string(),
             assembly
-                .representative_preview_bundle
+                .representative_preview_evidence
                 .report_digest()
                 .to_string(),
             assembly
@@ -102,12 +102,12 @@ pub(super) fn closeout_digest(
                 .report_digest()
                 .to_string(),
             assembly
-                .representative_continuity_bundle
+                .representative_continuity_evidence
                 .report_digest()
                 .to_string(),
             assembly.policy_profile_report.report_digest().to_string(),
             assembly
-                .representative_policy_profile_bundle
+                .representative_policy_profile_evidence
                 .report_digest()
                 .to_string(),
             assembly

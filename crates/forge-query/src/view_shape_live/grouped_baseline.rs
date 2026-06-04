@@ -92,7 +92,7 @@ pub fn materialize_authoritative_grouped_baseline(
             ViewShapeLiveCounters::default(),
         ));
     }
-    let grouping_aspect = grouped_planning.grouping_aspect();
+    let native_grouping_aspect_key = grouped_planning.native_grouping_aspect_key();
     if grouped_execution.member_rows().is_empty() {
         return Err(ViewShapeLiveError::new(
             ViewShapeLiveFailureClass::GroupedBaselineMismatch,
@@ -101,13 +101,13 @@ pub fn materialize_authoritative_grouped_baseline(
         ));
     }
     for member_row in grouped_execution.member_rows() {
-        if member_row.lane().grouping_aspect() != grouping_aspect {
+        if member_row.lane().native_grouping_aspect_key() != native_grouping_aspect_key {
             return Err(ViewShapeLiveError::new(
                 ViewShapeLiveFailureClass::GroupedBaselineMismatch,
                 format!(
                     "grouped execution surface grouping aspect '{}' does not match grouped baseline aspect '{}'",
                     member_row.lane().grouping_aspect(),
-                    grouping_aspect
+                    native_grouping_aspect_key.as_str()
                 ),
                 ViewShapeLiveCounters::default(),
             ));
@@ -118,7 +118,7 @@ pub fn materialize_authoritative_grouped_baseline(
         plan_digest: plan.view_plan_digest().clone(),
         basis_digest: basis.proof().digest().clone(),
         desired_state: desired_state_from_members(
-            grouping_aspect.to_string(),
+            native_grouping_aspect_key.clone(),
             grouped_execution
                 .member_rows()
                 .iter()
@@ -178,7 +178,7 @@ pub fn materialize_authoritative_grouped_baseline_from_members(
         plan_digest: plan.view_plan_digest().clone(),
         basis_digest: basis.proof().digest().clone(),
         desired_state: desired_state_from_members(
-            grouped_planning.grouping_aspect().to_string(),
+            grouped_planning.native_grouping_aspect_key().clone(),
             members,
         ),
     })

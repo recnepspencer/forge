@@ -129,7 +129,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
                     commit.envelope().commit.version_id,
                     &matched_patch,
                     &command.declared_aspect_paths,
-                    command.fallback_collection.as_deref(),
+                    command.declared_target_collection.as_deref(),
                 )
                 .map_err(|error| {
                     ForgeQueryWorkspaceError::new(format!(

@@ -108,7 +108,7 @@ pub(super) fn grouped_worth_actual_digest(facts: &ConsumedProjectionFactSet) -> 
                 format!(
                     "membership:{}:{}:{}",
                     fact.source_row_identity(),
-                    fact.grouping_aspect(),
+                    fact.native_grouping_aspect_key().as_str(),
                     canonical_json(fact.grouping_value())
                 )
             })
@@ -116,7 +116,9 @@ pub(super) fn grouped_worth_actual_digest(facts: &ConsumedProjectionFactSet) -> 
                 format!(
                     "relation_endpoint:{}:{}:{}",
                     fact.source_row_identity().unwrap_or("none"),
-                    fact.grouping_aspect().unwrap_or("none"),
+                    fact.native_grouping_aspect_key()
+                        .map(|key| key.as_str())
+                        .unwrap_or("none"),
                     canonical_json(fact.grouping_value().unwrap_or(&Value::Null))
                 )
             }))

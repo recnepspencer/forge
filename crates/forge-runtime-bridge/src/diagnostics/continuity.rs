@@ -54,19 +54,10 @@ impl BridgeCanonicalContinuityRecord {
         self.schema_version.as_ref()
     }
 
-    #[cfg(test)]
-    pub(crate) fn with_schema_version_for_test(
-        mut self,
-        schema_version: impl Into<Arc<str>>,
-    ) -> Self {
-        self.schema_version = schema_version.into();
-        self
-    }
-
     pub(crate) fn decode(&self) -> Result<Self, BridgeReplayError> {
         if self.schema_version() != BRIDGE_CANONICAL_CONTINUITY_RECORD_SCHEMA_V1 {
             return Err(BridgeReplayError::new(
-                BridgeReplayErrorKind::CanonicalArtifactCompatibilityFailure,
+            BridgeReplayErrorKind::CanonicalArtifactCoherenceFailure,
                 format!(
                     "Bridge canonical continuity record schema `{}` is not supported; expected `{}`.",
                     self.schema_version(),

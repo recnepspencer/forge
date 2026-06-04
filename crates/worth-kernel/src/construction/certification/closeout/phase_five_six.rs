@@ -9,6 +9,11 @@ use super::phase_five_boundary::{
     prepare_primitive_construction_phase_five_boundary_closeout_report,
     PrimitiveConstructionPhaseFiveBoundaryCloseoutReport,
 };
+use crate::construction::certification::closeout::policy_pressure_representative_evidence::{
+    prepare_primitive_construction_policy_pressure_representative_evidence,
+    PrimitiveConstructionPolicyPressureRepresentativeEvidence,
+    PrimitiveConstructionPolicyPressureRepresentativeEvidenceError,
+};
 use crate::construction::certification::corpus::{
     prepare_primitive_construction_compound_milestone_closeout_report,
     prepare_primitive_construction_simplex_realization_exhaustion_witness_report,
@@ -20,15 +25,7 @@ use crate::construction::certification::corpus::{
     PrimitiveConstructionSimplexRealizationLadderReportError,
     PrimitiveConstructionSimplexRealizationStrategyLadderReport,
 };
-use crate::construction::certification::profile::{
-    prepare_primitive_construction_policy_pressure_report_bundle,
-    PrimitiveConstructionPolicyPressureReportBundle,
-    PrimitiveConstructionPolicyPressureReportBundleError,
-};
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::proof::{
-    PrimitiveConstructionProofGrade, PrimitiveConstructionProofSubject,
-};
 
 type PhaseFiveSixProofBasis = FreshnessScopedBasis<CurrentValidity, AssumptionBasis<()>>;
 type VerifiedPhaseFiveSixArtifact = Artifact<
@@ -83,7 +80,7 @@ struct PrimitiveConstructionPhaseFiveSixCloseoutAssembly {
     compound_closeout: PrimitiveConstructionCompoundMilestoneCloseoutReport,
     simplex_ladder: PrimitiveConstructionSimplexRealizationStrategyLadderReport,
     simplex_exhaustion: PrimitiveConstructionSimplexRealizationExhaustionWitnessReport,
-    policy_pressure: PrimitiveConstructionPolicyPressureReportBundle,
+    policy_pressure: PrimitiveConstructionPolicyPressureRepresentativeEvidence,
 }
 
 impl PrimitiveConstructionPhaseFiveSixCloseoutAssembly {
@@ -92,7 +89,7 @@ impl PrimitiveConstructionPhaseFiveSixCloseoutAssembly {
         compound_closeout: PrimitiveConstructionCompoundMilestoneCloseoutReport,
         simplex_ladder: PrimitiveConstructionSimplexRealizationStrategyLadderReport,
         simplex_exhaustion: PrimitiveConstructionSimplexRealizationExhaustionWitnessReport,
-        policy_pressure: PrimitiveConstructionPolicyPressureReportBundle,
+        policy_pressure: PrimitiveConstructionPolicyPressureRepresentativeEvidence,
     ) -> Self {
         Self {
             phase_five_boundary,
@@ -136,7 +133,7 @@ pub struct PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure {
     compound_closeout: PrimitiveConstructionCompoundMilestoneCloseoutReport,
     simplex_ladder: PrimitiveConstructionSimplexRealizationStrategyLadderReport,
     simplex_exhaustion: PrimitiveConstructionSimplexRealizationExhaustionWitnessReport,
-    policy_pressure: PrimitiveConstructionPolicyPressureReportBundle,
+    policy_pressure: PrimitiveConstructionPolicyPressureRepresentativeEvidence,
     missing_simplex_scenarios: Vec<String>,
     missing_exhaustion_kinds: Vec<PrimitiveRealizationExhaustionWitnessKind>,
     mismatches: Vec<PrimitiveConstructionPhaseFiveSixCloseoutVerificationMismatch>,
@@ -144,42 +141,8 @@ pub struct PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure {
 }
 
 impl PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure {
-    pub fn phase_five_boundary(&self) -> &PrimitiveConstructionPhaseFiveBoundaryCloseoutReport {
-        &self.phase_five_boundary
-    }
-
-    pub fn compound_closeout(&self) -> &PrimitiveConstructionCompoundMilestoneCloseoutReport {
-        &self.compound_closeout
-    }
-
-    pub fn simplex_ladder(&self) -> &PrimitiveConstructionSimplexRealizationStrategyLadderReport {
-        &self.simplex_ladder
-    }
-
-    pub fn simplex_exhaustion(
-        &self,
-    ) -> &PrimitiveConstructionSimplexRealizationExhaustionWitnessReport {
-        &self.simplex_exhaustion
-    }
-
-    pub fn policy_pressure(&self) -> &PrimitiveConstructionPolicyPressureReportBundle {
-        &self.policy_pressure
-    }
-
-    pub fn missing_simplex_scenarios(&self) -> &[String] {
-        &self.missing_simplex_scenarios
-    }
-
-    pub fn missing_exhaustion_kinds(&self) -> &[PrimitiveRealizationExhaustionWitnessKind] {
-        &self.missing_exhaustion_kinds
-    }
-
     pub fn mismatches(&self) -> &[PrimitiveConstructionPhaseFiveSixCloseoutVerificationMismatch] {
         &self.mismatches
-    }
-
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
     }
 }
 
@@ -246,7 +209,7 @@ impl PrimitiveConstructionPhaseFiveSixCloseoutReport {
         &self.0.payload().assembly.simplex_exhaustion
     }
 
-    pub fn policy_pressure(&self) -> &PrimitiveConstructionPolicyPressureReportBundle {
+    pub fn policy_pressure(&self) -> &PrimitiveConstructionPolicyPressureRepresentativeEvidence {
         &self.0.payload().assembly.policy_pressure
     }
 
@@ -254,22 +217,8 @@ impl PrimitiveConstructionPhaseFiveSixCloseoutReport {
         self.0.payload().registry.required_simplex_scenarios()
     }
 
-    pub fn required_exhaustion_kinds(
-        &self,
-    ) -> &'static [PrimitiveRealizationExhaustionWitnessKind] {
-        self.0.payload().registry.required_exhaustion_kinds()
-    }
-
     pub fn report_digest(&self) -> &str {
         &self.0.payload().report_digest
-    }
-
-    pub fn proof_grade(&self) -> PrimitiveConstructionProofGrade {
-        PrimitiveConstructionProofGrade::MilestoneCloseout
-    }
-
-    pub fn proof_subject(&self) -> PrimitiveConstructionProofSubject {
-        PrimitiveConstructionProofSubject::PhaseFiveSixCloseout
     }
 }
 
@@ -373,7 +322,7 @@ fn closeout_digest(
 pub enum PrimitiveConstructionPhaseFiveSixCloseoutReportError {
     Compound(PrimitiveConstructionCompoundAdversarialSiegeError),
     SimplexLadder(PrimitiveConstructionSimplexRealizationLadderReportError),
-    PolicyPressure(PrimitiveConstructionPolicyPressureReportBundleError),
+    PolicyPressure(PrimitiveConstructionPolicyPressureRepresentativeEvidenceError),
     Verification(PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure),
 }
 
@@ -409,7 +358,7 @@ pub fn prepare_primitive_construction_phase_five_six_closeout_report(
             .map_err(PrimitiveConstructionPhaseFiveSixCloseoutReportError::SimplexLadder)?;
     let simplex_exhaustion =
         prepare_primitive_construction_simplex_realization_exhaustion_witness_report();
-    let policy_pressure = prepare_primitive_construction_policy_pressure_report_bundle()
+    let policy_pressure = prepare_primitive_construction_policy_pressure_representative_evidence()
         .map_err(PrimitiveConstructionPhaseFiveSixCloseoutReportError::PolicyPressure)?;
     verify_closeout(PrimitiveConstructionPhaseFiveSixCloseoutAssembly::new(
         phase_five_boundary,

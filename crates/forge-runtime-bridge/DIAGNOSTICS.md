@@ -50,7 +50,7 @@ unexpected result.
 Use this when you need to understand a truth-to-compute invalidation outcome.
 
 ```rust
-let route = bridge.route("commit:steel-main")?;
+let route = bridge.route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))?;
 
 let last_route = bridge.diagnostics().explain_last_route();
 let named_route = bridge.diagnostics().explain_route(route.id());
@@ -104,7 +104,7 @@ Speculation diagnostics are where you confirm:
 Use this when a speculative session crosses into authoritative territory.
 
 ```rust
-let promoted = session.promote(promotion_request)?;
+let promoted = session.promote()?;
 
 let last_promotion = bridge.diagnostics().explain_last_promotion();
 let named_promotion = bridge.diagnostics().explain_promotion(promoted.id());

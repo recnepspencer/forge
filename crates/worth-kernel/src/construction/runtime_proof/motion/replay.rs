@@ -1,4 +1,4 @@
-use crate::construction::certification::{
+use crate::construction::certification::motion::{
     prepare_primitive_construction_move_witness_resolution_report_with_catalog,
     prepare_primitive_construction_points_toward_witness_resolution_report_with_catalog,
     prepare_primitive_construction_reorient_witness_resolution_report_with_catalog,
@@ -11,7 +11,7 @@ use crate::construction::{PrimitiveConstructionFamily, PrimitiveConstructionInte
 use crate::spatial_intent::{
     MoveSpatialIntent, PointsTowardSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
 };
-use worth_spatial::facade::SpatialWitnessCatalog;
+use worth_spatial::facade::witness_catalog::SpatialWitnessCatalog;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionMotionReplayParityReport {
@@ -51,15 +51,11 @@ impl PrimitiveConstructionMotionReplayParityReport {
         }
     }
 
-    pub fn kind(&self) -> PrimitiveConstructionMotionWitnessResolutionKind {
-        self.kind
-    }
-    pub fn family(&self) -> PrimitiveConstructionFamily {
-        self.family
-    }
+    #[cfg(test)]
     pub fn direct_report(&self) -> &PrimitiveConstructionMotionWitnessResolutionReport {
         &self.direct_report
     }
+    #[cfg(test)]
     pub fn replay_report(&self) -> &PrimitiveConstructionMotionWitnessResolutionReport {
         &self.replay_report
     }
@@ -76,7 +72,7 @@ pub fn prepare_primitive_construction_move_replay_parity_report(
 ) -> PrimitiveConstructionMotionReplayParityReport {
     prepare_primitive_construction_move_replay_parity_report_with_catalog(
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 
@@ -93,12 +89,13 @@ pub fn prepare_primitive_construction_move_replay_parity_report_with_catalog(
     )
 }
 
+#[cfg(test)]
 pub fn prepare_primitive_construction_rotate_replay_parity_report(
     intent: RotateSpatialIntent<PrimitiveConstructionIntent>,
 ) -> PrimitiveConstructionMotionReplayParityReport {
     prepare_primitive_construction_rotate_replay_parity_report_with_catalog(
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 
@@ -122,7 +119,7 @@ pub fn prepare_primitive_construction_reorient_replay_parity_report(
 ) -> PrimitiveConstructionMotionReplayParityReport {
     prepare_primitive_construction_reorient_replay_parity_report_with_catalog(
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 
@@ -138,15 +135,6 @@ pub fn prepare_primitive_construction_reorient_replay_parity_report_with_catalog
         prepare_primitive_construction_reorient_witness_resolution_report_with_catalog(
             intent, catalog,
         ),
-    )
-}
-
-pub fn prepare_primitive_construction_points_toward_replay_parity_report(
-    intent: PointsTowardSpatialIntent<PrimitiveConstructionIntent>,
-) -> PrimitiveConstructionMotionReplayParityReport {
-    prepare_primitive_construction_points_toward_replay_parity_report_with_catalog(
-        intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
     )
 }
 

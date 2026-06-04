@@ -6,6 +6,7 @@ mod authority_feedback;
 mod authority_rejections;
 mod authority_session;
 mod authority_session_continuity_split;
+mod authority_session_mutation_counts;
 mod authority_session_mutation_evidence;
 mod authority_session_naming_digest;
 mod causal_envelope_mapping;

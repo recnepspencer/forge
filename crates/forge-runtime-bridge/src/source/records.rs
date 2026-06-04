@@ -9,8 +9,8 @@ use crate::snapshot::{
 };
 
 use super::counters::SourceMaterializationCounters;
-use super::record_digests::{
-    synthetic_materialized_packet_set_digest, synthetic_planned_packet_set_digest,
+use super::packet_set_digest_basis::{
+    materialized_packet_set_digest_from_observation, planned_packet_set_digest_from_observation,
 };
 use super::{AdmittedSourceContract, MaterializedTruthViewPacketSet};
 
@@ -43,9 +43,12 @@ impl SourceMaterializationRecord {
         adapter_capability_digest: impl Into<Arc<str>>,
     ) -> Self {
         let adapter_capability_digest = adapter_capability_digest.into();
-        let planned_packet_set_digest = synthetic_planned_packet_set_digest(contract, observation);
-        let materialized_packet_set_digest =
-            synthetic_materialized_packet_set_digest(&planned_packet_set_digest, observation);
+        let planned_packet_set_digest =
+            planned_packet_set_digest_from_observation(contract, observation);
+        let materialized_packet_set_digest = materialized_packet_set_digest_from_observation(
+            &planned_packet_set_digest,
+            observation,
+        );
         let counters = SourceMaterializationCounters::from_observation(contract, observation);
         let planned_packet_digests = vec![Arc::from(observation.planned().digest())];
         let read_packets = vec![observation.read_packet().clone()];

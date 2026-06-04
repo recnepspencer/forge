@@ -5,8 +5,9 @@ use forge_runtime_bridge::facade::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryMutationProvenanceEvidence {
     contract_digest: String,
-    derived_effect_digest: String,
-    proposed_effect_digest: String,
+    writeback_effect_artifact_digest: String,
+    effect_intent_digest: String,
+    effect_intent_patch_canonical_basis: String,
     feedback_provenance_digest: String,
     causality_digest: String,
     strategy_descriptor_digest: String,
@@ -23,8 +24,13 @@ impl ForgeQueryMutationProvenanceEvidence {
         let provenance = bundle.provenance();
         Self {
             contract_digest: provenance.contract_digest().to_string(),
-            derived_effect_digest: provenance.derived_effect_digest().to_string(),
-            proposed_effect_digest: provenance.proposed_effect_digest().to_string(),
+            writeback_effect_artifact_digest: provenance
+                .writeback_effect_artifact_digest()
+                .to_string(),
+            effect_intent_digest: provenance.effect_intent_digest().to_string(),
+            effect_intent_patch_canonical_basis: provenance
+                .effect_intent_patch_canonical_basis()
+                .to_string(),
             feedback_provenance_digest: provenance.feedback_provenance_digest().to_string(),
             causality_digest: provenance.causality_digest().to_string(),
             strategy_descriptor_digest: provenance.strategy_descriptor_digest().to_string(),
@@ -43,12 +49,16 @@ impl ForgeQueryMutationProvenanceEvidence {
         &self.contract_digest
     }
 
-    pub fn derived_effect_digest(&self) -> &str {
-        &self.derived_effect_digest
+    pub fn writeback_effect_artifact_digest(&self) -> &str {
+        &self.writeback_effect_artifact_digest
     }
 
-    pub fn proposed_effect_digest(&self) -> &str {
-        &self.proposed_effect_digest
+    pub fn effect_intent_digest(&self) -> &str {
+        &self.effect_intent_digest
+    }
+
+    pub fn effect_intent_patch_canonical_basis(&self) -> &str {
+        &self.effect_intent_patch_canonical_basis
     }
 
     pub fn feedback_provenance_digest(&self) -> &str {
@@ -91,8 +101,9 @@ impl ForgeQueryMutationProvenanceEvidence {
     pub(crate) fn test_only(execution_record_digest: impl Into<String>) -> Self {
         Self {
             contract_digest: "contract:test".to_string(),
-            derived_effect_digest: "derived:test".to_string(),
-            proposed_effect_digest: "proposed:test".to_string(),
+            writeback_effect_artifact_digest: "writeback-effect:test".to_string(),
+            effect_intent_digest: "effect-intent:test".to_string(),
+            effect_intent_patch_canonical_basis: "effect-intent-patch-basis:test".to_string(),
             feedback_provenance_digest: "feedback:test".to_string(),
             causality_digest: "causality:test".to_string(),
             strategy_descriptor_digest: "strategy:test".to_string(),

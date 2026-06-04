@@ -3,9 +3,12 @@ import { useRouter } from "./ui/router";
 import { Layout } from "./ui/Layout";
 import { LandingPage } from "./ui/LandingPage";
 import { DocsPage } from "./ui/DocsPage";
-import { DemosIndex } from "./ui/DemosIndex";
 import { DemosContainer } from "./ui/Demos";
 import { createSignals } from "forge-signal-wasm";
+import "./ui/landingShell.css";
+import "./ui/landingPage.css";
+import "./ui/landingMarketing.css";
+import "./ui/landingDemoRoute.css";
 
 function App() {
   const { route, navigate } = useRouter();
@@ -20,7 +23,6 @@ function App() {
     <Layout currentRoute={route} onNavigate={navigate}>
       {route.type === "landing" && <LandingPage onNavigate={navigate} />}
       {route.type === "docs" && <DocsPage subpath={route.subpath} onNavigate={navigate} />}
-      {route.type === "demos" && <DemosIndex onNavigate={navigate} />}
       {route.type === "demo-detail" && (
         <DemosContainer demoId={route.demoId} onNavigate={navigate} />
       )}

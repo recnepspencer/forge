@@ -1,4 +1,5 @@
 import { createLineHistoryEntry } from "./line_history_entry.js";
+import { readLineBindingState } from "../state/line_binding_state.js";
 
 function recordLineHistoryEntry(
   lifecycleHistory,
@@ -6,12 +7,13 @@ function recordLineHistoryEntry(
   event,
   overrides,
 ) {
+  const state = readLineBindingState(binding);
   lifecycleHistory.append(
     createLineHistoryEntry(
       event,
-      binding.statusSignal(),
-      binding.freshnessSignal(),
-      binding.diagnosticsSignal(),
+      state.status,
+      state.freshness,
+      state.diagnostics,
       overrides,
     ),
   );

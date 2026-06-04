@@ -2,6 +2,7 @@ use crate::runtime::{
     ForgeQueryContinuityMutationFamily, ForgeQueryContinuityOutcomeClass,
     ForgeQueryMutationTargetClass,
 };
+use forge_foundational::facade::AspectKey;
 use serde_json::Value;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -60,7 +61,7 @@ impl ConsumedViewLocalIdentityFact {
 pub struct ConsumedMembershipFact {
     source_row_identity: String,
     member_identity: Value,
-    grouping_aspect: String,
+    grouping_aspect: AspectKey,
     grouping_value: Value,
 }
 
@@ -74,6 +75,10 @@ impl ConsumedMembershipFact {
     }
 
     pub fn grouping_aspect(&self) -> &str {
+        self.grouping_aspect.as_str()
+    }
+
+    pub fn native_grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
 
@@ -84,13 +89,13 @@ impl ConsumedMembershipFact {
     pub(crate) fn new(
         source_row_identity: impl Into<String>,
         member_identity: Value,
-        grouping_aspect: impl Into<String>,
+        grouping_aspect: AspectKey,
         grouping_value: Value,
     ) -> Self {
         Self {
             source_row_identity: source_row_identity.into(),
             member_identity,
-            grouping_aspect: grouping_aspect.into(),
+            grouping_aspect,
             grouping_value,
         }
     }
@@ -247,7 +252,7 @@ pub enum ConsumedRelationEndpointFact {
     GroupedProjection {
         source_row_identity: String,
         member_identity: Value,
-        grouping_aspect: String,
+        grouping_aspect: AspectKey,
         grouping_value: Value,
     },
 }
@@ -299,6 +304,15 @@ impl ConsumedRelationEndpointFact {
         match self {
             Self::GroupedProjection {
                 grouping_aspect, ..
+            } => Some(grouping_aspect.as_str()),
+            Self::MutationTarget { .. } => None,
+        }
+    }
+
+    pub fn native_grouping_aspect_key(&self) -> Option<&AspectKey> {
+        match self {
+            Self::GroupedProjection {
+                grouping_aspect, ..
             } => Some(grouping_aspect),
             Self::MutationTarget { .. } => None,
         }
@@ -326,13 +340,13 @@ impl ConsumedRelationEndpointFact {
     pub(crate) fn grouped(
         source_row_identity: impl Into<String>,
         member_identity: Value,
-        grouping_aspect: impl Into<String>,
+        grouping_aspect: AspectKey,
         grouping_value: Value,
     ) -> Self {
         Self::GroupedProjection {
             source_row_identity: source_row_identity.into(),
             member_identity,
-            grouping_aspect: grouping_aspect.into(),
+            grouping_aspect,
             grouping_value,
         }
     }

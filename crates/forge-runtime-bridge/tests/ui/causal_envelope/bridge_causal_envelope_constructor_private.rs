@@ -5,15 +5,15 @@ use forge_runtime_bridge::facade::{
 };
 
 fn counters() -> BridgeCausalEnvelopeCounters {
-    unimplemented!()
+    sealed_authority_placeholder()
 }
 
 fn identity() -> BridgeCausalEnvelopeIdentity {
-    unimplemented!()
+    sealed_authority_placeholder()
 }
 
 fn receipt() -> BridgeCausalEnvelopeReceipt {
-    unimplemented!()
+    sealed_authority_placeholder()
 }
 
 fn main() {
@@ -23,12 +23,16 @@ fn main() {
     let _ = BridgeCausalExplanationEnvelope {
         identity: identity(),
         admission_summary_kind: BridgeCausalInspectionAdmissionSummaryKind::Admitted,
-        admission_summary_digest: "summary".into(),
-        request_digest: "request".into(),
-        causal_observation_anchor_digest: "anchor".into(),
+        admission_summary_digest: sealed_authority_placeholder(),
+        request_digest: sealed_authority_placeholder(),
+        causal_observation_anchor_digest: sealed_authority_placeholder(),
         bindings: bindings.into(),
         counters,
         receipt: receipt(),
-        envelope_digest: "envelope".into(),
+        envelope_digest: sealed_authority_placeholder(),
     };
+}
+
+fn sealed_authority_placeholder<T>() -> T {
+    panic!("compile-fail fixture never executes")
 }

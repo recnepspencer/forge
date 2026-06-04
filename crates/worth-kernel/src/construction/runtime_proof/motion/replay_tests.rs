@@ -4,15 +4,22 @@ use super::{
     prepare_primitive_construction_reorient_replay_parity_report_with_catalog,
     prepare_primitive_construction_rotate_replay_parity_report,
 };
-use crate::construction::{PrimitiveConstructionIntent, RegularPyramidSpec, WireBodySpec};
-use crate::facade::{MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent};
-use worth_geom::ParameterSpacePoint;
-use worth_spatial::facade::{
-    SpatialAnchorRef, SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole,
-    SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
-    SpatialCatalogWitnessResolutionClass, SpatialDirectionWitnessRef, SpatialFixtureWitnessCatalog,
-    SpatialPointWitnessRef, SpatialWitnessResolutionClass,
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::specs::{RegularPyramidSpec, WireBodySpec};
+use crate::facade::authoring::intents::{
+    MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
 };
+use crate::test_support::SpatialFixtureWitnessCatalog;
+use worth_geom::ParameterSpacePoint;
+use worth_spatial::facade::refs::{
+    SpatialAnchorRef, SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole,
+    SpatialDirectionWitnessRef, SpatialPointWitnessRef,
+};
+use worth_spatial::facade::witness_catalog::{
+    SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
+    SpatialCatalogWitnessResolutionClass,
+};
+use worth_spatial::facade::witness_resolution::SpatialWitnessResolutionClass;
 
 #[test]
 fn motion_replay_parity_reports_preserve_admitted_and_rejected_truth() {

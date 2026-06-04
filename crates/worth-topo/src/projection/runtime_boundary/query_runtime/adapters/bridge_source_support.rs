@@ -1,3 +1,4 @@
+use forge_foundational::facade::AspectValue;
 use forge_relational::facade::history::CommitId;
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId, VersionId};
 use forge_relational::facade::runtime::{EntityReadRecord, RelationReadRecord};
@@ -8,7 +9,6 @@ use forge_runtime_bridge::facade::{
 };
 use schema::facade::platform::entities::EntityKind;
 use schema::facade::platform::relations::RelationKind;
-use serde_json::Value;
 
 use crate::relational_aspect_boundary::entity_record_domain_label;
 
@@ -134,60 +134,66 @@ pub(super) fn missing_aspect_error(
     ))
 }
 
-pub(super) fn snapshot_bytes_for_entity_aspect(
+pub(super) fn snapshot_aspect_value_for_entity_aspect(
     record: &EntityReadRecord,
     aspect_label: &str,
-) -> Option<Vec<u8>> {
-    let value = match aspect_label {
-        "identity.id" => entity_identity_value(record.entity_id),
-        "lineage.provenance" => serde_json::to_value(record.entity_id).ok()?,
-        "topology.kind" => Value::String(
+) -> Option<AspectValue> {
+    match aspect_label {
+        "identity.id" => Some(entity_identity_value(record.entity_id)),
+        "lineage.provenance" => Some(entity_identity_value(record.entity_id)),
+        "topology.kind" => Some(aspect_string(
             EntityKind::from_kind_id(record.kind.kind_id)?
                 .kind_name()
                 .to_string(),
-        ),
+        )),
         "topology.structure" | "naming.persistent_name" => {
-            Value::String(entity_record_domain_label(record)?)
+            Some(aspect_string(entity_record_domain_label(record)?))
         }
         _ => return None,
-    };
-    serde_json::to_vec(&value).ok()
+    }
 }
 
-pub(super) fn snapshot_bytes_for_relation_aspect(
+pub(super) fn snapshot_aspect_value_for_relation_aspect(
     record: &RelationReadRecord,
     aspect_label: &str,
-) -> Option<Vec<u8>> {
-    let value = if aspect_label == "identity.id" {
-        relation_identity_value(record.relation_id)
+) -> Option<AspectValue> {
+    if aspect_label == "identity.id" {
+        Some(relation_identity_value(record.relation_id))
     } else if aspect_label == "lineage.provenance" {
-        serde_json::to_value(record.relation_id).ok()?
+        Some(relation_identity_value(record.relation_id))
     } else if aspect_label == "topology.kind" {
-        Value::String(
+        Some(aspect_string(
             RelationKind::from_kind_id(record.kind.kind_id)?
                 .kind_name()
                 .to_string(),
-        )
+        ))
     } else if aspect_label == "topology.source_identity" {
-        entity_identity_value(record.source)
+        Some(entity_identity_value(record.source))
     } else if aspect_label == "topology.target_identity" {
-        entity_identity_value(record.target)
+        Some(entity_identity_value(record.target))
+    } else if aspect_label == "naming.source_identity" {
+        Some(entity_identity_value(record.source))
+    } else if aspect_label == "naming.target_identity" {
+        Some(entity_identity_value(record.target))
     } else {
         return None;
-    };
-    serde_json::to_vec(&value).ok()
+    }
 }
 
-fn entity_identity_value(entity_id: EntityId) -> Value {
-    Value::String(format!(
+fn entity_identity_value(entity_id: EntityId) -> AspectValue {
+    aspect_string(format!(
         "entity:{}:{}:{}",
         entity_id.partition_id.0, entity_id.local_slot.0, entity_id.generation.0
     ))
 }
 
-fn relation_identity_value(relation_id: RelationId) -> Value {
-    Value::String(format!(
+fn relation_identity_value(relation_id: RelationId) -> AspectValue {
+    aspect_string(format!(
         "relation:{}:{}:{}",
         relation_id.partition_id.0, relation_id.local_slot.0, relation_id.generation.0
     ))
+}
+
+fn aspect_string(value: impl Into<String>) -> AspectValue {
+    AspectValue::String(value.into().into())
 }

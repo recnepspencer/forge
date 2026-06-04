@@ -5,15 +5,17 @@ use sha2::{Digest, Sha256};
 use super::{
     AdmittedBridgeWritebackContract, BridgeDerivedWritebackEffect, BridgeWritebackAuthorityOutcome,
     BridgeWritebackIdempotenceBasis, BridgeWritebackOutcomeClass, BridgeWritebackRetryDisposition,
+    BridgeWritebackStrategyDescriptorBasis,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeWritebackReplayBundle {
     contract_digest: Arc<str>,
-    effect_digest: Arc<str>,
+    effect_intent_digest: Arc<str>,
+    effect_intent_patch_canonical_basis: Arc<str>,
     family_kind: crate::writeback::BridgeWritebackFamilyKind,
     strategy_class: crate::writeback::BridgeWritebackStrategyClass,
-    strategy_descriptor_digest: Arc<str>,
+    strategy_descriptor_basis: BridgeWritebackStrategyDescriptorBasis,
     causality_digest: Arc<str>,
     idempotence_digest: Arc<str>,
     lowered_policy_digest: Arc<str>,
@@ -43,12 +45,14 @@ impl BridgeWritebackReplayBundle {
             }
         };
         let canonical_basis = Arc::<str>::from(format!(
-            "bridge-writeback-replay-bundle|contract={}|effect={}|family:{:?}|strategy-class:{:?}|strategy={}|causality={}|idempotence={}|lowered-policy={}|retry:{retry_disposition:?}|outcome={}|outcome-class:{:?}|authoritative={}",
+            "bridge-writeback-replay-bundle|contract={}|writeback-effect-artifact={}|effect-intent={}|effect-intent-patch-basis={}|family:{:?}|strategy-class:{:?}|strategy={}|causality={}|idempotence={}|lowered-policy={}|retry:{retry_disposition:?}|outcome={}|outcome-class:{:?}|authoritative={}",
             contract.digest(),
             effect.digest(),
+            effect.effect_intent().digest(),
+            effect.effect_intent().patch_canonical_basis(),
             effect.family_kind(),
             effect.strategy_class(),
-            effect.strategy_descriptor_digest(),
+            effect.strategy_descriptor_basis().digest(),
             effect.causality_digest(),
             idempotence.digest(),
             idempotence.lowered_policy_digest(),
@@ -57,12 +61,13 @@ impl BridgeWritebackReplayBundle {
             outcome.authoritative_artifact_digest(),
         ));
         let semantic_basis = Arc::<str>::from(format!(
-            "bridge-writeback-replay-bundle-semantic|family:{:?}|effect:{:?}|effect-digest={}|strategy-class:{:?}|strategy={}|causality={}|idempotence-class:{:?}|authoritative-state={}|retry:{retry_disposition:?}|outcome-class:{:?}",
+            "bridge-writeback-replay-bundle-semantic|family:{:?}|effect:{:?}|effect-intent={}|effect-intent-patch-basis={}|strategy-class:{:?}|strategy={}|causality={}|idempotence-class:{:?}|authoritative-state={}|retry:{retry_disposition:?}|outcome-class:{:?}",
             effect.family_kind(),
             effect.effect_class(),
-            effect.effect_digest(),
+            effect.effect_intent().digest(),
+            effect.effect_intent().patch_canonical_basis(),
             effect.strategy_class(),
-            effect.strategy_descriptor_digest(),
+            effect.strategy_descriptor_basis().digest(),
             effect.causality_digest(),
             idempotence.idempotence_class(),
             idempotence.authoritative_state_digest(),
@@ -72,10 +77,13 @@ impl BridgeWritebackReplayBundle {
         let semantic_digest = Sha256::digest(semantic_basis.as_bytes());
         Self {
             contract_digest: Arc::from(contract.digest().to_owned()),
-            effect_digest: Arc::from(effect.effect_digest().to_owned()),
+            effect_intent_digest: Arc::from(effect.effect_intent().digest().to_owned()),
+            effect_intent_patch_canonical_basis: Arc::from(
+                effect.effect_intent().patch_canonical_basis().to_owned(),
+            ),
             family_kind: effect.family_kind(),
             strategy_class: effect.strategy_class(),
-            strategy_descriptor_digest: Arc::from(effect.strategy_descriptor_digest().to_owned()),
+            strategy_descriptor_basis: effect.strategy_descriptor_basis().clone(),
             causality_digest: Arc::from(effect.causality_digest().to_owned()),
             idempotence_digest: Arc::from(idempotence.digest().to_owned()),
             lowered_policy_digest: Arc::from(idempotence.lowered_policy_digest().to_owned()),
@@ -102,8 +110,12 @@ impl BridgeWritebackReplayBundle {
         self.contract_digest.as_ref()
     }
 
-    pub fn effect_digest(&self) -> &str {
-        self.effect_digest.as_ref()
+    pub fn effect_intent_digest(&self) -> &str {
+        self.effect_intent_digest.as_ref()
+    }
+
+    pub fn effect_intent_patch_canonical_basis(&self) -> &str {
+        self.effect_intent_patch_canonical_basis.as_ref()
     }
 
     pub fn strategy_class(&self) -> crate::writeback::BridgeWritebackStrategyClass {
@@ -114,8 +126,12 @@ impl BridgeWritebackReplayBundle {
         self.family_kind
     }
 
+    pub fn strategy_descriptor_basis(&self) -> &BridgeWritebackStrategyDescriptorBasis {
+        &self.strategy_descriptor_basis
+    }
+
     pub fn strategy_descriptor_digest(&self) -> &str {
-        self.strategy_descriptor_digest.as_ref()
+        self.strategy_descriptor_basis.digest()
     }
 
     pub fn causality_digest(&self) -> &str {

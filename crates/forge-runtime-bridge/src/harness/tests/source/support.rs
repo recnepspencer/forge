@@ -1,8 +1,9 @@
+use crate::facade::TruthSnapshotIdentity;
 use forge_harness::facade::ScenarioPlan;
 use forge_harness::facade::{ExecutionProfile, ExecutionRequest, HarnessAdapter, RunRecord};
 
 use crate::facade::{BridgeSourceCapability, BridgeSourceCapabilitySet, BridgeTruthViewSelector};
-use crate::harness::adapter::BridgeHarnessAdapter;
+use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessTargetId};
 use crate::harness::fixtures::BridgeHarnessFixture;
 use crate::source::{SourceDeclaration, SourceDeclarationIdentity};
 
@@ -15,30 +16,35 @@ pub(super) fn source_fixture(
         name,
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
-            .with_source_declaration(historical_source_declaration("source:analysis-history"))
+            .with_source_declaration(historical_source_declaration(
+                SourceDeclarationIdentity::new("source:analysis-history"),
+            ))
             .with_source_adapter_capabilities(BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,
                 BridgeSourceCapability::HistoricalRead,
                 BridgeSourceCapability::BranchRead,
-                BridgeSourceCapability::ReplayCompatibleRead,
+                BridgeSourceCapability::ReplayContinuityRead,
             ]))
             .with_committed_patch(committed_patch_on_branch(
-                "analysis",
-                "commit-a",
-                "patch-a",
-                "snapshot-a",
-                "name",
+                crate::facade::TruthBranchIdentity::new("analysis"),
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthPatchIdentity::new("patch-a"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid harness field key"),
             ))
-            .with_snapshot(snapshot("snapshot-a", "alice")),
+            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
     )
     .declare_input("source")
     .declare_observation("source")
     .compile()
 }
 
-pub(super) fn historical_source_declaration(declaration_id: &str) -> SourceDeclaration {
+pub(super) fn historical_source_declaration(
+    declaration_identity: SourceDeclarationIdentity,
+) -> SourceDeclaration {
     SourceDeclaration::new(
-        SourceDeclarationIdentity::new(declaration_id),
+        declaration_identity,
         BridgeTruthViewSelector::historical_commit(
             crate::facade::TruthBranchIdentity::new("analysis"),
             crate::facade::TruthCommitIdentity::new("commit-a"),
@@ -47,33 +53,43 @@ pub(super) fn historical_source_declaration(declaration_id: &str) -> SourceDecla
             BridgeSourceCapability::SnapshotRead,
             BridgeSourceCapability::HistoricalRead,
             BridgeSourceCapability::BranchRead,
-            BridgeSourceCapability::ReplayCompatibleRead,
+            BridgeSourceCapability::ReplayContinuityRead,
         ]),
     )
 }
 
-pub(super) fn materialize_target() -> String {
-    "source-materialize:source:analysis-history".to_string()
+pub(super) fn materialize_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::source_materialize(SourceDeclarationIdentity::new(
+        "source:analysis-history",
+    ))
 }
 
-pub(super) fn replay_target() -> String {
-    "source-replay:source:analysis-history".to_string()
+pub(super) fn replay_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::source_replay(SourceDeclarationIdentity::new("source:analysis-history"))
 }
 
-pub(super) fn materialize_batch_target() -> String {
-    "source-materialize-batch:source:analysis-history".to_string()
+pub(super) fn materialize_batch_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::source_materialize_batch(SourceDeclarationIdentity::new(
+        "source:analysis-history",
+    ))
 }
 
-pub(super) fn hostile_target() -> String {
-    "source-reject-unregistered:source:hostile-missing".to_string()
+pub(super) fn hostile_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::source_reject_unregistered(SourceDeclarationIdentity::new(
+        "source:hostile-missing",
+    ))
 }
 
-pub(super) fn reject_open_snapshot_target() -> String {
-    "source-reject-open-snapshot:source:analysis-history".to_string()
+pub(super) fn reject_open_snapshot_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::source_reject_open_snapshot(SourceDeclarationIdentity::new(
+        "source:analysis-history",
+    ))
 }
 
-pub(super) fn reject_snapshot_drift_target() -> String {
-    "source-reject-snapshot-drift:source:analysis-history".to_string()
+pub(super) fn reject_snapshot_drift_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::source_reject_snapshot_drift(SourceDeclarationIdentity::new(
+        "source:analysis-history",
+    ))
 }
 
 pub(super) fn direct_host_profile(name: &str) -> ExecutionProfile {
@@ -103,8 +119,8 @@ pub(super) fn drifting_adapter_profile(name: &str) -> ExecutionProfile {
 pub(super) fn execute_source_run(
     profile: ExecutionProfile,
     request_name: &str,
-    target: String,
-) -> RunRecord<String> {
+    target: BridgeHarnessTargetId,
+) -> RunRecord<BridgeHarnessTargetId> {
     let adapter = BridgeHarnessAdapter;
     let fixture = source_fixture("bridge-source-matrix");
     let mut runtime = adapter.create_runtime().expect("source harness runtime");

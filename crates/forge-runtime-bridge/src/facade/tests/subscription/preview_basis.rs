@@ -28,10 +28,25 @@ fn subscription_preview_basis_admits_from_active_preview_session() {
         preview_basis.preview_declaration_digest(),
         active_preview.declaration().digest()
     );
-    assert!(preview_basis
-        .preview_residue_scope_identity()
-        .as_str()
-        .contains("bridge-subscription-preview-residue-scope-id:sha256:"));
+    assert_eq!(
+        preview_basis.preview_lifecycle_state_kind(),
+        crate::facade::BridgePreviewLifecycleStateKind::Active
+    );
+    assert_eq!(
+        preview_basis.branch_binding_digest(),
+        active_preview
+            .declaration()
+            .declaration()
+            .branch_binding()
+            .digest()
+    );
+    assert_eq!(
+        preview_basis.parent_truth_view_basis_digest(),
+        active_preview
+            .declaration()
+            .declaration()
+            .truth_view_basis_digest()
+    );
     assert_eq!(
         preview_basis
             .counters()
@@ -73,9 +88,16 @@ fn subscription_preview_basis_rejects_mismatched_execution_record() {
         rejection.rejection_kind(),
         crate::facade::BridgeSubscriptionPreviewBasisRejectionKind::PreviewExecutionRecordMismatch
     );
-    assert!(rejection
-        .rejection_context()
-        .contains(active_preview.session_identity().as_str()));
+    assert_eq!(
+        rejection.rejection_context().preview_session_identity(),
+        active_preview.session_identity()
+    );
+    assert_eq!(
+        rejection
+            .rejection_context()
+            .supplied_execution_record_identity(),
+        Some(other_execution_record.record_identity())
+    );
     assert_eq!(
         rejection
             .counters()

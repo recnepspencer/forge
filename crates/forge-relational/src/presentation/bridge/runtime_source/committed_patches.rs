@@ -1,5 +1,5 @@
 use forge_runtime_bridge::facade::{
-    CommittedPatchSource, RawCommittedPatchEnvelope, RelationalBridgeSourceError,
+    BridgeCommittedPatchEnvelope, CommittedPatchSource, RelationalBridgeSourceError,
     RelationalCommittedPatchRequest,
 };
 
@@ -12,8 +12,8 @@ impl CommittedPatchSource for RuntimeBridgeRelationalSource {
     fn load_committed_patch(
         &self,
         request: RelationalCommittedPatchRequest,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        let commit_id = parse_bridge_commit_identity(request.commit_identity())?;
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        let commit_id = parse_bridge_commit_identity(request.commit_identity().as_str())?;
         let envelope = self.runtime.commit_envelope(commit_id).ok_or_else(|| {
             RelationalBridgeSourceError::new(format!(
                 "relational runtime has no authoritative commit envelope for bridge commit `{}`",

@@ -1,0 +1,358 @@
+pub(super) const AUDITED_CONSTRUCTION_ROOT_FILES: [(&str, &str); 1] = [(
+    "worth-kernel.construction-mod",
+    include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/construction/mod.rs"
+    )),
+)];
+
+pub(super) const AUDITED_RESULT_SURFACE_FILES: [(&str, &str); 3] = [
+    (
+        "worth-kernel.result-surface-result",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/result_surface/result.rs"
+        )),
+    ),
+    (
+        "worth-kernel.result-evidence",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/result_surface/evidence.rs"
+        )),
+    ),
+    (
+        "worth-kernel.result-artifact",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/result_surface/artifact.rs"
+        )),
+    ),
+];
+
+pub(super) const AUDITED_ADMITTED_SCAFFOLD_ROOT_FILES: [(&str, &str); 1] = [(
+    "worth-kernel.phase-chain-admitted-scaffold",
+    include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/construction/phase_chain/admitted_scaffold/mod.rs"
+    )),
+)];
+
+pub(super) const AUDITED_ADMITTED_SCAFFOLD_SUBTREE_FILES: [(&str, &str); 18] = [
+    (
+        "worth-kernel.admitted-scaffold-root",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/mod.rs"
+        )),
+    ),
+    (
+        "worth-kernel.admitted-scaffold-birth-input",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/birth_input.rs"
+        )),
+    ),
+    (
+        "worth-kernel.admitted-artifact",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/admitted_artifact.rs"
+        )),
+    ),
+    (
+        "worth-kernel.admitted-scaffold-placement-admission",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/placement_admission.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-root",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/mod.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-families-root",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/mod.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-scalar-admission",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/scalar_admission.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-error-mapping",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/error_mapping.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-spatial-family-bridge",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/spatial_family_bridge.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-geometry",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/geometry.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-topology-counts",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/topology_counts.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-simplex-solid",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/simplex_solid.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-birth-scaffold",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/birth_scaffold.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-orthotope",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/orthotope.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-regular-prism",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/regular_prism.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-regular-pyramid",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/regular_pyramid.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-wire-body",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/wire_body.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-shell-with-hole",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/shell_with_hole.rs"
+        )),
+    ),
+];
+
+pub(super) const AUDITED_ADMITTED_ARTIFACT_FILE: [(&str, &str); 1] = [(
+    "worth-kernel.admitted-artifact",
+    include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/construction/phase_chain/admitted_scaffold/admitted_artifact.rs"
+    )),
+)];
+
+pub(super) const AUDITED_QUERY_BACKED_ENTRY_FILES: [(&str, &str); 5] = [
+    (
+        "worth-kernel.runtime-basis",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/runtime_basis.rs"
+        )),
+    ),
+    (
+        "worth-kernel.query-graph-composition-parity",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/query/graph_composition_parity.rs"
+        )),
+    ),
+    (
+        "worth-kernel.query-inspection-parity",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/query/inspection_parity.rs"
+        )),
+    ),
+    (
+        "worth-kernel.query-projection-consumption-receipt",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/query/projection_consumption_receipt.rs"
+        )),
+    ),
+    (
+        "worth-kernel.public-api-construction-contract",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/certification/public_facade_contracts/contracts/public_api_construction.rs"
+        )),
+    ),
+];
+
+pub(super) const AUDITED_REQUEST_FILE: [(&str, &str); 1] = [(
+    "worth-kernel.primitive-construction-request",
+    include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/construction/phase_chain/request.rs"
+    )),
+)];
+
+pub(super) const AUDITED_BIRTH_INPUT_FILE: [(&str, &str); 1] = [(
+    "worth-kernel.admitted-scaffold-birth-input",
+    include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/construction/phase_chain/admitted_scaffold/birth_input.rs"
+    )),
+)];
+
+pub(super) const AUDITED_FAMILY_REALIZATION_SEAM_FILES: [(&str, &str); 8] = [
+    (
+        "worth-kernel.family-birth-input-root",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/mod.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-scalar-admission",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/scalar_admission.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-orthotope",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/orthotope.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-regular-prism",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/regular_prism.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-regular-pyramid",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/regular_pyramid.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-shell-with-hole",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/shell_with_hole.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-simplex-solid",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/simplex_solid.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-wire-body",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/wire_body.rs"
+        )),
+    ),
+];
+
+pub(super) const AUDITED_FAMILY_BIRTH_INPUT_ERROR_MAPPING_FILE: [(&str, &str); 1] = [(
+    "worth-kernel.family-birth-input-error-mapping",
+    include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/construction/phase_chain/admitted_scaffold/family_birth_input/error_mapping.rs"
+    )),
+)];
+
+pub(super) const AUDITED_FAMILY_BIRTH_INPUT_SPATIAL_FAMILY_BRIDGE_FILE: [(&str, &str); 1] = [(
+    "worth-kernel.family-birth-input-spatial-family-bridge",
+    include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/construction/phase_chain/admitted_scaffold/family_birth_input/spatial_family_bridge.rs"
+    )),
+)];
+
+pub(super) const AUDITED_FAMILY_REALIZATION_FILES: [(&str, &str); 6] = [
+    (
+        "worth-kernel.family-birth-input-simplex-solid",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/simplex_solid.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-orthotope",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/orthotope.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-regular-prism",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/regular_prism.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-regular-pyramid",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/regular_pyramid.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-wire-body",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/wire_body.rs"
+        )),
+    ),
+    (
+        "worth-kernel.family-birth-input-shell-with-hole",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/families/shell_with_hole.rs"
+        )),
+    ),
+];
+
+pub(super) const AUDITED_PLACEMENT_ADMISSION_FILE: [(&str, &str); 1] = [(
+    "worth-kernel.admitted-scaffold-placement-admission",
+    include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/construction/phase_chain/admitted_scaffold/placement_admission.rs"
+    )),
+)];

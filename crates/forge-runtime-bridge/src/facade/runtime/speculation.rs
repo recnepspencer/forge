@@ -1,14 +1,12 @@
-use std::sync::Arc;
-
 use super::*;
 
 use crate::speculation::{
-    BridgePreviewDiscardRecord, BridgePreviewExecutionRecord, BridgePreviewPromotionRecord,
-    BridgePreviewReplayBundle, BridgePreviewResidueClass, BridgePreviewResidueReport,
-    BridgePreviewReuseEquivalence, BridgePreviewSession, BridgePreviewSessionDeclaration,
-    BridgePreviewSessionIdentity, BridgePromotionAdmissibilityProof, BridgeSpeculationCounters,
-    PreviewActive, PreviewAdmitted, PreviewDeclared, PreviewDiscarded, PreviewPromoted,
-    PreviewSessionActivation,
+    BridgePreviewDiscardRecord, BridgePreviewExecutionRecord, BridgePreviewPromotionAuthorityBasis,
+    BridgePreviewPromotionRecord, BridgePreviewReplayBundle, BridgePreviewResidueClass,
+    BridgePreviewResidueReport, BridgePreviewReuseEquivalence, BridgePreviewSession,
+    BridgePreviewSessionDeclaration, BridgePreviewSessionIdentity,
+    BridgePromotionAdmissibilityProof, BridgeSpeculationCounters, PreviewActive, PreviewAdmitted,
+    PreviewDeclared, PreviewDiscarded, PreviewPromoted, PreviewSessionActivation,
 };
 
 impl RuntimeBridge {
@@ -58,7 +56,7 @@ impl RuntimeBridge {
         let validated = self.validate_preview_session_declaration(declaration)?;
         if !self
             .diagnostics
-            .reserve_preview_session_identity(session_identity.as_str())
+            .reserve_preview_session_identity(&session_identity)
         {
             return Err(BridgeSpeculationError::new(
                 BridgeSpeculationErrorKind::PreviewSessionIdentityConflict,
@@ -203,7 +201,7 @@ impl RuntimeBridge {
         BridgeSpeculationError,
     > {
         self.ensure_execution_record_matches_active_session(&session, execution_record)?;
-        self.ensure_session_not_terminal(session.session_identity().as_str())?;
+        self.ensure_session_not_terminal(session.session_identity())?;
 
         let residue_report = BridgePreviewResidueReport::new(residue_classes);
         if residue_report.authoritative_residue_count() > 0 {
@@ -234,14 +232,12 @@ impl RuntimeBridge {
         Ok((discarded, discard_record))
     }
 
-    /// Promotes an active preview session with explicit admissibility proof and authoritative digests.
+    /// Promotes an active preview session with an aspect-native admissibility proof.
     pub fn promote_preview_session(
         &self,
         session: BridgePreviewSession<PreviewActive>,
         execution_record: &BridgePreviewExecutionRecord,
         proof: &BridgePromotionAdmissibilityProof,
-        authoritative_commit_boundary_digest: impl Into<Arc<str>>,
-        authoritative_artifact_digest: impl Into<Arc<str>>,
     ) -> Result<
         (
             BridgePreviewSession<PreviewPromoted>,
@@ -250,7 +246,7 @@ impl RuntimeBridge {
         BridgeSpeculationError,
     > {
         self.ensure_execution_record_matches_active_session(&session, execution_record)?;
-        self.ensure_session_not_terminal(session.session_identity().as_str())?;
+        self.ensure_session_not_terminal(session.session_identity())?;
 
         if !proof.matches_active_session(&session) {
             return Err(BridgeSpeculationError::new(
@@ -263,13 +259,17 @@ impl RuntimeBridge {
             ));
         }
 
+        let authority_basis = BridgePreviewPromotionAuthorityBasis::from_active_session(
+            &session,
+            execution_record,
+            proof,
+        )?;
         let counters = BridgeSpeculationCounters::for_promotion(9, 1, 2);
         let promotion_record = BridgePreviewPromotionRecord::from_active_session(
             &session,
             execution_record,
             proof,
-            authoritative_commit_boundary_digest,
-            authoritative_artifact_digest,
+            &authority_basis,
             counters,
         );
         let promoted = session.promote(proof)?;
@@ -281,7 +281,7 @@ impl RuntimeBridge {
     /// Replays the retained preview bundle for one preview session identity.
     pub fn replay_preview_bundle(
         &self,
-        preview_session_identity: &str,
+        preview_session_identity: &BridgePreviewSessionIdentity,
     ) -> Result<BridgePreviewReplayBundle, BridgeSpeculationError> {
         let execution_record = self
             .diagnostics
@@ -290,7 +290,8 @@ impl RuntimeBridge {
                 BridgeSpeculationError::new(
                     BridgeSpeculationErrorKind::PreviewBranchBindingMismatch,
                     format!(
-                        "No retained preview execution record existed for preview session `{preview_session_identity}`."
+                        "No retained preview execution record existed for preview session `{}`.",
+                        preview_session_identity.as_str()
                     ),
                 )
             })?;
@@ -304,7 +305,8 @@ impl RuntimeBridge {
             return Err(BridgeSpeculationError::new(
                 BridgeSpeculationErrorKind::IllegalPreviewLifecycleTransition,
                 format!(
-                    "Preview session `{preview_session_identity}` retained both discard and promotion terminal records."
+                    "Preview session `{}` retained both discard and promotion terminal records.",
+                    preview_session_identity.as_str()
                 ),
             ));
         }
@@ -362,7 +364,7 @@ impl RuntimeBridge {
 
     fn ensure_session_not_terminal(
         &self,
-        preview_session_identity: &str,
+        preview_session_identity: &BridgePreviewSessionIdentity,
     ) -> Result<(), BridgeSpeculationError> {
         if self
             .diagnostics
@@ -372,7 +374,8 @@ impl RuntimeBridge {
             return Err(BridgeSpeculationError::new(
                 BridgeSpeculationErrorKind::PromotionAdmissibilityMismatch,
                 format!(
-                    "Preview session `{preview_session_identity}` had already been discarded and cannot be promoted."
+                    "Preview session `{}` had already been discarded and cannot be promoted.",
+                    preview_session_identity.as_str()
                 ),
             ));
         }
@@ -384,7 +387,8 @@ impl RuntimeBridge {
             return Err(BridgeSpeculationError::new(
                 BridgeSpeculationErrorKind::PromotionAdmissibilityMismatch,
                 format!(
-                    "Preview session `{preview_session_identity}` had already been promoted and cannot be promoted again."
+                    "Preview session `{}` had already been promoted and cannot be promoted again.",
+                    preview_session_identity.as_str()
                 ),
             ));
         }

@@ -37,6 +37,7 @@ import {
   readReconstructionBreadth,
   readTopologyTraversalBreadth,
 } from "./plan/resource_mutation_response_cost_counters.js";
+import { readLineBindingState } from "../lines/state/line_binding_state.js";
 
 const RESOURCE_MUTATION_RESPONSE_DECLARATION = Symbol(
   "forgeSignal.resourceMutationResponseDeclaration",
@@ -94,7 +95,7 @@ function createMutationResponsePlan(materialization, declaration, responseValue)
   return createPreparedMutationResponsePlan({
     lineIdentity: materialization.lineIdentity,
     requestDescriptor: materialization.requestState.readDescriptor(),
-    diagnostics: materialization.binding.diagnosticsSignal(),
+    diagnostics: readLineBindingState(materialization.binding).diagnostics,
     declaration,
     responseValue,
     submittedTargets: null,

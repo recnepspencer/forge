@@ -1,26 +1,9 @@
-mod bundle;
-mod bundle_verified;
 mod dx_surface_report;
 mod policy_report;
-mod truth;
+mod representative_evidence;
+mod representative_inputs;
 mod witness_report;
 
-pub use bundle::{
-    prepare_primitive_construction_move_motion_report_bundle,
-    prepare_primitive_construction_move_motion_report_bundle_with_catalog,
-    prepare_primitive_construction_points_toward_motion_report_bundle,
-    prepare_primitive_construction_points_toward_motion_report_bundle_with_catalog,
-    prepare_primitive_construction_reorient_motion_report_bundle,
-    prepare_primitive_construction_reorient_motion_report_bundle_with_catalog,
-    prepare_primitive_construction_rotate_motion_report_bundle,
-    prepare_primitive_construction_rotate_motion_report_bundle_with_catalog,
-    PrimitiveConstructionMotionReportBundleError,
-};
-pub use bundle_verified::{
-    PrimitiveConstructionMotionBundleVerificationFailure,
-    PrimitiveConstructionMotionBundleVerificationMismatch,
-    PrimitiveConstructionVerifiedMotionReportBundle,
-};
 pub use dx_surface_report::{
     prepare_primitive_construction_motion_dx_surface_report, PrimitiveConstructionMotionDxSurface,
     PrimitiveConstructionMotionDxSurfaceReport, PrimitiveConstructionMotionDxSurfaceReportError,
@@ -33,7 +16,6 @@ pub use policy_report::{
     PrimitiveConstructionMotionResolutionPolicyReportError,
     PrimitiveConstructionMotionResolutionPolicyRow,
 };
-pub use truth::PrimitiveConstructionMotionCanonicalTruth;
 pub use witness_report::{
     prepare_primitive_construction_move_witness_resolution_report,
     prepare_primitive_construction_move_witness_resolution_report_with_catalog,
@@ -51,12 +33,12 @@ pub use witness_report::{
 };
 
 #[cfg(test)]
-mod bundle_directional_tests;
-#[cfg(test)]
-mod bundle_tests;
+mod directional_tests;
 #[cfg(test)]
 mod dx_surface_report_tests;
 #[cfg(test)]
 mod policy_report_tests;
+#[cfg(test)]
+mod representative_evidence_tests;
 #[cfg(test)]
 mod tests;

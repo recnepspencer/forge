@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use super::authority::{BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner};
-use super::digest;
 use super::evidence_reference::BridgeCausalEvidenceReference;
+use super::{causal_envelope_digest, digest_basis::BridgeCausalEnvelopeDigestArtifact};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BridgeCausalEvidenceBindingClass {
@@ -46,8 +46,8 @@ impl BridgeCausalEvidenceBinding {
         retained_record_digest: Option<Arc<str>>,
     ) -> Self {
         let retained = retained_record_digest.as_deref().unwrap_or("external");
-        let binding_digest = digest(
-            "bridge-causal-evidence-binding",
+        let binding_digest = causal_envelope_digest(
+            BridgeCausalEnvelopeDigestArtifact::EvidenceBinding,
             &[
                 reference.owner().as_str(),
                 reference.family().as_str(),

@@ -26,6 +26,12 @@ import {
   prepareMutationResponsePlanIfDeclared,
   recordMutationResponsePlanIfPresent,
 } from "../../mutation/resource_mutation_response_execution.js";
+import {
+  createLineBindingState,
+  patchLineBindingState,
+  readLineBindingState,
+  replaceLineBindingState,
+} from "../state/line_binding_state.js";
 
 function createInitialLineBinding(
   load,
@@ -72,6 +78,22 @@ function createInitialLineBinding(
       debugName: `${familyKind}ResourceFreshness`,
     },
   ), lineScope);
+  const initialState = createLineBindingState({
+    value: null,
+    processing: initialProcessing,
+    upload: initialUpload,
+    download: initialDownload,
+    status: createPendingLineStatus("initialLoad", false),
+    freshness: createPendingFreshness("initialLoad"),
+    diagnostics: createInitialLineDiagnostics(
+      policy,
+      requestDescriptor,
+      initialProcessing,
+      initialUpload,
+      initialDownload,
+      false,
+    ),
+  });
   const binding = Object.freeze({
     valueSignal,
     readableValueSignal,
@@ -81,18 +103,12 @@ function createInitialLineBinding(
     statusSignal,
     freshnessSignal,
     diagnosticsSignal: wrapInternalLineMutableSignal(lineScope.input(
-      createInitialLineDiagnostics(
-        policy,
-        requestDescriptor,
-        initialProcessing,
-        initialUpload,
-        initialDownload,
-        false,
-      ),
+      initialState.current.diagnostics,
       {
         debugName: `${familyKind}ResourceDiagnostics`,
       },
     ), lineScope),
+    state: initialState,
   });
 
   let resolvedBindingResult;
@@ -122,13 +138,13 @@ function createInitialLineBinding(
   }
 
   const pendingToken = lifecycle.beginPendingReload("initialLoad");
-  binding.diagnosticsSignal.set(
-    createPendingReloadDiagnostics(
-      binding.diagnosticsSignal(),
+  patchLineBindingState(binding, {
+    diagnostics: createPendingReloadDiagnostics(
+      readLineBindingState(binding).diagnostics,
       "initialLoad",
       null,
     ),
-  );
+  });
   const timeoutMs = policy.timeoutMs;
   let timedOut = false;
   if (typeof timeoutMs === "number" && timeoutMs >= 0) {
@@ -186,7 +202,7 @@ function applyFulfilledInitialLoad(
   const status = createFulfilledLineStatus("initialLoad");
   const freshness = createFreshnessFromPolicy(policy);
   const nextDiagnostics = createReloadFulfilledDiagnostics(
-    binding.diagnosticsSignal(),
+    readLineBindingState(binding).diagnostics,
     "initialLoad",
     loaded.processing,
     loaded.upload,
@@ -209,13 +225,16 @@ function applyFulfilledInitialLoad(
           mutationResponsePlanning.submittedTargets,
           mutationResponsePlanning.submittedIdentityMigration ?? null,
         );
-  binding.valueSignal.set(loaded.value);
-  binding.processingSignal.set(loaded.processing);
-  binding.uploadSignal.set(loaded.upload);
-  binding.downloadSignal.set(loaded.download);
-  binding.statusSignal.set(status);
-  binding.freshnessSignal.set(freshness);
-  binding.diagnosticsSignal.set(preparedMutationResponse.diagnostics);
+  replaceLineBindingState(binding, {
+    ...readLineBindingState(binding),
+    value: loaded.value,
+    processing: loaded.processing,
+    upload: loaded.upload,
+    download: loaded.download,
+    status,
+    freshness,
+    diagnostics: preparedMutationResponse.diagnostics,
+  });
   if (shouldRecordHistory) {
     recordLineHistoryEntry(lifecycleHistory, binding, "fulfilled");
     recordMutationResponsePlanIfPresent(
@@ -232,29 +251,29 @@ function applyRejectedInitialLoad(lifecycleHistory, binding, error) {
     failure.error instanceof Error
       ? failure.error.message
       : "resource initial load failed";
-  binding.statusSignal.set(createRejectedLineStatus("initialLoad", message, false));
-  binding.freshnessSignal.set(createRejectedFreshness("initialLoad"));
-  binding.diagnosticsSignal.set(
-    createReloadRejectedDiagnostics(
-      binding.diagnosticsSignal(),
+  patchLineBindingState(binding, {
+    status: createRejectedLineStatus("initialLoad", message, false),
+    freshness: createRejectedFreshness("initialLoad"),
+    diagnostics: createReloadRejectedDiagnostics(
+      readLineBindingState(binding).diagnostics,
       "initialLoad",
       message,
       failure.retryAttempts,
     ),
-  );
+  });
   recordLineHistoryEntry(lifecycleHistory, binding, "rejected");
 }
 
 function applyTimedOutInitialLoad(lifecycleHistory, binding, retryAttempts) {
-  binding.statusSignal.set(createTimedOutLineStatus("initialLoad", false));
-  binding.freshnessSignal.set(createTimedOutFreshness("initialLoad"));
-  binding.diagnosticsSignal.set(
-    createTimedOutReloadDiagnostics(
-      binding.diagnosticsSignal(),
+  patchLineBindingState(binding, {
+    status: createTimedOutLineStatus("initialLoad", false),
+    freshness: createTimedOutFreshness("initialLoad"),
+    diagnostics: createTimedOutReloadDiagnostics(
+      readLineBindingState(binding).diagnostics,
       "initialLoad",
       retryAttempts,
     ),
-  );
+  });
   recordLineHistoryEntry(lifecycleHistory, binding, "timedOut");
 }
 

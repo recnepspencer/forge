@@ -13,6 +13,7 @@ use fixtures::{
 #[test]
 fn legal_declaration_review_yields_legality_evidence() {
     let handle = admitted_handle("collaborative");
+    let world_basis = handle.retained_world_basis();
     let declaration = handle
         .declare(Declaration::<LegalFamily>::new("edge:42"))
         .expect("declaration should admit");
@@ -33,7 +34,11 @@ fn legal_declaration_review_yields_legality_evidence() {
     );
     assert_eq!(
         legal.operating_context_identity_digest(),
-        "geometry.collaborative"
+        world_basis.operating_context_identity_digest()
+    );
+    assert_eq!(
+        legal.canonical_declaration().handle_identity_digest(),
+        world_basis.handle_identity_digest()
     );
     assert_eq!(
         legal.aspect_contract().required(),

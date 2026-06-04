@@ -5,7 +5,7 @@ use forge_relational::facade::identity::VersionId;
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use forge_relational::facade::transactions::RecordRef;
 use forge_runtime_bridge::facade::{
-    BridgeSnapshotReadError, CommittedPatchSource, RawCommittedPatchEnvelope,
+    BridgeCommittedPatchEnvelope, BridgeSnapshotReadError, CommittedPatchSource,
     RelationalBridgeSourceError, RelationalCommittedPatchRequest, SnapshotReadPacket,
     SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource, TruthBranchHeadSource,
     TruthBranchIdentity, TruthSnapshotIdentity, TruthSnapshotReader,
@@ -14,8 +14,8 @@ use forge_runtime_bridge::facade::{
 use super::binding::TopologyRuntimeBinding;
 use super::bridge_source_support::{
     missing_aspect_error, missing_record_error, parse_bridge_commit_identity,
-    parse_bridge_record_identity, parse_bridge_snapshot_identity, snapshot_bytes_for_entity_aspect,
-    snapshot_bytes_for_relation_aspect,
+    parse_bridge_record_identity, parse_bridge_snapshot_identity,
+    snapshot_aspect_value_for_entity_aspect, snapshot_aspect_value_for_relation_aspect,
 };
 
 #[derive(Clone)]
@@ -33,8 +33,8 @@ impl CommittedPatchSource for TopologyRuntimeBridgeSource {
     fn load_committed_patch(
         &self,
         request: RelationalCommittedPatchRequest,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        let commit_id = parse_bridge_commit_identity(request.commit_identity())?;
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        let commit_id = parse_bridge_commit_identity(request.commit_identity().as_str())?;
         let Some(runtime) = self.binding.runtime() else {
             return Err(RelationalBridgeSourceError::new(format!(
                 "topology snapshot certification runtime does not expose committed patch loading for `{}`",
@@ -105,7 +105,7 @@ impl TruthBranchHeadSource for TopologyRuntimeBridgeSource {
     fn load_branch_head_patch(
         &self,
         branch_identity: &TruthBranchIdentity,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         let Some(runtime) = self.binding.runtime() else {
             return Err(RelationalBridgeSourceError::new(format!(
                 "topology snapshot certification runtime does not expose branch-head patch loading for `{}`",
@@ -205,15 +205,18 @@ impl TruthSnapshotReader for TopologySnapshotReader {
                                     &self.snapshot_identity,
                                 )
                             })?;
-                            snapshot_bytes_for_entity_aspect(&record, read.aspect_label())
-                                .ok_or_else(|| {
-                                    missing_aspect_error(
-                                        "entity",
-                                        read.aspect_label(),
-                                        read.entity_identity(),
-                                        &self.snapshot_identity,
-                                    )
-                                })?
+                            snapshot_aspect_value_for_entity_aspect(
+                                &record,
+                                read.aspect_key().as_str(),
+                            )
+                            .ok_or_else(|| {
+                                missing_aspect_error(
+                                    "entity",
+                                    read.aspect_key().as_str(),
+                                    read.entity_identity(),
+                                    &self.snapshot_identity,
+                                )
+                            })?
                         }
                         RecordRef::Relation(relation_id) => {
                             let record = read_view.get_relation(relation_id).ok_or_else(|| {
@@ -223,15 +226,18 @@ impl TruthSnapshotReader for TopologySnapshotReader {
                                     &self.snapshot_identity,
                                 )
                             })?;
-                            snapshot_bytes_for_relation_aspect(&record, read.aspect_label())
-                                .ok_or_else(|| {
-                                    missing_aspect_error(
-                                        "relation",
-                                        read.aspect_label(),
-                                        read.entity_identity(),
-                                        &self.snapshot_identity,
-                                    )
-                                })?
+                            snapshot_aspect_value_for_relation_aspect(
+                                &record,
+                                read.aspect_key().as_str(),
+                            )
+                            .ok_or_else(|| {
+                                missing_aspect_error(
+                                    "relation",
+                                    read.aspect_key().as_str(),
+                                    read.entity_identity(),
+                                    &self.snapshot_identity,
+                                )
+                            })?
                         }
                     }
                 }
@@ -239,7 +245,7 @@ impl TruthSnapshotReader for TopologySnapshotReader {
                     payload_from_read_view(read_view, &self.snapshot_identity, read, record_ref)?
                 }
             };
-            records.push(SnapshotReadRecord::new(read.request_key(), payload));
+            records.push(SnapshotReadRecord::for_request(read, payload));
         }
 
         Ok(SnapshotReadPacketResult::new(
@@ -282,33 +288,36 @@ fn payload_from_read_view(
     snapshot_identity: &TruthSnapshotIdentity,
     read: &forge_runtime_bridge::facade::SnapshotReadRequest,
     record_ref: RecordRef,
-) -> Result<Vec<u8>, BridgeSnapshotReadError> {
+) -> Result<forge_foundational::facade::AspectValue, BridgeSnapshotReadError> {
     match record_ref {
         RecordRef::Entity(entity_id) => {
             let record = read_view.get_entity(entity_id).ok_or_else(|| {
                 missing_record_error("entity", read.entity_identity(), snapshot_identity)
             })?;
-            snapshot_bytes_for_entity_aspect(record, read.aspect_label()).ok_or_else(|| {
-                missing_aspect_error(
-                    "entity",
-                    read.aspect_label(),
-                    read.entity_identity(),
-                    snapshot_identity,
-                )
-            })
+            snapshot_aspect_value_for_entity_aspect(record, read.aspect_key().as_str()).ok_or_else(
+                || {
+                    missing_aspect_error(
+                        "entity",
+                        read.aspect_key().as_str(),
+                        read.entity_identity(),
+                        snapshot_identity,
+                    )
+                },
+            )
         }
         RecordRef::Relation(relation_id) => {
             let record = read_view.get_relation(relation_id).ok_or_else(|| {
                 missing_record_error("relation", read.entity_identity(), snapshot_identity)
             })?;
-            snapshot_bytes_for_relation_aspect(record, read.aspect_label()).ok_or_else(|| {
-                missing_aspect_error(
-                    "relation",
-                    read.aspect_label(),
-                    read.entity_identity(),
-                    snapshot_identity,
-                )
-            })
+            snapshot_aspect_value_for_relation_aspect(record, read.aspect_key().as_str())
+                .ok_or_else(|| {
+                    missing_aspect_error(
+                        "relation",
+                        read.aspect_key().as_str(),
+                        read.entity_identity(),
+                        snapshot_identity,
+                    )
+                })
         }
     }
 }

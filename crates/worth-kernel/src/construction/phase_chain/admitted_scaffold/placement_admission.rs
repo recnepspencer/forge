@@ -1,7 +1,7 @@
 use crate::construction::request::{
     placement_of, PrimitiveConstructionPhaseError, PrimitiveConstructionRequest,
 };
-use worth_spatial::facade::{
+use worth_spatial::facade::placement::{
     admit_spatial_placement, AdmittedSpatialPlacement, SpatialPlacementError,
 };
 
@@ -20,25 +20,25 @@ fn placement_error_reason(error: SpatialPlacementError) -> &'static str {
     match error {
         SpatialPlacementError::NonFiniteOrigin => "placement origin must stay finite",
         SpatialPlacementError::DirectionWitnessFailure(class) => match class {
-            worth_spatial::facade::SpatialWitnessFailureClass::NonFinite => {
+            worth_spatial::facade::witness_resolution::SpatialWitnessFailureClass::NonFinite => {
                 "placement direction witness must stay finite"
             }
-            worth_spatial::facade::SpatialWitnessFailureClass::Ambiguous => {
+            worth_spatial::facade::witness_resolution::SpatialWitnessFailureClass::Ambiguous => {
                 "placement direction witness must not be ambiguous"
             }
-            worth_spatial::facade::SpatialWitnessFailureClass::Undefined => {
+            worth_spatial::facade::witness_resolution::SpatialWitnessFailureClass::Undefined => {
                 "placement direction witness must not collapse to zero"
             }
-            worth_spatial::facade::SpatialWitnessFailureClass::Unsupported => {
+            worth_spatial::facade::witness_resolution::SpatialWitnessFailureClass::Unsupported => {
                 "placement direction witness role is not supported yet"
             }
-            worth_spatial::facade::SpatialWitnessFailureClass::Degenerate => {
+            worth_spatial::facade::witness_resolution::SpatialWitnessFailureClass::Degenerate => {
                 "placement direction witness must not derive from a degenerate frame"
             }
-            worth_spatial::facade::SpatialWitnessFailureClass::Coincident => {
+            worth_spatial::facade::witness_resolution::SpatialWitnessFailureClass::Coincident => {
                 "placement direction witness must not be coincident with its target"
             }
-            worth_spatial::facade::SpatialWitnessFailureClass::Exhausted => {
+            worth_spatial::facade::witness_resolution::SpatialWitnessFailureClass::Exhausted => {
                 "placement direction witness exhausted sanctioned resolution strategies"
             }
         },

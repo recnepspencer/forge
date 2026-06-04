@@ -1,4 +1,4 @@
-error[E0451]: fields `evidence_reference_count`, `lower_runtime_family_count`, `bridge_retained_lookup_count`, `retained_bridge_binding_count`, `external_authority_reference_count`, `materialized_detail_count`, `missing_bridge_record_count`, `bridge_record_scan_fallback_count` and `counter_digest` of struct `BridgeCausalEnvelopeCounters` are private
+error[E0451]: fields `evidence_reference_count`, `lower_runtime_family_count`, `bridge_retained_lookup_count`, `retained_bridge_binding_count`, `external_authority_reference_count`, `materialized_detail_count`, `missing_bridge_record_count`, `bridge_record_unindexed_scan_count` and `counter_digest` of struct `BridgeCausalEnvelopeCounters` are private
   --> tests/ui/causal_envelope/bridge_causal_denial_and_counters_constructor_private.rs:8:9
    |
  7 |     let counters = BridgeCausalEnvelopeCounters {
@@ -17,9 +17,9 @@ error[E0451]: fields `evidence_reference_count`, `lower_runtime_family_count`, `
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 14 |         missing_bridge_record_count: 1,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-15 |         bridge_record_scan_fallback_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-16 |         counter_digest: "counter".into(),
+15 |         bridge_record_unindexed_scan_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         counter_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^ private field
 
 error[E0451]: fields `kind`, `family`, `supplied_owner`, `expected_owner`, `reference_identity`, `counters` and `failure_digest` of struct `BridgeCausalEnvelopeDenial` are private
@@ -39,5 +39,5 @@ error[E0451]: fields `kind`, `family`, `supplied_owner`, `expected_owner`, `refe
    |         ^^^^^^^^^^^^^^^^^^ private field
 25 |         counters,
    |         ^^^^^^^^ private field
-26 |         failure_digest: "failure".into(),
+26 |         failure_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^ private field

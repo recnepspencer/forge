@@ -37,8 +37,8 @@ pub struct ForgeQueryBatchMutationEvidence {
     causality_bundle_count: usize,
     provenance_bundle_count: usize,
     outcome_class_count: usize,
-    request_digest_count: usize,
-    receipt_digest_count: usize,
+    authority_request_count: usize,
+    authority_receipt_count: usize,
     aggregate_target_digest: String,
     aggregate_causality_digest: Option<String>,
     aggregate_provenance_digest: Option<String>,
@@ -160,10 +160,10 @@ impl ForgeQueryBatchMutationEvidence {
             provenance_bundle_count: aggregate_bridge
                 .map_or(0, |bundle| bundle.provenance_bundle_count()),
             outcome_class_count: aggregate_bridge.map_or(0, |bundle| bundle.outcome_class_count()),
-            request_digest_count: aggregate_bridge
-                .map_or(0, |bundle| bundle.request_digest_count()),
-            receipt_digest_count: aggregate_bridge
-                .map_or(0, |bundle| bundle.receipt_digest_count()),
+            authority_request_count: aggregate_bridge
+                .map_or(0, |bundle| bundle.authority_request_count()),
+            authority_receipt_count: aggregate_bridge
+                .map_or(0, |bundle| bundle.authority_receipt_count()),
             aggregate_target_digest: batch_target_digest(components),
             aggregate_causality_digest: aggregate_bridge
                 .map(|bundle| bundle.aggregate_causality_digest().to_string()),
@@ -272,12 +272,12 @@ impl ForgeQueryBatchMutationEvidence {
         self.outcome_class_count
     }
 
-    pub fn request_digest_count(&self) -> usize {
-        self.request_digest_count
+    pub fn authority_request_count(&self) -> usize {
+        self.authority_request_count
     }
 
-    pub fn receipt_digest_count(&self) -> usize {
-        self.receipt_digest_count
+    pub fn authority_receipt_count(&self) -> usize {
+        self.authority_receipt_count
     }
 
     pub fn aggregate_target_digest(&self) -> &str {

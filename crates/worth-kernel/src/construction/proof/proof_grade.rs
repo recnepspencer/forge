@@ -1,6 +1,7 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionProofGrade {
     BundleCoherence,
+    GeometryTruthHostility,
     MilestoneCloseout,
     ProofSubstrateCloseout,
 }
@@ -9,6 +10,7 @@ impl PrimitiveConstructionProofGrade {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::BundleCoherence => "bundle_coherence",
+            Self::GeometryTruthHostility => "geometry_truth_hostility",
             Self::MilestoneCloseout => "milestone_closeout",
             Self::ProofSubstrateCloseout => "proof_substrate_closeout",
         }
@@ -17,32 +19,40 @@ impl PrimitiveConstructionProofGrade {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionProofSubject {
-    Motion,
-    IntentArbitration,
     CompoundParity,
-    PolicyPressure,
+    #[cfg(test)]
+    GeometryDigestSensitivity,
+    #[cfg(test)]
+    CanonicalWitnessParity,
+    #[cfg(test)]
+    ShellWithHoleLayoutHostility,
+    #[cfg(test)]
+    SimplexCanonicalRatio,
+    #[cfg(test)]
     PhaseFiveSixCloseout,
+    #[cfg(test)]
     MilestoneFourKernelCloseout,
-    DigestProtocol,
-    VerifiedArtifactSurface,
-    TruthProjectionMatrix,
-    ProofBoundaryCompileFail,
+    #[cfg(test)]
     ProofSubstrateCloseout,
 }
 
 impl PrimitiveConstructionProofSubject {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::Motion => "motion",
-            Self::IntentArbitration => "intent_arbitration",
             Self::CompoundParity => "compound_parity",
-            Self::PolicyPressure => "policy_pressure",
+            #[cfg(test)]
+            Self::GeometryDigestSensitivity => "geometry_digest_sensitivity",
+            #[cfg(test)]
+            Self::CanonicalWitnessParity => "canonical_witness_parity",
+            #[cfg(test)]
+            Self::ShellWithHoleLayoutHostility => "shell_with_hole_layout_hostility",
+            #[cfg(test)]
+            Self::SimplexCanonicalRatio => "simplex_canonical_ratio",
+            #[cfg(test)]
             Self::PhaseFiveSixCloseout => "phase_five_six_closeout",
+            #[cfg(test)]
             Self::MilestoneFourKernelCloseout => "milestone_four_kernel_closeout",
-            Self::DigestProtocol => "digest_protocol",
-            Self::VerifiedArtifactSurface => "verified_artifact_surface",
-            Self::TruthProjectionMatrix => "truth_projection_matrix",
-            Self::ProofBoundaryCompileFail => "proof_boundary_compile_fail",
+            #[cfg(test)]
             Self::ProofSubstrateCloseout => "proof_substrate_closeout",
         }
     }

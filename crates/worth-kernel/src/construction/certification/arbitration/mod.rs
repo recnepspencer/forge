@@ -1,22 +1,12 @@
-mod bundle;
-mod bundle_verified;
 mod chosen_report;
 mod dx_surface_report;
 mod policy_report;
 mod preserved_report;
+#[cfg(test)]
+mod representative_evidence;
+#[cfg(test)]
 mod suite;
-mod truth;
 
-pub use bundle::{
-    prepare_primitive_construction_intent_arbitration_report_bundle,
-    PrimitiveConstructionIntentArbitrationBundleCase,
-    PrimitiveConstructionIntentArbitrationReportBundleError,
-};
-pub use bundle_verified::{
-    PrimitiveConstructionIntentArbitrationBundleVerificationFailure,
-    PrimitiveConstructionIntentArbitrationBundleVerificationMismatch,
-    PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
-};
 pub use chosen_report::{
     prepare_primitive_chosen_intent_resolution_report,
     PrimitiveConstructionChosenIntentResolutionAuthority,
@@ -46,15 +36,18 @@ pub use preserved_report::{
     PrimitiveConstructionPreservedIntentResolutionReportError,
     PrimitiveConstructionPreservedIntentResolutionRow, PrimitiveConstructionPreservedIntentTruth,
 };
-pub use suite::{
-    prepare_primitive_construction_intent_arbitration_hostility_suite_report,
-    PrimitiveConstructionIntentArbitrationHostilitySuiteReport,
-};
-pub use truth::PrimitiveConstructionIntentArbitrationCanonicalTruth;
-
 #[cfg(test)]
-mod bundle_tests;
+pub(crate) use representative_evidence::required_arbitration_representative_cases;
+#[cfg(test)]
+pub use representative_evidence::{
+    prepare_primitive_construction_intent_arbitration_representative_evidence,
+    PrimitiveConstructionIntentArbitrationBundleCase,
+    PrimitiveConstructionIntentArbitrationRepresentativeEvidence,
+    PrimitiveConstructionIntentArbitrationRepresentativeEvidenceError,
+};
 #[cfg(test)]
 mod preserved_report_tests;
+#[cfg(test)]
+mod representative_evidence_tests;
 #[cfg(test)]
 mod tests;

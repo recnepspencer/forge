@@ -1,18 +1,22 @@
-use crate::construction::admitted_scaffold::prepare_primitive_construction_admitted_result_input;
+use crate::construction::admitted_scaffold::prepare_primitive_construction_admitted_artifact;
 use crate::construction::artifact::build_canonical_primitive_construction_artifact;
-use crate::construction::evidence::PrimitiveConstructionResultAssemblyReport;
-use crate::construction::result::prepare_primitive_construction_result;
-use crate::construction::{
+use crate::construction::diagnostics::prepare_primitive_construction_rejection_locality_report;
+use crate::construction::family_coverage::primitive_construction_family_coverage_report;
+use crate::construction::family_coverage::PrimitiveConstructionFamilyCoverageStatus;
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::parity::{
     prepare_primitive_construction_branch_local_parity_report,
-    prepare_primitive_construction_branch_preview_runtime_report,
-    prepare_primitive_construction_query_basis_preview_parity_report,
-    prepare_primitive_construction_query_inspection_parity_report,
-    prepare_primitive_construction_rejection_locality_report,
     prepare_primitive_construction_replay_parity_report,
-    primitive_construction_family_coverage_report, OrthotopeSpec, PrimitiveConstructionFamily,
-    PrimitiveConstructionFamilyCoverageStatus, PrimitiveConstructionIntent,
-    PrimitiveConstructionRequest, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec,
-    SimplexSolidSpec, WireBodySpec,
+};
+use crate::construction::query::basis_preview_parity::prepare_primitive_construction_query_basis_preview_parity_report;
+use crate::construction::query::inspection_parity::prepare_primitive_construction_query_inspection_parity_report;
+use crate::construction::request::PrimitiveConstructionFamily;
+use crate::construction::request::PrimitiveConstructionRequest;
+use crate::construction::result::prepare_primitive_construction_result;
+use crate::construction::runtime_basis::prepare_primitive_construction_branch_preview_runtime_report;
+use crate::construction::specs::{
+    OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
+    WireBodySpec,
 };
 use forge_query::facade::ForgeQueryAuthorityLane;
 use topology::facade::{
@@ -23,7 +27,7 @@ use topology::facade::{
 use worth_geom::facade::{PrimitiveRealizationStrategy, PrimitiveStabilityClass};
 
 #[test]
-fn admitted_phase_three_family_ladder_builds_generic_result_assembly_reports() {
+fn admitted_phase_three_family_ladder_builds_direct_prepared_result_truth() {
     let requests = [
         PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(1.0)).into_request(),
         PrimitiveConstructionIntent::orthotope(OrthotopeSpec {
@@ -51,25 +55,21 @@ fn admitted_phase_three_family_ladder_builds_generic_result_assembly_reports() {
     ];
 
     for request in requests {
-        let result_input =
-            prepare_primitive_construction_admitted_result_input(&request).expect("result input");
-        let report =
-            PrimitiveConstructionResultAssemblyReport::from_admitted_result_input(&result_input);
+        let result =
+            prepare_primitive_construction_result(request.clone()).expect("prepared result");
 
-        assert_eq!(report.family(), request.family());
+        assert_eq!(result.family(), request.family());
         assert_eq!(
-            report.mutation_surface(),
+            result.mutation_surface(),
             TopologyConstructionQueryMutationSurface::ComposeGraph
         );
         assert_eq!(
-            report.topology_query_admitted_handoff_digest(),
-            result_input
-                .topology_query_admitted_handoff()
-                .admitted_handoff_digest()
+            result.topology_query_handoff().handoff_digest(),
+            result.topology_query_handoff().handoff_digest()
         );
         assert_ne!(
-            report.report_digest(),
-            report.topology_query_admitted_handoff_digest()
+            result.result_digest(),
+            result.topology_query_handoff().handoff_digest()
         );
     }
 }
@@ -77,10 +77,10 @@ fn admitted_phase_three_family_ladder_builds_generic_result_assembly_reports() {
 #[test]
 fn out_of_class_phase_three_requests_fail_typed_and_locally() {
     let wire_request = PrimitiveConstructionRequest::wire_body(2);
-    let wire_error = prepare_primitive_construction_admitted_result_input(&wire_request)
+    let wire_error = prepare_primitive_construction_admitted_artifact(&wire_request)
         .expect_err("wire body should reject");
     let shell_request = PrimitiveConstructionRequest::shell_with_hole(6, Vec::new());
-    let shell_error = prepare_primitive_construction_admitted_result_input(&shell_request)
+    let shell_error = prepare_primitive_construction_admitted_artifact(&shell_request)
         .expect_err("shell-with-hole should reject");
 
     assert!(wire_error.to_string().contains("invalid wire_body request"));
@@ -121,17 +121,17 @@ fn family_coverage_report_marks_all_phase_three_rows_explicitly() {
 }
 
 #[test]
-fn canonical_artifact_surface_binds_result_input_and_birth_truth() {
+fn canonical_artifact_surface_binds_admitted_artifact_and_birth_truth() {
     let intent = PrimitiveConstructionIntent::wire_body(WireBodySpec { edge_count: 8 });
     let request = intent.clone().into_request();
-    let result_input =
-        prepare_primitive_construction_admitted_result_input(&request).expect("result input");
-    let artifact = build_canonical_primitive_construction_artifact(&result_input);
+    let admitted_artifact =
+        prepare_primitive_construction_admitted_artifact(&request).expect("admitted artifact");
+    let artifact = build_canonical_primitive_construction_artifact(&admitted_artifact);
 
     assert_eq!(artifact.family(), PrimitiveConstructionFamily::WireBody);
     assert_eq!(
         artifact.birth_truth_digest(),
-        result_input
+        admitted_artifact
             .topology_query_admitted_handoff()
             .topology_query_handoff()
             .source_birth_digest()
@@ -152,7 +152,7 @@ fn canonical_artifact_surface_binds_result_input_and_birth_truth() {
 }
 
 #[test]
-fn prepared_result_input_bundles_birth_mapping_and_artifact() {
+fn prepared_result_bundles_phase_chain_artifact_and_birth_mapping() {
     let result = prepare_primitive_construction_result(
         PrimitiveConstructionIntent::shell_with_hole(ShellWithHoleSpec {
             outer_loop_edge_count: 6,
@@ -164,10 +164,6 @@ fn prepared_result_input_bundles_birth_mapping_and_artifact() {
     assert_eq!(result.family(), PrimitiveConstructionFamily::ShellWithHole);
     assert_eq!(result.topology_birth_class(), "planar_shell_with_hole_body");
     assert_eq!(
-        result.canonical_artifact().family(),
-        PrimitiveConstructionFamily::ShellWithHole
-    );
-    assert_eq!(
         result.realization_strategy(),
         PrimitiveRealizationStrategy::DirectWorld
     );
@@ -175,20 +171,16 @@ fn prepared_result_input_bundles_birth_mapping_and_artifact() {
         result.stability_class(),
         PrimitiveStabilityClass::StableDirect
     );
-    assert_eq!(result.evidence().birth_mapping_report().rows().len(), 7);
+    assert_eq!(result.birth_consequence().rows().len(), 7);
     assert_eq!(
         result
-            .evidence()
             .topology_query_handoff()
             .topology_query_envelope()
             .fact_rows()
             .len(),
         7
     );
-    assert_ne!(
-        result.result_digest(),
-        result.canonical_artifact().artifact_digest()
-    );
+    assert_ne!(result.result_digest(), result.artifact_digest());
 }
 
 #[test]
@@ -213,27 +205,29 @@ fn tiny_pyramid_result_preserves_escalated_realization_truth() {
 }
 
 #[test]
-fn literal_world_collapsed_simplex_result_survives_full_kernel_result_input() {
+fn literal_world_collapsed_simplex_result_survives_full_kernel_admitted_artifact() {
     let intent = PrimitiveConstructionIntent::simplex_solid(
         SimplexSolidSpec::new(1.0e-200).with_auxiliary_altitude_component(1.0e-220),
     )
     .at([2.0f64.powi(548), -2.0f64.powi(548), 2.0f64.powi(548)]);
     let request = intent.clone().into_request();
-    let result_input =
-        prepare_primitive_construction_admitted_result_input(&request).expect("result input");
+    let admitted_artifact =
+        prepare_primitive_construction_admitted_artifact(&request).expect("admitted artifact");
     let result = prepare_primitive_construction_result(intent)
         .expect("literal world-collapsed simplex result");
 
     assert_eq!(
-        result_input.realization_report().strategy(),
+        admitted_artifact.realization_report().strategy(),
         PrimitiveRealizationStrategy::ExactSupport
     );
     assert_eq!(
-        result_input.realization_report().report_digest(),
+        admitted_artifact.realization_report().report_digest(),
         result.realization_report().report_digest()
     );
     assert_eq!(
-        result_input.realization_report().attempted_strategies(),
+        admitted_artifact
+            .realization_report()
+            .attempted_strategies(),
         &[
             PrimitiveRealizationStrategy::DirectWorld,
             PrimitiveRealizationStrategy::ExactSupport,

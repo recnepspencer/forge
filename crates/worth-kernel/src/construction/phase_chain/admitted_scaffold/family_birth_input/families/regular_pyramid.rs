@@ -9,7 +9,9 @@ use super::super::scalar_admission::{
 use super::super::topology_counts::PrimitiveConstructionTopologyCounts;
 use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
 use worth_geom::facade::realize_pyramid_support;
-use worth_spatial::facade::{AdmittedSpatialPlacement, PrimitiveConstructionBirthScaffoldInput};
+use worth_primitives::{PrimitiveConstructionFamilyContractRegistry, PrimitiveWitnessDescriptor};
+use worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldInput;
+use worth_spatial::facade::placement::AdmittedSpatialPlacement;
 
 struct AdmittedRegularPyramidBirthParameters {
     sides: u32,
@@ -32,23 +34,21 @@ pub(in super::super) fn build_regular_pyramid_birth_input(
         admitted.height,
     )
     .map_err(map_realization_geometry)?;
+    let birth_contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+        &PrimitiveWitnessDescriptor::RegularPyramid {
+            side_count: admitted.sides,
+        },
+    );
     lower_family_birth_scaffold_plan(
         intent_digest,
         placement,
         PrimitiveConstructionBirthScaffoldPlan::from_realized_support(
             PrimitiveConstructionFamily::RegularPyramid,
+            birth_contract,
             realization.planes().to_vec(),
             pyramid_vertices(admitted.sides, admitted.radius, admitted.height),
             realization.report().clone(),
-            PrimitiveConstructionTopologyCounts::new(
-                (admitted.sides as usize) + 1,
-                (admitted.sides as usize) * 2,
-                (admitted.sides as usize) + 1,
-                0,
-                (admitted.sides as usize) + 1,
-                1,
-                1,
-            ),
+            PrimitiveConstructionTopologyCounts::from_contract(birth_contract.topology_contract()),
         ),
     )
 }

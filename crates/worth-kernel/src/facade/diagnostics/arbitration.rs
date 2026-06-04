@@ -1,6 +1,5 @@
-pub use crate::construction::{
+pub use crate::construction::certification::arbitration::{
     prepare_primitive_chosen_intent_resolution_report,
-    prepare_primitive_construction_intent_arbitration_replay_parity_report,
     prepare_primitive_construction_preserved_intent_resolution_report,
     prepare_primitive_intent_arbitration_policy_report,
     prepare_primitive_intent_conflict_dx_surface_report,
@@ -24,9 +23,13 @@ pub use crate::construction::{
 };
 pub use crate::spatial_intent::{
     PrimitiveIntentClarificationCandidate, PrimitiveIntentClarificationRequest,
-    PrimitiveIntentClarificationRequestError, PrimitiveIntentConflict, SpatialBlockedCapability,
-    SpatialChosenIntentAuthority, SpatialChosenIntentResolution, SpatialIntentArbitrationAnalysis,
-    SpatialIntentCandidate, SpatialIntentCandidateAvailability, SpatialIntentCandidateRank,
-    SpatialIntentCapabilitySet, SpatialIntentConflictClass, SpatialIntentEscalation,
-    SpatialIntentExplanationClass, SpatialIntentResolutionError, SpatialObservedRelationFact,
+    PrimitiveIntentClarificationRequestError, PrimitiveIntentConflict,
+    PrimitiveIntentPreviewAssessment, SpatialBlockedCapability, SpatialChosenIntentAuthority,
+    SpatialChosenIntentResolution, SpatialIdentityContinuityAssessment,
+    SpatialIdentityContinuityClass, SpatialIdentityContinuityExplanationClass,
+    SpatialIntentArbitrationAnalysis, SpatialIntentCandidate, SpatialIntentCandidateAvailability,
+    SpatialIntentCandidateRank, SpatialIntentCapabilitySet, SpatialIntentConflictClass,
+    SpatialIntentEscalation, SpatialIntentExplanationClass, SpatialIntentPreviewCommitDisposition,
+    SpatialIntentPreviewWarning, SpatialIntentResolutionError, SpatialObservedRelationFact,
+    SpatialPreviewRichness,
 };

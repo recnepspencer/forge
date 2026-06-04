@@ -6,6 +6,6 @@ mod validation;
 
 pub use ids::BridgeAspectRegistrationId;
 pub use registration::BridgeAspectRegistration;
-pub use types::{SliceFallbackPolicy, TruthDeltaSurfaceKind};
+pub use types::{SliceWideningPolicy, TruthDeltaSurfaceKind};
 
 pub(crate) use frozen::{FrozenAspectMappingRegistry, FrozenAspectRegistration};

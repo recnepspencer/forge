@@ -1,15 +1,20 @@
 use super::PrimitiveConstructionSpatialIntentError;
-use crate::construction::{PrimitiveConstructionIntent, RegularPyramidSpec, WireBodySpec};
-use crate::facade::{
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::specs::{RegularPyramidSpec, WireBodySpec};
+use crate::facade::authoring::intents::{
     MoveSpatialIntent, OffsetSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
 };
+use crate::test_support::SpatialFixtureWitnessCatalog;
 use worth_geom::ParameterSpacePoint;
-use worth_spatial::facade::{
-    admit_spatial_placement, SpatialAnchorRef, SpatialAxis, SpatialCarrierPointRole,
-    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
-    SpatialFixtureWitnessCatalog, SpatialFrameRef, SpatialGeometricTagFailureClass,
-    SpatialPlacementConstraintError, SpatialWitnessFailureClass,
+use worth_spatial::facade::placement::{admit_spatial_placement, SpatialPlacementConstraintError};
+use worth_spatial::facade::refs::{
+    SpatialAnchorRef, SpatialAxis, SpatialCarrierPointRole, SpatialFrameRef,
 };
+use worth_spatial::facade::witness_catalog::{
+    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
+    SpatialGeometricTagFailureClass,
+};
+use worth_spatial::facade::witness_resolution::SpatialWitnessFailureClass;
 
 #[test]
 fn primitive_construction_motion_finish_updates_embedded_placement() {
@@ -282,7 +287,7 @@ fn primitive_construction_motion_finish_with_catalog_supports_geometric_tag_anch
 #[test]
 fn primitive_construction_motion_finish_with_catalog_rejects_parameter_space_anchor_paths() {
     let catalog = SpatialFixtureWitnessCatalog::new().with_parameter_space_point(
-        worth_spatial::facade::SpatialCarrierKind::Surface,
+        worth_spatial::facade::refs::SpatialCarrierKind::Surface,
         "surface-anchor",
         ParameterSpacePoint::try_new([0.25, 0.75]).unwrap(),
         Ok(SpatialCatalogResolvedPointWitness::new(

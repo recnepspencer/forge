@@ -1,7 +1,9 @@
-use crate::facade::{
+use super::primitive_birth::{
+    PrimitiveConstructionBirthScaffoldInput, SpatialConstructionBirthError,
+};
+use super::primitive_birth_contract::{
     primitive_birth_contract_matches_counts, primitive_birth_contract_matches_support_planes,
-    PrimitiveConstructionBirthContractCounts, PrimitiveConstructionBirthScaffoldInput,
-    SpatialConstructionBirthError,
+    PrimitiveConstructionBirthContractCounts,
 };
 
 pub(super) fn validate_primitive_construction_birth_input(
@@ -17,7 +19,7 @@ pub(super) fn validate_primitive_construction_birth_input(
     if input
         .vertex_positions()
         .iter()
-        .any(|position| position.iter().any(|value| !value.is_finite()))
+        .any(|position: &[f64; 3]| position.iter().any(|value: &f64| !value.is_finite()))
     {
         return Err(
             SpatialConstructionBirthError::InvalidPrimitiveBirthScaffold(
@@ -26,11 +28,10 @@ pub(super) fn validate_primitive_construction_birth_input(
         );
     }
     let counts = PrimitiveConstructionBirthContractCounts::from_input(input);
-    let valid_shape = primitive_birth_contract_matches_counts(input.family(), counts)
+    let valid_shape = primitive_birth_contract_matches_counts(input.birth_contract(), counts)
         && primitive_birth_contract_matches_support_planes(
-            input.family(),
+            input.birth_contract(),
             input.support_planes().len(),
-            counts,
         );
     if !valid_shape {
         return Err(

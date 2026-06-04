@@ -4,7 +4,7 @@ use super::*;
 fn causal_envelope_binds_exact_bridge_records_and_external_authority_references() {
     let runtime = runtime(BridgeRuntimePolicy::default());
     let routed = runtime
-        .route("commit-causal")
+        .route(crate::facade::TruthCommitIdentity::new("commit-causal"))
         .expect("route should succeed");
     let evaluation = runtime
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
@@ -13,11 +13,11 @@ fn causal_envelope_binds_exact_bridge_records_and_external_authority_references(
         .expect("evaluation should succeed");
     let route_record = runtime
         .diagnostics()
-        .route_record_for_route_identity(routed.result().result_summary().route_identity().as_str())
+        .route_record_for_route_identity(routed.result().result_summary().route_identity())
         .expect("route record should be retained");
     let historical_record = runtime
         .diagnostics()
-        .historical_record_for_record_identity(evaluation.record().record_identity().as_str())
+        .historical_record_for_record_identity(evaluation.record().record_identity())
         .expect("historical record should be retained");
     let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
         crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
@@ -28,51 +28,67 @@ fn causal_envelope_binds_exact_bridge_records_and_external_authority_references(
         vec![
             external_reference(
                 BridgeCausalEvidenceOwner::Query,
-                BridgeCausalEvidenceFamily::QueryObservation,
-                "query-observation:changed",
+                BridgeCausalEvidenceReferenceIdentity::query_observation(
+                    "query-observation:changed",
+                )
+                .expect("query observation reference identity should be valid"),
             ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeRoute,
-                routed.result().result_summary().route_identity().as_str(),
-            ),
-            bridge_reference(
-                BridgeCausalEvidenceFamily::BridgeHistoricalEvaluation,
-                evaluation.record().record_identity().as_str(),
-            ),
+            bridge_route_reference(routed.result().result_summary()),
+            bridge_historical_evaluation_reference(evaluation.record()),
             external_reference(
                 BridgeCausalEvidenceOwner::Relational,
-                BridgeCausalEvidenceFamily::RelationalAuthority,
-                "relational-authority:commit-causal",
+                BridgeCausalEvidenceReferenceIdentity::relational_authority(
+                    "relational-authority:commit-causal",
+                )
+                .expect("relational reference identity should be valid"),
             ),
             external_reference(
                 BridgeCausalEvidenceOwner::Signal,
-                BridgeCausalEvidenceFamily::SignalInvalidation,
-                "signal-invalidation:commit-causal",
+                BridgeCausalEvidenceReferenceIdentity::signal(
+                    BridgeCausalEvidenceFamily::SignalInvalidation,
+                    "signal-invalidation:commit-causal",
+                )
+                .expect("signal reference identity should be valid"),
             ),
             external_reference(
                 BridgeCausalEvidenceOwner::Signal,
-                BridgeCausalEvidenceFamily::SignalEvaluation,
-                "signal-evaluation:commit-causal",
+                BridgeCausalEvidenceReferenceIdentity::signal(
+                    BridgeCausalEvidenceFamily::SignalEvaluation,
+                    "signal-evaluation:commit-causal",
+                )
+                .expect("signal reference identity should be valid"),
             ),
             external_reference(
                 BridgeCausalEvidenceOwner::Signal,
-                BridgeCausalEvidenceFamily::SignalForensicAvailability,
-                "signal-forensic:commit-causal",
+                BridgeCausalEvidenceReferenceIdentity::signal(
+                    BridgeCausalEvidenceFamily::SignalForensicAvailability,
+                    "signal-forensic:commit-causal",
+                )
+                .expect("signal reference identity should be valid"),
             ),
             external_reference(
                 BridgeCausalEvidenceOwner::Signal,
-                BridgeCausalEvidenceFamily::SignalReplayCursor,
-                "signal-replay-cursor:commit-causal",
+                BridgeCausalEvidenceReferenceIdentity::signal(
+                    BridgeCausalEvidenceFamily::SignalReplayCursor,
+                    "signal-replay-cursor:commit-causal",
+                )
+                .expect("signal reference identity should be valid"),
             ),
             external_reference(
                 BridgeCausalEvidenceOwner::Signal,
-                BridgeCausalEvidenceFamily::SignalLineage,
-                "signal-lineage:commit-causal",
+                BridgeCausalEvidenceReferenceIdentity::signal(
+                    BridgeCausalEvidenceFamily::SignalLineage,
+                    "signal-lineage:commit-causal",
+                )
+                .expect("signal reference identity should be valid"),
             ),
             external_reference(
                 BridgeCausalEvidenceOwner::Signal,
-                BridgeCausalEvidenceFamily::SignalProvenance,
-                "signal-provenance:commit-causal",
+                BridgeCausalEvidenceReferenceIdentity::signal(
+                    BridgeCausalEvidenceFamily::SignalProvenance,
+                    "signal-provenance:commit-causal",
+                )
+                .expect("signal reference identity should be valid"),
             ),
         ],
     )
@@ -88,7 +104,7 @@ fn causal_envelope_binds_exact_bridge_records_and_external_authority_references(
     assert_eq!(envelope.counters().bridge_retained_lookup_count(), 2);
     assert_eq!(envelope.counters().retained_bridge_binding_count(), 2);
     assert_eq!(envelope.counters().external_authority_reference_count(), 8);
-    assert_eq!(envelope.counters().bridge_record_scan_fallback_count(), 0);
+    assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
     assert_retained_route_binding(&envelope, &route_record);
     assert_retained_historical_binding(&envelope, &historical_record);
     assert_signal_reference_binding(
@@ -203,7 +219,11 @@ fn signal_replay_cursor_reference_denies_runtime_bridge_owner_mismatch() {
     let denial = BridgeCausalEvidenceReference::new(
         BridgeCausalEvidenceOwner::RuntimeBridge,
         BridgeCausalEvidenceFamily::SignalReplayCursor,
-        "signal-replay-cursor:wrong-owner",
+        BridgeCausalEvidenceReferenceIdentity::signal(
+            BridgeCausalEvidenceFamily::SignalReplayCursor,
+            "signal-replay-cursor:wrong-owner",
+        )
+        .expect("signal reference identity should be valid"),
     )
     .expect_err("signal replay cursor must stay signal-owned");
 

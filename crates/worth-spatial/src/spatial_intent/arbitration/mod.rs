@@ -3,11 +3,8 @@ mod candidates;
 mod capabilities;
 mod declared_analysis;
 mod facts;
-mod materialization;
-mod materialization_vocab;
-mod progression;
 mod resolution;
-mod runtime_declaration;
+mod workflow_projection;
 
 pub use analysis::{
     analyze_spatial_intent_conflict, analyze_spatial_intent_conflict_with_capabilities,
@@ -26,16 +23,14 @@ pub use declared_analysis::{
     SpatialIntentExplanationClass,
 };
 pub use facts::{SpatialAuthoredActKind, SpatialObservedRelationFact};
-pub use materialization::{
-    materialize_spatial_arbitration_support_report, SpatialArbitrationMaterializationDenial,
-    SpatialArbitrationMaterializationProfilePlan, SpatialArbitrationSupportMaterialization,
-};
 pub use resolution::{
     resolve_spatial_intent_conflict_by_choice, resolve_spatial_intent_conflict_by_policy,
     SpatialChosenIntentAuthority, SpatialChosenIntentResolution, SpatialIntentResolutionError,
 };
-pub use runtime_declaration::{
-    declare_spatial_arbitration_runtime, SpatialArbitrationRuntimeDeclaration,
+pub use workflow_projection::{
+    SpatialIdentityContinuityAssessment, SpatialIdentityContinuityClass,
+    SpatialIdentityContinuityExplanationClass, SpatialIntentPreviewCommitDisposition,
+    SpatialIntentPreviewWarning,
 };
 
 #[cfg(test)]

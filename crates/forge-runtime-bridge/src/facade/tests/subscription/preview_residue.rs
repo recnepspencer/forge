@@ -7,9 +7,10 @@ fn preview_discard_emits_zero_residue_proof_for_all_categories() {
         .preview_active_subscription_identity()
         .clone();
     let residue_scope_identity = preview_active.preview_residue_scope_identity().clone();
+    let work_trace = preview_work_trace(&runtime, &preview_active, "discard-zero");
     let residue_index = runtime.build_subscription_preview_residue_scope_index(
         &preview_active,
-        zero_preview_residue_inputs("discard-zero"),
+        work_trace.zero_residue_inputs(),
     );
     let residue_index_identity = residue_index.preview_residue_scope_index_identity().clone();
 
@@ -54,11 +55,16 @@ fn preview_discard_emits_zero_residue_proof_for_all_categories() {
             &residue_scope_identity
         );
         assert_eq!(record.residue_count(), 0);
-        assert!(
-            record
-                .evidence_digest()
-                .contains(record.category().as_str()),
-            "evidence digest must bind the residue category"
+        assert_eq!(
+            record.evidence_digest(),
+            format!(
+                "preview-work-zero-residue|trace={}|scope={}|record={}|category={}",
+                work_trace.digest(),
+                residue_scope_identity.as_str(),
+                expected_work_record_digest_for_residue_category(&work_trace, record.category()),
+                record.category().as_str(),
+            ),
+            "evidence digest must bind the residue category through preview work"
         );
     }
     assert_eq!(proof.counters().subscription_preview_discard_count(), 1);
@@ -74,13 +80,35 @@ fn preview_discard_emits_zero_residue_proof_for_all_categories() {
     );
 }
 
+fn expected_work_record_digest_for_residue_category(
+    work_trace: &crate::facade::BridgeSubscriptionPreviewWorkTrace,
+    category: crate::facade::BridgeSubscriptionPreviewResidueCategory,
+) -> &str {
+    match category {
+        crate::facade::BridgeSubscriptionPreviewResidueCategory::AuthoritativeTruthSubscription
+        | crate::facade::BridgeSubscriptionPreviewResidueCategory::BridgeSubscriptionRegistry => {
+            work_trace.record_digest_for(crate::facade::BridgeSubscriptionPreviewWorkKind::Routing)
+        }
+        crate::facade::BridgeSubscriptionPreviewResidueCategory::ActiveDelivery
+        | crate::facade::BridgeSubscriptionPreviewResidueCategory::FanoutConsumerContract => {
+            work_trace.record_digest_for(crate::facade::BridgeSubscriptionPreviewWorkKind::Delivery)
+        }
+        crate::facade::BridgeSubscriptionPreviewResidueCategory::Continuation
+        | crate::facade::BridgeSubscriptionPreviewResidueCategory::CheckpointReplay => work_trace
+            .record_digest_for(crate::facade::BridgeSubscriptionPreviewWorkKind::Continuation),
+        crate::facade::BridgeSubscriptionPreviewResidueCategory::SignalVisible => work_trace
+            .record_digest_for(crate::facade::BridgeSubscriptionPreviewWorkKind::Diagnostics),
+    }
+}
+
 #[test]
 fn preview_discard_rejects_nonzero_authoritative_residue() {
     let (runtime, preview_active) = preview_active_detail_subscription("discard-nonzero");
     let residue_index = runtime.build_subscription_preview_residue_scope_index(
         &preview_active,
         preview_residue_inputs_with_count(
-            "discard-nonzero",
+            &runtime,
+            &preview_active,
             crate::facade::BridgeSubscriptionPreviewResidueCategory::AuthoritativeTruthSubscription,
             1,
         ),
@@ -94,9 +122,13 @@ fn preview_discard_rejects_nonzero_authoritative_residue() {
         rejection.rejection_kind(),
         crate::facade::BridgeSubscriptionPreviewDiscardResidueRejectionKind::NonzeroResidue
     );
-    assert!(rejection
-        .rejection_context()
-        .contains("authoritative_truth_subscription=1"));
+    let nonzero_categories = rejection.rejection_context().nonzero_categories();
+    assert_eq!(nonzero_categories.len(), 1);
+    assert_eq!(
+        nonzero_categories[0].category(),
+        crate::facade::BridgeSubscriptionPreviewResidueCategory::AuthoritativeTruthSubscription
+    );
+    assert_eq!(nonzero_categories[0].residue_count(), 1);
     assert_eq!(
         rejection
             .counters()
@@ -114,7 +146,7 @@ fn preview_discard_rejects_nonzero_authoritative_residue() {
 #[test]
 fn preview_discard_rejects_missing_residue_category() {
     let (runtime, preview_active) = preview_active_detail_subscription("discard-missing-category");
-    let residue_inputs = zero_preview_residue_inputs("discard-missing-category")
+    let residue_inputs = zero_preview_residue_inputs(&runtime, &preview_active)
         .into_iter()
         .filter(|input| {
             input.category()
@@ -132,9 +164,10 @@ fn preview_discard_rejects_missing_residue_category() {
         rejection.rejection_kind(),
         crate::facade::BridgeSubscriptionPreviewDiscardResidueRejectionKind::MissingResidueCategory
     );
-    assert!(rejection
-        .rejection_context()
-        .contains("missing-category=signal_visible"));
+    assert_eq!(
+        rejection.rejection_context().missing_category_value(),
+        Some(crate::facade::BridgeSubscriptionPreviewResidueCategory::SignalVisible)
+    );
     assert_eq!(
         rejection
             .counters()
@@ -147,11 +180,11 @@ fn preview_discard_rejects_missing_residue_category() {
 fn preview_discard_rejects_duplicate_residue_category() {
     let (runtime, preview_active) =
         preview_active_detail_subscription("discard-duplicate-category");
-    let mut residue_inputs = zero_preview_residue_inputs("discard-duplicate-category");
+    let mut residue_inputs = zero_preview_residue_inputs(&runtime, &preview_active);
     residue_inputs.push(
-        crate::facade::BridgeSubscriptionPreviewResidueArtifactInput::zero(
+        crate::facade::BridgeSubscriptionPreviewResidueArtifactInput::zero_from_preview_work_trace(
             crate::facade::BridgeSubscriptionPreviewResidueCategory::SignalVisible,
-            "preview-residue-evidence:discard-duplicate-category:signal_visible:duplicate",
+            &preview_work_trace(&runtime, &preview_active, "discard-duplicate-category"),
         ),
     );
     let residue_index =
@@ -165,9 +198,10 @@ fn preview_discard_rejects_duplicate_residue_category() {
         rejection.rejection_kind(),
         crate::facade::BridgeSubscriptionPreviewDiscardResidueRejectionKind::DuplicateResidueCategory
     );
-    assert!(rejection
-        .rejection_context()
-        .contains("duplicate-category=signal_visible"));
+    assert_eq!(
+        rejection.rejection_context().duplicate_category_value(),
+        Some(crate::facade::BridgeSubscriptionPreviewResidueCategory::SignalVisible)
+    );
     assert_eq!(
         rejection
             .counters()
@@ -183,7 +217,7 @@ fn preview_discard_rejects_scope_index_drift_before_residue_proof() {
         preview_active_detail_subscription("discard-scope-b");
     let other_residue_index = other_runtime.build_subscription_preview_residue_scope_index(
         &other_preview_active,
-        zero_preview_residue_inputs("discard-scope-b"),
+        zero_preview_residue_inputs(&other_runtime, &other_preview_active),
     );
 
     let rejection = runtime
@@ -211,7 +245,7 @@ fn detail_and_collection_preview_subscriptions_share_residue_proof_path() {
         .clone();
     let detail_index = detail_runtime.build_subscription_preview_residue_scope_index(
         &detail_preview_active,
-        zero_preview_residue_inputs("discard-detail"),
+        zero_preview_residue_inputs(&detail_runtime, &detail_preview_active),
     );
     let detail_proof = detail_runtime
         .discard_preview_subscription(detail_preview_active, detail_index)
@@ -224,7 +258,7 @@ fn detail_and_collection_preview_subscriptions_share_residue_proof_path() {
         .clone();
     let collection_index = collection_runtime.build_subscription_preview_residue_scope_index(
         &collection_preview_active,
-        zero_preview_residue_inputs("discard-collection"),
+        zero_preview_residue_inputs(&collection_runtime, &collection_preview_active),
     );
     let collection_proof = collection_runtime
         .discard_preview_subscription(collection_preview_active, collection_index)

@@ -180,10 +180,7 @@ fn metadata_for_admitted_view(
         ViewShapeFamily::KanbanGrouped => (
             ViewShapeDeliveryMetadata::new(
                 None,
-                admitted
-                    .descriptor()
-                    .grouping_aspect()
-                    .map(ToString::to_string),
+                admitted.descriptor().native_grouping_aspect_key().cloned(),
                 admitted.identity_binding().identity_consumption().clone(),
                 false,
                 false,
@@ -203,10 +200,14 @@ fn maintenance_contract_for_admitted_view(
 ) -> ViewShapeMaintenanceContract {
     match admitted.family() {
         ViewShapeFamily::KanbanGrouped => {
+            let grouping_aspect = admitted
+                .descriptor()
+                .native_grouping_aspect_key()
+                .expect("grouped admission guarantees a native grouping aspect key");
             let grouped_planning = GroupedViewPlanningArtifact::derive(
                 validated_view,
                 execution_plan,
-                admitted.descriptor().grouping_aspect().unwrap_or("none"),
+                grouping_aspect,
             )
             .expect("grouped admission guarantees identity and grouping bindings");
             ViewShapeMaintenanceContract::KanbanGrouped { grouped_planning }

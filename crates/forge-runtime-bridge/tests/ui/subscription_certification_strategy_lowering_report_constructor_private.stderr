@@ -3,11 +3,11 @@ error[E0451]: fields `detail_bundle_digest`, `collection_bundle_digest`, `compar
    |
  8 |     let _report = BridgeSubscriptionCertificationStrategyLoweringReport {
    |                   ----------------------------------------------------- in this type
- 9 |         detail_bundle_digest: "detail".into(),
+ 9 |         detail_bundle_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^ private field
-10 |         collection_bundle_digest: "collection".into(),
+10 |         collection_bundle_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         comparison_report_digest: "comparison".into(),
+11 |         comparison_report_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
 12 |         primary_failure_boundary:
    |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
@@ -19,7 +19,7 @@ error[E0451]: fields `detail_bundle_digest`, `collection_bundle_digest`, `compar
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 17 |         counters: BridgeSubscriptionCertificationCounterSnapshot::default(),
    |         ^^^^^^^^ private field
-18 |         canonical_basis: "basis".into(),
+18 |         canonical_basis: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^ private field
-19 |         digest: "digest".into(),
+19 |         digest: sealed_authority_placeholder(),
    |         ^^^^^^ private field

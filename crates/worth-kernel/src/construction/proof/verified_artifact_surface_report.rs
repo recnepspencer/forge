@@ -1,5 +1,5 @@
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::proof::{
+use crate::construction::proof::proof_grade::{
     PrimitiveConstructionProofGrade, PrimitiveConstructionProofSubject,
 };
 
@@ -10,24 +10,6 @@ pub struct PrimitiveConstructionVerifiedArtifactSurfaceRow {
     truth_type: &'static str,
     verified_type: &'static str,
     failure_type: &'static str,
-}
-
-impl PrimitiveConstructionVerifiedArtifactSurfaceRow {
-    pub fn subject(&self) -> PrimitiveConstructionProofSubject {
-        self.subject
-    }
-    pub fn grade(&self) -> PrimitiveConstructionProofGrade {
-        self.grade
-    }
-    pub fn truth_type(&self) -> &'static str {
-        self.truth_type
-    }
-    pub fn verified_type(&self) -> &'static str {
-        self.verified_type
-    }
-    pub fn failure_type(&self) -> &'static str {
-        self.failure_type
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -49,20 +31,6 @@ pub fn prepare_primitive_construction_verified_artifact_surface_report(
 ) -> PrimitiveConstructionVerifiedArtifactSurfaceReport {
     let rows = vec![
         PrimitiveConstructionVerifiedArtifactSurfaceRow {
-            subject: PrimitiveConstructionProofSubject::Motion,
-            grade: PrimitiveConstructionProofGrade::BundleCoherence,
-            truth_type: "PrimitiveConstructionMotionCanonicalTruth",
-            verified_type: "PrimitiveConstructionVerifiedMotionReportBundle",
-            failure_type: "PrimitiveConstructionMotionBundleVerificationFailure",
-        },
-        PrimitiveConstructionVerifiedArtifactSurfaceRow {
-            subject: PrimitiveConstructionProofSubject::IntentArbitration,
-            grade: PrimitiveConstructionProofGrade::BundleCoherence,
-            truth_type: "PrimitiveConstructionIntentArbitrationCanonicalTruth",
-            verified_type: "PrimitiveConstructionVerifiedIntentArbitrationReportBundle",
-            failure_type: "PrimitiveConstructionIntentArbitrationBundleVerificationFailure",
-        },
-        PrimitiveConstructionVerifiedArtifactSurfaceRow {
             subject: PrimitiveConstructionProofSubject::CompoundParity,
             grade: PrimitiveConstructionProofGrade::BundleCoherence,
             truth_type: "PrimitiveConstructionCompoundParityCanonicalTruth",
@@ -70,11 +38,32 @@ pub fn prepare_primitive_construction_verified_artifact_surface_report(
             failure_type: "PrimitiveConstructionCompoundParityVerificationFailure",
         },
         PrimitiveConstructionVerifiedArtifactSurfaceRow {
-            subject: PrimitiveConstructionProofSubject::PolicyPressure,
-            grade: PrimitiveConstructionProofGrade::BundleCoherence,
-            truth_type: "PrimitiveConstructionPolicyPressureCanonicalTruth",
-            verified_type: "PrimitiveConstructionPolicyPressureReportBundle",
-            failure_type: "PrimitiveConstructionPolicyPressureBundleVerificationFailure",
+            subject: PrimitiveConstructionProofSubject::GeometryDigestSensitivity,
+            grade: PrimitiveConstructionProofGrade::GeometryTruthHostility,
+            truth_type: "PrimitiveGeometryIdentityBundle",
+            verified_type: "PrimitiveGeometryDigestSensitivityReport",
+            failure_type: "PrimitiveGeometryDigestMutationCase",
+        },
+        PrimitiveConstructionVerifiedArtifactSurfaceRow {
+            subject: PrimitiveConstructionProofSubject::CanonicalWitnessParity,
+            grade: PrimitiveConstructionProofGrade::GeometryTruthHostility,
+            truth_type: "PrimitiveCanonicalWitnessGeometry",
+            verified_type: "PrimitiveCanonicalWitnessParityReport",
+            failure_type: "PrimitiveCanonicalWitnessParityMismatch",
+        },
+        PrimitiveConstructionVerifiedArtifactSurfaceRow {
+            subject: PrimitiveConstructionProofSubject::ShellWithHoleLayoutHostility,
+            grade: PrimitiveConstructionProofGrade::GeometryTruthHostility,
+            truth_type: "ShellWithHoleWitnessLayout",
+            verified_type: "ShellWithHoleLayoutHostilitySuite",
+            failure_type: "PlanarWitnessContainmentReport/PlanarWitnessNonOverlapReport",
+        },
+        PrimitiveConstructionVerifiedArtifactSurfaceRow {
+            subject: PrimitiveConstructionProofSubject::SimplexCanonicalRatio,
+            grade: PrimitiveConstructionProofGrade::GeometryTruthHostility,
+            truth_type: "SimplexCanonicalWitnessDefinition",
+            verified_type: "SimplexCanonicalRatioReport",
+            failure_type: "SimplexCanonicalWitnessDefinition",
         },
         PrimitiveConstructionVerifiedArtifactSurfaceRow {
             subject: PrimitiveConstructionProofSubject::PhaseFiveSixCloseout,

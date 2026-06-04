@@ -1,155 +1,14 @@
-use crate::error::{BridgeDeliveryError, BridgeRouteError, BridgeSpeculationError};
+use crate::error::BridgeSpeculationError;
 
 use super::*;
 
-#[derive(Debug, Clone)]
-pub struct BridgeDiagnostics<'a> {
-    inner: &'a BridgeDiagnosticsFacade,
-}
+mod diagnostics;
+mod routing;
 
-impl<'a> BridgeDiagnostics<'a> {
-    pub(crate) fn new(inner: &'a BridgeDiagnosticsFacade) -> Self {
-        Self { inner }
-    }
-
-    pub fn raw(&self) -> &'a BridgeDiagnosticsFacade {
-        self.inner
-    }
-
-    /// Returns the richest available explanation for the most recent
-    /// standard-path bridge action.
-    pub fn explain_last(&self) -> Option<BridgeStandardDiagnosticsExplanation> {
-        self.explain_last_promotion()
-            .map(BridgeStandardDiagnosticsExplanation::PreviewPromotion)
-            .or_else(|| {
-                self.explain_last_discard()
-                    .map(BridgeStandardDiagnosticsExplanation::PreviewDiscard)
-            })
-            .or_else(|| {
-                self.explain_last_session()
-                    .map(BridgeStandardDiagnosticsExplanation::PreviewExecution)
-            })
-            .or_else(|| {
-                self.explain_last_evaluation()
-                    .map(BridgeStandardDiagnosticsExplanation::Evaluation)
-            })
-            .or_else(|| {
-                self.explain_last_route()
-                    .map(BridgeStandardDiagnosticsExplanation::Route)
-            })
-    }
-
-    /// Explains the most recent routed truth change.
-    pub fn explain_last_route(&self) -> Option<BridgeRouteExplanation> {
-        self.inner.explain_last_route_record()
-    }
-
-    /// Explains one routed truth change by route identity.
-    pub fn explain_route(&self, route_identity: &str) -> Option<BridgeRouteExplanation> {
-        self.inner
-            .route_record_for_route_identity(route_identity)
-            .map(|record| self.inner.explain_route_record(&record))
-    }
-
-    /// Explains the most recent explicit or implicit truth-view evaluation.
-    pub fn explain_last_evaluation(&self) -> Option<BridgeHistoricalEvaluationExplanation> {
-        self.inner.explain_last_historical_evaluation_record()
-    }
-
-    /// Explains one truth-view evaluation by retained record identity.
-    pub fn explain_evaluation(
-        &self,
-        historical_record_identity: &str,
-    ) -> Option<BridgeHistoricalEvaluationExplanation> {
-        self.inner
-            .historical_record_for_record_identity(historical_record_identity)
-            .map(|record| self.inner.explain_historical_evaluation_record(&record))
-    }
-
-    /// Explains the most recent speculative session execution.
-    pub fn explain_last_session(&self) -> Option<BridgePreviewExecutionExplanation> {
-        self.inner.explain_last_preview_execution_record()
-    }
-
-    /// Explains a speculative session by preview session identity.
-    ///
-    /// If the session progressed to discard or promotion, this returns the
-    /// terminal explanation instead of only the original execution record.
-    pub fn explain_session(
-        &self,
-        preview_session_identity: &str,
-    ) -> Option<BridgeStandardSessionExplanation> {
-        self.inner
-            .preview_promotion_record_for_session_identity(preview_session_identity)
-            .map(|record| {
-                BridgeStandardSessionExplanation::PreviewPromotion(
-                    self.inner.explain_preview_promotion_record(&record),
-                )
-            })
-            .or_else(|| {
-                self.inner
-                    .preview_discard_record_for_session_identity(preview_session_identity)
-                    .map(|record| {
-                        BridgeStandardSessionExplanation::PreviewDiscard(
-                            self.inner.explain_preview_discard_record(&record),
-                        )
-                    })
-            })
-            .or_else(|| {
-                self.inner
-                    .preview_execution_record_for_session_identity(preview_session_identity)
-                    .map(|record| {
-                        BridgeStandardSessionExplanation::PreviewExecution(
-                            self.inner.explain_preview_execution_record(&record),
-                        )
-                    })
-            })
-    }
-
-    /// Explains the most recent discard record.
-    pub fn explain_last_discard(&self) -> Option<BridgePreviewDiscardExplanation> {
-        self.inner.explain_last_preview_discard_record()
-    }
-
-    /// Explains the most recent promotion record.
-    pub fn explain_last_promotion(&self) -> Option<BridgePreviewPromotionExplanation> {
-        self.inner.explain_last_preview_promotion_record()
-    }
-
-    /// Explains a promotion by preview session identity.
-    pub fn explain_promotion(
-        &self,
-        preview_session_identity: &str,
-    ) -> Option<BridgePreviewPromotionExplanation> {
-        self.inner
-            .preview_promotion_record_for_session_identity(preview_session_identity)
-            .map(|record| self.inner.explain_preview_promotion_record(&record))
-    }
-}
-
-impl<'a> std::ops::Deref for BridgeDiagnostics<'a> {
-    type Target = BridgeDiagnosticsFacade;
-
-    fn deref(&self) -> &Self::Target {
-        self.inner
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum BridgeStandardDiagnosticsExplanation {
-    Route(BridgeRouteExplanation),
-    Evaluation(BridgeHistoricalEvaluationExplanation),
-    PreviewExecution(BridgePreviewExecutionExplanation),
-    PreviewDiscard(BridgePreviewDiscardExplanation),
-    PreviewPromotion(BridgePreviewPromotionExplanation),
-}
-
-#[derive(Debug, Clone)]
-pub enum BridgeStandardSessionExplanation {
-    PreviewExecution(BridgePreviewExecutionExplanation),
-    PreviewDiscard(BridgePreviewDiscardExplanation),
-    PreviewPromotion(BridgePreviewPromotionExplanation),
-}
+pub use diagnostics::{
+    BridgeDiagnostics, BridgeStandardDiagnosticsExplanation, BridgeStandardSessionExplanation,
+};
+pub use routing::{BridgeEvaluationTarget, BridgeRoute, BridgeStandardRouteError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeTruthViewEvaluationRequest {
@@ -275,97 +134,6 @@ impl BridgeTruthViewEvaluation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BridgeEvaluationTarget {
-    planned_route: BridgePlannedRoute,
-}
-
-impl BridgeEvaluationTarget {
-    pub(crate) fn new(planned_route: BridgePlannedRoute) -> Self {
-        Self { planned_route }
-    }
-
-    /// Returns the route identity that produced this evaluation target.
-    pub fn route_identity(&self) -> &BridgeRouteIdentity {
-        self.planned_route.route_identity()
-    }
-
-    /// Returns the planned route behind this target.
-    pub fn planned_route(&self) -> &BridgePlannedRoute {
-        &self.planned_route
-    }
-
-    pub(crate) fn into_planned_route(self) -> BridgePlannedRoute {
-        self.planned_route
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BridgeRoute {
-    target: BridgeEvaluationTarget,
-    result: BridgeRouteResult,
-}
-
-impl BridgeRoute {
-    pub(crate) fn new(planned_route: BridgePlannedRoute, result: BridgeRouteResult) -> Self {
-        Self {
-            target: BridgeEvaluationTarget::new(planned_route),
-            result,
-        }
-    }
-
-    /// Returns the route identity.
-    pub fn route_identity(&self) -> &BridgeRouteIdentity {
-        self.target.route_identity()
-    }
-
-    /// Returns the evaluation target produced by this route.
-    pub fn target(&self) -> BridgeEvaluationTarget {
-        self.target.clone()
-    }
-
-    /// Returns the delivery result produced by routing.
-    pub fn result(&self) -> &BridgeRouteResult {
-        &self.result
-    }
-}
-
-#[derive(Debug)]
-pub enum BridgeStandardRouteError {
-    Route(BridgeRouteError),
-    Delivery(BridgeDeliveryError),
-}
-
-impl std::fmt::Display for BridgeStandardRouteError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Route(error) => write!(f, "{error}"),
-            Self::Delivery(error) => write!(f, "{error}"),
-        }
-    }
-}
-
-impl std::error::Error for BridgeStandardRouteError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::Route(error) => Some(error),
-            Self::Delivery(error) => Some(error),
-        }
-    }
-}
-
-impl From<BridgeRouteError> for BridgeStandardRouteError {
-    fn from(value: BridgeRouteError) -> Self {
-        Self::Route(value)
-    }
-}
-
-impl From<BridgeDeliveryError> for BridgeStandardRouteError {
-    fn from(value: BridgeDeliveryError) -> Self {
-        Self::Delivery(value)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeSpeculativeSessionRequest {
     session_identity: BridgePreviewSessionIdentity,
     declaration: BridgePreviewSessionDeclaration,
@@ -469,33 +237,6 @@ impl BridgeSpeculativeComparison {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BridgeSpeculativePromotionRequest {
-    authoritative_commit_boundary_digest: std::sync::Arc<str>,
-    authoritative_artifact_digest: std::sync::Arc<str>,
-}
-
-impl BridgeSpeculativePromotionRequest {
-    /// Creates a promotion request from authoritative boundary digests.
-    pub fn new(
-        authoritative_commit_boundary_digest: impl Into<std::sync::Arc<str>>,
-        authoritative_artifact_digest: impl Into<std::sync::Arc<str>>,
-    ) -> Self {
-        Self {
-            authoritative_commit_boundary_digest: authoritative_commit_boundary_digest.into(),
-            authoritative_artifact_digest: authoritative_artifact_digest.into(),
-        }
-    }
-
-    pub fn authoritative_commit_boundary_digest(&self) -> &str {
-        self.authoritative_commit_boundary_digest.as_ref()
-    }
-
-    pub fn authoritative_artifact_digest(&self) -> &str {
-        self.authoritative_artifact_digest.as_ref()
-    }
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct BridgeSpeculativeDiscardOutcome {
     session: BridgePreviewSession<PreviewDiscarded>,
@@ -576,9 +317,9 @@ impl BridgeSpeculativeSessionHandle {
         BridgeSpeculativeComparison::from_active_session(&self.session)
     }
 
-    /// Returns the raw diagnostics facade.
+    /// Returns the retained diagnostics artifact facade.
     pub fn diagnostics(&self) -> &BridgeDiagnosticsFacade {
-        self.runtime.diagnostics().raw()
+        self.runtime.diagnostics().retained_artifacts()
     }
 
     /// Returns the standard-path diagnostics wrapper.
@@ -605,18 +346,11 @@ impl BridgeSpeculativeSessionHandle {
     }
 
     /// Promotes this speculative session across the authoritative boundary.
-    pub fn promote(
-        self,
-        request: BridgeSpeculativePromotionRequest,
-    ) -> Result<BridgeSpeculativePromotionOutcome, BridgeSpeculationError> {
+    pub fn promote(self) -> Result<BridgeSpeculativePromotionOutcome, BridgeSpeculationError> {
         let proof = self.session.promotion_admissibility_proof();
-        let (session, record) = self.runtime.promote_preview_session(
-            self.session,
-            &self.execution_record,
-            &proof,
-            request.authoritative_commit_boundary_digest,
-            request.authoritative_artifact_digest,
-        )?;
+        let (session, record) =
+            self.runtime
+                .promote_preview_session(self.session, &self.execution_record, &proof)?;
         Ok(BridgeSpeculativePromotionOutcome::new(session, record))
     }
 }

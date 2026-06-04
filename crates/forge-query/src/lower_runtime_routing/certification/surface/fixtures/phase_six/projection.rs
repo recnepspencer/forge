@@ -8,7 +8,7 @@ use crate::lower_runtime_routing::{
 };
 use crate::projection_consumption::ProjectionConsumptionSource;
 use crate::runtime::{ForgeQueryAspectMutationBuilder, ForgeQueryWriteReceipt};
-use forge_foundational::facade::{AspectKey, AspectValue};
+use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
 use forge_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
     project_relational_grouped_truth, GroupedProjectionContract,
@@ -17,8 +17,9 @@ use forge_runtime_bridge::facade::{
     materialize_bridge_grouped_truth_view_from_projection, materialize_bridge_row_set,
     AdmittedSourceRegistry, BridgeSourceCapability, BridgeSourceCapabilitySet,
     BridgeTruthViewSelector, GroupedProjectionMemberSource, GroupedProjectionSource,
-    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
-    SourceDeclaration, SourceDeclarationIdentity, TruthBranchIdentity, TruthSnapshotIdentity,
+    SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
+    SnapshotReadRequest, SourceDeclaration, SourceDeclarationIdentity, TruthBranchIdentity,
+    TruthSnapshotIdentity,
 };
 
 use super::super::{ForgeQueryLowerRuntimeRepresentativeEvidenceSource, RepresentativeArtifacts};
@@ -53,46 +54,18 @@ pub(crate) fn representative_projection_query_receipts_row() -> RepresentativeAr
 
 pub(crate) fn representative_projection_relational_row() -> RepresentativeArtifacts {
     let packet = SnapshotReadPacket::new(vec![
-        SnapshotReadRequest::for_coarse(
-            "entity-1",
-            forge_foundational::facade::AspectKey::new("identity.id")
-                .expect("valid snapshot aspect key"),
-        ),
-        SnapshotReadRequest::for_coarse(
-            "entity-1",
-            forge_foundational::facade::AspectKey::new("status.lane")
-                .expect("valid snapshot aspect key"),
-        ),
-        SnapshotReadRequest::for_coarse(
-            "entity-2",
-            forge_foundational::facade::AspectKey::new("identity.id")
-                .expect("valid snapshot aspect key"),
-        ),
-        SnapshotReadRequest::for_coarse(
-            "entity-2",
-            forge_foundational::facade::AspectKey::new("status.lane")
-                .expect("valid snapshot aspect key"),
-        ),
+        string_read("entity-1", "identity.id"),
+        string_read("entity-1", "status.lane"),
+        string_read("entity-2", "identity.id"),
+        string_read("entity-2", "status.lane"),
     ]);
     let result = SnapshotReadPacketResult::new(
         TruthSnapshotIdentity::new("relational-snapshot-a"),
         vec![
-            SnapshotReadRecord::new(
-                "entity-1:identity.id",
-                aspect_bytes(AspectValue::String("task-1".into())),
-            ),
-            SnapshotReadRecord::new(
-                "entity-1:status.lane",
-                aspect_bytes(AspectValue::String("todo".into())),
-            ),
-            SnapshotReadRecord::new(
-                "entity-2:identity.id",
-                aspect_bytes(AspectValue::String("task-2".into())),
-            ),
-            SnapshotReadRecord::new(
-                "entity-2:status.lane",
-                aspect_bytes(AspectValue::String("doing".into())),
-            ),
+            read_record(&packet, 0, AspectValue::String("task-1".into())),
+            read_record(&packet, 1, AspectValue::String("todo".into())),
+            read_record(&packet, 2, AspectValue::String("task-2".into())),
+            read_record(&packet, 3, AspectValue::String("doing".into())),
         ],
     );
     let row_set = materialize_relational_authoritative_row_set(&packet, &result)
@@ -137,26 +110,10 @@ pub(crate) fn representative_projection_bridge_row() -> RepresentativeArtifacts 
         .contract_for_declaration(&declaration)
         .expect("bridge source contract should exist");
     let packet = SnapshotReadPacket::new(vec![
-        SnapshotReadRequest::for_coarse(
-            "entity-1",
-            forge_foundational::facade::AspectKey::new("identity.id")
-                .expect("valid snapshot aspect key"),
-        ),
-        SnapshotReadRequest::for_coarse(
-            "entity-1",
-            forge_foundational::facade::AspectKey::new("status")
-                .expect("valid snapshot aspect key"),
-        ),
-        SnapshotReadRequest::for_coarse(
-            "entity-2",
-            forge_foundational::facade::AspectKey::new("identity.id")
-                .expect("valid snapshot aspect key"),
-        ),
-        SnapshotReadRequest::for_coarse(
-            "entity-2",
-            forge_foundational::facade::AspectKey::new("status")
-                .expect("valid snapshot aspect key"),
-        ),
+        string_read("entity-1", "identity.id"),
+        string_read("entity-1", "status"),
+        string_read("entity-2", "identity.id"),
+        string_read("entity-2", "status"),
     ]);
     let materialized = bridge
         .materialize_source_packet_batch(contract, vec![packet])
@@ -167,9 +124,9 @@ pub(crate) fn representative_projection_bridge_row() -> RepresentativeArtifacts 
         &row_set,
         &BridgeProjection {
             snapshot_identity: TruthSnapshotIdentity::new("snapshot-a"),
-            grouping_aspect: "status".to_string(),
-            identity_binding_aspect_key: "identity.id".to_string(),
-            grouping_binding_aspect_key: "status".to_string(),
+            grouping_aspect: aspect_key("status"),
+            identity_binding_aspect_key: aspect_key("identity.id"),
+            grouping_binding_aspect_key: aspect_key("status"),
             members: vec![
                 BridgeProjectionMember::new("entity-1", "task-1", "todo"),
                 BridgeProjectionMember::new("entity-2", "task-2", "doing"),
@@ -248,9 +205,9 @@ fn certification_query_write_receipt() -> ForgeQueryWriteReceipt {
 #[derive(Debug)]
 struct BridgeProjection {
     snapshot_identity: TruthSnapshotIdentity,
-    grouping_aspect: String,
-    identity_binding_aspect_key: String,
-    grouping_binding_aspect_key: String,
+    grouping_aspect: AspectKey,
+    identity_binding_aspect_key: AspectKey,
+    grouping_binding_aspect_key: AspectKey,
     members: Vec<BridgeProjectionMember>,
 }
 
@@ -292,15 +249,15 @@ impl GroupedProjectionSource for BridgeProjection {
         &self.snapshot_identity
     }
 
-    fn grouping_aspect(&self) -> &str {
+    fn grouping_aspect_key(&self) -> &AspectKey {
         &self.grouping_aspect
     }
 
-    fn identity_binding_aspect_key(&self) -> &str {
+    fn identity_binding_aspect_key(&self) -> &AspectKey {
         &self.identity_binding_aspect_key
     }
 
-    fn grouping_binding_aspect_key(&self) -> &str {
+    fn grouping_binding_aspect_key(&self) -> &AspectKey {
         &self.grouping_binding_aspect_key
     }
 
@@ -309,8 +266,23 @@ impl GroupedProjectionSource for BridgeProjection {
     }
 }
 
-fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+fn aspect_value(value: AspectValue) -> AspectValue {
     encode_snapshot_aspect_read_value(&value)
+}
+
+fn read_record(
+    packet: &SnapshotReadPacket,
+    index: usize,
+    value: AspectValue,
+) -> SnapshotReadRecord {
+    SnapshotReadRecord::for_request(&packet.reads()[index], aspect_value(value))
+}
+
+fn string_read(entity_identity: &str, aspect: &str) -> SnapshotReadRequest {
+    SnapshotReadRequest::for_coarse(
+        entity_identity,
+        SnapshotReadContract::scalar(aspect_key(aspect), ScalarAspectType::String),
+    )
 }
 
 fn grouped_projection_contract(

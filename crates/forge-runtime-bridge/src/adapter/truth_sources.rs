@@ -1,10 +1,11 @@
 use super::*;
+use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity};
 
 pub trait CommittedPatchSource: Send + Sync + 'static {
     fn load_committed_patch(
         &self,
         request: RelationalCommittedPatchRequest,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError>;
+    ) -> Result<crate::input::envelope::BridgeCommittedPatchEnvelope, RelationalBridgeSourceError>;
 }
 
 pub trait SnapshotReadSource: Send + Sync + 'static {
@@ -27,7 +28,7 @@ pub trait TruthBranchHeadSource: Send + Sync + 'static {
     fn load_branch_head_patch(
         &self,
         branch_identity: &TruthBranchIdentity,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError>;
+    ) -> Result<crate::input::envelope::BridgeCommittedPatchEnvelope, RelationalBridgeSourceError>;
 }
 
 pub trait RelationalBridgeSource:
@@ -42,17 +43,15 @@ impl<T> RelationalBridgeSource for T where
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelationalCommittedPatchRequest {
-    commit_identity: Arc<str>,
+    commit_identity: TruthCommitIdentity,
 }
 
 impl RelationalCommittedPatchRequest {
-    pub fn new(commit_identity: impl Into<Arc<str>>) -> Self {
-        Self {
-            commit_identity: commit_identity.into(),
-        }
+    pub fn new(commit_identity: TruthCommitIdentity) -> Self {
+        Self { commit_identity }
     }
 
-    pub fn commit_identity(&self) -> &str {
-        self.commit_identity.as_ref()
+    pub fn commit_identity(&self) -> &TruthCommitIdentity {
+        &self.commit_identity
     }
 }

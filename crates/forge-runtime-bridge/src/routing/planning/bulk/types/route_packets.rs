@@ -1,12 +1,25 @@
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum BridgeInvalidationReductionFamily {
+    Publication,
+}
+
+impl BridgeInvalidationReductionFamily {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Publication => "publication",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TruthDeltaRoutingPacket {
     packet_identity: RoutingPacketIdentity,
     workload_identity: BridgeWorkloadIdentity,
-    route_identity: Arc<str>,
-    source_branch: Arc<str>,
-    source_commit: Arc<str>,
-    source_snapshot: Arc<str>,
-    subscription_slice_identity: Arc<str>,
+    route_identity: BridgeRouteIdentity,
+    source_branch: TruthBranchIdentity,
+    source_commit: TruthCommitIdentity,
+    source_snapshot: TruthSnapshotIdentity,
+    subscription_slice_identity: BridgeSubscriptionSliceIdentity,
     invalidation_target_count: usize,
     packet_index: usize,
     digest: Arc<str>,
@@ -15,22 +28,22 @@ pub struct TruthDeltaRoutingPacket {
 impl TruthDeltaRoutingPacket {
     pub(crate) fn new(
         workload_identity: BridgeWorkloadIdentity,
-        route_identity: Arc<str>,
-        source_branch: Arc<str>,
-        source_commit: Arc<str>,
-        source_snapshot: Arc<str>,
-        subscription_slice_identity: Arc<str>,
+        route_identity: BridgeRouteIdentity,
+        source_branch: TruthBranchIdentity,
+        source_commit: TruthCommitIdentity,
+        source_snapshot: TruthSnapshotIdentity,
+        subscription_slice_identity: BridgeSubscriptionSliceIdentity,
         invalidation_target_count: usize,
         packet_index: usize,
     ) -> Self {
         let basis = format!(
             "truth-delta-routing-packet|workload={}|route={}|branch={}|commit={}|snapshot={}|subscription-slice={}|invalidation-target-count={}|packet-index={}",
             workload_identity.as_str(),
-            route_identity,
-            source_branch,
-            source_commit,
-            source_snapshot,
-            subscription_slice_identity,
+            route_identity.as_str(),
+            source_branch.as_str(),
+            source_commit.as_str(),
+            source_snapshot.as_str(),
+            subscription_slice_identity.as_str(),
             invalidation_target_count,
             packet_index,
         );
@@ -57,24 +70,32 @@ impl TruthDeltaRoutingPacket {
         &self.workload_identity
     }
 
-    pub fn route_identity(&self) -> &str {
-        self.route_identity.as_ref()
+    pub fn route_identity(&self) -> &BridgeRouteIdentity {
+        &self.route_identity
     }
 
     pub fn source_commit(&self) -> &str {
-        self.source_commit.as_ref()
+        self.source_commit.as_str()
     }
 
     pub fn source_branch(&self) -> &str {
-        self.source_branch.as_ref()
+        self.source_branch.as_str()
+    }
+
+    pub(crate) fn typed_source_branch(&self) -> &TruthBranchIdentity {
+        &self.source_branch
     }
 
     pub fn source_snapshot(&self) -> &str {
-        self.source_snapshot.as_ref()
+        self.source_snapshot.as_str()
     }
 
-    pub fn subscription_slice_identity(&self) -> &str {
-        self.subscription_slice_identity.as_ref()
+    pub(crate) fn typed_source_snapshot(&self) -> &TruthSnapshotIdentity {
+        &self.source_snapshot
+    }
+
+    pub fn subscription_slice_identity(&self) -> &BridgeSubscriptionSliceIdentity {
+        &self.subscription_slice_identity
     }
 
     pub fn invalidation_target_count(&self) -> usize {
@@ -94,8 +115,8 @@ impl TruthDeltaRoutingPacket {
 pub struct InvalidationReductionPacket {
     packet_identity: ReductionPacketIdentity,
     workload_identity: BridgeWorkloadIdentity,
-    reduction_family: Arc<str>,
-    reduced_target_scope: Arc<str>,
+    reduction_family: BridgeInvalidationReductionFamily,
+    reduced_subscription_slice_identity: BridgeSubscriptionSliceIdentity,
     reduced_target_identity: ReducedRoutingTargetIdentity,
     packet_index: usize,
     digest: Arc<str>,
@@ -104,16 +125,16 @@ pub struct InvalidationReductionPacket {
 impl InvalidationReductionPacket {
     pub(crate) fn new(
         workload_identity: BridgeWorkloadIdentity,
-        reduction_family: Arc<str>,
-        reduced_target_scope: Arc<str>,
+        reduction_family: BridgeInvalidationReductionFamily,
+        reduced_subscription_slice_identity: BridgeSubscriptionSliceIdentity,
         reduced_target_identity: ReducedRoutingTargetIdentity,
         packet_index: usize,
     ) -> Self {
         let basis = format!(
             "invalidation-reduction-packet|workload={}|reduction-family={}|reduced-target-scope={}|reduced-target-identity={}|packet-index={}",
             workload_identity.as_str(),
-            reduction_family,
-            reduced_target_scope,
+            reduction_family.as_str(),
+            reduced_subscription_slice_identity.as_str(),
             reduced_target_identity.as_str(),
             packet_index,
         );
@@ -123,7 +144,7 @@ impl InvalidationReductionPacket {
             packet_identity,
             workload_identity,
             reduction_family,
-            reduced_target_scope,
+            reduced_subscription_slice_identity,
             reduced_target_identity,
             packet_index,
             digest: digest_string("invalidation-reduction-packet", &basis),
@@ -138,12 +159,16 @@ impl InvalidationReductionPacket {
         &self.workload_identity
     }
 
-    pub fn reduction_family(&self) -> &str {
-        self.reduction_family.as_ref()
+    pub fn reduction_family(&self) -> BridgeInvalidationReductionFamily {
+        self.reduction_family
     }
 
-    pub fn reduced_target_scope(&self) -> &str {
-        self.reduced_target_scope.as_ref()
+    pub fn reduction_family_label(&self) -> &'static str {
+        self.reduction_family.as_str()
+    }
+
+    pub fn reduced_subscription_slice_identity(&self) -> &BridgeSubscriptionSliceIdentity {
+        &self.reduced_subscription_slice_identity
     }
 
     pub fn reduced_target_identity(&self) -> &ReducedRoutingTargetIdentity {
@@ -165,7 +190,7 @@ pub struct PlannedBridgePacketSet {
     routing_packets: Arc<[TruthDeltaRoutingPacket]>,
     truth_view_packets: Arc<[TruthViewMaterializationPacket]>,
     continuity_packets: Arc<[ContinuityRemapPacket]>,
-    fallback_packets: Arc<[FallbackAggregationPacket]>,
+    widening_packets: Arc<[WideningAggregationPacket]>,
     reduction_packets: Arc<[InvalidationReductionPacket]>,
     counters: BridgeBulkPlanningCounters,
     digest: Arc<str>,
@@ -177,17 +202,17 @@ impl PlannedBridgePacketSet {
         routing_packets: Vec<TruthDeltaRoutingPacket>,
         truth_view_packets: Vec<TruthViewMaterializationPacket>,
         continuity_packets: Vec<ContinuityRemapPacket>,
-        fallback_packets: Vec<FallbackAggregationPacket>,
+        widening_packets: Vec<WideningAggregationPacket>,
         reduction_packets: Vec<InvalidationReductionPacket>,
         counters: BridgeBulkPlanningCounters,
     ) -> Self {
         let mut basis = format!(
-            "planned-bridge-packet-set|workload={}|routing-count={}|truth-view-count={}|continuity-count={}|fallback-count={}|reduction-count={}",
+            "planned-bridge-packet-set|workload={}|routing-count={}|truth-view-count={}|continuity-count={}|widening-count={}|reduction-count={}",
             workload_identity.as_str(),
             routing_packets.len(),
             truth_view_packets.len(),
             continuity_packets.len(),
-            fallback_packets.len(),
+            widening_packets.len(),
             reduction_packets.len(),
         );
         for packet in &routing_packets {
@@ -202,8 +227,8 @@ impl PlannedBridgePacketSet {
             basis.push_str("|continuity=");
             basis.push_str(packet.digest());
         }
-        for packet in &fallback_packets {
-            basis.push_str("|fallback=");
+        for packet in &widening_packets {
+            basis.push_str("|widening=");
             basis.push_str(packet.digest());
         }
         for packet in &reduction_packets {
@@ -215,7 +240,7 @@ impl PlannedBridgePacketSet {
             routing_packets: routing_packets.into(),
             truth_view_packets: truth_view_packets.into(),
             continuity_packets: continuity_packets.into(),
-            fallback_packets: fallback_packets.into(),
+            widening_packets: widening_packets.into(),
             reduction_packets: reduction_packets.into(),
             counters,
             digest: digest_string("planned-bridge-packet-set", &basis),
@@ -238,8 +263,8 @@ impl PlannedBridgePacketSet {
         &self.continuity_packets
     }
 
-    pub fn fallback_packets(&self) -> &[FallbackAggregationPacket] {
-        &self.fallback_packets
+    pub fn widening_packets(&self) -> &[WideningAggregationPacket] {
+        &self.widening_packets
     }
 
     pub fn reduction_packets(&self) -> &[InvalidationReductionPacket] {
@@ -260,7 +285,7 @@ impl PlannedBridgePacketSet {
             routing_packets: Arc::clone(&self.routing_packets),
             truth_view_packets: Arc::clone(&self.truth_view_packets),
             continuity_packets: Arc::clone(&self.continuity_packets),
-            fallback_packets: Arc::clone(&self.fallback_packets),
+            widening_packets: Arc::clone(&self.widening_packets),
             reduction_packets: Arc::clone(&self.reduction_packets),
             counters,
             digest: Arc::clone(&self.digest),

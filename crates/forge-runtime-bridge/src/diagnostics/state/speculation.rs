@@ -1,9 +1,12 @@
 use super::*;
 
 impl BridgeDiagnosticsState {
-    pub(crate) fn reserve_preview_session_identity(&mut self, session_identity: &str) -> bool {
+    pub(crate) fn reserve_preview_session_identity(
+        &mut self,
+        session_identity: &BridgePreviewSessionIdentity,
+    ) -> bool {
         self.reserved_preview_session_identities
-            .insert(session_identity.to_string())
+            .insert(session_identity.clone())
     }
 
     pub(crate) fn record_preview_execution(
@@ -158,60 +161,60 @@ impl BridgeDiagnosticsState {
 
     pub(crate) fn preview_execution_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &PreviewExecutionRecordIdentity,
     ) -> Option<BridgePreviewExecutionRecord> {
         self.latest_preview_execution_by_record_identity
-            .get(record_identity)
+            .get(record_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
 
     pub(crate) fn preview_execution_record_for_session_identity(
         &self,
-        session_identity: &str,
+        session_identity: &BridgePreviewSessionIdentity,
     ) -> Option<BridgePreviewExecutionRecord> {
         self.latest_preview_execution_by_session_identity
-            .get(session_identity)
+            .get(session_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
 
     pub(crate) fn preview_discard_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &BridgePreviewDiscardRecordIdentity,
     ) -> Option<BridgePreviewDiscardRecord> {
         self.latest_preview_discard_by_record_identity
-            .get(record_identity)
+            .get(record_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
 
     pub(crate) fn preview_discard_record_for_session_identity(
         &self,
-        session_identity: &str,
+        session_identity: &BridgePreviewSessionIdentity,
     ) -> Option<BridgePreviewDiscardRecord> {
         self.latest_preview_discard_by_session_identity
-            .get(session_identity)
+            .get(session_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
 
     pub(crate) fn preview_promotion_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &BridgePreviewPromotionRecordIdentity,
     ) -> Option<BridgePreviewPromotionRecord> {
         self.latest_preview_promotion_by_record_identity
-            .get(record_identity)
+            .get(record_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
 
     pub(crate) fn preview_promotion_record_for_session_identity(
         &self,
-        session_identity: &str,
+        session_identity: &BridgePreviewSessionIdentity,
     ) -> Option<BridgePreviewPromotionRecord> {
         self.latest_preview_promotion_by_session_identity
-            .get(session_identity)
+            .get(session_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }

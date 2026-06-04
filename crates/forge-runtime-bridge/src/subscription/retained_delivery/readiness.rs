@@ -1,4 +1,4 @@
-﻿use std::sync::Arc;
+use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
@@ -12,7 +12,7 @@ use super::super::{
 pub enum BridgeSubscriptionDeliveryReplayReadinessClass {
     DescriptorOnlyReplayReady,
     CanonicalMemberReplayReady,
-    ReplayBlockedByOmittedPayload,
+    ReplayBlockedByOmittedContent,
     ReplayBlockedByDiagnosticsPolicy,
     ReplayBlockedByUnsupportedFamily,
 }
@@ -22,7 +22,7 @@ impl BridgeSubscriptionDeliveryReplayReadinessClass {
         match self {
             Self::DescriptorOnlyReplayReady => "descriptor_only_replay_ready",
             Self::CanonicalMemberReplayReady => "canonical_member_replay_ready",
-            Self::ReplayBlockedByOmittedPayload => "replay_blocked_by_omitted_payload",
+            Self::ReplayBlockedByOmittedContent => "replay_blocked_by_omitted_content",
             Self::ReplayBlockedByDiagnosticsPolicy => "replay_blocked_by_diagnostics_policy",
             Self::ReplayBlockedByUnsupportedFamily => "replay_blocked_by_unsupported_family",
         }
@@ -53,9 +53,9 @@ impl BridgeSubscriptionDeliveryWindowReplayReadiness {
                 if sealed_window
                     .members()
                     .iter()
-                    .any(|member| member.payload_omitted_reason().is_some())
+                    .any(|member| member.content_omitted_reason().is_some())
                 {
-                    BridgeSubscriptionDeliveryReplayReadinessClass::ReplayBlockedByOmittedPayload
+                    BridgeSubscriptionDeliveryReplayReadinessClass::ReplayBlockedByOmittedContent
                 } else {
                     BridgeSubscriptionDeliveryReplayReadinessClass::CanonicalMemberReplayReady
                 }

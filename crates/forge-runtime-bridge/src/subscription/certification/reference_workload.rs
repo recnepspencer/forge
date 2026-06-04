@@ -1,3 +1,9 @@
+mod lane_planning;
+
+use lane_planning::{
+    assembly_rejection_detail, cost_profile_rejection_detail, lane_comparison_plan,
+    lane_source_inputs,
+};
 use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
@@ -11,13 +17,14 @@ use super::{
     BridgeSubscriptionCertificationCostProfileRejectionKind,
     BridgeSubscriptionCertificationCounterSnapshot, BridgeSubscriptionCertificationDensityPosture,
     BridgeSubscriptionCertificationDivergenceAxis, BridgeSubscriptionCertificationFailureBoundary,
-    BridgeSubscriptionCertificationScratch, BridgeSubscriptionOfflineAuditBundleIndex,
-    BridgeSubscriptionOfflineAuditOutcomeSummary, BridgeSubscriptionOfflineAuditReport,
-    BridgeSubscriptionReferenceWorkloadCoverageReport,
+    BridgeSubscriptionCertificationFieldExpectation, BridgeSubscriptionCertificationScratch,
+    BridgeSubscriptionOfflineAuditBundleIndex, BridgeSubscriptionOfflineAuditOutcomeSummary,
+    BridgeSubscriptionOfflineAuditReport, BridgeSubscriptionReferenceWorkloadCoverageReport,
     BridgeSubscriptionReferenceWorkloadFamilyKind, BridgeSubscriptionReferenceWorkloadLaneKind,
     BridgeSubscriptionReferenceWorkloadLaneReport, BridgeSubscriptionReferenceWorkloadLaneRequest,
-    BridgeSubscriptionReferenceWorkloadManifestSealed, BridgeSubscriptionSourceArtifactIndex,
-    BridgeSubscriptionSourceArtifactInput, BridgeSubscriptionSourceArtifactKind,
+    BridgeSubscriptionReferenceWorkloadManifestSealed, BridgeSubscriptionSourceArtifactEvidence,
+    BridgeSubscriptionSourceArtifactIndex, BridgeSubscriptionSourceArtifactInput,
+    BridgeSubscriptionSourceArtifactKind, BridgeSubscriptionSourceArtifactRole,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -276,10 +283,12 @@ impl BridgeSubscriptionReferenceWorkloadReport {
     ) -> Result<BuiltLane, BridgeSubscriptionReferenceWorkloadRejection> {
         let source_artifact_index =
             BridgeSubscriptionSourceArtifactIndex::build(lane_source_inputs(request));
-        let assembly_plan = super::BridgeSubscriptionCertificationAssemblyPlan::plan(
-            manifest,
-            &source_artifact_index,
-        );
+        let assembly_plan =
+            super::BridgeSubscriptionCertificationAssemblyPlan::plan_with_field_expectation(
+                manifest,
+                &source_artifact_index,
+                field_expectation_for_lane(request.lane_kind()),
+            );
         let cost_profile = BridgeSubscriptionCertificationCostProfile::admit(
             BridgeSubscriptionCertificationDensityPosture::SparseCertificationWindow,
             16,
@@ -310,11 +319,7 @@ impl BridgeSubscriptionReferenceWorkloadReport {
                 assembly_rejection_detail(rejection.rejection_kind()),
             )
         })?;
-        let mut bundle = draft.seal();
-        if request.lane_kind() == BridgeSubscriptionReferenceWorkloadLaneKind::BundleInsufficiency {
-            let required_field_count = bundle.fields().len() + 1;
-            bundle = bundle.with_required_field_count_for_certification(required_field_count);
-        }
+        let bundle = draft.seal();
         let report = BridgeSubscriptionReferenceWorkloadLaneReport::from_bundle(
             request,
             &source_artifact_index,
@@ -360,258 +365,30 @@ impl BridgeSubscriptionReferenceWorkloadReport {
     }
 }
 
-fn lane_comparison_plan(
+fn field_expectation_for_lane(
     lane_kind: BridgeSubscriptionReferenceWorkloadLaneKind,
-) -> Result<
-    super::BridgeSubscriptionCertificationComparisonPlan,
-    BridgeSubscriptionReferenceWorkloadRejection,
-> {
-    let (relationship, expected_failure_boundary, divergence_axis) = match lane_kind {
-        BridgeSubscriptionReferenceWorkloadLaneKind::AuthoritativeLive => (
-            BridgeSubscriptionCertificationComparisonRelationship::SemanticEquivalence,
-            None,
-            None,
-        ),
-        BridgeSubscriptionReferenceWorkloadLaneKind::CanonicalOrderingHostility => (
-            BridgeSubscriptionCertificationComparisonRelationship::SemanticEquivalence,
-            None,
-            None,
-        ),
-        BridgeSubscriptionReferenceWorkloadLaneKind::HistoricalBasisReplay
-        | BridgeSubscriptionReferenceWorkloadLaneKind::SharedFanout => (
-            BridgeSubscriptionCertificationComparisonRelationship::SemanticEquivalence,
-            None,
-            None,
-        ),
-        BridgeSubscriptionReferenceWorkloadLaneKind::DiagnosticsTierVariation => (
-            BridgeSubscriptionCertificationComparisonRelationship::DiagnosticsOnlyVariation,
-            None,
-            None,
-        ),
-        BridgeSubscriptionReferenceWorkloadLaneKind::HostileAdapterVariation => (
-            BridgeSubscriptionCertificationComparisonRelationship::ExpectedRejection,
-            Some(BridgeSubscriptionCertificationFailureBoundary::MissingRequiredRetainedArtifact),
-            None,
-        ),
-        BridgeSubscriptionReferenceWorkloadLaneKind::HistoricalReplay
-        | BridgeSubscriptionReferenceWorkloadLaneKind::RestartResume => (
-            BridgeSubscriptionCertificationComparisonRelationship::ExpectedRejection,
-            Some(BridgeSubscriptionCertificationFailureBoundary::ReplayMismatch),
-            None,
-        ),
-        BridgeSubscriptionReferenceWorkloadLaneKind::BranchLocal => (
-            BridgeSubscriptionCertificationComparisonRelationship::IntentionalDivergence,
-            None,
-            Some(BridgeSubscriptionCertificationDivergenceAxis::DeclarationFamily),
-        ),
-        BridgeSubscriptionReferenceWorkloadLaneKind::IncompatibleSharingRejection => (
-            BridgeSubscriptionCertificationComparisonRelationship::ExpectedRejection,
-            Some(BridgeSubscriptionCertificationFailureBoundary::IllegalSharingReuse),
-            None,
-        ),
-        BridgeSubscriptionReferenceWorkloadLaneKind::StaleCheckpointRejection => (
-            BridgeSubscriptionCertificationComparisonRelationship::ExpectedRejection,
-            Some(BridgeSubscriptionCertificationFailureBoundary::CheckpointIncompatibility),
-            None,
-        ),
-        BridgeSubscriptionReferenceWorkloadLaneKind::Continuation => (
-            BridgeSubscriptionCertificationComparisonRelationship::IntentionalDivergence,
-            None,
-            Some(BridgeSubscriptionCertificationDivergenceAxis::ContinuationDecision),
-        ),
-        BridgeSubscriptionReferenceWorkloadLaneKind::DeniedContinuation => (
-            BridgeSubscriptionCertificationComparisonRelationship::ExpectedRejection,
-            Some(BridgeSubscriptionCertificationFailureBoundary::ContinuationDenialOrAmbiguity),
-            None,
-        ),
-        BridgeSubscriptionReferenceWorkloadLaneKind::StrategyLoweringProvenance => (
-            BridgeSubscriptionCertificationComparisonRelationship::IntentionalDivergence,
-            None,
-            Some(BridgeSubscriptionCertificationDivergenceAxis::StrategyLowering),
-        ),
-        BridgeSubscriptionReferenceWorkloadLaneKind::BundleInsufficiency => (
-            BridgeSubscriptionCertificationComparisonRelationship::BundleCompleteness,
-            None,
-            None,
-        ),
-        BridgeSubscriptionReferenceWorkloadLaneKind::PreviewDiscard
-        | BridgeSubscriptionReferenceWorkloadLaneKind::PreviewPromotion => (
-            BridgeSubscriptionCertificationComparisonRelationship::IntentionalDivergence,
-            None,
-            Some(BridgeSubscriptionCertificationDivergenceAxis::PreviewOutcome),
-        ),
-    };
-    super::BridgeSubscriptionCertificationComparisonPlan::admit(
-        relationship,
-        expected_failure_boundary,
-        divergence_axis,
-    )
-    .map_err(|rejection| {
-        BridgeSubscriptionReferenceWorkloadRejection::new(
-            BridgeSubscriptionReferenceWorkloadRejectionKind::ComparisonPlanRejected,
-            Some(lane_kind),
-            comparison_plan_rejection_detail(rejection.rejection_kind()),
-        )
-    })
-}
-
-fn lane_source_inputs(
-    request: BridgeSubscriptionReferenceWorkloadLaneRequest,
-) -> Vec<BridgeSubscriptionSourceArtifactInput> {
-    let family = request.family_kind().as_str();
-    let lane = request.lane_kind().as_str();
-    let strategy = match request.family_kind() {
-        BridgeSubscriptionReferenceWorkloadFamilyKind::DetailExact => "exact-field-lens",
-        BridgeSubscriptionReferenceWorkloadFamilyKind::CollectionMembership => {
-            "collection-membership-index"
-        }
-    };
-    let strategy = if request.lane_kind()
-        == BridgeSubscriptionReferenceWorkloadLaneKind::StrategyLoweringProvenance
-    {
-        "hostile-strategy-lowering-provenance"
-    } else {
-        strategy
-    };
-    let fanout_digest = if request.lane_kind()
-        == BridgeSubscriptionReferenceWorkloadLaneKind::IncompatibleSharingRejection
-    {
-        format!("digest:fanout:incompatible:{family}")
-    } else {
-        format!("digest:fanout:shared:{family}")
-    };
-    let continuation_digest =
-        if request.lane_kind() == BridgeSubscriptionReferenceWorkloadLaneKind::DeniedContinuation {
-            format!("digest:continuation:denied:{family}")
-        } else {
-            format!("digest:continuation:admitted:{family}")
-        };
-    let checkpoint_digest = if matches!(
-        request.lane_kind(),
-        BridgeSubscriptionReferenceWorkloadLaneKind::StaleCheckpointRejection
-    ) {
-        format!("digest:checkpoint:stale:{family}")
-    } else {
-        format!("digest:checkpoint:fresh:{family}")
-    };
-    let mut inputs = vec![
-        BridgeSubscriptionSourceArtifactInput::new(
-            BridgeSubscriptionSourceArtifactKind::LaneIdentity,
-            format!("lane:{lane}:{family}"),
-            format!("digest:lane:{lane}:{family}"),
-        ),
-        BridgeSubscriptionSourceArtifactInput::new(
-            BridgeSubscriptionSourceArtifactKind::Declaration,
-            format!("declaration:{family}"),
-            format!("digest:declaration:{family}"),
-        ),
-        BridgeSubscriptionSourceArtifactInput::new(
-            BridgeSubscriptionSourceArtifactKind::AdmittedSubscription,
-            format!("admitted:{family}"),
-            format!("digest:admitted:{family}"),
-        ),
-        BridgeSubscriptionSourceArtifactInput::new(
-            BridgeSubscriptionSourceArtifactKind::Lifecycle,
-            format!("lifecycle:{family}"),
-            format!("digest:lifecycle:{family}"),
-        ),
-        BridgeSubscriptionSourceArtifactInput::new(
-            BridgeSubscriptionSourceArtifactKind::BasisBinding,
-            format!("basis:{family}"),
-            format!("digest:basis:retained:{family}"),
-        ),
-        BridgeSubscriptionSourceArtifactInput::new(
-            BridgeSubscriptionSourceArtifactKind::ActiveDelivery,
-            format!("delivery:{family}"),
-            format!("digest:delivery:{family}"),
-        ),
-        BridgeSubscriptionSourceArtifactInput::new(
-            BridgeSubscriptionSourceArtifactKind::Fanout,
-            format!("fanout:{family}"),
-            fanout_digest,
-        ),
-        BridgeSubscriptionSourceArtifactInput::new(
-            BridgeSubscriptionSourceArtifactKind::Continuation,
-            format!("continuation:{family}"),
-            continuation_digest,
-        ),
-        BridgeSubscriptionSourceArtifactInput::new(
-            BridgeSubscriptionSourceArtifactKind::Checkpoint,
-            format!("checkpoint:{family}"),
-            checkpoint_digest,
-        ),
-        BridgeSubscriptionSourceArtifactInput::new(
-            BridgeSubscriptionSourceArtifactKind::StrategyLowering,
-            format!("strategy:{family}"),
-            format!("digest:strategy:{strategy}"),
-        ),
-    ];
-    match request.lane_kind() {
-        BridgeSubscriptionReferenceWorkloadLaneKind::HostileAdapterVariation => {
-            inputs.push(BridgeSubscriptionSourceArtifactInput::new(
-                BridgeSubscriptionSourceArtifactKind::Failure,
-                format!("failure:{lane}:{family}"),
-                format!("digest:failure:{lane}:{family}"),
-            ));
-        }
-        BridgeSubscriptionReferenceWorkloadLaneKind::HistoricalReplay
-        | BridgeSubscriptionReferenceWorkloadLaneKind::RestartResume => {
-            inputs.push(BridgeSubscriptionSourceArtifactInput::new(
-                BridgeSubscriptionSourceArtifactKind::RetainedReplay,
-                format!("replay:{lane}:{family}"),
-                format!("digest:replay:{lane}:{family}"),
-            ));
-        }
-        BridgeSubscriptionReferenceWorkloadLaneKind::SharedFanout
-        | BridgeSubscriptionReferenceWorkloadLaneKind::IncompatibleSharingRejection => {}
-        BridgeSubscriptionReferenceWorkloadLaneKind::StaleCheckpointRejection => {}
-        BridgeSubscriptionReferenceWorkloadLaneKind::Continuation => {
-            inputs.push(BridgeSubscriptionSourceArtifactInput::new(
-                BridgeSubscriptionSourceArtifactKind::Continuation,
-                format!("continuation:{lane}:{family}"),
-                format!("digest:continuation:{lane}:{family}"),
-            ));
-        }
-        BridgeSubscriptionReferenceWorkloadLaneKind::DeniedContinuation => {}
-        BridgeSubscriptionReferenceWorkloadLaneKind::PreviewDiscard
-        | BridgeSubscriptionReferenceWorkloadLaneKind::PreviewPromotion => {
-            inputs.push(BridgeSubscriptionSourceArtifactInput::new(
-                BridgeSubscriptionSourceArtifactKind::Preview,
-                format!("preview:{lane}:{family}"),
-                format!("digest:preview:{lane}:{family}"),
-            ));
-        }
-        BridgeSubscriptionReferenceWorkloadLaneKind::BranchLocal => {
-            inputs.push(BridgeSubscriptionSourceArtifactInput::new(
-                BridgeSubscriptionSourceArtifactKind::Declaration,
-                format!("branch-scope:{lane}:{family}"),
-                format!("digest:branch-scope:{lane}:{family}"),
-            ));
+) -> BridgeSubscriptionCertificationFieldExpectation {
+    match lane_kind {
+        BridgeSubscriptionReferenceWorkloadLaneKind::BundleInsufficiency => {
+            BridgeSubscriptionCertificationFieldExpectation::RetainedArtifactCompletenessRequirement
         }
         BridgeSubscriptionReferenceWorkloadLaneKind::AuthoritativeLive
+        | BridgeSubscriptionReferenceWorkloadLaneKind::HistoricalReplay
         | BridgeSubscriptionReferenceWorkloadLaneKind::HistoricalBasisReplay
+        | BridgeSubscriptionReferenceWorkloadLaneKind::RestartResume
+        | BridgeSubscriptionReferenceWorkloadLaneKind::BranchLocal
+        | BridgeSubscriptionReferenceWorkloadLaneKind::SharedFanout
+        | BridgeSubscriptionReferenceWorkloadLaneKind::DivergentSharingRejection
         | BridgeSubscriptionReferenceWorkloadLaneKind::DiagnosticsTierVariation
-        | BridgeSubscriptionReferenceWorkloadLaneKind::CanonicalOrderingHostility
+        | BridgeSubscriptionReferenceWorkloadLaneKind::HostileAdapterVariation
+        | BridgeSubscriptionReferenceWorkloadLaneKind::StaleCheckpointRejection
+        | BridgeSubscriptionReferenceWorkloadLaneKind::Continuation
+        | BridgeSubscriptionReferenceWorkloadLaneKind::DeniedContinuation
         | BridgeSubscriptionReferenceWorkloadLaneKind::StrategyLoweringProvenance
-        | BridgeSubscriptionReferenceWorkloadLaneKind::BundleInsufficiency => {}
+        | BridgeSubscriptionReferenceWorkloadLaneKind::PreviewDiscard
+        | BridgeSubscriptionReferenceWorkloadLaneKind::PreviewPromotion
+        | BridgeSubscriptionReferenceWorkloadLaneKind::CanonicalOrderingHostility => {
+            BridgeSubscriptionCertificationFieldExpectation::CompleteReferenceBundle
+        }
     }
-    inputs
-}
-
-fn cost_profile_rejection_detail(
-    kind: BridgeSubscriptionCertificationCostProfileRejectionKind,
-) -> &'static str {
-    kind.as_str()
-}
-
-fn assembly_rejection_detail(
-    kind: BridgeSubscriptionCertificationAssemblyRejectionKind,
-) -> &'static str {
-    kind.as_str()
-}
-
-fn comparison_plan_rejection_detail(
-    kind: BridgeSubscriptionCertificationComparisonPlanRejectionKind,
-) -> &'static str {
-    kind.as_str()
 }

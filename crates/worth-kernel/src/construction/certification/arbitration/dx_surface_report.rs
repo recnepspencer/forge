@@ -6,7 +6,7 @@ use super::{
     PrimitiveConstructionIntentArbitrationPolicyCase,
     PrimitiveConstructionIntentArbitrationPolicyReportError,
 };
-use worth_spatial::facade::{SpatialIntentCandidate, SpatialIntentEscalation};
+use worth_spatial::facade::arbitration::{SpatialIntentCandidate, SpatialIntentEscalation};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionIntentArbitrationDxSurface {

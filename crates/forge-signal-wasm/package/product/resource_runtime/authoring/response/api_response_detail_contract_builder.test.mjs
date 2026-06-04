@@ -3,6 +3,20 @@ import test from "node:test";
 
 import { createRealRequestRuntime } from "../../runtime_fixture/real_request_runtime.mjs";
 
+function stripSymbolProperties(value) {
+  if (Array.isArray(value)) {
+    return value.map(stripSymbolProperties);
+  }
+  if (value !== null && typeof value === "object") {
+    const normalized = {};
+    for (const key of Object.keys(value)) {
+      normalized[key] = stripSymbolProperties(value[key]);
+    }
+    return normalized;
+  }
+  return value;
+}
+
 test("detail response contracts own the detail finalizer lane", async () => {
   const runtime = await createRealRequestRuntime();
   try {
@@ -44,9 +58,9 @@ test("detail response contracts own the detail finalizer lane", async () => {
       id: "u1",
       name: "Updated",
     });
-    assert.deepEqual(saveLine.mutationResponse(), {
+    assert.deepEqual(stripSymbolProperties(saveLine.mutationResponse()), {
       version: "resource-mutation-response-plan-v1",
-      source: 'api.url("/users/:userId").response(...).put(...)',
+      source: 'api.url("/users/:userId").response(...).update(...)',
       planId: `${saveLine.descriptor().family.familyId}:${saveLine.descriptor().canonicalParams.canonicalKey}:PUT:0:0:0:0:1`,
       route: "/users/:userId",
       method: "PUT",
@@ -141,8 +155,8 @@ test("detail response contracts own the detail finalizer lane", async () => {
       ["materialized", "mutationResponsePlanned"],
     );
     assert.deepEqual(
-      saveLine.history().lifecycle.at(-1).mutationResponsePlan,
-      saveLine.mutationResponse(),
+      stripSymbolProperties(saveLine.history().lifecycle.at(-1).mutationResponsePlan),
+      stripSymbolProperties(saveLine.mutationResponse()),
     );
     assert.equal(
       saveLine.history().verificationPackage().mutationResponse.plan.targetCount,

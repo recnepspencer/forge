@@ -1,4 +1,4 @@
-use super::prepare_primitive_construction_phase_five_six_closeout_report;
+use super::closeout::prepare_primitive_construction_phase_five_six_closeout_report;
 use crate::construction::certification::corpus::{
     required_simplex_exhaustion_witness_kinds, required_simplex_ladder_scenarios,
 };
@@ -19,6 +19,7 @@ fn phase_five_six_closeout_report_binds_compound_simplex_and_policy_pressure_evi
 
     assert!(report.phase_five_boundary().closeout_gate_verified());
     assert!(report.compound_closeout().closeout_gate_verified());
+    assert!(report.policy_pressure().parity_verified());
     assert_eq!(report.policy_pressure().required_direct_cases().len(), 7);
     assert_eq!(report.policy_pressure().required_delta_cases().len(), 5);
     assert_eq!(

@@ -13,6 +13,19 @@ This includes both:
 - covered inspection intent families that pass through the shared intent
   admission lattice before materializing runtime-backed inspection results
 
+## What This Is Not
+
+- **Cross-runtime causal inspection** — use the `CausalInspection` lane
+  (`admit_causal_inspection`, `request_causal_inspection`), not `workspace.inspect`.
+  See [cross-runtime causal inspection](cross-runtime-causal-inspection.md) and
+  [inspection vs cross-runtime explanation](../domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md).
+- **Explanation contributions** — domain declaration posture in
+  [explanation/](../domain-capabilities/explanation/); does not replace inspect or
+  causal inspection APIs.
+- **Authoritative mutation write proof** — use
+  [authoritative mutation evidence](authoritative-mutation-evidence.md) for
+  bridge-backed write receipts, not inspect alone.
+
 ## Why You Use It
 
 - you need to confirm that a live view really installed the subscription shape
@@ -366,6 +379,8 @@ Some especially important things to look for:
 
 ## Related Docs
 
+- [Cross-runtime causal inspection](cross-runtime-causal-inspection.md)
+- [Inspection vs cross-runtime explanation (chooser)](../domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md)
 - [Workspace Overview](../foundations/workspace-overview.md)
 - [Live Views](../runtime-surfaces/live-views.md)
 - [Computed](../runtime-surfaces/computed.md)

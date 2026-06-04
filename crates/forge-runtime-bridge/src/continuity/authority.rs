@@ -147,9 +147,13 @@ mod tests {
             context.authority_basis().snapshot_identity().as_str(),
             "snapshot-b"
         );
-        assert!(context
-            .authority_basis()
-            .canonical_basis()
-            .contains("authority:TruthLineageAuthority"));
+        assert_eq!(
+            context.authority_basis().authority_kind(),
+            BridgeContinuityAuthorityKind::TruthLineageAuthority
+        );
+        assert_eq!(
+            context.authority_basis().digest_basis_kind(),
+            BridgeContinuityDigestBasisKind::PriorSubscriptionSlice
+        );
     }
 }

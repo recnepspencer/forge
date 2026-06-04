@@ -14,7 +14,11 @@ pub use declaration::{
     StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity, StructuralTruthViewBasis,
     StructuralTruthViewBasisIdentity,
 };
-pub use fingerprints::{StructuralFingerprint, StructuralFingerprintIdentity};
+pub use fingerprints::{
+    StructuralFingerprint, StructuralFingerprintEquivalenceMemberEvidence,
+    StructuralFingerprintEquivalenceMemberSet, StructuralFingerprintIdentity,
+    StructuralFingerprintRecordValueEvidence, StructuralFingerprintRecordValueEvidenceSet,
+};
 pub use matching::{classify_advisory_candidates, classify_branch_comparison};
 pub use planning::{
     PlannedStructuralMatchPacketSet, StructuralCandidateIdentity, StructuralMatchCandidate,

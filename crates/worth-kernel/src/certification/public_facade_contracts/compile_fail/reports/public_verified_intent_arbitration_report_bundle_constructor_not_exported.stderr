@@ -1,13 +1,8 @@
-error[E0624]: associated function `from_parts` is private
- --> src/certification/public_facade_contracts/compile_fail/reports/public_verified_intent_arbitration_report_bundle_constructor_not_exported.rs:4:73
+error[E0432]: unresolved import `worth_kernel::facade::certification::arbitration::PrimitiveConstructionVerifiedIntentArbitrationReportBundle`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_verified_intent_arbitration_report_bundle_constructor_not_exported.rs:1:5
   |
-4 |       let _ = PrimitiveConstructionVerifiedIntentArbitrationReportBundle::from_parts;
-  |                                                                           ^^^^^^^^^^ private associated function
-  |
- ::: src/construction/certification/arbitration/bundle_verified.rs
-  |
-  | /     pub(crate) fn from_parts(
-  | |         truth: PrimitiveConstructionIntentArbitrationCanonicalTruth,
-  | |         bundle: PrimitiveConstructionIntentArbitrationReportBundle,
-  | |     ) -> Self {
-  | |_____________- private associated function defined here
+1 | use worth_kernel::facade::certification::arbitration::PrimitiveConstructionVerifiedIntentArbitrationReportBundle;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----------------------------------------------------------
+  |     |                                                 |
+  |     |                                                 help: a similar name exists in the module: `PrimitiveConstructionIntentArbitrationBundleCase`
+  |     no `PrimitiveConstructionVerifiedIntentArbitrationReportBundle` in `facade::certification::arbitration`

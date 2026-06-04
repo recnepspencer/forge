@@ -20,8 +20,7 @@ pub(crate) fn apply_compound_authoring_order_lane(
                 (
                     !matches!(
                         scenario.row_class(),
-                        PrimitiveConstructionCompoundRowClass::StructuredAdmissionRejection
-                            | PrimitiveConstructionCompoundRowClass::StructuredRealizationExhaustion
+                        PrimitiveConstructionCompoundRowClass::StructuredRealizationExhaustion
                             | PrimitiveConstructionCompoundRowClass::BoundaryDriftGuardCase
                     ),
                     scenario.scenario_id(),
@@ -40,8 +39,7 @@ pub(crate) fn apply_compound_authoring_order_lane(
                 (
                     !matches!(
                         scenario.row_class(),
-                        PrimitiveConstructionCompoundRowClass::EscalatedStableLocalNormalized
-                            | PrimitiveConstructionCompoundRowClass::EscalatedStableExactSupport
+                        PrimitiveConstructionCompoundRowClass::EscalatedStableExactSupport
                             | PrimitiveConstructionCompoundRowClass::StructuredRealizationExhaustion
                     ),
                     scenario.row_class() as u8,

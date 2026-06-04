@@ -134,12 +134,16 @@ fn query_anchor_family_mismatch_fails_before_local_artifact_projection() {
 
 #[test]
 fn retained_application_handoff_does_not_cache_a_parallel_semantic_aftermath_field() {
-    let application_mod = include_str!("mod.rs");
-    let retained_handoff = include_str!("declaration_entry/retained_application_handoff.rs");
-    let declared_mutation_artifact = include_str!("declared_mutation_artifact.rs");
+    let application_mod = include_str!("mod.rs").replace("\r\n", "\n");
+    let retained_handoff =
+        include_str!("declaration_entry/retained_application_handoff.rs").replace("\r\n", "\n");
+    let declared_mutation_artifact =
+        include_str!("declared_mutation_artifact.rs").replace("\r\n", "\n");
     let accepted_mutation_projection =
-        include_str!("declared_mutation_artifact/accepted_mutation_projection.rs");
-    let workflow_artifacts = include_str!("../query_workflow/workflow_artifacts.rs");
+        include_str!("declared_mutation_artifact/accepted_mutation_projection.rs")
+            .replace("\r\n", "\n");
+    let workflow_artifacts =
+        include_str!("../query_workflow/workflow_artifacts.rs").replace("\r\n", "\n");
 
     assert!(
         !retained_handoff.contains("semantic_aftermath: TopologyQuerySemanticAftermathEvidence"),

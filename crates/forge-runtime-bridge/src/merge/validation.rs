@@ -110,7 +110,7 @@ impl ValidatedMergeHistoryDeclaration {
 #[cfg(test)]
 mod tests {
     use super::ValidatedMergeHistoryDeclaration;
-    use crate::input::envelope::TruthCommitIdentity;
+
     use crate::merge::{
         BridgeMergeAuthorityBasis, BridgeMergeAuthorityBasisKind, BridgeMergeConsumptionClass,
         BridgeMergeOntologyMappingEntry, BridgeMergeOntologyMappingSurface,
@@ -129,7 +129,9 @@ mod tests {
                 "merge-artifact:commit-c",
                 "rel-merge-v1",
                 "schema-policy-v1",
-                BridgeMergeParentOrderProof::new(vec![TruthCommitIdentity::new("parent-a")]),
+                BridgeMergeParentOrderProof::new(vec![crate::facade::TruthCommitIdentity::new(
+                    "parent-a",
+                )]),
             ),
         );
 
@@ -165,8 +167,8 @@ mod tests {
                 "rel-merge-v1",
                 "schema-policy-v1",
                 BridgeMergeParentOrderProof::new(vec![
-                    TruthCommitIdentity::new("parent-a"),
-                    TruthCommitIdentity::new("parent-b"),
+                    crate::facade::TruthCommitIdentity::new("parent-a"),
+                    crate::facade::TruthCommitIdentity::new("parent-b"),
                 ]),
             ),
         );

@@ -114,20 +114,18 @@ pub(super) fn first_snapshot_read_coordinate(
     packet: &SnapshotReadPacket,
 ) -> BridgeSnapshotReadCoordinate {
     let read = &packet.reads()[0];
-    match (read.surface_label(), read.slice_kind()) {
-        (Some(surface_label), Some(slice_kind)) => {
-            BridgeSnapshotReadCoordinate::new_subscription_slice(
-                read.request_key(),
-                read.entity_identity(),
-                read.aspect_label(),
-                surface_label,
-                slice_kind.clone(),
-            )
-        }
-        _ => BridgeSnapshotReadCoordinate::new_coarse(
-            read.request_key(),
+    match read.slice_kind() {
+        Some(slice_kind) => BridgeSnapshotReadCoordinate::new_subscription_slice(
+            read.correlation_id().clone(),
             read.entity_identity(),
-            read.aspect_label(),
+            read.aspect_key().clone(),
+            read.target_identity().clone(),
+            slice_kind.clone(),
+        ),
+        None => BridgeSnapshotReadCoordinate::new_coarse(
+            read.correlation_id().clone(),
+            read.entity_identity(),
+            read.aspect_key().clone(),
         ),
     }
 }

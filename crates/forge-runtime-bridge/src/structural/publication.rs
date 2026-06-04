@@ -194,20 +194,22 @@ mod tests {
 
     #[test]
     fn remap_publication_accepts_advisory_reduced_set() {
-        let artifact = PublishedStructuralRemapArtifact::from_reduced_match_set(reduced_remap())
+        let reduced = reduced_remap();
+        let artifact = PublishedStructuralRemapArtifact::from_reduced_match_set(reduced.clone())
             .expect("advisory reduced set should publish a remap artifact");
-        assert!(artifact
-            .canonical_basis()
-            .contains("published-structural-remap-artifact"));
+        assert_eq!(artifact.reduced_match_set(), &reduced);
+        assert_eq!(
+            artifact.reduced_match_set().outcome_class(),
+            crate::structural::StructuralMatchOutcomeClass::ExactAdvisoryMatch
+        );
     }
 
     #[test]
     fn branch_comparison_publication_accepts_branch_artifact_outcome() {
-        let artifact =
-            PublishedBranchComparisonArtifact::from_reduced_match_set(reduced_branch_compare())
-                .expect("branch comparison outcome should publish a branch artifact");
-        assert!(artifact
-            .canonical_basis()
-            .contains("published-branch-comparison-artifact"));
+        let reduced = reduced_branch_compare();
+        let artifact = PublishedBranchComparisonArtifact::from_reduced_match_set(reduced.clone())
+            .expect("branch comparison outcome should publish a branch artifact");
+        assert_eq!(artifact.reduced_match_set(), &reduced);
+        assert_eq!(artifact.reduced_match_set().branch_diff_count(), 1);
     }
 }

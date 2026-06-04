@@ -20,15 +20,18 @@ Read the docs in this order if you are new to the surface:
 1. [Branch-Local Candidates And Staged Branches](./branch-local-candidates-and-staged-branches.md)
 2. [Merge Planning And Verdicts](./merge-planning-and-verdicts.md)
 3. [Transition Strategy And Basis Semantics](./transition-strategy-and-basis-semantics.md)
-4. [Committed Authority Transitions](./committed-authority-transitions.md)
-5. [Commit Receipts, Discard, And Transition Bundles](./commit-receipts-discard-and-transition-bundles.md)
-6. [Transition Canonical Basis, Locators, And Current-Basis](./transition-canonical-basis-locators-and-current-basis.md)
-7. [Transition Production Readiness](./transition-production-readiness.md)
+4. [Scoped Merge And Cherry-Pick Vocabulary](../scoped-merge-adoption.md)
+5. [Committed Authority Transitions](./committed-authority-transitions.md)
+6. [Commit Receipts, Discard, And Transition Bundles](./commit-receipts-discard-and-transition-bundles.md)
+7. [Transition Canonical Basis, Locators, And Current-Basis](./transition-canonical-basis-locators-and-current-basis.md)
+8. [Transition Production Readiness](./transition-production-readiness.md)
 
 The order matters.
 
 - Branch-local surfaces are descriptive only.
 - Merge planning and merge verdicts are still not authority.
+- Scoped merge and cherry-pick vocabulary names selected scope before any
+  adopting runtime executes it.
 - Committed authority is the first proof-bearing authority lane.
 - Receipts and bundles derive from committed authority.
 - Canonical basis and current-basis behavior strengthen already-honest

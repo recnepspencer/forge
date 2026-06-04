@@ -1,7 +1,5 @@
 use std::collections::HashSet;
 
-use forge_proof::TransitionOutcome;
-
 use crate::spatial_intent::policy::{SpatialArbitrationPosture, SpatialIntentPolicyProfile};
 
 use super::candidates::SpatialIntentCandidate;
@@ -13,10 +11,6 @@ use super::declared_analysis::{
     SpatialIntentEscalation, SpatialIntentExplanationClass,
 };
 use super::facts::{SpatialAuthoredActKind, SpatialObservedRelationFact};
-use super::progression::{
-    admit_requested_spatial_arbitration_intent, declare_admitted_spatial_arbitration_intent,
-    request_spatial_arbitration_intent,
-};
 
 pub fn analyze_spatial_intent_conflict(
     authored_act: SpatialAuthoredActKind,
@@ -62,22 +56,12 @@ pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
     capabilities: SpatialIntentCapabilitySet,
     profile: SpatialIntentPolicyProfile,
 ) -> SpatialIntentArbitrationDeclaration {
-    let requested = request_spatial_arbitration_intent(
+    compute_spatial_intent_arbitration_declaration(
         authored_act,
         observed_relation_facts,
         capabilities,
         profile,
-    );
-    let admitted = match admit_requested_spatial_arbitration_intent(requested) {
-        TransitionOutcome::Success(admitted) => admitted,
-        _ => unreachable!("spatial arbitration admission is infallible"),
-    };
-    let declared = match declare_admitted_spatial_arbitration_intent(admitted) {
-        TransitionOutcome::Success(declared) => declared,
-        _ => unreachable!("spatial arbitration declaration is infallible"),
-    };
-    let (payload, _, _) = declared.into_parts().into_parts();
-    payload
+    )
 }
 
 pub(crate) fn compute_spatial_intent_arbitration_declaration(
@@ -271,7 +255,7 @@ pub(crate) fn compute_spatial_intent_arbitration_declaration(
         conflict_class,
         escalation,
         chosen_candidate,
-        profile.name(),
+        profile,
         capabilities.summary(),
     )
 }

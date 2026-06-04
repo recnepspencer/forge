@@ -1,11 +1,12 @@
-use worth_spatial::facade::{
+use worth_spatial::facade::constraints::{
     admit_spatial_anchor_match_constraint, admit_spatial_lies_on_constraint,
     admit_spatial_points_toward_constraint, admit_spatial_points_toward_constraint_with_catalog,
     AdmittedSpatialAnchorMatchConstraint, AdmittedSpatialLiesOnConstraint,
-    AdmittedSpatialPointsTowardConstraint, SpatialAnchorMatchConstraintSpec, SpatialAnchorRef,
-    SpatialConstraintError, SpatialFrameRef, SpatialLiesOnConstraintSpec, SpatialPointWitnessRef,
-    SpatialPointsTowardConstraintSpec, SpatialWitnessCatalog,
+    AdmittedSpatialPointsTowardConstraint, SpatialAnchorMatchConstraintSpec,
+    SpatialConstraintError, SpatialLiesOnConstraintSpec, SpatialPointsTowardConstraintSpec,
 };
+use worth_spatial::facade::refs::{SpatialAnchorRef, SpatialFrameRef, SpatialPointWitnessRef};
+use worth_spatial::facade::witness_catalog::SpatialWitnessCatalog;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ConstraintMoveSpatialIntent<S> {
@@ -93,7 +94,7 @@ impl<S> LiesOnSpatialIntent<S> {
         &self.spec
     }
 
-    pub fn admit(&self) -> Result<AdmittedSpatialLiesOnConstraint, SpatialConstraintError> {
+    pub(crate) fn admit(&self) -> Result<AdmittedSpatialLiesOnConstraint, SpatialConstraintError> {
         admit_spatial_lies_on_constraint(self.spec.clone())
     }
 }
@@ -113,11 +114,13 @@ impl<S> PointsTowardSpatialIntent<S> {
         &self.spec
     }
 
-    pub fn admit(&self) -> Result<AdmittedSpatialPointsTowardConstraint, SpatialConstraintError> {
+    pub(crate) fn admit(
+        &self,
+    ) -> Result<AdmittedSpatialPointsTowardConstraint, SpatialConstraintError> {
         admit_spatial_points_toward_constraint(self.spec.clone())
     }
 
-    pub fn admit_with_catalog(
+    pub(crate) fn admit_with_catalog(
         &self,
         catalog: &impl SpatialWitnessCatalog,
     ) -> Result<AdmittedSpatialPointsTowardConstraint, SpatialConstraintError> {
@@ -140,7 +143,9 @@ impl<S> AnchorMatchSpatialIntent<S> {
         &self.spec
     }
 
-    pub fn admit(&self) -> Result<AdmittedSpatialAnchorMatchConstraint, SpatialConstraintError> {
+    pub(crate) fn admit(
+        &self,
+    ) -> Result<AdmittedSpatialAnchorMatchConstraint, SpatialConstraintError> {
         admit_spatial_anchor_match_constraint(self.spec.clone())
     }
 }

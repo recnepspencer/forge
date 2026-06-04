@@ -196,12 +196,12 @@ fn basis_witness_from_binding(
                 Some(declaration.truth_view_basis_digest().to_string()),
             )
         }
-        ForgeQueryDeclarationBridgeBinding::PreviewPromotion(request) => {
+        ForgeQueryDeclarationBridgeBinding::PreviewPromotion(binding) => {
             ForgeQueryPreparedContinuationBasisWitness::new(
                 ForgeQueryPreparedContinuationBasisKind::PreviewDerived,
-                request.authoritative_artifact_digest().to_string(),
-                Some(request.authoritative_commit_boundary_digest().to_string()),
-                Some(request.authoritative_commit_boundary_digest().to_string()),
+                binding.promotion_continuation_digest().to_string(),
+                Some(binding.preview_basis_digest().to_string()),
+                Some(binding.declaration_digest().to_string()),
             )
         }
         ForgeQueryDeclarationBridgeBinding::SubscriptionPreparation(request) => {
@@ -218,9 +218,14 @@ fn basis_witness_from_binding(
         ForgeQueryDeclarationBridgeBinding::WritebackPreparation(request) => {
             ForgeQueryPreparedContinuationBasisWitness::new(
                 basis_kind_for_truth_context(bridge_request.truth_context()),
-                request.causality_digest().to_string(),
-                Some(request.strategy_compatibility_digest().to_string()),
-                Some(request.mapper_witness_digest().to_string()),
+                request.causality().digest().to_string(),
+                Some(
+                    request
+                        .declaration()
+                        .strategy_descriptor_digest()
+                        .to_string(),
+                ),
+                Some(request.effect_intent().digest().to_string()),
             )
         }
     }

@@ -135,8 +135,8 @@ pub(super) fn build_batch_write_receipt_inspection_digest(
                 inputs.batch_mutation_evidence.causality_bundle_count(),
                 inputs.batch_mutation_evidence.provenance_bundle_count(),
                 inputs.batch_mutation_evidence.outcome_class_count(),
-                inputs.batch_mutation_evidence.request_digest_count(),
-                inputs.batch_mutation_evidence.receipt_digest_count(),
+                inputs.batch_mutation_evidence.authority_request_count(),
+                inputs.batch_mutation_evidence.authority_receipt_count(),
                 inputs.batch_mutation_evidence.aggregate_target_digest()
             )))
             .chain(std::iter::once(format!(

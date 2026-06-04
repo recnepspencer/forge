@@ -3,15 +3,15 @@ error[E0451]: fields `complete_bundle_digest`, `insufficient_bundle_digest`, `co
    |
  8 |     let _report = BridgeSubscriptionCertificationBundleInsufficiencyReport {
    |                   -------------------------------------------------------- in this type
- 9 |         complete_bundle_digest: "complete".into(),
+ 9 |         complete_bundle_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         insufficient_bundle_digest: "insufficient".into(),
+10 |         insufficient_bundle_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         complete_completeness_report_digest: "complete-completeness".into(),
+11 |         complete_completeness_report_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-12 |         insufficient_completeness_report_digest: "insufficient-completeness".into(),
+12 |         insufficient_completeness_report_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-13 |         comparison_report_digest: "comparison".into(),
+13 |         comparison_report_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
 14 |         primary_failure_boundary: BridgeSubscriptionCertificationFailureBoundary::BundleInsufficiency,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
@@ -22,7 +22,7 @@ error[E0451]: fields `complete_bundle_digest`, `insufficient_bundle_digest`, `co
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 18 |         counters: BridgeSubscriptionCertificationCounterSnapshot::default(),
    |         ^^^^^^^^ private field
-19 |         canonical_basis: "basis".into(),
+19 |         canonical_basis: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^ private field
-20 |         digest: "digest".into(),
+20 |         digest: sealed_authority_placeholder(),
    |         ^^^^^^ private field

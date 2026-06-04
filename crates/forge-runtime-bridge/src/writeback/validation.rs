@@ -26,6 +26,7 @@ impl ValidatedBridgeWritebackDeclaration {
         reject_writeback_capable_missing_family_kind(&declaration)?;
         reject_writeback_capable_missing_strategy_descriptor(&declaration)?;
         reject_writeback_capable_missing_strategy_class(&declaration)?;
+        reject_strategy_descriptor_basis_mismatch(&declaration)?;
         let family_basis = (declaration.request_mode()
             == BridgeWritebackRequestMode::WritebackCapable)
             .then(|| BridgeWritebackFamilyBasis::from_declaration(&declaration))
@@ -116,14 +117,17 @@ fn reject_read_only_strategy_binding(
     declaration: &BridgeWritebackDeclaration,
 ) -> Result<(), crate::error::BridgeWritebackError> {
     if declaration.request_mode() == BridgeWritebackRequestMode::ReadOnly
-        && !declaration.strategy_descriptor_digest().is_empty()
+        && declaration.strategy_descriptor_basis().is_some()
     {
         return Err(crate::error::BridgeWritebackError::new(
             crate::error::BridgeWritebackErrorKind::WritebackNotRequested,
             format!(
-                "Read-only writeback declaration `{}` cannot bind strategy descriptor `{}`.",
+                "Read-only writeback declaration `{}` cannot bind a native strategy descriptor basis `{}`.",
                 declaration.declaration_identity().as_str(),
-                declaration.strategy_descriptor_digest(),
+                declaration
+                    .strategy_descriptor_basis()
+                    .expect("read-only rejection already proved strategy descriptor basis exists")
+                    .digest(),
             ),
         ));
     }
@@ -174,7 +178,7 @@ fn reject_writeback_capable_missing_strategy_descriptor(
     declaration: &BridgeWritebackDeclaration,
 ) -> Result<(), crate::error::BridgeWritebackError> {
     if declaration.request_mode() == BridgeWritebackRequestMode::WritebackCapable
-        && declaration.strategy_descriptor_digest().trim().is_empty()
+        && declaration.strategy_descriptor_basis().is_none()
     {
         return Err(crate::error::BridgeWritebackError::new(
             crate::error::BridgeWritebackErrorKind::StrategyDescriptorMismatch,
@@ -198,6 +202,32 @@ fn reject_writeback_capable_missing_strategy_class(
             crate::error::BridgeWritebackErrorKind::StrategyDescriptorMismatch,
             format!(
                 "Writeback-capable declaration `{}` must bind an explicit strategy class.",
+                declaration.declaration_identity().as_str(),
+            ),
+        ));
+    }
+
+    Ok(())
+}
+
+fn reject_strategy_descriptor_basis_mismatch(
+    declaration: &BridgeWritebackDeclaration,
+) -> Result<(), crate::error::BridgeWritebackError> {
+    let Some(strategy_descriptor_basis) = declaration.strategy_descriptor_basis() else {
+        return Ok(());
+    };
+    if declaration.request_mode() != BridgeWritebackRequestMode::WritebackCapable {
+        return Ok(());
+    }
+    if declaration.family_kind() != Some(strategy_descriptor_basis.family_kind())
+        || declaration.effect_class() != strategy_descriptor_basis.effect_class()
+        || declaration.strategy_class() != Some(strategy_descriptor_basis.strategy_class())
+        || declaration.idempotence_class() != strategy_descriptor_basis.idempotence_class()
+    {
+        return Err(crate::error::BridgeWritebackError::new(
+            crate::error::BridgeWritebackErrorKind::StrategyDescriptorMismatch,
+            format!(
+                "Writeback-capable declaration `{}` must bind a strategy descriptor basis matching its native family, effect, strategy, and idempotence tuple.",
                 declaration.declaration_identity().as_str(),
             ),
         ));

@@ -104,10 +104,12 @@ fn preview_subscription_promotion_rejects_promoted_subscription_drift() {
     let drift_declaration = runtime
         .declare_subscription(
             BridgeSubscriptionDeclarationFamilyKind::DetailExact,
-            vec![NormalizedSubscriptionSliceIntent::try_new(
+            vec![NormalizedSubscriptionSliceIntent::try_new_entity_field(
                 "entity-drift",
-                "profile",
-                "name",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native subscription field key"),
                 SubscriptionSliceKind::SignalField,
             )
             .expect("slice intent should validate")],

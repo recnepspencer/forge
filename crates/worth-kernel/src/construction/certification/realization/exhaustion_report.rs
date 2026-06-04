@@ -84,20 +84,8 @@ impl PrimitiveConstructionRealizationExhaustionReport {
         }
     }
 
-    pub fn family(&self) -> PrimitiveConstructionFamily {
-        self.family
-    }
-
     pub fn status(&self) -> PrimitiveConstructionRealizationExhaustionStatus {
         self.status
-    }
-
-    pub fn attempted_strategies(&self) -> &[PrimitiveRealizationStrategy] {
-        &self.attempted_strategies
-    }
-
-    pub fn stability_class(&self) -> Option<PrimitiveStabilityClass> {
-        self.stability_class
     }
 
     pub fn exhaustion_reason(&self) -> Option<PrimitiveRealizationExhaustionReason> {
@@ -114,9 +102,9 @@ impl PrimitiveConstructionRealizationExhaustionReport {
 }
 
 pub fn prepare_primitive_construction_realization_exhaustion_report(
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: PrimitiveConstructionIntent,
 ) -> PrimitiveConstructionRealizationExhaustionReport {
     PrimitiveConstructionRealizationExhaustionReport::from_snapshot(&prepare_realization_snapshot(
-        intent.into().into_request(),
+        intent.into_request(),
     ))
 }

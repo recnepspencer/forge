@@ -1,4 +1,4 @@
-use crate::construction::certification::{
+use crate::construction::certification::arbitration::{
     prepare_primitive_construction_preserved_intent_resolution_report,
     PrimitiveConstructionPreservedIntentResolutionCase,
     PrimitiveConstructionPreservedIntentResolutionReportError,
@@ -35,10 +35,6 @@ impl PrimitiveConstructionIntentArbitrationReplayParityReport {
             parity_verified,
             report_digest,
         }
-    }
-
-    pub fn case(&self) -> PrimitiveConstructionPreservedIntentResolutionCase {
-        self.case
     }
 
     pub fn direct_row(&self) -> &PrimitiveConstructionPreservedIntentResolutionRow {

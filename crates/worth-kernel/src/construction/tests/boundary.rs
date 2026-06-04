@@ -98,7 +98,7 @@ const AUDITED_ADMITTED_SUBTREE_BOUNDARY_FILES: [(&str, &str); 5] = [
     ),
 ];
 
-const AUDITED_PUBLIC_CONSTRUCTION_ENTRY_FILES: [(&str, &str); 3] = [
+const AUDITED_PUBLIC_CONSTRUCTION_ENTRY_FILES: [(&str, &str); 2] = [
     (
         "worth-kernel.facade-root",
         include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/facade.rs")),
@@ -108,13 +108,6 @@ const AUDITED_PUBLIC_CONSTRUCTION_ENTRY_FILES: [(&str, &str); 3] = [
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/src/facade/outcome.rs"
-        )),
-    ),
-    (
-        "worth-kernel.facade-prelude",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/facade/prelude.rs"
         )),
     ),
 ];
@@ -364,7 +357,7 @@ fn phase_five_execution_boundary_no_longer_teaches_phase_chain_entry() {
 }
 
 #[test]
-fn phase_five_admitted_result_boundary_no_longer_teaches_execution_wrapper() {
+fn phase_five_admitted_artifact_boundary_no_longer_teaches_execution_wrapper() {
     let violations = AUDITED_ADMITTED_PROTOCOL_FILES
         .iter()
         .chain(AUDITED_ADMITTED_SUBTREE_BOUNDARY_FILES.iter())

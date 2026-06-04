@@ -3,11 +3,19 @@ use crate::construction::{PrimitiveConstructionFamily, PrimitiveConstructionInte
 use crate::spatial_intent::{
     MoveSpatialIntent, PointsTowardSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
 };
-use worth_spatial::facade::{
-    admit_spatial_move_with_catalog, admit_spatial_points_toward_constraint_with_catalog,
-    admit_spatial_reorient_with_catalog, admit_spatial_rotate_with_catalog, SpatialAnchorRef,
-    SpatialConstraintError, SpatialDirectionWitnessRef, SpatialMotionError, SpatialPointWitnessRef,
-    SpatialWitnessCatalog, SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
+use worth_spatial::facade::constraints::{
+    admit_spatial_points_toward_constraint_with_catalog, SpatialConstraintError,
+};
+use worth_spatial::facade::motion::{
+    admit_spatial_move_with_catalog, admit_spatial_reorient_with_catalog,
+    admit_spatial_rotate_with_catalog, SpatialMotionError,
+};
+use worth_spatial::facade::refs::{
+    SpatialAnchorRef, SpatialDirectionWitnessRef, SpatialPointWitnessRef,
+};
+use worth_spatial::facade::witness_catalog::SpatialWitnessCatalog;
+use worth_spatial::facade::witness_resolution::{
+    SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -128,7 +136,7 @@ pub fn prepare_primitive_construction_move_witness_resolution_report(
 ) -> PrimitiveConstructionMotionWitnessResolutionReport {
     prepare_primitive_construction_move_witness_resolution_report_with_catalog(
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 
@@ -170,7 +178,7 @@ pub fn prepare_primitive_construction_rotate_witness_resolution_report(
 ) -> PrimitiveConstructionMotionWitnessResolutionReport {
     prepare_primitive_construction_rotate_witness_resolution_report_with_catalog(
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 
@@ -224,7 +232,7 @@ pub fn prepare_primitive_construction_reorient_witness_resolution_report(
 ) -> PrimitiveConstructionMotionWitnessResolutionReport {
     prepare_primitive_construction_reorient_witness_resolution_report_with_catalog(
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 
@@ -272,7 +280,7 @@ pub fn prepare_primitive_construction_points_toward_witness_resolution_report(
 ) -> PrimitiveConstructionMotionWitnessResolutionReport {
     prepare_primitive_construction_points_toward_witness_resolution_report_with_catalog(
         intent,
-        &worth_spatial::facade::EmptySpatialWitnessCatalog,
+        &worth_spatial::facade::witness_catalog::EmptySpatialWitnessCatalog,
     )
 }
 

@@ -11,6 +11,7 @@ use crate::declarative_live::DeclarativeProjectionField;
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 use crate::program::ForgeQueryDerivedView;
 use crate::schema_view::{SchemaFieldKind, SchemaFieldView, SchemaRelationView};
+use forge_foundational::facade::AspectKey;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryWorkspaceLiveViewDeclaration {
@@ -101,7 +102,7 @@ impl ForgeQueryLiveViewBuilder {
         self
     }
 
-    pub fn grouped_by(mut self, aspect: impl Into<String>) -> Self {
+    pub fn grouped_by(mut self, aspect: AspectKey) -> Self {
         self.view_shape = DeclarativeLiveViewShape::kanban_grouped(aspect);
         self
     }

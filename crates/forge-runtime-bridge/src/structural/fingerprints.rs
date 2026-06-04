@@ -3,7 +3,11 @@ use std::sync::Arc;
 use sha2::{Digest, Sha256};
 
 use crate::identity::{BridgeIdentity, StructuralFingerprintIdentityTag};
-use crate::snapshot::{MaterializedTruthViewObservation, SnapshotReadPacket};
+use crate::snapshot::validated_value_basis::validated_snapshot_read_value_canonical_basis;
+use crate::snapshot::{
+    MaterializedTruthViewObservation, SnapshotReadPacket, TruthSnapshotIdentity,
+    ValidatedSnapshotReadRecord,
+};
 
 use super::{AdmittedStructuralComparisonContract, StructuralFingerprintFamily};
 
@@ -18,13 +22,184 @@ pub struct StructuralFingerprint {
     truth_view_basis_digest: Arc<str>,
     read_packet: SnapshotReadPacket,
     planned_packet_digest: Arc<str>,
-    snapshot_identity: Arc<str>,
+    snapshot_identity: TruthSnapshotIdentity,
     authority_digest: Arc<str>,
     equivalence_digest: Arc<str>,
-    member_evidence: Arc<[Arc<str>]>,
-    record_aspect_bytes_digest: Arc<str>,
+    record_value_evidence: StructuralFingerprintRecordValueEvidenceSet,
+    equivalence_member_evidence: StructuralFingerprintEquivalenceMemberSet,
+    record_aspect_value_digest: Arc<str>,
     canonical_basis: Arc<str>,
     digest: Arc<str>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StructuralFingerprintRecordValueEvidenceSet {
+    records: Arc<[StructuralFingerprintRecordValueEvidence]>,
+    canonical_basis: Arc<str>,
+}
+
+impl StructuralFingerprintRecordValueEvidenceSet {
+    fn from_validated_records(records: &[ValidatedSnapshotReadRecord]) -> Self {
+        let mut evidence = records
+            .iter()
+            .map(StructuralFingerprintRecordValueEvidence::from_validated_record)
+            .collect::<Vec<_>>();
+        evidence.sort_by(|left, right| left.correlation_id().cmp(right.correlation_id()));
+        Self::from_evidence(evidence)
+    }
+
+    fn empty() -> Self {
+        Self::from_evidence(Vec::new())
+    }
+
+    fn from_evidence(records: Vec<StructuralFingerprintRecordValueEvidence>) -> Self {
+        let canonical_basis = structural_record_value_evidence_set_canonical_basis(&records);
+        Self {
+            records: Arc::from(records),
+            canonical_basis,
+        }
+    }
+
+    pub fn records(&self) -> &[StructuralFingerprintRecordValueEvidence] {
+        &self.records
+    }
+
+    pub fn canonical_basis(&self) -> &str {
+        self.canonical_basis.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StructuralFingerprintRecordValueEvidence {
+    correlation_id: Arc<str>,
+    aspect_value_digest: Arc<str>,
+    canonical_basis: Arc<str>,
+}
+
+impl StructuralFingerprintRecordValueEvidence {
+    fn from_validated_record(record: &ValidatedSnapshotReadRecord) -> Self {
+        let value_basis = validated_snapshot_read_value_canonical_basis(record.validated_value());
+        let aspect_value_digest = Sha256::digest(value_basis.as_bytes());
+        let aspect_value_digest = Arc::<str>::from(format!(
+            "structural-record-aspect-value:sha256:{aspect_value_digest:x}"
+        ));
+        let correlation_id = Arc::<str>::from(record.correlation_id().as_str());
+        let canonical_basis = Arc::<str>::from(format!(
+            "structural-record-value-evidence|correlation={}|aspect-value={}",
+            correlation_id.as_ref(),
+            aspect_value_digest.as_ref(),
+        ));
+        Self {
+            correlation_id,
+            aspect_value_digest,
+            canonical_basis,
+        }
+    }
+
+    pub fn correlation_id(&self) -> &str {
+        self.correlation_id.as_ref()
+    }
+
+    pub fn aspect_value_digest(&self) -> &str {
+        self.aspect_value_digest.as_ref()
+    }
+
+    pub fn canonical_basis(&self) -> &str {
+        self.canonical_basis.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StructuralFingerprintEquivalenceMemberSet {
+    members: Arc<[StructuralFingerprintEquivalenceMemberEvidence]>,
+    canonical_basis: Arc<str>,
+}
+
+impl StructuralFingerprintEquivalenceMemberSet {
+    fn from_record_value_evidence(records: &StructuralFingerprintRecordValueEvidenceSet) -> Self {
+        let members = records
+            .records()
+            .iter()
+            .map(StructuralFingerprintEquivalenceMemberEvidence::from_record_value_evidence)
+            .collect::<Vec<_>>();
+        Self::from_members(members)
+    }
+
+    fn empty() -> Self {
+        Self::from_members(Vec::new())
+    }
+
+    fn from_members(members: Vec<StructuralFingerprintEquivalenceMemberEvidence>) -> Self {
+        let canonical_basis = structural_equivalence_member_set_canonical_basis(&members);
+        Self {
+            members: Arc::from(members),
+            canonical_basis,
+        }
+    }
+
+    pub fn members(&self) -> &[StructuralFingerprintEquivalenceMemberEvidence] {
+        &self.members
+    }
+
+    pub fn canonical_basis(&self) -> &str {
+        self.canonical_basis.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StructuralFingerprintEquivalenceMemberEvidence {
+    aspect_value_digest: Arc<str>,
+    canonical_basis: Arc<str>,
+}
+
+impl StructuralFingerprintEquivalenceMemberEvidence {
+    fn from_record_value_evidence(record: &StructuralFingerprintRecordValueEvidence) -> Self {
+        let aspect_value_digest = Arc::<str>::from(record.aspect_value_digest());
+        let canonical_basis = Arc::<str>::from(format!(
+            "structural-equivalence-member|aspect-value={}",
+            aspect_value_digest.as_ref(),
+        ));
+        Self {
+            aspect_value_digest,
+            canonical_basis,
+        }
+    }
+
+    pub fn aspect_value_digest(&self) -> &str {
+        self.aspect_value_digest.as_ref()
+    }
+
+    pub fn canonical_basis(&self) -> &str {
+        self.canonical_basis.as_ref()
+    }
+}
+
+fn structural_record_value_evidence_set_canonical_basis(
+    records: &[StructuralFingerprintRecordValueEvidence],
+) -> Arc<str> {
+    Arc::<str>::from(format!(
+        "structural-record-value-evidence-set|count={}|records={}",
+        records.len(),
+        records
+            .iter()
+            .map(StructuralFingerprintRecordValueEvidence::canonical_basis)
+            .collect::<Vec<_>>()
+            .join("|"),
+    ))
+}
+
+fn structural_equivalence_member_set_canonical_basis(
+    members: &[StructuralFingerprintEquivalenceMemberEvidence],
+) -> Arc<str> {
+    Arc::<str>::from(format!(
+        "structural-equivalence-member-set|count={}|members={}",
+        members.len(),
+        members
+            .iter()
+            .map(StructuralFingerprintEquivalenceMemberEvidence::canonical_basis)
+            .collect::<Vec<_>>()
+            .join("|"),
+    ))
 }
 
 impl StructuralFingerprint {
@@ -33,85 +208,57 @@ impl StructuralFingerprint {
         observation: &MaterializedTruthViewObservation,
     ) -> Result<Self, crate::snapshot::BridgeSnapshotReadError> {
         let validated = observation.read_planned_packet()?;
-        let mut canonical_records = validated
-            .records()
-            .iter()
-            .map(|record| {
-                let aspect_bytes_digest = Sha256::digest(record.aspect_bytes());
-                (
-                    record.request_key().to_owned(),
-                    format!("{aspect_bytes_digest:x}"),
-                )
-            })
-            .collect::<Vec<_>>();
-        canonical_records.sort();
-        let equivalence_members = canonical_records
-            .iter()
-            .map(|(_, aspect_bytes_digest)| aspect_bytes_digest.clone())
-            .collect::<Vec<_>>();
+        let record_value_evidence =
+            StructuralFingerprintRecordValueEvidenceSet::from_validated_records(
+                validated.records(),
+            );
+        let equivalence_member_evidence =
+            StructuralFingerprintEquivalenceMemberSet::from_record_value_evidence(
+                &record_value_evidence,
+            );
         Ok(Self::from_validated_read(
             contract,
             observation.planned().read_packet(),
-            observation.snapshot_identity().as_str(),
-            equivalence_members,
-            canonical_records
-                .into_iter()
-                .map(|(request_key, aspect_bytes_digest)| {
-                    format!("{request_key}:{aspect_bytes_digest}")
-                })
-                .collect::<Vec<_>>(),
+            observation.snapshot_identity().clone(),
+            record_value_evidence,
+            equivalence_member_evidence,
         ))
     }
 
     pub fn from_snapshot_read_packet(
         contract: &AdmittedStructuralComparisonContract,
         read_packet: &SnapshotReadPacket,
-        snapshot_identity: impl Into<Arc<str>>,
+        snapshot_identity: TruthSnapshotIdentity,
     ) -> Self {
-        let snapshot_identity = snapshot_identity.into();
         Self::from_validated_read(
             contract,
             read_packet,
             snapshot_identity,
-            Vec::new(),
-            Vec::new(),
+            StructuralFingerprintRecordValueEvidenceSet::empty(),
+            StructuralFingerprintEquivalenceMemberSet::empty(),
         )
     }
 
     fn from_validated_read(
         contract: &AdmittedStructuralComparisonContract,
         read_packet: &SnapshotReadPacket,
-        snapshot_identity: impl Into<Arc<str>>,
-        equivalence_members: Vec<String>,
-        record_digests: Vec<String>,
+        snapshot_identity: TruthSnapshotIdentity,
+        record_value_evidence: StructuralFingerprintRecordValueEvidenceSet,
+        equivalence_member_evidence: StructuralFingerprintEquivalenceMemberSet,
     ) -> Self {
-        let snapshot_identity = snapshot_identity.into();
         let equivalence = contract
             .validated_declaration()
             .declaration()
             .equivalence_contract();
-        let member_evidence: Arc<[Arc<str>]> = Arc::from(
-            record_digests
-                .into_iter()
-                .map(Arc::<str>::from)
-                .collect::<Vec<_>>(),
-        );
-        let record_aspect_bytes_digest: Arc<str> = {
-            let digest = Sha256::digest(
-                member_evidence
-                    .iter()
-                    .map(|member| member.as_ref())
-                    .collect::<Vec<_>>()
-                    .join("|")
-                    .as_bytes(),
-            );
-            Arc::from(format!("structural-record-aspect-bytes:sha256:{digest:x}"))
+        let record_aspect_value_digest: Arc<str> = {
+            let digest = Sha256::digest(record_value_evidence.canonical_basis().as_bytes());
+            Arc::from(format!("structural-record-aspect-values:sha256:{digest:x}"))
         };
         let authority_digest: Arc<str> = {
             let digest = Sha256::digest(
                 format!(
                     "structural-authority|snapshot={}|planned={}",
-                    snapshot_identity.as_ref(),
+                    snapshot_identity.as_str(),
                     read_packet.digest()
                 )
                 .as_bytes(),
@@ -119,10 +266,10 @@ impl StructuralFingerprint {
             Arc::from(format!("structural-authority:sha256:{digest:x}"))
         };
         let equivalence_digest: Arc<str> = {
-            let equivalence_basis = if equivalence_members.is_empty() {
+            let equivalence_basis = if equivalence_member_evidence.members().is_empty() {
                 read_packet.digest().to_owned()
             } else {
-                equivalence_members.join("|")
+                equivalence_member_evidence.canonical_basis().to_owned()
             };
             let digest = Sha256::digest(
                 format!(
@@ -136,7 +283,7 @@ impl StructuralFingerprint {
             Arc::from(format!("structural-equivalence:sha256:{digest:x}"))
         };
         let canonical_basis = Arc::<str>::from(format!(
-            "structural-fingerprint|family:{:?}|semantics={}|contract={}|truth-view={}|planned={}|snapshot={}|authority={}|equivalence={}|records={}|members={}",
+            "structural-fingerprint|family:{:?}|semantics={}|contract={}|truth-view={}|planned={}|snapshot={}|authority={}|equivalence={}|record-values={}|equivalence-members={}",
             equivalence.fingerprint_family(),
             equivalence.semantics_version(),
             contract.contract_identity().as_str(),
@@ -146,15 +293,11 @@ impl StructuralFingerprint {
                 .truth_view_basis()
                 .digest(),
             read_packet.digest(),
-            snapshot_identity.as_ref(),
+            snapshot_identity.as_str(),
             authority_digest.as_ref(),
             equivalence_digest.as_ref(),
-            record_aspect_bytes_digest.as_ref(),
-            member_evidence
-                .iter()
-                .map(|member| member.as_ref())
-                .collect::<Vec<_>>()
-                .join(","),
+            record_value_evidence.canonical_basis(),
+            equivalence_member_evidence.canonical_basis(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
@@ -176,8 +319,9 @@ impl StructuralFingerprint {
             snapshot_identity,
             authority_digest,
             equivalence_digest,
-            member_evidence,
-            record_aspect_bytes_digest,
+            record_value_evidence,
+            equivalence_member_evidence,
+            record_aspect_value_digest,
             canonical_basis,
             digest: Arc::from(format!("structural-fingerprint:sha256:{digest:x}")),
         }
@@ -211,8 +355,12 @@ impl StructuralFingerprint {
         &self.read_packet
     }
 
-    pub fn snapshot_identity(&self) -> &str {
-        self.snapshot_identity.as_ref()
+    pub fn snapshot_identity(&self) -> &TruthSnapshotIdentity {
+        &self.snapshot_identity
+    }
+
+    pub fn snapshot_identity_text(&self) -> &str {
+        self.snapshot_identity.as_str()
     }
 
     pub fn authority_digest(&self) -> &str {
@@ -223,12 +371,16 @@ impl StructuralFingerprint {
         self.equivalence_digest.as_ref()
     }
 
-    pub fn member_evidence(&self) -> &[Arc<str>] {
-        &self.member_evidence
+    pub fn record_value_evidence(&self) -> &StructuralFingerprintRecordValueEvidenceSet {
+        &self.record_value_evidence
     }
 
-    pub fn record_aspect_bytes_digest(&self) -> &str {
-        self.record_aspect_bytes_digest.as_ref()
+    pub fn equivalence_member_evidence(&self) -> &StructuralFingerprintEquivalenceMemberSet {
+        &self.equivalence_member_evidence
+    }
+
+    pub fn record_aspect_value_digest(&self) -> &str {
+        self.record_aspect_value_digest.as_ref()
     }
 
     pub fn canonical_basis(&self) -> &str {
@@ -241,52 +393,5 @@ impl StructuralFingerprint {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::input::envelope::TruthBranchIdentity;
-    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
-    use crate::structural::{
-        AdmittedStructuralRegistry, StructuralFingerprintEquivalenceContract,
-        StructuralFingerprintFamily, StructuralFingerprintNormalizationRule,
-        StructuralFingerprintOmissionPolicy, StructuralFingerprintOrderingRule,
-        StructuralIdentityDeclaration, StructuralIdentityDeclarationIdentity,
-        StructuralSchemaIdentity, StructuralTruthViewBasis,
-    };
-
-    use super::StructuralFingerprint;
-
-    #[test]
-    fn fingerprint_is_canonical_for_same_contract_and_read_packet() {
-        let declaration = StructuralIdentityDeclaration::advisory_remap(
-            StructuralIdentityDeclarationIdentity::new("structural:geometry"),
-            StructuralSchemaIdentity::new("schema:geometry"),
-            StructuralFingerprintEquivalenceContract::new(
-                StructuralSchemaIdentity::new("schema:geometry"),
-                StructuralFingerprintFamily::TopologyFingerprint,
-                "topology-v1",
-                StructuralFingerprintNormalizationRule::SchemaDeclaredCanonicalForm,
-                StructuralFingerprintOrderingRule::SchemaDeclaredCanonicalOrder,
-                StructuralFingerprintOmissionPolicy::SchemaDeclaredOmissionPolicy,
-            ),
-            StructuralTruthViewBasis::explicit_snapshot(
-                BridgeTruthViewSelector::committed_snapshot(
-                    TruthBranchIdentity::new("main"),
-                    TruthSnapshotIdentity::new("snapshot-a"),
-                ),
-            ),
-        );
-        let registry = AdmittedStructuralRegistry::freeze(vec![declaration]).unwrap();
-        let contract = registry.contracts()[0].clone();
-        let read_packet = crate::snapshot::SnapshotReadPacket::new(vec![]);
-
-        let left =
-            StructuralFingerprint::from_snapshot_read_packet(&contract, &read_packet, "snapshot-a");
-        let right =
-            StructuralFingerprint::from_snapshot_read_packet(&contract, &read_packet, "snapshot-a");
-
-        assert_eq!(left, right);
-        assert_eq!(
-            left.family(),
-            StructuralFingerprintFamily::TopologyFingerprint
-        );
-    }
-}
+#[path = "fingerprints_tests.rs"]
+mod tests;

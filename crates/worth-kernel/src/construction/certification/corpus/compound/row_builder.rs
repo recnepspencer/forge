@@ -3,7 +3,8 @@ use worth_math::error::MathError;
 use worth_math::numeric::metrics::{
     angle_between_unit_vectors, distance_between_points, FiniteNonNegativeF64, UnitVector3,
 };
-use worth_spatial::facade::{admit_spatial_placement, SpatialFrameRef};
+use worth_spatial::facade::placement::admit_spatial_placement;
+use worth_spatial::facade::refs::SpatialFrameRef;
 
 use super::super::execution::prepare_corpus_execution_proof_ingredients;
 use super::super::ordering::{lane_digest as ordering_lane_digest, normalized_matrix_digest};
@@ -18,11 +19,14 @@ use super::schema::{
 };
 use crate::construction::diagnostics::prepare_primitive_construction_rejection_locality_report;
 use crate::construction::digest::digest_owned_parts;
+use crate::construction::intent::PrimitiveConstructionIntent;
 use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
-use crate::construction::{
+use crate::construction::query::inspection_parity::{
     prepare_primitive_construction_query_inspection_parity_report,
+    PrimitiveConstructionQueryInspectionParityError,
+};
+use crate::construction::query::projection_consumption_receipt::{
     prepare_primitive_construction_query_projection_consumption_receipt_report,
-    PrimitiveConstructionIntent, PrimitiveConstructionQueryInspectionParityError,
     PrimitiveConstructionQueryProjectionConsumptionReceiptError,
 };
 
@@ -138,11 +142,19 @@ fn build_row(
                         "{error:?}"
                     ))
                 })?;
-                session.prepare_result(intent.clone()).map_err(|error| {
-                    PrimitiveConstructionCompoundAdversarialSiegeError::QueryEntry(
-                        error.to_string(),
-                    )
-                })?
+                session
+                    .author(intent.clone())
+                    .map_err(|error| {
+                        PrimitiveConstructionCompoundAdversarialSiegeError::QueryEntry(
+                            error.to_string(),
+                        )
+                    })?
+                    .prepare_result()
+                    .map_err(|error| {
+                        PrimitiveConstructionCompoundAdversarialSiegeError::QueryEntry(
+                            error.to_string(),
+                        )
+                    })?
             };
             Ok(PrimitiveConstructionCompoundRow::new(
                 scenario.scenario_id.to_string(),
@@ -298,11 +310,10 @@ fn grazing_digest(
 fn rejected_locality(
     intent: PrimitiveConstructionIntent,
 ) -> Result<
-    crate::construction::PrimitiveConstructionRejectionLocalityRow,
+    crate::construction::diagnostics::PrimitiveConstructionRejectionLocalityRow,
     PrimitiveConstructionCompoundAdversarialSiegeError,
 > {
-    let report =
-        prepare_primitive_construction_rejection_locality_report(vec![intent.into_request()]);
+    let report = prepare_primitive_construction_rejection_locality_report(vec![intent]);
     match report.rows() {
         [row] => Ok(row.clone()),
         [] => Err(

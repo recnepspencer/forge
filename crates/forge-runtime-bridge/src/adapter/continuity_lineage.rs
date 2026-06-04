@@ -1,6 +1,15 @@
 use sha2::{Digest, Sha256};
 
+use crate::identity::{
+    BridgeIdentity, HistoricalResolvedLineageIdentityTag, HistoricalResolvedRecordIdentityTag,
+};
+
 use super::*;
+
+pub type BridgeHistoricalResolvedLineageIdentity =
+    BridgeIdentity<HistoricalResolvedLineageIdentityTag>;
+pub type BridgeHistoricalResolvedRecordIdentity =
+    BridgeIdentity<HistoricalResolvedRecordIdentityTag>;
 
 pub trait ContinuityLineageSource: Send + Sync + 'static {
     fn historical_lineage(
@@ -48,8 +57,8 @@ impl BridgeHistoricalLineageRequest {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeHistoricalLineageAuthority {
     authority_basis: continuity::BridgeContinuityAuthorityBasis,
-    canonical_resolved_lineage_keys: Arc<[Arc<str>]>,
-    canonical_resolved_record_keys: Arc<[Arc<str>]>,
+    canonical_resolved_lineage_identities: Arc<[BridgeHistoricalResolvedLineageIdentity]>,
+    canonical_resolved_record_identities: Arc<[BridgeHistoricalResolvedRecordIdentity]>,
     traversed_event_ids: Arc<[u64]>,
     topology: BridgeHistoricalLineageTopology,
     lineage_digest: Arc<str>,
@@ -58,39 +67,39 @@ pub struct BridgeHistoricalLineageAuthority {
 impl BridgeHistoricalLineageAuthority {
     pub fn try_new(
         authority_basis: continuity::BridgeContinuityAuthorityBasis,
-        canonical_resolved_lineage_keys: Vec<Arc<str>>,
-        canonical_resolved_record_keys: Vec<Arc<str>>,
+        canonical_resolved_lineage_identities: Vec<BridgeHistoricalResolvedLineageIdentity>,
+        canonical_resolved_record_identities: Vec<BridgeHistoricalResolvedRecordIdentity>,
         traversed_event_ids: Vec<u64>,
     ) -> Result<Self, BridgeLineageSourceError> {
-        let mut sorted_lineage_keys = canonical_resolved_lineage_keys.clone();
-        sorted_lineage_keys.sort_unstable();
-        sorted_lineage_keys.dedup();
-        if sorted_lineage_keys.len() != canonical_resolved_lineage_keys.len() {
+        let mut sorted_lineage_identities = canonical_resolved_lineage_identities.clone();
+        sorted_lineage_identities.sort_unstable();
+        sorted_lineage_identities.dedup();
+        if sorted_lineage_identities.len() != canonical_resolved_lineage_identities.len() {
             return Err(BridgeLineageSourceError::new(
-                BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
-                "bridge historical lineage authority contained duplicate resolved lineage keys",
+                BridgeLineageSourceErrorKind::DuplicateResolvedLineageIdentities,
+                "bridge historical lineage authority contained duplicate resolved lineage identities",
             ));
         }
-        if sorted_lineage_keys != canonical_resolved_lineage_keys {
+        if sorted_lineage_identities != canonical_resolved_lineage_identities {
             return Err(BridgeLineageSourceError::new(
-                BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
-                "bridge historical lineage authority must emit resolved lineage keys in canonical order",
+                BridgeLineageSourceErrorKind::NonCanonicalResolvedLineageIdentities,
+                "bridge historical lineage authority must emit resolved lineage identities in canonical order",
             ));
         }
 
-        let mut sorted_record_keys = canonical_resolved_record_keys.clone();
-        sorted_record_keys.sort_unstable();
-        sorted_record_keys.dedup();
-        if sorted_record_keys.len() != canonical_resolved_record_keys.len() {
+        let mut sorted_record_identities = canonical_resolved_record_identities.clone();
+        sorted_record_identities.sort_unstable();
+        sorted_record_identities.dedup();
+        if sorted_record_identities.len() != canonical_resolved_record_identities.len() {
             return Err(BridgeLineageSourceError::new(
-                BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
-                "bridge historical lineage authority contained duplicate resolved record keys",
+                BridgeLineageSourceErrorKind::DuplicateResolvedRecordIdentities,
+                "bridge historical lineage authority contained duplicate resolved record identities",
             ));
         }
-        if sorted_record_keys != canonical_resolved_record_keys {
+        if sorted_record_identities != canonical_resolved_record_identities {
             return Err(BridgeLineageSourceError::new(
-                BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
-                "bridge historical lineage authority must emit resolved record keys in canonical order",
+                BridgeLineageSourceErrorKind::NonCanonicalResolvedRecordIdentities,
+                "bridge historical lineage authority must emit resolved record identities in canonical order",
             ));
         }
 
@@ -99,24 +108,24 @@ impl BridgeHistoricalLineageAuthority {
         sorted_event_ids.dedup();
         if sorted_event_ids.len() != traversed_event_ids.len() {
             return Err(BridgeLineageSourceError::new(
-                BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
+                BridgeLineageSourceErrorKind::DuplicateTraversedEventIds,
                 "bridge historical lineage authority contained duplicate traversed event ids",
             ));
         }
         if sorted_event_ids != traversed_event_ids {
             return Err(BridgeLineageSourceError::new(
-                BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
+                BridgeLineageSourceErrorKind::NonCanonicalTraversedEventIds,
                 "bridge historical lineage authority must emit traversed event ids in canonical order",
             ));
         }
 
         let topology = match (
-            canonical_resolved_lineage_keys.len(),
-            canonical_resolved_record_keys.len(),
+            canonical_resolved_lineage_identities.len(),
+            canonical_resolved_record_identities.len(),
         ) {
             (0, 0) => BridgeHistoricalLineageTopology::NoAuthoritativeSuccessor,
             (_, 0) => BridgeHistoricalLineageTopology::UnsupportedWithoutSuccessor,
-            (_, 1) if canonical_resolved_lineage_keys.len() > 1 => {
+            (_, 1) if canonical_resolved_lineage_identities.len() > 1 => {
                 BridgeHistoricalLineageTopology::MergeLikeSuccessor
             }
             (_, 1) => BridgeHistoricalLineageTopology::SingleSuccessor,
@@ -131,16 +140,16 @@ impl BridgeHistoricalLineageAuthority {
             authority_basis.digest(),
             authority_basis.branch_identity().as_str(),
             authority_basis.snapshot_identity().as_str(),
-            canonical_resolved_lineage_keys.len(),
-            canonical_resolved_lineage_keys
+            canonical_resolved_lineage_identities.len(),
+            canonical_resolved_lineage_identities
                 .iter()
-                .map(|key| key.as_ref())
+                .map(BridgeHistoricalResolvedLineageIdentity::as_str)
                 .collect::<Vec<_>>()
                 .join(","),
-            canonical_resolved_record_keys.len(),
-            canonical_resolved_record_keys
+            canonical_resolved_record_identities.len(),
+            canonical_resolved_record_identities
                 .iter()
-                .map(|key| key.as_ref())
+                .map(BridgeHistoricalResolvedRecordIdentity::as_str)
                 .collect::<Vec<_>>()
                 .join(","),
             traversed_event_ids.len(),
@@ -154,8 +163,8 @@ impl BridgeHistoricalLineageAuthority {
 
         Ok(Self {
             authority_basis,
-            canonical_resolved_lineage_keys: Arc::from(canonical_resolved_lineage_keys),
-            canonical_resolved_record_keys: Arc::from(canonical_resolved_record_keys),
+            canonical_resolved_lineage_identities: Arc::from(canonical_resolved_lineage_identities),
+            canonical_resolved_record_identities: Arc::from(canonical_resolved_record_identities),
             traversed_event_ids: Arc::from(traversed_event_ids),
             topology,
             lineage_digest: Arc::from(format!("historical-lineage-authority:sha256:{digest:x}")),
@@ -174,12 +183,16 @@ impl BridgeHistoricalLineageAuthority {
         self.authority_basis.snapshot_identity()
     }
 
-    pub fn canonical_resolved_lineage_keys(&self) -> &[Arc<str>] {
-        &self.canonical_resolved_lineage_keys
+    pub fn canonical_resolved_lineage_identities(
+        &self,
+    ) -> &[BridgeHistoricalResolvedLineageIdentity] {
+        &self.canonical_resolved_lineage_identities
     }
 
-    pub fn canonical_resolved_record_keys(&self) -> &[Arc<str>] {
-        &self.canonical_resolved_record_keys
+    pub fn canonical_resolved_record_identities(
+        &self,
+    ) -> &[BridgeHistoricalResolvedRecordIdentity] {
+        &self.canonical_resolved_record_identities
     }
 
     pub fn traversed_event_ids(&self) -> &[u64] {

@@ -7,17 +7,49 @@ use super::support::{
 use crate::facade::{
     BridgeDeliveryIntent, BridgePreviewResidueClass, BridgePreviewSessionDeclaration,
     BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, BridgeReplayMode,
-    BridgeRequestKind, BridgeSignalBranchIdentity, BridgeSpeculativeBranchBinding,
+    BridgeRequestKind, BridgeSignalBranchIdentity, BridgeSourceCapability,
+    BridgeSourceCapabilitySet, BridgeSpeculativeBranchBinding,
     BridgeSpeculativeBranchBindingIdentity, BridgeTruthViewSelector,
-    HistoricalEvaluationDeclaration, SnapshotReadPacket, TruthBranchIdentity, TruthCommitIdentity,
+    HistoricalEvaluationDeclaration, SnapshotReadPacket, TruthBranchIdentity,
+    TruthSnapshotIdentity,
 };
 use crate::harness::fixtures::{InMemoryRelationalBridgeSource, RecordingSignalBridgeSink};
+
+struct CounterPreviewSessionBasisInput {
+    truth_branch_identity: TruthBranchIdentity,
+    snapshot_identity: TruthSnapshotIdentity,
+}
+
+fn preview_session_basis(
+    input: CounterPreviewSessionBasisInput,
+) -> crate::facade::BridgePreviewSessionBasis {
+    crate::facade::BridgePreviewSessionBasis::new(
+        BridgeTruthViewSelector::branch_snapshot(
+            input.truth_branch_identity,
+            input.snapshot_identity,
+        ),
+        BridgeSourceCapabilitySet::new(vec![
+            BridgeSourceCapability::SnapshotRead,
+            BridgeSourceCapability::BranchRead,
+        ]),
+        crate::facade::BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,
+    )
+}
 
 #[test]
 fn bridge_counters_expose_digest_input_bytes() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(field_slice_snapshot(
+        TruthSnapshotIdentity::new("snapshot-a"),
+        "alice",
+    ));
     let runtime = build_runtime_with_aspects(
         source,
         RecordingSignalBridgeSink::default(),
@@ -28,7 +60,9 @@ fn bridge_counters_expose_digest_input_bytes() {
     let result = runtime
         .deliver_invalidation(
             runtime
-                .plan_committed_patch(BridgeRouteRequest::for_commit("commit-a"))
+                .plan_committed_patch(BridgeRouteRequest::for_commit(
+                    crate::facade::TruthCommitIdentity::new("commit-a"),
+                ))
                 .expect("route should plan before digest budget capture"),
         )
         .expect("delivery should succeed before digest budget capture");
@@ -40,8 +74,17 @@ fn bridge_counters_expose_digest_input_bytes() {
 #[test]
 fn historical_evaluation_counters_capture_selector_branch_and_materialization_width() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(field_slice_snapshot(
+        TruthSnapshotIdentity::new("snapshot-a"),
+        "alice",
+    ));
     let runtime = build_runtime_with_aspects(
         source,
         RecordingSignalBridgeSink::default(),
@@ -52,7 +95,7 @@ fn historical_evaluation_counters_capture_selector_branch_and_materialization_wi
     let declaration = HistoricalEvaluationDeclaration::new(
         BridgeTruthViewSelector::historical_commit(
             TruthBranchIdentity::new("main"),
-            TruthCommitIdentity::new("commit-a"),
+            crate::facade::TruthCommitIdentity::new("commit-a"),
         ),
         BridgeReplayMode::Enabled,
         runtime.policy().diagnostics_tier(),
@@ -98,10 +141,10 @@ fn speculation_counters_capture_preview_discard_promotion_and_replay_widths() {
             TruthBranchIdentity::new("main"),
             BridgeSignalBranchIdentity::new("signal:counter"),
         ),
-        "truth-view:counter",
-        "source-capability:counter",
-        "request-shape:counter",
-        "artifact-schema:counter",
+        preview_session_basis(CounterPreviewSessionBasisInput {
+            truth_branch_identity: TruthBranchIdentity::new("main"),
+            snapshot_identity: TruthSnapshotIdentity::new("snapshot:counter"),
+        }),
     );
 
     let admitted = runtime
@@ -150,7 +193,7 @@ fn speculation_counters_capture_preview_discard_promotion_and_replay_widths() {
     assert_eq!(discard_record.counters().replay_bundle_width(), 2);
 
     let replay_bundle = runtime
-        .replay_preview_bundle(discarded.session_identity().as_str())
+        .replay_preview_bundle(discarded.session_identity())
         .expect("replay bundle should exist");
     assert_eq!(replay_bundle.counters().preview_session_count_touched(), 1);
     assert_eq!(replay_bundle.counters().replay_bundle_width(), 2);
@@ -168,10 +211,10 @@ fn speculation_counters_capture_preview_discard_promotion_and_replay_widths() {
                     TruthBranchIdentity::new("main"),
                     BridgeSignalBranchIdentity::new("signal:counter"),
                 ),
-                "truth-view:counter",
-                "source-capability:counter",
-                "request-shape:counter",
-                "artifact-schema:counter",
+                preview_session_basis(CounterPreviewSessionBasisInput {
+                    truth_branch_identity: TruthBranchIdentity::new("main"),
+                    snapshot_identity: TruthSnapshotIdentity::new("snapshot:counter-promotion"),
+                }),
             ),
         )
         .expect("promotion preview declaration should admit");
@@ -179,13 +222,7 @@ fn speculation_counters_capture_preview_discard_promotion_and_replay_widths() {
         runtime.activate_preview_session(promotion_admitted, 4, 2, 2);
     let proof = promotion_active.promotion_admissibility_proof();
     let (_promoted, promotion_record) = runtime
-        .promote_preview_session(
-            promotion_active,
-            &promotion_execution_record,
-            &proof,
-            "commit-boundary:counter",
-            "authoritative-artifact:counter",
-        )
+        .promote_preview_session(promotion_active, &promotion_execution_record, &proof)
         .expect("promotion should succeed");
 
     assert_eq!(

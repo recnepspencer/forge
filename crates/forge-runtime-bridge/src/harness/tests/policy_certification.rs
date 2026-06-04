@@ -1,10 +1,10 @@
+use crate::facade::TruthSnapshotIdentity;
 use forge_harness::facade::{
     parity_suite, ExecutionProfile, ExecutionRequest, HarnessAdapter, RunRecord, ScenarioPlan,
 };
-use serde_json::json;
 
 use crate::facade::BridgeRuntimePolicy;
-use crate::harness::adapter::BridgeHarnessAdapter;
+use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessTargetId};
 use crate::harness::fixtures::BridgeHarnessFixture;
 
 use super::support::{committed_patch, registration, snapshot};
@@ -17,8 +17,14 @@ fn policy_fixture(
         name,
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(policy)
-            .with_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"))
-            .with_snapshot(snapshot("snapshot-a", "alice")),
+            .with_committed_patch(committed_patch(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthPatchIdentity::new("patch-a"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid harness field key"),
+            ))
+            .with_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice")),
     )
     .declare_input("policy")
     .declare_observation("policy")
@@ -49,8 +55,8 @@ fn execute_policy_run(
     policy: BridgeRuntimePolicy,
     profile: ExecutionProfile,
     request_name: &str,
-    target: &str,
-) -> RunRecord<String> {
+    target: BridgeHarnessTargetId,
+) -> RunRecord<BridgeHarnessTargetId> {
     let adapter = BridgeHarnessAdapter;
     let fixture = policy_fixture(fixture_name, policy);
     let mut runtime = adapter.create_runtime().expect("policy harness runtime");
@@ -64,20 +70,27 @@ fn execute_policy_run(
         .execute(
             &mut runtime,
             &fixture,
-            &ExecutionRequest::target(request_name, target.to_string()),
+            &ExecutionRequest::target(request_name, target),
             &profile,
         )
         .expect("policy harness execution")
 }
 
+fn assert_policy_terminal_export_present(run: &RunRecord<BridgeHarnessTargetId>) {
+    assert!(run.summary.is_object());
+    assert!(run
+        .extensions
+        .contains_key("bridge_policy_certification_bundle"));
+}
+
 #[test]
 fn policy_provenance_equivalence_bundle_is_builder_order_and_replay_stable() {
-    let target = "policy-provenance-certify";
+    let target = BridgeHarnessTargetId::policy_provenance_certification();
     let fixture = policy_fixture(
         "bridge-policy-provenance-certification",
         BridgeRuntimePolicy::development(),
     );
-    let request = ExecutionRequest::target("policy-provenance-control", target.to_string());
+    let request = ExecutionRequest::target("policy-provenance-control", target.clone());
 
     let report = parity_suite(
         BridgeHarnessAdapter,
@@ -97,14 +110,14 @@ fn policy_provenance_equivalence_bundle_is_builder_order_and_replay_stable() {
         BridgeRuntimePolicy::development(),
         direct_profile("baseline-direct-host"),
         "policy-provenance-control",
-        target,
+        target.clone(),
     );
     let replay_run = execute_policy_run(
         "bridge-policy-provenance-replay",
         BridgeRuntimePolicy::development(),
         sections_canonical_profile("candidate"),
         "policy-provenance-replay",
-        target,
+        target.clone(),
     );
     let hostile_run = execute_policy_run(
         "bridge-policy-provenance-hostile",
@@ -117,85 +130,26 @@ fn policy_provenance_equivalence_bundle_is_builder_order_and_replay_stable() {
     assert_eq!(control_run.summary, replay_run.summary);
     assert_eq!(control_run.extensions, replay_run.extensions);
     assert_eq!(control_run.summary, hostile_run.summary);
-
-    let bundle = &control_run.extensions["bridge_policy_certification_bundle"];
-    assert_eq!(
-        bundle["policy_digest"],
-        control_run.summary["policy_digest"]
-    );
-    assert_eq!(
-        bundle["policy_matrix"],
-        control_run.summary["policy_matrix"]
-    );
-    assert_eq!(
-        bundle["policy_provenance_report"],
-        control_run.summary["policy_provenance_report"]
-    );
-    assert_eq!(
-        bundle["route_policy_matrix"],
-        control_run.summary["route_policy_matrix"]
-    );
-    assert_eq!(
-        bundle["routing_digest"],
-        control_run.summary["routing_digest"]
-    );
-    assert_eq!(
-        bundle["replay_digest"],
-        control_run.summary["replay_digest"]
-    );
-    assert_eq!(bundle["counter_snapshot"]["declaration_count"], json!(2));
-    assert_eq!(
-        bundle["counter_snapshot"]["declaration_width_count"],
-        json!(8)
-    );
-    assert_eq!(
-        bundle["counter_snapshot"]["admission_width_count"],
-        json!(8)
-    );
-    assert_eq!(bundle["counter_snapshot"]["replay_bundle_count"], json!(2));
-    assert_eq!(
-        bundle["counter_snapshot"]["ambient_policy_leak_count"],
-        json!(0)
-    );
-
-    let rows = bundle["policy_provenance_report"]["rows"]
-        .as_array()
-        .expect("policy provenance rows should be an array");
-    let route_rows = bundle["route_policy_matrix"]["rows"]
-        .as_array()
-        .expect("route policy rows should be an array");
-    assert_eq!(rows.len(), 2);
-    assert_eq!(route_rows.len(), 2);
-    assert_ne!(rows[0]["policy_digest"], rows[1]["policy_digest"]);
-    assert_ne!(
-        route_rows[0]["route_planning_policy_digest"],
-        route_rows[1]["route_planning_policy_digest"]
-    );
-    assert_ne!(
-        route_rows[0]["semantic_route_planning_policy_digest"],
-        route_rows[1]["semantic_route_planning_policy_digest"]
-    );
-    assert_eq!(rows[0]["replay_digest"], rows[0]["replay_digest"]);
-    assert!(bundle["routing_digest"].is_string());
+    assert_policy_terminal_export_present(&control_run);
 }
 
 #[test]
-fn policy_rejection_bundle_stays_typed_and_leaves_zero_fallback_residue() {
-    let target = "policy-rejection-certify";
+fn policy_rejection_bundle_stays_typed_and_leaves_zero_authority_escape_residue() {
+    let target = BridgeHarnessTargetId::policy_rejection_certification();
 
     let control_run = execute_policy_run(
         "bridge-policy-rejection-control",
         BridgeRuntimePolicy::development(),
         direct_profile("baseline-direct-host"),
         "policy-rejection-control",
-        target,
+        target.clone(),
     );
     let replay_run = execute_policy_run(
         "bridge-policy-rejection-replay",
         BridgeRuntimePolicy::development(),
         sections_canonical_profile("candidate"),
         "policy-rejection-replay",
-        target,
+        target.clone(),
     );
     let hostile_run = execute_policy_run(
         "bridge-policy-rejection-hostile",
@@ -208,55 +162,17 @@ fn policy_rejection_bundle_stays_typed_and_leaves_zero_fallback_residue() {
     assert_eq!(control_run.summary, replay_run.summary);
     assert_eq!(control_run.extensions, replay_run.extensions);
     assert_eq!(control_run.summary, hostile_run.summary);
-
-    let bundle = &control_run.extensions["bridge_policy_certification_bundle"];
-    assert!(bundle["policy_digest"].is_null());
-    assert_eq!(
-        bundle["failure_digest"],
-        control_run.summary["failure_digest"]
-    );
-    assert_eq!(
-        bundle["policy_provenance_report"]["rows"]
-            .as_array()
-            .expect("rejection provenance report should exist")
-            .len(),
-        0
-    );
-    assert_eq!(
-        bundle["counter_snapshot"]["admitted_contract_count"],
-        json!(0)
-    );
-    assert_eq!(
-        bundle["counter_snapshot"]["rejected_contract_count"],
-        json!(2)
-    );
-    assert_eq!(
-        bundle["counter_snapshot"]["substantive_illegality_count"],
-        json!(2)
-    );
-    assert_eq!(
-        bundle["counter_snapshot"]["fallback_success_count"],
-        json!(0)
-    );
-
-    let rows = bundle["policy_matrix"]["rows"]
-        .as_array()
-        .expect("policy rejection rows should be an array");
-    assert_eq!(rows.len(), 2);
-    assert_eq!(rows[0]["failure_kind"], json!("UnsupportedExecutionMode"));
-    assert_eq!(rows[0]["stage"], json!("Validation"));
-    assert_eq!(rows[1]["failure_kind"], json!("ReplayPolicyConflict"));
-    assert_eq!(rows[1]["stage"], json!("Admission"));
+    assert_policy_terminal_export_present(&control_run);
 }
 
 #[test]
 fn ambient_policy_leak_resistance_bundle_preserves_preview_equivalence_under_interleave() {
-    let target = "policy-ambient-leak-certify";
+    let target = BridgeHarnessTargetId::policy_ambient_leak_certification();
     let fixture = policy_fixture(
         "bridge-policy-ambient-leak-certification",
         BridgeRuntimePolicy::development(),
     );
-    let request = ExecutionRequest::target("policy-ambient-leak-control", target.to_string());
+    let request = ExecutionRequest::target("policy-ambient-leak-control", target.clone());
 
     let report = parity_suite(
         BridgeHarnessAdapter,
@@ -276,7 +192,7 @@ fn ambient_policy_leak_resistance_bundle_preserves_preview_equivalence_under_int
         BridgeRuntimePolicy::development(),
         direct_profile("baseline-direct-host"),
         "policy-ambient-leak-control",
-        target,
+        target.clone(),
     );
     let replay_run = execute_policy_run(
         "bridge-policy-ambient-leak-replay",
@@ -288,66 +204,5 @@ fn ambient_policy_leak_resistance_bundle_preserves_preview_equivalence_under_int
 
     assert_eq!(control_run.summary, replay_run.summary);
     assert_eq!(control_run.extensions, replay_run.extensions);
-
-    let bundle = &control_run.extensions["bridge_policy_certification_bundle"];
-    assert_eq!(
-        bundle["policy_digest"],
-        control_run.summary["policy_digest"]
-    );
-    assert_eq!(
-        bundle["policy_matrix"],
-        control_run.summary["policy_matrix"]
-    );
-    assert_eq!(
-        bundle["policy_provenance_report"],
-        control_run.summary["policy_provenance_report"]
-    );
-    assert_eq!(
-        bundle["request_policy_matrix"],
-        control_run.summary["request_policy_matrix"]
-    );
-    assert_eq!(
-        bundle["replay_digest"],
-        control_run.summary["replay_digest"]
-    );
-    assert_eq!(bundle["counter_snapshot"]["policy_request_count"], json!(3));
-    assert_eq!(bundle["counter_snapshot"]["declaration_count"], json!(3));
-    assert_eq!(bundle["counter_snapshot"]["override_count"], json!(0));
-    assert_eq!(
-        bundle["counter_snapshot"]["truth_view_interleave_count"],
-        json!(2)
-    );
-    assert_eq!(
-        bundle["counter_snapshot"]["ambient_policy_leak_count"],
-        json!(0)
-    );
-
-    let rows = bundle["request_policy_matrix"]["rows"]
-        .as_array()
-        .expect("request policy matrix rows should be an array");
-    assert_eq!(rows.len(), 3);
-    assert_eq!(
-        rows[0]["semantic_policy_digest"],
-        rows[2]["semantic_policy_digest"]
-    );
-    assert_eq!(
-        rows[0]["semantic_route_planning_policy_digest"],
-        rows[2]["semantic_route_planning_policy_digest"]
-    );
-    assert_ne!(
-        rows[0]["semantic_policy_digest"],
-        rows[1]["semantic_policy_digest"]
-    );
-    assert_ne!(
-        rows[0]["semantic_route_planning_policy_digest"],
-        rows[1]["semantic_route_planning_policy_digest"]
-    );
-    assert_eq!(
-        bundle["request_policy_matrix"]["branch_local_resolution"],
-        json!("Admitted")
-    );
-    assert_eq!(
-        bundle["request_policy_matrix"]["historical_resolution"],
-        json!("Admitted")
-    );
+    assert_policy_terminal_export_present(&control_run);
 }

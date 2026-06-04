@@ -1,26 +1,36 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
-use crate::routing::BridgeCanonicalBulkPlanRecord;
+use crate::routing::{
+    BridgeCanonicalBulkPlanRecord, BridgeInvalidationIdentity, BridgeRouteIdentity,
+    BridgeWorkloadIdentity,
+};
 use crate::source::{SourceFailureRecord, SourceMaterializationRecord};
 use crate::stream::{CanonicalStreamReplayRecord, ConsumerCheckpointToken};
 
 use super::continuity::BridgeCanonicalContinuityRecord;
 use super::history::{
-    BridgeCanonicalHistoricalEvaluationRecord, BridgeHistoricalEvaluationFailureRecord,
+    BridgeCanonicalHistoricalEvaluationRecord, BridgeHistoricalEvaluationDecisionLogIdentity,
+    BridgeHistoricalEvaluationFailureIdentity, BridgeHistoricalEvaluationFailureRecord,
+    BridgeHistoricalEvaluationRecordIdentity,
 };
-use super::merge::BridgeCanonicalMergeRecord;
+use super::merge::{BridgeCanonicalMergeRecord, BridgeMergeRecordIdentity};
 use super::records::{BridgeFailureRecord, BridgeRouteRecord};
 use super::structural::{
     BridgeCanonicalStructuralBranchComparisonRecord, BridgeCanonicalStructuralRemapRecord,
 };
 use crate::speculation::{
-    BridgePreviewDiscardRecord, BridgePreviewExecutionRecord, BridgePreviewPromotionRecord,
+    BridgePreviewDiscardRecord, BridgePreviewDiscardRecordIdentity, BridgePreviewExecutionRecord,
+    BridgePreviewPromotionRecord, BridgePreviewPromotionRecordIdentity,
+    BridgePreviewSessionIdentity, PreviewExecutionRecordIdentity,
 };
 use crate::writeback::{
-    BridgeMappedWritebackFamilyInput, BridgeWritebackExecutionRecord,
-    BridgeWritebackFamilyAdmissionRecord, BridgeWritebackMapperEnvelope,
-    BridgeWritebackMapperRecord, BridgeWritebackReplayRecord,
+    BridgeMappedWritebackFamilyInput, BridgeMappedWritebackFamilyInputIdentity,
+    BridgeWritebackExecutionRecord, BridgeWritebackExecutionRecordIdentity,
+    BridgeWritebackFamilyAdmissionRecord, BridgeWritebackFamilyAdmissionRecordIdentity,
+    BridgeWritebackMapperEnvelope, BridgeWritebackMapperEnvelopeIdentity,
+    BridgeWritebackMapperRecord, BridgeWritebackMapperRecordIdentity, BridgeWritebackReplayRecord,
+    BridgeWritebackReplayRecordIdentity,
 };
 
 mod config;
@@ -106,7 +116,7 @@ pub(crate) struct BridgeDiagnosticsState {
     latest_writeback_mapper_by_record_identity: BTreeMap<String, Arc<BridgeWritebackMapperRecord>>,
     latest_writeback_mapper_by_candidate_digest: BTreeMap<String, Arc<BridgeWritebackMapperRecord>>,
     latest_writeback_replay_by_record_identity: BTreeMap<String, Arc<BridgeWritebackReplayRecord>>,
-    reserved_preview_session_identities: BTreeSet<String>,
+    reserved_preview_session_identities: BTreeSet<BridgePreviewSessionIdentity>,
     latest_stream_checkpoint_by_identity: BTreeMap<String, Arc<ConsumerCheckpointToken>>,
     latest_stream_replay_by_identity: BTreeMap<String, Arc<CanonicalStreamReplayRecord>>,
     latest_stream_replay_by_checkpoint_identity: BTreeMap<String, Arc<CanonicalStreamReplayRecord>>,

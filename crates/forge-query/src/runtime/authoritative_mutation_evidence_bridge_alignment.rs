@@ -1,92 +1,111 @@
 use forge_runtime_bridge::facade::{
-    BridgeAuthoritativeMutationEvidenceCloseout, BridgeAuthoritativeMutationEvidenceSupport,
+    BridgeAggregateMutationEvidenceDigest, BridgeAuthoritativeMutationEvidenceCloseout,
+    BridgeAuthoritativeMutationEvidenceSupport, BridgeAuthorityEvidenceDeferredBoundary,
+    BridgeMutationEvidenceCarryForwardSection, BridgeMutationEvidenceContinuityFamily,
+    BridgeMutationEvidenceExistingTruthBindingFamily, BridgeMutationEvidenceNamingFamily,
+    BridgeMutationEvidenceSymbolicTargetReferenceFamily,
 };
 
 use super::ForgeQueryAuthoritativeMutationEvidenceSupport;
 
 pub(super) fn assert_bridge_support_alignment(
-    query_support: &ForgeQueryAuthoritativeMutationEvidenceSupport,
+    _query_support: &ForgeQueryAuthoritativeMutationEvidenceSupport,
     bridge_support: &BridgeAuthoritativeMutationEvidenceSupport,
     bridge_closeout: &BridgeAuthoritativeMutationEvidenceCloseout,
 ) {
     let mut failures = Vec::new();
 
     for section in [
-        "declared-resolved-target-evidence",
-        "batch-session-causality-provenance",
-        "existing-truth-binding",
-        "same-batch-symbolic-target-reference",
-        "naming-mutation-evidence",
-        "continuity-mutation-evidence",
-        "replay-safe-request-receipt-digests",
+        BridgeMutationEvidenceCarryForwardSection::DeclaredResolvedTargetEvidence,
+        BridgeMutationEvidenceCarryForwardSection::BatchSessionCausalityProvenance,
+        BridgeMutationEvidenceCarryForwardSection::ExistingTruthBinding,
+        BridgeMutationEvidenceCarryForwardSection::SameBatchSymbolicTargetReference,
+        BridgeMutationEvidenceCarryForwardSection::NamingMutationEvidence,
+        BridgeMutationEvidenceCarryForwardSection::ContinuityMutationEvidence,
+        BridgeMutationEvidenceCarryForwardSection::ReplaySafeRequestReceiptDigests,
     ] {
         if !bridge_support
             .carry_forward_sections()
             .iter()
-            .any(|bridge_section| bridge_section == section)
+            .any(|bridge_section| bridge_section == &section)
         {
-            failures.push(format!("missing carry-forward section `{section}`"));
+            failures.push(format!("missing carry-forward section `{section:?}`"));
         }
     }
 
-    for family in query_support.existing_truth_binding_families() {
+    for family in [
+        BridgeMutationEvidenceExistingTruthBindingFamily::DirectEntityIdentity,
+        BridgeMutationEvidenceExistingTruthBindingFamily::DirectRelationIdentity,
+    ] {
         if !bridge_support
             .existing_truth_binding_families()
             .iter()
-            .any(|bridge_family| bridge_family == family)
+            .any(|bridge_family| bridge_family == &family)
         {
-            failures.push(format!("missing existing-truth binding family `{family}`"));
+            failures.push(format!(
+                "missing existing-truth binding family `{family:?}`"
+            ));
         }
     }
-    for family in query_support.symbolic_target_reference_families() {
+    for family in [BridgeMutationEvidenceSymbolicTargetReferenceFamily::SameBatchDeclaredTarget] {
         if !bridge_support
             .symbolic_target_reference_families()
             .iter()
-            .any(|bridge_family| bridge_family == family)
+            .any(|bridge_family| bridge_family == &family)
         {
-            failures.push(format!("missing symbolic target family `{family}`"));
+            failures.push(format!("missing symbolic target family `{family:?}`"));
         }
     }
-    for family in query_support.naming_mutation_families() {
+    for family in [
+        BridgeMutationEvidenceNamingFamily::AttachNewTarget,
+        BridgeMutationEvidenceNamingFamily::AttachExistingTarget,
+        BridgeMutationEvidenceNamingFamily::RebindTarget,
+        BridgeMutationEvidenceNamingFamily::Remove,
+    ] {
         if !bridge_support
             .naming_mutation_families()
             .iter()
-            .any(|bridge_family| bridge_family == family)
+            .any(|bridge_family| bridge_family == &family)
         {
-            failures.push(format!("missing naming family `{family}`"));
+            failures.push(format!("missing naming family `{family:?}`"));
         }
     }
-    for family in query_support.continuity_mutation_families() {
+    for family in [
+        BridgeMutationEvidenceContinuityFamily::RebindExistingTarget,
+        BridgeMutationEvidenceContinuityFamily::SplitExistingTarget,
+    ] {
         if !bridge_support
             .continuity_mutation_families()
             .iter()
-            .any(|bridge_family| bridge_family == family)
+            .any(|bridge_family| bridge_family == &family)
         {
-            failures.push(format!("missing continuity family `{family}`"));
+            failures.push(format!("missing continuity family `{family:?}`"));
         }
     }
 
     for section in [
-        "aggregate_existing_truth_binding_digest",
-        "aggregate_symbolic_target_reference_digest",
-        "aggregate_naming_mutation_digest",
-        "aggregate_continuity_mutation_digest",
-        "aggregate_causality_digest",
-        "aggregate_provenance_digest",
+        BridgeAggregateMutationEvidenceDigest::ExistingTruthBinding,
+        BridgeAggregateMutationEvidenceDigest::SymbolicTargetReference,
+        BridgeAggregateMutationEvidenceDigest::NamingMutation,
+        BridgeAggregateMutationEvidenceDigest::ContinuityMutation,
+        BridgeAggregateMutationEvidenceDigest::Causality,
+        BridgeAggregateMutationEvidenceDigest::Provenance,
     ] {
         if !bridge_support
-            .aggregate_evidence_sections()
+            .aggregate_evidence_digests()
             .iter()
-            .any(|bridge_section| bridge_section == section)
+            .any(|bridge_section| bridge_section == &section)
         {
-            failures.push(format!("missing aggregate evidence section `{section}`"));
+            failures.push(format!("missing aggregate evidence digest `{section:?}`"));
         }
     }
 
     if !bridge_closeout
-        .must_not_assume_yet()
+        .deferred_boundaries()
         .iter()
-        .any(|line| line.contains("existing-truth binding") && line.contains("fail-closed"))
+        .any(|boundary| {
+            boundary == &BridgeAuthorityEvidenceDeferredBoundary::UnsupportedMutationFamiliesRemainFailClosed
+        })
     {
         failures.push(
             "bridge closeout does not fail-close unsupported existing-truth binding families"

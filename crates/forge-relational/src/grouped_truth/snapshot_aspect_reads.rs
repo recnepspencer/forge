@@ -17,14 +17,14 @@ impl SnapshotAspectReadValue {
 pub(super) fn decode_snapshot_aspect_read_value(
     record: &SnapshotReadRecord,
 ) -> Result<SnapshotAspectReadValue, RelationalGroupedTruthError> {
-    let value = crate::aspect_wire::decode_aspect_value(record.aspect_bytes()).map_err(|_| {
+    let value = record.scalar_aspect_value().cloned().ok_or_else(|| {
         RelationalGroupedTruthError::AspectValueDecodeFailure {
-            request_key: record.request_key().to_string(),
+            request_key: record.correlation_id().as_str().to_string(),
         }
     })?;
     Ok(SnapshotAspectReadValue { value })
 }
 
-pub fn encode_snapshot_aspect_read_value(value: &AspectValue) -> Vec<u8> {
-    crate::aspect_wire::encode_aspect_value(value)
+pub fn encode_snapshot_aspect_read_value(value: &AspectValue) -> AspectValue {
+    value.clone()
 }

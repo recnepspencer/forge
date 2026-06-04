@@ -224,10 +224,6 @@ fn workflow_certification_writeback_lowering_matches_direct_bridge_control() {
         BridgeWritebackFamilyKind::ProjectedStateDiff,
         BridgeWritebackEffectClass::ProjectedStateDiff,
         BridgeWritebackStrategyClass::ProjectedStateDiffReconciliation,
-        lowered
-            .bridge_declaration()
-            .strategy_descriptor_digest()
-            .to_string(),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
 

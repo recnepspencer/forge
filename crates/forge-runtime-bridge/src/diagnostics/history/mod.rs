@@ -5,7 +5,8 @@ mod replay;
 
 pub use counters::BridgeHistoricalEvaluationCounters;
 pub use failures::{
-    BridgeHistoricalEvaluationFailureClass, BridgeHistoricalEvaluationFailureRecord,
+    BridgeHistoricalEvaluationFailureClass, BridgeHistoricalEvaluationFailureIdentity,
+    BridgeHistoricalEvaluationFailureRecord,
 };
 pub use records::{
     BridgeCanonicalHistoricalEvaluationRecord, BridgeHistoricalEvaluationDecisionLog,

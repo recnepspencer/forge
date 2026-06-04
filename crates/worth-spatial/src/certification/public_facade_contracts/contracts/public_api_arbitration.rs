@@ -1,4 +1,4 @@
-use worth_spatial::facade::{
+use worth_spatial::facade::arbitration::{
     analyze_spatial_intent_conflict, analyze_spatial_intent_conflict_with_capabilities,
     resolve_spatial_intent_conflict_by_choice, resolve_spatial_intent_conflict_by_policy,
     SpatialAuthoredActKind, SpatialBlockedCapability, SpatialChosenIntentAuthority,
@@ -54,6 +54,17 @@ fn spatial_public_facade_exports_advanced_arbitration_surface() {
         .candidates()
         .iter()
         .any(|candidate| candidate.candidate() == SpatialIntentCandidate::NestInside));
+    let eligibility = analysis
+        .to_query_eligibility()
+        .expect("arbitration declaration should admit query handoff");
+    assert_eq!(
+        eligibility
+            .request()
+            .runtime_declaration()
+            .expect("runtime declaration")
+            .name(),
+        "worth.spatial.arbitration"
+    );
 }
 
 #[test]

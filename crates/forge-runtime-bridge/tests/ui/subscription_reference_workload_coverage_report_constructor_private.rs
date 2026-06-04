@@ -2,7 +2,7 @@ use forge_runtime_bridge::facade::{
     BridgeSubscriptionCertificationCounterSnapshot,
     BridgeSubscriptionReferenceWorkloadCoverageReport,
 };
-use std::sync::Arc;
+
 
 fn main() {
     let _coverage = BridgeSubscriptionReferenceWorkloadCoverageReport {
@@ -14,7 +14,11 @@ fn main() {
         comparison_evidence_complete: true,
         expected_lane_outcomes_covered: true,
         counters: BridgeSubscriptionCertificationCounterSnapshot::default(),
-        canonical_basis: Arc::from("basis"),
-        digest: Arc::from("digest"),
+        canonical_basis: sealed_authority_placeholder(),
+        digest: sealed_authority_placeholder(),
     };
+}
+
+fn sealed_authority_placeholder<T>() -> T {
+    panic!("compile-fail fixture never executes")
 }

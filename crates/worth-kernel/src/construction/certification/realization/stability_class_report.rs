@@ -50,16 +50,8 @@ impl PrimitiveConstructionStabilityClassReport {
         }
     }
 
-    pub fn family(&self) -> PrimitiveConstructionFamily {
-        self.family
-    }
-
     pub fn admitted(&self) -> bool {
         self.admitted
-    }
-
-    pub fn selected_strategy(&self) -> Option<PrimitiveRealizationStrategy> {
-        self.selected_strategy
     }
 
     pub fn stability_class(&self) -> Option<PrimitiveStabilityClass> {
@@ -73,16 +65,12 @@ impl PrimitiveConstructionStabilityClassReport {
     pub fn attempted_realization_strategy_count(&self) -> usize {
         self.attempted_strategies.len()
     }
-
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
-    }
 }
 
 pub fn prepare_primitive_construction_stability_class_report(
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: PrimitiveConstructionIntent,
 ) -> PrimitiveConstructionStabilityClassReport {
     PrimitiveConstructionStabilityClassReport::from_snapshot(&prepare_realization_snapshot(
-        intent.into().into_request(),
+        intent.into_request(),
     ))
 }

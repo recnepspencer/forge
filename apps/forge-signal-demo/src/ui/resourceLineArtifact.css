@@ -1,0 +1,115 @@
+.xai-line-artifact {
+  position: relative;
+  display: grid;
+  gap: 0.8rem;
+  align-content: center;
+  min-height: 12rem;
+  color: #effff7;
+  isolation: isolate;
+}
+
+.xai-line-artifact-orb {
+  position: absolute;
+  inset: 12% 6% auto auto;
+  width: 11rem;
+  height: 11rem;
+  border-radius: 999px;
+  background: rgba(121, 223, 177, 0.34);
+  filter: blur(34px);
+  opacity: 0.7;
+  z-index: -1;
+}
+
+.xai-line-artifact-stack {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.xai-line-artifact-row {
+  --line-width: 70%;
+  --line-delay: 0ms;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.52rem;
+  min-height: 2.25rem;
+  padding: 0.56rem 0.64rem;
+  overflow: hidden;
+  border: 1px solid rgba(121, 223, 177, 0.15);
+  border-radius: 13px;
+  background: rgba(4, 9, 8, 0.74);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.xai-line-artifact-row strong {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(245, 250, 248, 0.92);
+  font-size: 0.72rem;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xai-line-artifact-row em,
+.xai-line-artifact-inspector span {
+  color: rgba(199, 220, 212, 0.58);
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.xai-line-artifact-row i {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: var(--line-width);
+  height: 1px;
+  background: linear-gradient(90deg, rgba(121, 223, 177, 0), rgba(121, 223, 177, 0.82), rgba(121, 223, 177, 0));
+  animation: line-artifact-scan 2400ms ease-in-out infinite;
+  animation-delay: var(--line-delay);
+}
+
+.xai-line-artifact-dot {
+  width: 0.43rem;
+  height: 0.43rem;
+  border-radius: 999px;
+  background: #79dfb1;
+  box-shadow: 0 0 16px rgba(121, 223, 177, 0.72);
+}
+
+.xai-line-artifact-inspector {
+  display: grid;
+  gap: 0.28rem;
+  width: min(16rem, 100%);
+  padding: 0.78rem 0.82rem;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 13px;
+  background: rgba(5, 7, 8, 0.82);
+}
+
+.xai-line-artifact-inspector b {
+  color: rgba(245, 250, 248, 0.86);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+
+@keyframes line-artifact-scan {
+  0%, 20% {
+    opacity: 0;
+    transform: translateX(-35%);
+  }
+
+  45%, 72% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(125%);
+  }
+}

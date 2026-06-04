@@ -1,20 +1,29 @@
 use crate::input::envelope::BridgeCommittedPatchItem;
 use crate::mapping::freezing::{FrozenBridgeMappingRegistration, FrozenMappingRegistry};
+use crate::mapping::{TruthDeltaSurfaceKind, TruthPatchTargetView};
 use crate::routing::surfaces::TruthDeltaSurface;
+use forge_foundational::facade::{AspectKey, CanonicalFieldPath};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BridgeMappingLookupKey<'a> {
     entity_identity: &'a str,
-    aspect_label: &'a str,
-    surface_label: &'a str,
+    aspect_key: &'a AspectKey,
+    field_path: Option<&'a CanonicalFieldPath>,
+    surface_kind: TruthDeltaSurfaceKind,
 }
 
 impl<'a> BridgeMappingLookupKey<'a> {
-    pub fn new(entity_identity: &'a str, aspect_label: &'a str, surface_label: &'a str) -> Self {
+    pub fn new(
+        entity_identity: &'a str,
+        aspect_key: &'a AspectKey,
+        field_path: Option<&'a CanonicalFieldPath>,
+        surface_kind: TruthDeltaSurfaceKind,
+    ) -> Self {
         Self {
             entity_identity,
-            aspect_label,
-            surface_label,
+            aspect_key,
+            field_path,
+            surface_kind,
         }
     }
 
@@ -22,12 +31,8 @@ impl<'a> BridgeMappingLookupKey<'a> {
         self.entity_identity
     }
 
-    pub fn aspect_label(&self) -> &str {
-        self.aspect_label
-    }
-
-    pub fn surface_label(&self) -> &str {
-        self.surface_label
+    pub fn aspect_key(&self) -> &AspectKey {
+        self.aspect_key
     }
 }
 
@@ -35,9 +40,20 @@ impl<'a> From<&'a BridgeCommittedPatchItem> for BridgeMappingLookupKey<'a> {
     fn from(value: &'a BridgeCommittedPatchItem) -> Self {
         Self::new(
             value.entity_identity(),
-            value.aspect_label(),
-            value.surface_label(),
+            value.aspect_key(),
+            value.field_locator().map(|locator| locator.field_path()),
+            value.surface_kind(),
         )
+    }
+}
+
+impl TruthPatchTargetView for BridgeMappingLookupKey<'_> {
+    fn truth_surface_kind(&self) -> TruthDeltaSurfaceKind {
+        self.surface_kind
+    }
+
+    fn truth_field_path(&self) -> Option<&CanonicalFieldPath> {
+        self.field_path
     }
 }
 
@@ -80,7 +96,7 @@ pub enum BridgeMappingLookup<'a> {
     Exact {
         resolved: ResolvedBridgeMappings<'a>,
     },
-    Fallback {
+    Widening {
         resolved: ResolvedBridgeMappings<'a>,
     },
     Missing,
@@ -106,9 +122,9 @@ impl FrozenMappingRegistry {
             registration.truth_scope().specificity_rank() == most_specific_rank
         });
 
-        let is_fallback = matches
+        let is_widening = matches
             .first()
-            .and_then(|registration| registration.fallback_class())
+            .and_then(|registration| registration.widening_class())
             .is_some();
         let resolved = ResolvedBridgeMappings::new(
             matches
@@ -116,9 +132,9 @@ impl FrozenMappingRegistry {
                 .map(ResolvedBridgeMapping::new)
                 .collect(),
         );
-        match is_fallback {
+        match is_widening {
             false => BridgeMappingLookup::Exact { resolved },
-            true => BridgeMappingLookup::Fallback { resolved },
+            true => BridgeMappingLookup::Widening { resolved },
         }
     }
     pub(crate) fn lookup_truth_surface<'a>(
@@ -127,8 +143,9 @@ impl FrozenMappingRegistry {
     ) -> BridgeMappingLookup<'a> {
         self.lookup(BridgeMappingLookupKey::new(
             surface.entity_identity(),
-            surface.aspect_label(),
-            surface.surface_label(),
+            surface.aspect_key(),
+            surface.field_locator().map(|locator| locator.field_path()),
+            surface.surface_kind(),
         ))
     }
 }

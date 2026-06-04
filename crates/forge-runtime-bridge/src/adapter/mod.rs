@@ -7,7 +7,6 @@ use crate::error::{
     BridgeDeliveryError, BridgeDeliveryErrorKind, BridgeErrorContext, BridgeLineageSourceError,
     BridgeLineageSourceErrorKind, BridgeMessageError,
 };
-use crate::input::envelope::{RawCommittedPatchEnvelope, TruthBranchIdentity};
 use crate::routing::BridgeSignalInvalidationDelivery;
 use crate::snapshot::{
     AdmittedSnapshotContext, BridgeSnapshotContext, BridgeSnapshotToken, BridgeTruthViewKind,
@@ -29,7 +28,8 @@ mod tests;
 
 pub use continuity_lineage::{
     BridgeHistoricalLineageAuthority, BridgeHistoricalLineageRequest,
-    BridgeHistoricalLineageTopology, ContinuityLineageSource,
+    BridgeHistoricalLineageTopology, BridgeHistoricalResolvedLineageIdentity,
+    BridgeHistoricalResolvedRecordIdentity, ContinuityLineageSource,
 };
 #[allow(unused_imports)]
 pub use signal_sink::{
@@ -43,6 +43,7 @@ pub use truth_sources::{
     CommittedPatchSource, RelationalBridgeSource, RelationalCommittedPatchRequest,
     SnapshotReadSource, SnapshotReaderPool, TruthBranchHeadSource,
 };
+pub(crate) use truth_writeback::TruthWritebackRequestEvidence;
 #[allow(unused_imports)]
 pub use truth_writeback::{
     TruthWritebackAuthority, TruthWritebackAuthorityError, TruthWritebackAuthorityErrorTag,

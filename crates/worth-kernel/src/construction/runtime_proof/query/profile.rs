@@ -2,7 +2,11 @@ use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryWorkspace,
 };
 
-use crate::construction::certification::PrimitiveConstructionPolicyProfileRow;
+use crate::construction::certification::continuity::PrimitiveConstructionContinuityCase;
+use crate::construction::certification::preview::PrimitiveConstructionPreviewCase;
+use crate::construction::certification::profile::{
+    PrimitiveConstructionPolicyProfileCase, PrimitiveConstructionPolicyProfileRow,
+};
 use crate::construction::digest::digest_owned_parts;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -24,15 +28,14 @@ pub enum PrimitiveConstructionPolicyProfileQueryFactProvenance {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionQueryPolicyProfileParityReport {
-    case: crate::construction::certification::PrimitiveConstructionPolicyProfileCase,
+    case: PrimitiveConstructionPolicyProfileCase,
     profile_name: &'static str,
-    proximity_posture: worth_spatial::facade::SpatialThresholdPosture,
-    alignment_posture: worth_spatial::facade::SpatialThresholdPosture,
-    arbitration_posture: worth_spatial::facade::SpatialArbitrationPosture,
-    preview_richness: worth_spatial::facade::SpatialPreviewRichness,
-    representative_preview_case: crate::construction::PrimitiveConstructionPreviewCase,
-    representative_continuity_case:
-        Option<crate::construction::PrimitiveConstructionContinuityCase>,
+    proximity_posture: worth_spatial::facade::arbitration::SpatialThresholdPosture,
+    alignment_posture: worth_spatial::facade::arbitration::SpatialThresholdPosture,
+    arbitration_posture: worth_spatial::facade::arbitration::SpatialArbitrationPosture,
+    preview_richness: worth_spatial::facade::arbitration::SpatialPreviewRichness,
+    representative_preview_case: PrimitiveConstructionPreviewCase,
+    representative_continuity_case: Option<PrimitiveConstructionContinuityCase>,
     query_contract_digest: String,
     read_surface: PrimitiveConstructionPolicyProfileQueryReadSurface,
     inspection_surface: PrimitiveConstructionPolicyProfileQueryInspectionSurface,
@@ -84,41 +87,29 @@ impl PrimitiveConstructionQueryPolicyProfileParityReport {
         }
     }
 
-    pub fn case(
-        &self,
-    ) -> crate::construction::certification::PrimitiveConstructionPolicyProfileCase {
-        self.case
-    }
-
     pub fn profile_name(&self) -> &'static str {
         self.profile_name
     }
 
-    pub fn proximity_posture(&self) -> worth_spatial::facade::SpatialThresholdPosture {
+    pub fn proximity_posture(&self) -> worth_spatial::facade::arbitration::SpatialThresholdPosture {
         self.proximity_posture
     }
 
-    pub fn alignment_posture(&self) -> worth_spatial::facade::SpatialThresholdPosture {
+    pub fn alignment_posture(&self) -> worth_spatial::facade::arbitration::SpatialThresholdPosture {
         self.alignment_posture
     }
 
-    pub fn arbitration_posture(&self) -> worth_spatial::facade::SpatialArbitrationPosture {
+    pub fn arbitration_posture(
+        &self,
+    ) -> worth_spatial::facade::arbitration::SpatialArbitrationPosture {
         self.arbitration_posture
     }
 
-    pub fn preview_richness(&self) -> worth_spatial::facade::SpatialPreviewRichness {
+    pub fn preview_richness(&self) -> worth_spatial::facade::arbitration::SpatialPreviewRichness {
         self.preview_richness
     }
 
-    pub fn representative_preview_case(
-        &self,
-    ) -> crate::construction::PrimitiveConstructionPreviewCase {
-        self.representative_preview_case
-    }
-
-    pub fn representative_continuity_case(
-        &self,
-    ) -> Option<crate::construction::PrimitiveConstructionContinuityCase> {
+    pub fn representative_continuity_case(&self) -> Option<PrimitiveConstructionContinuityCase> {
         self.representative_continuity_case
     }
 
@@ -192,7 +183,7 @@ mod tests {
         prepare_primitive_construction_query_policy_profile_inspection_parity_report,
         prepare_primitive_construction_query_policy_profile_projection_consumption_receipt_report,
     };
-    use crate::construction::{
+    use crate::construction::certification::profile::{
         prepare_primitive_construction_policy_profile_report,
         PrimitiveConstructionPolicyProfileCase,
     };

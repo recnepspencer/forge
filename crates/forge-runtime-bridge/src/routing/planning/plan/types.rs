@@ -10,7 +10,8 @@ use crate::routing::context::BridgeMappingContext;
 use crate::routing::counters::BridgeRoutingCounters;
 use crate::routing::lowering::{
     lower_validated_route, BridgeLoweringPlan, BridgeLoweringPlanSummary, BridgeLoweringProvenance,
-    BridgeLoweringSummary, CanonicalSubscriptionSlices, ValidatedBridgeLoweringPlan,
+    BridgeLoweringSummary, CanonicalInvalidationTargets, CanonicalSubscriptionSlices,
+    ValidatedBridgeLoweringPlan,
 };
 use crate::routing::proof::BridgeRouteContractProof;
 use crate::routing::scope::RouteScope;
@@ -187,6 +188,10 @@ impl BridgePlannedRoute {
 
     pub fn subscription_slices(&self) -> &CanonicalSubscriptionSlices {
         self.execution.lowering_plan.subscription_slices()
+    }
+
+    pub fn invalidation_targets(&self) -> &CanonicalInvalidationTargets {
+        self.execution.lowering_plan.invalidation_targets()
     }
 
     pub fn lowering_provenance(&self) -> &BridgeLoweringProvenance {

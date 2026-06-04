@@ -2,7 +2,7 @@ use forge_runtime_bridge::facade::{
     BridgeActiveSubscription, BridgeSubscriptionDeliveryWindowSealed, RuntimeBridge,
 };
 
-fn cannot_project_from_raw_active_subscription(
+fn cannot_project_from_unplanned_active_subscription(
     runtime: &RuntimeBridge,
     active: &BridgeActiveSubscription,
     sealed: &BridgeSubscriptionDeliveryWindowSealed,

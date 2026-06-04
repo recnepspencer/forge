@@ -1,168 +1,47 @@
-import React from "react";
 import { FormsSectionCodeSample } from "./FormsSectionCodeSample";
+import { DemoPreface } from "./DemoPreface";
 import "./formsSection.css";
-import {
-  COUNTRY_OPTIONS,
-  SOURCE_DRAFT,
-  currency,
-  selectedRegionSummary,
-  validateCarrierEmail,
-  validatePrice,
-  validateShippingSelection,
-} from "./formsSectionSupport";
-import type { RolloutDraft } from "./formsSectionSupport";
+import { COUNTRY_OPTIONS, currency } from "./formsSectionSupport";
+import { selectedRegionSummary, useFormsSectionState } from "./formsSectionHooks";
 
 interface FormsSectionProps {
   onNavigate: (path: string) => void;
 }
 
-type CarrierErrorMap = Partial<Record<string, string>>;
-
-function fieldNote(message?: string): React.ReactElement {
+function fieldNote(message?: string) {
   return <small className={message ? "" : "forms-field-spacer"}>{message ?? "placeholder"}</small>;
 }
 
-function formatArray(values: string[]): string {
-  return values.length > 0 ? `[${values.map((value) => `"${value}"`).join(", ")}]` : "[]";
-}
-
-export function FormsSection({ onNavigate }: FormsSectionProps): React.ReactElement {
-  const [draft, setDraft] = React.useState<RolloutDraft>(SOURCE_DRAFT);
-  const [regionsOpen, setRegionsOpen] = React.useState(false);
-  const regionsRef = React.useRef<HTMLDivElement>(null);
-
-  const priceError = validatePrice(draft.price, draft.baseCost, draft.targetMargin) ?? undefined;
-  const shippingError = validateShippingSelection(draft.shippingRegions) ?? undefined;
-  const carrierErrors = React.useMemo(() => {
-    const next: CarrierErrorMap = {};
-    for (const option of COUNTRY_OPTIONS) {
-      const error = validateCarrierEmail(option.code, draft.shippingRegions, draft.carrierEmails);
-      if (error) {
-        next[option.code] = error;
-      }
-    }
-    return next;
-  }, [draft.carrierEmails, draft.shippingRegions]);
-
-  const visibleMessages = [
+export function FormsSection({ onNavigate }: FormsSectionProps) {
+  const {
+    draft,
+    regionsOpen,
+    regionsRef,
     priceError,
     shippingError,
-    ...Object.values(carrierErrors),
-  ].filter(Boolean) as string[];
-  const dirtyFields = React.useMemo(() => {
-    return (Object.keys(SOURCE_DRAFT) as Array<keyof RolloutDraft>).filter(
-      (key) => JSON.stringify(SOURCE_DRAFT[key]) !== JSON.stringify(draft[key]),
-    );
-  }, [draft]);
-  const isDirty = dirtyFields.length > 0;
-
-  const patchPlanSummary = React.useMemo(() => {
-    const ops: string[] = [];
-    if (draft.price !== SOURCE_DRAFT.price) {
-      ops.push(`replace price -> ${currency.format(draft.price)}`);
-    }
-    if (JSON.stringify(draft.shippingRegions) !== JSON.stringify(SOURCE_DRAFT.shippingRegions)) {
-      ops.push(`replace shippingRegions -> ${formatArray(draft.shippingRegions)}`);
-    }
-    for (const code of draft.shippingRegions) {
-      const current = draft.carrierEmails[code] ?? "";
-      const source = SOURCE_DRAFT.carrierEmails[code] ?? "";
-      if (current !== source) {
-        ops.push(`set carrierEmails.${code} -> "${current}"`);
-      }
-    }
-    return ops;
-  }, [draft]);
-
-  const diagnosticsOutput = React.useMemo(() => {
-    const inspectorLines = [
-      "const source = form.source();",
-      `> ${JSON.stringify(
-        {
-          price: SOURCE_DRAFT.price,
-          shippingRegions: SOURCE_DRAFT.shippingRegions,
-          carrierEmails: Object.fromEntries(
-            Object.entries(SOURCE_DRAFT.carrierEmails).filter(([, value]) => value.length > 0),
-          ),
-        },
-        null,
-        2,
-      )}`,
-      "",
-      "const dirty = form.dirty();",
-      `> ${JSON.stringify({ isDirty: dirtyFields.length > 0, fields: dirtyFields }, null, 2)}`,
-      "",
-      "const patchPlan = form.patchPlan();",
-      `> ${JSON.stringify({ empty: patchPlanSummary.length === 0, operations: patchPlanSummary }, null, 2)}`,
-      "",
-      'const readiness = form.readiness();',
-      `> ${JSON.stringify({ canSubmit: visibleMessages.length === 0, blockers: visibleMessages }, null, 2)}`,
-      "",
-      'const savePlan = form.actionPlan("save");',
-      `> ${JSON.stringify({ disabled: visibleMessages.length > 0, reason: visibleMessages[0] ?? null }, null, 2)}`,
-      "",
-      "const draft = form.draft;",
-      `> ${JSON.stringify(
-        {
-          price: draft.price,
-          shippingRegions: draft.shippingRegions,
-          carrierEmails: Object.fromEntries(
-            Object.entries(draft.carrierEmails).filter(([, value]) => value.length > 0),
-          ),
-        },
-        null,
-        2,
-      )}`,
-    ];
-    return inspectorLines.join("\n");
-  }, [dirtyFields, draft, patchPlanSummary, visibleMessages]);
-
-  React.useEffect(() => {
-    function handlePointerDown(event: PointerEvent): void {
-      if (!regionsRef.current?.contains(event.target as Node)) {
-        setRegionsOpen(false);
-      }
-    }
-
-    if (!regionsOpen) {
-      return;
-    }
-
-    window.addEventListener("pointerdown", handlePointerDown);
-    return () => window.removeEventListener("pointerdown", handlePointerDown);
-  }, [regionsOpen]);
-
-  function patchDraft(next: Partial<RolloutDraft>): void {
-    setDraft((current) => ({ ...current, ...next }));
-  }
-
-  function toggleRegion(code: string): void {
-    setDraft((current) => {
-      const selected = current.shippingRegions.includes(code)
-        ? current.shippingRegions.filter((value) => value !== code)
-        : [...current.shippingRegions, code];
-      return { ...current, shippingRegions: selected };
-    });
-  }
-
-  function updateCarrierEmail(code: string, value: string): void {
-    setDraft((current) => ({
-      ...current,
-      carrierEmails: { ...current.carrierEmails, [code]: value },
-    }));
-  }
+    carrierErrors,
+    visibleMessages,
+    isDirty,
+    diagnosticsOutput,
+    patchDraft,
+    resetDraft,
+    setRegionsOpen,
+    toggleRegion,
+    updateCarrierEmail,
+  } = useFormsSectionState();
 
   return (
     <div className="xai-section-band accent-forms">
       <div className="xai-section-heading">
-        <span className="xai-section-eyebrow">02 / Forms</span>
-        <h2>Edit rollout settings and watch the controller keep score.</h2>
+        <span className="xai-section-eyebrow">03 / Forms</span>
+        <h2>Edit a product form. Watch Forge track the state.</h2>
         <p>
-          Pricing policy already moved to a 25% margin. This edit needs a higher
-          retail price, country approval truth from the backend, and carrier emails
-          for every selected shipping region.
+          Change the price, margin, shipping regions, or reviewer email. Forge shows
+          what changed, what is invalid, and whether the form can submit.
         </p>
       </div>
+
+      <DemoPreface demoId={3} />
 
       <article className="forms-code-card">
         <div className="forms-card-topline">
@@ -177,8 +56,8 @@ export function FormsSection({ onNavigate }: FormsSectionProps): React.ReactElem
           <div className="forms-card-topline">
             <span>Live edit form</span>
           </div>
-          <h3>Edit rollout settings.</h3>
-          <p>Raise the price, pick shipping regions, and watch approval and carrier-email rules gate save automatically.</p>
+          <h3>Edit a product form.</h3>
+          <p>Change fields and watch validation, dirty state, and submit readiness update.</p>
 
           <form className="forms-edit-form" onSubmit={(event) => event.preventDefault()}>
             <div className="forms-meta-row">
@@ -273,7 +152,7 @@ export function FormsSection({ onNavigate }: FormsSectionProps): React.ReactElem
               <button
                 className="forms-secondary-button"
                 disabled={!isDirty}
-                onClick={() => setDraft(SOURCE_DRAFT)}
+                onClick={resetDraft}
                 type="button"
               >
                 Reset
@@ -321,9 +200,9 @@ export function FormsSection({ onNavigate }: FormsSectionProps): React.ReactElem
       </div>
 
       <div className="signals-cta-row">
-        <div className="signals-cta-copy">Change the rollout, select blocked countries, and watch the form shut down save until the backend rules are satisfied.</div>
+        <div className="signals-cta-copy">Change the form and inspect the exact state Forge uses to enable or block submit.</div>
         <div className="xai-section-actions">
-          <button className="xai-button xai-button-primary" onClick={() => onNavigate("#/demos/2")} type="button">
+          <button className="xai-button xai-button-primary" onClick={() => onNavigate("#/demos/3")} type="button">
             Open forms demo
           </button>
           <button className="xai-button xai-button-secondary" onClick={() => onNavigate("#/docs/forms/index")} type="button">

@@ -1481,6 +1481,7 @@ version = "0.1.0"
 dependencies = [
  "forge-foundational",
  "forge-harness",
+ "forge-proof",
  "serde_json",
  "sha2",
  "trybuild",
@@ -1513,7 +1514,7 @@ dependencies = [
 
 [[package]]
 name = "forge-signal-wasm"
-version = "1.0.2"
+version = "1.1.1"
 dependencies = [
  "base64 0.22.1",
  "console_error_panic_hook",
@@ -5196,6 +5197,7 @@ dependencies = [
  "serde",
  "serde_json",
  "worth-math",
+ "worth-primitives",
 ]
 
 [[package]]
@@ -5208,6 +5210,7 @@ dependencies = [
  "trybuild",
  "worth-geom",
  "worth-math",
+ "worth-primitives",
  "worth-spatial",
  "worth-topo",
 ]
@@ -5224,6 +5227,13 @@ dependencies = [
  "serde",
  "serde_json",
  "trybuild",
+]
+
+[[package]]
+name = "worth-primitives"
+version = "0.1.0"
+dependencies = [
+ "sha2",
 ]
 
 [[package]]
@@ -5253,6 +5263,7 @@ dependencies = [
  "trybuild",
  "worth-geom",
  "worth-math",
+ "worth-primitives",
 ]
 
 [[package]]
@@ -5266,6 +5277,7 @@ dependencies = [
  "serde",
  "serde_json",
  "trybuild",
+ "worth-primitives",
  "worth-schema",
 ]
 

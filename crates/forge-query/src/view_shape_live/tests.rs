@@ -19,7 +19,10 @@ use crate::view_shape::{
     admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
     ViewShapeDescriptor,
 };
-use forge_foundational::facade::{AspectKey, AspectValue};
+use forge_foundational::facade::{
+    AspectKey, AspectLocator, AspectValue, CanonicalFieldPath, FieldKey, LocatorAuthority,
+    ScalarAspectType,
+};
 use forge_relational::facade::grouped_truth::{
     encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
     project_relational_grouped_truth,
@@ -27,16 +30,18 @@ use forge_relational::facade::grouped_truth::{
 };
 use forge_runtime_bridge::facade::{
     materialize_bridge_grouped_truth_view_from_projection, materialize_bridge_row_set,
-    BridgeDeliveryReceipt, BridgeGroupedTruthViewArtifact, BridgeMappingId,
-    BridgeMappingRegistration, BridgeRuntimePolicy, BridgeSignalInvalidationDelivery,
-    BridgeSnapshotReadError, BridgeSourceAdapter, BridgeSourceCapability,
-    BridgeSourceCapabilitySet, BridgeTruthViewSelector, CoarseRoutingMode, CommittedPatchSource,
-    InvalidationSink, MappingSelector, RawCommittedPatchEnvelope, RelationalBridgeSourceError,
-    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
-    SignalInvalidationScope, SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord,
-    SnapshotReadRequest, SnapshotReadSource, SourceDeclaration, SourceDeclarationIdentity,
-    TruthBranchHeadSource, TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity,
-    TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
+    AspectKeySelector, BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity,
+    BridgeCommittedPatchItem, BridgeCommittedPatchTarget, BridgeDeliveryReceipt,
+    BridgeGroupedTruthViewArtifact, BridgeMappingId, BridgeMappingRegistration,
+    BridgeRuntimePolicy, BridgeSignalInvalidationDelivery, BridgeSnapshotReadError,
+    BridgeSourceAdapter, BridgeSourceCapability, BridgeSourceCapabilitySet,
+    BridgeTruthViewSelector, CoarseRoutingMode, CommittedPatchSource, InvalidationSink,
+    MappingSelector, RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
+    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
+    SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
+    SnapshotReadSource, SourceDeclaration, SourceDeclarationIdentity, TruthBranchHeadSource,
+    TruthBranchIdentity, TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope,
+    TruthPatchTargetSelector, TruthSnapshotIdentity, TruthSnapshotReader,
 };
 
 use super::{
@@ -207,13 +212,12 @@ impl CommittedPatchSource for StaticSource {
     fn load_committed_patch(
         &self,
         request: RelationalCommittedPatchRequest,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        Ok(RawCommittedPatchEnvelope::new(
-            TruthCommitIdentity::new(request.commit_identity()),
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        Ok(native_grouped_patch_envelope(
+            request.commit_identity().clone(),
             TruthPatchIdentity::new(format!("patch-for-{}", request.commit_identity())),
             TruthSnapshotIdentity::new("snapshot-a"),
             TruthBranchIdentity::new("analysis"),
-            vec![],
         ))
     }
 }
@@ -254,16 +258,19 @@ impl TruthSnapshotReader for StaticSnapshotReader {
                         .iter()
                         .find_map(|(entity_identity, member_key, display_name, lane)| {
                             (read.entity_identity() == entity_identity.as_str()).then(|| match read
-                                .aspect_label()
+                                .aspect_key()
+                                .as_str()
                             {
-                                "identity.id" => member_key.as_bytes().to_vec(),
-                                "profile.display_name" => display_name.as_bytes().to_vec(),
-                                "status.lane" => lane.as_bytes().to_vec(),
-                                _ => b"unknown".to_vec(),
+                                "identity.id" => AspectValue::String(member_key.as_str().into()),
+                                "profile.display_name" => {
+                                    AspectValue::String(display_name.as_str().into())
+                                }
+                                "status.lane" => AspectValue::String(lane.as_str().into()),
+                                _ => AspectValue::String("unknown".into()),
                             })
                         })
-                        .unwrap_or_else(|| b"unknown".to_vec());
-                    SnapshotReadRecord::new(read.request_key(), payload)
+                        .unwrap_or_else(|| AspectValue::String("unknown".into()));
+                    SnapshotReadRecord::for_request(read, payload)
                 })
                 .collect(),
         ))
@@ -292,13 +299,12 @@ impl TruthBranchHeadSource for StaticSource {
     fn load_branch_head_patch(
         &self,
         branch_identity: &TruthBranchIdentity,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        Ok(RawCommittedPatchEnvelope::new(
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        Ok(native_grouped_patch_envelope(
             TruthCommitIdentity::new(format!("head-{}", branch_identity.as_str())),
             TruthPatchIdentity::new(format!("patch-{}", branch_identity.as_str())),
             TruthSnapshotIdentity::new("snapshot-a"),
             branch_identity.clone(),
-            vec![],
         ))
     }
 }
@@ -353,21 +359,9 @@ fn grouped_rows_packet(rows: &[GroupedRowFixture]) -> SnapshotReadPacket {
             .flat_map(|(member_key, _, _)| {
                 let entity = format!("result:{member_key}");
                 [
-                    SnapshotReadRequest::for_coarse(
-                        entity.clone(),
-                        forge_foundational::facade::AspectKey::new("identity.id")
-                            .expect("valid snapshot aspect key"),
-                    ),
-                    SnapshotReadRequest::for_coarse(
-                        entity.clone(),
-                        forge_foundational::facade::AspectKey::new("profile.display_name")
-                            .expect("valid snapshot aspect key"),
-                    ),
-                    SnapshotReadRequest::for_coarse(
-                        entity,
-                        forge_foundational::facade::AspectKey::new("status.lane")
-                            .expect("valid snapshot aspect key"),
-                    ),
+                    string_snapshot_read(entity.clone(), "identity.id"),
+                    string_snapshot_read(entity.clone(), "profile.display_name"),
+                    string_snapshot_read(entity, "status.lane"),
                 ]
             })
             .collect(),
@@ -388,7 +382,7 @@ fn grouped_rows_result(
                     .iter()
                     .find_map(|(member_key, display_name, lane)| {
                         (read.entity_identity() == format!("result:{member_key}")).then(|| {
-                            match read.aspect_label() {
+                            match read.aspect_key().as_str() {
                                 "identity.id" => AspectValue::String(member_key.as_str().into()),
                                 "profile.display_name" => {
                                     AspectValue::String(display_name.as_str().into())
@@ -399,7 +393,7 @@ fn grouped_rows_result(
                         })
                     })
                     .unwrap_or_else(|| AspectValue::String("unknown".into()));
-                SnapshotReadRecord::new(read.request_key(), aspect_bytes(value))
+                SnapshotReadRecord::for_request(read, aspect_value(value))
             })
             .collect(),
     )
@@ -418,9 +412,10 @@ fn runtime(rows: &[GroupedRowFixture]) -> RuntimeBridge {
             BridgeMappingId::new("mapping"),
             TruthPatchScope::new(
                 MappingSelector::exact("result:task-1"),
-                MappingSelector::exact("status"),
-                MappingSelector::exact("lane"),
+                AspectKeySelector::exact(aspect_key("status")),
+                TruthPatchTargetSelector::entity_field(field_key("lane")),
             ),
+            SnapshotReadContract::scalar(aspect_key("status"), ScalarAspectType::String),
             SignalInvalidationScope::new("signal:board"),
             CoarseRoutingMode::Direct,
         ))
@@ -500,8 +495,42 @@ fn grouped_truth_view_with_rows(
         .expect("grouped truth view")
 }
 
-fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+fn aspect_value(value: AspectValue) -> AspectValue {
     encode_snapshot_aspect_read_value(&value)
+}
+
+fn native_grouped_patch_envelope(
+    commit_identity: TruthCommitIdentity,
+    patch_identity: TruthPatchIdentity,
+    snapshot_identity: TruthSnapshotIdentity,
+    branch_identity: TruthBranchIdentity,
+) -> BridgeCommittedPatchEnvelope {
+    BridgeCommittedPatchEnvelope::new(
+        BridgeCommittedPatchEnvelopeIdentity::new(
+            commit_identity,
+            patch_identity,
+            snapshot_identity,
+            branch_identity,
+        ),
+        vec![BridgeCommittedPatchItem::with_target(
+            "result:task-1",
+            BridgeCommittedPatchTarget::entity_field_path(
+                AspectLocator::new(LocatorAuthority::Authoritative, aspect_key("status")),
+                CanonicalFieldPath::single(field_key("lane")),
+            ),
+        )],
+    )
+    .expect("view-shape live native grouped patch envelope should construct")
+}
+
+fn string_snapshot_read(
+    entity: impl Into<std::sync::Arc<str>>,
+    aspect: &str,
+) -> SnapshotReadRequest {
+    SnapshotReadRequest::for_coarse(
+        entity,
+        SnapshotReadContract::scalar(aspect_key(aspect), ScalarAspectType::String),
+    )
 }
 
 fn relational_grouped_projection_contract(
@@ -518,6 +547,10 @@ fn relational_grouped_projection_contract(
 
 fn aspect_key(label: &str) -> AspectKey {
     AspectKey::new(label).expect("test grouped projection aspect key must be foundational")
+}
+
+fn field_key(label: &str) -> FieldKey {
+    FieldKey::new(label.to_owned()).expect("test grouped projection field key must be foundational")
 }
 
 #[test]
@@ -779,7 +812,7 @@ fn focused_inspector_widening_is_denied_and_counted() {
 fn grouped_delta_is_explicit_and_deterministic() {
     let planned = planned_view(
         &collection_canonical(),
-        ViewShapeDescriptor::kanban_grouped("status"),
+        ViewShapeDescriptor::kanban_grouped(aspect_key("status")),
     );
     let basis = runtime_basis(planned.validated().query().schema_basis().clone());
     let truth_view = grouped_truth_view(&planned);
@@ -854,7 +887,7 @@ fn grouped_delta_is_explicit_and_deterministic() {
 fn grouped_baseline_is_derived_from_authoritative_execution_bindings() {
     let planned = planned_view(
         &collection_canonical(),
-        ViewShapeDescriptor::kanban_grouped("status"),
+        ViewShapeDescriptor::kanban_grouped(aspect_key("status")),
     );
     let basis = runtime_basis(planned.validated().query().schema_basis().clone());
     let truth_view = grouped_truth_view(&planned);
@@ -895,7 +928,7 @@ fn grouped_baseline_is_derived_from_authoritative_execution_bindings() {
 fn grouped_baseline_rejects_mismatched_grouped_execution_surface() {
     let planned = planned_view(
         &collection_canonical(),
-        ViewShapeDescriptor::kanban_grouped("status"),
+        ViewShapeDescriptor::kanban_grouped(aspect_key("status")),
     );
     let basis = runtime_basis(planned.validated().query().schema_basis().clone());
     let truth_view = grouped_truth_view(&planned);
@@ -904,7 +937,7 @@ fn grouped_baseline_rejects_mismatched_grouped_execution_surface() {
             .unwrap();
     let other_plan = planned_view(
         &collection_canonical(),
-        ViewShapeDescriptor::kanban_grouped("profile"),
+        ViewShapeDescriptor::kanban_grouped(aspect_key("profile")),
     );
     let error = materialize_authoritative_grouped_baseline(&other_plan, basis, &grouped_execution)
         .unwrap_err();
@@ -919,7 +952,7 @@ fn grouped_baseline_rejects_mismatched_grouped_execution_surface() {
 fn grouped_execution_rejects_truth_view_with_mismatched_identity_binding() {
     let planned = planned_view(
         &collection_canonical(),
-        ViewShapeDescriptor::kanban_grouped("status"),
+        ViewShapeDescriptor::kanban_grouped(aspect_key("status")),
     );
     let basis = runtime_basis(planned.validated().query().schema_basis().clone());
     let wrong_truth_view = grouped_truth_view_with_rows(
@@ -943,7 +976,7 @@ fn grouped_execution_rejects_truth_view_with_mismatched_identity_binding() {
 fn grouped_execution_rejects_truth_view_with_mismatched_snapshot_identity() {
     let planned = planned_view(
         &collection_canonical(),
-        ViewShapeDescriptor::kanban_grouped("status"),
+        ViewShapeDescriptor::kanban_grouped(aspect_key("status")),
     );
     let wrong_basis = resolve_snapshot_basis(
         ExecutionBasisIntent::new(
@@ -978,7 +1011,7 @@ fn grouped_execution_rejects_truth_view_with_mismatched_snapshot_identity() {
 fn grouped_churn_overrun_is_explicit_refresh_debt() {
     let planned = planned_view(
         &collection_canonical(),
-        ViewShapeDescriptor::kanban_grouped("status"),
+        ViewShapeDescriptor::kanban_grouped(aspect_key("status")),
     );
     let basis = runtime_basis(planned.validated().query().schema_basis().clone());
     let truth_view = grouped_truth_view(&planned);
@@ -1067,7 +1100,7 @@ fn grouped_churn_overrun_is_explicit_refresh_debt() {
 fn grouped_core_refresh_is_trapped_as_grouped_debt() {
     let planned = planned_view(
         &collection_canonical(),
-        ViewShapeDescriptor::kanban_grouped("status"),
+        ViewShapeDescriptor::kanban_grouped(aspect_key("status")),
     );
     let basis = runtime_basis(planned.validated().query().schema_basis().clone());
     let truth_view = grouped_truth_view(&planned);
@@ -1120,7 +1153,7 @@ fn grouped_core_refresh_is_trapped_as_grouped_debt() {
 fn grouped_delta_mixed_member_churn_is_explicit_refresh_debt() {
     let planned = planned_view(
         &collection_canonical(),
-        ViewShapeDescriptor::kanban_grouped("status"),
+        ViewShapeDescriptor::kanban_grouped(aspect_key("status")),
     );
     let basis = runtime_basis(planned.validated().query().schema_basis().clone());
     let truth_view = grouped_truth_view(&planned);

@@ -1,20 +1,23 @@
+use crate::facade::TruthSnapshotIdentity;
 #[test]
 fn bridge_bulk_execution_plan_carries_canonical_legality_proof() {
     let left_source = InMemoryRelationalBridgeSource::default();
     left_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
     left_source.insert_committed_patch(committed_patch(
-        "commit-b",
-        "patch-b",
-        "snapshot-b",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-b"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
-    left_source.insert_snapshot(snapshot("snapshot-a", "alice"));
-    left_source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    left_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
     let left_runtime = build_runtime(
         left_source,
         RecordingSignalBridgeSink::default(),
@@ -23,19 +26,21 @@ fn bridge_bulk_execution_plan_carries_canonical_legality_proof() {
 
     let right_source = InMemoryRelationalBridgeSource::default();
     right_source.insert_committed_patch(committed_patch(
-        "commit-a",
-        "patch-a",
-        "snapshot-a",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
     right_source.insert_committed_patch(committed_patch(
-        "commit-b",
-        "patch-b",
-        "snapshot-b",
-        "name",
+        crate::facade::TruthCommitIdentity::new("commit-b"),
+        crate::facade::TruthPatchIdentity::new("patch-b"),
+        TruthSnapshotIdentity::new("snapshot-b"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
     ));
-    right_source.insert_snapshot(snapshot("snapshot-a", "alice"));
-    right_source.insert_snapshot(snapshot("snapshot-b", "bob"));
+    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
+    right_source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-b"), "bob"));
     let right_runtime = build_runtime(
         right_source,
         RecordingSignalBridgeSink::default(),
@@ -44,14 +49,22 @@ fn bridge_bulk_execution_plan_carries_canonical_legality_proof() {
 
     let left = left_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-b"),
+            )),
         ]))
         .expect("left bulk workload should plan");
     let right = right_runtime
         .plan_bulk_workload(BridgeBulkWorkloadRequest::new(vec![
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-b")),
-            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit("commit-a")),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-b"),
+            )),
+            BridgeBulkWorkloadSegment::new(BridgeRouteRequest::for_commit(
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+            )),
         ]))
         .expect("right bulk workload should plan");
 
@@ -101,6 +114,27 @@ fn bridge_bulk_execution_plan_carries_canonical_legality_proof() {
             .len(),
         4
     );
+    for region in left
+        .execution_plan()
+        .legality_proof()
+        .disjoint_packet_regions()
+        .regions()
+    {
+        assert!(region.as_str().starts_with("bulk-packet-region:sha256:"));
+        assert!(!region.as_str().contains("partition:"));
+        assert!(!region.as_str().contains("snapshot-a"));
+        assert!(!region.as_str().contains("snapshot-b"));
+    }
+    assert_eq!(
+        left.execution_plan()
+            .legality_proof()
+            .disjoint_packet_regions()
+            .regions()
+            .iter()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        4
+    );
     assert_eq!(
         left.execution_plan()
             .legality_proof()
@@ -108,6 +142,16 @@ fn bridge_bulk_execution_plan_carries_canonical_legality_proof() {
             .partitions()
             .len(),
         4
+    );
+    assert_eq!(
+        left.execution_plan()
+            .legality_proof()
+            .disjoint_packet_regions()
+            .regions(),
+        left.execution_plan()
+            .legality_proof()
+            .admitted_partitions()
+            .partitions(),
     );
     assert_eq!(
         left.execution_plan().reduced_artifact().digest(),

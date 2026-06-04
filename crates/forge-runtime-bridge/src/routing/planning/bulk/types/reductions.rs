@@ -1,9 +1,9 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReducedContinuityRemap {
     continuity_identity: ReducedContinuityIdentity,
-    continuity_authority_digest: Arc<str>,
-    branch_identity: Arc<str>,
-    snapshot_identity: Arc<str>,
+    continuity_member_identity: BulkContinuityMemberIdentity,
+    branch_identity: TruthBranchIdentity,
+    snapshot_identity: TruthSnapshotIdentity,
     reduced_route_count: usize,
     prior_slice_count: usize,
     digest: Arc<str>,
@@ -12,24 +12,24 @@ pub struct ReducedContinuityRemap {
 impl ReducedContinuityRemap {
     pub(crate) fn new(
         continuity_identity: ReducedContinuityIdentity,
-        continuity_authority_digest: Arc<str>,
-        branch_identity: Arc<str>,
-        snapshot_identity: Arc<str>,
+        continuity_member_identity: BulkContinuityMemberIdentity,
+        branch_identity: TruthBranchIdentity,
+        snapshot_identity: TruthSnapshotIdentity,
         reduced_route_count: usize,
         prior_slice_count: usize,
     ) -> Self {
         let basis = format!(
-            "reduced-continuity-remap|identity={}|authority={}|branch={}|snapshot={}|reduced-route-count={}|prior-slice-count={}",
+            "reduced-continuity-remap|identity={}|continuity-member={}|branch={}|snapshot={}|reduced-route-count={}|prior-slice-count={}",
             continuity_identity.as_str(),
-            continuity_authority_digest,
-            branch_identity,
-            snapshot_identity,
+            continuity_member_identity.as_str(),
+            branch_identity.as_str(),
+            snapshot_identity.as_str(),
             reduced_route_count,
             prior_slice_count,
         );
         Self {
             continuity_identity,
-            continuity_authority_digest,
+            continuity_member_identity,
             branch_identity,
             snapshot_identity,
             reduced_route_count,
@@ -41,14 +41,14 @@ impl ReducedContinuityRemap {
     pub fn continuity_identity(&self) -> &ReducedContinuityIdentity {
         &self.continuity_identity
     }
-    pub fn continuity_authority_digest(&self) -> &str {
-        self.continuity_authority_digest.as_ref()
+    pub fn continuity_member_identity(&self) -> &BulkContinuityMemberIdentity {
+        &self.continuity_member_identity
     }
     pub fn branch_identity(&self) -> &str {
-        self.branch_identity.as_ref()
+        self.branch_identity.as_str()
     }
     pub fn snapshot_identity(&self) -> &str {
-        self.snapshot_identity.as_ref()
+        self.snapshot_identity.as_str()
     }
     pub fn reduced_route_count(&self) -> usize {
         self.reduced_route_count
@@ -64,9 +64,10 @@ impl ReducedContinuityRemap {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReducedTruthViewMaterialization {
     truth_view_identity: ReducedTruthViewIdentity,
-    source_branch: Arc<str>,
-    source_commit: Arc<str>,
-    source_snapshot: Arc<str>,
+    truth_view_member_identity: BulkTruthViewMemberIdentity,
+    source_branch: TruthBranchIdentity,
+    source_commit: TruthCommitIdentity,
+    source_snapshot: TruthSnapshotIdentity,
     planned_route_count: usize,
     snapshot_read_count: usize,
     digest: Arc<str>,
@@ -75,23 +76,26 @@ pub struct ReducedTruthViewMaterialization {
 impl ReducedTruthViewMaterialization {
     pub(crate) fn new(
         truth_view_identity: ReducedTruthViewIdentity,
-        source_branch: Arc<str>,
-        source_commit: Arc<str>,
-        source_snapshot: Arc<str>,
+        truth_view_member_identity: BulkTruthViewMemberIdentity,
+        source_branch: TruthBranchIdentity,
+        source_commit: TruthCommitIdentity,
+        source_snapshot: TruthSnapshotIdentity,
         planned_route_count: usize,
         snapshot_read_count: usize,
     ) -> Self {
         let basis = format!(
-            "reduced-truth-view-materialization|identity={}|branch={}|commit={}|snapshot={}|planned-route-count={}|snapshot-read-count={}",
+            "reduced-truth-view-materialization|identity={}|truth-view-member={}|branch={}|commit={}|snapshot={}|planned-route-count={}|snapshot-read-count={}",
             truth_view_identity.as_str(),
-            source_branch,
-            source_commit,
-            source_snapshot,
+            truth_view_member_identity.as_str(),
+            source_branch.as_str(),
+            source_commit.as_str(),
+            source_snapshot.as_str(),
             planned_route_count,
             snapshot_read_count,
         );
         Self {
             truth_view_identity,
+            truth_view_member_identity,
             source_branch,
             source_commit,
             source_snapshot,
@@ -104,14 +108,17 @@ impl ReducedTruthViewMaterialization {
     pub fn truth_view_identity(&self) -> &ReducedTruthViewIdentity {
         &self.truth_view_identity
     }
+    pub fn truth_view_member_identity(&self) -> &BulkTruthViewMemberIdentity {
+        &self.truth_view_member_identity
+    }
     pub fn source_branch(&self) -> &str {
-        self.source_branch.as_ref()
+        self.source_branch.as_str()
     }
     pub fn source_commit(&self) -> &str {
-        self.source_commit.as_ref()
+        self.source_commit.as_str()
     }
     pub fn source_snapshot(&self) -> &str {
-        self.source_snapshot.as_ref()
+        self.source_snapshot.as_str()
     }
     pub fn planned_route_count(&self) -> usize {
         self.planned_route_count
@@ -128,8 +135,8 @@ impl ReducedTruthViewMaterialization {
 pub struct ReducedBridgePublication {
     routing_target_identity: ReducedRoutingTargetIdentity,
     publication_identity: ReducedPublicationIdentity,
-    subscription_slice_identity: Arc<str>,
-    reduced_route_identities: Arc<[Arc<str>]>,
+    subscription_slice_identity: BridgeSubscriptionSliceIdentity,
+    reduced_route_identities: Arc<[BridgeRouteIdentity]>,
     invalidation_target_count: usize,
     digest: Arc<str>,
 }
@@ -138,21 +145,21 @@ impl ReducedBridgePublication {
     pub(crate) fn new(
         routing_target_identity: ReducedRoutingTargetIdentity,
         publication_identity: ReducedPublicationIdentity,
-        subscription_slice_identity: Arc<str>,
-        reduced_route_identities: Vec<Arc<str>>,
+        subscription_slice_identity: BridgeSubscriptionSliceIdentity,
+        reduced_route_identities: Vec<BridgeRouteIdentity>,
         invalidation_target_count: usize,
     ) -> Self {
         let mut basis = format!(
             "reduced-bridge-publication|routing-target={}|publication={}|subscription-slice={}|route-count={}|invalidation-target-count={}",
             routing_target_identity.as_str(),
             publication_identity.as_str(),
-            subscription_slice_identity,
+            subscription_slice_identity.as_str(),
             reduced_route_identities.len(),
             invalidation_target_count,
         );
         for route_identity in &reduced_route_identities {
             basis.push_str("|route=");
-            basis.push_str(route_identity);
+            basis.push_str(route_identity.as_str());
         }
         Self {
             routing_target_identity,
@@ -172,11 +179,11 @@ impl ReducedBridgePublication {
         &self.publication_identity
     }
 
-    pub fn subscription_slice_identity(&self) -> &str {
-        self.subscription_slice_identity.as_ref()
+    pub fn subscription_slice_identity(&self) -> &BridgeSubscriptionSliceIdentity {
+        &self.subscription_slice_identity
     }
 
-    pub fn reduced_route_identities(&self) -> &[Arc<str>] {
+    pub fn reduced_route_identities(&self) -> &[BridgeRouteIdentity] {
         &self.reduced_route_identities
     }
 
@@ -190,54 +197,63 @@ impl ReducedBridgePublication {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReducedFallbackAggregation {
-    fallback_identity: ReducedFallbackIdentity,
-    fallback_class: Arc<str>,
-    bounded_scope_identity: Arc<str>,
-    reduced_route_identities: Arc<[Arc<str>]>,
+pub struct ReducedWideningAggregation {
+    widening_identity: ReducedWideningIdentity,
+    widening_class: BridgeMappingWideningClass,
+    bounded_scope_identity: TruthDeltaSurfaceIdentity,
+    reduced_route_identities: Arc<[BridgeRouteIdentity]>,
     digest: Arc<str>,
 }
 
-impl ReducedFallbackAggregation {
+impl ReducedWideningAggregation {
     pub(crate) fn new(
-        fallback_identity: ReducedFallbackIdentity,
-        fallback_class: Arc<str>,
-        bounded_scope_identity: Arc<str>,
-        reduced_route_identities: Vec<Arc<str>>,
+        widening_identity: ReducedWideningIdentity,
+        widening_class: BridgeMappingWideningClass,
+        bounded_scope_identity: TruthDeltaSurfaceIdentity,
+        reduced_route_identities: Vec<BridgeRouteIdentity>,
     ) -> Self {
         let mut basis = format!(
-            "reduced-fallback-aggregation|identity={}|fallback-class={}|bounded-scope={}|route-count={}",
-            fallback_identity.as_str(),
-            fallback_class,
-            bounded_scope_identity,
+            "reduced-widening-aggregation|identity={}|widening-class={}|bounded-scope={}|route-count={}",
+            widening_identity.as_str(),
+            mapping_widening_class_basis(widening_class),
+            bounded_scope_identity.as_str(),
             reduced_route_identities.len(),
         );
         for route_identity in &reduced_route_identities {
             basis.push_str("|route=");
-            basis.push_str(route_identity);
+            basis.push_str(route_identity.as_str());
         }
         Self {
-            fallback_identity,
-            fallback_class,
+            widening_identity,
+            widening_class,
             bounded_scope_identity,
             reduced_route_identities: reduced_route_identities.into(),
-            digest: digest_string("reduced-fallback-aggregation", &basis),
+            digest: digest_string("reduced-widening-aggregation", &basis),
         }
     }
 
-    pub fn fallback_identity(&self) -> &ReducedFallbackIdentity {
-        &self.fallback_identity
+    pub fn widening_identity(&self) -> &ReducedWideningIdentity {
+        &self.widening_identity
     }
 
-    pub fn fallback_class(&self) -> &str {
-        self.fallback_class.as_ref()
+    pub fn widening_class(&self) -> BridgeMappingWideningClass {
+        self.widening_class
+    }
+
+    pub fn widening_class_label(&self) -> &'static str {
+        mapping_widening_class_basis(self.widening_class)
     }
 
     pub fn bounded_scope_identity(&self) -> &str {
-        self.bounded_scope_identity.as_ref()
+        self.bounded_scope_identity.as_str()
     }
 
-    pub fn reduced_route_identities(&self) -> &[Arc<str>] {
+    #[cfg(test)]
+    pub(crate) fn bounded_truth_delta_surface_identity(&self) -> &TruthDeltaSurfaceIdentity {
+        &self.bounded_scope_identity
+    }
+
+    pub fn reduced_route_identities(&self) -> &[BridgeRouteIdentity] {
         &self.reduced_route_identities
     }
 
@@ -251,7 +267,7 @@ pub struct ReducedBridgeWorkloadArtifact {
     workload_identity: BridgeWorkloadIdentity,
     reduced_continuity_remaps: Arc<[ReducedContinuityRemap]>,
     reduced_truth_views: Arc<[ReducedTruthViewMaterialization]>,
-    reduced_fallbacks: Arc<[ReducedFallbackAggregation]>,
+    reduced_widenings: Arc<[ReducedWideningAggregation]>,
     reduced_publications: Arc<[ReducedBridgePublication]>,
     counters: BridgeBulkPlanningCounters,
     digest: Arc<str>,
@@ -262,13 +278,13 @@ impl ReducedBridgeWorkloadArtifact {
         workload_identity: BridgeWorkloadIdentity,
         reduced_continuity_remaps: Vec<ReducedContinuityRemap>,
         reduced_truth_views: Vec<ReducedTruthViewMaterialization>,
-        reduced_fallbacks: Vec<ReducedFallbackAggregation>,
+        reduced_widenings: Vec<ReducedWideningAggregation>,
         reduced_publications: Vec<ReducedBridgePublication>,
         counters: BridgeBulkPlanningCounters,
     ) -> Self {
         let reduction_output_count = reduced_continuity_remaps.len()
             + reduced_truth_views.len()
-            + reduced_fallbacks.len()
+            + reduced_widenings.len()
             + reduced_publications.len();
         let mut basis = format!(
             "reduced-bridge-workload-artifact|workload={}|reduction-input-count={}|reduction-output-count={}",
@@ -284,9 +300,9 @@ impl ReducedBridgeWorkloadArtifact {
             basis.push_str("|truth-view=");
             basis.push_str(truth_view.digest());
         }
-        for fallback in &reduced_fallbacks {
-            basis.push_str("|fallback=");
-            basis.push_str(fallback.digest());
+        for widening in &reduced_widenings {
+            basis.push_str("|widening=");
+            basis.push_str(widening.digest());
         }
         for publication in &reduced_publications {
             basis.push_str("|publication=");
@@ -296,7 +312,7 @@ impl ReducedBridgeWorkloadArtifact {
             workload_identity,
             reduced_continuity_remaps: reduced_continuity_remaps.into(),
             reduced_truth_views: reduced_truth_views.into(),
-            reduced_fallbacks: reduced_fallbacks.into(),
+            reduced_widenings: reduced_widenings.into(),
             reduced_publications: reduced_publications.into(),
             counters,
             digest: digest_string("reduced-bridge-workload-artifact", &basis),
@@ -315,8 +331,8 @@ impl ReducedBridgeWorkloadArtifact {
         &self.reduced_truth_views
     }
 
-    pub fn reduced_fallbacks(&self) -> &[ReducedFallbackAggregation] {
-        &self.reduced_fallbacks
+    pub fn reduced_widenings(&self) -> &[ReducedWideningAggregation] {
+        &self.reduced_widenings
     }
 
     pub fn reduced_publications(&self) -> &[ReducedBridgePublication] {

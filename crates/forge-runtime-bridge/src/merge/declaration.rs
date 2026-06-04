@@ -183,7 +183,7 @@ impl MergeHistoryDeclaration {
 
 #[cfg(test)]
 mod tests {
-    use crate::input::envelope::TruthCommitIdentity;
+
     use crate::merge::{
         BridgeMergeAuthoritativeLineageDisposition, BridgeMergeAuthorityBasis,
         BridgeMergeAuthorityBasisKind, BridgeMergeCausalFrontierDisposition,
@@ -197,8 +197,8 @@ mod tests {
     fn merge_history_declaration_is_canonical_for_same_inputs() {
         let mapping = BridgeMergeOntologyMappingSurface::direct_phase_m9_0("rel-merge-v1");
         let parent_order = BridgeMergeParentOrderProof::new(vec![
-            TruthCommitIdentity::new("parent-a"),
-            TruthCommitIdentity::new("parent-b"),
+            crate::facade::TruthCommitIdentity::new("parent-a"),
+            crate::facade::TruthCommitIdentity::new("parent-b"),
         ]);
         let authority = BridgeMergeAuthorityBasis::new(
             BridgeMergeAuthorityBasisKind::OrderedMergeCommit,
@@ -222,9 +222,17 @@ mod tests {
         );
 
         assert_eq!(left, right);
-        assert!(left
-            .canonical_basis()
-            .contains("class:AspectReconciliationMerge"));
+        assert_eq!(
+            left.bridge_class(),
+            BridgeMergeConsumptionClass::AspectReconciliationMerge
+        );
+        assert_eq!(
+            left.authority_basis().parent_order_proof().parents(),
+            &[
+                crate::facade::TruthCommitIdentity::new("parent-a"),
+                crate::facade::TruthCommitIdentity::new("parent-b")
+            ]
+        );
     }
 
     #[test]
@@ -239,8 +247,8 @@ mod tests {
                 "rel-merge-v1",
                 "schema-policy-v1",
                 BridgeMergeParentOrderProof::new(vec![
-                    TruthCommitIdentity::new("parent-a"),
-                    TruthCommitIdentity::new("parent-b"),
+                    crate::facade::TruthCommitIdentity::new("parent-a"),
+                    crate::facade::TruthCommitIdentity::new("parent-b"),
                 ]),
             ),
         )
@@ -249,8 +257,21 @@ mod tests {
         .with_schema_policy(BridgeMergeSchemaPolicyDisposition::Admitted)
         .with_structural_advisory(BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent);
 
-        assert!(declaration
-            .canonical_basis()
-            .contains("structural:AdvisoryConsistent"));
+        assert_eq!(
+            declaration.structural_advisory(),
+            BridgeMergeStructuralAdvisoryDisposition::AdvisoryConsistent
+        );
+        assert_eq!(
+            declaration.authoritative_lineage(),
+            BridgeMergeAuthoritativeLineageDisposition::CanonicalSuccessor
+        );
+        assert_eq!(
+            declaration.causal_frontier(),
+            BridgeMergeCausalFrontierDisposition::Admitted
+        );
+        assert_eq!(
+            declaration.schema_policy(),
+            BridgeMergeSchemaPolicyDisposition::Admitted
+        );
     }
 }

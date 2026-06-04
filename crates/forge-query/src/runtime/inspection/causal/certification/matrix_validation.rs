@@ -186,5 +186,5 @@ fn has_stable_scale_counters(artifact: &QueryCausalInspectionArtifact) -> bool {
         && performance.evidence_reference_resolution_count() == 1
         && performance.admission_count() == 1
         && performance.materialization_count() == 1
-        && performance.bridge_scan_fallback_count() == 0
+        && performance.bridge_unindexed_scan_count() == 0
 }

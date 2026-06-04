@@ -8,10 +8,65 @@ use super::{
     BridgeSubscriptionReferenceWorkloadManifestSealed, BridgeSubscriptionSourceArtifactIndex,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum BridgeSubscriptionCertificationFieldExpectation {
+    CompleteReferenceBundle,
+    RetainedArtifactCompletenessRequirement,
+}
+
+impl BridgeSubscriptionCertificationFieldExpectation {
+    const fn expected_field_count(self) -> usize {
+        match self {
+            Self::CompleteReferenceBundle => 8,
+            Self::RetainedArtifactCompletenessRequirement => 9,
+        }
+    }
+
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::CompleteReferenceBundle => "complete_reference_bundle",
+            Self::RetainedArtifactCompletenessRequirement => {
+                "retained_artifact_completeness_requirement"
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum BridgeSubscriptionCertificationBundleSchemaIdentity {
+    Current,
+    DivergentSchemaParityIdentity,
+}
+
+impl BridgeSubscriptionCertificationBundleSchemaIdentity {
+    const fn schema_version(self) -> &'static str {
+        match self {
+            Self::Current => super::bundle::BRIDGE_SUBSCRIPTION_CERTIFICATION_BUNDLE_SCHEMA_V1,
+            Self::DivergentSchemaParityIdentity => "bridge-subscription-certification-bundle-v999",
+        }
+    }
+
+    const fn digest_algorithm(self) -> &'static str {
+        match self {
+            Self::Current => super::bundle::BRIDGE_SUBSCRIPTION_CERTIFICATION_DIGEST_ALGORITHM_V1,
+            Self::DivergentSchemaParityIdentity => "sha512",
+        }
+    }
+
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Current => "current",
+            Self::DivergentSchemaParityIdentity => "divergent_schema_parity_identity",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeSubscriptionCertificationAssemblyPlan {
     manifest_digest: Arc<str>,
     source_artifact_index_digest: Arc<str>,
+    bundle_schema_version: Arc<str>,
+    bundle_digest_algorithm: Arc<str>,
     semantic_source_digests: BridgeSubscriptionCertificationSemanticSourceDigestSet,
     selected_record_count: usize,
     expected_field_count: usize,
@@ -25,24 +80,56 @@ impl BridgeSubscriptionCertificationAssemblyPlan {
         manifest: &BridgeSubscriptionReferenceWorkloadManifestSealed,
         source_artifact_index: &BridgeSubscriptionSourceArtifactIndex,
     ) -> Self {
+        Self::plan_with_field_expectation(
+            manifest,
+            source_artifact_index,
+            BridgeSubscriptionCertificationFieldExpectation::CompleteReferenceBundle,
+        )
+    }
+
+    pub(crate) fn plan_with_field_expectation(
+        manifest: &BridgeSubscriptionReferenceWorkloadManifestSealed,
+        source_artifact_index: &BridgeSubscriptionSourceArtifactIndex,
+        field_expectation: BridgeSubscriptionCertificationFieldExpectation,
+    ) -> Self {
+        Self::plan_with_bundle_identity(
+            manifest,
+            source_artifact_index,
+            field_expectation,
+            BridgeSubscriptionCertificationBundleSchemaIdentity::Current,
+        )
+    }
+
+    pub(crate) fn plan_with_bundle_identity(
+        manifest: &BridgeSubscriptionReferenceWorkloadManifestSealed,
+        source_artifact_index: &BridgeSubscriptionSourceArtifactIndex,
+        field_expectation: BridgeSubscriptionCertificationFieldExpectation,
+        bundle_schema_identity: BridgeSubscriptionCertificationBundleSchemaIdentity,
+    ) -> Self {
         let selected_record_count = source_artifact_index.records().len();
-        let expected_field_count = 8;
+        let expected_field_count = field_expectation.expected_field_count();
         let semantic_source_digests =
             BridgeSubscriptionCertificationSemanticSourceDigestSet::from_source_artifact_index(
                 source_artifact_index,
             );
         let canonical_basis = Arc::<str>::from(format!(
-            "bridge-subscription-certification-assembly-plan|manifest={}|source-index={}|semantic-sources={}|records={}|fields={}",
+            "bridge-subscription-certification-assembly-plan|manifest={}|source-index={}|schema-identity={}|schema={}|algorithm={}|semantic-sources={}|records={}|field-expectation={}|fields={}",
             manifest.digest(),
             source_artifact_index.digest(),
+            bundle_schema_identity.as_str(),
+            bundle_schema_identity.schema_version(),
+            bundle_schema_identity.digest_algorithm(),
             semantic_source_digests.digest(),
             selected_record_count,
+            field_expectation.as_str(),
             expected_field_count,
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             manifest_digest: Arc::from(manifest.digest()),
             source_artifact_index_digest: Arc::from(source_artifact_index.digest()),
+            bundle_schema_version: Arc::from(bundle_schema_identity.schema_version()),
+            bundle_digest_algorithm: Arc::from(bundle_schema_identity.digest_algorithm()),
             semantic_source_digests,
             selected_record_count,
             expected_field_count,
@@ -63,6 +150,14 @@ impl BridgeSubscriptionCertificationAssemblyPlan {
 
     pub fn source_artifact_index_digest(&self) -> &str {
         self.source_artifact_index_digest.as_ref()
+    }
+
+    pub fn bundle_schema_version(&self) -> &str {
+        self.bundle_schema_version.as_ref()
+    }
+
+    pub fn bundle_digest_algorithm(&self) -> &str {
+        self.bundle_digest_algorithm.as_ref()
     }
 
     pub fn semantic_source_digests(

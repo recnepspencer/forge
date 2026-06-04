@@ -1,73 +1,101 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use forge_foundational::facade::AspectKey;
+use forge_foundational::facade::{
+    validate_aspect_value, AspectFieldLocator, AspectKey, AspectLocator, AspectMask, ProjectionMask,
+};
+use forge_proof::TransitionOutcome;
 use sha2::{Digest, Sha256};
 
-use crate::error::BridgeMessageError;
 use crate::mapping::SubscriptionSliceKind;
-use crate::snapshot::TruthSnapshotIdentity;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BridgeSnapshotReadErrorTag {}
-pub type BridgeSnapshotReadError = BridgeMessageError<BridgeSnapshotReadErrorTag>;
+use crate::snapshot::{
+    BridgeSnapshotReadError, SnapshotReadContract, SnapshotReadCorrelationId,
+    SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadTarget,
+    ValidatedSnapshotReadPacketResult, ValidatedSnapshotReadRecord,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SnapshotReadRequest {
-    request_key: Arc<str>,
+    correlation_id: SnapshotReadCorrelationId,
     entity_identity: Arc<str>,
-    aspect_key: AspectKey,
+    target: SnapshotReadTarget,
     shape: SnapshotReadShape,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum SnapshotReadShape {
     Coarse,
-    SubscriptionSlice {
-        surface_label: Arc<str>,
-        slice_kind: SubscriptionSliceKind,
-    },
+    SubscriptionSlice { slice_kind: SubscriptionSliceKind },
 }
 
 impl SnapshotReadRequest {
-    pub fn for_coarse(entity_identity: impl Into<Arc<str>>, aspect_key: AspectKey) -> Self {
+    pub fn for_coarse(
+        entity_identity: impl Into<Arc<str>>,
+        contract: SnapshotReadContract,
+    ) -> Self {
         let entity_identity = entity_identity.into();
+        let target = SnapshotReadTarget::whole_aspect(contract);
+        let shape = SnapshotReadShape::Coarse;
+        let canonical_basis =
+            snapshot_read_request_canonical_basis(entity_identity.as_ref(), &target, &shape);
         Self {
-            request_key: format!("{}:{}", entity_identity.as_ref(), aspect_key.as_str()).into(),
+            correlation_id: SnapshotReadCorrelationId::from_native_request_basis(
+                canonical_basis.as_ref(),
+            ),
             entity_identity,
-            aspect_key,
-            shape: SnapshotReadShape::Coarse,
+            target,
+            shape,
         }
     }
 
-    pub fn for_subscription_slice(
+    pub fn for_native_subscription_slice(
         entity_identity: impl Into<Arc<str>>,
-        aspect_key: AspectKey,
-        surface_label: impl Into<Arc<str>>,
+        contract: SnapshotReadContract,
+        aspect_locator: AspectLocator,
+        field_locator: Option<AspectFieldLocator>,
+        projection_mask: AspectMask<ProjectionMask>,
+        slice_kind: SubscriptionSliceKind,
+    ) -> Self {
+        Self::from_native_subscription_slice(
+            entity_identity,
+            contract,
+            aspect_locator,
+            field_locator,
+            projection_mask,
+            slice_kind,
+        )
+    }
+
+    pub(crate) fn from_native_subscription_slice(
+        entity_identity: impl Into<Arc<str>>,
+        contract: SnapshotReadContract,
+        aspect_locator: AspectLocator,
+        field_locator: Option<AspectFieldLocator>,
+        projection_mask: AspectMask<ProjectionMask>,
         slice_kind: SubscriptionSliceKind,
     ) -> Self {
         let entity_identity = entity_identity.into();
-        let surface_label = surface_label.into();
+        let target = SnapshotReadTarget::native_subscription_slice(
+            contract,
+            aspect_locator,
+            field_locator,
+            projection_mask,
+        );
+        let shape = SnapshotReadShape::SubscriptionSlice { slice_kind };
+        let canonical_basis =
+            snapshot_read_request_canonical_basis(entity_identity.as_ref(), &target, &shape);
         Self {
-            request_key: format!(
-                "{}:{}:{}:{}",
-                entity_identity.as_ref(),
-                aspect_key.as_str(),
-                canonical_subscription_slice_kind_label(&slice_kind),
-                surface_label.as_ref()
-            )
-            .into(),
+            correlation_id: SnapshotReadCorrelationId::from_native_request_basis(
+                canonical_basis.as_ref(),
+            ),
             entity_identity,
-            aspect_key,
-            shape: SnapshotReadShape::SubscriptionSlice {
-                surface_label,
-                slice_kind,
-            },
+            target,
+            shape,
         }
     }
 
-    pub fn request_key(&self) -> &str {
-        self.request_key.as_ref()
+    pub fn correlation_id(&self) -> &SnapshotReadCorrelationId {
+        &self.correlation_id
     }
 
     pub fn entity_identity(&self) -> &str {
@@ -75,20 +103,19 @@ impl SnapshotReadRequest {
     }
 
     pub fn aspect_key(&self) -> &AspectKey {
-        &self.aspect_key
+        self.target.aspect_key()
     }
 
-    pub fn aspect_label(&self) -> &str {
-        self.aspect_key.as_str()
+    pub fn target(&self) -> &SnapshotReadTarget {
+        &self.target
     }
 
-    pub fn surface_label(&self) -> Option<&str> {
-        match &self.shape {
-            SnapshotReadShape::Coarse => None,
-            SnapshotReadShape::SubscriptionSlice { surface_label, .. } => {
-                Some(surface_label.as_ref())
-            }
-        }
+    pub(crate) fn target_identity(&self) -> &crate::snapshot::SnapshotReadTargetIdentity {
+        self.target.target_identity()
+    }
+
+    pub fn native_target_basis(&self) -> &str {
+        self.target.native_target_basis()
     }
 
     pub fn slice_kind(&self) -> Option<&SubscriptionSliceKind> {
@@ -99,25 +126,7 @@ impl SnapshotReadRequest {
     }
 
     pub(crate) fn canonical_basis(&self) -> Arc<str> {
-        match &self.shape {
-            SnapshotReadShape::Coarse => Arc::from(format!(
-                "snapshot-read-request|key={}|entity={}|aspect={}|shape=coarse",
-                self.request_key(),
-                self.entity_identity(),
-                self.aspect_label(),
-            )),
-            SnapshotReadShape::SubscriptionSlice {
-                surface_label,
-                slice_kind,
-            } => Arc::from(format!(
-                "snapshot-read-request|key={}|entity={}|aspect={}|shape=subscription-slice|surface={}|slice-kind={}",
-                self.request_key(),
-                self.entity_identity(),
-                self.aspect_label(),
-                surface_label.as_ref(),
-                canonical_subscription_slice_kind_label(slice_kind),
-            )),
-        }
+        snapshot_read_request_canonical_basis(self.entity_identity(), &self.target, &self.shape)
     }
 }
 
@@ -157,114 +166,104 @@ impl SnapshotReadPacket {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SnapshotReadRecord {
-    request_key: Arc<str>,
-    aspect_bytes: Arc<[u8]>,
-}
-
-impl SnapshotReadRecord {
-    pub fn new(request_key: impl Into<Arc<str>>, aspect_bytes: impl Into<Arc<[u8]>>) -> Self {
-        Self {
-            request_key: request_key.into(),
-            aspect_bytes: aspect_bytes.into(),
-        }
-    }
-
-    pub fn request_key(&self) -> &str {
-        self.request_key.as_ref()
-    }
-
-    pub fn aspect_bytes(&self) -> &[u8] {
-        self.aspect_bytes.as_ref()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SnapshotReadPacketResult {
-    snapshot_identity: TruthSnapshotIdentity,
-    records: Vec<SnapshotReadRecord>,
-}
-
-impl SnapshotReadPacketResult {
-    pub fn new(snapshot_identity: TruthSnapshotIdentity, records: Vec<SnapshotReadRecord>) -> Self {
-        Self {
-            snapshot_identity,
-            records,
-        }
-    }
-
-    pub fn snapshot_identity(&self) -> &TruthSnapshotIdentity {
-        &self.snapshot_identity
-    }
-
-    pub fn records(&self) -> &[SnapshotReadRecord] {
-        &self.records
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ValidatedSnapshotReadPacketResult {
-    raw: SnapshotReadPacketResult,
-}
-
-impl ValidatedSnapshotReadPacketResult {
-    pub(crate) fn validated(raw: SnapshotReadPacketResult) -> Self {
-        Self { raw }
-    }
-
-    pub fn snapshot_identity(&self) -> &TruthSnapshotIdentity {
-        self.raw.snapshot_identity()
-    }
-
-    pub fn records(&self) -> &[SnapshotReadRecord] {
-        self.raw.records()
-    }
-}
-
 pub(crate) fn validate_snapshot_read_result_contract(
     packet: &SnapshotReadPacket,
-    raw_result: SnapshotReadPacketResult,
+    unvalidated_result: SnapshotReadPacketResult,
 ) -> Result<ValidatedSnapshotReadPacketResult, BridgeSnapshotReadError> {
-    let snapshot_identity = raw_result.snapshot_identity;
+    let (snapshot_identity, records) = unvalidated_result.into_parts();
     let mut record_lookup = BTreeMap::new();
-    for record in raw_result.records {
-        let key = record.request_key().to_string();
-        if record_lookup.insert(key.clone(), record).is_some() {
-            return Err(BridgeSnapshotReadError::new(format!(
-                "Snapshot read result contained duplicate record for request key `{key}`."
-            )));
+    for record in records {
+        let correlation_id = record.correlation_id().clone();
+        if record_lookup
+            .insert(correlation_id.clone(), record)
+            .is_some()
+        {
+            return Err(BridgeSnapshotReadError::duplicate_record(correlation_id));
         }
     }
 
     if record_lookup.len() != packet.reads().len() {
-        return Err(BridgeSnapshotReadError::new(format!(
-            "Snapshot read result returned {} records for {} requested reads.",
+        return Err(BridgeSnapshotReadError::record_count_mismatch(
             record_lookup.len(),
-            packet.reads().len()
-        )));
+            packet.reads().len(),
+        ));
     }
 
     let mut canonical_records = Vec::with_capacity(packet.reads().len());
     for read in packet.reads() {
-        let Some(record) = record_lookup.remove(read.request_key()) else {
-            return Err(BridgeSnapshotReadError::new(format!(
-                "Snapshot read result omitted required request key `{}`.",
-                read.request_key()
-            )));
+        let Some(record) = record_lookup.remove(read.correlation_id()) else {
+            return Err(BridgeSnapshotReadError::missing_record(
+                read.correlation_id().clone(),
+            ));
         };
-        canonical_records.push(record);
+        let validated_record = validate_snapshot_read_record(read, record)?;
+        canonical_records.push(validated_record);
     }
 
-    if let Some(extra_key) = record_lookup.into_keys().next() {
-        return Err(BridgeSnapshotReadError::new(format!(
-            "Snapshot read result returned undeclared request key `{extra_key}`."
-        )));
+    if let Some(extra_correlation_id) = record_lookup.into_keys().next() {
+        return Err(BridgeSnapshotReadError::extra_record(extra_correlation_id));
     }
 
     Ok(ValidatedSnapshotReadPacketResult::validated(
-        SnapshotReadPacketResult::new(snapshot_identity, canonical_records),
+        snapshot_identity,
+        canonical_records,
     ))
+}
+
+fn validate_snapshot_read_record(
+    read: &SnapshotReadRequest,
+    record: SnapshotReadRecord,
+) -> Result<ValidatedSnapshotReadRecord, BridgeSnapshotReadError> {
+    read.target()
+        .projection_contract()
+        .admits_projection_mask(read.target().projection_mask())
+        .map_err(|denial| {
+            BridgeSnapshotReadError::projection_mask_rejected(
+                read.correlation_id().clone(),
+                read.target().contract().aspect_key().clone(),
+                denial,
+            )
+        })?;
+
+    let validation = validate_aspect_value(
+        read.target().contract().aspect_contract(),
+        record.read_value().clone().into_validation_input(),
+    );
+    match validation {
+        TransitionOutcome::Success(validated) => Ok(ValidatedSnapshotReadRecord::new(
+            record.correlation_id().clone(),
+            validated,
+        )),
+        TransitionOutcome::Denied(denial) => {
+            Err(BridgeSnapshotReadError::aspect_contract_validation_denied(
+                read.correlation_id().clone(),
+                read.target().contract().aspect_key().clone(),
+                denial,
+            ))
+        }
+        TransitionOutcome::Deferred(_)
+        | TransitionOutcome::Stale(_)
+        | TransitionOutcome::RebindRequired(_)
+        | TransitionOutcome::Failed(_) => unreachable!("aspect validation uses success or denied"),
+    }
+}
+
+fn snapshot_read_request_canonical_basis(
+    entity_identity: &str,
+    target: &SnapshotReadTarget,
+    shape: &SnapshotReadShape,
+) -> Arc<str> {
+    match shape {
+        SnapshotReadShape::Coarse => Arc::from(format!(
+            "snapshot-read-request|entity={entity_identity}|target={}|shape=coarse",
+            target.target_identity().as_str(),
+        )),
+        SnapshotReadShape::SubscriptionSlice { slice_kind } => Arc::from(format!(
+            "snapshot-read-request|entity={entity_identity}|target={}|shape=subscription-slice|slice-kind={}",
+            target.target_identity().as_str(),
+            canonical_subscription_slice_kind_label(slice_kind),
+        )),
+    }
 }
 
 pub(crate) fn canonical_subscription_slice_kind_label(
@@ -276,117 +275,10 @@ pub(crate) fn canonical_subscription_slice_kind_label(
         SubscriptionSliceKind::SignalRegion => "signal-region",
         SubscriptionSliceKind::SignalPartition => "signal-partition",
         SubscriptionSliceKind::SignalFacet => "signal-facet",
-        SubscriptionSliceKind::RegisteredCoarseFallback => "registered-coarse-fallback",
+        SubscriptionSliceKind::RegisteredCoarseWidening => "registered-coarse-widening",
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use forge_foundational::facade::AspectKey;
-
-    use crate::mapping::SubscriptionSliceKind;
-    use crate::snapshot::{
-        validate_snapshot_read_result_contract, BridgeSnapshotReadError, SnapshotReadPacket,
-        SnapshotReadRecord, SnapshotReadRequest, TruthSnapshotIdentity,
-    };
-
-    use super::SnapshotReadPacketResult;
-
-    #[test]
-    fn packet_preserves_declared_read_order() {
-        let packet = SnapshotReadPacket::new(vec![
-            SnapshotReadRequest::for_coarse("user-1", aspect_key("profile")),
-            SnapshotReadRequest::for_subscription_slice(
-                "user-2",
-                aspect_key("profile"),
-                "name",
-                SubscriptionSliceKind::SignalField,
-            ),
-        ]);
-
-        assert_eq!(packet.reads()[0].request_key(), "user-1:profile");
-        assert_eq!(
-            packet.reads()[1].request_key(),
-            "user-2:profile:signal-field:name"
-        );
-        assert_eq!(packet.reads()[0].surface_label(), None);
-        assert_eq!(packet.reads()[0].slice_kind(), None);
-        assert_eq!(packet.reads()[1].surface_label(), Some("name"));
-        assert_eq!(
-            packet.reads()[1].slice_kind(),
-            Some(&SubscriptionSliceKind::SignalField)
-        );
-        assert!(packet.digest().starts_with("snapshot-read-packet:sha256:"));
-    }
-
-    #[test]
-    fn packet_digest_changes_when_declared_reads_change() {
-        let left = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
-            "user-1",
-            aspect_key("profile"),
-        )]);
-        let right = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
-            "user-2",
-            aspect_key("profile"),
-        )]);
-
-        assert_ne!(left.digest(), right.digest());
-    }
-
-    #[test]
-    fn packet_result_retains_snapshot_identity() {
-        let result = SnapshotReadPacketResult::new(
-            TruthSnapshotIdentity::new("snapshot-a"),
-            vec![SnapshotReadRecord::new("a", b"alice".to_vec())],
-        );
-
-        assert_eq!(result.snapshot_identity().as_str(), "snapshot-a");
-        assert_eq!(result.records()[0].request_key(), "a");
-    }
-
-    #[test]
-    fn validation_rejects_missing_required_record() {
-        let packet = SnapshotReadPacket::new(vec![
-            SnapshotReadRequest::for_coarse("user-1", aspect_key("profile")),
-            SnapshotReadRequest::for_coarse("user-2", aspect_key("profile")),
-        ]);
-
-        let error = validate_snapshot_read_result_contract(
-            &packet,
-            SnapshotReadPacketResult::new(
-                TruthSnapshotIdentity::new("snapshot-a"),
-                vec![SnapshotReadRecord::new("a", b"alice".to_vec())],
-            ),
-        )
-        .expect_err("missing records must fail the bridge snapshot contract");
-
-        assert!(matches!(error, BridgeSnapshotReadError { .. }));
-        assert!(error.to_string().contains("returned 1 records"));
-    }
-
-    #[test]
-    fn validation_rejects_duplicate_result_keys() {
-        let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
-            "user-1",
-            aspect_key("profile"),
-        )]);
-
-        let error = validate_snapshot_read_result_contract(
-            &packet,
-            SnapshotReadPacketResult::new(
-                TruthSnapshotIdentity::new("snapshot-a"),
-                vec![
-                    SnapshotReadRecord::new("a", b"alice".to_vec()),
-                    SnapshotReadRecord::new("a", b"alice-2".to_vec()),
-                ],
-            ),
-        )
-        .expect_err("duplicate result keys must fail the bridge snapshot contract");
-
-        assert!(error.to_string().contains("duplicate record"));
-    }
-
-    fn aspect_key(value: &str) -> AspectKey {
-        AspectKey::new(value).expect("valid test aspect key")
-    }
-}
+#[path = "packet_tests.rs"]
+mod tests;

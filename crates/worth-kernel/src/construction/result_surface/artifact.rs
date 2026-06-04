@@ -1,4 +1,4 @@
-use crate::construction::admitted_scaffold::PreparedPrimitiveConstructionAdmittedResultInput;
+use crate::construction::admitted_scaffold::PreparedPrimitiveConstructionAdmittedArtifact;
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::request::PrimitiveConstructionFamily;
 use topology::facade::{
@@ -12,7 +12,7 @@ use worth_geom::facade::{
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CanonicalPrimitiveConstructionArtifact {
+pub(crate) struct CanonicalPrimitiveConstructionArtifact {
     family: PrimitiveConstructionFamily,
     topology_birth_class: String,
     realization_report: PrimitiveRealizationReport,
@@ -73,15 +73,15 @@ impl CanonicalPrimitiveConstructionArtifact {
         }
     }
 
-    pub(crate) fn from_admitted_result_input(
-        result_input: &PreparedPrimitiveConstructionAdmittedResultInput,
+    pub(crate) fn from_admitted_artifact(
+        admitted_artifact: &PreparedPrimitiveConstructionAdmittedArtifact,
     ) -> Self {
         Self::new(
-            result_input.family(),
-            result_input.scaffold_digest(),
-            result_input.realization_report(),
-            result_input.topology_query_admitted_handoff(),
-            result_input.admitted_handoff_digest(),
+            admitted_artifact.family(),
+            admitted_artifact.scaffold_digest(),
+            admitted_artifact.realization_report(),
+            admitted_artifact.topology_query_admitted_handoff(),
+            admitted_artifact.admitted_handoff_digest(),
         )
     }
 
@@ -166,18 +166,18 @@ impl CanonicalPrimitiveConstructionArtifact {
 
 #[cfg(test)]
 pub(crate) fn build_canonical_primitive_construction_artifact(
-    result_input: &PreparedPrimitiveConstructionAdmittedResultInput,
+    admitted_artifact: &PreparedPrimitiveConstructionAdmittedArtifact,
 ) -> CanonicalPrimitiveConstructionArtifact {
-    CanonicalPrimitiveConstructionArtifact::from_admitted_result_input(result_input)
+    CanonicalPrimitiveConstructionArtifact::from_admitted_artifact(admitted_artifact)
 }
 
 #[cfg(test)]
 mod tests {
     use super::build_canonical_primitive_construction_artifact;
-    use crate::construction::admitted_scaffold::prepare_primitive_construction_admitted_result_input;
-    use crate::construction::{
-        PrimitiveConstructionFamily, PrimitiveConstructionIntent, ShellWithHoleSpec,
-    };
+    use crate::construction::admitted_scaffold::prepare_primitive_construction_admitted_artifact;
+    use crate::construction::intent::PrimitiveConstructionIntent;
+    use crate::construction::request::PrimitiveConstructionFamily;
+    use crate::construction::specs::ShellWithHoleSpec;
     use topology::facade::TopologyConstructionQueryInspectionSurface;
 
     #[test]
@@ -187,9 +187,9 @@ mod tests {
             hole_loop_edge_counts: vec![3, 4],
         });
         let request = intent.clone().into_request();
-        let result_input =
-            prepare_primitive_construction_admitted_result_input(&request).expect("result input");
-        let artifact = build_canonical_primitive_construction_artifact(&result_input);
+        let admitted_artifact =
+            prepare_primitive_construction_admitted_artifact(&request).expect("admitted artifact");
+        let artifact = build_canonical_primitive_construction_artifact(&admitted_artifact);
 
         assert_eq!(
             artifact.family(),
@@ -201,7 +201,7 @@ mod tests {
         );
         assert_eq!(
             artifact.birth_truth_digest(),
-            result_input
+            admitted_artifact
                 .topology_query_admitted_handoff()
                 .topology_query_handoff()
                 .source_birth_digest()

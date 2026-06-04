@@ -1,0 +1,27 @@
+error[E0624]: method `admit_with_catalog` is private
+ --> src/certification/public_facade_contracts/compile_fail/phases/public_spatial_intent_catalog_admission_helpers_demoted.rs:9:10
+  |
+9 |           .admit_with_catalog(&());
+  |            ^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: src/spatial_intent/motion/mod.rs
+  |
+  | /     pub(crate) fn admit_with_catalog(
+  | |         &self,
+  | |         catalog: &impl SpatialWitnessCatalog,
+  | |     ) -> Result<AdmittedSpatialMove, SpatialMotionError> {
+  | |________________________________________________________- private method defined here
+
+error[E0624]: method `admit_with_catalog` is private
+  --> src/certification/public_facade_contracts/compile_fail/phases/public_spatial_intent_catalog_admission_helpers_demoted.rs:13:10
+   |
+13 |           .admit_with_catalog(&());
+   |            ^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/spatial_intent/relations/mod.rs
+   |
+   | /     pub(crate) fn admit_with_catalog(
+   | |         &self,
+   | |         catalog: &impl SpatialWitnessCatalog,
+   | |     ) -> Result<AdmittedSpatialPointsTowardConstraint, SpatialConstraintError> {
+   | |______________________________________________________________________________- private method defined here

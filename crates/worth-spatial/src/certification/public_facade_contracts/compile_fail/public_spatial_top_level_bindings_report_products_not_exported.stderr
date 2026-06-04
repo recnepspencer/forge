@@ -1,0 +1,21 @@
+error[E0432]: unresolved imports `worth_spatial::facade::build_primitive_construction_birth_mapping_report`, `worth_spatial::facade::certify_primitive_construction_birth_completeness`, `worth_spatial::facade::construction_birth_authority`, `worth_spatial::facade::impossible_primitive_construction_birth_attachment`, `worth_spatial::facade::PrimitiveConstructionBirthContractCounts`, `worth_spatial::facade::SpatialConstructionBirthAuthority`, `worth_spatial::facade::SpatialConstructionBirthCompletenessReport`, `worth_spatial::facade::SpatialConstructionBirthMappingReport`, `worth_spatial::facade::SpatialConstructionBirthRejectionRow`
+ --> src/certification/public_facade_contracts/compile_fail/public_spatial_top_level_bindings_report_products_not_exported.rs:2:5
+  |
+2 |     build_primitive_construction_birth_mapping_report,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `build_primitive_construction_birth_mapping_report` in `facade`
+3 |     certify_primitive_construction_birth_completeness, construction_birth_authority,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `construction_birth_authority` in `facade`
+  |     |
+  |     no `certify_primitive_construction_birth_completeness` in `facade`
+4 |     impossible_primitive_construction_birth_attachment, PrimitiveConstructionBirthContractCounts,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionBirthContractCounts` in `facade`
+  |     |
+  |     no `impossible_primitive_construction_birth_attachment` in `facade`
+5 |     SpatialConstructionBirthAuthority, SpatialConstructionBirthCompletenessReport,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `SpatialConstructionBirthCompletenessReport` in `facade`
+  |     |
+  |     no `SpatialConstructionBirthAuthority` in `facade`
+6 |     SpatialConstructionBirthMappingReport, SpatialConstructionBirthRejectionRow,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `SpatialConstructionBirthRejectionRow` in `facade`
+  |     |
+  |     no `SpatialConstructionBirthMappingReport` in `facade`

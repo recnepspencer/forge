@@ -2,14 +2,16 @@ use std::sync::Arc;
 
 use crate::error::{BridgeRouteError, BridgeRouteErrorKind};
 use crate::facade::{BridgeDiagnosticsTier, RuntimeBridge};
-use crate::mapping::{CoarseRoutingMode, FrozenMappingRegistry, MappingSelector};
+use crate::mapping::{BridgeMappingWideningClass, FrozenMappingRegistry};
 use crate::routing::canonicalization::digest_string;
-use crate::routing::planning::BridgePlannedRoute;
+use crate::routing::planning::{BridgePlannedRoute, BridgeRouteIdentity};
+use crate::routing::BridgeSubscriptionSliceIdentity;
 
 use super::types::*;
 
 mod admission;
 mod labels;
+mod member_identities;
 mod packet_reduction;
 mod support;
 mod workload_pipeline;

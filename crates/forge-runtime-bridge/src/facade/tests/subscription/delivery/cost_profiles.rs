@@ -107,35 +107,35 @@ fn delivery_window_rejects_member_count_over_cost_profile_before_projection() {
         .seal_subscription_delivery_window(
             open,
             vec![
-                BridgeSubscriptionDeliveryMemberInput::payload_digest(
+                BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
                     "slice:entity-1/profile/name",
                     "routing:fixture:1",
                     BridgeSubscriptionDeliveryMemberClass::Update,
-                    "payload:fixture:1",
+                    BridgeSubscriptionDeliveryContentDigest::new("content:fixture:1"),
                 ),
-                BridgeSubscriptionDeliveryMemberInput::payload_digest(
+                BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
                     "slice:entity-1/profile/name",
                     "routing:fixture:2",
                     BridgeSubscriptionDeliveryMemberClass::Update,
-                    "payload:fixture:2",
+                    BridgeSubscriptionDeliveryContentDigest::new("content:fixture:2"),
                 ),
-                BridgeSubscriptionDeliveryMemberInput::payload_digest(
+                BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
                     "slice:entity-1/profile/name",
                     "routing:fixture:3",
                     BridgeSubscriptionDeliveryMemberClass::Update,
-                    "payload:fixture:3",
+                    BridgeSubscriptionDeliveryContentDigest::new("content:fixture:3"),
                 ),
-                BridgeSubscriptionDeliveryMemberInput::payload_digest(
+                BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
                     "slice:entity-1/profile/name",
                     "routing:fixture:4",
                     BridgeSubscriptionDeliveryMemberClass::Update,
-                    "payload:fixture:4",
+                    BridgeSubscriptionDeliveryContentDigest::new("content:fixture:4"),
                 ),
-                BridgeSubscriptionDeliveryMemberInput::payload_digest(
+                BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
                     "slice:entity-1/profile/name",
                     "routing:fixture:5",
                     BridgeSubscriptionDeliveryMemberClass::Update,
-                    "payload:fixture:5",
+                    BridgeSubscriptionDeliveryContentDigest::new("content:fixture:5"),
                 ),
             ],
         )

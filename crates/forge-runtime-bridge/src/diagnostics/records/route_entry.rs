@@ -1,20 +1,24 @@
+use forge_foundational::facade::AspectKey;
+
+use crate::input::envelope::BridgeCommittedPatchTarget;
 use crate::mapping::{
-    BridgeAspectRegistrationId, BridgeMappingFallbackClass, BridgeMappingId, CoarseRoutingMode,
-    SliceFallbackPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind,
+    BridgeAspectRegistrationId, BridgeMappingId, BridgeMappingWideningClass, CoarseRoutingMode,
+    SliceWideningPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind,
 };
+use crate::routing::surfaces::TruthDeltaSurfaceIdentity;
 use crate::routing::{FineGrainedMatchOutcome, FineGrainedMatchStatus};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeRouteRecordEntry {
     entity_identity: String,
-    aspect_label: String,
-    surface_label: String,
-    raw_patch_surface_label: String,
-    truth_surface_identity: String,
+    aspect_key: AspectKey,
+    target: BridgeCommittedPatchTarget,
+    source_target: BridgeCommittedPatchTarget,
+    truth_surface_identity: TruthDeltaSurfaceIdentity,
     mapping_id: BridgeMappingId,
     signal_scope: String,
     routing_mode: CoarseRoutingMode,
-    fallback_class: Option<BridgeMappingFallbackClass>,
+    widening_class: Option<BridgeMappingWideningClass>,
     match_detail: FineGrainedMatchOutcome,
 }
 
@@ -23,26 +27,26 @@ pub type BridgeRouteRecordMatch = FineGrainedMatchOutcome;
 impl BridgeRouteRecordEntry {
     pub(crate) fn new(
         entity_identity: impl Into<String>,
-        aspect_label: impl Into<String>,
-        surface_label: impl Into<String>,
-        raw_patch_surface_label: impl Into<String>,
-        truth_surface_identity: impl Into<String>,
+        aspect_key: AspectKey,
+        target: BridgeCommittedPatchTarget,
+        source_target: BridgeCommittedPatchTarget,
+        truth_surface_identity: TruthDeltaSurfaceIdentity,
         mapping_id: BridgeMappingId,
         signal_scope: impl Into<String>,
         routing_mode: CoarseRoutingMode,
-        fallback_class: Option<BridgeMappingFallbackClass>,
+        widening_class: Option<BridgeMappingWideningClass>,
         match_detail: BridgeRouteRecordMatch,
     ) -> Self {
         Self {
             entity_identity: entity_identity.into(),
-            aspect_label: aspect_label.into(),
-            surface_label: surface_label.into(),
-            raw_patch_surface_label: raw_patch_surface_label.into(),
-            truth_surface_identity: truth_surface_identity.into(),
+            aspect_key,
+            target,
+            source_target,
+            truth_surface_identity,
             mapping_id,
             signal_scope: signal_scope.into(),
             routing_mode,
-            fallback_class,
+            widening_class,
             match_detail,
         }
     }
@@ -51,19 +55,31 @@ impl BridgeRouteRecordEntry {
         &self.entity_identity
     }
 
-    pub fn aspect_label(&self) -> &str {
-        &self.aspect_label
+    pub fn aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
     }
 
-    pub fn surface_label(&self) -> &str {
-        &self.surface_label
+    pub fn target_canonical_basis(&self) -> String {
+        self.target.canonical_basis()
     }
 
-    pub fn raw_patch_surface_label(&self) -> &str {
-        &self.raw_patch_surface_label
+    pub fn source_target_canonical_basis(&self) -> String {
+        self.source_target.canonical_basis()
+    }
+
+    pub fn target(&self) -> &BridgeCommittedPatchTarget {
+        &self.target
+    }
+
+    pub fn source_target(&self) -> &BridgeCommittedPatchTarget {
+        &self.source_target
     }
 
     pub fn truth_surface_identity(&self) -> &str {
+        self.truth_surface_identity.as_str()
+    }
+
+    pub(crate) fn truth_delta_surface_identity(&self) -> &TruthDeltaSurfaceIdentity {
         &self.truth_surface_identity
     }
 
@@ -79,8 +95,8 @@ impl BridgeRouteRecordEntry {
         self.routing_mode
     }
 
-    pub fn fallback_class(&self) -> Option<&BridgeMappingFallbackClass> {
-        self.fallback_class.as_ref()
+    pub fn widening_class(&self) -> Option<&BridgeMappingWideningClass> {
+        self.widening_class.as_ref()
     }
 
     pub fn truth_surface_kind(&self) -> TruthDeltaSurfaceKind {
@@ -88,7 +104,7 @@ impl BridgeRouteRecordEntry {
             FineGrainedMatchOutcome::Matched {
                 truth_surface_kind, ..
             }
-            | FineGrainedMatchOutcome::FallbackAdmitted {
+            | FineGrainedMatchOutcome::WideningAdmitted {
                 truth_surface_kind, ..
             }
             | FineGrainedMatchOutcome::SuppressedByRegistrationPolicy { truth_surface_kind }
@@ -109,7 +125,7 @@ impl BridgeRouteRecordEntry {
                 aspect_registration_id,
                 ..
             }
-            | FineGrainedMatchOutcome::FallbackAdmitted {
+            | FineGrainedMatchOutcome::WideningAdmitted {
                 aspect_registration_id,
                 ..
             } => Some(aspect_registration_id),
@@ -123,12 +139,12 @@ impl BridgeRouteRecordEntry {
         self.match_detail.subscription_slice_kind()
     }
 
-    pub fn slice_fallback_policy(&self) -> Option<SliceFallbackPolicy> {
+    pub fn slice_widening_policy(&self) -> Option<SliceWideningPolicy> {
         match &self.match_detail {
-            FineGrainedMatchOutcome::FallbackAdmitted {
-                fallback_policy, ..
-            } => Some(*fallback_policy),
-            FineGrainedMatchOutcome::Matched { .. } => Some(SliceFallbackPolicy::Disallow),
+            FineGrainedMatchOutcome::WideningAdmitted {
+                widening_policy, ..
+            } => Some(*widening_policy),
+            FineGrainedMatchOutcome::Matched { .. } => Some(SliceWideningPolicy::Disallow),
             FineGrainedMatchOutcome::SuppressedByRegistrationPolicy { .. }
             | FineGrainedMatchOutcome::UnsupportedSurfaceCategory { .. }
             | FineGrainedMatchOutcome::AmbiguousRegistration { .. } => None,

@@ -225,13 +225,26 @@ This is how you tell the difference between "nothing happened", "suppressed",
   are stable in the runtime-backed synchronous facade.
 - Pending write-intent staging is available, but authoritative execution still
   depends on admitted intent support through the covered effect-intent family.
+- Store-backed effect execution and durable replay are **deferred**—see
+  [authority-scoped effect execution](authority-scoped-effect-execution.md), not
+  implied by effect authoring alone.
 - Mixed truth/time/async delivery remains deferred future work.
+
+## How It Relates To Authority-Scoped Execution
+
+This doc stops at declaration, staging, delivery, and `workspace.inspect` for
+effects. Lowering, eligibility, admission, and execute receipts live in
+[authority-scoped effect execution](authority-scoped-effect-execution.md) with
+`effect_lifecycle_support_matrix()` honesty (`StoreBackedExecutionDeferred`,
+`DurableReplayDeferred`, advisory-only rows). Do not document a “full effect
+pipeline” here without checking that matrix.
 
 ## Related Docs
 
+- [Authority-scoped effect execution](authority-scoped-effect-execution.md)
 - [Workspace Overview](../foundations/workspace-overview.md)
 - [Live Views](../runtime-surfaces/live-views.md)
 - [Computed](../runtime-surfaces/computed.md)
-- [Intent Admission](intent-admission.md)
+- [Intent admission and observation](../foundations/intent-admission-and-observation.md)
 
 

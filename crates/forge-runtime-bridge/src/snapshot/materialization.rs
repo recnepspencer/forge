@@ -78,11 +78,10 @@ impl MaterializedTruthViewObservation {
             .snapshot_reader
             .read_packet(self.planned.read_packet())?;
         if read_result.snapshot_identity() != self.snapshot_reader.snapshot_identity() {
-            return Err(BridgeSnapshotReadError::new(format!(
-                "Truth-view observation read returned `{}` but materialized snapshot authority was `{}`.",
+            return Err(BridgeSnapshotReadError::snapshot_identity_mismatch(
                 read_result.snapshot_identity().as_str(),
-                self.snapshot_reader.snapshot_identity().as_str()
-            )));
+                self.snapshot_reader.snapshot_identity().as_str(),
+            ));
         }
 
         validate_snapshot_read_result_contract(self.planned.read_packet(), read_result)

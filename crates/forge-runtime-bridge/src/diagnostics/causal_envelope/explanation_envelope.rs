@@ -5,9 +5,9 @@ use super::assembly::{
 };
 use super::binding::BridgeCausalEvidenceBinding;
 use super::counters::BridgeCausalEnvelopeCounters;
-use super::digest;
 use super::identity::BridgeCausalEnvelopeIdentity;
 use super::receipt::BridgeCausalEnvelopeReceipt;
+use super::{causal_envelope_digest, digest_basis::BridgeCausalEnvelopeDigestArtifact};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BridgeCausalExplanationEnvelope {
@@ -33,15 +33,18 @@ impl BridgeCausalExplanationEnvelope {
             .map(BridgeCausalEvidenceBinding::binding_digest)
             .collect::<Vec<_>>()
             .join("|");
-        let evidence_binding_digest = digest("bridge-causal-envelope-bindings", &[&binding_part]);
+        let evidence_binding_digest = causal_envelope_digest(
+            BridgeCausalEnvelopeDigestArtifact::BindingSet,
+            &[&binding_part],
+        );
         let identity = BridgeCausalEnvelopeIdentity::new(
             request.request_digest(),
             request.causal_observation_anchor_digest(),
             evidence_binding_digest,
             counters.counter_digest(),
         );
-        let envelope_digest = digest(
-            "bridge-causal-explanation-envelope",
+        let envelope_digest = causal_envelope_digest(
+            BridgeCausalEnvelopeDigestArtifact::ExplanationEnvelope,
             &[
                 identity.identity_digest(),
                 request.request_digest(),

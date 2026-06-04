@@ -17,7 +17,7 @@ pub struct LoweredHistoricalEvaluationArtifact {
     planned_packet_digest: Arc<str>,
     authority_digest: Arc<str>,
     branch_identity: crate::input::envelope::TruthBranchIdentity,
-    commit_identity: crate::input::envelope::TruthCommitIdentity,
+    commit_identity: Option<crate::input::envelope::TruthCommitIdentity>,
     snapshot_identity: TruthSnapshotIdentity,
     materialization_path: BridgeHistoricalMaterializationPath,
     canonical_basis: Arc<str>,
@@ -30,17 +30,18 @@ impl LoweredHistoricalEvaluationArtifact {
         materialization_path: BridgeHistoricalMaterializationPath,
     ) -> Self {
         let authority_basis = observation.authority_basis();
-        let commit_identity = authority_basis
-            .commit_identity()
-            .cloned()
-            .unwrap_or_else(|| crate::input::envelope::TruthCommitIdentity::new("-"));
+        let commit_identity = authority_basis.commit_identity().cloned();
+        let commit_identity_basis = commit_identity
+            .as_ref()
+            .map(|identity| format!("present:{}", identity.as_str()))
+            .unwrap_or_else(|| "absent".to_string());
         let canonical_basis = Arc::<str>::from(format!(
             "lowered-historical-evaluation-artifact|declaration={}|planned={}|authority={}|branch={}|commit={}|snapshot={}|path={materialization_path:?}",
             observation.planned().declaration().declaration_identity().as_str(),
             observation.planned().digest(),
             authority_basis.digest(),
             authority_basis.branch_identity().as_str(),
-            commit_identity.as_str(),
+            commit_identity_basis.as_str(),
             observation.snapshot_identity().as_str(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
@@ -88,8 +89,8 @@ impl LoweredHistoricalEvaluationArtifact {
         &self.branch_identity
     }
 
-    pub fn commit_identity(&self) -> &crate::input::envelope::TruthCommitIdentity {
-        &self.commit_identity
+    pub fn commit_identity(&self) -> Option<&crate::input::envelope::TruthCommitIdentity> {
+        self.commit_identity.as_ref()
     }
 
     pub fn snapshot_identity(&self) -> &TruthSnapshotIdentity {

@@ -1,3 +1,11 @@
+warning: unused import: `BridgeCommittedPatchDigest`
+ --> tests/ui/private_committed_patch_envelope_constructor.rs:2:31
+  |
+2 |     BridgeCommittedPatchBody, BridgeCommittedPatchDigest, BridgeCommittedPatchEnvelope,
+  |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
 error[E0599]: no function or associated item named `from_parts` found for struct `BridgeCommittedPatchEnvelope` in the current scope
   --> tests/ui/private_committed_patch_envelope_constructor.rs:17:43
    |

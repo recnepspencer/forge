@@ -9,11 +9,15 @@ pub(in crate::runtime::tests) use crate::program::{
 };
 pub(in crate::runtime::tests) use crate::schema_view::{SchemaFieldKind, SchemaFieldView};
 pub(in crate::runtime::tests) use crate::subscription::QueryPatchGroupKind;
+pub(in crate::runtime::tests) use forge_foundational::facade::{
+    AspectKey, AspectLocator, CanonicalFieldPath, FieldKey, LocatorAuthority, ScalarAspectType,
+};
 pub(in crate::runtime::tests) use forge_runtime_bridge::facade::{
-    BridgeCommittedPatchItem, BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration,
-    CoarseRoutingMode, InvalidationSink, MappingSelector, RawCommittedPatchEnvelope,
-    RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridgeBuilder,
-    SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadPacket, SnapshotReadPacketResult,
+    BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem,
+    BridgeCommittedPatchTarget, BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration,
+    CoarseRoutingMode, InvalidationSink, MappingSelector, RelationalBridgeSourceError,
+    RelationalCommittedPatchRequest, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SnapshotReadContract, SnapshotReadPacket, SnapshotReadPacketResult,
     SnapshotReadRecord, SnapshotReadSource, TruthBranchIdentity, TruthCommitIdentity,
     TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
 };

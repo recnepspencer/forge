@@ -1,6 +1,6 @@
 use crate::facade::{
     BridgeTruthViewPolicyResolution, HistoricalEvaluationDeclaration, ResolvedTruthViewPolicy,
-    RuntimeBridge, TruthViewPolicyRejectionKind, TruthViewReplayCompatibility,
+    RuntimeBridge, TruthViewPolicyRejectionKind, TruthViewReplayContinuity,
     TruthViewRetentionAdmission, TruthViewSourceCapability,
 };
 use crate::snapshot::{BridgeReplayMode, BridgeTruthViewKind, BridgeTruthViewPolicyRejection};
@@ -29,9 +29,9 @@ impl RuntimeBridge {
                     TruthViewRetentionAdmission::SnapshotResident,
                     TruthViewSourceCapability::DirectSnapshotRead,
                     match declaration.replay_mode() {
-                        BridgeReplayMode::Required => TruthViewReplayCompatibility::ReplayRequired,
+                        BridgeReplayMode::Required => TruthViewReplayContinuity::ReplayRequired,
                         BridgeReplayMode::Disabled | BridgeReplayMode::Enabled => {
-                            TruthViewReplayCompatibility::ReplayPermitted
+                            TruthViewReplayContinuity::ReplayPermitted
                         }
                     },
                 ))
@@ -42,9 +42,9 @@ impl RuntimeBridge {
                     TruthViewRetentionAdmission::HistoricalLookupRequired,
                     TruthViewSourceCapability::HistoricalLookupAndSnapshotRead,
                     match declaration.replay_mode() {
-                        BridgeReplayMode::Required => TruthViewReplayCompatibility::ReplayRequired,
+                        BridgeReplayMode::Required => TruthViewReplayContinuity::ReplayRequired,
                         BridgeReplayMode::Disabled | BridgeReplayMode::Enabled => {
-                            TruthViewReplayCompatibility::ReplayPermitted
+                            TruthViewReplayContinuity::ReplayPermitted
                         }
                     },
                 ))
@@ -64,9 +64,9 @@ impl RuntimeBridge {
                     TruthViewRetentionAdmission::HistoricalLookupRequired,
                     TruthViewSourceCapability::HistoricalLookupAndSnapshotRead,
                     match declaration.replay_mode() {
-                        BridgeReplayMode::Required => TruthViewReplayCompatibility::ReplayRequired,
+                        BridgeReplayMode::Required => TruthViewReplayContinuity::ReplayRequired,
                         BridgeReplayMode::Disabled | BridgeReplayMode::Enabled => {
-                            TruthViewReplayCompatibility::ReplayPermitted
+                            TruthViewReplayContinuity::ReplayPermitted
                         }
                     },
                 ))

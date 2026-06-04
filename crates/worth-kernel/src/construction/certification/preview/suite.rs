@@ -98,7 +98,7 @@ pub fn prepare_primitive_construction_preview_hostility_suite_report() -> Result
 #[cfg(test)]
 mod tests {
     use super::prepare_primitive_construction_preview_hostility_suite_report;
-    use crate::construction::PrimitiveConstructionPreviewCase;
+    use crate::construction::certification::preview::PrimitiveConstructionPreviewCase;
 
     #[test]
     fn preview_hostility_suite_fails_closed_on_exact_hostile_case_coverage() {

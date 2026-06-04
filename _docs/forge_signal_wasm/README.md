@@ -25,6 +25,9 @@ Product-facing package docs live separately in:
 - [api_surface_dx_plan.md](api_surface_dx_plan.md)
 - [resource_response_lens_contracts_plan.md](resource_response_lens_contracts_plan.md)
   Branch-native resource effects and response-lens topology lowering.
+- [branch_merge_materialization_foundation_plan.md](branch_merge_materialization_foundation_plan.md)
+  Branch merge materialization strategies, aspect policy exposure, executable
+  merge intent, explicit fork basis, and proof-bearing conflict resolution.
 - [resource_mutation_response_reconciliation_plan.md](resource_mutation_response_reconciliation_plan.md)
   Mutation response reconciliation, granular detail lenses, create/update/remove
   response lanes, identity migration, placement, deletion, and multi-family
@@ -50,10 +53,11 @@ Product-facing package docs live separately in:
 7. [wasm_product_roadmap.md](wasm_product_roadmap.md)
 8. [api_surface_dx_plan.md](api_surface_dx_plan.md)
 9. [resource_response_lens_contracts_plan.md](resource_response_lens_contracts_plan.md)
-10. [resource_mutation_response_reconciliation_plan.md](resource_mutation_response_reconciliation_plan.md)
-11. [worker_runtime_placement_plan.md](worker_runtime_placement_plan.md)
-12. [worker_runtime_test_requirements.md](worker_runtime_test_requirements.md)
-13. [router_navigation_projection_plan.md](router_navigation_projection_plan.md)
-14. [router_test_requirements.md](router_test_requirements.md)
-15. [worker_runtime_placement_closeout.md](worker_runtime_placement_closeout.md)
-16. [worker_runtime_product_entrypoint_correction_plan.md](worker_runtime_product_entrypoint_correction_plan.md)
+10. [branch_merge_materialization_foundation_plan.md](branch_merge_materialization_foundation_plan.md)
+11. [resource_mutation_response_reconciliation_plan.md](resource_mutation_response_reconciliation_plan.md)
+12. [worker_runtime_placement_plan.md](worker_runtime_placement_plan.md)
+13. [worker_runtime_test_requirements.md](worker_runtime_test_requirements.md)
+14. [router_navigation_projection_plan.md](router_navigation_projection_plan.md)
+15. [router_test_requirements.md](router_test_requirements.md)
+16. [worker_runtime_placement_closeout.md](worker_runtime_placement_closeout.md)
+17. [worker_runtime_product_entrypoint_correction_plan.md](worker_runtime_product_entrypoint_correction_plan.md)

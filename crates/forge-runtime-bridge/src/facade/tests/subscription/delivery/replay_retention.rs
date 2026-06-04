@@ -10,11 +10,11 @@ fn retained_delivery_seed_binds_window_sequence_and_member_truth() {
         &active,
         BridgeSubscriptionDeliveryFamilyKind::CanonicalMember,
         7,
-        BridgeSubscriptionDeliveryMemberInput::payload_digest(
+        BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
             "slice:entity-1/profile/name",
             "routing:fixture",
             BridgeSubscriptionDeliveryMemberClass::Update,
-            "payload:same",
+            BridgeSubscriptionDeliveryContentDigest::new("content:same"),
         ),
     );
     let second_sequence = sealed_window_with_member(
@@ -22,11 +22,11 @@ fn retained_delivery_seed_binds_window_sequence_and_member_truth() {
         &active,
         BridgeSubscriptionDeliveryFamilyKind::CanonicalMember,
         8,
-        BridgeSubscriptionDeliveryMemberInput::payload_digest(
+        BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
             "slice:entity-1/profile/name",
             "routing:fixture",
             BridgeSubscriptionDeliveryMemberClass::Update,
-            "payload:same",
+            BridgeSubscriptionDeliveryContentDigest::new("content:same"),
         ),
     );
     let second_truth = sealed_window_with_member(
@@ -34,11 +34,11 @@ fn retained_delivery_seed_binds_window_sequence_and_member_truth() {
         &active,
         BridgeSubscriptionDeliveryFamilyKind::CanonicalMember,
         7,
-        BridgeSubscriptionDeliveryMemberInput::payload_digest(
+        BridgeSubscriptionDeliveryMemberInput::delivery_content_digest(
             "slice:entity-1/profile/name",
             "routing:fixture",
             BridgeSubscriptionDeliveryMemberClass::Update,
-            "payload:different",
+            BridgeSubscriptionDeliveryContentDigest::new("content:different"),
         ),
     );
 
@@ -79,7 +79,7 @@ fn retained_delivery_seed_binds_window_sequence_and_member_truth() {
 }
 
 #[test]
-fn replay_readiness_blocks_omitted_payload_for_canonical_replay() {
+fn replay_readiness_blocks_omitted_content_for_canonical_replay() {
     let (runtime, active) =
         active_detail_subscription(BridgeSubscriptionDeliveryDensityPosture::SparseMemberDelivery);
     let sealed = sealed_window_with_member(
@@ -87,11 +87,11 @@ fn replay_readiness_blocks_omitted_payload_for_canonical_replay() {
         &active,
         BridgeSubscriptionDeliveryFamilyKind::CanonicalMember,
         0,
-        BridgeSubscriptionDeliveryMemberInput::omitted_payload(
+        BridgeSubscriptionDeliveryMemberInput::omitted_content(
             "slice:entity-1/profile/name",
             "routing:fixture",
             BridgeSubscriptionDeliveryMemberClass::Update,
-            BridgeSubscriptionPayloadOmissionReason::PayloadDigestOnly,
+            BridgeSubscriptionDeliveryContentOmissionReason::ContentDigestOnly,
         ),
     );
 
@@ -99,7 +99,7 @@ fn replay_readiness_blocks_omitted_payload_for_canonical_replay() {
 
     assert_eq!(
         readiness.readiness_class(),
-        crate::facade::BridgeSubscriptionDeliveryReplayReadinessClass::ReplayBlockedByOmittedPayload
+        crate::facade::BridgeSubscriptionDeliveryReplayReadinessClass::ReplayBlockedByOmittedContent
     );
     assert_eq!(
         readiness
@@ -116,7 +116,7 @@ fn replay_readiness_blocks_omitted_payload_for_canonical_replay() {
 }
 
 #[test]
-fn descriptor_replay_readiness_ignores_payload_omission() {
+fn descriptor_replay_readiness_ignores_content_omission() {
     let (runtime, active) =
         active_detail_subscription(BridgeSubscriptionDeliveryDensityPosture::SparseMemberDelivery);
     let sealed = sealed_window_with_member(
@@ -124,11 +124,11 @@ fn descriptor_replay_readiness_ignores_payload_omission() {
         &active,
         BridgeSubscriptionDeliveryFamilyKind::RouteFocusedDescriptor,
         0,
-        BridgeSubscriptionDeliveryMemberInput::omitted_payload(
+        BridgeSubscriptionDeliveryMemberInput::omitted_content(
             "route:entity-1",
             "routing:fixture",
             BridgeSubscriptionDeliveryMemberClass::Update,
-            BridgeSubscriptionPayloadOmissionReason::RouteFocusedDelivery,
+            BridgeSubscriptionDeliveryContentOmissionReason::RouteFocusedDelivery,
         ),
     );
 

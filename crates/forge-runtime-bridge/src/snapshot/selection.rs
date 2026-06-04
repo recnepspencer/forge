@@ -153,7 +153,7 @@ mod tests {
     use crate::snapshot::{
         BridgeDeliveryIntent, BridgeReplayMode, BridgeTruthViewSelector,
         HistoricalEvaluationDeclaration, ResolvedTruthViewPolicy, SnapshotReadPacket,
-        TruthSnapshotIdentity, TruthViewReplayCompatibility, TruthViewRetentionAdmission,
+        TruthSnapshotIdentity, TruthViewReplayContinuity, TruthViewRetentionAdmission,
         TruthViewSourceCapability,
     };
 
@@ -168,7 +168,14 @@ mod tests {
         let right = BridgeTruthViewAuthorityBasis::from_selector(&selector);
 
         assert_eq!(left, right);
-        assert!(left.canonical_basis().contains("branch=analysis"));
+        assert_eq!(
+            left.canonical_basis(),
+            format!(
+                "truth-view-authority|selector={}|selector-basis={}|branch=analysis|commit=-|snapshot=snapshot-a",
+                selector.selector_identity().as_str(),
+                selector.canonical_basis(),
+            )
+        );
     }
 
     #[test]
@@ -186,7 +193,7 @@ mod tests {
             &declaration,
             TruthViewRetentionAdmission::SnapshotResident,
             TruthViewSourceCapability::DirectSnapshotRead,
-            TruthViewReplayCompatibility::ReplayPermitted,
+            TruthViewReplayContinuity::ReplayPermitted,
         );
         let authority = BridgeTruthViewAuthorityBasis::from_selector(declaration.selector());
         let left = PlannedTruthViewPacket::new(
@@ -203,8 +210,16 @@ mod tests {
         );
 
         assert_eq!(left, right);
-        assert!(left
-            .canonical_basis()
-            .contains("read-packet=snapshot-read-packet:sha256:"));
+        assert_eq!(
+            left.canonical_basis(),
+            format!(
+                "planned-truth-view-packet|declaration={}|validated-selectors={}|policy={}|authority={}|read-packet={}",
+                left.declaration().declaration_identity().as_str(),
+                left.declaration().validated_selector_set().digest(),
+                left.resolved_policy().digest(),
+                left.authority_basis().digest(),
+                left.read_packet().digest(),
+            )
+        );
     }
 }

@@ -7,15 +7,13 @@ use forge_foundational::facade::{
 use crate::identity::data::EntityId;
 use crate::storage::data::RelationReadRecord;
 
-use super::aspect_encoding::encode_snapshot_aspect_value;
 use super::lifecycle_snapshot_values::lifecycle_aspect_value;
 
-pub(crate) fn export_relation_aspect_snapshot_bytes(
+pub(crate) fn export_relation_aspect_snapshot_value(
     record: &RelationReadRecord,
     aspect_key: &AspectKey,
-) -> Option<Vec<u8>> {
-    let value = relation_snapshot_aspect_value(record, aspect_key)?;
-    Some(encode_snapshot_aspect_value(&value))
+) -> Option<AspectValue> {
+    relation_snapshot_aspect_value(record, aspect_key)
 }
 
 fn relation_snapshot_aspect_value(

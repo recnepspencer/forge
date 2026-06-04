@@ -68,7 +68,7 @@ Use this when new authoritative truth arrives and you want the bridge to fan it
 into compute invalidation.
 
 ```rust
-let route = bridge.route("commit:steel-main")?;
+let route = bridge.route(crate::facade::TruthCommitIdentity::new("commit:steel-main"))?;
 ```
 
 For standard usage, `route(...)` is the front door.
@@ -168,12 +168,7 @@ let discard_explanation = bridge.diagnostics().explain_last_session();
 Use this when the speculative branch should become authoritative truth.
 
 ```rust
-use forge_runtime_bridge::facade::BridgeSpeculativePromotionRequest;
-
-let promoted = session.promote(BridgeSpeculativePromotionRequest::new(
-    "commit-boundary:pricing",
-    "authoritative-artifact:pricing",
-))?;
+let promoted = session.promote()?;
 ```
 
 Promotion should always feel explicit.

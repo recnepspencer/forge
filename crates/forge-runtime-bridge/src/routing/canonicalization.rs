@@ -3,13 +3,11 @@ use std::sync::Arc;
 use sha2::{Digest, Sha256};
 
 use crate::input::envelope::BridgeCommittedPatchEnvelope;
-use crate::mapping::{FrozenBridgeMappingRegistration, MappingSelector};
 use crate::routing::context::BridgeMappingContext;
 use crate::routing::eligibility::EligibleRouteEntry;
 use crate::routing::lowering::{BridgeInvalidationTarget, BridgeSubscriptionSlice};
-use crate::routing::matching::FineGrainedMatchStatus;
 use crate::routing::planning::BridgeRouteIdentity;
-use crate::snapshot::{canonical_subscription_slice_kind_label, SnapshotReadRequest};
+use crate::snapshot::SnapshotReadRequest;
 
 pub(crate) fn canonical_route_entry_order(
     left: &EligibleRouteEntry,
@@ -20,24 +18,19 @@ pub(crate) fn canonical_route_entry_order(
         .cmp(right.normalized_surface().entity_identity())
         .then_with(|| {
             left.normalized_surface()
-                .aspect_label()
-                .cmp(right.normalized_surface().aspect_label())
+                .aspect_key()
+                .cmp(right.normalized_surface().aspect_key())
         })
         .then_with(|| {
             left.normalized_surface()
                 .surface_identity()
                 .cmp(right.normalized_surface().surface_identity())
         })
-        .then_with(|| canonical_registration_order(left.registration(), right.registration()))
-}
-
-pub(crate) fn canonical_target_order<T>(left: &T, right: &T) -> std::cmp::Ordering
-where
-    T: CanonicalTargetView,
-{
-    left.signal_scope()
-        .cmp(right.signal_scope())
-        .then_with(|| left.routing_mode().cmp(&right.routing_mode()))
+        .then_with(|| {
+            left.registration()
+                .registration_identity()
+                .cmp(right.registration().registration_identity())
+        })
 }
 
 pub(crate) fn canonical_snapshot_request_order(
@@ -46,10 +39,14 @@ pub(crate) fn canonical_snapshot_request_order(
 ) -> std::cmp::Ordering {
     left.entity_identity()
         .cmp(right.entity_identity())
-        .then_with(|| left.aspect_label().cmp(right.aspect_label()))
+        .then_with(|| left.aspect_key().cmp(right.aspect_key()))
         .then_with(|| left.slice_kind().cmp(&right.slice_kind()))
-        .then_with(|| left.surface_label().cmp(&right.surface_label()))
-        .then_with(|| left.request_key().cmp(right.request_key()))
+        .then_with(|| {
+            left.target()
+                .target_identity()
+                .cmp(right.target().target_identity())
+        })
+        .then_with(|| left.correlation_id().cmp(right.correlation_id()))
 }
 
 pub(crate) fn route_digest_basis(
@@ -92,7 +89,7 @@ pub(crate) fn invalidation_digest_basis(
     );
     for target in targets {
         basis.push_str("|target=");
-        basis.push_str(&canonical_target_key(target));
+        basis.push_str(target.target_identity().as_str());
     }
     basis
 }
@@ -108,7 +105,7 @@ pub(crate) fn subscription_slice_digest_basis(
     );
     for slice in slices {
         basis.push_str("|slice=");
-        basis.push_str(&canonical_subscription_slice_key(slice));
+        basis.push_str(slice.canonical_basis());
     }
     basis
 }
@@ -138,7 +135,7 @@ pub(crate) fn planning_provenance_digest_basis(
     }
     for read in read_packet.reads() {
         basis.push_str("|read=");
-        basis.push_str(read.request_key());
+        basis.push_str(read.correlation_id().as_str());
     }
     basis
 }
@@ -192,11 +189,11 @@ pub(crate) fn lowering_summary_digest_basis(
     );
     for target in invalidation_targets {
         basis.push_str("|target=");
-        basis.push_str(&canonical_target_key(target));
+        basis.push_str(target.target_identity().as_str());
     }
     for slice in subscription_slices {
         basis.push_str("|slice=");
-        basis.push_str(&canonical_subscription_slice_key(slice));
+        basis.push_str(slice.canonical_basis());
     }
     basis
 }
@@ -224,133 +221,26 @@ impl<'a> SnapshotReadRequestSetView<'a> {
 }
 
 fn canonical_route_entry_key(entry: &EligibleRouteEntry) -> String {
+    canonical_route_entry_identity(entry).to_string()
+}
+
+fn canonical_route_entry_identity(entry: &EligibleRouteEntry) -> Arc<str> {
+    digest_string("route-entry", &canonical_route_entry_basis(entry))
+}
+
+fn canonical_route_entry_basis(entry: &EligibleRouteEntry) -> String {
     format!(
-        "{}:{}:{}:{}:{}:{}:{}",
-        entry.normalized_surface().entity_identity(),
-        entry.normalized_surface().aspect_label(),
-        entry.normalized_surface().surface_label(),
+        "route-entry|surface-identity={}|mapping-registration={}",
         entry.normalized_surface().surface_identity().as_str(),
-        entry.registration().mapping_id().as_str(),
-        entry.registration().signal_scope().as_str(),
-        routing_mode_label(entry.registration().routing_mode())
+        entry.registration().registration_identity().as_str(),
     )
-}
-
-fn canonical_target_key<T>(target: &T) -> String
-where
-    T: CanonicalTargetView,
-{
-    format!(
-        "{}:{}",
-        target.signal_scope(),
-        routing_mode_label(target.routing_mode())
-    )
-}
-
-fn canonical_subscription_slice_key(slice: &BridgeSubscriptionSlice) -> String {
-    format!(
-        "{}:{}:{}:{}:{}",
-        slice.entity_identity(),
-        slice.aspect_label(),
-        slice.surface_label(),
-        canonical_subscription_slice_kind_label(slice.slice_kind()),
-        canonical_match_status_label(slice.match_status())
-    )
-}
-
-fn canonical_match_status_label(status: FineGrainedMatchStatus) -> &'static str {
-    match status {
-        FineGrainedMatchStatus::Matched => "matched",
-        FineGrainedMatchStatus::FallbackAdmitted => "fallback-admitted",
-        FineGrainedMatchStatus::SuppressedByRegistrationPolicy => {
-            "suppressed-by-registration-policy"
-        }
-        FineGrainedMatchStatus::UnsupportedSurfaceCategory => "unsupported-surface-category",
-        FineGrainedMatchStatus::AmbiguousRegistration => "ambiguous-registration",
-    }
-}
-
-pub(crate) trait CanonicalTargetView {
-    fn signal_scope(&self) -> &str;
-    fn routing_mode(&self) -> crate::mapping::CoarseRoutingMode;
-}
-
-fn canonical_registration_order(
-    left: &FrozenBridgeMappingRegistration,
-    right: &FrozenBridgeMappingRegistration,
-) -> std::cmp::Ordering {
-    left.mapping_id()
-        .as_str()
-        .cmp(right.mapping_id().as_str())
-        .then_with(|| {
-            selector_order(
-                left.truth_scope().entity_selector(),
-                right.truth_scope().entity_selector(),
-            )
-        })
-        .then_with(|| {
-            selector_order(
-                left.truth_scope().aspect_selector(),
-                right.truth_scope().aspect_selector(),
-            )
-        })
-        .then_with(|| {
-            selector_order(
-                left.truth_scope().surface_selector(),
-                right.truth_scope().surface_selector(),
-            )
-        })
-        .then_with(|| {
-            left.signal_scope()
-                .as_str()
-                .cmp(right.signal_scope().as_str())
-        })
-        .then_with(|| {
-            left.truth_scope()
-                .specificity_rank()
-                .cmp(&right.truth_scope().specificity_rank())
-        })
-        .then_with(|| left.routing_mode().cmp(&right.routing_mode()))
-}
-
-impl CanonicalTargetView for BridgeInvalidationTarget {
-    fn signal_scope(&self) -> &str {
-        self.signal_scope()
-    }
-
-    fn routing_mode(&self) -> crate::mapping::CoarseRoutingMode {
-        self.routing_mode()
-    }
-}
-
-impl CanonicalTargetView for (Arc<str>, crate::mapping::CoarseRoutingMode) {
-    fn signal_scope(&self) -> &str {
-        self.0.as_ref()
-    }
-
-    fn routing_mode(&self) -> crate::mapping::CoarseRoutingMode {
-        self.1
-    }
-}
-
-fn selector_order(left: &MappingSelector, right: &MappingSelector) -> std::cmp::Ordering {
-    match (left, right) {
-        (MappingSelector::Any, MappingSelector::Any) => std::cmp::Ordering::Equal,
-        (MappingSelector::Any, MappingSelector::Exact(_)) => std::cmp::Ordering::Less,
-        (MappingSelector::Exact(_), MappingSelector::Any) => std::cmp::Ordering::Greater,
-        (MappingSelector::Exact(left), MappingSelector::Exact(right)) => {
-            left.as_ref().cmp(right.as_ref())
-        }
-    }
-}
-
-fn routing_mode_label(mode: crate::mapping::CoarseRoutingMode) -> &'static str {
-    match mode {
-        crate::mapping::CoarseRoutingMode::Direct => "direct",
-    }
 }
 
 fn digest_value(kind: &str, basis: &str) -> Arc<str> {
     let digest = Sha256::digest(basis.as_bytes());
     format!("{kind}:sha256:{digest:x}").into()
 }
+
+#[cfg(test)]
+#[path = "canonicalization_tests.rs"]
+mod canonicalization_tests;

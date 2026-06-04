@@ -235,6 +235,16 @@ const profileDetail = api.url("/profiles/:profileId").detail<
   reconcile: profileDetailFields,
   load: ({ profileId }) => ({ id: String(profileId), name: "Profile" }),
 });
+const profileResponseDetail = api.url("/profiles/:profileId")
+  .response(signals.resource.response.detail<{
+    id: string;
+    name: string;
+  }>()({
+    name: "name",
+  }))
+  .detail({
+    load: ({ profileId }) => ({ id: String(profileId), name: "Profile" }),
+  });
 const homeDetail = api.url("/").detail({
   load: () => ({ ok: true }),
 });
@@ -258,6 +268,9 @@ const asyncWorkspaceVersions = api.url("/workspaces/:workspaceId/versions/:versi
 const typedAsyncWorkspaceDetail:
   ApiDetailResourceFamily<"/workspaces/:workspaceId", undefined, { id: string }> =
     asyncWorkspaceDetail;
+const typedProfileResponseDetail:
+  ApiDetailResourceFamily<"/profiles/:profileId", undefined, { id: string; name: string }> =
+    profileResponseDetail;
 const typedAsyncWorkspaceVersions:
   ApiCollectionResourceFamily<
     "/workspaces/:workspaceId/versions/:versionId",

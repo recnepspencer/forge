@@ -47,10 +47,6 @@ impl PrimitiveConstructionCorpusAuthoringOrderRow {
         &self.normalized_matrix_digest
     }
 
-    pub fn row_count(&self) -> usize {
-        self.row_count
-    }
-
     pub fn parity_verified(&self) -> bool {
         self.parity_verified
     }

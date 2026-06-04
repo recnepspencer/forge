@@ -2,7 +2,7 @@ use super::BridgeSubscriptionCertificationFailureBoundary;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BridgeSubscriptionCertificationFailurePrecedenceStage {
-    BundleCompatibility,
+    BundleSchemaParity,
     RetainedArtifactCompleteness,
     DeclarationOrRegistry,
     BasisBinding,
@@ -20,7 +20,7 @@ pub enum BridgeSubscriptionCertificationFailurePrecedenceStage {
 impl BridgeSubscriptionCertificationFailurePrecedenceStage {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::BundleCompatibility => "bundle_compatibility",
+            Self::BundleSchemaParity => "bundle_schema_parity",
             Self::RetainedArtifactCompleteness => "retained_artifact_completeness",
             Self::DeclarationOrRegistry => "declaration_or_registry",
             Self::BasisBinding => "basis_binding",
@@ -38,7 +38,7 @@ impl BridgeSubscriptionCertificationFailurePrecedenceStage {
 
     pub const fn rank(self) -> u8 {
         match self {
-            Self::BundleCompatibility => 1,
+            Self::BundleSchemaParity => 1,
             Self::RetainedArtifactCompleteness => 2,
             Self::DeclarationOrRegistry => 3,
             Self::BasisBinding => 4,
@@ -62,7 +62,7 @@ pub(crate) fn precedence_stage_for_boundary(
     use BridgeSubscriptionCertificationFailurePrecedenceStage as Stage;
 
     match boundary {
-        Boundary::BundleSchemaOrDigestIncompatibility => Stage::BundleCompatibility,
+        Boundary::BundleSchemaOrDigestDivergence => Stage::BundleSchemaParity,
         Boundary::MissingRequiredRetainedArtifact | Boundary::TypedFieldStateMismatch => {
             Stage::RetainedArtifactCompleteness
         }
@@ -79,7 +79,7 @@ pub(crate) fn precedence_stage_for_boundary(
         }
         Boundary::DeliveryFamilyMismatch | Boundary::DeliveryDigestDrift => Stage::DeliveryTruth,
         Boundary::ContinuationDenialOrAmbiguity => Stage::ContinuationOrBranchScope,
-        Boundary::CheckpointIncompatibility | Boundary::ReplayMismatch => {
+        Boundary::CheckpointDivergence | Boundary::ReplayMismatch => {
             Stage::CheckpointResumeOrReplay
         }
         Boundary::PreviewResidueMismatch | Boundary::PromotionBoundaryMismatch => {

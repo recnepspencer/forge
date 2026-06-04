@@ -4,28 +4,27 @@ error[E0624]: associated function `new` is private
 4 |       let _ = BridgeWritebackMapperEnvelope::new();
   |                                              ^^^ private associated function
   |
- ::: src/writeback/mapper.rs
+ ::: src/writeback/mapper/envelope.rs
   |
   | /     pub(crate) fn new(
   | |         contract: &AdmittedBridgeWritebackContract,
-  | |         causality: &BridgeWritebackCausalityBasis,
-  | |         domain_payload_digest: impl Into<Arc<str>>,
-  | |         domain_evidence_digest: impl Into<Arc<str>>,
+  | |         causality: &BridgeWritebackNativeCausalityInputs,
+  | |         effect_intent: BridgeWritebackEffectIntent,
   | |     ) -> Self {
   | |_____________- private associated function defined here
 
-error[E0061]: this function takes 4 arguments but 0 arguments were supplied
+error[E0061]: this function takes 3 arguments but 0 arguments were supplied
  --> tests/ui/writeback_mapper_envelope_constructor_private.rs:4:13
   |
 4 |     let _ = BridgeWritebackMapperEnvelope::new();
-  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-- multiple arguments are missing
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-- three arguments of type `&AdmittedBridgeWritebackContract`, `&BridgeWritebackNativeCausalityInputs`, and `BridgeWritebackEffectIntent` are missing
   |
 note: associated function defined here
- --> src/writeback/mapper.rs
+ --> src/writeback/mapper/envelope.rs
   |
   |     pub(crate) fn new(
   |                   ^^^
 help: provide the arguments
   |
-4 |     let _ = BridgeWritebackMapperEnvelope::new(/* &AdmittedBridgeWritebackContract */, /* &BridgeWritebackCausalityBasis */, /* domain_payload_digest */, /* domain_evidence_digest */);
-  |                                                +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+4 |     let _ = BridgeWritebackMapperEnvelope::new(/* &AdmittedBridgeWritebackContract */, /* &BridgeWritebackNativeCausalityInputs */, /* BridgeWritebackEffectIntent */);
+  |                                                ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

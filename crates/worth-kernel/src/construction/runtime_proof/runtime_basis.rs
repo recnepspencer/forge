@@ -8,10 +8,12 @@ use crate::construction::authoring::{
     primitive_construction_authoring, PrimitiveConstructionAuthorityChainReport,
     PrimitiveConstructionQueryEntryError, WorthKernelAuthorityError,
 };
+use crate::construction::authoring_input::PrimitiveConstructionAuthoringInput;
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
 use crate::construction::realization_truth::PrimitiveConstructionRuntimeRealizationTruth;
-use crate::construction::{PrimitiveConstructionFamily, PrimitiveConstructionIntent};
+use crate::construction::PrimitiveConstructionFamily;
+#[cfg(test)]
 use worth_geom::facade::{
     PrimitiveFeatureConditioningClass, PrimitiveNormalizationDisposition,
     PrimitiveRealizationExhaustionReason, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
@@ -131,58 +133,67 @@ impl PrimitiveConstructionBranchPreviewRuntimeReport {
         }
     }
 
+    #[cfg(test)]
     pub fn family(&self) -> PrimitiveConstructionFamily {
         self.family
     }
 
+    #[cfg(test)]
     pub fn authority_chain_report(&self) -> &PrimitiveConstructionAuthorityChainReport {
         &self.authority_chain_report
     }
 
+    #[cfg(test)]
     pub fn branch_preview_contract_digest(&self) -> &str {
         &self.branch_preview_contract_digest
     }
 
+    #[cfg(test)]
     pub fn outcome(&self) -> &PrimitiveConstructionPreparedOutcome {
         &self.outcome
     }
 
+    #[cfg(test)]
     pub fn realization_strategy(&self) -> Option<PrimitiveRealizationStrategy> {
         self.realization_truth.selected_strategy()
     }
 
+    #[cfg(test)]
     pub fn attempted_realization_strategies(&self) -> &[PrimitiveRealizationStrategy] {
         self.realization_truth.attempted_strategies()
     }
 
-    pub fn attempted_realization_strategy_count(&self) -> usize {
-        self.realization_truth.attempted_strategy_count()
-    }
-
+    #[cfg(test)]
     pub fn stability_class(&self) -> Option<PrimitiveStabilityClass> {
         self.realization_truth.stability_class()
     }
 
+    #[cfg(test)]
     pub fn feature_conditioning_class(&self) -> Option<PrimitiveFeatureConditioningClass> {
         self.realization_truth.feature_conditioning_class()
     }
 
+    #[cfg(test)]
     pub fn support_normal_class(&self) -> Option<PrimitiveSupportNormalClass> {
         self.realization_truth.support_normal_class()
     }
 
+    #[cfg(test)]
     pub fn normalization_disposition(&self) -> Option<PrimitiveNormalizationDisposition> {
         self.realization_truth.normalization_disposition()
     }
 
+    #[cfg(test)]
     pub fn exhaustion_reason(&self) -> Option<PrimitiveRealizationExhaustionReason> {
         self.realization_truth.exhaustion_reason()
     }
 
+    #[cfg(test)]
     pub fn preview_lane(&self) -> &PrimitiveConstructionRuntimeBasisLaneReport {
         &self.preview_lane
     }
 
+    #[cfg(test)]
     pub fn branch_lane(&self) -> &PrimitiveConstructionRuntimeBasisLaneReport {
         &self.branch_lane
     }
@@ -213,11 +224,18 @@ impl std::error::Error for PrimitiveConstructionRuntimeBasisError {}
 
 pub fn prepare_primitive_construction_branch_preview_runtime_report(
     workspace: &mut ForgeQueryWorkspace,
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: impl PrimitiveConstructionAuthoringInput,
 ) -> Result<PrimitiveConstructionBranchPreviewRuntimeReport, PrimitiveConstructionRuntimeBasisError>
 {
-    let intent = intent.into();
-    let request = intent.request().clone();
+    let outcome = {
+        let mut session = primitive_construction_authoring(workspace)
+            .map_err(PrimitiveConstructionRuntimeBasisError::Authority)?;
+        session
+            .author(intent)
+            .map_err(PrimitiveConstructionRuntimeBasisError::QueryEntry)?
+            .prepare_outcome()
+    };
+    let family = outcome.family();
     let authority_chain_report = {
         let session = primitive_construction_authoring(workspace)
             .map_err(PrimitiveConstructionRuntimeBasisError::Authority)?;
@@ -228,18 +246,11 @@ pub fn prepare_primitive_construction_branch_preview_runtime_report(
         .map_err(PrimitiveConstructionRuntimeBasisError::QueryRuntime)?
         .contract_digest()
         .to_string();
-    let outcome = {
-        let mut session = primitive_construction_authoring(workspace)
-            .map_err(PrimitiveConstructionRuntimeBasisError::Authority)?;
-        session
-            .prepare_outcome(intent)
-            .map_err(PrimitiveConstructionRuntimeBasisError::QueryEntry)?
-    };
     let realization_truth = PrimitiveConstructionRuntimeRealizationTruth::from_outcome(&outcome);
     let preview_lane = {
         let preview = workspace
             .preview_with_options(
-                format!("worth-kernel.{}.preview", request.family().as_str()),
+                format!("worth-kernel.{}.preview", family.as_str()),
                 ForgeQueryPreviewOptions::sandboxed_write_intent(),
             )
             .map_err(PrimitiveConstructionRuntimeBasisError::QueryRuntime)?;
@@ -248,14 +259,14 @@ pub fn prepare_primitive_construction_branch_preview_runtime_report(
     let branch_lane = {
         let branch = workspace
             .branch_with_options(
-                format!("worth-kernel.{}.branch", request.family().as_str()),
+                format!("worth-kernel.{}.branch", family.as_str()),
                 ForgeQueryBranchOptions::sandboxed_write_intent(),
             )
             .map_err(PrimitiveConstructionRuntimeBasisError::QueryRuntime)?;
         PrimitiveConstructionRuntimeBasisLaneReport::from_branch(branch.basis_admission())
     };
     Ok(PrimitiveConstructionBranchPreviewRuntimeReport::new(
-        request.family(),
+        family,
         authority_chain_report,
         branch_preview_contract_digest,
         outcome,
@@ -268,9 +279,9 @@ pub fn prepare_primitive_construction_branch_preview_runtime_report(
 #[cfg(test)]
 mod tests {
     use super::prepare_primitive_construction_branch_preview_runtime_report;
-    use crate::construction::{
-        PrimitiveConstructionFamily, PrimitiveConstructionIntent, RegularPyramidSpec,
-    };
+    use crate::construction::intent::PrimitiveConstructionIntent;
+    use crate::construction::request::PrimitiveConstructionFamily;
+    use crate::construction::specs::RegularPyramidSpec;
     use forge_query::facade::{ForgeQueryAuthorityLane, ForgeQueryEffectPolicy};
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,

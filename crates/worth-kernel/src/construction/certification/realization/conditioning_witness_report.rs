@@ -107,16 +107,8 @@ impl PrimitiveConstructionConditioningWitnessReport {
         }
     }
 
-    pub fn family(&self) -> PrimitiveConstructionFamily {
-        self.family
-    }
-
     pub fn admitted(&self) -> bool {
         self.admitted
-    }
-
-    pub fn selected_strategy(&self) -> Option<PrimitiveRealizationStrategy> {
-        self.selected_strategy
     }
 
     pub fn exhaustion_reason(&self) -> Option<PrimitiveRealizationExhaustionReason> {
@@ -126,16 +118,12 @@ impl PrimitiveConstructionConditioningWitnessReport {
     pub fn conditioning_witness(&self) -> Option<&PrimitiveConditioningWitness> {
         self.conditioning_witness.as_ref()
     }
-
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
-    }
 }
 
 pub fn prepare_primitive_construction_conditioning_witness_report(
-    intent: impl Into<PrimitiveConstructionIntent>,
+    intent: PrimitiveConstructionIntent,
 ) -> PrimitiveConstructionConditioningWitnessReport {
     PrimitiveConstructionConditioningWitnessReport::from_snapshot(&prepare_realization_snapshot(
-        intent.into().into_request(),
+        intent.into_request(),
     ))
 }

@@ -174,90 +174,90 @@ impl BridgeDiagnosticsState {
 
     pub(crate) fn route_record_for_route_identity(
         &self,
-        route_identity: &str,
+        route_identity: &BridgeRouteIdentity,
     ) -> Option<BridgeRouteRecord> {
         self.latest_route_by_route_identity
-            .get(route_identity)
+            .get(route_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
 
     pub(crate) fn route_record_for_invalidation_identity(
         &self,
-        invalidation_identity: &str,
+        invalidation_identity: &BridgeInvalidationIdentity,
     ) -> Option<BridgeRouteRecord> {
         self.latest_route_by_invalidation_identity
-            .get(invalidation_identity)
+            .get(invalidation_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
 
     pub(crate) fn route_record_for_source_commit(
         &self,
-        source_commit: &str,
+        source_commit: &crate::input::envelope::TruthCommitIdentity,
     ) -> Option<BridgeRouteRecord> {
         self.latest_route_by_source_commit
-            .get(source_commit)
+            .get(source_commit.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
 
     pub(crate) fn continuity_record_for_route_identity(
         &self,
-        route_identity: &str,
+        route_identity: &BridgeRouteIdentity,
     ) -> Option<BridgeCanonicalContinuityRecord> {
         self.latest_continuity_by_route_identity
-            .get(route_identity)
+            .get(route_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
 
     pub(crate) fn bulk_record_for_workload_identity(
         &self,
-        workload_identity: &str,
+        workload_identity: &BridgeWorkloadIdentity,
     ) -> Option<BridgeCanonicalBulkPlanRecord> {
         self.latest_bulk_by_workload_identity
-            .get(workload_identity)
+            .get(workload_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
 
     pub(crate) fn merge_record_for_identity(
         &self,
-        record_identity: &str,
+        record_identity: &BridgeMergeRecordIdentity,
     ) -> Option<BridgeCanonicalMergeRecord> {
         self.latest_merge_by_record_identity
-            .get(record_identity)
+            .get(record_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
 
     pub(crate) fn historical_record_for_record_identity(
         &self,
-        record_identity: &str,
+        record_identity: &BridgeHistoricalEvaluationRecordIdentity,
     ) -> Option<BridgeCanonicalHistoricalEvaluationRecord> {
         self.latest_historical_by_record_identity
-            .get(record_identity)
+            .get(record_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
 
     pub(crate) fn historical_record_for_decision_log_identity(
         &self,
-        decision_log_identity: &str,
+        decision_log_identity: &BridgeHistoricalEvaluationDecisionLogIdentity,
     ) -> Option<BridgeCanonicalHistoricalEvaluationRecord> {
         self.latest_historical_by_decision_log_identity
-            .get(decision_log_identity)
+            .get(decision_log_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
 
     pub(crate) fn historical_failure_for_declaration_identity(
         &self,
-        declaration_identity: &str,
+        declaration_identity: &crate::policy::BridgePolicyDeclarationIdentity,
     ) -> Option<BridgeHistoricalEvaluationFailureRecord> {
         self.latest_historical_failure_by_declaration_identity
-            .get(declaration_identity)
+            .get(declaration_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }
@@ -284,10 +284,10 @@ impl BridgeDiagnosticsState {
 
     pub(crate) fn historical_failure_for_identity(
         &self,
-        failure_identity: &str,
+        failure_identity: &BridgeHistoricalEvaluationFailureIdentity,
     ) -> Option<BridgeHistoricalEvaluationFailureRecord> {
         self.latest_historical_failure_by_failure_identity
-            .get(failure_identity)
+            .get(failure_identity.as_str())
             .cloned()
             .map(|record| (*record).clone())
     }

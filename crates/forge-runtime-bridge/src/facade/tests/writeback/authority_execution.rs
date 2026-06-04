@@ -5,24 +5,30 @@ fn runtime_executes_writeback_through_bound_authority() {
     let runtime = runtime_with_writeback_authority(BridgeRuntimePolicy::default());
     let lowered_policy = lowered_policy(&runtime);
     let declaration = writeback_declaration(
-        "writeback:authority-execution",
+        BridgeWritebackDeclarationIdentity::new("writeback:authority-execution"),
         BridgeRequestKind::Authoritative,
         BridgeWritebackRequestMode::WritebackCapable,
-        "strategy:sha256:authority-execution",
+        "authority-execution",
     );
     let contract = runtime
         .admit_writeback_declaration(declaration, &lowered_policy)
         .expect("writeback declaration should admit");
     let effect = runtime.lower_writeback_effect(
         &contract,
-        &causality_basis("causality:authority-execution", "trigger:sha256:commit-a"),
+        &causality_basis(
+            BridgeWritebackCausalityIdentity::new("causality:authority-execution"),
+            "commit-a",
+        ),
         BridgeWritebackEffectIdentity::new("effect:authority-execution"),
-        "effect:sha256:authoritative-upsert",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "authoritative-upsert",
+        ),
     );
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
-        "truth-state:sha256:before",
+        &truth_state_basis(&effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:authority-execution"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
@@ -37,7 +43,7 @@ fn runtime_executes_writeback_through_bound_authority() {
     );
     assert!(receipt
         .authoritative_artifact_digest()
-        .starts_with("authoritative-artifact:truth-writeback-request:sha256:"));
+        .starts_with("truth-writeback-authoritative-artifact:sha256:"));
     assert_eq!(receipt.failure_class(), None);
     assert_eq!(
         outcome
@@ -54,10 +60,10 @@ fn runtime_records_native_writeback_execution_record_on_success() {
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                "writeback:execution-record-success",
+                BridgeWritebackDeclarationIdentity::new("writeback:execution-record-success"),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
-                "strategy:sha256:execution-record-success",
+                "execution-record-success",
             ),
             &lowered_policy,
         )
@@ -65,16 +71,19 @@ fn runtime_records_native_writeback_execution_record_on_success() {
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality_basis(
-            "causality:execution-record-success",
-            "trigger:sha256:commit-a",
+            BridgeWritebackCausalityIdentity::new("causality:execution-record-success"),
+            "commit-a",
         ),
         BridgeWritebackEffectIdentity::new("effect:execution-record-success"),
-        "effect:sha256:execution-record-success",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "execution-record-success",
+        ),
     );
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
-        "truth-state:sha256:execution-record-success",
+        &truth_state_basis(&effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:execution-record-success"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
@@ -88,8 +97,12 @@ fn runtime_records_native_writeback_execution_record_on_success() {
         .expect("runtime should retain a native writeback execution record");
 
     assert_eq!(record.contract_digest(), contract.digest());
-    assert_eq!(record.derived_effect_digest(), effect.digest());
-    assert_eq!(record.proposed_effect_digest(), effect.effect_digest());
+    assert_eq!(record.writeback_effect_artifact_digest(), effect.digest());
+    assert_eq!(record.effect_intent_digest(), effect.effect_intent_digest());
+    assert_eq!(
+        record.effect_intent_patch_canonical_basis(),
+        effect.effect_intent().patch_canonical_basis()
+    );
     assert_eq!(record.causality_digest(), effect.causality_digest());
     assert_eq!(record.outcome_digest(), Some(outcome.digest()));
     assert_eq!(
@@ -98,6 +111,20 @@ fn runtime_records_native_writeback_execution_record_on_success() {
     );
     assert_eq!(record.request_digest(), Some(receipt.request_digest()));
     assert_eq!(record.receipt_digest(), Some(receipt.digest()));
+    assert_eq!(
+        record
+            .authority_request()
+            .expect("execution record should retain authority request")
+            .effect_intent(),
+        effect.effect_intent()
+    );
+    assert_eq!(
+        record
+            .authority_receipt()
+            .expect("execution record should retain authority receipt")
+            .effect_intent(),
+        effect.effect_intent()
+    );
     assert_eq!(record.failure_class(), None);
     assert_eq!(record.counters().writeback_request_count(), 1);
     assert_eq!(record.counters().writeback_commit_count(), 1);
@@ -111,29 +138,32 @@ fn writeback_mutation_authority_bundle_preserves_causality_and_provenance() {
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                "writeback:mutation-authority-bundle",
+                BridgeWritebackDeclarationIdentity::new("writeback:mutation-authority-bundle"),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
-                "strategy:sha256:mutation-authority-bundle",
+                "mutation-authority-bundle",
             ),
             &lowered_policy,
         )
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        "causality:mutation-authority-bundle",
-        "trigger:sha256:mutation-authority-bundle",
+        BridgeWritebackCausalityIdentity::new("causality:mutation-authority-bundle"),
+        "mutation-authority-bundle",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
         BridgeWritebackEffectIdentity::new("effect:mutation-authority-bundle"),
-        "effect:sha256:mutation-authority-bundle",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "mutation-authority-bundle",
+        ),
     );
     let feedback = crate::facade::BridgeWritebackFeedbackProvenance::new(&effect);
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
-        "truth-state:sha256:mutation-authority-bundle",
+        &truth_state_basis(&effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:mutation-authority-bundle"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );
@@ -172,6 +202,22 @@ fn writeback_mutation_authority_bundle_preserves_causality_and_provenance() {
     );
     assert_eq!(bundle.provenance().receipt_digest(), Some(receipt.digest()));
     assert_eq!(
+        bundle
+            .provenance()
+            .authority_request()
+            .expect("mutation provenance should retain authority request")
+            .effect_intent(),
+        effect.effect_intent()
+    );
+    assert_eq!(
+        bundle
+            .provenance()
+            .authority_receipt()
+            .expect("mutation provenance should retain authority receipt")
+            .effect_intent(),
+        effect.effect_intent()
+    );
+    assert_eq!(
         bundle.provenance().outcome_class(),
         Some(crate::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit)
     );
@@ -189,29 +235,32 @@ fn writeback_mutation_provenance_bundle_preserves_rejection_class() {
     let contract = runtime
         .admit_writeback_declaration(
             writeback_declaration(
-                "writeback:mutation-authority-rejection",
+                BridgeWritebackDeclarationIdentity::new("writeback:mutation-authority-rejection"),
                 BridgeRequestKind::Authoritative,
                 BridgeWritebackRequestMode::WritebackCapable,
-                "strategy:sha256:mutation-authority-rejection",
+                "mutation-authority-rejection",
             ),
             &lowered_policy,
         )
         .expect("writeback declaration should admit");
     let causality = causality_basis(
-        "causality:mutation-authority-rejection",
-        "trigger:sha256:mutation-authority-rejection",
+        BridgeWritebackCausalityIdentity::new("causality:mutation-authority-rejection"),
+        "mutation-authority-rejection",
     );
     let effect = runtime.lower_writeback_effect(
         &contract,
         &causality,
         BridgeWritebackEffectIdentity::new("effect:mutation-authority-rejection"),
-        "effect:sha256:mutation-authority-rejection",
+        writeback_effect_intent(
+            BridgeWritebackEffectClass::ProjectedStateDiff,
+            "mutation-authority-rejection",
+        ),
     );
     let feedback = crate::facade::BridgeWritebackFeedbackProvenance::new(&effect);
     let idempotence = runtime.classify_writeback_idempotence(
         &effect,
         &lowered_policy,
-        "truth-state:sha256:mutation-authority-rejection",
+        &truth_state_basis(&effect),
         BridgeWritebackIdempotenceIdentity::new("idempotence:mutation-authority-rejection"),
         BridgeWritebackIdempotenceClass::RequireSemanticNoopSuppression,
     );

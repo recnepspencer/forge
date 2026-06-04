@@ -1,4 +1,4 @@
-﻿use std::sync::Arc;
+use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
@@ -7,8 +7,8 @@ use super::super::{
     BridgeSubscriptionAcknowledgementFrontierIdentity, BridgeSubscriptionBasisIdentity,
     BridgeSubscriptionCounters, BridgeSubscriptionDeliveryDiagnosticsReferenceIdentity,
     BridgeSubscriptionDeliveryFamilyIdentity, BridgeSubscriptionDeliveryFamilyKind,
-    BridgeSubscriptionDeliveryMemberIdentity, BridgeSubscriptionDeliveryWindowIdentity,
-    BridgeSubscriptionDeliveryWindowSealed,
+    BridgeSubscriptionDeliveryMemberIdentity, BridgeSubscriptionDeliveryMemberRecord,
+    BridgeSubscriptionDeliveryWindowIdentity, BridgeSubscriptionDeliveryWindowSealed,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,7 +16,6 @@ pub enum BridgeSubscriptionAcknowledgementFrontierRejectionKind {
     EmptyWindow,
     AcknowledgedSequenceOutOfRange,
     AcknowledgedMemberIdentityMismatch,
-    AcknowledgedMemberDigestMismatch,
     DescriptorOnlyFamilyCannotPublishCanonicalCheckpoint,
 }
 
@@ -26,7 +25,6 @@ impl BridgeSubscriptionAcknowledgementFrontierRejectionKind {
             Self::EmptyWindow => "empty_window",
             Self::AcknowledgedSequenceOutOfRange => "acknowledged_sequence_out_of_range",
             Self::AcknowledgedMemberIdentityMismatch => "acknowledged_member_identity_mismatch",
-            Self::AcknowledgedMemberDigestMismatch => "acknowledged_member_digest_mismatch",
             Self::DescriptorOnlyFamilyCannotPublishCanonicalCheckpoint => {
                 "descriptor_only_family_cannot_publish_canonical_checkpoint"
             }
@@ -96,8 +94,7 @@ impl BridgeSubscriptionAcknowledgementFrontier {
     pub(crate) fn admit(
         sealed_window: &BridgeSubscriptionDeliveryWindowSealed,
         acknowledged_sequence: usize,
-        acknowledged_member_identity: &BridgeSubscriptionDeliveryMemberIdentity,
-        acknowledged_member_digest: &str,
+        acknowledged_member: &BridgeSubscriptionDeliveryMemberRecord,
     ) -> Result<Self, BridgeSubscriptionAcknowledgementFrontierRejection> {
         if matches!(
             sealed_window.delivery_family().family_kind(),
@@ -118,14 +115,9 @@ impl BridgeSubscriptionAcknowledgementFrontier {
                 BridgeSubscriptionAcknowledgementFrontierRejectionKind::AcknowledgedSequenceOutOfRange,
             ));
         };
-        if member.delivery_member_identity() != acknowledged_member_identity {
+        if member.delivery_member_identity() != acknowledged_member.delivery_member_identity() {
             return Err(BridgeSubscriptionAcknowledgementFrontierRejection::new(
                 BridgeSubscriptionAcknowledgementFrontierRejectionKind::AcknowledgedMemberIdentityMismatch,
-            ));
-        }
-        if member.digest() != acknowledged_member_digest {
-            return Err(BridgeSubscriptionAcknowledgementFrontierRejection::new(
-                BridgeSubscriptionAcknowledgementFrontierRejectionKind::AcknowledgedMemberDigestMismatch,
             ));
         }
         let prefix_basis = sealed_window

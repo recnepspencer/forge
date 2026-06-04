@@ -3,24 +3,36 @@ use super::{
     validate_registration_values,
 };
 use crate::mapping::{
-    BridgeAspectRegistration, BridgeAspectRegistrationId, MappingSelector, SliceFallbackPolicy,
-    SubscriptionSliceKind, TruthDeltaSurfaceKind, TruthPatchScope,
+    AspectKeySelector, BridgeAspectRegistration, BridgeAspectRegistrationId, MappingSelector,
+    SliceWideningPolicy, SubscriptionSliceKind, TruthDeltaSurfaceKind, TruthPatchScope,
 };
+use forge_foundational::facade::ScalarAspectType;
 
 fn registration(
     id: &str,
     truth_scope: TruthPatchScope,
     truth_surface_kind: TruthDeltaSurfaceKind,
     subscription_slice_kind: SubscriptionSliceKind,
-    fallback_policy: SliceFallbackPolicy,
+    widening_policy: SliceWideningPolicy,
 ) -> BridgeAspectRegistration {
+    let snapshot_read_contract = declared_read_contract(truth_scope.aspect_selector());
     BridgeAspectRegistration::new(
         BridgeAspectRegistrationId::new(id),
         truth_scope,
+        snapshot_read_contract,
         truth_surface_kind,
         subscription_slice_kind,
-        fallback_policy,
+        widening_policy,
     )
+}
+
+fn declared_read_contract(
+    aspect_selector: &AspectKeySelector,
+) -> crate::snapshot::SnapshotReadContract {
+    let AspectKeySelector::Exact(aspect_key) = aspect_selector else {
+        panic!("aspect registrations must declare an exact aspect read contract")
+    };
+    crate::snapshot::SnapshotReadContract::scalar(aspect_key.clone(), ScalarAspectType::String)
 }
 
 #[test]
@@ -32,10 +44,11 @@ fn freeze_accepts_empty_aspect_registry_for_incremental_rollout() {
 
 #[test]
 fn freeze_rejects_duplicate_registration_ids() {
-    let truth_scope = TruthPatchScope::new(
+    let truth_scope = TruthPatchScope::for_entity_field(
         MappingSelector::exact("user"),
-        MappingSelector::exact("profile"),
-        MappingSelector::exact("name"),
+        forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid native field key"),
     );
     let registrations = vec![
         registration(
@@ -43,14 +56,14 @@ fn freeze_rejects_duplicate_registration_ids() {
             truth_scope.clone(),
             TruthDeltaSurfaceKind::EntityField,
             SubscriptionSliceKind::SignalField,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         ),
         registration(
             "id",
             truth_scope,
             TruthDeltaSurfaceKind::EntityField,
             SubscriptionSliceKind::SignalField,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         ),
     ];
 
@@ -67,25 +80,28 @@ fn freeze_rejects_same_rank_overlap_for_same_surface_kind() {
     let registrations = vec![
         registration(
             "id-a",
-            TruthPatchScope::new(
+            TruthPatchScope::for_target(
                 MappingSelector::exact("user"),
-                MappingSelector::exact("profile"),
-                MappingSelector::any(),
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                crate::facade::TruthPatchTargetSelector::any(),
             ),
             TruthDeltaSurfaceKind::EntityField,
             SubscriptionSliceKind::SignalField,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         ),
         registration(
             "id-b",
-            TruthPatchScope::new(
+            TruthPatchScope::for_entity_field(
                 MappingSelector::exact("user"),
-                MappingSelector::exact("profile"),
-                MappingSelector::exact("name"),
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native field key"),
             ),
             TruthDeltaSurfaceKind::EntityField,
             SubscriptionSliceKind::SignalField,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         ),
     ];
 
@@ -99,10 +115,11 @@ fn freeze_rejects_same_rank_overlap_for_same_surface_kind() {
 
 #[test]
 fn freeze_allows_same_scope_for_different_surface_kinds() {
-    let truth_scope = TruthPatchScope::new(
+    let truth_scope = TruthPatchScope::for_entity_field(
         MappingSelector::exact("user"),
-        MappingSelector::exact("profile"),
-        MappingSelector::exact("name"),
+        forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid native field key"),
     );
     let registrations = vec![
         registration(
@@ -110,14 +127,14 @@ fn freeze_allows_same_scope_for_different_surface_kinds() {
             truth_scope.clone(),
             TruthDeltaSurfaceKind::EntityField,
             SubscriptionSliceKind::SignalField,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         ),
         registration(
             "id-b",
             truth_scope,
             TruthDeltaSurfaceKind::EntityFacet,
             SubscriptionSliceKind::SignalFacet,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         ),
     ];
 
@@ -127,24 +144,25 @@ fn freeze_allows_same_scope_for_different_surface_kinds() {
 }
 
 #[test]
-fn freeze_rejects_invalid_entity_fallback_target() {
+fn freeze_rejects_invalid_entity_widening_target() {
     let registrations = vec![registration(
         "id-a",
-        TruthPatchScope::new(
+        TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::FieldKey::new("name".to_owned())
+                .expect("valid native field key"),
         ),
         TruthDeltaSurfaceKind::EntityField,
         SubscriptionSliceKind::SignalField,
-        SliceFallbackPolicy::RegisteredEntityCoarseFallback,
+        SliceWideningPolicy::RegisteredEntityCoarseWidening,
     )];
 
     let error = crate::mapping::aspects::FrozenAspectMappingRegistry::freeze(registrations)
-        .expect_err("expected invalid fallback target to fail");
+        .expect_err("expected invalid widening target to fail");
     assert_eq!(
         error.kind(),
-        crate::error::BridgeBuildErrorKind::InvalidFineGrainedFallbackPolicy
+        crate::error::BridgeBuildErrorKind::InvalidFineGrainedWideningPolicy
     );
 }
 
@@ -155,60 +173,71 @@ fn freeze_canonicalizes_aspect_registration_order() {
             "id-a",
             TruthPatchScope::new(
                 MappingSelector::exact("user"),
-                MappingSelector::any(),
-                MappingSelector::exact("name"),
+                crate::facade::AspectKeySelector::exact(
+                    forge_foundational::facade::AspectKey::new("profile")
+                        .expect("valid native aspect key"),
+                ),
+                crate::facade::TruthPatchTargetSelector::any(),
             ),
             TruthDeltaSurfaceKind::EntityField,
             SubscriptionSliceKind::SignalField,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         ),
         registration(
             "id-b",
-            TruthPatchScope::new(
+            TruthPatchScope::for_entity_field(
                 MappingSelector::exact("user"),
-                MappingSelector::exact("profile"),
-                MappingSelector::exact("name"),
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native field key"),
             ),
             TruthDeltaSurfaceKind::EntityField,
             SubscriptionSliceKind::SignalField,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         ),
         registration(
             "id-c",
-            TruthPatchScope::new(
+            TruthPatchScope::for_target(
                 MappingSelector::exact("user"),
-                MappingSelector::exact("profile"),
-                MappingSelector::any(),
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                crate::facade::TruthPatchTargetSelector::any(),
             ),
             TruthDeltaSurfaceKind::EntityField,
             SubscriptionSliceKind::SignalField,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         ),
     ];
-    let expected = registrations.clone();
+    let expected = vec![
+        registrations[1].clone(),
+        registrations[0].clone(),
+        registrations[2].clone(),
+    ];
     registrations.sort_by(canonical_aspect_registration_order);
     assert_eq!(registrations, expected);
 }
 
 #[test]
-fn registration_rank_group_defines_fallback_rank() {
+fn registration_rank_group_defines_widening_rank() {
     let registration = registration(
         "id-a",
-        TruthPatchScope::new(
+        TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::FieldKey::new("name".to_owned())
+                .expect("valid native field key"),
         ),
         TruthDeltaSurfaceKind::EntityField,
         SubscriptionSliceKind::SignalField,
-        SliceFallbackPolicy::RegisteredEntityCoarseFallback,
+        SliceWideningPolicy::RegisteredEntityCoarseWidening,
     );
 
     assert_eq!(
         registration_rank_group(&registration),
         (
             TruthDeltaSurfaceKind::EntityField,
-            SliceFallbackPolicy::RegisteredEntityCoarseFallback
+            SliceWideningPolicy::RegisteredEntityCoarseWidening
         )
     );
 }
@@ -217,14 +246,15 @@ fn registration_rank_group_defines_fallback_rank() {
 fn validate_registration_values_rejects_empty_selectors() {
     let registrations = vec![registration(
         "id-a",
-        TruthPatchScope::new(
+        TruthPatchScope::for_entity_field(
             MappingSelector::exact(""),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::FieldKey::new("name".to_owned())
+                .expect("valid native field key"),
         ),
         TruthDeltaSurfaceKind::EntityField,
         SubscriptionSliceKind::SignalField,
-        SliceFallbackPolicy::Disallow,
+        SliceWideningPolicy::Disallow,
     )];
 
     let error =
@@ -239,14 +269,15 @@ fn validate_registration_values_rejects_empty_selectors() {
 fn validate_registration_values_rejects_empty_identity_bearing_fields() {
     let registrations = vec![registration(
         "",
-        TruthPatchScope::new(
+        TruthPatchScope::for_entity_field(
             MappingSelector::exact("user"),
-            MappingSelector::exact("profile"),
-            MappingSelector::exact("name"),
+            forge_foundational::facade::AspectKey::new("profile").expect("valid native aspect key"),
+            forge_foundational::facade::FieldKey::new("name".to_owned())
+                .expect("valid native field key"),
         ),
         TruthDeltaSurfaceKind::EntityField,
         SubscriptionSliceKind::SignalField,
-        SliceFallbackPolicy::Disallow,
+        SliceWideningPolicy::Disallow,
     )];
 
     let error = validate_registration_values(&registrations)
@@ -262,25 +293,29 @@ fn validate_registration_set_rejects_semantic_duplicates() {
     let registrations = vec![
         registration(
             "id-a",
-            TruthPatchScope::new(
+            TruthPatchScope::for_entity_field(
                 MappingSelector::exact("user"),
-                MappingSelector::exact("profile"),
-                MappingSelector::exact("name"),
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native field key"),
             ),
             TruthDeltaSurfaceKind::EntityField,
             SubscriptionSliceKind::SignalField,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         ),
         registration(
             "id-b",
-            TruthPatchScope::new(
+            TruthPatchScope::for_entity_field(
                 MappingSelector::exact("user"),
-                MappingSelector::exact("profile"),
-                MappingSelector::exact("name"),
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native field key"),
             ),
             TruthDeltaSurfaceKind::EntityField,
             SubscriptionSliceKind::SignalField,
-            SliceFallbackPolicy::Disallow,
+            SliceWideningPolicy::Disallow,
         ),
     ];
 

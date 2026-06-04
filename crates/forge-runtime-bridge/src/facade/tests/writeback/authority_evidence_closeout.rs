@@ -1,4 +1,10 @@
-use crate::facade::RuntimeBridge;
+use crate::facade::{
+    BridgeAggregateMutationEvidenceDigest, BridgeAuthorityEvidenceDeferredBoundary,
+    BridgeAuthorityEvidenceReadyCapability, BridgeAuthorityEvidenceVerificationGate,
+    BridgeMutationEvidenceCarryForwardSection, BridgeMutationEvidenceContinuityFamily,
+    BridgeMutationEvidenceExistingTruthBindingFamily, BridgeMutationEvidenceNamingFamily,
+    BridgeMutationEvidenceSymbolicTargetReferenceFamily, RuntimeBridge,
+};
 
 #[test]
 fn bridge_public_authoritative_mutation_evidence_support_freezes_admitted_families() {
@@ -7,30 +13,30 @@ fn bridge_public_authoritative_mutation_evidence_support_freezes_admitted_famili
     assert!(support
         .carry_forward_sections()
         .iter()
-        .any(|item| item == "existing-truth-binding"));
+        .any(|item| item == &BridgeMutationEvidenceCarryForwardSection::ExistingTruthBinding));
     assert_eq!(
         support.existing_truth_binding_families(),
         &[
-            "direct_entity_identity".to_string(),
-            "direct_relation_identity".to_string(),
+            BridgeMutationEvidenceExistingTruthBindingFamily::DirectEntityIdentity,
+            BridgeMutationEvidenceExistingTruthBindingFamily::DirectRelationIdentity,
         ]
     );
     assert_eq!(
         support.symbolic_target_reference_families(),
-        &["same_batch_declared_target".to_string()]
+        &[BridgeMutationEvidenceSymbolicTargetReferenceFamily::SameBatchDeclaredTarget]
     );
     assert!(support
         .naming_mutation_families()
         .iter()
-        .any(|item| item == "rebind_target"));
+        .any(|item| item == &BridgeMutationEvidenceNamingFamily::RebindTarget));
     assert!(support
         .continuity_mutation_families()
         .iter()
-        .any(|item| item == "split_existing_target"));
+        .any(|item| item == &BridgeMutationEvidenceContinuityFamily::SplitExistingTarget));
     assert!(support
-        .aggregate_evidence_sections()
+        .aggregate_evidence_digests()
         .iter()
-        .any(|item| item == "aggregate_continuity_mutation_digest"));
+        .any(|item| item == &BridgeAggregateMutationEvidenceDigest::ContinuityMutation));
     assert!(!support.support_digest().is_empty());
 }
 
@@ -40,21 +46,26 @@ fn bridge_public_authoritative_mutation_evidence_closeout_answers_carry_forward_
     let closeout = RuntimeBridge::public_authoritative_mutation_evidence_closeout();
 
     assert_eq!(closeout.support_digest(), support.support_digest());
+    assert_eq!(
+        closeout.ready_capabilities(),
+        &[
+            BridgeAuthorityEvidenceReadyCapability::QueryFacingContractCarriesTargetCausalityProvenanceNamingContinuity,
+            BridgeAuthorityEvidenceReadyCapability::BatchSessionBundlesPreserveAggregateEvidenceDigests,
+            BridgeAuthorityEvidenceReadyCapability::ReplaySafeRequestReceiptDigestsCarriedForward,
+        ]
+    );
+    assert_eq!(
+        closeout.deferred_boundaries(),
+        &[
+            BridgeAuthorityEvidenceDeferredBoundary::DurableRestartTemporalAsyncAuthorityMutationSemantics,
+            BridgeAuthorityEvidenceDeferredBoundary::UnsupportedMutationFamiliesRemainFailClosed,
+            BridgeAuthorityEvidenceDeferredBoundary::DownstreamDomainsCannotReconstructDroppedCausalityProvenance,
+        ]
+    );
     assert!(closeout
-        .safe_to_build_now()
+        .verification_gates()
         .iter()
-        .any(|line| line.contains("target, causality, provenance, naming, and continuity")));
-    assert!(closeout
-        .must_not_assume_yet()
-        .iter()
-        .any(|line| line.contains("durable restart")));
-    assert!(closeout
-        .must_not_assume_yet()
-        .iter()
-        .any(|line| line.contains("existing-truth binding")));
-    assert!(closeout
-        .required_verification_commands()
-        .iter()
-        .any(|line| line == "cargo test -p forge-runtime-bridge"));
+        .any(|gate| gate
+            == &BridgeAuthorityEvidenceVerificationGate::FocusedRuntimeBridgeWritebackTests));
     assert!(!closeout.closeout_digest().is_empty());
 }

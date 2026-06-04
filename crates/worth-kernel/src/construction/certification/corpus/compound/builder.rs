@@ -26,18 +26,15 @@ use super::rows::{
     PrimitiveConstructionCompoundExhaustionWitnessParityRow,
     PrimitiveConstructionCompoundGrazingBoundaryRow, PrimitiveConstructionCompoundMotionParityRow,
 };
-use crate::construction::prepare_primitive_construction_realization_exhaustion_witness_report;
-use crate::construction::{
-    PrimitiveConstructionResultError, PrimitiveConstructionRuntimeBasisError,
-};
-use crate::facade::PrimitiveConstructionSpatialIntentError;
+use crate::construction::certification::realization::prepare_primitive_construction_realization_exhaustion_witness_report;
+use crate::construction::runtime_basis::PrimitiveConstructionRuntimeBasisError;
+use crate::facade::authoring::construction::PrimitiveConstructionSpatialIntentError;
 
 #[derive(Debug)]
 pub enum PrimitiveConstructionCompoundAdversarialSiegeError {
     Motion(PrimitiveConstructionSpatialIntentError),
     Placement(String),
     RuntimeBasis(PrimitiveConstructionRuntimeBasisError),
-    Result(PrimitiveConstructionResultError),
     ReplayParityDrift(String),
     BranchLocalParityDrift(String),
     InvalidRejectedLocality(String),
@@ -55,7 +52,6 @@ impl std::fmt::Display for PrimitiveConstructionCompoundAdversarialSiegeError {
             Self::Motion(error) => write!(f, "{error}"),
             Self::Placement(error) => write!(f, "{error}"),
             Self::RuntimeBasis(error) => write!(f, "{error}"),
-            Self::Result(error) => write!(f, "{error}"),
             Self::ReplayParityDrift(reason) => write!(f, "{reason}"),
             Self::BranchLocalParityDrift(reason) => write!(f, "{reason}"),
             Self::InvalidRejectedLocality(reason) => write!(f, "{reason}"),

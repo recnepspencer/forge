@@ -9,8 +9,10 @@ use crate::runtime::{
     ForgeQuerySymbolicTargetReferenceEvidence,
 };
 use forge_runtime_bridge::facade::{
-    BridgeContinuityMutationBundle, BridgeContinuityOutcomeClass, BridgeExistingTruthBindingBundle,
-    BridgeNamingMutationBundle, BridgeSymbolicTargetReferenceBundle,
+    BridgeContinuityAuthoritativeIdentity, BridgeContinuityMutationBundle,
+    BridgeContinuityOutcomeClass, BridgeContinuityResolvedTargetIdentity,
+    BridgeContinuityTargetCollection, BridgeExistingTruthBindingBundle, BridgeNamingMutationBundle,
+    BridgeSymbolicTargetReferenceBundle,
 };
 
 #[test]
@@ -93,26 +95,26 @@ fn split_successor_batch_digest_changes_with_successor_set() {
     let left = ForgeQueryContinuityMutationEvidence::from_bridge(
         &BridgeContinuityMutationBundle::split_existing_target(
             BridgeContinuityOutcomeClass::ContinuesAsSplitSuccessors,
-            "authority:task-1",
-            ["authority:task-1:a", "authority:task-1:b"],
-            Some("binding:sha256:task-1"),
-            Some("entity:task-1"),
-            Some("Task"),
-            "lineage:sha256:task-1",
-            "continuity:sha256:task-1:left",
+            continuity_identity("authority:task-1"),
+            [
+                continuity_identity("authority:task-1:a"),
+                continuity_identity("authority:task-1:b"),
+            ],
+            Some(resolved_target("entity:task-1")),
+            Some(target_collection("Task")),
         )
         .expect("left split continuity should build"),
     );
     let right = ForgeQueryContinuityMutationEvidence::from_bridge(
         &BridgeContinuityMutationBundle::split_existing_target(
             BridgeContinuityOutcomeClass::ContinuesAsSplitSuccessors,
-            "authority:task-1",
-            ["authority:task-1:a", "authority:task-1:c"],
-            Some("binding:sha256:task-1"),
-            Some("entity:task-1"),
-            Some("Task"),
-            "lineage:sha256:task-1",
-            "continuity:sha256:task-1:left",
+            continuity_identity("authority:task-1"),
+            [
+                continuity_identity("authority:task-1:a"),
+                continuity_identity("authority:task-1:c"),
+            ],
+            Some(resolved_target("entity:task-1")),
+            Some(target_collection("Task")),
         )
         .expect("right split continuity should build"),
     );
@@ -126,30 +128,30 @@ fn split_successor_batch_digest_changes_with_successor_set() {
 }
 
 #[test]
-fn split_successor_batch_digest_changes_with_binding_basis() {
+fn split_successor_batch_digest_changes_with_resolved_target_identity() {
     let left = ForgeQueryContinuityMutationEvidence::from_bridge(
         &BridgeContinuityMutationBundle::split_existing_target(
             BridgeContinuityOutcomeClass::ContinuesAsSplitSuccessors,
-            "authority:task-1",
-            ["authority:task-1:a", "authority:task-1:b"],
-            Some("binding:sha256:left"),
-            Some("entity:task-1"),
-            Some("Task"),
-            "lineage:sha256:task-1",
-            "continuity:sha256:task-1:left",
+            continuity_identity("authority:task-1"),
+            [
+                continuity_identity("authority:task-1:a"),
+                continuity_identity("authority:task-1:b"),
+            ],
+            Some(resolved_target("entity:task-1:left")),
+            Some(target_collection("Task")),
         )
         .expect("left split continuity should build"),
     );
     let right = ForgeQueryContinuityMutationEvidence::from_bridge(
         &BridgeContinuityMutationBundle::split_existing_target(
             BridgeContinuityOutcomeClass::ContinuesAsSplitSuccessors,
-            "authority:task-1",
-            ["authority:task-1:a", "authority:task-1:b"],
-            Some("binding:sha256:right"),
-            Some("entity:task-1"),
-            Some("Task"),
-            "lineage:sha256:task-1",
-            "continuity:sha256:task-1:left",
+            continuity_identity("authority:task-1"),
+            [
+                continuity_identity("authority:task-1:a"),
+                continuity_identity("authority:task-1:b"),
+            ],
+            Some(resolved_target("entity:task-1:right")),
+            Some(target_collection("Task")),
         )
         .expect("right split continuity should build"),
     );
@@ -167,14 +169,12 @@ fn continuity_batch_digest_changes_with_family() {
     let rebind = ForgeQueryContinuityMutationEvidence::from_bridge(
         &BridgeContinuityMutationBundle::rebind_existing_target(
             BridgeContinuityOutcomeClass::ContinuesAsSingleSuccessor,
-            "authority:task-1",
-            Some("authority:task-1:successor"),
-            Some("binding:sha256:task-1"),
-            Some("entity:task-1"),
-            Some("Task"),
-            "lineage:sha256:task-1",
-            "continuity:sha256:task-1",
-        ),
+            continuity_identity("authority:task-1"),
+            Some(continuity_identity("authority:task-1:successor")),
+            Some(resolved_target("entity:task-1")),
+            Some(target_collection("Task")),
+        )
+        .expect("rebind continuity should build"),
     );
     let split = rebind
         .clone()
@@ -186,6 +186,20 @@ fn continuity_batch_digest_changes_with_family() {
         batch_continuity_mutation_digest(&[Some(split)]).expect("split digest should exist");
 
     assert_ne!(rebind_digest, split_digest);
+}
+
+fn continuity_identity(value: &str) -> BridgeContinuityAuthoritativeIdentity {
+    BridgeContinuityAuthoritativeIdentity::new(value)
+        .expect("test continuity identity should be native")
+}
+
+fn resolved_target(value: &str) -> BridgeContinuityResolvedTargetIdentity {
+    BridgeContinuityResolvedTargetIdentity::new(value)
+        .expect("test resolved target should be native")
+}
+
+fn target_collection(value: &str) -> BridgeContinuityTargetCollection {
+    BridgeContinuityTargetCollection::new(value).expect("test target collection should be native")
 }
 
 #[test]

@@ -1,5 +1,6 @@
+use crate::construction::certification::continuity::PrimitiveConstructionContinuityCase;
+use crate::construction::certification::preview::PrimitiveConstructionPreviewCase;
 use crate::construction::digest::digest_owned_parts;
-use crate::construction::{PrimitiveConstructionContinuityCase, PrimitiveConstructionPreviewCase};
 use std::collections::BTreeSet;
 
 use super::{
@@ -237,7 +238,7 @@ mod tests {
         prepare_primitive_construction_preview_continuity_hostility_suite_report,
         PrimitiveConstructionPreviewContinuityHostilityCase,
     };
-    use crate::construction::PrimitiveConstructionPolicyProfileCase;
+    use crate::construction::certification::profile::PrimitiveConstructionPolicyProfileCase;
 
     #[test]
     fn combined_preview_continuity_hostility_suite_binds_representative_rows() {

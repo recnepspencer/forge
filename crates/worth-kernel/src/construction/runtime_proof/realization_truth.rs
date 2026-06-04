@@ -1,6 +1,7 @@
-use crate::construction::artifact::CanonicalPrimitiveConstructionArtifact;
 use crate::construction::digest::digest_owned_parts;
 use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
+#[cfg(test)]
+use crate::construction::result::PreparedPrimitiveConstructionResult;
 use worth_geom::facade::{
     PrimitiveFeatureConditioningClass, PrimitiveNormalizationDisposition,
     PrimitiveRealizationExhaustionReason, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
@@ -32,14 +33,15 @@ impl PrimitiveConstructionRuntimeRealizationTruth {
         )
     }
 
-    pub(crate) fn from_artifact(artifact: &CanonicalPrimitiveConstructionArtifact) -> Self {
+    #[cfg(test)]
+    pub(crate) fn from_prepared_result(prepared: &PreparedPrimitiveConstructionResult) -> Self {
         Self::new(
-            Some(artifact.realization_strategy()),
-            artifact.attempted_realization_strategies().to_vec(),
-            Some(artifact.stability_class()),
-            Some(artifact.feature_conditioning_class()),
-            Some(artifact.support_normal_class()),
-            Some(artifact.normalization_disposition()),
+            Some(prepared.realization_strategy()),
+            prepared.attempted_realization_strategies().to_vec(),
+            Some(prepared.stability_class()),
+            Some(prepared.feature_conditioning_class()),
+            Some(prepared.support_normal_class()),
+            Some(prepared.normalization_disposition()),
             None,
         )
     }
@@ -90,34 +92,37 @@ impl PrimitiveConstructionRuntimeRealizationTruth {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn selected_strategy(&self) -> Option<PrimitiveRealizationStrategy> {
         self.selected_strategy
     }
 
-    pub(crate) fn attempted_strategy_count(&self) -> usize {
-        self.attempted_strategies.len()
-    }
-
+    #[cfg(test)]
     pub(crate) fn attempted_strategies(&self) -> &[PrimitiveRealizationStrategy] {
         &self.attempted_strategies
     }
 
+    #[cfg(test)]
     pub(crate) fn stability_class(&self) -> Option<PrimitiveStabilityClass> {
         self.stability_class
     }
 
+    #[cfg(test)]
     pub(crate) fn feature_conditioning_class(&self) -> Option<PrimitiveFeatureConditioningClass> {
         self.feature_conditioning_class
     }
 
+    #[cfg(test)]
     pub(crate) fn support_normal_class(&self) -> Option<PrimitiveSupportNormalClass> {
         self.support_normal_class
     }
 
+    #[cfg(test)]
     pub(crate) fn normalization_disposition(&self) -> Option<PrimitiveNormalizationDisposition> {
         self.normalization_disposition
     }
 
+    #[cfg(test)]
     pub(crate) fn exhaustion_reason(&self) -> Option<PrimitiveRealizationExhaustionReason> {
         self.exhaustion_reason
     }

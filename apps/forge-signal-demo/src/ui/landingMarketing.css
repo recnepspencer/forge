@@ -1,0 +1,393 @@
+.xai-carousel-home {
+  position: relative;
+  min-height: calc(100vh - 72px);
+  display: grid;
+  align-items: center;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 28rem),
+    #050608;
+  overflow: hidden;
+}
+
+.xai-card-glow {
+  position: absolute;
+  width: 24rem;
+  height: 24rem;
+  border-radius: 999px;
+  opacity: 0.88;
+  pointer-events: none;
+  filter: blur(78px);
+  z-index: 0;
+}
+
+.xai-card-glow-left {
+  left: -12rem;
+  top: -2.5rem;
+}
+
+.xai-card-glow-right {
+  right: -12rem;
+  top: -2.5rem;
+}
+
+.xai-carousel-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 2.2rem;
+  justify-items: center;
+  width: 100%;
+  padding: 3rem 2rem;
+}
+
+.xai-carousel-title {
+  display: grid;
+  justify-items: center;
+  gap: 1.1rem;
+  text-align: center;
+}
+
+.xai-carousel-title h1 {
+  max-width: 16ch;
+  margin: 0;
+  color: #f5f7fb;
+  font-size: 4rem;
+  font-weight: 660;
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+.xai-carousel-title p,
+.xai-slide-copy p {
+  max-width: 42rem;
+  margin: 0;
+  color: rgba(223, 228, 236, 0.72);
+  line-height: 1.65;
+}
+
+.xai-carousel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.xai-slide-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.xai-carousel-actions .xai-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.xai-slide-actions .xai-button {
+  min-height: 3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.xai-carousel-stage {
+  position: relative;
+  width: min(54rem, 100%);
+  display: grid;
+  place-items: center;
+}
+
+.xai-capability-carousel {
+  --section-accent: #7dc7ff;
+  position: relative;
+  display: grid;
+  width: min(38rem, calc(100% - 7rem));
+  min-height: 31rem;
+  padding: 0;
+  z-index: 2;
+}
+
+.xai-carousel-arrow {
+  display: grid;
+  place-items: center;
+  position: absolute;
+  z-index: 8;
+  top: 50%;
+  width: 3.25rem;
+  height: 3.25rem;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  border-color: color-mix(in srgb, var(--section-accent) 28%, rgba(255, 255, 255, 0.12));
+  background:
+    radial-gradient(circle at 50% 15%, color-mix(in srgb, var(--section-accent) 18%, transparent), transparent 58%),
+    rgba(6, 8, 12, 0.74);
+  color: #f5f7fb;
+  cursor: pointer;
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.11);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.xai-carousel-arrow-left {
+  left: 1.1rem;
+}
+
+.xai-carousel-arrow-right {
+  right: 1.1rem;
+}
+
+.xai-carousel-arrow:hover {
+  border-color: color-mix(in srgb, var(--section-accent) 45%, rgba(255, 255, 255, 0.12));
+  color: color-mix(in srgb, var(--section-accent) 80%, white);
+  transform: translateY(-50%) scale(1.04);
+  box-shadow:
+    0 22px 54px rgba(0, 0, 0, 0.44),
+    0 0 34px color-mix(in srgb, var(--section-accent) 24%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.xai-carousel-window {
+  position: relative;
+  z-index: 1;
+  min-height: 31rem;
+  perspective: 1200px;
+  perspective-origin: center;
+  transform-style: preserve-3d;
+}
+
+.xai-carousel-slide {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  gap: 1.15rem;
+  width: 100%;
+  min-height: 29rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--section-accent) 42%, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--section-accent) 42%, transparent), transparent 15rem),
+    linear-gradient(145deg, color-mix(in srgb, var(--section-accent) 20%, transparent), transparent 52%),
+    rgba(6, 8, 12, 0.98);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--section-accent) 16%, transparent),
+    0 32px 95px rgba(0, 0, 0, 0.46),
+    0 0 70px color-mix(in srgb, var(--section-accent) 18%, transparent);
+  transform-style: preserve-3d;
+  will-change: transform, opacity, filter;
+}
+
+.xai-carousel-slide::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 2px;
+  border-radius: inherit;
+  background:
+    conic-gradient(
+      from var(--carousel-rim-angle),
+      transparent 0deg,
+      color-mix(in srgb, var(--section-accent) 18%, transparent) 58deg,
+      color-mix(in srgb, var(--section-accent) 92%, white) 96deg,
+      color-mix(in srgb, var(--section-accent) 22%, transparent) 138deg,
+      transparent 210deg,
+      color-mix(in srgb, var(--section-accent) 52%, transparent) 286deg,
+      transparent 360deg
+    );
+  opacity: 0.9;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: carousel-card-rim-spin 4200ms linear infinite;
+  pointer-events: none;
+}
+
+.xai-slide-artifact {
+  position: relative;
+  overflow: hidden;
+  min-height: 13rem;
+  padding: 1.1rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--section-accent) 34%, rgba(255, 255, 255, 0.08));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--section-accent) 28%, transparent), transparent 58%),
+    rgba(255, 255, 255, 0.035);
+}
+
+.xai-slide-artifact::before {
+  content: "";
+  position: absolute;
+  inset: 18% 8%;
+  background:
+    linear-gradient(105deg, transparent 8%, color-mix(in srgb, var(--section-accent) 26%, transparent) 48%, transparent 78%),
+    radial-gradient(circle at 26% 58%, color-mix(in srgb, var(--section-accent) 42%, transparent), transparent 26%);
+  filter: blur(18px);
+  opacity: 0.68;
+  animation: value-field-scan 3800ms ease-in-out infinite;
+}
+
+.xai-slide-artifact-form {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.xai-slide-artifact-form::before,
+.xai-slide-artifact-resource::before,
+.xai-slide-artifact-composition::before {
+  content: none;
+}
+
+.xai-slide-artifact-resource {
+  padding: 0.85rem;
+}
+
+.xai-slide-artifact-composition {
+  padding: 0.85rem;
+}
+
+.xai-value-field {
+  position: relative;
+  min-height: 11rem;
+}
+
+.xai-value-token {
+  position: absolute;
+  opacity: calc(0.62 + var(--impact, 0) * 0.38);
+  color: color-mix(in srgb, var(--section-accent) 80%, white);
+  font-family: "Space Mono", "JetBrains Mono", monospace;
+  font-size: clamp(0.9rem, 1.9vw, 1.5rem);
+  letter-spacing: -0.04em;
+  text-shadow:
+    0 0 18px color-mix(in srgb, var(--section-accent) 44%, transparent),
+    0 0 calc(var(--impact, 0) * 34px) color-mix(in srgb, var(--section-accent) 85%, transparent);
+  transform: translate(-50%, -50%) scale(calc(1 + var(--impact, 0) * 0.18));
+  transition:
+    color 180ms ease,
+    opacity 120ms ease,
+    text-shadow 180ms ease;
+  user-select: none;
+}
+
+@keyframes value-field-scan { 0%, 100% { transform: translateX(-10%) scaleX(0.88); opacity: 0.38; } 45% { transform: translateX(8%) scaleX(1.08); opacity: 0.76; } }
+
+.xai-slide-copy {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.xai-slide-copy span {
+  color: color-mix(in srgb, var(--section-accent) 75%, white);
+  font-size: 0.76rem;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.xai-slide-copy h2 {
+  margin: 0;
+  color: #f5f7fb;
+  font-size: 2rem;
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.accent-signals {
+  --section-accent: #7dc7ff;
+}
+
+.accent-forms {
+  --section-accent: #f5b76d;
+}
+
+.accent-router {
+  --section-accent: #c3a5ff;
+}
+
+.accent-resources {
+  --section-accent: #79dfb1;
+}
+
+.accent-composition {
+  --section-accent: #ff9cb7;
+}
+
+@property --carousel-rim-angle { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+
+@keyframes carousel-card-rim-spin { from { --carousel-rim-angle: 0deg; } to { --carousel-rim-angle: 360deg; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .xai-carousel-slide::before {
+    animation: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .xai-carousel-title h1 {
+    max-width: 15ch;
+    font-size: 3.2rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .xai-carousel-home {
+    align-items: start;
+  }
+
+  .xai-carousel-shell {
+    padding: 2rem 1.15rem;
+  }
+
+  .xai-carousel-title h1 {
+    font-size: 2.45rem;
+  }
+
+  .xai-capability-carousel {
+    min-height: auto;
+    width: 100%;
+  }
+
+  .xai-carousel-slide {
+    min-height: 25rem;
+  }
+
+  .xai-carousel-arrow {
+    top: auto;
+    bottom: 1rem;
+    transform: none;
+  }
+
+  .xai-carousel-arrow-left {
+    left: 1rem;
+  }
+
+  .xai-carousel-arrow-right {
+    right: 1rem;
+  }
+
+  .xai-carousel-arrow:hover {
+    transform: scale(1.04);
+  }
+
+  .xai-carousel-actions .xai-button,
+  .xai-slide-actions .xai-button {
+    width: 100%;
+    justify-content: center;
+  }
+}

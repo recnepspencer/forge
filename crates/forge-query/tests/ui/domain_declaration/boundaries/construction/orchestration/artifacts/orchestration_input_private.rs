@@ -1,4 +1,5 @@
 use forge_query::facade::{
+    ForgeQueryAdmittedWorldBasis,
     ForgeQueryDeclarationEntryOrchestrationArtifactPolicy,
     ForgeQueryDeclarationEntryOrchestrationExposureLevel,
     ForgeQueryDeclarationEntryOrchestrationInput, ForgeQueryDomainEntryMarker,
@@ -41,8 +42,7 @@ impl forge_query::facade::ForgeQueryDeclarationFamilyMarker<GeometryDomain> for 
 fn main() {
     let _ = ForgeQueryDeclarationEntryOrchestrationInput::<GeometryDomain, FakeInput> {
         declaration_family_key: "fake",
-        handle_identity_digest: String::new(),
-        operating_context_identity_digest: String::new(),
+        world_basis: unsafe { std::mem::zeroed::<ForgeQueryAdmittedWorldBasis>() },
         exposure_level: ForgeQueryDeclarationEntryOrchestrationExposureLevel::Checked,
         artifact_policy: ForgeQueryDeclarationEntryOrchestrationArtifactPolicy::CheckedOutcomeOnly,
         _marker: std::marker::PhantomData,

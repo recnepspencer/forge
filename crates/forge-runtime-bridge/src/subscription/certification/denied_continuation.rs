@@ -8,7 +8,7 @@ use super::{
     BridgeSubscriptionCertificationComparisonReport,
     BridgeSubscriptionCertificationCounterSnapshot, BridgeSubscriptionCertificationFailureBoundary,
     BridgeSubscriptionCertificationFailurePrecedenceStage,
-    BridgeSubscriptionCertificationReportBundleInput,
+    BridgeSubscriptionCertificationReportBundleScenario,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,11 +29,12 @@ impl BridgeSubscriptionCertificationDeniedContinuationReport {
         let manifest = reference_manifest();
         let admitted = assemble_reference_bundle(
             &manifest,
-            BridgeSubscriptionCertificationReportBundleInput::stable(),
+            BridgeSubscriptionCertificationReportBundleScenario::StableAdmitted,
         );
-        let mut denied_input = BridgeSubscriptionCertificationReportBundleInput::stable();
-        denied_input.continuation_digest = "report-continuation-digest-authority-denied";
-        let denied = assemble_reference_bundle(&manifest, denied_input);
+        let denied = assemble_reference_bundle(
+            &manifest,
+            BridgeSubscriptionCertificationReportBundleScenario::DeniedContinuation,
+        );
         let plan = BridgeSubscriptionCertificationComparisonPlan::admit(
             BridgeSubscriptionCertificationComparisonRelationship::ExpectedRejection,
             Some(BridgeSubscriptionCertificationFailureBoundary::ContinuationDenialOrAmbiguity),

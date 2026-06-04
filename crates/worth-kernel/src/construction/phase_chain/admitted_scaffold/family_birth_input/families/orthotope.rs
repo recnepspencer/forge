@@ -7,7 +7,9 @@ use super::super::scalar_admission::decode_positive_triplet;
 use super::super::topology_counts::PrimitiveConstructionTopologyCounts;
 use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
 use worth_geom::facade::realize_block_support;
-use worth_spatial::facade::{AdmittedSpatialPlacement, PrimitiveConstructionBirthScaffoldInput};
+use worth_primitives::{PrimitiveConstructionFamilyContractRegistry, PrimitiveWitnessDescriptor};
+use worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldInput;
+use worth_spatial::facade::placement::AdmittedSpatialPlacement;
 
 struct AdmittedOrthotopeBirthParameters {
     half_extents: [f64; 3],
@@ -21,15 +23,19 @@ pub(in super::super) fn build_orthotope_birth_input(
     let admitted = admit_orthotope_birth_parameters(half_extents_bits)?;
     let realization =
         realize_block_support([0.0, 0.0, 0.0], admitted.half_extents).map_err(map_geometry)?;
+    let birth_contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+        &PrimitiveWitnessDescriptor::Orthotope,
+    );
     lower_family_birth_scaffold_plan(
         intent_digest,
         placement,
         PrimitiveConstructionBirthScaffoldPlan::from_realized_support(
             PrimitiveConstructionFamily::Orthotope,
+            birth_contract,
             realization.planes().to_vec(),
             orthotope_vertices(admitted.half_extents),
             realization.report().clone(),
-            PrimitiveConstructionTopologyCounts::new(8, 12, 6, 0, 6, 1, 1),
+            PrimitiveConstructionTopologyCounts::from_contract(birth_contract.topology_contract()),
         ),
     )
 }

@@ -29,7 +29,7 @@ pub struct BridgePolicyCounters {
     preview_equivalence_preserved_count: usize,
     policy_source_ambiguity_count: usize,
     substantive_illegality_count: usize,
-    fallback_success_count: usize,
+    authority_escape_count: usize,
     canonical_basis: Arc<str>,
     digest: Arc<str>,
 }
@@ -56,7 +56,7 @@ impl BridgePolicyCounters {
         preview_equivalence_preserved_count: usize,
         policy_source_ambiguity_count: usize,
         substantive_illegality_count: usize,
-        fallback_success_count: usize,
+        authority_escape_count: usize,
     ) -> Self {
         let canonical_basis = Arc::<str>::from(format!(
             concat!(
@@ -67,7 +67,7 @@ impl BridgePolicyCounters {
                 "override-count:{}|ignored-field-count:{}|replay-bundle-count:{}|",
                 "replay-mismatch-count:{}|ambient-policy-leak-count:{}|policy-request-count:{}|truth-view-interleave-count:{}|",
                 "preview-equivalence-preserved-count:{}|policy-source-ambiguity-count:{}|",
-                "substantive-illegality-count:{}|fallback-success-count:{}"
+                "substantive-illegality-count:{}|authority-escape-count:{}"
             ),
             declaration_count,
             declaration_width_count,
@@ -88,7 +88,7 @@ impl BridgePolicyCounters {
             preview_equivalence_preserved_count,
             policy_source_ambiguity_count,
             substantive_illegality_count,
-            fallback_success_count,
+            authority_escape_count,
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
@@ -111,7 +111,7 @@ impl BridgePolicyCounters {
             preview_equivalence_preserved_count,
             policy_source_ambiguity_count,
             substantive_illegality_count,
-            fallback_success_count,
+            authority_escape_count,
             canonical_basis,
             digest: Arc::from(format!("bridge-policy-counters:sha256:{digest:x}")),
         }
@@ -174,8 +174,8 @@ impl BridgePolicyCounters {
     pub fn substantive_illegality_count(&self) -> usize {
         self.substantive_illegality_count
     }
-    pub fn fallback_success_count(&self) -> usize {
-        self.fallback_success_count
+    pub fn authority_escape_count(&self) -> usize {
+        self.authority_escape_count
     }
     pub fn canonical_basis(&self) -> &str {
         self.canonical_basis.as_ref()
@@ -198,7 +198,7 @@ impl BridgePolicyCounters {
         preview_equivalence_preserved_count: usize,
         policy_source_ambiguity_count: usize,
         substantive_illegality_count: usize,
-        fallback_success_count: usize,
+        authority_escape_count: usize,
     ) -> Self {
         let declaration_count = declarations.len();
         let declaration_width_count = declarations
@@ -267,14 +267,14 @@ impl BridgePolicyCounters {
             preview_equivalence_preserved_count,
             policy_source_ambiguity_count,
             substantive_illegality_count,
-            fallback_success_count,
+            authority_escape_count,
         )
     }
 
     pub fn from_rejections(
         declarations: &[&BridgePolicyDeclaration],
         rejections: &[&BridgePolicyRejection],
-        fallback_success_count: usize,
+        authority_escape_count: usize,
     ) -> Self {
         let policy_source_ambiguity_count = rejections
             .iter()
@@ -295,7 +295,7 @@ impl BridgePolicyCounters {
             0,
             policy_source_ambiguity_count,
             rejections.len(),
-            fallback_success_count,
+            authority_escape_count,
         )
     }
 }

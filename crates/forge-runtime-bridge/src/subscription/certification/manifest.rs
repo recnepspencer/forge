@@ -2,15 +2,28 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
+mod workload_ids;
+
+pub use workload_ids::{
+    BridgeSubscriptionReferenceWorkloadComponentId,
+    BridgeSubscriptionReferenceWorkloadComponentIdSet, BridgeSubscriptionReferenceWorkloadLaneId,
+    BridgeSubscriptionReferenceWorkloadLaneIdSet, BridgeSubscriptionReferenceWorkloadProductId,
+    BridgeSubscriptionReferenceWorkloadProductIdSet,
+};
+
 const REQUIRED_PRODUCT_COUNT: usize = 128;
 const REQUIRED_COMPONENTS: [&str; 5] = ["copper", "glass", "labor", "rubber", "steel"];
 
-fn join_arc_str(values: &[Arc<str>]) -> String {
+fn join_workload_ids(values: &[impl AsRef<str>]) -> String {
     values
         .iter()
-        .map(|value| value.as_ref())
+        .map(AsRef::as_ref)
         .collect::<Vec<_>>()
         .join(",")
+}
+
+fn contains_empty_workload_id(values: &[impl AsRef<str>]) -> bool {
+    values.iter().any(|value| value.as_ref().is_empty())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,6 +31,9 @@ pub enum BridgeSubscriptionReferenceWorkloadManifestRejectionKind {
     ProductCountMismatch,
     MissingRequiredComponent,
     EmptyLaneSet,
+    EmptyProductId,
+    EmptyComponentId,
+    EmptyLaneId,
 }
 
 impl BridgeSubscriptionReferenceWorkloadManifestRejectionKind {
@@ -26,6 +42,9 @@ impl BridgeSubscriptionReferenceWorkloadManifestRejectionKind {
             Self::ProductCountMismatch => "product_count_mismatch",
             Self::MissingRequiredComponent => "missing_required_component",
             Self::EmptyLaneSet => "empty_lane_set",
+            Self::EmptyProductId => "empty_product_id",
+            Self::EmptyComponentId => "empty_component_id",
+            Self::EmptyLaneId => "empty_lane_id",
         }
     }
 }
@@ -69,22 +88,22 @@ impl BridgeSubscriptionReferenceWorkloadManifestRejection {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeSubscriptionReferenceWorkloadManifestDraft {
     schema_version: Arc<str>,
-    product_ids: Vec<Arc<str>>,
-    component_ids: Vec<Arc<str>>,
-    lane_ids: Vec<Arc<str>>,
+    product_ids: BridgeSubscriptionReferenceWorkloadProductIdSet,
+    component_ids: BridgeSubscriptionReferenceWorkloadComponentIdSet,
+    lane_ids: BridgeSubscriptionReferenceWorkloadLaneIdSet,
 }
 
 impl BridgeSubscriptionReferenceWorkloadManifestDraft {
     pub(crate) fn new(
-        product_ids: Vec<impl Into<Arc<str>>>,
-        component_ids: Vec<impl Into<Arc<str>>>,
-        lane_ids: Vec<impl Into<Arc<str>>>,
+        product_ids: BridgeSubscriptionReferenceWorkloadProductIdSet,
+        component_ids: BridgeSubscriptionReferenceWorkloadComponentIdSet,
+        lane_ids: BridgeSubscriptionReferenceWorkloadLaneIdSet,
     ) -> Self {
         Self {
             schema_version: Arc::from("subscription-reference-workload-manifest-v1"),
-            product_ids: product_ids.into_iter().map(Into::into).collect(),
-            component_ids: component_ids.into_iter().map(Into::into).collect(),
-            lane_ids: lane_ids.into_iter().map(Into::into).collect(),
+            product_ids,
+            component_ids,
+            lane_ids,
         }
     }
 
@@ -94,18 +113,24 @@ impl BridgeSubscriptionReferenceWorkloadManifestDraft {
         BridgeSubscriptionReferenceWorkloadManifestSealed,
         BridgeSubscriptionReferenceWorkloadManifestRejection,
     > {
-        let mut product_ids = self.product_ids;
-        product_ids.sort();
-        product_ids.dedup();
+        let product_ids = self.product_ids.into_sorted_unique_ids();
+        if contains_empty_workload_id(&product_ids) {
+            return Err(BridgeSubscriptionReferenceWorkloadManifestRejection::new(
+                BridgeSubscriptionReferenceWorkloadManifestRejectionKind::EmptyProductId,
+            ));
+        }
         if product_ids.len() != REQUIRED_PRODUCT_COUNT {
             return Err(BridgeSubscriptionReferenceWorkloadManifestRejection::new(
                 BridgeSubscriptionReferenceWorkloadManifestRejectionKind::ProductCountMismatch,
             ));
         }
 
-        let mut component_ids = self.component_ids;
-        component_ids.sort();
-        component_ids.dedup();
+        let component_ids = self.component_ids.into_sorted_unique_ids();
+        if contains_empty_workload_id(&component_ids) {
+            return Err(BridgeSubscriptionReferenceWorkloadManifestRejection::new(
+                BridgeSubscriptionReferenceWorkloadManifestRejectionKind::EmptyComponentId,
+            ));
+        }
         if REQUIRED_COMPONENTS.iter().any(|required| {
             !component_ids
                 .iter()
@@ -116,9 +141,12 @@ impl BridgeSubscriptionReferenceWorkloadManifestDraft {
             ));
         }
 
-        let mut lane_ids = self.lane_ids;
-        lane_ids.sort();
-        lane_ids.dedup();
+        let lane_ids = self.lane_ids.into_sorted_unique_ids();
+        if contains_empty_workload_id(&lane_ids) {
+            return Err(BridgeSubscriptionReferenceWorkloadManifestRejection::new(
+                BridgeSubscriptionReferenceWorkloadManifestRejectionKind::EmptyLaneId,
+            ));
+        }
         if lane_ids.is_empty() {
             return Err(BridgeSubscriptionReferenceWorkloadManifestRejection::new(
                 BridgeSubscriptionReferenceWorkloadManifestRejectionKind::EmptyLaneSet,
@@ -128,9 +156,9 @@ impl BridgeSubscriptionReferenceWorkloadManifestDraft {
         let canonical_basis = Arc::<str>::from(format!(
             "bridge-subscription-reference-workload-manifest|schema={}|products={}|components={}|lanes={}",
             self.schema_version,
-            join_arc_str(&product_ids),
-            join_arc_str(&component_ids),
-            join_arc_str(&lane_ids),
+            join_workload_ids(&product_ids),
+            join_workload_ids(&component_ids),
+            join_workload_ids(&lane_ids),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(BridgeSubscriptionReferenceWorkloadManifestSealed {
@@ -149,9 +177,9 @@ impl BridgeSubscriptionReferenceWorkloadManifestDraft {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeSubscriptionReferenceWorkloadManifestSealed {
     schema_version: Arc<str>,
-    product_ids: Vec<Arc<str>>,
-    component_ids: Vec<Arc<str>>,
-    lane_ids: Vec<Arc<str>>,
+    product_ids: Vec<BridgeSubscriptionReferenceWorkloadProductId>,
+    component_ids: Vec<BridgeSubscriptionReferenceWorkloadComponentId>,
+    lane_ids: Vec<BridgeSubscriptionReferenceWorkloadLaneId>,
     canonical_basis: Arc<str>,
     digest: Arc<str>,
 }
@@ -161,15 +189,15 @@ impl BridgeSubscriptionReferenceWorkloadManifestSealed {
         self.schema_version.as_ref()
     }
 
-    pub fn product_ids(&self) -> &[Arc<str>] {
+    pub fn product_ids(&self) -> &[BridgeSubscriptionReferenceWorkloadProductId] {
         &self.product_ids
     }
 
-    pub fn component_ids(&self) -> &[Arc<str>] {
+    pub fn component_ids(&self) -> &[BridgeSubscriptionReferenceWorkloadComponentId] {
         &self.component_ids
     }
 
-    pub fn lane_ids(&self) -> &[Arc<str>] {
+    pub fn lane_ids(&self) -> &[BridgeSubscriptionReferenceWorkloadLaneId] {
         &self.lane_ids
     }
 

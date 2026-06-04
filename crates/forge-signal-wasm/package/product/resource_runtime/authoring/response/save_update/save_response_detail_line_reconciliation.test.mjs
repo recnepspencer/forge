@@ -3,6 +3,20 @@ import test from "node:test";
 
 import { createRealRequestRuntime } from "../../../runtime_fixture/real_request_runtime.mjs";
 
+function stripSymbolProperties(value) {
+  if (Array.isArray(value)) {
+    return value.map(stripSymbolProperties);
+  }
+  if (value !== null && typeof value === "object") {
+    const normalized = {};
+    for (const key of Object.keys(value)) {
+      normalized[key] = stripSymbolProperties(value[key]);
+    }
+    return normalized;
+  }
+  return value;
+}
+
 test("save responses can replace a resident detail line through canonical mutation reconciliation", async () => {
   const runtime = await createRealRequestRuntime();
   try {
@@ -46,12 +60,12 @@ test("save responses can replace a resident detail line through canonical mutati
       residentLine.diagnostics().lastEffect.effectId,
     );
     assert.deepEqual(
-      saveLine.diagnostics().lastMutationResponsePlan,
-      plan,
+      stripSymbolProperties(saveLine.diagnostics().lastMutationResponsePlan),
+      stripSymbolProperties(plan),
     );
     assert.deepEqual(
-      saveLine.history().lifecycle.at(-1).mutationResponsePlan,
-      plan,
+      stripSymbolProperties(saveLine.history().lifecycle.at(-1).mutationResponsePlan),
+      stripSymbolProperties(plan),
     );
     assert.equal(
       saveLine.summary().diagnostics.latest.mutationResponsePlanId,

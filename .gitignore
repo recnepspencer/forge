@@ -1,6 +1,10 @@
 # Rust build artifacts
-target/
-target-*/
+/target/
+**/target/
+/target-*/
+**/target-*/
+!crates/forge-runtime-bridge/src/input/envelope/target/
+!crates/forge-runtime-bridge/src/input/envelope/target/native_basis.rs
 
 # AI / agent state
 .gemini/

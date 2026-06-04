@@ -152,7 +152,7 @@ pub struct CausalEvidenceReferenceResolutionCounters {
     index_lookup_count: usize,
     resolved_reference_count: usize,
     missing_required_reference_count: usize,
-    bridge_record_scan_fallback_count: usize,
+    bridge_record_unindexed_scan_count: usize,
     retained_record_scan_count: usize,
     runtime_graph_scan_count: usize,
     counter_snapshot: String,
@@ -175,7 +175,7 @@ impl CausalEvidenceReferenceResolutionCounters {
             format!("index_lookup_count:{index_lookup_count}"),
             format!("resolved_reference_count:{resolved_reference_count}"),
             format!("missing_required_reference_count:{missing_required_reference_count}"),
-            "bridge_record_scan_fallback_count:0".to_string(),
+            "bridge_record_unindexed_scan_count:0".to_string(),
             "retained_record_scan_count:0".to_string(),
             "runtime_graph_scan_count:0".to_string(),
         ]);
@@ -186,7 +186,7 @@ impl CausalEvidenceReferenceResolutionCounters {
             index_lookup_count,
             resolved_reference_count,
             missing_required_reference_count,
-            bridge_record_scan_fallback_count: 0,
+            bridge_record_unindexed_scan_count: 0,
             retained_record_scan_count: 0,
             runtime_graph_scan_count: 0,
             counter_snapshot,
@@ -217,8 +217,8 @@ impl CausalEvidenceReferenceResolutionCounters {
         self.missing_required_reference_count
     }
 
-    pub fn bridge_record_scan_fallback_count(&self) -> usize {
-        self.bridge_record_scan_fallback_count
+    pub fn bridge_record_unindexed_scan_count(&self) -> usize {
+        self.bridge_record_unindexed_scan_count
     }
 
     pub fn retained_record_scan_count(&self) -> usize {

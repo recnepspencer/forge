@@ -2,14 +2,14 @@ use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryWorkspace,
 };
 
-use crate::construction::certification::{
+use crate::construction::certification::arbitration::{
     PrimitiveConstructionChosenIntentResolutionAuthority,
     PrimitiveConstructionChosenIntentResolutionRow,
     PrimitiveConstructionIntentArbitrationConflictClass,
     PrimitiveConstructionIntentArbitrationPolicyRow, PrimitiveConstructionObservedIntentRelation,
 };
 use crate::construction::digest::digest_owned_parts;
-use worth_spatial::facade::{SpatialIntentCandidate, SpatialIntentEscalation};
+use worth_spatial::facade::arbitration::{SpatialIntentCandidate, SpatialIntentEscalation};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionIntentArbitrationQueryInspectionSurface {
@@ -69,14 +69,14 @@ pub enum PrimitiveConstructionIntentChosenTruth {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionQueryIntentArbitrationParityReport {
-    authored_act: worth_spatial::facade::SpatialAuthoredActKind,
+    authored_act: worth_spatial::facade::arbitration::SpatialAuthoredActKind,
     observed_relations: Vec<PrimitiveConstructionObservedIntentRelation>,
     conflict_class: PrimitiveConstructionIntentArbitrationConflictClass,
     escalation: SpatialIntentEscalation,
     candidates: Vec<SpatialIntentCandidate>,
     blocked_candidates: Vec<(
         SpatialIntentCandidate,
-        worth_spatial::facade::SpatialBlockedCapability,
+        worth_spatial::facade::arbitration::SpatialBlockedCapability,
     )>,
     chosen_truth: PrimitiveConstructionIntentChosenTruth,
     query_contract_digest: String,
@@ -177,7 +177,7 @@ impl PrimitiveConstructionQueryIntentArbitrationParityReport {
         })
     }
 
-    pub fn authored_act(&self) -> worth_spatial::facade::SpatialAuthoredActKind {
+    pub fn authored_act(&self) -> worth_spatial::facade::arbitration::SpatialAuthoredActKind {
         self.authored_act
     }
 
@@ -201,7 +201,7 @@ impl PrimitiveConstructionQueryIntentArbitrationParityReport {
         &self,
     ) -> &[(
         SpatialIntentCandidate,
-        worth_spatial::facade::SpatialBlockedCapability,
+        worth_spatial::facade::arbitration::SpatialBlockedCapability,
     )] {
         &self.blocked_candidates
     }
@@ -210,22 +210,8 @@ impl PrimitiveConstructionQueryIntentArbitrationParityReport {
         self.chosen_truth
     }
 
-    pub fn query_contract_digest(&self) -> &str {
-        &self.query_contract_digest
-    }
-
-    pub fn required_query_families(&self) -> &[ForgeQueryRuntimeFacadeFamily] {
-        &self.required_query_families
-    }
-
     pub fn read_surface(&self) -> PrimitiveConstructionIntentArbitrationQueryReadSurface {
         self.read_surface
-    }
-
-    pub fn inspection_surface(
-        &self,
-    ) -> PrimitiveConstructionIntentArbitrationQueryInspectionSurface {
-        self.inspection_surface
     }
 
     pub fn fact_provenance(&self) -> PrimitiveConstructionIntentArbitrationQueryFactProvenance {
@@ -316,16 +302,17 @@ mod tests {
         PrimitiveConstructionIntentArbitrationQueryReadSurface,
         PrimitiveConstructionIntentChosenTruth,
     };
-    use crate::construction::{
+    use crate::construction::certification::arbitration::{
         prepare_primitive_chosen_intent_resolution_report,
         prepare_primitive_intent_arbitration_policy_report,
+        PrimitiveConstructionChosenIntentResolutionAuthority,
         PrimitiveConstructionChosenIntentResolutionCase,
         PrimitiveConstructionIntentArbitrationPolicyCase,
     };
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,
     };
-    use worth_spatial::facade::SpatialIntentCandidate;
+    use worth_spatial::facade::arbitration::SpatialIntentCandidate;
 
     #[test]
     fn query_arbitration_inspection_report_preserves_unresolved_conflict_truth() {
@@ -395,7 +382,7 @@ mod tests {
             report.chosen_truth(),
             PrimitiveConstructionIntentChosenTruth::Resolved {
                 candidate: SpatialIntentCandidate::SnapFlush,
-                authority: crate::construction::PrimitiveConstructionChosenIntentResolutionAuthority::ExplicitChoice,
+                authority: PrimitiveConstructionChosenIntentResolutionAuthority::ExplicitChoice,
             }
         );
         assert!(report.parity_verified());

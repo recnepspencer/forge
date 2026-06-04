@@ -1,6 +1,6 @@
 use forge_foundational::facade::evaluate_boundary_surface_disposition_legality;
 use forge_query::facade::{
-    ForgeQueryCapabilityFamily, ForgeQueryDeclarationCanonicalEntry,
+    ForgeQueryAdmittedWorldBasis, ForgeQueryCapabilityFamily, ForgeQueryDeclarationCanonicalEntry,
     ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationLegalityEvidence,
     ForgeQueryDomainEntryMarker, ForgeQueryNeighborhoodCapableGrouping,
@@ -60,6 +60,7 @@ fn main() {
             fake(),
         )
         .unwrap(),
+        world_basis: unsafe { std::mem::zeroed::<ForgeQueryAdmittedWorldBasis>() },
         legality_digest: String::new(),
     };
 }

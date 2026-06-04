@@ -3,9 +3,13 @@ mod current_basis;
 mod profiles;
 
 pub use canonical::{
-    foundational_transition_canonical_basis_entries, prepare_branch_candidate_for_canonical_basis,
+    foundational_transition_canonical_basis_entries,
+    prepare_admitted_merge_scope_for_canonical_basis, prepare_branch_candidate_for_canonical_basis,
     prepare_commit_receipt_for_canonical_basis, prepare_committed_authority_for_canonical_basis,
-    prepare_merge_verdict_for_canonical_basis, prepare_staged_branch_for_canonical_basis,
+    prepare_merge_scope_for_canonical_basis, prepare_merge_verdict_for_canonical_basis,
+    prepare_scoped_merge_denial_for_canonical_basis,
+    prepare_scoped_merge_unavailable_for_canonical_basis,
+    prepare_staged_branch_for_canonical_basis,
 };
 pub use current_basis::{
     admit_current_basis_commit_receipt, admit_current_basis_committed_authority,

@@ -5,13 +5,27 @@ use crate::adapter::{
     TruthWritebackAuthority, TruthWritebackAuthorityError, TruthWritebackReceipt,
     TruthWritebackRequest,
 };
-use crate::routing::canonicalization::digest_string;
 use crate::writeback::BridgeWritebackOutcomeClass;
 
 #[derive(Debug, Clone, Default)]
 struct RecordingTruthWritebackState {
-    first_commit_by_family_and_causality: BTreeMap<String, String>,
-    request_digests: Vec<String>,
+    first_commit_by_family_and_causality:
+        BTreeMap<RecordingTruthWritebackCommitKey, TruthWritebackReceipt>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct RecordingTruthWritebackCommitKey {
+    family_kind: crate::writeback::BridgeWritebackFamilyKind,
+    causality_digest: Arc<str>,
+}
+
+impl RecordingTruthWritebackCommitKey {
+    fn from_request(request: &TruthWritebackRequest) -> Self {
+        Self {
+            family_kind: request.family_kind(),
+            causality_digest: Arc::from(request.causality_digest()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -38,53 +52,26 @@ impl TruthWritebackAuthority for RecordingTruthWritebackAuthority {
             .state
             .write()
             .expect("writeback authority lock poisoned");
-        state.request_digests.push(request.digest().to_string());
-
-        let authority_key = format!(
-            "family:{:?}|causality={}",
-            request.family_kind(),
-            request.causality_digest()
-        );
+        let commit_key = RecordingTruthWritebackCommitKey::from_request(&request);
 
         if let Some(existing_artifact) = state
             .first_commit_by_family_and_causality
-            .get(authority_key.as_str())
+            .get(&commit_key)
             .cloned()
         {
-            return Ok(TruthWritebackReceipt::new(
-                BridgeWritebackOutcomeClass::CanonicalNoop,
-                existing_artifact,
+            let prior_receipt = existing_artifact;
+            return Ok(TruthWritebackReceipt::canonical_noop_from_prior_receipt(
                 &request,
+                &prior_receipt,
             ));
         }
 
-        let authoritative_artifact_digest = digest_string(
-            "recording-truth-writeback-authority",
-            &format!(
-                "candidate={}|causality={}|effect={}|family:{:?}|effect-class:{:?}|strategy-class:{:?}|mapper-witness={}|loop-prevention={}|loop-disposition:{:?}|strategy-compatibility={}|idempotence={}|idempotence-class:{:?}",
-                request.candidate_digest(),
-                request.causality_digest(),
-                request.proposed_effect_digest(),
-                request.family_kind(),
-                request.effect_class(),
-                request.strategy_class(),
-                request.mapper_witness_digest(),
-                request.loop_prevention_digest(),
-                request.loop_prevention_disposition(),
-                request.strategy_compatibility_digest(),
-                request.idempotence_digest(),
-                request.idempotence_class(),
-            ),
-        )
-        .to_string();
+        let receipt =
+            TruthWritebackReceipt::new(BridgeWritebackOutcomeClass::AuthoritativeCommit, &request);
         state
             .first_commit_by_family_and_causality
-            .insert(authority_key, authoritative_artifact_digest.clone());
+            .insert(commit_key, receipt.clone());
 
-        Ok(TruthWritebackReceipt::new(
-            BridgeWritebackOutcomeClass::AuthoritativeCommit,
-            authoritative_artifact_digest,
-            &request,
-        ))
+        Ok(receipt)
     }
 }

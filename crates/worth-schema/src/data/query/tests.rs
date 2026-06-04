@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use forge_foundational::facade::AspectKey;
 use forge_query::facade::{ForgeQueryComputedBuilder, ForgeQueryLiveViewBuilder};
 
 use crate::facade::platform::aspects::{
@@ -115,7 +116,10 @@ fn query_aspect_families_preserve_domain_boundaries_without_runtime_behavior() {
 #[test]
 fn live_query_declarations_lower_with_owned_vocabularies() {
     let declaration = ForgeQueryLiveViewBuilder::surface(".topology.entities")
-        .grouped_by(QueryAspectPath::TOPOLOGY_BOUNDARY.as_str())
+        .grouped_by(
+            AspectKey::new(QueryAspectPath::TOPOLOGY_BOUNDARY.as_str())
+                .expect("worth schema query paths should be valid native aspect keys"),
+        )
         .select([
             QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
             QueryAspectPath::NAMING_PERSISTENT_NAME.as_str(),

@@ -1,0 +1,295 @@
+.xai-form-cinema {
+  position: relative;
+  min-height: 11rem;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.xai-form-flow-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.xai-form-flow-viewport::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(6, 8, 12, 0.72), transparent 10%, transparent 88%, rgba(6, 8, 12, 0.74));
+}
+
+.xai-form-flow-track {
+  position: absolute;
+  left: 1.6rem;
+  right: 1.6rem;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  gap: 0.68rem;
+  justify-items: stretch;
+  will-change: transform;
+}
+
+.xai-form-input-row,
+.xai-form-upload-button,
+.xai-form-submit {
+  border: 1px solid color-mix(in srgb, var(--section-accent) 48%, rgba(255, 255, 255, 0.22));
+  background: rgba(12, 14, 20, 0.96);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 20px 42px rgba(0, 0, 0, 0.38);
+}
+
+.xai-form-input-row {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0.58rem 0.92rem;
+  border-radius: 17px;
+  transition:
+    border-color 260ms ease,
+    box-shadow 260ms ease;
+}
+
+.xai-form-input-row[data-active="true"] {
+  border-color: color-mix(in srgb, var(--section-accent) 72%, white);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 34px color-mix(in srgb, var(--section-accent) 19%, transparent);
+}
+
+.xai-form-input-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 1.5rem;
+}
+
+.xai-form-placeholder,
+.xai-form-message {
+  position: absolute;
+  left: 0;
+  overflow: hidden;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.xai-form-placeholder {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.68rem;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.xai-form-placeholder[data-hidden="true"] {
+  opacity: 0;
+  transform: translateY(-0.2rem);
+}
+
+.xai-form-message {
+  color: #fff8e8;
+  font-size: 0.76rem;
+  font-weight: 680;
+  letter-spacing: -0.02em;
+}
+
+.xai-form-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.18rem;
+  margin-left: 0.08rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--section-accent) 78%, white);
+  opacity: 0;
+  vertical-align: -0.22rem;
+}
+
+.xai-form-caret[data-visible="true"] {
+  opacity: 1;
+}
+
+.xai-form-upload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 2.46rem;
+  border-radius: 16px;
+  color: #fff8e8;
+  font-size: 0.68rem;
+  font-weight: 740;
+  letter-spacing: -0.02em;
+}
+
+.xai-form-image-picker-icon {
+  position: relative;
+  width: 1.18rem;
+  height: 1rem;
+  overflow: visible;
+  border: 1.5px solid color-mix(in srgb, var(--section-accent) 72%, white);
+  border-radius: 5px;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--section-accent) 18%, transparent);
+}
+
+.xai-form-image-sun,
+.xai-form-image-mountain,
+.xai-form-image-plus {
+  position: absolute;
+  display: block;
+}
+
+.xai-form-image-sun {
+  top: 0.18rem;
+  right: 0.18rem;
+  width: 0.18rem;
+  height: 0.18rem;
+  border-radius: 999px;
+  background: #fff8e8;
+}
+
+.xai-form-image-mountain {
+  right: 0.14rem;
+  bottom: 0.12rem;
+  left: 0.14rem;
+  height: 0.42rem;
+  background: color-mix(in srgb, var(--section-accent) 62%, #fff8e8);
+  clip-path: polygon(0 100%, 33% 28%, 48% 58%, 64% 20%, 100% 100%);
+}
+
+.xai-form-image-plus {
+  right: -0.27rem;
+  bottom: -0.25rem;
+  width: 0.52rem;
+  height: 0.52rem;
+  border: 1px solid rgba(5, 6, 10, 0.92);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--section-accent) 78%, white);
+}
+
+.xai-form-image-plus::before,
+.xai-form-image-plus::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 999px;
+  background: rgba(5, 6, 10, 0.92);
+  transform: translate(-50%, -50%);
+}
+
+.xai-form-image-plus::before {
+  width: 0.28rem;
+  height: 1px;
+}
+
+.xai-form-image-plus::after {
+  width: 1px;
+  height: 0.28rem;
+}
+
+.xai-form-attachment {
+  position: relative;
+  justify-self: end;
+  width: 5.15rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgba(12, 14, 20, 0.92);
+}
+
+.xai-form-attachment img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 1px solid color-mix(in srgb, var(--section-accent) 52%, rgba(255, 255, 255, 0.16));
+  border-radius: inherit;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+  filter: saturate(1.12) contrast(1.04);
+  object-fit: cover;
+}
+
+.xai-form-image-loading,
+.xai-form-spinner {
+  position: absolute;
+  z-index: 1;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 2px solid color-mix(in srgb, var(--section-accent) 26%, transparent);
+  border-top-color: #fff8e8;
+  border-radius: 999px;
+}
+
+.xai-form-image-loading {
+  inset: 0;
+  margin: auto;
+}
+
+.xai-form-submit {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 100%;
+  height: 2.58rem;
+  border-radius: 16px;
+  color: #fff8e8;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--section-accent) 68%, #fff1bf), color-mix(in srgb, var(--section-accent) 42%, #5b310e));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 18px 38px color-mix(in srgb, var(--section-accent) 22%, transparent);
+}
+
+.xai-form-submit-label {
+  font-size: 0.68rem;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.xai-form-submit-label[data-hidden="true"] {
+  opacity: 0;
+  transform: translateX(0.35rem);
+}
+
+.xai-form-spinner,
+.xai-form-sent {
+  position: absolute;
+  opacity: 0;
+}
+
+.xai-form-spinner[data-visible="true"] {
+  opacity: 1;
+  animation: form-spinner-cycle 700ms linear infinite;
+}
+
+.xai-form-sent {
+  width: 0.6rem;
+  height: 1rem;
+  border-right: 2px solid #fff8e8;
+  border-bottom: 2px solid #fff8e8;
+  transform: rotate(45deg) scale(0.72);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.xai-form-sent[data-visible="true"] {
+  opacity: 1;
+  transform: rotate(45deg) scale(1);
+}
+
+@keyframes form-spinner-cycle {
+  to {
+    transform: rotate(360deg);
+  }
+}

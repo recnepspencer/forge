@@ -1,0 +1,93 @@
+use super::mapping_support::{
+    bridge_preview_execution_reference, bridge_route_reference, preview_declaration,
+    query_observation_reference,
+};
+use super::{runtime, BridgeRuntimePolicy};
+use crate::facade::{
+    BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceReferenceIdentity,
+    BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity,
+    BridgeSignalBranchIdentity, BridgeSpeculativeBranchBindingIdentity, TruthBranchIdentity,
+    TruthSnapshotIdentity,
+};
+
+#[test]
+fn causal_envelope_preview_mapping_cost_ignores_unrelated_preview_records() {
+    let mut envelope_identities = Vec::new();
+
+    for unrelated_previews in [0, 3, 9] {
+        let runtime = runtime(BridgeRuntimePolicy::default());
+        for index in 0..unrelated_previews {
+            let admitted = runtime
+                .admit_preview_session(
+                    BridgePreviewSessionIdentity::new(format!("preview-session:noise-{index}")),
+                    preview_declaration(
+                        BridgePreviewSessionDeclarationIdentity::new(format!(
+                            "preview:noise-{index}"
+                        )),
+                        BridgeSpeculativeBranchBindingIdentity::new(format!(
+                            "binding:noise-{index}"
+                        )),
+                        TruthBranchIdentity::new(format!("truth:noise-{index}")),
+                        BridgeSignalBranchIdentity::new(format!("signal:noise-{index}")),
+                        TruthSnapshotIdentity::new(format!("snapshot:noise-{index}")),
+                    ),
+                )
+                .expect("unrelated preview should admit");
+            runtime.activate_preview_session(admitted, 1, 0, 0);
+        }
+        let routed = runtime
+            .route(crate::facade::TruthCommitIdentity::new(
+                "commit-causal-preview-scale",
+            ))
+            .expect("route should succeed");
+        let admitted = runtime
+            .admit_preview_session(
+                BridgePreviewSessionIdentity::new("preview-session:causal-scale"),
+                preview_declaration(
+                    BridgePreviewSessionDeclarationIdentity::new("preview:causal-scale"),
+                    BridgeSpeculativeBranchBindingIdentity::new("binding:causal-scale"),
+                    TruthBranchIdentity::new("truth:causal-scale"),
+                    BridgeSignalBranchIdentity::new("signal:causal-scale"),
+                    TruthSnapshotIdentity::new("snapshot:causal-scale"),
+                ),
+            )
+            .expect("target preview should admit");
+        let (_, execution_record) = runtime.activate_preview_session(admitted, 2, 1, 1);
+        let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
+            crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
+                "query-admission:preview-scale",
+                "causal-anchor:preview-scale",
+            )
+            .expect("query admission summary should be valid"),
+            vec![
+                query_observation_reference(
+                    BridgeCausalEvidenceReferenceIdentity::query_observation(
+                        "query-observation:preview-scale",
+                    )
+                    .expect("query observation reference identity should be valid"),
+                ),
+                bridge_route_reference(routed.result().result_summary()),
+                bridge_preview_execution_reference(&execution_record),
+            ],
+        )
+        .expect("request should be valid");
+
+        let envelope = runtime
+            .diagnostics()
+            .assemble_causal_explanation_envelope(request)
+            .expect("target preview should bind");
+
+        assert_eq!(
+            runtime.diagnostics().preview_execution_records().len(),
+            unrelated_previews + 1
+        );
+        assert_eq!(envelope.counters().bridge_retained_lookup_count(), 2);
+        assert_eq!(envelope.counters().retained_bridge_binding_count(), 2);
+        assert_eq!(envelope.counters().external_authority_reference_count(), 1);
+        assert_eq!(envelope.counters().bridge_record_unindexed_scan_count(), 0);
+        envelope_identities.push(envelope.identity().identity_digest().to_string());
+    }
+
+    assert_eq!(envelope_identities[0], envelope_identities[1]);
+    assert_eq!(envelope_identities[1], envelope_identities[2]);
+}

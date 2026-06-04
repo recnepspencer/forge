@@ -1,7 +1,8 @@
 use forge_proof::{recipe, Recipe, RecipeStageDxExt, RecipeStageKind, Unresolved};
 
 use crate::application::{
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityEvidence, ForgeQueryDomainEntryMarker,
+    ForgeQueryAdmittedWorldBasis, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationLegalityEvidence, ForgeQueryDomainEntryMarker,
 };
 
 use super::payload::ForgeQueryDeclarationProgressionPayload;
@@ -41,11 +42,8 @@ pub(crate) fn forge_query_declaration_progression_recipe<
     I: ForgeQueryDeclarationInput<D>,
 >(
     legality_evidence: ForgeQueryDeclarationLegalityEvidence<D, I>,
-    operating_context_identity_digest: String,
+    world_basis: ForgeQueryAdmittedWorldBasis,
 ) -> ForgeQueryDeclarationProgressionRecipe<D, I> {
-    let payload = ForgeQueryDeclarationProgressionPayload::new(
-        legality_evidence,
-        operating_context_identity_digest,
-    );
+    let payload = ForgeQueryDeclarationProgressionPayload::new(legality_evidence, world_basis);
     ForgeQueryDeclarationProgressionRecipe::new(recipe(payload))
 }

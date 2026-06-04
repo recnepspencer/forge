@@ -1,9 +1,9 @@
 use super::{
     prepare_primitive_construction_preserved_intent_resolution_report,
+    PrimitiveConstructionChosenIntentResolutionAuthority,
     PrimitiveConstructionPreservedIntentResolutionCase, PrimitiveConstructionPreservedIntentTruth,
 };
-use crate::construction::PrimitiveConstructionChosenIntentResolutionAuthority;
-use worth_spatial::facade::{
+use worth_spatial::facade::arbitration::{
     SpatialBlockedCapability, SpatialIntentCandidate, SpatialIntentEscalation,
 };
 

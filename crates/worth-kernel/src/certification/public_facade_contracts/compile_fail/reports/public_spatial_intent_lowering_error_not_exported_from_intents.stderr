@@ -1,0 +1,11 @@
+error[E0432]: unresolved import `worth_kernel::facade::authoring::intents::PrimitiveConstructionSpatialIntentError`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_spatial_intent_lowering_error_not_exported_from_intents.rs:1:5
+  |
+1 | use worth_kernel::facade::authoring::intents::PrimitiveConstructionSpatialIntentError;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionSpatialIntentError` in `facade::authoring::intents`
+  |
+help: consider importing this enum instead
+  |
+1 - use worth_kernel::facade::authoring::intents::PrimitiveConstructionSpatialIntentError;
+1 + use worth_kernel::facade::authoring::construction::PrimitiveConstructionSpatialIntentError;
+  |

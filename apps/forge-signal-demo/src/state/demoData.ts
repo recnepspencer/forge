@@ -2,6 +2,7 @@ export interface DemoMetadata {
   id: number;
   title: string;
   purpose: string;
+  preface: string;
   difficulty: "Beginner" | "Intermediate" | "Advanced";
   primaryMessage: string;
   forgeCode: string;
@@ -18,6 +19,7 @@ export const demoRegistry: DemoMetadata[] = [
     id: 1,
     title: "Local Reactive Signals",
     purpose: "Show the smallest useful Forge primitive and what it gives you for local reactive state.",
+    preface: "This is the spreadsheet version of local state: one source cell changes, and every dependent cell updates from the same graph. Change the title and watch slug, readiness, and output update without separate useMemo wiring or duplicate component state.",
     difficulty: "Beginner",
     primaryMessage: "Forge gives you more structured local reactivity than plain ad-hoc component state.",
     forgeCode: `import { createSignals } from "forge-signal-wasm";
@@ -55,8 +57,79 @@ const status = useMemo(() =>
   },
   {
     id: 2,
+    title: "Resource Lines",
+    purpose: "Show that every resource read materializes as inspectable line truth with value, status, freshness, diagnostics, and history.",
+    preface: "Think of a line like a query result with a black box recorder attached. The catalog line and the selected product detail line are separate reads, so refreshing the list, receiving a backend patch, or invalidating a detail can affect different truth surfaces. Click the line tabs and products, then watch the inspector name the line, latest effect, freshness, and history.",
+    difficulty: "Intermediate",
+    primaryMessage: "Forge resource lines make server truth inspectable before writes enter the story.",
+    forgeCode: `const api = signals.api({
+  baseUrl: "/api",
+  effects: signals.resource.effects.branchNative(),
+});
+
+const productDetail = signals.resource.response.detail<Product>()({
+  status: "status",
+  price: "price",
+  inventory: "inventory",
+});
+
+const products = api
+  .url("/products")
+  .response(signals.resource.response.array<Product>()({
+    id: "id",
+    summary: { total: "total", lowStock: "lowStock" },
+  }))
+  .list({ load: loadProducts });
+
+const product = api
+  .url("/products/:productId")
+  .response(productDetail)
+  .detail({ load: loadProduct });
+
+const catalogLine = products.line({});
+const detailLine = product.line({ productId });
+
+const catalog = useResourceLine(catalogLine, store);
+const detail = useResourceLine(detailLine, store);
+
+console.log(catalog.status().kind);
+console.log(catalog.freshness().kind);
+console.log(catalogLine.diagnostics().lastEffect);
+console.log(catalogLine.history().entries());`,
+    alternativeName: "Generic server-state query",
+    alternativeCode: `const catalog = useQuery({
+  queryKey: ["products"],
+  queryFn: loadProducts,
+});
+
+const detail = useQuery({
+  queryKey: ["product", productId],
+  queryFn: () => loadProduct(productId),
+});
+
+const lineState = {
+  value: catalog.data,
+  status: catalog.status,
+  stale: catalog.isStale,
+  history: appAuthoredHistory,
+  diagnostics: appAuthoredDiagnostics,
+};`,
+    explanationAlternative: "Server-state hooks can fetch the data, but the app usually authors separate conventions for freshness, diagnostics, history, and line identity.",
+    explanationForge: "Forge materializes resource reads as line truth. The line carries value, status, freshness, diagnostics, history, and effect evidence as one runtime-owned object.",
+    whatYouGet: [
+      "Catalog and detail line identities",
+      "Line status and freshness",
+      "Declared response summaries",
+      "Diagnostics and history attached to the line",
+      "Delivery, invalidation, refresh, and rollback surfaces"
+    ],
+    relatedDocsPath: "resources/index"
+  },
+  {
+    id: 3,
     title: "Structured Form Model",
     purpose: "Show what signals.form(...) buys you in a simple but real form.",
+    preface: "This is like React Hook Form plus your query-backed policy checks plus your submit-disable logic, but one controller owns the result. Edit the product fields and watch dirty state, backend-dependent validation, reset posture, and submit readiness move together instead of being recomputed in component glue.",
     difficulty: "Beginner",
     primaryMessage: "Forge forms are not just fields and validation wiring; they expose a full form model.",
     forgeCode: `const articleFields = signals.resource.detailFields({
@@ -115,9 +188,10 @@ const onSubmit = form.handleSubmit(async (values) => {
     relatedDocsPath: "forms/index"
   },
   {
-    id: 3,
+    id: 4,
     title: "Navigation Authority",
     purpose: "Show that Forge routing can drive a real commerce admin with role-based page access, breadcrumb policy, retained history, and replayable session outcomes.",
+    preface: "This is routing as an admission pipeline, not just path matching. Switch roles and choose routes: the router admits, redirects, or denies the browser ingress, warms route-local resources, and records a story you can replay under another role instead of inventing a separate guard/history adapter.",
     difficulty: "Intermediate",
     primaryMessage: "Forge routing owns richer navigation truth than standard route libraries.",
     forgeCode: `const routes = signals.router.define({
@@ -194,11 +268,12 @@ const breadcrumbs = [
     relatedDocsPath: "router/index"
   },
   {
-    id: 4,
-    title: "Resource Line Cache",
-    purpose: "Show what a Forge resource declaration buys you beyond fetch state.",
+    id: 5,
+    title: "Optimistic Resource Writes",
+    purpose: "Show what Forge resources provide when a write changes visible server truth.",
+    preface: "Both sides do the same optimistic add. The TanStack side is the normal callback model: snapshot, patch cache, confirm, rollback, toast. The Forge side treats the optimistic insert as a resource-line effect, so the interesting output is not just whether the mutation succeeded; it is lifecycle, rollback posture, diagnostics, and feedback you can inspect afterward.",
     difficulty: "Intermediate",
-    primaryMessage: "Forge resource lines carry more application semantics than conventional server-state hooks.",
+    primaryMessage: "Forge optimistic writes are branch-native, inspectable, and rollback-aware.",
     forgeCode: `const api = signals.api({ baseUrl: "/api" });
 
 const taskDetail = api.url("/tasks/:taskId").detail({
@@ -231,9 +306,10 @@ const { data, isLoading, refetch } = useQuery({
     relatedDocsPath: "resources/index"
   },
   {
-    id: 5,
+    id: 6,
     title: "Route-Coupled Resource Form",
     purpose: "Show the first stacked composed example linking routes, resources, and forms.",
+    preface: "This is the adapter-tax demo. TanStack, Formik, and a router are not the problem; the problem is the layer you write to translate query status into form status, mutation status into route-leave rules, server results into cache patches, and lifecycle events into toasts. The Forge block shows the same workflow when those contracts already line up.",
     difficulty: "Advanced",
     primaryMessage: "Forge primitives compose into workflows without requiring a separate orchestration layer.",
     forgeCode: `// Combine Routing + Resources + Forms in a single flow
@@ -273,41 +349,5 @@ useEffect(() => {
       "Dynamic route exit validation guards"
     ],
     relatedDocsPath: "forms/route-coupling/route-authority-handoff"
-  },
-  {
-    id: 6,
-    title: "History Branching & Replay",
-    purpose: "Show the most advanced differentiator in the sequence with time travel.",
-    difficulty: "Advanced",
-    primaryMessage: "Forge treats time, history, and revisitation as first-class structured behavior.",
-    forgeCode: `const history = runtime.history();
-
-// Create isolated feature branch for safe prototyping
-const featureBranch = history.createBranch("what-if");
-history.switchBranch(featureBranch.id);
-
-// Edit values safely without mutating the main branch!
-titleInput.set("Prototyped Design");
-
-// Replay history or switch back to main instantly
-history.switchBranch(mainBranch.id);`,
-    alternativeName: "Hand-rolled Undo Redo Reducer",
-    alternativeCode: `// Reducer tracking list arrays of past states
-const undoRedoReducer = (state, action) => {
-  switch (action.type) {
-    case "UNDO":
-      return { ...state, past: state.past.slice(0, -1), current: state.past[state.past.length - 1] };
-    // Extremely complex logic to handle branch forking!
-  }
-};`,
-    explanationAlternative: "Hand-rolled history trackers consume vast memory and lack isolation. Zero capabilities to dry-run or verify conflicts when merging forks.",
-    explanationForge: "Maintains a full timeline registry at the compiler level inside WASM. Easily fork branches, revert history, and generate conflict plans mathematically.",
-    whatYouGet: [
-      "Git-style multi-branch state management",
-      "Interactive time-travel scrubbing",
-      "State diffing and visual conflict mapping",
-      "Verified conflict-free branch merges"
-    ],
-    relatedDocsPath: "resources/branch-native-effects"
   }
 ];

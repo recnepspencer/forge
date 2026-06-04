@@ -1,4 +1,4 @@
-use super::{
+use super::closeout::{
     prepare_primitive_construction_phase_five_boundary_closeout_report,
     PrimitiveConstructionPhaseFiveBoundaryCloseoutKind,
 };
@@ -16,9 +16,7 @@ fn phase_five_boundary_closeout_report_proves_query_native_construction_boundary
         .expect("topology dependency row")
         .verified());
     assert!(report
-        .row_for(
-            PrimitiveConstructionPhaseFiveBoundaryCloseoutKind::SpatialRejectsKernelDependency
-        )
+        .row_for(PrimitiveConstructionPhaseFiveBoundaryCloseoutKind::SpatialRejectsKernelDependency)
         .expect("spatial dependency row")
         .verified());
     assert!(

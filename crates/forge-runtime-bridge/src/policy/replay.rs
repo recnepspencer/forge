@@ -17,26 +17,17 @@ impl BridgePolicyReplayBundle {
         lowered: &super::LoweredBridgeExecutionPolicy,
         provenance: &super::BridgePolicyProvenanceRecord,
     ) -> Self {
-        Self::from_digests(contract.digest(), lowered.digest(), provenance.digest())
-    }
-
-    pub fn from_digests(
-        contract_digest: impl Into<Arc<str>>,
-        lowered_policy_digest: impl Into<Arc<str>>,
-        provenance_digest: impl Into<Arc<str>>,
-    ) -> Self {
-        let contract_digest = contract_digest.into();
-        let lowered_policy_digest = lowered_policy_digest.into();
-        let provenance_digest = provenance_digest.into();
         let canonical_basis = Arc::<str>::from(format!(
             "bridge-policy-replay-bundle|contract={}|lowered={}|provenance={}",
-            contract_digest, lowered_policy_digest, provenance_digest
+            contract.digest(),
+            lowered.digest(),
+            provenance.digest()
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
-            contract_digest,
-            lowered_policy_digest,
-            provenance_digest,
+            contract_digest: Arc::from(contract.digest().to_owned()),
+            lowered_policy_digest: Arc::from(lowered.digest().to_owned()),
+            provenance_digest: Arc::from(provenance.digest().to_owned()),
             canonical_basis,
             digest: Arc::from(format!("bridge-policy-replay-bundle:sha256:{digest:x}")),
         }

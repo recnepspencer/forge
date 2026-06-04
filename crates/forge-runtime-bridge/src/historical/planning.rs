@@ -83,7 +83,7 @@ impl RuntimeBridge {
                 let envelope = self
                     .committed_patch_source
                     .load_committed_patch(RelationalCommittedPatchRequest::new(
-                        commit_identity.as_str(),
+                        commit_identity.clone(),
                     ))
                     .map_err(|error| {
                         BridgeDeliveryError::new(
@@ -127,7 +127,7 @@ impl RuntimeBridge {
     fn authority_basis_from_envelope(
         &self,
         selector: &BridgeTruthViewSelector,
-        envelope: &crate::input::envelope::RawCommittedPatchEnvelope,
+        envelope: &crate::input::envelope::BridgeCommittedPatchEnvelope,
     ) -> Result<BridgeTruthViewAuthorityBasis, BridgeDeliveryError> {
         if envelope.branch_identity() != selector.branch_identity() {
             return Err(BridgeDeliveryError::new(

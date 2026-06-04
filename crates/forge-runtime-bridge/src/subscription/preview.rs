@@ -2,6 +2,13 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 
+mod rejection;
+
+pub use rejection::{
+    BridgeSubscriptionPreviewBasisRejection, BridgeSubscriptionPreviewBasisRejectionContext,
+    BridgeSubscriptionPreviewBasisRejectionKind,
+};
+
 use crate::speculation::{
     BridgePreviewExecutionRecord, BridgePreviewLifecycleStateKind, BridgePreviewSession,
     BridgePreviewSessionIdentity, PreviewActive, PreviewExecutionRecordIdentity,
@@ -17,70 +24,6 @@ use super::{
     BridgeSubscriptionPreviewLifecycleIdentity, BridgeSubscriptionPreviewParentBasisIdentity,
     BridgeSubscriptionPreviewResidueScopeIdentity, BridgeSubscriptionPreviewScopeIdentity,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BridgeSubscriptionPreviewBasisRejectionKind {
-    PreviewExecutionRecordMismatch,
-    PreviewDeclarationDigestMismatch,
-}
-
-impl BridgeSubscriptionPreviewBasisRejectionKind {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::PreviewExecutionRecordMismatch => "preview_execution_record_mismatch",
-            Self::PreviewDeclarationDigestMismatch => "preview_declaration_digest_mismatch",
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BridgeSubscriptionPreviewBasisRejection {
-    rejection_kind: BridgeSubscriptionPreviewBasisRejectionKind,
-    rejection_context: Arc<str>,
-    counters: BridgeSubscriptionCounters,
-    canonical_basis: Arc<str>,
-    digest: Arc<str>,
-}
-
-impl BridgeSubscriptionPreviewBasisRejection {
-    fn new(
-        rejection_kind: BridgeSubscriptionPreviewBasisRejectionKind,
-        rejection_context: impl Into<Arc<str>>,
-    ) -> Self {
-        let rejection_context = rejection_context.into();
-        let canonical_basis = Arc::<str>::from(format!(
-            "bridge-subscription-preview-basis-rejection|kind={}|context={}",
-            rejection_kind.as_str(),
-            rejection_context.as_ref()
-        ));
-        let digest = Sha256::digest(canonical_basis.as_bytes());
-        Self {
-            rejection_kind,
-            rejection_context,
-            counters: BridgeSubscriptionCounters::from_subscription_preview_basis_rejection(),
-            canonical_basis,
-            digest: Arc::from(format!(
-                "bridge-subscription-preview-basis-rejection:sha256:{digest:x}"
-            )),
-        }
-    }
-
-    pub fn rejection_kind(&self) -> BridgeSubscriptionPreviewBasisRejectionKind {
-        self.rejection_kind
-    }
-
-    pub fn rejection_context(&self) -> &str {
-        self.rejection_context.as_ref()
-    }
-
-    pub fn counters(&self) -> &BridgeSubscriptionCounters {
-        &self.counters
-    }
-
-    pub fn digest(&self) -> &str {
-        self.digest.as_ref()
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeSubscriptionPreviewBasisBinding {
@@ -112,11 +55,10 @@ impl BridgeSubscriptionPreviewBasisBinding {
         if preview_execution_record.record_identity() != session_execution_identity {
             return Err(BridgeSubscriptionPreviewBasisRejection::new(
                 BridgeSubscriptionPreviewBasisRejectionKind::PreviewExecutionRecordMismatch,
-                format!(
-                    "session={}|session-execution={}|record={}",
-                    active_preview_session.session_identity().as_str(),
-                    session_execution_identity.as_str(),
-                    preview_execution_record.record_identity().as_str()
+                BridgeSubscriptionPreviewBasisRejectionContext::session_execution_record_mismatch(
+                    active_preview_session.session_identity().clone(),
+                    session_execution_identity.clone(),
+                    preview_execution_record.record_identity().clone(),
                 ),
             ));
         }
@@ -125,11 +67,10 @@ impl BridgeSubscriptionPreviewBasisBinding {
         {
             return Err(BridgeSubscriptionPreviewBasisRejection::new(
                 BridgeSubscriptionPreviewBasisRejectionKind::PreviewExecutionRecordMismatch,
-                format!(
-                    "session={}|record-session={}|record={}",
-                    active_preview_session.session_identity().as_str(),
+                BridgeSubscriptionPreviewBasisRejectionContext::execution_record_session_mismatch(
+                    active_preview_session.session_identity().clone(),
                     preview_execution_record.preview_session_identity(),
-                    preview_execution_record.record_identity().as_str()
+                    preview_execution_record.record_identity().clone(),
                 ),
             ));
         }
@@ -138,11 +79,10 @@ impl BridgeSubscriptionPreviewBasisBinding {
         {
             return Err(BridgeSubscriptionPreviewBasisRejection::new(
                 BridgeSubscriptionPreviewBasisRejectionKind::PreviewDeclarationDigestMismatch,
-                format!(
-                    "session={}|session-declaration={}|record-declaration={}",
-                    active_preview_session.session_identity().as_str(),
+                BridgeSubscriptionPreviewBasisRejectionContext::declaration_digest_mismatch(
+                    active_preview_session.session_identity().clone(),
                     active_preview_session.declaration().digest(),
-                    preview_execution_record.preview_declaration_digest()
+                    preview_execution_record.preview_declaration_digest(),
                 ),
             ));
         }
@@ -158,11 +98,10 @@ impl BridgeSubscriptionPreviewBasisBinding {
         ));
         let preview_scope_digest = Sha256::digest(preview_scope_basis.as_bytes());
         let preview_parent_basis = Arc::<str>::from(format!(
-            "bridge-subscription-preview-parent-basis|truth-branch={}|branch-binding={}|truth-view={}|merge-basis={}|structural-basis={}",
+            "bridge-subscription-preview-parent-basis|truth-branch={}|branch-binding={}|truth-view={}|structural-basis={}",
             declaration.branch_binding().truth_branch_identity().as_str(),
             declaration.branch_binding().digest(),
             declaration.truth_view_basis_digest(),
-            declaration.merge_history_basis_digest().unwrap_or("none"),
             declaration.structural_basis_digest().unwrap_or("none"),
         ));
         let preview_parent_digest = Sha256::digest(preview_parent_basis.as_bytes());

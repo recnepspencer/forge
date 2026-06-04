@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
+use forge_foundational::facade::{AspectKey, ScalarAspectType};
 use forge_relational::facade::history::BranchId;
 use forge_runtime_bridge::facade::{
-    BridgeDeliveryReceipt, BridgeSignalInvalidationDelivery, BridgeTruthViewEvaluationRequest,
-    InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity,
+    AspectKeySelector, BridgeDeliveryReceipt, BridgeSignalInvalidationDelivery,
+    BridgeTruthViewEvaluationRequest, InvalidationSink, SignalBridgeSinkError,
+    SnapshotReadContract, TruthBranchIdentity, TruthCommitIdentity, TruthPatchTargetSelector,
 };
 use schema::facade::platform::authority::{
     milestone_two_invalidation_declarations, DerivedInvalidationTarget, DerivedTruthSurfaceKind,
@@ -44,17 +46,21 @@ fn milestone_one_bridge_registration_packs_cover_topology_and_naming_aspects() {
             registration.mapping_id().as_str() == format!(":m2:{}", declaration.declaration_id)
                 && registration.signal_scope().as_str() == declaration.target.bridge_scope()
                 && registration.truth_scope().aspect_selector()
-                    == &forge_runtime_bridge::facade::MappingSelector::exact(
-                        declaration.truth_patch_field,
-                    )
+                    == &native_aspect_selector(declaration.truth_patch_field)
+                && registration.truth_scope().target_selector()
+                    == &native_target_selector(declaration.truth_surface_kind)
+                && registration.snapshot_read_contract()
+                    == &native_snapshot_read_contract(declaration.truth_patch_field)
         }));
         assert!(aspects.iter().any(|registration| {
             registration.registration_id().as_str()
                 == format!(":m2:aspect:{}", declaration.declaration_id)
                 && registration.truth_scope().aspect_selector()
-                    == &forge_runtime_bridge::facade::MappingSelector::exact(
-                        declaration.truth_patch_field,
-                    )
+                    == &native_aspect_selector(declaration.truth_patch_field)
+                && registration.truth_scope().target_selector()
+                    == &native_target_selector(declaration.truth_surface_kind)
+                && registration.snapshot_read_contract()
+                    == &native_snapshot_read_contract(declaration.truth_patch_field)
                 && registration.truth_surface_kind() == match declaration.truth_surface_kind {
                     DerivedTruthSurfaceKind::EntityField => {
                         forge_runtime_bridge::facade::TruthDeltaSurfaceKind::EntityField
@@ -64,6 +70,40 @@ fn milestone_one_bridge_registration_packs_cover_topology_and_naming_aspects() {
                     }
                 }
         }));
+    }
+}
+
+fn native_aspect_selector(aspect: &str) -> AspectKeySelector {
+    AspectKeySelector::exact(native_aspect_key(aspect))
+}
+
+fn native_snapshot_read_contract(aspect: &str) -> SnapshotReadContract {
+    SnapshotReadContract::scalar(native_aspect_key(aspect), native_scalar_type(aspect))
+}
+
+fn native_aspect_key(aspect: &str) -> AspectKey {
+    AspectKey::new(aspect).expect("worth schema declarations use native aspect keys")
+}
+
+fn native_scalar_type(aspect: &str) -> ScalarAspectType {
+    match aspect {
+        "source"
+        | "target"
+        | "naming.source_identity"
+        | "naming.target_identity"
+        | "topology.ownership"
+        | "topology.boundary"
+        | "topology.radial" => ScalarAspectType::EntityRef,
+        _ => ScalarAspectType::String,
+    }
+}
+
+fn native_target_selector(truth_surface_kind: DerivedTruthSurfaceKind) -> TruthPatchTargetSelector {
+    match truth_surface_kind {
+        DerivedTruthSurfaceKind::EntityField => TruthPatchTargetSelector::region(),
+        DerivedTruthSurfaceKind::EntityRelationEndpoint => {
+            TruthPatchTargetSelector::relation_endpoint()
+        }
     }
 }
 
@@ -115,7 +155,10 @@ fn milestone_one_bridge_routes_and_evaluates_seeded_commit() {
         .expect(" bridge should build");
 
     let route = bridge
-        .route(format!("commit-{}", head_commit_id.0))
+        .route(TruthCommitIdentity::new(format!(
+            "commit-{}",
+            head_commit_id.0
+        )))
         .expect(" bridge should route a seeded commit");
     let evaluation = bridge
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
@@ -152,7 +195,10 @@ fn bridge_trace_anchor_tracks_real_runtime_diagnostics() {
     let bridge = build_milestone_one_bridge(Arc::clone(&runtime), RecordingSink)
         .expect(" bridge should build");
     let _route = bridge
-        .route(format!("commit-{}", head_commit_id.0))
+        .route(TruthCommitIdentity::new(format!(
+            "commit-{}",
+            head_commit_id.0
+        )))
         .expect(" bridge should route a seeded commit");
     let _evaluation = bridge
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(

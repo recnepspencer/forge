@@ -6,6 +6,9 @@ use crate::error::BridgeSpeculationError;
 use crate::identity::{BridgeIdentity, PreviewSessionDeclarationIdentityTag};
 
 use super::binding::BridgeSpeculativeBranchBinding;
+use super::declaration_basis::{
+    BridgePreviewRequestShapeBasis, BridgePreviewSessionBasis, BridgePreviewStructuralBasis,
+};
 use super::validation::ValidatedBridgePreviewSessionDeclaration;
 use super::BridgeRequestKind;
 
@@ -17,8 +20,10 @@ pub struct BridgePreviewSessionDeclaration {
     declaration_identity: BridgePreviewSessionDeclarationIdentity,
     request_kind: BridgeRequestKind,
     branch_binding: BridgeSpeculativeBranchBinding,
+    session_basis: BridgePreviewSessionBasis,
+    request_shape_basis: BridgePreviewRequestShapeBasis,
+    structural_basis: Option<BridgePreviewStructuralBasis>,
     truth_view_basis_digest: Arc<str>,
-    merge_history_basis_digest: Option<Arc<str>>,
     structural_basis_digest: Option<Arc<str>>,
     source_capability_digest: Arc<str>,
     request_shape_digest: Arc<str>,
@@ -32,55 +37,24 @@ impl BridgePreviewSessionDeclaration {
         declaration_identity: BridgePreviewSessionDeclarationIdentity,
         request_kind: BridgeRequestKind,
         branch_binding: BridgeSpeculativeBranchBinding,
-        truth_view_basis_digest: impl Into<Arc<str>>,
-        source_capability_digest: impl Into<Arc<str>>,
-        request_shape_digest: impl Into<Arc<str>>,
-        retained_artifact_schema_digest: impl Into<Arc<str>>,
+        session_basis: BridgePreviewSessionBasis,
     ) -> Self {
         Self::from_parts(
             declaration_identity,
             request_kind,
             branch_binding,
-            truth_view_basis_digest.into(),
+            session_basis,
             None,
-            None,
-            source_capability_digest.into(),
-            request_shape_digest.into(),
-            retained_artifact_schema_digest.into(),
         )
     }
 
-    pub fn with_merge_history_basis_digest(
-        self,
-        merge_history_basis_digest: impl Into<Arc<str>>,
-    ) -> Self {
+    pub fn with_structural_basis(self, structural_basis: BridgePreviewStructuralBasis) -> Self {
         Self::from_parts(
             self.declaration_identity,
             self.request_kind,
             self.branch_binding,
-            self.truth_view_basis_digest,
-            Some(merge_history_basis_digest.into()),
-            self.structural_basis_digest,
-            self.source_capability_digest,
-            self.request_shape_digest,
-            self.retained_artifact_schema_digest,
-        )
-    }
-
-    pub fn with_structural_basis_digest(
-        self,
-        structural_basis_digest: impl Into<Arc<str>>,
-    ) -> Self {
-        Self::from_parts(
-            self.declaration_identity,
-            self.request_kind,
-            self.branch_binding,
-            self.truth_view_basis_digest,
-            self.merge_history_basis_digest,
-            Some(structural_basis_digest.into()),
-            self.source_capability_digest,
-            self.request_shape_digest,
-            self.retained_artifact_schema_digest,
+            self.session_basis,
+            Some(structural_basis),
         )
     }
 
@@ -88,22 +62,27 @@ impl BridgePreviewSessionDeclaration {
         declaration_identity: BridgePreviewSessionDeclarationIdentity,
         request_kind: BridgeRequestKind,
         branch_binding: BridgeSpeculativeBranchBinding,
-        truth_view_basis_digest: Arc<str>,
-        merge_history_basis_digest: Option<Arc<str>>,
-        structural_basis_digest: Option<Arc<str>>,
-        source_capability_digest: Arc<str>,
-        request_shape_digest: Arc<str>,
-        retained_artifact_schema_digest: Arc<str>,
+        session_basis: BridgePreviewSessionBasis,
+        structural_basis: Option<BridgePreviewStructuralBasis>,
     ) -> Self {
+        let request_shape_basis = BridgePreviewRequestShapeBasis::from_request_kind(request_kind);
+        let truth_view_basis_digest = Arc::<str>::from(session_basis.truth_view_basis_digest());
+        let structural_basis_digest = structural_basis
+            .as_ref()
+            .map(|basis| Arc::<str>::from(basis.digest()));
+        let source_capability_digest = Arc::<str>::from(session_basis.source_capability_digest());
+        let request_shape_digest = Arc::<str>::from(request_shape_basis.digest());
+        let retained_artifact_schema_digest =
+            Arc::<str>::from(session_basis.retained_artifact_schema_digest());
         let canonical_basis = Arc::<str>::from(format!(
-            "preview-session-declaration|id={}|request-kind:{request_kind:?}|binding={}|truth-view={}|merge-basis={}|structural-basis={}|source-capability={}|request-shape={}|artifact-schema={}",
+            "preview-session-declaration|id={}|request-kind:{request_kind:?}|binding={}|truth-view={}|structural-basis={}|source-capability={}|request-shape={}|request-shape-basis={}|artifact-schema={}",
             declaration_identity.as_str(),
             branch_binding.digest(),
             truth_view_basis_digest.as_ref(),
-            merge_history_basis_digest.as_deref().unwrap_or("none"),
             structural_basis_digest.as_deref().unwrap_or("none"),
             source_capability_digest.as_ref(),
             request_shape_digest.as_ref(),
+            request_shape_basis.canonical_basis(),
             retained_artifact_schema_digest.as_ref(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
@@ -112,8 +91,10 @@ impl BridgePreviewSessionDeclaration {
             declaration_identity,
             request_kind,
             branch_binding,
+            session_basis,
+            request_shape_basis,
+            structural_basis,
             truth_view_basis_digest,
-            merge_history_basis_digest,
             structural_basis_digest,
             source_capability_digest,
             request_shape_digest,
@@ -145,12 +126,16 @@ impl BridgePreviewSessionDeclaration {
         self.truth_view_basis_digest.as_ref()
     }
 
-    pub fn merge_history_basis_digest(&self) -> Option<&str> {
-        self.merge_history_basis_digest.as_deref()
-    }
-
     pub fn structural_basis_digest(&self) -> Option<&str> {
         self.structural_basis_digest.as_deref()
+    }
+
+    pub fn session_basis(&self) -> &BridgePreviewSessionBasis {
+        &self.session_basis
+    }
+
+    pub fn structural_basis(&self) -> Option<&BridgePreviewStructuralBasis> {
+        self.structural_basis.as_ref()
     }
 
     pub fn source_capability_digest(&self) -> &str {
@@ -177,12 +162,26 @@ impl BridgePreviewSessionDeclaration {
 #[cfg(test)]
 mod tests {
     use crate::input::envelope::TruthBranchIdentity;
+    use crate::snapshot::{BridgeTruthViewSelector, TruthSnapshotIdentity};
+    use crate::source::{BridgeSourceCapability, BridgeSourceCapabilitySet};
     use crate::speculation::{BridgeSignalBranchIdentity, BridgeSpeculativeBranchBindingIdentity};
 
-    use super::{
+    use crate::speculation::{
+        BridgePreviewRetainedArtifactSchema, BridgePreviewSessionBasis,
         BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
         BridgeRequestKind, BridgeSpeculativeBranchBinding,
     };
+
+    fn preview_session_basis() -> BridgePreviewSessionBasis {
+        BridgePreviewSessionBasis::new(
+            BridgeTruthViewSelector::committed_snapshot(
+                TruthBranchIdentity::new("truth-branch"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+            ),
+            BridgeSourceCapabilitySet::new(vec![BridgeSourceCapability::SnapshotRead]),
+            BridgePreviewRetainedArtifactSchema::PreviewLifecycleArtifactsV1,
+        )
+    }
 
     #[test]
     fn declaration_digest_is_stable_for_same_inputs() {
@@ -194,10 +193,7 @@ mod tests {
                 TruthBranchIdentity::new("truth-branch"),
                 BridgeSignalBranchIdentity::new("signal-branch"),
             ),
-            "truth-view-digest",
-            "source-capability-digest",
-            "request-shape-digest",
-            "artifact-schema-digest",
+            preview_session_basis(),
         );
         let right = BridgePreviewSessionDeclaration::new(
             BridgePreviewSessionDeclarationIdentity::new("preview-declaration"),
@@ -207,10 +203,7 @@ mod tests {
                 TruthBranchIdentity::new("truth-branch"),
                 BridgeSignalBranchIdentity::new("signal-branch"),
             ),
-            "truth-view-digest",
-            "source-capability-digest",
-            "request-shape-digest",
-            "artifact-schema-digest",
+            preview_session_basis(),
         );
 
         assert_eq!(left, right);

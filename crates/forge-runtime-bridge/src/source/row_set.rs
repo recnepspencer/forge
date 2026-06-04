@@ -1,11 +1,18 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use forge_foundational::facade::AspectValue;
-use sha2::{Digest, Sha256};
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectKey, AspectLocator, AspectMask, ContractValidatedAspectArtifact,
+    ProjectionMask,
+};
 
-use super::aspect_values::{canonical_aspect_value_text, decode_snapshot_aspect_bytes};
-use crate::snapshot::MaterializedTruthViewObservation;
+use crate::snapshot::{
+    contract_validated_scalar_aspect_value, BridgeSnapshotReadError,
+    MaterializedTruthViewObservation, SnapshotReadTarget,
+};
+
+mod digest_basis;
+mod native_projection_basis;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct BridgeRowIdentity(Arc<str>);
@@ -21,22 +28,132 @@ impl BridgeRowIdentity {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct BridgeMaterializedFieldValue(AspectValue);
+pub struct BridgeMaterializedFieldProjection {
+    aspect_locator: AspectLocator,
+    field_locator: Option<AspectFieldLocator>,
+    projection_mask: AspectMask<ProjectionMask>,
+    field_identity: BridgeMaterializedFieldIdentity,
+    canonical_basis: Arc<str>,
+}
 
-impl BridgeMaterializedFieldValue {
-    pub fn value(&self) -> &AspectValue {
-        &self.0
+impl BridgeMaterializedFieldProjection {
+    fn from_snapshot_target(target: &SnapshotReadTarget) -> Self {
+        let locator_basis = native_projection_basis::row_field_projection_locator_canonical_basis(
+            target.aspect_locator(),
+            target.field_locator().cloned(),
+        );
+        let mask_basis = native_projection_basis::row_field_projection_mask_canonical_basis(
+            target.aspect_locator(),
+            target.projection_mask(),
+        );
+        let field_identity = BridgeMaterializedFieldIdentity::from_native_projection_basis(
+            &locator_basis,
+            &mask_basis,
+        );
+        let canonical_basis =
+            native_projection_basis::materialized_field_projection_canonical_basis(
+                &locator_basis,
+                &mask_basis,
+                &field_identity,
+            );
+        Self {
+            aspect_locator: target.aspect_locator().clone(),
+            field_locator: target.field_locator().cloned(),
+            projection_mask: target.projection_mask().clone(),
+            field_identity,
+            canonical_basis: canonical_basis.into(),
+        }
     }
 
-    fn new(value: AspectValue) -> Self {
-        Self(value)
+    pub fn aspect_key(&self) -> &AspectKey {
+        self.aspect_locator.aspect_key()
+    }
+
+    pub fn aspect_locator(&self) -> &AspectLocator {
+        &self.aspect_locator
+    }
+
+    pub fn field_locator(&self) -> Option<&AspectFieldLocator> {
+        self.field_locator.as_ref()
+    }
+
+    pub fn projection_mask(&self) -> &AspectMask<ProjectionMask> {
+        &self.projection_mask
+    }
+
+    pub fn field_identity(&self) -> &BridgeMaterializedFieldIdentity {
+        &self.field_identity
+    }
+
+    pub fn canonical_basis(&self) -> &str {
+        self.canonical_basis.as_ref()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct BridgeMaterializedFieldIdentity(Arc<str>);
+
+impl BridgeMaterializedFieldIdentity {
+    pub fn as_str(&self) -> &str {
+        self.0.as_ref()
+    }
+
+    fn from_native_projection_basis(
+        locator_basis: &forge_foundational::facade::CanonicalBasisReadyArtifact,
+        mask_basis: &forge_foundational::facade::CanonicalBasisReadyArtifact,
+    ) -> Self {
+        native_projection_basis::row_field_projection_identity_from_basis(locator_basis, mask_basis)
+    }
+
+    fn new(value: impl Into<Arc<str>>) -> Self {
+        Self(value.into())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct BridgeMaterializedFieldValue {
+    projection: BridgeMaterializedFieldProjection,
+    validated_value: ContractValidatedAspectArtifact,
+    validated_value_canonical_basis: Arc<str>,
+}
+
+impl BridgeMaterializedFieldValue {
+    pub fn projection(&self) -> &BridgeMaterializedFieldProjection {
+        &self.projection
+    }
+
+    pub fn scalar_value(&self) -> Option<&forge_foundational::facade::AspectValue> {
+        contract_validated_scalar_aspect_value(&self.validated_value)
+    }
+
+    pub fn validated_value(&self) -> &ContractValidatedAspectArtifact {
+        &self.validated_value
+    }
+
+    pub fn validated_value_canonical_basis(&self) -> &str {
+        self.validated_value_canonical_basis.as_ref()
+    }
+
+    fn from_validated_record(
+        projection: BridgeMaterializedFieldProjection,
+        record: &crate::snapshot::ValidatedSnapshotReadRecord,
+    ) -> Self {
+        let validated_value_canonical_basis =
+            crate::snapshot::validated_value_basis::validated_snapshot_read_value_canonical_basis(
+                record.validated_value(),
+            );
+        Self {
+            projection,
+            validated_value: record.validated_value().clone(),
+            validated_value_canonical_basis: validated_value_canonical_basis.into(),
+        }
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BridgeMaterializedRowArtifact {
     row_identity: BridgeRowIdentity,
-    fields: BTreeMap<Arc<str>, BridgeMaterializedFieldValue>,
+    fields: BTreeMap<BridgeMaterializedFieldIdentity, BridgeMaterializedFieldValue>,
 }
 
 impl BridgeMaterializedRowArtifact {
@@ -44,8 +161,21 @@ impl BridgeMaterializedRowArtifact {
         &self.row_identity
     }
 
-    pub fn fields(&self) -> &BTreeMap<Arc<str>, BridgeMaterializedFieldValue> {
+    pub fn fields(
+        &self,
+    ) -> &BTreeMap<BridgeMaterializedFieldIdentity, BridgeMaterializedFieldValue> {
         &self.fields
+    }
+
+    pub(crate) fn whole_aspect_fields_for_key<'a>(
+        &'a self,
+        aspect_key: &'a AspectKey,
+    ) -> impl Iterator<Item = &'a BridgeMaterializedFieldValue> + 'a {
+        self.fields().values().filter(move |field| {
+            field.projection().aspect_key() == aspect_key
+                && field.projection().field_locator().is_none()
+                && field.projection().projection_mask().is_whole_aspect()
+        })
     }
 }
 
@@ -55,12 +185,6 @@ pub struct BridgeMaterializedRowSetDigest(Arc<str>);
 impl BridgeMaterializedRowSetDigest {
     pub fn as_str(&self) -> &str {
         self.0.as_ref()
-    }
-
-    fn new(parts: &[String]) -> Self {
-        let canonical = parts.join("|");
-        let digest = Sha256::digest(canonical.as_bytes());
-        Self(Arc::from(format!("bridge-row-set:sha256:{digest:x}")))
     }
 }
 
@@ -92,7 +216,13 @@ impl BridgeMaterializedRowSetArtifact {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BridgeRowSetMaterializationError {
-    AspectBytesDecodeFailure { request_key: String },
+    SnapshotReadContractFailure {
+        error: BridgeSnapshotReadError,
+    },
+    DuplicateMaterializedField {
+        row_identity: String,
+        field_identity: String,
+    },
 }
 
 pub fn materialize_bridge_row_set(
@@ -100,9 +230,11 @@ pub fn materialize_bridge_row_set(
 ) -> Result<BridgeMaterializedRowSetArtifact, BridgeRowSetMaterializationError> {
     let result = observation
         .read_planned_packet()
-        .expect("validated read packet should remain valid during materialization");
-    let mut rows: BTreeMap<Arc<str>, BTreeMap<Arc<str>, BridgeMaterializedFieldValue>> =
-        BTreeMap::new();
+        .map_err(|error| BridgeRowSetMaterializationError::SnapshotReadContractFailure { error })?;
+    let mut rows: BTreeMap<
+        Arc<str>,
+        BTreeMap<BridgeMaterializedFieldIdentity, BridgeMaterializedFieldValue>,
+    > = BTreeMap::new();
 
     for (read, record) in observation
         .read_packet()
@@ -110,17 +242,25 @@ pub fn materialize_bridge_row_set(
         .iter()
         .zip(result.records().iter())
     {
-        let value = decode_snapshot_aspect_bytes(record.aspect_bytes()).map_err(|_| {
-            BridgeRowSetMaterializationError::AspectBytesDecodeFailure {
-                request_key: record.request_key().to_string(),
-            }
-        })?;
-        rows.entry(Arc::from(read.entity_identity()))
-            .or_default()
+        let row_identity = Arc::from(read.entity_identity());
+        let field_projection =
+            BridgeMaterializedFieldProjection::from_snapshot_target(read.target());
+        let field_identity = field_projection.field_identity().clone();
+        let row_fields = rows.entry(Arc::clone(&row_identity)).or_default();
+        if row_fields
             .insert(
-                Arc::from(read.aspect_label()),
-                BridgeMaterializedFieldValue::new(value),
+                field_identity.clone(),
+                BridgeMaterializedFieldValue::from_validated_record(field_projection, record),
+            )
+            .is_some()
+        {
+            return Err(
+                BridgeRowSetMaterializationError::DuplicateMaterializedField {
+                    row_identity: row_identity.to_string(),
+                    field_identity: field_identity.as_str().to_string(),
+                },
             );
+        }
     }
 
     let rows = rows
@@ -131,143 +271,18 @@ pub fn materialize_bridge_row_set(
         })
         .collect::<Vec<_>>();
 
-    let mut digest_parts = vec![
-        format!("planned:{}", observation.planned().digest()),
-        format!("snapshot:{}", result.snapshot_identity().as_str()),
-    ];
-    for row in &rows {
-        digest_parts.push(format!("row:{}", row.row_identity().as_str()));
-        for (field, value) in row.fields() {
-            digest_parts.push(format!(
-                "field:{}={}",
-                field,
-                canonical_aspect_value_text(value.value())
-            ));
-        }
-    }
-
     Ok(BridgeMaterializedRowSetArtifact {
         truth_view_digest: Arc::from(observation.planned().digest().to_string()),
         basis_snapshot_identity: result.snapshot_identity().clone(),
+        digest: digest_basis::row_set_digest_from_materialized_rows(
+            observation.planned().digest(),
+            result.snapshot_identity(),
+            &rows,
+        ),
         rows,
-        digest: BridgeMaterializedRowSetDigest::new(&digest_parts),
     })
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::diagnostics::BridgeHistoricalMaterializationPath;
-    use crate::input::envelope::{TruthBranchIdentity, TruthCommitIdentity};
-    use crate::policy::BridgeDiagnosticsTier;
-    use crate::snapshot::{
-        AdmittedSnapshotContext, BridgeDeliveryIntent, BridgeReplayMode, BridgeSnapshotContext,
-        BridgeSnapshotToken, BridgeTruthViewAuthorityBasis, BridgeTruthViewSelector,
-        HistoricalEvaluationDeclaration, PlannedTruthViewPacket, ResolvedTruthViewPolicy,
-        SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRequest, TruthSnapshotIdentity,
-        TruthSnapshotReader, TruthViewReplayCompatibility, TruthViewRetentionAdmission,
-        TruthViewSourceCapability,
-    };
-
-    use super::materialize_bridge_row_set;
-
-    #[derive(Debug)]
-    struct FixtureReader;
-
-    impl TruthSnapshotReader for FixtureReader {
-        fn snapshot_identity(&self) -> TruthSnapshotIdentity {
-            TruthSnapshotIdentity::new("snapshot-a")
-        }
-
-        fn read_packet(
-            &self,
-            request: &SnapshotReadPacket,
-        ) -> Result<SnapshotReadPacketResult, crate::snapshot::BridgeSnapshotReadError> {
-            let records = request
-                .reads()
-                .iter()
-                .map(|read| {
-                    let aspect_bytes = match (read.entity_identity(), read.aspect_label()) {
-                        ("entity-1", "identity.id") => b"task-1".to_vec(),
-                        ("entity-1", "status") => b"todo".to_vec(),
-                        ("entity-2", "identity.id") => b"task-2".to_vec(),
-                        ("entity-2", "status") => b"doing".to_vec(),
-                        _ => b"unknown".to_vec(),
-                    };
-                    crate::snapshot::SnapshotReadRecord::new(read.request_key(), aspect_bytes)
-                })
-                .collect();
-            Ok(SnapshotReadPacketResult::new(
-                TruthSnapshotIdentity::new("snapshot-a"),
-                records,
-            ))
-        }
-    }
-
-    fn observation() -> crate::snapshot::MaterializedTruthViewObservation {
-        let declaration = HistoricalEvaluationDeclaration::new(
-            BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::new("analysis"),
-                TruthCommitIdentity::new("commit-a"),
-            ),
-            BridgeReplayMode::Disabled,
-            BridgeDiagnosticsTier::Standard,
-            BridgeDeliveryIntent::PrepareSignalEvaluation,
-        );
-        let packet = PlannedTruthViewPacket::new(
-            declaration.clone(),
-            ResolvedTruthViewPolicy::admitted(
-                &declaration,
-                TruthViewRetentionAdmission::HistoricalLookupRequired,
-                TruthViewSourceCapability::HistoricalLookupAndSnapshotRead,
-                TruthViewReplayCompatibility::ReplayPermitted,
-            ),
-            BridgeTruthViewAuthorityBasis::from_resolved_envelope(
-                declaration.selector(),
-                TruthCommitIdentity::new("commit-a"),
-                TruthSnapshotIdentity::new("snapshot-a"),
-            ),
-            SnapshotReadPacket::new(vec![
-                SnapshotReadRequest::for_coarse(
-                    "entity-1",
-                    forge_foundational::facade::AspectKey::new("identity.id")
-                        .expect("valid snapshot aspect key"),
-                ),
-                SnapshotReadRequest::for_coarse(
-                    "entity-1",
-                    forge_foundational::facade::AspectKey::new("status")
-                        .expect("valid snapshot aspect key"),
-                ),
-                SnapshotReadRequest::for_coarse(
-                    "entity-2",
-                    forge_foundational::facade::AspectKey::new("identity.id")
-                        .expect("valid snapshot aspect key"),
-                ),
-                SnapshotReadRequest::for_coarse(
-                    "entity-2",
-                    forge_foundational::facade::AspectKey::new("status")
-                        .expect("valid snapshot aspect key"),
-                ),
-            ]),
-        );
-        let snapshot =
-            BridgeSnapshotContext::bind(Box::new(FixtureReader) as Box<dyn TruthSnapshotReader>);
-        let admitted =
-            AdmittedSnapshotContext::admit_for(snapshot, &TruthSnapshotIdentity::new("snapshot-a"))
-                .expect("snapshot should admit");
-        crate::snapshot::MaterializedTruthViewObservation::new(
-            packet,
-            BridgeSnapshotToken::issued(TruthSnapshotIdentity::new("snapshot-a"), "row-set-test"),
-            BridgeHistoricalMaterializationPath::CommitEnvelopeSnapshot,
-            admitted,
-        )
-    }
-
-    #[test]
-    fn bridge_row_set_preserves_multi_row_truth() {
-        let row_set = materialize_bridge_row_set(&observation()).expect("row set");
-
-        assert_eq!(row_set.rows().len(), 2);
-        assert_eq!(row_set.rows()[0].row_identity().as_str(), "entity-1");
-        assert_eq!(row_set.rows()[1].row_identity().as_str(), "entity-2");
-    }
-}
+#[path = "row_set_tests.rs"]
+mod tests;

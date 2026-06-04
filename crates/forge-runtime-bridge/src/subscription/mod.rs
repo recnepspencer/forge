@@ -67,8 +67,8 @@ pub use certification::{
     BridgeSubscriptionCertificationInspection,
     BridgeSubscriptionCertificationMultiFailurePrecedenceReport,
     BridgeSubscriptionCertificationOrderingHostilityReport,
-    BridgeSubscriptionCertificationSchemaCompatibilityReport,
-    BridgeSubscriptionCertificationScratch, BridgeSubscriptionCertificationSemanticDigests,
+    BridgeSubscriptionCertificationSchemaParityReport, BridgeSubscriptionCertificationScratch,
+    BridgeSubscriptionCertificationSemanticDigests,
     BridgeSubscriptionCertificationSemanticSourceDigest,
     BridgeSubscriptionCertificationSemanticSourceDigestSet,
     BridgeSubscriptionCertificationSemanticSourceKind,
@@ -77,20 +77,24 @@ pub use certification::{
     BridgeSubscriptionOfflineAuditBundleIndex, BridgeSubscriptionOfflineAuditOutcome,
     BridgeSubscriptionOfflineAuditOutcomeSummary, BridgeSubscriptionOfflineAuditPlan,
     BridgeSubscriptionOfflineAuditPlanRejection, BridgeSubscriptionOfflineAuditPlanRejectionKind,
-    BridgeSubscriptionOfflineAuditReport, BridgeSubscriptionReferenceWorkloadCoverageReport,
+    BridgeSubscriptionOfflineAuditReport, BridgeSubscriptionReferenceWorkloadComponentId,
+    BridgeSubscriptionReferenceWorkloadComponentIdSet,
+    BridgeSubscriptionReferenceWorkloadCoverageReport,
     BridgeSubscriptionReferenceWorkloadFamilyKind, BridgeSubscriptionReferenceWorkloadInspection,
     BridgeSubscriptionReferenceWorkloadLaneCoverageRole,
-    BridgeSubscriptionReferenceWorkloadLaneCoverageRow,
-    BridgeSubscriptionReferenceWorkloadLaneKind, BridgeSubscriptionReferenceWorkloadLaneReport,
-    BridgeSubscriptionReferenceWorkloadLaneRequest,
+    BridgeSubscriptionReferenceWorkloadLaneCoverageRow, BridgeSubscriptionReferenceWorkloadLaneId,
+    BridgeSubscriptionReferenceWorkloadLaneIdSet, BridgeSubscriptionReferenceWorkloadLaneKind,
+    BridgeSubscriptionReferenceWorkloadLaneReport, BridgeSubscriptionReferenceWorkloadLaneRequest,
     BridgeSubscriptionReferenceWorkloadManifestDraft,
     BridgeSubscriptionReferenceWorkloadManifestRejection,
     BridgeSubscriptionReferenceWorkloadManifestRejectionKind,
     BridgeSubscriptionReferenceWorkloadManifestSealed,
+    BridgeSubscriptionReferenceWorkloadProductId, BridgeSubscriptionReferenceWorkloadProductIdSet,
     BridgeSubscriptionReferenceWorkloadRejection, BridgeSubscriptionReferenceWorkloadRejectionKind,
-    BridgeSubscriptionReferenceWorkloadReport, BridgeSubscriptionSourceArtifactIndex,
-    BridgeSubscriptionSourceArtifactInput, BridgeSubscriptionSourceArtifactKind,
-    BridgeSubscriptionSourceArtifactRecord,
+    BridgeSubscriptionReferenceWorkloadReport, BridgeSubscriptionSourceArtifactEvidence,
+    BridgeSubscriptionSourceArtifactIndex, BridgeSubscriptionSourceArtifactInput,
+    BridgeSubscriptionSourceArtifactKind, BridgeSubscriptionSourceArtifactRecord,
+    BridgeSubscriptionSourceArtifactRole, BridgeSubscriptionSourceArtifactScenario,
 };
 pub use checkpoint::{
     BridgeSubscriptionAcknowledgementFrontier, BridgeSubscriptionAcknowledgementFrontierRejection,
@@ -114,6 +118,9 @@ pub use continuation::{
     BridgeSubscriptionContinuationRejection, BridgeSubscriptionContinuationRejectionKind,
 };
 pub use counters::BridgeSubscriptionCounters;
+pub(crate) use declaration::{
+    subscription_slice_target_identity, BridgeSubscriptionSliceTargetIdentity,
+};
 pub use declaration::{
     BridgeSubscriptionDeclaration, BridgeSubscriptionDeliveryIntentClass,
     NormalizedSubscriptionSliceIntent, NormalizedSubscriptionSliceIntentError,
@@ -131,7 +138,7 @@ pub use declaration_identity::{
     BridgeSubscriptionContinuationChildIdentity, BridgeSubscriptionContinuationDecisionIdentity,
     BridgeSubscriptionContinuationIndexIdentity, BridgeSubscriptionDeclarationFamilyIdentity,
     BridgeSubscriptionDeclarationIdentity, BridgeSubscriptionDeliveryBufferLifecycleIdentity,
-    BridgeSubscriptionDeliveryCostProfileIdentity,
+    BridgeSubscriptionDeliveryContentDigest, BridgeSubscriptionDeliveryCostProfileIdentity,
     BridgeSubscriptionDeliveryDiagnosticsReferenceIdentity,
     BridgeSubscriptionDeliveryFamilyIdentity, BridgeSubscriptionDeliveryMemberIdentity,
     BridgeSubscriptionDeliveryReplayPlanIdentity,
@@ -161,9 +168,9 @@ pub use delivery_cost::{
 };
 pub use delivery_family::{BridgeSubscriptionDeliveryFamily, BridgeSubscriptionDeliveryFamilyKind};
 pub use delivery_record::{
+    BridgeSubscriptionDeliveryContentOmissionReason,
     BridgeSubscriptionDeliveryDiagnosticsReference, BridgeSubscriptionDeliveryMemberClass,
     BridgeSubscriptionDeliveryMemberInput, BridgeSubscriptionDeliveryMemberRecord,
-    BridgeSubscriptionPayloadOmissionReason,
 };
 pub use diagnostics::{
     BridgeSubscriptionExplanation, BridgeSubscriptionPreviewPromotionExplanation,
@@ -190,12 +197,14 @@ pub use lifecycle::{
 };
 pub use preview::{
     BridgePreviewActiveSubscription, BridgeSubscriptionPreviewBasisBinding,
-    BridgeSubscriptionPreviewBasisRejection, BridgeSubscriptionPreviewBasisRejectionKind,
+    BridgeSubscriptionPreviewBasisRejection, BridgeSubscriptionPreviewBasisRejectionContext,
+    BridgeSubscriptionPreviewBasisRejectionKind,
 };
 pub use preview_work::{
-    BridgeSubscriptionPreviewWorkInput, BridgeSubscriptionPreviewWorkKind,
-    BridgeSubscriptionPreviewWorkRecord, BridgeSubscriptionPreviewWorkTrace,
-    BridgeSubscriptionPreviewWorkTraceRejection, BridgeSubscriptionPreviewWorkTraceRejectionKind,
+    BridgeSubscriptionPreviewWorkEvidence, BridgeSubscriptionPreviewWorkInput,
+    BridgeSubscriptionPreviewWorkKind, BridgeSubscriptionPreviewWorkRecord,
+    BridgeSubscriptionPreviewWorkTrace, BridgeSubscriptionPreviewWorkTraceRejection,
+    BridgeSubscriptionPreviewWorkTraceRejectionKind,
 };
 pub use promotion::{
     BridgeSubscriptionPreviewPromotionOutcomeClass, BridgeSubscriptionPreviewPromotionRecord,
@@ -210,9 +219,11 @@ pub use replay::{
 };
 pub use residue::{
     BridgeSubscriptionPreviewDiscardResidueProof, BridgeSubscriptionPreviewDiscardResidueRejection,
+    BridgeSubscriptionPreviewDiscardResidueRejectionContext,
     BridgeSubscriptionPreviewDiscardResidueRejectionKind,
     BridgeSubscriptionPreviewResidueArtifactInput, BridgeSubscriptionPreviewResidueArtifactRecord,
-    BridgeSubscriptionPreviewResidueCategory, BridgeSubscriptionPreviewResidueScopeIndex,
+    BridgeSubscriptionPreviewResidueCategory, BridgeSubscriptionPreviewResidueCategoryCount,
+    BridgeSubscriptionPreviewResidueScopeIndex,
 };
 pub use resume::{
     BridgeSubscriptionResumeAdmission, BridgeSubscriptionResumeAdmissionRejection,

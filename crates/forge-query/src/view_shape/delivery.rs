@@ -1,3 +1,5 @@
+use forge_foundational::facade::AspectKey;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ViewShapeInvalidationPosture {
     OrderedCollectionMembershipAndOrdering,
@@ -45,7 +47,7 @@ impl ViewShapePatchPosture {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ViewShapeDeliveryMetadata {
     focus_aspect: Option<String>,
-    grouping_aspect: Option<String>,
+    grouping_aspect: Option<AspectKey>,
     identity_consumption: ViewShapeIdentityConsumption,
     projection_legality_matches_detail: bool,
     delivery_width_narrowed: bool,
@@ -55,7 +57,7 @@ pub struct ViewShapeDeliveryMetadata {
 impl ViewShapeDeliveryMetadata {
     pub(crate) fn new(
         focus_aspect: Option<String>,
-        grouping_aspect: Option<String>,
+        grouping_aspect: Option<AspectKey>,
         identity_consumption: ViewShapeIdentityConsumption,
         projection_legality_matches_detail: bool,
         delivery_width_narrowed: bool,
@@ -76,7 +78,11 @@ impl ViewShapeDeliveryMetadata {
     }
 
     pub fn grouping_aspect(&self) -> Option<&str> {
-        self.grouping_aspect.as_deref()
+        self.grouping_aspect.as_ref().map(AspectKey::as_str)
+    }
+
+    pub fn native_grouping_aspect_key(&self) -> Option<&AspectKey> {
+        self.grouping_aspect.as_ref()
     }
 
     pub fn identity_consumption(&self) -> &ViewShapeIdentityConsumption {

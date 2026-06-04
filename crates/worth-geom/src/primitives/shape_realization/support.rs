@@ -111,6 +111,8 @@ pub(super) fn escalated_realization(
         attempted_strategies,
         PrimitiveStabilityClass::StableAfterEscalation,
         conditioning_witness_with_normalization(&points, &planes, normalization_scale, true),
+        &points,
+        &planes,
     );
     PrimitiveSupportRealization::new(planes, report)
 }

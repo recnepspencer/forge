@@ -1,7 +1,10 @@
+use forge_foundational::facade::AspectKey;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryResultBindingProof {
     source_aspect: String,
     source_field: String,
+    binding_aspect_key: AspectKey,
     binding_index: usize,
 }
 
@@ -19,18 +22,26 @@ impl QueryResultBindingProof {
     }
 
     pub fn field_key(&self) -> String {
-        format!("{}.{}", self.source_aspect, self.source_field)
+        self.binding_aspect_key.as_str().to_string()
+    }
+
+    pub fn native_binding_aspect_key(&self) -> &AspectKey {
+        &self.binding_aspect_key
     }
 
     pub(crate) fn new(
         source_aspect: impl Into<String>,
         source_field: impl Into<String>,
         binding_index: usize,
-    ) -> Self {
-        Self {
-            source_aspect: source_aspect.into(),
-            source_field: source_field.into(),
+    ) -> Option<Self> {
+        let source_aspect = source_aspect.into();
+        let source_field = source_field.into();
+        let binding_aspect_key = AspectKey::new(format!("{source_aspect}.{source_field}"))?;
+        Some(Self {
+            source_aspect,
+            source_field,
+            binding_aspect_key,
             binding_index,
-        }
+        })
     }
 }

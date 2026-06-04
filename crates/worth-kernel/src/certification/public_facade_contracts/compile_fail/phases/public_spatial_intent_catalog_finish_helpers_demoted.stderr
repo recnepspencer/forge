@@ -1,0 +1,13 @@
+error[E0624]: method `finish_with_catalog` is private
+  --> src/certification/public_facade_contracts/compile_fail/phases/public_spatial_intent_catalog_finish_helpers_demoted.rs:10:6
+   |
+10 |       .finish_with_catalog(catalog);
+   |        ^^^^^^^^^^^^^^^^^^^ private method
+   |
+  ::: src/spatial_intent/lowering/mod.rs
+   |
+   | /     pub(crate) fn finish_with_catalog(
+   | |         self,
+   | |         catalog: &impl SpatialWitnessCatalog,
+   | |     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
+   | |_____________________________________________________________________________________- private method defined here

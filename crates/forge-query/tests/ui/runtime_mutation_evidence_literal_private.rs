@@ -25,8 +25,9 @@ fn main() {
     };
     let _ = ForgeQueryMutationProvenanceEvidence {
         contract_digest: String::new(),
-        derived_effect_digest: String::new(),
-        proposed_effect_digest: String::new(),
+        writeback_effect_artifact_digest: String::new(),
+        effect_intent_digest: String::new(),
+        effect_intent_patch_canonical_basis: String::new(),
         feedback_provenance_digest: String::new(),
         causality_digest: String::new(),
         strategy_descriptor_digest: String::new(),

@@ -63,32 +63,9 @@ fn mapping_registry_digest(registry: &FrozenMappingRegistry) -> Arc<str> {
     );
     for registration in registry.registrations() {
         basis.push_str("|registration=");
-        basis.push_str(registration.mapping_id().as_str());
-        basis.push(':');
-        basis.push_str(selector_label(registration.truth_scope().entity_selector()).as_ref());
-        basis.push(':');
-        basis.push_str(selector_label(registration.truth_scope().aspect_selector()).as_ref());
-        basis.push(':');
-        basis.push_str(selector_label(registration.truth_scope().surface_selector()).as_ref());
-        basis.push(':');
-        basis.push_str(registration.signal_scope().as_str());
-        basis.push(':');
-        basis.push_str(routing_mode_label(registration.routing_mode()));
+        basis.push_str(registration.registration_identity().as_str());
     }
     digest_string("mapping-registry", &basis)
-}
-
-fn selector_label(selector: &MappingSelector) -> Arc<str> {
-    match selector {
-        MappingSelector::Any => Arc::from("*"),
-        MappingSelector::Exact(value) => Arc::clone(value),
-    }
-}
-
-fn routing_mode_label(mode: CoarseRoutingMode) -> &'static str {
-    match mode {
-        CoarseRoutingMode::Direct => "direct",
-    }
 }
 
 fn diagnostics_tier_label(tier: BridgeDiagnosticsTier) -> &'static str {
@@ -99,36 +76,69 @@ fn diagnostics_tier_label(tier: BridgeDiagnosticsTier) -> &'static str {
     }
 }
 
-pub(super) fn route_region_keys(packet_set: &PlannedBridgePacketSet) -> Vec<Arc<str>> {
+pub(super) fn route_region_identities(
+    packet_set: &PlannedBridgePacketSet,
+) -> Vec<BulkPacketRegionIdentity> {
     let mut regions = packet_set
         .routing_packets()
         .iter()
-        .map(|route| {
-            Arc::<str>::from(format!(
-                "route-partition:{}:{}:{}",
-                route.route_identity(),
-                route.source_snapshot(),
-                route.subscription_slice_identity(),
-            ))
-        })
+        .map(route_packet_region_identity)
         .collect::<Vec<_>>();
-    regions.extend(packet_set.truth_view_packets().iter().map(|packet| {
-        Arc::<str>::from(format!(
-            "truth-view-partition:{}:{}:{}",
-            packet.source_branch(),
-            packet.source_snapshot(),
-            packet.source_commit(),
-        ))
-    }));
-    regions.extend(packet_set.continuity_packets().iter().map(|packet| {
-        Arc::<str>::from(format!(
-            "continuity-partition:{}:{}:{}",
-            packet.continuity_authority_digest(),
-            packet.branch_identity(),
-            packet.snapshot_identity(),
-        ))
-    }));
+    regions.extend(
+        packet_set
+            .truth_view_packets()
+            .iter()
+            .map(truth_view_packet_region_identity),
+    );
+    regions.extend(
+        packet_set
+            .continuity_packets()
+            .iter()
+            .map(continuity_packet_region_identity),
+    );
     regions
+}
+
+pub(super) fn packet_region_identities_are_disjoint(packet_set: &PlannedBridgePacketSet) -> bool {
+    let mut observed_regions = std::collections::BTreeSet::<BulkPacketRegionIdentity>::new();
+    for region in route_region_identities(packet_set) {
+        if !observed_regions.insert(region) {
+            return false;
+        }
+    }
+    true
+}
+
+fn route_packet_region_identity(packet: &TruthDeltaRoutingPacket) -> BulkPacketRegionIdentity {
+    let basis = format!(
+        "bulk-packet-region|family=route|route={}|snapshot={}|subscription-slice={}",
+        packet.route_identity().as_str(),
+        packet.source_snapshot(),
+        packet.subscription_slice_identity().as_str(),
+    );
+    BulkPacketRegionIdentity::new(digest_string("bulk-packet-region", &basis))
+}
+
+fn truth_view_packet_region_identity(
+    packet: &TruthViewMaterializationPacket,
+) -> BulkPacketRegionIdentity {
+    let basis = format!(
+        "bulk-packet-region|family=truth-view|branch={}|snapshot={}|commit={}",
+        packet.source_branch(),
+        packet.source_snapshot(),
+        packet.source_commit(),
+    );
+    BulkPacketRegionIdentity::new(digest_string("bulk-packet-region", &basis))
+}
+
+fn continuity_packet_region_identity(packet: &ContinuityRemapPacket) -> BulkPacketRegionIdentity {
+    let basis = format!(
+        "bulk-packet-region|family=continuity|continuity-member={}|branch={}|snapshot={}",
+        packet.continuity_member_identity().as_str(),
+        packet.branch_identity(),
+        packet.snapshot_identity(),
+    );
+    BulkPacketRegionIdentity::new(digest_string("bulk-packet-region", &basis))
 }
 
 fn normalized_workload_width(summary: &NormalizedBridgeWorkloadSummary) -> usize {
@@ -151,7 +161,8 @@ fn packet_entry_count(packet_set: &PlannedBridgePacketSet) -> usize {
                 .routing_packets()
                 .iter()
                 .filter(|route| {
-                    route.subscription_slice_identity() == packet.reduced_target_scope()
+                    route.subscription_slice_identity()
+                        == packet.reduced_subscription_slice_identity()
                 })
                 .count()
         })
@@ -171,7 +182,7 @@ fn packet_entry_count(packet_set: &PlannedBridgePacketSet) -> usize {
             .iter()
             .map(|packet| packet.prior_slice_count())
             .sum::<usize>()
-        + packet_set.fallback_packets().len()
+        + packet_set.widening_packets().len()
         + reduction_entry_count
 }
 
@@ -179,25 +190,19 @@ fn reduction_output_count(packet_set: &PlannedBridgePacketSet) -> usize {
     let continuity_output_count = packet_set
         .continuity_packets()
         .iter()
-        .map(|packet| {
-            (
-                packet.continuity_authority_digest(),
-                packet.branch_identity(),
-                packet.snapshot_identity(),
-            )
-        })
+        .map(|packet| packet.continuity_member_identity())
         .collect::<std::collections::BTreeSet<_>>()
         .len();
-    let fallback_output_count = packet_set
-        .fallback_packets()
+    let widening_output_count = packet_set
+        .widening_packets()
         .iter()
-        .map(|packet| (packet.fallback_class(), packet.bounded_scope_identity()))
+        .map(|packet| (packet.widening_class(), packet.bounded_scope_identity()))
         .collect::<std::collections::BTreeSet<_>>()
         .len();
     packet_set.reduction_packets().len()
         + packet_set.truth_view_packets().len()
         + continuity_output_count
-        + fallback_output_count
+        + widening_output_count
 }
 
 pub(super) fn planning_counters(
@@ -210,12 +215,12 @@ pub(super) fn planning_counters(
     let bulk_packet_count = packet_set.routing_packets().len()
         + packet_set.truth_view_packets().len()
         + packet_set.continuity_packets().len()
-        + packet_set.fallback_packets().len()
+        + packet_set.widening_packets().len()
         + packet_set.reduction_packets().len();
     let bulk_reduction_input_count = packet_set.reduction_packets().len()
         + packet_set.truth_view_packets().len()
         + packet_set.continuity_packets().len()
-        + packet_set.fallback_packets().len();
+        + packet_set.widening_packets().len();
     BridgeBulkPlanningCounters::new(
         packet_set
             .routing_packets()
@@ -227,7 +232,7 @@ pub(super) fn planning_counters(
         packet_entry_count(packet_set),
         bulk_reduction_input_count,
         reduction_output_count(packet_set),
-        packet_set.fallback_packets().len(),
+        packet_set.widening_packets().len(),
         bulk_packet_count,
         bulk_reduction_input_count,
         0,

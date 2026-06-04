@@ -1,21 +1,29 @@
 #[test]
 fn bridge_continuity_planning_requires_explicit_lineage_context() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(snapshot(TruthSnapshotIdentity::new("snapshot-a"), "alice"));
     let sink = RecordingSignalBridgeSink::default();
     let runtime = build_runtime(source, sink, vec![registration()]);
 
     let result = runtime
         .deliver_invalidation(
             runtime
-                .plan_committed_patch(BridgeRouteRequest::for_commit("commit-a"))
+                .plan_committed_patch(BridgeRouteRequest::for_commit(
+                    crate::facade::TruthCommitIdentity::new("commit-a"),
+                ))
                 .expect("route should plan"),
         )
         .expect("delivery should succeed");
     let route_record = runtime
         .diagnostics()
-        .route_record_for_route_identity(result.result_summary().route_identity().as_str())
+        .route_record_for_route_identity(result.result_summary().route_identity())
         .expect("route record should be retained");
 
     let error = runtime
@@ -31,8 +39,17 @@ fn bridge_continuity_planning_requires_explicit_lineage_context() {
 #[test]
 fn bridge_historical_lineage_packet_uses_planned_continuity_requests() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(field_slice_snapshot(
+        TruthSnapshotIdentity::new("snapshot-a"),
+        "alice",
+    ));
     let sink = RecordingSignalBridgeSink::default();
     let builder = crate::facade::RuntimeBridgeBuilder::new()
         .with_relational_source(source)
@@ -44,7 +61,7 @@ fn bridge_historical_lineage_packet_uses_planned_continuity_requests() {
 
     let route = runtime
         .plan_committed_patch_with_mapping_context(
-            BridgeRouteRequest::for_commit("commit-a"),
+            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
             BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
                 BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
@@ -58,7 +75,7 @@ fn bridge_historical_lineage_packet_uses_planned_continuity_requests() {
         .expect("delivery should succeed");
     let route_record = runtime
         .diagnostics()
-        .route_record_for_route_identity(result.result_summary().route_identity().as_str())
+        .route_record_for_route_identity(result.result_summary().route_identity())
         .expect("route record should be retained");
 
     let requests = runtime
@@ -77,8 +94,8 @@ fn bridge_historical_lineage_packet_uses_planned_continuity_requests() {
     assert_eq!(
         packet.entries()[0]
             .lineage_authority()
-            .canonical_resolved_lineage_keys()[0]
-            .as_ref(),
+            .canonical_resolved_lineage_identities()[0]
+            .as_str(),
         "lineage:test-successor"
     );
     assert_eq!(
@@ -94,8 +111,17 @@ fn bridge_historical_lineage_packet_uses_planned_continuity_requests() {
 #[test]
 fn bridge_continuity_planning_rejects_branch_mismatch_against_route_truth() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(field_slice_snapshot(
+        TruthSnapshotIdentity::new("snapshot-a"),
+        "alice",
+    ));
     let sink = RecordingSignalBridgeSink::default();
     let builder = crate::facade::RuntimeBridgeBuilder::new()
         .with_relational_source(source)
@@ -107,7 +133,7 @@ fn bridge_continuity_planning_rejects_branch_mismatch_against_route_truth() {
 
     let route = runtime
         .plan_committed_patch_with_mapping_context(
-            BridgeRouteRequest::for_commit("commit-a"),
+            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
             BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
                 BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("analysis"),
@@ -121,7 +147,7 @@ fn bridge_continuity_planning_rejects_branch_mismatch_against_route_truth() {
         .expect("delivery should succeed");
     let route_record = runtime
         .diagnostics()
-        .route_record_for_route_identity(result.result_summary().route_identity().as_str())
+        .route_record_for_route_identity(result.result_summary().route_identity())
         .expect("route record should be retained");
 
     let error = runtime
@@ -137,8 +163,17 @@ fn bridge_continuity_planning_rejects_branch_mismatch_against_route_truth() {
 #[test]
 fn bridge_historical_lineage_packet_rejects_mismatched_returned_authority_basis() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(field_slice_snapshot(
+        TruthSnapshotIdentity::new("snapshot-a"),
+        "alice",
+    ));
     let sink = RecordingSignalBridgeSink::default();
     let builder = crate::facade::RuntimeBridgeBuilder::new()
         .with_relational_source(source)
@@ -150,7 +185,7 @@ fn bridge_historical_lineage_packet_rejects_mismatched_returned_authority_basis(
 
     let route = runtime
         .plan_committed_patch_with_mapping_context(
-            BridgeRouteRequest::for_commit("commit-a"),
+            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
             BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
                 BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
@@ -164,7 +199,7 @@ fn bridge_historical_lineage_packet_rejects_mismatched_returned_authority_basis(
         .expect("delivery should succeed");
     let route_record = runtime
         .diagnostics()
-        .route_record_for_route_identity(result.result_summary().route_identity().as_str())
+        .route_record_for_route_identity(result.result_summary().route_identity())
         .expect("route record should be retained");
 
     let requests = runtime
@@ -183,8 +218,17 @@ fn bridge_historical_lineage_packet_rejects_mismatched_returned_authority_basis(
 #[test]
 fn bridge_historical_lineage_packet_preserves_typed_unsupported_class_failure() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(field_slice_snapshot(
+        TruthSnapshotIdentity::new("snapshot-a"),
+        "alice",
+    ));
     let sink = RecordingSignalBridgeSink::default();
     let builder = crate::facade::RuntimeBridgeBuilder::new()
         .with_relational_source(source)
@@ -196,7 +240,7 @@ fn bridge_historical_lineage_packet_preserves_typed_unsupported_class_failure() 
 
     let route = runtime
         .plan_committed_patch_with_mapping_context(
-            BridgeRouteRequest::for_commit("commit-a"),
+            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
             BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
                 BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
@@ -210,7 +254,7 @@ fn bridge_historical_lineage_packet_preserves_typed_unsupported_class_failure() 
         .expect("delivery should succeed");
     let route_record = runtime
         .diagnostics()
-        .route_record_for_route_identity(result.result_summary().route_identity().as_str())
+        .route_record_for_route_identity(result.result_summary().route_identity())
         .expect("route record should be retained");
 
     let requests = runtime
@@ -229,8 +273,17 @@ fn bridge_historical_lineage_packet_preserves_typed_unsupported_class_failure() 
 #[test]
 fn bridge_continuity_planning_deduplicates_prior_slices_before_lineage_resolution() {
     let source = InMemoryRelationalBridgeSource::default();
-    source.insert_committed_patch(committed_patch("commit-a", "patch-a", "snapshot-a", "name"));
-    source.insert_snapshot(field_slice_snapshot("snapshot-a", "alice"));
+    source.insert_committed_patch(committed_patch(
+        crate::facade::TruthCommitIdentity::new("commit-a"),
+        crate::facade::TruthPatchIdentity::new("patch-a"),
+        TruthSnapshotIdentity::new("snapshot-a"),
+        forge_foundational::facade::FieldKey::new("name".to_owned())
+            .expect("valid harness field key"),
+    ));
+    source.insert_snapshot(field_slice_snapshot(
+        TruthSnapshotIdentity::new("snapshot-a"),
+        "alice",
+    ));
     let sink = RecordingSignalBridgeSink::default();
     let lineage_source = CountingContinuityLineageSource::new();
     let runtime = crate::facade::RuntimeBridgeBuilder::new()
@@ -244,7 +297,7 @@ fn bridge_continuity_planning_deduplicates_prior_slices_before_lineage_resolutio
 
     let route = runtime
         .plan_committed_patch_with_mapping_context(
-            BridgeRouteRequest::for_commit("commit-a"),
+            BridgeRouteRequest::for_commit(crate::facade::TruthCommitIdentity::new("commit-a")),
             BridgeMappingContext::default().with_lineage_context(BridgeLineageContext::new(
                 BridgeContinuityAuthorityBasis::new(
                     crate::facade::TruthBranchIdentity::new("main"),
@@ -258,7 +311,7 @@ fn bridge_continuity_planning_deduplicates_prior_slices_before_lineage_resolutio
         .expect("delivery should succeed");
     let route_record = runtime
         .diagnostics()
-        .route_record_for_route_identity(result.result_summary().route_identity().as_str())
+        .route_record_for_route_identity(result.result_summary().route_identity())
         .expect("route record should be retained");
     let duplicate_slices = route_record
         .subscription_slices()

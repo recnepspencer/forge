@@ -29,6 +29,11 @@ import {
 import {
   createSubmittedMutationResponseIdentityMigration,
 } from "../../mutation/identity/resource_mutation_response_identity_migration.js";
+import {
+  patchLineBindingState,
+  readLineBindingState,
+  replaceLineBindingState,
+} from "../state/line_binding_state.js";
 
 function executeLineReload(materialization, operation, options = "fulfilled") {
   const normalizedOptions =
@@ -53,9 +58,10 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
           onFulfilled: options.onFulfilled ?? null,
         });
   const reload = materialization.reload;
+  const previousState = readLineBindingState(materialization.binding);
   const previousValue =
     normalizedOptions.previousValueOverride === undefined
-      ? materialization.binding.valueSignal()
+      ? previousState.value
       : normalizedOptions.previousValueOverride;
   const supersededOperation = materialization.lifecycle.supersedePendingReload();
   if (supersededOperation !== null) {
@@ -67,12 +73,12 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
     );
   }
   if (normalizedOptions.seedDiagnostics !== null) {
-    materialization.binding.diagnosticsSignal.set(
-      normalizedOptions.seedDiagnostics(
-        materialization.binding.diagnosticsSignal(),
+    patchLineBindingState(materialization.binding, {
+      diagnostics: normalizedOptions.seedDiagnostics(
+        previousState.diagnostics,
         supersededOperation,
       ),
-    );
+    });
   }
   try {
     const requestDescriptor =
@@ -110,13 +116,15 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
       const status = createPendingLineStatus(operation, hasVisibleValue);
       const freshness = createPendingFreshness(operation);
       const diagnostics = createPendingReloadDiagnostics(
-        materialization.binding.diagnosticsSignal(),
+        previousState.diagnostics,
         operation,
         supersededOperation,
       );
-      materialization.binding.statusSignal.set(status);
-      materialization.binding.freshnessSignal.set(freshness);
-      materialization.binding.diagnosticsSignal.set(diagnostics);
+      patchLineBindingState(materialization.binding, {
+        status,
+        freshness,
+        diagnostics,
+      });
       recordLineHistoryEntry(
         materialization.lifecycleHistory,
         materialization.binding,
@@ -210,7 +218,7 @@ function applyFulfilledReload(
   const status = createFulfilledLineStatus(operation);
   const freshness = createFreshnessFromPolicy(reload.policy);
   const nextDiagnostics = createReloadFulfilledDiagnostics(
-    materialization.binding.diagnosticsSignal(),
+    readLineBindingState(materialization.binding).diagnostics,
     operation,
     loaded.processing,
     loaded.upload,
@@ -231,15 +239,16 @@ function applyFulfilledReload(
     submittedTargets,
     submittedIdentityMigration,
   );
-  materialization.binding.valueSignal.set(loaded.value);
-  materialization.binding.processingSignal.set(loaded.processing);
-  materialization.binding.uploadSignal.set(loaded.upload);
-  materialization.binding.downloadSignal.set(loaded.download);
-  materialization.binding.statusSignal.set(status);
-  materialization.binding.freshnessSignal.set(freshness);
-  materialization.binding.diagnosticsSignal.set(
-    preparedMutationResponse.diagnostics,
-  );
+  replaceLineBindingState(materialization.binding, {
+    ...readLineBindingState(materialization.binding),
+    value: loaded.value,
+    processing: loaded.processing,
+    upload: loaded.upload,
+    download: loaded.download,
+    status,
+    freshness,
+    diagnostics: preparedMutationResponse.diagnostics,
+  });
   recordLineHistoryEntry(
     materialization.lifecycleHistory,
     materialization.binding,
@@ -258,7 +267,8 @@ function applyFulfilledReload(
 
 function applyRejectedReload(materialization, operation, error) {
   const failure = normalizeReloadFailure(error);
-  const hasVisibleValue = materialization.binding.valueSignal() !== null;
+  const previousState = readLineBindingState(materialization.binding);
+  const hasVisibleValue = previousState.value !== null;
   const message =
     failure.error instanceof Error
       ? failure.error.message
@@ -266,14 +276,16 @@ function applyRejectedReload(materialization, operation, error) {
   const status = createRejectedLineStatus(operation, message, hasVisibleValue);
   const freshness = createRejectedFreshness(operation);
   const diagnostics = createReloadRejectedDiagnostics(
-    materialization.binding.diagnosticsSignal(),
+    previousState.diagnostics,
     operation,
     message,
     failure.retryAttempts,
   );
-  materialization.binding.statusSignal.set(status);
-  materialization.binding.freshnessSignal.set(freshness);
-  materialization.binding.diagnosticsSignal.set(diagnostics);
+  patchLineBindingState(materialization.binding, {
+    status,
+    freshness,
+    diagnostics,
+  });
   recordLineHistoryEntry(
     materialization.lifecycleHistory,
     materialization.binding,
@@ -283,17 +295,20 @@ function applyRejectedReload(materialization, operation, error) {
 }
 
 function applyTimedOutReload(materialization, operation, retryAttempts = 0) {
-  const hasVisibleValue = materialization.binding.valueSignal() !== null;
+  const previousState = readLineBindingState(materialization.binding);
+  const hasVisibleValue = previousState.value !== null;
   const status = createTimedOutLineStatus(operation, hasVisibleValue);
   const freshness = createTimedOutFreshness(operation);
   const diagnostics = createTimedOutReloadDiagnostics(
-    materialization.binding.diagnosticsSignal(),
+    previousState.diagnostics,
     operation,
     retryAttempts,
   );
-  materialization.binding.statusSignal.set(status);
-  materialization.binding.freshnessSignal.set(freshness);
-  materialization.binding.diagnosticsSignal.set(diagnostics);
+  patchLineBindingState(materialization.binding, {
+    status,
+    freshness,
+    diagnostics,
+  });
   recordLineHistoryEntry(
     materialization.lifecycleHistory,
     materialization.binding,

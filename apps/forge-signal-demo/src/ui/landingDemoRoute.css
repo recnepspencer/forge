@@ -1,0 +1,186 @@
+.xai-demo-route-hero {
+  padding: 2.6rem 0 1.8rem;
+}
+
+.xai-demo-route-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1.2rem;
+  padding: 0 2rem;
+}
+
+.xai-demo-route-copy {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.xai-demo-route-copy h1 {
+  margin: 0;
+  color: #f5f7fb;
+  font-size: 3.5rem;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.xai-demo-route-copy p,
+.xai-demo-offline p {
+  margin: 0;
+  color: rgba(223, 228, 236, 0.72);
+  line-height: 1.65;
+}
+
+.xai-demo-route-copy code {
+  display: block;
+  max-width: 44rem;
+  padding: 0.9rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(223, 228, 236, 0.7);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.83rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.xai-demo-preface {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 48rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02)),
+    rgba(0, 0, 0, 0.24);
+}
+
+.xai-demo-preface span {
+  color: rgba(245, 247, 251, 0.66);
+  font-size: 0.7rem;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.xai-demo-preface p {
+  max-width: 44rem;
+  color: rgba(245, 247, 251, 0.82);
+  font-size: 0.96rem;
+  line-height: 1.62;
+}
+
+.xai-demo-route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.xai-demo-pager-button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.48rem;
+  min-height: 2.2rem;
+  padding: 0.45rem 0.72rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 13px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.11), transparent 70%),
+    rgba(0, 0, 0, 0.32);
+  color: #f5f7fb;
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  font-weight: 720;
+  text-align: left;
+}
+
+.xai-demo-pager-button-next {
+  border-color: rgba(125, 199, 255, 0.22);
+}
+
+.xai-demo-route-count {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.xai-demo-route-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: 0.75rem;
+  min-width: min(100%, 29rem);
+}
+
+.xai-demo-route-count button {
+  width: 2.45rem;
+  height: 2.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(223, 228, 236, 0.52);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 740;
+}
+
+.xai-demo-route-count button.active {
+  border-color: rgba(125, 199, 255, 0.35);
+  background: rgba(125, 199, 255, 0.12);
+  color: #f5f7fb;
+}
+
+.xai-demo-route-body {
+  display: grid;
+  padding: 2rem;
+}
+
+.xai-demo-offline {
+  display: grid;
+  gap: 1rem;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.xai-demo-offline h2 {
+  margin: 0;
+  color: #f5f7fb;
+}
+
+@media (min-width: 920px) {
+  .xai-demo-route-shell {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .xai-demo-route-nav-row {
+    justify-self: end;
+  }
+}
+
+@media (max-width: 720px) {
+  .xai-demo-route-body,
+  .xai-demo-route-shell {
+    padding-left: 1.15rem;
+    padding-right: 1.15rem;
+  }
+
+  .xai-demo-route-copy h1 {
+    font-size: 2.65rem;
+  }
+
+  .xai-demo-route-nav-row {
+    justify-content: start;
+    flex-wrap: wrap;
+  }
+
+  .xai-demo-route-count {
+    justify-content: start;
+  }
+}

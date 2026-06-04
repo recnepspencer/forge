@@ -1,3 +1,5 @@
+use forge_runtime_bridge::facade::TruthCommitIdentity;
+
 use super::super::super::super::*;
 use super::artifact_support::admitted_artifact_for;
 use super::slot_support::artifact_with_lower_runtime_slot_evidence;
@@ -8,22 +10,23 @@ pub(super) fn representative_matrix(
     denied: &QueryCausalInspectionArtifact,
 ) -> CausalInspectionRepresentativeMatrix {
     let suppressed = admitted_artifact_for(
-        "commit-query-cert-suppressed",
+        TruthCommitIdentity::new("commit-query-cert-suppressed"),
         CausalObservationOutcome::Suppressed,
         CausalInspectionReason::SuppressedResult,
     );
     let branch_preview = admitted_artifact_for(
-        "commit-query-cert-branch-preview",
+        TruthCommitIdentity::new("commit-query-cert-branch-preview"),
         CausalObservationOutcome::BranchPreview,
         CausalInspectionReason::BranchPreviewResult,
     );
     let replay = admitted_artifact_for(
-        "commit-query-cert-replay",
+        TruthCommitIdentity::new("commit-query-cert-replay"),
         CausalObservationOutcome::Replayed,
         CausalInspectionReason::HistoricalReplayResult,
     );
-    let lower_runtime_slots =
-        artifact_with_lower_runtime_slot_evidence("commit-query-cert-lower-runtime-slots");
+    let lower_runtime_slots = artifact_with_lower_runtime_slot_evidence(TruthCommitIdentity::new(
+        "commit-query-cert-lower-runtime-slots",
+    ));
     let missing_signal_invalidation =
         missing_evidence_digest(CausalEvidenceFamily::SignalInvalidation);
     let missing_signal_evaluation = missing_evidence_digest(CausalEvidenceFamily::SignalEvaluation);

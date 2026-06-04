@@ -1,5 +1,7 @@
 use forge_runtime_bridge::facade::{
-    BridgeContinuityMutationBundle, BridgeContinuityOutcomeClass, BridgeNamingMutationBundle,
+    BridgeContinuityAuthoritativeIdentity, BridgeContinuityMutationBundle,
+    BridgeContinuityOutcomeClass, BridgeContinuityResolvedTargetIdentity,
+    BridgeContinuityTargetCollection, BridgeNamingMutationBundle,
 };
 
 use super::{
@@ -72,7 +74,7 @@ pub(super) fn bridge_naming_mutation_bundle(
 
 pub(super) fn bridge_continuity_mutation_bundle(
     intent: &ForgeQueryContinuityMutationIntent,
-    basis_binding_digest: Option<&str>,
+    _basis_binding_digest: Option<&str>,
     resolved_target_entity_identity: Option<&str>,
     target_collection: Option<&str>,
 ) -> Option<BridgeContinuityMutationBundle> {
@@ -87,59 +89,59 @@ pub(super) fn bridge_continuity_mutation_bundle(
             BridgeContinuityOutcomeClass::ContinuesViaTruthLoweredCanonicalMergeSuccessor
         }
     };
-    let lineage_digest = crate::identity::hash_parts(&[
-        "forge-query-continuity-lineage-v1".to_string(),
-        format!("family:{}", intent.family().as_str()),
-        format!("outcome:{}", intent.outcome_class().as_str()),
-        format!("prior:{}", intent.prior_authoritative_identity()),
-        format!(
-            "successors:{}",
-            intent.successor_authoritative_identities().join("|")
-        ),
-        format!("basis-binding:{}", basis_binding_digest.unwrap_or("none")),
-    ]);
-    let continuity_resolution_digest = crate::identity::hash_parts(&[
-        "forge-query-continuity-resolution-v1".to_string(),
-        format!("lineage:{lineage_digest}"),
-        format!(
-            "successors:{}",
-            intent.successor_authoritative_identities().join("|")
-        ),
-        format!("basis-binding:{}", basis_binding_digest.unwrap_or("none")),
-        format!(
-            "resolved:{}",
-            resolved_target_entity_identity.unwrap_or("none")
-        ),
-        format!("collection:{}", target_collection.unwrap_or("none")),
-    ]);
+    let prior_authoritative_identity =
+        continuity_authoritative_identity(intent.prior_authoritative_identity())?;
+    let resolved_target_entity_identity = match resolved_target_entity_identity {
+        Some(identity) => Some(continuity_resolved_target_identity(identity)?),
+        None => None,
+    };
+    let target_collection = match target_collection {
+        Some(collection) => Some(continuity_target_collection(collection)?),
+        None => None,
+    };
 
     match intent.family() {
         ForgeQueryContinuityMutationFamily::RebindExistingTarget => {
-            Some(BridgeContinuityMutationBundle::rebind_existing_target(
+            BridgeContinuityMutationBundle::rebind_existing_target(
                 outcome_class,
-                intent.prior_authoritative_identity(),
-                Some(intent.successor_authoritative_identity()),
-                basis_binding_digest,
+                prior_authoritative_identity,
+                Some(continuity_authoritative_identity(
+                    intent.successor_authoritative_identity(),
+                )?),
                 resolved_target_entity_identity,
                 target_collection,
-                lineage_digest,
-                continuity_resolution_digest,
-            ))
+            )
+            .ok()
         }
         ForgeQueryContinuityMutationFamily::SplitExistingTarget => Some(
             BridgeContinuityMutationBundle::split_existing_target(
                 outcome_class,
-                intent.prior_authoritative_identity(),
-                intent.successor_authoritative_identities().iter().cloned(),
-                basis_binding_digest,
+                prior_authoritative_identity,
+                intent
+                    .successor_authoritative_identities()
+                    .iter()
+                    .map(|identity| continuity_authoritative_identity(identity))
+                    .collect::<Option<Vec<_>>>()?,
                 resolved_target_entity_identity,
                 target_collection,
-                lineage_digest,
-                continuity_resolution_digest,
             )
             .expect("validated split continuity intent should lower into bridge bundle"),
         ),
     }
+}
+
+fn continuity_authoritative_identity(value: &str) -> Option<BridgeContinuityAuthoritativeIdentity> {
+    BridgeContinuityAuthoritativeIdentity::new(value).ok()
+}
+
+fn continuity_resolved_target_identity(
+    value: &str,
+) -> Option<BridgeContinuityResolvedTargetIdentity> {
+    BridgeContinuityResolvedTargetIdentity::new(value).ok()
+}
+
+fn continuity_target_collection(value: &str) -> Option<BridgeContinuityTargetCollection> {
+    BridgeContinuityTargetCollection::new(value).ok()
 }
 
 #[cfg(test)]
@@ -150,36 +152,38 @@ mod tests {
     };
 
     #[test]
-    fn bridge_lowered_continuity_matches_query_intent_digest_shape() {
+    fn bridge_lowered_continuity_uses_bridge_native_digest_basis() {
         let intent = ForgeQueryContinuityMutationIntent::rebind_merge_successor(
             "authority:task-1",
             "authority:task-1-successor",
         )
         .expect("continuity intent should build");
 
-        let lowered = bridge_continuity_mutation_bundle(
-            &intent,
-            Some("binding:sha256:task-1"),
-            Some("entity:task-1"),
-            Some("Task"),
-        )
-        .expect("bridge continuity bundle should lower");
+        let lowered =
+            bridge_continuity_mutation_bundle(&intent, None, Some("entity:task-1"), Some("Task"))
+                .expect("bridge continuity bundle should lower");
 
         let bridge_evidence = ForgeQueryContinuityMutationEvidence::from_bridge(&lowered);
-        let intent_evidence = ForgeQueryContinuityMutationEvidence::from_intent(
-            &intent,
-            Some("binding:sha256:task-1"),
-            Some("entity:task-1"),
-            Some("Task"),
-        );
 
+        assert_eq!(bridge_evidence.family(), intent.family());
         assert_eq!(
-            bridge_evidence.lineage_digest(),
-            intent_evidence.lineage_digest()
+            bridge_evidence.prior_authoritative_identity(),
+            intent.prior_authoritative_identity()
         );
         assert_eq!(
-            bridge_evidence.continuity_resolution_digest(),
-            intent_evidence.continuity_resolution_digest()
+            bridge_evidence.successor_authoritative_identity(),
+            Some(intent.successor_authoritative_identity())
         );
+        assert_eq!(
+            bridge_evidence.resolved_target_entity_identity(),
+            Some("entity:task-1")
+        );
+        assert_eq!(bridge_evidence.target_collection(), Some("Task"));
+        assert!(bridge_evidence
+            .lineage_digest()
+            .starts_with("bridge-continuity-mutation-lineage:sha256:"));
+        assert!(bridge_evidence
+            .continuity_resolution_digest()
+            .starts_with("bridge-continuity-mutation-resolution:sha256:"));
     }
 }

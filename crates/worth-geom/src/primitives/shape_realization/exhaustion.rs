@@ -1,7 +1,5 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-
 use worth_math::MathError;
+use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 use crate::primitives::shape_realization::schema::{
     PrimitiveConditioningWitness, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
@@ -167,9 +165,5 @@ impl From<MathError> for PrimitiveRealizationError {
 }
 
 fn digest_parts(parts: &[String]) -> String {
-    let mut hasher = DefaultHasher::new();
-    for part in parts {
-        part.hash(&mut hasher);
-    }
-    format!("{:016x}", hasher.finish())
+    truth_digest_parts(TruthDigestScope::ArtifactIdentity, parts)
 }

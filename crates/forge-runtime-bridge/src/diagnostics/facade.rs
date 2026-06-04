@@ -5,6 +5,7 @@ use crate::policy::{BridgeDiagnosticsTier, BridgeRuntimePolicy};
 use crate::routing::BridgeCanonicalBulkPlanRecord;
 use crate::speculation::{
     BridgePreviewDiscardRecord, BridgePreviewExecutionRecord, BridgePreviewPromotionRecord,
+    BridgePreviewSessionIdentity,
 };
 use crate::stream::{CanonicalStreamReplayRecord, ConsumerCheckpointToken};
 use crate::writeback::{
@@ -40,7 +41,7 @@ use super::writeback::{
     BridgeWritebackLoopPreventionExplanation, BridgeWritebackMapperEnvelopeExplanation,
     BridgeWritebackMapperExplanation, BridgeWritebackOutcomeExplanation,
     BridgeWritebackReplayExplanation, BridgeWritebackReplayRecordExplanation,
-    BridgeWritebackStrategyCompatibilityExplanation,
+    BridgeWritebackStrategyCoherenceExplanation,
 };
 use super::BridgeRouteExplanation;
 

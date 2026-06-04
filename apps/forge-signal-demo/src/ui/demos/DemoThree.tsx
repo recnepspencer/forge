@@ -126,8 +126,8 @@ export const DemoThree: React.FC<DemoThreeProps> = ({ signals, onNavigate }) => 
           <strong>Scenario role</strong>
           </div>
 
-          <button className="storefront-demo-settings-back" onClick={() => onNavigate("#/demos")} type="button">
-            Back to ladder
+          <button className="storefront-demo-settings-back" onClick={() => onNavigate("#/demos/4")} type="button">
+            Back to demo
           </button>
         </div>
 

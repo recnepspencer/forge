@@ -1,4 +1,4 @@
-use worth_spatial::facade::{
+use worth_spatial::facade::arbitration::{
     analyze_spatial_intent_conflict, analyze_spatial_intent_conflict_with_capabilities,
     analyze_spatial_intent_conflict_with_capabilities_and_profile,
     analyze_spatial_intent_conflict_with_profile, SpatialAuthoredActKind,
@@ -8,8 +8,7 @@ use worth_spatial::facade::{
 };
 
 use super::{
-    prepare_primitive_intent_clarification_request, resolve_primitive_intent_conflict_by_choice,
-    resolve_primitive_intent_conflict_by_policy, PrimitiveIntentClarificationRequest,
+    prepare_primitive_intent_clarification_request, PrimitiveIntentClarificationRequest,
     PrimitiveIntentClarificationRequestError,
 };
 
@@ -96,16 +95,25 @@ impl PrimitiveIntentConflict {
 
     pub fn resolve_by_policy(
         &self,
-    ) -> Result<worth_spatial::facade::SpatialChosenIntentResolution, SpatialIntentResolutionError>
-    {
-        resolve_primitive_intent_conflict_by_policy(self.analysis.clone())
+    ) -> Result<
+        worth_spatial::facade::arbitration::SpatialChosenIntentResolution,
+        SpatialIntentResolutionError,
+    > {
+        worth_spatial::facade::arbitration::resolve_spatial_intent_conflict_by_policy(
+            self.analysis.clone(),
+        )
     }
 
     pub fn resolve_by_choice(
         &self,
         chosen_candidate: SpatialIntentCandidate,
-    ) -> Result<worth_spatial::facade::SpatialChosenIntentResolution, SpatialIntentResolutionError>
-    {
-        resolve_primitive_intent_conflict_by_choice(self.analysis.clone(), chosen_candidate)
+    ) -> Result<
+        worth_spatial::facade::arbitration::SpatialChosenIntentResolution,
+        SpatialIntentResolutionError,
+    > {
+        worth_spatial::facade::arbitration::resolve_spatial_intent_conflict_by_choice(
+            self.analysis.clone(),
+            chosen_candidate,
+        )
     }
 }

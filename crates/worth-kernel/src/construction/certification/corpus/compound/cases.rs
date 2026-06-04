@@ -1,12 +1,13 @@
-use crate::construction::{
-    OrthotopeSpec, PrimitiveConstructionIntent, RegularPrismSpec, RegularPyramidSpec,
-    ShellWithHoleSpec, SimplexSolidSpec, WireBodySpec,
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::specs::{
+    OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
+    WireBodySpec,
 };
-use crate::facade::{
-    MoveSpatialIntent, OffsetSpatialIntent, PrimitiveConstructionSpatialIntentError,
-    ReorientSpatialIntent,
+use crate::facade::authoring::construction::PrimitiveConstructionSpatialIntentError;
+use crate::facade::authoring::intents::{
+    MoveSpatialIntent, OffsetSpatialIntent, ReorientSpatialIntent,
 };
-use worth_spatial::facade::SpatialFrameRef;
+use worth_spatial::facade::refs::SpatialFrameRef;
 
 use super::schema::{
     PrimitiveConstructionCompoundGrazingKind, PrimitiveConstructionCompoundMotionKind,

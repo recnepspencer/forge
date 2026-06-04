@@ -7,11 +7,11 @@ error[E0451]: fields `identity`, `admission_summary_kind`, `admission_summary_di
    |         ^^^^^^^^ private field
 25 |         admission_summary_kind: BridgeCausalInspectionAdmissionSummaryKind::Admitted,
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-26 |         admission_summary_digest: "summary".into(),
+26 |         admission_summary_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
-27 |         request_digest: "request".into(),
+27 |         request_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^ private field
-28 |         causal_observation_anchor_digest: "anchor".into(),
+28 |         causal_observation_anchor_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 29 |         bindings: bindings.into(),
    |         ^^^^^^^^ private field
@@ -19,5 +19,5 @@ error[E0451]: fields `identity`, `admission_summary_kind`, `admission_summary_di
    |         ^^^^^^^^ private field
 31 |         receipt: receipt(),
    |         ^^^^^^^ private field
-32 |         envelope_digest: "envelope".into(),
+32 |         envelope_digest: sealed_authority_placeholder(),
    |         ^^^^^^^^^^^^^^^ private field

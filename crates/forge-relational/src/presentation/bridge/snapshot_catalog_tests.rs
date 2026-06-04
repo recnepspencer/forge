@@ -7,9 +7,10 @@ use crate::facade::publication::{
 use crate::publication::patch::data::{
     PatchDetail, PublishedAuthoritativePatch, PublishedAuthoritativePatchOperation,
 };
-use forge_foundational::facade::AspectKey;
+use forge_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
 use forge_runtime_bridge::facade::{
-    CommittedPatchSource, SnapshotReadRecord, SnapshotReadSource, TruthSnapshotIdentity,
+    CommittedPatchSource, SnapshotReadContract, SnapshotReadRecord, SnapshotReadRequest,
+    SnapshotReadSource, TruthCommitIdentity, TruthSnapshotIdentity,
 };
 
 use super::{PublicationBridgeCatalog, PublicationBridgeSnapshot};
@@ -42,17 +43,26 @@ fn publication_bridge_catalog_exposes_committed_patch_and_snapshot() {
             }],
         },
     );
+    let snapshot_request = SnapshotReadRequest::for_coarse(
+        "entity:0:4:1",
+        SnapshotReadContract::scalar(
+            AspectKey::new("profile.name").unwrap(),
+            ScalarAspectType::String,
+        ),
+    );
     catalog.register_snapshot(PublicationBridgeSnapshot::new(
         TruthSnapshotIdentity::new("snapshot-a"),
-        vec![SnapshotReadRecord::new(
-            "entity:0:4:1:profile.name",
-            b"alice".to_vec(),
+        vec![SnapshotReadRecord::for_request(
+            &snapshot_request,
+            AspectValue::String("alice".into()),
         )],
     ));
 
     let envelope = catalog
         .load_committed_patch(
-            forge_runtime_bridge::facade::RelationalCommittedPatchRequest::new("commit-7"),
+            forge_runtime_bridge::facade::RelationalCommittedPatchRequest::new(
+                TruthCommitIdentity::new("commit-7"),
+            ),
         )
         .expect("registered publication patch");
     let reader = catalog
@@ -60,6 +70,11 @@ fn publication_bridge_catalog_exposes_committed_patch_and_snapshot() {
         .expect("registered publication snapshot");
 
     assert_eq!(envelope.patch_identity().as_str(), "patch-11");
-    assert_eq!(envelope.patch_items()[0].aspect_label(), "profile.name");
+    assert_eq!(
+        envelope.patch_body().canonical_items()[0]
+            .aspect_key()
+            .as_str(),
+        "profile.name"
+    );
     assert_eq!(reader.snapshot_identity().as_str(), "snapshot-a");
 }

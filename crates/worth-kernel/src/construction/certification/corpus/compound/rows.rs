@@ -208,15 +208,6 @@ impl PrimitiveConstructionCompoundRow {
     pub fn stability_class(&self) -> Option<PrimitiveStabilityClass> {
         self.stability_class
     }
-    pub fn feature_conditioning_class(&self) -> Option<PrimitiveFeatureConditioningClass> {
-        self.feature_conditioning_class
-    }
-    pub fn support_normal_class(&self) -> Option<PrimitiveSupportNormalClass> {
-        self.support_normal_class
-    }
-    pub fn normalization_disposition(&self) -> Option<PrimitiveNormalizationDisposition> {
-        self.normalization_disposition
-    }
     pub fn exhaustion_reason(&self) -> Option<PrimitiveRealizationExhaustionReason> {
         self.exhaustion_reason
     }
@@ -225,9 +216,6 @@ impl PrimitiveConstructionCompoundRow {
     }
     pub fn rejection_locality(&self) -> Option<PrimitiveConstructionRejectionLocality> {
         self.rejection_locality
-    }
-    pub fn blocking_boundary(&self) -> Option<PrimitiveConstructionBlockingBoundary> {
-        self.blocking_boundary
     }
     pub fn motion_kind(&self) -> Option<PrimitiveConstructionCompoundMotionKind> {
         self.motion_kind

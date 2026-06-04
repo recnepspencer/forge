@@ -93,7 +93,7 @@ impl ForgeQueryContinuityMutationEvidence {
             successor_authoritative_identities: bundle
                 .successor_authoritative_identities()
                 .iter()
-                .map(|value| value.as_ref().to_string())
+                .map(|value| value.as_str().to_string())
                 .collect(),
             basis_binding_digest: bundle.basis_binding_digest().map(str::to_string),
             resolved_target_entity_identity: bundle

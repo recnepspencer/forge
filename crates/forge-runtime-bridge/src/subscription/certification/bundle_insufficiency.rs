@@ -9,7 +9,7 @@ use super::{
     BridgeSubscriptionCertificationComparisonReport,
     BridgeSubscriptionCertificationCounterSnapshot, BridgeSubscriptionCertificationFailureBoundary,
     BridgeSubscriptionCertificationFailurePrecedenceStage,
-    BridgeSubscriptionCertificationReportBundleInput,
+    BridgeSubscriptionCertificationReportBundleScenario,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,11 +32,12 @@ impl BridgeSubscriptionCertificationBundleInsufficiencyReport {
         let manifest = reference_manifest();
         let complete = assemble_reference_bundle(
             &manifest,
-            BridgeSubscriptionCertificationReportBundleInput::stable(),
+            BridgeSubscriptionCertificationReportBundleScenario::StableAdmitted,
         );
-        let insufficient = complete
-            .clone()
-            .with_required_field_count_for_certification(complete.fields().len() + 1);
+        let insufficient = assemble_reference_bundle(
+            &manifest,
+            BridgeSubscriptionCertificationReportBundleScenario::BundleInsufficiency,
+        );
         let plan = BridgeSubscriptionCertificationComparisonPlan::admit(
             BridgeSubscriptionCertificationComparisonRelationship::BundleCompleteness,
             None,

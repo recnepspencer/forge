@@ -39,52 +39,37 @@ impl PrimitiveConstructionAcceptedOutcome {
         family: PrimitiveConstructionFamily,
         prepared: &crate::construction::result::PreparedPrimitiveConstructionResult,
     ) -> Self {
-        let canonical_artifact = prepared.canonical_artifact();
         let outcome_digest = digest_owned_parts(&[
             family.as_str().to_string(),
-            canonical_artifact.topology_birth_class().to_string(),
-            canonical_artifact.artifact_digest().to_string(),
+            prepared.topology_birth_class().to_string(),
+            prepared.artifact_digest().to_string(),
             prepared.result_digest().to_string(),
-            canonical_artifact
-                .realization_strategy()
-                .as_str()
-                .to_string(),
-            canonical_artifact
+            prepared.realization_strategy().as_str().to_string(),
+            prepared
                 .attempted_realization_strategies()
                 .iter()
                 .map(|strategy| strategy.as_str())
                 .collect::<Vec<_>>()
                 .join("->"),
-            canonical_artifact.stability_class().as_str().to_string(),
-            canonical_artifact
-                .feature_conditioning_class()
-                .as_str()
-                .to_string(),
-            canonical_artifact
-                .support_normal_class()
-                .as_str()
-                .to_string(),
-            canonical_artifact
-                .normalization_disposition()
-                .as_str()
-                .to_string(),
+            prepared.stability_class().as_str().to_string(),
+            prepared.feature_conditioning_class().as_str().to_string(),
+            prepared.support_normal_class().as_str().to_string(),
+            prepared.normalization_disposition().as_str().to_string(),
         ]);
         Self {
             family,
-            topology_birth_class: canonical_artifact.topology_birth_class().to_string(),
-            canonical_artifact_digest: canonical_artifact.artifact_digest().to_string(),
+            topology_birth_class: prepared.topology_birth_class().to_string(),
+            canonical_artifact_digest: prepared.artifact_digest().to_string(),
             result_digest: prepared.result_digest().to_string(),
-            birth_truth_digest: canonical_artifact.birth_truth_digest().to_string(),
-            birth_completeness_digest: canonical_artifact.birth_completeness_digest().to_string(),
-            topology_fact_digest: canonical_artifact.topology_fact_digest().to_string(),
-            realization_strategy: canonical_artifact.realization_strategy(),
-            attempted_realization_strategies: canonical_artifact
-                .attempted_realization_strategies()
-                .to_vec(),
-            stability_class: canonical_artifact.stability_class(),
-            feature_conditioning_class: canonical_artifact.feature_conditioning_class(),
-            support_normal_class: canonical_artifact.support_normal_class(),
-            normalization_disposition: canonical_artifact.normalization_disposition(),
+            birth_truth_digest: prepared.birth_truth_digest().to_string(),
+            birth_completeness_digest: prepared.birth_completeness_digest().to_string(),
+            topology_fact_digest: prepared.topology_fact_digest().to_string(),
+            realization_strategy: prepared.realization_strategy(),
+            attempted_realization_strategies: prepared.attempted_realization_strategies().to_vec(),
+            stability_class: prepared.stability_class(),
+            feature_conditioning_class: prepared.feature_conditioning_class(),
+            support_normal_class: prepared.support_normal_class(),
+            normalization_disposition: prepared.normalization_disposition(),
             outcome_digest,
         }
     }

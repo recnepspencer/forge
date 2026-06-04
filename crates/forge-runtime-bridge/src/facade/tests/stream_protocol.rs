@@ -1,4 +1,5 @@
 use super::*;
+use crate::facade::{TruthCommitIdentity, TruthPatchIdentity};
 
 #[test]
 fn runtime_rejects_replay_record_validation_when_window_basis_changes() {
@@ -24,8 +25,18 @@ fn runtime_rejects_replay_record_validation_when_window_basis_changes() {
         .plan_change_stream_window(
             &contract,
             vec![
-                canonical_envelope("main", "commit-a", "patch-a", "snapshot-a"),
-                canonical_envelope("main", "commit-b", "patch-b", "snapshot-a"),
+                canonical_envelope(
+                    TruthBranchIdentity::new("main"),
+                    TruthCommitIdentity::new("commit-a"),
+                    TruthPatchIdentity::new("patch-a"),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                ),
+                canonical_envelope(
+                    TruthBranchIdentity::new("main"),
+                    TruthCommitIdentity::new("commit-b"),
+                    TruthPatchIdentity::new("patch-b"),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                ),
             ],
         )
         .expect("original window should plan");
@@ -41,10 +52,10 @@ fn runtime_rejects_replay_record_validation_when_window_basis_changes() {
         .plan_change_stream_window(
             &contract,
             vec![canonical_envelope(
-                "main",
-                "commit-a",
-                "patch-a",
-                "snapshot-a",
+                TruthBranchIdentity::new("main"),
+                TruthCommitIdentity::new("commit-a"),
+                TruthPatchIdentity::new("patch-a"),
+                TruthSnapshotIdentity::new("snapshot-a"),
             )],
         )
         .expect("changed window should plan");
@@ -93,10 +104,10 @@ fn runtime_classifies_width_sensitive_backpressure_without_changing_window_truth
         .plan_change_stream_window(
             &contract,
             vec![canonical_envelope(
-                "main",
-                "commit-a",
-                "patch-a",
-                "snapshot-a",
+                TruthBranchIdentity::new("main"),
+                TruthCommitIdentity::new("commit-a"),
+                TruthPatchIdentity::new("patch-a"),
+                TruthSnapshotIdentity::new("snapshot-a"),
             )],
         )
         .expect("narrow window should plan");
@@ -104,8 +115,18 @@ fn runtime_classifies_width_sensitive_backpressure_without_changing_window_truth
         .plan_change_stream_window(
             &contract,
             vec![
-                canonical_envelope("main", "commit-a", "patch-a", "snapshot-a"),
-                canonical_envelope("main", "commit-b", "patch-b", "snapshot-a"),
+                canonical_envelope(
+                    TruthBranchIdentity::new("main"),
+                    TruthCommitIdentity::new("commit-a"),
+                    TruthPatchIdentity::new("patch-a"),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                ),
+                canonical_envelope(
+                    TruthBranchIdentity::new("main"),
+                    TruthCommitIdentity::new("commit-b"),
+                    TruthPatchIdentity::new("patch-b"),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                ),
             ],
         )
         .expect("burst window should plan");
@@ -173,8 +194,18 @@ fn runtime_stream_identities_are_invariant_across_diagnostics_tiers() {
         .plan_change_stream_window(
             &standard_contract,
             vec![
-                canonical_envelope("main", "commit-a", "patch-a", "snapshot-a"),
-                canonical_envelope("main", "commit-b", "patch-b", "snapshot-a"),
+                canonical_envelope(
+                    TruthBranchIdentity::new("main"),
+                    TruthCommitIdentity::new("commit-a"),
+                    TruthPatchIdentity::new("patch-a"),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                ),
+                canonical_envelope(
+                    TruthBranchIdentity::new("main"),
+                    TruthCommitIdentity::new("commit-b"),
+                    TruthPatchIdentity::new("patch-b"),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                ),
             ],
         )
         .expect("standard window should plan");
@@ -182,8 +213,18 @@ fn runtime_stream_identities_are_invariant_across_diagnostics_tiers() {
         .plan_change_stream_window(
             &exhaustive_contract,
             vec![
-                canonical_envelope("main", "commit-a", "patch-a", "snapshot-a"),
-                canonical_envelope("main", "commit-b", "patch-b", "snapshot-a"),
+                canonical_envelope(
+                    TruthBranchIdentity::new("main"),
+                    TruthCommitIdentity::new("commit-a"),
+                    TruthPatchIdentity::new("patch-a"),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                ),
+                canonical_envelope(
+                    TruthBranchIdentity::new("main"),
+                    TruthCommitIdentity::new("commit-b"),
+                    TruthPatchIdentity::new("patch-b"),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                ),
             ],
         )
         .expect("exhaustive window should plan");
@@ -264,8 +305,18 @@ fn legal_coalescing_changes_window_shape_without_changing_member_meaning() {
         .plan_change_stream_window(
             &narrow_contract,
             vec![
-                canonical_envelope("main", "commit-a", "patch-a", "snapshot-a"),
-                canonical_envelope("main", "commit-b", "patch-b", "snapshot-a"),
+                canonical_envelope(
+                    TruthBranchIdentity::new("main"),
+                    TruthCommitIdentity::new("commit-a"),
+                    TruthPatchIdentity::new("patch-a"),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                ),
+                canonical_envelope(
+                    TruthBranchIdentity::new("main"),
+                    TruthCommitIdentity::new("commit-b"),
+                    TruthPatchIdentity::new("patch-b"),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                ),
             ],
         )
         .expect("narrow window should plan");
@@ -273,8 +324,18 @@ fn legal_coalescing_changes_window_shape_without_changing_member_meaning() {
         .plan_change_stream_window(
             &coalesced_contract,
             vec![
-                canonical_envelope("main", "commit-a", "patch-a", "snapshot-a"),
-                canonical_envelope("main", "commit-b", "patch-b", "snapshot-a"),
+                canonical_envelope(
+                    TruthBranchIdentity::new("main"),
+                    TruthCommitIdentity::new("commit-a"),
+                    TruthPatchIdentity::new("patch-a"),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                ),
+                canonical_envelope(
+                    TruthBranchIdentity::new("main"),
+                    TruthCommitIdentity::new("commit-b"),
+                    TruthPatchIdentity::new("patch-b"),
+                    TruthSnapshotIdentity::new("snapshot-a"),
+                ),
             ],
         )
         .expect("coalesced window should plan");

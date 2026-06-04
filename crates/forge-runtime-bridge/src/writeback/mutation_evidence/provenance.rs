@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
 use super::super::{
-    BridgeDerivedWritebackEffect, BridgeWritebackAuthorityOutcome, BridgeWritebackCausalityBasis,
-    BridgeWritebackExecutionRecord, BridgeWritebackFailureClass, BridgeWritebackFeedbackProvenance,
-    BridgeWritebackOutcomeClass,
+    BridgeDerivedWritebackEffect, BridgeWritebackAuthorityOutcome, BridgeWritebackExecutionRecord,
+    BridgeWritebackFailureClass, BridgeWritebackFeedbackProvenance,
+    BridgeWritebackNativeCausalityInputs, BridgeWritebackOutcomeClass,
+    BridgeWritebackStrategyDescriptorBasis,
 };
+use crate::adapter::{TruthWritebackReceipt, TruthWritebackRequest};
 
 /// Bridge-owned causality breadcrumbs for one authoritative mutation crossing.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,7 +19,7 @@ pub struct BridgeMutationCausalityBundle {
 }
 
 impl BridgeMutationCausalityBundle {
-    pub fn from_writeback_causality(causality: &BridgeWritebackCausalityBasis) -> Self {
+    pub fn from_writeback_causality(causality: &BridgeWritebackNativeCausalityInputs) -> Self {
         Self {
             causality_digest: Arc::from(causality.digest().to_owned()),
             truth_trigger_digest: Arc::from(causality.truth_trigger_digest().to_owned()),
@@ -52,16 +54,17 @@ impl BridgeMutationCausalityBundle {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeMutationProvenanceBundle {
     contract_digest: Arc<str>,
-    derived_effect_digest: Arc<str>,
-    proposed_effect_digest: Arc<str>,
+    writeback_effect_artifact_digest: Arc<str>,
+    effect_intent_digest: Arc<str>,
+    effect_intent_patch_canonical_basis: Arc<str>,
     feedback_provenance_digest: Arc<str>,
     causality_digest: Arc<str>,
-    strategy_descriptor_digest: Arc<str>,
+    strategy_descriptor_basis: BridgeWritebackStrategyDescriptorBasis,
     execution_record_digest: Arc<str>,
     outcome_class: Option<BridgeWritebackOutcomeClass>,
     authoritative_artifact_digest: Option<Arc<str>>,
-    request_digest: Option<Arc<str>>,
-    receipt_digest: Option<Arc<str>>,
+    authority_request: Option<TruthWritebackRequest>,
+    authority_receipt: Option<TruthWritebackReceipt>,
     failure_class: Option<BridgeWritebackFailureClass>,
 }
 
@@ -74,21 +77,26 @@ impl BridgeMutationProvenanceBundle {
     ) -> Self {
         Self {
             contract_digest: Arc::from(execution_record.contract_digest().to_owned()),
-            derived_effect_digest: Arc::from(execution_record.derived_effect_digest().to_owned()),
-            proposed_effect_digest: Arc::from(execution_record.proposed_effect_digest().to_owned()),
+            writeback_effect_artifact_digest: Arc::from(
+                execution_record
+                    .writeback_effect_artifact_digest()
+                    .to_owned(),
+            ),
+            effect_intent_digest: Arc::from(execution_record.effect_intent_digest().to_owned()),
+            effect_intent_patch_canonical_basis: Arc::from(
+                execution_record
+                    .effect_intent_patch_canonical_basis()
+                    .to_owned(),
+            ),
             feedback_provenance_digest: Arc::from(feedback.digest().to_owned()),
             causality_digest: Arc::from(execution_record.causality_digest().to_owned()),
-            strategy_descriptor_digest: Arc::from(effect.strategy_descriptor_digest().to_owned()),
+            strategy_descriptor_basis: effect.strategy_descriptor_basis().clone(),
             execution_record_digest: Arc::from(execution_record.digest().to_owned()),
             outcome_class: execution_record.outcome_class(),
             authoritative_artifact_digest: outcome
                 .map(|value| Arc::from(value.authoritative_artifact_digest().to_owned())),
-            request_digest: execution_record
-                .request_digest()
-                .map(|value| Arc::from(value.to_owned())),
-            receipt_digest: execution_record
-                .receipt_digest()
-                .map(|value| Arc::from(value.to_owned())),
+            authority_request: execution_record.authority_request().cloned(),
+            authority_receipt: execution_record.authority_receipt().cloned(),
             failure_class: execution_record.failure_class(),
         }
     }
@@ -97,12 +105,16 @@ impl BridgeMutationProvenanceBundle {
         self.contract_digest.as_ref()
     }
 
-    pub fn derived_effect_digest(&self) -> &str {
-        self.derived_effect_digest.as_ref()
+    pub fn writeback_effect_artifact_digest(&self) -> &str {
+        self.writeback_effect_artifact_digest.as_ref()
     }
 
-    pub fn proposed_effect_digest(&self) -> &str {
-        self.proposed_effect_digest.as_ref()
+    pub fn effect_intent_digest(&self) -> &str {
+        self.effect_intent_digest.as_ref()
+    }
+
+    pub fn effect_intent_patch_canonical_basis(&self) -> &str {
+        self.effect_intent_patch_canonical_basis.as_ref()
     }
 
     pub fn feedback_provenance_digest(&self) -> &str {
@@ -113,8 +125,12 @@ impl BridgeMutationProvenanceBundle {
         self.causality_digest.as_ref()
     }
 
+    pub fn strategy_descriptor_basis(&self) -> &BridgeWritebackStrategyDescriptorBasis {
+        &self.strategy_descriptor_basis
+    }
+
     pub fn strategy_descriptor_digest(&self) -> &str {
-        self.strategy_descriptor_digest.as_ref()
+        self.strategy_descriptor_basis.digest()
     }
 
     pub fn execution_record_digest(&self) -> &str {
@@ -130,11 +146,23 @@ impl BridgeMutationProvenanceBundle {
     }
 
     pub fn request_digest(&self) -> Option<&str> {
-        self.request_digest.as_deref()
+        self.authority_request
+            .as_ref()
+            .map(TruthWritebackRequest::digest)
     }
 
     pub fn receipt_digest(&self) -> Option<&str> {
-        self.receipt_digest.as_deref()
+        self.authority_receipt
+            .as_ref()
+            .map(TruthWritebackReceipt::digest)
+    }
+
+    pub fn authority_request(&self) -> Option<&TruthWritebackRequest> {
+        self.authority_request.as_ref()
+    }
+
+    pub fn authority_receipt(&self) -> Option<&TruthWritebackReceipt> {
+        self.authority_receipt.as_ref()
     }
 
     pub fn failure_class(&self) -> Option<BridgeWritebackFailureClass> {

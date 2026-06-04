@@ -19,8 +19,8 @@ pub(crate) use route_plan::checked_route_plan_from_progressed_with_profile;
 
 use super::operating_context::ForgeQueryDomainOperatingContext;
 use crate::application::{
-    ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainEntrySupportSnapshot,
+    ForgeQueryAdmittedWorldBasis, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
+    ForgeQueryDomainEntryMarker, ForgeQueryDomainEntrySupportSnapshot,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -90,5 +90,15 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
 
     pub fn operating_context_identity_digest(&self) -> &str {
         &self.operating_context_identity_digest
+    }
+
+    pub fn retained_world_basis(&self) -> ForgeQueryAdmittedWorldBasis {
+        ForgeQueryAdmittedWorldBasis::new(
+            self.domain_key(),
+            self.display_name(),
+            self.operating_context_identity_digest.clone(),
+            self.handle_identity_digest.clone(),
+            self.support_snapshot.snapshot_digest().to_string(),
+        )
     }
 }

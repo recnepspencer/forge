@@ -2,13 +2,14 @@ use forge_harness::facade::ScenarioPlan;
 use forge_harness::facade::{ExecutionProfile, ExecutionRequest, HarnessAdapter, RunRecord};
 
 use crate::facade::{
-    BridgeTruthViewSelector, SnapshotReadRecord, StructuralFingerprintEquivalenceContract,
-    StructuralFingerprintFamily, StructuralFingerprintNormalizationRule,
-    StructuralFingerprintOmissionPolicy, StructuralFingerprintOrderingRule,
-    StructuralIdentityDeclaration, StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity,
-    StructuralTruthViewBasis, TruthBranchIdentity, TruthSnapshotIdentity,
+    BridgeTruthViewSelector, SnapshotReadRecord, SnapshotReadRequest,
+    StructuralFingerprintEquivalenceContract, StructuralFingerprintFamily,
+    StructuralFingerprintNormalizationRule, StructuralFingerprintOmissionPolicy,
+    StructuralFingerprintOrderingRule, StructuralIdentityDeclaration,
+    StructuralIdentityDeclarationIdentity, StructuralSchemaIdentity, StructuralTruthViewBasis,
+    TruthBranchIdentity, TruthSnapshotIdentity,
 };
-use crate::harness::adapter::BridgeHarnessAdapter;
+use crate::harness::adapter::{BridgeHarnessAdapter, BridgeHarnessTargetId};
 use crate::harness::fixtures::{BridgeHarnessFixture, SnapshotFixture};
 
 use super::super::support::{committed_patch_on_branch, registration};
@@ -20,64 +21,108 @@ pub(super) fn structural_fixture(
         name,
         BridgeHarnessFixture::new(vec![registration()])
             .with_policy(crate::facade::BridgeRuntimePolicy::development())
-            .with_structural_declaration(remap_declaration("structural:analysis-remap"))
-            .with_structural_declaration(branch_declaration("structural:analysis-branch-compare"))
+            .with_structural_declaration(remap_declaration(
+                StructuralIdentityDeclarationIdentity::new("structural:analysis-remap"),
+            ))
+            .with_structural_declaration(branch_declaration(
+                StructuralIdentityDeclarationIdentity::new("structural:analysis-branch-compare"),
+            ))
             .with_structural_declaration(branch_head_declaration(
-                "structural:analysis-branch-head-compare",
+                StructuralIdentityDeclarationIdentity::new(
+                    "structural:analysis-branch-head-compare",
+                ),
             ))
             .with_committed_patch(committed_patch_on_branch(
-                "analysis",
-                "commit-a",
-                "patch-a",
-                "snapshot-a",
-                "name",
+                crate::facade::TruthBranchIdentity::new("analysis"),
+                crate::facade::TruthCommitIdentity::new("commit-a"),
+                crate::facade::TruthPatchIdentity::new("patch-a"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid harness field key"),
             ))
             .with_committed_patch(committed_patch_on_branch(
-                "analysis",
-                "commit-b",
-                "patch-b",
-                "snapshot-b",
-                "name",
+                crate::facade::TruthBranchIdentity::new("analysis"),
+                crate::facade::TruthCommitIdentity::new("commit-b"),
+                crate::facade::TruthPatchIdentity::new("patch-b"),
+                TruthSnapshotIdentity::new("snapshot-b"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid harness field key"),
             ))
             .with_committed_patch(committed_patch_on_branch(
-                "left",
-                "commit-left-a",
-                "patch-left-a",
-                "snapshot-a",
-                "name",
+                crate::facade::TruthBranchIdentity::new("left"),
+                crate::facade::TruthCommitIdentity::new("commit-left-a"),
+                crate::facade::TruthPatchIdentity::new("patch-left-a"),
+                TruthSnapshotIdentity::new("snapshot-a"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid harness field key"),
             ))
             .with_committed_patch(committed_patch_on_branch(
-                "right",
-                "commit-right-b",
-                "patch-right-b",
-                "snapshot-b",
-                "name",
+                crate::facade::TruthBranchIdentity::new("right"),
+                crate::facade::TruthCommitIdentity::new("commit-right-b"),
+                crate::facade::TruthPatchIdentity::new("patch-right-b"),
+                TruthSnapshotIdentity::new("snapshot-b"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid harness field key"),
             ))
-            .with_snapshot(structural_snapshot("snapshot-a", "alice"))
-            .with_snapshot(structural_snapshot("snapshot-b", "bob")),
+            .with_snapshot(structural_snapshot(
+                TruthSnapshotIdentity::new("snapshot-a"),
+                "alice",
+            ))
+            .with_snapshot(structural_snapshot(
+                TruthSnapshotIdentity::new("snapshot-b"),
+                "bob",
+            )),
     )
     .declare_input("structural")
     .declare_observation("structural")
     .compile()
 }
 
-fn structural_snapshot(snapshot_identity: &str, value: &str) -> SnapshotFixture {
+fn structural_snapshot(snapshot_identity: TruthSnapshotIdentity, value: &str) -> SnapshotFixture {
+    let mismatch_identity = snapshot_identity.as_str().to_owned();
     SnapshotFixture::new(
-        TruthSnapshotIdentity::new(snapshot_identity),
+        snapshot_identity,
         vec![
-            SnapshotReadRecord::new("entity-1:profile", value.as_bytes().to_vec()),
-            SnapshotReadRecord::new("entity-2:profile", value.as_bytes().to_vec()),
-            SnapshotReadRecord::new(
-                "entity-3:profile",
-                format!("shape-mismatch-{snapshot_identity}").into_bytes(),
+            structural_snapshot_record(
+                "entity-1",
+                forge_foundational::facade::AspectValue::String((value).into()),
+            ),
+            structural_snapshot_record(
+                "entity-2",
+                forge_foundational::facade::AspectValue::String((value).into()),
+            ),
+            structural_snapshot_record(
+                "entity-3",
+                forge_foundational::facade::AspectValue::String(
+                    (format!("shape-mismatch-{mismatch_identity}")).into(),
+                ),
             ),
         ],
     )
 }
 
-fn remap_declaration(declaration_id: &str) -> StructuralIdentityDeclaration {
+fn structural_snapshot_record(
+    entity_identity: &str,
+    value: forge_foundational::facade::AspectValue,
+) -> SnapshotReadRecord {
+    SnapshotReadRecord::for_request(
+        &SnapshotReadRequest::for_coarse(
+            entity_identity,
+            crate::snapshot::SnapshotReadContract::scalar(
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid structural snapshot aspect key"),
+                forge_foundational::facade::ScalarAspectType::String,
+            ),
+        ),
+        value,
+    )
+}
+
+fn remap_declaration(
+    declaration_identity: StructuralIdentityDeclarationIdentity,
+) -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::advisory_remap(
-        StructuralIdentityDeclarationIdentity::new(declaration_id),
+        declaration_identity,
         StructuralSchemaIdentity::new("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
             StructuralSchemaIdentity::new("schema:geometry"),
@@ -94,9 +139,11 @@ fn remap_declaration(declaration_id: &str) -> StructuralIdentityDeclaration {
     )
 }
 
-fn branch_declaration(declaration_id: &str) -> StructuralIdentityDeclaration {
+fn branch_declaration(
+    declaration_identity: StructuralIdentityDeclarationIdentity,
+) -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::branch_comparison(
-        StructuralIdentityDeclarationIdentity::new(declaration_id),
+        declaration_identity,
         StructuralSchemaIdentity::new("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
             StructuralSchemaIdentity::new("schema:geometry"),
@@ -119,9 +166,11 @@ fn branch_declaration(declaration_id: &str) -> StructuralIdentityDeclaration {
     )
 }
 
-fn branch_head_declaration(declaration_id: &str) -> StructuralIdentityDeclaration {
+fn branch_head_declaration(
+    declaration_identity: StructuralIdentityDeclarationIdentity,
+) -> StructuralIdentityDeclaration {
     StructuralIdentityDeclaration::branch_comparison(
-        StructuralIdentityDeclarationIdentity::new(declaration_id),
+        declaration_identity,
         StructuralSchemaIdentity::new("schema:geometry"),
         StructuralFingerprintEquivalenceContract::new(
             StructuralSchemaIdentity::new("schema:geometry"),
@@ -138,44 +187,64 @@ fn branch_head_declaration(declaration_id: &str) -> StructuralIdentityDeclaratio
     )
 }
 
-pub(super) fn exact_target() -> String {
-    "structural-remap-exact:structural:analysis-remap".to_string()
+pub(super) fn exact_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::structural_remap_exact(StructuralIdentityDeclarationIdentity::new(
+        "structural:analysis-remap",
+    ))
 }
 
-pub(super) fn ambiguous_target() -> String {
-    "structural-remap-ambiguous:structural:analysis-remap".to_string()
+pub(super) fn ambiguous_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::structural_remap_ambiguous(StructuralIdentityDeclarationIdentity::new(
+        "structural:analysis-remap",
+    ))
 }
 
-pub(super) fn no_safe_match_target() -> String {
-    "structural-remap-no-safe-match:structural:analysis-remap".to_string()
+pub(super) fn no_safe_match_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::structural_remap_no_safe_match(
+        StructuralIdentityDeclarationIdentity::new("structural:analysis-remap"),
+    )
 }
 
-pub(super) fn lineage_divergence_target() -> String {
-    "structural-remap-lineage-divergence:structural:analysis-remap".to_string()
+pub(super) fn lineage_divergence_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::structural_remap_lineage_divergence(
+        StructuralIdentityDeclarationIdentity::new("structural:analysis-remap"),
+    )
 }
 
-pub(super) fn identity_conflict_target() -> String {
-    "structural-remap-identity-conflict:structural:analysis-remap".to_string()
+pub(super) fn identity_conflict_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::structural_remap_identity_conflict(
+        StructuralIdentityDeclarationIdentity::new("structural:analysis-remap"),
+    )
 }
 
-pub(super) fn remap_replay_target() -> String {
-    "structural-remap-replay:structural:analysis-remap".to_string()
+pub(super) fn remap_replay_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::structural_remap_replay(StructuralIdentityDeclarationIdentity::new(
+        "structural:analysis-remap",
+    ))
 }
 
-pub(super) fn branch_compare_target() -> String {
-    "structural-branch-compare:structural:analysis-branch-compare".to_string()
+pub(super) fn branch_compare_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::structural_branch_compare(StructuralIdentityDeclarationIdentity::new(
+        "structural:analysis-branch-compare",
+    ))
 }
 
-pub(super) fn branch_replay_target() -> String {
-    "structural-branch-replay:structural:analysis-branch-compare".to_string()
+pub(super) fn branch_replay_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::structural_branch_replay(StructuralIdentityDeclarationIdentity::new(
+        "structural:analysis-branch-compare",
+    ))
 }
 
-pub(super) fn branch_head_compare_target() -> String {
-    "structural-branch-compare:structural:analysis-branch-head-compare".to_string()
+pub(super) fn branch_head_compare_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::structural_branch_compare(StructuralIdentityDeclarationIdentity::new(
+        "structural:analysis-branch-head-compare",
+    ))
 }
 
-pub(super) fn branch_head_replay_target() -> String {
-    "structural-branch-replay:structural:analysis-branch-head-compare".to_string()
+pub(super) fn branch_head_replay_target() -> BridgeHarnessTargetId {
+    BridgeHarnessTargetId::structural_branch_replay(StructuralIdentityDeclarationIdentity::new(
+        "structural:analysis-branch-head-compare",
+    ))
 }
 
 pub(super) fn direct_profile(name: &str) -> ExecutionProfile {
@@ -189,8 +258,8 @@ pub(super) fn forensic_profile(name: &str) -> ExecutionProfile {
 pub(super) fn execute_structural_run(
     profile: ExecutionProfile,
     request_name: &str,
-    target: String,
-) -> RunRecord<String> {
+    target: BridgeHarnessTargetId,
+) -> RunRecord<BridgeHarnessTargetId> {
     let adapter = BridgeHarnessAdapter;
     let fixture = structural_fixture("bridge-structural-matrix");
     let mut runtime = adapter

@@ -1,19 +1,33 @@
 use worth_spatial::facade::{
-    admit_spatial_anchor_match_constraint, admit_spatial_lies_on_constraint, admit_spatial_move,
-    admit_spatial_offset, admit_spatial_placement, admit_spatial_reorient,
-    apply_admitted_anchor_match_constraint_to_placement_with_catalog,
-    apply_admitted_lies_on_constraint_to_placement_with_catalog,
-    apply_admitted_move_to_placement_with_catalog, apply_admitted_offset_to_placement_with_catalog,
-    apply_admitted_reorient_to_placement, apply_admitted_reorient_to_placement_with_catalog,
-    SpatialAnchorMatchConstraintSpec, SpatialAnchorRef, SpatialAxis, SpatialCarrierDirectionRole,
-    SpatialCarrierPointRole, SpatialCatalogResolvedDirectionWitness,
-    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
-    SpatialDirectionWitnessRef, SpatialFrameRef, SpatialGeometricTagFailureClass,
-    SpatialLiesOnConstraintSpec, SpatialMoveSpec, SpatialOffsetSpec,
-    SpatialPlacementConstraintError, SpatialPlacementMotionError, SpatialPlacementSpec,
-    SpatialReorientSpec, SpatialWitnessFailureClass,
+    constraints::{
+        admit_spatial_anchor_match_constraint, admit_spatial_lies_on_constraint,
+        apply_admitted_anchor_match_constraint_to_placement_with_catalog,
+        apply_admitted_lies_on_constraint_to_placement_with_catalog,
+        SpatialAnchorMatchConstraintSpec, SpatialLiesOnConstraintSpec,
+    },
+    motion::{
+        admit_spatial_move, admit_spatial_offset, admit_spatial_reorient,
+        apply_admitted_move_to_placement_with_catalog,
+        apply_admitted_offset_to_placement_with_catalog, apply_admitted_reorient_to_placement,
+        apply_admitted_reorient_to_placement_with_catalog, SpatialMoveSpec, SpatialOffsetSpec,
+        SpatialReorientSpec,
+    },
+    placement::{
+        admit_spatial_placement, SpatialPlacementConstraintError, SpatialPlacementMotionError,
+        SpatialPlacementSpec,
+    },
+    refs::{
+        SpatialAnchorRef, SpatialAxis, SpatialCarrierDirectionRole, SpatialCarrierPointRole,
+        SpatialDirectionWitnessRef, SpatialFrameRef,
+    },
+    witness_catalog::{
+        SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
+        SpatialCatalogWitnessResolutionClass, SpatialGeometricTagFailureClass,
+    },
+    witness_resolution::SpatialWitnessFailureClass,
 };
-use worth_spatial::test_support::SpatialFixtureWitnessCatalog;
+
+use crate::spatial_fixture_witness_catalog::SpatialFixtureWitnessCatalog;
 
 #[test]
 fn spatial_public_facade_exports_catalog_backed_subject_anchor_translation_surfaces() {

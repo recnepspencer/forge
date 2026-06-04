@@ -2,13 +2,12 @@ use std::collections::BTreeMap;
 
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::{
-    BridgeCommittedPatchItem, BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration,
-    CoarseRoutingMode, InvalidationSink, MappingSelector, RawCommittedPatchEnvelope,
+    BridgeCommittedPatchEnvelope, BridgeCommittedPatchItem, BridgeDeliveryReceipt, BridgeMappingId,
+    BridgeMappingRegistration, CoarseRoutingMode, InvalidationSink, MappingSelector,
     RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
     RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadPacket,
     SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadSource, TruthBranchIdentity,
-    TruthCommitIdentity, TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity,
-    TruthSnapshotReader,
+    TruthPatchIdentity, TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
 };
 use serde_json::Value;
 
@@ -245,19 +244,30 @@ impl forge_runtime_bridge::facade::CommittedPatchSource for TranscriptBridgeSour
     fn load_committed_patch(
         &self,
         request: RelationalCommittedPatchRequest,
-    ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        Ok(RawCommittedPatchEnvelope::new(
-            TruthCommitIdentity::new(request.commit_identity()),
-            TruthPatchIdentity::new(format!("patch:{}", request.commit_identity())),
-            TruthSnapshotIdentity::new("transcript-external-snapshot"),
-            TruthBranchIdentity::new("main"),
-            vec![BridgeCommittedPatchItem::new(
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        Ok(BridgeCommittedPatchEnvelope::new(
+            forge_runtime_bridge::facade::BridgeCommittedPatchEnvelopeIdentity::new(
+                request.commit_identity().clone(),
+                TruthPatchIdentity::new(format!("patch:{}", request.commit_identity())),
+                TruthSnapshotIdentity::new("transcript-external-snapshot"),
+                TruthBranchIdentity::new("main"),
+            ),
+            vec![BridgeCommittedPatchItem::with_target(
                 "transcript-entity",
-                forge_foundational::facade::AspectKey::new("transcript-aspect")
-                    .expect("valid bridge patch aspect key"),
-                "value",
+                forge_runtime_bridge::facade::BridgeCommittedPatchTarget::entity_field_path(
+                    forge_foundational::facade::AspectLocator::new(
+                        forge_foundational::facade::LocatorAuthority::Authoritative,
+                        forge_foundational::facade::AspectKey::new("transcript-aspect")
+                            .expect("valid native bridge patch aspect key"),
+                    ),
+                    forge_foundational::facade::CanonicalFieldPath::single(
+                        forge_foundational::facade::FieldKey::new("value".to_owned())
+                            .expect("valid native bridge patch field key"),
+                    ),
+                ),
             )],
-        ))
+        )
+        .expect("native bridge patch envelope fixture must construct"))
     }
 }
 
@@ -291,7 +301,12 @@ impl TruthSnapshotReader for TranscriptSnapshotReader {
             request
                 .reads()
                 .iter()
-                .map(|read| SnapshotReadRecord::new(read.request_key(), Vec::new()))
+                .map(|read| {
+                    SnapshotReadRecord::for_request(
+                        read,
+                        forge_foundational::facade::AspectValue::Null,
+                    )
+                })
                 .collect(),
         ))
     }
@@ -319,8 +334,13 @@ fn transcript_bridge() -> RuntimeBridge {
             BridgeMappingId::new("transcript-external"),
             TruthPatchScope::new(
                 MappingSelector::any(),
-                MappingSelector::any(),
-                MappingSelector::any(),
+                forge_runtime_bridge::facade::AspectKeySelector::any(),
+                forge_runtime_bridge::facade::TruthPatchTargetSelector::any(),
+            ),
+            forge_runtime_bridge::facade::SnapshotReadContract::scalar(
+                forge_foundational::facade::AspectKey::new("aspect")
+                    .expect("valid bridge mapping aspect key"),
+                forge_foundational::facade::ScalarAspectType::String,
             ),
             SignalInvalidationScope::new("transcript-external"),
             CoarseRoutingMode::Direct,
