@@ -2,7 +2,10 @@ use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryWorkspace,
 };
 
-use crate::construction::certification::PrimitiveConstructionContinuityRow;
+use crate::construction::certification::continuity::{
+    PrimitiveConstructionContinuityCase, PrimitiveConstructionContinuityResolutionSource,
+    PrimitiveConstructionContinuityRow,
+};
 use crate::construction::digest::digest_owned_parts;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -24,9 +27,9 @@ pub enum PrimitiveConstructionContinuityQueryFactProvenance {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionQueryContinuityParityReport {
-    case: crate::construction::certification::PrimitiveConstructionContinuityCase,
+    case: PrimitiveConstructionContinuityCase,
     profile_name: &'static str,
-    source: crate::construction::certification::PrimitiveConstructionContinuityResolutionSource,
+    source: PrimitiveConstructionContinuityResolutionSource,
     continuity_class: worth_spatial::facade::arbitration::SpatialIdentityContinuityClass,
     explanation_class:
         worth_spatial::facade::arbitration::SpatialIdentityContinuityExplanationClass,
@@ -87,17 +90,7 @@ impl PrimitiveConstructionQueryContinuityParityReport {
         }
     }
 
-    pub fn case(&self) -> crate::construction::certification::PrimitiveConstructionContinuityCase {
-        self.case
-    }
-
-    pub fn profile_name(&self) -> &'static str {
-        self.profile_name
-    }
-
-    pub fn source(
-        &self,
-    ) -> crate::construction::certification::PrimitiveConstructionContinuityResolutionSource {
+    pub fn source(&self) -> PrimitiveConstructionContinuityResolutionSource {
         self.source
     }
 
@@ -105,12 +98,6 @@ impl PrimitiveConstructionQueryContinuityParityReport {
         &self,
     ) -> worth_spatial::facade::arbitration::SpatialIdentityContinuityClass {
         self.continuity_class
-    }
-
-    pub fn explanation_class(
-        &self,
-    ) -> worth_spatial::facade::arbitration::SpatialIdentityContinuityExplanationClass {
-        self.explanation_class
     }
 
     pub fn candidate(&self) -> Option<worth_spatial::facade::arbitration::SpatialIntentCandidate> {
@@ -197,7 +184,7 @@ mod tests {
         prepare_primitive_construction_query_continuity_inspection_parity_report,
         prepare_primitive_construction_query_continuity_projection_consumption_receipt_report,
     };
-    use crate::construction::{
+    use crate::construction::certification::continuity::{
         prepare_primitive_construction_continuity_surface_report,
         PrimitiveConstructionContinuityCase,
     };

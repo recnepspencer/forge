@@ -165,84 +165,25 @@ impl PrimitiveConstructionCompoundOrderingScenarioRow {
         &self.scenario_id
     }
 
-    pub fn canonical_row_digest(&self) -> &str {
-        &self.canonical_row_digest
-    }
-
     pub fn lane_count(&self) -> usize {
         self.lane_count
-    }
-
-    pub fn row_digest_stable(&self) -> bool {
-        self.row_digest_stable
-    }
-
-    pub fn topology_class(&self) -> PrimitiveConstructionCompoundTopologyClass {
-        self.topology_class
-    }
-
-    pub fn topology_class_stable(&self) -> bool {
-        self.topology_class_stable
-    }
-
-    pub fn row_class(&self) -> PrimitiveConstructionCompoundRowClass {
-        self.row_class
-    }
-
-    pub fn row_class_stable(&self) -> bool {
-        self.row_class_stable
-    }
-
-    pub fn realization_strategy(&self) -> Option<PrimitiveRealizationStrategy> {
-        self.realization_strategy
-    }
-
-    pub fn realization_strategy_stable(&self) -> bool {
-        self.realization_strategy_stable
-    }
-
-    pub fn stability_class(&self) -> Option<PrimitiveStabilityClass> {
-        self.stability_class
-    }
-
-    pub fn stability_class_stable(&self) -> bool {
-        self.stability_class_stable
-    }
-
-    pub fn exhaustion_reason(&self) -> Option<PrimitiveRealizationExhaustionReason> {
-        self.exhaustion_reason
     }
 
     pub fn exhaustion_reason_stable(&self) -> bool {
         self.exhaustion_reason_stable
     }
 
-    pub fn rejection_class(&self) -> Option<PrimitiveConstructionRejectionClass> {
-        self.rejection_class
-    }
-
     pub fn rejection_class_stable(&self) -> bool {
         self.rejection_class_stable
     }
 
-    pub fn rejection_locality(&self) -> Option<PrimitiveConstructionRejectionLocality> {
-        self.rejection_locality
-    }
-
+    #[cfg(test)]
     pub fn rejection_locality_stable(&self) -> bool {
         self.rejection_locality_stable
     }
 
-    pub fn motion_kind(&self) -> Option<PrimitiveConstructionCompoundMotionKind> {
-        self.motion_kind
-    }
-
     pub fn motion_kind_stable(&self) -> bool {
         self.motion_kind_stable
-    }
-
-    pub fn grazing_kind(&self) -> Option<PrimitiveConstructionCompoundGrazingKind> {
-        self.grazing_kind
     }
 
     pub fn grazing_kind_stable(&self) -> bool {
@@ -359,6 +300,7 @@ impl PrimitiveConstructionCompoundOrderingParityReport {
             .find(|row| row.scenario_id() == scenario_id)
     }
 
+    #[cfg(test)]
     pub fn normalized_matrix_digest(&self) -> &str {
         &self.normalized_matrix_digest
     }

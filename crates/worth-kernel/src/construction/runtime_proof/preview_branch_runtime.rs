@@ -3,7 +3,7 @@ use forge_query::facade::{
     ForgeQueryRuntimeFacadeFamily, ForgeQueryWorkspace,
 };
 
-use crate::construction::certification::{
+use crate::construction::certification::preview::{
     prepare_primitive_construction_preview_surface_report, PrimitiveConstructionPreviewCase,
     PrimitiveConstructionPreviewRow, PrimitiveConstructionPreviewSurfaceReportError,
 };
@@ -43,10 +43,6 @@ impl PrimitiveConstructionPreviewBranchPreviewRuntimeReport {
             branch_lane,
             report_digest,
         }
-    }
-
-    pub fn case(&self) -> PrimitiveConstructionPreviewCase {
-        self.case
     }
 
     pub fn preview_row(&self) -> &PrimitiveConstructionPreviewRow {
@@ -139,7 +135,7 @@ mod tests {
     use forge_query::facade::ForgeQueryAuthorityLane;
 
     use super::prepare_primitive_construction_preview_branch_preview_runtime_report;
-    use crate::construction::PrimitiveConstructionPreviewCase;
+    use crate::construction::certification::preview::PrimitiveConstructionPreviewCase;
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,
     };

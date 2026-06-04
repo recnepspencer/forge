@@ -1,10 +1,11 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-
 use worth_geom::facade::{
     build_direct_realization_report, Plane, PrimitiveFeatureConditioningClass,
     PrimitiveNormalizationDisposition, PrimitiveRealizationReport, PrimitiveRealizationStrategy,
     PrimitiveStabilityClass, PrimitiveSupportNormalClass,
+};
+use worth_primitives::{
+    truth_digest_parts, PrimitiveConstructionBirthSynopsisContract,
+    PrimitiveConstructionFamilyContractRegistry, PrimitiveWitnessDescriptor, TruthDigestScope,
 };
 
 use crate::bindings::primitive_birth_validation::validate_primitive_construction_birth_input;
@@ -35,6 +36,7 @@ impl PrimitiveConstructionBirthFamily {
 #[derive(Clone, Debug)]
 pub struct PrimitiveConstructionBirthScaffoldInput {
     family: PrimitiveConstructionBirthFamily,
+    birth_contract: PrimitiveConstructionBirthSynopsisContract,
     topology_birth_class: &'static str,
     scaffold_digest: String,
     support_planes: Vec<Plane>,
@@ -65,10 +67,56 @@ impl PrimitiveConstructionBirthScaffoldInput {
         expected_shell_count: usize,
         expected_body_count: usize,
     ) -> Self {
+        let birth_contract = derive_birth_contract(
+            family,
+            expected_vertex_count,
+            expected_edge_count,
+            expected_loop_count,
+            expected_wire_count,
+            expected_face_count,
+            expected_shell_count,
+            expected_body_count,
+        );
         let realization_report =
             build_direct_realization_report(family.as_str(), &vertex_positions, &support_planes);
         Self::new_with_realization(
             family,
+            birth_contract,
+            topology_birth_class,
+            scaffold_digest,
+            support_planes,
+            realization_report,
+            vertex_positions,
+            expected_vertex_count,
+            expected_edge_count,
+            expected_loop_count,
+            expected_wire_count,
+            expected_face_count,
+            expected_shell_count,
+            expected_body_count,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_with_realization_and_contract(
+        family: PrimitiveConstructionBirthFamily,
+        birth_contract: PrimitiveConstructionBirthSynopsisContract,
+        topology_birth_class: &'static str,
+        scaffold_digest: String,
+        support_planes: Vec<Plane>,
+        realization_report: PrimitiveRealizationReport,
+        vertex_positions: Vec<[f64; 3]>,
+        expected_vertex_count: usize,
+        expected_edge_count: usize,
+        expected_loop_count: usize,
+        expected_wire_count: usize,
+        expected_face_count: usize,
+        expected_shell_count: usize,
+        expected_body_count: usize,
+    ) -> Self {
+        Self::new_with_realization(
+            family,
+            birth_contract,
             topology_birth_class,
             scaffold_digest,
             support_planes,
@@ -87,6 +135,7 @@ impl PrimitiveConstructionBirthScaffoldInput {
     #[allow(clippy::too_many_arguments)]
     pub fn new_with_realization(
         family: PrimitiveConstructionBirthFamily,
+        birth_contract: PrimitiveConstructionBirthSynopsisContract,
         topology_birth_class: &'static str,
         scaffold_digest: String,
         support_planes: Vec<Plane>,
@@ -102,6 +151,7 @@ impl PrimitiveConstructionBirthScaffoldInput {
     ) -> Self {
         Self {
             family,
+            birth_contract,
             topology_birth_class,
             scaffold_digest,
             support_planes,
@@ -119,6 +169,10 @@ impl PrimitiveConstructionBirthScaffoldInput {
 
     pub fn family(&self) -> PrimitiveConstructionBirthFamily {
         self.family
+    }
+
+    pub fn birth_contract(&self) -> PrimitiveConstructionBirthSynopsisContract {
+        self.birth_contract
     }
 
     pub fn scaffold_digest(&self) -> &str {
@@ -173,6 +227,7 @@ impl PrimitiveConstructionBirthScaffoldInput {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SpatialConstructionBirthPlan {
     family: PrimitiveConstructionBirthFamily,
+    birth_contract: PrimitiveConstructionBirthSynopsisContract,
     scaffold_digest: String,
     topology_birth_class: &'static str,
     supported_vertex_count: usize,
@@ -189,6 +244,7 @@ pub struct SpatialConstructionBirthPlan {
     support_normal_class: PrimitiveSupportNormalClass,
     normalization_disposition: PrimitiveNormalizationDisposition,
     realization_report_digest: String,
+    realization_geometry_digest: String,
     birth_digest: String,
 }
 
@@ -236,10 +292,12 @@ impl SpatialConstructionBirthPlan {
                 .normalization_disposition()
                 .as_str()
                 .to_string(),
+            input.realization_report().geometry_digest().to_string(),
             input.realization_report().report_digest().to_string(),
         ];
         Self {
             family: input.family(),
+            birth_contract: input.birth_contract(),
             scaffold_digest: input.scaffold_digest().to_string(),
             topology_birth_class: input.topology_birth_class(),
             supported_vertex_count: input.expected_vertex_count(),
@@ -267,6 +325,7 @@ impl SpatialConstructionBirthPlan {
                 .realization_report()
                 .conditioning_witness()
                 .normalization_disposition(),
+            realization_geometry_digest: input.realization_report().geometry_digest().to_string(),
             realization_report_digest: input.realization_report().report_digest().to_string(),
             birth_digest: digest_parts(&parts),
         }
@@ -274,6 +333,10 @@ impl SpatialConstructionBirthPlan {
 
     pub fn family(&self) -> PrimitiveConstructionBirthFamily {
         self.family
+    }
+
+    pub fn birth_contract(&self) -> PrimitiveConstructionBirthSynopsisContract {
+        self.birth_contract
     }
 
     pub fn scaffold_digest(&self) -> &str {
@@ -340,6 +403,10 @@ impl SpatialConstructionBirthPlan {
         &self.realization_report_digest
     }
 
+    pub fn realization_geometry_digest(&self) -> &str {
+        &self.realization_geometry_digest
+    }
+
     pub fn birth_digest(&self) -> &str {
         &self.birth_digest
     }
@@ -370,11 +437,39 @@ pub fn plan_primitive_construction_birth(
 }
 
 pub(super) fn digest_parts(parts: &[String]) -> String {
-    let mut hasher = DefaultHasher::new();
-    for part in parts {
-        part.hash(&mut hasher);
-    }
-    format!("{:016x}", hasher.finish())
+    truth_digest_parts(TruthDigestScope::ArtifactIdentity, parts)
+}
+
+fn derive_birth_contract(
+    family: PrimitiveConstructionBirthFamily,
+    vertex_count: usize,
+    edge_count: usize,
+    loop_count: usize,
+    _wire_count: usize,
+    face_count: usize,
+    _shell_count: usize,
+    _body_count: usize,
+) -> PrimitiveConstructionBirthSynopsisContract {
+    let descriptor = match family {
+        PrimitiveConstructionBirthFamily::SimplexSolid => PrimitiveWitnessDescriptor::SimplexSolid,
+        PrimitiveConstructionBirthFamily::Orthotope => PrimitiveWitnessDescriptor::Orthotope,
+        PrimitiveConstructionBirthFamily::RegularPrism => PrimitiveWitnessDescriptor::RegularPrism {
+            side_count: (face_count - 2) as u32,
+        },
+        PrimitiveConstructionBirthFamily::RegularPyramid => {
+            PrimitiveWitnessDescriptor::RegularPyramid {
+                side_count: (vertex_count - 1) as u32,
+            }
+        }
+        PrimitiveConstructionBirthFamily::WireBody => PrimitiveWitnessDescriptor::WireBody {
+            edge_count: edge_count as u32,
+        },
+        PrimitiveConstructionBirthFamily::ShellWithHole => PrimitiveWitnessDescriptor::ShellWithHole {
+            outer_loop_edge_count: (edge_count - (loop_count.saturating_sub(1) * 3)) as u32,
+            hole_loop_edge_counts: vec![3; loop_count.saturating_sub(1)],
+        },
+    };
+    PrimitiveConstructionFamilyContractRegistry::contract_for(&descriptor)
 }
 
 #[cfg(test)]

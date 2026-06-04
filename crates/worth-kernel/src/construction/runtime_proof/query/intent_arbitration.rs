@@ -2,7 +2,7 @@ use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryWorkspace,
 };
 
-use crate::construction::certification::{
+use crate::construction::certification::arbitration::{
     PrimitiveConstructionChosenIntentResolutionAuthority,
     PrimitiveConstructionChosenIntentResolutionRow,
     PrimitiveConstructionIntentArbitrationConflictClass,
@@ -210,22 +210,8 @@ impl PrimitiveConstructionQueryIntentArbitrationParityReport {
         self.chosen_truth
     }
 
-    pub fn query_contract_digest(&self) -> &str {
-        &self.query_contract_digest
-    }
-
-    pub fn required_query_families(&self) -> &[ForgeQueryRuntimeFacadeFamily] {
-        &self.required_query_families
-    }
-
     pub fn read_surface(&self) -> PrimitiveConstructionIntentArbitrationQueryReadSurface {
         self.read_surface
-    }
-
-    pub fn inspection_surface(
-        &self,
-    ) -> PrimitiveConstructionIntentArbitrationQueryInspectionSurface {
-        self.inspection_surface
     }
 
     pub fn fact_provenance(&self) -> PrimitiveConstructionIntentArbitrationQueryFactProvenance {
@@ -316,9 +302,10 @@ mod tests {
         PrimitiveConstructionIntentArbitrationQueryReadSurface,
         PrimitiveConstructionIntentChosenTruth,
     };
-    use crate::construction::{
+    use crate::construction::certification::arbitration::{
         prepare_primitive_chosen_intent_resolution_report,
         prepare_primitive_intent_arbitration_policy_report,
+        PrimitiveConstructionChosenIntentResolutionAuthority,
         PrimitiveConstructionChosenIntentResolutionCase,
         PrimitiveConstructionIntentArbitrationPolicyCase,
     };
@@ -395,7 +382,7 @@ mod tests {
             report.chosen_truth(),
             PrimitiveConstructionIntentChosenTruth::Resolved {
                 candidate: SpatialIntentCandidate::SnapFlush,
-                authority: crate::construction::PrimitiveConstructionChosenIntentResolutionAuthority::ExplicitChoice,
+                authority: PrimitiveConstructionChosenIntentResolutionAuthority::ExplicitChoice,
             }
         );
         assert!(report.parity_verified());

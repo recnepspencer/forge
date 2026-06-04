@@ -1,3 +1,5 @@
+use worth_primitives::PrimitiveConstructionBirthSynopsisContract;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TopologyPrimitiveConstructionBirthFamily {
     SimplexSolid,
@@ -24,6 +26,7 @@ impl TopologyPrimitiveConstructionBirthFamily {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TopologyPrimitiveConstructionQueryBirthSynopsis {
     family: TopologyPrimitiveConstructionBirthFamily,
+    birth_contract: PrimitiveConstructionBirthSynopsisContract,
     scaffold_digest: String,
     source_birth_digest: String,
     topology_birth_class: String,
@@ -40,6 +43,7 @@ impl TopologyPrimitiveConstructionQueryBirthSynopsis {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         family: TopologyPrimitiveConstructionBirthFamily,
+        birth_contract: PrimitiveConstructionBirthSynopsisContract,
         scaffold_digest: String,
         source_birth_digest: String,
         topology_birth_class: String,
@@ -53,6 +57,7 @@ impl TopologyPrimitiveConstructionQueryBirthSynopsis {
     ) -> Self {
         Self {
             family,
+            birth_contract,
             scaffold_digest,
             source_birth_digest,
             topology_birth_class,
@@ -68,6 +73,10 @@ impl TopologyPrimitiveConstructionQueryBirthSynopsis {
 
     pub fn family(&self) -> TopologyPrimitiveConstructionBirthFamily {
         self.family
+    }
+
+    pub fn birth_contract(&self) -> PrimitiveConstructionBirthSynopsisContract {
+        self.birth_contract
     }
 
     pub fn scaffold_digest(&self) -> &str {

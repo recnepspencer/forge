@@ -1,35 +1,26 @@
 use forge_query::facade::ForgeQueryWorkspace;
-use worth_geom::ParameterSpacePoint;
 
-use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::{
-    prepare_primitive_construction_move_motion_report_bundle,
-    prepare_primitive_construction_points_toward_motion_report_bundle,
-    prepare_primitive_construction_points_toward_motion_report_bundle_with_catalog,
-    prepare_primitive_construction_reorient_motion_report_bundle,
-    prepare_primitive_construction_reorient_motion_report_bundle_with_catalog,
-    prepare_primitive_construction_rotate_motion_report_bundle_with_catalog,
-    PrimitiveConstructionFamily, PrimitiveConstructionIntent,
-    PrimitiveConstructionMotionReportBundleError, PrimitiveConstructionMotionRuntimeSurfaceStatus,
+use crate::construction::certification::motion::representative_evidence::PrimitiveConstructionMotionRepresentativeEvidenceError;
+use crate::construction::certification::motion::representative_inputs::{
+    prepare_motion_representative_inputs, required_motion_representative_cases,
+};
+use crate::construction::certification::motion::{
     PrimitiveConstructionMotionWitnessResolutionFailureKind,
     PrimitiveConstructionMotionWitnessResolutionKind,
+    PrimitiveConstructionMotionWitnessResolutionReport,
     PrimitiveConstructionMotionWitnessResolutionStatus,
-    PrimitiveConstructionRequestedMotionWitness, PrimitiveConstructionVerifiedMotionReportBundle,
-    RegularPyramidSpec, WireBodySpec,
+    PrimitiveConstructionRequestedMotionWitness,
 };
-use crate::spatial_intent::{MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent};
-use crate::test_support::SpatialFixtureWitnessCatalog;
-use worth_spatial::facade::refs::{
-    SpatialAnchorRef, SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole,
-    SpatialDirectionWitnessRef, SpatialFrameRef, SpatialPointWitnessRef,
+use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
+use crate::construction::motion_branch_runtime::{
+    PrimitiveConstructionMotionBranchPreviewRuntimeReport,
+    PrimitiveConstructionMotionRuntimeSurfaceStatus,
 };
-use worth_spatial::facade::witness_catalog::{
-    SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
-    SpatialCatalogWitnessResolutionClass,
-};
-use worth_spatial::facade::witness_resolution::{
-    SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
-};
+use crate::construction::motion_replay::PrimitiveConstructionMotionReplayParityReport;
+use crate::construction::query::motion_parity::PrimitiveConstructionQueryMotionWitnessParityReport;
+use crate::construction::request::PrimitiveConstructionFamily;
+use worth_spatial::facade::refs::SpatialAnchorRef;
+use worth_spatial::facade::witness_resolution::SpatialWitnessResolutionClass;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionMotionResolutionPolicyCase {
@@ -59,14 +50,15 @@ pub struct PrimitiveConstructionMotionResolutionPolicyRow {
 }
 
 impl PrimitiveConstructionMotionResolutionPolicyRow {
-    fn new(
+    pub(crate) fn new(
         case: PrimitiveConstructionMotionResolutionPolicyCase,
-        bundle: PrimitiveConstructionVerifiedMotionReportBundle,
+        witness_report: &PrimitiveConstructionMotionWitnessResolutionReport,
+        replay_report: &PrimitiveConstructionMotionReplayParityReport,
+        inspection_report: &PrimitiveConstructionQueryMotionWitnessParityReport,
+        projection_report: &PrimitiveConstructionQueryMotionWitnessParityReport,
+        branch_report: &PrimitiveConstructionMotionBranchPreviewRuntimeReport,
     ) -> Self {
-        let witness_report = bundle.witness_report();
-        let runtime_surface_status = bundle
-            .branch_preview_runtime_report()
-            .runtime_surface_status();
+        let runtime_surface_status = branch_report.runtime_surface_status();
         let row_digest = digest_owned_parts_with_scope(
             ConstructionDigestScope::ParityIdentity,
             &[
@@ -79,21 +71,11 @@ impl PrimitiveConstructionMotionResolutionPolicyRow {
                 format!("{:?}", witness_report.resolution_class()),
                 format!("{:?}", witness_report.failure_kind()),
                 format!("{runtime_surface_status:?}"),
-                bundle.truth().truth_digest().to_string(),
-                bundle.witness_report().report_digest().to_string(),
-                bundle.replay_parity_report().report_digest().to_string(),
-                bundle
-                    .query_inspection_parity_report()
-                    .report_digest()
-                    .to_string(),
-                bundle
-                    .query_projection_receipt_report()
-                    .report_digest()
-                    .to_string(),
-                bundle
-                    .branch_preview_runtime_report()
-                    .report_digest()
-                    .to_string(),
+                witness_report.report_digest().to_string(),
+                replay_report.report_digest().to_string(),
+                inspection_report.report_digest().to_string(),
+                projection_report.report_digest().to_string(),
+                branch_report.report_digest().to_string(),
             ],
         );
         Self {
@@ -151,6 +133,20 @@ impl PrimitiveConstructionMotionResolutionPolicyRow {
     }
 }
 
+pub(crate) fn build_motion_resolution_policy_row_from_inputs(
+    case: PrimitiveConstructionMotionResolutionPolicyCase,
+    inputs: &crate::construction::certification::motion::representative_evidence::PrimitiveConstructionMotionRepresentativeInputs,
+) -> PrimitiveConstructionMotionResolutionPolicyRow {
+    PrimitiveConstructionMotionResolutionPolicyRow::new(
+        case,
+        &inputs.witness_report,
+        &inputs.replay_report,
+        &inputs.inspection_report,
+        &inputs.projection_report,
+        &inputs.branch_runtime_report,
+    )
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionMotionResolutionPolicyReport {
     rows: Vec<PrimitiveConstructionMotionResolutionPolicyRow>,
@@ -190,13 +186,13 @@ impl PrimitiveConstructionMotionResolutionPolicyReport {
 
 #[derive(Debug)]
 pub enum PrimitiveConstructionMotionResolutionPolicyReportError {
-    Bundle(PrimitiveConstructionMotionReportBundleError),
+    Representative(PrimitiveConstructionMotionRepresentativeEvidenceError),
 }
 
 impl std::fmt::Display for PrimitiveConstructionMotionResolutionPolicyReportError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Bundle(error) => write!(f, "{error}"),
+            Self::Representative(error) => write!(f, "{error}"),
         }
     }
 }
@@ -209,178 +205,14 @@ pub fn prepare_primitive_construction_motion_resolution_policy_report(
     PrimitiveConstructionMotionResolutionPolicyReport,
     PrimitiveConstructionMotionResolutionPolicyReportError,
 > {
-    let rows = vec![
-        PrimitiveConstructionMotionResolutionPolicyRow::new(
-            PrimitiveConstructionMotionResolutionPolicyCase::DirectMove,
-            prepare_primitive_construction_move_motion_report_bundle(
-                workspace,
-                MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
-                    edge_count: 6,
-                }))
-                .to([10.0, 0.0, 3.0]),
-            )
-            .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        ),
-        PrimitiveConstructionMotionResolutionPolicyRow::new(
-            PrimitiveConstructionMotionResolutionPolicyCase::FrameReorient,
-            prepare_primitive_construction_reorient_motion_report_bundle(
-                workspace,
-                ReorientSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
-                    RegularPyramidSpec {
-                        sides: 4,
-                        radius: 1.0,
-                        height: 2.0,
-                    },
-                ))
-                .parallel_to(SpatialFrameRef::workplane(
-                    "policy-workplane",
-                    [0.0, 0.0, 5.0],
-                    [0.0, 0.0, 1.0],
-                )),
-            )
-            .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        ),
-        PrimitiveConstructionMotionResolutionPolicyRow::new(
-            PrimitiveConstructionMotionResolutionPolicyCase::CarrierReorient,
-            prepare_primitive_construction_reorient_motion_report_bundle_with_catalog(
-                workspace,
-                ReorientSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
-                    RegularPyramidSpec {
-                        sides: 4,
-                        radius: 1.0,
-                        height: 2.0,
-                    },
-                ))
-                .toward_witness(SpatialDirectionWitnessRef::curve_tangent(
-                    "policy-curve",
-                    0.25,
-                )),
-                &SpatialFixtureWitnessCatalog::new().with_parameter_space_direction(
-                    SpatialCarrierKind::Curve,
-                    "policy-curve",
-                    ParameterSpacePoint::try_new([0.25, 0.0]).unwrap(),
-                    SpatialCarrierDirectionRole::Tangent,
-                    Ok(SpatialCatalogResolvedDirectionWitness::new(
-                        [0.0, 1.0, 0.0],
-                        SpatialCatalogWitnessResolutionClass::CarrierDerived,
-                    )),
-                ),
-            )
-            .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        ),
-        PrimitiveConstructionMotionResolutionPolicyRow::new(
-            PrimitiveConstructionMotionResolutionPolicyCase::FallbackPointsToward,
-            prepare_primitive_construction_points_toward_motion_report_bundle_with_catalog(
-                workspace,
-                ReorientSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
-                    RegularPyramidSpec {
-                        sides: 3,
-                        radius: 1.0,
-                        height: 1.0,
-                    },
-                ))
-                .so(SpatialAnchorRef::shape_origin())
-                .points_toward_witness(SpatialPointWitnessRef::feature_origin("policy-feature")),
-                &SpatialFixtureWitnessCatalog::new().with_feature_owned_point(
-                    "policy-feature",
-                    SpatialCarrierPointRole::Origin,
-                    Ok(SpatialCatalogResolvedPointWitness::new(
-                        [4.0, 5.0, 6.0],
-                        SpatialCatalogWitnessResolutionClass::FallbackDerived,
-                    )),
-                ),
-            )
-            .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        ),
-        PrimitiveConstructionMotionResolutionPolicyRow::new(
-            PrimitiveConstructionMotionResolutionPolicyCase::AmbiguousMove,
-            prepare_primitive_construction_move_motion_report_bundle(
-                workspace,
-                MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
-                    edge_count: 4,
-                }))
-                .to_witness(SpatialPointWitnessRef::ambiguous_curve_point(
-                    "policy-curve",
-                )),
-            )
-            .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        ),
-        PrimitiveConstructionMotionResolutionPolicyRow::new(
-            PrimitiveConstructionMotionResolutionPolicyCase::UndefinedReorient,
-            prepare_primitive_construction_reorient_motion_report_bundle_with_catalog(
-                workspace,
-                ReorientSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
-                    RegularPyramidSpec {
-                        sides: 4,
-                        radius: 1.0,
-                        height: 2.0,
-                    },
-                ))
-                .toward_witness(SpatialDirectionWitnessRef::feature_axis(
-                    "policy-undefined-feature",
-                )),
-                &SpatialFixtureWitnessCatalog::new().with_feature_owned_direction(
-                    "policy-undefined-feature",
-                    SpatialCarrierDirectionRole::Axis,
-                    Err(SpatialWitnessFailureClass::Undefined),
-                ),
-            )
-            .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        ),
-        PrimitiveConstructionMotionResolutionPolicyRow::new(
-            PrimitiveConstructionMotionResolutionPolicyCase::UnsupportedReorient,
-            prepare_primitive_construction_reorient_motion_report_bundle(
-                workspace,
-                ReorientSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
-                    RegularPyramidSpec {
-                        sides: 4,
-                        radius: 1.0,
-                        height: 2.0,
-                    },
-                ))
-                .toward_witness(SpatialDirectionWitnessRef::surface_normal(
-                    "policy-surface",
-                    0.5,
-                    0.5,
-                )),
-            )
-            .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        ),
-        PrimitiveConstructionMotionResolutionPolicyRow::new(
-            PrimitiveConstructionMotionResolutionPolicyCase::ExhaustedRotate,
-            prepare_primitive_construction_rotate_motion_report_bundle_with_catalog(
-                workspace,
-                RotateSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
-                    edge_count: 4,
-                }))
-                .around_witness(SpatialDirectionWitnessRef::feature_axis(
-                    "policy-exhausted-feature",
-                ))
-                .by_radians(0.5),
-                &SpatialFixtureWitnessCatalog::new().with_feature_owned_direction(
-                    "policy-exhausted-feature",
-                    SpatialCarrierDirectionRole::Axis,
-                    Err(SpatialWitnessFailureClass::Exhausted),
-                ),
-            )
-            .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        ),
-        PrimitiveConstructionMotionResolutionPolicyRow::new(
-            PrimitiveConstructionMotionResolutionPolicyCase::CoincidentPointsToward,
-            prepare_primitive_construction_points_toward_motion_report_bundle(
-                workspace,
-                ReorientSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
-                    RegularPyramidSpec {
-                        sides: 3,
-                        radius: 1.0,
-                        height: 1.0,
-                    },
-                ))
-                .so(SpatialAnchorRef::shape_origin())
-                .points_toward([0.0, 0.0, 0.0]),
-            )
-            .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        ),
-    ];
+    let rows = required_motion_representative_cases()
+        .iter()
+        .copied()
+        .map(|case| {
+            prepare_motion_representative_inputs(workspace, case)
+                .map(|inputs| build_motion_resolution_policy_row_from_inputs(case, &inputs))
+                .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Representative)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(PrimitiveConstructionMotionResolutionPolicyReport::new(rows))
 }

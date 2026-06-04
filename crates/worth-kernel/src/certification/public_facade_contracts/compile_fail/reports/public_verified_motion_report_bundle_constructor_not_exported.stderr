@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_kernel::facade::certification::motion`
- --> src/certification/public_facade_contracts/compile_fail/reports/public_verified_motion_report_bundle_constructor_not_exported.rs:1:42
-  |
-1 | use worth_kernel::facade::certification::motion::PrimitiveConstructionVerifiedMotionReportBundle;
-  |                                          ^^^^^^ could not find `motion` in `certification`

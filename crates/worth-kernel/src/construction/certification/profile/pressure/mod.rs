@@ -11,6 +11,7 @@ pub use delta::{
     PrimitiveConstructionPolicyPressureDeltaReportError,
     PrimitiveConstructionPolicyPressureDeltaRow,
 };
+#[cfg(test)]
 pub(crate) use registry::{
     required_policy_pressure_delta_cases, required_policy_pressure_direct_cases,
 };

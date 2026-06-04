@@ -1,6 +1,3 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-
 use super::exhaustion::{
     PrimitiveRealizationError, PrimitiveRealizationExhaustionReason,
     PrimitiveRealizationExhaustionReport,
@@ -10,6 +7,7 @@ use super::support::{
     realize_tetrahedron_support_with_altitude_component,
 };
 use super::PrimitiveRealizationStrategy;
+use worth_primitives::{truth_digest_parts, TruthDigestScope};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveRealizationExhaustionWitnessKind {
@@ -134,9 +132,5 @@ fn witness_row(
 }
 
 fn digest_parts(parts: &[String]) -> String {
-    let mut hasher = DefaultHasher::new();
-    for part in parts {
-        part.hash(&mut hasher);
-    }
-    format!("{:016x}", hasher.finish())
+    truth_digest_parts(TruthDigestScope::WitnessIdentity, parts)
 }

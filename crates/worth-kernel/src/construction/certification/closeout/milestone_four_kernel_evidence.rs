@@ -1,5 +1,14 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
+use crate::construction::authoring::WorthKernelAuthorityError;
+use crate::construction::certification::arbitration::{
+    prepare_primitive_construction_intent_arbitration_representative_evidence,
+    prepare_primitive_intent_arbitration_policy_report,
+    prepare_primitive_intent_conflict_dx_surface_report,
+    PrimitiveConstructionIntentArbitrationBundleCase,
+    PrimitiveConstructionIntentArbitrationPolicyReportError,
+    PrimitiveConstructionIntentArbitrationRepresentativeEvidenceError,
+};
 use crate::construction::certification::closeout::milestone_four_kernel_evidence_verified::{
     verify_closeout, PrimitiveConstructionMilestoneFourKernelCloseoutAssembly,
     PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport,
@@ -9,43 +18,48 @@ use crate::construction::certification::closeout::milestone_four_kernel_represen
     prepare_continuity_representative_evidence, prepare_policy_profile_representative_evidence,
     prepare_preview_representative_evidence,
 };
-use crate::construction::certification::{
+use crate::construction::certification::closeout::{
+    prepare_primitive_construction_phase_five_six_closeout_report,
+    PrimitiveConstructionPhaseFiveSixCloseoutReportError,
+};
+use crate::construction::certification::continuity::{
     prepare_primitive_construction_continuity_hostility_suite_report,
-    prepare_primitive_construction_continuity_surface_report,
+    prepare_primitive_construction_continuity_surface_report, PrimitiveConstructionContinuityCase,
+    PrimitiveConstructionContinuitySurfaceReportError,
+};
+use crate::construction::certification::motion::{
     prepare_primitive_construction_motion_dx_surface_report,
     prepare_primitive_construction_motion_resolution_policy_report,
-    prepare_primitive_construction_phase_five_six_closeout_report,
-    prepare_primitive_construction_policy_profile_report,
-    prepare_primitive_construction_preview_continuity_hostility_suite_report,
-    prepare_primitive_construction_preview_hostility_suite_report,
-    prepare_primitive_construction_preview_surface_report,
-    prepare_primitive_construction_realization_exhaustion_witness_report,
-    prepare_primitive_intent_arbitration_policy_report,
-    prepare_primitive_intent_conflict_dx_surface_report, PrimitiveConstructionContinuityCase,
-    PrimitiveConstructionContinuitySurfaceReportError,
-    PrimitiveConstructionIntentArbitrationBundleCase,
-    PrimitiveConstructionIntentArbitrationPolicyReportError,
-    PrimitiveConstructionIntentArbitrationReportBundleError,
     PrimitiveConstructionMotionDxSurfaceReportError,
     PrimitiveConstructionMotionResolutionPolicyReportError,
-    PrimitiveConstructionPhaseFiveSixCloseoutReportError, PrimitiveConstructionPolicyProfileCase,
-    PrimitiveConstructionPreviewCase, PrimitiveConstructionPreviewContinuityHostilitySuiteError,
+};
+use crate::construction::certification::preview::{
+    prepare_primitive_construction_preview_hostility_suite_report,
+    prepare_primitive_construction_preview_surface_report, PrimitiveConstructionPreviewCase,
     PrimitiveConstructionPreviewSurfaceReportError,
 };
-use crate::construction::query::{
-    prepare_primitive_construction_query_basis_preview_parity_report,
-    prepare_primitive_construction_query_boundary_gap_register,
-    prepare_primitive_construction_query_existing_truth_binding_report,
+use crate::construction::certification::profile::{
+    prepare_primitive_construction_policy_profile_report,
+    prepare_primitive_construction_preview_continuity_hostility_suite_report,
+    PrimitiveConstructionPolicyProfileCase,
+    PrimitiveConstructionPreviewContinuityHostilitySuiteError,
+};
+use crate::construction::certification::realization::prepare_primitive_construction_realization_exhaustion_witness_report;
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::proof::substrate_closeout_report::{
+    prepare_primitive_construction_proof_substrate_closeout_report,
+    PrimitiveConstructionProofSubstrateCloseoutReportError,
+};
+use crate::construction::query::basis_preview_parity::prepare_primitive_construction_query_basis_preview_parity_report;
+use crate::construction::query::boundary_gap_register::prepare_primitive_construction_query_boundary_gap_register;
+use crate::construction::query::existing_truth_binding::prepare_primitive_construction_query_existing_truth_binding_report;
+use crate::construction::query::graph_composition_parity::{
     prepare_primitive_construction_query_graph_composition_parity_report,
-    prepare_primitive_construction_query_no_local_runtime_workaround_audit,
     PrimitiveConstructionQueryGraphCompositionParityError,
 };
-use crate::construction::{
-    prepare_primitive_construction_intent_arbitration_report_bundle,
-    prepare_primitive_construction_proof_substrate_closeout_report, OrthotopeSpec,
-    PrimitiveConstructionIntent, PrimitiveConstructionProofSubstrateCloseoutReportError,
-    PrimitiveConstructionRuntimeBasisError, SimplexSolidSpec, WorthKernelAuthorityError,
-};
+use crate::construction::query::no_local_runtime_workaround_audit::prepare_primitive_construction_query_no_local_runtime_workaround_audit;
+use crate::construction::runtime_basis::PrimitiveConstructionRuntimeBasisError;
+use crate::construction::specs::{OrthotopeSpec, SimplexSolidSpec};
 
 #[derive(Debug)]
 pub enum PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError {
@@ -58,7 +72,7 @@ pub enum PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError {
     MotionDx(PrimitiveConstructionMotionDxSurfaceReportError),
     IntentPolicy(PrimitiveConstructionIntentArbitrationPolicyReportError),
     IntentDx(PrimitiveConstructionIntentArbitrationPolicyReportError),
-    IntentBundle(PrimitiveConstructionIntentArbitrationReportBundleError),
+    IntentRepresentative(PrimitiveConstructionIntentArbitrationRepresentativeEvidenceError),
     PreviewSurface(PrimitiveConstructionPreviewSurfaceReportError),
     PreviewRepresentative(String),
     ContinuitySurface(PrimitiveConstructionContinuitySurfaceReportError),
@@ -80,7 +94,7 @@ impl std::fmt::Display for PrimitiveConstructionMilestoneFourKernelCloseoutEvide
             Self::MotionDx(error) => write!(f, "{error}"),
             Self::IntentPolicy(error) => write!(f, "{error}"),
             Self::IntentDx(error) => write!(f, "{error}"),
-            Self::IntentBundle(error) => write!(f, "{error}"),
+            Self::IntentRepresentative(error) => write!(f, "{error}"),
             Self::PreviewSurface(error) => write!(f, "{error}"),
             Self::PreviewRepresentative(error) => write!(f, "{error}"),
             Self::ContinuitySurface(error) => write!(f, "{error}"),
@@ -157,13 +171,13 @@ pub fn prepare_primitive_construction_milestone_four_kernel_closeout_evidence_re
         .map_err(
         PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError::IntentDx,
     )?;
-    let representative_intent_bundle =
-        prepare_primitive_construction_intent_arbitration_report_bundle(
+    let representative_intent_evidence =
+        prepare_primitive_construction_intent_arbitration_representative_evidence(
             workspace,
             PrimitiveConstructionIntentArbitrationBundleCase::GrazingSnapExplicitChoice,
         )
         .map_err(
-            PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError::IntentBundle,
+            PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError::IntentRepresentative,
         )?;
     let preview_surface_report = prepare_primitive_construction_preview_surface_report().map_err(
         PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError::PreviewSurface,
@@ -231,7 +245,7 @@ pub fn prepare_primitive_construction_milestone_four_kernel_closeout_evidence_re
             motion_dx_surface_report,
             intent_arbitration_policy_report,
             intent_conflict_dx_surface_report,
-            representative_intent_bundle,
+            representative_intent_evidence,
             preview_surface_report,
             representative_preview_evidence,
             continuity_surface_report,

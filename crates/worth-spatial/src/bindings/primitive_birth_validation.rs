@@ -28,11 +28,10 @@ pub(super) fn validate_primitive_construction_birth_input(
         );
     }
     let counts = PrimitiveConstructionBirthContractCounts::from_input(input);
-    let valid_shape = primitive_birth_contract_matches_counts(input.family(), counts)
+    let valid_shape = primitive_birth_contract_matches_counts(input.birth_contract(), counts)
         && primitive_birth_contract_matches_support_planes(
-            input.family(),
+            input.birth_contract(),
             input.support_planes().len(),
-            counts,
         );
     if !valid_shape {
         return Err(

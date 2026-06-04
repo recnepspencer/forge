@@ -2,7 +2,7 @@ use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryWorkspace,
 };
 
-use crate::construction::certification::{
+use crate::construction::certification::motion::{
     PrimitiveConstructionMotionWitnessResolutionFailureKind,
     PrimitiveConstructionMotionWitnessResolutionKind,
     PrimitiveConstructionMotionWitnessResolutionReport,
@@ -186,22 +186,22 @@ impl PrimitiveConstructionQueryMotionWitnessParityReport {
         self.failure_kind
     }
 
+    #[cfg(test)]
     pub fn query_contract_digest(&self) -> &str {
         &self.query_contract_digest
     }
 
-    pub fn required_query_families(&self) -> &[ForgeQueryRuntimeFacadeFamily] {
-        &self.required_query_families
-    }
-
+    #[cfg(test)]
     pub fn read_surface(&self) -> PrimitiveConstructionMotionQueryReadSurface {
         self.read_surface
     }
 
+    #[cfg(test)]
     pub fn inspection_surface(&self) -> PrimitiveConstructionMotionQueryInspectionSurface {
         self.inspection_surface
     }
 
+    #[cfg(test)]
     pub fn fact_provenance(&self) -> PrimitiveConstructionMotionQueryFactProvenance {
         self.fact_provenance
     }
@@ -279,13 +279,15 @@ mod tests {
         PrimitiveConstructionMotionQueryInspectionSurface,
         PrimitiveConstructionMotionQueryReadSurface,
     };
-    use crate::construction::{
+    use crate::construction::certification::motion::{
         prepare_primitive_construction_move_witness_resolution_report,
         prepare_primitive_construction_rotate_witness_resolution_report,
-        PrimitiveConstructionIntent, PrimitiveConstructionMotionWitnessResolutionFailureKind,
+        PrimitiveConstructionMotionWitnessResolutionFailureKind,
         PrimitiveConstructionMotionWitnessResolutionKind,
-        PrimitiveConstructionMotionWitnessResolutionStatus, WireBodySpec,
+        PrimitiveConstructionMotionWitnessResolutionStatus,
     };
+    use crate::construction::intent::PrimitiveConstructionIntent;
+    use crate::construction::specs::WireBodySpec;
     use crate::facade::authoring::intents::{MoveSpatialIntent, RotateSpatialIntent};
     use topology::facade::{
         milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters,

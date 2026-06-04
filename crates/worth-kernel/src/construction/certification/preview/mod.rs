@@ -1,12 +1,15 @@
 mod report;
+#[cfg(test)]
 mod suite;
 
+#[cfg(test)]
 pub(crate) use report::prepare_primitive_construction_preview_row;
 pub use report::{
     prepare_primitive_construction_preview_surface_report, PrimitiveConstructionPreviewCase,
     PrimitiveConstructionPreviewRow, PrimitiveConstructionPreviewSurfaceReport,
     PrimitiveConstructionPreviewSurfaceReportError,
 };
+#[cfg(test)]
 pub use suite::{
     prepare_primitive_construction_preview_hostility_suite_report,
     PrimitiveConstructionPreviewHostilitySuiteReport,

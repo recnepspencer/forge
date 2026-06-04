@@ -1,5 +1,6 @@
 use super::PrimitiveConstructionSpatialIntentError;
-use crate::construction::{PrimitiveConstructionIntent, RegularPyramidSpec};
+use crate::construction::intent::PrimitiveConstructionIntent;
+use crate::construction::specs::RegularPyramidSpec;
 use crate::facade::authoring::intents::ReorientSpatialIntent;
 use crate::test_support::SpatialFixtureWitnessCatalog;
 use worth_spatial::facade::placement::{admit_spatial_placement, SpatialPlacementMotionError};

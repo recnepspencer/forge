@@ -132,9 +132,9 @@ mod tests {
         prepare_primitive_construction_query_existing_truth_binding_report,
         PrimitiveConstructionExistingTruthBindingPosture,
     };
-    use crate::construction::{
-        PrimitiveConstructionFamily, PrimitiveConstructionIntent, SimplexSolidSpec,
-    };
+    use crate::construction::intent::PrimitiveConstructionIntent;
+    use crate::construction::request::PrimitiveConstructionFamily;
+    use crate::construction::specs::SimplexSolidSpec;
 
     #[test]
     fn existing_truth_binding_report_proves_fresh_primitive_birth_avoids_existing_truth_flows() {

@@ -1,3 +1,5 @@
+use worth_primitives::PrimitiveConstructionTopologyContract;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionTopologyCounts {
     vertex_count: usize,
@@ -10,23 +12,15 @@ pub struct PrimitiveConstructionTopologyCounts {
 }
 
 impl PrimitiveConstructionTopologyCounts {
-    pub fn new(
-        vertex_count: usize,
-        edge_count: usize,
-        loop_count: usize,
-        wire_count: usize,
-        face_count: usize,
-        shell_count: usize,
-        body_count: usize,
-    ) -> Self {
+    pub fn from_contract(contract: PrimitiveConstructionTopologyContract) -> Self {
         Self {
-            vertex_count,
-            edge_count,
-            loop_count,
-            wire_count,
-            face_count,
-            shell_count,
-            body_count,
+            vertex_count: contract.vertex_count(),
+            edge_count: contract.edge_count(),
+            loop_count: contract.loop_count(),
+            wire_count: contract.wire_count(),
+            face_count: contract.face_count(),
+            shell_count: contract.shell_count(),
+            body_count: contract.body_count(),
         }
     }
 

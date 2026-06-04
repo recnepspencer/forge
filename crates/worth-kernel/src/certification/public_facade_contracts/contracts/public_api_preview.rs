@@ -1,75 +1,16 @@
-use forge_query::facade::ForgeQueryAuthorityLane;
-use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{
     authoring::{intents::*, policy::*},
-    certification::{preview::*, query::*},
     diagnostics::{arbitration::*, preview::*},
 };
 
 #[test]
-fn kernel_public_facade_exports_preview_surface_and_query_parity() {
+fn kernel_public_facade_exports_preview_surface() {
     let report = prepare_primitive_construction_preview_surface_report().expect("report");
     let row = report
         .row(PrimitiveConstructionPreviewCase::GrazingAggressiveSnap)
-        .expect("row")
-        .clone();
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.public-preview".to_string(),
-    )
-    .expect("workspace");
-    let query =
-        prepare_primitive_construction_query_preview_inspection_parity_report(&mut workspace, row)
-            .expect("query");
+        .expect("row");
 
-    assert_eq!(query.profile_name(), "aggressive_snap");
-    assert!(query.parity_verified());
-}
-
-#[test]
-fn kernel_public_facade_exports_preview_hostility_suite() {
-    let suite = prepare_primitive_construction_preview_hostility_suite_report().expect("suite");
-
-    assert!(suite.suite_verified());
-}
-
-#[test]
-fn kernel_public_facade_exports_preview_replay_branch_and_hostility_surfaces() {
-    let replay = prepare_primitive_construction_preview_replay_parity_report(
-        PrimitiveConstructionPreviewCase::OverlapBlockedMerge,
-    )
-    .expect("replay");
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.public-preview-runtime".to_string(),
-    )
-    .expect("workspace");
-    let branch = prepare_primitive_construction_preview_branch_preview_runtime_report(
-        &mut workspace,
-        PrimitiveConstructionPreviewCase::HostFaceBimAttach,
-    )
-    .expect("branch");
-    let suite = prepare_primitive_construction_preview_hostility_suite_report().expect("suite");
-    let combined = prepare_primitive_construction_preview_continuity_hostility_suite_report()
-        .expect("combined suite");
-
-    assert!(replay.parity_verified());
-    assert_eq!(
-        branch.preview_lane().authority_lane(),
-        ForgeQueryAuthorityLane::PreviewTruth
-    );
-    assert_eq!(
-        branch.branch_lane().authority_lane(),
-        ForgeQueryAuthorityLane::BranchLocalTruth
-    );
-    assert!(suite.suite_verified());
-    assert!(combined.suite_verified());
+    assert_eq!(row.profile_name(), "aggressive_snap");
 }
 
 #[test]

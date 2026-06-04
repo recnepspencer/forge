@@ -1,8 +1,0 @@
-error[E0599]: no function or associated item named `new` found for struct `PrimitiveConstructionPhaseFiveBoundaryCloseoutReport` in the current scope
- --> src/certification/public_facade_contracts/compile_fail/reports/public_phase_five_boundary_closeout_report_constructor_not_exported.rs:4:67
-  |
-4 |     let _ = PrimitiveConstructionPhaseFiveBoundaryCloseoutReport::new;
-  |                                                                   ^^^ function or associated item not found in `PrimitiveConstructionPhaseFiveBoundaryCloseoutReport`
-  |
-help: there is a method `ne` with a similar name
- --> $RUST/core/src/cmp.rs

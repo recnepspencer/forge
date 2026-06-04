@@ -1,9 +1,10 @@
 use super::super::PrimitiveConstructionCorpusParameterRole;
 use super::support::siege_report;
-use crate::construction::{
-    PrimitiveConstructionBlockingBoundary, PrimitiveConstructionFamily,
+use crate::construction::diagnostics::PrimitiveConstructionBlockingBoundary;
+use crate::construction::outcome::{
     PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
 };
+use crate::construction::PrimitiveConstructionFamily;
 use worth_geom::facade::{PrimitiveRealizationStrategy, PrimitiveStabilityClass};
 
 #[test]

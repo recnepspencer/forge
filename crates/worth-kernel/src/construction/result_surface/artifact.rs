@@ -175,9 +175,9 @@ pub(crate) fn build_canonical_primitive_construction_artifact(
 mod tests {
     use super::build_canonical_primitive_construction_artifact;
     use crate::construction::admitted_scaffold::prepare_primitive_construction_admitted_artifact;
-    use crate::construction::{
-        PrimitiveConstructionFamily, PrimitiveConstructionIntent, ShellWithHoleSpec,
-    };
+    use crate::construction::intent::PrimitiveConstructionIntent;
+    use crate::construction::request::PrimitiveConstructionFamily;
+    use crate::construction::specs::ShellWithHoleSpec;
     use topology::facade::TopologyConstructionQueryInspectionSurface;
 
     #[test]

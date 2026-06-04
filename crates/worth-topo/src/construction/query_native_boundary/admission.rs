@@ -1,5 +1,5 @@
 use super::birth_synopsis::{
-    TopologyPrimitiveConstructionBirthFamily, TopologyPrimitiveConstructionQueryBirthSynopsis,
+    TopologyPrimitiveConstructionQueryBirthSynopsis,
 };
 
 use super::envelope::TopologyPrimitiveConstructionQueryEnvelope;
@@ -89,61 +89,12 @@ pub fn prepare_primitive_construction_query_handoff(
 fn primitive_birth_contract_matches_counts(
     synopsis: &TopologyPrimitiveConstructionQueryBirthSynopsis,
 ) -> bool {
-    match synopsis.family() {
-        TopologyPrimitiveConstructionBirthFamily::SimplexSolid => {
-            synopsis.supported_vertex_count() == 4
-                && synopsis.supported_edge_count() == 6
-                && synopsis.supported_loop_count() == 4
-                && synopsis.supported_wire_count() == 0
-                && synopsis.supported_face_count() == 4
-                && synopsis.supported_shell_count() == 1
-                && synopsis.supported_body_count() == 1
-        }
-        TopologyPrimitiveConstructionBirthFamily::Orthotope => {
-            synopsis.supported_vertex_count() == 8
-                && synopsis.supported_edge_count() == 12
-                && synopsis.supported_loop_count() == 6
-                && synopsis.supported_wire_count() == 0
-                && synopsis.supported_face_count() == 6
-                && synopsis.supported_shell_count() == 1
-                && synopsis.supported_body_count() == 1
-        }
-        TopologyPrimitiveConstructionBirthFamily::RegularPrism => {
-            synopsis.supported_vertex_count() >= 6
-                && synopsis.supported_vertex_count() % 2 == 0
-                && synopsis.supported_edge_count() == synopsis.supported_vertex_count() * 3 / 2
-                && synopsis.supported_face_count() == synopsis.supported_vertex_count() / 2 + 2
-                && synopsis.supported_loop_count() == synopsis.supported_face_count()
-                && synopsis.supported_wire_count() == 0
-                && synopsis.supported_shell_count() == 1
-                && synopsis.supported_body_count() == 1
-        }
-        TopologyPrimitiveConstructionBirthFamily::RegularPyramid => {
-            synopsis.supported_vertex_count() >= 4
-                && synopsis.supported_edge_count() == (synopsis.supported_vertex_count() - 1) * 2
-                && synopsis.supported_face_count() == synopsis.supported_vertex_count()
-                && synopsis.supported_loop_count() == synopsis.supported_face_count()
-                && synopsis.supported_wire_count() == 0
-                && synopsis.supported_shell_count() == 1
-                && synopsis.supported_body_count() == 1
-        }
-        TopologyPrimitiveConstructionBirthFamily::WireBody => {
-            synopsis.supported_vertex_count() >= 3
-                && synopsis.supported_edge_count() == synopsis.supported_vertex_count()
-                && synopsis.supported_loop_count() == 1
-                && synopsis.supported_wire_count() == 1
-                && synopsis.supported_face_count() == 0
-                && synopsis.supported_shell_count() == 0
-                && synopsis.supported_body_count() == 1
-        }
-        TopologyPrimitiveConstructionBirthFamily::ShellWithHole => {
-            synopsis.supported_vertex_count() >= 6
-                && synopsis.supported_edge_count() == synopsis.supported_vertex_count()
-                && synopsis.supported_loop_count() >= 2
-                && synopsis.supported_wire_count() == 0
-                && synopsis.supported_face_count() == 1
-                && synopsis.supported_shell_count() == 1
-                && synopsis.supported_body_count() == 1
-        }
-    }
+    let topology = synopsis.birth_contract().topology_contract();
+    synopsis.supported_vertex_count() == topology.vertex_count()
+        && synopsis.supported_edge_count() == topology.edge_count()
+        && synopsis.supported_loop_count() == topology.loop_count()
+        && synopsis.supported_wire_count() == topology.wire_count()
+        && synopsis.supported_face_count() == topology.face_count()
+        && synopsis.supported_shell_count() == topology.shell_count()
+        && synopsis.supported_body_count() == topology.body_count()
 }

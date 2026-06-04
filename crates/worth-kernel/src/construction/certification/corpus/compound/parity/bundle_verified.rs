@@ -3,11 +3,6 @@ use forge_proof::raw::{
     FreshnessScopedBasis, PhaseMarker, Proof, ProofMarker,
 };
 
-use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::proof::{
-    PrimitiveConstructionProofGrade, PrimitiveConstructionProofSubject,
-};
-
 use super::super::builder::PrimitiveConstructionCompoundAdversarialSiegeError;
 use super::super::ordering_report::PrimitiveConstructionCompoundOrderingParityReport;
 use super::super::report::{
@@ -17,6 +12,7 @@ use super::super::report::{
     PrimitiveConstructionCompoundMotionParityReport,
 };
 use super::truth::PrimitiveConstructionCompoundParityCanonicalTruth;
+use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 
 type CompoundParityProofBasis = FreshnessScopedBasis<CurrentValidity, AssumptionBasis<()>>;
 type VerifiedCompoundParityArtifact = Artifact<
@@ -153,10 +149,6 @@ impl PrimitiveConstructionCompoundParityVerificationFailure {
     pub fn mismatches(&self) -> &[PrimitiveConstructionCompoundParityVerificationMismatch] {
         &self.mismatches
     }
-
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
-    }
 }
 
 pub struct PrimitiveConstructionCompoundParityReport(VerifiedCompoundParityArtifact);
@@ -202,14 +194,6 @@ impl PrimitiveConstructionCompoundParityReport {
     pub fn report_digest(&self) -> &str {
         self.0.payload().bundle.report_digest()
     }
-
-    pub fn proof_grade(&self) -> PrimitiveConstructionProofGrade {
-        PrimitiveConstructionProofGrade::BundleCoherence
-    }
-
-    pub fn proof_subject(&self) -> PrimitiveConstructionProofSubject {
-        PrimitiveConstructionProofSubject::CompoundParity
-    }
 }
 
 impl Clone for PrimitiveConstructionCompoundParityReport {
@@ -222,7 +206,7 @@ impl std::fmt::Debug for PrimitiveConstructionCompoundParityReport {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PrimitiveConstructionCompoundParityReport")
             .field("truth", self.truth())
-            .field("report_digest", &self.report_digest())
+            .field("report_digest", &self.0.payload().bundle.report_digest())
             .finish()
     }
 }

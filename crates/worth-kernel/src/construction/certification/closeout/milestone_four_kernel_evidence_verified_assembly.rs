@@ -1,28 +1,27 @@
+use crate::construction::certification::arbitration::{
+    PrimitiveConstructionIntentArbitrationDxSurfaceReport,
+    PrimitiveConstructionIntentArbitrationPolicyReport,
+    PrimitiveConstructionIntentArbitrationRepresentativeEvidence,
+};
 use crate::construction::certification::closeout::milestone_four_kernel_representative_evidence::{
     PrimitiveConstructionContinuityRepresentativeEvidence,
     PrimitiveConstructionPolicyProfileRepresentativeEvidence,
     PrimitiveConstructionPreviewRepresentativeEvidence,
 };
-use crate::construction::certification::{
-    PrimitiveConstructionContinuitySurfaceReport,
-    PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-    PrimitiveConstructionIntentArbitrationPolicyReport, PrimitiveConstructionMotionDxSurfaceReport,
-    PrimitiveConstructionMotionResolutionPolicyReport,
-    PrimitiveConstructionPhaseFiveSixCloseoutReport,
-    PrimitiveConstructionPolicyProfileSurfaceReport, PrimitiveConstructionPreviewSurfaceReport,
-    PrimitiveConstructionRealizationExhaustionWitnessReport,
+use crate::construction::certification::closeout::PrimitiveConstructionPhaseFiveSixCloseoutReport;
+use crate::construction::certification::continuity::PrimitiveConstructionContinuitySurfaceReport;
+use crate::construction::certification::motion::{
+    PrimitiveConstructionMotionDxSurfaceReport, PrimitiveConstructionMotionResolutionPolicyReport,
 };
-use crate::construction::query::{
-    PrimitiveConstructionQueryBasisPreviewParityReport,
-    PrimitiveConstructionQueryBoundaryGapRegister,
-    PrimitiveConstructionQueryGraphCompositionParityReport,
-    PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit,
-};
-use crate::construction::{
-    PrimitiveConstructionProofSubstrateCloseoutReport,
-    PrimitiveConstructionQueryExistingTruthBindingReport,
-    PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
-};
+use crate::construction::certification::preview::PrimitiveConstructionPreviewSurfaceReport;
+use crate::construction::certification::profile::PrimitiveConstructionPolicyProfileSurfaceReport;
+use crate::construction::certification::realization::PrimitiveConstructionRealizationExhaustionWitnessReport;
+use crate::construction::proof::substrate_closeout_report::PrimitiveConstructionProofSubstrateCloseoutReport;
+use crate::construction::query::basis_preview_parity::PrimitiveConstructionQueryBasisPreviewParityReport;
+use crate::construction::query::boundary_gap_register::PrimitiveConstructionQueryBoundaryGapRegister;
+use crate::construction::query::existing_truth_binding::PrimitiveConstructionQueryExistingTruthBindingReport;
+use crate::construction::query::graph_composition_parity::PrimitiveConstructionQueryGraphCompositionParityReport;
+use crate::construction::query::no_local_runtime_workaround_audit::PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct PrimitiveConstructionMilestoneFourKernelCloseoutAssembly {
@@ -42,8 +41,8 @@ pub(crate) struct PrimitiveConstructionMilestoneFourKernelCloseoutAssembly {
     pub(super) intent_arbitration_policy_report: PrimitiveConstructionIntentArbitrationPolicyReport,
     pub(super) intent_conflict_dx_surface_report:
         PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-    pub(super) representative_intent_bundle:
-        PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
+    pub(super) representative_intent_evidence:
+        PrimitiveConstructionIntentArbitrationRepresentativeEvidence,
     pub(super) preview_surface_report: PrimitiveConstructionPreviewSurfaceReport,
     pub(super) representative_preview_evidence: PrimitiveConstructionPreviewRepresentativeEvidence,
     pub(super) continuity_surface_report: PrimitiveConstructionContinuitySurfaceReport,
@@ -70,7 +69,7 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutAssembly {
         motion_dx_surface_report: PrimitiveConstructionMotionDxSurfaceReport,
         intent_arbitration_policy_report: PrimitiveConstructionIntentArbitrationPolicyReport,
         intent_conflict_dx_surface_report: PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-        representative_intent_bundle: PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
+        representative_intent_evidence: PrimitiveConstructionIntentArbitrationRepresentativeEvidence,
         preview_surface_report: PrimitiveConstructionPreviewSurfaceReport,
         representative_preview_evidence: PrimitiveConstructionPreviewRepresentativeEvidence,
         continuity_surface_report: PrimitiveConstructionContinuitySurfaceReport,
@@ -91,7 +90,7 @@ impl PrimitiveConstructionMilestoneFourKernelCloseoutAssembly {
             motion_dx_surface_report,
             intent_arbitration_policy_report,
             intent_conflict_dx_surface_report,
-            representative_intent_bundle,
+            representative_intent_evidence,
             preview_surface_report,
             representative_preview_evidence,
             continuity_surface_report,

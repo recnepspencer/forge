@@ -26,9 +26,6 @@ use crate::construction::certification::corpus::{
     PrimitiveConstructionSimplexRealizationStrategyLadderReport,
 };
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
-use crate::construction::proof::{
-    PrimitiveConstructionProofGrade, PrimitiveConstructionProofSubject,
-};
 
 type PhaseFiveSixProofBasis = FreshnessScopedBasis<CurrentValidity, AssumptionBasis<()>>;
 type VerifiedPhaseFiveSixArtifact = Artifact<
@@ -144,42 +141,8 @@ pub struct PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure {
 }
 
 impl PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure {
-    pub fn phase_five_boundary(&self) -> &PrimitiveConstructionPhaseFiveBoundaryCloseoutReport {
-        &self.phase_five_boundary
-    }
-
-    pub fn compound_closeout(&self) -> &PrimitiveConstructionCompoundMilestoneCloseoutReport {
-        &self.compound_closeout
-    }
-
-    pub fn simplex_ladder(&self) -> &PrimitiveConstructionSimplexRealizationStrategyLadderReport {
-        &self.simplex_ladder
-    }
-
-    pub fn simplex_exhaustion(
-        &self,
-    ) -> &PrimitiveConstructionSimplexRealizationExhaustionWitnessReport {
-        &self.simplex_exhaustion
-    }
-
-    pub fn policy_pressure(&self) -> &PrimitiveConstructionPolicyPressureRepresentativeEvidence {
-        &self.policy_pressure
-    }
-
-    pub fn missing_simplex_scenarios(&self) -> &[String] {
-        &self.missing_simplex_scenarios
-    }
-
-    pub fn missing_exhaustion_kinds(&self) -> &[PrimitiveRealizationExhaustionWitnessKind] {
-        &self.missing_exhaustion_kinds
-    }
-
     pub fn mismatches(&self) -> &[PrimitiveConstructionPhaseFiveSixCloseoutVerificationMismatch] {
         &self.mismatches
-    }
-
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
     }
 }
 
@@ -254,22 +217,8 @@ impl PrimitiveConstructionPhaseFiveSixCloseoutReport {
         self.0.payload().registry.required_simplex_scenarios()
     }
 
-    pub fn required_exhaustion_kinds(
-        &self,
-    ) -> &'static [PrimitiveRealizationExhaustionWitnessKind] {
-        self.0.payload().registry.required_exhaustion_kinds()
-    }
-
     pub fn report_digest(&self) -> &str {
         &self.0.payload().report_digest
-    }
-
-    pub fn proof_grade(&self) -> PrimitiveConstructionProofGrade {
-        PrimitiveConstructionProofGrade::MilestoneCloseout
-    }
-
-    pub fn proof_subject(&self) -> PrimitiveConstructionProofSubject {
-        PrimitiveConstructionProofSubject::PhaseFiveSixCloseout
     }
 }
 

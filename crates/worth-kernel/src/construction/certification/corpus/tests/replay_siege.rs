@@ -1,10 +1,10 @@
-use super::super::{
-    PrimitiveConstructionCorpusOutcomeDisposition, PrimitiveConstructionCorpusParameterRole,
-};
-use crate::construction::{
-    PrimitiveConstructionBlockingBoundary, PrimitiveConstructionFamily,
+use super::super::replay_siege_report::PrimitiveConstructionCorpusOutcomeDisposition;
+use super::super::PrimitiveConstructionCorpusParameterRole;
+use crate::construction::diagnostics::PrimitiveConstructionBlockingBoundary;
+use crate::construction::outcome::{
     PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
 };
+use crate::construction::PrimitiveConstructionFamily;
 use std::collections::BTreeSet;
 use worth_geom::facade::{
     PrimitiveRealizationExhaustionReason, PrimitiveRealizationStrategy, PrimitiveStabilityClass,

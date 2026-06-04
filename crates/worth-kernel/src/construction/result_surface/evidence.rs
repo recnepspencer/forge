@@ -78,6 +78,7 @@ impl PrimitiveConstructionResultEvidence {
         &self.birth_mapping_digest
     }
 
+    #[cfg(test)]
     pub fn topology_query_handoff(
         &self,
     ) -> &topology::facade::TopologyPrimitiveConstructionQueryHandoff {

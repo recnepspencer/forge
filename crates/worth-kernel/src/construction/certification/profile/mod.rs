@@ -1,5 +1,6 @@
 mod pressure;
 mod report;
+#[cfg(test)]
 mod suite;
 
 #[cfg(test)]
@@ -16,17 +17,19 @@ pub use pressure::{
     PrimitiveConstructionPolicyPressureSetup, PrimitiveConstructionPolicyPressureSurfaceReport,
     PrimitiveConstructionPolicyPressureSurfaceReportError,
 };
+#[cfg(test)]
 pub(crate) use pressure::{
     required_policy_pressure_delta_cases, required_policy_pressure_direct_cases,
 };
+#[cfg(test)]
 pub(crate) use report::prepare_primitive_construction_policy_profile_row;
 pub use report::{
     prepare_primitive_construction_policy_profile_report, PrimitiveConstructionPolicyProfileCase,
     PrimitiveConstructionPolicyProfileRow, PrimitiveConstructionPolicyProfileSurfaceReport,
 };
+#[cfg(test)]
 pub use suite::{
     prepare_primitive_construction_preview_continuity_hostility_suite_report,
-    PrimitiveConstructionPreviewContinuityHostilityCase,
     PrimitiveConstructionPreviewContinuityHostilityRow,
     PrimitiveConstructionPreviewContinuityHostilitySuiteError,
     PrimitiveConstructionPreviewContinuityHostilitySuiteReport,

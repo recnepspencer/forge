@@ -89,8 +89,8 @@ pub(super) fn closeout_digest(
                 .report_digest()
                 .to_string(),
             assembly
-                .representative_intent_bundle
-                .bundle_digest()
+                .representative_intent_evidence
+                .report_digest()
                 .to_string(),
             assembly.preview_surface_report.report_digest().to_string(),
             assembly

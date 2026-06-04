@@ -6,9 +6,6 @@ mod handoff;
 mod receipt;
 mod surface_vocab;
 
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-
 pub use admission::{
     prepare_primitive_construction_query_envelope, prepare_primitive_construction_query_handoff,
     prepare_primitive_construction_query_receipt, TopologyConstructionQueryEnvelopeError,
@@ -38,11 +35,7 @@ const REQUIRED_QUERY_FAMILIES: [forge_query::facade::ForgeQueryRuntimeFacadeFami
 ];
 
 fn digest_parts(parts: &[String]) -> String {
-    let mut hasher = DefaultHasher::new();
-    for part in parts {
-        part.hash(&mut hasher);
-    }
-    format!("{:016x}", hasher.finish())
+    worth_primitives::truth_digest_parts(worth_primitives::TruthDigestScope::ArtifactIdentity, parts)
 }
 
 #[cfg(test)]
@@ -156,6 +149,9 @@ mod tests {
     fn query_native_admitted_handoff_can_lower_directly_from_birth_synopsis() {
         let synopsis = super::TopologyPrimitiveConstructionQueryBirthSynopsis::new(
             super::TopologyPrimitiveConstructionBirthFamily::WireBody,
+            worth_primitives::PrimitiveConstructionFamilyContractRegistry::contract_for(
+                &worth_primitives::PrimitiveWitnessDescriptor::WireBody { edge_count: 8 },
+            ),
             "wire-birth".to_string(),
             "wire-birth-digest".to_string(),
             "planar_wire_body".to_string(),
