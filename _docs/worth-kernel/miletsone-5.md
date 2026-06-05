@@ -101,12 +101,31 @@ then this milestone has failed.
 
 - Milestone 5 keeps the original 16 explicit phases. They are the primary
   execution order and may not be collapsed into coarse bands.
+- Query is not merely a lowering lane in this milestone. It is the ordinary
+  public runtime layer for:
+  - canonical declaration identity
+  - family contracts and capability posture
+  - declaration legality and progression
+  - declaration-entry readiness and orchestration
+  - route planning
+  - boundary receipts and envelopes
+  - ordinary outcomes
+  - typed retained-artifact reuse
+  - basis capability lifecycle
+  - inspection and recovery
+  - family helpers over canonical surfaces
 - Query lane split is fixed now:
   - `declaration-entry` is the primary public workflow, retained-artifact,
-    inspection, readiness, ordinary-outcome, and recovery lane
+    inspection, readiness, ordinary-outcome, recovery, and retained-next-step
+    lane
   - graph composition is the mutation-lowering lane only when one admitted
     binding or rebinding workflow truly needs graph-shaped mixed create,
     retarget, update, or retire semantics
+- Query visibility is not Query admission.
+  - visible public vocabulary does not imply supported runtime-backed family
+    support
+  - every phase must treat support posture and admission as explicit runtime
+    facts rather than assuming a surface is real because it exists
 - The minimum first-shipping binding family matrix is fixed now:
   - face -> surface
   - edge -> curve
@@ -133,6 +152,28 @@ then this milestone has failed.
 - Grouped and contribution-composed Query workflow families are out unless one
   later phase proves that a named Milestone 5 workflow cannot be expressed
   honestly without them.
+- `workspace.write(...)` is not the default Milestone 5 mutation story.
+  - aspect-native mutation vocabulary, declaration-entry orchestration, typed
+    binding/reuse lanes, and graph/existing-truth lanes should be preferred
+    where they are the honest fit
+
+## Status Honesty Rule
+
+Milestone 5 phases are implementation targets, not closure theater.
+
+The governing rule is:
+
+- a phase is not done because later phases seem plausible on top of it
+- a phase is not done because one happy-path workflow works
+- a phase is not done because kernel DX or public naming looks clean
+- a phase is not done until its production surface is real and both
+  adversarial tests are real
+- later phases may consume earlier substrate, but they may not silently
+  justify or patch missing earlier substrate
+
+If implementation discovers that an earlier phase was only partially true, the
+correct move is to reopen that phase explicitly rather than pretending the gap
+will disappear later.
 
 ## Phase Plan
 
@@ -147,8 +188,28 @@ then this milestone has failed.
 - configured domain handles
 - canonical domain declarations
 - declaration family taxonomy
+- declaration family capability matrix
 - declaration legality
 - declaration progression
+- declaration foundational evidence
+
+**Query posture**
+- required now:
+  - canonical domain declarations
+  - declaration family taxonomy
+  - declaration family capability matrix
+  - declaration legality
+  - declaration progression
+  - declaration foundational evidence
+- support-gated:
+  - configured domain handles
+- out for this phase:
+  - receipts, envelopes, retained-artifact reuse, recovery, grouped work
+
+**Entry gate**
+- do not begin this phase until the binding family matrix is fixed and the
+  lower geometry identity substrate from pre-milestone cleanup is treated as
+  authoritative input, not as future polish
 
 **Warnings**
 - Do not treat binding as incidental construction metadata.
@@ -180,9 +241,28 @@ then this milestone has failed.
 - `worth-kernel` authoring parity proof
 
 **Relevant Query families**
+- canonical domain declarations
+- declaration family taxonomy
+- declaration family capability matrix
 - declaration progression
 - declaration-entry inspection
 - retained artifact inspection
+
+**Query posture**
+- required now:
+  - canonical domain declarations
+  - declaration family taxonomy
+  - declaration family capability matrix
+  - declaration progression
+- support-gated:
+  - declaration-entry inspection
+  - retained artifact inspection
+- out for this phase:
+  - recovery, receipts, envelopes, grouped work
+
+**Entry gate**
+- do not begin this phase until Phase 1 binding authority artifacts are real;
+  identity may not become the place where missing authority meaning is guessed
 
 **Warnings**
 - Do not let topology identity, naming identity, and binding identity collapse
@@ -214,13 +294,34 @@ then this milestone has failed.
 
 **Relevant Query families**
 - canonical domain declarations
+- declaration family taxonomy
+- declaration family capability matrix
+- declaration legality
 - declaration progression
 - declaration-entry inspection
+
+**Query posture**
+- required now:
+  - canonical domain declarations
+  - declaration family taxonomy
+  - declaration family capability matrix
+  - declaration legality
+  - declaration progression
+- support-gated:
+  - declaration-entry inspection
+- out for this phase:
+  - grouped work, graph composition, recovery as a substitute for anchor truth
+
+**Entry gate**
+- do not begin this phase until carrier ownership can be represented as
+  explicit spatial truth rather than inferred geometry metadata
 
 **Warnings**
 - Do not infer carrier ownership from coordinates.
 - Do not let point and direction anchors collapse into one generic anchor bag.
 - Do not accept nearest-carrier fallback as authority truth.
+- Do not reinterpret parameter-space anchors as world points or generic
+  vectors to get a passing result.
 
 **Test requirements**
 - `parameter_space_anchor_roundtrip_resolves_on_admitted_carrier`
@@ -250,7 +351,25 @@ then this milestone has failed.
 **Relevant Query families**
 - declaration legality
 - declaration progression
+- declaration entry readiness
 - ordinary outcomes
+- recovery boundary
+
+**Query posture**
+- required now:
+  - declaration legality
+  - declaration progression
+  - ordinary outcomes
+- support-gated:
+  - declaration entry readiness
+  - recovery boundary
+- out for this phase:
+  - receipts/envelopes as a substitute for completeness policy
+
+**Entry gate**
+- do not begin this phase until binding authority and anchor truth are already
+  explicit; completeness must classify those truths, not compensate for their
+  absence
 
 **Warnings**
 - Do not treat completeness as merely "all fields are present."
@@ -282,10 +401,30 @@ then this milestone has failed.
 
 **Relevant Query families**
 - existing truth
+- canonical domain declarations
+- declaration progression
 - inspection
 - lineage and correspondence
 - projection consumption
-- canonical domain declarations
+- typed binding pipeline
+
+**Query posture**
+- required now:
+  - canonical domain declarations
+  - declaration progression
+  - typed binding pipeline
+- support-gated:
+  - existing truth
+  - inspection
+  - lineage and correspondence
+  - projection consumption
+- out for this phase:
+  - historical materialization as a patch for weak identity basis
+
+**Entry gate**
+- do not begin this phase until phases 1 through 4 are real; canonical digest
+  truth must commit already-admitted meaning instead of masking missing policy
+  or authority work
 
 **Warnings**
 - Do not leave canonical digest truth as summary-only folklore.
@@ -317,8 +456,26 @@ then this milestone has failed.
 
 **Relevant Query families**
 - declaration progression
+- declaration entry readiness
+- declaration entry orchestration
 - ordinary outcomes
 - recovery boundary
+
+**Query posture**
+- required now:
+  - declaration progression
+  - ordinary outcomes
+- support-gated:
+  - declaration entry readiness
+  - declaration entry orchestration
+  - recovery boundary
+- out for this phase:
+  - rebinding candidate evaluation through helper orchestration
+
+**Entry gate**
+- do not begin this phase until canonical identity and digest truth are real;
+  motion posture must consume that identity basis rather than inventing a
+  separate equivalence story
 
 **Warnings**
 - Do not treat binding as static birth-only truth.
@@ -349,13 +506,39 @@ then this milestone has failed.
 
 **Relevant Query families**
 - declaration progression
+- declaration entry readiness
+- declaration entry orchestration
 - declaration-entry inspection
 - ordinary outcomes
+- typed binding pipeline
+- recovery boundary
+
+**Query posture**
+- required now:
+  - declaration progression
+  - typed binding pipeline
+  - ordinary outcomes
+- support-gated:
+  - declaration entry readiness
+  - declaration entry orchestration
+  - declaration-entry inspection
+  - recovery boundary
+- out for this phase:
+  - grouped neighborhood work unless one admitted rebinding workflow truly
+    cannot be expressed without it
+
+**Entry gate**
+- do not begin this phase until:
+  - motion posture is explicit
+  - the topology support-query floor is real
+  - local replacement neighborhood artifacts are explicit
 
 **Warnings**
 - Do not allow broad search or host-order iteration to masquerade as rebinding.
 - Do not begin rebinding without an explicit local replacement neighborhood.
 - Do not omit vertex replacement from first-shipping rebinding semantics.
+- Do not use whole-model search, nearest-anything search, or caller-owned
+  loops as a hidden replacement-candidate engine.
 
 **Test requirements**
 - `local_topology_replacement_rebinds_or_denies_canonically_under_replay`
@@ -387,6 +570,21 @@ then this milestone has failed.
 - ordinary outcomes
 - recovery boundary
 - declaration-entry inspection
+- typed binding pipeline
+
+**Query posture**
+- required now:
+  - ordinary outcomes
+  - typed binding pipeline
+- support-gated:
+  - recovery boundary
+  - declaration-entry inspection
+- out for this phase:
+  - local helper status enums parallel to Query ordinary outcomes
+
+**Entry gate**
+- do not begin this phase until local replacement rebinding semantics are real;
+  outcome classes must classify real rebinding truth, not stand in for it
 
 **Warnings**
 - Do not encode rebinding results as booleans or prose.
@@ -416,9 +614,32 @@ then this milestone has failed.
 - `worth-kernel` retained workflow proof wiring
 
 **Relevant Query families**
+- declaration entry readiness
+- declaration entry orchestration
 - declaration-entry inspection
+- declaration boundary receipts
+- declaration boundary envelopes
 - ordinary outcomes
 - lineage and correspondence
+- recovery boundary
+
+**Query posture**
+- required now:
+  - declaration-entry inspection
+  - ordinary outcomes
+- support-gated:
+  - declaration entry readiness
+  - declaration entry orchestration
+  - declaration boundary receipts
+  - declaration boundary envelopes
+  - lineage and correspondence
+  - recovery boundary
+- out for this phase:
+  - cross-runtime causal inspection as a substitute for rebinding diagnostics
+
+**Entry gate**
+- do not begin this phase until typed rebinding outcomes are real; diagnostics
+  may explain typed truth, but they may not become the first place truth exists
 
 **Warnings**
 - Do not let explanation prose become the source of truth.
@@ -450,8 +671,30 @@ then this milestone has failed.
 
 **Relevant Query families**
 - declaration progression
+- declaration entry readiness
+- declaration entry orchestration
 - declaration-entry inspection
 - ordinary outcomes
+- declaration boundary receipts
+- declaration boundary envelopes
+
+**Query posture**
+- required now:
+  - declaration progression
+  - declaration-entry inspection
+  - ordinary outcomes
+- support-gated:
+  - declaration entry readiness
+  - declaration entry orchestration
+  - declaration boundary receipts
+  - declaration boundary envelopes
+- out for this phase:
+  - broad temporal/live/query-surface expansion; this is substrate pressure,
+    not a new public runtime mode
+
+**Entry gate**
+- do not begin this phase until phases 1 through 9 are real enough to survive
+  non-planar carrier pressure without reopening basic authority questions
 
 **Warnings**
 - Do not let Milestone 5 remain secretly planar-only.
@@ -482,8 +725,30 @@ then this milestone has failed.
 
 **Relevant Query families**
 - declaration progression
+- declaration entry readiness
+- declaration entry orchestration
 - inspection
 - ordinary outcomes
+- declaration boundary receipts
+- declaration boundary envelopes
+
+**Query posture**
+- required now:
+  - declaration progression
+  - inspection
+  - ordinary outcomes
+- support-gated:
+  - declaration entry readiness
+  - declaration entry orchestration
+  - declaration boundary receipts
+  - declaration boundary envelopes
+- out for this phase:
+  - broad family expansion beyond the fixed first asymmetric pressure case
+
+**Entry gate**
+- do not begin this phase until narrow curved pressure is already real; the
+  asymmetric family is hostile proof over that substrate, not a replacement for
+  it
 
 **Warnings**
 - Do not rely on planar shortcuts, circular symmetry shortcuts, or axis
@@ -515,14 +780,48 @@ then this milestone has failed.
 
 **Relevant Query families**
 - declaration-entry orchestration
+- declaration entry readiness
 - typed binding pipeline
+- declaration progression
+- declaration route plan
+- declaration boundary receipts
+- declaration boundary envelopes
 - ordinary outcomes
 - recovery boundary
+- family helpers
+- lower-runtime capability routing
+- authoritative mutation evidence
+
+**Query posture**
+- required now:
+  - declaration-entry orchestration
+  - declaration entry readiness
+  - typed binding pipeline
+  - declaration progression
+  - declaration route plan
+  - declaration boundary receipts
+  - declaration boundary envelopes
+  - ordinary outcomes
+  - family helpers
+  - lower-runtime capability routing
+  - authoritative mutation evidence
+- support-gated:
+  - recovery boundary
+- out for this phase:
+  - provisional local inspection/history readers because later phases are not
+    ready yet
+
+**Entry gate**
+- do not begin this phase until phases 1 through 11 are real; kernel parity
+  work may not proceed by inventing temporary spatial, topology, or retained
+  semantics that the lower layers do not already own
 
 **Warnings**
 - Do not let kernel become a second rebinding or inspection runtime.
 - Do not let DX lane and generic Query lane drift into different truths.
 - Do not patch over missing spatial/topology semantics with kernel helpers.
+- Do not skip readiness, route, receipt, or envelope truth just because a
+  helper path feels ergonomic enough.
 
 **Test requirements**
 - `kernel_binding_workflow_consumes_spatial_authority_without_local_rebinding_logic`
@@ -552,15 +851,42 @@ then this milestone has failed.
 - `worth-kernel` inspection workflow
 
 **Relevant Query families**
+- basis capability lifecycle
 - declaration boundary receipts
 - declaration boundary envelopes
 - declaration-entry inspection
 - existing truth
 - historical diff and basis
+- typed binding pipeline
+- structural correspondence and historical materialization
+- recovery boundary
+
+**Query posture**
+- required now:
+  - basis capability lifecycle
+  - declaration-entry inspection
+  - historical diff and basis
+  - typed binding pipeline
+  - recovery boundary
+- support-gated:
+  - declaration boundary receipts
+  - declaration boundary envelopes
+  - existing truth
+  - structural correspondence and historical materialization
+- out for this phase:
+  - cross-runtime causal inspection as the primary historical lane
+
+**Entry gate**
+- do not begin this phase until:
+  - canonical retained artifacts exist
+  - kernel seam parity is already honest
+  - earlier binding/rebinding semantics are stable enough to retain
 
 **Warnings**
 - Do not reconstruct historical truth from current live state.
 - Do not let incomplete retained evidence degrade into best-effort inspection.
+- Do not repair retained truth from ambient caches, live topology, or
+  neighboring branch state.
 
 **Test requirements**
 - `historical_binding_inspection_reconstructs_transition_truth_without_live_state`
@@ -591,10 +917,33 @@ then this milestone has failed.
 - retained history/basis artifacts shared with Phase 13
 
 **Relevant Query families**
+- basis capability lifecycle
 - declaration-entry inspection
 - existing truth
 - lineage and correspondence
 - continuity vs correspondence
+- typed binding pipeline
+- structural correspondence and historical materialization
+- recovery boundary
+
+**Query posture**
+- required now:
+  - basis capability lifecycle
+  - declaration-entry inspection
+  - lineage and correspondence
+  - continuity vs correspondence
+  - typed binding pipeline
+  - recovery boundary
+- support-gated:
+  - existing truth
+  - structural correspondence and historical materialization
+- out for this phase:
+  - merge-era semantics beyond branch-local inspection
+
+**Entry gate**
+- do not begin this phase until historical inspection is real; branch-local
+  inspection extends retained truth and basis discipline rather than creating a
+  second inspection model
 
 **Warnings**
 - Do not let branch-local truth masquerade as authoritative truth.
@@ -627,10 +976,33 @@ then this milestone has failed.
 - curved/asymmetric certification scenarios
 
 **Relevant Query families**
+- basis capability lifecycle
 - inspection
 - retained artifact to next step
 - continuation pipeline
 - lineage and correspondence
+- typed binding pipeline
+- structural correspondence and historical materialization
+- recovery boundary
+
+**Query posture**
+- required now:
+  - basis capability lifecycle
+  - inspection
+  - retained artifact to next step
+  - typed binding pipeline
+  - recovery boundary
+- support-gated:
+  - continuation pipeline
+  - lineage and correspondence
+  - structural correspondence and historical materialization
+- out for this phase:
+  - durable causal archive or unrelated temporal/async continuation claims
+
+**Entry gate**
+- do not begin this phase until historical and branch-local inspection are
+  both real; replay-safe histories are a closeout over retained truth, not a
+  workaround for missing inspection substrate
 
 **Warnings**
 - Do not claim replay safety from summary digests alone.
@@ -662,10 +1034,35 @@ then this milestone has failed.
 - `worth-geom` curved/asymmetric hostile cases
 
 **Relevant Query families**
+- basis capability lifecycle
 - inspection
 - existing truth
 - declaration-entry inspection
 - ordinary outcomes
+- declaration boundary receipts
+- declaration boundary envelopes
+- typed binding pipeline
+- recovery boundary
+
+**Query posture**
+- required now:
+  - basis capability lifecycle
+  - inspection
+  - declaration-entry inspection
+  - ordinary outcomes
+  - typed binding pipeline
+- support-gated:
+  - existing truth
+  - declaration boundary receipts
+  - declaration boundary envelopes
+  - recovery boundary
+- out for this phase:
+  - broad new runtime feature invention under the label of certification
+
+**Entry gate**
+- do not begin this phase until phases 1 through 15 are real enough that the
+  certification bundle is proving existing truth rather than discovering it for
+  the first time
 
 **Warnings**
 - Do not claim milestone closure from happy-path unit tests.
@@ -741,6 +1138,9 @@ then this milestone has failed.
 - The topology support-query floor is prerequisite substrate for rebinding and
   retained inspection phases, even though it is not a standalone milestone
   phase.
+- Query support posture and admission are part of the architecture, not a
+  post-hoc validation step. Every phase that touches a Query lane must treat
+  “visible” and “admitted runtime-backed support” as separate facts.
 - Grouped/contribution-composed Query families remain out unless one later
   phase proves an admitted workflow cannot be expressed honestly without them.
 
@@ -752,6 +1152,10 @@ then this milestone has failed.
 - The second most dangerous sequencing mistake is to let kernel or Query
   workflow work proceed by inventing temporary local substitutes for missing
   spatial or retained-history semantics.
+- The third most dangerous sequencing mistake is to use only part of Query’s
+  runtime contract: declaration identity without readiness, orchestration
+  without receipts/envelopes, retained artifacts without typed reuse, or
+  inspection without basis lifecycle and recovery posture.
 - If implementation discovers that one phase depends on undeclared substrate,
   the spec should be updated before code continues rather than silently
   bypassed.
