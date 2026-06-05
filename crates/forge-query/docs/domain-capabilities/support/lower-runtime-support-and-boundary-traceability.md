@@ -17,6 +17,7 @@ lower-runtime support artifact through Query.
 ## Stable Entry Points
 
 - `forge_query_domain(...).for_lower_runtime_boundary_envelope(...).supports_boundary_traceability(...).because(...).materialize()`
+- `forge_query_domain(...).for_lower_runtime_boundary_source(...).supports_boundary_traceability(...).because(...).materialize()`
 
 Checked lane:
 
@@ -25,6 +26,7 @@ Checked lane:
 Proof lane:
 
 - `ForgeQuerySupportContributionAuthoring::narrowed_support(...).for_lower_runtime_boundary_envelope(...)`
+- `ForgeQuerySupportContributionAuthoring::narrowed_support(...).for_lower_runtime_boundary_source(...)`
 
 ## Core Mental Model
 
@@ -36,9 +38,12 @@ contributing support posture about that boundary.
 
 ## How It Executes
 
-1. obtain a `ForgeQueryLowerRuntimeBoundaryEnvelope`
+1. obtain a `ForgeQueryLowerRuntimeBoundaryEnvelope` from a real Query boundary
+   receipt, or keep the receipt and use
+   `for_lower_runtime_boundary_source(...)`
 2. enter the lower-runtime domain capability surface with
-   `for_lower_runtime_boundary_envelope(...)`
+   `for_lower_runtime_boundary_envelope(...)` or
+   `for_lower_runtime_boundary_source(...)`
 3. author support meaning with `supports_boundary_traceability(...)`
 4. materialize a lower-runtime support artifact
 
@@ -46,7 +51,7 @@ contributing support posture about that boundary.
 
 ```rust
 let artifact = forge_query_domain("worth.spatial")
-    .for_lower_runtime_boundary_envelope(&envelope)
+    .for_lower_runtime_boundary_source(&write_authority_receipt)
     .supports_boundary_traceability("routing.signal_invalidation")
     .because("signal invalidation is the active authority seam for this shape")
     .materialize()?;
@@ -83,6 +88,8 @@ let target = artifact.target_digest();
 - treating boundary support as if it were declaration support
 - bypassing the lower-runtime envelope and rebuilding boundary identity locally
 - implying Query owns the lower-runtime route itself
+- constructing or synthesizing boundary envelopes in downstream code instead of
+  using real Query boundary receipts
 
 ## Current Limits
 

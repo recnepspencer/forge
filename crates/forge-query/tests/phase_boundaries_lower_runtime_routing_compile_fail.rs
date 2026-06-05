@@ -24,6 +24,12 @@ fn lower_runtime_routing_boundaries_hold() {
         "tests/ui/lower_runtime_routing/envelopes/boundary_envelope_constructor_private.rs",
     );
     t.compile_fail(
+        "tests/ui/lower_runtime_routing/envelopes/boundary_envelope_from_route_plan_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/envelopes/boundary_envelope_from_readmission_receipt_private.rs",
+    );
+    t.compile_fail(
         "tests/ui/lower_runtime_routing/protocol/capability_request_constructor_private.rs",
     );
     t.compile_fail("tests/ui/lower_runtime_routing/protocol/route_plan_constructor_private.rs");

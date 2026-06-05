@@ -1,4 +1,7 @@
-use crate::runtime::{ForgeQueryIntentDeclaration, ForgeQueryLowerRuntimeBoundaryEnvelope};
+use crate::runtime::{
+    ForgeQueryIntentDeclaration, ForgeQueryLowerRuntimeBoundaryEnvelope,
+    ForgeQueryLowerRuntimeBoundaryEnvelopeSource,
+};
 use forge_relational::facade::runtime::{InvariantCatalog, InvariantRegistration};
 
 use super::bind_requested;
@@ -149,6 +152,18 @@ impl ForgeQueryInvariantCapabilityContributionAuthoring {
                 envelope,
             ),
         )
+    }
+
+    pub fn for_lower_runtime_boundary_source<S>(
+        self,
+        source: &S,
+    ) -> ForgeQueryRequestedInvariantCapabilityContribution<
+        ForgeQueryLowerRuntimeBoundaryBoundContributionTarget,
+    >
+    where
+        S: ForgeQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
+    {
+        self.for_lower_runtime_boundary_envelope(source.lower_runtime_boundary_envelope())
     }
 
     pub fn bind_to_declaration_target(

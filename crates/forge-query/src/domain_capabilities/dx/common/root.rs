@@ -4,7 +4,7 @@ use crate::domain_capabilities::{
 };
 use crate::runtime::{
     ForgeQueryAdmittedIntentPlan, ForgeQueryIntentDeclaration,
-    ForgeQueryLowerRuntimeBoundaryEnvelope,
+    ForgeQueryLowerRuntimeBoundaryEnvelope, ForgeQueryLowerRuntimeBoundaryEnvelopeSource,
 };
 
 use super::admitted_plan::ForgeQueryAdmittedPlanDomainContributionSurface;
@@ -53,5 +53,15 @@ impl ForgeQueryDomainContributionSurface {
             domain: self.domain.clone(),
             target: ForgeQueryLowerRuntimeBoundaryBoundContributionTarget::for_lower_runtime_boundary_envelope(envelope),
         }
+    }
+
+    pub fn for_lower_runtime_boundary_source<S>(
+        &self,
+        source: &S,
+    ) -> ForgeQueryLowerRuntimeDomainContributionSurface
+    where
+        S: ForgeQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
+    {
+        self.for_lower_runtime_boundary_envelope(source.lower_runtime_boundary_envelope())
     }
 }

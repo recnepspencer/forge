@@ -1,6 +1,6 @@
 use crate::runtime::{
     ForgeQueryAdmittedIntentPlan, ForgeQueryIntentDeclaration,
-    ForgeQueryLowerRuntimeBoundaryEnvelope,
+    ForgeQueryLowerRuntimeBoundaryEnvelope, ForgeQueryLowerRuntimeBoundaryEnvelopeSource,
 };
 
 use super::bind_requested;
@@ -77,6 +77,16 @@ impl ForgeQuerySupportContributionAuthoring {
                 envelope,
             ),
         )
+    }
+
+    pub fn for_lower_runtime_boundary_source<S>(
+        self,
+        source: &S,
+    ) -> ForgeQueryRequestedSupportContribution<ForgeQueryLowerRuntimeBoundaryBoundContributionTarget>
+    where
+        S: ForgeQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
+    {
+        self.for_lower_runtime_boundary_envelope(source.lower_runtime_boundary_envelope())
     }
 
     pub fn bind_to_declaration_target(
