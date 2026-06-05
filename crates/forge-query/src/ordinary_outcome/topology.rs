@@ -97,7 +97,7 @@ pub struct ForgeQueryOrdinaryCheckedTopology {
 }
 
 impl ForgeQueryOrdinaryCheckedTopology {
-    pub(crate) fn orchestration(
+    pub fn orchestration(
         stop_stage: ForgeQueryDeclarationEntryOrchestrationStage,
         retained_digest: Option<String>,
         refusal_class: Option<ForgeQueryDeclarationEntryOrchestrationRefusalClass>,

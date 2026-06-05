@@ -8,7 +8,7 @@ use worth_primitives::{
     PrimitiveConstructionBirthSynopsisContract, PrimitiveGeometryIdentityBundle,
     PrimitiveSupportPlaneIdentity, PrimitiveVertexIdentity,
 };
-use worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldInput;
+use worth_spatial::facade::birth::PrimitiveConstructionBirthScaffoldInput;
 use worth_spatial::facade::placement::{apply_spatial_placement, AdmittedSpatialPlacement};
 
 pub(super) struct PrimitiveConstructionBirthScaffoldPlan {
@@ -168,12 +168,7 @@ fn scaffold_geometry_identity(
 
 fn plane_identity(plane: &Plane) -> PrimitiveSupportPlaneIdentity {
     let (a, b, c, d) = plane.exact_coefficients();
-    PrimitiveSupportPlaneIdentity::new(
-        a.to_string(),
-        b.to_string(),
-        c.to_string(),
-        d.to_string(),
-    )
+    PrimitiveSupportPlaneIdentity::new(a.to_string(), b.to_string(), c.to_string(), d.to_string())
 }
 
 #[cfg(test)]

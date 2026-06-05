@@ -15,7 +15,7 @@ use worth_geom::facade::{
     PrimitiveSupportNormalClass,
 };
 #[cfg(test)]
-use worth_spatial::facade::bindings::AdmittedPrimitiveConstructionBirthConsequence;
+use worth_spatial::facade::birth::AdmittedPrimitiveConstructionBirthConsequence;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreparedPrimitiveConstructionResult {
@@ -176,7 +176,7 @@ mod tests {
     use crate::construction::intent::PrimitiveConstructionIntent;
     use crate::construction::request::PrimitiveConstructionFamily;
     use crate::construction::specs::RegularPrismSpec;
-    use worth_spatial::facade::bindings::SpatialConstructionBirthMappingKind;
+    use worth_spatial::facade::birth::SpatialConstructionBirthMappingKind;
 
     use super::prepare_primitive_construction_result;
 

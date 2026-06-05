@@ -11,7 +11,7 @@ pub struct ForgeQueryOrdinaryPosture {
 }
 
 impl ForgeQueryOrdinaryPosture {
-    pub(crate) fn new(
+    pub fn new(
         reason: impl Into<String>,
         kind: ForgeQueryOrdinaryPostureKind,
         next_step: ForgeQueryOrdinaryNextStep,

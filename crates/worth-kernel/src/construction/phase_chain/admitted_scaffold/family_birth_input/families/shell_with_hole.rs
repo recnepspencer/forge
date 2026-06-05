@@ -6,12 +6,12 @@ use super::super::geometry::{planar_support_plane, shell_with_hole_vertices};
 use super::super::scalar_admission::admit_polygon_edge_count;
 use super::super::topology_counts::PrimitiveConstructionTopologyCounts;
 use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
-use worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldInput;
-use worth_spatial::facade::placement::AdmittedSpatialPlacement;
 use worth_primitives::{
     derive_shell_with_hole_layout, PrimitiveConstructionFamilyContractRegistry,
     PrimitiveWitnessDescriptor, ShellWithHoleWitnessLayoutPolicy,
 };
+use worth_spatial::facade::birth::PrimitiveConstructionBirthScaffoldInput;
+use worth_spatial::facade::placement::AdmittedSpatialPlacement;
 
 struct AdmittedShellWithHoleBirthParameters {
     outer_loop_edge_count: u32,
@@ -47,8 +47,11 @@ pub(in super::super) fn build_shell_with_hole_birth_input(
             birth_contract,
             "shell_with_hole",
             support_planes,
-            shell_with_hole_vertices(admitted.outer_loop_edge_count, &admitted.hole_loop_edge_counts)
-                .map_err(map_shell_with_hole_layout)?,
+            shell_with_hole_vertices(
+                admitted.outer_loop_edge_count,
+                &admitted.hole_loop_edge_counts,
+            )
+            .map_err(map_shell_with_hole_layout)?,
             PrimitiveConstructionTopologyCounts::from_contract(birth_contract.topology_contract()),
         ),
     )

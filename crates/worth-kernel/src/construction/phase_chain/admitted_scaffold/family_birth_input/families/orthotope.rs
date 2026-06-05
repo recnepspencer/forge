@@ -8,7 +8,7 @@ use super::super::topology_counts::PrimitiveConstructionTopologyCounts;
 use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
 use worth_geom::facade::realize_block_support;
 use worth_primitives::{PrimitiveConstructionFamilyContractRegistry, PrimitiveWitnessDescriptor};
-use worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldInput;
+use worth_spatial::facade::birth::PrimitiveConstructionBirthScaffoldInput;
 use worth_spatial::facade::placement::AdmittedSpatialPlacement;
 
 struct AdmittedOrthotopeBirthParameters {

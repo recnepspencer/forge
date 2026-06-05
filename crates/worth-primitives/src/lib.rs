@@ -18,11 +18,11 @@ pub use family_contract::{
     PrimitiveConstructionBirthSynopsisContract, PrimitiveConstructionFamilyContract,
     PrimitiveConstructionFamilyContractRegistry, PrimitiveConstructionFamilyKey,
     PrimitiveConstructionSupportContract, PrimitiveConstructionTopologyContract,
-    PrimitiveWitnessDescriptor, PrimitiveWitnessSupportSummary,
-    PrimitiveWitnessTopologySummary,
+    PrimitiveWitnessDescriptor, PrimitiveWitnessSupportSummary, PrimitiveWitnessTopologySummary,
 };
 pub use geometry_identity::{
-    PrimitiveGeometryIdentityBundle, PrimitiveRealizationGeometryDigest,
-    PrimitiveRealizedSupportIdentity, PrimitiveScaffoldGeometryDigest,
-    PrimitiveSupportPlaneIdentity, PrimitiveVertexIdentity,
+    PrimitiveCurvedSupportIdentity, PrimitiveGeometryIdentityBundle,
+    PrimitiveRealizationGeometryDigest, PrimitiveRealizedSupportIdentity,
+    PrimitiveScaffoldGeometryDigest, PrimitiveSupportPlaneIdentity,
+    PrimitiveTriaxialEllipsoidIdentity, PrimitiveVertexIdentity,
 };

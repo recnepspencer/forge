@@ -141,7 +141,16 @@ pub(crate) fn checked_route_plan_from_progressed_with_profile<
         || progressed.operating_context_identity_digest()
             != handle.operating_context_identity_digest()
     {
-        let world_basis = handle.retained_world_basis();
+        let world_basis = crate::application::ForgeQueryAdmittedWorldBasis::new(
+            handle.domain_key(),
+            handle.display_name(),
+            progressed.operating_context_identity_digest().to_string(),
+            progressed
+                .canonical_declaration()
+                .handle_identity_digest()
+                .to_string(),
+            progressed.support_report().support_digest().to_string(),
+        );
         let evidence = forge_query_declaration_foundational_evidence(
             &world_basis,
             ForgeQueryDeclarationFoundationalEvidenceInput::admitted_progression(

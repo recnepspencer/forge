@@ -70,10 +70,8 @@ mod tests {
         let reordered = vec!["c".to_string(), "ab".to_string()];
         let fused = vec!["abc".to_string()];
 
-        let canonical_digest =
-            truth_digest_parts(TruthDigestScope::GeometryIdentity, &canonical);
-        let reordered_digest =
-            truth_digest_parts(TruthDigestScope::GeometryIdentity, &reordered);
+        let canonical_digest = truth_digest_parts(TruthDigestScope::GeometryIdentity, &canonical);
+        let reordered_digest = truth_digest_parts(TruthDigestScope::GeometryIdentity, &reordered);
         let fused_digest = truth_digest_parts(TruthDigestScope::GeometryIdentity, &fused);
 
         assert_ne!(canonical_digest, reordered_digest);

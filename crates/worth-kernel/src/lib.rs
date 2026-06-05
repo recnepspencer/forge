@@ -15,6 +15,7 @@
 
 #![forbid(unsafe_code)]
 
+mod binding;
 mod construction;
 mod spatial_intent;
 mod test_support;

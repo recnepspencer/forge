@@ -1,1375 +1,1161 @@
-# Worth Kernel Milestone 5
+# Worth Kernel Milestone 5: Binding Authority, Rebinding, History, And Certification
 
-This document is a first-pass implementation-order outline for Milestone 5.
+> **Status:** Draft
+>
+> **Purpose:** freeze topology-to-geometry binding and rebinding as a real
+> authority boundary so later exact planar work, booleans, continuity,
+> history, and certification inherit an honest substrate instead of
+> retrofitting one.
 
-It is intentionally not the full finished milestone spec yet.
+## Goal
 
-The goal of this draft is to capture what Milestone 5 needs to cover in the
-order we should probably build it, before we expand into:
+Freeze one coherent Milestone 5 substrate in which:
 
-- cross-crate changes
-- new operator and validator families
-- Forge Query usage details
-- proof and certification structure
+- `worth-spatial` owns binding, anchor, rebinding, continuity, diagnostics,
+  history, and binding-layer certification truth
+- `worth-topo` owns topology truth, topology-safe navigation helpers, and
+  topology legality proof consumed by binding workflows
+- `worth-geom` owns carrier evaluation, inversion, closest-point, parameter
+  domain, and admitted curved-family math
+- `worth-kernel` owns workflow composition, Query-facing lowering, and
+  milestone scenario/certification assembly without becoming a second binding
+  runtime
+- Query remains the canonical declaration/progression/inspection/readiness/
+  outcome boundary instead of being shadowed by Worth-local substitutes
 
-## Milestone Center
-
-Milestone 5 freezes topology-to-geometry binding truth as a real authority
-boundary.
+## Why This Milestone Exists
 
 Milestone 4 proved the construction-time birth seam.
 
-Milestone 5 widens that into real binding and rebinding truth so later exact
-planar work, booleans, continuity, and history surfaces inherit an honest
-substrate instead of retrofitting one.
-
-## Implementation Order
-
-## 1. Freeze Binding Truth As Its Own Authority Surface
-
-First, Milestone 5 must define authoritative topology-to-geometry binding truth
-as its own surface rather than treating binding as incidental construction
-metadata.
-
-This means the system must have explicit truth for:
-
-- face-to-surface bindings
-- edge-to-curve bindings
-- coedge-to-p-curve bindings
-- vertex-to-geometry bindings
-
-This is the root of the milestone. Everything else depends on it.
-
-## 2. Freeze Binding Identity As Distinct From Topology And Naming
-
-Once binding truth exists, Milestone 5 must make binding identity explicit and
-separate from:
-
-- topology identity
-- naming identity
-- later continuity conclusions
-
-The system should not be allowed to quietly collapse:
-
-- "same topology entity"
-- "same persistent name"
-- "same geometric binding"
-
-into one blurry identity story.
-
-Milestone 5 should freeze geometry-binding identity as its own truth family.
-
-## 3. Replace Placeholder Anchor Denial With Real Carrier-Local Anchor Truth
-
-Milestone 4 intentionally deferred robust `ParameterSpace(...)` support.
-
-Milestone 5 must replace that typed unsupported placeholder with real
-carrier-local anchor truth.
-
-This needs to cover:
-
-- parameter-space point anchors
-- parameter-space direction anchors
-- explicit carrier ownership for those anchors
-
-This is the moment where carrier-local coordinates stop being implied and
-become real truth.
-
-## 4. Freeze Binding Completeness Rules
-
-After binding truth and anchor truth exist, Milestone 5 must define what counts
-as a complete admitted binding state.
-
-This includes rules for:
-
-- when an admitted entity is fully bound
-- when a partially bound state is allowed
-- when partial binding must fail
-- when missing binding is typed unsupported versus illegal
-
-Later milestones should not have to invent these rules case by case.
-
-## 5. Freeze Motion-Aware Binding Semantics
-
-Milestone 4 added real motion and anchor semantics.
-
-Milestone 5 must therefore define what happens to binding truth under admitted:
-
-- move workflows
-- rotate workflows
-- reorient workflows
-
-Bindings must not be treated as static birth-only facts.
-
-The system must know whether a binding is:
-
-- preserved under motion
-- transformed with its carrier
-- invalidated by the workflow
-- left unresolved pending a typed failure or ambiguity result
-
-## 6. Freeze Rebinding Semantics For Local Topology Replacement
-
-After motion-aware binding is explicit, Milestone 5 must define rebinding
-semantics for local rebuild and topology replacement workflows.
-
-This is the core "after an edit, what survives?" layer.
-
-Milestone 5 must cover admitted workflows where:
-
-- a face is replaced
-- an edge is replaced
-- a coedge trim path is replaced
-- a vertex support situation changes
-
-and prior binding truth must be:
-
-- preserved
-- reattached
-- denied
-- marked ambiguous
-
-through explicit rules.
-
-## 7. Freeze Typed Rebinding Outcome Classes
-
-Rebinding results must be first-class truth, not prose or ad hoc booleans.
-
-Milestone 5 should define explicit rebinding outcome classes such as:
-
-- preserved
-- exact reattachment
-- continuity-justified reattachment
-- ambiguous
-- orphaned
-- unsupported
-
-These classes will be the vocabulary later milestones depend on.
-
-## 8. Freeze Continuity And Rebinding Diagnostics
-
-Once outcome classes exist, Milestone 5 must expose diagnostics that explain:
-
-- what the prior binding meant
-- what changed
-- what candidates existed
-- why a candidate was chosen
-- why continuity was preserved or denied
-- why a case was ambiguous or unsupported
-
-The milestone should not stop at "worked" versus "failed."
-
-## 9. Freeze Canonical Binding Identity And Digest Truth
-
-Milestone 5 must harden the identity layer for binding truth itself.
-
-This includes:
-
-- canonical binding identity
-- canonical anchor identity
-- canonical rebinding identity
-- geometry-committing digest truth for the binding surface
-
-Later replay and certification work should inherit a real identity protocol
-rather than soft or summary-only digests.
-
-## 10. Freeze Historical Binding Inspection
-
-Milestone 5 must make admitted binding history inspectable.
-
-This should include the ability to inspect:
-
-- a binding at a checkpoint
-- a rebinding transition
-- the continuity result attached to that rebinding decision
-- the diagnostic explanation for that decision
-
-Binding truth should be historically readable, not just live-state readable.
-
-## 11. Freeze Branch-Local Binding Inspection
-
-Milestone 5 must widen historical inspection into branch-local inspection for
-the admitted surface.
-
-That means branch-local workflows should be able to inspect:
-
-- current binding truth
-- prior binding truth
-- branch-local rebinding outcomes
-- branch-local continuity conclusions
-
-This is needed so later branch and merge milestones inherit a real substrate.
-
-## 12. Freeze Clean Kernel-To-Spatial Rebinding Seams
-
-Milestone 4 proved a real kernel -> spatial -> topology construction path.
-
-Milestone 5 must do the same for admitted binding and rebinding workflows.
-
-`worth-kernel` should be able to consume:
-
-- binding authoring
-- binding lookup
-- rebinding evaluation
-- rebinding diagnostics
-
-through clean spatial contracts instead of inventing local workaround logic.
-
-## 13. Add Narrow Curved Carrier Pressure
-
-Milestone 5 must not remain secretly planar-only.
-
-It needs a narrow admitted curved-carrier surface sufficient to force honest:
-
-- carrier-local anchors
-- curved binding semantics
-- curved rebinding semantics
-- curved continuity diagnostics
-
-This should stay narrow and intentional.
-
-The purpose is not broad curved completion.
-
-The purpose is to make the binding substrate real.
-
-## 14. Add At Least One Asymmetric Curved Primitive Or Carrier Family
-
-Milestone 5 must also pressure the system with at least one asymmetric curved
-shape family.
-
-A stretched blimp / ellipsoid-like family is the right kind of pressure because
-it breaks:
-
-- planar shortcuts
-- circular symmetry shortcuts
-- interchangeable-side assumptions
-- fake continuity logic that only works on regular families
-
-This family exists to harden the substrate before booleans and later curved
-work depend on it.
-
-## 15. Freeze Replay-Safe Binding And Rebinding Histories
-
-Once the above surfaces exist, Milestone 5 must require admitted binding and
-rebinding histories to replay identically.
-
-This includes stable replay for:
-
-- binding identity
-- anchor identity
-- rebinding outcome classes
-- continuity conclusions
-- diagnostics
-
-## 16. Freeze Determinism And Certification For The Binding Layer
-
-Milestone 5 should close by proving that the admitted binding layer is:
-
-- deterministic
-- historically inspectable
-- replay-safe
-- identity-stable
-- explicit about ambiguity and unsupported cases
-
-At minimum, the milestone must certify:
-
-- rebinding determinism
-- continuity classification determinism
-- binding identity stability
-- historical inspection parity
-
-## Things Milestone 5 Does Not Need To Close
-
-Milestone 5 does not need to close:
-
-- full exact planar hostility
-- full Boolean programs
-- broad tangent-hostile curved certification
-- broad freeform or NURBS support
-- later feature regeneration closure
-- merge-era semantics
-
-Those depend on Milestone 5, but they do not belong inside its core scope.
-
-## Current Summary
-
-Milestone 5 should build in this order:
-
-1. binding truth
-2. binding identity separation
-3. carrier-local anchor truth
-4. binding completeness rules
-5. motion-aware binding semantics
-6. local replacement rebinding semantics
-7. typed rebinding outcomes
-8. rebinding diagnostics
-9. canonical binding identity and digests
-10. historical inspection
-11. branch-local inspection
-12. kernel-to-spatial rebinding seams
-13. narrow curved-carrier pressure
-14. one asymmetric curved family
-15. replay-safe binding histories
-16. determinism and certification closure
-
-That is the current first-pass implementation sequence.
-
-## First-Pass Operator Inventory
-
-This section captures the concrete operator set Milestone 5 needs, grouped by
-crate ownership.
-
-This is not yet the full final crate spec.
-
-It is the first-pass working inventory that follows from the milestone center.
-
-## `worth-spatial` Core Binding Operators
-
-These operators are the real center of Milestone 5.
-
-### Direct binding authoring and replacement
-
-- `AttachSurfaceToFace`
-- `ReplaceSurfaceOnFace`
-- `AttachCurveToEdge`
-- `ReplaceCurveOnEdge`
-- `AttachPCurveToCoedge`
-- `ReplacePCurveOnCoedge`
-- `AttachVertexGeometry`
-
-`AttachVertexGeometry` is not cleanly present in the current operator list, but
-Milestone 5 needs the vertex analogue of the face/edge/coedge binding family.
-
-### Carrier-local anchor authoring
-
-- `BindParameterSpacePointAnchor`
-- `BindParameterSpaceDirectionAnchor`
-
-These are effectively required Milestone 5 operators even if the current
-inventory does not already name them directly.
-
-### Binding evaluation and authority
-
-- `EvaluateBindingCompleteness`
-- `EvaluateBindingIdentity`
-- `EvaluateRebindingCandidates`
-- `ClassifyRebindingOutcome`
-- `ExplainRebindingOutcome`
-
-These operators freeze the truth surface around binding and rebinding instead of
-leaving it implicit inside later workflows.
-
-### Historical and branch-local inspection
-
-- `InspectBindingAtCheckpoint`
-- `InspectBindingTransition`
-- `InspectBranchLocalBindingState`
-
-Milestone 5 should not treat binding truth as live-state-only information.
-
-## `worth-spatial` Secondary Binding Operators
-
-These belong after the basic bind/rebind path exists, but they are still part
-of the admitted Milestone 5 substrate.
-
-### Sense and parameterization control
-
-- `ReverseEdgeCurveSense`
-- `ReparameterizeEdgeCurve`
-- `NormalizeEdgeCurveDomain`
-- `ReversePCurveSense`
-- `ReparameterizePCurve`
-- `NormalizePCurveDomain`
-- `SwapSurfaceParameterization`
-- `NormalizeSurfaceParameterization`
-- `SetFaceSurfaceSense`
-- `SetEdgeCurveSense`
-- `SetCoedgeSense`
-
-These operators keep binding truth honest once carrier-local coordinates and
-sense semantics become first-class.
-
-## `worth-topo` Query And Navigation Helpers Milestone 5 Must Be Able To Consume
-
-Milestone 5 does not move geometry-binding authority into `worth-topo`.
-
-But it does require narrow topology query/navigation helpers that the spatial
-binding layer can consume without recreating topology traversal logic locally.
-
-These helpers are:
-
-- `GetFaceLoops`
-- `GetFaceEdges`
-- `GetLoopCoedges`
-- `GetCoedgeEdge`
-- `GetEdgeVertices`
-- `GetShellFaces`
-
-These belong in `worth-topo` as topology-safe read helpers.
-
-They are required support for Milestone 5 even though they are not the center
-of the milestone.
-
-## `worth-kernel` Workflow Operators
-
-`worth-kernel` should stay thin here.
-
-It should orchestrate admitted workflows and certification pressure, not own
-binding legality or rebinding truth itself.
-
-The first-pass workflow operators are:
-
-- `AuthorPrimitiveBindingIntent`
-- `PrepareAdmittedBindingWorkflow`
-- `PrepareAdmittedRebindingWorkflow`
-- `PrepareBindingInspectionWorkflow`
-- `PrepareBindingCertificationScenario`
-
-These operators exist so kernel workflows can consume Milestone 5 through clean
-spatial contracts rather than inventing local binding logic.
-
-## `worth-geom` Support Operators
-
-`worth-geom` should support Milestone 5 through carrier math and inversion
-utilities, not by owning binding authority.
-
-The first-pass support set is:
-
-- `InvertSurfacePointToUV`
-- `InvertCurvePointToT`
-- `EvalSurfacePoint`
-- `EvalSurfaceDerivatives`
-- `EvalCurvePoint`
-- `EvalCurveDerivatives`
-- `ClosestPointOnSurface`
-- `ClosestPointOnCurve`
-
-For the asymmetric curved pressure case, `worth-geom` will also need the
-carrier support needed to represent and interrogate the admitted asymmetric
-curved family.
-
-## Operators Explicitly Deferred Out Of Milestone 5
-
-Milestone 5 should not try to close the broad coupled surgery and Boolean-era
-operator families yet.
-
-The important deferred operators are:
-
-- `SplitEdgeAndCurves`
-- `MergeEdgesAndCurves`
-- `SplitCoedgeAndPCurve`
-- `MergeCoedgesAndPCurve`
-- `SplitFaceAndTrimNetwork`
-- `MergeFacesAndTrimNetwork`
-- seam and pole surgery operators
-- tangent-event normalization operators
-- broad trim-network editing operators
-- Boolean-specific imprint and intersection surgery operators
-
-These depend on Milestone 5's binding substrate, but they do not belong inside
-its first admitted closure.
-
-## First-Pass Validator Inventory
-
-This section captures the validator set Milestone 5 needs, again grouped by
-crate ownership.
-
-## `worth-spatial` Core Binding Validators
-
-These validators define whether Milestone 5's new binding truth is honest.
-
-### Existing validator families Milestone 5 must rely on or widen
-
-- `ValidateCurveBoundToEdge`
-- `ValidatePCurveBoundToCoedge`
-- `ValidateSenseConsistency`
-- `ValidateEveryCoedgeHasPCurveWhenRequired`
-- `ValidatePCurveSenseMatchesCoedgeSense`
-- `ValidateCurveSurfaceInversionResiduals`
-
-### Milestone 5 validators that need to become explicit
-
-- `ValidateBindingCompleteness`
-- `ValidateBindingIdentitySeparation`
-- `ValidateRebindingDeterminism`
-- `ValidateRebindingOutcomeClassification`
-- `ValidateHistoricalBindingInspectionParity`
-- `ValidateBranchLocalBindingInspectionParity`
-- `ValidateCanonicalBindingDigestStability`
-- `ValidateAnchorCarrierOwnership`
-- `ValidateParameterSpaceAnchorResolution`
-
-These validators are the milestone-defining closure for the binding authority
-surface.
-
-## `worth-topo` Validators Milestone 5 Must Continue To Consume
-
-Milestone 5 should use topology legality proof from `worth-topo` rather than
-rebuild it locally.
-
-The important topology validators that remain required support are:
-
-- `ValidateTwinSymmetry`
-- `ValidateNextPrevSymmetry`
-- `ValidateLoopClosure`
-- `ValidateOwnership`
-- `ValidateNoOrphans`
-- `ValidateShellWatertightness`
-- `ValidateRadialCycleClosure`
-- `ValidateEdgeManifoldStateMatchesUseCount`
-
-These remain topology-owned even when spatial binding workflows depend on them.
-
-## Curved-Pressure Validators Milestone 5 Should Add
-
-Because Milestone 5 should include at least one asymmetric curved admitted
-carrier or primitive family, it also needs explicit pressure validators for
-that surface.
-
-The first-pass set is:
-
-- `ValidateCarrierLocalAnchorRoundtrip`
-- `ValidateCurvedBindingContinuityClassification`
-- `ValidateNonSymmetricBindingIdentityStability`
-- `ValidateRebindingAcrossAsymmetricCarrierReplacement`
-- `ValidateParameterDomainRespect`
-- `ValidateNoPlanarShortcutFallback`
-
-These validators exist specifically to prevent Milestone 5 from quietly
-remaining planar-only or symmetry-dependent.
-
-## What The Current Inventories Still Do Not Name Cleanly Enough
-
-The current inventories are strong, but Milestone 5 still requires a few
-operator and validator families to become more explicit than they are today.
-
-The biggest missing or undernamed pieces are:
-
-### Operators
-
-- `AttachVertexGeometry`
-- `BindParameterSpacePointAnchor`
-- `BindParameterSpaceDirectionAnchor`
-- `EvaluateBindingCompleteness`
-- `EvaluateBindingIdentity`
-- `EvaluateRebindingCandidates`
-- `ClassifyRebindingOutcome`
-- `ExplainRebindingOutcome`
-- `InspectBindingAtCheckpoint`
-- `InspectBindingTransition`
-- `InspectBranchLocalBindingState`
-
-### Validators
-
-- `ValidateBindingCompleteness`
-- `ValidateBindingIdentitySeparation`
-- `ValidateRebindingDeterminism`
-- `ValidateRebindingOutcomeClassification`
-- `ValidateHistoricalBindingInspectionParity`
-- `ValidateBranchLocalBindingInspectionParity`
-- `ValidateCanonicalBindingDigestStability`
-- `ValidateAnchorCarrierOwnership`
-- `ValidateParameterSpaceAnchorResolution`
-- `ValidateCarrierLocalAnchorRoundtrip`
-- `ValidateCurvedBindingContinuityClassification`
-- `ValidateNonSymmetricBindingIdentityStability`
-- `ValidateRebindingAcrossAsymmetricCarrierReplacement`
-- `ValidateParameterDomainRespect`
-- `ValidateNoPlanarShortcutFallback`
-
-## First-Pass Slice Order For Operators And Validators
-
-If we implement the milestone in slices, the clean first-pass order is:
-
-### Slice 1: `worth-spatial` binding authority
-
-Operators:
-
-- `AttachSurfaceToFace`
-- `ReplaceSurfaceOnFace`
-- `AttachCurveToEdge`
-- `ReplaceCurveOnEdge`
-- `AttachPCurveToCoedge`
-- `ReplacePCurveOnCoedge`
-- `AttachVertexGeometry`
-- `EvaluateBindingCompleteness`
-- `EvaluateBindingIdentity`
-
-Validators:
-
-- `ValidateCurveBoundToEdge`
-- `ValidatePCurveBoundToCoedge`
-- `ValidateBindingCompleteness`
-- `ValidateBindingIdentitySeparation`
-
-### Slice 2: `worth-spatial` anchor authority
-
-Operators:
-
-- `BindParameterSpacePointAnchor`
-- `BindParameterSpaceDirectionAnchor`
-
-Validators:
-
-- `ValidateAnchorCarrierOwnership`
-- `ValidateParameterSpaceAnchorResolution`
-- `ValidateCurveSurfaceInversionResiduals`
-
-### Slice 3: `worth-spatial` rebinding authority
-
-Operators:
-
-- `EvaluateRebindingCandidates`
-- `ClassifyRebindingOutcome`
-- `ExplainRebindingOutcome`
-
-Validators:
-
-- `ValidateRebindingDeterminism`
-- `ValidateRebindingOutcomeClassification`
-
-### Slice 4: history, branch, and curved pressure
-
-Operators:
-
-- `InspectBindingAtCheckpoint`
-- `InspectBindingTransition`
-- `InspectBranchLocalBindingState`
-
-Validators:
-
-- `ValidateHistoricalBindingInspectionParity`
-- `ValidateBranchLocalBindingInspectionParity`
-- `ValidateCanonicalBindingDigestStability`
-- `ValidateCarrierLocalAnchorRoundtrip`
-- `ValidateCurvedBindingContinuityClassification`
-- `ValidateNonSymmetricBindingIdentityStability`
-- `ValidateRebindingAcrossAsymmetricCarrierReplacement`
-- `ValidateParameterDomainRespect`
-- `ValidateNoPlanarShortcutFallback`
-
-### Required `worth-topo` support throughout these slices
-
-- `GetFaceLoops`
-- `GetFaceEdges`
-- `GetLoopCoedges`
-- `GetCoedgeEdge`
-- `GetEdgeVertices`
-- `GetShellFaces`
-
-and the topology-owned validators:
-
-- `ValidateTwinSymmetry`
-- `ValidateNextPrevSymmetry`
-- `ValidateLoopClosure`
-- `ValidateOwnership`
-- `ValidateNoOrphans`
-- `ValidateShellWatertightness`
-- `ValidateRadialCycleClosure`
-- `ValidateEdgeManifoldStateMatchesUseCount`
-
-This is the first-pass operator and validator map Milestone 5 needs.
-
-## Crate Ownership Rules
-
-Milestone 5 should follow these ownership rules strictly.
-
-### `worth-spatial`
-
-`worth-spatial` owns:
-
-- binding truth
-- binding identity
-- carrier-local anchor truth
-- binding completeness
-- rebinding evaluation
-- rebinding outcome classification
-- continuity classification for binding workflows
-- binding-facing diagnostics
-- historical and branch-local binding inspection
-- binding-layer certification and proof
-
-If a surface answers a question like:
-
-- "what geometry is this topology entity bound to?"
-- "what anchor on this carrier does this mean?"
-- "what happened to this binding after replacement?"
-- "why was this rebinding preserved, denied, or marked ambiguous?"
-
-then it belongs in `worth-spatial`.
-
-### `worth-topo`
-
-`worth-topo` owns:
-
-- topology truth
-- topology-safe navigation and query helpers
-- topology legality validators
-- topology-owned history/query support
-
-If a surface answers a question like:
-
-- "which loops belong to this face?"
-- "which coedges belong to this loop?"
-- "which vertices bound this edge?"
-- "is this shell topologically closed?"
-
-then it belongs in `worth-topo`.
-
-`worth-topo` must not own geometry-binding meaning.
-
-### `worth-kernel`
-
-`worth-kernel` owns:
-
-- workflow composition
-- admitted authoring and orchestration
-- kernel-facing entry surfaces that consume spatial contracts
-- milestone-level scenario assembly and certification pressure
-
-If a surface is about:
-
-- preparing a binding workflow
-- composing a rebinding workflow
-- routing one admitted workflow through `worth-spatial` and `worth-topo`
-- packaging a certification scenario
-
-then it belongs in `worth-kernel`.
-
-`worth-kernel` should not own binding legality, anchor truth, or rebinding
-classification itself.
-
-### `worth-geom`
-
-`worth-geom` owns:
-
-- carrier evaluation
-- inversion
-- closest-point and parameter-domain math
-- asymmetric curved carrier support math
-- witness-carrier construction support for admitted families
-
-If a surface is about:
-
-- evaluating a curve or surface
-- inverting xyz to parameter space
-- finding closest points
-- representing or interrogating an admitted curved carrier
-
-then it belongs in `worth-geom`.
-
-`worth-geom` must not own binding authority.
-
-## Forge Query Alignment And Runtime Boundary
-
-The Query 9.3.7 and 9.3.8 surfaces make the runtime boundary clear:
-
-- Query owns the public entry grammar
-- Query owns declaration progression, route planning, receipts, envelopes,
-  inspection, and readiness
-- Query owns the generic graph-shaped write surface
-- lower runtimes remain authoritative for truth identity, continuity, naming,
-  verification, and writeback semantics
-
-Milestone 5 should align to that shape instead of inventing a Worth-local
-shadow runtime.
-
-### What Milestone 5 should not create
-
-- a Worth-local pseudo-Query declaration seam
-- a Worth-local graph write engine
-- a Worth-local receipt or envelope family for binding writes
-- a Worth-local write inspection system that competes with Query's retained
-  write artifacts
-
-### What Milestone 5 should create
-
-- Worth-owned binding semantics
-- Worth-owned rebinding semantics
-- Worth-owned topology and geometry legality inputs
-- Worth-owned lowering from admitted binding intent into Query-owned graph
-  authoring or later declaration-entry surfaces
-- Worth-owned invariant hooks and certification pressure over those Query-owned
-  surfaces
-
-### Clean boundary by crate
-
-`worth-kernel` should own:
-
-- workflow assembly
-- admitted binding authoring intent
-- admitted rebinding workflow intent
-- translation from Worth workflow meaning into Query-facing graph programs or
-  declaration-entry requests
-
-`worth-spatial` should own:
-
-- the semantic truth that decides what binding or rebinding means
-- candidate evaluation
-- continuity and ambiguity classification
-- the exact support facts a Query-lowered graph program is trying to preserve
-
-`worth-topo` should own:
-
-- topology navigation facts used before write authoring
-- topology legality proof consumed by binding and rebinding decisions
-
-`worth-geom` should own:
-
-- carrier evaluation and inversion facts used before authoring or during
-  validation
-
-`forge-query` should own, when touched:
-
-- the generic declaration-entry, route, receipt, envelope, readiness, and
-  inspection seams
-- the generic `compose_graph(...)` / graph-composition write family
-- the generic graph-composition receipts, denial artifacts, and lifecycle
-  evidence
-
-### Practical rule
-
-If a Milestone 5 write needs:
-
-- symbolic handles
-- mixed creation plus retarget/update/retire semantics
-- identity-preserving rewrite evidence
-- canonical write receipts
-- graph-shaped denied-path diagnostics
-
-then it should lower through Query graph composition rather than through a
-Worth-local batch or relation-rewrite story.
-
-If a Milestone 5 step is about:
-
-- deciding whether a rebinding is legal
-- deciding what continuity class applies
-- deciding what carrier-local anchor survives
-
-then that decision belongs in Worth before or alongside the Query-lowered
-write, not inside Query.
-
-## Proposed Milestone 5 Directory Skeletons
-
-These skeletons are meant to keep the milestone scalable.
-
-They are not a demand to create every file immediately.
-
-They are the structure the work should grow toward so we do not end up with a
-pile of unrelated helpers.
-
-## `worth-spatial` Skeleton
-
-Milestone 5 should deepen `worth-spatial` around binding authority as a
-first-class domain.
-
-```text
-crates/worth-spatial/src/
-  facade/
-    bindings.rs
-    diagnostics.rs
-    history.rs
-    identity.rs
-
-  bindings/
-    mod.rs
-
-    authority/
-      mod.rs
-      face_surface.rs
-      edge_curve.rs
-      coedge_pcurve.rs
-      vertex_geometry.rs
-      completeness.rs
-
-    anchors/
-      mod.rs
-      parameter_space_point.rs
-      parameter_space_direction.rs
-      carrier_ownership.rs
-      resolution.rs
-
-    rebinding/
-      mod.rs
-      candidate_evaluation.rs
-      outcome_classification.rs
-      continuity.rs
-      diagnostics.rs
-
-    identity/
-      mod.rs
-      binding_identity.rs
-      anchor_identity.rs
-      rebinding_identity.rs
-      digest_protocol.rs
-
-    history/
-      mod.rs
-      checkpoint_inspection.rs
-      transition_inspection.rs
-      branch_local_inspection.rs
-
-    curved_pressure/
-      mod.rs
-      asymmetric_family.rs
-      curved_binding_cases.rs
-
-    certification/
-      mod.rs
-      completeness.rs
-      rebinding_determinism.rs
-      history_parity.rs
-      curved_pressure.rs
-```
-
-### Why this shape
-
-- `authority/` keeps the actual binding truth family together
-- `anchors/` keeps carrier-local anchor semantics from dissolving into generic
-  lowering helpers
-- `rebinding/` gives replacement workflows one honest home
-- `identity/` prevents digest and identity truth from being smeared into random
-  files
-- `history/` keeps inspection and branch-local work visible
-- `curved_pressure/` keeps the asymmetric pressure cases explicit rather than
-  hidden in generic fixtures
-
-## `worth-topo` Skeleton
-
-Milestone 5 should not widen `worth-topo` into geometry-binding logic.
-
-It should only add or strengthen the topology-safe query/navigation support
-that `worth-spatial` needs.
-
-```text
-crates/worth-topo/src/
-  projection/
-    read_views/
-      domain/
-        views/
-          topology_navigation/
-            mod.rs
-            face_loops.rs
-            face_edges.rs
-            loop_coedges.rs
-            coedge_edge.rs
-            edge_vertices.rs
-            shell_faces.rs
-
-  certification/
-    topology_navigation/
-      mod.rs
-      face_loops.rs
-      face_edges.rs
-      loop_coedges.rs
-      coedge_edge.rs
-      edge_vertices.rs
-      shell_faces.rs
-
-  validation/
-    reference_integrity/
-    loop_wiring/
-    ownership/
-    shell_closure/
-    radial_rings/
-```
-
-### Why this shape
-
-- the Milestone 5 support queries are read/navigation surfaces
-- they should live near projection/read-view language, not mutation logic
-- their certification should be separate from binding certification because the
-  questions are topology-only
-
-### Milestone 5 support queries that belong here
-
-- `GetFaceLoops`
-- `GetFaceEdges`
-- `GetLoopCoedges`
-- `GetCoedgeEdge`
-- `GetEdgeVertices`
-- `GetShellFaces`
-
-## `worth-kernel` Skeleton
-
-Milestone 5 should keep `worth-kernel` thin and workflow-shaped.
-
-It should also be the only Worth crate that speaks directly to Query's public
-write and orchestration seams for these workflows.
-
-```text
-crates/worth-kernel/src/
-  binding/
-    mod.rs
-
-    authoring/
-      mod.rs
-      intents.rs
-      workflow.rs
-
-    rebinding/
-      mod.rs
-      workflow.rs
-
-    inspection/
-      mod.rs
-      history.rs
-      branch_local.rs
-
-    certification/
-      mod.rs
-      scenarios.rs
-      curved_pressure.rs
-
-  facade/
-    authoring/
-    diagnostics/
-    certification/
-```
-
-### Why this shape
-
-- this keeps Milestone 5 work out of the existing construction subtree except
-  where interoperability is required
-- it makes "binding workflows" a named kernel responsibility instead of hiding
-  them in generic authoring buckets
-- it gives certification scenarios one clear home
-- it keeps Query-facing lowering concentrated in one orchestration boundary
-  instead of leaking runtime graph authoring across Worth
-
-### What should live here
-
-- `AuthorPrimitiveBindingIntent`
-- `PrepareAdmittedBindingWorkflow`
-- `PrepareAdmittedRebindingWorkflow`
-- `PrepareBindingInspectionWorkflow`
-- `PrepareBindingCertificationScenario`
-
-### What should not live here
-
-- binding legality rules
-- parameter-space anchor authority
-- rebinding outcome classification
-- topology navigation logic
-
-Those belong in `worth-spatial` or `worth-topo`.
-
-## `forge-query` Touch Surface If Milestone 5 Exposes A Generic Gap
-
-Milestone 5 is not primarily a `forge-query` milestone.
-
-But if Worth pressure exposes a missing generic runtime seam, the fix should
-land in Query's existing generic subsystems rather than as Worth-specific
-runtime glue.
-
-```text
-crates/forge-query/src/
-  declaration_entry/
-    seam/
-    inspection/
-    readiness/
-    orchestration/
-
-  runtime/
-    mutation/
-      graph_composition/
-        builder/
-        declarations/
-        lifecycle/
-        lowering/
-        denial/
-        hooks/
-
-    support/
-      graph_composition/
-
-    surface/
-      graph_composition/
-
-    inspection/
-      unified/
-```
-
-### What belongs here if Worth exposes a real generic gap
-
-- new generic graph-composition capability families
-- new generic lifecycle-outcome or denial distinctions
-- new generic inspection or readiness projections for graph composition
-- new generic lowering hooks where a domain contributes meaning but Query keeps
-  runtime artifact authority
-
-### What does not belong here
-
-- Worth-specific binding legality
-- Worth-specific rebinding taxonomies
-- Worth-specific carrier geometry logic
-- Worth-specific topology navigation helpers
-
-If a change only matters to Worth binding semantics, it should stay in Worth.
-
-If the change is truly "serious downstream domains need Query to express this
-graph-shaped write honestly," then it belongs in Query.
-
-## `worth-geom` Skeleton
-
-Milestone 5 should use `worth-geom` for carrier math and admitted curved-family
-support, not for binding authority.
-
-```text
-crates/worth-geom/src/
-  curve/
-    eval.rs
-    inversion.rs
-    closest_point.rs
-
-  surface/
-    eval.rs
-    inversion.rs
-    closest_point.rs
-    parameter_domains.rs
-
-  primitives/
-    shape_realization/
-    asymmetric_curved/
-      mod.rs
-      stretched_spheroid.rs
-      capsule_ovaloid.rs
-
-  certification/
-    carrier_roundtrip/
-      mod.rs
-      curve_parameter_roundtrip.rs
-      surface_parameter_roundtrip.rs
-      asymmetric_curved_roundtrip.rs
-```
-
-### Why this shape
-
-- evaluation and inversion stay geometry-owned
-- asymmetric curved support becomes an explicit admitted family instead of
-  leaking into generic primitive helpers
-- roundtrip certification stays near the math substrate that owns it
-
-## Recommended File Placement By Operator Family
-
-This section maps the first-pass operator inventory into the proposed
-directories.
-
-## `worth-spatial`
-
-### `bindings/authority/`
-
-- `AttachSurfaceToFace`
-- `ReplaceSurfaceOnFace`
-- `AttachCurveToEdge`
-- `ReplaceCurveOnEdge`
-- `AttachPCurveToCoedge`
-- `ReplacePCurveOnCoedge`
-- `AttachVertexGeometry`
-- `EvaluateBindingCompleteness`
-- `EvaluateBindingIdentity`
-
-### `bindings/anchors/`
-
-- `BindParameterSpacePointAnchor`
-- `BindParameterSpaceDirectionAnchor`
-
-### `bindings/rebinding/`
-
-- `EvaluateRebindingCandidates`
-- `ClassifyRebindingOutcome`
-- `ExplainRebindingOutcome`
-
-### `bindings/history/`
-
-- `InspectBindingAtCheckpoint`
-- `InspectBindingTransition`
-- `InspectBranchLocalBindingState`
-
-### `bindings/authority/` or `bindings/rebinding/` after basic closure
-
-- `ReverseEdgeCurveSense`
-- `ReparameterizeEdgeCurve`
-- `NormalizeEdgeCurveDomain`
-- `ReversePCurveSense`
-- `ReparameterizePCurve`
-- `NormalizePCurveDomain`
-- `SwapSurfaceParameterization`
-- `NormalizeSurfaceParameterization`
-- `SetFaceSurfaceSense`
-- `SetEdgeCurveSense`
-- `SetCoedgeSense`
-
-## `worth-topo`
-
-### `projection/read_views/domain/views/topology_navigation/`
-
-- `GetFaceLoops`
-- `GetFaceEdges`
-- `GetLoopCoedges`
-- `GetCoedgeEdge`
-- `GetEdgeVertices`
-- `GetShellFaces`
-
-## `worth-kernel`
-
-### `binding/authoring/`
-
-- `AuthorPrimitiveBindingIntent`
-- `PrepareAdmittedBindingWorkflow`
-
-### `binding/rebinding/`
-
-- `PrepareAdmittedRebindingWorkflow`
-
-### `binding/inspection/`
-
-- `PrepareBindingInspectionWorkflow`
-
-### `binding/certification/`
-
-- `PrepareBindingCertificationScenario`
-
-## `worth-geom`
-
-### `curve/`, `surface/`, and `primitives/asymmetric_curved/`
-
-- `InvertSurfacePointToUV`
-- `InvertCurvePointToT`
-- `EvalSurfacePoint`
-- `EvalSurfaceDerivatives`
-- `EvalCurvePoint`
-- `EvalCurveDerivatives`
-- `ClosestPointOnSurface`
-- `ClosestPointOnCurve`
-
-## Recommended File Placement By Validator Family
-
-## `worth-spatial`
-
-### `bindings/certification/completeness.rs`
-
-- `ValidateCurveBoundToEdge`
-- `ValidatePCurveBoundToCoedge`
-- `ValidateBindingCompleteness`
-
-### `bindings/certification/identity.rs`
-
-- `ValidateBindingIdentitySeparation`
-- `ValidateCanonicalBindingDigestStability`
-
-### `bindings/certification/anchors.rs`
-
-- `ValidateAnchorCarrierOwnership`
-- `ValidateParameterSpaceAnchorResolution`
-- `ValidateCurveSurfaceInversionResiduals`
-
-### `bindings/certification/rebinding.rs`
-
-- `ValidateRebindingDeterminism`
-- `ValidateRebindingOutcomeClassification`
-
-### `bindings/certification/history.rs`
-
-- `ValidateHistoricalBindingInspectionParity`
-- `ValidateBranchLocalBindingInspectionParity`
-
-### `bindings/certification/curved_pressure.rs`
-
-- `ValidateCarrierLocalAnchorRoundtrip`
-- `ValidateCurvedBindingContinuityClassification`
-- `ValidateNonSymmetricBindingIdentityStability`
-- `ValidateRebindingAcrossAsymmetricCarrierReplacement`
-- `ValidateParameterDomainRespect`
-- `ValidateNoPlanarShortcutFallback`
-
-### `bindings/certification/sense.rs`
-
-- `ValidateSenseConsistency`
-- `ValidateEveryCoedgeHasPCurveWhenRequired`
-- `ValidatePCurveSenseMatchesCoedgeSense`
-
-## `worth-topo`
-
-### keep in the existing topology-owned validation families
-
-- `ValidateTwinSymmetry`
-- `ValidateNextPrevSymmetry`
-- `ValidateLoopClosure`
-- `ValidateOwnership`
-- `ValidateNoOrphans`
-- `ValidateShellWatertightness`
-- `ValidateRadialCycleClosure`
-- `ValidateEdgeManifoldStateMatchesUseCount`
-
-These should not be rehomed into `worth-spatial`.
-
-## `worth-geom`
-
-### `certification/carrier_roundtrip/`
-
-- roundtrip and inversion correctness checks supporting:
-  - parameter-space point fidelity
-  - parameter-space direction fidelity
-  - asymmetric curved carrier roundtrip behavior
-
-These should stay geometry-owned even when `worth-spatial` consumes them.
-
-## Scalability Rules For Milestone 5 Implementation
-
-To avoid a mess later, the implementation should follow these rules:
-
-1. Do not create generic `helpers`, `utils`, or `misc` buckets.
-2. Keep binding truth, anchor truth, rebinding, identity, history, and
-   certification as visibly separate folders.
-3. Do not hide topology navigation inside `worth-spatial`; consume it from
-   `worth-topo`.
-4. Do not hide carrier math inside `worth-kernel`; consume it from
-   `worth-geom`.
-5. Do not let `worth-kernel` become a second binding authority.
-6. Do not let any Worth crate create a shadow Query runtime, graph-write, or
-   receipt layer.
-7. Put new validators beside the truth family they certify.
-8. Put curved-pressure support in an explicitly named subtree so it remains an
-   admitted pressure lane, not an accidental generic curved system.
-
-## Immediate Structural Recommendation
-
-If we start implementing Milestone 5 soon, the first directories worth adding
-deliberately are probably:
-
-### `worth-spatial`
-
-- `bindings/authority/`
-- `bindings/anchors/`
-- `bindings/rebinding/`
-- `bindings/identity/`
-- `bindings/history/`
-- `bindings/certification/`
-
-### `worth-kernel`
-
-- `binding/authoring/`
-- `binding/rebinding/`
-- `binding/inspection/`
-- `binding/certification/`
-
-### `forge-query` only if generic runtime pressure truly appears
-
-- `runtime/mutation/graph_composition/`
-- `runtime/support/graph_composition/`
-- `runtime/surface/graph_composition/`
-- `runtime/inspection/unified/`
-- `declaration_entry/orchestration/`
-
-### `worth-topo`
-
-- `projection/read_views/domain/views/topology_navigation/`
-- `certification/topology_navigation/`
-
-### `worth-geom`
-
-- `primitives/asymmetric_curved/`
-- `certification/carrier_roundtrip/`
-
-That is the cleanest first-pass crate and directory map for the milestone.
+Milestone 5 widens that seam into real binding and rebinding truth so later:
+
+- exact planar hostility
+- topology replacement
+- continuity-sensitive edits
+- historical inspection
+- branch-local inspection
+- replay and certification
+- narrow curved pressure
+
+all inherit an explicit authority substrate rather than folklore.
+
+Without this milestone:
+
+- topology identity, naming identity, and binding identity would keep
+  collapsing into one blurred story
+- anchor semantics would remain implied by coordinates and local helper
+  behavior instead of carrier-owned truth
+- rebinding would keep drifting toward broad search, host-order dependence, or
+  explanation-first reasoning
+- inspection and replay work would be forced to reconstruct truth from live
+  state after the fact
+- `worth-kernel` and Query-facing workflow seams would keep pressure to invent
+  shadow runtime logic for gaps that should be solved in `worth-spatial`
+
+## Governing Summaries
+
+- `MENTALITY.md`: solve the hard authority and replay problem first. Do not
+  build user-facing or DX-friendly surfaces on top of ambiguous binding truth.
+- `arch_laws.md`: authority, derivation, orchestration, and inspection must
+  stay distinct. Kernel composes; spatial decides; Query owns the public
+  declaration/progression/inspection grammar.
+- `composition_laws.md`: binding authority, anchors, rebinding, continuity,
+  history, kernel workflow, and certification must stay in separate named
+  responsibilities instead of collapsing into helpers or mega workflow files.
+- `domain_structure_laws.md`: the tree must preserve distinct homes for
+  authority, identity, anchors, rebinding, history, curved pressure, workflow,
+  and certification.
+- `perf_laws.md`: identity, locality, replay, and reuse claims require
+  explicit equivalence contracts and scope-bounded evaluation. Cheap-looking
+  APIs must not hide broad scans, live-state reconstruction, or shadow
+  runtime behavior.
+- `pre-milestone-5-cleanup.md`: canonical identity and digest truth are
+  prerequisite substrate, not end-of-milestone polish. Replay-grade basis
+  discipline must exist before higher inspection and certification claims.
+
+## Adversarial Constraint
+
+Under topology replacement, host-order variation, branch divergence, replay,
+restart, retained-history inspection, curved-carrier pressure, asymmetric
+carrier pressure, and Query-lowered workflow variation, the same canonical
+binding inputs must produce the same binding identity, the same anchor meaning,
+the same rebinding continuity class, the same typed outcome, the same retained
+inspection truth, and the same certification artifacts unless the scenario is
+intentionally semantically different.
+
+If any supported path:
+
+- allows topology identity or naming identity to masquerade as binding truth
+- infers carrier ownership from coordinates instead of explicit authority
+- lets rebinding depend on broad search or candidate iteration order
+- stores incomplete retained artifacts and then patches them from live state
+- lets kernel or Query-lowering helpers reinterpret spatial truth
+- allows planar or symmetric shortcuts to survive under the admitted curved
+  pressure family
+- or yields different retained inspection, replay, or certification truth for
+  equivalent semantic inputs
+
+then this milestone has failed.
+
+## Product Decision Lock
+
+- Milestone 5 keeps the original 16 explicit phases. They are the primary
+  execution order and may not be collapsed into coarse bands.
+- Query is not merely a lowering lane in this milestone. It is the ordinary
+  public runtime layer for:
+  - canonical declaration identity
+  - family contracts and capability posture
+  - declaration legality and progression
+  - declaration-entry readiness and orchestration
+  - route planning
+  - boundary receipts and envelopes
+  - ordinary outcomes
+  - typed retained-artifact reuse
+  - basis capability lifecycle
+  - inspection and recovery
+  - family helpers over canonical surfaces
+- Query lane split is fixed now:
+  - `declaration-entry` is the primary public workflow, retained-artifact,
+    inspection, readiness, ordinary-outcome, recovery, and retained-next-step
+    lane
+  - graph composition is the mutation-lowering lane only when one admitted
+    binding or rebinding workflow truly needs graph-shaped mixed create,
+    retarget, update, or retire semantics
+- Query visibility is not Query admission.
+  - visible public vocabulary does not imply supported runtime-backed family
+    support
+  - every phase must treat support posture and admission as explicit runtime
+    facts rather than assuming a surface is real because it exists
+- The minimum first-shipping binding family matrix is fixed now:
+  - face -> surface
+  - edge -> curve
+  - coedge -> p-curve
+  - vertex -> geometry
+- The minimum first-shipping continuity vocabulary is fixed now:
+  - `Exact`
+  - `AuthoritativeSuccessor`
+  - `CorrespondenceOnly`
+  - `InsufficientEvidence`
+  - `Ambiguous`
+  - `None`
+- The minimum topology support-query floor is fixed now:
+  - `GetFaceLoops`
+  - `GetFaceEdges`
+  - `GetLoopCoedges`
+  - `GetCoedgeEdge`
+  - `GetEdgeVertices`
+  - `GetShellFaces`
+- Additional topology support helpers may widen only when binding/rebinding
+  truth honestly requires them, not as speculative convenience inventory.
+- The first asymmetric curved pressure family is fixed now:
+  - `triaxial_ellipsoid`
+- Grouped and contribution-composed Query workflow families are out unless one
+  later phase proves that a named Milestone 5 workflow cannot be expressed
+  honestly without them.
+- `workspace.write(...)` is not the default Milestone 5 mutation story.
+  - aspect-native mutation vocabulary, declaration-entry orchestration, typed
+    binding/reuse lanes, and graph/existing-truth lanes should be preferred
+    where they are the honest fit
+
+## Status Honesty Rule
+
+Milestone 5 phases are implementation targets, not closure theater.
+
+The governing rule is:
+
+- a phase is not done because later phases seem plausible on top of it
+- a phase is not done because one happy-path workflow works
+- a phase is not done because kernel DX or public naming looks clean
+- a phase is not done until its production surface is real and both
+  adversarial tests are real
+- later phases may consume earlier substrate, but they may not silently
+  justify or patch missing earlier substrate
+
+If implementation discovers that an earlier phase was only partially true, the
+correct move is to reopen that phase explicitly rather than pretending the gap
+will disappear later.
+
+## Phase Plan
+
+### Phase 1: Freeze Binding Truth As Its Own Authority Surface
+
+**Relevant subsystems**
+- `worth-spatial` binding authority
+- `worth-topo` topology ownership context
+- `worth-kernel` binding authoring workflow entry
+
+**Relevant Query families**
+- configured domain handles
+- canonical domain declarations
+- declaration family taxonomy
+- declaration family capability matrix
+- declaration legality
+- declaration progression
+- declaration foundational evidence
+
+**Query posture**
+- required now:
+  - canonical domain declarations
+  - declaration family taxonomy
+  - declaration family capability matrix
+  - declaration legality
+  - declaration progression
+  - declaration foundational evidence
+- support-gated:
+  - configured domain handles
+- out for this phase:
+  - receipts, envelopes, retained-artifact reuse, recovery, grouped work
+
+**Entry gate**
+- do not begin this phase until the binding family matrix is fixed and the
+  lower geometry identity substrate from pre-milestone cleanup is treated as
+  authoritative input, not as future polish
+
+**Warnings**
+- Do not treat binding as incidental construction metadata.
+- Do not collapse face, edge, coedge, and vertex bindings into one generic bag.
+- Do not let kernel own binding legality.
+
+**Test requirements**
+- `planar_binding_authority_roundtrip_preserves_binding_truth`
+- prove all four binding families survive authoring, declaration lowering, and
+  retained readback as distinct authority artifacts
+- `binding_authority_rejects_topology_only_reconstruction_after_geometry_drift`
+- prove stable topology identity and stable naming cannot reconstruct a passing
+  result after the actual bound geometry changes
+
+**Engineering decisions**
+- binding truth is a first-class spatial authority surface
+- face, edge, coedge, and vertex bindings all participate in first shipping
+- Query declaration/progression is the public lowering path, not a Worth-local
+  declaration runtime
+
+**Open questions**
+- None
+
+### Phase 2: Freeze Binding Identity As Distinct From Topology And Naming
+
+**Relevant subsystems**
+- `worth-spatial` binding identity
+- `worth-spatial` certification
+- `worth-kernel` authoring parity proof
+
+**Relevant Query families**
+- canonical domain declarations
+- declaration family taxonomy
+- declaration family capability matrix
+- declaration progression
+- declaration-entry inspection
+- retained artifact inspection
+
+**Query posture**
+- required now:
+  - canonical domain declarations
+  - declaration family taxonomy
+  - declaration family capability matrix
+  - declaration progression
+- support-gated:
+  - declaration-entry inspection
+  - retained artifact inspection
+- out for this phase:
+  - recovery, receipts, envelopes, grouped work
+
+**Entry gate**
+- do not begin this phase until Phase 1 binding authority artifacts are real;
+  identity may not become the place where missing authority meaning is guessed
+
+**Warnings**
+- Do not let topology identity, naming identity, and binding identity collapse
+  into one digest story.
+- Do not let host-order or builder-order variation perturb identity.
+
+**Test requirements**
+- `binding_identity_diverges_from_topology_and_naming_when_geometry_changes`
+- prove equivalent binding meaning converges while changed binding meaning
+  diverges even under stable topology id and name
+- `binding_identity_is_stable_under_equivalent_authoring_order_variation`
+- prove host-order, builder-order, and declaration-order variation do not
+  perturb identity when semantic binding meaning is unchanged
+
+**Engineering decisions**
+- binding identity is its own truth family
+- identity must commit binding meaning, not just topology host facts
+- identity and digest basis will later widen into retained history identity
+
+**Open questions**
+- None
+
+### Phase 3: Replace Placeholder Anchor Denial With Real Carrier-Local Anchor Truth
+
+**Relevant subsystems**
+- `worth-spatial` anchors
+- `worth-geom` inversion and carrier math
+- `worth-kernel` anchor-bearing declaration authoring
+
+**Relevant Query families**
+- canonical domain declarations
+- declaration family taxonomy
+- declaration family capability matrix
+- declaration legality
+- declaration progression
+- declaration-entry inspection
+
+**Query posture**
+- required now:
+  - canonical domain declarations
+  - declaration family taxonomy
+  - declaration family capability matrix
+  - declaration legality
+  - declaration progression
+- support-gated:
+  - declaration-entry inspection
+- out for this phase:
+  - grouped work, graph composition, recovery as a substitute for anchor truth
+
+**Entry gate**
+- do not begin this phase until carrier ownership can be represented as
+  explicit spatial truth rather than inferred geometry metadata
+
+**Warnings**
+- Do not infer carrier ownership from coordinates.
+- Do not let point and direction anchors collapse into one generic anchor bag.
+- Do not accept nearest-carrier fallback as authority truth.
+- Do not reinterpret parameter-space anchors as world points or generic
+  vectors to get a passing result.
+
+**Test requirements**
+- `parameter_space_anchor_roundtrip_resolves_on_admitted_carrier`
+- `wrong_carrier_anchor_is_typed_denied_not_silently_coerced`
+- `parameter_space_direction_anchor_cannot_collapse_to_generic_vector_truth`
+- prove direction anchors preserve carrier-local semantic role and cannot pass
+  through a generic vector fallback
+- `wrong_domain_anchor_is_denied_before_nearest_projection_or_repair`
+- prove out-of-domain anchors fail typed before any projection, snapping, or
+  closest-point fallback can reinterpret them
+
+**Engineering decisions**
+- parameter-space point and direction anchors are separate types
+- carrier ownership is explicit and typed
+- wrong-carrier and wrong-domain cases deny typed before any fallback
+
+**Open questions**
+- None
+
+### Phase 4: Freeze Binding Completeness Rules
+
+**Relevant subsystems**
+- `worth-spatial` completeness authority
+- `worth-spatial` denial taxonomy
+- `worth-kernel` authoring/rejection workflow wiring
+
+**Relevant Query families**
+- declaration legality
+- declaration progression
+- declaration entry readiness
+- ordinary outcomes
+- recovery boundary
+
+**Query posture**
+- required now:
+  - declaration legality
+  - declaration progression
+  - ordinary outcomes
+- support-gated:
+  - declaration entry readiness
+  - recovery boundary
+- out for this phase:
+  - receipts/envelopes as a substitute for completeness policy
+
+**Entry gate**
+- do not begin this phase until binding authority and anchor truth are already
+  explicit; completeness must classify those truths, not compensate for their
+  absence
+
+**Warnings**
+- Do not treat completeness as merely "all fields are present."
+- Do not blur unsupported, incomplete, and illegal states.
+
+**Test requirements**
+- `binding_completeness_policy_distinguishes_complete_partial_unsupported_and_illegal`
+- prove admitted complete, admitted partial, denied partial, and typed
+  unsupported cases remain explicit and structurally distinct
+- `binding_completeness_replay_does_not_upgrade_missing_evidence_into_success`
+- prove replay, readback, or workflow-lane variation cannot turn incomplete
+  evidence into admitted completeness
+
+**Engineering decisions**
+- completeness is a policy-bearing spatial truth surface
+- partial binding allowance or denial must be explicit and typed
+- later phases may consume completeness facts but may not redefine them
+
+**Open questions**
+- whether one shared completeness result wrapper is honest across all four
+  families
+
+### Phase 5: Freeze Canonical Binding Identity And Digest Truth
+
+**Relevant subsystems**
+- `worth-spatial` identity and digest protocol
+- `worth-kernel` declaration/progression parity proof
+- `worth-geom` carrier and witness identity contributions
+
+**Relevant Query families**
+- existing truth
+- canonical domain declarations
+- declaration progression
+- inspection
+- lineage and correspondence
+- projection consumption
+- typed binding pipeline
+
+**Query posture**
+- required now:
+  - canonical domain declarations
+  - declaration progression
+  - typed binding pipeline
+- support-gated:
+  - existing truth
+  - inspection
+  - lineage and correspondence
+  - projection consumption
+- out for this phase:
+  - historical materialization as a patch for weak identity basis
+
+**Entry gate**
+- do not begin this phase until phases 1 through 4 are real; canonical digest
+  truth must commit already-admitted meaning instead of masking missing policy
+  or authority work
+
+**Warnings**
+- Do not leave canonical digest truth as summary-only folklore.
+- Do not allow crate-local digest stories to diverge.
+
+**Test requirements**
+- `canonical_binding_identity_digest_protocol_is_shared_across_kernel_spatial_and_retained_paths`
+- prove canonical binding, anchor, and rebinding identity/digest truth stays
+  equivalent across spatial, kernel, and later retained artifact consumption
+- `canonical_binding_digest_changes_when_geometry_meaning_changes_but_not_when_formatting_changes`
+- prove geometry-bearing semantic drift changes canonical digest while
+  formatting, ordering, and non-semantic declaration differences do not
+
+**Engineering decisions**
+- one shared identity and digest protocol governs canonical binding truth
+- digest basis commits geometry-bearing meaning, not report summaries
+- this phase must close before replay, retained inspection, or higher reuse
+  claims
+
+**Open questions**
+- None
+
+### Phase 6: Freeze Motion-Aware Binding Semantics
+
+**Relevant subsystems**
+- `worth-spatial` motion posture
+- `worth-kernel` admitted move/rotate/reorient workflow composition
+- `worth-geom` carrier evaluation
+
+**Relevant Query families**
+- declaration progression
+- declaration entry readiness
+- declaration entry orchestration
+- ordinary outcomes
+- recovery boundary
+
+**Query posture**
+- required now:
+  - declaration progression
+  - ordinary outcomes
+- support-gated:
+  - declaration entry readiness
+  - declaration entry orchestration
+  - recovery boundary
+- out for this phase:
+  - rebinding candidate evaluation through helper orchestration
+
+**Entry gate**
+- do not begin this phase until canonical identity and digest truth are real;
+  motion posture must consume that identity basis rather than inventing a
+  separate equivalence story
+
+**Warnings**
+- Do not treat binding as static birth-only truth.
+- Do not infer motion posture from candidate presence alone.
+
+**Test requirements**
+- `motion_aware_binding_posture_distinguishes_preserved_transformed_invalidated_and_unresolved`
+- prove move, rotate, and reorient workflows classify preserved,
+  transformed-with-carrier, invalidated, and unresolved cases explicitly
+- `motion_posture_is_not_rederived_from_rebinding_candidate_presence`
+- prove motion-aware posture is decided from motion semantics rather than from
+  whether later rebinding candidates happen to exist
+
+**Engineering decisions**
+- motion-aware posture is a first-class spatial truth surface
+- rebinding requirement must be explicit before rebinding candidate search
+  begins
+
+**Open questions**
+- exact split between transformed-but-still-exact versus preserved wording
+
+### Phase 7: Freeze Rebinding Semantics For Local Topology Replacement
+
+**Relevant subsystems**
+- `worth-spatial` local replacement neighborhood
+- `worth-topo` navigation/query floor
+- `worth-kernel` rebinding workflow
+
+**Relevant Query families**
+- declaration progression
+- declaration entry readiness
+- declaration entry orchestration
+- declaration-entry inspection
+- ordinary outcomes
+- typed binding pipeline
+- recovery boundary
+
+**Query posture**
+- required now:
+  - declaration progression
+  - typed binding pipeline
+  - ordinary outcomes
+- support-gated:
+  - declaration entry readiness
+  - declaration entry orchestration
+  - declaration-entry inspection
+  - recovery boundary
+- out for this phase:
+  - grouped neighborhood work unless one admitted rebinding workflow truly
+    cannot be expressed without it
+
+**Entry gate**
+- do not begin this phase until:
+  - motion posture is explicit
+  - the topology support-query floor is real
+  - local replacement neighborhood artifacts are explicit
+
+**Warnings**
+- Do not allow broad search or host-order iteration to masquerade as rebinding.
+- Do not begin rebinding without an explicit local replacement neighborhood.
+- Do not omit vertex replacement from first-shipping rebinding semantics.
+- Do not use whole-model search, nearest-anything search, or caller-owned
+  loops as a hidden replacement-candidate engine.
+
+**Test requirements**
+- `local_topology_replacement_rebinds_or_denies_canonically_under_replay`
+- prove face, edge, coedge, and vertex replacement workflows consume explicit
+  local neighborhoods and produce stable results
+- `local_rebinding_candidate_order_variation_cannot_change_authoritative_outcome`
+- prove candidate/container iteration order cannot perturb preserved,
+  reattached, ambiguous, or denied results
+- `vertex_rebinding_uses_the_same_local_neighborhood_law_as_other_core_families`
+- prove vertex replacement is first-class and not a typed-unsupported escape
+  hatch inside the first-shipping rebinding matrix
+
+**Engineering decisions**
+- local replacement neighborhood is a typed input artifact
+- rebinding is scope-bounded before evaluation
+- topology support helpers are mandatory substrate, not optional polish
+
+**Open questions**
+- whether reverse/adjacency helper expansion is needed beyond the minimum floor
+
+### Phase 8: Freeze Typed Rebinding Outcome Classes
+
+**Relevant subsystems**
+- `worth-spatial` outcome classification
+- `worth-spatial` denial taxonomy
+- `worth-kernel` outcome transport
+
+**Relevant Query families**
+- ordinary outcomes
+- recovery boundary
+- declaration-entry inspection
+- typed binding pipeline
+
+**Query posture**
+- required now:
+  - ordinary outcomes
+  - typed binding pipeline
+- support-gated:
+  - recovery boundary
+  - declaration-entry inspection
+- out for this phase:
+  - local helper status enums parallel to Query ordinary outcomes
+
+**Entry gate**
+- do not begin this phase until local replacement rebinding semantics are real;
+  outcome classes must classify real rebinding truth, not stand in for it
+
+**Warnings**
+- Do not encode rebinding results as booleans or prose.
+- Do not blur unsupported, ambiguous, orphaned, and continuity-justified cases.
+
+**Test requirements**
+- `typed_rebinding_outcomes_remain_distinct_under_equivalent_candidate_pressure`
+- prove preserved, exact reattachment, continuity-justified reattachment,
+  ambiguous, orphaned, and unsupported remain distinct typed outcomes
+- `rebinding_outcome_transport_through_kernel_and_query_does_not_collapse_denial_shape`
+- prove workflow transport does not blur unsupported, ambiguous, orphaned, or
+  continuity-justified outcomes into one generic failure surface
+
+**Engineering decisions**
+- rebinding outcomes are first-class spatial truth
+- outcome classes consume continuity truth rather than hiding it
+
+**Open questions**
+- whether `InsufficientEvidence` needs a distinct outcome mirror or remains
+  continuity-only
+
+### Phase 9: Freeze Continuity And Rebinding Diagnostics
+
+**Relevant subsystems**
+- `worth-spatial` continuity assessment
+- `worth-spatial` diagnostics/explanations
+- `worth-kernel` retained workflow proof wiring
+
+**Relevant Query families**
+- declaration entry readiness
+- declaration entry orchestration
+- declaration-entry inspection
+- declaration boundary receipts
+- declaration boundary envelopes
+- ordinary outcomes
+- lineage and correspondence
+- recovery boundary
+
+**Query posture**
+- required now:
+  - declaration-entry inspection
+  - ordinary outcomes
+- support-gated:
+  - declaration entry readiness
+  - declaration entry orchestration
+  - declaration boundary receipts
+  - declaration boundary envelopes
+  - lineage and correspondence
+  - recovery boundary
+- out for this phase:
+  - cross-runtime causal inspection as a substitute for rebinding diagnostics
+
+**Entry gate**
+- do not begin this phase until typed rebinding outcomes are real; diagnostics
+  may explain typed truth, but they may not become the first place truth exists
+
+**Warnings**
+- Do not let explanation prose become the source of truth.
+- Do not let correspondence masquerade as authoritative continuity.
+
+**Test requirements**
+- `continuity_classification_distinguishes_authoritative_successor_correspondence_and_insufficient_evidence`
+- prove continuity classes remain typed and stable across denial and ambiguity
+  paths
+- `rebinding_diagnostics_preserve_candidate_inventory_and_no_winner_cases_without_false_authority`
+- prove explanations retain candidate inventory and do not invent a winner for
+  ambiguous, orphaned, or unsupported outcomes
+
+**Engineering decisions**
+- continuity classes are fixed milestone vocabulary
+- explanation is derived from typed truth, not vice versa
+- diagnostics must preserve prior meaning, changed meaning, candidates, and
+  why a winner did or did not exist
+
+**Open questions**
+- whether diagnostics should later split explanation and ambiguity artifacts
+
+### Phase 10: Add Narrow Curved Carrier Pressure
+
+**Relevant subsystems**
+- `worth-spatial` curved pressure cases
+- `worth-geom` curved carrier evaluation and inversion
+- `worth-kernel` certification scenarios
+
+**Relevant Query families**
+- declaration progression
+- declaration entry readiness
+- declaration entry orchestration
+- declaration-entry inspection
+- ordinary outcomes
+- declaration boundary receipts
+- declaration boundary envelopes
+
+**Query posture**
+- required now:
+  - declaration progression
+  - declaration-entry inspection
+  - ordinary outcomes
+- support-gated:
+  - declaration entry readiness
+  - declaration entry orchestration
+  - declaration boundary receipts
+  - declaration boundary envelopes
+- out for this phase:
+  - broad temporal/live/query-surface expansion; this is substrate pressure,
+    not a new public runtime mode
+
+**Entry gate**
+- do not begin this phase until phases 1 through 9 are real enough to survive
+  non-planar carrier pressure without reopening basic authority questions
+
+**Warnings**
+- Do not let Milestone 5 remain secretly planar-only.
+- Do not widen into broad freeform or NURBS closure.
+
+**Test requirements**
+- `curved_carrier_pressure_breaks_planar_anchor_and_rebinding_shortcuts`
+- prove carrier-local anchors, curved binding semantics, curved rebinding, and
+  curved continuity diagnostics stay honest on the admitted curved pressure set
+- `curved_binding_and_rebinding_do_not_fall_back_to_planarized_identity_or_domain_assumptions`
+- prove admitted curved cases reject planarized identity, domain, and
+  continuity shortcuts rather than silently coercing them
+
+**Engineering decisions**
+- curved pressure remains narrow and intentional
+- its purpose is substrate hardening, not broad curved completion
+
+**Open questions**
+- whether one additional narrow curved case is needed beyond the first
+  asymmetric family
+
+### Phase 11: Add At Least One Asymmetric Curved Primitive Or Carrier Family
+
+**Relevant subsystems**
+- `worth-spatial` asymmetric-family binding and rebinding cases
+- `worth-geom` asymmetric carrier representation and interrogation
+- `worth-kernel` hostile certification scenarios
+
+**Relevant Query families**
+- declaration progression
+- declaration entry readiness
+- declaration entry orchestration
+- inspection
+- ordinary outcomes
+- declaration boundary receipts
+- declaration boundary envelopes
+
+**Query posture**
+- required now:
+  - declaration progression
+  - inspection
+  - ordinary outcomes
+- support-gated:
+  - declaration entry readiness
+  - declaration entry orchestration
+  - declaration boundary receipts
+  - declaration boundary envelopes
+- out for this phase:
+  - broad family expansion beyond the fixed first asymmetric pressure case
+
+**Entry gate**
+- do not begin this phase until narrow curved pressure is already real; the
+  asymmetric family is hostile proof over that substrate, not a replacement for
+  it
+
+**Warnings**
+- Do not rely on planar shortcuts, circular symmetry shortcuts, or axis
+  interchange assumptions.
+- Do not claim curved robustness using only symmetric carriers.
+
+**Test requirements**
+- `triaxial_ellipsoid_breaks_symmetry_dependent_binding_identity_and_anchor_reuse`
+- prove the first asymmetric family breaks fake identity stability and anchor
+  reuse that survived only on symmetric carriers
+- `triaxial_ellipsoid_rebinding_and_continuity_do_not_reuse_axis_interchange_shortcuts`
+- prove asymmetric replacement pressure kills continuity and rebinding logic
+  that relied on circular symmetry or axis interchange assumptions
+
+**Engineering decisions**
+- `triaxial_ellipsoid` is the first required asymmetric pressure family
+- this phase hardens previous phases before retained history and replay close
+
+**Open questions**
+- None
+
+### Phase 12: Freeze Clean Kernel-To-Spatial Rebinding Seams
+
+**Relevant subsystems**
+- `worth-kernel` binding authoring workflow
+- `worth-kernel` rebinding workflow
+- `worth-spatial` binding/rebinding authority
+- Query-facing lowering in `worth-kernel`
+
+**Relevant Query families**
+- declaration-entry orchestration
+- declaration entry readiness
+- typed binding pipeline
+- declaration progression
+- declaration route plan
+- declaration boundary receipts
+- declaration boundary envelopes
+- ordinary outcomes
+- recovery boundary
+- family helpers
+- lower-runtime capability routing
+- authoritative mutation evidence
+
+**Query posture**
+- required now:
+  - declaration-entry orchestration
+  - declaration entry readiness
+  - typed binding pipeline
+  - declaration progression
+  - declaration route plan
+  - declaration boundary receipts
+  - declaration boundary envelopes
+  - ordinary outcomes
+  - family helpers
+  - lower-runtime capability routing
+  - authoritative mutation evidence
+- support-gated:
+  - recovery boundary
+- out for this phase:
+  - provisional local inspection/history readers because later phases are not
+    ready yet
+
+**Entry gate**
+- do not begin this phase until phases 1 through 11 are real; kernel parity
+  work may not proceed by inventing temporary spatial, topology, or retained
+  semantics that the lower layers do not already own
+
+**Warnings**
+- Do not let kernel become a second rebinding or inspection runtime.
+- Do not let DX lane and generic Query lane drift into different truths.
+- Do not patch over missing spatial/topology semantics with kernel helpers.
+- Do not skip readiness, route, receipt, or envelope truth just because a
+  helper path feels ergonomic enough.
+
+**Test requirements**
+- `kernel_binding_workflow_consumes_spatial_authority_without_local_rebinding_logic`
+- `kernel_rebinding_dx_lane_and_generic_query_lane_converge_to_same_artifacts`
+- `kernel_authoring_lane_and_generic_query_lane_share_canonical_declaration_and_progression_truth`
+- prove ergonomic and generic entry paths converge at declaration and
+  progression boundaries rather than only at final user-visible results
+- `kernel_cannot_reinterpret_spatial_denials_or_continuity_classes_for_convenience`
+- prove kernel transport cannot widen support posture, hide denials, or
+  reclassify continuity to make the workflow seem smoother
+
+**Engineering decisions**
+- kernel composes workflow only
+- spatial remains the sole authority for binding, anchor, rebinding, and
+  continuity meaning
+- canonical Query artifacts are the only workflow truth
+
+**Open questions**
+- exact parity witness naming and whether boundary proof stays test-local or
+  earns a narrow production-internal module
+
+### Phase 13: Freeze Historical Binding Inspection
+
+**Relevant subsystems**
+- `worth-spatial` retained history artifacts
+- `worth-spatial` historical inspection
+- `worth-kernel` inspection workflow
+
+**Relevant Query families**
+- basis capability lifecycle
+- declaration boundary receipts
+- declaration boundary envelopes
+- declaration-entry inspection
+- existing truth
+- historical diff and basis
+- typed binding pipeline
+- structural correspondence and historical materialization
+- recovery boundary
+
+**Query posture**
+- required now:
+  - basis capability lifecycle
+  - declaration-entry inspection
+  - historical diff and basis
+  - typed binding pipeline
+  - recovery boundary
+- support-gated:
+  - declaration boundary receipts
+  - declaration boundary envelopes
+  - existing truth
+  - structural correspondence and historical materialization
+- out for this phase:
+  - cross-runtime causal inspection as the primary historical lane
+
+**Entry gate**
+- do not begin this phase until:
+  - canonical retained artifacts exist
+  - kernel seam parity is already honest
+  - earlier binding/rebinding semantics are stable enough to retain
+
+**Warnings**
+- Do not reconstruct historical truth from current live state.
+- Do not let incomplete retained evidence degrade into best-effort inspection.
+- Do not repair retained truth from ambient caches, live topology, or
+  neighboring branch state.
+
+**Test requirements**
+- `historical_binding_inspection_reconstructs_transition_truth_without_live_state`
+- prove rebinding transition, continuity class, and explanation survive from
+  retained artifacts alone and stay unchanged if current live state mutates
+- `historical_binding_inspection_rejects_wrong_or_truncated_basis_before_partial_interpretation`
+- prove wrong-basis and incomplete retained evidence deny typed before any
+  best-effort historical answer can leak out
+- `historical_inspection_digest_is_stable_under_equivalent_retained_artifact_ordering`
+- prove equivalent retained basis ordering or formatting differences do not
+  perturb historical inspection truth or digest
+
+**Engineering decisions**
+- retained artifacts are canonical inspection substrate
+- wrong retained basis must deny typed before interpretation
+- historical inspection is a distinct responsibility from branch-local
+  inspection
+
+**Open questions**
+- whether historical and branch-local inspection should share one wrapped error
+  family or remain separate
+
+### Phase 14: Freeze Branch-Local Binding Inspection
+
+**Relevant subsystems**
+- `worth-spatial` branch-local inspection
+- `worth-kernel` branch-local inspection workflow
+- retained history/basis artifacts shared with Phase 13
+
+**Relevant Query families**
+- basis capability lifecycle
+- declaration-entry inspection
+- existing truth
+- lineage and correspondence
+- continuity vs correspondence
+- typed binding pipeline
+- structural correspondence and historical materialization
+- recovery boundary
+
+**Query posture**
+- required now:
+  - basis capability lifecycle
+  - declaration-entry inspection
+  - lineage and correspondence
+  - continuity vs correspondence
+  - typed binding pipeline
+  - recovery boundary
+- support-gated:
+  - existing truth
+  - structural correspondence and historical materialization
+- out for this phase:
+  - merge-era semantics beyond branch-local inspection
+
+**Entry gate**
+- do not begin this phase until historical inspection is real; branch-local
+  inspection extends retained truth and basis discipline rather than creating a
+  second inspection model
+
+**Warnings**
+- Do not let branch-local truth masquerade as authoritative truth.
+- Do not let wrong-branch inspection cross-bleed into plausible current truth.
+
+**Test requirements**
+- `branch_local_binding_inspection_distinguishes_branch_state_from_authoritative_state`
+- prove branch-local and authoritative truth can diverge while preserving
+  explicit identity separation and typed wrong-branch denial
+- `branch_local_correspondence_never_upgrades_to_authoritative_continuity_under_replay`
+- prove correspondence-only branch-local relations do not replay as
+  authoritative continuity
+- `wrong_branch_binding_inspection_is_denied_before_cross_branch_reconstruction`
+- prove wrong-branch input fails typed before any plausible current-state or
+  neighboring-branch reconstruction path can answer
+
+**Engineering decisions**
+- branch-local inspection is distinct from historical checkpoint inspection
+- correspondence does not count as authoritative continuity
+- branch-local identity separation must remain explicit
+
+**Open questions**
+- exact branch-local correspondence artifact naming
+
+### Phase 15: Freeze Replay-Safe Binding And Rebinding Histories
+
+**Relevant subsystems**
+- `worth-spatial` retained identity and replay
+- `worth-kernel` replay-grade workflow parity proof
+- curved/asymmetric certification scenarios
+
+**Relevant Query families**
+- basis capability lifecycle
+- inspection
+- retained artifact to next step
+- continuation pipeline
+- lineage and correspondence
+- typed binding pipeline
+- structural correspondence and historical materialization
+- recovery boundary
+
+**Query posture**
+- required now:
+  - basis capability lifecycle
+  - inspection
+  - retained artifact to next step
+  - typed binding pipeline
+  - recovery boundary
+- support-gated:
+  - continuation pipeline
+  - lineage and correspondence
+  - structural correspondence and historical materialization
+- out for this phase:
+  - durable causal archive or unrelated temporal/async continuation claims
+
+**Entry gate**
+- do not begin this phase until historical and branch-local inspection are
+  both real; replay-safe histories are a closeout over retained truth, not a
+  workaround for missing inspection substrate
+
+**Warnings**
+- Do not claim replay safety from summary digests alone.
+- Do not let replay depend on live runtime memory or host-order accident.
+
+**Test requirements**
+- `binding_and_rebinding_replay_is_identical_across_equivalent_retained_histories`
+- prove binding identity, anchor identity, rebinding outcomes, continuity
+  classes, and diagnostics replay identically across retained-history paths
+- `replay_parity_fails_loudly_when_retained_identity_or_explanation_basis_is_semantically_different`
+- prove replay differences surface as typed parity failure when retained basis
+  or explanation meaning genuinely changes
+
+**Engineering decisions**
+- replay-safe histories must consume the same canonical identity and digest
+  substrate frozen earlier in the milestone
+- replay parity includes retained explanations and denied-path artifacts, not
+  just admitted outcomes
+
+**Open questions**
+- None
+
+### Phase 16: Freeze Determinism And Certification For The Binding Layer
+
+**Relevant subsystems**
+- `worth-spatial` certification
+- `worth-kernel` scenario assembly
+- `worth-topo` topology support certification
+- `worth-geom` curved/asymmetric hostile cases
+
+**Relevant Query families**
+- basis capability lifecycle
+- inspection
+- existing truth
+- declaration-entry inspection
+- ordinary outcomes
+- declaration boundary receipts
+- declaration boundary envelopes
+- typed binding pipeline
+- recovery boundary
+
+**Query posture**
+- required now:
+  - basis capability lifecycle
+  - inspection
+  - declaration-entry inspection
+  - ordinary outcomes
+  - typed binding pipeline
+- support-gated:
+  - existing truth
+  - declaration boundary receipts
+  - declaration boundary envelopes
+  - recovery boundary
+- out for this phase:
+  - broad new runtime feature invention under the label of certification
+
+**Entry gate**
+- do not begin this phase until phases 1 through 15 are real enough that the
+  certification bundle is proving existing truth rather than discovering it for
+  the first time
+
+**Warnings**
+- Do not claim milestone closure from happy-path unit tests.
+- Do not leave determinism, replay parity, or inspection parity as informal
+  expectations.
+
+**Test requirements**
+- `binding_layer_certification_bundle_proves_determinism_replay_and_inspection_parity_under_hostile_order_variation`
+- prove rebinding determinism, continuity classification determinism, binding
+  identity stability, historical inspection parity, and branch-local
+  inspection parity in one hostile certification bundle
+- `binding_layer_certification_bundle_proves_curved_and_asymmetric_pressure_do_not_reopen_earlier_shortcuts`
+- prove curved and asymmetric pressure do not reopen planar, symmetric,
+  topology-only, or explanation-first shortcuts that earlier phases claimed to
+  close
+
+**Engineering decisions**
+- certification closeout is a first-class milestone phase, not cleanup
+- milestone closure requires hostile proof bundles, not only production
+  feature presence
+
+**Open questions**
+- exact certification bundle/file grouping once implementation lands
+
+## Must Ship
+
+- explicit binding authority for face, edge, coedge, and vertex bindings
+- explicit binding identity separate from topology and naming identity
+- carrier-local point and direction anchors with explicit ownership
+- typed binding completeness rules
+- canonical identity and digest truth for binding, anchor, and rebinding
+- motion-aware binding posture
+- local replacement rebinding semantics
+- typed rebinding outcomes and continuity diagnostics
+- one admitted narrow curved pressure surface
+- one admitted asymmetric curved family
+- historical and branch-local inspection
+- replay-safe retained histories
+- kernel-to-spatial workflow seams that stay orchestration-only
+- hostile certification proving determinism, replay parity, and inspection
+  parity
+
+## Must Preserve
+
+- `worth-spatial` as the sole binding/rebinding/history semantic authority
+- `worth-topo` as topology truth and navigation authority
+- `worth-geom` as math authority rather than binding meaning authority
+- `worth-kernel` as workflow composition only
+- Query as the canonical declaration/progression/inspection/public workflow
+  grammar
+- explicit equivalence contracts for identity, replay, and retained inspection
+- locality-bounded rebinding evaluation
+- typed denial instead of silent fallback or heuristic downgrade
+
+## Acceptance Evidence
+
+- all 16 phases have named production surfaces rather than only tests or notes
+- each phase has at least one hostile integration or certification proof that
+  directly pressures its adversarial failure mode
+- declaration-entry, retained inspection, and replay lanes all converge on the
+  same canonical binding truth
+- curved and asymmetric pressure demonstrate that planar and symmetric
+  shortcuts no longer survive
+- kernel ergonomic lanes and generic Query lanes converge to the same artifact
+  truth wherever both are admitted
+
+## Architectural Notes
+
+- The milestone should be implemented in the written phase order unless a later
+  doc revision explicitly reorders phases. The current order is load-bearing.
+- Phases 13 through 16 must consume the substrate closed by phases 1 through
+  12. They are not a place to discover missing core semantics retroactively.
+- The topology support-query floor is prerequisite substrate for rebinding and
+  retained inspection phases, even though it is not a standalone milestone
+  phase.
+- Query support posture and admission are part of the architecture, not a
+  post-hoc validation step. Every phase that touches a Query lane must treat
+  “visible” and “admitted runtime-backed support” as separate facts.
+- Grouped/contribution-composed Query families remain out unless one later
+  phase proves an admitted workflow cannot be expressed honestly without them.
+
+## Sequencing Notes
+
+- The most dangerous sequencing mistake is to freeze replay, inspection, or
+  certification before canonical identity, rebinding truth, and curved
+  pressure have actually closed.
+- The second most dangerous sequencing mistake is to let kernel or Query
+  workflow work proceed by inventing temporary local substitutes for missing
+  spatial or retained-history semantics.
+- The third most dangerous sequencing mistake is to use only part of Query’s
+  runtime contract: declaration identity without readiness, orchestration
+  without receipts/envelopes, retained artifacts without typed reuse, or
+  inspection without basis lifecycle and recovery posture.
+- If implementation discovers that one phase depends on undeclared substrate,
+  the spec should be updated before code continues rather than silently
+  bypassed.

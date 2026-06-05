@@ -125,7 +125,11 @@ pub fn canonical_simplex_vertices(
         vec![
             [0.0, 0.0, scale],
             [0.0, scale, -scale],
-            [-scale * CANONICAL_SIMPLEX_LATERAL_RATIO, -scale * 0.5, -scale],
+            [
+                -scale * CANONICAL_SIMPLEX_LATERAL_RATIO,
+                -scale * 0.5,
+                -scale,
+            ],
             [
                 scale * CANONICAL_SIMPLEX_LATERAL_RATIO,
                 -scale * 0.5,
@@ -195,8 +199,10 @@ pub fn derive_shell_with_hole_layout(
     outer_loop_edge_count: u32,
     hole_loop_edge_counts: &[u32],
     policy: ShellWithHoleWitnessLayoutPolicy,
-) -> Result<(ShellWithHoleWitnessLayout, ShellWithHoleLayoutLegality), ShellWithHoleWitnessLayoutError>
-{
+) -> Result<
+    (ShellWithHoleWitnessLayout, ShellWithHoleLayoutLegality),
+    ShellWithHoleWitnessLayoutError,
+> {
     if outer_loop_edge_count < 3 {
         return Err(ShellWithHoleWitnessLayoutError::OuterLoopTooSmall);
     }
@@ -234,8 +240,11 @@ pub fn shell_with_hole_vertices_from_layout(
     hole_loop_edge_counts: &[u32],
     layout: &ShellWithHoleWitnessLayout,
 ) -> PrimitiveCanonicalWitnessGeometry {
-    let mut vertices =
-        regular_polygon_vertices([0.0, 0.0, 0.0], outer_loop_edge_count, layout.outer_radius());
+    let mut vertices = regular_polygon_vertices(
+        [0.0, 0.0, 0.0],
+        outer_loop_edge_count,
+        layout.outer_radius(),
+    );
     for (index, edge_count) in hole_loop_edge_counts.iter().copied().enumerate() {
         let center = layout.hole_centers()[index];
         vertices.extend(regular_polygon_vertices(
@@ -289,11 +298,7 @@ mod tests {
 
         assert_eq!(
             vertices.local_vertices()[2],
-            [
-                -2.0 * CANONICAL_SIMPLEX_LATERAL_RATIO,
-                -1.0,
-                -2.0,
-            ]
+            [-2.0 * CANONICAL_SIMPLEX_LATERAL_RATIO, -1.0, -2.0,]
         );
     }
 
