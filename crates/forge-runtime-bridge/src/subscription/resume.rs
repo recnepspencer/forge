@@ -4,12 +4,12 @@ use sha2::{Digest, Sha256};
 
 use super::{
     BridgeActiveSubscription, BridgeActiveSubscriptionIdentity, BridgeAdmittedSubscriptionIdentity,
-    BridgeSubscriptionBasisIdentity, BridgeSubscriptionCheckpoint,
-    BridgeSubscriptionCheckpointIdentity, BridgeSubscriptionConsumerContractIdentity,
-    BridgeSubscriptionCounters, BridgeSubscriptionDeliveryCostProfileIdentity,
-    BridgeSubscriptionDeliveryFamilyIdentity, BridgeSubscriptionDeliveryWindowIdentity,
-    BridgeSubscriptionDuplicateReplayPolicyKind, BridgeSubscriptionResumeAdmissionIdentity,
-    BridgeSubscriptionResumePlanIdentity,
+    BridgeRetainedSubscriptionResumeBasis, BridgeSubscriptionBasisIdentity,
+    BridgeSubscriptionCheckpoint, BridgeSubscriptionCheckpointIdentity,
+    BridgeSubscriptionConsumerContractIdentity, BridgeSubscriptionCounters,
+    BridgeSubscriptionDeliveryCostProfileIdentity, BridgeSubscriptionDeliveryFamilyIdentity,
+    BridgeSubscriptionDeliveryWindowIdentity, BridgeSubscriptionDuplicateReplayPolicyKind,
+    BridgeSubscriptionResumeAdmissionIdentity,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -198,6 +198,111 @@ impl BridgeSubscriptionResumeAdmission {
         })
     }
 
+    pub(crate) fn from_retained_resume_basis(
+        active_subscription: &BridgeActiveSubscription,
+        retained_basis: &BridgeRetainedSubscriptionResumeBasis,
+    ) -> Result<Self, super::BridgeSubscriptionResumeBasisRejection> {
+        if retained_basis.active_subscription_identity()
+            != active_subscription.active_subscription_identity().as_str()
+        {
+            return Err(super::BridgeSubscriptionResumeBasisRejection::new(
+                super::BridgeSubscriptionResumeBasisRejectionKind::ActiveSubscriptionMismatch,
+            ));
+        }
+        let admitted = active_subscription.activation_ready().admitted();
+        if retained_basis.admitted_subscription_identity()
+            != admitted.admitted_subscription_identity().as_str()
+        {
+            return Err(super::BridgeSubscriptionResumeBasisRejection::new(
+                super::BridgeSubscriptionResumeBasisRejectionKind::AdmittedSubscriptionMismatch,
+            ));
+        }
+        if retained_basis.basis_identity() != admitted.basis_binding().basis_identity().as_str() {
+            return Err(super::BridgeSubscriptionResumeBasisRejection::new(
+                super::BridgeSubscriptionResumeBasisRejectionKind::BasisMismatch,
+            ));
+        }
+        if retained_basis.cost_profile_identity()
+            != active_subscription
+                .cost_profile()
+                .cost_profile_identity()
+                .as_str()
+        {
+            return Err(super::BridgeSubscriptionResumeBasisRejection::new(
+                super::BridgeSubscriptionResumeBasisRejectionKind::CostProfileMismatch,
+            ));
+        }
+        if retained_basis.consumer_contract_identity()
+            != active_subscription
+                .consumer_contract()
+                .consumer_contract_identity()
+                .as_str()
+        {
+            return Err(super::BridgeSubscriptionResumeBasisRejection::new(
+                super::BridgeSubscriptionResumeBasisRejectionKind::ConsumerContractMismatch,
+            ));
+        }
+
+        let canonical_basis = Arc::<str>::from(format!(
+            "bridge-subscription-resume-admission|checkpoint={}|active={}|admitted={}|basis={}|family={}|window={}|window-sequence={}|cost={}|consumer={}|ack-sequence={}|next-sequence={}|ack-prefix={}|duplicate-policy={}",
+            retained_basis.checkpoint_identity(),
+            retained_basis.active_subscription_identity(),
+            retained_basis.admitted_subscription_identity(),
+            retained_basis.basis_identity(),
+            retained_basis.delivery_family_identity(),
+            retained_basis.delivery_window_identity(),
+            retained_basis.delivery_window_sequence(),
+            retained_basis.cost_profile_identity(),
+            retained_basis.consumer_contract_identity(),
+            retained_basis.acknowledged_canonical_sequence(),
+            retained_basis.expected_next_canonical_sequence(),
+            retained_basis.acknowledged_prefix_digest(),
+            retained_basis.duplicate_replay_policy_kind().as_str(),
+        ));
+        let digest = Sha256::digest(canonical_basis.as_bytes());
+        Ok(Self {
+            resume_admission_identity: BridgeSubscriptionResumeAdmissionIdentity::new(format!(
+                "bridge-subscription-resume-admission-id:sha256:{digest:x}"
+            )),
+            checkpoint_identity: BridgeSubscriptionCheckpointIdentity::new(
+                retained_basis.checkpoint_identity().to_owned(),
+            ),
+            active_subscription_identity: BridgeActiveSubscriptionIdentity::new(
+                retained_basis.active_subscription_identity().to_owned(),
+            ),
+            admitted_subscription_identity: BridgeAdmittedSubscriptionIdentity::new(
+                retained_basis.admitted_subscription_identity().to_owned(),
+            ),
+            basis_identity: BridgeSubscriptionBasisIdentity::new(
+                retained_basis.basis_identity().to_owned(),
+            ),
+            delivery_family_identity: BridgeSubscriptionDeliveryFamilyIdentity::new(
+                retained_basis.delivery_family_identity().to_owned(),
+            ),
+            delivery_window_identity: BridgeSubscriptionDeliveryWindowIdentity::new(
+                retained_basis.delivery_window_identity().to_owned(),
+            ),
+            delivery_window_sequence: retained_basis.delivery_window_sequence(),
+            cost_profile_identity: BridgeSubscriptionDeliveryCostProfileIdentity::new(
+                retained_basis.cost_profile_identity().to_owned(),
+            ),
+            consumer_contract_identity: BridgeSubscriptionConsumerContractIdentity::new(
+                retained_basis.consumer_contract_identity().to_owned(),
+            ),
+            acknowledged_canonical_sequence: retained_basis.acknowledged_canonical_sequence(),
+            expected_next_canonical_sequence: retained_basis.expected_next_canonical_sequence(),
+            acknowledged_prefix_digest: Arc::from(
+                retained_basis.acknowledged_prefix_digest().to_owned(),
+            ),
+            duplicate_replay_policy_kind: retained_basis.duplicate_replay_policy_kind(),
+            counters: BridgeSubscriptionCounters::from_resume_admission(),
+            canonical_basis,
+            digest: Arc::from(format!(
+                "bridge-subscription-resume-admission:sha256:{digest:x}"
+            )),
+        })
+    }
+
     pub fn resume_admission_identity(&self) -> &BridgeSubscriptionResumeAdmissionIdentity {
         &self.resume_admission_identity
     }
@@ -240,113 +345,6 @@ impl BridgeSubscriptionResumeAdmission {
 
     pub fn acknowledged_canonical_sequence(&self) -> usize {
         self.acknowledged_canonical_sequence
-    }
-
-    pub fn expected_next_canonical_sequence(&self) -> usize {
-        self.expected_next_canonical_sequence
-    }
-
-    pub fn acknowledged_prefix_digest(&self) -> &str {
-        self.acknowledged_prefix_digest.as_ref()
-    }
-
-    pub fn duplicate_replay_policy_kind(&self) -> BridgeSubscriptionDuplicateReplayPolicyKind {
-        self.duplicate_replay_policy_kind
-    }
-
-    pub fn counters(&self) -> &BridgeSubscriptionCounters {
-        &self.counters
-    }
-
-    pub fn digest(&self) -> &str {
-        self.digest.as_ref()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BridgeSubscriptionResumePlan {
-    resume_plan_identity: BridgeSubscriptionResumePlanIdentity,
-    resume_admission_identity: BridgeSubscriptionResumeAdmissionIdentity,
-    checkpoint_identity: BridgeSubscriptionCheckpointIdentity,
-    active_subscription_identity: BridgeActiveSubscriptionIdentity,
-    delivery_family_identity: BridgeSubscriptionDeliveryFamilyIdentity,
-    delivery_window_identity: BridgeSubscriptionDeliveryWindowIdentity,
-    delivery_window_sequence: u64,
-    resume_after_acknowledged_canonical_sequence: usize,
-    expected_next_canonical_sequence: usize,
-    acknowledged_prefix_digest: Arc<str>,
-    duplicate_replay_policy_kind: BridgeSubscriptionDuplicateReplayPolicyKind,
-    counters: BridgeSubscriptionCounters,
-    canonical_basis: Arc<str>,
-    digest: Arc<str>,
-}
-
-impl BridgeSubscriptionResumePlan {
-    pub(crate) fn plan(admission: BridgeSubscriptionResumeAdmission) -> Self {
-        let canonical_basis = Arc::<str>::from(format!(
-            "bridge-subscription-resume-plan|admission={}|checkpoint={}|active={}|family={}|window={}|window-sequence={}|resume-after={}|next-sequence={}|ack-prefix={}|duplicate-policy={}",
-            admission.resume_admission_identity().as_str(),
-            admission.checkpoint_identity().as_str(),
-            admission.active_subscription_identity().as_str(),
-            admission.delivery_family_identity().as_str(),
-            admission.delivery_window_identity().as_str(),
-            admission.delivery_window_sequence(),
-            admission.acknowledged_canonical_sequence(),
-            admission.expected_next_canonical_sequence(),
-            admission.acknowledged_prefix_digest(),
-            admission.duplicate_replay_policy_kind().as_str(),
-        ));
-        let digest = Sha256::digest(canonical_basis.as_bytes());
-        Self {
-            resume_plan_identity: BridgeSubscriptionResumePlanIdentity::new(format!(
-                "bridge-subscription-resume-plan-id:sha256:{digest:x}"
-            )),
-            resume_admission_identity: admission.resume_admission_identity,
-            checkpoint_identity: admission.checkpoint_identity,
-            active_subscription_identity: admission.active_subscription_identity,
-            delivery_family_identity: admission.delivery_family_identity,
-            delivery_window_identity: admission.delivery_window_identity,
-            delivery_window_sequence: admission.delivery_window_sequence,
-            resume_after_acknowledged_canonical_sequence: admission.acknowledged_canonical_sequence,
-            expected_next_canonical_sequence: admission.expected_next_canonical_sequence,
-            acknowledged_prefix_digest: admission.acknowledged_prefix_digest,
-            duplicate_replay_policy_kind: admission.duplicate_replay_policy_kind,
-            counters: BridgeSubscriptionCounters::from_resume_plan(),
-            canonical_basis,
-            digest: Arc::from(format!("bridge-subscription-resume-plan:sha256:{digest:x}")),
-        }
-    }
-
-    pub fn resume_plan_identity(&self) -> &BridgeSubscriptionResumePlanIdentity {
-        &self.resume_plan_identity
-    }
-
-    pub fn resume_admission_identity(&self) -> &BridgeSubscriptionResumeAdmissionIdentity {
-        &self.resume_admission_identity
-    }
-
-    pub fn checkpoint_identity(&self) -> &BridgeSubscriptionCheckpointIdentity {
-        &self.checkpoint_identity
-    }
-
-    pub fn active_subscription_identity(&self) -> &BridgeActiveSubscriptionIdentity {
-        &self.active_subscription_identity
-    }
-
-    pub fn delivery_family_identity(&self) -> &BridgeSubscriptionDeliveryFamilyIdentity {
-        &self.delivery_family_identity
-    }
-
-    pub fn delivery_window_identity(&self) -> &BridgeSubscriptionDeliveryWindowIdentity {
-        &self.delivery_window_identity
-    }
-
-    pub fn delivery_window_sequence(&self) -> u64 {
-        self.delivery_window_sequence
-    }
-
-    pub fn resume_after_acknowledged_canonical_sequence(&self) -> usize {
-        self.resume_after_acknowledged_canonical_sequence
     }
 
     pub fn expected_next_canonical_sequence(&self) -> usize {

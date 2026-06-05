@@ -87,6 +87,7 @@ mod speculation;
 mod stream;
 mod structural;
 mod subscription;
+mod temporal;
 mod writeback;
 
 #[cfg(test)]
