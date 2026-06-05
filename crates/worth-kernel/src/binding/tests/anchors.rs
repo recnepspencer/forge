@@ -1,123 +1,103 @@
 use worth_geom::facade::{ParameterDomain, ParameterSpacePoint, PolygonalTrimmedParameterRegion};
 use worth_spatial::facade::bindings::{
-    attach_parameter_space_point_to_face, AnchorCarrierOwnership, AnchorDirectionRole,
-    CarrierOwnedParameterDirectionAnchorSpec, CarrierOwnedParameterPointAnchorSpec,
-    FaceBindingSite, FaceSurfaceBindingSpec, SpatialAnchorAuthorityError, SpatialBindingKind,
+    attach_parameter_space_direction_to_coedge, attach_parameter_space_direction_to_edge,
+    attach_parameter_space_point_to_coedge, attach_parameter_space_point_to_edge,
+    attach_parameter_space_point_to_face, AnchorCarrierKind, AnchorCarrierOwnership,
+    AnchorDirectionRole, CarrierOwnedParameterDirectionAnchorSpec,
+    CarrierOwnedParameterPointAnchorSpec, CoedgeBindingSite, CoedgePCurveBindingSpec,
+    EdgeBindingSite, EdgeCurveBindingSpec, FaceBindingSite, FaceSurfaceBindingSpec,
+    SpatialAnchorAuthorityError, SpatialBindingKind,
 };
 
-use crate::facade::authoring::binding::{
-    author_primitive_binding_declaration, AuthorPrimitiveBindingIntent,
+use crate::facade::authoring::anchoring::{
+    author_primitive_anchor_binding_declaration, AuthorPrimitiveAnchorBindingIntent,
+    PrimitiveAnchorBindingAuthoringError, PrimitiveAnchorBindingDeclarationEntry,
+    PrimitiveAnchorBindingQueryDomain, PrimitiveAnchorBindingQueryWorld,
 };
 
 use super::support::{
-    admitted_binding_handle, canonical_geometry, canonical_text_entries, declaration_digest_string,
-    inspect_progressed_binding_entry, orthotope_contract, progress_binding_entry,
+    admitted_anchor_binding_handle, anchor_declaration_digest_string,
+    anchor_inspection_digest_string, anchor_progression_digest_string, canonical_geometry,
+    canonical_text_entries_for_anchor_binding, orthotope_contract,
 };
 
 #[test]
 fn parameter_space_anchor_roundtrip_resolves_on_admitted_carrier() {
-    let binding_spec = FaceSurfaceBindingSpec::new(
-        FaceBindingSite::new("face-cyl").with_persistent_name("surface-periodic"),
-        orthotope_contract(),
-        canonical_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+    let face_point = face_point_entry("face-cyl", "surface-periodic", [0.25, 3.0]);
+    let periodic_face_point = face_point_entry(
+        "face-cyl",
+        "surface-periodic",
+        [std::f64::consts::TAU + 0.25, 3.0],
     );
-    let point_ownership =
-        AnchorCarrierOwnership::for_face_surface("face-cyl", ParameterDomain::cylinder())
-            .expect("point ownership");
-    let direction_ownership =
-        AnchorCarrierOwnership::for_face_surface("face-cyl", ParameterDomain::cylinder())
-            .expect("direction ownership");
-    let kernel_point = author_primitive_binding_declaration(
-        AuthorPrimitiveBindingIntent::attach_parameter_space_point_to_face(
-            binding_spec.clone(),
-            CarrierOwnedParameterPointAnchorSpec::new(
-                point_ownership,
-                ParameterSpacePoint::try_new([std::f64::consts::TAU + 0.25, 3.0])
-                    .expect("kernel point"),
-            )
-            .expect("kernel point anchor spec"),
+    let face_direction = author_primitive_anchor_binding_declaration(
+        AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_direction_to_face(
+            face_binding_spec("face-cyl", "surface-periodic"),
+            face_direction_spec("face-cyl", [0.25, 3.0], AnchorDirectionRole::Normal),
         ),
     );
-    let direct_point = attach_parameter_space_point_to_face(
-        binding_spec.clone(),
-        CarrierOwnedParameterPointAnchorSpec::new(
-            AnchorCarrierOwnership::for_face_surface("face-cyl", ParameterDomain::cylinder())
-                .expect("direct ownership"),
-            ParameterSpacePoint::try_new([0.25, 3.0]).expect("direct point"),
-        )
-        .expect("direct point anchor spec"),
+    let edge_point = edge_point_entry(
+        "edge-cyl",
+        "curve-periodic",
+        [std::f64::consts::TAU + 0.5, 2.0],
+    );
+    let periodic_edge_point = edge_point_entry("edge-cyl", "curve-periodic", [0.5, 2.0]);
+    let coedge_point = coedge_point_entry(
+        "coedge-cyl",
+        "pcurve-periodic",
+        [std::f64::consts::TAU + 0.75, 1.5],
+    );
+    let periodic_coedge_point = coedge_point_entry("coedge-cyl", "pcurve-periodic", [0.75, 1.5]);
+    let direct_face = attach_parameter_space_point_to_face(
+        face_binding_spec("face-cyl", "surface-periodic"),
+        face_point_spec("face-cyl", [0.25, 3.0]),
     )
-    .expect("direct anchored point binding");
-    let direction_entry = author_primitive_binding_declaration(
-        AuthorPrimitiveBindingIntent::attach_parameter_space_direction_to_face(
-            binding_spec,
-            CarrierOwnedParameterDirectionAnchorSpec::new(
-                direction_ownership,
-                ParameterSpacePoint::try_new([0.25, 3.0]).expect("direction point"),
-                AnchorDirectionRole::Normal,
-            )
-            .expect("direction anchor spec"),
-        ),
-    );
-    let handle = admitted_binding_handle("anchors");
+    .expect("direct face anchor");
+    let direct_edge = attach_parameter_space_point_to_edge(
+        edge_binding_spec("edge-cyl", "curve-periodic"),
+        edge_point_spec("edge-cyl", [0.5, 2.0]),
+    )
+    .expect("direct edge anchor");
+    let direct_coedge = attach_parameter_space_point_to_coedge(
+        coedge_binding_spec("coedge-cyl", "pcurve-periodic"),
+        coedge_point_spec("coedge-cyl", [0.75, 1.5]),
+    )
+    .expect("direct coedge anchor");
+    let handle = admitted_anchor_binding_handle("anchors");
 
-    let kernel_point_admitted = kernel_point.clone().admit().expect("kernel point admitted");
-    let direction_admitted = direction_entry.clone().admit().expect("direction admitted");
-    let kernel_point_progressed = progress_binding_entry(&kernel_point, &handle);
-    let direct_point_entry = author_primitive_binding_declaration(
-        AuthorPrimitiveBindingIntent::attach_parameter_space_point_to_face(
-            FaceSurfaceBindingSpec::new(
-                FaceBindingSite::new("face-cyl").with_persistent_name("surface-periodic"),
-                orthotope_contract(),
-                canonical_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-            ),
-            CarrierOwnedParameterPointAnchorSpec::new(
-                AnchorCarrierOwnership::for_face_surface("face-cyl", ParameterDomain::cylinder())
-                    .expect("equivalent ownership"),
-                ParameterSpacePoint::try_new([0.25, 3.0]).expect("equivalent point"),
-            )
-            .expect("equivalent point anchor spec"),
-        ),
+    let face_admitted = face_point.clone().admit().expect("face admitted");
+    let direction_admitted = face_direction.clone().admit().expect("direction admitted");
+    let edge_admitted = edge_point.clone().admit().expect("edge admitted");
+    let coedge_admitted = coedge_point.clone().admit().expect("coedge admitted");
+
+    assert_eq!(face_admitted.kind(), SpatialBindingKind::FaceSurface);
+    assert_eq!(edge_admitted.kind(), SpatialBindingKind::EdgeCurve);
+    assert_eq!(coedge_admitted.kind(), SpatialBindingKind::CoedgePCurve);
+    assert_eq!(face_admitted.identity(), direct_face.identity().as_str());
+    assert_eq!(edge_admitted.identity(), direct_edge.identity().as_str());
+    assert_eq!(
+        coedge_admitted.identity(),
+        direct_coedge.identity().as_str()
     );
-    let direct_point_progressed = progress_binding_entry(&direct_point_entry, &handle);
-    let direction_progressed = progress_binding_entry(&direction_entry, &handle);
-    let kernel_point_inspection =
-        inspect_progressed_binding_entry(&handle, kernel_point_progressed.clone());
-    let direct_point_inspection =
-        inspect_progressed_binding_entry(&handle, direct_point_progressed.clone());
-    let direction_inspection =
-        inspect_progressed_binding_entry(&handle, direction_progressed.clone());
-    let kernel_point_entries = canonical_text_entries(&kernel_point);
-    let direction_entries = canonical_text_entries(&direction_entry);
+    assert_ne!(face_admitted.identity(), direction_admitted.identity());
+
+    let face_entries = canonical_text_entries_for_anchor_binding(&face_point);
+    let edge_entries = canonical_text_entries_for_anchor_binding(&edge_point);
+    let coedge_entries = canonical_text_entries_for_anchor_binding(&coedge_point);
+    let direction_entries = canonical_text_entries_for_anchor_binding(&face_direction);
 
     assert_eq!(
-        kernel_point_admitted.kind(),
-        SpatialBindingKind::FaceSurface
-    );
-    assert_eq!(kernel_point_admitted.identity(), direct_point.identity());
-    assert_ne!(
-        kernel_point_admitted.identity(),
-        direction_admitted.identity()
-    );
-    assert_eq!(
-        kernel_point_entries
-            .get("anchor_carrier_kind")
-            .map(String::as_str),
+        face_entries.get("anchor_carrier_kind").map(String::as_str),
         Some("face_surface")
     );
     assert_eq!(
-        kernel_point_entries
-            .get("anchor_carrier_identity")
+        edge_entries.get("anchor_carrier_kind").map(String::as_str),
+        Some("edge_curve")
+    );
+    assert_eq!(
+        coedge_entries
+            .get("anchor_carrier_kind")
             .map(String::as_str),
-        Some("face-cyl")
-    );
-    assert_eq!(
-        kernel_point_entries.get("anchor_kind").map(String::as_str),
-        Some("parameter_space_point")
-    );
-    assert_eq!(
-        direction_entries.get("anchor_kind").map(String::as_str),
-        Some("parameter_space_direction")
+        Some("coedge_pcurve")
     );
     assert_eq!(
         direction_entries
@@ -125,46 +105,137 @@ fn parameter_space_anchor_roundtrip_resolves_on_admitted_carrier() {
             .map(String::as_str),
         Some("normal")
     );
-    assert_eq!(
-        kernel_point_progressed.progression_digest(),
-        direct_point_progressed.progression_digest()
-    );
-    assert_eq!(
-        declaration_digest_string(&kernel_point_progressed),
-        declaration_digest_string(&direct_point_progressed)
+
+    assert_same_anchor_roundtrip(&handle, &face_point, &periodic_face_point);
+    assert_same_anchor_roundtrip(&handle, &edge_point, &periodic_edge_point);
+    assert_same_anchor_roundtrip(&handle, &coedge_point, &periodic_coedge_point);
+
+    assert_ne!(
+        anchor_declaration_digest_string(&face_point, &handle),
+        anchor_declaration_digest_string(&face_direction, &handle)
     );
     assert_ne!(
-        declaration_digest_string(&kernel_point_progressed),
-        declaration_digest_string(&direction_progressed)
+        anchor_progression_digest_string(&face_point, &handle),
+        anchor_progression_digest_string(&face_direction, &handle)
     );
     assert_ne!(
-        kernel_point_progressed.progression_digest(),
-        direction_progressed.progression_digest()
-    );
-    assert_eq!(
-        kernel_point_inspection.inspection_digest(),
-        direct_point_inspection.inspection_digest()
-    );
-    assert_ne!(
-        kernel_point_inspection.inspection_digest(),
-        direction_inspection.inspection_digest()
+        anchor_inspection_digest_string(&face_point, &handle),
+        anchor_inspection_digest_string(&face_direction, &handle)
     );
 }
 
 #[test]
 fn wrong_carrier_anchor_is_typed_denied_not_silently_coerced() {
-    let binding_spec = FaceSurfaceBindingSpec::new(
-        FaceBindingSite::new("face-1").with_persistent_name("surface-alpha"),
-        orthotope_contract(),
-        canonical_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-    );
+    let binding_spec = face_binding_spec("face-1", "surface-alpha");
     let wrong_carrier = CarrierOwnedParameterPointAnchorSpec::new(
         AnchorCarrierOwnership::for_face_surface("face-2", ParameterDomain::plane())
             .expect("wrong carrier ownership"),
         ParameterSpacePoint::try_new([0.25, 0.5]).expect("wrong carrier point"),
     )
     .expect("wrong carrier spec");
-    let outside_trimmed_region = CarrierOwnedParameterPointAnchorSpec::new(
+    let wrong_carrier_direct =
+        attach_parameter_space_point_to_face(binding_spec.clone(), wrong_carrier.clone())
+            .expect_err("wrong carrier direct denial");
+    let wrong_carrier_kernel = author_primitive_anchor_binding_declaration(
+        AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_point_to_face(
+            binding_spec,
+            wrong_carrier,
+        ),
+    )
+    .admit()
+    .expect_err("wrong carrier kernel denial");
+
+    assert!(matches!(
+        wrong_carrier_direct,
+        SpatialAnchorAuthorityError::CarrierIdentityMismatch { .. }
+    ));
+    assert!(matches!(
+        wrong_carrier_kernel,
+        PrimitiveAnchorBindingAuthoringError::Anchor(
+            SpatialAnchorAuthorityError::CarrierIdentityMismatch { .. }
+        )
+    ));
+}
+
+#[test]
+fn parameter_space_direction_anchor_cannot_collapse_to_generic_vector_truth() {
+    let face_direction = author_primitive_anchor_binding_declaration(
+        AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_direction_to_face(
+            face_binding_spec("face-1", "surface-alpha"),
+            face_direction_spec("face-1", [0.25, 0.5], AnchorDirectionRole::Normal),
+        ),
+    );
+    let face_point = face_point_entry("face-1", "surface-alpha", [0.25, 0.5]);
+    let edge = attach_parameter_space_direction_to_edge(
+        edge_binding_spec("edge-1", "curve-alpha"),
+        edge_direction_spec("edge-1", [0.25, 0.0], AnchorDirectionRole::Tangent),
+    )
+    .expect("edge tangent anchor");
+    let coedge = attach_parameter_space_direction_to_coedge(
+        coedge_binding_spec("coedge-1", "pcurve-alpha"),
+        coedge_direction_spec("coedge-1", [0.25, 0.0], AnchorDirectionRole::Tangent),
+    )
+    .expect("coedge tangent anchor");
+    let unsupported = CarrierOwnedParameterDirectionAnchorSpec::new(
+        AnchorCarrierOwnership::for_face_surface("face-1", ParameterDomain::plane())
+            .expect("carrier ownership"),
+        ParameterSpacePoint::try_new([0.25, 0.75]).expect("parameter point"),
+        AnchorDirectionRole::Tangent,
+    )
+    .expect_err("unsupported direction role");
+    let handle = admitted_anchor_binding_handle("anchor-direction-role");
+    let direction_entries = canonical_text_entries_for_anchor_binding(&face_direction);
+
+    assert!(matches!(
+        unsupported,
+        SpatialAnchorAuthorityError::UnsupportedDirectionRole { .. }
+    ));
+    assert_eq!(edge.kind(), SpatialBindingKind::EdgeCurve);
+    assert_eq!(coedge.kind(), SpatialBindingKind::CoedgePCurve);
+    assert_eq!(
+        edge.anchor().ownership().carrier_kind(),
+        AnchorCarrierKind::EdgeCurve
+    );
+    assert_eq!(
+        coedge.anchor().ownership().carrier_kind(),
+        AnchorCarrierKind::CoedgePCurve
+    );
+    assert_ne!(edge.identity(), coedge.identity());
+    assert_eq!(
+        direction_entries
+            .get("anchor_direction_role")
+            .map(String::as_str),
+        Some("normal")
+    );
+    assert_ne!(
+        face_point
+            .clone()
+            .admit()
+            .expect("point admitted")
+            .identity(),
+        face_direction
+            .clone()
+            .admit()
+            .expect("direction admitted")
+            .identity()
+    );
+    assert_ne!(
+        anchor_declaration_digest_string(&face_point, &handle),
+        anchor_declaration_digest_string(&face_direction, &handle)
+    );
+    assert_ne!(
+        anchor_progression_digest_string(&face_point, &handle),
+        anchor_progression_digest_string(&face_direction, &handle)
+    );
+    assert_ne!(
+        anchor_inspection_digest_string(&face_point, &handle),
+        anchor_inspection_digest_string(&face_direction, &handle)
+    );
+}
+
+#[test]
+fn wrong_domain_anchor_is_denied_before_nearest_projection_or_repair() {
+    let wrong_domain = CarrierOwnedParameterPointAnchorSpec::new(
         AnchorCarrierOwnership::for_trimmed_face_surface(
             "face-1",
             PolygonalTrimmedParameterRegion::new(
@@ -182,92 +253,173 @@ fn wrong_carrier_anchor_is_typed_denied_not_silently_coerced() {
         .expect("trimmed ownership"),
         ParameterSpacePoint::try_new([1.5, 0.5]).expect("outside point"),
     )
-    .expect_err("outside trimmed region should fail spec construction");
-
-    let wrong_carrier_direct =
-        attach_parameter_space_point_to_face(binding_spec.clone(), wrong_carrier.clone())
-            .expect_err("wrong carrier direct denial");
-    let wrong_carrier_kernel = author_primitive_binding_declaration(
-        AuthorPrimitiveBindingIntent::attach_parameter_space_point_to_face(
-            binding_spec.clone(),
-            wrong_carrier,
-        ),
-    )
-    .admit()
-    .expect_err("wrong carrier kernel denial");
-    let wrong_domain_direct = outside_trimmed_region.clone();
-    let wrong_domain_kernel = outside_trimmed_region;
+    .expect_err("point outside trimmed region should fail before authoring");
 
     assert!(matches!(
-        wrong_carrier_direct,
-        SpatialAnchorAuthorityError::CarrierIdentityMismatch { .. }
-    ));
-    assert!(matches!(
-        wrong_carrier_kernel,
-        crate::facade::authoring::binding::PrimitiveBindingAuthoringError::Anchor(
-            SpatialAnchorAuthorityError::CarrierIdentityMismatch { .. }
-        )
-    ));
-    assert!(matches!(
-        wrong_domain_direct,
-        SpatialAnchorAuthorityError::ParameterDomainViolation(_)
-    ));
-    assert!(matches!(
-        wrong_domain_kernel,
+        wrong_domain,
         SpatialAnchorAuthorityError::ParameterDomainViolation(_)
     ));
 }
 
-#[test]
-fn edge_and_coedge_tangent_anchor_roundtrip_preserve_family_specific_truth() {
-    use worth_spatial::facade::bindings::{
-        attach_parameter_space_direction_to_coedge, attach_parameter_space_direction_to_edge,
-        AnchorCarrierKind, CoedgeBindingSite, CoedgePCurveBindingSpec, EdgeBindingSite,
-        EdgeCurveBindingSpec,
-    };
-
-    let contract = orthotope_contract();
-    let geometry = canonical_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]);
-    let edge = attach_parameter_space_direction_to_edge(
-        EdgeCurveBindingSpec::new(
-            EdgeBindingSite::new("edge-1").with_persistent_name("curve-alpha"),
-            contract,
-            geometry.clone(),
-        ),
-        CarrierOwnedParameterDirectionAnchorSpec::new(
-            AnchorCarrierOwnership::for_edge_curve("edge-1", ParameterDomain::plane())
-                .expect("edge ownership"),
-            ParameterSpacePoint::try_new([0.25, 0.0]).expect("edge point"),
-            AnchorDirectionRole::Tangent,
-        )
-        .expect("edge anchor spec"),
-    )
-    .expect("edge tangent anchor");
-    let coedge = attach_parameter_space_direction_to_coedge(
-        CoedgePCurveBindingSpec::new(
-            CoedgeBindingSite::new("coedge-1").with_persistent_name("pcurve-alpha"),
-            contract,
-            geometry,
-        ),
-        CarrierOwnedParameterDirectionAnchorSpec::new(
-            AnchorCarrierOwnership::for_coedge_pcurve("coedge-1", ParameterDomain::plane())
-                .expect("coedge ownership"),
-            ParameterSpacePoint::try_new([0.25, 0.0]).expect("coedge point"),
-            AnchorDirectionRole::Tangent,
-        )
-        .expect("coedge anchor spec"),
-    )
-    .expect("coedge tangent anchor");
-
-    assert_eq!(edge.kind(), SpatialBindingKind::EdgeCurve);
-    assert_eq!(coedge.kind(), SpatialBindingKind::CoedgePCurve);
+fn assert_same_anchor_roundtrip(
+    handle: &forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
+        PrimitiveAnchorBindingQueryDomain,
+        PrimitiveAnchorBindingQueryWorld,
+    >,
+    authored: &PrimitiveAnchorBindingDeclarationEntry,
+    equivalent: &PrimitiveAnchorBindingDeclarationEntry,
+) {
     assert_eq!(
-        edge.anchor().ownership().carrier_kind(),
-        AnchorCarrierKind::EdgeCurve
+        anchor_declaration_digest_string(authored, handle),
+        anchor_declaration_digest_string(equivalent, handle)
     );
     assert_eq!(
-        coedge.anchor().ownership().carrier_kind(),
-        AnchorCarrierKind::CoedgePCurve
+        anchor_progression_digest_string(authored, handle),
+        anchor_progression_digest_string(equivalent, handle)
     );
-    assert_ne!(edge.identity(), coedge.identity());
+    assert_eq!(
+        anchor_inspection_digest_string(authored, handle),
+        anchor_inspection_digest_string(equivalent, handle)
+    );
+}
+
+fn face_binding_spec(face_identity: &str, persistent_name: &str) -> FaceSurfaceBindingSpec {
+    FaceSurfaceBindingSpec::new(
+        FaceBindingSite::new(face_identity).with_persistent_name(persistent_name),
+        orthotope_contract(),
+        canonical_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+    )
+}
+
+fn edge_binding_spec(edge_identity: &str, persistent_name: &str) -> EdgeCurveBindingSpec {
+    EdgeCurveBindingSpec::new(
+        EdgeBindingSite::new(edge_identity).with_persistent_name(persistent_name),
+        orthotope_contract(),
+        canonical_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+    )
+}
+
+fn coedge_binding_spec(coedge_identity: &str, persistent_name: &str) -> CoedgePCurveBindingSpec {
+    CoedgePCurveBindingSpec::new(
+        CoedgeBindingSite::new(coedge_identity).with_persistent_name(persistent_name),
+        orthotope_contract(),
+        canonical_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+    )
+}
+
+fn face_point_entry(
+    face_identity: &str,
+    persistent_name: &str,
+    parameter: [f64; 2],
+) -> PrimitiveAnchorBindingDeclarationEntry {
+    author_primitive_anchor_binding_declaration(
+        AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_point_to_face(
+            face_binding_spec(face_identity, persistent_name),
+            face_point_spec(face_identity, parameter),
+        ),
+    )
+}
+
+fn edge_point_entry(
+    edge_identity: &str,
+    persistent_name: &str,
+    parameter: [f64; 2],
+) -> PrimitiveAnchorBindingDeclarationEntry {
+    author_primitive_anchor_binding_declaration(
+        AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_point_to_edge(
+            edge_binding_spec(edge_identity, persistent_name),
+            edge_point_spec(edge_identity, parameter),
+        ),
+    )
+}
+
+fn coedge_point_entry(
+    coedge_identity: &str,
+    persistent_name: &str,
+    parameter: [f64; 2],
+) -> PrimitiveAnchorBindingDeclarationEntry {
+    author_primitive_anchor_binding_declaration(
+        AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_point_to_coedge(
+            coedge_binding_spec(coedge_identity, persistent_name),
+            coedge_point_spec(coedge_identity, parameter),
+        ),
+    )
+}
+
+fn face_point_spec(
+    face_identity: &str,
+    parameter: [f64; 2],
+) -> CarrierOwnedParameterPointAnchorSpec {
+    CarrierOwnedParameterPointAnchorSpec::new(
+        AnchorCarrierOwnership::for_face_surface(face_identity, ParameterDomain::cylinder())
+            .expect("face ownership"),
+        ParameterSpacePoint::try_new(parameter).expect("face point"),
+    )
+    .expect("face point anchor spec")
+}
+
+fn edge_point_spec(
+    edge_identity: &str,
+    parameter: [f64; 2],
+) -> CarrierOwnedParameterPointAnchorSpec {
+    CarrierOwnedParameterPointAnchorSpec::new(
+        AnchorCarrierOwnership::for_edge_curve(edge_identity, ParameterDomain::cylinder())
+            .expect("edge ownership"),
+        ParameterSpacePoint::try_new(parameter).expect("edge point"),
+    )
+    .expect("edge point anchor spec")
+}
+
+fn coedge_point_spec(
+    coedge_identity: &str,
+    parameter: [f64; 2],
+) -> CarrierOwnedParameterPointAnchorSpec {
+    CarrierOwnedParameterPointAnchorSpec::new(
+        AnchorCarrierOwnership::for_coedge_pcurve(coedge_identity, ParameterDomain::cylinder())
+            .expect("coedge ownership"),
+        ParameterSpacePoint::try_new(parameter).expect("coedge point"),
+    )
+    .expect("coedge point anchor spec")
+}
+
+fn face_direction_spec(
+    face_identity: &str,
+    parameter: [f64; 2],
+    role: AnchorDirectionRole,
+) -> CarrierOwnedParameterDirectionAnchorSpec {
+    CarrierOwnedParameterDirectionAnchorSpec::new(
+        AnchorCarrierOwnership::for_face_surface(face_identity, ParameterDomain::cylinder())
+            .expect("face direction ownership"),
+        ParameterSpacePoint::try_new(parameter).expect("face direction point"),
+        role,
+    )
+    .expect("face direction spec")
+}
+
+fn edge_direction_spec(
+    edge_identity: &str,
+    parameter: [f64; 2],
+    role: AnchorDirectionRole,
+) -> CarrierOwnedParameterDirectionAnchorSpec {
+    CarrierOwnedParameterDirectionAnchorSpec::new(
+        AnchorCarrierOwnership::for_edge_curve(edge_identity, ParameterDomain::plane())
+            .expect("edge direction ownership"),
+        ParameterSpacePoint::try_new(parameter).expect("edge direction point"),
+        role,
+    )
+    .expect("edge direction spec")
+}
+
+fn coedge_direction_spec(
+    coedge_identity: &str,
+    parameter: [f64; 2],
+    role: AnchorDirectionRole,
+) -> CarrierOwnedParameterDirectionAnchorSpec {
+    CarrierOwnedParameterDirectionAnchorSpec::new(
+        AnchorCarrierOwnership::for_coedge_pcurve(coedge_identity, ParameterDomain::plane())
+            .expect("coedge direction ownership"),
+        ParameterSpacePoint::try_new(parameter).expect("coedge direction point"),
+        role,
+    )
+    .expect("coedge direction spec")
 }

@@ -47,7 +47,9 @@ pub use super::surface::parameter_admission::{
     CanonicalParameterPoint, DomainParameterPoint, ParameterAxis, ParameterDomainError,
     PolygonalTrimmedParameterPoint, PolygonalTrimmedParameterRegion,
 };
-pub use super::surface::schema::{ParameterDomain, SurfaceData, SurfaceKind, SurfaceRelation};
+pub use super::surface::schema::{
+    ParameterDomain, SurfaceData, SurfaceKind, SurfaceRelation, TriaxialEllipsoidDefinitionError,
+};
 pub use super::surface::traits::EvaluateSurface;
 pub use super::surface::trim_ops::{TrimCurveOps, TrimOverlapResult};
 

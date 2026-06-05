@@ -1,11 +1,12 @@
 use worth_geom::facade::{CanonicalParameterPoint, ParameterSpacePoint};
 
 use crate::bindings::{
+    anchors::{identity_basis::point_anchor_identity_basis, SpatialAnchorIdentity},
     authority::{
         AdmittedCoedgePCurveBinding, AdmittedEdgeCurveBinding, AdmittedFaceSurfaceBinding,
         SpatialBindingCompleteness, SpatialBindingKind,
     },
-    identity::{point_anchor_basis, SpatialBindingIdentity},
+    identity::SpatialBindingIdentity,
 };
 
 use super::{
@@ -69,15 +70,16 @@ impl AdmittedCarrierOwnedPointAnchor {
 pub struct AdmittedBindingPointAnchorAttachment<B> {
     binding: B,
     anchor: AdmittedCarrierOwnedPointAnchor,
-    identity: SpatialBindingIdentity,
+    identity: SpatialAnchorIdentity,
 }
 
 impl<B: AnchorAttachableBinding> AdmittedBindingPointAnchorAttachment<B> {
     fn new(binding: B, anchor: AdmittedCarrierOwnedPointAnchor) -> Self {
-        let identity = SpatialBindingIdentity::from_basis(point_anchor_basis(
+        let identity = SpatialAnchorIdentity::from_basis(point_anchor_identity_basis(
             binding.identity().as_str(),
             anchor.ownership().carrier_kind().as_str(),
             anchor.ownership().carrier_identity(),
+            &anchor.ownership().parameter_semantics_signature(),
             anchor.canonical_parameter().point(),
         ));
         Self {
@@ -99,7 +101,7 @@ impl<B: AnchorAttachableBinding> AdmittedBindingPointAnchorAttachment<B> {
         &self.anchor
     }
 
-    pub fn identity(&self) -> &SpatialBindingIdentity {
+    pub fn identity(&self) -> &SpatialAnchorIdentity {
         &self.identity
     }
 

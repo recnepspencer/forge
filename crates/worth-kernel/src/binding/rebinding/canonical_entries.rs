@@ -16,7 +16,7 @@ pub(super) fn canonical_query_entries_for_intent(
         ),
         ForgeQueryDeclarationCanonicalEntry::text(
             "prior_identity",
-            intent.prior_binding().identity().as_str(),
+            intent.prior_binding().identity(),
         ),
         ForgeQueryDeclarationCanonicalEntry::text(
             "prior_site_identity",
@@ -46,7 +46,7 @@ fn extend_with_candidates(
         ));
         entries.push(ForgeQueryDeclarationCanonicalEntry::text(
             format!("candidate.{index}.identity"),
-            candidate.binding().identity().as_str(),
+            candidate.binding().identity(),
         ));
         entries.push(ForgeQueryDeclarationCanonicalEntry::text(
             format!("candidate.{index}.site_identity"),

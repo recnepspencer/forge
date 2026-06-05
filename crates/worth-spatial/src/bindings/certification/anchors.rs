@@ -10,9 +10,10 @@ mod tests {
 
     use crate::{
         bindings::anchors::{
-            attach_parameter_space_point_to_edge, attach_parameter_space_point_to_face,
-            AnchorCarrierOwnership, AnchorDirectionRole, CarrierOwnedParameterDirectionAnchorSpec,
-            CarrierOwnedParameterPointAnchorSpec, SpatialAnchorAuthorityError,
+            attach_parameter_space_direction_to_face, attach_parameter_space_point_to_edge,
+            attach_parameter_space_point_to_face, AnchorCarrierOwnership, AnchorDirectionRole,
+            CarrierOwnedParameterDirectionAnchorSpec, CarrierOwnedParameterPointAnchorSpec,
+            SpatialAnchorAuthorityError,
         },
         bindings::authority::{
             EdgeBindingSite, EdgeCurveBindingSpec, FaceBindingSite, FaceSurfaceBindingSpec,
@@ -20,7 +21,7 @@ mod tests {
     };
 
     #[test]
-    fn point_anchor_requires_matching_carrier_identity_before_geometry_folklore() {
+    fn wrong_carrier_anchor_is_typed_denied_not_silently_coerced() {
         let binding_spec = face_binding_spec("face-1");
         let wrong_carrier =
             AnchorCarrierOwnership::for_face_surface("face-2", ParameterDomain::plane())
@@ -41,7 +42,7 @@ mod tests {
     }
 
     #[test]
-    fn trimmed_face_surface_anchor_rejects_points_outside_the_trimmed_region() {
+    fn wrong_domain_anchor_is_denied_before_nearest_projection_or_repair() {
         let trimmed_region = PolygonalTrimmedParameterRegion::new(
             ParameterDomain::plane(),
             vec![
@@ -68,21 +69,41 @@ mod tests {
     }
 
     #[test]
-    fn unsupported_direction_role_is_denied_before_direction_anchor_is_admitted() {
+    fn parameter_space_direction_anchor_cannot_collapse_to_generic_vector_truth() {
         let ownership =
             AnchorCarrierOwnership::for_face_surface("face-1", ParameterDomain::plane())
                 .expect("carrier ownership");
-        let anchor_spec = CarrierOwnedParameterDirectionAnchorSpec::new(
-            ownership,
+        let unsupported = CarrierOwnedParameterDirectionAnchorSpec::new(
+            ownership.clone(),
             ParameterSpacePoint::try_new([0.25, 0.75]).expect("parameter point"),
             AnchorDirectionRole::Tangent,
         )
         .expect_err("unsupported direction role");
+        let point = attach_parameter_space_point_to_face(
+            face_binding_spec("face-1"),
+            CarrierOwnedParameterPointAnchorSpec::new(
+                ownership.clone(),
+                ParameterSpacePoint::try_new([0.25, 0.75]).expect("point parameter"),
+            )
+            .expect("point spec"),
+        )
+        .expect("point anchor");
+        let direction = attach_parameter_space_direction_to_face(
+            face_binding_spec("face-1"),
+            CarrierOwnedParameterDirectionAnchorSpec::new(
+                ownership,
+                ParameterSpacePoint::try_new([0.25, 0.75]).expect("direction parameter"),
+                AnchorDirectionRole::Normal,
+            )
+            .expect("direction spec"),
+        )
+        .expect("direction anchor");
 
         assert!(matches!(
-            anchor_spec,
+            unsupported,
             SpatialAnchorAuthorityError::UnsupportedDirectionRole { .. }
         ));
+        assert_ne!(point.identity(), direction.identity());
     }
 
     fn face_binding_spec(face_identity: &str) -> FaceSurfaceBindingSpec {
@@ -105,7 +126,7 @@ mod tests {
     }
 
     #[test]
-    fn edge_anchor_rejects_face_owned_carrier_even_when_parameter_shape_is_valid() {
+    fn wrong_carrier_family_anchor_is_typed_denied_before_attachment() {
         let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
             &PrimitiveWitnessDescriptor::Orthotope,
         );

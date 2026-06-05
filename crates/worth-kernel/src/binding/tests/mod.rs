@@ -1,5 +1,9 @@
 mod anchors;
-mod band_one;
+mod binding_authority;
+mod binding_completeness;
+mod binding_digest_protocol;
+mod binding_identity;
+mod binding_motion_posture;
+mod inspection;
 mod rebinding;
 mod support;
-mod workflow_boundary;

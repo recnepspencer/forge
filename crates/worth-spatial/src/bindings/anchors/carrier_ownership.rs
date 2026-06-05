@@ -113,4 +113,11 @@ impl AnchorCarrierOwnership {
     pub fn trimmed_region(&self) -> Option<&PolygonalTrimmedParameterRegion> {
         self.trimmed_region.as_ref()
     }
+
+    pub fn parameter_semantics_signature(&self) -> String {
+        match self.trimmed_region() {
+            Some(region) => format!("trimmed:{}", region.structural_signature()),
+            None => format!("domain:{}", self.parameter_domain.structural_signature()),
+        }
+    }
 }

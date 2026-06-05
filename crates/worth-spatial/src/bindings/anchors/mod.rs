@@ -1,9 +1,13 @@
+mod canonical_entries;
 mod carrier_ownership;
+mod identity;
+mod identity_basis;
 mod parameter_space_direction;
 mod parameter_space_point;
 mod resolution;
 
 pub use carrier_ownership::{AnchorCarrierKind, AnchorCarrierOwnership};
+pub use identity::SpatialAnchorIdentity;
 pub use parameter_space_direction::{
     AdmittedCarrierOwnedDirectionAnchor, AdmittedCoedgePCurveDirectionAnchorBinding,
     AdmittedEdgeCurveDirectionAnchorBinding, AdmittedFaceSurfaceDirectionAnchorBinding,

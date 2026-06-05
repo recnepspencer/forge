@@ -1,8 +1,9 @@
-use crate::bindings::authority::SpatialAdmittedPrimitiveBinding;
+use crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding;
 
 use super::{
     candidate_evaluation::ReplacementCandidateEvaluation, continuity::BindingContinuityClass,
     diagnostics::RebindingExplanation, motion_posture::MotionAwareBindingPosture,
+    neighborhood::LocalTopologyReplacementNeighborhood,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -13,6 +14,15 @@ pub enum RebindingOutcomeClass {
     CorrespondenceOnly,
     Ambiguous,
     Orphaned,
+    Unsupported,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UnsupportedRebindingReason {
+    RequestedRebindingFamilyDoesNotAdmitBindingFamily {
+        requested: super::neighborhood::NeighborhoodBindingFamily,
+        actual: super::neighborhood::NeighborhoodBindingFamily,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -30,8 +40,8 @@ impl AdmittedRebindingDecision {
         let continuity_class = evaluation.continuity().continuity_class();
         let explanation = RebindingExplanation::from_evaluation(evaluation, motion_posture.clone());
         let selected_binding = evaluation
-            .continuity()
-            .candidate_identity()
+            .selection()
+            .selected_candidate_identity()
             .filter(|_| {
                 matches!(
                     continuity_class,
@@ -45,32 +55,55 @@ impl AdmittedRebindingDecision {
                     .neighborhood()
                     .candidates()
                     .iter()
-                    .find(|candidate| candidate.binding().identity().as_str() == identity)
+                    .find(|candidate| candidate.binding().identity() == identity)
             })
             .map(|candidate| candidate.binding().clone());
+        let preserved_identity = selected_binding
+            .as_ref()
+            .map(|binding| binding.identity() == evaluation.prior_binding().identity())
+            .unwrap_or(false);
 
         let outcome_class = match motion_posture {
-            MotionAwareBindingPosture::Preserved => RebindingOutcomeClass::Preserved,
             MotionAwareBindingPosture::Invalidated => RebindingOutcomeClass::Orphaned,
-            MotionAwareBindingPosture::RequiresRebinding => match continuity_class {
-                BindingContinuityClass::Exact => RebindingOutcomeClass::ExactReattachment,
-                BindingContinuityClass::AuthoritativeSuccessor => {
-                    RebindingOutcomeClass::ContinuityJustifiedReattachment
+            MotionAwareBindingPosture::Preserved
+            | MotionAwareBindingPosture::TransformedWithCarrier
+            | MotionAwareBindingPosture::Unresolved => {
+                if preserved_identity && continuity_class == BindingContinuityClass::Exact {
+                    RebindingOutcomeClass::Preserved
+                } else {
+                    match continuity_class {
+                        BindingContinuityClass::Exact => RebindingOutcomeClass::ExactReattachment,
+                        BindingContinuityClass::AuthoritativeSuccessor => {
+                            RebindingOutcomeClass::ContinuityJustifiedReattachment
+                        }
+                        BindingContinuityClass::CorrespondenceOnly => {
+                            RebindingOutcomeClass::CorrespondenceOnly
+                        }
+                        BindingContinuityClass::Ambiguous => RebindingOutcomeClass::Ambiguous,
+                        BindingContinuityClass::InsufficientEvidenceFromAdmittedPartial
+                        | BindingContinuityClass::InsufficientEvidenceFromDeniedIncomplete
+                        | BindingContinuityClass::None => RebindingOutcomeClass::Orphaned,
+                    }
                 }
-                BindingContinuityClass::CorrespondenceOnly => {
-                    RebindingOutcomeClass::CorrespondenceOnly
-                }
-                BindingContinuityClass::Ambiguous => RebindingOutcomeClass::Ambiguous,
-                BindingContinuityClass::InsufficientEvidence | BindingContinuityClass::None => {
-                    RebindingOutcomeClass::Orphaned
-                }
-            },
+            }
         };
 
         Self {
             outcome_class,
             selected_binding,
             explanation,
+        }
+    }
+
+    pub(crate) fn unsupported(
+        prior_binding: &SpatialAdmittedPrimitiveBinding,
+        neighborhood: &LocalTopologyReplacementNeighborhood,
+        reason: UnsupportedRebindingReason,
+    ) -> Self {
+        Self {
+            outcome_class: RebindingOutcomeClass::Unsupported,
+            selected_binding: None,
+            explanation: RebindingExplanation::unsupported(prior_binding, neighborhood, reason),
         }
     }
 

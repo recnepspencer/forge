@@ -1,4 +1,9 @@
 mod anchors;
+mod asymmetric_pressure;
 mod completeness;
+mod curved_pressure;
 mod identity;
+mod motion_posture;
 mod rebinding;
+mod rebinding_diagnostics;
+mod rebinding_outcomes;

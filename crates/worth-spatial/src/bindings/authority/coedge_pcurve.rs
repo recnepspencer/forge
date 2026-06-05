@@ -5,8 +5,8 @@ use worth_primitives::{
 use crate::bindings::identity::{coedge_pcurve_basis, SpatialBindingIdentity};
 
 use super::{
-    SpatialBindingAuthorityError, SpatialBindingCompleteness, SpatialBindingIncompleteness,
-    SpatialBindingKind,
+    evaluate_coedge_pcurve_completeness, SpatialBindingAuthorityError, SpatialBindingCompleteness,
+    SpatialBindingIllegalityReason, SpatialBindingKind, SpatialBindingUnsupportedReason,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -82,30 +82,22 @@ impl AdmittedCoedgePCurveBinding {
         spec: CoedgePCurveBindingSpec,
     ) -> Result<Self, SpatialBindingAuthorityError> {
         if spec.site().topology_coedge_identity().is_empty() {
-            return Err(SpatialBindingAuthorityError::MissingTopologyIdentity(
-                SpatialBindingKind::CoedgePCurve,
+            return Err(SpatialBindingAuthorityError::Illegal(
+                SpatialBindingIllegalityReason::MissingTopologyIdentity(
+                    SpatialBindingKind::CoedgePCurve,
+                ),
             ));
         }
         if spec.birth_contract().topology_contract().loop_count() == 0 {
-            return Err(
-                SpatialBindingAuthorityError::UnsupportedTopologyBirthClass {
+            return Err(SpatialBindingAuthorityError::Unsupported(
+                SpatialBindingUnsupportedReason::TopologyBirthClassDoesNotAdmitBindingKind {
                     binding_kind: SpatialBindingKind::CoedgePCurve,
                     topology_birth_class: spec.birth_contract().topology_birth_class(),
                 },
-            );
+            ));
         }
 
-        let completeness = if spec.geometry_identity().support_planes().is_empty() {
-            SpatialBindingCompleteness::Incomplete(
-                SpatialBindingIncompleteness::PCurveWitnessRequiresPlanarSupport,
-            )
-        } else if spec.geometry_identity().vertices().len() < 2 {
-            SpatialBindingCompleteness::Incomplete(
-                SpatialBindingIncompleteness::CurveWitnessRequiresAtLeastTwoVertices,
-            )
-        } else {
-            SpatialBindingCompleteness::Complete
-        };
+        let completeness = evaluate_coedge_pcurve_completeness(spec.geometry_identity());
         let identity = SpatialBindingIdentity::from_basis(coedge_pcurve_basis(
             spec.site().topology_coedge_identity(),
             spec.birth_contract(),

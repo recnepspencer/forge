@@ -1,5 +1,7 @@
+pub(crate) mod admitted_binding;
 pub(crate) mod anchors;
 pub(crate) mod authority;
+pub(crate) mod canonical_projection;
 mod certification;
 pub(crate) mod identity;
 pub(crate) mod primitive_birth;

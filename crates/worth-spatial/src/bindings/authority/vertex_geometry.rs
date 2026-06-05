@@ -5,8 +5,9 @@ use worth_primitives::{
 use crate::bindings::identity::{vertex_geometry_basis, SpatialBindingIdentity};
 
 use super::{
-    SpatialBindingAuthorityError, SpatialBindingCompleteness, SpatialBindingIncompleteness,
-    SpatialBindingKind,
+    evaluate_vertex_geometry_completeness, SpatialBindingAuthorityError,
+    SpatialBindingCompleteness, SpatialBindingIllegalityReason, SpatialBindingKind,
+    SpatialBindingUnsupportedReason,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -126,26 +127,22 @@ impl AdmittedVertexGeometryBinding {
         spec: VertexGeometryBindingSpec,
     ) -> Result<Self, SpatialBindingAuthorityError> {
         if spec.site().topology_vertex_identity().is_empty() {
-            return Err(SpatialBindingAuthorityError::MissingTopologyIdentity(
-                SpatialBindingKind::VertexGeometry,
+            return Err(SpatialBindingAuthorityError::Illegal(
+                SpatialBindingIllegalityReason::MissingTopologyIdentity(
+                    SpatialBindingKind::VertexGeometry,
+                ),
             ));
         }
         if spec.birth_contract().topology_contract().vertex_count() == 0 {
-            return Err(
-                SpatialBindingAuthorityError::UnsupportedTopologyBirthClass {
+            return Err(SpatialBindingAuthorityError::Unsupported(
+                SpatialBindingUnsupportedReason::TopologyBirthClassDoesNotAdmitBindingKind {
                     binding_kind: SpatialBindingKind::VertexGeometry,
                     topology_birth_class: spec.birth_contract().topology_birth_class(),
                 },
-            );
+            ));
         }
 
-        let completeness = if spec.geometry_identity().vertices().is_empty() {
-            SpatialBindingCompleteness::Incomplete(
-                SpatialBindingIncompleteness::MissingVertexGeometry,
-            )
-        } else {
-            SpatialBindingCompleteness::Complete
-        };
+        let completeness = evaluate_vertex_geometry_completeness(spec.geometry_identity());
         let identity = SpatialBindingIdentity::from_basis(vertex_geometry_basis(
             spec.site().topology_vertex_identity(),
             spec.birth_contract(),

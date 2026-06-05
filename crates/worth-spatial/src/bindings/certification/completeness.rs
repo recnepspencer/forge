@@ -1,114 +1,213 @@
 #[cfg(test)]
 mod tests {
     use worth_primitives::{
-        PrimitiveConstructionFamilyContractRegistry, PrimitiveGeometryIdentityBundle,
-        PrimitiveSupportPlaneIdentity, PrimitiveVertexIdentity, PrimitiveWitnessDescriptor,
+        PrimitiveConstructionFamilyContractRegistry, PrimitiveCurvedSupportIdentity,
+        PrimitiveGeometryIdentityBundle, PrimitiveSupportPlaneIdentity,
+        PrimitiveTriaxialEllipsoidIdentity, PrimitiveVertexIdentity, PrimitiveWitnessDescriptor,
     };
 
     use crate::bindings::authority::{
         attach_curve_to_edge, attach_pcurve_to_coedge, attach_surface_to_face,
-        attach_vertex_geometry, CoedgeBindingSite, CoedgePCurveBindingSpec, EdgeBindingSite,
-        EdgeCurveBindingSpec, FaceBindingSite, FaceSurfaceBindingSpec, SpatialBindingCompleteness,
-        SpatialBindingIncompleteness, VertexBindingSite, VertexGeometryBindingSpec,
+        attach_vertex_geometry, AdmittedPartialBindingPosture, CoedgeBindingSite,
+        CoedgePCurveBindingSpec, EdgeBindingSite, EdgeCurveBindingSpec, FaceBindingSite,
+        FaceSurfaceBindingSpec, SpatialBindingAuthorityError, SpatialBindingCompleteness,
+        SpatialBindingIllegalityReason, SpatialBindingIncompleteness, SpatialBindingKind,
+        SpatialBindingUnsupportedReason, VertexBindingSite, VertexGeometryBindingSpec,
         VertexGeometryProvenanceKind, VertexToleranceRegime,
     };
 
     #[test]
-    fn completeness_is_explicit_per_binding_family() {
+    fn completeness_policy_distinguishes_complete_partial_unsupported_and_illegal() {
         let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
             &PrimitiveWitnessDescriptor::ShellWithHole {
                 outer_loop_edge_count: 4,
                 hole_loop_edge_counts: vec![3],
             },
         );
-        let empty_geometry = PrimitiveGeometryIdentityBundle::new(vec![], vec![]);
-        let minimal_curve = PrimitiveGeometryIdentityBundle::new(
-            vec![],
-            vec![PrimitiveVertexIdentity::from_position([0.0, 0.0, 0.0])],
-        );
-
-        let face = attach_surface_to_face(FaceSurfaceBindingSpec::new(
-            FaceBindingSite::new("face-1"),
-            contract,
-            empty_geometry.clone(),
-        ))
-        .expect("face binding");
-        let edge = attach_curve_to_edge(EdgeCurveBindingSpec::new(
-            EdgeBindingSite::new("edge-1"),
-            contract,
-            minimal_curve.clone(),
-        ))
-        .expect("edge binding");
-        let coedge = attach_pcurve_to_coedge(CoedgePCurveBindingSpec::new(
-            CoedgeBindingSite::new("coedge-1"),
-            contract,
-            minimal_curve,
-        ))
-        .expect("coedge binding");
-        let vertex = attach_vertex_geometry(VertexGeometryBindingSpec::new(
-            VertexBindingSite::new("vertex-1"),
-            contract,
-            empty_geometry,
-            VertexGeometryProvenanceKind::CanonicalWitness,
-            VertexToleranceRegime::ExactBits,
-        ))
-        .expect("vertex binding");
-
-        assert_eq!(
-            face.completeness(),
-            &SpatialBindingCompleteness::Incomplete(
-                SpatialBindingIncompleteness::MissingSupportPlane
-            )
-        );
-        assert_eq!(
-            edge.completeness(),
-            &SpatialBindingCompleteness::Incomplete(
-                SpatialBindingIncompleteness::CurveWitnessRequiresAtLeastTwoVertices
-            )
-        );
-        assert_eq!(
-            coedge.completeness(),
-            &SpatialBindingCompleteness::Incomplete(
-                SpatialBindingIncompleteness::PCurveWitnessRequiresPlanarSupport
-            )
-        );
-        assert_eq!(
-            vertex.completeness(),
-            &SpatialBindingCompleteness::Incomplete(
-                SpatialBindingIncompleteness::MissingVertexGeometry
-            )
-        );
-    }
-
-    #[test]
-    fn unsupported_topology_birth_class_fails_before_completeness_folklore() {
-        let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+        let unsupported_contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
             &PrimitiveWitnessDescriptor::WireBody { edge_count: 4 },
         );
-        let geometry = PrimitiveGeometryIdentityBundle::new(
+        let planar_but_vertexless = PrimitiveGeometryIdentityBundle::new(
             vec![PrimitiveSupportPlaneIdentity::new(
                 "0".to_string(),
                 "0".to_string(),
                 "1".to_string(),
                 "0".to_string(),
             )],
+            vec![],
+        );
+        let single_vertex_curve = PrimitiveGeometryIdentityBundle::new(
+            vec![],
             vec![PrimitiveVertexIdentity::from_position([0.0, 0.0, 0.0])],
+        );
+        let complete_geometry = PrimitiveGeometryIdentityBundle::new(
+            vec![PrimitiveSupportPlaneIdentity::new(
+                "0".to_string(),
+                "0".to_string(),
+                "1".to_string(),
+                "0".to_string(),
+            )],
+            vec![
+                PrimitiveVertexIdentity::from_position([0.0, 0.0, 0.0]),
+                PrimitiveVertexIdentity::from_position([1.0, 0.0, 0.0]),
+            ],
+        );
+        let asymmetric_surface_geometry = PrimitiveGeometryIdentityBundle::with_curved_support(
+            vec![],
+            vec![PrimitiveCurvedSupportIdentity::TriaxialEllipsoid(
+                PrimitiveTriaxialEllipsoidIdentity::new(
+                    [0.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0],
+                    5.0,
+                    3.0,
+                    2.0,
+                ),
+            )],
+            vec![
+                PrimitiveVertexIdentity::from_position([0.0, 0.0, 2.0]),
+                PrimitiveVertexIdentity::from_position([5.0, 0.0, 0.0]),
+            ],
         );
 
         let face = attach_surface_to_face(FaceSurfaceBindingSpec::new(
             FaceBindingSite::new("face-1"),
             contract,
-            geometry.clone(),
-        ));
+            planar_but_vertexless.clone(),
+        ))
+        .expect("face binding");
+        let edge = attach_curve_to_edge(EdgeCurveBindingSpec::new(
+            EdgeBindingSite::new("edge-1"),
+            contract,
+            single_vertex_curve.clone(),
+        ))
+        .expect("edge binding");
+        let coedge = attach_pcurve_to_coedge(CoedgePCurveBindingSpec::new(
+            CoedgeBindingSite::new("coedge-1"),
+            contract,
+            PrimitiveGeometryIdentityBundle::new(
+                vec![PrimitiveSupportPlaneIdentity::new(
+                    "0".to_string(),
+                    "0".to_string(),
+                    "1".to_string(),
+                    "0".to_string(),
+                )],
+                vec![PrimitiveVertexIdentity::from_position([0.0, 0.0, 0.0])],
+            ),
+        ))
+        .expect("coedge binding");
         let vertex = attach_vertex_geometry(VertexGeometryBindingSpec::new(
             VertexBindingSite::new("vertex-1"),
             contract,
-            geometry,
-            VertexGeometryProvenanceKind::RealizedVertex,
-            VertexToleranceRegime::AdmittedTolerance,
+            complete_geometry,
+            VertexGeometryProvenanceKind::CanonicalWitness,
+            VertexToleranceRegime::ExactBits,
+        ))
+        .expect("vertex binding");
+        let asymmetric_face = attach_surface_to_face(FaceSurfaceBindingSpec::new(
+            FaceBindingSite::new("face-asymmetric"),
+            contract,
+            asymmetric_surface_geometry,
+        ))
+        .expect("asymmetric face binding");
+        let unsupported = attach_surface_to_face(FaceSurfaceBindingSpec::new(
+            FaceBindingSite::new("face-unsupported"),
+            unsupported_contract,
+            planar_but_vertexless,
+        ));
+        let illegal = attach_surface_to_face(FaceSurfaceBindingSpec::new(
+            FaceBindingSite::new(""),
+            contract,
+            PrimitiveGeometryIdentityBundle::new(vec![], vec![]),
         ));
 
-        assert!(face.is_err());
-        assert!(vertex.is_ok());
+        assert_eq!(
+            face.completeness(),
+            &SpatialBindingCompleteness::AdmittedPartial(
+                AdmittedPartialBindingPosture::FaceSurfaceMissingVertexGeometry,
+            )
+        );
+        assert_eq!(
+            edge.completeness(),
+            &SpatialBindingCompleteness::AdmittedPartial(
+                AdmittedPartialBindingPosture::EdgeCurveSingleVertexWitness,
+            )
+        );
+        assert_eq!(
+            coedge.completeness(),
+            &SpatialBindingCompleteness::AdmittedPartial(
+                AdmittedPartialBindingPosture::CoedgePCurveSingleVertexWitness,
+            )
+        );
+        assert_eq!(
+            asymmetric_face.completeness(),
+            &SpatialBindingCompleteness::Complete
+        );
+        assert_eq!(vertex.completeness(), &SpatialBindingCompleteness::Complete);
+        assert_eq!(
+            unsupported,
+            Err(SpatialBindingAuthorityError::Unsupported(
+                SpatialBindingUnsupportedReason::TopologyBirthClassDoesNotAdmitBindingKind {
+                    binding_kind: SpatialBindingKind::FaceSurface,
+                    topology_birth_class: "planar_wire_body",
+                },
+            ))
+        );
+        assert_eq!(
+            illegal,
+            Err(SpatialBindingAuthorityError::Illegal(
+                SpatialBindingIllegalityReason::MissingTopologyIdentity(
+                    SpatialBindingKind::FaceSurface,
+                ),
+            ))
+        );
+    }
+
+    #[test]
+    fn completeness_denial_is_typed_before_it_can_be_upgraded() {
+        let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+            &PrimitiveWitnessDescriptor::ShellWithHole {
+                outer_loop_edge_count: 4,
+                hole_loop_edge_counts: vec![3],
+            },
+        );
+
+        let face = attach_surface_to_face(FaceSurfaceBindingSpec::new(
+            FaceBindingSite::new("face-1"),
+            contract,
+            PrimitiveGeometryIdentityBundle::new(
+                vec![],
+                vec![PrimitiveVertexIdentity::from_position([0.0, 0.0, 0.0])],
+            ),
+        ))
+        .expect("face binding");
+        let coedge = attach_pcurve_to_coedge(CoedgePCurveBindingSpec::new(
+            CoedgeBindingSite::new("coedge-1"),
+            contract,
+            PrimitiveGeometryIdentityBundle::new(
+                vec![PrimitiveSupportPlaneIdentity::new(
+                    "0".to_string(),
+                    "0".to_string(),
+                    "1".to_string(),
+                    "0".to_string(),
+                )],
+                vec![],
+            ),
+        ))
+        .expect("coedge binding");
+
+        assert_eq!(
+            face.completeness(),
+            &SpatialBindingCompleteness::DeniedIncomplete(
+                SpatialBindingIncompleteness::FaceSurfaceMissingSupportCarrier,
+            )
+        );
+        assert_eq!(
+            coedge.completeness(),
+            &SpatialBindingCompleteness::DeniedIncomplete(
+                SpatialBindingIncompleteness::CoedgePCurveMissingCurveWitnessVertices,
+            )
+        );
     }
 }

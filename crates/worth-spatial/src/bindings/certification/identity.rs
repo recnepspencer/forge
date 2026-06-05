@@ -10,7 +10,7 @@ mod tests {
     };
 
     #[test]
-    fn binding_identity_changes_with_geometry_not_topology_or_name() {
+    fn binding_identity_diverges_from_topology_and_naming_when_geometry_changes() {
         let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
             &PrimitiveWitnessDescriptor::Orthotope,
         );
@@ -56,7 +56,7 @@ mod tests {
     }
 
     #[test]
-    fn equivalent_binding_meaning_is_order_insensitive() {
+    fn binding_identity_is_stable_under_equivalent_authoring_order_variation() {
         let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
             &PrimitiveWitnessDescriptor::Orthotope,
         );
@@ -90,7 +90,7 @@ mod tests {
     }
 
     #[test]
-    fn vertex_binding_identity_includes_provenance_and_tolerance_regime() {
+    fn vertex_binding_identity_diverges_when_semantic_identity_inputs_change() {
         let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
             &PrimitiveWitnessDescriptor::Orthotope,
         );

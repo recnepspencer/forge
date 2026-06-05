@@ -5,8 +5,8 @@ use worth_primitives::{
 use crate::bindings::identity::{edge_curve_basis, SpatialBindingIdentity};
 
 use super::{
-    SpatialBindingAuthorityError, SpatialBindingCompleteness, SpatialBindingIncompleteness,
-    SpatialBindingKind,
+    evaluate_edge_curve_completeness, SpatialBindingAuthorityError, SpatialBindingCompleteness,
+    SpatialBindingIllegalityReason, SpatialBindingKind, SpatialBindingUnsupportedReason,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -80,26 +80,22 @@ pub struct AdmittedEdgeCurveBinding {
 impl AdmittedEdgeCurveBinding {
     pub(crate) fn admit(spec: EdgeCurveBindingSpec) -> Result<Self, SpatialBindingAuthorityError> {
         if spec.site().topology_edge_identity().is_empty() {
-            return Err(SpatialBindingAuthorityError::MissingTopologyIdentity(
-                SpatialBindingKind::EdgeCurve,
+            return Err(SpatialBindingAuthorityError::Illegal(
+                SpatialBindingIllegalityReason::MissingTopologyIdentity(
+                    SpatialBindingKind::EdgeCurve,
+                ),
             ));
         }
         if spec.birth_contract().topology_contract().edge_count() == 0 {
-            return Err(
-                SpatialBindingAuthorityError::UnsupportedTopologyBirthClass {
+            return Err(SpatialBindingAuthorityError::Unsupported(
+                SpatialBindingUnsupportedReason::TopologyBirthClassDoesNotAdmitBindingKind {
                     binding_kind: SpatialBindingKind::EdgeCurve,
                     topology_birth_class: spec.birth_contract().topology_birth_class(),
                 },
-            );
+            ));
         }
 
-        let completeness = if spec.geometry_identity().vertices().len() < 2 {
-            SpatialBindingCompleteness::Incomplete(
-                SpatialBindingIncompleteness::CurveWitnessRequiresAtLeastTwoVertices,
-            )
-        } else {
-            SpatialBindingCompleteness::Complete
-        };
+        let completeness = evaluate_edge_curve_completeness(spec.geometry_identity());
         let identity = SpatialBindingIdentity::from_basis(edge_curve_basis(
             spec.site().topology_edge_identity(),
             spec.birth_contract(),

@@ -35,21 +35,6 @@ pub(crate) enum SpatialBindingIdentityBasis {
         provenance_kind: String,
         tolerance_regime: String,
     },
-    PointAnchor {
-        binding_identity: String,
-        carrier_kind: String,
-        carrier_identity: String,
-        parameter_u_bits: String,
-        parameter_v_bits: String,
-    },
-    DirectionAnchor {
-        binding_identity: String,
-        carrier_kind: String,
-        carrier_identity: String,
-        parameter_u_bits: String,
-        parameter_v_bits: String,
-        direction_role: String,
-    },
 }
 
 impl SpatialBindingIdentityBasis {
@@ -112,36 +97,6 @@ impl SpatialBindingIdentityBasis {
                 format!("vertex-count:{vertex_count}"),
                 format!("provenance-kind:{provenance_kind}"),
                 format!("tolerance-regime:{tolerance_regime}"),
-            ],
-            Self::PointAnchor {
-                binding_identity,
-                carrier_kind,
-                carrier_identity,
-                parameter_u_bits,
-                parameter_v_bits,
-            } => vec![
-                "point-anchor".to_string(),
-                binding_identity.clone(),
-                carrier_kind.clone(),
-                carrier_identity.clone(),
-                format!("parameter-u-bits:{parameter_u_bits}"),
-                format!("parameter-v-bits:{parameter_v_bits}"),
-            ],
-            Self::DirectionAnchor {
-                binding_identity,
-                carrier_kind,
-                carrier_identity,
-                parameter_u_bits,
-                parameter_v_bits,
-                direction_role,
-            } => vec![
-                "direction-anchor".to_string(),
-                binding_identity.clone(),
-                carrier_kind.clone(),
-                carrier_identity.clone(),
-                format!("parameter-u-bits:{parameter_u_bits}"),
-                format!("parameter-v-bits:{parameter_v_bits}"),
-                format!("direction-role:{direction_role}"),
             ],
         }
     }
@@ -215,37 +170,5 @@ pub(crate) fn vertex_geometry_basis(
         vertex_count: birth_contract.topology_contract().vertex_count(),
         provenance_kind: provenance_kind.to_string(),
         tolerance_regime: tolerance_regime.to_string(),
-    }
-}
-
-pub(crate) fn point_anchor_basis(
-    binding_identity: &str,
-    carrier_kind: &str,
-    carrier_identity: &str,
-    point: worth_geom::facade::ParameterSpacePoint,
-) -> SpatialBindingIdentityBasis {
-    SpatialBindingIdentityBasis::PointAnchor {
-        binding_identity: binding_identity.to_string(),
-        carrier_kind: carrier_kind.to_string(),
-        carrier_identity: carrier_identity.to_string(),
-        parameter_u_bits: format!("{:016x}", point.u().to_bits()),
-        parameter_v_bits: format!("{:016x}", point.v().to_bits()),
-    }
-}
-
-pub(crate) fn direction_anchor_basis(
-    binding_identity: &str,
-    carrier_kind: &str,
-    carrier_identity: &str,
-    point: worth_geom::facade::ParameterSpacePoint,
-    direction_role: &str,
-) -> SpatialBindingIdentityBasis {
-    SpatialBindingIdentityBasis::DirectionAnchor {
-        binding_identity: binding_identity.to_string(),
-        carrier_kind: carrier_kind.to_string(),
-        carrier_identity: carrier_identity.to_string(),
-        parameter_u_bits: format!("{:016x}", point.u().to_bits()),
-        parameter_v_bits: format!("{:016x}", point.v().to_bits()),
-        direction_role: direction_role.to_string(),
     }
 }

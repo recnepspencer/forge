@@ -192,6 +192,19 @@ impl PolygonalTrimmedParameterRegion {
             point_strictly_inside_polygon(&raw, hole) || point_on_polygon_boundary(&raw, hole)
         })
     }
+
+    pub fn structural_signature(&self) -> String {
+        format!(
+            "domain:{}|outer:{}|holes:{}",
+            self.domain.structural_signature(),
+            encode_boundary(&self.outer_boundary),
+            self.holes
+                .iter()
+                .map(|hole| encode_boundary(hole))
+                .collect::<Vec<_>>()
+                .join(";")
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -270,6 +283,14 @@ fn canonicalize_boundary(
 
 fn boundary_arrays(boundary: &[ParameterSpacePoint]) -> Vec<[f64; 2]> {
     boundary.iter().map(|point| point.as_array()).collect()
+}
+
+fn encode_boundary(boundary: &[ParameterSpacePoint]) -> String {
+    boundary
+        .iter()
+        .map(|point| format!("{:016x}:{:016x}", point.u().to_bits(), point.v().to_bits()))
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn point_in_or_on_polygon(point: &[f64; 2], polygon: &[[f64; 2]]) -> bool {

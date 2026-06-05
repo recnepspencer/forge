@@ -9,9 +9,11 @@ use worth_primitives::{
     PrimitiveSupportPlaneIdentity, PrimitiveVertexIdentity, PrimitiveWitnessDescriptor,
 };
 use worth_spatial::facade::bindings::{
-    attach_surface_to_face, FaceBindingSite, FaceSurfaceBindingSpec,
+    attach_surface_to_face, attach_vertex_geometry, FaceBindingSite, FaceSurfaceBindingSpec,
     LocalTopologyReplacementNeighborhood, NeighborhoodBindingFamily, RebindingOutcomeClass,
     ReplacementCandidate, ReplacementCandidateSet, SpatialAdmittedPrimitiveBinding,
+    VertexBindingSite, VertexGeometryBindingSpec, VertexGeometryProvenanceKind,
+    VertexToleranceRegime,
 };
 
 fn plane_geometry(vertices: [[f64; 3]; 2]) -> PrimitiveGeometryIdentityBundle {
@@ -101,4 +103,142 @@ fn kernel_public_facade_exports_declaration_entry_first_rebinding_surface() {
         }
         _ => panic!("expected bound ordinary outcome"),
     }
+}
+
+#[test]
+fn kernel_public_facade_exports_vertex_rebinding_intent_surface() {
+    let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+        &PrimitiveWitnessDescriptor::Orthotope,
+    );
+    let prior = attach_vertex_geometry(VertexGeometryBindingSpec::new(
+        VertexBindingSite::new("vertex-old"),
+        contract,
+        plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        VertexGeometryProvenanceKind::CanonicalWitness,
+        VertexToleranceRegime::ExactBits,
+    ))
+    .expect("prior");
+    let successor = attach_vertex_geometry(VertexGeometryBindingSpec::new(
+        VertexBindingSite::new("vertex-new"),
+        contract,
+        plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        VertexGeometryProvenanceKind::CanonicalWitness,
+        VertexToleranceRegime::ExactBits,
+    ))
+    .expect("successor");
+    let admitted = author_primitive_rebinding_declaration(
+        AuthorPrimitiveRebindingIntent::replace_geometry_binding(
+            SpatialAdmittedPrimitiveBinding::VertexGeometry(prior),
+            LocalTopologyReplacementNeighborhood::new(
+                NeighborhoodBindingFamily::VertexGeometry,
+                "vertex-old",
+                ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+                    "successor",
+                    SpatialAdmittedPrimitiveBinding::VertexGeometry(successor),
+                )
+                .expect("candidate")])
+                .expect("candidate set"),
+            )
+            .expect("neighborhood"),
+        ),
+    )
+    .admit()
+    .expect("admitted");
+
+    assert_eq!(
+        admitted.outcome_class(),
+        RebindingOutcomeClass::ExactReattachment
+    );
+}
+
+#[test]
+fn kernel_public_facade_exports_typed_unsupported_rebinding_outcome_transport() {
+    let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+        &PrimitiveWitnessDescriptor::Orthotope,
+    );
+    let prior = attach_vertex_geometry(VertexGeometryBindingSpec::new(
+        VertexBindingSite::new("vertex-old"),
+        contract,
+        plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        VertexGeometryProvenanceKind::CanonicalWitness,
+        VertexToleranceRegime::ExactBits,
+    ))
+    .expect("prior");
+    let entry = author_primitive_rebinding_declaration(
+        AuthorPrimitiveRebindingIntent::replace_surface_binding(
+            SpatialAdmittedPrimitiveBinding::VertexGeometry(prior.clone()),
+            LocalTopologyReplacementNeighborhood::new(
+                NeighborhoodBindingFamily::VertexGeometry,
+                "vertex-old",
+                ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+                    "successor",
+                    SpatialAdmittedPrimitiveBinding::VertexGeometry(prior),
+                )
+                .expect("candidate")])
+                .expect("candidate set"),
+            )
+            .expect("neighborhood"),
+        ),
+    );
+    let handle = ForgeQueryApplicationFacade::runtime_backed_default()
+        .domain(PrimitiveRebindingQueryDomain)
+        .with_operating_context(PrimitiveRebindingQueryWorld::new(
+            "public-api-rebinding-unsupported",
+        ))
+        .validate()
+        .expect("validated rebinding query handle")
+        .admit()
+        .expect("admitted rebinding query handle");
+
+    assert_eq!(
+        entry.clone().admit().expect("decision").outcome_class(),
+        RebindingOutcomeClass::Unsupported
+    );
+    assert!(matches!(
+        entry.ordinary_outcome_with_query(&handle),
+        ForgeQueryOrdinaryOutcome::Unsupported(_)
+    ));
+}
+
+#[test]
+fn kernel_public_facade_exports_typed_rebinding_explanation_surface() {
+    let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+        &PrimitiveWitnessDescriptor::Orthotope,
+    );
+    let prior = attach_surface_to_face(FaceSurfaceBindingSpec::new(
+        FaceBindingSite::new("face-old"),
+        contract,
+        plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+    ))
+    .expect("prior");
+    let successor = attach_surface_to_face(FaceSurfaceBindingSpec::new(
+        FaceBindingSite::new("face-new"),
+        contract,
+        plane_geometry([[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]]),
+    ))
+    .expect("successor");
+    let admitted = author_primitive_rebinding_declaration(
+        AuthorPrimitiveRebindingIntent::replace_surface_binding(
+            SpatialAdmittedPrimitiveBinding::FaceSurface(prior),
+            LocalTopologyReplacementNeighborhood::new(
+                NeighborhoodBindingFamily::FaceSurface,
+                "face-old",
+                ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+                    "successor",
+                    SpatialAdmittedPrimitiveBinding::FaceSurface(successor),
+                )
+                .expect("candidate")])
+                .expect("candidate set"),
+            )
+            .expect("neighborhood"),
+        ),
+    )
+    .admit()
+    .expect("admitted");
+
+    assert_eq!(admitted.explanation().candidate_labels(), ["successor"]);
+    assert!(admitted
+        .explanation()
+        .selected_candidate_identity()
+        .is_some());
 }

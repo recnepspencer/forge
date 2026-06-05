@@ -1,3 +1,4 @@
+pub mod anchoring;
 pub mod authoring;
 pub mod rebinding;
 

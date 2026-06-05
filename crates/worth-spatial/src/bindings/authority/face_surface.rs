@@ -5,8 +5,8 @@ use worth_primitives::{
 use crate::bindings::identity::{face_surface_basis, SpatialBindingIdentity};
 
 use super::{
-    SpatialBindingAuthorityError, SpatialBindingCompleteness, SpatialBindingIncompleteness,
-    SpatialBindingKind,
+    evaluate_face_surface_completeness, SpatialBindingAuthorityError, SpatialBindingCompleteness,
+    SpatialBindingIllegalityReason, SpatialBindingKind, SpatialBindingUnsupportedReason,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -82,30 +82,22 @@ impl AdmittedFaceSurfaceBinding {
         spec: FaceSurfaceBindingSpec,
     ) -> Result<Self, SpatialBindingAuthorityError> {
         if spec.site().topology_face_identity().is_empty() {
-            return Err(SpatialBindingAuthorityError::MissingTopologyIdentity(
-                SpatialBindingKind::FaceSurface,
+            return Err(SpatialBindingAuthorityError::Illegal(
+                SpatialBindingIllegalityReason::MissingTopologyIdentity(
+                    SpatialBindingKind::FaceSurface,
+                ),
             ));
         }
         if spec.birth_contract().topology_contract().face_count() == 0 {
-            return Err(
-                SpatialBindingAuthorityError::UnsupportedTopologyBirthClass {
+            return Err(SpatialBindingAuthorityError::Unsupported(
+                SpatialBindingUnsupportedReason::TopologyBirthClassDoesNotAdmitBindingKind {
                     binding_kind: SpatialBindingKind::FaceSurface,
                     topology_birth_class: spec.birth_contract().topology_birth_class(),
                 },
-            );
+            ));
         }
 
-        let completeness = if spec.geometry_identity().support_planes().is_empty() {
-            SpatialBindingCompleteness::Incomplete(
-                SpatialBindingIncompleteness::MissingSupportPlane,
-            )
-        } else if spec.geometry_identity().vertices().is_empty() {
-            SpatialBindingCompleteness::Incomplete(
-                SpatialBindingIncompleteness::MissingVertexGeometry,
-            )
-        } else {
-            SpatialBindingCompleteness::Complete
-        };
+        let completeness = evaluate_face_surface_completeness(spec.geometry_identity());
         let identity = SpatialBindingIdentity::from_basis(face_surface_basis(
             spec.site().topology_face_identity(),
             spec.birth_contract(),

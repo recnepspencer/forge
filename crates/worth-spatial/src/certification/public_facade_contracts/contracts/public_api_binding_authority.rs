@@ -1,15 +1,13 @@
-use worth_geom::facade::{ParameterDomain, ParameterSpacePoint};
 use worth_primitives::{
     PrimitiveConstructionFamilyContractRegistry, PrimitiveGeometryIdentityBundle,
     PrimitiveSupportPlaneIdentity, PrimitiveVertexIdentity, PrimitiveWitnessDescriptor,
 };
 use worth_spatial::facade::bindings::{
-    attach_curve_to_edge, attach_parameter_space_direction_to_face,
-    attach_parameter_space_point_to_face, attach_pcurve_to_coedge, attach_surface_to_face,
-    attach_vertex_geometry, AnchorCarrierOwnership, AnchorDirectionRole,
-    CarrierOwnedParameterDirectionAnchorSpec, CarrierOwnedParameterPointAnchorSpec,
-    CoedgeBindingSite, CoedgePCurveBindingSpec, EdgeBindingSite, EdgeCurveBindingSpec,
-    FaceBindingSite, FaceSurfaceBindingSpec, SpatialBindingKind, VertexBindingSite,
+    attach_curve_to_edge, attach_pcurve_to_coedge, attach_surface_to_face, attach_vertex_geometry,
+    AdmittedPartialBindingPosture, CoedgeBindingSite, CoedgePCurveBindingSpec, EdgeBindingSite,
+    EdgeCurveBindingSpec, FaceBindingSite, FaceSurfaceBindingSpec, SpatialBindingAuthorityError,
+    SpatialBindingCompleteness, SpatialBindingIllegalityReason, SpatialBindingIncompleteness,
+    SpatialBindingKind, SpatialBindingUnsupportedReason, VertexBindingSite,
     VertexGeometryBindingSpec, VertexGeometryProvenanceKind, VertexToleranceRegime,
 };
 
@@ -72,52 +70,148 @@ fn spatial_public_facade_exports_band_one_binding_authority_surface() {
 }
 
 #[test]
-fn spatial_public_facade_exports_parameter_space_anchor_authority_surface() {
+fn spatial_public_facade_exports_phase_four_completeness_and_denial_taxonomy() {
+    let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+        &PrimitiveWitnessDescriptor::ShellWithHole {
+            outer_loop_edge_count: 4,
+            hole_loop_edge_counts: vec![3],
+        },
+    );
+    let unsupported_contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+        &PrimitiveWitnessDescriptor::WireBody { edge_count: 4 },
+    );
+
+    let partial = attach_surface_to_face(FaceSurfaceBindingSpec::new(
+        FaceBindingSite::new("face-1"),
+        contract,
+        PrimitiveGeometryIdentityBundle::new(
+            vec![PrimitiveSupportPlaneIdentity::new(
+                "0".to_string(),
+                "0".to_string(),
+                "1".to_string(),
+                "0".to_string(),
+            )],
+            vec![],
+        ),
+    ))
+    .expect("partial");
+    let denied = attach_curve_to_edge(EdgeCurveBindingSpec::new(
+        EdgeBindingSite::new("edge-1"),
+        contract,
+        PrimitiveGeometryIdentityBundle::new(vec![], vec![]),
+    ))
+    .expect("denied");
+    let unsupported = attach_surface_to_face(FaceSurfaceBindingSpec::new(
+        FaceBindingSite::new("face-unsupported"),
+        unsupported_contract,
+        PrimitiveGeometryIdentityBundle::new(
+            vec![PrimitiveSupportPlaneIdentity::new(
+                "0".to_string(),
+                "0".to_string(),
+                "1".to_string(),
+                "0".to_string(),
+            )],
+            vec![],
+        ),
+    ));
+    let illegal = attach_surface_to_face(FaceSurfaceBindingSpec::new(
+        FaceBindingSite::new(""),
+        contract,
+        PrimitiveGeometryIdentityBundle::new(vec![], vec![]),
+    ));
+
+    assert_eq!(
+        partial.completeness(),
+        &SpatialBindingCompleteness::AdmittedPartial(
+            AdmittedPartialBindingPosture::FaceSurfaceMissingVertexGeometry,
+        )
+    );
+    assert_eq!(
+        denied.completeness(),
+        &SpatialBindingCompleteness::DeniedIncomplete(
+            SpatialBindingIncompleteness::EdgeCurveMissingCurveWitnessVertices,
+        )
+    );
+    assert_eq!(
+        unsupported,
+        Err(SpatialBindingAuthorityError::Unsupported(
+            SpatialBindingUnsupportedReason::TopologyBirthClassDoesNotAdmitBindingKind {
+                binding_kind: SpatialBindingKind::FaceSurface,
+                topology_birth_class: "planar_wire_body",
+            },
+        ))
+    );
+    assert_eq!(
+        illegal,
+        Err(SpatialBindingAuthorityError::Illegal(
+            SpatialBindingIllegalityReason::MissingTopologyIdentity(
+                SpatialBindingKind::FaceSurface,
+            ),
+        ))
+    );
+}
+
+#[test]
+fn spatial_public_facade_exports_phase_five_canonical_binding_declaration_projection() {
     let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
         &PrimitiveWitnessDescriptor::Orthotope,
     );
-    let geometry = PrimitiveGeometryIdentityBundle::new(
-        vec![PrimitiveSupportPlaneIdentity::new(
-            "0".to_string(),
-            "0".to_string(),
-            "1".to_string(),
-            "0".to_string(),
-        )],
-        vec![
-            PrimitiveVertexIdentity::from_position([0.0, 0.0, 0.0]),
-            PrimitiveVertexIdentity::from_position([1.0, 0.0, 0.0]),
-        ],
-    );
-    let binding_spec = FaceSurfaceBindingSpec::new(
+    let first = FaceSurfaceBindingSpec::new(
         FaceBindingSite::new("face-1").with_persistent_name("surface-alpha"),
         contract,
-        geometry,
+        PrimitiveGeometryIdentityBundle::new(
+            vec![PrimitiveSupportPlaneIdentity::new(
+                "0".to_string(),
+                "0".to_string(),
+                "1".to_string(),
+                "0".to_string(),
+            )],
+            vec![PrimitiveVertexIdentity::from_position([0.0, 0.0, 0.0])],
+        ),
     );
-    let point = attach_parameter_space_point_to_face(
-        binding_spec.clone(),
-        CarrierOwnedParameterPointAnchorSpec::new(
-            AnchorCarrierOwnership::for_face_surface("face-1", ParameterDomain::plane())
-                .expect("point ownership"),
-            ParameterSpacePoint::try_new([0.25, 0.5]).expect("point anchor"),
-        )
-        .expect("point anchor spec"),
-    )
-    .expect("point anchor binding");
-    let direction = attach_parameter_space_direction_to_face(
-        binding_spec,
-        CarrierOwnedParameterDirectionAnchorSpec::new(
-            AnchorCarrierOwnership::for_face_surface("face-1", ParameterDomain::plane())
-                .expect("direction ownership"),
-            ParameterSpacePoint::try_new([0.25, 0.5]).expect("direction point"),
-            AnchorDirectionRole::Normal,
-        )
-        .expect("direction anchor spec"),
-    )
-    .expect("direction anchor binding");
+    let renamed = FaceSurfaceBindingSpec::new(
+        FaceBindingSite::new("face-1").with_persistent_name("surface-beta"),
+        contract,
+        first.geometry_identity().clone(),
+    );
+    let changed = FaceSurfaceBindingSpec::new(
+        FaceBindingSite::new("face-1").with_persistent_name("surface-alpha"),
+        contract,
+        PrimitiveGeometryIdentityBundle::new(
+            vec![PrimitiveSupportPlaneIdentity::new(
+                "0".to_string(),
+                "0".to_string(),
+                "1".to_string(),
+                "1".to_string(),
+            )],
+            vec![PrimitiveVertexIdentity::from_position([2.0, 0.0, 0.0])],
+        ),
+    );
 
-    assert_eq!(point.kind(), SpatialBindingKind::FaceSurface);
-    assert_eq!(direction.kind(), SpatialBindingKind::FaceSurface);
-    assert!(point.completeness().is_complete());
-    assert!(direction.completeness().is_complete());
-    assert_ne!(point.identity(), direction.identity());
+    let first_entries = first.canonical_declaration_fields();
+    let renamed_entries = renamed.canonical_declaration_fields();
+    let changed_entries = changed.canonical_declaration_fields();
+
+    assert_eq!(first_entries, renamed_entries);
+    assert!(first_entries
+        .iter()
+        .all(|entry| entry.locus() != "persistent_name"));
+    assert_ne!(
+        field_text(&first_entries, "geometry_digest"),
+        field_text(&changed_entries, "geometry_digest")
+    );
+}
+
+fn field_text<'a>(
+    entries: &'a [worth_spatial::facade::bindings::SpatialCanonicalDeclarationField],
+    locus: &str,
+) -> &'a str {
+    match entries
+        .iter()
+        .find(|entry| entry.locus() == locus)
+        .map(|entry| entry.value())
+    {
+        Some(value) => value,
+        _ => panic!("missing text field: {locus}"),
+    }
 }

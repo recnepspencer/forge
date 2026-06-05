@@ -1,4 +1,4 @@
-use crate::bindings::authority::{SpatialAdmittedPrimitiveBinding, SpatialBindingKind};
+use crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding;
 
 use super::SpatialRebindingAuthorityError;
 
@@ -13,6 +13,7 @@ pub enum NeighborhoodBindingFamily {
     CoedgePCurve,
     CoedgePCurvePointAnchor,
     CoedgePCurveDirectionAnchor,
+    VertexGeometry,
 }
 
 impl NeighborhoodBindingFamily {
@@ -41,11 +42,7 @@ impl NeighborhoodBindingFamily {
             SpatialAdmittedPrimitiveBinding::CoedgePCurveDirectionAnchor(_) => {
                 Ok(Self::CoedgePCurveDirectionAnchor)
             }
-            SpatialAdmittedPrimitiveBinding::VertexGeometry(_) => {
-                Err(SpatialRebindingAuthorityError::UnsupportedBindingKind(
-                    SpatialBindingKind::VertexGeometry,
-                ))
-            }
+            SpatialAdmittedPrimitiveBinding::VertexGeometry(_) => Ok(Self::VertexGeometry),
         }
     }
 
@@ -60,6 +57,7 @@ impl NeighborhoodBindingFamily {
             Self::CoedgePCurve => "coedge_pcurve",
             Self::CoedgePCurvePointAnchor => "coedge_pcurve_point_anchor",
             Self::CoedgePCurveDirectionAnchor => "coedge_pcurve_direction_anchor",
+            Self::VertexGeometry => "vertex_geometry",
         }
     }
 
@@ -82,6 +80,10 @@ impl NeighborhoodBindingFamily {
             self,
             Self::CoedgePCurve | Self::CoedgePCurvePointAnchor | Self::CoedgePCurveDirectionAnchor
         )
+    }
+
+    pub fn supports_vertex_geometry_rebinding(self) -> bool {
+        matches!(self, Self::VertexGeometry)
     }
 }
 
@@ -143,12 +145,12 @@ impl ReplacementCandidateSet {
         }
         candidates.sort_by(|left, right| {
             let left_key = (
-                left.binding().identity().as_str(),
+                left.binding().identity(),
                 left.label(),
                 left.site_identity(),
             );
             let right_key = (
-                right.binding().identity().as_str(),
+                right.binding().identity(),
                 right.label(),
                 right.site_identity(),
             );

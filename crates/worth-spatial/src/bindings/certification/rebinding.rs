@@ -6,10 +6,12 @@ use worth_primitives::{
 };
 
 use crate::facade::bindings::{
-    attach_curve_to_edge, rebind_curve_on_edge, rebind_surface_on_face, EdgeBindingSite,
+    attach_curve_to_edge, attach_vertex_geometry, evaluate_continuity, rebind_curve_on_edge,
+    rebind_geometry_on_vertex, rebind_surface_on_face, BindingContinuityClass, EdgeBindingSite,
     EdgeCurveBindingSpec, FaceBindingSite, FaceSurfaceBindingSpec,
     LocalTopologyReplacementNeighborhood, MotionAwareBindingPosture, NeighborhoodBindingFamily,
-    RebindingOutcomeClass, ReplacementCandidate, ReplacementCandidateSet,
+    RebindingOutcomeClass, ReplacementCandidate, ReplacementCandidateSet, VertexBindingSite,
+    VertexGeometryBindingSpec, VertexGeometryProvenanceKind, VertexToleranceRegime,
 };
 
 fn plane_geometry(vertices: [[f64; 3]; 2]) -> PrimitiveGeometryIdentityBundle {
@@ -56,14 +58,14 @@ fn rebinding_authority_keeps_candidate_order_out_of_surface_decisions() {
         ReplacementCandidateSet::new(vec![
             ReplacementCandidate::new(
                 "weaker",
-                crate::bindings::authority::SpatialAdmittedPrimitiveBinding::FaceSurface(
+                crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::FaceSurface(
                     weaker.clone(),
                 ),
             )
             .expect("weaker"),
             ReplacementCandidate::new(
                 "exact",
-                crate::bindings::authority::SpatialAdmittedPrimitiveBinding::FaceSurface(
+                crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::FaceSurface(
                     exact.clone(),
                 ),
             )
@@ -78,14 +80,16 @@ fn rebinding_authority_keeps_candidate_order_out_of_surface_decisions() {
         ReplacementCandidateSet::new(vec![
             ReplacementCandidate::new(
                 "exact",
-                crate::bindings::authority::SpatialAdmittedPrimitiveBinding::FaceSurface(
+                crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::FaceSurface(
                     exact.clone(),
                 ),
             )
             .expect("exact"),
             ReplacementCandidate::new(
                 "weaker",
-                crate::bindings::authority::SpatialAdmittedPrimitiveBinding::FaceSurface(weaker),
+                crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::FaceSurface(
+                    weaker,
+                ),
             )
             .expect("weaker"),
         ])
@@ -94,12 +98,14 @@ fn rebinding_authority_keeps_candidate_order_out_of_surface_decisions() {
     .expect("right");
 
     let left_decision = rebind_surface_on_face(
-        crate::bindings::authority::SpatialAdmittedPrimitiveBinding::FaceSurface(prior.clone()),
+        crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::FaceSurface(
+            prior.clone(),
+        ),
         left,
     )
     .expect("left decision");
     let right_decision = rebind_surface_on_face(
-        crate::bindings::authority::SpatialAdmittedPrimitiveBinding::FaceSurface(prior),
+        crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::FaceSurface(prior),
         right,
     )
     .expect("right decision");
@@ -114,7 +120,7 @@ fn rebinding_authority_keeps_candidate_order_out_of_surface_decisions() {
     );
     assert_eq!(
         left_decision.explanation().motion_posture(),
-        &MotionAwareBindingPosture::RequiresRebinding
+        &MotionAwareBindingPosture::Unresolved
     );
     assert_eq!(
         left_decision.explanation().selected_candidate_identity(),
@@ -151,12 +157,12 @@ fn rebinding_authority_keeps_edge_curve_ambiguity_typed() {
         ReplacementCandidateSet::new(vec![
             ReplacementCandidate::new(
                 "a",
-                crate::bindings::authority::SpatialAdmittedPrimitiveBinding::EdgeCurve(a),
+                crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::EdgeCurve(a),
             )
             .expect("a"),
             ReplacementCandidate::new(
                 "b",
-                crate::bindings::authority::SpatialAdmittedPrimitiveBinding::EdgeCurve(b),
+                crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::EdgeCurve(b),
             )
             .expect("b"),
         ])
@@ -165,7 +171,7 @@ fn rebinding_authority_keeps_edge_curve_ambiguity_typed() {
     .expect("neighborhood");
 
     let decision = rebind_curve_on_edge(
-        crate::bindings::authority::SpatialAdmittedPrimitiveBinding::EdgeCurve(prior),
+        crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::EdgeCurve(prior),
         neighborhood,
     )
     .expect("decision");
@@ -173,7 +179,7 @@ fn rebinding_authority_keeps_edge_curve_ambiguity_typed() {
     assert_eq!(decision.outcome_class(), RebindingOutcomeClass::Ambiguous);
     assert_eq!(
         decision.explanation().motion_posture(),
-        &MotionAwareBindingPosture::RequiresRebinding
+        &MotionAwareBindingPosture::Unresolved
     );
     assert!(decision
         .explanation()
@@ -197,7 +203,9 @@ fn rebinding_authority_preserves_when_prior_binding_remains_in_local_neighborhoo
         "face-old",
         ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
             "preserved",
-            crate::bindings::authority::SpatialAdmittedPrimitiveBinding::FaceSurface(prior.clone()),
+            crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::FaceSurface(
+                prior.clone(),
+            ),
         )
         .expect("preserved")])
         .expect("candidate set"),
@@ -205,7 +213,9 @@ fn rebinding_authority_preserves_when_prior_binding_remains_in_local_neighborhoo
     .expect("neighborhood");
 
     let decision = rebind_surface_on_face(
-        crate::bindings::authority::SpatialAdmittedPrimitiveBinding::FaceSurface(prior.clone()),
+        crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::FaceSurface(
+            prior.clone(),
+        ),
         neighborhood,
     )
     .expect("decision");
@@ -213,10 +223,168 @@ fn rebinding_authority_preserves_when_prior_binding_remains_in_local_neighborhoo
     assert_eq!(decision.outcome_class(), RebindingOutcomeClass::Preserved);
     assert_eq!(
         decision.explanation().motion_posture(),
-        &MotionAwareBindingPosture::Preserved
+        &MotionAwareBindingPosture::Unresolved
     );
     assert_eq!(
         decision.explanation().selected_candidate_identity(),
         Some(prior.identity().as_str())
+    );
+}
+
+#[test]
+fn rebinding_continuity_preserves_partial_vs_denied_incomplete_distinction() {
+    let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+        &PrimitiveWitnessDescriptor::Orthotope,
+    );
+    let prior = attach_curve_to_edge(EdgeCurveBindingSpec::new(
+        EdgeBindingSite::new("edge-old"),
+        contract,
+        plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+    ))
+    .expect("prior");
+    let partial = attach_curve_to_edge(EdgeCurveBindingSpec::new(
+        EdgeBindingSite::new("edge-partial"),
+        contract,
+        PrimitiveGeometryIdentityBundle::new(
+            vec![],
+            vec![PrimitiveVertexIdentity::from_position([0.0, 0.0, 0.0])],
+        ),
+    ))
+    .expect("partial");
+    let denied = attach_curve_to_edge(EdgeCurveBindingSpec::new(
+        EdgeBindingSite::new("edge-denied"),
+        contract,
+        PrimitiveGeometryIdentityBundle::new(vec![], vec![]),
+    ))
+    .expect("denied");
+    let neighborhood = LocalTopologyReplacementNeighborhood::new(
+        NeighborhoodBindingFamily::EdgeCurve,
+        "edge-old",
+        ReplacementCandidateSet::new(vec![
+            ReplacementCandidate::new(
+                "partial",
+                crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::EdgeCurve(
+                    partial.clone(),
+                ),
+            )
+            .expect("partial"),
+            ReplacementCandidate::new(
+                "denied",
+                crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::EdgeCurve(
+                    denied,
+                ),
+            )
+            .expect("denied"),
+        ])
+        .expect("candidates"),
+    )
+    .expect("neighborhood");
+
+    let continuity = evaluate_continuity(
+        &crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::EdgeCurve(
+            prior.clone(),
+        ),
+        &neighborhood,
+    )
+    .expect("continuity");
+
+    assert_eq!(
+        continuity.continuity_class(),
+        BindingContinuityClass::InsufficientEvidenceFromAdmittedPartial
+    );
+    let denied_only_neighborhood = LocalTopologyReplacementNeighborhood::new(
+        NeighborhoodBindingFamily::EdgeCurve,
+        "edge-old",
+        ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+            "denied",
+            crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::EdgeCurve(
+                attach_curve_to_edge(EdgeCurveBindingSpec::new(
+                    EdgeBindingSite::new("edge-denied-only"),
+                    contract,
+                    PrimitiveGeometryIdentityBundle::new(vec![], vec![]),
+                ))
+                .expect("denied only"),
+            ),
+        )
+        .expect("denied only")])
+        .expect("candidates"),
+    )
+    .expect("denied-only neighborhood");
+    let denied_only_continuity = evaluate_continuity(
+        &crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::EdgeCurve(
+            prior.clone(),
+        ),
+        &denied_only_neighborhood,
+    )
+    .expect("denied-only continuity");
+    assert_eq!(
+        denied_only_continuity.continuity_class(),
+        BindingContinuityClass::InsufficientEvidenceFromDeniedIncomplete
+    );
+
+    let decision = rebind_curve_on_edge(
+        crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::EdgeCurve(prior),
+        neighborhood,
+    )
+    .expect("decision");
+    assert_eq!(decision.outcome_class(), RebindingOutcomeClass::Orphaned);
+}
+
+#[test]
+fn vertex_rebinding_uses_the_same_local_neighborhood_law_as_other_core_families() {
+    let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+        &PrimitiveWitnessDescriptor::Orthotope,
+    );
+    let prior = attach_vertex_geometry(VertexGeometryBindingSpec::new(
+        VertexBindingSite::new("vertex-old"),
+        contract,
+        plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        VertexGeometryProvenanceKind::CanonicalWitness,
+        VertexToleranceRegime::ExactBits,
+    ))
+    .expect("prior");
+    let successor = attach_vertex_geometry(VertexGeometryBindingSpec::new(
+        VertexBindingSite::new("vertex-new"),
+        contract,
+        plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        VertexGeometryProvenanceKind::CanonicalWitness,
+        VertexToleranceRegime::ExactBits,
+    ))
+    .expect("successor");
+    let neighborhood = LocalTopologyReplacementNeighborhood::new(
+        NeighborhoodBindingFamily::VertexGeometry,
+        "vertex-old",
+        ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+            "successor",
+            crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::VertexGeometry(
+                successor.clone(),
+            ),
+        )
+        .expect("candidate")])
+        .expect("candidate set"),
+    )
+    .expect("neighborhood");
+
+    let decision = rebind_geometry_on_vertex(
+        crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding::VertexGeometry(prior),
+        neighborhood,
+    )
+    .expect("decision");
+
+    assert_eq!(
+        decision.outcome_class(),
+        RebindingOutcomeClass::ExactReattachment
+    );
+    assert_eq!(
+        decision.explanation().neighborhood_family(),
+        NeighborhoodBindingFamily::VertexGeometry
+    );
+    assert_eq!(
+        decision.explanation().selected_candidate_identity(),
+        Some(successor.identity().as_str())
+    );
+    assert_eq!(
+        decision.explanation().motion_posture(),
+        &MotionAwareBindingPosture::Unresolved
     );
 }

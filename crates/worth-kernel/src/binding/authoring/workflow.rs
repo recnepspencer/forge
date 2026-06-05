@@ -4,12 +4,8 @@ use forge_query::facade::{
     ForgeQueryDeclarationEnvelope, ForgeQueryDomainOperatingContext, ForgeQueryOrdinaryOutcome,
 };
 use worth_spatial::facade::bindings::{
-    attach_curve_to_edge, attach_parameter_space_direction_to_coedge,
-    attach_parameter_space_direction_to_edge, attach_parameter_space_direction_to_face,
-    attach_parameter_space_point_to_coedge, attach_parameter_space_point_to_edge,
-    attach_parameter_space_point_to_face, attach_pcurve_to_coedge, attach_surface_to_face,
-    attach_vertex_geometry, SpatialAdmittedPrimitiveBinding, SpatialAnchorAuthorityError,
-    SpatialBindingAuthorityError, SpatialBindingKind,
+    attach_curve_to_edge, attach_pcurve_to_coedge, attach_surface_to_face, attach_vertex_geometry,
+    SpatialAdmittedPrimitiveBinding, SpatialBindingAuthorityError, SpatialBindingKind,
 };
 
 use crate::binding::authoring::{
@@ -41,24 +37,6 @@ impl PrimitiveBindingDeclarationEntry {
             AuthorPrimitiveBindingIntent::AttachVertexGeometry(_) => {
                 SpatialBindingKind::VertexGeometry
             }
-            AuthorPrimitiveBindingIntent::AttachParameterSpacePointToFace(_, _) => {
-                SpatialBindingKind::FaceSurface
-            }
-            AuthorPrimitiveBindingIntent::AttachParameterSpacePointToEdge(_, _) => {
-                SpatialBindingKind::EdgeCurve
-            }
-            AuthorPrimitiveBindingIntent::AttachParameterSpacePointToCoedge(_, _) => {
-                SpatialBindingKind::CoedgePCurve
-            }
-            AuthorPrimitiveBindingIntent::AttachParameterSpaceDirectionToFace(_, _) => {
-                SpatialBindingKind::FaceSurface
-            }
-            AuthorPrimitiveBindingIntent::AttachParameterSpaceDirectionToEdge(_, _) => {
-                SpatialBindingKind::EdgeCurve
-            }
-            AuthorPrimitiveBindingIntent::AttachParameterSpaceDirectionToCoedge(_, _) => {
-                SpatialBindingKind::CoedgePCurve
-            }
         }
     }
 
@@ -85,7 +63,7 @@ impl PrimitiveBindingDeclarationEntry {
         handle.orchestrate_declaration_entry_outcome(self.clone())
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[allow(dead_code)]
     pub(crate) fn canonical_workflow_artifacts_with_query<C>(
         &self,
         handle: &ForgeQueryAdmittedConfiguredDomainHandle<PrimitiveBindingQueryDomain, C>,
@@ -121,42 +99,6 @@ impl PrimitiveBindingDeclarationEntry {
                     .map(SpatialAdmittedPrimitiveBinding::VertexGeometry)
                     .map_err(PrimitiveBindingAuthoringError::Spatial)
             }
-            AuthorPrimitiveBindingIntent::AttachParameterSpacePointToFace(
-                binding_spec,
-                anchor_spec,
-            ) => attach_parameter_space_point_to_face(binding_spec, anchor_spec)
-                .map(SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor)
-                .map_err(PrimitiveBindingAuthoringError::Anchor),
-            AuthorPrimitiveBindingIntent::AttachParameterSpacePointToEdge(
-                binding_spec,
-                anchor_spec,
-            ) => attach_parameter_space_point_to_edge(binding_spec, anchor_spec)
-                .map(SpatialAdmittedPrimitiveBinding::EdgeCurvePointAnchor)
-                .map_err(PrimitiveBindingAuthoringError::Anchor),
-            AuthorPrimitiveBindingIntent::AttachParameterSpacePointToCoedge(
-                binding_spec,
-                anchor_spec,
-            ) => attach_parameter_space_point_to_coedge(binding_spec, anchor_spec)
-                .map(SpatialAdmittedPrimitiveBinding::CoedgePCurvePointAnchor)
-                .map_err(PrimitiveBindingAuthoringError::Anchor),
-            AuthorPrimitiveBindingIntent::AttachParameterSpaceDirectionToFace(
-                binding_spec,
-                anchor_spec,
-            ) => attach_parameter_space_direction_to_face(binding_spec, anchor_spec)
-                .map(SpatialAdmittedPrimitiveBinding::FaceSurfaceDirectionAnchor)
-                .map_err(PrimitiveBindingAuthoringError::Anchor),
-            AuthorPrimitiveBindingIntent::AttachParameterSpaceDirectionToEdge(
-                binding_spec,
-                anchor_spec,
-            ) => attach_parameter_space_direction_to_edge(binding_spec, anchor_spec)
-                .map(SpatialAdmittedPrimitiveBinding::EdgeCurveDirectionAnchor)
-                .map_err(PrimitiveBindingAuthoringError::Anchor),
-            AuthorPrimitiveBindingIntent::AttachParameterSpaceDirectionToCoedge(
-                binding_spec,
-                anchor_spec,
-            ) => attach_parameter_space_direction_to_coedge(binding_spec, anchor_spec)
-                .map(SpatialAdmittedPrimitiveBinding::CoedgePCurveDirectionAnchor)
-                .map_err(PrimitiveBindingAuthoringError::Anchor),
         }
     }
 }
@@ -164,7 +106,6 @@ impl PrimitiveBindingDeclarationEntry {
 #[derive(Clone, Debug, PartialEq)]
 pub enum PrimitiveBindingAuthoringError {
     Spatial(SpatialBindingAuthorityError),
-    Anchor(SpatialAnchorAuthorityError),
 }
 
 pub fn author_primitive_binding_declaration(

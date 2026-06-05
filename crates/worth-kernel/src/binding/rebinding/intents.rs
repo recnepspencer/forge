@@ -16,6 +16,10 @@ pub enum AuthorPrimitiveRebindingIntent {
         prior_binding: SpatialAdmittedPrimitiveBinding,
         neighborhood: LocalTopologyReplacementNeighborhood,
     },
+    ReplaceGeometryBinding {
+        prior_binding: SpatialAdmittedPrimitiveBinding,
+        neighborhood: LocalTopologyReplacementNeighborhood,
+    },
 }
 
 impl AuthorPrimitiveRebindingIntent {
@@ -49,11 +53,22 @@ impl AuthorPrimitiveRebindingIntent {
         }
     }
 
+    pub fn replace_geometry_binding(
+        prior_binding: SpatialAdmittedPrimitiveBinding,
+        neighborhood: LocalTopologyReplacementNeighborhood,
+    ) -> Self {
+        Self::ReplaceGeometryBinding {
+            prior_binding,
+            neighborhood,
+        }
+    }
+
     pub fn prior_binding(&self) -> &SpatialAdmittedPrimitiveBinding {
         match self {
             Self::ReplaceSurfaceBinding { prior_binding, .. }
             | Self::ReplaceCurveBinding { prior_binding, .. }
-            | Self::ReplacePCurveBinding { prior_binding, .. } => prior_binding,
+            | Self::ReplacePCurveBinding { prior_binding, .. }
+            | Self::ReplaceGeometryBinding { prior_binding, .. } => prior_binding,
         }
     }
 
@@ -61,7 +76,8 @@ impl AuthorPrimitiveRebindingIntent {
         match self {
             Self::ReplaceSurfaceBinding { neighborhood, .. }
             | Self::ReplaceCurveBinding { neighborhood, .. }
-            | Self::ReplacePCurveBinding { neighborhood, .. } => neighborhood,
+            | Self::ReplacePCurveBinding { neighborhood, .. }
+            | Self::ReplaceGeometryBinding { neighborhood, .. } => neighborhood,
         }
     }
 
@@ -74,6 +90,7 @@ impl AuthorPrimitiveRebindingIntent {
             Self::ReplaceSurfaceBinding { .. } => "surface_rebinding",
             Self::ReplaceCurveBinding { .. } => "curve_rebinding",
             Self::ReplacePCurveBinding { .. } => "pcurve_rebinding",
+            Self::ReplaceGeometryBinding { .. } => "geometry_rebinding",
         }
     }
 }

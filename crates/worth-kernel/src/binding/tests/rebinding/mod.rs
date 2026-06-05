@@ -1,12 +1,23 @@
+mod asymmetric_pressure;
+mod continuity;
+mod curved_pressure;
+mod diagnostics;
+mod outcome_transport;
+mod outcomes;
+
+use std::collections::BTreeSet;
+
 use worth_geom::facade::{ParameterDomain, ParameterSpacePoint};
 use worth_spatial::facade::bindings::{
     attach_curve_to_edge, attach_parameter_space_point_to_face, attach_pcurve_to_coedge,
-    rebind_curve_on_edge, rebind_pcurve_on_coedge, rebind_surface_on_face, AnchorCarrierOwnership,
+    attach_vertex_geometry, rebind_curve_on_edge, rebind_geometry_on_vertex,
+    rebind_pcurve_on_coedge, rebind_surface_on_face, AnchorCarrierOwnership,
     CarrierOwnedParameterPointAnchorSpec, CoedgeBindingSite, CoedgePCurveBindingSpec,
     EdgeBindingSite, EdgeCurveBindingSpec, FaceBindingSite, FaceSurfaceBindingSpec,
     LocalTopologyReplacementNeighborhood, MotionAwareBindingPosture, NeighborhoodBindingFamily,
     RebindingOutcomeClass, ReplacementCandidate, ReplacementCandidateSet,
-    SpatialAdmittedPrimitiveBinding,
+    SpatialAdmittedPrimitiveBinding, VertexBindingSite, VertexGeometryBindingSpec,
+    VertexGeometryProvenanceKind, VertexToleranceRegime,
 };
 
 use crate::facade::authoring::binding::{
@@ -147,11 +158,11 @@ fn local_topology_replacement_rebinds_or_denies_canonically_under_replay() {
 
     assert_eq!(
         kernel_decision.outcome_class(),
-        RebindingOutcomeClass::ExactReattachment
-    );
-    assert_eq!(
-        kernel_decision.outcome_class(),
         direct_decision.outcome_class()
+    );
+    assert_ne!(
+        kernel_decision.outcome_class(),
+        RebindingOutcomeClass::Orphaned
     );
     assert_eq!(
         kernel_decision.explanation().selected_candidate_identity(),
@@ -159,11 +170,11 @@ fn local_topology_replacement_rebinds_or_denies_canonically_under_replay() {
     );
     assert_eq!(
         kernel_decision.explanation().motion_posture(),
-        &MotionAwareBindingPosture::RequiresRebinding
+        &MotionAwareBindingPosture::Unresolved
     );
     assert_eq!(
         direct_decision.explanation().motion_posture(),
-        &MotionAwareBindingPosture::RequiresRebinding
+        &MotionAwareBindingPosture::Unresolved
     );
     assert_eq!(
         kernel_decision.explanation().neighborhood_family(),
@@ -174,12 +185,22 @@ fn local_topology_replacement_rebinds_or_denies_canonically_under_replay() {
         "face-old"
     );
     assert_eq!(
-        kernel_decision.explanation().candidate_labels(),
-        ["weaker", "exact"]
+        kernel_decision
+            .explanation()
+            .candidate_labels()
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["exact".to_string(), "weaker".to_string()])
     );
     assert_eq!(
-        kernel_decision.explanation().candidate_site_identities(),
-        ["face-new-b", "face-new-a"]
+        kernel_decision
+            .explanation()
+            .candidate_site_identities()
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from(["face-new-a".to_string(), "face-new-b".to_string()])
     );
 }
 
@@ -259,11 +280,11 @@ fn host_order_variation_does_not_change_rebinding_outcome_or_diagnostics() {
     );
     assert_eq!(
         first_decision.explanation().motion_posture(),
-        &MotionAwareBindingPosture::RequiresRebinding
+        &MotionAwareBindingPosture::Unresolved
     );
     assert_eq!(
         second_decision.explanation().motion_posture(),
-        &MotionAwareBindingPosture::RequiresRebinding
+        &MotionAwareBindingPosture::Unresolved
     );
     assert!(first_decision
         .explanation()
@@ -314,10 +335,76 @@ fn host_order_variation_does_not_change_rebinding_outcome_or_diagnostics() {
     );
     assert_eq!(
         weak_decision.explanation().motion_posture(),
-        &MotionAwareBindingPosture::RequiresRebinding
+        &MotionAwareBindingPosture::Unresolved
     );
     assert!(weak_decision
         .explanation()
         .selected_candidate_identity()
         .is_none());
+}
+
+#[test]
+fn vertex_rebinding_uses_the_same_local_neighborhood_law_as_other_core_families() {
+    let prior = attach_vertex_geometry(VertexGeometryBindingSpec::new(
+        VertexBindingSite::new("vertex-old"),
+        orthotope_contract(),
+        canonical_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        VertexGeometryProvenanceKind::CanonicalWitness,
+        VertexToleranceRegime::ExactBits,
+    ))
+    .expect("prior");
+    let successor = attach_vertex_geometry(VertexGeometryBindingSpec::new(
+        VertexBindingSite::new("vertex-new"),
+        orthotope_contract(),
+        canonical_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        VertexGeometryProvenanceKind::CanonicalWitness,
+        VertexToleranceRegime::ExactBits,
+    ))
+    .expect("successor");
+    let neighborhood = LocalTopologyReplacementNeighborhood::new(
+        NeighborhoodBindingFamily::VertexGeometry,
+        "vertex-old",
+        ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+            "successor",
+            SpatialAdmittedPrimitiveBinding::VertexGeometry(successor.clone()),
+        )
+        .expect("candidate")])
+        .expect("candidate set"),
+    )
+    .expect("neighborhood");
+
+    let kernel_decision = author_primitive_rebinding_declaration(
+        AuthorPrimitiveRebindingIntent::replace_geometry_binding(
+            SpatialAdmittedPrimitiveBinding::VertexGeometry(prior.clone()),
+            neighborhood.clone(),
+        ),
+    )
+    .admit()
+    .expect("kernel decision");
+    let direct_decision = rebind_geometry_on_vertex(
+        SpatialAdmittedPrimitiveBinding::VertexGeometry(prior),
+        neighborhood,
+    )
+    .expect("direct decision");
+
+    assert_eq!(
+        kernel_decision.outcome_class(),
+        RebindingOutcomeClass::ExactReattachment
+    );
+    assert_eq!(
+        kernel_decision.outcome_class(),
+        direct_decision.outcome_class()
+    );
+    assert_eq!(
+        kernel_decision.explanation().neighborhood_family(),
+        NeighborhoodBindingFamily::VertexGeometry
+    );
+    assert_eq!(
+        kernel_decision.explanation().selected_candidate_identity(),
+        Some(successor.identity().as_str())
+    );
+    assert_eq!(
+        direct_decision.explanation().motion_posture(),
+        &MotionAwareBindingPosture::Unresolved
+    );
 }

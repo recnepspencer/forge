@@ -77,11 +77,7 @@ impl ForgeQueryDeclarationFamilyMarker<PrimitiveBindingQueryDomain>
         ForgeQueryDeclarationAspectContract::from_slices(
             &["binding.kind", "binding.site", "binding.geometry"],
             &["binding.topology_contract"],
-            &[
-                "binding.anchor.carrier",
-                "binding.anchor.parameter",
-                "binding.anchor.role",
-            ],
+            &[],
             &[],
             &[],
         )

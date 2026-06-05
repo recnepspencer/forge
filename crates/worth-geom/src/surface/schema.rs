@@ -50,6 +50,25 @@ pub enum SurfaceKind {
         radius: f64,
     },
 
+    /// Triaxial ellipsoid centered at `center` with three distinct principal
+    /// radii aligned to the provided orthonormal frame.
+    TriaxialEllipsoid {
+        /// Center point.
+        center: [f64; 3],
+        /// Unit principal axis for radius_a.
+        axis_u: [f64; 3],
+        /// Unit principal axis for radius_b.
+        axis_v: [f64; 3],
+        /// Unit principal axis for radius_c.
+        axis_w: [f64; 3],
+        /// Principal radius along `axis_u`.
+        radius_a: f64,
+        /// Principal radius along `axis_v`.
+        radius_b: f64,
+        /// Principal radius along `axis_w`.
+        radius_c: f64,
+    },
+
     /// Torus (doughnut) centered at `center`.
     Torus {
         /// Center of the torus.
@@ -61,6 +80,13 @@ pub enum SurfaceKind {
         /// Minor radius (radius of the tube).
         minor_r: f64,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TriaxialEllipsoidDefinitionError {
+    RadiusMustBePositive,
+    RadiiMustBeDistinct,
+    AxisFrameMustBeUnitAndOrthonormal,
 }
 
 /// Valid parameter domain for a surface.
@@ -147,6 +173,23 @@ impl ParameterDomain {
             v_periodic: true,
         }
     }
+
+    /// Standard triaxial ellipsoid domain: u ∈ [0, 2π) periodic, v ∈ [-π/2, π/2].
+    pub fn triaxial_ellipsoid() -> Self {
+        Self::sphere()
+    }
+
+    pub fn structural_signature(&self) -> String {
+        format!(
+            concat!("u:[{:016x},{:016x}]:{}|", "v:[{:016x},{:016x}]:{}"),
+            self.u_min.to_bits(),
+            self.u_max.to_bits(),
+            self.u_periodic,
+            self.v_min.to_bits(),
+            self.v_max.to_bits(),
+            self.v_periodic
+        )
+    }
 }
 
 /// Complete surface data: parametric definition + domain.
@@ -199,6 +242,33 @@ impl SurfaceData {
         }
     }
 
+    /// Create a triaxial ellipsoid surface.
+    pub fn triaxial_ellipsoid(
+        center: [f64; 3],
+        axis_u: [f64; 3],
+        axis_v: [f64; 3],
+        axis_w: [f64; 3],
+        radius_a: f64,
+        radius_b: f64,
+        radius_c: f64,
+    ) -> Result<Self, TriaxialEllipsoidDefinitionError> {
+        validate_triaxial_ellipsoid_definition(
+            axis_u, axis_v, axis_w, radius_a, radius_b, radius_c,
+        )?;
+        Ok(Self {
+            kind: SurfaceKind::TriaxialEllipsoid {
+                center,
+                axis_u,
+                axis_v,
+                axis_w,
+                radius_a,
+                radius_b,
+                radius_c,
+            },
+            domain: ParameterDomain::triaxial_ellipsoid(),
+        })
+    }
+
     /// Create a toroidal surface.
     pub fn torus(center: [f64; 3], axis: [f64; 3], major_r: f64, minor_r: f64) -> Self {
         Self {
@@ -211,6 +281,43 @@ impl SurfaceData {
             domain: ParameterDomain::torus(),
         }
     }
+}
+
+fn validate_triaxial_ellipsoid_definition(
+    axis_u: [f64; 3],
+    axis_v: [f64; 3],
+    axis_w: [f64; 3],
+    radius_a: f64,
+    radius_b: f64,
+    radius_c: f64,
+) -> Result<(), TriaxialEllipsoidDefinitionError> {
+    if radius_a <= 0.0 || radius_b <= 0.0 || radius_c <= 0.0 {
+        return Err(TriaxialEllipsoidDefinitionError::RadiusMustBePositive);
+    }
+    if radius_a.to_bits() == radius_b.to_bits()
+        || radius_a.to_bits() == radius_c.to_bits()
+        || radius_b.to_bits() == radius_c.to_bits()
+    {
+        return Err(TriaxialEllipsoidDefinitionError::RadiiMustBeDistinct);
+    }
+    if !is_unit(axis_u) || !is_unit(axis_v) || !is_unit(axis_w) {
+        return Err(TriaxialEllipsoidDefinitionError::AxisFrameMustBeUnitAndOrthonormal);
+    }
+    if dot(axis_u, axis_v).abs() > 1e-12
+        || dot(axis_u, axis_w).abs() > 1e-12
+        || dot(axis_v, axis_w).abs() > 1e-12
+    {
+        return Err(TriaxialEllipsoidDefinitionError::AxisFrameMustBeUnitAndOrthonormal);
+    }
+    Ok(())
+}
+
+fn dot(a: [f64; 3], b: [f64; 3]) -> f64 {
+    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+
+fn is_unit(axis: [f64; 3]) -> bool {
+    (dot(axis, axis) - 1.0).abs() <= 1e-12
 }
 
 /// Relationship between two surfaces (for analytic arbitration).

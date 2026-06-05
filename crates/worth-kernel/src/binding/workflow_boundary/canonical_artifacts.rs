@@ -4,7 +4,7 @@ use forge_query::facade::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryAdmittedDeclarationProgression,
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationEntryInspection,
     ForgeQueryDeclarationEntryInspectionError, ForgeQueryDeclarationEntryInspectionInput,
-    ForgeQueryDeclarationEntryProgressionError, ForgeQueryDeclarationEnvelope,
+    ForgeQueryDeclarationEntryProgressionError, ForgeQueryDeclarationEntryReadinessReport,
     ForgeQueryDeclarationEnvelopeChecked, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationReceiptChecked, ForgeQueryDeclarationRoutePlanChecked,
     ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext, ForgeQueryOrdinaryOutcome,
@@ -21,11 +21,13 @@ pub(crate) struct KernelCanonicalQueryWorkflowArtifactSet<
     I: ForgeQueryDeclarationInput<D>,
 > {
     canonical_entries: Vec<ForgeQueryDeclarationCanonicalEntry>,
+    readiness: ForgeQueryDeclarationEntryReadinessReport<D, I>,
     progression: ForgeQueryAdmittedDeclarationProgression<D, I>,
     route_checked: ForgeQueryDeclarationRoutePlanChecked<D, I>,
     receipt_checked: ForgeQueryDeclarationReceiptChecked<D, I>,
     envelope_checked: ForgeQueryDeclarationEnvelopeChecked<D, I>,
-    ordinary_outcome: ForgeQueryOrdinaryOutcome<ForgeQueryDeclarationEnvelope<D, I>>,
+    ordinary_outcome_label: &'static str,
+    ordinary_posture_kind: Option<ForgeQueryOrdinaryPostureKind>,
     inspection: ForgeQueryDeclarationEntryInspection<D, I>,
 }
 
@@ -34,6 +36,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 {
     pub(crate) fn canonical_entries(&self) -> &[ForgeQueryDeclarationCanonicalEntry] {
         &self.canonical_entries
+    }
+
+    pub(crate) fn readiness(&self) -> &ForgeQueryDeclarationEntryReadinessReport<D, I> {
+        &self.readiness
     }
 
     pub(crate) fn progression(&self) -> &ForgeQueryAdmittedDeclarationProgression<D, I> {
@@ -53,49 +59,11 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     }
 
     pub(crate) fn ordinary_outcome_label(&self) -> &'static str {
-        match self.ordinary_outcome {
-            ForgeQueryOrdinaryOutcome::Bound(_) => "bound",
-            ForgeQueryOrdinaryOutcome::Ambiguous(_) => "ambiguous",
-            ForgeQueryOrdinaryOutcome::AspectConflict(_) => "aspect_conflict",
-            ForgeQueryOrdinaryOutcome::AuthorityMismatch(_) => "authority_mismatch",
-            ForgeQueryOrdinaryOutcome::BasisMismatch(_) => "basis_mismatch",
-            ForgeQueryOrdinaryOutcome::Deferred(_) => "deferred",
-            ForgeQueryOrdinaryOutcome::Denied(_) => "denied",
-            ForgeQueryOrdinaryOutcome::ExplicitNarrowingRequired(_) => {
-                "explicit_narrowing_required"
-            }
-            ForgeQueryOrdinaryOutcome::Failed(_) => "failed",
-            ForgeQueryOrdinaryOutcome::MissingRequiredAspect(_) => "missing_required_aspect",
-            ForgeQueryOrdinaryOutcome::RebindRequired(_) => "rebind_required",
-            ForgeQueryOrdinaryOutcome::Refused(_) => "refused",
-            ForgeQueryOrdinaryOutcome::Stale(_) => "stale",
-            ForgeQueryOrdinaryOutcome::Unavailable(_) => "unavailable",
-            ForgeQueryOrdinaryOutcome::Unsupported(_) => "unsupported",
-            ForgeQueryOrdinaryOutcome::WrongHandle(_) => "wrong_handle",
-            ForgeQueryOrdinaryOutcome::WrongWorld(_) => "wrong_world",
-        }
+        self.ordinary_outcome_label
     }
 
     pub(crate) fn ordinary_posture_kind(&self) -> Option<ForgeQueryOrdinaryPostureKind> {
-        match &self.ordinary_outcome {
-            ForgeQueryOrdinaryOutcome::Bound(_) => None,
-            ForgeQueryOrdinaryOutcome::Ambiguous(value)
-            | ForgeQueryOrdinaryOutcome::AspectConflict(value)
-            | ForgeQueryOrdinaryOutcome::AuthorityMismatch(value)
-            | ForgeQueryOrdinaryOutcome::BasisMismatch(value)
-            | ForgeQueryOrdinaryOutcome::Deferred(value)
-            | ForgeQueryOrdinaryOutcome::Denied(value)
-            | ForgeQueryOrdinaryOutcome::ExplicitNarrowingRequired(value)
-            | ForgeQueryOrdinaryOutcome::Failed(value)
-            | ForgeQueryOrdinaryOutcome::MissingRequiredAspect(value)
-            | ForgeQueryOrdinaryOutcome::RebindRequired(value)
-            | ForgeQueryOrdinaryOutcome::Refused(value)
-            | ForgeQueryOrdinaryOutcome::Stale(value)
-            | ForgeQueryOrdinaryOutcome::Unavailable(value)
-            | ForgeQueryOrdinaryOutcome::Unsupported(value)
-            | ForgeQueryOrdinaryOutcome::WrongHandle(value)
-            | ForgeQueryOrdinaryOutcome::WrongWorld(value) => Some(value.kind()),
-        }
+        self.ordinary_posture_kind
     }
 
     pub(crate) fn inspection(&self) -> &ForgeQueryDeclarationEntryInspection<D, I> {
@@ -120,7 +88,28 @@ pub(crate) fn canonical_query_workflow_artifacts<
     handle: &ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
     entry: I,
 ) -> Result<KernelCanonicalQueryWorkflowArtifactSet<D, I>, KernelWorkflowBoundaryError<D, I>> {
+    let ordinary_outcome = handle.orchestrate_declaration_entry_outcome(entry.clone());
+    let (ordinary_outcome_label, ordinary_posture_kind) = ordinary_outcome_shape(&ordinary_outcome);
+    canonical_query_workflow_artifacts_with_ordinary_shape(
+        handle,
+        entry,
+        ordinary_outcome_label,
+        ordinary_posture_kind,
+    )
+}
+
+pub(crate) fn canonical_query_workflow_artifacts_with_ordinary_shape<
+    D: ForgeQueryDomainEntryMarker,
+    C: ForgeQueryDomainOperatingContext<D>,
+    I: ForgeQueryDeclarationInput<D> + Clone,
+>(
+    handle: &ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
+    entry: I,
+    ordinary_outcome_label: &'static str,
+    ordinary_posture_kind: Option<ForgeQueryOrdinaryPostureKind>,
+) -> Result<KernelCanonicalQueryWorkflowArtifactSet<D, I>, KernelWorkflowBoundaryError<D, I>> {
     let canonical_entries = entry.canonical_declaration_entries();
+    let readiness = handle.declaration_entry_readiness::<I>();
     let progression = handle
         .declare_review_and_progress(entry.clone())
         .map_err(KernelWorkflowBoundaryError::Progression)?;
@@ -129,7 +118,6 @@ pub(crate) fn canonical_query_workflow_artifacts<
     let envelope_checked = handle.orchestrate_envelope_from_progressed_checked(progression.clone());
     let inspection_envelope_checked =
         handle.orchestrate_envelope_from_progressed_checked(progression.clone());
-    let ordinary_outcome = handle.orchestrate_declaration_entry_outcome(entry);
     let inspection = handle
         .inspect_declaration_entry(ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
             inspection_envelope_checked,
@@ -138,11 +126,43 @@ pub(crate) fn canonical_query_workflow_artifacts<
 
     Ok(KernelCanonicalQueryWorkflowArtifactSet {
         canonical_entries,
+        readiness,
         progression,
         route_checked,
         receipt_checked,
         envelope_checked,
-        ordinary_outcome,
+        ordinary_outcome_label,
+        ordinary_posture_kind,
         inspection,
     })
+}
+
+pub(crate) fn ordinary_outcome_shape<T>(
+    outcome: &ForgeQueryOrdinaryOutcome<T>,
+) -> (&'static str, Option<ForgeQueryOrdinaryPostureKind>) {
+    match outcome {
+        ForgeQueryOrdinaryOutcome::Bound(_) => ("bound", None),
+        ForgeQueryOrdinaryOutcome::Ambiguous(value) => ("ambiguous", Some(value.kind())),
+        ForgeQueryOrdinaryOutcome::AspectConflict(value) => ("aspect_conflict", Some(value.kind())),
+        ForgeQueryOrdinaryOutcome::AuthorityMismatch(value) => {
+            ("authority_mismatch", Some(value.kind()))
+        }
+        ForgeQueryOrdinaryOutcome::BasisMismatch(value) => ("basis_mismatch", Some(value.kind())),
+        ForgeQueryOrdinaryOutcome::Deferred(value) => ("deferred", Some(value.kind())),
+        ForgeQueryOrdinaryOutcome::Denied(value) => ("denied", Some(value.kind())),
+        ForgeQueryOrdinaryOutcome::ExplicitNarrowingRequired(value) => {
+            ("explicit_narrowing_required", Some(value.kind()))
+        }
+        ForgeQueryOrdinaryOutcome::Failed(value) => ("failed", Some(value.kind())),
+        ForgeQueryOrdinaryOutcome::MissingRequiredAspect(value) => {
+            ("missing_required_aspect", Some(value.kind()))
+        }
+        ForgeQueryOrdinaryOutcome::RebindRequired(value) => ("rebind_required", Some(value.kind())),
+        ForgeQueryOrdinaryOutcome::Refused(value) => ("refused", Some(value.kind())),
+        ForgeQueryOrdinaryOutcome::Stale(value) => ("stale", Some(value.kind())),
+        ForgeQueryOrdinaryOutcome::Unavailable(value) => ("unavailable", Some(value.kind())),
+        ForgeQueryOrdinaryOutcome::Unsupported(value) => ("unsupported", Some(value.kind())),
+        ForgeQueryOrdinaryOutcome::WrongHandle(value) => ("wrong_handle", Some(value.kind())),
+        ForgeQueryOrdinaryOutcome::WrongWorld(value) => ("wrong_world", Some(value.kind())),
+    }
 }

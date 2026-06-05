@@ -1,7 +1,11 @@
 use super::{
-    candidate_evaluation::ReplacementCandidateEvaluation, continuity::BindingContinuityClass,
-    motion_posture::MotionAwareBindingPosture, neighborhood::NeighborhoodBindingFamily,
+    candidate_evaluation::ReplacementCandidateEvaluation,
+    continuity::BindingContinuityClass,
+    motion_posture::MotionAwareBindingPosture,
+    neighborhood::{LocalTopologyReplacementNeighborhood, NeighborhoodBindingFamily},
+    outcome_classification::UnsupportedRebindingReason,
 };
+use crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RebindingExplanation {
@@ -15,6 +19,7 @@ pub struct RebindingExplanation {
     candidate_site_identities: Vec<String>,
     selected_candidate_identity: Option<String>,
     selected_candidate_label: Option<String>,
+    unsupported_reason: Option<UnsupportedRebindingReason>,
 }
 
 impl RebindingExplanation {
@@ -24,8 +29,8 @@ impl RebindingExplanation {
     ) -> Self {
         let continuity_class = evaluation.continuity().continuity_class();
         let selected_candidate_identity = evaluation
-            .continuity()
-            .candidate_identity()
+            .selection()
+            .selected_candidate_identity()
             .filter(|_| {
                 matches!(
                     continuity_class,
@@ -36,15 +41,15 @@ impl RebindingExplanation {
             })
             .map(ToOwned::to_owned);
         let selected_candidate_label = evaluation
-            .continuity()
-            .candidate_label()
+            .selection()
+            .selected_candidate_label()
             .filter(|_| selected_candidate_identity.is_some())
             .map(ToOwned::to_owned);
         Self {
             neighborhood_family: evaluation.neighborhood().family(),
             continuity_class,
             motion_posture,
-            prior_identity: evaluation.prior_binding().identity().as_str().to_string(),
+            prior_identity: evaluation.prior_binding().identity().to_string(),
             prior_site_identity: evaluation.neighborhood().prior_site_identity().to_string(),
             candidate_labels: evaluation
                 .neighborhood()
@@ -56,7 +61,7 @@ impl RebindingExplanation {
                 .neighborhood()
                 .candidates()
                 .iter()
-                .map(|candidate| candidate.binding().identity().as_str().to_string())
+                .map(|candidate| candidate.binding().identity().to_string())
                 .collect(),
             candidate_site_identities: evaluation
                 .neighborhood()
@@ -66,6 +71,39 @@ impl RebindingExplanation {
                 .collect(),
             selected_candidate_identity,
             selected_candidate_label,
+            unsupported_reason: None,
+        }
+    }
+
+    pub(crate) fn unsupported(
+        prior_binding: &SpatialAdmittedPrimitiveBinding,
+        neighborhood: &LocalTopologyReplacementNeighborhood,
+        reason: UnsupportedRebindingReason,
+    ) -> Self {
+        Self {
+            neighborhood_family: neighborhood.family(),
+            continuity_class: BindingContinuityClass::None,
+            motion_posture: MotionAwareBindingPosture::Unresolved,
+            prior_identity: prior_binding.identity().to_string(),
+            prior_site_identity: neighborhood.prior_site_identity().to_string(),
+            candidate_labels: neighborhood
+                .candidates()
+                .iter()
+                .map(|candidate| candidate.label().to_string())
+                .collect(),
+            candidate_identities: neighborhood
+                .candidates()
+                .iter()
+                .map(|candidate| candidate.binding().identity().to_string())
+                .collect(),
+            candidate_site_identities: neighborhood
+                .candidates()
+                .iter()
+                .map(|candidate| candidate.site_identity().to_string())
+                .collect(),
+            selected_candidate_identity: None,
+            selected_candidate_label: None,
+            unsupported_reason: Some(reason),
         }
     }
 
@@ -107,5 +145,9 @@ impl RebindingExplanation {
 
     pub fn selected_candidate_label(&self) -> Option<&str> {
         self.selected_candidate_label.as_deref()
+    }
+
+    pub fn unsupported_reason(&self) -> Option<UnsupportedRebindingReason> {
+        self.unsupported_reason
     }
 }
