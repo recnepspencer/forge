@@ -1,107 +1,138 @@
-// Import all markdown files under crates/forge-signal-wasm/docs eagerly as raw strings
-const rawDocs = import.meta.glob(
-  "../../crates/forge-signal-wasm/docs/**/*.md",
-  {
-    query: "?raw",
-    import: "default",
-    eager: true,
-  }
-) as Record<string, string>;
+const rawDocs = import.meta.glob("../../../../crates/forge-signal-wasm/docs/**/*.md", {
+  eager: true,
+  import: "default",
+  query: "?raw",
+}) as Record<string, string>;
 
 export interface DocArticle {
-  title: string;
-  subpath: string; // e.g. "forms/getting-started/your-first-form"
   content: string;
-}
-
-export interface DocCategory {
+  subpath: string;
   title: string;
-  items: { title: string; subpath: string }[];
 }
 
-// Helper to clean key paths
-// e.g. "../../crates/forge-signal-wasm/docs/forms/index.md" -> "forms/index"
-function cleanPath(key: string): string {
-  return key
-    .replace("../../crates/forge-signal-wasm/docs/", "")
-    .replace(/\.md$/, "");
+export interface DocNavNode {
+  children: DocNavNode[];
+  depth: number;
+  item?: { subpath: string; title: string };
+  key: string;
+  title: string;
+  type: "folder" | "doc";
 }
 
-// Expose a helper to fetch any document by clean subpath
-export function getDocArticle(subpath: string): DocArticle | null {
-  const matchKey = Object.keys(rawDocs).find(
-    (key) => cleanPath(key) === subpath
-  );
+type InternalNavNode = DocNavNode & { childrenMap: Map<string, InternalNavNode> };
 
-  if (!matchKey) return null;
+const folderTitles: Record<string, string> = {
+  "api-reference": "API Reference",
+  "app-surface": "App Surface",
+  forms: "Forms",
+  learn: "Learn",
+  resources: "Resources",
+  router: "Router",
+};
 
-  const content = rawDocs[matchKey];
-  
-  // Try to parse the first header as the title
-  const headerMatch = content.match(/^#\s+(.+)$/m);
-  const title = headerMatch ? headerMatch[1].trim() : subpath.split("/").pop() || "Untitled";
+function cleanPath(key: string) {
+  return key.replace("../../../../crates/forge-signal-wasm/docs/", "").replace(/\.md$/, "");
+}
 
-  return {
-    title,
-    subpath,
-    content,
+function titleFromSlug(slug: string) {
+  return (folderTitles[slug] ?? slug)
+    .replace(/^README$/i, "Overview")
+    .replace(/^index$/i, "Overview")
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function titleFromPath(subpath: string, content: string) {
+  return content.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? titleFromSlug(subpath.split("/").pop() ?? subpath);
+}
+
+const allArticles = Object.entries(rawDocs).map(([key, content]) => {
+  const subpath = cleanPath(key);
+  return { content, subpath, title: titleFromPath(subpath, content) };
+});
+
+function docRank(node: DocNavNode) {
+  const leaf = node.item?.subpath.split("/").pop()?.toLowerCase();
+  if (node.item?.subpath === "start_here") return -4;
+  if (leaf === "readme") return -3;
+  if (leaf === "index") return -2;
+  return node.type === "folder" ? -1 : 0;
+}
+
+function sortTree(nodes: DocNavNode[]): DocNavNode[] {
+  return nodes
+    .map((node) => ({ ...node, children: sortTree(node.children) }))
+    .sort((left, right) => docRank(left) - docRank(right) || left.title.localeCompare(right.title));
+}
+
+function rootOrder(node: DocNavNode) {
+  const order = ["start_here", "README", "learn", "app-surface", "forms", "router", "resources", "api-reference"];
+  const index = order.indexOf(node.key);
+  return index === -1 ? 99 : index;
+}
+
+function buildNavigation() {
+  const roots = new Map<string, InternalNavNode>();
+  const folders = new Map<string, InternalNavNode>();
+  const ensureFolder = (segments: string[]): InternalNavNode => {
+    const key = segments.join("/");
+    const existing = folders.get(key);
+    if (existing) return existing;
+    const node: InternalNavNode = {
+      children: [],
+      childrenMap: new Map<string, InternalNavNode>(),
+      depth: segments.length - 1,
+      key,
+      title: titleFromSlug(segments[segments.length - 1] ?? key),
+      type: "folder",
+    };
+    folders.set(key, node);
+    if (segments.length === 1) {
+      roots.set(key, node);
+    } else {
+      ensureFolder(segments.slice(0, -1)).childrenMap.set(key, node);
+    }
+    return node;
   };
+
+  for (const article of allArticles) {
+    const segments = article.subpath.split("/");
+    const docNode: DocNavNode = {
+      children: [],
+      depth: segments.length - 1,
+      item: { subpath: article.subpath, title: article.title },
+      key: article.subpath,
+      title: article.title,
+      type: "doc",
+    };
+    if (segments.length === 1) {
+      roots.set(article.subpath, { ...docNode, childrenMap: new Map() });
+      continue;
+    }
+    ensureFolder(segments.slice(0, -1)).childrenMap.set(article.subpath, { ...docNode, childrenMap: new Map() });
+  }
+
+  const materialize = (node: InternalNavNode): DocNavNode => ({
+    children: sortTree(Array.from(node.childrenMap.values()).map(materialize)),
+    depth: node.depth,
+    item: node.item,
+    key: node.key,
+    title: node.title,
+    type: node.type,
+  });
+
+  return sortTree(Array.from(roots.values()).map(materialize)).sort(
+    (left, right) => rootOrder(left) - rootOrder(right) || left.title.localeCompare(right.title),
+  );
 }
 
-// Generate structured navigation hierarchy for the docs sidebar
-export const docsNavigation: DocCategory[] = [
-  {
-    title: "Getting Started",
-    items: [
-      { title: "Start Here", subpath: "start_here" },
-      { title: "Readme Overview", subpath: "README" },
-    ],
-  },
-  {
-    title: "Core Mechanics",
-    items: [
-      { title: "Feature Index", subpath: "learn/feature-index" },
-      { title: "State Recipes", subpath: "learn/recipes" },
-    ],
-  },
-  {
-    title: "Forms Stack",
-    items: [
-      { title: "Forms Overview", subpath: "forms/index" },
-      { title: "Your First Form", subpath: "forms/getting-started/your-first-form" },
-      { title: "Form Source Selection", subpath: "forms/getting-started/choosing-a-form-source" },
-      { title: "Source vs Draft vs Effective", subpath: "forms/state/source-truth-draft-and-effective-values" },
-      { title: "Semantic Dirty State", subpath: "forms/changes/dirty-state" },
-      { title: "Validation Engine", subpath: "forms/validation/validation-overview" },
-      { title: "Route-Coupled Forms", subpath: "forms/route-coupling/route-authority-handoff" },
-    ],
-  },
-  {
-    title: "Routing Primitives",
-    items: [
-      { title: "Router Overview", subpath: "router/index" },
-      { title: "URL Authority", subpath: "router/authority/README" },
-      { title: "Route Projection", subpath: "router/projection/README" },
-      { title: "Route Admission", subpath: "router/admission/README" },
-      { title: "Route History & Story", subpath: "router/history/README" },
-      { title: "Route-Coupled Forms", subpath: "router/forms/README" },
-    ],
-  },
-  {
-    title: "Server Resources",
-    items: [
-      { title: "Resource Overview", subpath: "resources/index" },
-      { title: "Your First Resource", subpath: "resources/start-here/your-first-resource" },
-      { title: "Choose A Resource Shape", subpath: "resources/start-here/choose-a-resource-shape" },
-      { title: "Fetching Single Records", subpath: "resources/fetching/fetch-a-single-record" },
-      { title: "Fetching Collections", subpath: "resources/fetching/fetch-a-collection" },
-      { title: "Updating & Writing", subpath: "resources/updating/write-a-resource" },
-      { title: "Branch-Native Effects", subpath: "resources/branch-native-effects" },
-    ],
-  },
-];
+export function getDocArticle(subpath: string): DocArticle | null {
+  const normalized = subpath.replace(/\.md$/, "");
+  return allArticles.find((article) => article.subpath === normalized) ?? null;
+}
 
-// Fallback search to find any unindexed files dynamically
 export function getAllSubpaths(): string[] {
-  return Object.keys(rawDocs).map(cleanPath);
+  return allArticles.map((article) => article.subpath);
 }
+
+export const docsNavigation: DocNavNode[] = buildNavigation();

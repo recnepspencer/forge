@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 export type RouteState = 
   | { type: "landing" }
   | { type: "docs"; subpath: string }
-  | { type: "demos" }
   | { type: "demo-detail"; demoId: number };
 
 function parseHash(hash: string): RouteState {
@@ -23,7 +22,7 @@ function parseHash(hash: string): RouteState {
   }
 
   if (cleanHash === "demos") {
-    return { type: "demos" };
+    return { type: "demo-detail", demoId: 1 };
   }
 
   if (cleanHash.startsWith("demos/")) {
@@ -38,7 +37,7 @@ function parseHash(hash: string): RouteState {
 }
 
 export function useRouter() {
-  const [route, setRoute] = useState<RouteState>(() => parseHash(window.location.hash));
+  const [route, setRoute] = useState<RouteState>(parseHash(window.location.hash));
 
   useEffect(() => {
     const handleHashChange = () => {

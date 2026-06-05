@@ -96,7 +96,7 @@ function createDiagnosticsOutput(
 export function useFormsSectionState(): FormsSectionState {
   const [draft, setDraft] = React.useState<RolloutDraft>(SOURCE_DRAFT);
   const [regionsOpen, setRegionsOpen] = React.useState(false);
-  const regionsRef = React.useRef<HTMLDivElement>(null);
+  const regionsRef = React.useRef<HTMLDivElement | null>(null);
 
   const priceError = validatePrice(draft.price, draft.baseCost, draft.targetMargin) ?? undefined;
   const shippingError = validateShippingSelection(draft.shippingRegions) ?? undefined;

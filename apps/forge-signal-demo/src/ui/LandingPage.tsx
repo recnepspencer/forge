@@ -2,9 +2,13 @@ import React from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { demoRegistry } from "../state/demoData";
-import { BouncingValueField } from "./BouncingValueField";
+import { CompositionGlueArtifact } from "./CompositionGlueArtifact";
 import { FormsComposerField } from "./FormsComposerField";
+import { ResourceLineArtifact } from "./ResourceLineArtifact";
+import { ResourceOptimisticArtifact } from "./ResourceOptimisticArtifact";
 import { RouterRouteField } from "./RouterRouteField";
+import { SignalWaveArtifact } from "./SignalWaveArtifact";
+import { LandingInstallCommand } from "./LandingInstallCommand";
 
 interface LandingPageProps {
   onNavigate: (path: string) => void;
@@ -22,6 +26,15 @@ const capabilitySlides = [
   },
   {
     id: 2,
+    accent: "resources",
+    eyebrow: "Resource Lines",
+    headline: "Every read gets a lifecycle.",
+    body: "Materialize catalog and detail lines, then inspect value, status, freshness, diagnostics, and history from the runtime.",
+    seed: 17,
+    values: [22, 4, 88, 12, 5, 71, 39, 8],
+  },
+  {
+    id: 3,
     accent: "forms",
     eyebrow: "Forms",
     headline: "Form readiness belongs to the runtime.",
@@ -30,7 +43,7 @@ const capabilitySlides = [
     values: [12, 62, 4, 98, 2, 71, 31, 9],
   },
   {
-    id: 3,
+    id: 4,
     accent: "router",
     eyebrow: "Router",
     headline: "Routes can own more than matching.",
@@ -39,16 +52,16 @@ const capabilitySlides = [
     values: [5, 240, 33, 18, 4, 72, 12, 9],
   },
   {
-    id: 4,
+    id: 5,
     accent: "resources",
-    eyebrow: "Resources",
+    eyebrow: "Optimistic Resources",
     headline: "Optimistic writes should be inspectable.",
-    body: "Resource lines expose loading, settled truth, mutation feedback, reconciliation, and rollback as runtime output.",
+    body: "Items appear immediately, then the resource line records whether the write was confirmed, reconciled, or rolled back.",
     seed: 41,
     values: [204, 16, 74, 1, 32, 68, 11, 2],
   },
   {
-    id: 5,
+    id: 6,
     accent: "composition",
     eyebrow: "Composition",
     headline: "The adapter layer is the tax.",
@@ -76,6 +89,9 @@ type CarouselPosition = {
   z: number;
   zIndex: number;
 };
+
+const MotionDiv = motion.div as unknown as React.ElementType;
+const MotionArticle = motion.article as unknown as React.ElementType;
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
   const [activeIndex, setActiveIndex] = React.useState(0);
@@ -163,19 +179,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               Start with signals
               <ArrowRight aria-hidden="true" size={17} />
             </button>
-            <button className="xai-button xai-button-secondary" onClick={() => onNavigate("#/demos")} type="button">
-              View demo ladder
-            </button>
           </div>
+          <LandingInstallCommand />
         </div>
 
         <div className="xai-carousel-stage">
-          <motion.div
+          <MotionDiv
             animate={{ backgroundColor: accentGlowColors[previousSlide.accent as keyof typeof accentGlowColors] }}
             className="xai-card-glow xai-card-glow-left"
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           />
-          <motion.div
+          <MotionDiv
             animate={{ backgroundColor: accentGlowColors[nextSlide.accent as keyof typeof accentGlowColors] }}
             className="xai-card-glow xai-card-glow-right"
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
@@ -193,7 +207,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 const demo = demoRegistry.find((entry) => entry.id === slide.id);
 
                 return (
-                  <motion.article
+                  <MotionArticle
                     key={slide.id}
                     animate={position}
                     className={`xai-carousel-slide accent-${slide.accent}`}
@@ -206,15 +220,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                     }}
                   >
                     <div
-                      className={`xai-slide-artifact${slide.id === 2 ? " xai-slide-artifact-form" : ""}`}
+                      className={`xai-slide-artifact${slide.id === 3 ? " xai-slide-artifact-form" : ""}${slide.id === 5 ? " xai-slide-artifact-resource" : ""}${slide.id === 6 ? " xai-slide-artifact-composition" : ""}`}
                       aria-hidden="true"
                     >
-                      {slide.id === 2 ? (
-                        <FormsComposerField />
+                      {slide.id === 1 ? (
+                        <SignalWaveArtifact />
+                      ) : slide.id === 2 ? (
+                        <ResourceLineArtifact />
                       ) : slide.id === 3 ? (
+                        <FormsComposerField />
+                      ) : slide.id === 4 ? (
                         <RouterRouteField />
+                      ) : slide.id === 5 ? (
+                        <ResourceOptimisticArtifact />
+                      ) : slide.id === 6 ? (
+                        <CompositionGlueArtifact />
                       ) : (
-                        <BouncingValueField seed={slide.seed} values={slide.values} />
+                        <span />
                       )}
                     </div>
 
@@ -236,7 +258,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                         Read docs
                       </button>
                     </div>
-                  </motion.article>
+                  </MotionArticle>
                 );
               })}
             </div>

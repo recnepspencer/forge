@@ -1,3 +1,4 @@
+import { DemoPreface } from "./DemoPreface";
 import "./compositionSection.css";
 
 interface CompositionSectionProps {
@@ -78,7 +79,7 @@ export function CompositionSection({ onNavigate }: CompositionSectionProps) {
   return (
     <div className="xai-section-band accent-composition composition-section">
       <div className="xai-section-heading">
-        <span className="xai-section-eyebrow">05 / Composition</span>
+        <span className="xai-section-eyebrow">06 / Composition</span>
         <h2>The libraries are fine. The adapter layer is the tax.</h2>
         <p>
           TanStack and Formik can both be excellent. The costly code is the
@@ -86,6 +87,8 @@ export function CompositionSection({ onNavigate }: CompositionSectionProps) {
           status, write lifecycle, cache reconciliation, and toasts aligned.
         </p>
       </div>
+
+      <DemoPreface demoId={6} />
 
       <div className="composition-code-grid">
         <article className="composition-card">
@@ -111,7 +114,7 @@ export function CompositionSection({ onNavigate }: CompositionSectionProps) {
       </div>
 
       <div className="xai-section-actions">
-        <button className="xai-button xai-button-primary" onClick={() => onNavigate("#/demos/5")} type="button">
+        <button className="xai-button xai-button-primary" onClick={() => onNavigate("#/demos/6")} type="button">
           Open demo
         </button>
         <button className="xai-button xai-button-secondary" onClick={() => onNavigate("#/docs/forms/route-coupling")} type="button">

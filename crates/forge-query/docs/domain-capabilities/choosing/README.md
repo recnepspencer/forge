@@ -29,6 +29,13 @@ the neighboring Query docs feel close together.
 - [Signal Compatibility Vs Continuation Pipeline](./signal-compatibility-vs-continuation-pipeline.md)
   Choose between freezing signal-facing eligibility and preparing the next
   continuation step.
+- [Live View Vs Subscription](./live-view-vs-subscription.md)
+  Choose between retained live surface and subscription declaration family.
+- [Inspection Vs Cross-Runtime Explanation](./inspection-vs-cross-runtime-explanation.md)
+  Choose between `workspace.inspect`, `CausalInspection`, and explanation
+  contributions.
+- [Projection Consumption Vs Inspection](./projection-consumption-vs-inspection.md)
+  Choose between receipt-first projection facts and general inspection.
 
 ## Quick Rules
 

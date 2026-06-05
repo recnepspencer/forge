@@ -694,6 +694,11 @@ assert_eq!(
 - Use [Projection Consumption](../capabilities/projection-consumption.md) when the returned
   `ForgeQueryReadResult` must become typed consumed facts instead of staying a
   payload-plus-receipt artifact.
+- Policy, tenant, and relationship-proof narrowing detail lives in
+  [policy, tenant, and relationship-proof narrowing](../foundations/policy-tenant-and-relationship-proof-narrowing.md)
+  (masking, descriptors, deferred policy-aware live/historical parity)—not duplicated here.
+- Collection cursors, ordering, aggregates, and CDC-shaped collection planning live in
+  [collections, cursors, ordering, and aggregations](collections-cursors-ordering-and-aggregations.md).
 - Use graph composition when you are authoring writes or mutation intent, not
   reads.
 

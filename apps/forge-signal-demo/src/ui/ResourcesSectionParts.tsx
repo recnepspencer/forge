@@ -126,3 +126,27 @@ export function DiagnosticsComparison({
     </div>
   );
 }
+
+export function ResourceFeedbackGuide(): React.ReactElement {
+  return (
+    <div className="resources-feedback-guide">
+      <span>Feedback to watch</span>
+      <div>
+        <strong>Optimistic row</strong>
+        <p>The item appears before the server answers.</p>
+      </div>
+      <div>
+        <strong>Toast feed</strong>
+        <p>The UI can map lifecycle feedback into success or failure messages.</p>
+      </div>
+      <div>
+        <strong>Line lifecycle</strong>
+        <p>Forge records the admitted effect and whether rollback is available.</p>
+      </div>
+      <div>
+        <strong>Rollback result</strong>
+        <p>On failure, the runtime can restore the previous visible list.</p>
+      </div>
+    </div>
+  );
+}
