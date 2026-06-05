@@ -9,6 +9,8 @@ pub use rejection::{
     BridgeSubscriptionPreviewBasisRejectionKind,
 };
 
+use crate::input::envelope::TruthBranchIdentity;
+use crate::snapshot::TruthSnapshotIdentity;
 use crate::speculation::{
     BridgePreviewExecutionRecord, BridgePreviewLifecycleStateKind, BridgePreviewSession,
     BridgePreviewSessionIdentity, PreviewActive, PreviewExecutionRecordIdentity,
@@ -34,6 +36,8 @@ pub struct BridgeSubscriptionPreviewBasisBinding {
     preview_residue_scope_identity: BridgeSubscriptionPreviewResidueScopeIdentity,
     preview_session_identity: BridgePreviewSessionIdentity,
     preview_execution_record_identity: PreviewExecutionRecordIdentity,
+    truth_branch_identity: TruthBranchIdentity,
+    truth_snapshot_identity: TruthSnapshotIdentity,
     preview_declaration_digest: Arc<str>,
     branch_binding_digest: Arc<str>,
     parent_truth_view_basis_digest: Arc<str>,
@@ -88,6 +92,15 @@ impl BridgeSubscriptionPreviewBasisBinding {
         }
 
         let declaration = active_preview_session.declaration().declaration();
+        let truth_view_selector = active_preview_session
+            .declaration()
+            .declaration()
+            .session_basis()
+            .truth_view_selector();
+        let truth_snapshot_identity = truth_view_selector
+            .snapshot_identity()
+            .expect("preview session basis must carry explicit snapshot identity")
+            .clone();
         let preview_scope_basis = Arc::<str>::from(format!(
             "bridge-subscription-preview-scope|session={}|signal-branch={}",
             active_preview_session.session_identity().as_str(),
@@ -151,6 +164,8 @@ impl BridgeSubscriptionPreviewBasisBinding {
             ),
             preview_session_identity: active_preview_session.session_identity().clone(),
             preview_execution_record_identity: preview_execution_record.record_identity().clone(),
+            truth_branch_identity: truth_view_selector.branch_identity().clone(),
+            truth_snapshot_identity,
             preview_declaration_digest: Arc::from(active_preview_session.declaration().digest()),
             branch_binding_digest: Arc::from(declaration.branch_binding().digest()),
             parent_truth_view_basis_digest: Arc::from(declaration.truth_view_basis_digest()),
@@ -190,6 +205,14 @@ impl BridgeSubscriptionPreviewBasisBinding {
 
     pub fn preview_execution_record_identity(&self) -> &PreviewExecutionRecordIdentity {
         &self.preview_execution_record_identity
+    }
+
+    pub fn truth_branch_identity(&self) -> &TruthBranchIdentity {
+        &self.truth_branch_identity
+    }
+
+    pub fn truth_snapshot_identity(&self) -> &TruthSnapshotIdentity {
+        &self.truth_snapshot_identity
     }
 
     pub fn preview_declaration_digest(&self) -> &str {

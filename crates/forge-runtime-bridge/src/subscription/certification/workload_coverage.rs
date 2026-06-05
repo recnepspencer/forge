@@ -11,6 +11,7 @@ use super::{
     BridgeSubscriptionCertificationCounterSnapshot, BridgeSubscriptionCertificationFailureBoundary,
     BridgeSubscriptionReferenceWorkloadFamilyKind, BridgeSubscriptionReferenceWorkloadLaneKind,
     BridgeSubscriptionReferenceWorkloadLaneReport,
+    BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -176,8 +177,11 @@ impl BridgeSubscriptionReferenceWorkloadLaneCoverageRow {
 pub struct BridgeSubscriptionReferenceWorkloadCoverageReport {
     lane_kinds: Vec<BridgeSubscriptionReferenceWorkloadLaneKind>,
     family_kinds: Vec<BridgeSubscriptionReferenceWorkloadFamilyKind>,
+    covered_required_facets: Vec<BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet>,
     lane_coverage_rows: Vec<BridgeSubscriptionReferenceWorkloadLaneCoverageRow>,
     first_ship_lane_matrix_covered: bool,
+    required_phase_17_facets_covered: bool,
+    required_hostile_lane_set_covered: bool,
     multi_family_covered: bool,
     comparison_evidence_complete: bool,
     expected_lane_outcomes_covered: bool,
@@ -257,6 +261,25 @@ impl BridgeSubscriptionReferenceWorkloadCoverageReport {
             BridgeSubscriptionReferenceWorkloadLaneKind::first_ship_matrix()
                 .iter()
                 .all(|required| lane_kinds.contains(required));
+        let mut covered_required_facets =
+            BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet::all()
+                .iter()
+                .copied()
+                .filter(|facet| facet_is_covered(*facet, &lane_kinds))
+                .collect::<Vec<_>>();
+        covered_required_facets.sort();
+        covered_required_facets.dedup();
+        let required_phase_17_facets_covered = covered_required_facets.len()
+            == BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet::all().len();
+        let required_hostile_lane_set_covered = [
+            BridgeSubscriptionReferenceWorkloadLaneKind::HostileAdapterVariation,
+            BridgeSubscriptionReferenceWorkloadLaneKind::DivergentSharingRejection,
+            BridgeSubscriptionReferenceWorkloadLaneKind::StaleCheckpointRejection,
+            BridgeSubscriptionReferenceWorkloadLaneKind::DeniedContinuation,
+            BridgeSubscriptionReferenceWorkloadLaneKind::BundleInsufficiency,
+        ]
+        .iter()
+        .all(|required| lane_kinds.contains(required));
         let multi_family_covered = family_kinds.len() >= 2;
         let expected_lane_outcomes_covered =
             BridgeSubscriptionReferenceWorkloadLaneKind::first_ship_matrix()
@@ -284,21 +307,29 @@ impl BridgeSubscriptionReferenceWorkloadCoverageReport {
             .map(|family_kind| family_kind.as_str())
             .collect::<Vec<_>>()
             .join(",");
+        let facet_basis = covered_required_facets
+            .iter()
+            .map(|facet| facet.as_str())
+            .collect::<Vec<_>>()
+            .join(",");
         let coverage_row_basis = lane_coverage_rows
             .iter()
             .map(BridgeSubscriptionReferenceWorkloadLaneCoverageRow::digest)
             .collect::<Vec<_>>()
             .join(",");
         let canonical_basis = Arc::<str>::from(format!(
-            "bridge-subscription-reference-workload-coverage-report|lanes={lane_basis}|families={family_basis}|rows={coverage_row_basis}|first-ship-matrix={first_ship_lane_matrix_covered}|multi-family={multi_family_covered}|comparison-evidence-complete={comparison_evidence_complete}|expected-lane-outcomes={expected_lane_outcomes_covered}|counters={}",
+            "bridge-subscription-reference-workload-coverage-report|lanes={lane_basis}|families={family_basis}|facets={facet_basis}|rows={coverage_row_basis}|first-ship-matrix={first_ship_lane_matrix_covered}|required-phase-17-facets={required_phase_17_facets_covered}|required-hostile-lanes={required_hostile_lane_set_covered}|multi-family={multi_family_covered}|comparison-evidence-complete={comparison_evidence_complete}|expected-lane-outcomes={expected_lane_outcomes_covered}|counters={}",
             counters.digest(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Self {
             lane_kinds,
             family_kinds,
+            covered_required_facets,
             lane_coverage_rows,
             first_ship_lane_matrix_covered,
+            required_phase_17_facets_covered,
+            required_hostile_lane_set_covered,
             multi_family_covered,
             comparison_evidence_complete,
             expected_lane_outcomes_covered,
@@ -318,12 +349,26 @@ impl BridgeSubscriptionReferenceWorkloadCoverageReport {
         &self.family_kinds
     }
 
+    pub fn covered_required_facets(
+        &self,
+    ) -> &[BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet] {
+        &self.covered_required_facets
+    }
+
     pub fn lane_coverage_rows(&self) -> &[BridgeSubscriptionReferenceWorkloadLaneCoverageRow] {
         &self.lane_coverage_rows
     }
 
     pub fn first_ship_lane_matrix_covered(&self) -> bool {
         self.first_ship_lane_matrix_covered
+    }
+
+    pub fn required_phase_17_facets_covered(&self) -> bool {
+        self.required_phase_17_facets_covered
+    }
+
+    pub fn required_hostile_lane_set_covered(&self) -> bool {
+        self.required_hostile_lane_set_covered
     }
 
     pub fn multi_family_covered(&self) -> bool {
@@ -344,5 +389,46 @@ impl BridgeSubscriptionReferenceWorkloadCoverageReport {
 
     pub fn digest(&self) -> &str {
         self.digest.as_ref()
+    }
+}
+
+fn facet_is_covered(
+    facet: BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet,
+    lane_kinds: &[BridgeSubscriptionReferenceWorkloadLaneKind],
+) -> bool {
+    use BridgeSubscriptionReferenceWorkloadLaneKind as Lane;
+    match facet {
+        BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet::Authoritative => {
+            lane_kinds.contains(&Lane::AuthoritativeLive)
+        }
+        BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet::Historical => {
+            lane_kinds.contains(&Lane::HistoricalReplay)
+                || lane_kinds.contains(&Lane::HistoricalBasisReplay)
+        }
+        BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet::BranchLocal => {
+            lane_kinds.contains(&Lane::BranchLocal)
+        }
+        BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet::Preview => {
+            lane_kinds.contains(&Lane::PreviewDiscard)
+                && lane_kinds.contains(&Lane::PreviewPromotion)
+        }
+        BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet::TimeOnly => {
+            lane_kinds.contains(&Lane::TimeOnlyRouting)
+        }
+        BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet::AsyncBacked => {
+            lane_kinds.contains(&Lane::Continuation)
+                || lane_kinds.contains(&Lane::DeniedContinuation)
+        }
+        BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet::SharedConsumer => {
+            lane_kinds.contains(&Lane::SharedFanout)
+                || lane_kinds.contains(&Lane::DivergentSharingRejection)
+        }
+        BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet::Restart => {
+            lane_kinds.contains(&Lane::RestartResume)
+                || lane_kinds.contains(&Lane::StaleCheckpointRejection)
+        }
+        BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet::Replay => {
+            lane_kinds.contains(&Lane::HistoricalReplay)
+        }
     }
 }

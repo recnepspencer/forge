@@ -278,9 +278,125 @@ impl RuntimeBridge {
         BridgeSubscriptionReferenceWorkloadInspection::from_reference_workload(report)
     }
 
+    /// Builds a Phase 16 temporal/async certification bundle draft from
+    /// already-admitted retained artifacts rather than re-reading live state.
+    pub fn build_temporal_async_certification_bundle(
+        &self,
+        request: BridgeTemporalAsyncCertificationBundleRequest,
+    ) -> Result<
+        BridgeTemporalAsyncCertificationBundleDraft,
+        BridgeTemporalAsyncCertificationBundleRejection,
+    > {
+        let _ = self;
+        BridgeTemporalAsyncCertificationBundleDraft::build(request)
+    }
+
+    /// Seals a temporal/async certification bundle draft so later parity and
+    /// export phases consume one canonical composed artifact.
+    pub fn seal_temporal_async_certification_bundle(
+        &self,
+        draft: BridgeTemporalAsyncCertificationBundleDraft,
+    ) -> BridgeTemporalAsyncCertificationBundleSealed {
+        let _ = self;
+        draft.seal()
+    }
+
+    /// Compares two sealed temporal/async certification bundles without
+    /// consulting live diagnostics state.
+    pub fn compare_temporal_async_certification_bundles(
+        &self,
+        left: &BridgeTemporalAsyncCertificationBundleSealed,
+        right: &BridgeTemporalAsyncCertificationBundleSealed,
+    ) -> BridgeTemporalAsyncCertificationBundleComparison {
+        let _ = self;
+        BridgeTemporalAsyncCertificationBundleComparison::compare(left, right)
+    }
+
+    /// Exports the canonical naming surface for a sealed temporal/async
+    /// certification bundle.
+    pub fn export_temporal_async_certification_bundle(
+        &self,
+        bundle: &BridgeTemporalAsyncCertificationBundleSealed,
+    ) -> BridgeTemporalAsyncCertificationBundleExport {
+        let _ = self;
+        BridgeTemporalAsyncCertificationBundleExport::export(bundle)
+    }
+
+    /// Projects a narrow inspection view over a sealed temporal/async
+    /// certification bundle.
+    pub fn inspect_temporal_async_certification_bundle(
+        &self,
+        bundle: &BridgeTemporalAsyncCertificationBundleSealed,
+    ) -> BridgeTemporalAsyncCertificationBundleInspection {
+        let _ = self;
+        BridgeTemporalAsyncCertificationBundleInspection::inspect(bundle)
+    }
+
     /// Runs the Milestone 16 reference workload certification lanes from a
     /// sealed manifest. The returned report is derived entirely from emitted
     /// certification bundles, comparison reports, and offline audit evidence.
+    pub fn plan_subscription_reference_workload(
+        &self,
+        manifest: &BridgeSubscriptionReferenceWorkloadManifestSealed,
+        lane_requests: Vec<BridgeSubscriptionReferenceWorkloadLaneRequest>,
+    ) -> Result<
+        BridgeSubscriptionReferenceWorkloadDeclaration,
+        BridgeSubscriptionReferenceWorkloadRejection,
+    > {
+        let _ = self;
+        BridgeSubscriptionReferenceWorkloadDeclaration::plan(manifest, lane_requests)
+    }
+
+    /// Admits the sealed lane-artifact set for a planned reference workload
+    /// before workload sufficiency is proven.
+    pub fn admit_subscription_reference_workload_lane_artifacts(
+        &self,
+        manifest: &BridgeSubscriptionReferenceWorkloadManifestSealed,
+        declaration: &BridgeSubscriptionReferenceWorkloadDeclaration,
+    ) -> Result<
+        BridgeSubscriptionReferenceWorkloadLaneArtifactSet,
+        BridgeSubscriptionReferenceWorkloadRejection,
+    > {
+        let _ = self;
+        BridgeSubscriptionReferenceWorkloadLaneArtifactSet::admit(manifest, declaration)
+    }
+
+    /// Proves that a sealed lane-artifact set covers the required Phase 17
+    /// workload facets and hostile lanes before the workload can close.
+    pub fn prove_subscription_reference_workload_coverage(
+        &self,
+        lane_artifact_set: BridgeSubscriptionReferenceWorkloadLaneArtifactSet,
+    ) -> Result<
+        BridgeSubscriptionReferenceWorkloadCoverageProof,
+        BridgeSubscriptionReferenceWorkloadRejection,
+    > {
+        let _ = self;
+        BridgeSubscriptionReferenceWorkloadCoverageProof::prove(lane_artifact_set)
+    }
+
+    /// Seals Phase 17 reference-workload sufficiency from explicit manifest,
+    /// declaration, lane-artifact, and coverage-proof phases.
+    pub fn seal_subscription_reference_workload_sufficiency(
+        &self,
+        manifest: &BridgeSubscriptionReferenceWorkloadManifestSealed,
+        declaration: &BridgeSubscriptionReferenceWorkloadDeclaration,
+        lane_artifact_set: BridgeSubscriptionReferenceWorkloadLaneArtifactSet,
+        coverage_proof: &BridgeSubscriptionReferenceWorkloadCoverageProof,
+        fixture_evidence_digest: &str,
+    ) -> BridgeSubscriptionReferenceWorkloadSufficiency {
+        let _ = self;
+        BridgeSubscriptionReferenceWorkloadReport::seal(
+            manifest,
+            declaration,
+            lane_artifact_set,
+            coverage_proof,
+            fixture_evidence_digest,
+        )
+    }
+
+    /// Runs the broad reference workload report surface without requiring full
+    /// Phase 17 sufficiency closure. This remains useful for partial lane
+    /// audits and hostile lane-local certification.
     pub fn run_subscription_reference_workload(
         &self,
         manifest: &BridgeSubscriptionReferenceWorkloadManifestSealed,

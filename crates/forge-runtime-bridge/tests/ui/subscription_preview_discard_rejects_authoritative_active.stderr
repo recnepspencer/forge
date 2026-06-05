@@ -1,13 +1,13 @@
 error[E0308]: mismatched types
-  --> tests/ui/subscription_preview_discard_rejects_authoritative_active.rs:10:50
+  --> tests/ui/subscription_preview_discard_rejects_authoritative_active.rs:10:57
    |
-10 |     let _ = runtime.discard_preview_subscription(active, residue_index);
-   |                     ---------------------------- ^^^^^^ expected `BridgePreviewActiveSubscription`, found `BridgeActiveSubscription`
+10 |     let _ = runtime.prove_preview_scope_discard_residue(active, residue_index);
+   |                     ----------------------------------- ^^^^^^ expected `BridgePreviewActiveSubscription`, found `BridgeActiveSubscription`
    |                     |
    |                     arguments to this method are incorrect
    |
 note: method defined here
   --> src/facade/runtime/subscription.rs
    |
-   |     pub fn discard_preview_subscription(
-   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     pub fn prove_preview_scope_discard_residue(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

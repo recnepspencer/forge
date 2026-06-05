@@ -1,13 +1,13 @@
 use crate::identity::{
     AdmittedSubscriptionIdentityTag, BridgeIdentity,
     SubscriptionAcknowledgementFrontierIdentityTag, SubscriptionActiveIdentityTag,
-    SubscriptionBasisIdentityTag, SubscriptionCheckpointIdentityTag,
-    SubscriptionCheckpointReadyIdentityTag, SubscriptionConsumerContractIdentityTag,
-    SubscriptionContinuationCandidateIdentityTag, SubscriptionContinuationChildIdentityTag,
-    SubscriptionContinuationDecisionIdentityTag, SubscriptionContinuationIndexIdentityTag,
-    SubscriptionDeclarationFamilyIdentityTag, SubscriptionDeclarationIdentityTag,
-    SubscriptionDeliveryBufferLifecycleIdentityTag, SubscriptionDeliveryContentDigestTag,
-    SubscriptionDeliveryCostProfileIdentityTag,
+    SubscriptionAdmittedResumeBasisIdentityTag, SubscriptionBasisIdentityTag,
+    SubscriptionCheckpointIdentityTag, SubscriptionCheckpointReadyIdentityTag,
+    SubscriptionConsumerContractIdentityTag, SubscriptionContinuationCandidateIdentityTag,
+    SubscriptionContinuationChildIdentityTag, SubscriptionContinuationDecisionIdentityTag,
+    SubscriptionContinuationIndexIdentityTag, SubscriptionDeclarationFamilyIdentityTag,
+    SubscriptionDeclarationIdentityTag, SubscriptionDeliveryBufferLifecycleIdentityTag,
+    SubscriptionDeliveryContentDigestTag, SubscriptionDeliveryCostProfileIdentityTag,
     SubscriptionDeliveryDiagnosticsReferenceIdentityTag, SubscriptionDeliveryFamilyIdentityTag,
     SubscriptionDeliveryMemberIdentityTag, SubscriptionDeliveryReplayPlanIdentityTag,
     SubscriptionDeliveryReplayReadinessIdentityTag, SubscriptionDeliveryWindowIdentityTag,
@@ -16,17 +16,39 @@ use crate::identity::{
     SubscriptionFanoutDeliveryProjectionIdentityTag,
     SubscriptionFanoutDeliveryProjectionSetIdentityTag, SubscriptionFanoutLayoutIdentityTag,
     SubscriptionFanoutPlanIdentityTag, SubscriptionFanoutProjectionValidationIdentityTag,
-    SubscriptionLifecycleIdentityTag, SubscriptionPreviewActiveIdentityTag,
-    SubscriptionPreviewBasisIdentityTag, SubscriptionPreviewDiscardResidueProofIdentityTag,
-    SubscriptionPreviewLifecycleIdentityTag, SubscriptionPreviewParentBasisIdentityTag,
-    SubscriptionPreviewPromotionRecordIdentityTag, SubscriptionPreviewResidueArtifactIdentityTag,
-    SubscriptionPreviewResidueScopeIdentityTag, SubscriptionPreviewResidueScopeIndexIdentityTag,
-    SubscriptionPreviewScopeIdentityTag, SubscriptionPreviewWorkRecordIdentityTag,
+    SubscriptionHistoricalPreviousValueEvidenceIdentityTag,
+    SubscriptionHistoricalTemporalReadinessIdentityTag,
+    SubscriptionHistoricalTemporalReplayBasisIdentityTag,
+    SubscriptionHistoricalTemporalReplayRequestIdentityTag,
+    SubscriptionHistoricalTruthBasisIdentityTag, SubscriptionLifecycleIdentityTag,
+    SubscriptionMixedCauseDeliveryWindowIdentityTag, SubscriptionMixedCauseDeniedCauseIdentityTag,
+    SubscriptionMixedCauseOrderedCauseIdentityTag, SubscriptionMixedCauseOrderingIdentityTag,
+    SubscriptionMixedCauseOrderingRequestIdentityTag,
+    SubscriptionMixedCauseSuppressedCauseIdentityTag, SubscriptionPreviewActiveIdentityTag,
+    SubscriptionPreviewAuthoritativeReadmissionIdentityTag, SubscriptionPreviewBasisIdentityTag,
+    SubscriptionPreviewDiscardResidueProofIdentityTag, SubscriptionPreviewLifecycleIdentityTag,
+    SubscriptionPreviewLifecyclePromotionIdentityTag,
+    SubscriptionPreviewLifecycleResidueEnvelopeIdentityTag,
+    SubscriptionPreviewParentBasisIdentityTag, SubscriptionPreviewPromotionRecordIdentityTag,
+    SubscriptionPreviewResidueArtifactIdentityTag, SubscriptionPreviewResidueScopeIdentityTag,
+    SubscriptionPreviewResidueScopeIndexIdentityTag, SubscriptionPreviewScopeIdentityTag,
+    SubscriptionPreviewTemporalActivationReadyIdentityTag,
+    SubscriptionPreviewTemporalAdmissionIdentityTag, SubscriptionPreviewWorkRecordIdentityTag,
     SubscriptionPreviewWorkTraceIdentityTag, SubscriptionReplayIdentityTag,
-    SubscriptionResumeAdmissionIdentityTag, SubscriptionResumePlanIdentityTag,
-    SubscriptionRetainedDeliveryReplaySeedIdentityTag,
-    SubscriptionRetainedDeliveryWindowSeedIdentityTag, SubscriptionSharingEligibilityIdentityTag,
-    SubscriptionSignalStrategyIdentityTag,
+    SubscriptionReplayReadinessIdentityTag, SubscriptionResumeAdmissionIdentityTag,
+    SubscriptionResumePlanIdentityTag, SubscriptionRetainedDeliveryReplaySeedIdentityTag,
+    SubscriptionRetainedDeliveryResumeBasisIdentityTag,
+    SubscriptionRetainedDeliveryWindowSeedIdentityTag,
+    SubscriptionRetainedInflightAsyncResumeBasisIdentityTag,
+    SubscriptionRetainedResumeBasisIdentityTag, SubscriptionRetainedTemporalResumeBasisIdentityTag,
+    SubscriptionSharedDeliveryAcknowledgementIdentityTag,
+    SubscriptionSharedDeliveryBundleDraftIdentityTag,
+    SubscriptionSharedDeliveryBundleSealedIdentityTag, SubscriptionSharedDeliveryLayoutIdentityTag,
+    SubscriptionSharedDeliveryPlanIdentityTag, SubscriptionSharedDeliveryProjectionIdentityTag,
+    SubscriptionSharingEligibilityIdentityTag, SubscriptionSignalStrategyIdentityTag,
+    SubscriptionTemporalActivationReadyIdentityTag, SubscriptionTemporalAdmissionIdentityTag,
+    SubscriptionTemporalCauseRecordIdentityTag, SubscriptionTemporalDeliveryPlanIdentityTag,
+    SubscriptionTemporalWakeRoutingRequestIdentityTag,
 };
 
 pub type BridgeSubscriptionDeclarationFamilyIdentity =
@@ -87,6 +109,42 @@ pub type BridgeSubscriptionCheckpointIdentity = BridgeIdentity<SubscriptionCheck
 pub type BridgeSubscriptionResumeAdmissionIdentity =
     BridgeIdentity<SubscriptionResumeAdmissionIdentityTag>;
 pub type BridgeSubscriptionResumePlanIdentity = BridgeIdentity<SubscriptionResumePlanIdentityTag>;
+pub type BridgeSubscriptionRetainedResumeBasisIdentity =
+    BridgeIdentity<SubscriptionRetainedResumeBasisIdentityTag>;
+pub type BridgeSubscriptionRetainedTemporalResumeBasisIdentity =
+    BridgeIdentity<SubscriptionRetainedTemporalResumeBasisIdentityTag>;
+pub type BridgeSubscriptionRetainedInflightAsyncResumeBasisIdentity =
+    BridgeIdentity<SubscriptionRetainedInflightAsyncResumeBasisIdentityTag>;
+pub type BridgeSubscriptionRetainedDeliveryResumeBasisIdentity =
+    BridgeIdentity<SubscriptionRetainedDeliveryResumeBasisIdentityTag>;
+pub type BridgeSubscriptionAdmittedResumeBasisIdentity =
+    BridgeIdentity<SubscriptionAdmittedResumeBasisIdentityTag>;
+pub type BridgeSubscriptionReplayReadinessIdentity =
+    BridgeIdentity<SubscriptionReplayReadinessIdentityTag>;
+pub type BridgeSubscriptionMixedCauseOrderingRequestIdentity =
+    BridgeIdentity<SubscriptionMixedCauseOrderingRequestIdentityTag>;
+pub type BridgeSubscriptionMixedCauseOrderedCauseIdentity =
+    BridgeIdentity<SubscriptionMixedCauseOrderedCauseIdentityTag>;
+pub type BridgeSubscriptionMixedCauseSuppressedCauseIdentity =
+    BridgeIdentity<SubscriptionMixedCauseSuppressedCauseIdentityTag>;
+pub type BridgeSubscriptionMixedCauseDeniedCauseIdentity =
+    BridgeIdentity<SubscriptionMixedCauseDeniedCauseIdentityTag>;
+pub type BridgeSubscriptionMixedCauseOrderingIdentity =
+    BridgeIdentity<SubscriptionMixedCauseOrderingIdentityTag>;
+pub type BridgeSubscriptionMixedCauseDeliveryWindowIdentity =
+    BridgeIdentity<SubscriptionMixedCauseDeliveryWindowIdentityTag>;
+pub type BridgeSubscriptionSharedDeliveryPlanIdentity =
+    BridgeIdentity<SubscriptionSharedDeliveryPlanIdentityTag>;
+pub type BridgeSubscriptionSharedDeliveryLayoutIdentity =
+    BridgeIdentity<SubscriptionSharedDeliveryLayoutIdentityTag>;
+pub type BridgeSubscriptionSharedDeliveryBundleDraftIdentity =
+    BridgeIdentity<SubscriptionSharedDeliveryBundleDraftIdentityTag>;
+pub type BridgeSubscriptionSharedDeliveryBundleSealedIdentity =
+    BridgeIdentity<SubscriptionSharedDeliveryBundleSealedIdentityTag>;
+pub type BridgeSubscriptionSharedDeliveryProjectionIdentity =
+    BridgeIdentity<SubscriptionSharedDeliveryProjectionIdentityTag>;
+pub type BridgeSubscriptionSharedDeliveryAcknowledgementIdentity =
+    BridgeIdentity<SubscriptionSharedDeliveryAcknowledgementIdentityTag>;
 pub type BridgeSubscriptionDuplicateReplayPolicyIdentity =
     BridgeIdentity<SubscriptionDuplicateReplayPolicyIdentityTag>;
 pub type BridgeSubscriptionContinuationIndexIdentity =
@@ -113,11 +171,41 @@ pub type BridgeSubscriptionPreviewResidueScopeIndexIdentity =
     BridgeIdentity<SubscriptionPreviewResidueScopeIndexIdentityTag>;
 pub type BridgeSubscriptionPreviewResidueArtifactIdentity =
     BridgeIdentity<SubscriptionPreviewResidueArtifactIdentityTag>;
+pub type BridgeSubscriptionPreviewLifecycleResidueEnvelopeIdentity =
+    BridgeIdentity<SubscriptionPreviewLifecycleResidueEnvelopeIdentityTag>;
 pub type BridgeSubscriptionPreviewDiscardResidueProofIdentity =
     BridgeIdentity<SubscriptionPreviewDiscardResidueProofIdentityTag>;
 pub type BridgeSubscriptionPreviewPromotionRecordIdentity =
     BridgeIdentity<SubscriptionPreviewPromotionRecordIdentityTag>;
+pub type BridgeSubscriptionPreviewLifecyclePromotionIdentity =
+    BridgeIdentity<SubscriptionPreviewLifecyclePromotionIdentityTag>;
+pub type BridgeSubscriptionPreviewAuthoritativeReadmissionIdentity =
+    BridgeIdentity<SubscriptionPreviewAuthoritativeReadmissionIdentityTag>;
 pub type BridgeSubscriptionPreviewWorkTraceIdentity =
     BridgeIdentity<SubscriptionPreviewWorkTraceIdentityTag>;
 pub type BridgeSubscriptionPreviewWorkRecordIdentity =
     BridgeIdentity<SubscriptionPreviewWorkRecordIdentityTag>;
+pub type BridgeSubscriptionTemporalAdmissionIdentity =
+    BridgeIdentity<SubscriptionTemporalAdmissionIdentityTag>;
+pub type BridgeSubscriptionTemporalActivationReadyIdentity =
+    BridgeIdentity<SubscriptionTemporalActivationReadyIdentityTag>;
+pub type BridgeSubscriptionTemporalWakeRoutingRequestIdentity =
+    BridgeIdentity<SubscriptionTemporalWakeRoutingRequestIdentityTag>;
+pub type BridgeSubscriptionHistoricalTruthBasisIdentity =
+    BridgeIdentity<SubscriptionHistoricalTruthBasisIdentityTag>;
+pub type BridgeSubscriptionHistoricalPreviousValueEvidenceIdentity =
+    BridgeIdentity<SubscriptionHistoricalPreviousValueEvidenceIdentityTag>;
+pub type BridgeSubscriptionHistoricalTemporalReplayBasisIdentity =
+    BridgeIdentity<SubscriptionHistoricalTemporalReplayBasisIdentityTag>;
+pub type BridgeSubscriptionHistoricalTemporalReplayRequestIdentity =
+    BridgeIdentity<SubscriptionHistoricalTemporalReplayRequestIdentityTag>;
+pub type BridgeSubscriptionHistoricalTemporalReadinessIdentity =
+    BridgeIdentity<SubscriptionHistoricalTemporalReadinessIdentityTag>;
+pub type BridgeSubscriptionTemporalCauseRecordIdentity =
+    BridgeIdentity<SubscriptionTemporalCauseRecordIdentityTag>;
+pub type BridgeSubscriptionTemporalDeliveryPlanIdentity =
+    BridgeIdentity<SubscriptionTemporalDeliveryPlanIdentityTag>;
+pub type BridgeSubscriptionPreviewTemporalAdmissionIdentity =
+    BridgeIdentity<SubscriptionPreviewTemporalAdmissionIdentityTag>;
+pub type BridgeSubscriptionPreviewTemporalActivationReadyIdentity =
+    BridgeIdentity<SubscriptionPreviewTemporalActivationReadyIdentityTag>;

@@ -19,6 +19,10 @@ pub(super) fn expected_evidence_for_lane(
             outcome: Some(Outcome::Equivalent),
             primary_failure_boundary: None,
         },
+        Lane::TimeOnlyRouting => ExpectedLaneEvidence {
+            outcome: Some(Outcome::RejectedAtExpectedBoundary),
+            primary_failure_boundary: Some(Boundary::DeliveryFamilyMismatch),
+        },
         Lane::HistoricalBasisReplay | Lane::SharedFanout => ExpectedLaneEvidence {
             outcome: Some(Outcome::Equivalent),
             primary_failure_boundary: None,

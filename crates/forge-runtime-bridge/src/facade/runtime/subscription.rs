@@ -1,6 +1,12 @@
 mod certification;
+mod certification_closeout;
 mod delivery_admission;
 mod lifecycle;
+mod mixed_cause;
+mod preview_lifecycle;
+mod resume_basis;
+mod shared_delivery;
+mod temporal;
 
 use super::*;
 
@@ -193,9 +199,9 @@ impl RuntimeBridge {
         BridgeSubscriptionPreviewWorkTrace::record(preview_active, inputs)
     }
 
-    /// Discards a preview subscription only after scope-indexed residue proof
-    /// establishes zero authoritative and bridge-visible residue.
-    pub fn discard_preview_subscription(
+    /// Proves the older scope-indexed preview residue boundary from Milestone
+    /// 15. This is not the Phase 14 lifecycle discard boundary.
+    pub fn prove_preview_scope_discard_residue(
         &self,
         preview_active: BridgePreviewActiveSubscription,
         residue_scope_index: BridgeSubscriptionPreviewResidueScopeIndex,
@@ -207,11 +213,10 @@ impl RuntimeBridge {
         BridgeSubscriptionPreviewDiscardResidueProof::prove(preview_active, residue_scope_index)
     }
 
-    /// Promotes a preview-scoped subscription only through an explicit
-    /// speculation promotion record and a matching authoritative
-    /// activation-ready boundary. This consumes the preview-active handle
-    /// instead of mutating it into an authoritative subscription.
-    pub fn promote_preview_subscription(
+    /// Records the older preview-to-authoritative boundary record from
+    /// Milestone 15. This is not the Phase 14 lifecycle promotion and
+    /// authoritative readmission chain.
+    pub fn record_preview_authoritative_boundary(
         &self,
         preview_active: BridgePreviewActiveSubscription,
         preview_work_trace: &BridgeSubscriptionPreviewWorkTrace,

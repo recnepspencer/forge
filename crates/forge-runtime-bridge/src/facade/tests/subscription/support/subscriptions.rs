@@ -36,6 +36,68 @@ pub(crate) fn activation_ready_detail_subscription_in_runtime(
     runtime.prepare_subscription_activation(&admitted)
 }
 
+pub(crate) fn admitted_detail_subscription_in_runtime(
+    runtime: &crate::facade::RuntimeBridge,
+) -> crate::facade::AdmittedBridgeSubscription {
+    admitted_detail_subscription_for_snapshot_in_runtime(
+        runtime,
+        TruthSnapshotIdentity::new("snapshot-a"),
+    )
+}
+
+pub(crate) fn admitted_detail_subscription_for_snapshot_in_runtime(
+    runtime: &crate::facade::RuntimeBridge,
+    snapshot_identity: TruthSnapshotIdentity,
+) -> crate::facade::AdmittedBridgeSubscription {
+    let declaration = runtime
+        .declare_subscription(
+            BridgeSubscriptionDeclarationFamilyKind::DetailExact,
+            vec![NormalizedSubscriptionSliceIntent::try_new_entity_field(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native subscription field key"),
+                SubscriptionSliceKind::SignalField,
+            )
+            .expect("slice intent should validate")],
+            BridgeSubscriptionDeliveryIntentClass::None,
+        )
+        .expect("declaration should succeed");
+    runtime
+        .admit_subscription(
+            &declaration,
+            BridgeSubscriptionBasisRequest::snapshot(snapshot_identity),
+        )
+        .expect("admission should succeed")
+}
+
+pub(crate) fn branch_head_detail_subscription_in_runtime(
+    runtime: &crate::facade::RuntimeBridge,
+) -> crate::facade::AdmittedBridgeSubscription {
+    let declaration = runtime
+        .declare_subscription(
+            BridgeSubscriptionDeclarationFamilyKind::DetailExact,
+            vec![NormalizedSubscriptionSliceIntent::try_new_entity_field(
+                "entity-1",
+                forge_foundational::facade::AspectKey::new("profile")
+                    .expect("valid native subscription aspect key"),
+                forge_foundational::facade::FieldKey::new("name".to_owned())
+                    .expect("valid native subscription field key"),
+                SubscriptionSliceKind::SignalField,
+            )
+            .expect("slice intent should validate")],
+            BridgeSubscriptionDeliveryIntentClass::None,
+        )
+        .expect("declaration should succeed");
+    runtime
+        .admit_subscription(
+            &declaration,
+            BridgeSubscriptionBasisRequest::branch_head(TruthBranchIdentity::new("main")),
+        )
+        .expect("branch-head admission should succeed")
+}
+
 pub(crate) fn activation_ready_collection_subscription() -> (
     crate::facade::RuntimeBridge,
     crate::facade::BridgeSubscriptionActivationReady,
