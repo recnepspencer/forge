@@ -214,6 +214,20 @@ impl fmt::Display for SignalError {
                             evidence.deletion_policy_name.as_str(),
                             evidence.target_only_nodes.len()
                         ),
+                        BranchMergeFailureEvidence::ScopedDenial(evidence) => write!(
+                            f,
+                            "branch merge failed ({kind:?}): {message} [scope={:?}, denial={:?}, locus={:?}]",
+                            evidence.scope_family,
+                            evidence.denial_kind,
+                            evidence.denied_locus
+                        ),
+                        BranchMergeFailureEvidence::ScopedUnavailable(evidence) => write!(
+                            f,
+                            "branch merge failed ({kind:?}): {message} [scope={:?}, reason={:?}, outcome={:?}]",
+                            evidence.scope_family,
+                            evidence.reason,
+                            evidence.outcome_kind
+                        ),
                     }
                 } else {
                     write!(f, "branch merge failed ({kind:?}): {message}")

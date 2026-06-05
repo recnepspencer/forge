@@ -140,4 +140,12 @@ impl BridgeSubscriptionCertificationCounterSnapshot {
     pub fn denied_continuation_report_count(&self) -> usize {
         self.denied_continuation_report_count
     }
+
+    pub fn phase_18_support_matrix_count(&self) -> usize {
+        self.phase_18_support_matrix_count
+    }
+
+    pub fn phase_18_closeout_artifact_count(&self) -> usize {
+        self.phase_18_closeout_artifact_count
+    }
 }

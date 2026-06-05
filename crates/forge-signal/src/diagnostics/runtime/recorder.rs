@@ -180,7 +180,12 @@ pub fn record_branch_merge_summary(
             None,
             None,
             None,
-            Some(ReplayEventDetail::Message(detail)),
+            Some(ReplayEventDetail::BranchMergeSummary {
+                message: detail,
+                strategy_witness: summary.strategy_witness.clone(),
+                compatibility_witness: summary.compatibility_witness.clone(),
+                scoped_merge_proof: summary.scoped_merge_proof.clone(),
+            }),
         ));
 
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();

@@ -1482,6 +1482,7 @@ dependencies = [
  "forge-foundational",
  "forge-harness",
  "forge-proof",
+ "forge-signal",
  "serde_json",
  "sha2",
  "trybuild",
@@ -1499,7 +1500,9 @@ dependencies = [
 name = "forge-signal"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
  "forge-harness",
+ "forge-proof",
  "js-sys",
  "rayon",
  "serde",

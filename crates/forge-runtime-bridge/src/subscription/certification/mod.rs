@@ -4,6 +4,7 @@ mod audit_plan;
 mod bundle;
 mod bundle_field;
 mod bundle_insufficiency;
+mod closeout;
 mod comparison;
 mod comparison_detection;
 mod comparison_outcome;
@@ -33,6 +34,7 @@ mod semantic_sources;
 mod source_artifact_index;
 mod stale_checkpoint;
 mod strategy_lowering;
+mod temporal_async_bundle;
 mod workload_coverage;
 mod workload_lanes;
 
@@ -54,6 +56,16 @@ pub use bundle::{
 };
 pub use bundle_field::BridgeSubscriptionBundleField;
 pub use bundle_insufficiency::BridgeSubscriptionCertificationBundleInsufficiencyReport;
+pub use closeout::{
+    BridgeSubscriptionTemporalAsyncCertificationCloseoutArtifact,
+    BridgeSubscriptionTemporalAsyncCertificationCloseoutRejection,
+    BridgeSubscriptionTemporalAsyncCertificationCloseoutRejectionKind,
+    BridgeSubscriptionTemporalAsyncCertificationCloseoutRequest,
+    BridgeSubscriptionTemporalAsyncCertificationCloseoutSuiteId,
+    BridgeSubscriptionTemporalAsyncCertificationSupportMatrix,
+    BridgeSubscriptionTemporalAsyncCertificationSupportMatrixRow,
+    BridgeSubscriptionTemporalAsyncCertificationSupportMatrixVerdict,
+};
 pub use comparison::BridgeSubscriptionCertificationComparisonReport;
 pub(crate) use comparison_detection::{detect_failures, primary_failure_boundary};
 pub(crate) use comparison_outcome::outcome_for;
@@ -97,8 +109,13 @@ pub use offline_audit::{
 };
 pub use ordering_hostility::BridgeSubscriptionCertificationOrderingHostilityReport;
 pub use reference_workload::{
+    BridgeSubscriptionReferenceWorkloadCoverageProof,
+    BridgeSubscriptionReferenceWorkloadDeclaration,
+    BridgeSubscriptionReferenceWorkloadLaneArtifactSet,
     BridgeSubscriptionReferenceWorkloadRejection, BridgeSubscriptionReferenceWorkloadRejectionKind,
     BridgeSubscriptionReferenceWorkloadReport,
+    BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet,
+    BridgeSubscriptionReferenceWorkloadSufficiency,
 };
 pub use relationship::{
     BridgeSubscriptionCertificationComparisonRelationship,
@@ -124,6 +141,22 @@ pub use source_artifact_index::{
 };
 pub use stale_checkpoint::BridgeSubscriptionCertificationStaleCheckpointReport;
 pub use strategy_lowering::BridgeSubscriptionCertificationStrategyLoweringReport;
+pub use temporal_async_bundle::{
+    BridgeTemporalAsyncCertificationAsyncLifecycleSection,
+    BridgeTemporalAsyncCertificationAsyncSectionInput,
+    BridgeTemporalAsyncCertificationBasisSection, BridgeTemporalAsyncCertificationBundleComparison,
+    BridgeTemporalAsyncCertificationBundleComparisonOutcome,
+    BridgeTemporalAsyncCertificationBundleDraft, BridgeTemporalAsyncCertificationBundleExport,
+    BridgeTemporalAsyncCertificationBundleInspection,
+    BridgeTemporalAsyncCertificationBundleMismatchSection,
+    BridgeTemporalAsyncCertificationBundleRejection,
+    BridgeTemporalAsyncCertificationBundleRejectionKind,
+    BridgeTemporalAsyncCertificationBundleRequest, BridgeTemporalAsyncCertificationBundleSealed,
+    BridgeTemporalAsyncCertificationCounters, BridgeTemporalAsyncCertificationDiagnosticsRichness,
+    BridgeTemporalAsyncCertificationFailureSection,
+    BridgeTemporalAsyncCertificationMixedCauseSection,
+    BridgeTemporalAsyncCertificationResumeSection,
+};
 pub use workload_coverage::{
     BridgeSubscriptionReferenceWorkloadCoverageReport,
     BridgeSubscriptionReferenceWorkloadLaneCoverageRole,

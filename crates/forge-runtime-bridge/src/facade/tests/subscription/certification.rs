@@ -1,6 +1,7 @@
 mod comparison_reports;
 mod manifest_cost_and_schema;
 mod precedence_ordering_and_bundle;
+mod temporal_async_bundle;
 
 use super::support::*;
 use crate::facade::{

@@ -1,5 +1,19 @@
-use super::super::BridgeSubscriptionCertificationComparisonPlan;
-use super::*;
+use crate::subscription::certification::{
+    BridgeSubscriptionCertificationAssemblyRejectionKind,
+    BridgeSubscriptionCertificationComparisonPlan,
+    BridgeSubscriptionCertificationComparisonPlanRejectionKind,
+    BridgeSubscriptionCertificationComparisonRelationship,
+    BridgeSubscriptionCertificationCostProfileRejectionKind,
+    BridgeSubscriptionCertificationDivergenceAxis, BridgeSubscriptionCertificationFailureBoundary,
+    BridgeSubscriptionReferenceWorkloadFamilyKind, BridgeSubscriptionReferenceWorkloadLaneKind,
+    BridgeSubscriptionReferenceWorkloadLaneRequest, BridgeSubscriptionSourceArtifactEvidence,
+    BridgeSubscriptionSourceArtifactInput, BridgeSubscriptionSourceArtifactKind,
+    BridgeSubscriptionSourceArtifactRole,
+};
+
+use super::{
+    BridgeSubscriptionReferenceWorkloadRejection, BridgeSubscriptionReferenceWorkloadRejectionKind,
+};
 
 pub(super) fn lane_comparison_plan(
     lane_kind: BridgeSubscriptionReferenceWorkloadLaneKind,
@@ -16,6 +30,11 @@ pub(super) fn lane_comparison_plan(
         BridgeSubscriptionReferenceWorkloadLaneKind::CanonicalOrderingHostility => (
             BridgeSubscriptionCertificationComparisonRelationship::SemanticEquivalence,
             None,
+            None,
+        ),
+        BridgeSubscriptionReferenceWorkloadLaneKind::TimeOnlyRouting => (
+            BridgeSubscriptionCertificationComparisonRelationship::ExpectedRejection,
+            Some(BridgeSubscriptionCertificationFailureBoundary::DeliveryFamilyMismatch),
             None,
         ),
         BridgeSubscriptionReferenceWorkloadLaneKind::HistoricalBasisReplay
@@ -201,6 +220,13 @@ pub(super) fn lane_source_inputs(
                 BridgeSubscriptionSourceArtifactKind::RetainedReplay,
                 request,
                 BridgeSubscriptionSourceArtifactRole::Stable,
+            ));
+        }
+        BridgeSubscriptionReferenceWorkloadLaneKind::TimeOnlyRouting => {
+            inputs.push(lane_source_artifact(
+                BridgeSubscriptionSourceArtifactKind::DeliveryWindow,
+                request,
+                BridgeSubscriptionSourceArtifactRole::Divergent,
             ));
         }
         BridgeSubscriptionReferenceWorkloadLaneKind::SharedFanout

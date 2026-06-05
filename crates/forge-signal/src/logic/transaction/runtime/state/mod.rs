@@ -2,6 +2,7 @@ mod async_capability;
 mod branching;
 mod builder;
 mod guided;
+mod inspection;
 mod merge;
 mod mutation;
 mod observation;
@@ -15,8 +16,25 @@ mod runtime_state;
 mod temporal;
 
 pub(in crate::logic::transaction::runtime) use branching::BranchManager;
+pub use branching::{
+    bridge_signal_branch_basis_trust_boundary, BoundaryBridgedSignalBranchBasisArtifact,
+    SignalBranchBasis, SignalBranchBasisArtifact, SignalBranchBasisAuthority,
+    SignalBranchBasisCompactExplanation, SignalBranchBasisDenial, SignalBranchBasisIdentity,
+    SignalBranchBasisReadmissionAuthority, SignalBranchBasisReady,
+    SignalBranchBasisValidationOutcome, SignalBranchForkDenial, SignalBranchForkReceipt,
+    SignalBranchForkRequest, SignalBranchForkRequestBasis, SignalBranchHeadPosture,
+    SignalBranchRestorePosture, StaleSignalBranchBasisArtifact, SIGNAL_BRANCH_BASIS_SCHEMA_VERSION,
+};
 pub use builder::SignalRuntimeBuilder;
 pub use guided::{PlannedRuntimeMerge, RuntimeHistory, RuntimeMerge};
+pub use inspection::{
+    SignalBranchBasisInspectionRow, SignalCompatibilityInspectionRow,
+    SignalMergeSupportInspectionAbsence, SignalMergeSupportInspectionAbsenceKind,
+    SignalMergeSupportInspectionOutcome, SignalMergeSupportInspectionWitness,
+    SignalMergeSupportReadinessPosture, SignalScopedMergeInspectionRow,
+    SignalStrategyInspectionRow,
+};
+pub use merge::bridge_signal_merge_compatibility_trust_boundary;
 pub use merge::{branch_state_proof_report, canonical_digest};
 pub use merge::{
     lowered_strategy_bundle_digest, merge_lineage_digest, replay_artifact_proof_report,
@@ -28,13 +46,18 @@ pub use merge::{
     ArtifactMergeComparable, AspectMergeDecisionOutcome, AspectMergePolicy,
     AspectMergePolicyBinding, AspectMergePolicyDescriptor, AspectMergePolicyId,
     AspectMergePolicyName, AspectMergePolicyRegistration, AspectMergePolicySelectionBasis,
-    AspectMergePolicyVersion, BranchConflictResolutionPlan, BranchMergeBase,
-    BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
-    BranchMergeConflictSummary, BranchMergeCounters, BranchMergeDeletionFailureEvidence,
-    BranchMergeDivergence, BranchMergeExecutionSummary, BranchMergeFailureEvidence,
-    BranchMergeFailureKind, BranchMergeIdentityFailureEvidence, BranchMergeKind, BranchMergePlan,
-    BranchMergeReconciliationPolicy, BranchMergeRequest, BranchMergeResolutionRequirement,
-    BranchMergeResult, BranchMergeStrategy, BranchMutationJournalSlice, BranchMutationLedger,
+    AspectMergePolicyVersion, BoundaryBridgedSignalMergeCompatibilityArtifact,
+    BranchConflictResolutionPlan, BranchMergeBase, BranchMergeConflictEvidence,
+    BranchMergeConflictKind, BranchMergeConflictRecord, BranchMergeConflictSummary,
+    BranchMergeCounters, BranchMergeDeletionFailureEvidence, BranchMergeDivergence,
+    BranchMergeExecutionSummary, BranchMergeFailureEvidence, BranchMergeFailureKind,
+    BranchMergeIdentityFailureEvidence, BranchMergeKind, BranchMergePlan,
+    BranchMergeReconciliationPolicy, BranchMergeRequest, BranchMergeRequestDenial,
+    BranchMergeRequestScope, BranchMergeRequestScopeFamily, BranchMergeResolutionRequirement,
+    BranchMergeResult, BranchMergeScopedDenialFailureEvidence, BranchMergeScopedDenialKind,
+    BranchMergeScopedDeniedLocus, BranchMergeScopedUnavailableFailureEvidence,
+    BranchMergeScopedUnavailableOutcomeKind, BranchMergeScopedUnavailableReason,
+    BranchMergeStrategy, BranchMutationJournalSlice, BranchMutationLedger,
     BranchStateDenseGridProofBasis, BranchStateProofBasis, BranchStateProofReport,
     CausalityCarryPolicy, ConflictIsolationGranularity, ConflictIsolationPolicyDescriptor,
     ConflictIsolationPolicyId, ConflictIsolationPolicyName, ConflictIsolationPolicyRegistration,
@@ -49,30 +72,44 @@ pub use merge::{
     DuplicateDeletionPolicyRegistration, DuplicateIdentityMatcherRegistration,
     DuplicateMergeBaseStrategyRegistration, DuplicateMergeStrategyRegistration,
     DuplicateSourceOnlyPolicyRegistration, ExistingTargetMergePolicy,
-    FrozenAspectMergePolicyRegistry, FrozenConflictIsolationRegistry, FrozenConflictPolicyRegistry,
-    FrozenDeletionPolicyRegistry, FrozenIdentityMatcherRegistry, FrozenMergeBaseStrategyRegistry,
-    FrozenMergeStrategyRegistry, FrozenSourceOnlyPolicyRegistry, IdentityCorrespondenceBasis,
-    IdentityCorrespondenceRecord, IdentityCorrespondenceStatus, IdentityMatchPolicy,
-    IdentityMatcherDescriptor, IdentityMatcherId, IdentityMatcherName, IdentityMatcherRegistration,
+    FoundationalScopeLoweringDenial, FrozenAspectMergePolicyRegistry,
+    FrozenConflictIsolationRegistry, FrozenConflictPolicyRegistry, FrozenDeletionPolicyRegistry,
+    FrozenIdentityMatcherRegistry, FrozenMergeBaseStrategyRegistry, FrozenMergeStrategyRegistry,
+    FrozenSourceOnlyPolicyRegistry, IdentityCorrespondenceBasis, IdentityCorrespondenceRecord,
+    IdentityCorrespondenceStatus, IdentityMatchPolicy, IdentityMatcherDescriptor,
+    IdentityMatcherId, IdentityMatcherName, IdentityMatcherRegistration,
     IdentityMatcherSelectionBasis, IdentityMatcherVersion, LoweredAspectMergeDecisionPlan,
     LoweredAspectMergeDecisionRecord, LoweredConflictIsolationPlan, LoweredConflictIsolationRecord,
-    LoweredDeletionPolicyPlan, LoweredIdentityCorrespondencePlan, LoweredMergeBasePlan,
-    LoweredMergePlan, MergeBaseSelectionBasis, MergeBaseSelectionPolicy,
-    MergeBaseStrategyDescriptor, MergeBaseStrategyId, MergeBaseStrategyName,
-    MergeBaseStrategyRegistration, MergeBaseStrategyVersion, MergeBoundaryWitness,
-    MergeBoundaryWitnessKind, MergeDecisionBasis, MergeNodeMap, MergePlanProofReport,
-    MergeResultProofReport, MergeStrategyDescriptor, MergeStrategyId, MergeStrategyName,
-    MergeStrategyRegistration, MergeStrategySelectionBasis, MergeStrategyVersion,
-    MergeTouchedNodeSet, MergedArtifactRecord, NodeMergeInputState, NodeMergePlan,
-    NodeReconciliationDecision, NodeReconciliationShape, PlannedMergeCandidateSet,
+    LoweredDeletionPolicyPlan, LoweredFoundationalMergeRequest, LoweredIdentityCorrespondencePlan,
+    LoweredMergeBasePlan, LoweredMergePlan, LoweredScopedMergeCandidateSet,
+    MergeBaseSelectionBasis, MergeBaseSelectionPolicy, MergeBaseStrategyDescriptor,
+    MergeBaseStrategyId, MergeBaseStrategyName, MergeBaseStrategyRegistration,
+    MergeBaseStrategyVersion, MergeBoundaryWitness, MergeBoundaryWitnessKind, MergeDecisionBasis,
+    MergeNodeMap, MergePlanProofReport, MergeResultProofReport, MergeStrategyDescriptor,
+    MergeStrategyId, MergeStrategyName, MergeStrategyRegistration, MergeStrategySelectionBasis,
+    MergeStrategyVersion, MergeTouchedNodeSet, MergedArtifactRecord, NodeMergeInputState,
+    NodeMergePlan, NodeReconciliationDecision, NodeReconciliationShape,
+    NormalizedBranchMergeRequest, NormalizedBranchMergeRequestScope, PlannedMergeCandidateSet,
     ProofMinimalOverlapBasis, ReplayArtifactProofInput, ReplayArtifactProofReport,
     ReplayMismatchClass, ReplayParityProofReport, RetainedArtifactCarryPolicy,
-    RuntimeArtifactCarryPolicy, RuntimeProofReport, SelectedMergeSemanticsBundle,
+    RuntimeArtifactCarryPolicy, RuntimeProofReport, ScopedMergeCandidateBreadthSummary,
+    ScopedMergeProofPacket, SelectedMergeSemanticsBundle, SignalAspectPolicyInventoryEntry,
+    SignalDeliveryStrategyIdentity, SignalInvalidationStrategyIdentity,
+    SignalMergeCompatibilityArtifact, SignalMergeCompatibilityAuthority,
+    SignalMergeCompatibilityBasis, SignalMergeCompatibilityDenial,
+    SignalMergeCompatibilityDenialKind, SignalMergeCompatibilityFactInventory,
+    SignalMergeCompatibilityPostureKind, SignalMergeCompatibilityReadmissionAuthority,
+    SignalMergeCompatibilityReady, SignalMergeCompatibilityWitness, SignalMergeStrategyIdentity,
+    SignalMergeStrategyWitness, SignalMergeStrategyWitnessDenial,
+    SignalMergeStrategyWitnessDenialKind, SignalScopedMergeCanonicalBasisBundle,
+    SignalScopedMergeCanonicalLocatorBundle, SignalScopedMergeDiagnosticRow,
+    SignalScopedMergeLocatorBundle, SignalSelectedAspectRequestEntry,
     SourceNodeAdoptionCarryPolicy, SourceNodeAdoptionPlanCore, SourceOnlyMergePolicy,
     SourceOnlyPolicyDescriptor, SourceOnlyPolicyId, SourceOnlyPolicyName,
     SourceOnlyPolicyRegistration, SourceOnlyPolicySelectionBasis, SourceOnlyPolicyVersion,
     StructuralMergeCandidateRecord, StructuralMergeJournalSlice, TargetNodeIdentityIntent,
     TopologyRepairSummary, BRANCH_STATE_PROOF_BASIS_VERSION, MERGE_PROOF_SCHEMA_VERSION,
+    SIGNAL_MERGE_COMPATIBILITY_SCHEMA_VERSION,
 };
 pub use observer::{RuntimeMaterializer, RuntimeObserver};
 #[allow(unused_imports)]

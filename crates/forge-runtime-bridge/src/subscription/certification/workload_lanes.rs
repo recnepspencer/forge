@@ -12,6 +12,7 @@ pub enum BridgeSubscriptionReferenceWorkloadLaneKind {
     AuthoritativeLive,
     DiagnosticsTierVariation,
     HostileAdapterVariation,
+    TimeOnlyRouting,
     HistoricalReplay,
     HistoricalBasisReplay,
     BranchLocal,
@@ -34,6 +35,7 @@ impl BridgeSubscriptionReferenceWorkloadLaneKind {
             Self::AuthoritativeLive => "authoritative-live",
             Self::DiagnosticsTierVariation => "diagnostics-tier-variation",
             Self::HostileAdapterVariation => "hostile-adapter-variation",
+            Self::TimeOnlyRouting => "time-only-routing",
             Self::HistoricalReplay => "historical-replay",
             Self::HistoricalBasisReplay => "historical-basis-replay",
             Self::BranchLocal => "branch-local",
@@ -67,10 +69,11 @@ impl BridgeSubscriptionReferenceWorkloadFamilyKind {
     }
 }
 
-const FIRST_SHIP_LANE_MATRIX: [BridgeSubscriptionReferenceWorkloadLaneKind; 17] = [
+const FIRST_SHIP_LANE_MATRIX: [BridgeSubscriptionReferenceWorkloadLaneKind; 18] = [
     BridgeSubscriptionReferenceWorkloadLaneKind::AuthoritativeLive,
     BridgeSubscriptionReferenceWorkloadLaneKind::DiagnosticsTierVariation,
     BridgeSubscriptionReferenceWorkloadLaneKind::HostileAdapterVariation,
+    BridgeSubscriptionReferenceWorkloadLaneKind::TimeOnlyRouting,
     BridgeSubscriptionReferenceWorkloadLaneKind::HistoricalReplay,
     BridgeSubscriptionReferenceWorkloadLaneKind::HistoricalBasisReplay,
     BridgeSubscriptionReferenceWorkloadLaneKind::BranchLocal,

@@ -69,7 +69,9 @@ impl BridgeSubscriptionPreviewPromotionRejection {
         Self {
             rejection_kind,
             rejection_context,
-            counters: BridgeSubscriptionCounters::from_subscription_preview_promotion_rejection(),
+            counters: BridgeSubscriptionCounters::from_subscription_preview_promotion_rejection(
+                false, false,
+            ),
             canonical_basis,
             digest: Arc::from(format!(
                 "bridge-subscription-preview-promotion-rejection:sha256:{digest:x}"

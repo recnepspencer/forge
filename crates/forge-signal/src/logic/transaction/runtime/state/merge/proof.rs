@@ -1,12 +1,15 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use super::compatibility::SignalMergeCompatibilityWitness;
 use super::plan::{
     LoweredAspectMergeDecisionPlan, LoweredAspectMergePolicyPlan, LoweredConflictIsolationPlan,
     LoweredDeletionPolicyPlan, LoweredMergeBasePlan,
 };
 use super::result::MergedArtifactRecord;
+use super::scoped_proof::ScopedMergeProofPacket;
 use super::semantics::SelectedMergeSemanticsBundle;
+use super::strategy_witness::SignalMergeStrategyWitness;
 use super::{BranchMergePlan, BranchMergeResult};
 
 pub const MERGE_PROOF_SCHEMA_VERSION: &str = "forge-signal-proof-v1";
@@ -28,7 +31,7 @@ pub struct RuntimeProofReport {
     pub registry_bundle_digest: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MergePlanProofReport {
     pub proof_schema_version: String,
@@ -43,9 +46,11 @@ pub struct MergePlanProofReport {
     pub selected_identity_matcher_digest: String,
     pub selected_source_only_policy_digest: String,
     pub selected_deletion_policy_digest: String,
+    pub strategy_witness: SignalMergeStrategyWitness,
+    pub scoped_merge_proof: ScopedMergeProofPacket,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MergeResultProofReport {
     pub proof_schema_version: String,
@@ -61,6 +66,9 @@ pub struct MergeResultProofReport {
     pub selected_identity_matcher_digest: String,
     pub selected_source_only_policy_digest: String,
     pub selected_deletion_policy_digest: String,
+    pub strategy_witness: SignalMergeStrategyWitness,
+    pub compatibility_witness: SignalMergeCompatibilityWitness,
+    pub scoped_merge_proof: ScopedMergeProofPacket,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,10 +115,16 @@ pub enum ReplayMismatchClass {
     MergeResultDigestMismatch,
     MissingLineageDigest,
     LineageDigestMismatch,
+    MissingStrategyWitness,
+    StrategyWitnessMismatch,
+    MissingCompatibilityWitness,
+    CompatibilityWitnessMismatch,
+    MissingScopedMergeProof,
+    ScopedMergeProofMismatch,
     BranchStateDigestMismatch,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReplayParityProofReport {
     pub proof_schema_version: String,
@@ -126,7 +140,7 @@ pub struct ReplayParityProofReport {
     pub mismatch_classes: Vec<ReplayMismatchClass>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReplayArtifactProofInput {
     pub proof_schema_version: String,
@@ -135,10 +149,13 @@ pub struct ReplayArtifactProofInput {
     pub merge_plan_digest: Option<String>,
     pub merge_result_digest: Option<String>,
     pub lineage_digest: Option<String>,
+    pub strategy_witness: Option<SignalMergeStrategyWitness>,
+    pub compatibility_witness: Option<SignalMergeCompatibilityWitness>,
+    pub scoped_merge_proof: Option<ScopedMergeProofPacket>,
     pub branch_state_digest: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReplayArtifactProofReport {
     pub proof_schema_version: String,
@@ -318,6 +335,42 @@ fn replay_mismatch_classes(
         ReplayMismatchClass::LineageDigestMismatch,
         &mut mismatch_classes,
     );
+    match (&expected.strategy_witness, &replayed.strategy_witness) {
+        (Some(left), Some(right)) => {
+            if left != right {
+                mismatch_classes.push(ReplayMismatchClass::StrategyWitnessMismatch);
+            }
+        }
+        (None, Some(_)) | (Some(_), None) => {
+            mismatch_classes.push(ReplayMismatchClass::MissingStrategyWitness);
+        }
+        (None, None) => {}
+    }
+    match (&expected.scoped_merge_proof, &replayed.scoped_merge_proof) {
+        (Some(left), Some(right)) => {
+            if left != right {
+                mismatch_classes.push(ReplayMismatchClass::ScopedMergeProofMismatch);
+            }
+        }
+        (None, Some(_)) | (Some(_), None) => {
+            mismatch_classes.push(ReplayMismatchClass::MissingScopedMergeProof);
+        }
+        (None, None) => {}
+    }
+    match (
+        &expected.compatibility_witness,
+        &replayed.compatibility_witness,
+    ) {
+        (Some(left), Some(right)) => {
+            if left != right {
+                mismatch_classes.push(ReplayMismatchClass::CompatibilityWitnessMismatch);
+            }
+        }
+        (None, Some(_)) | (Some(_), None) => {
+            mismatch_classes.push(ReplayMismatchClass::MissingCompatibilityWitness);
+        }
+        (None, None) => {}
+    }
     if expected.branch_state_digest != replayed.branch_state_digest {
         mismatch_classes.push(ReplayMismatchClass::BranchStateDigestMismatch);
     }
@@ -433,6 +486,8 @@ pub fn merge_plan_proof_report(
         selected_identity_matcher_digest: plan.selected_identity_matcher_digest().to_owned(),
         selected_source_only_policy_digest: plan.selected_source_only_policy_digest().to_owned(),
         selected_deletion_policy_digest: plan.selected_deletion_policy_digest().to_owned(),
+        strategy_witness: plan.strategy_witness().clone(),
+        scoped_merge_proof: plan.scoped_merge_proof().clone(),
     }
 }
 
@@ -456,5 +511,8 @@ pub fn merge_result_proof_report(result: &BranchMergeResult) -> MergeResultProof
         selected_identity_matcher_digest: result.selected_identity_matcher_digest.clone(),
         selected_source_only_policy_digest: result.selected_source_only_policy_digest.clone(),
         selected_deletion_policy_digest: result.selected_deletion_policy_digest.clone(),
+        strategy_witness: result.strategy_witness.clone(),
+        compatibility_witness: result.compatibility_witness.clone(),
+        scoped_merge_proof: result.scoped_merge_proof.clone(),
     }
 }
