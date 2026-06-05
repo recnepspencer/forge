@@ -1499,7 +1499,9 @@ dependencies = [
 name = "forge-signal"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
  "forge-harness",
+ "forge-proof",
  "js-sys",
  "rayon",
  "serde",

@@ -10,6 +10,7 @@ use crate::diagnostics::lineage::LineageArtifactId;
 
 use super::adoption::{SourceNodeAdoptionCarryPolicy, SourceNodeAdoptionPlanCore};
 use super::aspect_policy_registry::{AspectMergePolicyName, AspectMergePolicySelectionBasis};
+use super::candidate_scope::LoweredScopedMergeCandidateSet;
 use super::conflict::{BranchConflictResolutionPlan, BranchMergeConflictKind};
 use super::conflict_isolation_registry::{
     ConflictIsolationPolicyName, ConflictIsolationSelectionBasis,
@@ -25,9 +26,11 @@ use super::journal::{BranchMutationJournalSlice, MergeNodeMap, StructuralMergeJo
 use super::merge_base_registry::{MergeBaseSelectionBasis, MergeBaseStrategyName};
 use super::policy::{BranchMergeReconciliationPolicy, ConflictIsolationGranularity};
 use super::proof::lowered_strategy_bundle_digest;
+use super::scoped_proof::ScopedMergeProofPacket;
 use super::semantics::SelectedMergeSemanticsBundle;
 use super::source_only_policy_registry::{SourceOnlyPolicyName, SourceOnlyPolicySelectionBasis};
 use super::strategy_registry::{MergeStrategyName, MergeStrategySelectionBasis};
+use super::{aspect_policy_inventory, SignalMergeStrategyWitness};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NodeReconciliationShape {
@@ -324,7 +327,7 @@ pub struct LoweredAspectMergeDecisionPlan {
     pub records: Vec<LoweredAspectMergeDecisionRecord>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct LoweredMergePlan {
     source_branch_id: crate::state::SignalBranchId,
     target_branch_id: crate::state::SignalBranchId,
@@ -353,6 +356,7 @@ pub struct LoweredMergePlan {
     selected_deletion_policy_digest: String,
     selected_deletion_policy_basis: DeletionPolicySelectionBasis,
     selected_semantics: SelectedMergeSemanticsBundle,
+    strategy_witness: SignalMergeStrategyWitness,
     reconciliation_policy: BranchMergeReconciliationPolicy,
     boundary_witness: MergeBoundaryWitness,
     source_journal: StructuralMergeJournalSlice,
@@ -362,6 +366,8 @@ pub struct LoweredMergePlan {
     conflict_isolation_plan: LoweredConflictIsolationPlan,
     aspect_policy_plan: LoweredAspectMergePolicyPlan,
     aspect_decision_plan: LoweredAspectMergeDecisionPlan,
+    scoped_candidates: LoweredScopedMergeCandidateSet,
+    scoped_merge_proof: ScopedMergeProofPacket,
     proof_minimal_overlap: ProofMinimalOverlapBasis,
     conservative_overlap: ConservativeOverlapExpansion,
     planned_candidates: PlannedMergeCandidateSet,
@@ -413,6 +419,8 @@ impl LoweredMergePlan {
         conflict_isolation_plan: LoweredConflictIsolationPlan,
         aspect_policy_plan: LoweredAspectMergePolicyPlan,
         aspect_decision_plan: LoweredAspectMergeDecisionPlan,
+        scoped_candidates: LoweredScopedMergeCandidateSet,
+        scoped_merge_proof: ScopedMergeProofPacket,
         proof_minimal_overlap: ProofMinimalOverlapBasis,
         conservative_overlap: ConservativeOverlapExpansion,
         planned_candidates: PlannedMergeCandidateSet,
@@ -458,19 +466,28 @@ impl LoweredMergePlan {
             selected_deletion_policy_digest.clone(),
             selected_deletion_policy_basis,
         );
+        let lowered_strategy_bundle_digest = lowered_strategy_bundle_digest(
+            &selected_semantics,
+            lowered_merge_base.as_ref(),
+            &deletion_plan,
+            &conflict_isolation_plan,
+            &aspect_policy_plan,
+            &aspect_decision_plan,
+        );
+        let strategy_witness = SignalMergeStrategyWitness::from_admitted_plan_components(
+            &selected_semantics,
+            merge_strategy,
+            &lowered_strategy_bundle_digest,
+            &boundary_witness,
+            aspect_policy_inventory(&aspect_policy_plan),
+            &adoption_policy,
+        );
         Self {
             source_branch_id,
             target_branch_id,
             schema_registry_digest,
             registry_bundle_digest,
-            lowered_strategy_bundle_digest: lowered_strategy_bundle_digest(
-                &selected_semantics,
-                lowered_merge_base.as_ref(),
-                &deletion_plan,
-                &conflict_isolation_plan,
-                &aspect_policy_plan,
-                &aspect_decision_plan,
-            ),
+            lowered_strategy_bundle_digest,
             merge_kind,
             divergence,
             merge_strategy,
@@ -493,6 +510,7 @@ impl LoweredMergePlan {
             selected_deletion_policy_digest,
             selected_deletion_policy_basis,
             selected_semantics,
+            strategy_witness,
             reconciliation_policy,
             boundary_witness,
             source_journal,
@@ -502,6 +520,8 @@ impl LoweredMergePlan {
             conflict_isolation_plan,
             aspect_policy_plan,
             aspect_decision_plan,
+            scoped_candidates,
+            scoped_merge_proof,
             proof_minimal_overlap,
             conservative_overlap,
             planned_candidates,
@@ -625,6 +645,10 @@ impl LoweredMergePlan {
         &self.selected_semantics
     }
 
+    pub fn strategy_witness(&self) -> &SignalMergeStrategyWitness {
+        &self.strategy_witness
+    }
+
     pub fn reconciliation_policy(&self) -> &BranchMergeReconciliationPolicy {
         &self.reconciliation_policy
     }
@@ -659,6 +683,14 @@ impl LoweredMergePlan {
 
     pub fn aspect_decision_plan(&self) -> &LoweredAspectMergeDecisionPlan {
         &self.aspect_decision_plan
+    }
+
+    pub fn scoped_candidates(&self) -> &LoweredScopedMergeCandidateSet {
+        &self.scoped_candidates
+    }
+
+    pub fn scoped_merge_proof(&self) -> &ScopedMergeProofPacket {
+        &self.scoped_merge_proof
     }
 
     pub fn proof_minimal_overlap(&self) -> &ProofMinimalOverlapBasis {

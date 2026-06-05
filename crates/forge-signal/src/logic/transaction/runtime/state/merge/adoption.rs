@@ -26,21 +26,21 @@ pub struct AdoptionDependencySnapshotRef {
     pub snapshot: DependencySnapshot,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum RuntimeArtifactCarryPolicy {
     CarryMergeAdoptable,
     RebuildAfterAdoption,
     DoNotCarry,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum RetainedArtifactCarryPolicy {
     CarryIfPolicyAllows,
     ReconstructIfNeeded,
     Drop,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum CausalityCarryPolicy {
     CarryIfPolicyAllows,
     Drop,

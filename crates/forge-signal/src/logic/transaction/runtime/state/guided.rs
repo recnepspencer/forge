@@ -6,9 +6,11 @@ use crate::diagnostics::{LineageEvent, ReplayView, SynthesizedLineageChain};
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotV1};
 
 use super::merge::{
-    AspectMergePolicyBinding, AspectMergePolicyName, BranchMergeResult, BranchMergeStrategy,
-    ConflictIsolationPolicyName, ConflictPolicyName, DeletionPolicyName, IdentityMatcherName,
-    MergeBaseStrategyName, MergeStrategyName, SourceOnlyPolicyName,
+    AspectMergePolicyBinding, AspectMergePolicyName, BranchMergeRequest, BranchMergeRequestDenial,
+    BranchMergeRequestScope, BranchMergeResult, BranchMergeStrategy, ConflictIsolationPolicyName,
+    ConflictPolicyName, DeletionPolicyName, IdentityMatcherName, LoweredFoundationalMergeRequest,
+    MergeBaseStrategyName, MergeStrategyName, NormalizedBranchMergeRequest,
+    SignalSelectedAspectRequestEntry, SourceOnlyPolicyName,
 };
 use super::runtime_state::SignalRuntime;
 
@@ -19,7 +21,8 @@ where
     T: Copy + Ord,
 {
     runtime: &'a mut SignalRuntime<D, I, E, Ctx, T>,
-    request: crate::logic::transaction::runtime::BranchMergeRequest,
+    request: crate::logic::transaction::runtime::NormalizedBranchMergeRequest,
+    lowered_request: crate::logic::transaction::runtime::LoweredFoundationalMergeRequest,
     plan: crate::logic::transaction::runtime::BranchMergePlan,
 }
 
@@ -33,9 +36,25 @@ where
         &self.plan
     }
 
+    pub fn request(&self) -> &crate::logic::transaction::runtime::BranchMergeRequest {
+        self.request.request()
+    }
+
+    pub fn normalized_request(
+        &self,
+    ) -> &crate::logic::transaction::runtime::NormalizedBranchMergeRequest {
+        &self.request
+    }
+
+    pub fn lowered_request(
+        &self,
+    ) -> &crate::logic::transaction::runtime::LoweredFoundationalMergeRequest {
+        &self.lowered_request
+    }
+
     pub fn execute(self) -> Result<BranchMergeResult, SignalError> {
         self.runtime
-            .execute_branch_merge_request_plan(&self.request, &self.plan)
+            .execute_branch_merge_request_plan(&self.lowered_request, &self.plan)
     }
 }
 
@@ -120,6 +139,7 @@ where
     source_only_policy_name: Option<SourceOnlyPolicyName>,
     deletion_policy_name: Option<DeletionPolicyName>,
     aspect_policy_bindings: Vec<AspectMergePolicyBinding>,
+    scope: Option<BranchMergeRequestScope>,
 }
 
 impl<'a, D, I, E, Ctx, T> RuntimeMerge<'a, D, I, E, Ctx, T>
@@ -142,6 +162,7 @@ where
             conflict_isolation_policy_name: None,
             deletion_policy_name: None,
             aspect_policy_bindings: Vec::new(),
+            scope: None,
         }
     }
 
@@ -208,30 +229,76 @@ where
         self
     }
 
-    pub fn plan(self) -> Result<PlannedRuntimeMerge<'a, D, I, E, Ctx, T>, SignalError> {
+    pub fn full_branch(mut self) -> Self {
+        self.scope = Some(BranchMergeRequestScope::full_branch());
+        self
+    }
+
+    pub fn selected_nodes(
+        mut self,
+        selected_nodes: impl IntoIterator<Item = crate::data::handle::NodeId>,
+    ) -> Self {
+        self.scope = Some(BranchMergeRequestScope::selected_nodes(selected_nodes));
+        self
+    }
+
+    pub fn selected_aspects(
+        mut self,
+        selected_aspects: impl IntoIterator<Item = SignalSelectedAspectRequestEntry>,
+    ) -> Self {
+        self.scope = Some(BranchMergeRequestScope::selected_aspects(selected_aspects));
+        self
+    }
+
+    pub fn build_request(&self) -> Result<BranchMergeRequest, SignalError> {
         let source = self
             .source
+            .clone()
             .ok_or_else(|| SignalError::invalid_input("merge source branch is required"))?;
         let target = self
             .target
+            .clone()
             .ok_or_else(|| SignalError::invalid_input("merge target branch is required"))?;
-        let request = crate::logic::transaction::runtime::BranchMergeRequest {
+        Ok(BranchMergeRequest {
             source_branch: source,
             target_branch: target,
-            strategy_name: self.strategy_name,
+            scope: self.scope.clone().unwrap_or_default(),
+            strategy_name: self.strategy_name.clone(),
             strategy_hint: self.strategy_hint,
-            merge_base_name: self.merge_base_name,
-            conflict_policy_name: self.conflict_policy_name,
-            identity_matcher_name: self.identity_matcher_name,
-            source_only_policy_name: self.source_only_policy_name,
-            deletion_policy_name: self.deletion_policy_name,
-            conflict_isolation_policy_name: self.conflict_isolation_policy_name,
-            aspect_policy_bindings: self.aspect_policy_bindings,
-        };
-        let plan = self.runtime.plan_branch_merge_request(&request)?;
+            merge_base_name: self.merge_base_name.clone(),
+            conflict_policy_name: self.conflict_policy_name.clone(),
+            identity_matcher_name: self.identity_matcher_name.clone(),
+            source_only_policy_name: self.source_only_policy_name.clone(),
+            deletion_policy_name: self.deletion_policy_name.clone(),
+            conflict_isolation_policy_name: self.conflict_isolation_policy_name.clone(),
+            aspect_policy_bindings: self.aspect_policy_bindings.clone(),
+        })
+    }
+
+    pub fn build_normalized_request(&self) -> Result<NormalizedBranchMergeRequest, SignalError> {
+        self.build_request().and_then(|request| {
+            request
+                .normalize()
+                .map_err(BranchMergeRequestDenial::into_signal_error)
+        })
+    }
+
+    pub fn build_lowered_foundational_request(
+        self,
+    ) -> Result<LoweredFoundationalMergeRequest, SignalError> {
+        let request = self.build_normalized_request()?;
+        self.runtime.lower_foundational_merge_request(&request)
+    }
+
+    pub fn plan(self) -> Result<PlannedRuntimeMerge<'a, D, I, E, Ctx, T>, SignalError> {
+        let request = self.build_normalized_request()?;
+        let lowered_request = self.runtime.lower_foundational_merge_request(&request)?;
+        let request = lowered_request.normalized_request().clone();
+        let plan = self.runtime.plan_branch_merge_request(&lowered_request)?;
         Ok(PlannedRuntimeMerge {
             runtime: self.runtime,
             request,
+            lowered_request,
             plan,
         })
     }

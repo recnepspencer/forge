@@ -14,14 +14,18 @@ use crate::state::{SignalBranchHandle, SnapshotArtifactRetentionPolicy};
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::super::merge::{
-    adopt_source_node_into_target, remap_dependency_snapshot, AdoptedNodeContract,
-    AdoptionDependencySnapshotRef, AdoptionDependencyTopology, ArtifactMergeAction,
-    AspectMergeDecisionOutcome, AspectMergePolicy, AspectMergePolicyDescriptor,
-    BranchConflictResolutionPlan, BranchMergeBase, BranchMergeConflictEvidence,
-    BranchMergeConflictKind, BranchMergeConflictRecord, BranchMergeConflictSummary,
-    BranchMergeCounters, BranchMergeDivergence, BranchMergeExecutionSummary,
-    BranchMergeFailureEvidence, BranchMergeFailureKind, BranchMergeIdentityFailureEvidence,
-    BranchMergeKind, BranchMergePlan, BranchMergeReconciliationPolicy, BranchMergeRequest,
+    adopt_source_node_into_target, classify_initial_scoped_merge_admission,
+    deny_selected_node_non_adoptable, deny_selected_target_rejected_by_declaration,
+    remap_dependency_snapshot, rewrite_identity_scoped_admission_error,
+    scoped_admission_outcome_to_signal_error, signal_scope_family_matches_foundational_family,
+    AdoptedNodeContract, AdoptionDependencySnapshotRef, AdoptionDependencyTopology,
+    ArtifactMergeAction, AspectMergeDecisionOutcome, AspectMergePolicy,
+    AspectMergePolicyDescriptor, BranchConflictResolutionPlan, BranchMergeBase,
+    BranchMergeConflictEvidence, BranchMergeConflictKind, BranchMergeConflictRecord,
+    BranchMergeConflictSummary, BranchMergeCounters, BranchMergeDivergence,
+    BranchMergeExecutionSummary, BranchMergeFailureEvidence, BranchMergeFailureKind,
+    BranchMergeIdentityFailureEvidence, BranchMergeKind, BranchMergePlan,
+    BranchMergeReconciliationPolicy, BranchMergeRequest, BranchMergeRequestDenial,
     BranchMergeResolutionRequirement, BranchMergeResult, BranchMergeStrategy, CausalityCarryPolicy,
     ConflictIsolationGranularity, ConflictIsolationPolicyDescriptor, ConflictIsolationPolicyName,
     ConflictIsolationWitness, ConflictMergePolicy, ConflictPolicyDescriptor,
@@ -33,13 +37,14 @@ use super::super::merge::{
     IdentityCorrespondenceRecord, IdentityCorrespondenceStatus, IdentityMatchPolicy,
     IdentityMatcherDescriptor, LoweredAspectMergeDecisionPlan, LoweredAspectMergeDecisionRecord,
     LoweredAspectMergePolicyPlan, LoweredAspectMergePolicyRecord, LoweredConflictIsolationPlan,
-    LoweredConflictIsolationRecord, LoweredDeletionPolicyPlan, LoweredIdentityCorrespondencePlan,
-    LoweredMergeBasePlan, LoweredMergePlan, MergeBaseSelectionBasis, MergeBaseSelectionPolicy,
+    LoweredConflictIsolationRecord, LoweredDeletionPolicyPlan, LoweredFoundationalMergeRequest,
+    LoweredIdentityCorrespondencePlan, LoweredMergeBasePlan, LoweredMergePlan,
+    LoweredScopedMergeCandidateSet, MergeBaseSelectionBasis, MergeBaseSelectionPolicy,
     MergeBaseStrategyDescriptor, MergeBoundaryWitness, MergeBoundaryWitnessKind,
     MergeDecisionBasis, MergeNodeMap, MergeTouchedNodeSet, MergedArtifactRecord,
     NodeMergeInputState, NodeMergePlan, NodeReconciliationDecision, NodeReconciliationShape,
-    PlannedMergeCandidateSet, ProofMinimalOverlapBasis, RegionIsolationSummary,
-    RetainedArtifactCarryPolicy, RuntimeArtifactCarryPolicy, SourceNodeAdoptionCarryPolicy,
+    ProofMinimalOverlapBasis, RegionIsolationSummary, RetainedArtifactCarryPolicy,
+    RuntimeArtifactCarryPolicy, ScopedMergeProofPacket, SourceNodeAdoptionCarryPolicy,
     SourceNodeAdoptionPlanCore, SourceOnlyMergePolicy, SourceOnlyPolicyDescriptor,
     StructuralMergeCandidateRecord, StructuralMergeJournalSlice, TargetNodeIdentityIntent,
     TopologyRepairSummary,
@@ -112,28 +117,59 @@ where
         source: SignalBranchHandle,
         target: SignalBranchHandle,
     ) -> Result<BranchMergeResult, SignalError> {
-        let request = BranchMergeRequest {
-            source_branch: source,
-            target_branch: target,
-            strategy_name: None,
-            strategy_hint: None,
-            merge_base_name: None,
-            conflict_policy_name: None,
-            identity_matcher_name: None,
-            source_only_policy_name: None,
-            deletion_policy_name: None,
-            conflict_isolation_policy_name: None,
-            aspect_policy_bindings: Vec::new(),
-        };
+        let request = BranchMergeRequest::full_branch(source, target)
+            .normalize()
+            .map_err(BranchMergeRequestDenial::into_signal_error)?;
+        let request = self.lower_foundational_merge_request(&request)?;
         let plan = self.plan_branch_merge_request(&request)?;
         self.execute_branch_merge_request_plan(&request, &plan)
     }
 
+    pub(crate) fn lower_foundational_merge_request(
+        &mut self,
+        request: &crate::logic::transaction::runtime::NormalizedBranchMergeRequest,
+    ) -> Result<LoweredFoundationalMergeRequest, SignalError> {
+        self.telemetry.transaction.foundational_scope_lowering_count += 1;
+        match request.lower_to_foundational_scope() {
+            Ok(lowered) => {
+                match lowered.foundational_scope().family() {
+                    forge_foundational::facade::FoundationalMergeScopeFamily::FullBranch => {
+                        self.telemetry
+                            .transaction
+                            .foundational_full_branch_lowering_count += 1;
+                    }
+                    forge_foundational::facade::FoundationalMergeScopeFamily::SelectedNodes => {
+                        self.telemetry
+                            .transaction
+                            .foundational_selected_node_lowering_count += 1;
+                    }
+                    forge_foundational::facade::FoundationalMergeScopeFamily::SelectedAspects => {
+                        self.telemetry
+                            .transaction
+                            .foundational_selected_aspect_lowering_count += 1;
+                    }
+                }
+                Ok(lowered)
+            }
+            Err(denial) => {
+                self.telemetry
+                    .transaction
+                    .foundational_scope_lowering_denial_count += 1;
+                Err(
+                    crate::logic::transaction::runtime::FoundationalScopeLoweringDenial::into_signal_error(
+                        denial,
+                    ),
+                )
+            }
+        }
+    }
+
     pub(crate) fn plan_branch_merge_request(
         &mut self,
-        request: &BranchMergeRequest,
+        request: &LoweredFoundationalMergeRequest,
     ) -> Result<BranchMergePlan, SignalError> {
-        if request.source_branch.id == request.target_branch.id {
+        let raw_request = request.normalized_request().request();
+        if raw_request.source_branch.id == raw_request.target_branch.id {
             let error = SignalError::branch_merge_failed(
                 BranchMergeFailureKind::SelfMergeRejected,
                 "branch merge cannot target itself",
@@ -141,10 +177,19 @@ where
             crate::diagnostics::recorder::record_branch_merge_failure(
                 &mut self.graph,
                 &error,
-                Some(request.source_branch.clone()),
-                Some(request.target_branch.clone()),
+                Some(raw_request.source_branch.clone()),
+                Some(raw_request.target_branch.clone()),
             );
             return Err(error);
+        }
+        let foundational_scope = request.foundational_scope();
+        if !signal_scope_family_matches_foundational_family(
+            request.normalized_request().normalized_scope().family(),
+            foundational_scope.family(),
+        ) {
+            return Err(SignalError::invalid_input(
+                "foundational merge scope lowering changed the scoped merge family",
+            ));
         }
         match self.build_branch_merge_plan(request) {
             Ok(plan) => Ok(plan),
@@ -152,8 +197,8 @@ where
                 crate::diagnostics::recorder::record_branch_merge_failure(
                     &mut self.graph,
                     &error,
-                    Some(request.source_branch.clone()),
-                    Some(request.target_branch.clone()),
+                    Some(raw_request.source_branch.clone()),
+                    Some(raw_request.target_branch.clone()),
                 );
                 Err(error)
             }
@@ -162,17 +207,18 @@ where
 
     pub(crate) fn execute_branch_merge_request_plan(
         &mut self,
-        request: &BranchMergeRequest,
+        request: &LoweredFoundationalMergeRequest,
         plan: &BranchMergePlan,
     ) -> Result<BranchMergeResult, SignalError> {
+        let raw_request = request.normalized_request().request();
         let summary = match self.execute_branch_merge_plan(request, plan) {
             Ok(summary) => summary,
             Err(error) => {
                 crate::diagnostics::recorder::record_branch_merge_failure(
                     &mut self.graph,
                     &error,
-                    Some(request.source_branch.clone()),
-                    Some(request.target_branch.clone()),
+                    Some(raw_request.source_branch.clone()),
+                    Some(raw_request.target_branch.clone()),
                 );
                 return Err(error);
             }
@@ -180,8 +226,8 @@ where
         crate::diagnostics::recorder::record_branch_merge_summary(
             &mut self.graph,
             &summary,
-            request.source_branch.name.clone(),
-            request.target_branch.name.clone(),
+            raw_request.source_branch.name.clone(),
+            raw_request.target_branch.name.clone(),
         );
         Ok(BranchMergeResult {
             source_branch: summary.source_branch_id,
@@ -214,6 +260,8 @@ where
             selected_merge_base_digest: summary.selected_merge_base_digest.clone(),
             selected_merge_base_basis: summary.selected_merge_base_basis,
             selected_semantics: summary.selected_semantics.clone(),
+            strategy_witness: summary.strategy_witness.clone(),
+            compatibility_witness: summary.compatibility_witness.clone(),
             reconciliation_policy: summary.reconciliation_policy,
             boundary_witness: summary.boundary_witness.clone(),
             identity_correspondence: summary.identity_correspondence.clone(),
@@ -224,6 +272,7 @@ where
             proof_minimal_overlap: summary.proof_minimal_overlap.clone(),
             conservative_overlap: summary.conservative_overlap.clone(),
             planned_candidates: summary.planned_candidates.clone(),
+            scoped_merge_proof: summary.scoped_merge_proof.clone(),
             merged_snapshot_id: summary.target_snapshot_id_after,
             lowered_merge_base: summary.lowered_merge_base.clone(),
             target_snapshot_id_before: summary.target_snapshot_id_before,
@@ -235,10 +284,20 @@ where
         })
     }
 
+    #[cfg(test)]
+    pub(crate) fn execute_branch_merge_request_plan_summary_for_test(
+        &mut self,
+        request: &LoweredFoundationalMergeRequest,
+        plan: &BranchMergePlan,
+    ) -> Result<BranchMergeExecutionSummary, SignalError> {
+        self.execute_branch_merge_plan(request, plan)
+    }
+
     fn build_branch_merge_plan(
         &mut self,
-        request: &BranchMergeRequest,
+        lowered_request: &LoweredFoundationalMergeRequest,
     ) -> Result<BranchMergePlan, SignalError> {
+        let request = lowered_request.normalized_request().request();
         let source_state_owned = if request.source_branch.id == self.graph.current_branch().id {
             {
                 self.capture_heavy_branch_state()
@@ -300,6 +359,9 @@ where
         });
         let mut node_map = MergeNodeMap::default();
         if !source_state.mutation_ledger().boundary_established {
+            self.telemetry
+                .transaction
+                .scoped_candidate_broad_scan_denial_count += 1;
             return Err(SignalError::branch_merge_failed(
                 BranchMergeFailureKind::UnsupportedMergeStrategy,
                 "branch merge requires an established mutation-journal boundary; whole-live branch scans are no longer admitted",
@@ -318,10 +380,41 @@ where
             source_state.mutation_ledger().structural_merge_journal(),
         );
         let target_identity_journal = target_state.mutation_ledger().structural_merge_journal();
-        let source_nodes = source_journal.candidate_nodes();
-        let planned_candidates = PlannedMergeCandidateSet {
-            nodes: source_nodes.clone(),
-        };
+        self.telemetry.transaction.scoped_candidate_lowering_count += 1;
+        let mut scoped_candidates = LoweredScopedMergeCandidateSet::lower(
+            lowered_request,
+            &source_journal,
+            source_state.graph(),
+        )?;
+        match scoped_candidates.scope_family() {
+            crate::logic::transaction::BranchMergeRequestScopeFamily::FullBranch => {
+                self.telemetry
+                    .transaction
+                    .scoped_candidate_full_branch_count += 1;
+            }
+            crate::logic::transaction::BranchMergeRequestScopeFamily::SelectedNodes => {
+                self.telemetry
+                    .transaction
+                    .scoped_candidate_selected_node_count += 1;
+            }
+            crate::logic::transaction::BranchMergeRequestScopeFamily::SelectedAspects => {
+                self.telemetry
+                    .transaction
+                    .scoped_candidate_selected_aspect_count += 1;
+            }
+        }
+        self.telemetry
+            .transaction
+            .scoped_candidate_requested_scope_breadth +=
+            scoped_candidates.breadth_summary().requested_scope_width;
+        self.telemetry.transaction.scoped_candidate_admitted_breadth +=
+            scoped_candidates.breadth_summary().admitted_candidate_width;
+        self.telemetry.transaction.scoped_candidate_skipped_breadth +=
+            scoped_candidates.breadth_summary().skipped_scope_width;
+        self.telemetry.transaction.scoped_candidate_no_op_breadth +=
+            scoped_candidates.breadth_summary().no_op_scope_width;
+        let source_nodes = scoped_candidates.admitted_candidate_nodes().to_vec();
+        let planned_candidates = scoped_candidates.planned_candidates().clone();
         let mut proof_minimal_overlap_nodes = Vec::new();
         let mut conservative_overlap_nodes = planned_candidates
             .nodes
@@ -353,6 +446,36 @@ where
                 }
             }
         }
+        scoped_candidates = scoped_candidates
+            .with_support_closure_nodes(conservative_support_nodes.iter().copied());
+        self.telemetry
+            .transaction
+            .scoped_candidate_support_closure_breadth +=
+            scoped_candidates.breadth_summary().support_closure_width;
+        self.telemetry.transaction.scoped_merge_admission_count += 1;
+        let scoped_admission = classify_initial_scoped_merge_admission(
+            lowered_request,
+            &scoped_candidates,
+            source_state.graph(),
+            request.strategy_hint,
+        );
+        let scoped_candidates = match scoped_admission {
+            forge_proof::TransitionOutcome::Success(ready) => ready.scoped_candidates().clone(),
+            outcome => {
+                self.telemetry.transaction.scoped_merge_denial_count +=
+                    u64::from(matches!(outcome, forge_proof::TransitionOutcome::Denied(_)));
+                self.telemetry.transaction.scoped_merge_unavailable_count += u64::from(!matches!(
+                    outcome,
+                    forge_proof::TransitionOutcome::Success(_)
+                        | forge_proof::TransitionOutcome::Denied(_)
+                ));
+                return Err(scoped_admission_outcome_to_signal_error(outcome));
+            }
+        };
+        let scoped_merge_proof = ScopedMergeProofPacket::from_request_and_candidates(
+            lowered_request,
+            &scoped_candidates,
+        );
         let resolved_identity_matcher = resolve_identity_matcher_descriptor(
             &self.identity_matcher_registry,
             &self.schema_registry,
@@ -368,7 +491,26 @@ where
             target_graph,
             &source_nodes,
             &target_identity_journal,
-        )?;
+        )
+        .map_err(|error| {
+            let rewritten = rewrite_identity_scoped_admission_error(lowered_request, error);
+            match &rewritten {
+                SignalError::BranchMergeFailed {
+                    kind: BranchMergeFailureKind::ScopedMergeDenied,
+                    ..
+                } => {
+                    self.telemetry.transaction.scoped_merge_denial_count += 1;
+                }
+                SignalError::BranchMergeFailed {
+                    kind: BranchMergeFailureKind::ScopedMergeUnavailable,
+                    ..
+                } => {
+                    self.telemetry.transaction.scoped_merge_unavailable_count += 1;
+                }
+                _ => {}
+            }
+            rewritten
+        })?;
         let identity_matches = identity_outcome.matches;
         let identity_correspondence = identity_outcome.correspondence;
         let matched_target_nodes = identity_matches.values().copied().collect::<BTreeSet<_>>();
@@ -486,6 +628,23 @@ where
             DeletionMergePolicy::RejectTargetOnlyConflict
         ) && !target_only_nodes.is_empty()
         {
+            if !matches!(
+                lowered_request
+                    .normalized_request()
+                    .normalized_scope()
+                    .family(),
+                crate::logic::transaction::BranchMergeRequestScopeFamily::FullBranch
+            ) {
+                self.telemetry.transaction.scoped_merge_denial_count += 1;
+                let denied_node = scoped_candidates
+                    .admitted_candidate_nodes()
+                    .first()
+                    .copied()
+                    .unwrap_or_else(|| source_nodes[0]);
+                return Err(scoped_admission_outcome_to_signal_error(
+                    deny_selected_target_rejected_by_declaration(lowered_request, denied_node),
+                ));
+            }
             return Err(SignalError::branch_merge_failed_with_evidence(
                 BranchMergeFailureKind::DivergenceRequiresConflictResolution,
                 format!(
@@ -678,6 +837,21 @@ where
                     reconciliation_policy.source_only,
                     SourceOnlyMergePolicy::RejectIntroduction
                 ) {
+                    if !matches!(
+                        lowered_request
+                            .normalized_request()
+                            .normalized_scope()
+                            .family(),
+                        crate::logic::transaction::BranchMergeRequestScopeFamily::FullBranch
+                    ) {
+                        self.telemetry.transaction.scoped_merge_denial_count += 1;
+                        return Err(scoped_admission_outcome_to_signal_error(
+                            deny_selected_target_rejected_by_declaration(
+                                lowered_request,
+                                source_node,
+                            ),
+                        ));
+                    }
                     return Err(SignalError::branch_merge_failed(
                         BranchMergeFailureKind::UnsupportedMergeStrategy,
                         format!(
@@ -696,6 +870,18 @@ where
                 ) {
                     NodeReconciliationDecision::AdoptSourceAuthority
                 } else {
+                    if !matches!(
+                        lowered_request
+                            .normalized_request()
+                            .normalized_scope()
+                            .family(),
+                        crate::logic::transaction::BranchMergeRequestScopeFamily::FullBranch
+                    ) {
+                        self.telemetry.transaction.scoped_merge_denial_count += 1;
+                        return Err(scoped_admission_outcome_to_signal_error(
+                            deny_selected_node_non_adoptable(lowered_request, source_node),
+                        ));
+                    }
                     NodeReconciliationDecision::SkipNonAdoptableSource
                 };
                 node_plan.push(NodeMergePlan::new(
@@ -784,6 +970,8 @@ where
             conflict_isolation_plan,
             aspect_policy_plan,
             aspect_decision_plan,
+            scoped_candidates,
+            scoped_merge_proof,
             proof_minimal_overlap,
             conservative_overlap,
             planned_candidates,
@@ -805,26 +993,19 @@ where
         source: SignalBranchHandle,
         target: SignalBranchHandle,
     ) -> Result<BranchMergePlan, SignalError> {
-        self.build_branch_merge_plan(&BranchMergeRequest {
-            source_branch: source,
-            target_branch: target,
-            strategy_name: None,
-            strategy_hint: None,
-            merge_base_name: None,
-            conflict_policy_name: None,
-            identity_matcher_name: None,
-            source_only_policy_name: None,
-            deletion_policy_name: None,
-            conflict_isolation_policy_name: None,
-            aspect_policy_bindings: Vec::new(),
-        })
+        let request = BranchMergeRequest::full_branch(source, target)
+            .normalize()
+            .map_err(BranchMergeRequestDenial::into_signal_error)?;
+        let request = self.lower_foundational_merge_request(&request)?;
+        self.build_branch_merge_plan(&request)
     }
 
     fn execute_branch_merge_plan(
         &mut self,
-        request: &BranchMergeRequest,
+        request: &LoweredFoundationalMergeRequest,
         plan: &BranchMergePlan,
     ) -> Result<BranchMergeExecutionSummary, SignalError> {
+        let request = request.normalized_request().request();
         let source_state = if request.source_branch.id == self.graph.current_branch().id {
             {
                 self.capture_heavy_branch_state()
@@ -1149,78 +1330,7 @@ where
             merge_lineage_record_count: (records.len() + 1) as u64,
             replay_event_count: 1,
         };
-        let summary = BranchMergeExecutionSummary {
-            source_branch_id: plan.source_branch_id(),
-            target_branch_id: plan.target_branch_id(),
-            schema_registry_digest: plan.schema_registry_digest().to_owned(),
-            registry_bundle_digest: plan.registry_bundle_digest().to_owned(),
-            lowered_strategy_bundle_digest: plan.lowered_strategy_bundle_digest().to_owned(),
-            merge_kind: plan.merge_kind(),
-            divergence: plan.divergence(),
-            merge_strategy: plan.merge_strategy(),
-            selected_strategy_name: plan.selected_strategy_name().clone(),
-            selected_strategy_digest: plan.selected_strategy_digest().to_string(),
-            selected_strategy_basis: plan.selected_strategy_basis(),
-            selected_conflict_policy_name: plan.selected_conflict_policy_name().clone(),
-            selected_conflict_policy_digest: plan.selected_conflict_policy_digest().to_string(),
-            selected_conflict_policy_basis: plan.selected_conflict_policy_basis(),
-            selected_conflict_isolation_name: plan.selected_conflict_isolation_name().clone(),
-            selected_conflict_isolation_digest: plan
-                .selected_conflict_isolation_digest()
-                .to_string(),
-            selected_conflict_isolation_basis: plan.selected_conflict_isolation_basis(),
-            selected_identity_matcher_name: plan.selected_identity_matcher_name().clone(),
-            selected_identity_matcher_digest: plan.selected_identity_matcher_digest().to_string(),
-            selected_identity_matcher_basis: plan.selected_identity_matcher_basis(),
-            selected_source_only_policy_name: plan.selected_source_only_policy_name().clone(),
-            selected_source_only_policy_digest: plan
-                .selected_source_only_policy_digest()
-                .to_string(),
-            selected_source_only_policy_basis: plan.selected_source_only_policy_basis(),
-            selected_deletion_policy_name: plan.selected_deletion_policy_name().clone(),
-            selected_deletion_policy_digest: plan.selected_deletion_policy_digest().to_string(),
-            selected_deletion_policy_basis: plan.selected_deletion_policy_basis(),
-            selected_merge_base_name: plan
-                .lowered_merge_base()
-                .map(|base| base.selected_merge_base_name.clone())
-                .expect("merge-base plan"),
-            selected_merge_base_digest: plan
-                .lowered_merge_base()
-                .map(|base| base.selected_merge_base_digest.clone())
-                .expect("merge-base plan"),
-            selected_merge_base_basis: plan
-                .lowered_merge_base()
-                .map(|base| base.selected_merge_base_basis)
-                .expect("merge-base plan"),
-            selected_semantics: plan.selected_semantics().clone(),
-            reconciliation_policy: plan.reconciliation_policy().clone(),
-            boundary_witness: plan.boundary_witness().clone(),
-            identity_correspondence: plan.identity_correspondence().clone(),
-            deletion_plan: plan.deletion_plan().clone(),
-            conflict_isolation_plan: plan.conflict_isolation_plan().clone(),
-            aspect_policy_plan: plan.aspect_policy_plan().clone(),
-            aspect_decision_plan: plan.aspect_decision_plan().clone(),
-            proof_minimal_overlap: plan.proof_minimal_overlap().clone(),
-            conservative_overlap: plan.conservative_overlap().clone(),
-            planned_candidates: plan.planned_candidates().clone(),
-            merge_base: plan.merge_base().cloned(),
-            lowered_merge_base: plan.lowered_merge_base().cloned(),
-            source_snapshot_id: plan.source_snapshot_id(),
-            target_snapshot_id_before: target_snapshot_before,
-            target_snapshot_id_after: target_snapshot_after,
-            resolution_plan: plan.resolution_plan().cloned(),
-            node_map,
-            records,
-            dependency_remaps,
-            topology_repair: TopologyRepairSummary {
-                touched_node_count: touched_set.nodes.len() as u64,
-                subscriber_repair_breadth: repaired_sources.len() as u64,
-            },
-            counters,
-        };
-
-        let merged_source_nodes = summary
-            .records
+        let merged_source_nodes = records
             .iter()
             .filter(|record| !matches!(record.action, ArtifactMergeAction::SkippedNonAdoptable))
             .map(|record| record.source_node)
@@ -1280,7 +1390,108 @@ where
                 .unwrap_or_default()
         };
         self.synchronize_branch_catalogs(branch_catalog);
-        Ok(summary)
+        let compatibility_witness = {
+            let target_branch_handle = request.target_branch.clone();
+            let branch_basis = match self.branch_basis_artifact(target_branch_handle.clone()) {
+                forge_proof::TransitionOutcome::Success(artifact) => artifact,
+                outcome => {
+                    return Err(SignalError::branch_merge_failed(
+                        BranchMergeFailureKind::UnsupportedMergeStrategy,
+                        format!(
+                            "post-merge compatibility witness requires a valid target branch basis artifact, got {outcome:?}"
+                        ),
+                    ))
+                }
+            };
+            match self.planned_merge_compatibility_artifact(
+                branch_basis,
+                target_branch_handle,
+                plan,
+            ) {
+                forge_proof::TransitionOutcome::Success(artifact) => artifact.payload().clone(),
+                outcome => {
+                    return Err(SignalError::branch_merge_failed(
+                        BranchMergeFailureKind::UnsupportedMergeStrategy,
+                        format!(
+                            "post-merge compatibility witness could not be retained from admitted merge proof, got {outcome:?}"
+                        ),
+                    ))
+                }
+            }
+        };
+
+        Ok(BranchMergeExecutionSummary {
+            source_branch_id: plan.source_branch_id(),
+            target_branch_id: plan.target_branch_id(),
+            schema_registry_digest: plan.schema_registry_digest().to_owned(),
+            registry_bundle_digest: plan.registry_bundle_digest().to_owned(),
+            lowered_strategy_bundle_digest: plan.lowered_strategy_bundle_digest().to_owned(),
+            merge_kind: plan.merge_kind(),
+            divergence: plan.divergence(),
+            merge_strategy: plan.merge_strategy(),
+            selected_strategy_name: plan.selected_strategy_name().clone(),
+            selected_strategy_digest: plan.selected_strategy_digest().to_string(),
+            selected_strategy_basis: plan.selected_strategy_basis(),
+            selected_conflict_policy_name: plan.selected_conflict_policy_name().clone(),
+            selected_conflict_policy_digest: plan.selected_conflict_policy_digest().to_string(),
+            selected_conflict_policy_basis: plan.selected_conflict_policy_basis(),
+            selected_conflict_isolation_name: plan.selected_conflict_isolation_name().clone(),
+            selected_conflict_isolation_digest: plan
+                .selected_conflict_isolation_digest()
+                .to_string(),
+            selected_conflict_isolation_basis: plan.selected_conflict_isolation_basis(),
+            selected_identity_matcher_name: plan.selected_identity_matcher_name().clone(),
+            selected_identity_matcher_digest: plan.selected_identity_matcher_digest().to_string(),
+            selected_identity_matcher_basis: plan.selected_identity_matcher_basis(),
+            selected_source_only_policy_name: plan.selected_source_only_policy_name().clone(),
+            selected_source_only_policy_digest: plan
+                .selected_source_only_policy_digest()
+                .to_string(),
+            selected_source_only_policy_basis: plan.selected_source_only_policy_basis(),
+            selected_deletion_policy_name: plan.selected_deletion_policy_name().clone(),
+            selected_deletion_policy_digest: plan.selected_deletion_policy_digest().to_string(),
+            selected_deletion_policy_basis: plan.selected_deletion_policy_basis(),
+            selected_merge_base_name: plan
+                .lowered_merge_base()
+                .map(|base| base.selected_merge_base_name.clone())
+                .expect("merge-base plan"),
+            selected_merge_base_digest: plan
+                .lowered_merge_base()
+                .map(|base| base.selected_merge_base_digest.clone())
+                .expect("merge-base plan"),
+            selected_merge_base_basis: plan
+                .lowered_merge_base()
+                .map(|base| base.selected_merge_base_basis)
+                .expect("merge-base plan"),
+            selected_semantics: plan.selected_semantics().clone(),
+            strategy_witness: plan.strategy_witness().clone(),
+            compatibility_witness,
+            reconciliation_policy: plan.reconciliation_policy().clone(),
+            boundary_witness: plan.boundary_witness().clone(),
+            identity_correspondence: plan.identity_correspondence().clone(),
+            deletion_plan: plan.deletion_plan().clone(),
+            conflict_isolation_plan: plan.conflict_isolation_plan().clone(),
+            aspect_policy_plan: plan.aspect_policy_plan().clone(),
+            aspect_decision_plan: plan.aspect_decision_plan().clone(),
+            proof_minimal_overlap: plan.proof_minimal_overlap().clone(),
+            conservative_overlap: plan.conservative_overlap().clone(),
+            planned_candidates: plan.planned_candidates().clone(),
+            scoped_merge_proof: plan.scoped_merge_proof().clone(),
+            merge_base: plan.merge_base().cloned(),
+            lowered_merge_base: plan.lowered_merge_base().cloned(),
+            source_snapshot_id: plan.source_snapshot_id(),
+            target_snapshot_id_before: target_snapshot_before,
+            target_snapshot_id_after: target_snapshot_after,
+            resolution_plan: plan.resolution_plan().cloned(),
+            node_map,
+            records,
+            dependency_remaps,
+            topology_repair: TopologyRepairSummary {
+                touched_node_count: touched_set.nodes.len() as u64,
+                subscriber_repair_breadth: repaired_sources.len() as u64,
+            },
+            counters,
+        })
     }
 }
 

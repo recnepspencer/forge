@@ -471,16 +471,18 @@ impl DiagnosticsState {
         meta
     }
 
-    pub fn create_branch(&mut self, name: impl Into<String>) -> SignalBranchHandle {
+    pub fn create_branch_from_basis(
+        &mut self,
+        name: impl Into<String>,
+        parent_branch_id: SignalBranchId,
+        parent_head_snapshot_id: Option<SignalSnapshotId>,
+    ) -> SignalBranchHandle {
         self.bootstrap_defaults();
         let handle = SignalBranchHandle {
             id: SignalBranchId(self.next_branch_id.max(1)),
             name: name.into(),
-            parent_branch_id: Some(self.active_branch),
-            head_snapshot_id: self
-                .branch_catalog
-                .get(&self.active_branch)
-                .and_then(|branch| branch.head_snapshot_id),
+            parent_branch_id: Some(parent_branch_id),
+            head_snapshot_id: parent_head_snapshot_id,
         };
         self.next_branch_id = handle.id.0 + 1;
         self.branch_catalog.insert(handle.id, handle.clone());
