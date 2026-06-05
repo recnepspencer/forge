@@ -10,7 +10,12 @@ fn promote_authoritative_active(
     promotion_record: &BridgePreviewPromotionRecord,
     promoted_ready: &BridgeSubscriptionActivationReady,
 ) {
-    let _ = runtime.promote_preview_subscription(active, work_trace, promotion_record, promoted_ready);
+    let _ = runtime.record_preview_authoritative_boundary(
+        active,
+        work_trace,
+        promotion_record,
+        promoted_ready,
+    );
 }
 
 fn main() {}

@@ -3,6 +3,7 @@ use super::*;
 mod closeout;
 mod continuity_planning;
 mod debug;
+mod diagnostics;
 mod historical_and_replay;
 mod merge;
 mod policy;
@@ -33,6 +34,7 @@ pub struct RuntimeBridge {
     pub(crate) mapping_registry: FrozenMappingRegistry,
     pub(crate) aspect_registry: FrozenAspectMappingRegistry,
     pub(crate) subscription_family_registry: FrozenSubscriptionFamilyRegistry,
+    pub(crate) signal_runtime_key: u64,
 }
 
 impl std::fmt::Debug for RuntimeBridge {

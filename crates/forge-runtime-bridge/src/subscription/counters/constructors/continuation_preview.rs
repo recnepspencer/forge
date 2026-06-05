@@ -79,6 +79,13 @@ impl BridgeSubscriptionCounters {
         })
     }
 
+    pub fn from_subscription_preview_lifecycle_residue_envelope() -> Self {
+        Self::from_values(BridgeSubscriptionCounterValues {
+            subscription_preview_lifecycle_residue_envelope_count: 1,
+            ..BridgeSubscriptionCounterValues::default()
+        })
+    }
+
     pub fn from_subscription_preview_promotion() -> Self {
         Self::from_values(BridgeSubscriptionCounterValues {
             subscription_preview_promotion_count: 1,
@@ -86,9 +93,25 @@ impl BridgeSubscriptionCounters {
         })
     }
 
-    pub fn from_subscription_preview_promotion_rejection() -> Self {
+    pub fn from_subscription_preview_promotion_rejection(
+        crossed_completion: bool,
+        temporal_evidence_drift: bool,
+    ) -> Self {
         Self::from_values(BridgeSubscriptionCounterValues {
             subscription_preview_promotion_rejection_count: 1,
+            subscription_preview_crossed_completion_rejection_count: usize::from(
+                crossed_completion,
+            ),
+            subscription_preview_temporal_evidence_drift_rejection_count: usize::from(
+                temporal_evidence_drift,
+            ),
+            ..BridgeSubscriptionCounterValues::default()
+        })
+    }
+
+    pub fn from_subscription_preview_authoritative_readmission() -> Self {
+        Self::from_values(BridgeSubscriptionCounterValues {
+            subscription_preview_authoritative_readmission_count: 1,
             ..BridgeSubscriptionCounterValues::default()
         })
     }

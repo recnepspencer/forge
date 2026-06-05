@@ -79,3 +79,25 @@ pub(crate) fn checkpoint_from_sealed(
         )
         .expect("checkpoint should publish")
 }
+
+pub(crate) fn fanout_checkpoint_from_sealed(
+    runtime: &crate::facade::RuntimeBridge,
+    active: &crate::facade::BridgeActiveSubscription,
+    sealed: &crate::facade::BridgeSubscriptionDeliveryWindowSealed,
+    fanout_layout: &crate::facade::BridgeSubscriptionFanoutLayout,
+    acknowledged_sequence: usize,
+    duplicate_replay_policy_kind: crate::facade::BridgeSubscriptionDuplicateReplayPolicyKind,
+) -> crate::facade::BridgeSubscriptionCheckpoint {
+    let acknowledged = &sealed.members()[acknowledged_sequence];
+    let frontier = runtime
+        .admit_subscription_acknowledgement_frontier(sealed, acknowledged_sequence, acknowledged)
+        .expect("frontier should admit");
+    runtime
+        .publish_subscription_fanout_checkpoint(
+            runtime.prepare_subscription_checkpoint(frontier),
+            active,
+            fanout_layout,
+            duplicate_replay_policy_kind,
+        )
+        .expect("fanout checkpoint should publish")
+}

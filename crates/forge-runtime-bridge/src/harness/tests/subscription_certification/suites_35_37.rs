@@ -1,6 +1,7 @@
 mod declared_lane_admission;
 mod family_strategy_distinction;
 mod lane_matrix_audit;
+mod phase_17_sufficiency;
 
 use super::support::*;
 use crate::facade::{
@@ -13,6 +14,7 @@ use crate::facade::{
     BridgeSubscriptionReferenceWorkloadLaneRequest,
     BridgeSubscriptionReferenceWorkloadProductIdSet,
     BridgeSubscriptionReferenceWorkloadRejectionKind,
+    BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet,
 };
 
 fn product_ids() -> BridgeSubscriptionReferenceWorkloadProductIdSet {
@@ -30,6 +32,7 @@ fn component_ids() -> BridgeSubscriptionReferenceWorkloadComponentIdSet {
 fn lane_ids() -> BridgeSubscriptionReferenceWorkloadLaneIdSet {
     BridgeSubscriptionReferenceWorkloadLaneIdSet::from_declared_lane_labels([
         "authoritative-live",
+        "time-only-routing",
         "historical-replay",
         "historical-basis-replay",
         "branch-local",
@@ -54,6 +57,10 @@ fn all_lane_requests() -> Vec<BridgeSubscriptionReferenceWorkloadLaneRequest> {
         BridgeSubscriptionReferenceWorkloadLaneRequest::new(
             BridgeSubscriptionReferenceWorkloadLaneKind::HostileAdapterVariation,
             BridgeSubscriptionReferenceWorkloadFamilyKind::CollectionMembership,
+        ),
+        BridgeSubscriptionReferenceWorkloadLaneRequest::new(
+            BridgeSubscriptionReferenceWorkloadLaneKind::TimeOnlyRouting,
+            BridgeSubscriptionReferenceWorkloadFamilyKind::DetailExact,
         ),
         BridgeSubscriptionReferenceWorkloadLaneRequest::new(
             BridgeSubscriptionReferenceWorkloadLaneKind::HistoricalReplay,

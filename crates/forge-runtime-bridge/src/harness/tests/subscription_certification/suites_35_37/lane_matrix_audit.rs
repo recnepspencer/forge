@@ -16,9 +16,9 @@ fn bridge_harness_subscription_suite_35_reference_workload_lanes_are_canonical_a
         .expect("reference workload should certify from emitted artifacts");
 
     assert_eq!(report.manifest_digest(), manifest.digest());
-    assert_eq!(report.lane_reports().len(), 17);
-    assert_eq!(report.comparison_reports().len(), 16);
-    assert_eq!(report.counters().reference_workload_lane_count(), 17);
+    assert_eq!(report.lane_reports().len(), 18);
+    assert_eq!(report.comparison_reports().len(), 17);
+    assert_eq!(report.counters().reference_workload_lane_count(), 18);
     assert_eq!(report.counters().reference_workload_report_count(), 1);
     assert_eq!(
         report.counters().reference_workload_coverage_report_count(),
@@ -26,10 +26,10 @@ fn bridge_harness_subscription_suite_35_reference_workload_lanes_are_canonical_a
     );
     assert_eq!(report.counters().host_log_dependency_count(), 0);
     assert_eq!(report.counters().live_state_dependency_count(), 0);
-    assert_eq!(report.offline_audit_report().comparison_report_count(), 16);
+    assert_eq!(report.offline_audit_report().comparison_report_count(), 17);
     assert_eq!(report.outcome_summary().equivalent_count(), 3);
     assert_eq!(report.outcome_summary().diagnostics_only_count(), 1);
-    assert_eq!(report.outcome_summary().expected_rejection_count(), 6);
+    assert_eq!(report.outcome_summary().expected_rejection_count(), 7);
     assert_eq!(report.outcome_summary().intentionally_divergent_count(), 5);
     assert_eq!(
         report
@@ -47,7 +47,7 @@ fn bridge_harness_subscription_suite_35_reference_workload_lanes_are_canonical_a
                     == BridgeSubscriptionCertificationComparisonOutcome::RejectedAtExpectedBoundary
             })
             .count(),
-        6
+        7
     );
     assert_eq!(
         report
@@ -60,9 +60,9 @@ fn bridge_harness_subscription_suite_35_reference_workload_lanes_are_canonical_a
             .count(),
         5
     );
-    assert_eq!(report.coverage_report().lane_kinds().len(), 17);
+    assert_eq!(report.coverage_report().lane_kinds().len(), 18);
     assert_eq!(report.coverage_report().family_kinds().len(), 2);
-    assert_eq!(report.coverage_report().lane_coverage_rows().len(), 17);
+    assert_eq!(report.coverage_report().lane_coverage_rows().len(), 18);
     assert!(report.coverage_report().first_ship_lane_matrix_covered());
     assert!(report.coverage_report().multi_family_covered());
     assert!(report.coverage_report().comparison_evidence_complete());
@@ -82,6 +82,11 @@ fn bridge_harness_subscription_suite_35_reference_workload_lanes_are_canonical_a
             BridgeSubscriptionReferenceWorkloadLaneKind::HostileAdapterVariation,
             Some(BridgeSubscriptionCertificationComparisonOutcome::RejectedAtExpectedBoundary),
             Some(BridgeSubscriptionCertificationFailureBoundary::MissingRequiredRetainedArtifact),
+        ),
+        (
+            BridgeSubscriptionReferenceWorkloadLaneKind::TimeOnlyRouting,
+            Some(BridgeSubscriptionCertificationComparisonOutcome::RejectedAtExpectedBoundary),
+            Some(BridgeSubscriptionCertificationFailureBoundary::DeliveryFamilyMismatch),
         ),
         (
             BridgeSubscriptionReferenceWorkloadLaneKind::HistoricalReplay,

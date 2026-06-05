@@ -1,5 +1,7 @@
 use super::*;
 
+static NEXT_SIGNAL_RUNTIME_KEY: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+
 impl RuntimeBridge {
     /// Delivers the full continuity workflow for one retained route record.
     ///
@@ -202,6 +204,8 @@ impl RuntimeBridge {
             mapping_registry,
             aspect_registry,
             subscription_family_registry,
+            signal_runtime_key: NEXT_SIGNAL_RUNTIME_KEY
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
         }
     }
 }

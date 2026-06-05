@@ -89,7 +89,7 @@ fn bridge_harness_subscription_suite_34_preview_zero_residue_and_promotion_are_e
             work_trace.zero_residue_inputs(),
         );
         let discard = runtime
-            .discard_preview_subscription(preview_active, residue_index)
+            .prove_preview_scope_discard_residue(preview_active, residue_index)
             .expect("zero preview residue should discard");
 
         assert_eq!(discard.total_residue_count(), 0);
@@ -263,7 +263,7 @@ fn bridge_harness_subscription_suite_34_preview_zero_residue_and_promotion_are_e
         .admitted_subscription_identity()
         .clone();
     let promotion = runtime
-        .promote_preview_subscription(
+        .record_preview_authoritative_boundary(
             preview_active,
             &promotion_work_trace,
             &speculation_promotion,

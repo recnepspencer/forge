@@ -120,4 +120,64 @@ impl BridgeSubscriptionCounters {
             ..BridgeSubscriptionCounterValues::default()
         })
     }
+
+    pub fn from_resume_basis_capture() -> Self {
+        Self::from_values(BridgeSubscriptionCounterValues {
+            subscription_resume_basis_capture_count: 1,
+            ..BridgeSubscriptionCounterValues::default()
+        })
+    }
+
+    pub fn from_resume_temporal_basis() -> Self {
+        Self::from_values(BridgeSubscriptionCounterValues {
+            subscription_resume_temporal_basis_count: 1,
+            ..BridgeSubscriptionCounterValues::default()
+        })
+    }
+
+    pub fn from_resume_inflight_async_basis() -> Self {
+        Self::from_values(BridgeSubscriptionCounterValues {
+            subscription_resume_inflight_async_basis_count: 1,
+            ..BridgeSubscriptionCounterValues::default()
+        })
+    }
+
+    pub fn from_resume_delivery_basis() -> Self {
+        Self::from_values(BridgeSubscriptionCounterValues {
+            subscription_resume_delivery_basis_count: 1,
+            ..BridgeSubscriptionCounterValues::default()
+        })
+    }
+
+    pub fn from_resume_basis_admission() -> Self {
+        Self::from_values(BridgeSubscriptionCounterValues {
+            subscription_resume_basis_admission_count: 1,
+            ..BridgeSubscriptionCounterValues::default()
+        })
+    }
+
+    pub fn from_resume_basis_rejection(
+        cross_branch: bool,
+        delivery_mismatch: bool,
+        inflight_async_generation_mismatch: bool,
+        retention_truncated: bool,
+    ) -> Self {
+        Self::from_values(BridgeSubscriptionCounterValues {
+            subscription_resume_basis_rejection_count: 1,
+            subscription_checkpoint_truncation_rejection_count: usize::from(retention_truncated),
+            subscription_resume_cross_branch_rejection_count: usize::from(cross_branch),
+            subscription_resume_delivery_mismatch_rejection_count: usize::from(delivery_mismatch),
+            subscription_resume_inflight_async_generation_rejection_count: usize::from(
+                inflight_async_generation_mismatch,
+            ),
+            ..BridgeSubscriptionCounterValues::default()
+        })
+    }
+
+    pub fn from_resume_replay_readiness() -> Self {
+        Self::from_values(BridgeSubscriptionCounterValues {
+            subscription_resume_replay_readiness_count: 1,
+            ..BridgeSubscriptionCounterValues::default()
+        })
+    }
 }

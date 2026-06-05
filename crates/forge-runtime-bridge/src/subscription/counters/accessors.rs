@@ -214,6 +214,27 @@ impl BridgeSubscriptionCounters {
     pub fn subscription_resume_plan_count(&self) -> usize {
         self.values.subscription_resume_plan_count
     }
+    pub fn subscription_resume_basis_capture_count(&self) -> usize {
+        self.values.subscription_resume_basis_capture_count
+    }
+    pub fn subscription_resume_temporal_basis_count(&self) -> usize {
+        self.values.subscription_resume_temporal_basis_count
+    }
+    pub fn subscription_resume_inflight_async_basis_count(&self) -> usize {
+        self.values.subscription_resume_inflight_async_basis_count
+    }
+    pub fn subscription_resume_delivery_basis_count(&self) -> usize {
+        self.values.subscription_resume_delivery_basis_count
+    }
+    pub fn subscription_resume_basis_admission_count(&self) -> usize {
+        self.values.subscription_resume_basis_admission_count
+    }
+    pub fn subscription_resume_basis_rejection_count(&self) -> usize {
+        self.values.subscription_resume_basis_rejection_count
+    }
+    pub fn subscription_resume_replay_readiness_count(&self) -> usize {
+        self.values.subscription_resume_replay_readiness_count
+    }
     pub fn subscription_unsealed_stream_checkpoint_rejection_count(&self) -> usize {
         self.values
             .subscription_unsealed_stream_checkpoint_rejection_count
@@ -221,6 +242,17 @@ impl BridgeSubscriptionCounters {
     pub fn subscription_checkpoint_truncation_rejection_count(&self) -> usize {
         self.values
             .subscription_checkpoint_truncation_rejection_count
+    }
+    pub fn subscription_resume_cross_branch_rejection_count(&self) -> usize {
+        self.values.subscription_resume_cross_branch_rejection_count
+    }
+    pub fn subscription_resume_delivery_mismatch_rejection_count(&self) -> usize {
+        self.values
+            .subscription_resume_delivery_mismatch_rejection_count
+    }
+    pub fn subscription_resume_inflight_async_generation_rejection_count(&self) -> usize {
+        self.values
+            .subscription_resume_inflight_async_generation_rejection_count
     }
     pub fn subscription_continuation_index_build_count(&self) -> usize {
         self.values.subscription_continuation_index_build_count
@@ -274,11 +306,128 @@ impl BridgeSubscriptionCounters {
         self.values
             .subscription_preview_non_scope_registry_scan_count
     }
+    pub fn subscription_preview_lifecycle_residue_envelope_count(&self) -> usize {
+        self.values
+            .subscription_preview_lifecycle_residue_envelope_count
+    }
     pub fn subscription_preview_promotion_count(&self) -> usize {
         self.values.subscription_preview_promotion_count
     }
     pub fn subscription_preview_promotion_rejection_count(&self) -> usize {
         self.values.subscription_preview_promotion_rejection_count
+    }
+    pub fn subscription_preview_authoritative_readmission_count(&self) -> usize {
+        self.values
+            .subscription_preview_authoritative_readmission_count
+    }
+    pub fn subscription_preview_crossed_completion_rejection_count(&self) -> usize {
+        self.values
+            .subscription_preview_crossed_completion_rejection_count
+    }
+    pub fn subscription_preview_temporal_evidence_drift_rejection_count(&self) -> usize {
+        self.values
+            .subscription_preview_temporal_evidence_drift_rejection_count
+    }
+    pub fn subscription_temporal_admission_count(&self) -> usize {
+        self.values.subscription_temporal_admission_count
+    }
+    pub fn subscription_temporal_rejection_count(&self) -> usize {
+        self.values.subscription_temporal_rejection_count
+    }
+    pub fn subscription_temporal_activation_ready_count(&self) -> usize {
+        self.values.subscription_temporal_activation_ready_count
+    }
+    pub fn subscription_temporal_time_only_cause_count(&self) -> usize {
+        self.values.subscription_temporal_time_only_cause_count
+    }
+    pub fn subscription_temporal_truth_plus_time_cause_count(&self) -> usize {
+        self.values
+            .subscription_temporal_truth_plus_time_cause_count
+    }
+    pub fn subscription_temporal_duplicate_clock_rejection_count(&self) -> usize {
+        self.values
+            .subscription_temporal_duplicate_clock_rejection_count
+    }
+    pub fn subscription_temporal_stale_clock_rejection_count(&self) -> usize {
+        self.values
+            .subscription_temporal_stale_clock_rejection_count
+    }
+    pub fn subscription_temporal_delivery_plan_count(&self) -> usize {
+        self.values.subscription_temporal_delivery_plan_count
+    }
+    pub fn subscription_mixed_cause_ordering_request_count(&self) -> usize {
+        self.values.subscription_mixed_cause_ordering_request_count
+    }
+    pub fn subscription_mixed_cause_ordering_count(&self) -> usize {
+        self.values.subscription_mixed_cause_ordering_count
+    }
+    pub fn subscription_mixed_cause_ordered_cause_count(&self) -> usize {
+        self.values.subscription_mixed_cause_ordered_cause_count
+    }
+    pub fn subscription_mixed_cause_duplicate_suppression_count(&self) -> usize {
+        self.values
+            .subscription_mixed_cause_duplicate_suppression_count
+    }
+    pub fn subscription_mixed_cause_denied_cause_count(&self) -> usize {
+        self.values.subscription_mixed_cause_denied_cause_count
+    }
+    pub fn subscription_mixed_cause_authoritative_preview_rejection_count(&self) -> usize {
+        self.values
+            .subscription_mixed_cause_authoritative_preview_rejection_count
+    }
+    pub fn subscription_mixed_cause_delivery_window_plan_count(&self) -> usize {
+        self.values
+            .subscription_mixed_cause_delivery_window_plan_count
+    }
+    pub fn subscription_shared_delivery_plan_count(&self) -> usize {
+        self.values.subscription_shared_delivery_plan_count
+    }
+    pub fn subscription_shared_delivery_plan_rejection_count(&self) -> usize {
+        self.values
+            .subscription_shared_delivery_plan_rejection_count
+    }
+    pub fn subscription_shared_delivery_layout_count(&self) -> usize {
+        self.values.subscription_shared_delivery_layout_count
+    }
+    pub fn subscription_shared_delivery_bundle_draft_count(&self) -> usize {
+        self.values.subscription_shared_delivery_bundle_draft_count
+    }
+    pub fn subscription_shared_delivery_bundle_sealed_count(&self) -> usize {
+        self.values.subscription_shared_delivery_bundle_sealed_count
+    }
+    pub fn subscription_shared_delivery_projection_count(&self) -> usize {
+        self.values.subscription_shared_delivery_projection_count
+    }
+    pub fn subscription_shared_delivery_projection_rejection_count(&self) -> usize {
+        self.values
+            .subscription_shared_delivery_projection_rejection_count
+    }
+    pub fn subscription_shared_delivery_acknowledgement_count(&self) -> usize {
+        self.values
+            .subscription_shared_delivery_acknowledgement_count
+    }
+    pub fn subscription_shared_delivery_acknowledgement_rejection_count(&self) -> usize {
+        self.values
+            .subscription_shared_delivery_acknowledgement_rejection_count
+    }
+    pub fn subscription_historical_truth_basis_admission_count(&self) -> usize {
+        self.values
+            .subscription_historical_truth_basis_admission_count
+    }
+    pub fn subscription_historical_previous_value_evidence_count(&self) -> usize {
+        self.values
+            .subscription_historical_previous_value_evidence_count
+    }
+    pub fn subscription_historical_temporal_replay_basis_admission_count(&self) -> usize {
+        self.values
+            .subscription_historical_temporal_replay_basis_admission_count
+    }
+    pub fn subscription_historical_temporal_replay_rejection_count(&self) -> usize {
+        self.values
+            .subscription_historical_temporal_replay_rejection_count
+    }
+    pub fn subscription_historical_temporal_readiness_count(&self) -> usize {
+        self.values.subscription_historical_temporal_readiness_count
     }
 
     pub fn canonical_basis(&self) -> &str {

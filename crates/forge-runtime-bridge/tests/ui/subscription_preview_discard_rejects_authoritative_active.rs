@@ -7,7 +7,7 @@ fn discard_authoritative_active(
     active: BridgeActiveSubscription,
     residue_index: BridgeSubscriptionPreviewResidueScopeIndex,
 ) {
-    let _ = runtime.discard_preview_subscription(active, residue_index);
+    let _ = runtime.prove_preview_scope_discard_residue(active, residue_index);
 }
 
 fn main() {}

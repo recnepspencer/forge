@@ -22,7 +22,8 @@ impl BridgeSubscriptionCertificationCounterSnapshot {
                 "multi-failure-precedence-reports:{}|ordering-hostility-reports:{}|",
                 "stale-checkpoint-reports:{}|bundle-insufficiency-reports:{}|",
                 "historical-basis-reports:{}|strategy-lowering-reports:{}|",
-                "fanout-reports:{}|denied-continuation-reports:{}"
+                "fanout-reports:{}|denied-continuation-reports:{}|",
+                "phase-18-support-matrix:{}|phase-18-closeout-artifacts:{}"
             ),
             self.bundle_assembly_plan_count,
             self.bundle_cost_profile_count,
@@ -59,6 +60,8 @@ impl BridgeSubscriptionCertificationCounterSnapshot {
             self.strategy_lowering_report_count,
             self.fanout_report_count,
             self.denied_continuation_report_count,
+            self.phase_18_support_matrix_count,
+            self.phase_18_closeout_artifact_count,
         ))
     }
 

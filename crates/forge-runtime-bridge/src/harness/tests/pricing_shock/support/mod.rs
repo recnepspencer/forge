@@ -19,8 +19,14 @@ pub(in crate::harness::tests::pricing_shock) use crate::facade::{
     BridgeRequestKind, BridgeRuntimePolicy, BridgeSignalBranchIdentity, BridgeSourceCapability,
     BridgeSourceCapabilitySet, BridgeSpeculativeBranchBinding,
     BridgeSpeculativeBranchBindingIdentity, BridgeSpeculativeSessionRequest,
-    BridgeStandardRouteError, BridgeTruthViewEvaluationRequest, BridgeTruthViewSelector,
-    BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
+    BridgeStandardRouteError, BridgeSubscriptionReferenceWorkloadComponentIdSet,
+    BridgeSubscriptionReferenceWorkloadFamilyKind, BridgeSubscriptionReferenceWorkloadLaneIdSet,
+    BridgeSubscriptionReferenceWorkloadLaneKind, BridgeSubscriptionReferenceWorkloadLaneRequest,
+    BridgeSubscriptionReferenceWorkloadManifestSealed,
+    BridgeSubscriptionReferenceWorkloadProductIdSet,
+    BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet,
+    BridgeSubscriptionReferenceWorkloadSufficiency, BridgeTruthViewEvaluationRequest,
+    BridgeTruthViewSelector, BridgeWritebackCausalityIdentity, BridgeWritebackDeclaration,
     BridgeWritebackDeclarationIdentity, BridgeWritebackEffectClass, BridgeWritebackEffectIdentity,
     BridgeWritebackEffectIntent, BridgeWritebackErrorKind, BridgeWritebackFailureClass,
     BridgeWritebackFamilyKind, BridgeWritebackIdempotenceClass, BridgeWritebackIdempotenceIdentity,
@@ -50,30 +56,22 @@ pub(in crate::harness::tests::pricing_shock) use forge_harness::facade::{
 };
 pub(in crate::harness::tests::pricing_shock) use std::collections::BTreeMap;
 
-mod capture_failures;
-mod capture_lifecycle;
-mod capture_reference;
+mod capture;
 mod historical_portfolio;
 mod pricing_snapshot_records;
 mod provenance_records;
 mod route_and_runtime;
-mod scenario;
-mod simulation_capture;
-mod simulation_inputs;
+mod simulation;
 mod source_fixtures;
 mod writeback_authority;
 mod writeback_merge_capture;
 
-pub(in crate::harness::tests::pricing_shock) use capture_failures::*;
-pub(in crate::harness::tests::pricing_shock) use capture_lifecycle::*;
-pub(in crate::harness::tests::pricing_shock) use capture_reference::*;
+pub(in crate::harness::tests::pricing_shock) use capture::*;
 pub(in crate::harness::tests::pricing_shock) use historical_portfolio::*;
 pub(in crate::harness::tests::pricing_shock) use pricing_snapshot_records::*;
 pub(in crate::harness::tests::pricing_shock) use provenance_records::*;
 pub(in crate::harness::tests::pricing_shock) use route_and_runtime::*;
-pub(in crate::harness::tests::pricing_shock) use scenario::*;
-pub(in crate::harness::tests::pricing_shock) use simulation_capture::*;
-pub(in crate::harness::tests::pricing_shock) use simulation_inputs::*;
+pub(in crate::harness::tests::pricing_shock) use simulation::*;
 pub(in crate::harness::tests::pricing_shock) use source_fixtures::*;
 pub(in crate::harness::tests::pricing_shock) use writeback_authority::*;
 pub(in crate::harness::tests::pricing_shock) use writeback_merge_capture::*;
