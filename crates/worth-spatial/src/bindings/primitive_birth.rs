@@ -453,9 +453,11 @@ fn derive_birth_contract(
     let descriptor = match family {
         PrimitiveConstructionBirthFamily::SimplexSolid => PrimitiveWitnessDescriptor::SimplexSolid,
         PrimitiveConstructionBirthFamily::Orthotope => PrimitiveWitnessDescriptor::Orthotope,
-        PrimitiveConstructionBirthFamily::RegularPrism => PrimitiveWitnessDescriptor::RegularPrism {
-            side_count: (face_count - 2) as u32,
-        },
+        PrimitiveConstructionBirthFamily::RegularPrism => {
+            PrimitiveWitnessDescriptor::RegularPrism {
+                side_count: (face_count - 2) as u32,
+            }
+        }
         PrimitiveConstructionBirthFamily::RegularPyramid => {
             PrimitiveWitnessDescriptor::RegularPyramid {
                 side_count: (vertex_count - 1) as u32,
@@ -464,10 +466,12 @@ fn derive_birth_contract(
         PrimitiveConstructionBirthFamily::WireBody => PrimitiveWitnessDescriptor::WireBody {
             edge_count: edge_count as u32,
         },
-        PrimitiveConstructionBirthFamily::ShellWithHole => PrimitiveWitnessDescriptor::ShellWithHole {
-            outer_loop_edge_count: (edge_count - (loop_count.saturating_sub(1) * 3)) as u32,
-            hole_loop_edge_counts: vec![3; loop_count.saturating_sub(1)],
-        },
+        PrimitiveConstructionBirthFamily::ShellWithHole => {
+            PrimitiveWitnessDescriptor::ShellWithHole {
+                outer_loop_edge_count: (edge_count - (loop_count.saturating_sub(1) * 3)) as u32,
+                hole_loop_edge_counts: vec![3; loop_count.saturating_sub(1)],
+            }
+        }
     };
     PrimitiveConstructionFamilyContractRegistry::contract_for(&descriptor)
 }

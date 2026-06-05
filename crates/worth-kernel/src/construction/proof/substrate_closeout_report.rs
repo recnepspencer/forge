@@ -16,8 +16,7 @@ use crate::construction::proof::digest_protocol_report::{
     PrimitiveConstructionDigestProtocolReport,
 };
 use crate::construction::proof::geometry_digest_sensitivity_report::{
-    prepare_primitive_geometry_digest_sensitivity_report,
-    PrimitiveGeometryDigestSensitivityReport,
+    prepare_primitive_geometry_digest_sensitivity_report, PrimitiveGeometryDigestSensitivityReport,
 };
 use crate::construction::proof::proof_grade::{
     PrimitiveConstructionProofGrade, PrimitiveConstructionProofSubject,
@@ -159,11 +158,9 @@ pub fn prepare_primitive_construction_proof_substrate_closeout_report() -> Resul
     PrimitiveConstructionProofSubstrateCloseoutReportError,
 > {
     let digest_protocol_report = prepare_primitive_construction_digest_protocol_report();
-    let geometry_digest_sensitivity_report =
-        prepare_primitive_geometry_digest_sensitivity_report();
+    let geometry_digest_sensitivity_report = prepare_primitive_geometry_digest_sensitivity_report();
     let canonical_witness_parity_report = prepare_primitive_canonical_witness_parity_report();
-    let shell_with_hole_layout_hostility_suite =
-        prepare_shell_with_hole_layout_hostility_suite();
+    let shell_with_hole_layout_hostility_suite = prepare_shell_with_hole_layout_hostility_suite();
     let simplex_canonical_ratio_report = prepare_simplex_canonical_ratio_report();
     let verified_artifact_surface_report =
         prepare_primitive_construction_verified_artifact_surface_report();
@@ -181,8 +178,12 @@ pub fn prepare_primitive_construction_proof_substrate_closeout_report() -> Resul
     if canonical_witness_parity_report.rows().len() != 6 {
         mismatches.push(PrimitiveConstructionProofSubstrateCloseoutVerificationMismatch::CanonicalWitnessParityDrift);
     }
-    if !shell_with_hole_layout_hostility_suite.containment().containment_verified()
-        || !shell_with_hole_layout_hostility_suite.non_overlap().non_overlap_verified()
+    if !shell_with_hole_layout_hostility_suite
+        .containment()
+        .containment_verified()
+        || !shell_with_hole_layout_hostility_suite
+            .non_overlap()
+            .non_overlap_verified()
         || !shell_with_hole_layout_hostility_suite.rejected_missing_hole_loop()
     {
         mismatches.push(PrimitiveConstructionProofSubstrateCloseoutVerificationMismatch::ShellWithHoleLayoutHostilityDrift);
@@ -207,35 +208,45 @@ pub fn prepare_primitive_construction_proof_substrate_closeout_report() -> Resul
     }
 
     if !mismatches.is_empty() {
-        return Err(PrimitiveConstructionProofSubstrateCloseoutReportError::Verification(
-            PrimitiveConstructionProofSubstrateCloseoutVerificationFailure { mismatches },
-        ));
+        return Err(
+            PrimitiveConstructionProofSubstrateCloseoutReportError::Verification(
+                PrimitiveConstructionProofSubstrateCloseoutVerificationFailure { mismatches },
+            ),
+        );
     }
 
     let report_digest = digest_owned_parts_with_scope(
         ConstructionDigestScope::ArtifactIdentity,
         &[
             digest_protocol_report.report_digest().to_string(),
-            geometry_digest_sensitivity_report.report_digest().to_string(),
+            geometry_digest_sensitivity_report
+                .report_digest()
+                .to_string(),
             canonical_witness_parity_report.report_digest().to_string(),
-            shell_with_hole_layout_hostility_suite.report_digest().to_string(),
+            shell_with_hole_layout_hostility_suite
+                .report_digest()
+                .to_string(),
             simplex_canonical_ratio_report.report_digest().to_string(),
             verified_artifact_surface_report.report_digest().to_string(),
             truth_projection_matrix.report_digest().to_string(),
-            proof_boundary_compile_fail_report.report_digest().to_string(),
+            proof_boundary_compile_fail_report
+                .report_digest()
+                .to_string(),
         ],
     );
-    Ok(PrimitiveConstructionProofSubstrateCloseoutReport::from_payload(
-        PrimitiveConstructionVerifiedProofSubstrateCloseoutPayload {
-            digest_protocol_report,
-            geometry_digest_sensitivity_report,
-            canonical_witness_parity_report,
-            shell_with_hole_layout_hostility_suite,
-            simplex_canonical_ratio_report,
-            verified_artifact_surface_report,
-            truth_projection_matrix,
-            proof_boundary_compile_fail_report,
-            report_digest,
-        },
-    ))
+    Ok(
+        PrimitiveConstructionProofSubstrateCloseoutReport::from_payload(
+            PrimitiveConstructionVerifiedProofSubstrateCloseoutPayload {
+                digest_protocol_report,
+                geometry_digest_sensitivity_report,
+                canonical_witness_parity_report,
+                shell_with_hole_layout_hostility_suite,
+                simplex_canonical_ratio_report,
+                verified_artifact_surface_report,
+                truth_projection_matrix,
+                proof_boundary_compile_fail_report,
+                report_digest,
+            },
+        ),
+    )
 }

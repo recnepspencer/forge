@@ -57,10 +57,7 @@ pub fn prepare_primitive_construction_truth_projection_matrix(
         PrimitiveConstructionTruthProjectionRow {
             subject: PrimitiveConstructionProofSubject::ShellWithHoleLayoutHostility,
             canonical_truth_type: "ShellWithHoleWitnessLayout",
-            projections: &[
-                "planar containment proof",
-                "planar non-overlap proof",
-            ],
+            projections: &["planar containment proof", "planar non-overlap proof"],
         },
         PrimitiveConstructionTruthProjectionRow {
             subject: PrimitiveConstructionProofSubject::SimplexCanonicalRatio,

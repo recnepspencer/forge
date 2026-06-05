@@ -1,6 +1,6 @@
 use crate::construction::admitted_scaffold::PreparedPrimitiveConstructionAdmittedArtifact;
 use topology::facade::TopologyPrimitiveConstructionQueryAdmittedHandoff;
-use worth_spatial::facade::bindings::AdmittedPrimitiveConstructionBirthConsequence;
+use worth_spatial::facade::birth::AdmittedPrimitiveConstructionBirthConsequence;
 
 use super::digest::digest_owned_parts;
 

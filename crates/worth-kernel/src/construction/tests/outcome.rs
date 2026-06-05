@@ -14,7 +14,7 @@ use topology::facade::{
     TopologyConstructionQueryHandoffError, TopologyConstructionQueryReceiptError,
 };
 use worth_geom::facade::Plane;
-use worth_spatial::facade::bindings::{
+use worth_spatial::facade::birth::{
     evaluate_primitive_construction_birth_consequence, plan_primitive_construction_birth,
     PrimitiveConstructionBirthFamily, PrimitiveConstructionBirthScaffoldInput,
     SpatialConstructionBirthConsequence,

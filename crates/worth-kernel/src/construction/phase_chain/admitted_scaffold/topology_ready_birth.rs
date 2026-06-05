@@ -5,7 +5,7 @@ use topology::facade::{
     TopologyPrimitiveConstructionQueryAdmittedHandoff,
     TopologyPrimitiveConstructionQueryBirthSynopsis,
 };
-use worth_spatial::facade::bindings::{
+use worth_spatial::facade::birth::{
     evaluate_primitive_construction_birth_consequence, plan_primitive_construction_birth,
     AdmittedPrimitiveConstructionBirthConsequence, PrimitiveConstructionBirthFamily,
     PrimitiveConstructionBirthScaffoldInput, SpatialConstructionBirthConsequence,

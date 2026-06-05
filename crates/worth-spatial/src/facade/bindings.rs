@@ -1,8 +1,29 @@
-pub use crate::bindings::{
-    evaluate_primitive_construction_birth_consequence, plan_primitive_construction_birth,
-    AdmittedPrimitiveConstructionBirthConsequence, PrimitiveConstructionBirthFamily,
-    PrimitiveConstructionBirthScaffoldInput, RejectedPrimitiveConstructionBirthConsequence,
-    SpatialConstructionBirthConsequence, SpatialConstructionBirthError,
-    SpatialConstructionBirthMappingKind, SpatialConstructionBirthMappingRow,
-    SpatialConstructionBirthPlan, SpatialConstructionBirthRejectionKind,
+pub use crate::bindings::anchors::{
+    attach_parameter_space_direction_to_coedge, attach_parameter_space_direction_to_edge,
+    attach_parameter_space_direction_to_face, attach_parameter_space_point_to_coedge,
+    attach_parameter_space_point_to_edge, attach_parameter_space_point_to_face,
+    AdmittedCarrierOwnedDirectionAnchor, AdmittedCarrierOwnedPointAnchor,
+    AdmittedCoedgePCurveDirectionAnchorBinding, AdmittedCoedgePCurvePointAnchorBinding,
+    AdmittedEdgeCurveDirectionAnchorBinding, AdmittedEdgeCurvePointAnchorBinding,
+    AdmittedFaceSurfaceDirectionAnchorBinding, AdmittedFaceSurfacePointAnchorBinding,
+    AnchorCarrierKind, AnchorCarrierOwnership, AnchorDirectionRole,
+    CarrierOwnedParameterDirectionAnchorSpec, CarrierOwnedParameterPointAnchorSpec,
+    SpatialAnchorAuthorityError,
+};
+pub use crate::bindings::authority::{
+    attach_curve_to_edge, attach_pcurve_to_coedge, attach_surface_to_face, attach_vertex_geometry,
+    CoedgeBindingSite, CoedgePCurveBindingSpec, EdgeBindingSite, EdgeCurveBindingSpec,
+    FaceBindingSite, FaceSurfaceBindingSpec, SpatialAdmittedPrimitiveBinding,
+    SpatialBindingAuthorityError, SpatialBindingCompleteness, SpatialBindingIncompleteness,
+    SpatialBindingKind, VertexBindingSite, VertexGeometryBindingSpec, VertexGeometryProvenanceKind,
+    VertexToleranceRegime,
+};
+pub use crate::bindings::identity::SpatialBindingIdentity;
+pub use crate::bindings::rebinding::{
+    evaluate_binding_motion_posture, evaluate_continuity, evaluate_replacement_candidates,
+    explain_rebinding_decision, rebind_curve_on_edge, rebind_pcurve_on_coedge,
+    rebind_surface_on_face, AdmittedRebindingDecision, BindingContinuityAssessment,
+    BindingContinuityClass, LocalTopologyReplacementNeighborhood, MotionAwareBindingPosture,
+    NeighborhoodBindingFamily, RebindingExplanation, RebindingOutcomeClass, ReplacementCandidate,
+    ReplacementCandidateEvaluation, ReplacementCandidateSet, SpatialRebindingAuthorityError,
 };

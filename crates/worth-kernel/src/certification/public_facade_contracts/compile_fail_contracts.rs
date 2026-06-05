@@ -19,6 +19,7 @@ const COMPILE_FAIL_FIXTURES: &[&str] = &[
     "src/certification/public_facade_contracts/compile_fail/phases/public_raw_handoff_helper_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/phases/public_execution_phase_exports_demoted.rs",
     "src/certification/public_facade_contracts/compile_fail/phases/public_authoring_input_traits_are_sealed.rs",
+    "src/certification/public_facade_contracts/compile_fail/phases/public_binding_declaration_entry_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/results/public_canonical_artifact_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/results/public_prepared_result_constructor_not_exported.rs",
     "src/certification/public_facade_contracts/compile_fail/results/public_root_happy_path_exports_demoted.rs",

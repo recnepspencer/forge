@@ -13,7 +13,9 @@ pub fn simplex_vertices(scale: f64, auxiliary_altitude_component: f64) -> Vec<[f
 }
 
 pub fn orthotope_vertices(half_extents: [f64; 3]) -> Vec<[f64; 3]> {
-    canonical_orthotope_vertices(half_extents).local_vertices().to_vec()
+    canonical_orthotope_vertices(half_extents)
+        .local_vertices()
+        .to_vec()
 }
 
 pub fn prism_vertices(sides: u32, radius: f64, height: f64) -> Vec<[f64; 3]> {
@@ -30,7 +32,9 @@ pub fn pyramid_vertices(sides: u32, radius: f64, height: f64) -> Vec<[f64; 3]> {
 
 pub fn wire_body_vertices(edge_count: u32, radius: f64) -> Vec<[f64; 3]> {
     if (radius - 1.5).abs() <= f64::EPSILON {
-        canonical_wire_body_vertices(edge_count).local_vertices().to_vec()
+        canonical_wire_body_vertices(edge_count)
+            .local_vertices()
+            .to_vec()
     } else {
         regular_polygon_vertices([0.0, 0.0, 0.0], edge_count, radius)
     }
@@ -46,13 +50,9 @@ pub fn shell_with_hole_vertices(
         ShellWithHoleWitnessLayoutPolicy::default(),
     )?;
     Ok(
-        shell_with_hole_vertices_from_layout(
-            outer_loop_edge_count,
-            hole_loop_edge_counts,
-            &layout,
-        )
-        .local_vertices()
-        .to_vec(),
+        shell_with_hole_vertices_from_layout(outer_loop_edge_count, hole_loop_edge_counts, &layout)
+            .local_vertices()
+            .to_vec(),
     )
 }
 

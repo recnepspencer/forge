@@ -1,8 +1,8 @@
-use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 use crate::construction::admitted_scaffold::family_birth_input::geometry::{
     orthotope_vertices, prism_vertices, pyramid_vertices, shell_with_hole_vertices,
     simplex_vertices, wire_body_vertices,
 };
+use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 use worth_geom::facade::{
     build_direct_realization_report, realize_tetrahedron_support_with_altitude_component,
 };
@@ -54,16 +54,15 @@ impl PrimitiveCanonicalWitnessParityReport {
     }
 }
 
-pub fn prepare_primitive_canonical_witness_parity_report(
-) -> PrimitiveCanonicalWitnessParityReport {
-    let shell_layout = derive_shell_with_hole_layout(
-        6,
-        &[3, 4],
-        ShellWithHoleWitnessLayoutPolicy::default(),
-    )
-    .expect("shell layout")
-    .0;
-    let canonical_simplex = canonical_simplex_vertices(1.0, 0.0).local_vertices().to_vec();
+pub fn prepare_primitive_canonical_witness_parity_report() -> PrimitiveCanonicalWitnessParityReport
+{
+    let shell_layout =
+        derive_shell_with_hole_layout(6, &[3, 4], ShellWithHoleWitnessLayoutPolicy::default())
+            .expect("shell layout")
+            .0;
+    let canonical_simplex = canonical_simplex_vertices(1.0, 0.0)
+        .local_vertices()
+        .to_vec();
     let simplex_realization =
         realize_tetrahedron_support_with_altitude_component([0.0, 0.0, 0.0], 1.0, 0.0)
             .expect("simplex realization");
@@ -155,12 +154,17 @@ pub fn prepare_primitive_canonical_witness_parity_report(
                     row.family().to_string(),
                     row.shared_geometry_digest().to_string(),
                     row.kernel_geometry_digest().to_string(),
-                    row.geom_geometry_digest().unwrap_or("kernel-only").to_string(),
+                    row.geom_geometry_digest()
+                        .unwrap_or("kernel-only")
+                        .to_string(),
                 ]
             })
             .collect::<Vec<_>>(),
     );
-    PrimitiveCanonicalWitnessParityReport { rows, report_digest }
+    PrimitiveCanonicalWitnessParityReport {
+        rows,
+        report_digest,
+    }
 }
 
 fn row(
@@ -195,7 +199,11 @@ fn witness_digest(vertices: &[[f64; 3]]) -> String {
         ConstructionDigestScope::ArtifactIdentity,
         &vertices
             .iter()
-            .flat_map(|vertex| vertex.iter().map(|component| component.to_bits().to_string()))
+            .flat_map(|vertex| {
+                vertex
+                    .iter()
+                    .map(|component| component.to_bits().to_string())
+            })
             .collect::<Vec<_>>(),
     )
 }
