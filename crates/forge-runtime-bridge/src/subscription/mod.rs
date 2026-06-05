@@ -17,15 +17,21 @@ mod diagnostics;
 mod family_registry;
 mod fanout;
 mod lifecycle;
+mod mixed_cause;
 mod preview;
+mod preview_lifecycle;
 mod preview_work;
 mod promotion;
 mod rejection;
 mod replay;
 mod residue;
 mod resume;
+mod resume_basis;
+mod resume_plan;
 mod retained_delivery;
+mod shared_delivery;
 mod signal_strategy;
+mod temporal;
 
 pub use active_delivery::{
     BridgeActiveSubscription, BridgeSubscriptionDeliveryWindowOpen,
@@ -79,8 +85,11 @@ pub use certification::{
     BridgeSubscriptionOfflineAuditPlanRejection, BridgeSubscriptionOfflineAuditPlanRejectionKind,
     BridgeSubscriptionOfflineAuditReport, BridgeSubscriptionReferenceWorkloadComponentId,
     BridgeSubscriptionReferenceWorkloadComponentIdSet,
+    BridgeSubscriptionReferenceWorkloadCoverageProof,
     BridgeSubscriptionReferenceWorkloadCoverageReport,
-    BridgeSubscriptionReferenceWorkloadFamilyKind, BridgeSubscriptionReferenceWorkloadInspection,
+    BridgeSubscriptionReferenceWorkloadDeclaration, BridgeSubscriptionReferenceWorkloadFamilyKind,
+    BridgeSubscriptionReferenceWorkloadInspection,
+    BridgeSubscriptionReferenceWorkloadLaneArtifactSet,
     BridgeSubscriptionReferenceWorkloadLaneCoverageRole,
     BridgeSubscriptionReferenceWorkloadLaneCoverageRow, BridgeSubscriptionReferenceWorkloadLaneId,
     BridgeSubscriptionReferenceWorkloadLaneIdSet, BridgeSubscriptionReferenceWorkloadLaneKind,
@@ -91,10 +100,34 @@ pub use certification::{
     BridgeSubscriptionReferenceWorkloadManifestSealed,
     BridgeSubscriptionReferenceWorkloadProductId, BridgeSubscriptionReferenceWorkloadProductIdSet,
     BridgeSubscriptionReferenceWorkloadRejection, BridgeSubscriptionReferenceWorkloadRejectionKind,
-    BridgeSubscriptionReferenceWorkloadReport, BridgeSubscriptionSourceArtifactEvidence,
+    BridgeSubscriptionReferenceWorkloadReport,
+    BridgeSubscriptionReferenceWorkloadRequiredCoverageFacet,
+    BridgeSubscriptionReferenceWorkloadSufficiency, BridgeSubscriptionSourceArtifactEvidence,
     BridgeSubscriptionSourceArtifactIndex, BridgeSubscriptionSourceArtifactInput,
     BridgeSubscriptionSourceArtifactKind, BridgeSubscriptionSourceArtifactRecord,
     BridgeSubscriptionSourceArtifactRole, BridgeSubscriptionSourceArtifactScenario,
+    BridgeSubscriptionTemporalAsyncCertificationCloseoutArtifact,
+    BridgeSubscriptionTemporalAsyncCertificationCloseoutRejection,
+    BridgeSubscriptionTemporalAsyncCertificationCloseoutRejectionKind,
+    BridgeSubscriptionTemporalAsyncCertificationCloseoutRequest,
+    BridgeSubscriptionTemporalAsyncCertificationCloseoutSuiteId,
+    BridgeSubscriptionTemporalAsyncCertificationSupportMatrix,
+    BridgeSubscriptionTemporalAsyncCertificationSupportMatrixRow,
+    BridgeSubscriptionTemporalAsyncCertificationSupportMatrixVerdict,
+    BridgeTemporalAsyncCertificationAsyncLifecycleSection,
+    BridgeTemporalAsyncCertificationAsyncSectionInput,
+    BridgeTemporalAsyncCertificationBasisSection, BridgeTemporalAsyncCertificationBundleComparison,
+    BridgeTemporalAsyncCertificationBundleComparisonOutcome,
+    BridgeTemporalAsyncCertificationBundleDraft, BridgeTemporalAsyncCertificationBundleExport,
+    BridgeTemporalAsyncCertificationBundleInspection,
+    BridgeTemporalAsyncCertificationBundleMismatchSection,
+    BridgeTemporalAsyncCertificationBundleRejection,
+    BridgeTemporalAsyncCertificationBundleRejectionKind,
+    BridgeTemporalAsyncCertificationBundleRequest, BridgeTemporalAsyncCertificationBundleSealed,
+    BridgeTemporalAsyncCertificationCounters, BridgeTemporalAsyncCertificationDiagnosticsRichness,
+    BridgeTemporalAsyncCertificationFailureSection,
+    BridgeTemporalAsyncCertificationMixedCauseSection,
+    BridgeTemporalAsyncCertificationResumeSection,
 };
 pub use checkpoint::{
     BridgeSubscriptionAcknowledgementFrontier, BridgeSubscriptionAcknowledgementFrontierRejection,
@@ -132,7 +165,8 @@ pub use declaration_family::{
 pub use declaration_identity::{
     BridgeActiveSubscriptionIdentity, BridgeAdmittedSubscriptionIdentity,
     BridgePreviewActiveSubscriptionIdentity, BridgeSignalStrategyIdentity,
-    BridgeSubscriptionAcknowledgementFrontierIdentity, BridgeSubscriptionBasisIdentity,
+    BridgeSubscriptionAcknowledgementFrontierIdentity,
+    BridgeSubscriptionAdmittedResumeBasisIdentity, BridgeSubscriptionBasisIdentity,
     BridgeSubscriptionCheckpointIdentity, BridgeSubscriptionCheckpointReadyIdentity,
     BridgeSubscriptionConsumerContractIdentity, BridgeSubscriptionContinuationCandidateIdentity,
     BridgeSubscriptionContinuationChildIdentity, BridgeSubscriptionContinuationDecisionIdentity,
@@ -148,18 +182,45 @@ pub use declaration_identity::{
     BridgeSubscriptionFanoutDeliveryProjectionIdentity,
     BridgeSubscriptionFanoutDeliveryProjectionSetIdentity, BridgeSubscriptionFanoutLayoutIdentity,
     BridgeSubscriptionFanoutPlanIdentity, BridgeSubscriptionFanoutProjectionValidationIdentity,
-    BridgeSubscriptionLifecycleIdentity, BridgeSubscriptionPreviewBasisIdentity,
-    BridgeSubscriptionPreviewDiscardResidueProofIdentity,
-    BridgeSubscriptionPreviewLifecycleIdentity, BridgeSubscriptionPreviewParentBasisIdentity,
-    BridgeSubscriptionPreviewPromotionRecordIdentity,
+    BridgeSubscriptionHistoricalPreviousValueEvidenceIdentity,
+    BridgeSubscriptionHistoricalTemporalReadinessIdentity,
+    BridgeSubscriptionHistoricalTemporalReplayBasisIdentity,
+    BridgeSubscriptionHistoricalTemporalReplayRequestIdentity,
+    BridgeSubscriptionHistoricalTruthBasisIdentity, BridgeSubscriptionLifecycleIdentity,
+    BridgeSubscriptionMixedCauseDeliveryWindowIdentity,
+    BridgeSubscriptionMixedCauseDeniedCauseIdentity,
+    BridgeSubscriptionMixedCauseOrderedCauseIdentity, BridgeSubscriptionMixedCauseOrderingIdentity,
+    BridgeSubscriptionMixedCauseOrderingRequestIdentity,
+    BridgeSubscriptionMixedCauseSuppressedCauseIdentity,
+    BridgeSubscriptionPreviewAuthoritativeReadmissionIdentity,
+    BridgeSubscriptionPreviewBasisIdentity, BridgeSubscriptionPreviewDiscardResidueProofIdentity,
+    BridgeSubscriptionPreviewLifecycleIdentity,
+    BridgeSubscriptionPreviewLifecyclePromotionIdentity,
+    BridgeSubscriptionPreviewLifecycleResidueEnvelopeIdentity,
+    BridgeSubscriptionPreviewParentBasisIdentity, BridgeSubscriptionPreviewPromotionRecordIdentity,
     BridgeSubscriptionPreviewResidueArtifactIdentity,
     BridgeSubscriptionPreviewResidueScopeIdentity,
     BridgeSubscriptionPreviewResidueScopeIndexIdentity, BridgeSubscriptionPreviewScopeIdentity,
+    BridgeSubscriptionPreviewTemporalActivationReadyIdentity,
+    BridgeSubscriptionPreviewTemporalAdmissionIdentity,
     BridgeSubscriptionPreviewWorkRecordIdentity, BridgeSubscriptionPreviewWorkTraceIdentity,
-    BridgeSubscriptionReplayIdentity, BridgeSubscriptionResumeAdmissionIdentity,
-    BridgeSubscriptionResumePlanIdentity, BridgeSubscriptionRetainedDeliveryReplaySeedIdentity,
+    BridgeSubscriptionReplayIdentity, BridgeSubscriptionReplayReadinessIdentity,
+    BridgeSubscriptionResumeAdmissionIdentity, BridgeSubscriptionResumePlanIdentity,
+    BridgeSubscriptionRetainedDeliveryReplaySeedIdentity,
+    BridgeSubscriptionRetainedDeliveryResumeBasisIdentity,
     BridgeSubscriptionRetainedDeliveryWindowSeedIdentity,
+    BridgeSubscriptionRetainedInflightAsyncResumeBasisIdentity,
+    BridgeSubscriptionRetainedResumeBasisIdentity,
+    BridgeSubscriptionRetainedTemporalResumeBasisIdentity,
+    BridgeSubscriptionSharedDeliveryAcknowledgementIdentity,
+    BridgeSubscriptionSharedDeliveryBundleDraftIdentity,
+    BridgeSubscriptionSharedDeliveryBundleSealedIdentity,
+    BridgeSubscriptionSharedDeliveryLayoutIdentity, BridgeSubscriptionSharedDeliveryPlanIdentity,
+    BridgeSubscriptionSharedDeliveryProjectionIdentity,
     BridgeSubscriptionSharingEligibilityIdentity,
+    BridgeSubscriptionTemporalActivationReadyIdentity, BridgeSubscriptionTemporalAdmissionIdentity,
+    BridgeSubscriptionTemporalCauseRecordIdentity, BridgeSubscriptionTemporalDeliveryPlanIdentity,
+    BridgeSubscriptionTemporalWakeRoutingRequestIdentity,
 };
 pub use delivery_buffers::BridgeSubscriptionDeliveryBufferPlan;
 pub use delivery_cost::{
@@ -195,10 +256,38 @@ pub use lifecycle::{
     BridgeSubscriptionActivationReady, BridgeSubscriptionDeactivated,
     BridgeSubscriptionLifecycleRecord, BridgeSubscriptionLifecycleStateKind,
 };
+pub use mixed_cause::{
+    BridgeDeniedMixedCause, BridgeMixedCauseComparisonEvidence,
+    BridgeMixedCauseComparisonReasonKind, BridgeMixedCauseDeliveryWindowPlan,
+    BridgeMixedCauseDeliveryWindowRejection, BridgeMixedCauseDeliveryWindowRejectionKind,
+    BridgeMixedCauseDeniedKind, BridgeMixedCauseOrderFamilyKind, BridgeMixedCauseOrdering,
+    BridgeMixedCauseOrderingInput, BridgeMixedCauseOrderingLaneKind,
+    BridgeMixedCauseOrderingRequest, BridgeMixedCauseSuppressedKind, BridgeOrderedMixedCause,
+    BridgeSuppressedMixedCause,
+};
 pub use preview::{
     BridgePreviewActiveSubscription, BridgeSubscriptionPreviewBasisBinding,
     BridgeSubscriptionPreviewBasisRejection, BridgeSubscriptionPreviewBasisRejectionContext,
     BridgeSubscriptionPreviewBasisRejectionKind,
+};
+pub use preview_lifecycle::{
+    BridgeSubscriptionAuthoritativePreviewReadmission,
+    BridgeSubscriptionAuthoritativePreviewReadmissionClass,
+    BridgeSubscriptionAuthoritativePreviewReadmissionRejection,
+    BridgeSubscriptionAuthoritativePreviewReadmissionRejectionKind,
+    BridgeSubscriptionPreviewLifecycleDiscardProof,
+    BridgeSubscriptionPreviewLifecycleDiscardRejection,
+    BridgeSubscriptionPreviewLifecycleDiscardRejectionContext,
+    BridgeSubscriptionPreviewLifecycleDiscardRejectionKind,
+    BridgeSubscriptionPreviewLifecyclePromotion,
+    BridgeSubscriptionPreviewLifecyclePromotionRejection,
+    BridgeSubscriptionPreviewLifecyclePromotionRejectionKind,
+    BridgeSubscriptionPreviewLifecycleResidueEnvelope,
+    BridgeSubscriptionPreviewLifecycleResidueEnvelopeRejection,
+    BridgeSubscriptionPreviewLifecycleResidueEnvelopeRejectionKind,
+    BridgeSubscriptionPreviewLifecycleResidueInput, BridgeSubscriptionPreviewLifecycleResidueKind,
+    BridgeSubscriptionPreviewLifecycleResidueKindCount,
+    BridgeSubscriptionPreviewLifecycleResidueRecord,
 };
 pub use preview_work::{
     BridgeSubscriptionPreviewWorkEvidence, BridgeSubscriptionPreviewWorkInput,
@@ -227,8 +316,16 @@ pub use residue::{
 };
 pub use resume::{
     BridgeSubscriptionResumeAdmission, BridgeSubscriptionResumeAdmissionRejection,
-    BridgeSubscriptionResumeAdmissionRejectionKind, BridgeSubscriptionResumePlan,
+    BridgeSubscriptionResumeAdmissionRejectionKind,
 };
+pub use resume_basis::{
+    AdmittedBridgeSubscriptionResumeBasis, BridgeRetainedDeliveryResumeBasis,
+    BridgeRetainedInflightAsyncResumeBasis, BridgeRetainedSubscriptionResumeBasis,
+    BridgeRetainedTemporalResumeBasis, BridgeRetainedTemporalWakePosture,
+    BridgeSubscriptionReplayReadiness, BridgeSubscriptionResumeBasisRejection,
+    BridgeSubscriptionResumeBasisRejectionKind,
+};
+pub use resume_plan::BridgeSubscriptionResumePlan;
 pub use retained_delivery::{
     BridgeSubscriptionDeliveryReplayPlan, BridgeSubscriptionDeliveryReplayPlanRejection,
     BridgeSubscriptionDeliveryReplayPlanRejectionKind,
@@ -236,4 +333,31 @@ pub use retained_delivery::{
     BridgeSubscriptionDeliveryWindowReplayReadiness, BridgeSubscriptionRetainedDeliveryReplaySeed,
     BridgeSubscriptionRetainedDeliveryWindowSeed,
 };
+pub use shared_delivery::{
+    BridgeSharedConsumerDeliveryBundleDraft, BridgeSharedConsumerDeliveryBundleSealed,
+    BridgeSharedConsumerDeliveryLayout, BridgeSharedConsumerDeliveryPlan,
+    BridgeSharedConsumerDeliveryPlanRejection, BridgeSharedConsumerDeliveryPlanRejectionKind,
+    BridgeSharedConsumerDeliveryProjection, BridgeSharedConsumerDeliveryProjectionPosture,
+    BridgeSharedConsumerDeliveryProjectionRejection,
+    BridgeSharedConsumerDeliveryProjectionRejectionKind,
+    BridgeSharedDeliveryAcknowledgementFrontier,
+    BridgeSharedDeliveryAcknowledgementFrontierRejection,
+    BridgeSharedDeliveryAcknowledgementFrontierRejectionKind,
+};
 pub use signal_strategy::{BridgeSignalStrategyDescriptor, BridgeSignalStrategyKind};
+pub use temporal::{
+    AdmittedBridgeHistoricalTruthViewBasis, AdmittedHistoricalTemporalReplayBasis,
+    AdmittedPreviewTemporalBridgeSubscription, AdmittedTemporalBridgeSubscription,
+    BridgeHistoricalTemporalReadiness, BridgeHistoricalTemporalReplayRejection,
+    BridgeHistoricalTemporalReplayRejectionKind, BridgeHistoricalTemporalSubscriptionReplayRequest,
+    BridgeHistoricalTruthBasisAdmissionRejection, BridgeHistoricalTruthBasisAdmissionRejectionKind,
+    BridgePreviewTemporalSubscriptionActivationReady,
+    BridgePreviewTemporalSubscriptionAdmissionRejection,
+    BridgePreviewTemporalSubscriptionAdmissionRejectionKind, BridgeTemporalCauseClassification,
+    BridgeTemporalCauseRecord, BridgeTemporalDeliveryWindowPlan, BridgeTemporalRoutingLaneKind,
+    BridgeTemporalSubscriptionActivationReady, BridgeTemporalSubscriptionAdmissionRejection,
+    BridgeTemporalSubscriptionAdmissionRejectionKind, BridgeTemporalSubscriptionFamily,
+    BridgeTemporalSubscriptionFamilyKind, BridgeTemporalWakeRoutingRejection,
+    BridgeTemporalWakeRoutingRejectionKind, BridgeTemporalWakeRoutingRequest,
+    RetainedHistoricalPreviousValueEvidence,
+};

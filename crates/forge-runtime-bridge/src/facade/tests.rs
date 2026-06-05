@@ -24,14 +24,16 @@ mod support;
 pub(in crate::facade::tests) use support::*;
 
 mod causal_envelope;
+mod diagnostics;
 mod merge;
 mod policy_and_materialization;
 mod policy_phase2;
 mod replay;
+mod source;
 mod speculation;
 mod standard_path;
 mod stream;
 mod stream_protocol;
 mod structural;
-mod subscription;
+pub(crate) mod subscription;
 mod writeback;

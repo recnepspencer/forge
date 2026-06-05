@@ -38,6 +38,8 @@ pub struct BridgeSubscriptionCertificationCounterSnapshot {
     strategy_lowering_report_count: usize,
     fanout_report_count: usize,
     denied_continuation_report_count: usize,
+    phase_18_support_matrix_count: usize,
+    phase_18_closeout_artifact_count: usize,
 }
 
 impl BridgeSubscriptionCertificationCounterSnapshot {
@@ -84,6 +86,8 @@ impl BridgeSubscriptionCertificationCounterSnapshot {
             combined.strategy_lowering_report_count += snapshot.strategy_lowering_report_count;
             combined.fanout_report_count += snapshot.fanout_report_count;
             combined.denied_continuation_report_count += snapshot.denied_continuation_report_count;
+            combined.phase_18_support_matrix_count += snapshot.phase_18_support_matrix_count;
+            combined.phase_18_closeout_artifact_count += snapshot.phase_18_closeout_artifact_count;
         }
         combined
     }
@@ -271,6 +275,20 @@ impl BridgeSubscriptionCertificationCounterSnapshot {
     pub(crate) fn from_denied_continuation_report() -> Self {
         Self {
             denied_continuation_report_count: 1,
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn from_phase_18_support_matrix(row_count: usize) -> Self {
+        Self {
+            phase_18_support_matrix_count: row_count,
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn from_phase_18_closeout_artifact() -> Self {
+        Self {
+            phase_18_closeout_artifact_count: 1,
             ..Self::default()
         }
     }

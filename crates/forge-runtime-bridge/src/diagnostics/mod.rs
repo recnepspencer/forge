@@ -4,6 +4,7 @@ mod continuity;
 mod explanation;
 mod facade;
 mod failure_source;
+mod failure_taxonomy;
 mod handle;
 mod handle_history;
 mod history;
@@ -34,6 +35,18 @@ pub use continuity::{
 };
 pub use explanation::{BridgeRouteExplanation, BridgeRouteExplanationEntry};
 pub use facade::BridgeDiagnosticsFacade;
+pub use failure_taxonomy::{
+    BridgeFailureEvidenceAttachment, BridgeFailureEvidenceAttachmentSet,
+    BridgeFailureLocalizationRequest, BridgeLocalizedTemporalAsyncFailure,
+    BridgeTemporalAsyncFailureBundleComparison, BridgeTemporalAsyncFailureClass,
+    BridgeTemporalAsyncFailureCounters, BridgeTemporalAsyncFailureLocalizationMatrix,
+    BridgeTemporalAsyncFailureLocalizationRejection,
+    BridgeTemporalAsyncFailureLocalizationRejectionKind, BridgeTemporalAsyncFailureLocalizationRow,
+    BridgeTemporalAsyncFailureSubcode, BridgeTemporalAsyncOfflineDiagnosisBundleDraft,
+    BridgeTemporalAsyncOfflineDiagnosisBundleRejection,
+    BridgeTemporalAsyncOfflineDiagnosisBundleRejectionKind,
+    BridgeTemporalAsyncOfflineDiagnosisBundleSealed,
+};
 pub use handle::BridgeDiagnosticsHandle;
 pub use history::{
     BridgeCanonicalHistoricalEvaluationRecord, BridgeHistoricalEvaluationCounters,
