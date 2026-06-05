@@ -1,4 +1,6 @@
 mod definitions;
+mod evaluation;
+mod operations;
 
 use crate::domain_artifacts::core_artifact::{
     impl_hadwiger_artifact, HadwigerArtifactAuthorityOwner, HadwigerArtifactCore,
@@ -10,6 +12,14 @@ use crate::domain_artifacts::HadwigerCanonicalArtifact;
 use crate::query_entry::HadwigerResearchHandle;
 
 use definitions::{invariant_definition, ALL_SCREENING_FAMILIES};
+pub use evaluation::{
+    CandidateScreeningCertificate, CandidateScreeningEvaluation, CandidateScreeningEvaluationMode,
+    CandidateScreeningEvaluationReport, CandidateScreeningVerdict,
+};
+pub use operations::{
+    assemble_candidate_screening_report_checked, evaluate_certificate_screening_invariant_checked,
+    evaluate_graph_screening_invariant_checked, CandidateScreeningError,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum CandidateScreeningInvariantFamily {

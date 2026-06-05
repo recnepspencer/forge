@@ -73,6 +73,8 @@ pub enum HadwigerArtifactKind {
     TileEquivalenceWitness,
     CandidateScreeningInvariantCatalog,
     CandidateScreeningInvariantNode,
+    CandidateScreeningEvaluation,
+    CandidateScreeningEvaluationReport,
 }
 
 impl HadwigerArtifactKind {
@@ -140,6 +142,8 @@ impl HadwigerArtifactKind {
             Self::TileEquivalenceWitness => "tile_equivalence_witness",
             Self::CandidateScreeningInvariantCatalog => "candidate_screening_invariant_catalog",
             Self::CandidateScreeningInvariantNode => "candidate_screening_invariant_node",
+            Self::CandidateScreeningEvaluation => "candidate_screening_evaluation",
+            Self::CandidateScreeningEvaluationReport => "candidate_screening_evaluation_report",
         }
     }
 }

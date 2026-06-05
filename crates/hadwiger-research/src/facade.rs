@@ -25,9 +25,14 @@ pub use crate::aspect_authority::{
     UnitDistanceAspectRecord,
 };
 pub use crate::candidate_screening::{
-    draft_candidate_screening_invariant_catalog_checked, CandidateScreeningApplicability,
-    CandidateScreeningInvariantAuthority, CandidateScreeningInvariantCatalog,
-    CandidateScreeningInvariantFamily, CandidateScreeningInvariantNode,
+    assemble_candidate_screening_report_checked,
+    draft_candidate_screening_invariant_catalog_checked,
+    evaluate_certificate_screening_invariant_checked, evaluate_graph_screening_invariant_checked,
+    CandidateScreeningApplicability, CandidateScreeningCertificate, CandidateScreeningError,
+    CandidateScreeningEvaluation, CandidateScreeningEvaluationMode,
+    CandidateScreeningEvaluationReport, CandidateScreeningInvariantAuthority,
+    CandidateScreeningInvariantCatalog, CandidateScreeningInvariantFamily,
+    CandidateScreeningInvariantNode, CandidateScreeningVerdict,
 };
 pub use crate::discovery_loop::{
     attach_failure_to_research_graph, mine_research_patterns, plan_next_experiments,
