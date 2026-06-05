@@ -89,7 +89,7 @@ pub(super) fn test_bridge_with_writeback_authority() -> RuntimeBridge {
             BridgeMappingId::new("external-test"),
             TruthPatchScope::new(
                 MappingSelector::any(),
-                AspectKeySelector::any(),
+                AspectKeySelector::exact(aspect_key("aspect")),
                 TruthPatchTargetSelector::any(),
             ),
             SnapshotReadContract::scalar(aspect_key("aspect"), ScalarAspectType::String),

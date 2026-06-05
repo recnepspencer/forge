@@ -7,6 +7,7 @@ mod inventory;
 mod plans;
 mod protocol;
 mod receipts;
+mod sources;
 mod support;
 
 pub use adapters::{
@@ -76,6 +77,7 @@ pub use receipts::{
     ForgeQueryLowerRuntimeBoundaryExecutionKind, ForgeQueryLowerRuntimeBoundaryExecutionReceipt,
     ForgeQueryLowerRuntimeReadmissionReceipt,
 };
+pub use sources::ForgeQueryLowerRuntimeBoundaryEnvelopeSource;
 pub use support::{
     forge_query_lower_runtime_support_matrix, ForgeQueryLowerRuntimeSupportDetail,
     ForgeQueryLowerRuntimeSupportMatrix, ForgeQueryLowerRuntimeSupportPosture,

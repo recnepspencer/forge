@@ -21,7 +21,7 @@ pub(crate) fn certification_bridge() -> RuntimeBridge {
             BridgeMappingId::new("certification-external"),
             TruthPatchScope::new(
                 MappingSelector::any(),
-                AspectKeySelector::any(),
+                AspectKeySelector::exact(aspect_key("certification-aspect")),
                 TruthPatchTargetSelector::any(),
             ),
             SnapshotReadContract::scalar(

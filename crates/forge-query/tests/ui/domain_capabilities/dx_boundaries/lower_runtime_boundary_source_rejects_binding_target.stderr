@@ -1,0 +1,22 @@
+error[E0277]: the trait bound `ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget: ForgeQueryLowerRuntimeBoundaryEnvelopeSource` is not satisfied
+ --> tests/ui/domain_capabilities/dx_boundaries/lower_runtime_boundary_source_rejects_binding_target.rs:7:44
+  |
+7 |         .for_lower_runtime_boundary_source(target);
+  |          --------------------------------- ^^^^^^ the trait `ForgeQueryLowerRuntimeBoundaryEnvelopeSource` is not implemented for `ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget`
+  |          |
+  |          required by a bound introduced by this call
+  |
+  = help: the following other types implement trait `ForgeQueryLowerRuntimeBoundaryEnvelopeSource`:
+            ForgeQueryLowerRuntimeBoundaryEnvelope
+            LiveViewDeclarationAdmissionBoundaryReceipt
+            SignalInvalidationBoundaryReceipt
+            SubscriptionActivationBoundaryReceipt
+            WriteAuthorityExecutionReceipt
+note: required by a bound in `ForgeQuerySupportContributionAuthoring::for_lower_runtime_boundary_source`
+ --> src/domain_capabilities/authoring/support.rs
+  |
+  |     pub fn for_lower_runtime_boundary_source<S>(
+  |            --------------------------------- required by a bound in this associated function
+...
+  |         S: ForgeQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `ForgeQuerySupportContributionAuthoring::for_lower_runtime_boundary_source`

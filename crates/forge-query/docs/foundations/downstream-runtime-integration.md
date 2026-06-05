@@ -132,6 +132,10 @@ Downstream runtimes should not recreate:
   the public explanation surface
 - "method exists, therefore supported" logic instead of using the support
   matrix and admission gate
+- lower-runtime boundary envelopes from raw strings or local route folklore;
+  obtain them from Query boundary receipts and use
+  `ForgeQueryLowerRuntimeBoundaryEnvelopeSource` when a flow accepts any real
+  boundary source
 
 ## Support And Admission Rules
 

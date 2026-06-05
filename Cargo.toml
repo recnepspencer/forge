@@ -13,6 +13,7 @@ members = [
     "crates/worth-kernel",
     "crates/forge-kernel",
     "crates/forge-io",
+    "crates/hadwiger-research",
 
 
     "crates/forge-repr",
@@ -54,6 +55,7 @@ worth-geom = { path = "crates/worth-geom" }
 worth-kernel = { path = "crates/worth-kernel" }
 forge-kernel = { path = "crates/forge-kernel" }
 forge-io = { path = "crates/forge-io" }
+hadwiger-research = { path = "crates/hadwiger-research" }
 
 
 forge-repr = { path = "crates/forge-repr" }
@@ -81,6 +83,7 @@ criterion = { version = "0.5", features = ["html_reports"] }
 
 # Testing
 trybuild = "1.0"
+varisat = "0.2.1"
 
 # Observability
 tracing = "0.1"

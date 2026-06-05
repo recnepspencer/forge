@@ -1,0 +1,138 @@
+//! Public Hadwiger research facade.
+//!
+//! Ordinary callers enter through this module for Query declaration entry,
+//! canonical artifacts, and aspect authority surfaces.
+
+pub use crate::agent_advisory::{
+    admit_agent_exploration_batch_checked, materialize_agent_declaration_advisory_checked,
+    materialize_agent_grouped_advisory_checked, screen_agent_experiment_proposals_checked,
+    AgentAdmissionAdvisory, AgentAdvisoryArtifact, AgentAdvisoryContributionRecord,
+    AgentAdvisoryError, AgentAdvisoryKind, AgentExperimentProposal,
+    AgentExperimentProposalScreening, AgentExplorationAdmissionChecked, AgentExplorationBatch,
+    AgentExplorationBatchBuilder, AgentGroupedContributionStopKind,
+    AgentInvariantHypothesisSuggestion, AgentMotifSuggestion, AgentPromotionPathDescriptor,
+    AgentRepairSuggestion, AgentSourceRecord,
+};
+pub use crate::aspect_authority::{
+    query_aspect_contract_for_hadwiger_kind, query_aspect_coverage_for_hadwiger_posture,
+    query_aspect_publication_for_hadwiger_kind, AdvisoryAspectRecord, AspectClosureStop,
+    AspectDependencyGraph, AspectDependencyGraphBuilder, ColorabilityAspectRecord,
+    GraphShapeAspectRecord, HadwigerAspectAuthorityError, HadwigerAspectDependencyEdge,
+    HadwigerAspectDependencyRole, HadwigerAspectInvalidationScope, HadwigerAspectKind,
+    HadwigerAspectPosture, HadwigerAspectRecord, HadwigerAspectScope,
+    HadwigerConservativeInvalidationPosture, HadwigerDependencyClosureBlocker,
+    HadwigerDependencyClosureReport, HadwigerPromotionRuleDescriptor, HadwigerRecomputePolicy,
+    UnitDistanceAspectRecord,
+};
+pub use crate::candidate_screening::{
+    assemble_candidate_screening_report_checked,
+    draft_candidate_screening_invariant_catalog_checked,
+    evaluate_certificate_screening_invariant_checked, evaluate_graph_screening_invariant_checked,
+    CandidateScreeningApplicability, CandidateScreeningCertificate, CandidateScreeningError,
+    CandidateScreeningEvaluation, CandidateScreeningEvaluationMode,
+    CandidateScreeningEvaluationReport, CandidateScreeningInvariantAuthority,
+    CandidateScreeningInvariantCatalog, CandidateScreeningInvariantFamily,
+    CandidateScreeningInvariantNode, CandidateScreeningVerdict,
+};
+pub use crate::discovery_loop::{
+    attach_failure_to_research_graph, mine_research_patterns, plan_next_experiments,
+    propose_invariant_hypotheses, recompute_derived_discovery_frontier, update_discovery_frontier,
+    CounterexampleObligation, DeadEndSignature, DerivedFrontierState, DiscoveryFrontier,
+    DiscoveryScorecard, ExperimentBatch, ExperimentPlan, ExperimentResult,
+    ExperimentSuppressionProof, FailureBasisFingerprint, FailureScope, GraphResidentFailure,
+    HadwigerDiscoveryCounters, HadwigerDiscoveryError, HadwigerDiscoveryEvidenceReference,
+    InvariantCandidate, InvariantHypothesis, MotifObservation, PatternSignature,
+    ReactivationCondition, ResearchEvidenceCorpus, ResearchEvidenceCorpusBuilder,
+    RetiredHypothesisRecord, SuppressionRelation,
+};
+pub use crate::domain_artifacts::{
+    AIAdvisoryArtifact, ColorabilityEncoding, ColorabilityVerification,
+    ColorabilityVerificationPosture, ColoringRefutationCertificate, EdgeIdentity,
+    EmbeddingCandidate, GadgetContract, GadgetDefinition, GraphComposition, GraphIdentity,
+    GraphVersion, GraphVersionBuilder, HadwigerArtifactAuthorityOwner, HadwigerArtifactDigest,
+    HadwigerArtifactKind, HadwigerArtifactReference, HadwigerArtifactShapeError,
+    HadwigerArtifactSourceReference, HadwigerCanonicalArtifact, HadwigerCheckerBoundaryKind,
+    HadwigerCheckerCausalEvidence, HadwigerCheckerPosture, HadwigerDeclaredFamilyCheckedExt,
+    HadwigerProofClaimKind, HadwigerProofClaimPosture, HadwigerQueryDeclarationReference,
+    HadwigerQueryEnvelopeReference, LowerBoundWitnessArtifact, ProofClaim, ReductionTrace,
+    RetainedBackgroundTheorem, SolverRun, SolverRunPosture, UnitDistanceVerification,
+    UnsatCoreArtifact, VertexIdentity,
+};
+pub use crate::domain_declarations::{
+    declare_research_request_checked, orchestrate_research_request_entry,
+    research_declaration_entry_inventory, research_declaration_entry_readiness,
+    AdvisoryNoteDeclaration, AdvisoryNoteDeclarationFamily, BackgroundTheoremDeclaration,
+    BackgroundTheoremDeclarationFamily, CandidateGraphDeclaration, CandidateGraphDeclarationFamily,
+    ColorabilityDeclaration, ColorabilityDeclarationFamily, EmbeddingDeclaration,
+    EmbeddingDeclarationFamily, HadwigerResearchDeclarationInput,
+    HadwigerResearchDeclarationShapeError, LowerBoundWitnessDeclaration,
+    LowerBoundWitnessDeclarationFamily, PartialAdmissionExplanationDeclaration,
+    PartialAdmissionExplanationDeclarationFamily, PlaneExactValueClaimDeclaration,
+    PlaneExactValueClaimDeclarationFamily, PlaneLowerBoundClaimDeclaration,
+    PlaneLowerBoundClaimDeclarationFamily, PlaneUpperBoundClaimDeclaration,
+    PlaneUpperBoundClaimDeclarationFamily, RejectionExplanationDeclaration,
+    RejectionExplanationDeclarationFamily, UnitDistanceVerificationDeclaration,
+    UnitDistanceVerificationDeclarationFamily, WholePlaneColoringConstructionDeclaration,
+    WholePlaneColoringConstructionDeclarationFamily,
+};
+pub use crate::explanations::{
+    explain_partial_admission, explain_query_recovery_brief, explain_rejection,
+    recover_research_stop_from_contribution_composed_checked,
+    recover_research_stop_from_declaration_entry_checked,
+    recover_research_stop_from_grouped_orchestration_checked,
+    recover_research_stop_from_grouped_orchestration_proof, recover_research_stop_from_outcome,
+    ExplainPartialAdmissionRequest, ExplainRejectionRequest,
+    HadwigerConservativeEscalationExplanation, HadwigerExplanationAuthoritySurface,
+    HadwigerExplanationError, HadwigerExplanationStopFamily, HadwigerPartialAdmissionExplanation,
+    HadwigerQueryRecoveryExplanation, HadwigerQueryRecoveryExplanationRequest,
+    HadwigerRejectionExplanation, HadwigerRepairObligation, HadwigerReusableNegativeEvidence,
+    HadwigerSurvivingEvidenceReport,
+};
+pub use crate::mathematical_verification::{
+    verify_hexagonal_seven_coloring_checked, verify_k_colorability_checked,
+    verify_unit_distance_embedding_checked, ExactGraphEmbedding, ExactGraphEmbeddingBuilder,
+    ExactPoint2, ExactRational, HadwigerColorabilityError, HadwigerExactGeometryError,
+    HadwigerPlaneColoringError, HexagonalSevenColoringConstruction,
+    HexagonalSevenColoringVerificationChecked, KColorabilityVerificationChecked,
+    UnitDistanceVerificationChecked, WholePlaneColoringConstruction,
+    WholePlaneColoringVerification,
+};
+pub use crate::proof_claims::{
+    admit_plane_exact_value_claim_checked, admit_plane_lower_bound_claim_checked,
+    admit_plane_upper_bound_claim_checked, retain_background_plane_seven_upper_bound_checked,
+    HadwigerBlockedProofClaim, HadwigerProofAuthorityChain, HadwigerProofAuthorityStep,
+    HadwigerProofAuthorityStepKind, HadwigerProofClaimAdmissionChecked,
+    HadwigerProofClaimAdmissionError, HadwigerProofClaimAdmissionOutcome,
+    HadwigerProofClaimBlocker, HadwigerProofClaimBlockerKind, PlaneExactValueClaimRequest,
+    PlaneLowerBoundClaimRequest, PlaneUpperBoundClaimRequest,
+};
+pub use crate::query_entry::{
+    admit_hadwiger_research_handle, HadwigerResearchAdmissionError,
+    HadwigerResearchAssumptionRegime, HadwigerResearchCheckerSupportRegime,
+    HadwigerResearchDomainEntry, HadwigerResearchHandle, HadwigerResearchInvalidationRegime,
+    HadwigerResearchOperatingContext,
+};
+pub use crate::research_cockpit::{
+    assemble_research_cockpit_session_checked, certify_hadwiger_milestone_one_bundle_checked,
+    declare_tile_equivalence_witness_checked, derive_research_cockpit_action_packet_checked,
+    replay_research_cockpit_session_checked, HadwigerCertificationBundle,
+    HadwigerCertificationDigestInventory, HadwigerCertificationScenario,
+    PeriodicColorRuleSignature, ResearchCockpitAction, ResearchCockpitActionBlocker,
+    ResearchCockpitActionEligibility, ResearchCockpitActionKind, ResearchCockpitActionPacket,
+    ResearchCockpitCounters, ResearchCockpitEquivalenceClass, ResearchCockpitEquivalenceScope,
+    ResearchCockpitError, ResearchCockpitInputDigest, ResearchCockpitReport,
+    ResearchCockpitSession, ResearchCockpitSessionBuilder, TileConstraintSignature,
+    TileContactGraphSignature, TileEquivalencePosture, TileEquivalenceScope,
+    TileEquivalenceWitness, TileEquivalenceWitnessChecked, TileMetricThresholdSignature,
+};
+pub use crate::research_graph_invariants::{
+    certify_research_graph_invariant_violation, draft_research_graph_invariant_catalog,
+    materialize_research_graph_invariant_denial, plan_research_graph_invariant_registration,
+    HadwigerResearchInvariantCatalog, ResearchGraphInvariantCheckRequest,
+    ResearchGraphInvariantCompatibilitySurface, ResearchGraphInvariantCompatibilitySurfaces,
+    ResearchGraphInvariantCounters, ResearchGraphInvariantDenial,
+    ResearchGraphInvariantDenialRequest, ResearchGraphInvariantError, ResearchGraphInvariantFamily,
+    ResearchGraphInvariantRegistrationPlan, ResearchGraphInvariantRegistrationPosture,
+    ResearchGraphInvariantRule, ResearchGraphInvariantScope, ResearchGraphInvariantViolation,
+    ResearchGraphInvariantViolationKind,
+};

@@ -1,7 +1,10 @@
 use crate::projection_consumption::{
     ProjectMaterializedFacts, ProjectionConsumptionBindingContext, ProjectionConsumptionSource,
 };
-use crate::runtime::{ForgeQueryAdmittedIntentPlan, ForgeQueryLowerRuntimeBoundaryEnvelope};
+use crate::runtime::{
+    ForgeQueryAdmittedIntentPlan, ForgeQueryLowerRuntimeBoundaryEnvelope,
+    ForgeQueryLowerRuntimeBoundaryEnvelopeSource,
+};
 
 use super::bind_requested;
 use crate::domain_capabilities::payloads::{
@@ -110,6 +113,18 @@ impl ForgeQueryAftermathContributionAuthoring {
                 envelope,
             ),
         )
+    }
+
+    pub fn for_lower_runtime_boundary_source<S>(
+        self,
+        source: &S,
+    ) -> ForgeQueryRequestedAftermathContribution<
+        ForgeQueryLowerRuntimeBoundaryBoundContributionTarget,
+    >
+    where
+        S: ForgeQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
+    {
+        self.for_lower_runtime_boundary_envelope(source.lower_runtime_boundary_envelope())
     }
 
     pub fn bind_to_admitted_plan_target(

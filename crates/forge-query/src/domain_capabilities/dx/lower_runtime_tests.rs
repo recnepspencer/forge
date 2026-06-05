@@ -2,11 +2,12 @@ use super::{forge_query_domain, ForgeQueryDomainCapabilityOutcomeKind};
 use crate::domain_capabilities::{
     admit_eligible_domain_capability_contribution,
     evaluate_requested_domain_capability_contribution,
+    materialize_graph_composition_domain_invariant_denial,
     materialize_lower_runtime_support_traceability_artifact,
     materialize_query_causal_inspection_artifact, materialize_query_causal_inspection_review,
     prepare_admitted_domain_capability_contribution_for_materialization,
-    ForgeQueryExplanationContributionAuthoring, ForgeQueryLowerRuntimeExplanationRequest,
-    ForgeQuerySupportContributionAuthoring,
+    ForgeQueryExplanationContributionAuthoring, ForgeQueryInvariantCapabilityContributionAuthoring,
+    ForgeQueryLowerRuntimeExplanationRequest, ForgeQuerySupportContributionAuthoring,
 };
 use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryEnvelope,
@@ -17,8 +18,9 @@ use crate::lower_runtime_routing::{
 use crate::runtime::{
     anchor_causal_observation, causal_inspection_target, resolve_causal_evidence_references,
     CausalEvidenceFamily, CausalEvidenceReferenceResolution, CausalInspectionMaterializationPolicy,
-    CausalInspectionReason, CausalInspectionRedactionPolicy, ForgeQueryReadExecutionEngine,
-    ForgeQueryReadReceipt,
+    CausalInspectionReason, CausalInspectionRedactionPolicy,
+    ForgeQueryGraphCompositionDomainInvariantDenial, ForgeQueryReadExecutionEngine,
+    ForgeQueryReadReceipt, ForgeQueryWriteCommand,
 };
 
 #[test]
@@ -176,6 +178,34 @@ fn checked_lower_runtime_review_lane_preserves_denied_metadata() {
     assert!(checked.denial().is_some());
 }
 
+#[test]
+fn lower_runtime_source_support_binding_matches_envelope_binding() {
+    let source = write_authority_boundary_source("boundary-source-support");
+    let source_artifact = forge_query_domain("worth.spatial")
+        .for_lower_runtime_boundary_source(&source)
+        .supports_boundary_traceability("routing.write_authority")
+        .because("write authority receipt carries the lower-runtime boundary envelope")
+        .materialize()
+        .expect("source-bound support should materialize");
+    let envelope_artifact = forge_query_domain("worth.spatial")
+        .for_lower_runtime_boundary_envelope(source.boundary_envelope())
+        .supports_boundary_traceability("routing.write_authority")
+        .because("write authority receipt carries the lower-runtime boundary envelope")
+        .materialize()
+        .expect("envelope-bound support should materialize");
+
+    assert_eq!(source_artifact, envelope_artifact);
+}
+
+#[test]
+fn lower_runtime_source_invariant_denial_matches_envelope_binding() {
+    let source = write_authority_boundary_source("boundary-source-invariant");
+    let source_denial = materialize_invariant_denial_from_source(&source);
+    let envelope_denial = materialize_invariant_denial_from_envelope(source.boundary_envelope());
+
+    assert_eq!(source_denial, envelope_denial);
+}
+
 fn success<T>(
     outcome: crate::domain_capabilities::ForgeQueryDomainCapabilityTransitionOutcome<T>,
 ) -> T {
@@ -206,6 +236,69 @@ fn lower_runtime_envelope(target_digest: &str) -> ForgeQueryLowerRuntimeBoundary
         &boundary,
         &format!("retained:{target_digest}"),
     )
+}
+
+fn write_authority_boundary_source(
+    target_digest: &str,
+) -> crate::runtime::WriteAuthorityExecutionReceipt {
+    let command = ForgeQueryWriteCommand::Delete {
+        entity_identity: target_digest.to_string(),
+    };
+    let mutation_receipt = crate::memory_workspace::ForgeQueryMutationReceipt {
+        commit_identity: format!("commit:{target_digest}"),
+        snapshot_token: format!("snapshot:{target_digest}"),
+        deltas: Vec::new(),
+        bridge_authority: None,
+    };
+    crate::runtime::WriteAuthorityExecutionReceipt::from_command(&command, mutation_receipt)
+}
+
+fn materialize_invariant_denial_from_source<S>(
+    source: &S,
+) -> ForgeQueryGraphCompositionDomainInvariantDenial
+where
+    S: crate::runtime::ForgeQueryLowerRuntimeBoundaryEnvelopeSource + ?Sized,
+{
+    let requested = graph_invariant_denial_authoring().for_lower_runtime_boundary_source(source);
+    materialize_invariant_denial(requested)
+}
+
+fn materialize_invariant_denial_from_envelope(
+    envelope: &ForgeQueryLowerRuntimeBoundaryEnvelope,
+) -> ForgeQueryGraphCompositionDomainInvariantDenial {
+    let requested =
+        graph_invariant_denial_authoring().for_lower_runtime_boundary_envelope(envelope);
+    materialize_invariant_denial(requested)
+}
+
+fn graph_invariant_denial_authoring() -> ForgeQueryInvariantCapabilityContributionAuthoring {
+    ForgeQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(
+        "graph.non_manifold_edge_split",
+        ["edges"],
+        ["edge-1"],
+        ["edge_split"],
+        ["publication"],
+        "program-digest",
+        "breadth-digest",
+        "counter-snapshot",
+        "graph.non_manifold_edge_split",
+        "edge split would violate graph composition invariant",
+    )
+}
+
+fn materialize_invariant_denial(
+    requested: crate::domain_capabilities::ForgeQueryRequestedInvariantCapabilityContribution<
+        crate::domain_capabilities::ForgeQueryLowerRuntimeBoundaryBoundContributionTarget,
+    >,
+) -> ForgeQueryGraphCompositionDomainInvariantDenial {
+    let eligible = success(evaluate_requested_domain_capability_contribution(requested));
+    let admitted = success(admit_eligible_domain_capability_contribution(eligible));
+    let target = admitted.payload().target().clone();
+    success(materialize_graph_composition_domain_invariant_denial(
+        success(
+            prepare_admitted_domain_capability_contribution_for_materialization(admitted, target),
+        ),
+    ))
 }
 
 fn replay_gap_inputs() -> (

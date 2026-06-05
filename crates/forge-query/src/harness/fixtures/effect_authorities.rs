@@ -114,7 +114,10 @@ pub(crate) fn test_bridge() -> RuntimeBridge {
             BridgeMappingId::new("external-test"),
             TruthPatchScope::new(
                 MappingSelector::any(),
-                forge_runtime_bridge::facade::AspectKeySelector::any(),
+                forge_runtime_bridge::facade::AspectKeySelector::exact(
+                    forge_foundational::facade::AspectKey::new("aspect")
+                        .expect("valid bridge mapping aspect key"),
+                ),
                 forge_runtime_bridge::facade::TruthPatchTargetSelector::any(),
             ),
             forge_runtime_bridge::facade::SnapshotReadContract::scalar(
@@ -138,7 +141,10 @@ pub(crate) fn test_bridge_with_writeback_authority() -> RuntimeBridge {
             BridgeMappingId::new("external-test"),
             TruthPatchScope::new(
                 MappingSelector::any(),
-                forge_runtime_bridge::facade::AspectKeySelector::any(),
+                forge_runtime_bridge::facade::AspectKeySelector::exact(
+                    forge_foundational::facade::AspectKey::new("aspect")
+                        .expect("valid bridge mapping aspect key"),
+                ),
                 forge_runtime_bridge::facade::TruthPatchTargetSelector::any(),
             ),
             forge_runtime_bridge::facade::SnapshotReadContract::scalar(

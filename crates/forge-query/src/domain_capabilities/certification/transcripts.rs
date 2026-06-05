@@ -33,7 +33,7 @@ impl ForgeQueryDomainCapabilityGoldenTranscript {
     }
 }
 
-const GOLDEN_TRANSCRIPTS: [ForgeQueryDomainCapabilityGoldenTranscript; 10] = [
+const GOLDEN_TRANSCRIPTS: [ForgeQueryDomainCapabilityGoldenTranscript; 11] = [
     ForgeQueryDomainCapabilityGoldenTranscript::new(
         "common_declaration_lane",
         "tests/ui/domain_capabilities/golden/domain_capability_common_declaration_lane_golden_transcript_compiles.rs",
@@ -84,6 +84,11 @@ const GOLDEN_TRANSCRIPTS: [ForgeQueryDomainCapabilityGoldenTranscript; 10] = [
         "tests/ui/domain_capabilities/golden/domain_capability_certification_surface_readout_compiles.rs",
         "named certification surface readout through the public facade",
     ),
+    ForgeQueryDomainCapabilityGoldenTranscript::new(
+        "lower_runtime_boundary_source_contributions",
+        "tests/ui/domain_capabilities/golden/lower_runtime_boundary_source_contributions_compile.rs",
+        "lower-runtime contribution binding from real boundary receipt sources",
+    ),
 ];
 
 pub fn forge_query_domain_capability_golden_transcripts(
@@ -126,7 +131,7 @@ mod tests {
         let labels = rows.iter().map(|row| row.label()).collect::<Vec<_>>();
         let paths = rows.iter().map(|row| row.path()).collect::<Vec<_>>();
 
-        assert_eq!(rows.len(), 10);
+        assert_eq!(rows.len(), 11);
         assert_eq!(
             labels.len(),
             labels.iter().copied().collect::<BTreeSet<_>>().len()
