@@ -1,5 +1,6 @@
 mod definitions;
 mod evaluation;
+mod finite_graph_view;
 mod operations;
 
 use crate::domain_artifacts::core_artifact::{

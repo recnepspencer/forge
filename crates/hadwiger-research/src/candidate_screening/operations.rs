@@ -1,5 +1,3 @@
-use std::collections::{BTreeMap, BTreeSet};
-
 use crate::domain_artifacts::{
     GraphVersion, HadwigerArtifactShapeError, HadwigerCanonicalArtifact,
 };
@@ -10,6 +8,7 @@ use super::evaluation::{
     CandidateScreeningCertificate, CandidateScreeningEvaluation, CandidateScreeningEvaluationMode,
     CandidateScreeningEvaluationReport, CandidateScreeningVerdict,
 };
+use super::finite_graph_view::FiniteGraphView;
 use super::{CandidateScreeningInvariantCatalog, CandidateScreeningInvariantFamily};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -42,7 +41,7 @@ pub fn evaluate_graph_screening_invariant_checked(
     let graph_view = FiniteGraphView::from_graph_version(graph);
     let (verdict, evidence) = match family {
         CandidateScreeningInvariantFamily::CliqueNumberLowerBound => {
-            graph_view.require_exhaustive_subset_budget(20)?;
+            graph_view.require_subset_budget(20)?;
             let omega = graph_view.clique_number();
             (
                 verdict_for_bound(omega, 6),
@@ -50,7 +49,7 @@ pub fn evaluate_graph_screening_invariant_checked(
             )
         }
         CandidateScreeningInvariantFamily::IndependenceNumberLowerBound => {
-            graph_view.require_exhaustive_subset_budget(20)?;
+            graph_view.require_subset_budget(20)?;
             let alpha = graph_view.independence_number().max(1);
             let rejects = graph_view.vertex_count() > 6 * alpha;
             (
@@ -61,8 +60,20 @@ pub fn evaluate_graph_screening_invariant_checked(
                 ),
             )
         }
+        CandidateScreeningInvariantFamily::WeightedIndependenceNumberBound => {
+            graph_view.require_subset_budget(20)?;
+            let alpha = graph_view.independence_number().max(1);
+            let rejects = graph_view.vertex_count() > 6 * alpha;
+            (
+                verdict_bool(rejects),
+                format!(
+                    "unit_weights=true;total_weight={};alpha_weight={alpha};color_limit=6",
+                    graph_view.vertex_count()
+                ),
+            )
+        }
         CandidateScreeningInvariantFamily::HallRatioSubpatchIndependenceBound => {
-            graph_view.require_exhaustive_subset_budget(20)?;
+            graph_view.require_subset_budget(20)?;
             let (vertices, alpha) = graph_view.max_hall_ratio_witness();
             let rejects = vertices > 6 * alpha.max(1);
             (
@@ -92,8 +103,25 @@ pub fn evaluate_graph_screening_invariant_checked(
                 format!("maximum_degree={max_degree};sanity_threshold=6"),
             )
         }
+        CandidateScreeningInvariantFamily::PerfectGraphSanityCheck => {
+            graph_view.require_subset_budget(20)?;
+            let omega = graph_view.clique_number();
+            let bipartite = graph_view.is_bipartite();
+            (
+                if bipartite && omega <= 6 {
+                    CandidateScreeningVerdict::Rejected
+                } else {
+                    CandidateScreeningVerdict::Passed
+                },
+                format!("perfect_subclass=bipartite;detected={bipartite};omega={omega}"),
+            )
+        }
+        CandidateScreeningInvariantFamily::SpectralHoffmanBound => {
+            let (verdict, evidence) = hoffman_bound_screening(&graph_view);
+            (verdict, evidence)
+        }
         CandidateScreeningInvariantFamily::SatIlpSixColorability => {
-            graph_view.require_color_replay_budget(24)?;
+            graph_view.require_subset_budget(24)?;
             let checked = verify_k_colorability_checked(handle, graph, 6).map_err(|_| {
                 CandidateScreeningError::Shape(HadwigerArtifactShapeError::EmptyField {
                     field: "sat_screening",
@@ -110,6 +138,24 @@ pub fn evaluate_graph_screening_invariant_checked(
                         .colorability_verification()
                         .reference()
                         .stable_token()
+                ),
+            )
+        }
+        CandidateScreeningInvariantFamily::CriticalSubgraphExtraction => {
+            graph_view.require_subset_budget(16)?;
+            let colorable = graph_view.is_k_colorable(6);
+            let smaller_obstruction =
+                !colorable && graph_view.has_smaller_non_k_colorable_subgraph(6);
+            (
+                if smaller_obstruction {
+                    CandidateScreeningVerdict::Rejected
+                } else if colorable {
+                    CandidateScreeningVerdict::Passed
+                } else {
+                    CandidateScreeningVerdict::Priority
+                },
+                format!(
+                    "color_limit=6;colorable={colorable};smaller_non_colorable_subgraph={smaller_obstruction}"
                 ),
             )
         }
@@ -187,198 +233,24 @@ fn verdict_bool(rejects: bool) -> CandidateScreeningVerdict {
     }
 }
 
-struct FiniteGraphView {
-    vertices: Vec<String>,
-    adjacency: Vec<Vec<bool>>,
-}
-
-impl FiniteGraphView {
-    fn from_graph_version(graph: &GraphVersion) -> Self {
-        let vertices = graph
-            .vertices()
-            .iter()
-            .map(|vertex| vertex.vertex_label().to_string())
-            .collect::<Vec<_>>();
-        let index = vertices
-            .iter()
-            .enumerate()
-            .map(|(index, label)| (label.clone(), index))
-            .collect::<BTreeMap<_, _>>();
-        let mut adjacency = vec![vec![false; vertices.len()]; vertices.len()];
-        for edge in graph.edges() {
-            let (left, right) = edge.endpoints();
-            let Some(&left_index) = index.get(left) else {
-                continue;
-            };
-            let Some(&right_index) = index.get(right) else {
-                continue;
-            };
-            adjacency[left_index][right_index] = true;
-            adjacency[right_index][left_index] = true;
-        }
-        Self {
-            vertices,
-            adjacency,
-        }
+fn hoffman_bound_screening(graph_view: &FiniteGraphView) -> (CandidateScreeningVerdict, String) {
+    let Some(degree) = graph_view.is_regular() else {
+        return (
+            CandidateScreeningVerdict::Passed,
+            "regular=false;hoffman_bound=unsupported".to_string(),
+        );
+    };
+    if graph_view.is_complete() && graph_view.vertex_count() > 1 {
+        let bound = graph_view.vertex_count();
+        return (
+            verdict_for_bound(bound, 6),
+            format!(
+                "regular=true;complete_graph=true;degree={degree};lambda_min=-1;hoffman_bound={bound}"
+            ),
+        );
     }
-
-    fn vertex_count(&self) -> usize {
-        self.vertices.len()
-    }
-
-    fn maximum_degree(&self) -> usize {
-        self.adjacency
-            .iter()
-            .map(|row| row.iter().filter(|adjacent| **adjacent).count())
-            .max()
-            .unwrap_or(0)
-    }
-
-    fn require_exhaustive_subset_budget(
-        &self,
-        exact_limit: usize,
-    ) -> Result<(), CandidateScreeningError> {
-        if self.vertex_count() <= exact_limit {
-            Ok(())
-        } else {
-            Err(CandidateScreeningError::GraphScreeningBudgetExceeded {
-                vertex_count: self.vertex_count(),
-                exact_limit,
-            })
-        }
-    }
-
-    fn require_color_replay_budget(
-        &self,
-        exact_limit: usize,
-    ) -> Result<(), CandidateScreeningError> {
-        self.require_exhaustive_subset_budget(exact_limit)
-    }
-
-    fn clique_number(&self) -> usize {
-        self.maximum_subset_size(true)
-    }
-
-    fn independence_number(&self) -> usize {
-        self.maximum_subset_size(false)
-    }
-
-    fn maximum_subset_size(&self, require_edges: bool) -> usize {
-        let mut best = 0;
-        for subset in self.subsets() {
-            if subset.len() > best && self.subset_pair_relation_holds(&subset, require_edges) {
-                best = subset.len();
-            }
-        }
-        best
-    }
-
-    fn max_hall_ratio_witness(&self) -> (usize, usize) {
-        let mut best = (0, 1);
-        for subset in self.subsets() {
-            let alpha = self.independence_number_for_subset(&subset).max(1);
-            if subset.len() * best.1 > best.0 * alpha {
-                best = (subset.len(), alpha);
-            }
-        }
-        best
-    }
-
-    fn independence_number_for_subset(&self, subset: &[usize]) -> usize {
-        let set = subset.iter().copied().collect::<BTreeSet<_>>();
-        self.subsets_from(subset)
-            .into_iter()
-            .filter(|candidate| candidate.iter().all(|index| set.contains(index)))
-            .filter(|candidate| self.subset_pair_relation_holds(candidate, false))
-            .map(|candidate| candidate.len())
-            .max()
-            .unwrap_or(0)
-    }
-
-    fn k_core_size(&self, k: usize) -> usize {
-        let mut active = vec![true; self.vertex_count()];
-        loop {
-            let removed = (0..self.vertex_count())
-                .filter(|index| active[*index] && self.active_degree(*index, &active) < k)
-                .collect::<Vec<_>>();
-            if removed.is_empty() {
-                break;
-            }
-            for index in removed {
-                active[index] = false;
-            }
-        }
-        active.into_iter().filter(|value| *value).count()
-    }
-
-    fn is_k_colorable(&self, color_count: usize) -> bool {
-        let mut colors = vec![None; self.vertex_count()];
-        self.color_vertex(0, color_count, &mut colors)
-    }
-
-    fn color_vertex(
-        &self,
-        vertex_index: usize,
-        color_count: usize,
-        colors: &mut [Option<usize>],
-    ) -> bool {
-        if vertex_index == self.vertex_count() {
-            return true;
-        }
-        for color in 0..color_count {
-            if self.can_use_color(vertex_index, color, colors) {
-                colors[vertex_index] = Some(color);
-                if self.color_vertex(vertex_index + 1, color_count, colors) {
-                    return true;
-                }
-                colors[vertex_index] = None;
-            }
-        }
-        false
-    }
-
-    fn can_use_color(&self, vertex_index: usize, color: usize, colors: &[Option<usize>]) -> bool {
-        self.adjacency[vertex_index]
-            .iter()
-            .enumerate()
-            .all(|(neighbor, adjacent)| !adjacent || colors[neighbor] != Some(color))
-    }
-
-    fn active_degree(&self, index: usize, active: &[bool]) -> usize {
-        self.adjacency[index]
-            .iter()
-            .enumerate()
-            .filter(|(candidate, adjacent)| active[*candidate] && **adjacent)
-            .count()
-    }
-
-    fn subset_pair_relation_holds(&self, subset: &[usize], require_edges: bool) -> bool {
-        for left in 0..subset.len() {
-            for right in (left + 1)..subset.len() {
-                if self.adjacency[subset[left]][subset[right]] != require_edges {
-                    return false;
-                }
-            }
-        }
-        true
-    }
-
-    fn subsets(&self) -> Vec<Vec<usize>> {
-        let indices = (0..self.vertex_count()).collect::<Vec<_>>();
-        self.subsets_from(&indices)
-    }
-
-    fn subsets_from(&self, indices: &[usize]) -> Vec<Vec<usize>> {
-        let mut subsets = Vec::new();
-        for mask in 1usize..(1usize << indices.len()) {
-            let mut subset = Vec::new();
-            for (bit, index) in indices.iter().enumerate() {
-                if (mask & (1usize << bit)) != 0 {
-                    subset.push(*index);
-                }
-            }
-            subsets.push(subset);
-        }
-        subsets
-    }
+    (
+        CandidateScreeningVerdict::Passed,
+        format!("regular=true;degree={degree};hoffman_bound=certificate_required"),
+    )
 }
