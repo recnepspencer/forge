@@ -20,7 +20,7 @@ impl ForgeQueryDomainCapabilityCompileFailBoundary {
     }
 }
 
-const COMPILE_FAIL_BOUNDARIES: [ForgeQueryDomainCapabilityCompileFailBoundary; 37] = [
+const COMPILE_FAIL_BOUNDARIES: [ForgeQueryDomainCapabilityCompileFailBoundary; 40] = [
     ForgeQueryDomainCapabilityCompileFailBoundary::new(
         "checked_outcome_constructor_private",
         "tests/ui/domain_capabilities/dx_boundaries/domain_capability_checked_outcome_constructor_private.rs",
@@ -72,6 +72,18 @@ const COMPILE_FAIL_BOUNDARIES: [ForgeQueryDomainCapabilityCompileFailBoundary; 3
     ForgeQueryDomainCapabilityCompileFailBoundary::new(
         "lower_runtime_explanation_draft_has_no_review",
         "tests/ui/domain_capabilities/dx_boundaries/domain_capability_lower_runtime_explanation_draft_has_no_review.rs",
+    ),
+    ForgeQueryDomainCapabilityCompileFailBoundary::new(
+        "external_lower_runtime_boundary_source_impl_forbidden",
+        "tests/ui/domain_capabilities/dx_boundaries/external_lower_runtime_boundary_source_impl_forbidden.rs",
+    ),
+    ForgeQueryDomainCapabilityCompileFailBoundary::new(
+        "lower_runtime_boundary_source_rejects_binding_target",
+        "tests/ui/domain_capabilities/dx_boundaries/lower_runtime_boundary_source_rejects_binding_target.rs",
+    ),
+    ForgeQueryDomainCapabilityCompileFailBoundary::new(
+        "lower_runtime_boundary_source_rejects_raw_string",
+        "tests/ui/domain_capabilities/dx_boundaries/lower_runtime_boundary_source_rejects_raw_string.rs",
     ),
     ForgeQueryDomainCapabilityCompileFailBoundary::new(
         "certification_surface_row_constructor_private",
@@ -232,7 +244,7 @@ mod tests {
         let labels = rows.iter().map(|row| row.label()).collect::<Vec<_>>();
         let paths = rows.iter().map(|row| row.path()).collect::<Vec<_>>();
 
-        assert_eq!(rows.len(), 37);
+        assert_eq!(rows.len(), 40);
         assert_eq!(
             labels.len(),
             labels.iter().copied().collect::<BTreeSet<_>>().len()

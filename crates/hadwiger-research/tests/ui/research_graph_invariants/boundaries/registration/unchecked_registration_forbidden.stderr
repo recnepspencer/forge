@@ -1,0 +1,5 @@
+error[E0599]: no method named `register_with_query_runtime_unchecked` found for reference `&hadwiger_research::facade::HadwigerResearchInvariantCatalog` in the current scope
+ --> tests/ui/research_graph_invariants/boundaries/registration/unchecked_registration_forbidden.rs:4:21
+  |
+4 |     let _ = catalog.register_with_query_runtime_unchecked();
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&hadwiger_research::facade::HadwigerResearchInvariantCatalog`

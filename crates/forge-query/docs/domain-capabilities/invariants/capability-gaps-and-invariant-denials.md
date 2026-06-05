@@ -26,6 +26,14 @@ Canonical materializers:
 - `materialize_graph_composition_capability_support_row(...)`
 - `materialize_graph_composition_domain_invariant_denial(...)`
 
+Boundary acquisition:
+
+- obtain `ForgeQueryLowerRuntimeBoundaryEnvelope` values from real Query
+  boundary receipts, or pass those receipts through
+  `for_lower_runtime_boundary_source(...)`
+- do not construct lower-runtime boundary envelopes directly; constructors are
+  intentionally private
+
 For ordinary invariant registration, use the separate runtime and domain
 registration surfaces documented in
 [Registering Domain Invariants Through Query](./registering-domain-invariants-through-query.md).
@@ -44,7 +52,8 @@ An invariant denial says:
 ## How It Executes
 
 1. author capability-gap or invariant-denial meaning
-2. bind it to the allowed lower-runtime target family
+2. bind it to the allowed lower-runtime target family through a real boundary
+   envelope or boundary-envelope source
 3. progress it through the contribution lifecycle
 4. materialize the canonical support row or denial artifact
 
@@ -99,6 +108,8 @@ rebind operation needs to say:
 - flattening invariant context into one diagnostic string
 - binding these surfaces to declaration targets when the runtime seam is the
   real authority boundary
+- fabricating a lower-runtime boundary envelope instead of obtaining one from a
+  Query boundary receipt
 
 ## Current Limits
 

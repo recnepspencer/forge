@@ -1237,6 +1237,9 @@ Need materialized facts without reopening authority:
 Need lower-runtime contact:
 
 - use lower-runtime capability routing and boundary envelopes
+- obtain boundary envelopes from real Query boundary receipts or other
+  `ForgeQueryLowerRuntimeBoundaryEnvelopeSource` values; do not construct or
+  synthesize envelopes from strings
 
 Need temporal or time-aware live behavior:
 

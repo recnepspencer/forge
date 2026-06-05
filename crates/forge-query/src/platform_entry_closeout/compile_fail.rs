@@ -186,6 +186,7 @@ pub fn forge_query_platform_entry_compile_fail_manifest(
 
     ForgeQueryPlatformEntryCompileFailManifest::new(vec![
         ForgeQueryPlatformEntryUiProofRow::new("checked_configured_handle", "tests/ui/domain_handle/golden/checked_configured_handle_compiles.rs", G),
+        ForgeQueryPlatformEntryUiProofRow::new("admitted_world_basis_surface_readout", "tests/ui/domain_handle/golden/admitted_world_basis_surface_readout_compiles.rs", G),
         ForgeQueryPlatformEntryUiProofRow::new("configured_handle_real_example", "tests/ui/domain_handle/golden/configured_handle_real_example_compiles.rs", G),
         ForgeQueryPlatformEntryUiProofRow::new("continuation_pipeline_surface_readout", "tests/ui/domain_handle/golden/continuation_pipeline_surface_readout_compiles.rs", G),
         ForgeQueryPlatformEntryUiProofRow::new("contribution_composed_surface_readout", "tests/ui/domain_handle/golden/contribution_composed_surface_readout_compiles.rs", G),
@@ -206,6 +207,7 @@ pub fn forge_query_platform_entry_compile_fail_manifest(
         ForgeQueryPlatformEntryUiProofRow::new("binding_linked_artifacts_constructor_private", "tests/ui/domain_handle/boundaries/binding/binding_linked_artifacts_constructor_private.rs", B),
         ForgeQueryPlatformEntryUiProofRow::new("binding_witness_constructors_private", "tests/ui/domain_handle/boundaries/binding/binding_witness_constructors_private.rs", B),
         ForgeQueryPlatformEntryUiProofRow::new("ordinary_checked_topology_constructors_private", "tests/ui/domain_handle/boundaries/binding/ordinary_checked_topology_constructors_private.rs", B),
+        ForgeQueryPlatformEntryUiProofRow::new("admitted_world_basis_constructors_private", "tests/ui/domain_handle/boundaries/construction/admitted_world_basis_constructors_private.rs", B),
         ForgeQueryPlatformEntryUiProofRow::new("configured_handle_constructors_private", "tests/ui/domain_handle/boundaries/construction/configured_handle_constructors_private.rs", B),
         ForgeQueryPlatformEntryUiProofRow::new("continuation_pipeline_artifact_constructors_private", "tests/ui/domain_handle/boundaries/construction/continuation_pipeline_artifact_constructors_private.rs", B),
         ForgeQueryPlatformEntryUiProofRow::new("contribution_composed_orchestration_artifact_constructors_private", "tests/ui/domain_handle/boundaries/construction/contribution_composed_orchestration_artifact_constructors_private.rs", B),
@@ -269,7 +271,7 @@ mod tests {
         let actual = manifest_paths();
 
         assert_eq!(expected, actual.iter().map(String::as_str).collect());
-        assert_eq!(manifest.rows().len(), 25);
+        assert_eq!(manifest.rows().len(), 27);
         assert!(!manifest.manifest_digest().is_empty());
         assert!(!manifest.boundary_digest().is_empty());
         for label in required_ui_proof_labels() {

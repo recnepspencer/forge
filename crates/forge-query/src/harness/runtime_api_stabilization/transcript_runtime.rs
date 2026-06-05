@@ -334,7 +334,10 @@ fn transcript_bridge() -> RuntimeBridge {
             BridgeMappingId::new("transcript-external"),
             TruthPatchScope::new(
                 MappingSelector::any(),
-                forge_runtime_bridge::facade::AspectKeySelector::any(),
+                forge_runtime_bridge::facade::AspectKeySelector::exact(
+                    forge_foundational::facade::AspectKey::new("aspect")
+                        .expect("valid bridge mapping aspect key"),
+                ),
                 forge_runtime_bridge::facade::TruthPatchTargetSelector::any(),
             ),
             forge_runtime_bridge::facade::SnapshotReadContract::scalar(
