@@ -1,7 +1,7 @@
 use crate::application::{
     ForgeQueryDeclarationAspectFit, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationFoundationalEvidenceClass, ForgeQueryDeclarationInput,
-    ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationFoundationalEvidenceClass, ForgeQueryDeclarationFutureProjection,
+    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
 };
 
 use super::{
@@ -42,6 +42,8 @@ pub(crate) fn forge_query_checked_declaration_route_plan<
 ) -> ForgeQueryDeclarationRoutePlanChecked<D, I> {
     let (progressed, evidence, route_intent) = input.into_parts();
     let route_contract = I::Family::route_contract();
+    let future_projection =
+        ForgeQueryDeclarationFutureProjection::from_declaration(progressed.canonical_declaration());
     let route_aspect_contract = route_aspect_contract(progressed.aspect_contract());
     let route_aspect_fit = route_aspect_fit(evidence.aspect_coverage(), &route_aspect_contract);
     let route_aspect_publication =
@@ -255,7 +257,14 @@ pub(crate) fn forge_query_checked_declaration_route_plan<
                 "route-publication:{}",
                 route_aspect_publication_summary(&route_aspect_publication)
             ),
-        ],
+            format!(
+                "future-projection-digest:{}",
+                future_projection.projection_digest()
+            ),
+        ]
+        .into_iter()
+        .chain(future_projection.retained_facts())
+        .collect(),
         routes
             .iter()
             .map(|route| route.reason().to_string())
@@ -272,6 +281,7 @@ pub(crate) fn forge_query_checked_declaration_route_plan<
         route_aspect_contract,
         route_aspect_fit,
         route_aspect_publication,
+        future_projection,
         explanation,
     ))
 }

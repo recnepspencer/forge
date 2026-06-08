@@ -4,12 +4,18 @@ mod next_step;
 mod orchestration;
 mod outcome;
 mod posture;
+mod runtime_posture;
 mod topology;
 
 pub use kind::ForgeQueryOrdinaryPostureKind;
 pub use next_step::ForgeQueryOrdinaryNextStep;
 pub use outcome::ForgeQueryOrdinaryOutcome;
 pub use posture::ForgeQueryOrdinaryPosture;
+pub use runtime_posture::{
+    ForgeQueryOrdinaryRuntimeAsyncPostureKind, ForgeQueryOrdinaryRuntimeBasisPostureKind,
+    ForgeQueryOrdinaryRuntimeCausePostureKind, ForgeQueryOrdinaryRuntimePosture,
+    ForgeQueryOrdinaryRuntimePostureKind, ForgeQueryOrdinaryRuntimeRemaskPostureKind,
+};
 pub use topology::{
     ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,
     ForgeQueryOrdinaryContinuationCheckedTopologyKind,

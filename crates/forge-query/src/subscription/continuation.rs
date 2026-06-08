@@ -8,6 +8,7 @@ use super::continuation_error::{
 use super::delivery_density::ActiveDeliveryDensityPosture;
 use super::delivery_dimensions::{ContinuationRemapWidth, MaintenanceDeltaWidth};
 use super::delivery_window::QueryDeliveryWindow;
+use super::future_selection::QuerySubscriptionFutureSelection;
 use super::maintenance_delta::{
     QuerySubscriptionMaintenanceDelta, QuerySubscriptionMaintenanceDeltaKind,
 };
@@ -44,7 +45,9 @@ pub struct SubscriptionContinuationEvidence {
     continuation_class: SubscriptionContinuationClass,
     source_identity_digest: String,
     target_identity_digest: String,
+    future_selection: QuerySubscriptionFutureSelection,
     basis_digest: String,
+    checkpoint_identity_digest: String,
     authority_digest: String,
     remap_width: ContinuationRemapWidth,
     continuation_digest: String,
@@ -57,7 +60,9 @@ impl SubscriptionContinuationEvidence {
         continuation_class: SubscriptionContinuationClass,
         source_identity: impl Into<String>,
         target_identity: impl Into<String>,
+        future_selection: QuerySubscriptionFutureSelection,
         basis_digest: impl Into<String>,
+        checkpoint_identity_digest: impl Into<String>,
         authority_digest: impl Into<String>,
         remap_width: ContinuationRemapWidth,
     ) -> Self {
@@ -69,7 +74,9 @@ impl SubscriptionContinuationEvidence {
             "subscription_continuation_target_identity_v1".to_string(),
             format!("target:{}", target_identity.into()),
         ]);
+        let future_selection_digest = future_selection.projection_digest().to_string();
         let basis_digest = basis_digest.into();
+        let checkpoint_identity_digest = checkpoint_identity_digest.into();
         let authority_digest = authority_digest.into();
         let continuation_digest = hash_parts(&[
             "subscription_continuation_evidence_v1".to_string(),
@@ -77,7 +84,9 @@ impl SubscriptionContinuationEvidence {
             format!("class:{}", continuation_class.as_str()),
             format!("source:{}", source_identity_digest),
             format!("target:{}", target_identity_digest),
+            format!("future_selection:{}", future_selection_digest),
             format!("basis:{}", basis_digest),
+            format!("checkpoint:{}", checkpoint_identity_digest),
             format!("authority:{}", authority_digest),
             format!("remap_width:{}", remap_width.get()),
         ]);
@@ -86,7 +95,9 @@ impl SubscriptionContinuationEvidence {
             continuation_class,
             source_identity_digest,
             target_identity_digest,
+            future_selection,
             basis_digest,
+            checkpoint_identity_digest,
             authority_digest,
             remap_width,
             continuation_digest,
@@ -109,8 +120,16 @@ impl SubscriptionContinuationEvidence {
         &self.target_identity_digest
     }
 
+    pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
+        &self.future_selection
+    }
+
     pub fn basis_digest(&self) -> &str {
         &self.basis_digest
+    }
+
+    pub fn checkpoint_identity_digest(&self) -> &str {
+        &self.checkpoint_identity_digest
     }
 
     pub fn authority_digest(&self) -> &str {
@@ -131,6 +150,8 @@ pub struct SubscriptionContinuationReport {
     active_lane_digest: ActiveSubscriptionLaneDigest,
     continuation_class: SubscriptionContinuationClass,
     continuation_digest: String,
+    future_selection: QuerySubscriptionFutureSelection,
+    checkpoint_identity_digest: String,
     remap_width: u64,
     performance_receipt: SubscriptionPerformanceReceipt,
     report_digest: String,
@@ -150,6 +171,11 @@ impl SubscriptionContinuationReport {
             format!("lane:{}", evidence.active_lane_digest().as_str()),
             format!("continuation:{}", evidence.continuation_digest()),
             format!("class:{}", evidence.continuation_class().as_str()),
+            format!(
+                "future_selection:{}",
+                evidence.future_selection().projection_digest()
+            ),
+            format!("checkpoint:{}", evidence.checkpoint_identity_digest()),
             format!("remap_width:{}", evidence.remap_width()),
             format!(
                 "performance:{}",
@@ -160,6 +186,8 @@ impl SubscriptionContinuationReport {
             active_lane_digest: evidence.active_lane_digest().clone(),
             continuation_class: evidence.continuation_class(),
             continuation_digest: evidence.continuation_digest().to_string(),
+            future_selection: evidence.future_selection().clone(),
+            checkpoint_identity_digest: evidence.checkpoint_identity_digest().to_string(),
             remap_width: evidence.remap_width(),
             performance_receipt,
             report_digest,
@@ -176,6 +204,14 @@ impl SubscriptionContinuationReport {
 
     pub fn continuation_digest(&self) -> &str {
         &self.continuation_digest
+    }
+
+    pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
+        &self.future_selection
+    }
+
+    pub fn checkpoint_identity_digest(&self) -> &str {
+        &self.checkpoint_identity_digest
     }
 
     pub fn remap_width(&self) -> u64 {
@@ -198,6 +234,31 @@ pub fn admit_subscription_continuation_evidence(
     source_identity: impl Into<String>,
     target_identity: impl Into<String>,
     basis_digest: impl Into<String>,
+    authority_digest: impl Into<String>,
+    remap_width: ContinuationRemapWidth,
+) -> Result<SubscriptionContinuationEvidence, SubscriptionContinuationError> {
+    admit_subscription_continuation_evidence_with_active_identity(
+        active_lane_digest,
+        continuation_class,
+        source_identity,
+        target_identity,
+        QuerySubscriptionFutureSelection::ordinary(),
+        basis_digest,
+        "active-checkpoint-ordinary",
+        authority_digest,
+        remap_width,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn admit_subscription_continuation_evidence_with_active_identity(
+    active_lane_digest: ActiveSubscriptionLaneDigest,
+    continuation_class: SubscriptionContinuationClass,
+    source_identity: impl Into<String>,
+    target_identity: impl Into<String>,
+    future_selection: QuerySubscriptionFutureSelection,
+    basis_digest: impl Into<String>,
+    checkpoint_identity_digest: impl Into<String>,
     authority_digest: impl Into<String>,
     remap_width: ContinuationRemapWidth,
 ) -> Result<SubscriptionContinuationEvidence, SubscriptionContinuationError> {
@@ -230,7 +291,9 @@ pub fn admit_subscription_continuation_evidence(
         continuation_class,
         source_identity,
         target_identity,
+        future_selection,
         basis_digest,
+        checkpoint_identity_digest,
         authority_digest,
         remap_width,
     ))

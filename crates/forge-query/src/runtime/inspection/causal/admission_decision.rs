@@ -1,6 +1,7 @@
 use crate::identity::hash_parts;
 
 use super::inventory::{CausalEvidenceFamily, CausalEvidenceOwner};
+use super::receipt_types::{CausalInspectionReason, CausalObservationOutcome};
 use super::request::{
     CausalInspectionExplanationFamily, CausalInspectionRequest, CausalInspectionRichness,
 };
@@ -59,9 +60,12 @@ pub struct CausalInspectionAdmissionSubject {
     lower_runtime_evidence_family_count: usize,
     query_digest: String,
     query_observation_digest: String,
+    inspection_reason: CausalInspectionReason,
+    observation_outcome: CausalObservationOutcome,
     reference_set_digest: String,
     resolved_reference_count: usize,
     missing_reference_family_count: usize,
+    resolved_evidence_families: Vec<CausalEvidenceFamily>,
     observation_target_digest: String,
     result_shape_context_digest: String,
     target_digest: String,
@@ -86,6 +90,8 @@ impl CausalInspectionAdmissionSubject {
             .as_str()
             .to_string();
         let observation_receipt = request.reference_set().anchor().observation_receipt();
+        let inspection_reason = request.reference_set().anchor().inspection_reason();
+        let observation_outcome = observation_receipt.outcome();
         let anchor_counter_snapshot = request
             .reference_set()
             .anchor()
@@ -117,6 +123,19 @@ impl CausalInspectionAdmissionSubject {
             .reference_set()
             .receipt()
             .missing_reference_family_count();
+        let resolved_evidence_families = request
+            .reference_set()
+            .references()
+            .iter()
+            .map(|reference| reference.family())
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        let resolved_family_part = resolved_evidence_families
+            .iter()
+            .map(CausalEvidenceFamily::as_str)
+            .collect::<Vec<_>>()
+            .join("|");
         let observation_target_digest = request.target().observation_target_digest().to_string();
         let result_shape_context_digest =
             request.target().result_shape_context_digest().to_string();
@@ -130,9 +149,12 @@ impl CausalInspectionAdmissionSubject {
             format!("lower-runtime-families:{lower_runtime_evidence_family_count}"),
             format!("query:{query_digest}"),
             format!("query-observation:{query_observation_digest}"),
+            format!("inspection-reason:{}", inspection_reason.as_str()),
+            format!("observation-outcome:{}", observation_outcome.as_str()),
             format!("reference-set:{reference_set_digest}"),
             format!("resolved-references:{resolved_reference_count}"),
             format!("missing-reference-families:{missing_reference_family_count}"),
+            format!("resolved-evidence-families:{resolved_family_part}"),
             format!("observation-target:{observation_target_digest}"),
             format!("result-shape:{result_shape_context_digest}"),
             format!("target:{target_digest}"),
@@ -148,9 +170,12 @@ impl CausalInspectionAdmissionSubject {
             lower_runtime_evidence_family_count,
             query_digest,
             query_observation_digest,
+            inspection_reason,
+            observation_outcome,
             reference_set_digest,
             resolved_reference_count,
             missing_reference_family_count,
+            resolved_evidence_families,
             observation_target_digest,
             result_shape_context_digest,
             target_digest,
@@ -189,6 +214,14 @@ impl CausalInspectionAdmissionSubject {
         &self.query_observation_digest
     }
 
+    pub fn inspection_reason(&self) -> CausalInspectionReason {
+        self.inspection_reason
+    }
+
+    pub fn observation_outcome(&self) -> CausalObservationOutcome {
+        self.observation_outcome
+    }
+
     pub fn reference_set_digest(&self) -> &str {
         &self.reference_set_digest
     }
@@ -199,6 +232,10 @@ impl CausalInspectionAdmissionSubject {
 
     pub fn missing_reference_family_count(&self) -> usize {
         self.missing_reference_family_count
+    }
+
+    pub fn resolved_evidence_families(&self) -> &[CausalEvidenceFamily] {
+        &self.resolved_evidence_families
     }
 
     pub fn observation_target_digest(&self) -> &str {

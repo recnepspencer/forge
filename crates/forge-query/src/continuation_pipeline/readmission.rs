@@ -14,6 +14,27 @@ pub enum ForgeQueryPreparedContinuationFreshnessPosture {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ForgeQueryPreparedContinuationDriftKind {
+    AsyncRequest,
+    Replay,
+    Remask,
+    PreviewCrossedResidue,
+    StaleCompletion,
+}
+
+impl ForgeQueryPreparedContinuationDriftKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::AsyncRequest => "async_request",
+            Self::Replay => "replay",
+            Self::Remask => "remask",
+            Self::PreviewCrossedResidue => "preview_crossed_residue",
+            Self::StaleCompletion => "stale_completion",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryPreparedContinuationAuthorityWitness {
     Runtime,
     RuntimeBridgeFacade,
@@ -66,6 +87,7 @@ pub struct ForgeQueryPreparedContinuationExecutionReadmission {
     basis_witness: ForgeQueryPreparedContinuationBasisWitness,
     authority_witness: ForgeQueryPreparedContinuationAuthorityWitness,
     freshness_posture: ForgeQueryPreparedContinuationFreshnessPosture,
+    drift_kind: Option<ForgeQueryPreparedContinuationDriftKind>,
     required_capability_families: Vec<ForgeQueryCapabilityFamily>,
 }
 
@@ -74,12 +96,14 @@ impl ForgeQueryPreparedContinuationExecutionReadmission {
         basis_witness: ForgeQueryPreparedContinuationBasisWitness,
         authority_witness: ForgeQueryPreparedContinuationAuthorityWitness,
         freshness_posture: ForgeQueryPreparedContinuationFreshnessPosture,
+        drift_kind: Option<ForgeQueryPreparedContinuationDriftKind>,
         required_capability_families: Vec<ForgeQueryCapabilityFamily>,
     ) -> Self {
         Self {
             basis_witness,
             authority_witness,
             freshness_posture,
+            drift_kind,
             required_capability_families,
         }
     }
@@ -94,6 +118,10 @@ impl ForgeQueryPreparedContinuationExecutionReadmission {
 
     pub fn freshness_posture(&self) -> ForgeQueryPreparedContinuationFreshnessPosture {
         self.freshness_posture
+    }
+
+    pub fn drift_kind(&self) -> Option<ForgeQueryPreparedContinuationDriftKind> {
+        self.drift_kind
     }
 
     pub fn required_capability_families(&self) -> &[ForgeQueryCapabilityFamily] {

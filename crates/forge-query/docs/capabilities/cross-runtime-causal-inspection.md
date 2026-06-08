@@ -9,6 +9,9 @@ Domain **explanation contributions** declare how domains attach explanation post
 ## Why You Use It
 
 - explain causality across runtime boundaries with `CrossRuntimeCausalExplanation`
+- explain temporal wakes, async completions, mixed-cause suppressions,
+  preview remasks, replay drift, and resume mismatches without importing lower
+  runtime bridge or signal types in product code
 - choose reference-only vs materialized detail with honest advisory/deferred rows
 - avoid overloading `workspace.inspect` for full cross-runtime envelopes
 - align agent/docs language with `CausalInspection::support()` postures
@@ -33,6 +36,15 @@ CausalInspection plan
   → artifacts + decision trace
 ```
 
+Temporal and async-rich explanations now stay Query-owned on the materialized
+artifact itself:
+
+- `QueryCausalTemporalAsyncExplanation`
+- `QueryCausalTemporalAsyncExplanationKind`
+
+That summary is projected from the anchored observation reason plus retained
+causal evidence families. It is not reconstructed by downstream code.
+
 ## Main Entry Points
 
 `exports_runtime.rs` (representative):
@@ -41,6 +53,8 @@ CausalInspection plan
 - `admit_causal_inspection`, `request_causal_inspection`
 - `CausalInspectionExplanationFamily`, `CausalInspectionRichness`
 - `CausalInspection::support()` — `builder_support.rs` row postures
+- builder helpers such as `why_temporal_wake()`, `why_async_completion()`,
+  `why_remasked()`, and `why_resume_mismatch()`
 - Materialization errors/policy types when narrowing to detail
 
 Tests: `src/runtime/tests/causal_inspection/`.
@@ -52,6 +66,14 @@ Tests: `src/runtime/tests/causal_inspection/`.
 3. `request_causal_inspection` with `CrossRuntimeCausalExplanation` and **ReferenceOnly** richness (common supported path).
 4. If you need materialized detail, check advisory posture and materialization policy—may narrow until bridge envelope materialization.
 5. Use `resolve_causal_evidence_references` when following reference sets—not durable archive replay.
+
+When the question is specifically temporal or async:
+
+- use the ordinary builder helpers when they fit the question
+- inspect `artifact.temporal_async_explanation()` on admitted, advisory, or
+  denied causal artifacts
+- use the richer evidence reference set only when the compact Query-owned
+  temporal/async summary is not enough
 
 ## How It Relates
 
@@ -65,6 +87,8 @@ Tests: `src/runtime/tests/causal_inspection/`.
 - `CrossRuntimeCausalExplanation` + **ReferenceOnly** is **Supported**.
 - Same family + **MaterializedDetail** is **Advisory** (“narrows until bridge envelope materialization”).
 - **DurableCausalArchive** and **StoreBackedReplayReconstruction** are **Deferred** for all richness levels.
+- Temporal/async causal richness does not turn `workspace.inspect(...)` into a
+  causal lane clone; it stays on `CausalInspection` artifacts.
 
 ## Anti-Patterns
 

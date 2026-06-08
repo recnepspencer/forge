@@ -117,6 +117,7 @@ pub(super) fn extract_query_context_facts(
         contract.source_family(),
         contract.source_identity(),
         contract.support_posture().clone(),
+        contract.materialized_fact_posture().cloned(),
         ProjectionFactExtractionCounters::new(
             contract.fact_families().len(),
             contract.fact_families().len(),

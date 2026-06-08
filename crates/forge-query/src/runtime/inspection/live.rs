@@ -1,145 +1,14 @@
 use crate::identity::hash_parts;
+use crate::ordinary_outcome::ForgeQueryOrdinaryRuntimePosture;
 
-use super::super::{ForgeQueryAuthorityLane, ForgeQueryRuntimeLiveSubscriptionInstallation};
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryLiveSubscriptionInspectionCounters {
-    declaration_counter_digest: String,
-    active_lane_counter_digest: String,
-    consumer_attachment_counter_digest: String,
-    family_selection_count: u64,
-    declaration_count: u64,
-    bridge_lowering_count: u64,
-    admission_count: u64,
-    activation_input_count: u64,
-    active_lane_admission_count: u64,
-    active_lane_creation_count: u64,
-    active_lane_join_count: u64,
-    active_lane_handle_issue_count: u64,
-    consumer_attachment_count: u64,
-    consumer_attachment_denial_count: u64,
-    counter_digest: String,
-}
-
-impl ForgeQueryLiveSubscriptionInspectionCounters {
-    pub(in crate::runtime) fn from_installation(
-        installation: &ForgeQueryRuntimeLiveSubscriptionInstallation,
-    ) -> Self {
-        let counters = installation.counters();
-        let active_lane_counters = installation.active_lane_counters();
-        let consumer_attachment_counters = installation.consumer_attachment_counters();
-        let declaration_counter_digest = counters.digest();
-        let active_lane_counter_digest = active_lane_counters.digest();
-        let consumer_attachment_counter_digest = consumer_attachment_counters.digest();
-        let family_selection_count = counters.family_selection_count();
-        let declaration_count = counters.declaration_count();
-        let bridge_lowering_count = counters.bridge_lowering_count();
-        let admission_count = counters.admission_count();
-        let activation_input_count = counters.activation_input_count();
-        let active_lane_admission_count = active_lane_counters.active_lane_admission_count();
-        let active_lane_creation_count = active_lane_counters.active_lane_creation_count();
-        let active_lane_join_count = active_lane_counters.active_lane_join_count();
-        let active_lane_handle_issue_count = active_lane_counters.active_lane_handle_issue_count();
-        let consumer_attachment_count = consumer_attachment_counters.consumer_attachment_count();
-        let consumer_attachment_denial_count =
-            consumer_attachment_counters.consumer_attachment_denial_count();
-        let counter_digest = hash_parts(&[
-            "forge_query_live_subscription_inspection_counters_v1".to_string(),
-            format!("declaration-digest:{declaration_counter_digest}"),
-            format!("active-lane-digest:{active_lane_counter_digest}"),
-            format!("consumer-attachment-digest:{consumer_attachment_counter_digest}"),
-            format!("family-selection:{family_selection_count}"),
-            format!("declaration:{declaration_count}"),
-            format!("bridge-lowering:{bridge_lowering_count}"),
-            format!("admission:{admission_count}"),
-            format!("activation-input:{activation_input_count}"),
-            format!("active-lane-admission:{active_lane_admission_count}"),
-            format!("active-lane-creation:{active_lane_creation_count}"),
-            format!("active-lane-join:{active_lane_join_count}"),
-            format!("active-lane-handle-issue:{active_lane_handle_issue_count}"),
-            format!("consumer-attachment:{consumer_attachment_count}"),
-            format!("consumer-attachment-denial:{consumer_attachment_denial_count}"),
-        ]);
-
-        Self {
-            declaration_counter_digest,
-            active_lane_counter_digest,
-            consumer_attachment_counter_digest,
-            family_selection_count,
-            declaration_count,
-            bridge_lowering_count,
-            admission_count,
-            activation_input_count,
-            active_lane_admission_count,
-            active_lane_creation_count,
-            active_lane_join_count,
-            active_lane_handle_issue_count,
-            consumer_attachment_count,
-            consumer_attachment_denial_count,
-            counter_digest,
-        }
-    }
-
-    pub fn declaration_counter_digest(&self) -> &str {
-        &self.declaration_counter_digest
-    }
-
-    pub fn active_lane_counter_digest(&self) -> &str {
-        &self.active_lane_counter_digest
-    }
-
-    pub fn consumer_attachment_counter_digest(&self) -> &str {
-        &self.consumer_attachment_counter_digest
-    }
-
-    pub fn family_selection_count(&self) -> u64 {
-        self.family_selection_count
-    }
-
-    pub fn declaration_count(&self) -> u64 {
-        self.declaration_count
-    }
-
-    pub fn bridge_lowering_count(&self) -> u64 {
-        self.bridge_lowering_count
-    }
-
-    pub fn admission_count(&self) -> u64 {
-        self.admission_count
-    }
-
-    pub fn activation_input_count(&self) -> u64 {
-        self.activation_input_count
-    }
-
-    pub fn active_lane_admission_count(&self) -> u64 {
-        self.active_lane_admission_count
-    }
-
-    pub fn active_lane_creation_count(&self) -> u64 {
-        self.active_lane_creation_count
-    }
-
-    pub fn active_lane_join_count(&self) -> u64 {
-        self.active_lane_join_count
-    }
-
-    pub fn active_lane_handle_issue_count(&self) -> u64 {
-        self.active_lane_handle_issue_count
-    }
-
-    pub fn consumer_attachment_count(&self) -> u64 {
-        self.consumer_attachment_count
-    }
-
-    pub fn consumer_attachment_denial_count(&self) -> u64 {
-        self.consumer_attachment_denial_count
-    }
-
-    pub fn counter_digest(&self) -> &str {
-        &self.counter_digest
-    }
-}
+use super::super::ordinary_runtime_posture::project_live_subscription_ordinary_runtime_posture;
+use super::super::{
+    ForgeQueryAuthorityLane, ForgeQueryRuntimeAsyncResultState,
+    ForgeQueryRuntimeLiveSubscriptionState, ForgeQueryRuntimeMixedCauseDelivery,
+    ForgeQueryRuntimeRemaskPosture,
+};
+use super::live_counters::ForgeQueryLiveSubscriptionInspectionCounters;
+use crate::subscription::QuerySubscriptionDeliveryCauseKind;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryLiveViewInspection {
@@ -164,17 +33,43 @@ pub struct ForgeQueryLiveViewInspection {
     consumer_attachment_budget_policy: String,
     runtime_budget_digest: String,
     support_evidence: String,
+    last_delivery_cause_kind: Option<QuerySubscriptionDeliveryCauseKind>,
+    last_delivery_cause_digest: Option<String>,
+    last_delivery_had_relational_patch: bool,
+    mixed_cause_delivery: Option<ForgeQueryRuntimeMixedCauseDelivery>,
+    ordinary_runtime_posture: ForgeQueryOrdinaryRuntimePosture,
+    async_result_state: Option<ForgeQueryRuntimeAsyncResultState>,
+    remask_posture: Option<ForgeQueryRuntimeRemaskPosture>,
     installation_digest: String,
     counters: ForgeQueryLiveSubscriptionInspectionCounters,
     inspection_digest: String,
 }
 
 impl ForgeQueryLiveViewInspection {
-    pub(in crate::runtime) fn from_installation(
-        installation: &ForgeQueryRuntimeLiveSubscriptionInstallation,
-    ) -> Self {
+    pub(in crate::runtime) fn from_state(state: &ForgeQueryRuntimeLiveSubscriptionState) -> Self {
+        let installation = &state.installation;
         let counters =
             ForgeQueryLiveSubscriptionInspectionCounters::from_installation(installation);
+        let last_delivery_cause_kind = state
+            .last_delivery
+            .as_ref()
+            .map(|delivery| delivery.delivery_cause_kind());
+        let last_delivery_cause_digest = state
+            .last_delivery
+            .as_ref()
+            .map(|delivery| delivery.delivery_cause_digest().to_string());
+        let last_delivery_had_relational_patch = state
+            .last_delivery
+            .as_ref()
+            .map(|delivery| delivery.has_relational_patch())
+            .unwrap_or(false);
+        let mixed_cause_delivery = state
+            .last_delivery
+            .as_ref()
+            .map(|delivery| delivery.mixed_cause_delivery().clone());
+        let ordinary_runtime_posture = project_live_subscription_ordinary_runtime_posture(state);
+        let async_result_state = state.async_result_state.clone();
+        let remask_posture = state.remask_posture.clone();
         let inspection_digest = hash_parts(&[
             "forge_query_live_view_inspection_v1".to_string(),
             format!("view:{}", installation.view_name()),
@@ -204,6 +99,42 @@ impl ForgeQueryLiveViewInspection {
             format!("delivery-cursor:{}", installation.delivery_cursor_digest()),
             format!("runtime-budget:{}", installation.runtime_budget_digest()),
             format!("support:{}", installation.support_evidence()),
+            format!(
+                "last-delivery-cause:{}",
+                last_delivery_cause_kind
+                    .map(QuerySubscriptionDeliveryCauseKind::as_str)
+                    .unwrap_or("none")
+            ),
+            format!(
+                "last-delivery-digest:{}",
+                last_delivery_cause_digest.as_deref().unwrap_or("none")
+            ),
+            format!("last-delivery-relational:{last_delivery_had_relational_patch}"),
+            format!(
+                "mixed-cause:{}",
+                mixed_cause_delivery
+                    .as_ref()
+                    .map(|delivery| delivery.mixed_cause_digest())
+                    .unwrap_or("none")
+            ),
+            format!(
+                "ordinary-runtime-posture:{}",
+                ordinary_runtime_posture.posture_digest()
+            ),
+            format!(
+                "async-result-state:{}",
+                async_result_state
+                    .as_ref()
+                    .map(|state| state.result_state_digest())
+                    .unwrap_or("none")
+            ),
+            format!(
+                "remask:{}",
+                remask_posture
+                    .as_ref()
+                    .map(|posture| posture.remask_digest())
+                    .unwrap_or("none")
+            ),
             format!("installation:{}", installation.installation_digest()),
             format!("counters:{}", counters.counter_digest()),
         ]);
@@ -236,6 +167,13 @@ impl ForgeQueryLiveViewInspection {
                 .to_string(),
             runtime_budget_digest: installation.runtime_budget_digest().to_string(),
             support_evidence: installation.support_evidence().to_string(),
+            last_delivery_cause_kind,
+            last_delivery_cause_digest,
+            last_delivery_had_relational_patch,
+            mixed_cause_delivery,
+            ordinary_runtime_posture,
+            async_result_state,
+            remask_posture,
             installation_digest: installation.installation_digest().to_string(),
             counters,
             inspection_digest,
@@ -324,6 +262,34 @@ impl ForgeQueryLiveViewInspection {
 
     pub fn support_evidence(&self) -> &str {
         &self.support_evidence
+    }
+
+    pub fn last_delivery_cause_kind(&self) -> Option<QuerySubscriptionDeliveryCauseKind> {
+        self.last_delivery_cause_kind
+    }
+
+    pub fn last_delivery_cause_digest(&self) -> Option<&str> {
+        self.last_delivery_cause_digest.as_deref()
+    }
+
+    pub fn last_delivery_had_relational_patch(&self) -> bool {
+        self.last_delivery_had_relational_patch
+    }
+
+    pub fn mixed_cause_delivery(&self) -> Option<&ForgeQueryRuntimeMixedCauseDelivery> {
+        self.mixed_cause_delivery.as_ref()
+    }
+
+    pub fn ordinary_runtime_posture(&self) -> &ForgeQueryOrdinaryRuntimePosture {
+        &self.ordinary_runtime_posture
+    }
+
+    pub fn async_result_state(&self) -> Option<&ForgeQueryRuntimeAsyncResultState> {
+        self.async_result_state.as_ref()
+    }
+
+    pub fn remask_posture(&self) -> Option<&ForgeQueryRuntimeRemaskPosture> {
+        self.remask_posture.as_ref()
     }
 
     pub fn installation_digest(&self) -> &str {

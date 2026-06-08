@@ -176,6 +176,116 @@ fn transcript_from_readmission_denial<
                 linked,
             )
         }
+        ForgeQueryPreparedContinuationExecutionReadmissionDenial::AsyncRequestDrift(reason) => {
+            ForgeQueryContinuationExecutionTranscript::new(
+                request_descriptor,
+                ForgeQueryContinuationExecutionOutcome::AsyncRequestDrift(reason),
+                vec![
+                    ForgeQueryBindingWitnessCheck::passed("world_alignment"),
+                    ForgeQueryBindingWitnessCheck::passed("execution_support"),
+                    ForgeQueryBindingWitnessCheck::passed("basis_freshness"),
+                    ForgeQueryBindingWitnessCheck::failed(
+                        "async_request_alignment",
+                        "current continuation async request identity drifted from the retained request",
+                    ),
+                ],
+                transcript_digest(
+                    "execute_prepared_continuation",
+                    I::Family::semantic_family_key(),
+                    &linked,
+                    "async_request_drift",
+                ),
+                linked,
+            )
+        }
+        ForgeQueryPreparedContinuationExecutionReadmissionDenial::ReplayDrift(reason) => {
+            ForgeQueryContinuationExecutionTranscript::new(
+                request_descriptor,
+                ForgeQueryContinuationExecutionOutcome::ReplayDrift(reason),
+                vec![
+                    ForgeQueryBindingWitnessCheck::passed("world_alignment"),
+                    ForgeQueryBindingWitnessCheck::passed("execution_support"),
+                    ForgeQueryBindingWitnessCheck::passed("basis_freshness"),
+                    ForgeQueryBindingWitnessCheck::failed(
+                        "replay_alignment",
+                        "current continuation replay identity drifted from the retained replay witness",
+                    ),
+                ],
+                transcript_digest(
+                    "execute_prepared_continuation",
+                    I::Family::semantic_family_key(),
+                    &linked,
+                    "replay_drift",
+                ),
+                linked,
+            )
+        }
+        ForgeQueryPreparedContinuationExecutionReadmissionDenial::RemaskDrift(reason) => {
+            ForgeQueryContinuationExecutionTranscript::new(
+                request_descriptor,
+                ForgeQueryContinuationExecutionOutcome::RemaskDrift(reason),
+                vec![
+                    ForgeQueryBindingWitnessCheck::passed("world_alignment"),
+                    ForgeQueryBindingWitnessCheck::passed("execution_support"),
+                    ForgeQueryBindingWitnessCheck::passed("basis_freshness"),
+                    ForgeQueryBindingWitnessCheck::failed(
+                        "remask_alignment",
+                        "current continuation meaning was remasked before execution",
+                    ),
+                ],
+                transcript_digest(
+                    "execute_prepared_continuation",
+                    I::Family::semantic_family_key(),
+                    &linked,
+                    "remask_drift",
+                ),
+                linked,
+            )
+        }
+        ForgeQueryPreparedContinuationExecutionReadmissionDenial::PreviewCrossedResidue(
+            reason,
+        ) => ForgeQueryContinuationExecutionTranscript::new(
+            request_descriptor,
+            ForgeQueryContinuationExecutionOutcome::PreviewCrossedResidue(reason),
+            vec![
+                ForgeQueryBindingWitnessCheck::passed("world_alignment"),
+                ForgeQueryBindingWitnessCheck::passed("execution_support"),
+                ForgeQueryBindingWitnessCheck::passed("basis_freshness"),
+                ForgeQueryBindingWitnessCheck::failed(
+                    "preview_residue_alignment",
+                    "current continuation crossed preview residue before execution",
+                ),
+            ],
+            transcript_digest(
+                "execute_prepared_continuation",
+                I::Family::semantic_family_key(),
+                &linked,
+                "preview_crossed_residue",
+            ),
+            linked,
+        ),
+        ForgeQueryPreparedContinuationExecutionReadmissionDenial::StaleCompletion(reason) => {
+            ForgeQueryContinuationExecutionTranscript::new(
+                request_descriptor,
+                ForgeQueryContinuationExecutionOutcome::StaleCompletion(reason),
+                vec![
+                    ForgeQueryBindingWitnessCheck::passed("world_alignment"),
+                    ForgeQueryBindingWitnessCheck::passed("execution_support"),
+                    ForgeQueryBindingWitnessCheck::passed("basis_freshness"),
+                    ForgeQueryBindingWitnessCheck::failed(
+                        "completion_freshness",
+                        "current continuation completion posture is stale at execution time",
+                    ),
+                ],
+                transcript_digest(
+                    "execute_prepared_continuation",
+                    I::Family::semantic_family_key(),
+                    &linked,
+                    "stale_completion",
+                ),
+                linked,
+            )
+        }
         ForgeQueryPreparedContinuationExecutionReadmissionDenial::BasisMismatch(reason) => {
             ForgeQueryContinuationExecutionTranscript::new(
                 request_descriptor,

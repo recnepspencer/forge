@@ -1,5 +1,6 @@
 use crate::execution::execute_preflight_bundle;
 use crate::identity::{hash_parts, ResultDigest};
+use crate::projection_consumption::ProjectionMaterializedFactPosture;
 
 #[path = "execution_synthetic.rs"]
 mod synthetic;
@@ -81,6 +82,7 @@ pub struct QueryContextExecutionArtifact {
     resolved_path_identity: Option<String>,
     materialization_path_identity: Option<String>,
     preview_provenance_identity: Option<String>,
+    materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     counters: QueryContextExecutionCounters,
 }
 
@@ -155,6 +157,18 @@ impl QueryContextExecutionArtifact {
         self.preview_provenance_identity.as_deref()
     }
 
+    pub fn materialized_fact_posture(&self) -> Option<&ProjectionMaterializedFactPosture> {
+        self.materialized_fact_posture.as_ref()
+    }
+
+    pub(crate) fn with_materialized_fact_posture(
+        mut self,
+        posture: Option<ProjectionMaterializedFactPosture>,
+    ) -> Self {
+        self.materialized_fact_posture = posture;
+        self
+    }
+
     pub fn counters(&self) -> &QueryContextExecutionCounters {
         &self.counters
     }
@@ -195,6 +209,7 @@ pub fn execute_query_basis_context(
                 resolved_path_identity: None,
                 materialization_path_identity: None,
                 preview_provenance_identity: None,
+                materialized_fact_posture: None,
                 counters: QueryContextExecutionCounters {
                     context_execution_count: 1,
                     materialized_row_count: execution.rows().len(),
@@ -278,6 +293,7 @@ pub fn execute_query_basis_context(
                 resolved_path_identity: Some(resolved_path_identity),
                 materialization_path_identity: Some(materialization_identity),
                 preview_provenance_identity: None,
+                materialized_fact_posture: None,
                 counters: QueryContextExecutionCounters {
                     context_execution_count: 1,
                     materialized_row_count: query_preflight.plan().result_shape().binding_count(),
@@ -348,6 +364,7 @@ pub fn execute_query_basis_context(
                 resolved_path_identity: None,
                 materialization_path_identity: None,
                 preview_provenance_identity: Some(preview_identity),
+                materialized_fact_posture: None,
                 counters: QueryContextExecutionCounters {
                     context_execution_count: 1,
                     materialized_row_count,

@@ -3,6 +3,7 @@ pub enum SavedQueryFailureClass {
     DurableClaimDenied,
     FreezeInvariantRejected,
     IllegalSemanticDrift,
+    TemporalAsyncSurfaceDeferred,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -22,6 +23,13 @@ impl SavedQueryError {
     pub(crate) fn freeze_invariant_rejected(message: impl Into<String>) -> Self {
         Self {
             failure_class: SavedQueryFailureClass::FreezeInvariantRejected,
+            message: message.into(),
+        }
+    }
+
+    pub(crate) fn temporal_async_surface_deferred(message: impl Into<String>) -> Self {
+        Self {
+            failure_class: SavedQueryFailureClass::TemporalAsyncSurfaceDeferred,
             message: message.into(),
         }
     }

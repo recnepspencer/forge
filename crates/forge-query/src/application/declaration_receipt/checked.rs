@@ -61,6 +61,7 @@ pub(crate) fn forge_query_checked_declaration_receipt_with_materialized_profile<
                         _route_aspect_contract,
                         _route_aspect_fit,
                         _route_aspect_publication,
+                        _future_projection,
                         _explanation,
                         _decl,
                         _digest,

@@ -211,6 +211,109 @@ fn execution_stops_on_authority_mismatch_before_handle_alignment() {
 }
 
 #[test]
+fn execution_stops_on_async_request_drift_before_handle_alignment() {
+    let handle = admitted_handle("main");
+    let prepared = match handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
+        &handle,
+        "face-a",
+        runtime_route_request(),
+    )) {
+        crate::continuation_pipeline::ForgeQueryPreparedContinuationOutcome::Prepared(prepared) => {
+            prepared
+        }
+        _ => panic!("expected prepared runtime continuation"),
+    };
+
+    assert!(matches!(
+        drifted_readmission_handle("main", ReadmissionDrift::AsyncRequest)
+            .execute_prepared_continuation(prepared),
+        ForgeQueryContinuationExecutionOutcome::AsyncRequestDrift(_)
+    ));
+}
+
+#[test]
+fn execution_stops_on_replay_drift_before_handle_alignment() {
+    let handle = admitted_handle("main");
+    let prepared = match handle.prepare_continuation_from_target(
+        target_request::<HistoricalFamily>(&handle, "face-a", historical_truth_view_request()),
+    ) {
+        crate::continuation_pipeline::ForgeQueryPreparedContinuationOutcome::Prepared(prepared) => {
+            prepared
+        }
+        _ => panic!("expected prepared historical continuation"),
+    };
+
+    assert!(matches!(
+        drifted_readmission_handle("main", ReadmissionDrift::Replay)
+            .execute_prepared_continuation(prepared),
+        ForgeQueryContinuationExecutionOutcome::ReplayDrift(_)
+    ));
+}
+
+#[test]
+fn execution_stops_on_remask_drift_before_handle_alignment() {
+    let handle = admitted_handle("main");
+    let prepared = match handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
+        &handle,
+        "face-a",
+        runtime_route_request(),
+    )) {
+        crate::continuation_pipeline::ForgeQueryPreparedContinuationOutcome::Prepared(prepared) => {
+            prepared
+        }
+        _ => panic!("expected prepared runtime continuation"),
+    };
+
+    assert!(matches!(
+        drifted_readmission_handle("main", ReadmissionDrift::Remask)
+            .execute_prepared_continuation(prepared),
+        ForgeQueryContinuationExecutionOutcome::RemaskDrift(_)
+    ));
+}
+
+#[test]
+fn execution_stops_on_preview_crossed_residue_before_handle_alignment() {
+    let handle = admitted_handle("main");
+    let prepared = match handle.prepare_continuation_from_target(target_request::<PreviewFamily>(
+        &handle,
+        "face-a",
+        preview_session_request(),
+    )) {
+        crate::continuation_pipeline::ForgeQueryPreparedContinuationOutcome::Prepared(prepared) => {
+            prepared
+        }
+        _ => panic!("expected prepared preview continuation"),
+    };
+
+    assert!(matches!(
+        drifted_readmission_handle("main", ReadmissionDrift::PreviewCrossedResidue)
+            .execute_prepared_continuation(prepared),
+        ForgeQueryContinuationExecutionOutcome::PreviewCrossedResidue(_)
+    ));
+}
+
+#[test]
+fn execution_stops_on_stale_completion_before_handle_alignment() {
+    let handle = admitted_handle("main");
+    let prepared = match handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
+        &handle,
+        "face-a",
+        runtime_route_request(),
+    )) {
+        crate::continuation_pipeline::ForgeQueryPreparedContinuationOutcome::Prepared(prepared) => {
+            prepared
+        }
+        _ => panic!("expected prepared runtime continuation"),
+    };
+
+    assert!(matches!(
+        drifted_readmission_handle("main", ReadmissionDrift::StaleCompletion)
+            .execute_prepared_continuation(prepared),
+        ForgeQueryContinuationExecutionOutcome::StaleCompletion(_)
+    ));
+}
+
+#[test]
 fn execution_readmission_preserves_basis_identity_for_equivalent_runtime_meaning() {
     let handle = admitted_handle("main");
     let prepared = match handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
@@ -263,5 +366,33 @@ fn continuation_ordinary_outcome_keeps_new_execution_denials_visible() {
             );
         }
         _ => panic!("expected authority mismatch ordinary outcome"),
+    }
+}
+
+#[test]
+fn continuation_ordinary_outcome_keeps_execution_drift_topology_visible() {
+    let handle = admitted_handle("main");
+    let prepared = match handle.prepare_continuation_from_target(target_request::<RuntimeFamily>(
+        &handle,
+        "face-a",
+        runtime_route_request(),
+    )) {
+        crate::continuation_pipeline::ForgeQueryPreparedContinuationOutcome::Prepared(prepared) => {
+            prepared
+        }
+        _ => panic!("expected prepared runtime continuation"),
+    };
+
+    match crate::continuation_pipeline::ordinary_outcome_from_execution_checked(
+        drifted_readmission_handle("main", ReadmissionDrift::AsyncRequest)
+            .execute_prepared_continuation_checked(prepared),
+    ) {
+        ForgeQueryOrdinaryOutcome::RebindRequired(posture) => {
+            assert_eq!(
+                posture.checked_topology().continuation_kind(),
+                Some(ForgeQueryOrdinaryContinuationCheckedTopologyKind::AsyncRequestDrift)
+            );
+        }
+        _ => panic!("expected async-request-drift ordinary outcome"),
     }
 }

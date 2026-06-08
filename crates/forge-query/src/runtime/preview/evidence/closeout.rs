@@ -22,6 +22,10 @@ pub enum ForgeQueryPreviewResidueClass {
     EffectDeliveryState,
     PendingWriteIntent,
     PreviewWriteStaging,
+    TemporalWakeState,
+    AsyncResultState,
+    MixedCauseState,
+    CrossedAuthoritativeResidue,
     AuthoritativeResidue,
 }
 
@@ -33,12 +37,19 @@ impl ForgeQueryPreviewResidueClass {
             Self::EffectDeliveryState => "effect-delivery-state",
             Self::PendingWriteIntent => "pending-write-intent",
             Self::PreviewWriteStaging => "preview-write-staging",
+            Self::TemporalWakeState => "temporal-wake-state",
+            Self::AsyncResultState => "async-result-state",
+            Self::MixedCauseState => "mixed-cause-state",
+            Self::CrossedAuthoritativeResidue => "crossed-authoritative-residue",
             Self::AuthoritativeResidue => "authoritative-residue",
         }
     }
 
     pub fn is_authoritative(self) -> bool {
-        self == Self::AuthoritativeResidue
+        matches!(
+            self,
+            Self::CrossedAuthoritativeResidue | Self::AuthoritativeResidue
+        )
     }
 }
 
@@ -48,6 +59,8 @@ pub struct ForgeQueryPreviewCloseoutEvidence {
     kind: ForgeQueryPreviewCloseoutKind,
     effect_policy: ForgeQueryEffectPolicy,
     basis_evidence: Vec<String>,
+    preview_basis_snapshot_token: String,
+    target_basis_snapshot_token: String,
     preview_binding_count: usize,
     live_binding_count: usize,
     computed_binding_count: usize,
@@ -58,7 +71,12 @@ pub struct ForgeQueryPreviewCloseoutEvidence {
     pending_write_intent_residue_count: usize,
     preview_write_staging_count: usize,
     promoted_write_count: usize,
+    temporal_wake_residue_count: usize,
+    async_result_residue_count: usize,
+    mixed_cause_residue_count: usize,
+    crossed_authoritative_residue_count: usize,
     authoritative_residue_count: usize,
+    rebinding_digest: Option<String>,
     closeout_digest: String,
 }
 
@@ -69,6 +87,8 @@ impl ForgeQueryPreviewCloseoutEvidence {
         kind: ForgeQueryPreviewCloseoutKind,
         effect_policy: ForgeQueryEffectPolicy,
         basis_admission: &ForgeQueryPreviewBasisAdmission,
+        preview_basis_snapshot_token: &str,
+        target_basis_snapshot_token: &str,
         preview_binding_count: usize,
         live_binding_count: usize,
         computed_binding_count: usize,
@@ -77,9 +97,14 @@ impl ForgeQueryPreviewCloseoutEvidence {
         derived_runtime_residue_count: usize,
         preview_write_staging_count: usize,
         promoted_write_count: usize,
+        temporal_wake_residue_count: usize,
+        async_result_residue_count: usize,
+        mixed_cause_residue_count: usize,
+        crossed_authoritative_residue_count: usize,
         effect_delivery_residue_count: usize,
         pending_write_intent_residue_count: usize,
         authoritative_residue_count: usize,
+        rebinding_digest: Option<String>,
     ) -> Self {
         let basis_evidence = basis_admission.evidence().to_vec();
         let closeout_digest = hash_parts(&[
@@ -90,6 +115,8 @@ impl ForgeQueryPreviewCloseoutEvidence {
             format!("basis_label:{}", basis_admission.label()),
             format!("basis_lane:{}", basis_admission.authority_lane()),
             format!("basis_evidence:{}", basis_evidence.join("|")),
+            format!("preview_basis_snapshot:{preview_basis_snapshot_token}"),
+            format!("target_basis_snapshot:{target_basis_snapshot_token}"),
             format!("preview_bindings:{preview_binding_count}"),
             format!("live_bindings:{live_binding_count}"),
             format!("computed_bindings:{computed_binding_count}"),
@@ -100,13 +127,23 @@ impl ForgeQueryPreviewCloseoutEvidence {
             format!("pending_write_intent_residue:{pending_write_intent_residue_count}"),
             format!("preview_write_staging:{preview_write_staging_count}"),
             format!("promoted_writes:{promoted_write_count}"),
+            format!("temporal_wake_residue:{temporal_wake_residue_count}"),
+            format!("async_result_residue:{async_result_residue_count}"),
+            format!("mixed_cause_residue:{mixed_cause_residue_count}"),
+            format!("crossed_authoritative_residue:{crossed_authoritative_residue_count}"),
             format!("authoritative_residue:{authoritative_residue_count}"),
+            format!(
+                "rebinding:{}",
+                rebinding_digest.as_deref().unwrap_or("none")
+            ),
         ]);
         Self {
             label: label.to_string(),
             kind,
             effect_policy,
             basis_evidence,
+            preview_basis_snapshot_token: preview_basis_snapshot_token.to_string(),
+            target_basis_snapshot_token: target_basis_snapshot_token.to_string(),
             preview_binding_count,
             live_binding_count,
             computed_binding_count,
@@ -117,7 +154,12 @@ impl ForgeQueryPreviewCloseoutEvidence {
             pending_write_intent_residue_count,
             preview_write_staging_count,
             promoted_write_count,
+            temporal_wake_residue_count,
+            async_result_residue_count,
+            mixed_cause_residue_count,
+            crossed_authoritative_residue_count,
             authoritative_residue_count,
+            rebinding_digest,
             closeout_digest,
         }
     }
@@ -136,6 +178,14 @@ impl ForgeQueryPreviewCloseoutEvidence {
 
     pub fn basis_evidence(&self) -> &[String] {
         &self.basis_evidence
+    }
+
+    pub fn preview_basis_snapshot_token(&self) -> &str {
+        &self.preview_basis_snapshot_token
+    }
+
+    pub fn target_basis_snapshot_token(&self) -> &str {
+        &self.target_basis_snapshot_token
     }
 
     pub fn preview_binding_count(&self) -> usize {
@@ -178,8 +228,28 @@ impl ForgeQueryPreviewCloseoutEvidence {
         self.promoted_write_count
     }
 
+    pub fn temporal_wake_residue_count(&self) -> usize {
+        self.temporal_wake_residue_count
+    }
+
+    pub fn async_result_residue_count(&self) -> usize {
+        self.async_result_residue_count
+    }
+
+    pub fn mixed_cause_residue_count(&self) -> usize {
+        self.mixed_cause_residue_count
+    }
+
+    pub fn crossed_authoritative_residue_count(&self) -> usize {
+        self.crossed_authoritative_residue_count
+    }
+
     pub fn authoritative_residue_count(&self) -> usize {
         self.authoritative_residue_count
+    }
+
+    pub fn rebinding_digest(&self) -> Option<&str> {
+        self.rebinding_digest.as_deref()
     }
 
     pub fn class_count(&self, residue_class: ForgeQueryPreviewResidueClass) -> usize {
@@ -195,6 +265,12 @@ impl ForgeQueryPreviewCloseoutEvidence {
                 self.pending_write_intent_residue_count
             }
             ForgeQueryPreviewResidueClass::PreviewWriteStaging => self.preview_write_staging_count,
+            ForgeQueryPreviewResidueClass::TemporalWakeState => self.temporal_wake_residue_count,
+            ForgeQueryPreviewResidueClass::AsyncResultState => self.async_result_residue_count,
+            ForgeQueryPreviewResidueClass::MixedCauseState => self.mixed_cause_residue_count,
+            ForgeQueryPreviewResidueClass::CrossedAuthoritativeResidue => {
+                self.crossed_authoritative_residue_count
+            }
             ForgeQueryPreviewResidueClass::AuthoritativeResidue => self.authoritative_residue_count,
         }
     }

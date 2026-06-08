@@ -63,6 +63,22 @@ impl ForgeQueryGenericInspectionIntentSeed {
             ForgeQueryInspectionTarget::BranchIntentReceipt(receipt) => {
                 Some(Self::branch_intent_receipt(receipt))
             }
+            ForgeQueryInspectionTarget::AdmittedWorldBasis(_)
+            | ForgeQueryInspectionTarget::ObservationBasisCapability(_)
+            | ForgeQueryInspectionTarget::InspectionBasisCapability(_)
+            | ForgeQueryInspectionTarget::SubscriptionDeclarationBasisCapability(_)
+            | ForgeQueryInspectionTarget::SubscriptionActivationBasisCapability(_)
+            | ForgeQueryInspectionTarget::ScopedObservationBasis(_)
+            | ForgeQueryInspectionTarget::ScopedInspectionBasis(_)
+            | ForgeQueryInspectionTarget::ScopedReplayBasis(_)
+            | ForgeQueryInspectionTarget::ScopedSubscriptionDeclarationBasis(_)
+            | ForgeQueryInspectionTarget::ScopedSubscriptionActivationBasis(_)
+            | ForgeQueryInspectionTarget::LowerRuntimeBoundObservationBasis(_)
+            | ForgeQueryInspectionTarget::LowerRuntimeBoundInspectionBasis(_)
+            | ForgeQueryInspectionTarget::LowerRuntimeBoundSubscriptionDeclarationBasis(_)
+            | ForgeQueryInspectionTarget::LowerRuntimeBoundSubscriptionActivationBasis(_)
+            | ForgeQueryInspectionTarget::DeniedBasisCapability(_)
+            | ForgeQueryInspectionTarget::BasisIntentDenial(_) => None,
         }
     }
 

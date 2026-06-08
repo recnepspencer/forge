@@ -516,6 +516,7 @@ pub mod advanced {
 }
 
 pub mod adapters {
+    pub use crate::data::dirty_set::{BatchedDirtySet, DomainImpact};
     pub use crate::data::effect_mapping::EffectMapping;
     pub use crate::data::evaluator::CheckpointEvaluator;
     pub use crate::data::event_subscriber::{EventSubscriber, SubscriberId};

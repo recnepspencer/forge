@@ -1,6 +1,8 @@
 use super::checked_outcome::ForgeQueryConfiguredDomainHandleInvalidContext;
 use super::draft::ForgeQueryConfiguredDomainHandleDraft;
-use super::operating_context::ForgeQueryDomainOperatingContext;
+use super::operating_context::{
+    ForgeQueryDomainOperatingContext, ForgeQueryDomainOperatingRequirement,
+};
 use super::validated_handle::ForgeQueryValidatedConfiguredDomainHandle;
 use crate::application::{
     ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily, ForgeQueryDomainEntryMarker,
@@ -25,6 +27,8 @@ pub(crate) fn validate_configured_domain_handle_draft<
     );
     let required_config_sections =
         canonical_config_sections(operating_context.required_config_sections());
+    let required_operating_requirements =
+        canonical_operating_requirements(operating_context.required_operating_requirements());
     let context_identity_digest = operating_context.context_identity_digest();
 
     if context_identity_digest.is_empty() {
@@ -68,6 +72,14 @@ pub(crate) fn validate_configured_domain_handle_draft<
                 .collect::<Vec<_>>()
                 .join(",")
         ),
+        format!(
+            "operating_requirements:{}",
+            required_operating_requirements
+                .iter()
+                .map(|requirement| requirement.as_str())
+                .collect::<Vec<_>>()
+                .join(",")
+        ),
         format!("context:{context_identity_digest}"),
         format!(
             "validated_config:{}",
@@ -81,6 +93,7 @@ pub(crate) fn validate_configured_domain_handle_draft<
         support_snapshot,
         required_capability_families,
         required_config_sections,
+        required_operating_requirements,
         context_identity_digest,
         handle_identity_digest,
     ))
@@ -107,6 +120,15 @@ fn canonical_config_sections(
     sections.sort();
     sections.dedup();
     sections
+}
+
+fn canonical_operating_requirements(
+    required_operating_requirements: &'static [ForgeQueryDomainOperatingRequirement],
+) -> Vec<ForgeQueryDomainOperatingRequirement> {
+    let mut requirements = required_operating_requirements.to_vec();
+    requirements.sort();
+    requirements.dedup();
+    requirements
 }
 
 fn missing_required_sections(

@@ -4,12 +4,15 @@ use super::checked_outcome::{
     ForgeQueryConfiguredDomainHandleDeferred, ForgeQueryConfiguredDomainHandleInvalidContext,
     ForgeQueryConfiguredDomainHandleUnsupported,
 };
-use super::operating_context::ForgeQueryDomainOperatingContext;
+use super::operating_context::{
+    ForgeQueryDomainOperatingContext, ForgeQueryDomainOperatingRequirement,
+};
 use super::validated_handle::ForgeQueryValidatedConfiguredDomainHandle;
 use crate::application::{
     ForgeQueryCapabilityFamily, ForgeQueryCapabilityStatus, ForgeQueryConfigSectionFamily,
     ForgeQueryDomainEntryMarker,
 };
+use crate::runtime::ForgeQueryRuntimeFamilySupportStatus;
 
 pub(crate) fn admit_configured_domain_handle<
     D: ForgeQueryDomainEntryMarker,
@@ -40,19 +43,35 @@ pub(crate) fn checked_from_validated_handle<
 >(
     validated_handle: ForgeQueryValidatedConfiguredDomainHandle<D, C>,
 ) -> ForgeQueryConfiguredDomainHandleChecked<D, C> {
+    let deferred_operating_requirements = blocking_operating_requirements(
+        &validated_handle,
+        ForgeQueryRuntimeFamilySupportStatus::DeferredDebt,
+    );
     let deferred =
         blocking_capability_families(&validated_handle, ForgeQueryCapabilityStatus::DeferredDebt);
-    if !deferred.is_empty() {
+    if !deferred.is_empty() || !deferred_operating_requirements.is_empty() {
         return ForgeQueryConfiguredDomainHandleChecked::Deferred(
-            ForgeQueryConfiguredDomainHandleDeferred::new(validated_handle, deferred),
+            ForgeQueryConfiguredDomainHandleDeferred::new(
+                validated_handle,
+                deferred,
+                deferred_operating_requirements,
+            ),
         );
     }
 
+    let unsupported_operating_requirements = blocking_operating_requirements(
+        &validated_handle,
+        ForgeQueryRuntimeFamilySupportStatus::Unsupported,
+    );
     let unsupported =
         blocking_capability_families(&validated_handle, ForgeQueryCapabilityStatus::Unsupported);
-    if !unsupported.is_empty() {
+    if !unsupported.is_empty() || !unsupported_operating_requirements.is_empty() {
         return ForgeQueryConfiguredDomainHandleChecked::Unsupported(
-            ForgeQueryConfiguredDomainHandleUnsupported::new(validated_handle, unsupported),
+            ForgeQueryConfiguredDomainHandleUnsupported::new(
+                validated_handle,
+                unsupported,
+                unsupported_operating_requirements,
+            ),
         );
     }
 
@@ -75,6 +94,7 @@ pub(crate) fn checked_from_validated_handle<
         support_snapshot,
         required_capability_families,
         required_config_sections,
+        required_operating_requirements,
         operating_context_identity_digest,
         handle_identity_digest,
     ) = validated_handle.into_parts();
@@ -85,6 +105,7 @@ pub(crate) fn checked_from_validated_handle<
             support_snapshot,
             required_capability_families,
             required_config_sections,
+            required_operating_requirements,
             operating_context_identity_digest,
             handle_identity_digest,
         ),
@@ -128,6 +149,26 @@ fn disabled_required_config_sections<
                 .iter()
                 .find(|posture| posture.section() == *section)
                 .is_some_and(|posture| !posture.enabled())
+        })
+        .collect()
+}
+
+fn blocking_operating_requirements<
+    D: ForgeQueryDomainEntryMarker,
+    C: ForgeQueryDomainOperatingContext<D>,
+>(
+    validated_handle: &ForgeQueryValidatedConfiguredDomainHandle<D, C>,
+    target: ForgeQueryRuntimeFamilySupportStatus,
+) -> Vec<ForgeQueryDomainOperatingRequirement> {
+    validated_handle
+        .required_operating_requirements()
+        .iter()
+        .copied()
+        .filter(|requirement| {
+            validated_handle
+                .support_snapshot()
+                .operating_requirement_status(*requirement)
+                == Some(target)
         })
         .collect()
 }

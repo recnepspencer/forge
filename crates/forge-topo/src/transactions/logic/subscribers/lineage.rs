@@ -1,5 +1,4 @@
 use forge_core::EntityRef;
-use forge_core::KernelError;
 use forge_signal::facade::adapters::{EventSubscriber, SubscriberContext, SubscriberId};
 use forge_signal::facade::runtime::CheckpointBarrier;
 use forge_signal::facade::SignalError;

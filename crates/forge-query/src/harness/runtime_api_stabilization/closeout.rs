@@ -89,7 +89,7 @@ impl RuntimeApiStabilizationCloseout {
                 .to_string(),
             "fail closed through admit_public_api_family before exposing temporal or async neighbors"
                 .to_string(),
-            "extend existing handle/state/inspection contracts in 9.4-9.7 rather than adding sibling facades"
+            "extend existing handle/state/inspection contracts in 9.4 rather than adding sibling facades"
                 .to_string(),
         ];
         let required_verification_commands = vec![

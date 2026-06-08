@@ -77,6 +77,44 @@ fn lower_from_legality_denial<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDecla
                 ),
             )
         }
+        ForgeQueryDeclarationLegalityDenial::TemporalProjectionUnsupported { kind, .. }
+            if kind.is_deferred() =>
+        {
+            step_records.push(
+                ForgeQueryDeclarationEntryOrchestrationStageRecord::deferred(
+                    ForgeQueryDeclarationEntryOrchestrationStage::LegalityEstablished,
+                    retained.clone(),
+                    reason,
+                ),
+            );
+            ForgeQueryDeclarationEntryOrchestrationOutcome::Deferred(
+                ForgeQueryDeclarationEntryOrchestrationDeferred::new(
+                    family,
+                    ForgeQueryDeclarationEntryOrchestrationStage::LegalityEstablished,
+                    reason,
+                    retained,
+                ),
+            )
+        }
+        ForgeQueryDeclarationLegalityDenial::AsyncProjectionUnsupported { kind, .. }
+            if kind.is_deferred() =>
+        {
+            step_records.push(
+                ForgeQueryDeclarationEntryOrchestrationStageRecord::deferred(
+                    ForgeQueryDeclarationEntryOrchestrationStage::LegalityEstablished,
+                    retained.clone(),
+                    reason,
+                ),
+            );
+            ForgeQueryDeclarationEntryOrchestrationOutcome::Deferred(
+                ForgeQueryDeclarationEntryOrchestrationDeferred::new(
+                    family,
+                    ForgeQueryDeclarationEntryOrchestrationStage::LegalityEstablished,
+                    reason,
+                    retained,
+                ),
+            )
+        }
         ForgeQueryDeclarationLegalityDenial::UnsupportedLegalityClass { .. } => {
             step_records.push(ForgeQueryDeclarationEntryOrchestrationStageRecord::refused(
                 ForgeQueryDeclarationEntryOrchestrationStage::LegalityEstablished,

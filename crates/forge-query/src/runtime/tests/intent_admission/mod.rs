@@ -47,7 +47,9 @@ mod inventory;
 mod inventory_mutation;
 mod phases;
 
-fn intent_runtime_with_authority<T: ForgeQueryIntentAuthorityAdapter + 'static>(
+pub(in crate::runtime::tests) fn intent_runtime_with_authority<
+    T: ForgeQueryIntentAuthorityAdapter + 'static,
+>(
     authority: T,
 ) -> ForgeQueryRuntime {
     bridge_runtime_with_support_and_intent_authority(intent_support_profile(), authority)

@@ -108,7 +108,12 @@ pub fn admit_active_subscription_lane(
             "bridge_declaration:{}",
             activation.bridge_declaration_digest()
         ),
+        format!(
+            "future_selection:{}",
+            activation.future_selection().projection_digest()
+        ),
         format!("basis:{}", activation.basis_binding_digest()),
+        format!("checkpoint:{}", activation.checkpoint_identity_digest()),
         format!("signal_strategy:{}", activation.signal_strategy_digest()),
         format!("lifecycle:{}", lifecycle_posture.as_str()),
         format!("delivery:{}", delivery_posture.as_str()),
@@ -130,7 +135,9 @@ pub fn admit_active_subscription_lane(
         admission_digest: activation.admission_digest().to_string(),
         query_declaration_digest: activation.query_declaration_digest().to_string(),
         bridge_declaration_digest: activation.bridge_declaration_digest().to_string(),
+        future_selection: activation.future_selection().clone(),
         basis_binding_digest: activation.basis_binding_digest().to_string(),
+        checkpoint_identity_digest: activation.checkpoint_identity_digest().to_string(),
         signal_strategy_digest: activation.signal_strategy_digest().to_string(),
         lifecycle_posture,
         delivery_posture,

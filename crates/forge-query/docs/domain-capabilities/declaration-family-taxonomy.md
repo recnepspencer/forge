@@ -52,6 +52,15 @@ Good to know:
 - the same family marker also carries additional declaration-side contracts, so
   legality, progression, and routing stay explicit instead of being inferred
   from taxonomy
+- temporal declaration clauses such as `stale_after`, `interval`, or rolling
+  windows do not belong here; they are declaration content, not taxonomy tags
+- if a family wants to admit temporal clauses at all, it declares that through
+  `temporal_declaration_support()` on the family marker
+- async/resource declaration clauses such as source family, request identity,
+  loading posture, and failure posture also do not belong here; they are
+  declaration content, not taxonomy tags
+- if a family wants to admit async/resource clauses at all, it declares that
+  through `async_declaration_support()` on the family marker
 
 ## API Reference
 
@@ -65,6 +74,8 @@ Family marker contract:
 - `legality_contract() -> ForgeQueryDeclarationLegalityContract`
 - `progression_contract(handle_identity_digest, operating_context_identity_digest) -> ForgeQueryDeclarationProgressionContract`
 - `route_contract() -> ForgeQueryDeclarationRouteContract`
+- `temporal_declaration_support() -> ForgeQueryTemporalDeclarationSupport`
+- `async_declaration_support() -> ForgeQueryAsyncDeclarationSupport`
 
 Runtime taxonomy object:
 - `ForgeQueryDeclarationFamilyTaxonomy::new(primary, signal, grouped) -> ForgeQueryDeclarationFamilyTaxonomy`
@@ -104,6 +115,14 @@ Think of family identity as three connected layers:
 
 The first layer stays domain-owned. The second and third layers stay
 Query-owned.
+
+Temporal meaning is intentionally separate from taxonomy. A declaration can use
+the same family taxonomy and still change identity when its freshness or window
+clauses change.
+
+Async/resource meaning is intentionally separate from taxonomy too. A
+declaration can use the same family taxonomy and still change identity when its
+source family, request identity, loading posture, or failure posture changes.
 
 For example, a geometry domain may define `AttachFaceMaterial` while Query classifies it
 as:
@@ -233,11 +252,14 @@ What this example is showing:
 - taxonomy posture stays Query-owned and closed
 - support requirements now live beside family posture instead of in ad hoc
   side tables
+- temporal declaration meaning is not stuffed into the taxonomy layer just to
+  make it visible later
 
 ## How It Relates To Other Features
 
 - [Canonical Domain Declarations](./canonical-domain-declarations.md) retain
-  the family key and taxonomy in the canonical declaration artifact
+  the family key and taxonomy in the canonical declaration artifact, and carry
+  temporal clauses as declaration-local meaning rather than taxonomy
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
   turns family posture and requirements into support rows, checked admission,
   and witness availability
@@ -275,6 +297,7 @@ expose different follow-on family surfaces.
 - treating grouped posture as if it already means grouped execution
 - rebuilding family meaning from strings after Query has already frozen it
 - putting family-specific support requirements in host-local branch logic
+- encoding temporal freshness or window semantics as fake family taxonomy
 
 ## Current Limits
 

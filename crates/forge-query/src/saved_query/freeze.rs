@@ -9,6 +9,9 @@ use crate::saved_query::artifact::{
 };
 use crate::saved_query::digest::SavedQueryArtifactDigest;
 use crate::saved_query::error::SavedQueryError;
+use crate::saved_query::future_support::{
+    admit_runtime_backed_future_surface_posture, derive_runtime_backed_saved_query_surface_posture,
+};
 use crate::view_shape::ViewShapePlanArtifact;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -92,6 +95,14 @@ fn build_saved_query_artifact(
     template_slot_count: usize,
 ) -> Result<SavedQueryArtifact, SavedQueryError> {
     verify_freeze_invariants(canonical, view_plan)?;
+    let temporal_async_surface_posture = derive_runtime_backed_saved_query_surface_posture(
+        composition.and_then(|report| report.basis_family()),
+        view_plan.family(),
+    );
+    admit_runtime_backed_future_surface_posture(
+        SavedQueryPersistenceFamily::EphemeralProcessOwned,
+        temporal_async_surface_posture,
+    )?;
 
     let metadata = SavedQueryMetadata::new(
         canonical.query().digest().clone(),
@@ -121,6 +132,7 @@ fn build_saved_query_artifact(
         freeze_context.support_profile_digest().to_string(),
         freeze_context.capability_family_identity().to_string(),
         template_slot_count,
+        temporal_async_surface_posture,
     );
     let digest = SavedQueryArtifactDigest::from_parts(&[
         format!(
@@ -145,6 +157,10 @@ fn build_saved_query_artifact(
         format!("support:{}", metadata.support_profile_digest()),
         format!("capability:{}", metadata.capability_family_identity()),
         format!("template_slots:{}", metadata.template_slot_count()),
+        format!(
+            "temporal_async_surface:{}",
+            metadata.temporal_async_surface_posture().as_str()
+        ),
         format!(
             "basis_family:{}",
             metadata

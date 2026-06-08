@@ -9,6 +9,7 @@ pub enum QuerySubscriptionBasisBindingRequestKind {
     BranchHead,
     RuntimeSnapshot,
     PreviewScoped,
+    DeniedUnsupportedBasis,
 }
 
 impl QuerySubscriptionBasisBindingRequestKind {
@@ -18,6 +19,7 @@ impl QuerySubscriptionBasisBindingRequestKind {
             Self::BranchHead => "branch_head",
             Self::RuntimeSnapshot => "runtime_snapshot",
             Self::PreviewScoped => "preview_scoped",
+            Self::DeniedUnsupportedBasis => "denied_unsupported_basis",
         }
     }
 }
@@ -45,7 +47,7 @@ impl QuerySubscriptionBasisBindingRequest {
                 QuerySubscriptionBasisBindingRequestKind::PreviewScoped
             }
             QuerySubscriptionBasisPosture::DeniedUnsupportedBasis => {
-                QuerySubscriptionBasisBindingRequestKind::PreviewScoped
+                QuerySubscriptionBasisBindingRequestKind::DeniedUnsupportedBasis
             }
         };
         let source_declaration_digest = declaration.declaration_digest().as_str().to_string();

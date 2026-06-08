@@ -7,7 +7,7 @@ use super::{
     artifact_digest, policy, CausalInspectionArtifactKind, CausalInspectionMaterializationPolicy,
     CausalInspectionPerformanceEnvelope, CausalInspectionRedactionPolicy,
     CausalMaterializationReceipt, DeniedQueryCausalInspectionArtifact,
-    QueryCausalInspectionArtifact,
+    QueryCausalInspectionArtifact, QueryCausalTemporalAsyncExplanation,
 };
 
 pub(crate) fn materialize_bridge_denied_admitted_causal_inspection(
@@ -17,9 +17,8 @@ pub(crate) fn materialize_bridge_denied_admitted_causal_inspection(
     materialization_policy: CausalInspectionMaterializationPolicy,
 ) -> QueryCausalInspectionArtifact {
     materialize_bridge_denied_query_inspection(
+        inspection,
         inspection.admitted_inspection_digest(),
-        inspection.subject().query_observation_digest(),
-        inspection.subject().result_shape_context_digest(),
         bridge_denial,
         redaction_policy,
         materialization_policy,
@@ -33,9 +32,8 @@ pub(crate) fn materialize_bridge_denied_advisory_causal_inspection(
     materialization_policy: CausalInspectionMaterializationPolicy,
 ) -> QueryCausalInspectionArtifact {
     materialize_bridge_denied_query_inspection(
+        inspection,
         inspection.advisory_inspection_digest(),
-        inspection.subject().query_observation_digest(),
-        inspection.subject().result_shape_context_digest(),
         bridge_denial,
         redaction_policy,
         materialization_policy,
@@ -43,13 +41,14 @@ pub(crate) fn materialize_bridge_denied_advisory_causal_inspection(
 }
 
 fn materialize_bridge_denied_query_inspection(
+    inspection: impl CausalInspectionBridgeDeniedSubject,
     query_admission_digest: &str,
-    query_observation_digest: &str,
-    result_shape_context_digest: &str,
     bridge_denial: &BridgeCausalEnvelopeDenial,
     redaction_policy: CausalInspectionRedactionPolicy,
     materialization_policy: CausalInspectionMaterializationPolicy,
 ) -> QueryCausalInspectionArtifact {
+    let query_observation_digest = inspection.subject().query_observation_digest();
+    let result_shape_context_digest = inspection.subject().result_shape_context_digest();
     let denial_reason = "bridge_envelope_denial".to_string();
     let performance = CausalInspectionPerformanceEnvelope::for_bridge_denial(bridge_denial);
     let detail_digest = hash_parts(&[
@@ -79,6 +78,12 @@ fn materialize_bridge_denied_query_inspection(
         None,
         &detail_digest,
     );
+    let temporal_async_explanation = QueryCausalTemporalAsyncExplanation::project(
+        inspection.subject().inspection_reason(),
+        inspection.subject().observation_outcome(),
+        inspection.subject().resolved_evidence_families(),
+        Some(bridge_denial.family().as_str()),
+    );
     QueryCausalInspectionArtifact::Denied(DeniedQueryCausalInspectionArtifact::from_parts(
         query_admission_digest,
         denial_reason,
@@ -87,9 +92,26 @@ fn materialize_bridge_denied_query_inspection(
         Some(bridge_denial.failure_digest().to_string()),
         Some(bridge_denial.kind().as_str().to_string()),
         Some(bridge_denial.family().as_str().to_string()),
+        temporal_async_explanation,
         policy::boundary_categories(),
         performance,
         receipt,
         artifact_digest,
     ))
+}
+
+trait CausalInspectionBridgeDeniedSubject {
+    fn subject(&self) -> &super::super::admission_decision::CausalInspectionAdmissionSubject;
+}
+
+impl CausalInspectionBridgeDeniedSubject for &AdmittedCausalInspection {
+    fn subject(&self) -> &super::super::admission_decision::CausalInspectionAdmissionSubject {
+        (*self).subject()
+    }
+}
+
+impl CausalInspectionBridgeDeniedSubject for &AdvisoryCausalInspection {
+    fn subject(&self) -> &super::super::admission_decision::CausalInspectionAdmissionSubject {
+        (*self).subject()
+    }
 }

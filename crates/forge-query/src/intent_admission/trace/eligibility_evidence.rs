@@ -6,6 +6,7 @@ use super::super::{
     ForgeQueryIntentAdmissionRoutingSupportEligibility,
     ForgeQueryIntentAdmissionSourceLaneEligibility, ForgeQueryIntentAdmissionSupportEligibility,
 };
+use crate::runtime::ForgeQueryEffectWriteAdjacentTrigger;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryIntentEligibilityTraceEvidence {
@@ -18,6 +19,7 @@ pub struct ForgeQueryIntentEligibilityTraceEvidence {
     routing_support_posture: ForgeQueryIntentAdmissionRoutingSupportEligibility,
     source_lane_posture: ForgeQueryIntentAdmissionSourceLaneEligibility,
     authority_lane_posture: ForgeQueryIntentAdmissionAuthorityLaneEligibility,
+    write_adjacent_trigger: Option<ForgeQueryEffectWriteAdjacentTrigger>,
     eligibility_digest: String,
 }
 
@@ -32,6 +34,7 @@ impl ForgeQueryIntentEligibilityTraceEvidence {
         routing_support_posture: ForgeQueryIntentAdmissionRoutingSupportEligibility,
         source_lane_posture: ForgeQueryIntentAdmissionSourceLaneEligibility,
         authority_lane_posture: ForgeQueryIntentAdmissionAuthorityLaneEligibility,
+        write_adjacent_trigger: Option<ForgeQueryEffectWriteAdjacentTrigger>,
         eligibility_digest: String,
     ) -> Self {
         Self {
@@ -44,6 +47,7 @@ impl ForgeQueryIntentEligibilityTraceEvidence {
             routing_support_posture,
             source_lane_posture,
             authority_lane_posture,
+            write_adjacent_trigger,
             eligibility_digest,
         }
     }
@@ -84,6 +88,10 @@ impl ForgeQueryIntentEligibilityTraceEvidence {
 
     pub fn authority_lane_posture(&self) -> ForgeQueryIntentAdmissionAuthorityLaneEligibility {
         self.authority_lane_posture
+    }
+
+    pub fn write_adjacent_trigger(&self) -> Option<&ForgeQueryEffectWriteAdjacentTrigger> {
+        self.write_adjacent_trigger.as_ref()
     }
 
     pub fn eligibility_digest(&self) -> &str {

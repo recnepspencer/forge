@@ -1,13 +1,20 @@
 use crate::application::{
-    ForgeQueryDeclarationAdmissionOrLegalityError, ForgeQueryDeclarationCapabilityStatus,
-    ForgeQueryDeclarationLegalityChecked, ForgeQueryDeclarationLegalityContract,
+    ForgeQueryAsyncLegalityDenialKind, ForgeQueryDeclarationAdmissionOrLegalityError,
+    ForgeQueryDeclarationCapabilityStatus, ForgeQueryDeclarationLegalityChecked,
+    ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationLegalityDenial,
+    ForgeQueryTemporalLegalityDenialKind,
 };
 
+mod async_fixtures;
 mod fixtures;
 
+use async_fixtures::{
+    AsyncCurrentFamily, AsyncDeclaration, AsyncHistoricalFamily, AsyncPreviewFamily,
+};
 use fixtures::{
     admitted_handle, Declaration, DeferredLegalityFamily, DurableAdmissionFamily,
     IllegalDispositionFamily, IllegalRoleFamily, LegalFamily, MaskedCoverageFamily,
+    TemporalCurrentFamily, TemporalDeclaration, TemporalHistoricalFamily, TemporalPreviewFamily,
 };
 
 #[test]
@@ -163,4 +170,189 @@ fn legality_evidence_preserves_masked_aspect_coverage_without_promoting_it_to_re
         legal.reviewed_aspect_coverage().masked(),
         &["selection.active_edge".to_string()]
     );
+}
+
+#[test]
+fn temporal_declarations_fail_legality_as_deferred_when_runtime_temporal_support_is_not_admitted() {
+    let handle = admitted_handle("collaborative");
+    let declaration = handle
+        .declare(TemporalDeclaration::<TemporalCurrentFamily>::new("edge:42"))
+        .expect("temporal declaration should admit canonically");
+
+    match handle.review_legality_checked(declaration) {
+        ForgeQueryDeclarationLegalityChecked::Illegal(
+            crate::application::ForgeQueryDeclarationLegalityDenial::TemporalProjectionUnsupported {
+                kind,
+                ..
+            },
+        ) => {
+            assert_eq!(kind, ForgeQueryTemporalLegalityDenialKind::RuntimeFacadeDeferred);
+        }
+        other => panic!(
+            "expected deferred temporal legality denial, got {:?}",
+            std::mem::discriminant(&other)
+        ),
+    }
+}
+
+#[test]
+fn temporal_preview_and_historical_truth_basis_remain_typed_legality_denials() {
+    let handle = admitted_handle("collaborative");
+    let preview = handle
+        .declare(TemporalDeclaration::<TemporalPreviewFamily>::new("edge:42"))
+        .expect("temporal preview declaration should admit canonically");
+    let historical = handle
+        .declare(TemporalDeclaration::<TemporalHistoricalFamily>::new(
+            "edge:42",
+        ))
+        .expect("temporal historical declaration should admit canonically");
+
+    match handle.review_legality_checked(preview) {
+        ForgeQueryDeclarationLegalityChecked::Illegal(
+            crate::application::ForgeQueryDeclarationLegalityDenial::TemporalProjectionUnsupported {
+                kind,
+                ..
+            },
+        ) => {
+            assert_eq!(kind, ForgeQueryTemporalLegalityDenialKind::PreviewTruthBasisUnsupported);
+        }
+        other => panic!(
+            "expected preview temporal legality denial, got {:?}",
+            std::mem::discriminant(&other)
+        ),
+    }
+
+    match handle.review_legality_checked(historical) {
+        ForgeQueryDeclarationLegalityChecked::Illegal(
+            crate::application::ForgeQueryDeclarationLegalityDenial::TemporalProjectionUnsupported {
+                kind,
+                ..
+            },
+        ) => {
+            assert_eq!(
+                kind,
+                ForgeQueryTemporalLegalityDenialKind::HistoricalTruthBasisUnsupported
+            );
+        }
+        other => panic!(
+            "expected historical temporal legality denial, got {:?}",
+            std::mem::discriminant(&other)
+        ),
+    }
+}
+
+#[test]
+fn async_declarations_fail_legality_as_deferred_when_runtime_async_support_is_not_admitted() {
+    let handle = admitted_handle("collaborative");
+    let declaration = handle
+        .declare(AsyncDeclaration::<AsyncCurrentFamily>::bridge_blocking(
+            "edge:42",
+        ))
+        .expect("async declaration should admit canonically");
+
+    match handle.review_legality_checked(declaration) {
+        ForgeQueryDeclarationLegalityChecked::Illegal(
+            ForgeQueryDeclarationLegalityDenial::AsyncProjectionUnsupported { kind, .. },
+        ) => {
+            assert_eq!(
+                kind,
+                ForgeQueryAsyncLegalityDenialKind::RuntimeFacadeDeferred
+            );
+        }
+        other => panic!(
+            "expected deferred async legality denial, got {:?}",
+            std::mem::discriminant(&other)
+        ),
+    }
+}
+
+#[test]
+fn async_preview_and_historical_truth_basis_remain_typed_legality_denials() {
+    let handle = admitted_handle("collaborative");
+    let preview = handle
+        .declare(AsyncDeclaration::<AsyncPreviewFamily>::bridge_blocking(
+            "edge:42",
+        ))
+        .expect("async preview declaration should admit canonically");
+    let historical = handle
+        .declare(AsyncDeclaration::<AsyncHistoricalFamily>::bridge_blocking(
+            "edge:42",
+        ))
+        .expect("async historical declaration should admit canonically");
+
+    match handle.review_legality_checked(preview) {
+        ForgeQueryDeclarationLegalityChecked::Illegal(
+            ForgeQueryDeclarationLegalityDenial::AsyncProjectionUnsupported { kind, .. },
+        ) => {
+            assert_eq!(
+                kind,
+                ForgeQueryAsyncLegalityDenialKind::PreviewTruthBasisUnsupported
+            );
+        }
+        other => panic!(
+            "expected preview async legality denial, got {:?}",
+            std::mem::discriminant(&other)
+        ),
+    }
+
+    match handle.review_legality_checked(historical) {
+        ForgeQueryDeclarationLegalityChecked::Illegal(
+            ForgeQueryDeclarationLegalityDenial::AsyncProjectionUnsupported { kind, .. },
+        ) => {
+            assert_eq!(
+                kind,
+                ForgeQueryAsyncLegalityDenialKind::HistoricalTruthBasisUnsupported
+            );
+        }
+        other => panic!(
+            "expected historical async legality denial, got {:?}",
+            std::mem::discriminant(&other)
+        ),
+    }
+}
+
+#[test]
+fn async_clause_mismatches_produce_typed_legality_denials_before_progression() {
+    let handle = admitted_handle("collaborative");
+    let cases = [
+        (
+            AsyncDeclaration::<AsyncCurrentFamily>::external_blocking("edge:42"),
+            ForgeQueryAsyncLegalityDenialKind::UnsupportedSourceFamily(
+                crate::application::ForgeQueryAsyncSourceFamily::ExternalResource,
+            ),
+        ),
+        (
+            AsyncDeclaration::<AsyncCurrentFamily>::bridge_refresh("edge:42"),
+            ForgeQueryAsyncLegalityDenialKind::UnsupportedLoadingPosture(
+                crate::application::ForgeQueryAsyncLoadingPosture::BackgroundRefresh,
+            ),
+        ),
+        (
+            AsyncDeclaration::<AsyncCurrentFamily>::bridge_retain_stale("edge:42"),
+            ForgeQueryAsyncLegalityDenialKind::UnsupportedFailurePosture(
+                crate::application::ForgeQueryAsyncFailurePosture::RetainStaleValue,
+            ),
+        ),
+        (
+            AsyncDeclaration::<AsyncCurrentFamily>::bridge_completion("edge:42"),
+            ForgeQueryAsyncLegalityDenialKind::CompletionLifecycleUnsupported,
+        ),
+    ];
+
+    for (input, expected_kind) in cases {
+        let declaration = handle
+            .declare(input)
+            .expect("async mismatch declaration should admit canonically");
+        match handle.review_legality_checked(declaration) {
+            ForgeQueryDeclarationLegalityChecked::Illegal(
+                ForgeQueryDeclarationLegalityDenial::AsyncProjectionUnsupported { kind, .. },
+            ) => {
+                assert_eq!(kind, expected_kind);
+            }
+            other => panic!(
+                "expected async mismatch legality denial, got {:?}",
+                std::mem::discriminant(&other)
+            ),
+        }
+    }
 }

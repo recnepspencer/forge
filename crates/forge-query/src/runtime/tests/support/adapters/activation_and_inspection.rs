@@ -58,6 +58,33 @@ impl ForgeQueryRuntimeSubscriptionActivationAdapter for DriftingSubscriptionActi
     }
 }
 
+pub(in crate::runtime::tests) struct RemaskingSubscriptionActivation {
+    pub(in crate::runtime::tests) projection: ForgeQueryRuntimeRemaskProjection,
+}
+
+impl ForgeQueryRuntimeSubscriptionActivationAdapter for RemaskingSubscriptionActivation {
+    fn support_evidence(&self) -> String {
+        "test-subscription-activation".to_string()
+    }
+
+    fn remask_projection(
+        &self,
+        _view_name: &str,
+        _activation: &crate::subscription::SubscriptionActivationInput,
+    ) -> Option<ForgeQueryRuntimeRemaskProjection> {
+        Some(self.projection.clone())
+    }
+
+    fn admit_activation(
+        &mut self,
+        view_name: &str,
+        activation: &crate::subscription::SubscriptionActivationInput,
+    ) -> Result<SubscriptionActivationBoundaryReceipt, ForgeQueryWorkspaceError> {
+        let receipt = self.build_subscription_activation_receipt(view_name, activation);
+        Ok(self.build_subscription_activation_boundary_receipt(view_name, activation, receipt))
+    }
+}
+
 pub(in crate::runtime::tests) struct TestPreviewBasis;
 
 impl ForgeQueryRuntimePreviewBasisAdapter for TestPreviewBasis {

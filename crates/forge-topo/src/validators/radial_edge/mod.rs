@@ -16,8 +16,6 @@ mod edge_consistency;
 mod neighbor_consistency;
 mod ring_closure;
 
-use forge_core::KernelError;
-
 pub(crate) use broken_splices::validate_no_broken_radial_splices;
 pub(crate) use cycle_uniqueness::validate_radial_cycle_uniqueness;
 pub use edge_consistency::validate_radial_edge_consistency;

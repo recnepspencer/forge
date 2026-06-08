@@ -6,9 +6,6 @@
 
 use forge_core::KernelError;
 
-use crate::handles::FaceId;
-
-use crate::b_rep::ShellKind;
 use crate::handles::{RegionId, ShellId};
 use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};

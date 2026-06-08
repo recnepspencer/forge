@@ -5,6 +5,7 @@ pub enum ForgeQueryPreviewPromotionDenialKind {
     StaleBasis,
     WriteFailed,
     AtomicBatchUnsupported,
+    RebindingRequired,
 }
 
 impl ForgeQueryPreviewPromotionDenialKind {
@@ -13,6 +14,7 @@ impl ForgeQueryPreviewPromotionDenialKind {
             Self::StaleBasis => "stale-basis",
             Self::WriteFailed => "write-failed",
             Self::AtomicBatchUnsupported => "atomic-batch-unsupported",
+            Self::RebindingRequired => "rebinding-required",
         }
     }
 }
@@ -29,6 +31,9 @@ pub struct ForgeQueryPreviewPromotionDenialEvidence {
     promoted_write_count: usize,
     failed_write_sequence: Option<usize>,
     preview_binding_count: usize,
+    crossed_authoritative_residue_count: usize,
+    recovery_posture: String,
+    rebinding_digest: Option<String>,
     reason: String,
     denial_digest: String,
 }
@@ -46,6 +51,9 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
         promoted_write_count: usize,
         failed_write_sequence: Option<usize>,
         preview_binding_count: usize,
+        crossed_authoritative_residue_count: usize,
+        recovery_posture: String,
+        rebinding_digest: Option<String>,
         reason: String,
     ) -> Self {
         let basis_evidence = basis_admission.evidence().to_vec();
@@ -68,6 +76,12 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
                     .unwrap_or_else(|| "none".to_string())
             ),
             format!("preview_bindings:{preview_binding_count}"),
+            format!("crossed_authoritative_residue:{crossed_authoritative_residue_count}"),
+            format!("recovery_posture:{recovery_posture}"),
+            format!(
+                "rebinding:{}",
+                rebinding_digest.as_deref().unwrap_or("none")
+            ),
             format!("reason:{reason}"),
         ]);
         Self {
@@ -81,6 +95,9 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
             promoted_write_count,
             failed_write_sequence,
             preview_binding_count,
+            crossed_authoritative_residue_count,
+            recovery_posture,
+            rebinding_digest,
             reason,
             denial_digest,
         }
@@ -106,6 +123,9 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
             0,
             None,
             preview_binding_count,
+            0,
+            "refresh_preview_basis".to_string(),
+            None,
             "preview promotion rejected because authoritative basis changed before promotion"
                 .to_string(),
         )
@@ -135,6 +155,9 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
             promoted_write_count,
             Some(failed_write_sequence),
             preview_binding_count,
+            0,
+            "retry_authoritative_write".to_string(),
+            None,
             reason,
         )
     }
@@ -159,7 +182,41 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
             0,
             None,
             preview_binding_count,
+            0,
+            "promote_with_atomic_batch_support".to_string(),
+            None,
             "preview promotion rejected because multiple staged writes require atomic promotion support"
+                .to_string(),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(in crate::runtime::preview) fn rebinding_required(
+        label: &str,
+        effect_policy: ForgeQueryEffectPolicy,
+        basis_admission: &ForgeQueryPreviewBasisAdmission,
+        basis_snapshot_token: &str,
+        promotion_snapshot_token: &str,
+        staged_preview_write_count: usize,
+        preview_binding_count: usize,
+        crossed_authoritative_residue_count: usize,
+        rebinding_digest: String,
+    ) -> Self {
+        Self::new(
+            label,
+            ForgeQueryPreviewPromotionDenialKind::RebindingRequired,
+            effect_policy,
+            basis_admission,
+            basis_snapshot_token,
+            promotion_snapshot_token,
+            staged_preview_write_count,
+            0,
+            None,
+            preview_binding_count,
+            crossed_authoritative_residue_count,
+            "discard_preview_and_readmit_authoritative".to_string(),
+            Some(rebinding_digest),
+            "preview promotion rejected because preview-owned temporal or async residue requires authoritative re-admission before promotion"
                 .to_string(),
         )
     }
@@ -202,6 +259,18 @@ impl ForgeQueryPreviewPromotionDenialEvidence {
 
     pub fn preview_binding_count(&self) -> usize {
         self.preview_binding_count
+    }
+
+    pub fn crossed_authoritative_residue_count(&self) -> usize {
+        self.crossed_authoritative_residue_count
+    }
+
+    pub fn recovery_posture(&self) -> &str {
+        &self.recovery_posture
+    }
+
+    pub fn rebinding_digest(&self) -> Option<&str> {
+        self.rebinding_digest.as_deref()
     }
 
     pub fn reason(&self) -> &str {

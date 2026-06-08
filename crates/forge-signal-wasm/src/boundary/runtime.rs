@@ -93,7 +93,11 @@ impl SignalRuntime {
     }
 
     pub fn read(&self, id: String) -> Result<JsValue, JsValue> {
-        let value = self.core.borrow_mut().read_value(&id).map_err(JsValue::from)?;
+        let value = self
+            .core
+            .borrow_mut()
+            .read_value(&id)
+            .map_err(JsValue::from)?;
         {
             let mut core = self.core.borrow_mut();
             core.note_compatibility_read(1);

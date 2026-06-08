@@ -43,6 +43,14 @@ Good to know:
 - canonical declarations do not expose direct legality-review methods
 - the family marker now declares one explicit `legality_contract()`
 - legality does not rerun family support gating
+- concrete temporal declarations can now fail legality before progression when
+  their retained time-aware meaning would require unsupported temporal runtime
+  support or would collapse temporal execution into preview or historical truth
+  basis
+- concrete async/resource-backed declarations can now fail legality before
+  progression when their retained source family, loading/failure posture, or
+  preview/historical basis posture would require unsupported async runtime
+  support or unsupported lifecycle/source admission
 - route planning does not consume legality evidence directly on the ordinary
   success lane; it consumes admitted progression plus matching foundational
   evidence
@@ -108,6 +116,34 @@ Legality denial variants:
 - `IllegalSurfaceDisposition`
 - `DeferredByLegalityBoundary`
 - `UnsupportedLegalityClass`
+- `TemporalProjectionUnsupported`
+- `AsyncProjectionUnsupported`
+
+Temporal legality denial inspection:
+- `temporal_denial_kind() -> Option<ForgeQueryTemporalLegalityDenialKind>`
+
+Async legality denial inspection:
+- `async_denial_kind() -> Option<ForgeQueryAsyncLegalityDenialKind>`
+
+Temporal legality denial kinds:
+- `RuntimeFacadeDeferred`
+- `RuntimeFacadeUnsupported`
+- `HistoricalTruthBasisUnsupported`
+- `PreviewTruthBasisUnsupported`
+- `HistoricalSignalBasisUnsupported`
+- `PreviewSignalBasisUnsupported`
+
+Async legality denial kinds:
+- `RuntimeFacadeDeferred`
+- `RuntimeFacadeUnsupported`
+- `UnsupportedSourceFamily`
+- `UnsupportedLoadingPosture`
+- `UnsupportedFailurePosture`
+- `CompletionLifecycleUnsupported`
+- `HistoricalTruthBasisUnsupported`
+- `PreviewTruthBasisUnsupported`
+- `HistoricalSignalBasisUnsupported`
+- `PreviewSignalBasisUnsupported`
 
 Legality contract presets:
 - `authoritative_hot_artifact() -> ForgeQueryDeclarationLegalityContract`
@@ -133,6 +169,14 @@ Think of legality as the first declaration-side proof after canonicalization:
 3. the family marker contributes one Query-owned legality contract
 4. Query reviews that declaration against foundational role and surface
    legality rules
+5. if the declaration carries temporal clauses, Query also verifies that the
+   retained time-aware meaning does not depend on unsupported temporal runtime
+   support and does not collapse clock-driven execution into preview-derived or
+   historical truth basis
+6. if the declaration carries async/resource clauses, Query also verifies that
+   the retained source family, lifecycle posture, and basis posture do not
+   depend on unsupported async runtime support or unsupported preview or
+   historical basis projection
 
 If legality passes, you get one evidence artifact for other declaration-side
 features. If it fails, you get one typed legality denial instead of a generic
@@ -152,6 +196,8 @@ rejection.
 5. Query evaluates:
    - boundary role claim legality
    - boundary surface disposition legality
+   - temporal legality guards for retained time-aware declarations
+   - async legality guards for retained source/lifecycle-aware declarations
 6. Query returns legality evidence or a typed legality denial
 
 The convenience lane `declare_and_review(...)` preserves the same split. It
@@ -167,6 +213,12 @@ Important:
 - reviewed aspect coverage is allowed to preserve masked slices explicitly; a
   legality success does not silently promote masked support into visible
   semantic presence
+- temporal legality is about retained declaration meaning, not about clocks or
+  wake execution; the lower runtime still owns actual scheduling and wake
+  delivery later
+- async legality is about retained declaration meaning, not about pending
+  state, callback arrival, retries, or completion causality; those remain later
+  runtime-owned surfaces
 
 ## Small Example
 

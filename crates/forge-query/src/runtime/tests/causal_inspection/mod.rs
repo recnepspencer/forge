@@ -1,7 +1,7 @@
 mod admission;
 mod adversarial;
 mod anchor_reference;
-mod certification;
+pub(in crate::runtime::tests) mod certification;
 mod dx;
 mod materialization;
 mod reference_index;

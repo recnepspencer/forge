@@ -7,6 +7,8 @@ pub enum QueryDeliveryDenialKind {
     RawBridgeInvalidationDenied,
     WorkPacketWindowMismatch,
     WorkPacketDeltaMismatch,
+    MissingPreviousValueEvidence,
+    StaleTemporalBasis,
     DenseRefreshDenied,
     AllocationPostureForbidden,
 }
@@ -19,6 +21,8 @@ impl QueryDeliveryDenialKind {
             Self::RawBridgeInvalidationDenied => "raw_bridge_invalidation_denied",
             Self::WorkPacketWindowMismatch => "work_packet_window_mismatch",
             Self::WorkPacketDeltaMismatch => "work_packet_delta_mismatch",
+            Self::MissingPreviousValueEvidence => "missing_previous_value_evidence",
+            Self::StaleTemporalBasis => "stale_temporal_basis",
             Self::DenseRefreshDenied => "dense_refresh_denied",
             Self::AllocationPostureForbidden => "allocation_posture_forbidden",
         }

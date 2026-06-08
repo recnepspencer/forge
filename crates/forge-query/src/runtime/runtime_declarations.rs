@@ -1,3 +1,4 @@
+use super::async_result_state::ForgeQueryRuntimeAsyncResultProjection;
 use super::*;
 use crate::memory_workspace::{ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError};
 
@@ -26,16 +27,44 @@ impl ForgeQueryRuntime {
             &name,
             &activation.request,
         );
+        let pending_async_result_state = activation
+            .active_lane_handle
+            .future_selection()
+            .requests_completion_lifecycle()
+            .then(|| {
+                ForgeQueryRuntimeAsyncResultProjection::pending(&format!(
+                    "async-pending:{}",
+                    activation
+                        .active_lane_handle
+                        .future_selection()
+                        .projection_digest()
+                ))
+            });
+        let checkpoint_identity_digest = activation
+            .active_lane_handle
+            .checkpoint_identity_digest()
+            .to_string();
         self.live_subscriptions.insert(
-            name,
+            name.clone(),
             ForgeQueryRuntimeLiveSubscriptionState {
                 installation: activation.installation.clone(),
                 active_lane_handle: activation.active_lane_handle,
                 consumer_attachment: activation.consumer_attachment,
                 request: activation.request,
                 delivery_batches: Vec::new(),
+                last_delivery: None,
+                async_result_state: None,
+                remask_posture: activation.remask_posture,
             },
         );
+        if let Some(projection) = pending_async_result_state.as_ref() {
+            self.project_async_result_state(
+                &name,
+                projection,
+                activation.installation.basis_binding_digest(),
+                &checkpoint_identity_digest,
+            )?;
+        }
         Ok(ForgeQueryLiveView::new(handle, activation.installation))
     }
 

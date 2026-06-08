@@ -296,6 +296,10 @@ pub struct LowerRuntimeBoundSubscriptionActivationBasis {
 macro_rules! impl_bound_accessors {
     ($name:ident) => {
         impl $name {
+            pub fn capability(&self) -> &super::BasisCapabilityAdmission {
+                self.capability.admission()
+            }
+
             pub fn authority_name(&self) -> &'static str {
                 BRIDGE_AUTHORITY
             }

@@ -1261,6 +1261,7 @@ fn activation_with_context(policy: &str) -> SubscriptionActivationInput {
         None,
         QuerySubscriptionConstructionSource::FacadeLive,
         crate::subscription::QuerySubscriptionBasisPosture::CurrentHead,
+        crate::subscription::QuerySubscriptionFutureSelection::ordinary(),
         Some(policy.to_string()),
         Some("tenant".to_string()),
         Some("relationship-proof".to_string()),

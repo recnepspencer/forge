@@ -1,3 +1,7 @@
+use crate::application::{
+    ForgeQueryDeclarationSignalCompatibilityChecked, ForgeQueryDeclarationSignalCompatibilityInput,
+    ForgeQueryDeclarationSignalCompatibilitySupportRow,
+};
 use crate::continuation_pipeline::{
     ForgeQueryContinuationBasisPosture, ForgeQueryContinuationRuntimeContract,
     ForgeQueryContinuationTruthContext, ForgeQueryContinuationWorkspaceContract,
@@ -6,9 +10,51 @@ use crate::continuation_pipeline::{
 };
 
 use super::support::{
-    admitted_handle, context_request, historical_truth_view_request, preview_session_request,
-    runtime_route_request, target_request, HistoricalFamily, PreviewFamily, RuntimeFamily,
+    admitted_handle, context_request, envelope, historical_truth_view_request,
+    preview_session_request, runtime_route_request, target_request, HistoricalFamily,
+    PreviewFamily, RuntimeFamily,
 };
+
+#[test]
+fn runtime_family_signal_compatibility_is_compatible_before_preparation() {
+    let handle = admitted_handle("main");
+    let support = handle.signal_compatibility_support::<super::support::Input<RuntimeFamily>>();
+    let support_summary = support
+        .rows()
+        .iter()
+        .map(|row: &ForgeQueryDeclarationSignalCompatibilitySupportRow| {
+            format!(
+                "{}:{}:{}",
+                row.execution_family().as_str(),
+                row.basis_family().as_str(),
+                row.status().as_str()
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    match handle.signal_compatibility_checked(
+        ForgeQueryDeclarationSignalCompatibilityInput::enveloped(envelope::<RuntimeFamily>(
+            &handle, "face-a",
+        )),
+    ) {
+        ForgeQueryDeclarationSignalCompatibilityChecked::Compatible(_) => {}
+        ForgeQueryDeclarationSignalCompatibilityChecked::Deferred(value) => panic!(
+            "runtime continuation family unexpectedly deferred before preparation: {}; support rows = {}",
+            value.reason(),
+            support_summary
+        ),
+        ForgeQueryDeclarationSignalCompatibilityChecked::Denied(value) => panic!(
+            "runtime continuation family unexpectedly denied before preparation: {}; support rows = {}",
+            value.reason(),
+            support_summary
+        ),
+        ForgeQueryDeclarationSignalCompatibilityChecked::Failed(value) => panic!(
+            "runtime continuation family unexpectedly failed before preparation: {}; support rows = {}",
+            value.reason(),
+            support_summary
+        ),
+    }
+}
 
 #[test]
 fn prepare_runtime_continuation_from_target_keeps_execution_explicit() {

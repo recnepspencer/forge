@@ -11,8 +11,6 @@ use crate::b_rep::EntityBitset;
 use crate::b_rep::TopologyArena;
 use forge_core::KernelError;
 
-use super::vf;
-
 pub(crate) fn validate_radial_neighbor_consistency(
     arena: &TopologyArena,
 ) -> Result<(), KernelError> {

@@ -64,6 +64,12 @@ Reuse is not a blind cache hit. Forge Query preserves the difference between:
 - same composition meaning
 - same view-shape meaning
 - same schema-basis and identity-consumption posture
+- same temporal/async surface posture
+
+Future-bearing reuse is fail-closed. A composition, view-shape, or saved-query
+surface must either preserve temporal/async meaning, mark it explicitly
+deferred, require a fresh freeze, or deny the reuse outright. It is not valid
+to silently degrade that meaning into ordinary-only reuse.
 
 ## How It Executes
 
@@ -151,7 +157,12 @@ This is the hard shape the feature is built for:
 
 - Composition outputs should still pass [Schema Validation](../modeling/schema-validation.md).
 - View-shape planning is often upstream of [Automatic Subscription Family Selection And Diagnostics](../capabilities/subscription-selection-and-diagnostics.md)
-  because view family changes the selected subscription family.
+  because view family and future-bearing live posture together can change the
+  selected subscription family or deny the live shape early.
+- The admitted view family also constrains later mixed-cause delivery
+  projection. Detail, table, grouped, and inspector surfaces consume one
+  canonical ordered delivery stream, but they do not get to redefine Bridge
+  ordering or collapse basis-bound delivery members for convenience.
 - Saved-query reuse becomes especially important when paired with
   [Historical Basis, Diff, And Comparison Queries](../capabilities/historical-diff-and-basis.md)
   or identity-aware inspection surfaces.
@@ -176,6 +187,7 @@ For saved queries:
 - inspect persistence claim
 - inspect reuse outcome and rebinding dimensions
 - inspect schema-basis equivalence evidence
+- inspect temporal/async surface posture on the frozen artifact
 - inspect whether a miss is a hard denial or a legal fresh-freeze requirement
 
 ## Anti-Patterns
@@ -183,6 +195,8 @@ For saved queries:
 - Treating scopes and templates as string substitution instead of bounded query
   composition.
 - Assuming saved-query reuse means "same canonical query digest only."
+- Assuming scope expansion, template instantiation, or saved-query reload may
+  erase temporal/async meaning and still count as valid reuse.
 - Freezing a saved query with a durable claim that the runtime does not support.
 - Ignoring view family and identity-consumption changes when deciding reuse.
 
@@ -190,6 +204,9 @@ For saved queries:
 
 - Durable claims such as restart-stable continuation, import/export, and full
   durable reload are explicitly denied today.
+- Runtime-backed temporal/async reuse is only admitted for the explicitly
+  preserved surfaces. Inspector and grouped future-bearing neighbors stay
+  visible but deferred instead of being weakly admitted.
 - View-shape planning is strong for current detail, table, inspector, and
   grouped surfaces, but future durable/store-backed neighbors still carry their
   own support posture.

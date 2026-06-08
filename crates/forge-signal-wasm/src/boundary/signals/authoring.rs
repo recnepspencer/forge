@@ -191,7 +191,9 @@ impl Signals {
         id: &str,
     ) -> Result<SignalValue, crate::boundary::errors::ForgeSignalJsError> {
         let value = self.core.borrow_mut().read_value(id)?;
-        self.core.borrow_mut().note_app_signal_serialization(id, &value);
+        self.core
+            .borrow_mut()
+            .note_app_signal_serialization(id, &value);
         Ok(value)
     }
 

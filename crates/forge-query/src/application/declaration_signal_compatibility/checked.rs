@@ -9,6 +9,7 @@ use crate::application::{
 use super::{
     artifact::ForgeQueryDeclarationSignalCompatibility,
     aspect_gate::SignalAuthorityAspectGate,
+    checked_input::{deny_non_success_mismatch, lower_checked_input},
     contract::{
         ForgeQueryDeclarationSignalCompatibilitySupportRow,
         ForgeQueryDeclarationSignalCompatibilitySupportStatus,
@@ -156,15 +157,28 @@ pub(crate) fn forge_query_checked_declaration_signal_compatibility_on_handle<
 
             match checked_enveloped(envelope) {
                 ForgeQueryDeclarationSignalCompatibilityChecked::Compatible(compatibility) => {
-                    if compatibility.basis_families().iter().all(|basis_family| {
-                        support_rows.iter().any(|row| {
-                            row.execution_family() == compatibility.execution_family()
-                                && row.basis_family() == *basis_family
-                                && row.status()
-                                    == ForgeQueryDeclarationSignalCompatibilitySupportStatus::Admitted
+                    let matched_rows = support_rows
+                        .iter()
+                        .filter(|row| row.execution_family() == compatibility.execution_family())
+                        .collect::<Vec<_>>();
+
+                    if !matched_rows.is_empty()
+                        && matched_rows.iter().any(|row| {
+                            row.status()
+                                == ForgeQueryDeclarationSignalCompatibilitySupportStatus::Admitted
                         })
-                    }) {
+                    {
                         ForgeQueryDeclarationSignalCompatibilityChecked::Compatible(compatibility)
+                    } else if let Some(row) = matched_rows.iter().find(|row| {
+                        row.status()
+                            == ForgeQueryDeclarationSignalCompatibilitySupportStatus::Deferred
+                    }) {
+                        ForgeQueryDeclarationSignalCompatibilityChecked::Deferred(
+                            ForgeQueryDeclarationSignalCompatibilityDeferred::new(
+                                compatibility.into_envelope(),
+                                row.reason(),
+                            ),
+                        )
                     } else {
                         let execution_family = compatibility.execution_family();
                         let basis_families = compatibility.basis_families().to_vec();
@@ -267,6 +281,11 @@ fn checked_enveloped<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInp
 
             let execution_family = derive_signal_execution_family(&envelope, &contract);
             let basis_families = derive_required_basis_families(&contract);
+            let future_projection = envelope
+                .route_plan()
+                .expect("covered signal compatibility envelopes retain route-plan truth")
+                .future_projection()
+                .clone();
             let digest = derive_signal_compatibility_digest(
                 &envelope,
                 execution_family,
@@ -278,6 +297,7 @@ fn checked_enveloped<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInp
                 aspect_gate.fit(),
                 aspect_gate.dependency_aspects(),
                 aspect_gate.produced_aspects(),
+                &future_projection,
                 envelope.route_denial_cause(),
                 envelope.receipt_denial_cause(),
             );
@@ -299,6 +319,7 @@ fn checked_enveloped<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInp
                     .join("|")
             ));
             retained_truths.push(format!("signal-aspect-fit:{:?}", aspect_gate.fit()));
+            retained_truths.extend(future_projection.retained_facts());
             let explanation = ForgeQueryDeclarationSignalCompatibilityExplanation::new(
                 "compatible with later signal-backed derived execution",
                 execution_family,
@@ -324,80 +345,12 @@ fn checked_enveloped<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInp
                     aspect_gate.fit(),
                     aspect_gate.dependency_aspects().clone(),
                     aspect_gate.produced_aspects().clone(),
+                    future_projection,
                     envelope,
                     digest,
                     explanation,
                 ),
             )
-        }
-    }
-}
-
-fn lower_checked_input<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
-    checked: ForgeQueryDeclarationEnvelopeChecked<D, I>,
-) -> ForgeQueryDeclarationSignalCompatibilityInput<D, I> {
-    match checked {
-        ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope) => {
-            ForgeQueryDeclarationSignalCompatibilityInput::enveloped(envelope)
-        }
-        ForgeQueryDeclarationEnvelopeChecked::Deferred(envelope) => {
-            ForgeQueryDeclarationSignalCompatibilityInput::deferred(envelope)
-        }
-        ForgeQueryDeclarationEnvelopeChecked::Denied(envelope) => {
-            ForgeQueryDeclarationSignalCompatibilityInput::denied(envelope)
-        }
-        ForgeQueryDeclarationEnvelopeChecked::Failed(envelope) => {
-            ForgeQueryDeclarationSignalCompatibilityInput::failed(envelope)
-        }
-    }
-}
-
-fn deny_non_success_mismatch<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
-    input: ForgeQueryDeclarationSignalCompatibilityInput<D, I>,
-) -> ForgeQueryDeclarationSignalCompatibilityChecked<D, I> {
-    match input {
-        ForgeQueryDeclarationSignalCompatibilityInput::Deferred(envelope) => {
-            ForgeQueryDeclarationSignalCompatibilityChecked::Denied(
-                ForgeQueryDeclarationSignalCompatibilityDenied::new(
-                    envelope.into_envelope(),
-                    I::Family::signal_compatibility_contract()
-                        .map(|contract| contract.execution_family()),
-                    I::Family::signal_compatibility_contract()
-                        .map(|contract| contract.required_basis_families().to_vec())
-                        .unwrap_or_default(),
-                    ForgeQueryDeclarationSignalCompatibilityDenialCause::SignalCompatibilityMismatch,
-                ),
-            )
-        }
-        ForgeQueryDeclarationSignalCompatibilityInput::Denied(envelope) => {
-            ForgeQueryDeclarationSignalCompatibilityChecked::Denied(
-                ForgeQueryDeclarationSignalCompatibilityDenied::new(
-                    envelope.into_envelope(),
-                    I::Family::signal_compatibility_contract()
-                        .map(|contract| contract.execution_family()),
-                    I::Family::signal_compatibility_contract()
-                        .map(|contract| contract.required_basis_families().to_vec())
-                        .unwrap_or_default(),
-                    ForgeQueryDeclarationSignalCompatibilityDenialCause::SignalCompatibilityMismatch,
-                ),
-            )
-        }
-        ForgeQueryDeclarationSignalCompatibilityInput::Failed(envelope) => {
-            ForgeQueryDeclarationSignalCompatibilityChecked::Denied(
-                ForgeQueryDeclarationSignalCompatibilityDenied::new(
-                    envelope.into_envelope(),
-                    I::Family::signal_compatibility_contract()
-                        .map(|contract| contract.execution_family()),
-                    I::Family::signal_compatibility_contract()
-                        .map(|contract| contract.required_basis_families().to_vec())
-                        .unwrap_or_default(),
-                    ForgeQueryDeclarationSignalCompatibilityDenialCause::SignalCompatibilityMismatch,
-                ),
-            )
-        }
-        ForgeQueryDeclarationSignalCompatibilityInput::Enveloped(_)
-        | ForgeQueryDeclarationSignalCompatibilityInput::EnvelopeChecked(_) => {
-            unreachable!("non-success path only accepts non-success inputs")
         }
     }
 }

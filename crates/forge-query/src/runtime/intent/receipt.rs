@@ -114,6 +114,13 @@ impl ForgeQueryIntentReceipt {
             format!("invariants:{invariant_evidence_digest_part}"),
             format!("source:{}", declaration.source_lane().as_str()),
             format!("target:{}", declaration.target_lane()),
+            format!(
+                "effect-trigger:{}",
+                declaration
+                    .effect_trigger()
+                    .map(|trigger| trigger.digest())
+                    .unwrap_or("none")
+            ),
             format!("commit:{commit_identity}"),
             format!("snapshot:{snapshot_token}"),
             format!("live:{}", affected_live_view_ids.join("|")),

@@ -252,6 +252,7 @@ fn live_aggregate_fixture() -> LiveAggregateFixture {
         LIVE_AGGREGATE_VIEW_NAME,
         &activation,
         "certified-live-aggregate-support",
+        None,
     );
     let support_evidence = activation_receipt.support_evidence().to_string();
     let activation_digest = activation_receipt.activation_digest().to_string();

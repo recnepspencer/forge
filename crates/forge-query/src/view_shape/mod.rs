@@ -34,7 +34,10 @@ pub use identity::{ViewShapeIdentityBinding, ViewShapeIdentityConsumption};
 pub use performance::{ViewShapeComplexityReport, ViewShapeComplexityStatus, ViewShapeCostClass};
 pub use plan_artifact::{ViewShapePlanArtifact, ViewShapePlanDigest, ViewShapeValidatedBundle};
 pub use planning::{plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape};
-pub use support::runtime_backed_view_shape_support_profile;
+pub use support::{
+    runtime_backed_view_shape_future_support_profile, runtime_backed_view_shape_support_profile,
+    ViewShapeTemporalAsyncSupportPosture,
+};
 
 #[cfg(test)]
 mod tests;

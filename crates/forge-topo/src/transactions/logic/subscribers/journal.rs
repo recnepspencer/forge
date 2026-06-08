@@ -1,4 +1,4 @@
-use forge_core::{EntityKind, KernelError};
+use forge_core::EntityKind;
 use forge_signal::facade::adapters::{EventSubscriber, SubscriberContext, SubscriberId};
 use forge_signal::facade::runtime::CheckpointBarrier;
 use forge_signal::facade::SignalError;

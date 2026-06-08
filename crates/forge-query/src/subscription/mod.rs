@@ -40,6 +40,8 @@ mod declaration_digest;
 mod declaration_error;
 mod delivery;
 mod delivery_budget;
+mod delivery_cause;
+mod delivery_denials;
 mod delivery_density;
 mod delivery_dimensions;
 mod delivery_error;
@@ -51,17 +53,23 @@ mod equivalence;
 mod error;
 mod family;
 mod fanout;
+mod future_selection;
 mod input;
+#[cfg(test)]
+mod input_test_support;
 mod maintenance_delta;
 mod patch_group;
 mod performance_receipt;
 mod posture;
+mod preview_closeout;
 mod preview_isolation;
 mod preview_isolation_error;
+mod preview_residue;
 mod relationship_proof;
 mod runtime_certification;
 mod scale;
 mod selection;
+mod selection_future;
 mod signal_strategy;
 mod slice;
 mod slice_budget;
@@ -87,11 +95,13 @@ pub use active_lane::{ActiveSubscriptionLane, ActiveSubscriptionLaneAdmission};
 pub use active_posture::{
     ActiveLaneLookupClass, ActiveSubscriptionDeliveryPosture, ActiveSubscriptionLifecyclePosture,
 };
+pub use active_runtime::emit_query_time_only_delivery_batch;
 pub use active_runtime::{
     advance_subscription_acknowledgement, apply_active_subscription_continuation,
     attach_subscription_consumer, build_active_delivery_work_packet, close_subscription_lifecycle,
-    emit_query_delivery_batch, join_active_subscription_lane, open_active_subscription_lane,
-    open_query_delivery_window, ActiveSubscriptionRuntime,
+    emit_query_delivery_batch, emit_query_mixed_cause_delivery_batch,
+    join_active_subscription_lane, open_active_subscription_lane, open_query_delivery_window,
+    ActiveSubscriptionRuntime,
 };
 pub use admission::{admit_query_subscription, QuerySubscriptionAdmissionArtifact};
 pub use admission_budget::QuerySubscriptionAdmissionBudget;
@@ -142,8 +152,10 @@ pub use closeout::{
     SubscriptionLifecycleCloseoutKind,
 };
 pub use construction_source::QuerySubscriptionConstructionSource;
+#[allow(unused_imports)]
 pub use continuation::{
-    admit_subscription_continuation_evidence, apply_subscription_continuation,
+    admit_subscription_continuation_evidence,
+    admit_subscription_continuation_evidence_with_active_identity, apply_subscription_continuation,
     lower_subscription_continuation_report, SubscriptionContinuationClass,
     SubscriptionContinuationEvidence, SubscriptionContinuationReport,
 };
@@ -156,6 +168,9 @@ pub use declaration_error::{
 };
 pub use delivery::QuerySubscriptionDeliveryIntent;
 pub use delivery_budget::QueryDeliveryWindowBudget;
+#[allow(unused_imports)]
+pub use delivery_cause::{QuerySubscriptionDeliveryCause, QuerySubscriptionDeliveryCauseKind};
+pub use delivery_denials::{deny_raw_bridge_invalidation_delivery, deny_raw_cdc_delivery_fallback};
 pub use delivery_density::ActiveDeliveryDensityPosture;
 pub use delivery_dimensions::{
     ActiveDeliveryAffectedAttachmentWidth, ActiveDeliveryAffectedLaneWidth,
@@ -164,7 +179,6 @@ pub use delivery_dimensions::{
 };
 pub use delivery_error::{QueryDeliveryDenialKind, QueryDeliveryError};
 pub use delivery_window::{
-    deny_raw_bridge_invalidation_delivery, deny_raw_cdc_delivery_fallback,
     lower_query_subscription_maintenance_delta, QueryDeliveryBatch, QueryDeliveryWindow,
 };
 pub use delivery_work_packet::ActiveDeliveryWorkPacket;
@@ -187,6 +201,11 @@ pub use error::{
 };
 pub use family::QuerySubscriptionFamily;
 pub use fanout::{SubscriptionFanoutPlan, SubscriptionFanoutReport};
+#[allow(unused_imports)]
+pub use future_selection::{
+    QuerySubscriptionAsyncRequestIdentityPart, QuerySubscriptionFutureSelection,
+    QuerySubscriptionFutureSelectionClass,
+};
 pub use input::LiveQueryAdmissionArtifact;
 pub use maintenance_delta::{
     QueryMaintenanceDeltaLoweringReport, QuerySubscriptionMaintenanceDelta,
@@ -251,3 +270,6 @@ pub use support::{
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+pub(crate) use tests::runtime_backed_subscription_certification_summary;
