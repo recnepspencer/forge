@@ -1,5 +1,7 @@
 mod aspect_history;
 mod branch_creation;
+mod merge_branch_basis;
+mod merge_branch_basis_foundational;
 
 use serde::{Deserialize, Serialize};
 
@@ -13,6 +15,14 @@ pub use aspect_history::{
     LineageAspectHistory, LineageAspectHistoryQueryResult, LineageAspectResolutionDigest,
 };
 pub use branch_creation::{BranchCreateError, BranchCreateErrorClass};
+pub use merge_branch_basis::{
+    MergeBaseSelectionRule, RelationalMergeBranchBasis, RelationalMergeBranchBasisDenial,
+    ResolvedMergeBase,
+};
+pub use merge_branch_basis_foundational::{
+    RelationalFoundationalCurrentMergeBranchBasisArtifact,
+    RelationalMergeBranchBasisFoundationalLoweringDenial,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CommitId(pub u64);

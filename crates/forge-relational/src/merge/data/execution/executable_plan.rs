@@ -129,8 +129,8 @@ pub(crate) fn bound_parent_order(
     execution_ready: &ExecutionReadyLoweredMergePlan,
 ) -> Arc<[CommitId]> {
     Arc::from([
-        execution_ready.target_head.commit_id,
-        execution_ready.source_head.commit_id,
+        execution_ready.basis.target_head.commit_id,
+        execution_ready.basis.source_head.commit_id,
     ])
 }
 

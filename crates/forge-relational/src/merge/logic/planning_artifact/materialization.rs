@@ -1,6 +1,8 @@
 use crate::logic::runtime::RelationalRuntime;
 use crate::merge::data::{LoweredMergePlan, MergePlanningArtifactCore};
 
+use super::super::schema_reconciliation_witness::retained_schema_reconciliation_witness;
+use super::super::strategy_witness::retained_merge_strategy_witness;
 use super::digest_basis::merge_artifact_digest_basis;
 use super::execution_authority_contract::lowered_artifact_execution_authority_contract;
 use super::performance_counters::record_merge_planning_counters;
@@ -13,7 +15,7 @@ pub(crate) fn materialize_planning_artifact(
 ) -> MergePlanningArtifactCore {
     let target_view = runtime
         .read_truth()
-        .read_version(plan.target_head.version_id);
+        .read_version(plan.basis.target_head.version_id);
     let schema_snapshot = merge_schema_snapshot(
         &runtime.config().schema.registry,
         plan.source_records.as_ref(),
@@ -26,6 +28,9 @@ pub(crate) fn materialize_planning_artifact(
         schema_snapshot.clone(),
         execution_authority_contract.clone(),
     );
+    let schema_reconciliation_witness =
+        retained_schema_reconciliation_witness(&plan, &schema_snapshot);
+    let strategy_witness = retained_merge_strategy_witness(&plan, &execution_authority_contract);
     let request_summary = merge_request_summary(&plan);
     let ancestry_summary = merge_ancestry_summary(&plan);
 
@@ -33,9 +38,11 @@ pub(crate) fn materialize_planning_artifact(
 
     MergePlanningArtifactCore {
         request: plan.request.clone(),
+        branch_basis: plan.basis.clone(),
         schema_snapshot,
+        schema_reconciliation_witness,
+        strategy_witness,
         execution_authority_contract,
-        merge_base: plan.merge_base.clone(),
         ancestry: plan.ancestry.clone(),
         identity_discovery: plan.identity_summary.clone(),
         conflict_classification: plan.conflict_summary,

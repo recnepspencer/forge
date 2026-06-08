@@ -26,14 +26,8 @@ fn verify_authority_binding_matches_request(
     binding: &crate::merge::data::MergeExecutionAuthorityBinding,
     prepared: &PreparedMergeExecution,
 ) -> Result<(), MergeExecutionError> {
-    if binding.target_branch != prepared.request().target_branch {
-        return authority_binding_mismatch("binding target branch does not match prepared request");
-    }
-    if binding.source_branch != prepared.request().source_branch {
-        return authority_binding_mismatch("binding source branch does not match prepared request");
-    }
-    if binding.merge_intent != prepared.request().merge_intent {
-        return authority_binding_mismatch("binding merge intent does not match prepared request");
+    if binding.request != *prepared.request() {
+        return authority_binding_mismatch("binding request does not match prepared request");
     }
     Ok(())
 }
@@ -58,14 +52,14 @@ fn verify_branch_heads(
 ) -> Result<(), MergeExecutionError> {
     let target_head = runtime
         .history()
-        .branch_head(&binding.target_branch)
+        .branch_head(binding.request.target_branch())
         .cloned();
     runtime
         .performance_access()
         .count_merge_execution_branch_head_checks(1);
     if target_head.as_ref().map(|head| head.commit_id) != Some(binding.target_head_commit_id) {
         return Err(MergeExecutionError::StaleBranchHead {
-            branch: binding.target_branch.clone(),
+            branch: binding.request.target_branch().clone(),
             planned: binding.target_head_commit_id,
             current: target_head.map(|head| head.commit_id),
         });
@@ -73,14 +67,14 @@ fn verify_branch_heads(
 
     let source_head = runtime
         .history()
-        .branch_head(&binding.source_branch)
+        .branch_head(binding.request.source_branch())
         .cloned();
     runtime
         .performance_access()
         .count_merge_execution_branch_head_checks(1);
     if source_head.as_ref().map(|head| head.commit_id) != Some(binding.source_head_commit_id) {
         return Err(MergeExecutionError::StaleBranchHead {
-            branch: binding.source_branch.clone(),
+            branch: binding.request.source_branch().clone(),
             planned: binding.source_head_commit_id,
             current: source_head.map(|head| head.commit_id),
         });
@@ -92,9 +86,10 @@ fn verify_merge_base(
     runtime: &crate::logic::runtime::RelationalRuntime,
     binding: &crate::merge::data::MergeExecutionAuthorityBinding,
 ) -> Result<(), MergeExecutionError> {
-    let merge_base = runtime
-        .history()
-        .latest_common_ancestor_between_branches(&binding.target_branch, &binding.source_branch);
+    let merge_base = runtime.history().latest_common_ancestor_between_branches(
+        binding.request.target_branch(),
+        binding.request.source_branch(),
+    );
     runtime
         .performance_access()
         .count_merge_execution_merge_base_checks(1);
@@ -112,17 +107,17 @@ fn verify_execution_ready_proof(
     prepared: &PreparedMergeExecution,
 ) -> Result<(), MergeExecutionError> {
     let execution_ready = prepared.execution_ready_plan();
-    if binding.target_head_commit_id != execution_ready.target_head.commit_id {
+    if binding.target_head_commit_id != execution_ready.basis.target_head.commit_id {
         return authority_binding_mismatch(
             "binding target head does not match execution-ready proof",
         );
     }
-    if binding.source_head_commit_id != execution_ready.source_head.commit_id {
+    if binding.source_head_commit_id != execution_ready.basis.source_head.commit_id {
         return authority_binding_mismatch(
             "binding source head does not match execution-ready proof",
         );
     }
-    if binding.merge_base_commit_id != execution_ready.merge_base.commit_id {
+    if binding.merge_base_commit_id != execution_ready.basis.merge_base.commit.commit_id {
         return authority_binding_mismatch(
             "binding merge base does not match execution-ready proof",
         );
@@ -145,7 +140,7 @@ fn verify_schema_snapshot(
     let execution_ready = prepared.execution_ready_plan();
     let current_schema_snapshot = merge_schema_snapshot_for_execution_ready(
         runtime,
-        execution_ready.target_head.version_id,
+        execution_ready.basis.target_head.version_id,
         execution_ready.source_records.as_ref(),
         execution_ready.target_touched_records.as_ref(),
     );
@@ -169,9 +164,7 @@ fn verify_compiled_plan_digest(
 ) -> Result<(), MergeExecutionError> {
     let compiled = prepared.bound_executable_plan();
     let current_compiled_digest = crate::merge::data::compiled_executable_plan_digest(
-        &binding.target_branch,
-        &binding.source_branch,
-        binding.merge_intent,
+        &binding.request,
         compiled.parent_order.as_ref(),
         compiled.record_plans.as_ref(),
     );

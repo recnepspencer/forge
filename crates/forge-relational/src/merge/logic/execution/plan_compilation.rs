@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use crate::merge::data::{
     BoundExecutableMergePlan, BoundExecutableMergeRecordPlan, ExecutionReadyLoweredMergePlan,
-    MergeExecutionAuthorityBinding, MergeExecutionCompilationError, MergeExecutionRequest,
-    RuntimeInstanceId,
+    MergeExecutionAuthorityBinding, MergeExecutionCompilationError,
+    NormalizedRelationalMergeRequest, RuntimeInstanceId,
 };
 use crate::transactions::data::RecordRef;
 
@@ -12,7 +12,7 @@ use super::record_plan_compilation::compile_record_plan;
 
 pub(super) fn compile_bound_executable_plan(
     runtime: &crate::logic::runtime::RelationalRuntime,
-    request: &MergeExecutionRequest,
+    request: &NormalizedRelationalMergeRequest,
     execution_ready: &ExecutionReadyLoweredMergePlan,
 ) -> Result<BoundExecutableMergePlan, MergeExecutionCompilationError> {
     let parent_order = crate::merge::data::bound_parent_order(execution_ready);
@@ -31,21 +31,17 @@ pub(super) fn compile_bound_executable_plan(
     let diagnostics_plan =
         crate::merge::data::diagnostics_plan_from_record_plans(record_plans.as_ref());
     let executable_plan_digest = crate::merge::data::compiled_executable_plan_digest(
-        &request.target_branch,
-        &request.source_branch,
-        request.merge_intent,
+        request,
         parent_order.as_ref(),
         record_plans.as_ref(),
     );
 
     let binding = MergeExecutionAuthorityBinding {
-        target_branch: request.target_branch.clone(),
-        source_branch: request.source_branch.clone(),
-        merge_intent: request.merge_intent,
+        request: request.clone(),
         runtime_instance_id: RuntimeInstanceId(runtime.runtime_instance_id()),
-        target_head_commit_id: execution_ready.target_head.commit_id,
-        source_head_commit_id: execution_ready.source_head.commit_id,
-        merge_base_commit_id: execution_ready.merge_base.commit_id,
+        target_head_commit_id: execution_ready.basis.target_head.commit_id,
+        source_head_commit_id: execution_ready.basis.source_head.commit_id,
+        merge_base_commit_id: execution_ready.basis.merge_base.commit.commit_id,
         schema_snapshot_digest: crate::merge::data::schema_snapshot_digest(
             &execution_ready.schema_snapshot,
         ),

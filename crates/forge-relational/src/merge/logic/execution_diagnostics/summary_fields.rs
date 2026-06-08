@@ -10,15 +10,15 @@ pub(super) fn merge_execution_summary_fields(
     diagnostic_fields([
         (
             "target_branch",
-            RelationalDiagnosticValue::BranchId(summary.request.target_branch.clone()),
+            RelationalDiagnosticValue::BranchId(summary.request.target_branch().clone()),
         ),
         (
             "source_branch",
-            RelationalDiagnosticValue::BranchId(summary.request.source_branch.clone()),
+            RelationalDiagnosticValue::BranchId(summary.request.source_branch().clone()),
         ),
         (
             "merge_intent",
-            RelationalDiagnosticValue::string(format!("{:?}", summary.request.merge_intent)),
+            RelationalDiagnosticValue::string(format!("{:?}", summary.request.merge_intent())),
         ),
         (
             "target_head_commit_id",
@@ -97,11 +97,11 @@ pub(super) fn merge_execution_artifact_header_fields(
         ("commit_id", RelationalDiagnosticValue::CommitId(commit_id)),
         (
             "target_branch",
-            RelationalDiagnosticValue::BranchId(summary.request.target_branch.clone()),
+            RelationalDiagnosticValue::BranchId(summary.request.target_branch().clone()),
         ),
         (
             "source_branch",
-            RelationalDiagnosticValue::BranchId(summary.request.source_branch.clone()),
+            RelationalDiagnosticValue::BranchId(summary.request.source_branch().clone()),
         ),
         (
             "execution_digest",
@@ -126,15 +126,15 @@ pub(super) fn merge_execution_failure_fields(
     diagnostic_fields([
         (
             "target_branch",
-            RelationalDiagnosticValue::BranchId(prepared.request().target_branch.clone()),
+            RelationalDiagnosticValue::BranchId(prepared.request().target_branch().clone()),
         ),
         (
             "source_branch",
-            RelationalDiagnosticValue::BranchId(prepared.request().source_branch.clone()),
+            RelationalDiagnosticValue::BranchId(prepared.request().source_branch().clone()),
         ),
         (
             "merge_intent",
-            RelationalDiagnosticValue::string(format!("{:?}", prepared.request().merge_intent)),
+            RelationalDiagnosticValue::string(format!("{:?}", prepared.request().merge_intent())),
         ),
         (
             "target_head_commit_id",

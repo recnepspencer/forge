@@ -3,8 +3,8 @@ use std::sync::Arc;
 use crate::merge::data::{
     HistoryScopedMergePlan, IdentityBasisDeclaration, IdentityBasisKind, IdentityBasisScope,
     IdentityMatchCandidate, IdentityMatchClass, IdentityResolutionReason, IdentityScopedMergePlan,
-    MergeAncestrySummary, MergePlanningError, MergePlanningRequest, MergeRecordIdentity,
-    VisibleMergeRecord, VisibleMergeRecordKind,
+    MergeAncestrySummary, MergePlanningError, MergeRecordIdentity,
+    NormalizedRelationalMergeRequest, VisibleMergeRecord, VisibleMergeRecordKind,
 };
 use crate::merge::logic::aspect_plan_lookup::lowered_plan_for_record;
 use crate::merge::logic::identity_records::{
@@ -21,7 +21,7 @@ use crate::transactions::data::RecordRef;
 impl<'runtime> MergeAccess<'runtime> {
     pub(crate) fn plan_identity_scope(
         &self,
-        request: MergePlanningRequest,
+        request: NormalizedRelationalMergeRequest,
     ) -> Result<IdentityScopedMergePlan, MergePlanningError> {
         let history_plan = self.plan_history_scope(request)?;
         Ok(self.discover_identity_scope(history_plan))
@@ -34,22 +34,33 @@ impl<'runtime> MergeAccess<'runtime> {
         let target_view = self
             .runtime
             .read_truth()
-            .read_version(history_plan.target_head.version_id);
+            .read_version(history_plan.basis.target_head.version_id);
         let source_view = self
             .runtime
             .read_truth()
-            .read_version(history_plan.source_head.version_id);
+            .read_version(history_plan.basis.source_head.version_id);
 
         let ancestry = MergeAncestrySummary {
-            merge_base_rule: history_plan.merge_base.rule,
-            merge_base_commit_id: history_plan.merge_base.commit_id,
-            supporting_left_ancestor_count: history_plan.merge_base.supporting_left_ancestors.len(),
+            merge_base_rule: history_plan.basis.merge_base.rule,
+            merge_base_commit_id: history_plan.basis.merge_base.commit.commit_id,
+            supporting_left_ancestor_count: history_plan
+                .basis
+                .merge_base
+                .supporting_left_ancestors
+                .len(),
             supporting_right_ancestor_count: history_plan
+                .basis
                 .merge_base
                 .supporting_right_ancestors
                 .len(),
-            target: branch_delta_summary(&history_plan.target_head, &history_plan.target_delta),
-            source: branch_delta_summary(&history_plan.source_head, &history_plan.source_delta),
+            target: branch_delta_summary(
+                &history_plan.basis.target_head,
+                &history_plan.target_delta,
+            ),
+            source: branch_delta_summary(
+                &history_plan.basis.source_head,
+                &history_plan.source_delta,
+            ),
         };
 
         let source_records = source_visible_records(
@@ -86,9 +97,7 @@ impl<'runtime> MergeAccess<'runtime> {
 
         IdentityScopedMergePlan {
             request: history_plan.request,
-            target_head: history_plan.target_head,
-            source_head: history_plan.source_head,
-            merge_base: history_plan.merge_base,
+            basis: history_plan.basis,
             ancestry,
             target_delta: history_plan.target_delta,
             source_delta: history_plan.source_delta,

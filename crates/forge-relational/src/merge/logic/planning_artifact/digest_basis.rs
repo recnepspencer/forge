@@ -31,18 +31,22 @@ pub(super) fn merge_artifact_digest_basis(
 
 fn merge_request_digest_basis(plan: &LoweredMergePlan) -> MergeRequestDigestBasis {
     MergeRequestDigestBasis {
-        target_branch: plan.request.target_branch.clone(),
-        source_branch: plan.request.source_branch.clone(),
-        merge_intent: plan.request.merge_intent,
+        target_branch: plan.request.target_branch().clone(),
+        source_branch: plan.request.source_branch().clone(),
+        merge_intent: plan.request.merge_intent(),
+        family: plan.request.family(),
+        correspondence_posture: plan.request.correspondence_posture(),
+        schema_reconciliation_posture: plan.request.schema_reconciliation_posture(),
+        topology_intent: plan.request.topology_intent(),
     }
 }
 
 fn merge_base_digest_basis(plan: &LoweredMergePlan) -> MergeBaseDigestBasis {
     MergeBaseDigestBasis {
-        rule: plan.merge_base.rule,
-        commit_id: plan.merge_base.commit_id,
-        supporting_left_ancestors: plan.merge_base.supporting_left_ancestors.clone(),
-        supporting_right_ancestors: plan.merge_base.supporting_right_ancestors.clone(),
+        rule: plan.basis.merge_base.rule,
+        commit_id: plan.basis.merge_base.commit.commit_id,
+        supporting_left_ancestors: plan.basis.merge_base.supporting_left_ancestors.clone(),
+        supporting_right_ancestors: plan.basis.merge_base.supporting_right_ancestors.clone(),
     }
 }
 

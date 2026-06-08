@@ -2,9 +2,11 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::history::data::{BranchId, CommitId};
+#[cfg(test)]
+use crate::merge::data::MergePlanningRequest;
 use crate::merge::data::{
     BranchCommitDelta, BranchDeltaSummary, BranchTouchedRecordDelta, HistoryScopedMergePlan,
-    MergeBaseSelectionRule, MergePlanningError, MergePlanningRequest, ResolvedMergeBase,
+    MergePlanningError, NormalizedRelationalMergeRequest,
 };
 use crate::merge::logic::MergeAccess;
 use crate::transactions::data::RecordRef;
@@ -12,58 +14,49 @@ use crate::transactions::data::RecordRef;
 impl<'runtime> MergeAccess<'runtime> {
     pub(crate) fn plan_history_scope(
         &self,
-        request: MergePlanningRequest,
+        request: NormalizedRelationalMergeRequest,
     ) -> Result<HistoryScopedMergePlan, MergePlanningError> {
         let history = self.runtime.history();
-        let target_head = history
-            .branch_head(&request.target_branch)
-            .cloned()
-            .ok_or_else(|| MergePlanningError::MissingTargetHead {
-                branch_id: request.target_branch.clone(),
-            })?;
-        let source_head = history
-            .branch_head(&request.source_branch)
-            .cloned()
-            .ok_or_else(|| MergePlanningError::MissingSourceHead {
-                branch_id: request.source_branch.clone(),
-            })?;
-
-        let left_ancestors = history.ancestor_closure_by_commit_id_order(target_head.commit_id);
-        let right_ancestors = history.ancestor_closure_by_commit_id_order(source_head.commit_id);
-        let merge_base = history
-            .max_commit_id_common_ancestor(target_head.commit_id, source_head.commit_id)
-            .ok_or_else(|| MergePlanningError::MissingMergeBase {
-                source_branch: request.source_branch.clone(),
-                target_branch: request.target_branch.clone(),
-            })?;
-        let merge_base_ancestors = history.ancestor_closure_by_commit_id_order(merge_base);
+        let basis = history
+            .resolve_merge_branch_basis(request.source_branch(), request.target_branch())
+            .map_err(MergePlanningError::from)?;
+        let merge_base_ancestors =
+            history.ancestor_closure_by_commit_id_order(basis.merge_base.commit.commit_id);
 
         let target_delta_commits = self.branch_local_unique_commit_closure_by_commit_id_order(
-            request.target_branch.clone(),
-            left_ancestors.as_slice(),
+            request.target_branch().clone(),
+            basis.merge_base.supporting_left_ancestors.as_ref(),
             merge_base_ancestors.as_slice(),
         );
         let source_delta_commits = self.branch_local_unique_commit_closure_by_commit_id_order(
-            request.source_branch.clone(),
-            right_ancestors.as_slice(),
+            request.source_branch().clone(),
+            basis.merge_base.supporting_right_ancestors.as_ref(),
             merge_base_ancestors.as_slice(),
         );
 
         Ok(HistoryScopedMergePlan {
             request: request.clone(),
-            target_head,
-            source_head,
-            merge_base: ResolvedMergeBase {
-                rule: MergeBaseSelectionRule::MaxCommitIdCommonAncestor,
-                commit_id: merge_base,
-                supporting_left_ancestors: Arc::from(left_ancestors),
-                supporting_right_ancestors: Arc::from(right_ancestors),
-            },
-            target_delta: self
-                .branch_commit_delta(request.target_branch, target_delta_commits.as_slice()),
-            source_delta: self
-                .branch_commit_delta(request.source_branch, source_delta_commits.as_slice()),
+            basis,
+            target_delta: self.branch_commit_delta(
+                request.target_branch().clone(),
+                target_delta_commits.as_slice(),
+            ),
+            source_delta: self.branch_commit_delta(
+                request.source_branch().clone(),
+                source_delta_commits.as_slice(),
+            ),
         })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn plan_history_scope_for_test(
+        &self,
+        request: MergePlanningRequest,
+    ) -> Result<HistoryScopedMergePlan, MergePlanningError> {
+        let normalized_request = self
+            .normalize_merge_planning_request(request)
+            .map_err(MergePlanningError::from)?;
+        self.plan_history_scope(normalized_request)
     }
 
     fn branch_commit_delta(

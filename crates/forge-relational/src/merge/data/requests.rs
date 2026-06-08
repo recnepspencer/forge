@@ -1,29 +1,20 @@
-use serde::{Deserialize, Serialize};
+#[path = "requests/denial.rs"]
+mod denial;
+#[path = "requests/digest.rs"]
+mod digest;
+#[path = "requests/foundational.rs"]
+mod foundational;
+#[path = "requests/normalized.rs"]
+mod normalized;
+#[path = "requests/raw.rs"]
+mod raw;
 
-use crate::history::data::BranchId;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MergeIntent {
-    ReconcileIntoTarget,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MergePlanningRequest {
-    pub target_branch: BranchId,
-    pub source_branch: BranchId,
-    pub merge_intent: MergeIntent,
-}
-
-impl MergePlanningRequest {
-    pub fn new(
-        target_branch: BranchId,
-        source_branch: BranchId,
-        merge_intent: MergeIntent,
-    ) -> Self {
-        Self {
-            target_branch,
-            source_branch,
-            merge_intent,
-        }
-    }
-}
+pub use denial::RelationalMergeRequestNormalizationDenial;
+pub(crate) use digest::normalized_merge_request_digest;
+pub use foundational::RelationalFoundationalMergeRequest;
+pub use normalized::{
+    NormalizedRelationalMergeRequest, RelationalMergeCorrespondencePosture,
+    RelationalMergeRequestFamily, RelationalMergeSchemaReconciliationPosture, RelationalMergeScope,
+    RelationalMergeTopologyIntent,
+};
+pub use raw::{MergeExecutionRequest, MergeIntent, MergePlanningRequest};

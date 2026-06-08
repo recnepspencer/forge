@@ -112,8 +112,24 @@ impl<'runtime> MergeAccess<'runtime> {
         };
         let binding = &prepared.bound_executable_plan().authority_binding;
         let diagnostics_plan = &prepared.bound_executable_plan().diagnostics_plan;
+        let correspondence_witness =
+            self.retain_merge_correspondence_witness_from_prepared_execution(prepared);
+        let schema_reconciliation_witness =
+            self.retain_schema_reconciliation_witness_from_prepared_execution(prepared);
+        let strategy_witness = self.retain_merge_strategy_witness_from_prepared_execution(prepared);
+        let proof_packet = self.retain_merge_proof_packet_from_prepared_execution_with_witness(
+            prepared,
+            &correspondence_witness,
+            &schema_reconciliation_witness,
+            &strategy_witness,
+        );
         let merge_execution_summary = MergeExecutionSummary {
             request: prepared.request().clone(),
+            branch_basis: prepared.execution_ready_plan().basis.clone(),
+            correspondence_witness,
+            schema_reconciliation_witness,
+            strategy_witness,
+            proof_packet,
             target_head_commit_id: binding.target_head_commit_id,
             source_head_commit_id: binding.source_head_commit_id,
             merge_base_commit_id: binding.merge_base_commit_id,
@@ -131,9 +147,9 @@ impl<'runtime> MergeAccess<'runtime> {
 
         Ok(MergeCommitMutationPlan {
             transaction_id,
-            target_branch: prepared.request().target_branch.clone(),
-            source_branch: prepared.request().source_branch.clone(),
-            merge_parent_branches: Arc::from([prepared.request().source_branch.clone()]),
+            target_branch: prepared.request().target_branch().clone(),
+            source_branch: prepared.request().source_branch().clone(),
+            merge_parent_branches: Arc::from([prepared.request().source_branch().clone()]),
             requested_merge_parent_count: 1,
             parent_commits: crate::history::data::OrderedParentList::from_authoritative(
                 prepared

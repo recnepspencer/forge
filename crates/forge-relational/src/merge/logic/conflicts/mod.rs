@@ -13,7 +13,8 @@ mod visibility_evidence;
 
 use crate::merge::data::{
     ConflictClassificationSummary, ConflictClassifiedMergePlan, IdentityScopedMergePlan,
-    MergeConflictClass, MergeConflictClassification, MergePlanningError, MergePlanningRequest,
+    MergeConflictClass, MergeConflictClassification, MergePlanningError,
+    NormalizedRelationalMergeRequest,
 };
 use crate::merge::logic::conflicts::ancestor_record_basis::AncestorRecordBasisContext;
 use crate::merge::logic::conflicts::candidate_classification::classify_candidate;
@@ -23,7 +24,7 @@ use crate::merge::logic::MergeAccess;
 impl<'runtime> MergeAccess<'runtime> {
     pub(crate) fn plan_conflict_scope(
         &self,
-        request: MergePlanningRequest,
+        request: NormalizedRelationalMergeRequest,
     ) -> Result<ConflictClassifiedMergePlan, MergePlanningError> {
         let identity_plan = self.plan_identity_scope(request)?;
         self.classify_conflict_scope(identity_plan)
@@ -36,12 +37,12 @@ impl<'runtime> MergeAccess<'runtime> {
         let target_view = self
             .runtime
             .read_truth()
-            .read_version(identity_plan.target_head.version_id);
+            .read_version(identity_plan.basis.target_head.version_id);
         let history = self.runtime.history();
         let base_envelope = history
-            .commit_envelope(identity_plan.merge_base.commit_id)
+            .commit_envelope(identity_plan.basis.merge_base.commit.commit_id)
             .ok_or(MergePlanningError::MissingMergeBaseEnvelope {
-                commit_id: identity_plan.merge_base.commit_id,
+                commit_id: identity_plan.basis.merge_base.commit.commit_id,
             })?;
         let base_version_id = base_envelope.commit.version_id;
         let base_view = self.runtime.read_truth().read_version(base_version_id);
@@ -105,9 +106,7 @@ impl<'runtime> MergeAccess<'runtime> {
 
         Ok(ConflictClassifiedMergePlan {
             request: identity_plan.request,
-            target_head: identity_plan.target_head,
-            source_head: identity_plan.source_head,
-            merge_base: identity_plan.merge_base,
+            basis: identity_plan.basis,
             ancestry: identity_plan.ancestry,
             target_delta: identity_plan.target_delta,
             source_delta: identity_plan.source_delta,

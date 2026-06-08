@@ -12,8 +12,11 @@ mod policy;
 mod requests;
 mod resolved_value_strategy;
 
-pub use ancestry::{
-    BranchDeltaSummary, MergeAncestrySummary, MergeBaseSelectionRule, ResolvedMergeBase,
+pub use crate::history::data::{MergeBaseSelectionRule, ResolvedMergeBase};
+pub use ancestry::{BranchDeltaSummary, MergeAncestrySummary};
+pub(crate) use artifacts::RelationalSchemaReconciliationWitnessRowInput;
+pub(crate) use artifacts::{
+    correspondence_posture_for_candidate, row_for_candidate, schema_declared_correspondence_posture,
 };
 pub use artifacts::{
     MergeArtifactDigestBasis, MergeBaseDigestBasis, MergeCausalDigestBasis,
@@ -22,9 +25,17 @@ pub use artifacts::{
     MergeLoweredAspectDigestRow, MergeLoweredPlanDigestBasis, MergePlanningArtifactCore,
     MergePlanningSummary, MergePolicyAspectDigestRow, MergePolicyDigestBasis,
     MergeRequestDigestBasis, MergeSchemaKindClass, MergeSchemaKindSemanticSnapshot,
-    MergeSchemaSnapshotDigestBasis, RelationalMergeInspectionAdmission,
+    MergeSchemaSnapshotDigestBasis, RelationalMergeAdmittedSurfaceRow,
+    RelationalMergeAspectPolicyWitnessRow, RelationalMergeCorrespondenceWitness,
+    RelationalMergeCorrespondenceWitnessPosture, RelationalMergeCorrespondenceWitnessRow,
+    RelationalMergeDeletionStrategyWitnessRow, RelationalMergeInspectionAdmission,
     RelationalMergeInspectionArtifact, RelationalMergeInspectionInput,
-    RelationalMergeInspectionRow,
+    RelationalMergeInspectionRow, RelationalMergeProofPacket,
+    RelationalMergeProofPacketAdmissionPosture, RelationalMergeProofPacketCanonicalBasis,
+    RelationalMergeStrategyWitness, RelationalMergeTopologyStrategyWitnessRow,
+    RelationalSchemaReconciliationBasisRow, RelationalSchemaReconciliationCorrespondenceLinkRow,
+    RelationalSchemaReconciliationWitness, RelationalSchemaReconciliationWitnessDenial,
+    RelationalSchemaReconciliationWitnessPosture, RelationalSchemaReconciliationWitnessRow,
 };
 pub use causal::{
     BranchCausalDot, CausalAnnotationSummary, CausalFrontier, CommitCausalMetadata,
@@ -53,10 +64,10 @@ pub use execution::{
     MaterializedAspectValue, MaterializedAspectValueEvidence, MergeExecutableRecordProvenance,
     MergeExecutionAuthorityBinding, MergeExecutionCompilationError, MergeExecutionDeniedRecord,
     MergeExecutionError, MergeExecutionFreshnessPolicy, MergeExecutionMutationPlanError,
-    MergeExecutionPreparationError, MergeExecutionReadinessReport, MergeExecutionRequest,
-    MergeLineageContinuityVerdict, MergeValueMaterialization, MergeValueSourceSide,
-    PreparedMergeExecution, PreserveSharedRecordPlan, ReconcileRecordPlan, ReconciledIdentityBasis,
-    RuntimeInstanceId, SharedTruthWitness, VisibleMergeRecordSnapshot,
+    MergeExecutionPreparationError, MergeExecutionReadinessReport, MergeLineageContinuityVerdict,
+    MergeValueMaterialization, MergeValueSourceSide, PreparedMergeExecution,
+    PreserveSharedRecordPlan, ReconcileRecordPlan, ReconciledIdentityBasis, RuntimeInstanceId,
+    SharedTruthWitness, VisibleMergeRecordSnapshot,
 };
 pub(crate) use execution_artifacts::diagnostics_plan_from_record_plans;
 pub use execution_artifacts::{
@@ -95,5 +106,11 @@ pub use policy::{
     MergeResolutionClass, ResolvedAspectMergePolicy, TopologyExecutionClass,
     TopologyRewireAdmissionPolicy,
 };
-pub use requests::{MergeIntent, MergePlanningRequest};
+pub use requests::{
+    MergeExecutionRequest, MergeIntent, MergePlanningRequest, NormalizedRelationalMergeRequest,
+    RelationalFoundationalMergeRequest, RelationalMergeCorrespondencePosture,
+    RelationalMergeRequestFamily, RelationalMergeRequestNormalizationDenial,
+    RelationalMergeSchemaReconciliationPosture, RelationalMergeScope,
+    RelationalMergeTopologyIntent,
+};
 pub use resolved_value_strategy::MergeResolvedAspectValueStrategy;

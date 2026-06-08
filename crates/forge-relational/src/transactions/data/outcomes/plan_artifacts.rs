@@ -1,5 +1,9 @@
-use crate::history::data::{BranchId, CommitId, OrderedParentList};
-use crate::merge::data::MergeExecutionRequest;
+use crate::history::data::{BranchId, CommitId, OrderedParentList, RelationalMergeBranchBasis};
+use crate::merge::data::{
+    NormalizedRelationalMergeRequest, RelationalMergeCorrespondenceWitness,
+    RelationalMergeProofPacket, RelationalMergeStrategyWitness,
+    RelationalSchemaReconciliationWitness,
+};
 use crate::transactions::data::{MutationIntent, RecordRef, TransactionId};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -41,7 +45,12 @@ pub struct MergeExecutionStructuralSummary {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MergeExecutionSummary {
-    pub request: MergeExecutionRequest,
+    pub request: NormalizedRelationalMergeRequest,
+    pub branch_basis: RelationalMergeBranchBasis,
+    pub correspondence_witness: RelationalMergeCorrespondenceWitness,
+    pub schema_reconciliation_witness: RelationalSchemaReconciliationWitness,
+    pub strategy_witness: RelationalMergeStrategyWitness,
+    pub proof_packet: RelationalMergeProofPacket,
     pub target_head_commit_id: CommitId,
     pub source_head_commit_id: CommitId,
     pub merge_base_commit_id: CommitId,
@@ -54,6 +63,47 @@ pub struct MergeExecutionSummary {
     pub emitted_mutation_intent_count: usize,
     pub diagnostics_digest: String,
     pub execution_digest: String,
+}
+
+impl MergeExecutionSummary {
+    pub fn proof_packet(&self) -> &RelationalMergeProofPacket {
+        &self.proof_packet
+    }
+
+    pub fn correspondence_witness(&self) -> &RelationalMergeCorrespondenceWitness {
+        &self.correspondence_witness
+    }
+
+    pub fn schema_reconciliation_witness(&self) -> &RelationalSchemaReconciliationWitness {
+        &self.schema_reconciliation_witness
+    }
+
+    pub fn strategy_witness(&self) -> &RelationalMergeStrategyWitness {
+        &self.strategy_witness
+    }
+
+    pub(crate) fn retains_consistent_proof_packet_authority(&self) -> bool {
+        let packet = self.proof_packet();
+        self.request == *packet.request()
+            && self.branch_basis == *packet.branch_basis()
+            && self.correspondence_witness.request_digest() == self.request.request_digest()
+            && self.correspondence_witness.branch_basis_digest() == self.branch_basis.basis_digest()
+            && packet.correspondence_witness_digest()
+                == self.correspondence_witness.witness_digest()
+            && self.schema_reconciliation_witness.request_digest() == self.request.request_digest()
+            && self.schema_reconciliation_witness.branch_basis_digest()
+                == self.branch_basis.basis_digest()
+            && packet.schema_reconciliation_witness_digest()
+                == self.schema_reconciliation_witness.witness_digest()
+            && self.strategy_witness.retains_honest_truth()
+            && self.strategy_witness.request_digest() == self.request.request_digest()
+            && self.strategy_witness.branch_basis_digest() == self.branch_basis.basis_digest()
+            && packet.strategy_witness_digest() == self.strategy_witness.witness_digest()
+            && self.execution_digest == packet.execution_digest()
+            && self.target_head_commit_id == self.branch_basis.target_head().commit_id
+            && self.source_head_commit_id == self.branch_basis.source_head().commit_id
+            && self.merge_base_commit_id == self.branch_basis.merge_base().commit().commit_id
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -88,6 +138,11 @@ impl PublishedMergeExecutionAuthority {
             execution_summary: plan.merge_execution_summary.clone(),
             structural_summary: plan.structural_summary.clone(),
         }
+    }
+
+    pub(crate) fn retains_consistent_proof_packet_authority(&self) -> bool {
+        self.execution_summary
+            .retains_consistent_proof_packet_authority()
     }
 }
 

@@ -39,7 +39,7 @@ pub(super) fn effective_merge_policies_for_record(
         .collect()
 }
 
-pub(super) fn ownership_surface_for_policies(
+pub(crate) fn ownership_surface_for_policies(
     applied_policies: &[ResolvedAspectMergePolicy],
 ) -> MergePolicyOwnershipSurface {
     if applied_policies
@@ -52,7 +52,7 @@ pub(super) fn ownership_surface_for_policies(
     }
 }
 
-pub(super) fn aggregate_record_resolution(
+pub(crate) fn aggregate_record_resolution(
     classification: MergeConflictClass,
     aspects: &[AspectPolicyResolutionRecord],
 ) -> MergePolicyDecisionBoundary {
