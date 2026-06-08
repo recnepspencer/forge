@@ -1,6 +1,7 @@
 mod definitions;
 mod evaluation;
 mod finite_graph_view;
+mod invariants;
 mod operations;
 
 use crate::domain_artifacts::core_artifact::{
@@ -12,11 +13,11 @@ use crate::domain_artifacts::digest_basis::{artifact_core, HadwigerArtifactPaylo
 use crate::domain_artifacts::HadwigerCanonicalArtifact;
 use crate::query_entry::HadwigerResearchHandle;
 
-use definitions::{invariant_definition, ALL_SCREENING_FAMILIES};
 pub use evaluation::{
     CandidateScreeningCertificate, CandidateScreeningEvaluation, CandidateScreeningEvaluationMode,
     CandidateScreeningEvaluationReport, CandidateScreeningVerdict,
 };
+use invariants::{invariant_definition, ALL_SCREENING_FAMILIES};
 pub use operations::{
     assemble_candidate_screening_report_checked, evaluate_certificate_screening_invariant_checked,
     evaluate_graph_screening_invariant_checked, CandidateScreeningError,
