@@ -229,18 +229,16 @@ cross-feature proof gates before final certification:
   provenance recovery, or authority explanation above Query, and so the Query
   public contract and bridge carry-forward contract remain one end-to-end
   evidence story rather than two drifting halves
-- `Milestone 9.4` must prove temporal query basis binding and time-aware
-  subscription lowering preserve canonical query meaning without making Query
-  the owner of clocks, wake scheduling, or signal temporal execution
-- `Milestone 9.5` must prove async/resource-backed query families preserve
-  query-shaped result meaning, supersession, retry, cancellation, and failure
-  taxonomy without turning Query into a transport or async lifecycle runtime
-- `Milestone 9.6` must prove mixed truth/time/async delivery preserves one
-  coherent query-shaped stream with deterministic cause ordering, replay
-  parity, and policy/tenant masking under hostile interleavings
-- `Milestone 9.7` must prove the temporal/async query surface is certified by
-  hostile bundles, reference workloads, diagnostics, exact counters, and
-  fail-closed support metadata before store-backed execution builds on it
+- `Milestone 9.4` must prove the merged runtime-backed temporal/async query
+  surface as one ordinary Query product lane: basis binding, declaration
+  families, result-state, mixed-cause delivery, downstream delivery contract,
+  and hostile certification all have to preserve canonical query meaning
+  without making Query the owner of clocks, async lifecycle execution, or
+  lower-cause ordering authority
+- `Milestone 9.5` must prove the reusable query composition, core view-shape,
+  grouped composition, projection-consumption, and preserved temporal/async
+  reuse debts are closed as production-ready Query productization lanes before
+  store-backed and durable milestones build on top of them
 - `Milestone 10` must prove store-backed execution and historical parity for
   admitted shared capability families
 - `Milestone 11` must prove durable saved-query, cursor, and artifact reload
@@ -264,8 +262,8 @@ Critical path:
   `Milestone 9.3.5` -> `Milestone 9.3.6` -> `Milestone 9.3.7` ->
   `Milestone 9.3.8` -> `Runtime API Public Stabilization Gate` ->
   `Runtime Authoritative Mutation Evidence Gate` -> `Milestone 9.4` ->
-  `Milestone 9.5` -> `Milestone 9.6` -> `Milestone 9.7` ->
-  `Milestone 10` -> `Milestone 11` -> `Milestone 12` -> `Milestone 13`
+  `Milestone 9.5` -> `Milestone 10` -> `Milestone 11` -> `Milestone 12` ->
+  `Milestone 13`
 
 Store-gated completion tracks:
 
@@ -343,21 +341,15 @@ Store-gated completion tracks:
   naming/continuity evidence contract without claiming temporal, async,
   store-backed, durable, or lower-runtime semantic completion beyond the
   admitted public facade
-- `Milestone 9.4` can ship runtime-backed temporal query basis semantics and
-  time-aware subscription lowering first, but durable time-aware replay,
-  persisted temporal subscription artifacts, and store-restored clock basis
-  parity remain postponed to `Milestone 10` and `Milestone 11`
-- `Milestone 9.5` can ship runtime-backed async/resource query declarations
-  and completion-causality semantics first, but durable inflight restoration,
-  persisted resource checkpoints, and cross-restart retry state remain
-  postponed to `Milestone 11`
-- `Milestone 9.6` can ship mixed truth/time/async delivery semantics first,
-  but durable mixed-cause delivery continuation and store-backed replay remain
+- `Milestone 9.4` can ship the merged runtime-backed temporal/async query
+  surface first, but durable temporal replay, persisted async continuation,
+  restart-stable saved artifacts, and store-backed temporal/async parity remain
   postponed to `Milestone 10` and `Milestone 11`
-- `Milestone 9.7` can close runtime-backed temporal/async query certification
-  first, but any final certification row that claims durable restore,
-  persisted resource continuation, or store-backed temporal replay remains
-  blocked until `Milestone 10` and `Milestone 11` close
+- `Milestone 9.5` must close runtime-backed productization debt in reusable
+  composition, core view shapes, grouped planning, projection consumption, and
+  preserved temporal/async reuse without claiming store-backed saved-query
+  reload, durable temporal/async reuse, or restart-stable artifact
+  continuation before `Milestone 10` and `Milestone 11`
 - `Milestone 10` is the first intentionally store-gated execution milestone
 - `Milestone 11` is the intentionally store-gated durable artifact milestone
 - `Milestone 12` is the intentionally store-gated blob/media milestone
@@ -2386,8 +2378,9 @@ RawBasisIntent
 - relational remains the authority for branch, commit, snapshot, and head truth
 - Query owns public basis capability admission and use receipts
 - raw lower-runtime basis identifiers do not become public capability tokens
-- temporal/resource basis extensions in Milestones 9.4 through 9.7 extend the
-  same lifecycle rather than inventing parallel basis APIs
+- temporal/resource basis extensions in Milestone 9.4 and the follow-on reuse
+  hardening in Milestone 9.5 extend the same lifecycle rather than inventing
+  parallel basis APIs
 
 ### Acceptance Evidence
 
@@ -2791,8 +2784,9 @@ meaning from host-local glue. The first of those shared hardening specs is
 
 Freeze the ordinary public runtime API contract after the runtime facade has
 consumed Milestones 9.1 through 9.3.8, so downstream domain runtimes can build
-against named surfaces and typed handles now while Milestones 9.4 through 9.7
-later extend the same API model with temporal and async/resource semantics.
+against named surfaces and typed handles now while Milestones 9.4 and 9.5
+later extend the same API model with temporal/async semantics and the related
+productization cleanup.
 
 ### Adversarial Constraint
 
@@ -2820,7 +2814,7 @@ The governing stabilization spec is
 ### Must Preserve
 
 - no domain semantics move into `forge-query`
-- temporal/async behavior remains deferred until Milestones 9.4 through 9.7
+- temporal/async behavior remains deferred until Milestones 9.4 and 9.5
 - lower runtimes remain authorities for truth, signal execution, bridge
   protocol, temporal scheduling, async lifecycle, store parity, and durability
 - later temporal/async milestones extend the stabilized handle/state/aspect
@@ -2917,484 +2911,210 @@ surfaces and certification obligations in
 are also satisfied. That follow-on closure now exists in
 [runtime-generic-graph-authoring-closeout.md](./runtime-generic-graph-authoring-closeout.md).
 
-## Milestone 9.4: Temporal Query Basis And Time-Aware Subscriptions
+## Milestone 9.4: Runtime-Backed Temporal And Async Query Surface
 
 ### Goal
 
-Make temporal query intent explicit in canonical query artifacts so a live
-query can depend on both truth changes and admitted time progression without
-turning Query into the owner of clocks or reactive scheduling.
+Close the full runtime-backed temporal and async Query product surface so
+application code can declare, admit, inspect, execute, and consume temporal
+wakes, async/resource lifecycle, and mixed truth/time/async delivery through
+one canonical Query facade before store-backed and durable follow-on work
+begins.
 
 ### Adversarial Constraint
 
-A time-aware query must produce the same query-shaped result and explanation
-when equivalent truth inputs, historical bases, temporal wakes, and
-subscription declarations are replayed through independent runtime-backed
-lanes, while every semantic difference between truth time-travel and signal
-execution time remains explicit in the basis bundle.
+For the same canonical Query declaration, truth-view basis, temporal posture,
+tenant/policy context, preview posture, and async source family, Query must
+produce the same admitted Query basis, the same result-state meaning, the same
+mixed-cause delivery ordering, and the same explanation artifacts regardless
+of whether the observed change came from a relational truth patch, a time-only
+wake, an async completion, a retry or revalidation path, replay, restart or
+resume, or preview promotion or discard.
 
 ### Why This Milestone Exists
 
-Milestone 6 gives Query historical truth basis semantics. Milestones 9.1
-through 9.3.7 give Query subscription declaration, lifecycle, diagnostic
-honesty, cross-runtime causal inspection, basis capability, effect execution,
-projection consumption, admission decisions, lower-runtime routing, and
-domain-authored capability contribution materialization. Once Forge Signal and
-the Runtime Bridge can express temporal execution basis, Query needs a roadmap
-home for saying what time-aware live queries mean.
+Bridge Milestone 17 now closes the lower-authority temporal and async law:
+temporal bridge basis, time-aware subscription admission, async source
+declaration identity, completion causality, mixed-cause ordering,
+restart/resume posture, preview residue law, and offline certification
+bundles. Query now has to project that into one ordinary product surface
+instead of splitting temporal, async, mixed-cause, and certification into
+separate roadmap milestones.
 
 Without this milestone:
 
-- a temporal view could confuse historical truth time with clock-driven live
-  execution time
-- a time-only wake could be delivered as host-local UI state instead of a
-  query-shaped result change
-- freshness, stale-after, rolling-window, or deadline-like semantics could be
-  implemented as ambient timers outside canonical query artifacts
-- bridge temporal basis could drift from the canonical query basis without a
-  query-owned proof bundle noticing
+- downstream domains would have to reach around Query for temporal or async
+  behavior
+- app surfaces would invent local pending, fulfilled, stale, cancelled, or
+  superseded meaning that drifts from bridge-closed causality law
+- time-only changes would be treated as diagnostics noise or fake truth patches
+- `forge-server` and later consumers would inherit half-Query, half-host
+  delivery semantics instead of one typed contract
 
 ### Must Ship
 
-- temporal query context descriptors that distinguish:
-  - truth basis: current, branch, snapshot, commit, historical, or diff basis
-  - temporal execution basis: clock identity, wake class, eligibility window,
-    previous-value comparison basis, and admitted temporal strategy
-- time-aware subscription declaration extensions for:
-  - stale-after result eligibility
-  - refresh interval and one-shot deadline semantics where admitted
-  - rolling and sliding window result views
-  - timeline/chart view interactions that require time-only reevaluation
-- query-shaped delivery metadata for temporal causes, including time-only
-  deliveries where no truth patch occurred
-- bridge-lowered temporal basis request artifacts that bind canonical query
-  digest, subscription declaration digest, and signal temporal strategy digest
-- diagnostics for denied or deferred temporal query families
+- temporal query basis descriptors and time-aware subscription lowering through
+  the stabilized Query runtime facade
+- async/resource query families with typed result-state and completion-cause
+  semantics
+- mixed truth/time/async delivery ordering, coalescing, and replay-equivalent
+  query-shaped delivery metadata
+- restart-aware runtime-backed temporal and async continuation posture where
+  admitted
+- typed support metadata, diagnostics, and hostile certification for the full
+  merged temporal/async surface
 
 ### Must Preserve
 
-- Query owns temporal query meaning and result shape, not clocks, timers, wake
-  queues, or reactive scheduling
-- Forge Signal remains authoritative for temporal execution and previous-value
-  runtime mechanics
-- Runtime Bridge remains authoritative for cross-runtime temporal basis
-  lowering and bridge-facing wake protocol semantics
-- Relational and Store remain authoritative for historical truth basis and
-  commit/snapshot identity
-- time-travel reads remain historical truth semantics; time-aware live
-  reevaluation remains temporal execution semantics
-
-### Complexity / Proof Obligations
-
-- name temporal query basis binding, temporal subscription lowering, temporal
-  cause delivery, and time-aware replay contracts
-- expose exact counters for temporal basis bindings, time-only wakes,
-  temporal delivery emissions, rejected ambient-clock requests, bridge
-  temporal parity checks, and previous-value comparison breadth
-- prove that equivalent time-aware query declarations lower to the same bridge
-  temporal basis request and result delivery semantics
-- prove time-only wakes do not scan unrelated truth, widen projection, or emit
-  raw signal events as the consumer contract
-
-### Allowed Debt
-
-- durable temporal subscription artifact replay and store-restored clock basis
-  parity may remain `Debt` until Milestones 10 and 11 close
-- ambient host clocks, unbound timers, or temporal result changes outside
-  canonical query delivery may not ship as debt
+- Query owns public product meaning and result shape, not clock truth, wake
+  scheduling, async lifecycle truth, retry policy, or mixed-cause authority
+- `forge-runtime-bridge` remains authoritative for temporal basis, async
+  identity, completion causality, mixed-cause ordering, restart/resume basis,
+  preview residue law, and certification bundle shape
+- `forge-signal` remains authoritative for temporal eligibility,
+  previous-value semantics, wake readiness, async lifecycle, retry, timeout,
+  cancellation, supersession, and revalidation policy
+- historical truth basis remains distinct from temporal execution basis at
+  every public Query boundary
 
 ### Sequencing Notes
 
-This belongs after Milestone 9.3.7 because Query needs certified subscription
-family diagnostics, cross-runtime causal inspection, basis capability,
-authority-scoped effects, projection consumption, decision traces,
-lower-runtime routing, and domain-authored capability contribution
-materialization before adding temporal basis as another admitted family
-dimension.
+This milestone absorbs the old roadmap `9.4`, `9.5`, `9.6`, and `9.7` split
+into one Query milestone. The detailed internal execution plan now lives in
+[milestone-9.4.md](./milestone-9.4.md).
+
+It belongs after the runtime API stabilization and authoritative mutation
+evidence gates because Query must extend one already-stabilized ordinary
+runtime facade.
 
 It belongs before Milestone 10 because store-backed execution parity should
-not be forced to discover temporal query semantics while also closing durable
-backend parity.
-
-### Parallelization Notes
-
-Temporal query context descriptors, view-shape temporal semantics, and bridge
-temporal parity harnesses can progress in parallel once the Signal and Runtime
-Bridge temporal surfaces are available.
+not be forced to discover temporal, async, mixed-cause, and certification
+semantics while also closing durable backend parity.
 
 ### Store Dependency
 
-- Runtime-backed temporal query basis and time-aware subscription lowering are
-  not blocked on `forge-store`.
-- Store-backed historical restore plus temporal replay parity remains
-  Milestone 10 scope.
-- Durable temporal subscription artifacts and persisted temporal continuation
-  remain Milestone 11 scope.
+- Runtime-backed temporal basis, async families, mixed-cause delivery, and
+  certification are not blocked on `forge-store`.
+- Store-backed historical restore, persisted temporal replay, and durable
+  async continuation remain later scope for Milestones `10` and `11`.
 
 ### Acceptance Evidence
 
 This milestone is complete only when `forge-query` can prove:
 
-- the `Temporal Query Basis And Time-Aware Subscription Parity Test` in
+- the merged temporal/async certification suites in
   [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
-  passes with canonical machine-checkable artifacts
+  pass with canonical machine-checkable artifacts
+- temporal query basis, time-only delivery, async/resource result-state, and
+  mixed truth/time/async ordering all remain Query-shaped and replay-equivalent
+- unsupported ambient clocks, unbound timers, stale async completions, raw
+  timer folklore, and unsupported mixed-cause neighbors fail typed and early
+- the milestone-close proof matches the merged [milestone-9.4.md](./milestone-9.4.md)
+  closure instead of leaving separate old `9.5` through `9.7` gaps behind
 
-- temporal query basis bundles distinguish truth time-travel from temporal
-  execution time in every admitted lane
-- time-only deliveries are query-shaped and replay-equivalent
-- unsupported ambient-clock or unbound timer semantics fail typed and early
-- bridge-lowered temporal basis artifacts match canonical query and
-  subscription declaration digests
-
-## Milestone 9.5: Async Resource Query Families And Completion Causality
+## Milestone 9.5: Query Productization Debt Cleanup For Reuse, View Shapes, And Typed Consumption
 
 ### Goal
 
-Make async/resource-backed query families first-class query declarations so
-pending, fulfilled, failed, stale, cancelled, retried, and superseded results
-remain typed, policy-aware, and causally bound to the query basis that admitted
-them.
+Close the remaining runtime-backed Query productization debt in reusable
+composition, core view-shape families, grouped composition, retained-artifact
+projection consumption, and preserved temporal/async reuse so the ordinary
+product facade stops carrying visible-but-not-fully-hardened lanes into the
+store-backed and durable milestones.
 
 ### Adversarial Constraint
 
-Out-of-order completions, retries, cancellation races, branch promotion,
-policy changes, tenant changes, and query-basis rebinding must never allow an
-old async completion to update the wrong query result, leak masked data, or
-look equivalent to a newer query/resource basis.
+For the same canonical query declaration, scope/template expansion, view-shape
+family, retained result artifact, basis/remask posture, and preserved
+temporal/async reuse posture, Query must produce the same canonical
+declaration identity, the same support/admission posture, the same
+fact-consumption contract, and the same delivery/reuse meaning regardless of
+whether the caller reaches the lane through direct composition, grouped
+composition, inspector/grouped reuse, or retained artifact consumption.
 
 ### Why This Milestone Exists
 
-Forge Query wants developers to express data needs once. After Signal and the
-Runtime Bridge can model async resource lifecycle, Query needs to declare what
-async-backed query results mean without smuggling resource state into host UI
-code.
+The old roadmap split temporal/async work into `9.4` through `9.7`, but that
+semantic work now closes inside one merged [milestone-9.4.md](./milestone-9.4.md).
+That leaves a different remaining problem: several ordinary productization
+lanes are admitted, documented, and in daily use, but still carry explicit
+debt markers or structurally unfinished reuse/productization work.
 
 Without this milestone:
 
-- loading/error/stale states become framework-local conventions instead of
-  typed query result contracts
-- async completions can race against newer truth, policy, tenant, or branch
-  bases without a canonical supersession decision
-- retries and revalidations can look like new query meaning rather than a
-  controlled lifecycle transition for the same declared query family
-- failures can collapse into strings that cannot be localized by diagnostic or
-  certification bundles
+- store-backed and durable milestones will freeze half-hardened composition and
+  view-shape semantics
+- direct consumers will keep hitting special-case pack/bind/decode seams where
+  Query claims a typed fact-consumption lane
+- support and profile surfaces will keep advertising core product families as
+  admitted-but-debt instead of actually closed
 
 ### Must Ship
 
-- async/resource query family declarations for admitted query shapes
-- result-state descriptors for pending, fulfilled, failed, stale, cancelled,
-  retried, revalidating, and superseded resource states
-- query basis binding for async source identity, generation, policy context,
-  tenant context, branch/preview basis, and result shape
-- completion-causality artifacts that decide whether a completion is current,
-  stale, denied, or superseded before result materialization
-- retry and revalidation declarations that remain query-owned intent and lower
-  execution lifecycle into bridge/signal authorities
-- failure taxonomy and diagnostics for source denial, cancellation,
-  supersession, retry exhaustion, policy denial, tenant drift, and unsupported
-  resource family
+- hardened named-scope expansion and template-instantiation support profiles
+  that can move from `debt` to production-ready runtime-backed closure
+- hardened core view-shape families for `table`, `detail`,
+  `inspector_detail_observed`, `inspector_detail_focused`, and
+  `kanban_grouped`, including their support/profile and ordinary product
+  semantics
+- grouped template/composition closure so grouped planning is no longer an
+  admitted public lane carrying explicit composition debt
+- projection-consumption source-family closure for retained derived artifact
+  bindings and live artifact bindings where Query intends them to participate
+  as first-class typed fact sources
+- hardened runtime-backed preserved reuse across the inspector/grouped
+  temporal/async neighbors so the covered reuse surface carries merged `9.4`
+  meaning end to end
+- simple public raw runtime bootstrap for a valid bridge-backed read runtime
+  so hostile runtime-backed tests do not need custom assembly just to reach the
+  ordinary read lane
 
 ### Must Preserve
 
-- Query owns async/resource query meaning and result shape, not transport,
-  task execution, fetch scheduling, or retry timers
-- Runtime Bridge remains authoritative for resource lifecycle protocol and
-  completion delivery below Query
-- Forge Signal remains authoritative for async resource state propagation and
-  reactive invalidation
-- policy and tenant masking must apply before async result materialization,
-  not as a post-completion redaction layer
-- async result states must be typed query outcomes, not host-local strings
-
-### Complexity / Proof Obligations
-
-- name async resource declaration, completion-causality, supersession,
-  retry/revalidation, cancellation, and failure-localization contracts
-- expose exact counters for resource declarations, inflight generations,
-  stale completion denials, supersession decisions, retry admissions,
-  cancellation decisions, and async failure-class emissions
-- prove out-of-order completion cannot mutate a superseded query basis
-- prove retry and revalidation preserve query identity unless the declared
-  basis intentionally changes
-
-### Allowed Debt
-
-- durable inflight restore, persisted retry state, and cross-restart resource
-  continuation may remain `Debt` until Milestone 11
-- host-local loading/error conventions that bypass query result state may not
-  ship as the claimed query resource solution
+- scope/template expansion remains canonical declaration composition rather
+  than string substitution or host-local query rewriting
+- view shape remains part of planning, delivery, and reuse semantics rather
+  than display-only sugar
+- projection consumption remains the typed fact lane; it must not collapse back
+  into row-bag decoding folklore
+- temporal/async reuse must preserve the merged `9.4` runtime-backed meaning
+  rather than erasing time/async posture during scope/template/view reuse
 
 ### Sequencing Notes
 
-This belongs after Milestone 9.4 because async resource families must bind to
-the same query/subscription basis vocabulary that temporal query semantics
-introduce.
+The detailed debt-close execution plan for this milestone now lives in
+[milestone-9.5.md](./milestone-9.5.md).
 
-It belongs before Milestone 9.6 because mixed-cause delivery cannot be honest
-until both temporal and async causes have canonical query artifacts.
+This milestone belongs immediately after the merged
+[milestone-9.4.md](./milestone-9.4.md) closure so runtime-backed temporal and
+async meaning is already frozen before reusable composition, retained
+artifacts, and preserved view-shape reuse try to carry it forward.
 
-### Parallelization Notes
-
-Async family declarations, failure taxonomy, and supersession harnesses can
-progress independently, but final closure should wait until one causality
-bundle binds query basis, bridge resource lifecycle, signal async generation,
-and result-state semantics together.
+It belongs before Milestones `10` and `11` because store-backed and durable
+milestones should not inherit half-hardened runtime-backed productization
+surfaces as if they were final.
 
 ### Store Dependency
 
-- Runtime-backed async/resource query semantics are not blocked on
-  `forge-store`.
-- Durable inflight restoration, persisted retry/checkpoint state, and
-  restart-stable resource continuation are Milestone 11 scope.
+- This milestone is not blocked on `forge-store`.
+- Durable saved-query reload, restart-stable continuation, and store-backed
+  temporal/async reuse remain later scope for Milestones `10` and `11`.
 
 ### Acceptance Evidence
 
 This milestone is complete only when `forge-query` can prove:
 
-- the `Async Resource Query Family And Completion Causality Test` in
-  [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
-  passes with canonical machine-checkable artifacts
-
-- async query result states are typed and digest-bound to the query basis
-- stale, denied, and superseded completions fail before result mutation
-- retry/revalidation preserves or intentionally changes query identity with
-  explicit evidence
-- failure bundles localize source, policy, tenant, cancellation, retry, and
-  support-denial classes
-
-## Milestone 9.6: Mixed Truth, Time, And Async Delivery Semantics
-
-### Goal
-
-Define one coherent query-shaped delivery stream for subscriptions whose
-visible result can change because of truth patches, temporal wakes, async
-resource completions, retries, cancellations, policy changes, tenant changes,
-preview lifecycle transitions, or branch promotion/discard.
-
-### Adversarial Constraint
-
-When truth, time, and async causes interleave adversarially, Query must emit
-deterministic, replay-equivalent, policy-safe result deliveries whose ordering,
-coalescing, suppression, and explanation are derived from canonical cause
-metadata rather than host event arrival order.
-
-### Why This Milestone Exists
-
-Milestones 9.4 and 9.5 introduce temporal and async query semantics. A
-production subscription does not get to handle those in separate lanes forever:
-real consumers need one result stream and one explanation of why the result
-changed.
-
-Without this milestone:
-
-- a truth patch and async completion could race into inconsistent result
-  ordering
-- time-only reevaluation could bypass policy/tenant masking or live
-  suppression rules
-- retry/cancel/completion events could be exposed as raw resource events
-  instead of query-shaped result changes
-- preview promotion or discard could leave temporal or async residue attached
-  to the wrong branch basis
-
-### Must Ship
-
-- canonical mixed-cause delivery metadata covering truth, temporal, async,
-  retry, cancellation, policy, tenant, preview, promotion, discard, and
-  support-denial causes
-- deterministic cause ordering and coalescing rules for admitted query families
-- query-shaped delivery batches that can include mixed-cause explanations
-  without exposing raw CDC, raw signal wake events, or raw resource completions
-- preview/branch lifecycle handling for temporal and async residue
-- suppression and tolerance interaction rules for mixed-cause updates
-- diagnostics for mixed-cause ordering denial, coalescing denial, residue
-  denial, policy/tenant remask, and unsupported composed family
-
-### Must Preserve
-
-- canonical query result meaning must not depend on host event arrival order
-- mixed-cause delivery must remain derived from canonical truth, temporal
-  basis, async resource basis, and subscription declaration artifacts
-- policy and tenant masking remain part of Query planning/result semantics
-  rather than post-delivery filtering
-- bridge and signal continue to own protocol and execution mechanics beneath
-  Query-owned delivery meaning
-
-### Complexity / Proof Obligations
-
-- name mixed-cause ordering, delivery coalescing, preview residue, suppression
-  interaction, and replay parity contracts
-- expose exact counters for cause events consumed, delivery batches emitted,
-  coalesced cause groups, suppressed cause groups, ordering denials, residue
-  denials, remask operations, and replay comparisons
-- prove replay of the same canonical cause sequence produces identical query
-  delivery digests
-- prove host event arrival order variation cannot change canonical delivery
-  meaning for admitted families
-
-### Allowed Debt
-
-- durable mixed-cause delivery continuation and store-backed replay may remain
-  `Debt` until Milestones 10 and 11
-- raw event fanout to consumers may not ship as the mixed-cause query delivery
-  solution
-
-### Sequencing Notes
-
-This belongs after Milestones 9.4 and 9.5 because it composes temporal and
-async cause semantics into one consumer-facing query delivery contract.
-
-It belongs before Milestone 9.7 because the certification closure needs a
-complete mixed-cause surface to test.
-
-### Parallelization Notes
-
-Cause ordering, preview residue, suppression interaction, and diagnostic
-localization can progress in parallel. Final closure should wait until a
-single mixed-cause replay bundle covers all admitted cause classes.
-
-### Store Dependency
-
-- Runtime-backed mixed-cause delivery semantics are not blocked on
-  `forge-store`.
-- Store-backed mixed-cause replay and durable continuation remain Milestones
-  10 and 11 scope.
-
-### Acceptance Evidence
-
-This milestone is complete only when `forge-query` can prove:
-
-- the `Mixed Truth Time Async Query Delivery Ordering Test` in
-  [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
-  passes with canonical machine-checkable artifacts
-
-- truth, temporal, async, retry, cancellation, policy, tenant, and preview
-  causes produce deterministic query-shaped deliveries
-- replay and independently produced equivalent lanes produce the same delivery
-  digests
-- unsupported mixed-cause compositions fail typed and early
-- policy/tenant masking holds under every admitted cause ordering
-
-## Milestone 9.7: Temporal And Async Query Certification Closure
-
-### Goal
-
-Certify the runtime-backed temporal/async query surface under hostile
-production-grade scenarios before store-backed execution, durable artifacts,
-and final query certification build on top of it.
-
-### Adversarial Constraint
-
-No temporal, async, or mixed-cause query capability may be advertised as
-supported unless hostile certification bundles prove canonical query meaning,
-basis binding, bridge/signal lowering, delivery ordering, failure localization,
-counter bounds, and support metadata agreement across equivalent, adversarial,
-and explicitly rejected lanes.
-
-### Why This Milestone Exists
-
-Milestones 9.4 through 9.6 add powerful query semantics at the exact boundary
-where weak systems tend to smuggle ambient clocks, host-local async state, raw
-transport events, and best-effort delivery ordering. This milestone closes the
-trust boundary before Milestone 10 turns to store-backed execution parity.
-
-Without this milestone:
-
-- temporal/async features could exist without hostile proof
-- support metadata could claim combinations that only work in one happy path
-- diagnostics could fail to localize whether drift came from Query, Bridge,
-  Signal, policy/tenant masking, preview lifecycle, or source completion
-- final Milestone 13 certification would discover structural gaps too late
-
-### Must Ship
-
-- temporal/async query support matrix and capability registry rows
-- certification bundles for temporal basis, async resource families,
-  mixed-cause delivery, diagnostics, support metadata, and failure taxonomy
-- reference workload covering at minimum:
-  - branch-scoped live query
-  - time-only wake
-  - truth patch plus temporal wake
-  - async success, failure, cancellation, retry, stale completion, and
-    supersession
-  - preview promotion and discard with temporal/async residue
-  - policy/tenant remasking during temporal and async delivery
-  - unsupported ambient clock, unsupported resource family, and unsupported
-    mixed-cause composition
-- support metadata enforcement proving uncertified temporal/async surfaces are
-  denied or deferred
-- diagnostic bundles sufficient for offline localization of every admitted and
-  rejected temporal/async family
-
-### Must Preserve
-
-- certification must prove existing temporal/async semantics rather than
-  inventing new execution behavior
-- Query certification remains about query meaning, result shape, support
-  honesty, and delivery proof, not lower-runtime scheduling or transport
-  authority
-- durable restore and store-backed replay claims remain explicit debt until
-  Milestones 10 and 11
-- certification bundles must be machine-checkable and digest-bound, not visual
-  inspection or log-reading exercises
-
-### Complexity / Proof Obligations
-
-- name temporal/async certification bundle, support matrix, reference
-  workload, diagnostic sufficiency, and support enforcement contracts
-- expose exact counters for certification rows executed, hostile lanes covered,
-  rejected combinations, support rows advertised, support rows denied,
-  diagnostic bundles emitted, replay comparisons, and counter-bound violations
-- prove every shipped temporal/async capability has at least one hostile
-  certification row and one fail-closed unsupported-neighbor row
-- prove support metadata, executable admission, diagnostics, and certification
-  coverage agree for every temporal/async family
-
-### Allowed Debt
-
-- store-backed temporal replay, durable inflight resource restore, and durable
-  mixed-cause continuation may remain blocked debt until Milestones 10 and 11
-- missing runtime-backed hostile rows, unsupported-neighbor rows, or support
-  enforcement may not ship as debt
-
-### Sequencing Notes
-
-This belongs after Milestone 9.6 because certification needs the complete
-temporal, async, and mixed-cause surface.
-
-It belongs before Milestone 10 because store-backed parity should extend a
-certified runtime-backed semantic surface rather than becoming the place where
-temporal/async query meaning is discovered.
-
-### Parallelization Notes
-
-Certification harness work can begin while 9.4 through 9.6 are being
-implemented, but final closure waits until support metadata, diagnostics, and
-reference workload rows all agree.
-
-### Store Dependency
-
-- Runtime-backed temporal/async certification is not blocked on `forge-store`.
-- Certification rows that claim store-backed temporal replay, durable inflight
-  restore, persisted retry state, or durable mixed-cause continuation remain
-  blocked until Milestones 10 and 11.
-
-### Acceptance Evidence
-
-This milestone is complete only when `forge-query` can prove:
-
-- the `Temporal Async Query Certification Matrix Sufficiency Test` in
-  [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
-  passes with canonical machine-checkable artifacts
-
-- every runtime-backed temporal/async query capability advertised as supported
-  has hostile certification coverage
-- support metadata, admission behavior, diagnostic bundles, and certification
-  rows agree
-- reference workloads cover mixed truth/time/async behavior under policy,
-  tenant, preview, retry, cancellation, and supersession pressure
-- durable and store-backed temporal/async claims remain explicit later-
-  milestone debt rather than implied support
+- the explicit `debt` markers for named-scope expansion, template
+  instantiation, and the admitted core view-shape families are removed
+- grouped composition docs and support/profile surfaces no longer describe the
+  admitted grouped planning lane as composition debt
+- retained derived artifact bindings and live artifact bindings no longer force
+  product code through special-case runtime-owned fact seams where Query claims
+  a first-class projection-consumption lane
+- inspector/grouped temporal/async reuse neighbors carry canonical
+  runtime-backed semantics across the covered reuse surface
+- hostile runtime-backed read tests no longer need a custom minimal
+  bridge-backed harness just to obtain a valid raw runtime read path
 
 ## Milestone 10: Store-Backed Execution, Pushdown, And Historical Parity
 
@@ -3877,11 +3597,17 @@ answer is "store-gated" or "shared with another subsystem."
 | Lower-runtime capability routing | Milestone 9.3.6, shared with runtime bridge, relational, signal, and store | Lower-runtime route plans, boundary execution receipts, lower-runtime boundary envelopes | Lower-runtime contact is capability-routed and receipt-backed; remaining direct paths are explicit compatibility debt | Milestone 9.3.6 boundary routing certification + Milestone 13 support-matrix suites |
 | Domain-authored capability contributions | Milestone 9.3.7 | Domain capability contribution requests, admitted domain capability artifacts, canonical runtime materializers, declaration-scoped support traceability artifacts, workflow/continuity/aftermath/explanation contribution families | Domains contribute semantic capability posture through one public Query seam while Query keeps canonical runtime artifact ownership across major category families | Milestone 9.3.7 domain capability certification + Milestone 13 diagnostics/support suites |
 | Query-as-beginning platform entry for serious downstream domains | Milestone 9.3.8, shared with forge-proof, forge-foundational, forge-relational, forge-runtime-bridge, and forge-signal | Typed domain entry surfaces, canonical declaration artifacts, progression states, route plans, boundary receipts, boundary envelopes, support/readiness snapshots, orchestration artifacts, certification bundles, and collaboration-entry prerequisites from shared lower-authority hardening specs | Serious downstream domains enter Forge through one Query-owned seam that covers declaration, preparation, continuation, inspection, and lower-authority routing without rebuilding local pseudo-Query layers; later collaboration-facing phases consume retained lower-authority branch, merge, lineage, preview, policy, and strategy posture instead of reopening host glue | Milestone 9.3.8 platform-entry certification + Milestone 13 diagnostics/support/workflow suites |
-| Temporal query basis and time-aware subscriptions | Milestone 9.4, shared with runtime bridge and signal temporal execution | Temporal query context descriptors, temporal subscription declaration metadata, bridge temporal basis requests | Truth basis and temporal execution basis stay distinct; time-only deliveries remain query-shaped | Milestone 9.7 temporal/async certification + Milestone 13 live/history suites |
-| Time-only query result delivery | Milestone 9.4 | Temporal cause metadata, time-aware delivery batches, previous-value comparison basis | Clock wakes can change admitted query results without raw signal events or ambient timers | Milestone 9.7 temporal/async certification |
-| Async/resource query families | Milestone 9.5, shared with runtime bridge and signal async resources | Async resource query declarations, result-state descriptors, completion-causality artifacts | Stale, cancelled, retried, failed, and superseded completions remain query-shaped and basis-bound | Milestone 9.7 temporal/async certification |
-| Mixed truth/time/async delivery | Milestone 9.6 | Mixed-cause delivery metadata, cause ordering receipts, coalescing/suppression diagnostics | Host event arrival order cannot change canonical query-shaped delivery meaning | Milestone 9.7 temporal/async certification + Milestone 13 cross-feature suites |
-| Temporal/async query certification | Milestone 9.7 | Temporal/async certification bundles, support matrix rows, diagnostic sufficiency bundles, reference workload artifacts | Every advertised runtime-backed temporal/async query family has hostile proof and fail-closed unsupported-neighbor coverage | Milestone 9.7 completion itself + Milestone 13 query certification matrix |
+| Temporal query basis and time-aware subscriptions | Milestone 9.4, shared with runtime bridge and signal temporal execution | Temporal query context descriptors, temporal subscription declaration metadata, bridge temporal basis requests | Truth basis and temporal execution basis stay distinct; time-only deliveries remain query-shaped | Milestone 9.4 temporal/async certification + Milestone 13 live/history suites |
+| Time-only query result delivery | Milestone 9.4 | Temporal cause metadata, time-aware delivery batches, previous-value comparison basis | Clock wakes can change admitted query results without raw signal events or ambient timers | Milestone 9.4 temporal/async certification |
+| Async/resource query families | Milestone 9.4, shared with runtime bridge and signal async resources | Async resource query declarations, result-state descriptors, completion-causality artifacts | Stale, cancelled, retried, failed, and superseded completions remain query-shaped and basis-bound | Milestone 9.4 temporal/async certification |
+| Mixed truth/time/async delivery | Milestone 9.4 | Mixed-cause delivery metadata, cause ordering receipts, coalescing/suppression diagnostics | Host event arrival order cannot change canonical query-shaped delivery meaning | Milestone 9.4 temporal/async certification + Milestone 13 cross-feature suites |
+| Temporal/async query certification | Milestone 9.4 | Temporal/async certification bundles, support matrix rows, diagnostic sufficiency bundles, reference workload artifacts | Every advertised runtime-backed temporal/async query family has hostile proof and fail-closed unsupported-neighbor coverage | Milestone 9.4 completion itself + Milestone 13 query certification matrix |
+| Scope/template composition hardening | Milestone 9.5 | Canonical scope-expansion artifacts, template-instantiation artifacts, scope/template support rows | Reusable composition stays canonical and support-typed instead of remaining admitted debt | Milestone 9.5 debt-close certification + Milestone 13 composition suites |
+| Core view-shape family hardening | Milestone 9.5 | Production-ready `table`, `detail`, inspector-detail, and grouped-view-shape artifacts | Core view families stop advertising admitted-but-debt runtime-backed posture | Milestone 9.5 debt-close certification + Milestone 13 view-shape suites |
+| Grouped composition closure | Milestone 9.5 | Grouped template/composition artifacts, grouped planning support profiles | Grouped planning no longer carries explicit composition debt in ordinary product docs or support surfaces | Milestone 9.5 debt-close certification |
+| Retained-artifact projection consumption hardening | Milestone 9.5 | Retained derived-artifact and live-artifact source-family bindings, typed fact receipts | Projection consumption remains the ordinary typed fact lane rather than special-case pack/bind/decode folklore | Milestone 9.5 debt-close certification + Milestone 13 projection/domain suites |
+| Preserved temporal/async reuse-neighbor closure | Milestone 9.5 | Inspector/grouped preserved reuse artifacts, preserved runtime-backed semantics, reuse digests | Covered temporal/async reuse neighbors carry merged `9.4` meaning across the full runtime-backed reuse surface | Milestone 9.5 debt-close certification + Milestone 13 cross-feature suites |
+| Raw runtime read bootstrap hardening | Milestone 9.5 | Valid bridge-backed read-runtime bootstrap artifact, raw runtime bootstrap support posture, hostile read-runtime harness entry surface | Hostile runtime-backed read tests can reach the ordinary raw read lane without custom bridge-backed assembly folklore | Milestone 9.5 debt-close certification + Milestone 13 runtime/read harness suites |
 | Region-scoped live invalidation | Milestone 5.1 | Region/partition-aware invalidation metadata, locality predicates, region-scoped suppression metadata | Live narrowing stays below broad aspect scope where lower-runtime locality contracts admit it | Milestone 13 live equivalence + geometry domain suites |
 | Change-stream-backed delivery contracts | Milestones 5.1, 9, and 11 | Stream-lowered delivery declarations, delivery metadata, durable stream checkpoints | Query-shaped delivery lowers into formal stream contracts without semantic drift | Milestone 13 delivery-shape + durable continuation parity |
 | Preview-session query contexts | Milestone 5.2 | Preview-session basis metadata, preview-lifecycle metadata, preview/promotion comparison artifacts, preview-live admission and drift artifacts | Preview-bound queries preserve explicit basis and lifecycle meaning, and preview-live remains basis-explicit under maintenance, denial, and explicit rebind | Milestone 13 branch/history/workflow suites |
@@ -3937,6 +3663,8 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [milestone-9.3.5.md](./milestone-9.3.5.md)
 - [milestone-9.3.6.md](./milestone-9.3.6.md)
 - [milestone-9.3.7.md](./milestone-9.3.7.md)
+- [milestone-9.4.md](./milestone-9.4.md)
+- [milestone-9.5.md](./milestone-9.5.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-authoritative-mutation-evidence-plan.md)
 - [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)

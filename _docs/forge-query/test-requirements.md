@@ -34,8 +34,6 @@ This document defines the certification-grade query test requirements for:
 - Runtime Authoritative Mutation Evidence Gate
 - Milestone 9.4
 - Milestone 9.5
-- Milestone 9.6
-- Milestone 9.7
 - Milestone 10
 - Milestone 11
 - Milestone 12

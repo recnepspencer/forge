@@ -234,6 +234,8 @@ pipeline.
 
 ### Milestone 2: Forge-Native App Facade And Direct Typed Product Surface
 
+Spec: [milestone-2.md](./milestone-2.md)
+
 ### Goal
 
 Ship the first-class Forge-native server surface so applications can consume
