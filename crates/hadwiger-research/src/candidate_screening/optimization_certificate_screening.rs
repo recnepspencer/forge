@@ -1,50 +1,15 @@
-use crate::domain_artifacts::{
-    GraphVersion, HadwigerArtifactReference, HadwigerArtifactShapeError, HadwigerCanonicalArtifact,
-};
+use crate::domain_artifacts::HadwigerArtifactReference;
 use crate::query_entry::HadwigerResearchHandle;
 
 use super::evaluation::{
     CandidateScreeningEvaluation, CandidateScreeningEvaluationMode, CandidateScreeningVerdict,
 };
-use super::finite_graph_view::FiniteGraphView;
 use super::optimization::{
     AutocorrelationOverlapCertificate, DensityCapCertificate, LocalDensityWindowCertificate,
-    LovaszThetaCertificate, PeriodicColorClassMeasureModel, ScreeningMatrixCertificate,
-    ScreeningRational, ScreeningSolverTranscript,
+    PeriodicColorClassMeasureModel, ScreeningRational,
 };
 use super::{CandidateScreeningError, CandidateScreeningInvariantCatalog};
 use crate::candidate_screening::CandidateScreeningInvariantFamily;
-
-pub fn evaluate_lovasz_theta_screening_checked(
-    _handle: &HadwigerResearchHandle,
-    catalog: &CandidateScreeningInvariantCatalog,
-    graph: &GraphVersion,
-) -> Result<CandidateScreeningEvaluation, CandidateScreeningError> {
-    let graph_view = FiniteGraphView::from_graph_version(graph);
-    let transcript = solver_transcript("clarabel", "lovasz_theta_sdp", graph)?;
-    let certificate = lovasz_certificate_for_complete_graph(&graph_view, transcript)?;
-    evaluate_lovasz_theta_certificate_checked(catalog, graph, certificate)
-}
-
-pub fn evaluate_lovasz_theta_certificate_checked(
-    catalog: &CandidateScreeningInvariantCatalog,
-    graph: &GraphVersion,
-    certificate: LovaszThetaCertificate,
-) -> Result<CandidateScreeningEvaluation, CandidateScreeningError> {
-    let family = CandidateScreeningInvariantFamily::LovaszThetaBound;
-    require_catalog_family(catalog, family)?;
-    let graph_view = FiniteGraphView::from_graph_version(graph);
-    replay_lovasz_certificate(&graph_view, &certificate)?;
-    CandidateScreeningEvaluation::new(
-        catalog,
-        family,
-        graph.reference(),
-        verdict_bool(certificate.lower_bound().cmp_integer(6).is_gt()),
-        CandidateScreeningEvaluationMode::SolverBackedCertificate,
-        format!("lovasz_theta_certificate={}", certificate.stable_token()),
-    )
-    .map_err(Into::into)
-}
 
 pub fn evaluate_autocorrelation_zero_screening_checked(
     _handle: &HadwigerResearchHandle,
@@ -116,94 +81,6 @@ fn require_catalog_family(
     } else {
         Err(CandidateScreeningError::MissingInvariantFamily(family))
     }
-}
-
-fn verdict_bool(rejects: bool) -> CandidateScreeningVerdict {
-    if rejects {
-        CandidateScreeningVerdict::Rejected
-    } else {
-        CandidateScreeningVerdict::Passed
-    }
-}
-
-fn solver_transcript(
-    solver_name: &str,
-    lane: &str,
-    graph: &GraphVersion,
-) -> Result<ScreeningSolverTranscript, HadwigerArtifactShapeError> {
-    ScreeningSolverTranscript::new(
-        solver_name,
-        "workspace",
-        format!("{}:{}", lane, graph.reference().stable_token()),
-        "certificate_candidate_generated",
-    )
-}
-
-fn lovasz_certificate_for_complete_graph(
-    graph_view: &FiniteGraphView,
-    transcript: ScreeningSolverTranscript,
-) -> Result<LovaszThetaCertificate, CandidateScreeningError> {
-    if !graph_view.is_complete() {
-        return Err(replay_error(
-            CandidateScreeningInvariantFamily::LovaszThetaBound,
-            "native_theta_generation_requires_complete_graph_special_case",
-        ));
-    }
-    let dimension = graph_view.vertex_count();
-    let mut entries = vec![vec![ScreeningRational::integer(0); dimension]; dimension];
-    for (index, row) in entries.iter_mut().enumerate() {
-        row[index] = ScreeningRational::integer(1);
-    }
-    let matrix = ScreeningMatrixCertificate::new(entries)?;
-    Ok(LovaszThetaCertificate::new(
-        "complete-graph-complement-empty-theta",
-        ScreeningRational::integer(dimension as i128),
-        matrix,
-        transcript,
-    )?)
-}
-
-fn replay_lovasz_certificate(
-    graph_view: &FiniteGraphView,
-    certificate: &LovaszThetaCertificate,
-) -> Result<(), CandidateScreeningError> {
-    let matrix = certificate.psd_witness();
-    if matrix.dimension() != graph_view.vertex_count() {
-        return Err(replay_error(
-            CandidateScreeningInvariantFamily::LovaszThetaBound,
-            "theta_matrix_dimension_mismatch",
-        ));
-    }
-    for row in 0..matrix.dimension() {
-        for column in 0..matrix.dimension() {
-            if matrix.entry(row, column) != matrix.entry(column, row) {
-                return Err(replay_error(
-                    CandidateScreeningInvariantFamily::LovaszThetaBound,
-                    "theta_matrix_not_symmetric",
-                ));
-            }
-            if row != column && !matrix.entry(row, column).is_zero() {
-                return Err(replay_error(
-                    CandidateScreeningInvariantFamily::LovaszThetaBound,
-                    "theta_psd_witness_not_diagonal_gram",
-                ));
-            }
-        }
-        if matrix.entry(row, row).is_negative() {
-            return Err(replay_error(
-                CandidateScreeningInvariantFamily::LovaszThetaBound,
-                "theta_psd_diagonal_negative",
-            ));
-        }
-    }
-    let expected = graph_view.vertex_count() as i128;
-    if graph_view.is_complete() && !certificate.lower_bound().cmp_integer(expected).is_eq() {
-        return Err(replay_error(
-            CandidateScreeningInvariantFamily::LovaszThetaBound,
-            "complete_graph_theta_bound_mismatch",
-        ));
-    }
-    Ok(())
 }
 
 fn replay_autocorrelation_certificate(

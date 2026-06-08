@@ -177,6 +177,10 @@ impl FiniteGraphView {
         self.edge_count() == self.vertex_count().saturating_sub(1) * self.vertex_count() / 2
     }
 
+    pub(crate) fn is_adjacent(&self, left: usize, right: usize) -> bool {
+        self.adjacency[left][right]
+    }
+
     pub(crate) fn independent_sets(&self) -> Vec<Vec<usize>> {
         self.subsets()
             .into_iter()

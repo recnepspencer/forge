@@ -82,6 +82,10 @@ relational_family!(
     "hadwiger.screening.fractional_chromatic"
 );
 relational_family!(
+    LovaszThetaScreeningDeclarationFamily,
+    "hadwiger.screening.lovasz_theta"
+);
+relational_family!(
     PlaneLowerBoundClaimDeclarationFamily,
     "hadwiger.plane_lower_bound_claim"
 );

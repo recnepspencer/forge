@@ -113,6 +113,7 @@ fn lovasz_theta_replay_rejects_k7_and_bad_psd_witnesses() {
         checked.mode(),
         CandidateScreeningEvaluationMode::SolverBackedCertificate
     );
+    assert!(checked.evidence().contains("query_declaration_digest="));
     assert!(checked.evidence().contains("lovasz_theta_certificate"));
 
     let bad_dimension = ScreeningMatrixCertificate::new(vec![
@@ -130,10 +131,7 @@ fn lovasz_theta_replay_rejects_k7_and_bad_psd_witnesses() {
         }
     );
 
-    let mut entries = vec![vec![ScreeningRational::integer(0); 7]; 7];
-    for index in 0..7 {
-        entries[index][index] = ScreeningRational::integer(1);
-    }
+    let mut entries = theta_identity_entries(7);
     entries[0][1] = ScreeningRational::integer(1);
     entries[1][0] = ScreeningRational::integer(1);
     let off_diagonal = ScreeningMatrixCertificate::new(entries).unwrap();
@@ -146,6 +144,65 @@ fn lovasz_theta_replay_rejects_k7_and_bad_psd_witnesses() {
             reason: "theta_psd_witness_not_diagonal_gram"
         }
     );
+}
+
+#[test]
+fn lovasz_theta_replay_rejects_constraint_and_psd_witness_mismatches() {
+    let catalog = draft_candidate_screening_invariant_catalog_checked(&handle()).unwrap();
+    let graph = path_graph(3);
+    let one_third = ScreeningRational::fraction(1, 3).unwrap();
+    let all_positive = ScreeningMatrixCertificate::new(vec![
+        vec![one_third.clone(), one_third.clone(), one_third.clone()],
+        vec![one_third.clone(), one_third.clone(), one_third.clone()],
+        vec![one_third.clone(), one_third.clone(), one_third.clone()],
+    ])
+    .unwrap();
+    let constraint = LovaszThetaCertificate::new(
+        "bad-complement-constraint",
+        ScreeningRational::integer(3),
+        all_positive.clone(),
+        ScreeningPsdWitnessCertificate::constant_rank_one(one_third).unwrap(),
+        transcript("bad-complement"),
+    )
+    .unwrap();
+    let err = evaluate_lovasz_theta_certificate_checked(&catalog, &graph, constraint)
+        .expect_err("nonedge of conflict graph must force theta matrix zero");
+    assert_eq!(
+        err,
+        CandidateScreeningError::CertificateReplayRejected {
+            family: CandidateScreeningInvariantFamily::LovaszThetaBound,
+            reason: "theta_complement_zero_constraint_violated"
+        }
+    );
+
+    let diagonal_claim = LovaszThetaCertificate::new(
+        "bad-diagonal-psd",
+        ScreeningRational::integer(3),
+        all_positive,
+        ScreeningPsdWitnessCertificate::diagonal_gram(),
+        transcript("bad-diagonal"),
+    )
+    .unwrap();
+    let err =
+        evaluate_lovasz_theta_certificate_checked(&catalog, &complete_graph(3), diagonal_claim)
+            .expect_err("diagonal witness cannot certify off-diagonal matrix");
+    assert_eq!(
+        err,
+        CandidateScreeningError::CertificateReplayRejected {
+            family: CandidateScreeningInvariantFamily::LovaszThetaBound,
+            reason: "theta_psd_witness_not_diagonal_gram"
+        }
+    );
+}
+
+#[test]
+fn lovasz_theta_screening_has_query_declaration_readiness() {
+    let handle = handle();
+
+    let readiness =
+        research_declaration_entry_readiness::<LovaszThetaScreeningDeclaration>(&handle);
+
+    assert!(!readiness.rows().is_empty());
 }
 
 #[test]
@@ -248,10 +305,19 @@ fn replay_bad_theta(
         format!("bad-theta-{label}"),
         ScreeningRational::integer(7),
         matrix,
+        ScreeningPsdWitnessCertificate::diagonal_gram(),
         transcript(label),
     )
     .unwrap();
     evaluate_lovasz_theta_certificate_checked(catalog, graph, certificate)
+}
+
+fn theta_identity_entries(dimension: usize) -> Vec<Vec<ScreeningRational>> {
+    let mut entries = vec![vec![ScreeningRational::integer(0); dimension]; dimension];
+    for (index, row) in entries.iter_mut().enumerate() {
+        row[index] = ScreeningRational::integer(1);
+    }
+    entries
 }
 
 fn periodic_red_block() -> PeriodicColorClassMeasureModel {

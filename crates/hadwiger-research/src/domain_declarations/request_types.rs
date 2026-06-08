@@ -342,6 +342,52 @@ pub struct FractionalChromaticScreeningDeclaration {
     screening_basis: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LovaszThetaScreeningDeclaration {
+    graph_version_reference: String,
+    color_limit: u32,
+    screening_basis: String,
+}
+
+impl LovaszThetaScreeningDeclaration {
+    pub fn new(
+        graph_version_reference: impl Into<String>,
+        color_limit: u32,
+        screening_basis: impl Into<String>,
+    ) -> Self {
+        Self::try_new(graph_version_reference, color_limit, screening_basis).expect(
+            "graph_version_reference and screening_basis must be non-empty and color_limit must be greater than zero",
+        )
+    }
+
+    pub fn try_new(
+        graph_version_reference: impl Into<String>,
+        color_limit: u32,
+        screening_basis: impl Into<String>,
+    ) -> Result<Self, HadwigerResearchDeclarationShapeError> {
+        Ok(Self {
+            graph_version_reference: require_non_empty(
+                graph_version_reference,
+                "graph_version_reference",
+            )?,
+            color_limit: require_color_count(color_limit, "color_limit")?,
+            screening_basis: require_non_empty(screening_basis, "screening_basis")?,
+        })
+    }
+
+    pub(crate) fn graph_version_reference(&self) -> &str {
+        &self.graph_version_reference
+    }
+
+    pub(crate) fn color_limit(&self) -> u32 {
+        self.color_limit
+    }
+
+    pub(crate) fn screening_basis(&self) -> &str {
+        &self.screening_basis
+    }
+}
+
 impl FractionalChromaticScreeningDeclaration {
     pub fn new(
         graph_version_reference: impl Into<String>,

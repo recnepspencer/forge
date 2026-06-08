@@ -87,6 +87,10 @@ impl ScreeningMatrixCertificate {
         &self.entries[row][column]
     }
 
+    pub(crate) fn entries(&self) -> &[Vec<ScreeningRational>] {
+        &self.entries
+    }
+
     pub fn stable_token(&self) -> String {
         let mut token = format!("dim={}", self.dimension);
         for row in &self.entries {
@@ -99,10 +103,41 @@ impl ScreeningMatrixCertificate {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ScreeningPsdWitnessCertificate {
+    DiagonalGram,
+    ConstantRankOne { entry: ScreeningRational },
+}
+
+impl ScreeningPsdWitnessCertificate {
+    pub fn diagonal_gram() -> Self {
+        Self::DiagonalGram
+    }
+
+    pub fn constant_rank_one(entry: ScreeningRational) -> Result<Self, HadwigerArtifactShapeError> {
+        if entry.is_negative() {
+            return Err(HadwigerArtifactShapeError::EmptyField {
+                field: "constant_rank_one_psd_entry",
+            });
+        }
+        Ok(Self::ConstantRankOne { entry })
+    }
+
+    pub fn stable_token(&self) -> String {
+        match self {
+            Self::DiagonalGram => "diagonal_gram".to_string(),
+            Self::ConstantRankOne { entry } => {
+                format!("constant_rank_one:{}", entry.stable_token())
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LovaszThetaCertificate {
     certificate_id: String,
     lower_bound: ScreeningRational,
-    psd_witness: ScreeningMatrixCertificate,
+    theta_matrix: ScreeningMatrixCertificate,
+    psd_witness: ScreeningPsdWitnessCertificate,
     solver_transcript: ScreeningSolverTranscript,
 }
 
@@ -110,12 +145,14 @@ impl LovaszThetaCertificate {
     pub fn new(
         certificate_id: impl Into<String>,
         lower_bound: ScreeningRational,
-        psd_witness: ScreeningMatrixCertificate,
+        theta_matrix: ScreeningMatrixCertificate,
+        psd_witness: ScreeningPsdWitnessCertificate,
         solver_transcript: ScreeningSolverTranscript,
     ) -> Result<Self, HadwigerArtifactShapeError> {
         Ok(Self {
             certificate_id: require_non_empty(certificate_id, "certificate_id")?,
             lower_bound,
+            theta_matrix,
             psd_witness,
             solver_transcript,
         })
@@ -125,15 +162,20 @@ impl LovaszThetaCertificate {
         &self.lower_bound
     }
 
-    pub(crate) fn psd_witness(&self) -> &ScreeningMatrixCertificate {
+    pub(crate) fn theta_matrix(&self) -> &ScreeningMatrixCertificate {
+        &self.theta_matrix
+    }
+
+    pub(crate) fn psd_witness(&self) -> &ScreeningPsdWitnessCertificate {
         &self.psd_witness
     }
 
     pub fn stable_token(&self) -> String {
         format!(
-            "{}:{}:{}:{}",
+            "{}:{}:{}:{}:{}",
             self.certificate_id,
             self.lower_bound.stable_token(),
+            self.theta_matrix.stable_token(),
             self.psd_witness.stable_token(),
             self.solver_transcript.stable_token()
         )

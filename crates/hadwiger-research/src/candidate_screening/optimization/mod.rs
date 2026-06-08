@@ -5,6 +5,7 @@ mod solver_transcript;
 
 pub use graph_certificates::{
     FractionalChromaticCertificate, LovaszThetaCertificate, ScreeningMatrixCertificate,
+    ScreeningPsdWitnessCertificate,
 };
 pub use measure_certificates::{
     AutocorrelationOverlapCertificate, DensityCapCertificate, LocalDensityWindowCertificate,

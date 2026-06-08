@@ -40,7 +40,8 @@ pub use crate::candidate_screening::{
     CandidateScreeningInvariantNode, CandidateScreeningVerdict, DensityCapCertificate,
     FractionalChromaticCertificate, LocalDensityWindowCertificate, LovaszThetaCertificate,
     PeriodicColorClassMeasureModel, PeriodicMeasureCell, PeriodicMeasureWindow,
-    ScreeningMatrixCertificate, ScreeningRational, ScreeningSolverTranscript,
+    ScreeningMatrixCertificate, ScreeningPsdWitnessCertificate, ScreeningRational,
+    ScreeningSolverTranscript,
 };
 pub use crate::discovery_loop::{
     attach_failure_to_research_graph, mine_research_patterns, plan_next_experiments,
@@ -74,7 +75,8 @@ pub use crate::domain_declarations::{
     ColorabilityDeclaration, ColorabilityDeclarationFamily, EmbeddingDeclaration,
     EmbeddingDeclarationFamily, FractionalChromaticScreeningDeclaration,
     FractionalChromaticScreeningDeclarationFamily, HadwigerResearchDeclarationInput,
-    HadwigerResearchDeclarationShapeError, LowerBoundWitnessDeclaration,
+    HadwigerResearchDeclarationShapeError, LovaszThetaScreeningDeclaration,
+    LovaszThetaScreeningDeclarationFamily, LowerBoundWitnessDeclaration,
     LowerBoundWitnessDeclarationFamily, PartialAdmissionExplanationDeclaration,
     PartialAdmissionExplanationDeclarationFamily, PlaneExactValueClaimDeclaration,
     PlaneExactValueClaimDeclarationFamily, PlaneLowerBoundClaimDeclaration,
