@@ -389,8 +389,9 @@ artifact:
   the installed support context
 
 Use the public support and handle contracts when you need to understand whether
-a family is stable, deferred, or unsupported before exposing it in another
-runtime.
+an ordinary runtime lane is shipped, whether a separate facade-family root is
+still intentionally deferred, or whether a surface is unsupported before
+exposing it in another runtime.
 
 ## Anti-Patterns
 
@@ -405,10 +406,15 @@ runtime.
 
 - The stabilized workspace surface is safe for runtime-backed, synchronous
   composition.
-- Temporal basis, async/resource execution, mixed-cause delivery, store-backed
-  execution, and durable artifact reload remain deferred.
-- Those future families will extend the same `workspace` / handle / state /
-  inspection world rather than introducing a second temporal or async facade.
+- Runtime-backed temporal basis, async/resource execution, mixed-cause
+  delivery, remask posture, and downstream delivery projection now ship
+  through the same `workspace` / handle / state / inspection world.
+- What remains intentionally deferred is a separate sibling facade-family root
+  for `Temporal`, `AsyncResource`, or `MixedCauseDelivery`; those rows stay
+  visible as extension and support markers rather than becoming parallel entry
+  points beside live handles.
+- Store-backed execution and durable artifact reload remain later-milestone
+  work.
 - covered intent families are documented in
   [Intent Admission](../execution/intent-admission.md), but broader intent
   vocabulary is still not blanket stable facade-family support.

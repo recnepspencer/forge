@@ -17,6 +17,8 @@ runtime whether a public family is actually available before they build on it.
   or unsupported
 - you want one machine-checkable way to teach support posture in docs, product
   code, and certification
+- you need to distinguish shipped runtime-backed temporal/async behavior on
+  ordinary live handles from intentionally deferred sibling facade-family roots
 
 ## Stable Entry Points
 
@@ -114,6 +116,7 @@ let matrix = workspace.public_support_matrix();
 
 let temporal = matrix.row("temporal").unwrap();
 let async_resource = matrix.row("async-resource").unwrap();
+let downstream_delivery = matrix.row("downstream-delivery-contract").unwrap();
 let intent = matrix
     .row_for_family(ForgeQueryRuntimeFacadeFamily::Intent)
     .unwrap();
@@ -126,6 +129,10 @@ assert!(!temporal.ordinary_downstream_dx());
 assert_eq!(async_resource.status().as_str(), "deferred-debt");
 assert_eq!(async_resource.teaching_posture().as_str(), "visible-but-deferred");
 assert!(async_resource.parallel_api_forbidden());
+
+assert_eq!(downstream_delivery.status().as_str(), "supported");
+assert_eq!(downstream_delivery.teaching_posture().as_str(), "support-gate-only");
+assert!(downstream_delivery.support_contract_digest().is_some());
 
 assert_eq!(intent.status().as_str(), "unsupported");
 assert_eq!(intent.teaching_posture().as_str(), "visible-vocabulary-only");
@@ -155,9 +162,11 @@ Read that `Intent` row carefully. It means "do not teach blanket facade-family
 intent support here." It does not erase the concrete covered intent
 families described in [Intent Admission](../execution/intent-admission.md).
 
-Also read the deferred temporal and async rows carefully. They are promises to
-extend the same stabilized facade, not permission to create sibling temporal,
-async, or mixed-cause runtime roots above Query.
+Also read the deferred temporal and async family rows carefully. They no longer
+mean "temporal or async semantics are absent." They mean Query still refuses to
+publish sibling `workspace.temporal(...)`-style runtime roots. The shipped
+runtime-backed temporal/async surface lives on ordinary live handles, retained
+state/inspection, remask posture, and downstream delivery instead.
 
 What is supported now:
 
@@ -168,15 +177,15 @@ What is supported now:
 - `BranchPreview`
 - `Write`
 - `Inspect`
+- `temporal-async-remask`
+- `downstream-delivery-contract`
 
 What is visible but deferred:
 
-- `Temporal` -> temporal basis and time-aware subscription closure in Milestone `9.4`
-- `AsyncResource` -> async/resource query closure in Milestone `9.4`
-- `MixedCauseDelivery` -> mixed truth/time/async delivery closure in Milestone `9.4`
+- `Temporal` -> separate facade-family root remains deferred; shipped runtime-backed temporal meaning extends ordinary live handles in Milestone `9.4`
+- `AsyncResource` -> separate facade-family root remains deferred; shipped runtime-backed async/resource meaning extends ordinary live handles in Milestone `9.4`
+- `MixedCauseDelivery` -> separate facade-family root remains deferred; shipped mixed-cause delivery meaning projects through retained live and downstream delivery surfaces in Milestone `9.4`
 - `temporal-async-certification` -> temporal/async certification closure in Milestone `9.4`
-- `temporal-async-remask` -> policy, tenant, relationship-proof, and schema-context remask closure in Milestone `9.4`
-- `downstream-delivery-contract` -> runtime-backed downstream delivery projection with explicit basis negotiation and durable-resume debt in Milestone `9.4`
 - `StoreBackedExecution` -> store-backed execution parity
 - `DurableArtifacts` -> durable artifact reload and continuation
 
@@ -189,7 +198,9 @@ Teaching posture is the quickest honest summary:
 - `ordinary-runtime-dx` means downstream code can teach the family as part of
   the normal runtime surface
 - `visible-but-deferred` means the family name is published now, but admission
-  must fail closed until the owning milestone lands
+  must fail closed because Query is refusing a sibling runtime root even when
+  the underlying runtime-backed semantics now ship through the ordinary handle
+  world
 - `visible-vocabulary-only` means the public vocabulary exists, but normal
   runtime DX must not imply blanket family support
 - `support-gate-only` means the row is a support or certification gate, not a
@@ -250,6 +261,10 @@ For deeper checks:
 - the support matrix is the source of truth for facade-family posture today
 - deferred families are intentionally visible before implementation so
   downstream work can plan honestly
+- temporal/async and mixed-cause runtime-backed semantics are shipped now on
+  ordinary live handles, state/inspection, and downstream delivery; the
+  deferred rows refer to separate facade-family roots, not to absence of the
+  runtime-backed feature itself
 - temporal/async remask posture is a supported gate row now; it narrows runtime
   meaning before public projection instead of masking already-materialized
   delivery afterward

@@ -1110,16 +1110,18 @@ Read next:
 
 ## Temporal And Time-Aware Live Queries
 
-Temporal query basis and time-aware subscriptions are a planned public extension
-to the same canonical query and subscription model. They are not complete yet.
+Temporal query basis and time-aware subscriptions now ship on the
+runtime-backed path as an extension of the same canonical query and
+subscription model.
 
-The intended shape distinguishes truth time-travel from signal execution time,
+The shipped shape distinguishes truth time-travel from signal execution time,
 admits time-only deliveries where no truth patch occurred, and lowers temporal
 basis through bridge and signal authorities without making Query the owner of
 clocks, wake queues, or reactive scheduling.
 
-Use the support matrix and admission docs to see what temporal neighbors exist
-today. Do not invent parallel temporal APIs or ambient host timers.
+Use the support matrix and admission docs to see which ordinary runtime-backed
+lanes are shipped and which sibling facade-family roots remain intentionally
+support-gated. Do not invent parallel temporal APIs or ambient host timers.
 
 The mistake to avoid is implementing stale-after, interval, deadline, or
 rolling-window behavior as UI timers outside canonical query artifacts, or
@@ -1291,8 +1293,9 @@ Need lower-runtime contact:
 
 Need temporal or time-aware live behavior:
 
-- check support matrix first; do not invent parallel temporal APIs—public temporal
-  lanes are not complete yet
+- check support matrix first; do not invent parallel temporal APIs because the
+  shipped runtime-backed temporal surface lives on ordinary Query handles while
+  sibling facade-family roots remain intentionally support-gated
 
 Need async capabilities:
 
@@ -1327,8 +1330,8 @@ Need public DX:
   matrix for admitted neighbors instead.
 - Do not replace Query async result-state with local `loading`, `retrying`, or
   `cancelled` enums unless you are intentionally projecting it for product UX.
-- Do not implement temporal or time-aware live semantics with ambient host clocks
-  or timers while the public temporal lane remains incomplete.
+- Do not implement temporal or time-aware live semantics with ambient host
+  clocks or timers outside the shipped Query runtime-backed temporal surface.
 
 ## AI Checklist Before Editing Code
 
@@ -1357,3 +1360,4 @@ Use this decision order:
 If the current public lane cannot do the job honestly, do not invent a local
 runtime above the lower layers. Stop, read the owning docs, and choose the
 nearest honest public Query lane first.
+
