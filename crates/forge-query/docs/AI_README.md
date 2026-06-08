@@ -108,6 +108,7 @@ If you have no idea where to start, read these first:
 - [Choosing The Right Surface](./domain-capabilities/choosing/README.md)
 - [Workspace Overview](./foundations/workspace-overview.md)
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
+- [Async Resources And Result State](./capabilities/async-resources-and-result-state.md)
 - [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md)
 
 ## Choosing Guides
@@ -252,6 +253,7 @@ shape.
 Read next:
 
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
+- [Async Resources And Result State](./capabilities/async-resources-and-result-state.md)
 - [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md)
 - [Writes And Intent Boundaries](./execution/writes-and-intents.md)
 
@@ -1079,6 +1081,7 @@ projection facts.
 Read next:
 
 - [Projection Consumption](./capabilities/projection-consumption.md)
+- [Async Resources And Result State](./capabilities/async-resources-and-result-state.md)
 - [Projection Consumption Vs Inspection](./domain-capabilities/choosing/projection-consumption-vs-inspection.md)
 - [Policy, Tenant, And Relationship-Proof Narrowing](./foundations/policy-tenant-and-relationship-proof-narrowing.md)
 
@@ -1107,16 +1110,18 @@ Read next:
 
 ## Temporal And Time-Aware Live Queries
 
-Temporal query basis and time-aware subscriptions are a planned public extension
-to the same canonical query and subscription model. They are not complete yet.
+Temporal query basis and time-aware subscriptions now ship on the
+runtime-backed path as an extension of the same canonical query and
+subscription model.
 
-The intended shape distinguishes truth time-travel from signal execution time,
+The shipped shape distinguishes truth time-travel from signal execution time,
 admits time-only deliveries where no truth patch occurred, and lowers temporal
 basis through bridge and signal authorities without making Query the owner of
 clocks, wake queues, or reactive scheduling.
 
-Use the support matrix and admission docs to see what temporal neighbors exist
-today. Do not invent parallel temporal APIs or ambient host timers.
+Use the support matrix and admission docs to see which ordinary runtime-backed
+lanes are shipped and which sibling facade-family roots remain intentionally
+support-gated. Do not invent parallel temporal APIs or ambient host timers.
 
 The mistake to avoid is implementing stale-after, interval, deadline, or
 rolling-window behavior as UI timers outside canonical query artifacts, or
@@ -1127,6 +1132,45 @@ Read next:
 - [Support Matrix And Admission](./foundations/support-matrix-and-admission.md)
 - [Historical Diff And Basis](./capabilities/historical-diff-and-basis.md)
 - [Subscription Selection And Diagnostics](./capabilities/subscription-selection-and-diagnostics.md)
+
+## Async Resources And Result State
+
+Async capabilities are the Query-owned way to model resource-backed or
+completion-driven meaning without inventing a second async facade, a local
+`loading` taxonomy, or host-owned retry folklore.
+
+The important split is:
+
+- declaration-side async meaning lives on canonical declaration input through
+  async clauses such as source family, request identity, loading posture, and
+  failure posture
+- runtime-backed async state lives on the same live/state/inspection surfaces
+  as the rest of Query, where retained result-state can become `pending`,
+  `current`, `stale`, `cancelled`, `retried`, `revalidating`, `superseded`, or
+  `denied`
+- projection consumption, continuation, recovery, and downstream delivery carry
+  that async posture forward instead of asking callers to reopen lower-runtime
+  artifacts or transport callbacks
+
+Use this category when the question is:
+
+- how do I declare async/resource meaning honestly?
+- where do I read current async result-state?
+- how does async posture survive materialization or downstream delivery?
+- what does replay, stale completion, or async-request drift look like?
+
+The mistake to avoid is assuming async support means “there must be a
+`workspace.async(...)` API somewhere.” Query does not work that way. Async
+meaning is part of existing declaration, live, inspection, projection, and
+continuation lanes.
+
+Read next:
+
+- [Async Resources And Result State](./capabilities/async-resources-and-result-state.md)
+- [Canonical Domain Declarations](./domain-capabilities/canonical-domain-declarations.md)
+- [Inspection](./capabilities/inspection.md)
+- [Projection Consumption](./capabilities/projection-consumption.md)
+- [Continuation Pipeline](./domain-capabilities/continuation-pipeline.md)
 
 ## Decision Rules
 
@@ -1190,6 +1234,12 @@ Need signal/reactive behavior:
 
 - use signal compatibility, continuation, and subscription surfaces first
 
+Need async/resource-backed declaration meaning or retained async runtime state:
+
+- use async declaration clauses, retained live async result-state, projection
+  consumption posture, and continuation/recovery drift surfaces instead of
+  inventing host-local loading or retry models
+
 Need effects or staged delivery:
 
 - use authority-scoped effects and intent admission, not ad hoc callbacks
@@ -1243,8 +1293,15 @@ Need lower-runtime contact:
 
 Need temporal or time-aware live behavior:
 
-- check support matrix first; do not invent parallel temporal APIs—public temporal
-  lanes are not complete yet
+- check support matrix first; do not invent parallel temporal APIs because the
+  shipped runtime-backed temporal surface lives on ordinary Query handles while
+  sibling facade-family roots remain intentionally support-gated
+
+Need async capabilities:
+
+- read the async capabilities doc first; do not assume there is a separate
+  async facade or that blanket async family visibility means every runtime
+  profile admits ordinary async DX
 
 Need public DX:
 
@@ -1271,8 +1328,10 @@ Need public DX:
 - Do not teach `workspace.write(...)` as the default runtime mutation story.
 - Do not add sibling public APIs for future async or temporal work; check support
   matrix for admitted neighbors instead.
-- Do not implement temporal or time-aware live semantics with ambient host clocks
-  or timers while the public temporal lane remains incomplete.
+- Do not replace Query async result-state with local `loading`, `retrying`, or
+  `cancelled` enums unless you are intentionally projecting it for product UX.
+- Do not implement temporal or time-aware live semantics with ambient host
+  clocks or timers outside the shipped Query runtime-backed temporal surface.
 
 ## AI Checklist Before Editing Code
 
@@ -1301,3 +1360,4 @@ Use this decision order:
 If the current public lane cannot do the job honestly, do not invent a local
 runtime above the lower layers. Stop, read the owning docs, and choose the
 nearest honest public Query lane first.
+

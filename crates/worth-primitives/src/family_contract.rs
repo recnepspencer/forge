@@ -61,13 +61,27 @@ impl PrimitiveWitnessTopologySummary {
         }
     }
 
-    pub fn vertex_count(self) -> usize { self.vertex_count }
-    pub fn edge_count(self) -> usize { self.edge_count }
-    pub fn loop_count(self) -> usize { self.loop_count }
-    pub fn wire_count(self) -> usize { self.wire_count }
-    pub fn face_count(self) -> usize { self.face_count }
-    pub fn shell_count(self) -> usize { self.shell_count }
-    pub fn body_count(self) -> usize { self.body_count }
+    pub fn vertex_count(self) -> usize {
+        self.vertex_count
+    }
+    pub fn edge_count(self) -> usize {
+        self.edge_count
+    }
+    pub fn loop_count(self) -> usize {
+        self.loop_count
+    }
+    pub fn wire_count(self) -> usize {
+        self.wire_count
+    }
+    pub fn face_count(self) -> usize {
+        self.face_count
+    }
+    pub fn shell_count(self) -> usize {
+        self.shell_count
+    }
+    pub fn body_count(self) -> usize {
+        self.body_count
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -94,13 +108,27 @@ impl PrimitiveConstructionTopologyContract {
         }
     }
 
-    pub fn vertex_count(self) -> usize { self.vertex_count }
-    pub fn edge_count(self) -> usize { self.edge_count }
-    pub fn loop_count(self) -> usize { self.loop_count }
-    pub fn wire_count(self) -> usize { self.wire_count }
-    pub fn face_count(self) -> usize { self.face_count }
-    pub fn shell_count(self) -> usize { self.shell_count }
-    pub fn body_count(self) -> usize { self.body_count }
+    pub fn vertex_count(self) -> usize {
+        self.vertex_count
+    }
+    pub fn edge_count(self) -> usize {
+        self.edge_count
+    }
+    pub fn loop_count(self) -> usize {
+        self.loop_count
+    }
+    pub fn wire_count(self) -> usize {
+        self.wire_count
+    }
+    pub fn face_count(self) -> usize {
+        self.face_count
+    }
+    pub fn shell_count(self) -> usize {
+        self.shell_count
+    }
+    pub fn body_count(self) -> usize {
+        self.body_count
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -110,7 +138,9 @@ pub struct PrimitiveWitnessSupportSummary {
 
 impl PrimitiveWitnessSupportSummary {
     pub fn new(support_plane_count: usize) -> Self {
-        Self { support_plane_count }
+        Self {
+            support_plane_count,
+        }
     }
 
     pub fn support_plane_count(self) -> usize {
@@ -139,9 +169,15 @@ impl PrimitiveConstructionSupportContract {
 pub enum PrimitiveWitnessDescriptor {
     SimplexSolid,
     Orthotope,
-    RegularPrism { side_count: u32 },
-    RegularPyramid { side_count: u32 },
-    WireBody { edge_count: u32 },
+    RegularPrism {
+        side_count: u32,
+    },
+    RegularPyramid {
+        side_count: u32,
+    },
+    WireBody {
+        edge_count: u32,
+    },
     ShellWithHole {
         outer_loop_edge_count: u32,
         hole_loop_edge_counts: Vec<u32>,
@@ -166,11 +202,27 @@ impl PrimitiveWitnessDescriptor {
             Self::Orthotope => PrimitiveWitnessTopologySummary::new(8, 12, 6, 0, 6, 1, 1),
             Self::RegularPrism { side_count } => {
                 let sides = *side_count as usize;
-                PrimitiveWitnessTopologySummary::new(sides * 2, sides * 3, sides + 2, 0, sides + 2, 1, 1)
+                PrimitiveWitnessTopologySummary::new(
+                    sides * 2,
+                    sides * 3,
+                    sides + 2,
+                    0,
+                    sides + 2,
+                    1,
+                    1,
+                )
             }
             Self::RegularPyramid { side_count } => {
                 let sides = *side_count as usize;
-                PrimitiveWitnessTopologySummary::new(sides + 1, sides * 2, sides + 1, 0, sides + 1, 1, 1)
+                PrimitiveWitnessTopologySummary::new(
+                    sides + 1,
+                    sides * 2,
+                    sides + 1,
+                    0,
+                    sides + 1,
+                    1,
+                    1,
+                )
             }
             Self::WireBody { edge_count } => {
                 let edges = *edge_count as usize;
@@ -181,7 +233,10 @@ impl PrimitiveWitnessDescriptor {
                 hole_loop_edge_counts,
             } => {
                 let edge_count = *outer_loop_edge_count as usize
-                    + hole_loop_edge_counts.iter().map(|count| *count as usize).sum::<usize>();
+                    + hole_loop_edge_counts
+                        .iter()
+                        .map(|count| *count as usize)
+                        .sum::<usize>();
                 PrimitiveWitnessTopologySummary::new(
                     edge_count,
                     edge_count,
@@ -219,8 +274,12 @@ pub struct PrimitiveConstructionFamilyContract {
 }
 
 impl PrimitiveConstructionFamilyContract {
-    pub fn family(self) -> PrimitiveConstructionFamilyKey { self.family }
-    pub fn topology_birth_class(self) -> &'static str { self.topology_birth_class }
+    pub fn family(self) -> PrimitiveConstructionFamilyKey {
+        self.family
+    }
+    pub fn topology_birth_class(self) -> &'static str {
+        self.topology_birth_class
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -251,7 +310,9 @@ impl PrimitiveConstructionBirthSynopsisContract {
 pub struct PrimitiveConstructionFamilyContractRegistry;
 
 impl PrimitiveConstructionFamilyContractRegistry {
-    pub fn contract_for(descriptor: &PrimitiveWitnessDescriptor) -> PrimitiveConstructionBirthSynopsisContract {
+    pub fn contract_for(
+        descriptor: &PrimitiveWitnessDescriptor,
+    ) -> PrimitiveConstructionBirthSynopsisContract {
         let topology_summary = descriptor.topology_summary();
         let support_summary = descriptor.support_summary();
         PrimitiveConstructionBirthSynopsisContract {
@@ -262,9 +323,7 @@ impl PrimitiveConstructionFamilyContractRegistry {
             topology_contract: PrimitiveConstructionTopologyContract::from_summary(
                 topology_summary,
             ),
-            support_contract: PrimitiveConstructionSupportContract::from_summary(
-                support_summary,
-            ),
+            support_contract: PrimitiveConstructionSupportContract::from_summary(support_summary),
         }
     }
 }
@@ -285,8 +344,14 @@ mod tests {
             },
         );
 
-        assert_eq!(contract.family(), PrimitiveConstructionFamilyKey::ShellWithHole);
-        assert_eq!(contract.topology_birth_class(), "planar_shell_with_hole_body");
+        assert_eq!(
+            contract.family(),
+            PrimitiveConstructionFamilyKey::ShellWithHole
+        );
+        assert_eq!(
+            contract.topology_birth_class(),
+            "planar_shell_with_hole_body"
+        );
         assert_eq!(contract.topology_contract().vertex_count(), 16);
         assert_eq!(contract.topology_contract().loop_count(), 3);
         assert_eq!(contract.support_contract().support_plane_count(), 1);

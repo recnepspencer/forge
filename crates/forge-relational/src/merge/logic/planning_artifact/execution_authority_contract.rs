@@ -3,7 +3,7 @@ use crate::merge::data::{
     MergeExecutionConsumptionRule, MergeExecutionDecisionSurface,
 };
 
-pub(super) fn lowered_artifact_execution_authority_contract() -> MergeExecutionAuthorityContract {
+pub(crate) fn lowered_artifact_execution_authority_contract() -> MergeExecutionAuthorityContract {
     MergeExecutionAuthorityContract {
         decision_surface: MergeExecutionDecisionSurface::LoweredRecordDecisionOnly,
         identity_authority: MergeExecutionConsumptionRule::ConsumeCanonicalLoweredArtifactOnly,

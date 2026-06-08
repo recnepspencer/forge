@@ -11,6 +11,9 @@ use super::plan::{
     ArtifactMergeComparable, LoweredDeletionPolicyPlan, LoweredIdentityCorrespondencePlan,
 };
 use super::policy::BranchMergeReconciliationPolicy;
+use super::scoped_failure::{
+    BranchMergeScopedDenialFailureEvidence, BranchMergeScopedUnavailableFailureEvidence,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BranchMergeConflictRecord {
@@ -113,4 +116,6 @@ pub enum BranchMergeFailureEvidence {
     Conflict(BranchMergeConflictEvidence),
     Identity(BranchMergeIdentityFailureEvidence),
     Deletion(BranchMergeDeletionFailureEvidence),
+    ScopedDenial(BranchMergeScopedDenialFailureEvidence),
+    ScopedUnavailable(BranchMergeScopedUnavailableFailureEvidence),
 }

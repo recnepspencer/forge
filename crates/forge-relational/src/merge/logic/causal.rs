@@ -5,7 +5,7 @@ use crate::history::data::CommitId;
 use crate::merge::data::{
     BranchCausalDot, CausalAnnotationSummary, CausallyAnnotatedMergePlan,
     ConflictClassifiedMergePlan, MergeCausalEvidenceModel, MergePlanningError,
-    MergePlanningRequest, MergeRecordCausalAnnotation, MergeRecordCausalDisposition,
+    MergeRecordCausalAnnotation, MergeRecordCausalDisposition, NormalizedRelationalMergeRequest,
 };
 use crate::merge::logic::MergeAccess;
 use crate::transactions::data::RecordRef;
@@ -19,7 +19,7 @@ enum TouchedRecordKey {
 impl<'runtime> MergeAccess<'runtime> {
     pub(crate) fn plan_causal_scope(
         &self,
-        request: MergePlanningRequest,
+        request: NormalizedRelationalMergeRequest,
     ) -> Result<CausallyAnnotatedMergePlan, MergePlanningError> {
         let conflict_plan = self.plan_conflict_scope(request)?;
         Ok(self.annotate_causal_scope(conflict_plan))
@@ -81,7 +81,7 @@ impl<'runtime> MergeAccess<'runtime> {
                 MergeRecordCausalAnnotation {
                     record: classification.record.clone(),
                     target_record: classification.target_record.clone(),
-                    merge_base_commit_id: conflict_plan.merge_base.commit_id,
+                    merge_base_commit_id: conflict_plan.basis.merge_base.commit.commit_id,
                     source_latest_touch,
                     target_latest_touch,
                     disposition,
@@ -93,9 +93,7 @@ impl<'runtime> MergeAccess<'runtime> {
 
         CausallyAnnotatedMergePlan {
             request: conflict_plan.request,
-            target_head: conflict_plan.target_head,
-            source_head: conflict_plan.source_head,
-            merge_base: conflict_plan.merge_base,
+            basis: conflict_plan.basis,
             ancestry: conflict_plan.ancestry,
             target_delta: conflict_plan.target_delta,
             source_delta: conflict_plan.source_delta,

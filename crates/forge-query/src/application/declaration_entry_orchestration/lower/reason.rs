@@ -38,6 +38,12 @@ pub(super) fn legality_denial_reason<
         ForgeQueryDeclarationLegalityDenial::UnsupportedLegalityClass { .. } => {
             "this declaration legality class is not yet admitted for generic orchestration"
         }
+        ForgeQueryDeclarationLegalityDenial::TemporalProjectionUnsupported { kind, .. } => {
+            kind.reason()
+        }
+        ForgeQueryDeclarationLegalityDenial::AsyncProjectionUnsupported { kind, .. } => {
+            kind.reason()
+        }
     }
 }
 

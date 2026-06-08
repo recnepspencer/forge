@@ -6,18 +6,14 @@ pub(super) fn merge_commit_mutation_plan_from_envelope(
     envelope: &CanonicalCommitEnvelope,
 ) -> Option<MergeCommitMutationPlan> {
     let merge_execution_authority = envelope.merge_execution_authority.as_ref()?;
+    if !merge_execution_authority.retains_consistent_proof_packet_authority() {
+        return None;
+    }
+    let packet = merge_execution_authority.execution_summary.proof_packet();
     Some(MergeCommitMutationPlan {
         transaction_id: envelope.merged_plan.transaction_id,
-        target_branch: merge_execution_authority
-            .execution_summary
-            .request
-            .target_branch
-            .clone(),
-        source_branch: merge_execution_authority
-            .execution_summary
-            .request
-            .source_branch
-            .clone(),
+        target_branch: packet.request().target_branch().clone(),
+        source_branch: packet.request().source_branch().clone(),
         merge_parent_branches: envelope.merge_parent_branches.clone().into(),
         requested_merge_parent_count: envelope.merge_parent_branches.len(),
         parent_commits: OrderedParentList::from_authoritative(

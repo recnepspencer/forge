@@ -3,6 +3,7 @@ use crate::live::LiveQueryFamily;
 use crate::view_shape_live::LiveViewShapeFamily;
 
 use super::family::QuerySubscriptionFamily;
+use super::future_selection::QuerySubscriptionFutureSelection;
 use super::input::LiveQueryAdmissionArtifact;
 use super::posture::{
     QuerySubscriptionBasisPosture, QuerySubscriptionBridgePosture, QuerySubscriptionCostPosture,
@@ -29,6 +30,7 @@ pub struct QuerySubscriptionEquivalenceBasis {
     family: QuerySubscriptionFamily,
     live_family: LiveQueryFamily,
     view_family: Option<LiveViewShapeFamily>,
+    future_selection: QuerySubscriptionFutureSelection,
     cost_posture: QuerySubscriptionCostPosture,
     basis_posture: QuerySubscriptionBasisPosture,
     bridge_posture: QuerySubscriptionBridgePosture,
@@ -49,6 +51,10 @@ impl QuerySubscriptionEquivalenceBasis {
                     .view_family
                     .map(|family| family.as_str())
                     .unwrap_or("none")
+            ),
+            format!(
+                "future_selection:{}",
+                input.future_selection.projection_digest()
             ),
             format!("basis:{}", input.basis_posture.as_str()),
             format!("cost:{}", classification.cost_posture.as_str()),
@@ -91,6 +97,7 @@ impl QuerySubscriptionEquivalenceBasis {
             family: classification.family.clone(),
             live_family: input.live_family.clone(),
             view_family: input.view_family,
+            future_selection: input.future_selection.clone(),
             cost_posture: classification.cost_posture.clone(),
             basis_posture: input.basis_posture.clone(),
             bridge_posture: classification.bridge_posture.clone(),
@@ -119,6 +126,10 @@ impl QuerySubscriptionEquivalenceBasis {
 
     pub fn cost_posture(&self) -> &QuerySubscriptionCostPosture {
         &self.cost_posture
+    }
+
+    pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
+        &self.future_selection
     }
 
     pub fn basis_posture(&self) -> &QuerySubscriptionBasisPosture {

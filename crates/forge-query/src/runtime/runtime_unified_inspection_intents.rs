@@ -96,13 +96,12 @@ impl ForgeQueryRuntime {
             crate::intent_admission::ForgeQueryGenericInspectionIntentTargetSeed::LiveView {
                 view_name,
             } => {
-                let installation = self
+                let state = self
                     .live_subscriptions
                     .get(view_name)
-                    .map(|state| &state.installation)
                     .ok_or_else(|| ForgeQueryRuntimeError::MissingLiveSubscription(view_name.clone()))?;
                 Ok(ForgeQueryInspection::LiveView(
-                    ForgeQueryLiveViewInspection::from_installation(installation),
+                    ForgeQueryLiveViewInspection::from_state(state),
                 ))
             }
             crate::intent_admission::ForgeQueryGenericInspectionIntentTargetSeed::Effect {

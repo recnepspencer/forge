@@ -1,6 +1,8 @@
 use super::admitted_handle::ForgeQueryAdmittedConfiguredDomainHandle;
 use super::draft::ForgeQueryConfiguredDomainHandleDraft;
-use super::operating_context::ForgeQueryDomainOperatingContext;
+use super::operating_context::{
+    ForgeQueryDomainOperatingContext, ForgeQueryDomainOperatingRequirement,
+};
 use super::validated_handle::ForgeQueryValidatedConfiguredDomainHandle;
 use super::validation::validate_configured_domain_handle_draft;
 use crate::application::{
@@ -49,6 +51,7 @@ pub struct ForgeQueryConfiguredDomainHandleDeferred<
 > {
     validated_handle: ForgeQueryValidatedConfiguredDomainHandle<D, C>,
     blocking_capability_families: Vec<ForgeQueryCapabilityFamily>,
+    blocking_operating_requirements: Vec<ForgeQueryDomainOperatingRequirement>,
 }
 
 impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
@@ -57,10 +60,12 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
     pub(crate) fn new(
         validated_handle: ForgeQueryValidatedConfiguredDomainHandle<D, C>,
         blocking_capability_families: Vec<ForgeQueryCapabilityFamily>,
+        blocking_operating_requirements: Vec<ForgeQueryDomainOperatingRequirement>,
     ) -> Self {
         Self {
             validated_handle,
             blocking_capability_families,
+            blocking_operating_requirements,
         }
     }
 
@@ -74,6 +79,10 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
 
     pub fn blocking_capability_families(&self) -> &[ForgeQueryCapabilityFamily] {
         &self.blocking_capability_families
+    }
+
+    pub fn blocking_operating_requirements(&self) -> &[ForgeQueryDomainOperatingRequirement] {
+        &self.blocking_operating_requirements
     }
 }
 
@@ -84,6 +93,7 @@ pub struct ForgeQueryConfiguredDomainHandleUnsupported<
 > {
     validated_handle: ForgeQueryValidatedConfiguredDomainHandle<D, C>,
     blocking_capability_families: Vec<ForgeQueryCapabilityFamily>,
+    blocking_operating_requirements: Vec<ForgeQueryDomainOperatingRequirement>,
 }
 
 impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
@@ -92,10 +102,12 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
     pub(crate) fn new(
         validated_handle: ForgeQueryValidatedConfiguredDomainHandle<D, C>,
         blocking_capability_families: Vec<ForgeQueryCapabilityFamily>,
+        blocking_operating_requirements: Vec<ForgeQueryDomainOperatingRequirement>,
     ) -> Self {
         Self {
             validated_handle,
             blocking_capability_families,
+            blocking_operating_requirements,
         }
     }
 
@@ -109,6 +121,10 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
 
     pub fn blocking_capability_families(&self) -> &[ForgeQueryCapabilityFamily] {
         &self.blocking_capability_families
+    }
+
+    pub fn blocking_operating_requirements(&self) -> &[ForgeQueryDomainOperatingRequirement] {
+        &self.blocking_operating_requirements
     }
 }
 

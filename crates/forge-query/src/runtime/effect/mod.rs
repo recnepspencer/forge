@@ -1,5 +1,6 @@
 mod declaration;
 mod delivery;
+mod follow_on;
 mod inspection;
 mod phase;
 mod registry;
@@ -13,6 +14,9 @@ pub use declaration::{
 pub use delivery::{
     ForgeQueryEffectCounters, ForgeQueryEffectDelivery, ForgeQueryEffectDeliveryFamily,
     ForgeQueryEffectHandle,
+};
+pub use follow_on::{
+    ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryEffectWriteAdjacentTriggerClass,
 };
 pub use inspection::ForgeQueryEffectInspectionEvidence;
 pub use phase::{

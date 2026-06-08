@@ -256,7 +256,10 @@ If the data does not look right:
   surfaces.
 - They reflect retained runtime state, not store-backed replay or durable
   continuation.
-- Temporal and async/resource consumption semantics remain deferred future
+- Runtime-backed temporal delivery causes and async/resource-backed retained
+  posture now flow through these ordinary retained surfaces rather than through
+  a parallel API.
+- Store-backed replay and durable continuation for those lanes remain later
   work.
 
 ## Related Docs

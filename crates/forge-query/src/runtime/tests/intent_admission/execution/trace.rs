@@ -103,3 +103,52 @@ fn admitted_intent_receipt_exposes_linear_decision_trace() {
         Some(ForgeQueryIntentDecisionTraceStage::ExecutionOutcome)
     );
 }
+
+#[test]
+fn effect_triggered_trace_eligibility_preserves_write_adjacent_trigger_proof() {
+    let mut runtime = intent_runtime_with_authority(TestIntentAuthority);
+    let live = runtime
+        .declare_live_view::<Value>("tasks.trace-follow-on", task_live_request(), task_schema())
+        .expect("live should declare");
+    let effect = runtime
+        .declare_effect::<Value>(
+            ForgeQueryEffectDeclaration::write_intent(
+                "effects.trace-follow-on",
+                ForgeQueryEffectTrigger::live_view(&live, ["title.value"]),
+                "strategy.intent.reconcile",
+            )
+            .with_write_adjacent_trigger(
+                ForgeQueryEffectWriteAdjacentTriggerClass::RemaskDrift,
+                "remask-drift:cause:task-title",
+            ),
+        )
+        .expect("remask drift effect should declare");
+
+    runtime
+        .write(ForgeQueryWriteCommand::UpdateAspect {
+            entity_identity: "task-1".to_string(),
+            aspect_path: "title.value".to_string(),
+            value: json!("title from remask drift"),
+        })
+        .expect("write should queue pending intent");
+
+    let receipt = runtime
+        .next_effect_write_intent(&effect, "1.0", "effect.intent.input.v1")
+        .execute()
+        .expect("effect-triggered intent should execute");
+    let decision_trace = receipt.intent_receipt().decision_trace_envelope();
+
+    match decision_trace.rows()[1].evidence() {
+        ForgeQueryIntentDecisionTraceEvidence::Eligibility(evidence) => {
+            let trigger = evidence
+                .write_adjacent_trigger()
+                .expect("effect-triggered trace should retain write-adjacent trigger proof");
+            assert_eq!(
+                trigger.class(),
+                ForgeQueryEffectWriteAdjacentTriggerClass::RemaskDrift
+            );
+            assert_eq!(trigger.origin_identity(), "remask-drift:cause:task-title");
+        }
+        other => panic!("expected structured eligibility evidence, got {other:?}"),
+    }
+}

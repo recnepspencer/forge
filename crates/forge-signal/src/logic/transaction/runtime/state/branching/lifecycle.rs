@@ -2,9 +2,9 @@ use crate::data::error::SignalError;
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
 
 use super::super::runtime_state::{
-    AuthorityTransferPacket, BranchLifecycleTransfer, ExplicitBranchForkPacket, SignalRuntime,
+    AuthorityTransferPacket, BranchLifecycleTransfer, SignalRuntime,
 };
-use super::branches::BranchAncestryState;
+use super::{SignalBranchForkDenial, SignalBranchForkRequest};
 
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
@@ -16,45 +16,17 @@ where
         &mut self,
         name: impl Into<String>,
     ) -> Result<SignalBranchHandle, SignalError> {
-        let current_branch_name = self.graph.current_branch().name;
-        let parent_branch_id = self.graph.current_branch().id;
-        let parent_head_snapshot_id = self.graph.current_branch().head_snapshot_id;
-        let handle = self.graph.diagnostics_state_mut().create_branch(name);
-        let mut branch_state = self.capture_heavy_branch_state();
-        *branch_state.ancestry_mut() =
-            BranchAncestryState::new(handle.id, Some(parent_branch_id), parent_head_snapshot_id);
-        branch_state.reset_mutation_ledger(handle.head_snapshot_id);
-        branch_state.clear_branch_mutation_nodes();
-        self.branches
-            .branch_mutation_ledger_mut(parent_branch_id, parent_head_snapshot_id)
-            .clear_all(parent_head_snapshot_id);
-        branch_state
-            .graph_mut()
-            .diagnostics_state_mut()
-            .set_active_branch(handle.id);
-        self.telemetry.transaction.explicit_fork_count += 1;
-        self.branches
-            .store_fork_packet(ExplicitBranchForkPacket::new(
-                parent_branch_id,
-                handle.id,
-                branch_state,
-            ))?;
-        let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
-        self.synchronize_branch_catalogs(branch_catalog);
-        crate::diagnostics::recorder::record_snapshot_event(
-            &mut self.graph,
-            crate::diagnostics::replay::ReplayEventKind::BranchCreated,
-            None,
-            format!("created branch `{}`", handle.name),
-        );
-        crate::diagnostics::recorder::record_branch_fork_lineage(
-            &mut self.graph,
-            handle.id,
-            parent_branch_id,
-            handle.name.clone(),
-            current_branch_name.to_string(),
-        );
-        Ok(handle)
+        match self.fork_branch(SignalBranchForkRequest::from_current_branch_head(name)) {
+            forge_proof::TransitionOutcome::Success(receipt) => {
+                Ok(receipt.created_branch().clone())
+            }
+            forge_proof::TransitionOutcome::Denied(denial) => {
+                Err(Self::fork_denial_to_signal_error(denial))
+            }
+            other => Err(SignalError::internal(format!(
+                "unexpected non-terminal fork outcome for compatibility create_branch: {other:?}"
+            ))),
+        }
     }
 
     pub fn switch_branch(&mut self, branch: SignalBranchHandle) -> Result<(), SignalError> {
@@ -159,5 +131,48 @@ where
             return Err(SignalError::unknown_branch(Some(branch_id), "test-branch"));
         };
         Ok(())
+    }
+}
+
+impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    fn fork_denial_to_signal_error(denial: SignalBranchForkDenial) -> SignalError {
+        match denial {
+            SignalBranchForkDenial::UnknownParentBranch { parent_branch_id } => {
+                SignalError::unknown_branch(Some(parent_branch_id), "fork-parent")
+            }
+            SignalBranchForkDenial::UnknownForkSnapshot {
+                parent_branch_id,
+                snapshot_id,
+            } => SignalError::invalid_input(format!(
+                "fork snapshot `{}:{}` is not tracked by the runtime",
+                parent_branch_id.0, snapshot_id.0
+            )),
+            SignalBranchForkDenial::SnapshotBasisMismatch {
+                requested_snapshot_id,
+                provided_snapshot_id,
+            } => SignalError::invalid_input(format!(
+                "fork request expected snapshot `{}` but received snapshot `{}`",
+                requested_snapshot_id.0, provided_snapshot_id.0
+            )),
+            SignalBranchForkDenial::SnapshotPayloadRequiredForFork { request } => {
+                SignalError::invalid_input(format!(
+                    "fork request `{}` declares snapshot basis but no snapshot payload was provided",
+                    request.branch_name()
+                ))
+            }
+            SignalBranchForkDenial::IncompatibleForkSnapshotLineage {
+                parent_branch_id,
+                snapshot_branch_id,
+                snapshot_id,
+            } => SignalError::invalid_input(format!(
+                "snapshot `{}` belongs to branch `{}` and cannot seed a fork from branch `{}`",
+                snapshot_id.0, snapshot_branch_id.0, parent_branch_id.0
+            )),
+        }
     }
 }

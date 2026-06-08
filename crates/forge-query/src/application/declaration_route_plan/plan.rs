@@ -1,8 +1,8 @@
 use crate::application::{
     ForgeQueryAdmittedDeclarationProgression, ForgeQueryDeclarationAspectContract,
     ForgeQueryDeclarationAspectFit, ForgeQueryDeclarationAspectPublication,
-    ForgeQueryDeclarationFoundationalEvidence, ForgeQueryDeclarationInput,
-    ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationFoundationalEvidence, ForgeQueryDeclarationFutureProjection,
+    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
 };
 use crate::identity::hash_parts;
 use crate::target_binding::ForgeQueryDeclarationRoutePlanBindingTarget;
@@ -27,6 +27,7 @@ pub struct ForgeQueryDeclarationRoutePlan<
     route_aspect_contract: ForgeQueryDeclarationAspectContract,
     route_aspect_fit: ForgeQueryDeclarationAspectFit,
     route_aspect_publication: ForgeQueryDeclarationAspectPublication,
+    future_projection: ForgeQueryDeclarationFutureProjection,
     explanation: ForgeQueryDeclarationRoutePlanExplanation,
     declaration_digest: String,
     route_plan_digest: String,
@@ -46,6 +47,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         route_aspect_contract: ForgeQueryDeclarationAspectContract,
         route_aspect_fit: ForgeQueryDeclarationAspectFit,
         route_aspect_publication: ForgeQueryDeclarationAspectPublication,
+        future_projection: ForgeQueryDeclarationFutureProjection,
         explanation: ForgeQueryDeclarationRoutePlanExplanation,
     ) -> Self {
         let route_plan_digest = derive_route_plan_digest(
@@ -56,6 +58,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             &route_aspect_contract,
             route_aspect_fit,
             &route_aspect_publication,
+            &future_projection,
         );
         let declaration_digest = format!(
             "{:?}",
@@ -71,6 +74,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             route_aspect_contract,
             route_aspect_fit,
             route_aspect_publication,
+            future_projection,
             explanation,
             declaration_digest,
             route_plan_digest,
@@ -115,6 +119,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn aspect_publication(&self) -> &ForgeQueryDeclarationAspectPublication {
         &self.route_aspect_publication
+    }
+
+    pub fn future_projection(&self) -> &ForgeQueryDeclarationFutureProjection {
+        &self.future_projection
     }
 
     pub fn declaration_family_key(&self) -> &'static str {
@@ -171,6 +179,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         ForgeQueryDeclarationAspectContract,
         ForgeQueryDeclarationAspectFit,
         ForgeQueryDeclarationAspectPublication,
+        ForgeQueryDeclarationFutureProjection,
         ForgeQueryDeclarationRoutePlanExplanation,
         String,
         String,
@@ -185,6 +194,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             self.route_aspect_contract,
             self.route_aspect_fit,
             self.route_aspect_publication,
+            self.future_projection,
             self.explanation,
             self.declaration_digest,
             self.route_plan_digest,
@@ -200,6 +210,7 @@ fn derive_route_plan_digest<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclara
     route_aspect_contract: &ForgeQueryDeclarationAspectContract,
     route_aspect_fit: ForgeQueryDeclarationAspectFit,
     route_aspect_publication: &ForgeQueryDeclarationAspectPublication,
+    future_projection: &ForgeQueryDeclarationFutureProjection,
 ) -> String {
     let mut parts = vec![
         format!(
@@ -220,6 +231,10 @@ fn derive_route_plan_digest<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclara
         format!("route_aspect_contract:{route_aspect_contract:?}"),
         format!("route_aspect_fit:{route_aspect_fit:?}"),
         format!("route_aspect_publication:{route_aspect_publication:?}"),
+        format!(
+            "future_projection:{}",
+            future_projection.projection_digest()
+        ),
     ];
     if let Some(intent) = route_intent {
         parts.push(format!("intent:{}", intent.as_str()));

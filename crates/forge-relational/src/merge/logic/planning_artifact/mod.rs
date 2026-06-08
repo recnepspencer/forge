@@ -8,5 +8,6 @@ mod policy_digest_basis;
 mod schema_snapshot;
 mod summaries;
 
+pub(crate) use execution_authority_contract::lowered_artifact_execution_authority_contract;
 pub(crate) use materialization::materialize_planning_artifact;
 pub(crate) use schema_snapshot::merge_schema_snapshot_for_execution_ready;

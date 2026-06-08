@@ -3,6 +3,7 @@ mod aspect_plan_lookup;
 mod aspect_witness_digest;
 mod causal;
 mod conflicts;
+mod correspondence_witness;
 mod execution;
 mod execution_diagnostics;
 mod execution_mutation_plan;
@@ -14,13 +15,28 @@ mod lowering;
 mod planning;
 mod planning_artifact;
 mod policy;
+mod proof_packet;
+mod proof_packet_canonical;
+mod request_foundational_lowering;
+mod request_normalization;
+mod schema_reconciliation_witness;
+mod strategy_witness;
+
+pub(crate) use lowering::{
+    blocked_reason_for_deletion_class, blocked_reason_for_topology_resolution_class,
+};
+pub(crate) use planning_artifact::lowered_artifact_execution_authority_contract;
+pub(crate) use policy::{aggregate_record_resolution, ownership_surface_for_policies};
 
 use std::time::Instant;
+
+use forge_foundational::FoundationalMergeAdmissionOutcome;
 
 use crate::logic::runtime::RelationalRuntime;
 use crate::merge::data::{
     MergePlanningArtifactCore, MergePlanningError, MergePlanningRequest,
-    RelationalMergeInspectionArtifact,
+    NormalizedRelationalMergeRequest, RelationalFoundationalMergeRequest,
+    RelationalMergeInspectionArtifact, RelationalMergeRequestNormalizationDenial,
 };
 pub(crate) use execution_diagnostics::{
     merge_execution_failure_artifact, merge_execution_success_artifact,
@@ -33,6 +49,27 @@ pub struct MergeAccess<'runtime> {
 }
 
 impl<'runtime> MergeAccess<'runtime> {
+    pub fn normalize_merge_planning_request(
+        &self,
+        request: MergePlanningRequest,
+    ) -> Result<NormalizedRelationalMergeRequest, RelationalMergeRequestNormalizationDenial> {
+        request_normalization::normalize_merge_planning_request(request)
+    }
+
+    pub fn normalize_merge_request(
+        &self,
+        request: crate::merge::data::MergeExecutionRequest,
+    ) -> Result<NormalizedRelationalMergeRequest, RelationalMergeRequestNormalizationDenial> {
+        request_normalization::normalize_merge_execution_request(request)
+    }
+
+    pub fn lower_merge_request_to_foundational(
+        &self,
+        request: NormalizedRelationalMergeRequest,
+    ) -> FoundationalMergeAdmissionOutcome<RelationalFoundationalMergeRequest> {
+        request_foundational_lowering::lower_merge_request_to_foundational(request)
+    }
+
     pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
@@ -49,7 +86,8 @@ impl<'runtime> MergeAccess<'runtime> {
         request: MergePlanningRequest,
     ) -> Result<MergePlanningArtifactCore, MergePlanningError> {
         let started_at = Instant::now();
-        let plan = self.lower_planning_scope(request)?;
+        let normalized_request = self.normalize_merge_planning_request(request)?;
+        let plan = self.lower_planning_scope(normalized_request)?;
         let artifact = materialize_planning_artifact(self.runtime, plan);
         self.runtime
             .performance_access()

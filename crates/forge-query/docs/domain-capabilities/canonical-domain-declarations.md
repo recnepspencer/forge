@@ -37,6 +37,10 @@ bundle; the digest is not the source of truth.
 - `ForgeQueryAdmittedConfiguredDomainHandle::declare_and_review(...)`
 - `ForgeQueryDeclarationInput`
 - `ForgeQueryDeclarationFamilyMarker`
+- `ForgeQueryTemporalDeclarationClause`
+- `ForgeQueryTemporalDeclarationSupport`
+- `ForgeQueryTemporalDuration`
+- `ForgeQueryTemporalWindowKind`
 - `ForgeQueryCanonicalDeclarationArtifact`
 - `ForgeQueryCanonicalDeclarationArtifact::compare_under(...)`
 - `ForgeQueryDeclarationCanonicalizationVersion`
@@ -56,6 +60,8 @@ The main public declaration artifact surfaces are:
 
 Declaration input authoring:
 - `ForgeQueryDeclarationInput::canonical_declaration_entries() -> Vec<ForgeQueryDeclarationCanonicalEntry>`
+- `ForgeQueryDeclarationInput::async_resource_declaration_clauses() -> Vec<ForgeQueryAsyncDeclarationClause>`
+- `ForgeQueryDeclarationInput::temporal_declaration_clauses() -> Vec<ForgeQueryTemporalDeclarationClause>`
 - `ForgeQueryDeclarationCanonicalEntry::new(locus, kind, value) -> ForgeQueryDeclarationCanonicalEntry`
 - `ForgeQueryDeclarationCanonicalEntry::text(locus, value) -> ForgeQueryDeclarationCanonicalEntry`
 - `ForgeQueryDeclarationCanonicalEntry::locus() -> &str`
@@ -63,6 +69,26 @@ Declaration input authoring:
 - `ForgeQueryDeclarationCanonicalEntry::value() -> &ForgeQueryDeclarationCanonicalValue`
 - `ForgeQueryDeclarationCanonicalEntryKind::{Header, Shape, Value, Field, Identity}`
 - `ForgeQueryDeclarationCanonicalValue::{Null, Bool, SignedInteger, UnsignedInteger, ExactText, DecimalText}`
+
+Temporal declaration vocabulary:
+- `ForgeQueryTemporalDeclarationClause::stale_after(duration) -> ForgeQueryTemporalDeclarationClause`
+- `ForgeQueryTemporalDeclarationClause::interval(every) -> ForgeQueryTemporalDeclarationClause`
+- `ForgeQueryTemporalDeclarationClause::deadline(within) -> ForgeQueryTemporalDeclarationClause`
+- `ForgeQueryTemporalDeclarationClause::rolling_window(width) -> ForgeQueryTemporalDeclarationClause`
+- `ForgeQueryTemporalDeclarationClause::sliding_window(width, step) -> ForgeQueryTemporalDeclarationClause`
+- `ForgeQueryTemporalDuration::milliseconds(value) -> ForgeQueryTemporalDuration`
+- `ForgeQueryTemporalDuration::seconds(value) -> ForgeQueryTemporalDuration`
+- `ForgeQueryTemporalDuration::minutes(value) -> ForgeQueryTemporalDuration`
+- `ForgeQueryDeclarationFamilyMarker::temporal_declaration_support() -> ForgeQueryTemporalDeclarationSupport`
+
+Async declaration vocabulary:
+- `ForgeQueryAsyncDeclarationClause::resource_request(source_family, loading_posture, failure_posture, request_identity) -> ForgeQueryAsyncDeclarationClause`
+- `ForgeQueryAsyncDeclarationClause::completion_request(source_family, failure_posture, request_identity) -> ForgeQueryAsyncDeclarationClause`
+- `ForgeQueryAsyncRequestIdentityPart::text(key, value) -> ForgeQueryAsyncRequestIdentityPart`
+- `ForgeQueryAsyncSourceFamily::{BridgeResource, ExternalResource, HostResource}`
+- `ForgeQueryAsyncLoadingPosture::{Blocking, BackgroundRefresh}`
+- `ForgeQueryAsyncFailurePosture::{FailClosed, RetainStaleValue}`
+- `ForgeQueryDeclarationFamilyMarker::async_declaration_support() -> ForgeQueryAsyncDeclarationSupport`
 
 Authoring:
 - `declare(input) -> Result<ForgeQueryCanonicalDeclarationArtifact<D, I>, ForgeQueryDeclarationAdmissionError<D, I>>`
@@ -73,6 +99,8 @@ Artifact inspection:
 - `handle_identity_digest() -> &str`
 - `declaration_family_key() -> &'static str`
 - `declaration_taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy`
+- `async_resource_clauses() -> &[ForgeQueryAsyncDeclarationClause]`
+- `temporal_clauses() -> &[ForgeQueryTemporalDeclarationClause]`
 - `declaration_primary_authority_family() -> ForgeQueryDeclarationPrimaryAuthorityFamily`
 - `declaration_signal_compatibility() -> ForgeQuerySignalCompatibilityPosture`
 - `declaration_grouped_posture() -> ForgeQueryGroupedDeclarationPosture`
@@ -95,12 +123,16 @@ Checked admission outcomes:
 - `ForgeQueryDeclaredFamilyChecked::Deferred(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
 - `ForgeQueryDeclaredFamilyChecked::Unsupported(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
 - `ForgeQueryDeclaredFamilyChecked::InvalidContext(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclaredFamilyChecked::AsyncDeferred(ForgeQueryAsyncDeclarationDenial<D, I::Family>)`
+- `ForgeQueryDeclaredFamilyChecked::AsyncUnsupported(ForgeQueryAsyncDeclarationDenial<D, I::Family>)`
 - `ForgeQueryDeclaredFamilyChecked::Canonicalization(ForgeQueryDeclarationCanonicalizationError)`
 
 Admission error family:
 - `ForgeQueryDeclarationAdmissionError::Deferred(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
 - `ForgeQueryDeclarationAdmissionError::Unsupported(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
 - `ForgeQueryDeclarationAdmissionError::InvalidContext(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclarationAdmissionError::AsyncDeferred(ForgeQueryAsyncDeclarationDenial<D, I::Family>)`
+- `ForgeQueryDeclarationAdmissionError::AsyncUnsupported(ForgeQueryAsyncDeclarationDenial<D, I::Family>)`
 - `ForgeQueryDeclarationAdmissionError::Canonicalization(ForgeQueryDeclarationCanonicalizationError)`
 
 Canonicalization version helpers:
@@ -129,6 +161,26 @@ Think of declaration work as four layers:
 4. Query canonicalizes the combined meaning into one retained declaration
    artifact
 
+Temporal meaning now lives in layer 2. If a declaration has a freshness limit,
+an interval, a deadline, or a rolling or sliding window, that meaning belongs
+to the declaration input itself. It is not observer metadata and not later
+runtime setup.
+
+Async/resource-backed request meaning now lives in layer 2 as well. If a
+declaration depends on a canonical async source family, request identity,
+loading posture, or failure posture, that meaning belongs to the declaration
+input itself. It is not transport-adapter metadata and not a later view-model
+status enum.
+
+Families must opt into temporal clauses explicitly. A declaration that adds
+temporal meaning to a family that never declared temporal support fails closed
+at declaration admission instead of silently inheriting new behavior.
+
+Families must opt into async/resource clauses explicitly too. A declaration
+that adds async request meaning to a family that never declared async support
+fails closed at declaration admission instead of silently inheriting fetch-like
+behavior from an adapter.
+
 That split matters because two declarations with identical local syntax are not
 necessarily the same declaration if:
 
@@ -152,13 +204,17 @@ current support/config posture. Only admitted families reach canonicalization.
    - required capability families
    - required config sections
    - family posture carried by the family marker
-6. if admitted, Query combines:
+6. Query gathers declaration-local canonical entries, canonical async/resource
+   clauses, and canonical temporal
+   clauses from the same input
+7. if admitted, Query combines:
    - admitted handle identity
    - domain-scoped family identity
    - retained family taxonomy
    - declaration-local canonical components
-7. Query lowers that meaning into one foundational canonical basis bundle
-8. Query derives the declaration digest from the retained bundle
+   - normalized temporal declaration clauses
+8. Query lowers that meaning into one foundational canonical basis bundle
+9. Query derives the declaration digest from the retained bundle
 
 The ordinary lane uses the default canonicalization version for you. Use the
 explicit version surface when you are doing proof work, certification, or
@@ -272,6 +328,42 @@ Canonical declaration entries are the retained internal shape, not the ideal
 app-facing geometry DX. Other declaration-entry docs may show
 dynamic context such as active selection or active neighborhood binding on the
 outside while still lowering into canonical entries internally.
+
+Here is the smallest temporal example:
+
+```rust
+use forge_query::facade::{
+    ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationInput,
+    ForgeQueryTemporalDeclarationClause, ForgeQueryTemporalDuration,
+};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ReadEdgeTemperature {
+    edge_ref: &'static str,
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for ReadEdgeTemperature {
+    type Family = AttachFaceMaterial;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref)]
+    }
+
+    fn temporal_declaration_clauses(&self) -> Vec<ForgeQueryTemporalDeclarationClause> {
+        vec![
+            ForgeQueryTemporalDeclarationClause::stale_after(
+                ForgeQueryTemporalDuration::seconds(30),
+            ),
+            ForgeQueryTemporalDeclarationClause::rolling_window(
+                ForgeQueryTemporalDuration::minutes(5),
+            ),
+        ]
+    }
+}
+```
+
+Those temporal clauses become part of canonical declaration identity. A
+different freshness limit or window width produces a different declaration.
 
 ## Real Example
 
@@ -396,6 +488,8 @@ What this example is showing:
 - later comparison still works over the retained canonical artifact
 - the user-facing geometry story can still be active selection while the
   canonical artifact lowers into stable retained facts internally
+- temporal meaning can be authored through typed clauses before canonicalization
+- equivalent temporal forms lower to the same retained identity
 
 ## How It Relates To Other Features
 
@@ -435,9 +529,11 @@ The main inspection surfaces are:
 Use them to answer:
 
 - whether a family is admitted before canonicalization
+- whether a family explicitly supports temporal declaration clauses
 - whether two declarations differ because the admitted operating world changed
 - whether a family posture mismatch is structural or support-dependent
 - whether two authoring paths produced the same canonical declaration
+- whether a freshness or window change actually changed declaration identity
 
 ## Anti-Patterns
 
@@ -447,6 +543,8 @@ Use them to answer:
 - hashing downstream declaration structs directly instead of using the retained
   canonical declaration artifact
 - treating the digest as the authority instead of the canonical basis bundle
+- attaching freshness or interval behavior after canonicalization through a
+  watcher or observer option instead of the declaration input itself
 
 ## Current Limits
 
@@ -465,6 +563,10 @@ does not decide:
 - lower-authority signal compatibility classification
 - grouped execution semantics
 - runtime continuation
+- timer scheduling
+- wake delivery
+- mixed-cause execution
+- async completion participation
 
 This feature gives other Query declaration features one retained canonical
 artifact plus one retained family admission boundary to build on.
@@ -478,6 +580,7 @@ artifact plus one retained family admission boundary to build on.
 - [Declaration Legality](./declaration-legality.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Route Plans](./declaration-route-plan.md)
+- [Async Resources And Result State](../capabilities/async-resources-and-result-state.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)

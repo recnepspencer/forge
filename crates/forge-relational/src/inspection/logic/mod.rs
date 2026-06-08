@@ -3,6 +3,8 @@ mod commit;
 mod connectivity;
 mod graph;
 mod historical;
+#[path = "merge_support/mod.rs"]
+mod merge_support;
 mod retention;
 mod structural_identity;
 
@@ -10,3 +12,5 @@ mod structural_identity;
 mod tests;
 
 pub use access::InspectionAccess;
+#[cfg(test)]
+pub(crate) use merge_support::support_inspection_witness;

@@ -6,7 +6,7 @@
 
 use forge_core::KernelError;
 
-use crate::b_rep::{LumpData, RegionData};
+use crate::b_rep::LumpData;
 use crate::handles::{BodyId, LumpId, RegionId};
 use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};

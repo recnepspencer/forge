@@ -3,6 +3,7 @@ use super::{
     QueryContextCostClass, QueryContextExecutionArtifact, QueryContextExecutionCounters,
     QueryContextExecutionFamily, QueryContextPredictionDriftOutcome,
 };
+use crate::projection_consumption::ProjectionMaterializedFactPosture;
 
 impl QueryContextExecutionArtifact {
     pub(crate) fn test_only(
@@ -36,6 +37,7 @@ impl QueryContextExecutionArtifact {
             resolved_path_identity: materialization_path_identity.map(str::to_string),
             materialization_path_identity: materialization_path_identity.map(str::to_string),
             preview_provenance_identity: preview_provenance_identity.map(str::to_string),
+            materialized_fact_posture: None,
             counters: QueryContextExecutionCounters {
                 context_execution_count: 1,
                 materialized_row_count,
@@ -43,5 +45,13 @@ impl QueryContextExecutionArtifact {
                 executor_rediscovery_count: 0,
             },
         }
+    }
+
+    pub(crate) fn test_only_with_materialized_fact_posture(
+        mut self,
+        posture: ProjectionMaterializedFactPosture,
+    ) -> Self {
+        self.materialized_fact_posture = Some(posture);
+        self
     }
 }

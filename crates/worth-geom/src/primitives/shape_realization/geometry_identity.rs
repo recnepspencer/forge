@@ -19,10 +19,5 @@ pub(super) fn geometry_identity_bundle(
 
 fn plane_identity(plane: &Plane) -> PrimitiveSupportPlaneIdentity {
     let (a, b, c, d) = plane.exact_coefficients();
-    PrimitiveSupportPlaneIdentity::new(
-        a.to_string(),
-        b.to_string(),
-        c.to_string(),
-        d.to_string(),
-    )
+    PrimitiveSupportPlaneIdentity::new(a.to_string(), b.to_string(), c.to_string(), d.to_string())
 }

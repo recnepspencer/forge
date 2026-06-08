@@ -5,8 +5,8 @@ mod unified_inspection;
 
 use crate::identity::hash_parts;
 use crate::runtime::{
-    ForgeQueryEffectDelivery, ForgeQueryIntentDeclaration, ForgeQueryIntentSourceLane,
-    ForgeQueryWriteCommand,
+    ForgeQueryEffectDelivery, ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryIntentDeclaration,
+    ForgeQueryIntentSourceLane, ForgeQueryWriteCommand,
 };
 
 use super::{
@@ -37,6 +37,7 @@ pub struct ForgeQueryEffectTriggeredIntentExecutionBinding {
     handoff: ForgeQueryEffectTriggeredIntentExecutionHandoff,
     effect_name: String,
     trigger_commit_identity: String,
+    write_adjacent_trigger: ForgeQueryEffectWriteAdjacentTrigger,
     pending_delivery_digest: String,
     binding_digest: String,
 }
@@ -105,6 +106,7 @@ impl ForgeQueryEffectTriggeredIntentExecutionBinding {
             handoff,
             effect_name: pending_delivery.effect_name().to_string(),
             trigger_commit_identity: pending_delivery.commit_identity().to_string(),
+            write_adjacent_trigger: pending_delivery.write_adjacent_trigger().clone(),
             pending_delivery_digest,
             binding_digest,
         }
@@ -140,6 +142,10 @@ impl ForgeQueryEffectTriggeredIntentExecutionBinding {
 
     pub fn pending_delivery_digest(&self) -> &str {
         &self.pending_delivery_digest
+    }
+
+    pub fn write_adjacent_trigger(&self) -> &ForgeQueryEffectWriteAdjacentTrigger {
+        &self.write_adjacent_trigger
     }
 
     pub fn binding_digest(&self) -> &str {
@@ -266,5 +272,9 @@ fn hash_effect_pending_delivery(pending_delivery: &ForgeQueryEffectDelivery) -> 
         format!("aspects:{}", pending_delivery.aspect_paths().join("|")),
         format!("payload:{}", pending_delivery.payload()),
         format!("reason:{}", pending_delivery.reason().unwrap_or("none")),
+        format!(
+            "write-adjacent-trigger:{}",
+            pending_delivery.write_adjacent_trigger().digest()
+        ),
     ])
 }

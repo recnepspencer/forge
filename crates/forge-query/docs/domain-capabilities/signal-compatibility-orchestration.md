@@ -75,6 +75,13 @@ The important rule is:
 
 - compatible does not mean prepared
 - prepared does not mean executed
+- deferred or denied signal compatibility does not advance into prepared
+  continuation just because a bridge request was supplied
+
+Future-bearing declarations stay on this same lane too. Temporal and async
+subjects can stop at `Deferred` or `Denied` before any prepared continuation
+artifact exists, and ordinary declarations do not inherit that posture unless
+their retained future projection actually activates it.
 
 If you want explicit execution after preparation, move to the continuation
 pipeline.

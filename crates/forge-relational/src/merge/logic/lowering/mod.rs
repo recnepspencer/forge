@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use crate::merge::data::{
     LoweredMergePlan, LoweredMergePlanRecord, MergeExecutionReadiness, MergePlanningError,
-    MergePlanningRequest, PolicyResolvedMergePlan,
+    NormalizedRelationalMergeRequest, PolicyResolvedMergePlan,
 };
 use crate::merge::logic::MergeAccess;
 use crate::transactions::data::RecordRef;
@@ -23,6 +23,9 @@ use record_intents::{
     denial_bundle_for_record, execution_bundle_for_record, rejected_reason_for_record,
 };
 use record_readiness::{aggregate_record_readiness, summarize_lowered_records};
+pub(crate) use resolution::{
+    blocked_reason_for_deletion_class, blocked_reason_for_topology_resolution_class,
+};
 use resolution::{
     blocked_reason_for_record, executable_class_for_record, resolution_class_for_record,
 };
@@ -30,7 +33,7 @@ use resolution::{
 impl<'runtime> MergeAccess<'runtime> {
     pub(crate) fn lower_planning_scope(
         &self,
-        request: MergePlanningRequest,
+        request: NormalizedRelationalMergeRequest,
     ) -> Result<LoweredMergePlan, MergePlanningError> {
         let policy_plan = self.plan_policy_scope(request)?;
         self.lower_policy_plan(policy_plan)
@@ -162,9 +165,7 @@ impl<'runtime> MergeAccess<'runtime> {
 
         Ok(LoweredMergePlan {
             request: policy_plan.request,
-            target_head: policy_plan.target_head,
-            source_head: policy_plan.source_head,
-            merge_base: policy_plan.merge_base,
+            basis: policy_plan.basis,
             ancestry: policy_plan.ancestry,
             target_delta: policy_plan.target_delta,
             source_delta: policy_plan.source_delta,

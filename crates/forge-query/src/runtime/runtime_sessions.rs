@@ -157,6 +157,7 @@ impl ForgeQueryRuntime {
             install_live_subscription_activation(&mut *self.backend, view_name, &activation)?;
         let activation_digest = activation_receipt.activation_digest().to_string();
         let support_evidence = activation_receipt.support_evidence().to_string();
+        let remask_posture = activation_receipt.remask_posture().cloned();
         let active_lane_admission =
             admit_active_subscription_lane(activation.clone(), runtime_active_lifecycle_budget())
                 .map_err(
@@ -222,6 +223,7 @@ impl ForgeQueryRuntime {
             active_lane_handle,
             consumer_attachment,
             request: request.clone(),
+            remask_posture,
         })
     }
 }

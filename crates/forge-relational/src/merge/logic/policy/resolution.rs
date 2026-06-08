@@ -25,16 +25,16 @@ pub(super) fn resolve_policy_scope(
 ) -> Result<PolicyResolvedMergePlan, MergePlanningError> {
     let history = runtime.history();
     let base_envelope = history
-        .commit_envelope(causal_plan.merge_base.commit_id)
+        .commit_envelope(causal_plan.basis.merge_base.commit.commit_id)
         .ok_or(MergePlanningError::MissingMergeBaseEnvelope {
-            commit_id: causal_plan.merge_base.commit_id,
+            commit_id: causal_plan.basis.merge_base.commit.commit_id,
         })?;
     let source_view = runtime
         .read_truth()
-        .read_version(causal_plan.source_head.version_id);
+        .read_version(causal_plan.basis.source_head.version_id);
     let target_view = runtime
         .read_truth()
-        .read_version(causal_plan.target_head.version_id);
+        .read_version(causal_plan.basis.target_head.version_id);
     let base_view = runtime
         .read_truth()
         .read_version(base_envelope.commit.version_id);
@@ -80,29 +80,31 @@ pub(super) fn resolve_policy_scope(
             let base_commit_id = record_policy_base_commit_id(
                 &history,
                 annotation,
-                causal_plan.merge_base.commit_id,
+                causal_plan.basis.merge_base.commit.commit_id,
             );
-            let record_base_view = if base_commit_id == causal_plan.merge_base.commit_id {
-                &base_view
-            } else {
-                let version_id = history
-                    .commit_envelope(base_commit_id)
-                    .ok_or(MergePlanningError::MissingMergeBaseEnvelope {
-                        commit_id: base_commit_id,
-                    })?
-                    .commit
-                    .version_id;
-                record_base_views
-                    .entry(base_commit_id)
-                    .or_insert_with(|| runtime.read_truth().read_version(version_id))
-            };
-            let record_base_view_index = if base_commit_id == causal_plan.merge_base.commit_id {
-                &base_view_index
-            } else {
-                record_base_view_indices
-                    .entry(base_commit_id)
-                    .or_insert_with(|| PolicyReadViewIndex::new(record_base_view))
-            };
+            let record_base_view =
+                if base_commit_id == causal_plan.basis.merge_base.commit.commit_id {
+                    &base_view
+                } else {
+                    let version_id = history
+                        .commit_envelope(base_commit_id)
+                        .ok_or(MergePlanningError::MissingMergeBaseEnvelope {
+                            commit_id: base_commit_id,
+                        })?
+                        .commit
+                        .version_id;
+                    record_base_views
+                        .entry(base_commit_id)
+                        .or_insert_with(|| runtime.read_truth().read_version(version_id))
+                };
+            let record_base_view_index =
+                if base_commit_id == causal_plan.basis.merge_base.commit.commit_id {
+                    &base_view_index
+                } else {
+                    record_base_view_indices
+                        .entry(base_commit_id)
+                        .or_insert_with(|| PolicyReadViewIndex::new(record_base_view))
+                };
             let record_base_view_context =
                 PolicyReadViewContext::new(record_base_view, record_base_view_index);
             let aspect_resolutions = resolve_aspects_for_record(
@@ -115,8 +117,8 @@ pub(super) fn resolve_policy_scope(
                     .ok_or_else(|| MergePlanningError::MissingCausalAnnotation {
                         record: classification.record.clone(),
                     })?,
-                &causal_plan.source_head.branch_id,
-                &causal_plan.target_head.branch_id,
+                &causal_plan.basis.source_head.branch_id,
+                &causal_plan.basis.target_head.branch_id,
                 base_commit_id,
                 &source_view_context,
                 &target_view_context,
@@ -147,9 +149,7 @@ pub(super) fn resolve_policy_scope(
 
     Ok(PolicyResolvedMergePlan {
         request: causal_plan.request,
-        target_head: causal_plan.target_head,
-        source_head: causal_plan.source_head,
-        merge_base: causal_plan.merge_base,
+        basis: causal_plan.basis,
         ancestry: causal_plan.ancestry,
         target_delta: causal_plan.target_delta,
         source_delta: causal_plan.source_delta,

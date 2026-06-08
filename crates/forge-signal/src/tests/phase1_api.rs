@@ -34,9 +34,40 @@ const WORKSPACE_SOURCE: &str = include_str!("../logic/planner/apply/workspace.rs
 const PATCH_BUFFER_SOURCE: &str = include_str!("../logic/transaction/patch_buffer.rs");
 const MERGE_EXECUTE_SOURCE: &str =
     include_str!("../logic/transaction/runtime/state/merge/execute.rs");
+const MERGE_FOUNDATIONAL_SCOPE_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/merge/foundational_scope.rs");
+const MERGE_CANDIDATE_SCOPE_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/merge/candidate_scope.rs");
+const MERGE_SCOPED_PROOF_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/merge/scoped_proof.rs");
+const MERGE_COMPATIBILITY_WITNESS_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/merge/compatibility/witness.rs");
+const MERGE_COMPATIBILITY_FACTS_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/merge/compatibility/facts.rs");
+const MERGE_COMPATIBILITY_DENIAL_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/merge/compatibility/denial.rs");
+const MERGE_COMPATIBILITY_READMISSION_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/merge/compatibility/readmission.rs");
+const MERGE_INSPECTION_SUPPORT_WITNESS_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/inspection/support_witness.rs");
+const MERGE_INSPECTION_SUPPORT_ROWS_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/inspection/support_rows.rs");
+const MERGE_INSPECTION_ABSENCE_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/inspection/absence.rs");
+const MERGE_STRATEGY_IDENTITY_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/merge/strategy_identity.rs");
+const MERGE_STRATEGY_WITNESS_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/merge/strategy_witness.rs");
 const MERGE_PLAN_SOURCE: &str = include_str!("../logic/transaction/runtime/state/merge/plan.rs");
+const MERGE_REQUEST_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/merge/request.rs");
+const GUIDED_SOURCE: &str = include_str!("../logic/transaction/runtime/state/guided.rs");
 const MERGE_RUNTIME_SOURCE: &str =
     include_str!("../logic/transaction/runtime/state/branching/merge_runtime.rs");
+const BRANCH_BASIS_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/branching/basis.rs");
+const BRANCH_FORK_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/branching/fork.rs");
 const BRANCHES_SOURCE: &str =
     include_str!("../logic/transaction/runtime/state/branching/branches.rs");
 const RUNTIME_STATE_SOURCE: &str =
@@ -101,6 +132,351 @@ fn merge_api_compile_fail_boundaries_hold() {
     let cases = trybuild::TestCases::new();
     cases.compile_fail("tests/ui/runtime_builder_requires_complete_defaults.rs");
     cases.compile_fail("tests/ui/lowered_merge_plan_fields_are_private.rs");
+    cases.compile_fail("tests/ui/branch_basis_readmission_authority_is_not_publicly_mintable.rs");
+    cases.compile_fail("tests/ui/merge_strategy_witness_cannot_be_deserialized.rs");
+}
+
+#[test]
+fn branch_basis_api_is_source_visible_through_branching_and_facade_surfaces() {
+    assert!(
+        BRANCH_BASIS_SOURCE.contains("SignalBranchBasisArtifact"),
+        "phase-1 branch basis should define an explicit proof-bearing artifact surface"
+    );
+    assert!(
+        BRANCH_BASIS_SOURCE.contains("UntrackedSnapshot"),
+        "phase-1 branch basis should type untracked snapshot posture instead of silently minting basis from arbitrary packets"
+    );
+    assert!(
+        BRANCH_BASIS_SOURCE.contains("validate_branch_basis_artifact"),
+        "phase-1 branch basis should expose typed validation instead of ambient active-branch assumptions"
+    );
+    assert!(
+        FACADE_SOURCE.contains("SignalBranchBasisArtifact"),
+        "facade runtime/history surfaces should expose the branch basis artifact family"
+    );
+    assert!(
+        !FACADE_SOURCE.contains("readmit_signal_branch_basis_after_boundary"),
+        "facade surfaces should not expose public branch-basis readmission helpers before the dedicated readmission phase exists"
+    );
+    assert!(
+        !FACADE_SOURCE.contains("SignalBranchBasisReadmissionAuthority"),
+        "facade surfaces should not export mintable branch-basis readmission authority"
+    );
+}
+
+#[test]
+fn branch_fork_api_is_source_visible_and_cost_honest() {
+    assert!(
+        BRANCH_FORK_SOURCE.contains("SignalBranchForkRequest"),
+        "phase-2 forking should define an explicit fork request surface"
+    );
+    assert!(
+        BRANCH_FORK_SOURCE.contains("SignalBranchForkReceipt"),
+        "phase-2 forking should define an explicit fork receipt surface"
+    );
+    assert!(
+        BRANCH_FORK_SOURCE.contains("fork_branch_with_snapshot"),
+        "snapshot-seeded forking should cross an explicit snapshot-bearing execution surface instead of hiding bulk snapshot transport inside the request packet"
+    );
+    assert!(
+        BRANCH_FORK_SOURCE.contains("SnapshotPayloadRequiredForFork"),
+        "snapshot-seeded forking should fail typed when callers omit the required snapshot payload"
+    );
+    assert!(
+        BRANCH_FORK_SOURCE.contains("SnapshotBasisMismatch"),
+        "snapshot-seeded forking should type requested-vs-provided snapshot mismatch instead of collapsing it into a generic failure"
+    );
+    assert!(
+        !BRANCH_FORK_SOURCE.contains("snapshot: SignalSnapshotV1"),
+        "fork requests should not embed full snapshot payloads and conceal heavy artifact transport behind a lightweight-looking request type"
+    );
+    assert!(
+        FACADE_SOURCE.contains("SignalBranchForkRequest")
+            && FACADE_SOURCE.contains("SignalBranchForkReceipt"),
+        "facade runtime surfaces should expose the explicit fork request and receipt families"
+    );
+    assert!(
+        include_str!("../logic/transaction/runtime/state/branching/lifecycle.rs")
+            .contains("self.fork_branch(SignalBranchForkRequest::from_current_branch_head(name))"),
+        "compatibility create_branch should lower through the explicit current-parent fork request path instead of retaining a parallel ambient fork semantic lane"
+    );
+}
+
+#[test]
+fn merge_request_api_is_source_visible_and_planner_proof_bearing() {
+    assert!(
+        MERGE_REQUEST_SOURCE.contains("pub enum BranchMergeRequestScope"),
+        "phase-3 merge entry should define an explicit native request scope family"
+    );
+    assert!(
+        MERGE_REQUEST_SOURCE.contains("SelectedNodes(Vec<NodeId>)")
+            && MERGE_REQUEST_SOURCE
+                .contains("SelectedAspects(Vec<SignalSelectedAspectRequestEntry>)"),
+        "phase-3 merge request scope should keep selected-node and selected-aspect semantics distinct"
+    );
+    assert!(
+        MERGE_REQUEST_SOURCE.contains("pub struct NormalizedBranchMergeRequest"),
+        "phase-3 merge boundary should produce a proof-bearing normalized request wrapper before planning"
+    );
+    assert!(
+        MERGE_REQUEST_SOURCE.contains("pub fn normalize(&self) -> Result<NormalizedBranchMergeRequest, BranchMergeRequestDenial>"),
+        "phase-3 merge request surface should expose one explicit normalization lane"
+    );
+    assert!(
+        MERGE_RUNTIME_SOURCE.contains("request: &LoweredFoundationalMergeRequest"),
+        "phase-4 merge planning should consume the lowered foundational request proof instead of a raw caller-local scope bag"
+    );
+    assert!(
+        !MERGE_RUNTIME_SOURCE.contains("normalized_scope.is_full_branch()"),
+        "once phase-4 lowering lands, planner admission should not keep deciding scoped merge eligibility from the native-only scope dialect"
+    );
+    assert!(
+        !MERGE_RUNTIME_SOURCE.contains("expect(\"merge request normalization already validated above\")"),
+        "merge planning should not re-normalize scope after the boundary has already established that proof"
+    );
+    assert!(
+        FACADE_SOURCE.contains("NormalizedBranchMergeRequest")
+            && FACADE_SOURCE.contains("BranchMergeRequestScopeFamily"),
+        "facade surfaces should expose the explicit scoped merge request family and normalized proof type"
+    );
+}
+
+#[test]
+fn merge_foundational_lowering_api_is_source_visible_and_planner_gated() {
+    assert!(
+        MERGE_FOUNDATIONAL_SCOPE_SOURCE.contains("pub struct LoweredFoundationalMergeRequest"),
+        "phase-4 should define a proof-bearing lowered foundational merge request wrapper"
+    );
+    assert!(
+        MERGE_FOUNDATIONAL_SCOPE_SOURCE.contains("pub fn lower_to_foundational_scope"),
+        "phase-4 should expose one explicit lowering lane from normalized signal requests into foundational scope"
+    );
+    assert!(
+        MERGE_FOUNDATIONAL_SCOPE_SOURCE.contains("FoundationalMergeScope::selected_nodes")
+            && MERGE_FOUNDATIONAL_SCOPE_SOURCE.contains("FoundationalMergeScope::selected_aspects"),
+        "phase-4 lowering should use the shared foundational scope constructors instead of a signal-local parallel ontology"
+    );
+    assert!(
+        MERGE_RUNTIME_SOURCE.contains("request: &LoweredFoundationalMergeRequest"),
+        "merge planner and executor boundaries should consume the lowered foundational request proof"
+    );
+    assert!(
+        MERGE_RUNTIME_SOURCE.contains("signal_scope_family_matches_foundational_family("),
+        "phase-4 planner entry should verify foundational-family parity rather than silently trusting a parallel signal-local scope dialect"
+    );
+    assert!(
+        MERGE_RUNTIME_SOURCE.contains("foundational_scope_lowering_count")
+            && GUIDED_SOURCE.contains("lower_foundational_merge_request(&request)"),
+        "phase-4 lowering should be measured at the runtime boundary and guided merge should route through that one counted lowering seam"
+    );
+}
+
+#[test]
+fn merge_candidate_scope_api_is_source_visible_and_planner_narrowing() {
+    assert!(
+        MERGE_CANDIDATE_SCOPE_SOURCE.contains("pub struct LoweredScopedMergeCandidateSet"),
+        "phase-5 should define a proof-bearing scoped candidate artifact instead of narrowing candidates inline in the planner"
+    );
+    assert!(
+        MERGE_CANDIDATE_SCOPE_SOURCE.contains("pub struct ScopedMergeCandidateBreadthSummary"),
+        "phase-5 should preserve explicit requested/admitted/skipped/no-op/support breadth accounting"
+    );
+    assert!(
+        MERGE_CANDIDATE_SCOPE_SOURCE.contains("pub fn lower(")
+            && MERGE_CANDIDATE_SCOPE_SOURCE.contains("pub fn with_support_closure_nodes("),
+        "phase-5 should expose one lowering seam for scoped candidates plus an explicit support-closure update path"
+    );
+    assert!(
+        MERGE_RUNTIME_SOURCE.contains("LoweredScopedMergeCandidateSet::lower(")
+            && MERGE_RUNTIME_SOURCE.contains("scoped_candidates.admitted_candidate_nodes().to_vec()"),
+        "phase-5 planner should lower scoped candidates once and feed downstream planning from admitted candidates rather than raw source-journal breadth"
+    );
+    assert!(
+        MERGE_PLAN_SOURCE.contains("scoped_candidates: LoweredScopedMergeCandidateSet")
+            && MERGE_PLAN_SOURCE.contains("pub fn scoped_candidates(&self)"),
+        "phase-5 merge plans should retain the scoped candidate proof artifact instead of dropping requested/skipped/support posture after planning"
+    );
+    assert!(
+        MERGE_RUNTIME_SOURCE.contains("scoped_candidate_lowering_count")
+            && MERGE_RUNTIME_SOURCE.contains("scoped_candidate_support_closure_breadth"),
+        "phase-5 candidate lowering should be measured at the runtime boundary so breadth remains performance-visible"
+    );
+}
+
+#[test]
+fn merge_scoped_proof_api_is_source_visible_and_retained_across_plan_and_result() {
+    assert!(
+        MERGE_SCOPED_PROOF_SOURCE.contains("pub struct ScopedMergeProofPacket"),
+        "phase-7 should define a dedicated retained scoped merge proof packet instead of leaking planner-local candidate structures across the proof boundary"
+    );
+    assert!(
+        MERGE_SCOPED_PROOF_SOURCE.contains("from_request_and_candidates"),
+        "phase-7 should derive retained scoped proof once from the admitted request and scoped candidate truth"
+    );
+    assert!(
+        MERGE_PLAN_SOURCE.contains("scoped_merge_proof: ScopedMergeProofPacket")
+            && MERGE_PLAN_SOURCE.contains("pub fn scoped_merge_proof(&self)"),
+        "phase-7 plans should retain the scoped proof packet as a first-class artifact"
+    );
+    assert!(
+        include_str!("../logic/transaction/runtime/state/merge/result.rs")
+            .contains("pub scoped_merge_proof: ScopedMergeProofPacket"),
+        "phase-7 results and execution summaries should retain the same scoped proof packet instead of degrading to counters-only merge summaries"
+    );
+    assert!(
+        include_str!("../logic/transaction/runtime/state/merge/proof.rs")
+            .contains("pub scoped_merge_proof: ScopedMergeProofPacket")
+            && include_str!("../logic/transaction/runtime/state/merge/proof.rs")
+                .contains("pub scoped_merge_proof: Option<ScopedMergeProofPacket>"),
+        "phase-7 proof reports and replay proof inputs should carry the retained scoped proof packet directly instead of forcing replay to rediscover scope from ambient branch state"
+    );
+    assert!(
+        include_str!("../diagnostics/model/replay.rs").contains("BranchMergeSummary")
+            && include_str!("../diagnostics/model/replay.rs")
+                .contains("as_scoped_merge_proof")
+            && RECORDER_SOURCE.contains("scoped_merge_proof: summary.scoped_merge_proof.clone()"),
+        "phase-7 retained branch-merge replay history should carry the scoped proof packet directly instead of collapsing it into message-only diagnostics"
+    );
+}
+
+#[test]
+fn merge_strategy_witness_api_is_source_visible_and_retained_across_plan_result_and_replay() {
+    assert!(
+        MERGE_STRATEGY_WITNESS_SOURCE.contains("pub struct SignalMergeStrategyWitness"),
+        "phase-9 should define a dedicated retained merge strategy witness instead of leaving strategy identity smeared across plan and result fields"
+    );
+    assert!(
+        MERGE_STRATEGY_IDENTITY_SOURCE.contains("pub struct SignalMergeStrategyIdentity")
+            && MERGE_STRATEGY_IDENTITY_SOURCE
+                .contains("pub struct SignalInvalidationStrategyIdentity")
+            && MERGE_STRATEGY_IDENTITY_SOURCE
+                .contains("pub struct SignalDeliveryStrategyIdentity"),
+        "phase-9 should keep merge, invalidation, and delivery posture distinguishable inside the retained strategy witness"
+    );
+    assert!(
+        MERGE_PLAN_SOURCE.contains("strategy_witness: SignalMergeStrategyWitness")
+            && MERGE_PLAN_SOURCE.contains("pub fn strategy_witness(&self)"),
+        "phase-9 plans should retain the strategy witness as first-class proof instead of rediscovering it from selected semantics"
+    );
+    assert!(
+        include_str!("../logic/transaction/runtime/state/merge/result.rs")
+            .contains("pub strategy_witness: SignalMergeStrategyWitness"),
+        "phase-9 execution summaries and results should retain the same strategy witness"
+    );
+    assert!(
+        include_str!("../logic/transaction/runtime/state/merge/proof.rs")
+            .contains("pub strategy_witness: SignalMergeStrategyWitness")
+            && include_str!("../logic/transaction/runtime/state/merge/proof.rs")
+                .contains("pub strategy_witness: Option<SignalMergeStrategyWitness>"),
+        "phase-9 proof reports and replay proof inputs should carry the retained strategy witness directly"
+    );
+    assert!(
+        include_str!("../diagnostics/model/replay.rs").contains("as_strategy_witness")
+            && RECORDER_SOURCE.contains("strategy_witness: summary.strategy_witness.clone()"),
+        "phase-9 retained replay history should carry the strategy witness directly instead of collapsing strategy posture into message text"
+    );
+}
+
+#[test]
+fn merge_compatibility_witness_api_is_source_visible_and_readmission_prepared() {
+    assert!(
+        MERGE_COMPATIBILITY_WITNESS_SOURCE.contains("pub struct SignalMergeCompatibilityWitness")
+            && MERGE_COMPATIBILITY_WITNESS_SOURCE
+                .contains("pub struct SignalMergeCompatibilityBasis"),
+        "phase-10 should define a retained compatibility witness and explicit compatibility basis instead of leaving consumers to rediscover compatibility from three separate retained artifacts"
+    );
+    assert!(
+        MERGE_COMPATIBILITY_FACTS_SOURCE
+            .contains("pub struct SignalMergeCompatibilityFactInventory")
+            && MERGE_COMPATIBILITY_FACTS_SOURCE.contains("from_retained"),
+        "phase-10 should project one lower-authority fact inventory directly from retained branch basis, scoped proof, and strategy witness"
+    );
+    assert!(
+        MERGE_COMPATIBILITY_DENIAL_SOURCE.contains("pub enum SignalMergeCompatibilityDenial")
+            && MERGE_COMPATIBILITY_DENIAL_SOURCE.contains("StaleBranchBasis")
+            && MERGE_COMPATIBILITY_DENIAL_SOURCE.contains("ScopedMergeProofMismatch")
+            && MERGE_COMPATIBILITY_DENIAL_SOURCE.contains("StrategyWitnessMismatch"),
+        "phase-10 should preserve stale, missing, and mismatched compatibility posture as typed denial instead of collapsing it into generic replay or merge failure text"
+    );
+    assert!(
+        MERGE_COMPATIBILITY_READMISSION_SOURCE
+            .contains("pub fn merge_result_compatibility_artifact(")
+            && MERGE_COMPATIBILITY_READMISSION_SOURCE
+                .contains("pub fn replay_merge_compatibility_artifact(")
+            && MERGE_COMPATIBILITY_READMISSION_SOURCE
+                .contains("pub fn readmit_merge_compatibility_artifact("),
+        "phase-10 should expose one retained compatibility seam across merge result, replay, and explicit authority-backed readmission"
+    );
+    assert!(
+        !MERGE_COMPATIBILITY_READMISSION_SOURCE
+            .contains("pub fn merge_compatibility_artifact_from_parts("),
+        "phase-10 should not expose a public raw parts seam that can mint compatibility-looking artifacts from caller-assembled retained fragments"
+    );
+    assert!(
+        MERGE_COMPATIBILITY_READMISSION_SOURCE.contains("validate_branch_basis_artifact(")
+            && MERGE_COMPATIBILITY_READMISSION_SOURCE.contains("readmit_with_authority("),
+        "phase-10 compatibility should be anchored to current branch-basis validation and explicit forge-proof readmission rather than helper-local folklore progression"
+    );
+    assert!(
+        MERGE_COMPATIBILITY_READMISSION_SOURCE.contains("merge_compatibility_build_count")
+            && MERGE_COMPATIBILITY_READMISSION_SOURCE
+                .contains("merge_compatibility_readmission_denial_count"),
+        "phase-10 compatibility and readmission preparation should be measured at the boundary so retained-proof preparation stays performance-visible"
+    );
+    assert!(
+        include_str!("../logic/transaction/runtime/state/merge/result.rs")
+            .contains("pub compatibility_witness: SignalMergeCompatibilityWitness")
+            && include_str!("../diagnostics/model/replay.rs")
+                .contains("as_compatibility_witness")
+            && RECORDER_SOURCE
+                .contains("compatibility_witness: summary.compatibility_witness.clone()"),
+        "phase-10 compatibility witness should be retained on merge results and replay history instead of being rebuilt ad hoc from separate retained fragments"
+    );
+}
+
+#[test]
+fn merge_support_inspection_api_is_source_visible_and_support_ready() {
+    assert!(
+        MERGE_INSPECTION_SUPPORT_WITNESS_SOURCE
+            .contains("pub struct SignalMergeSupportInspectionWitness"),
+        "phase-11 should define one proof-bearing support inspection witness instead of leaving collaboration-critical posture split across ad hoc helpers"
+    );
+    assert!(
+        MERGE_INSPECTION_SUPPORT_ROWS_SOURCE.contains("pub struct SignalBranchBasisInspectionRow")
+            && MERGE_INSPECTION_SUPPORT_ROWS_SOURCE
+                .contains("pub struct SignalScopedMergeInspectionRow")
+            && MERGE_INSPECTION_SUPPORT_ROWS_SOURCE
+                .contains("pub struct SignalStrategyInspectionRow")
+            && MERGE_INSPECTION_SUPPORT_ROWS_SOURCE
+                .contains("pub struct SignalCompatibilityInspectionRow"),
+        "phase-11 should project separate summarized branch-basis, scope, strategy, and compatibility rows instead of flattening retained proof into one opaque support blob"
+    );
+    assert!(
+        MERGE_INSPECTION_ABSENCE_SOURCE
+            .contains("pub enum SignalMergeSupportInspectionAbsence"),
+        "phase-11 inspection should type missing or incomplete retained proof instead of synthesizing fallback support rows"
+    );
+    assert!(
+        MERGE_INSPECTION_SUPPORT_WITNESS_SOURCE.contains(
+            "pub(crate) fn merge_support_inspection_from_retained_parts("
+        ) && MERGE_INSPECTION_SUPPORT_WITNESS_SOURCE
+            .contains("pub fn merge_result_support_inspection(")
+            && MERGE_INSPECTION_SUPPORT_WITNESS_SOURCE
+                .contains("pub fn merge_execution_summary_support_inspection(")
+            && MERGE_INSPECTION_SUPPORT_WITNESS_SOURCE
+            .contains("pub fn replay_merge_support_inspection("),
+        "phase-11 should keep the raw retained-parts builder internal while exposing explicit result, execution-summary, and replay inspection lanes for real support consumption"
+    );
+    assert!(
+        FACADE_SOURCE.contains("SignalMergeSupportInspectionWitness")
+            && FACADE_SOURCE.contains("SignalMergeSupportReadinessPosture"),
+        "facade runtime surfaces should expose the phase-11 support inspection witness and readiness summary"
+    );
+    assert!(
+        MERGE_INSPECTION_SUPPORT_WITNESS_SOURCE.contains("compatibility_witness: Option<&SignalMergeCompatibilityWitness>")
+            && MERGE_INSPECTION_SUPPORT_WITNESS_SOURCE.contains("ReplayDetailUnavailable"),
+        "phase-11 support inspection should prefer retained compatibility witness when present and deny explicitly when replay does not retain merge support detail"
+    );
 }
 
 #[test]

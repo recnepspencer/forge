@@ -3,6 +3,8 @@ use std::collections::BTreeSet;
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::identity::hash_parts;
 use crate::memory_workspace::ForgeQueryMutationReceipt;
+use crate::runtime::remask_posture::ForgeQueryRuntimeRemaskProjection;
+use crate::runtime::ForgeQueryRuntimeRemaskPosture;
 use crate::subscription::SubscriptionActivationInput;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -210,6 +212,7 @@ pub struct SubscriptionActivationReceipt {
     basis_binding_digest: String,
     signal_strategy_digest: String,
     support_evidence: String,
+    remask_posture: Option<ForgeQueryRuntimeRemaskPosture>,
     receipt_digest: String,
 }
 
@@ -218,6 +221,7 @@ impl SubscriptionActivationReceipt {
         view_name: impl Into<String>,
         activation: &SubscriptionActivationInput,
         support_evidence: impl Into<String>,
+        remask_projection: Option<ForgeQueryRuntimeRemaskProjection>,
     ) -> Self {
         let view_name = view_name.into();
         let activation_digest = activation.activation_digest().to_string();
@@ -226,6 +230,13 @@ impl SubscriptionActivationReceipt {
         let basis_binding_digest = activation.basis_binding_digest().to_string();
         let signal_strategy_digest = activation.signal_strategy_digest().to_string();
         let support_evidence = support_evidence.into();
+        let remask_posture = remask_projection.map(|projection| {
+            ForgeQueryRuntimeRemaskPosture::from_activation_projection(
+                &projection,
+                &support_evidence,
+                &basis_binding_digest,
+            )
+        });
         let receipt_digest = hash_parts(&[
             "subscription_activation_receipt_v1".to_string(),
             format!("view:{view_name}"),
@@ -235,6 +246,12 @@ impl SubscriptionActivationReceipt {
             format!("basis_binding:{basis_binding_digest}"),
             format!("signal_strategy:{signal_strategy_digest}"),
             format!("support:{support_evidence}"),
+            format!(
+                "remask:{}",
+                remask_posture
+                    .as_ref()
+                    .map_or("none", |posture| posture.remask_digest())
+            ),
         ]);
 
         Self {
@@ -245,6 +262,7 @@ impl SubscriptionActivationReceipt {
             basis_binding_digest,
             signal_strategy_digest,
             support_evidence,
+            remask_posture,
             receipt_digest,
         }
     }
@@ -275,6 +293,10 @@ impl SubscriptionActivationReceipt {
 
     pub fn support_evidence(&self) -> &str {
         &self.support_evidence
+    }
+
+    pub fn remask_posture(&self) -> Option<&ForgeQueryRuntimeRemaskPosture> {
+        self.remask_posture.as_ref()
     }
 
     pub fn receipt_digest(&self) -> &str {

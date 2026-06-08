@@ -9,17 +9,20 @@ use super::error::{
     QuerySubscriptionFamilySelectionError, QuerySubscriptionFamilySelectionFailureClass,
 };
 use super::family::QuerySubscriptionFamily;
+use super::future_selection::QuerySubscriptionFutureSelection;
 use super::input::LiveQueryAdmissionArtifact;
 use super::posture::{
     QuerySubscriptionAllocationPosture, QuerySubscriptionBasisPosture,
     QuerySubscriptionBridgePosture, QuerySubscriptionCostPosture,
 };
+use super::selection_future::validate_future_selection;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionFamilySelection {
     family: QuerySubscriptionFamily,
     live_family: LiveQueryFamily,
     view_family: Option<LiveViewShapeFamily>,
+    future_selection: QuerySubscriptionFutureSelection,
     cost_posture: QuerySubscriptionCostPosture,
     basis_posture: QuerySubscriptionBasisPosture,
     bridge_posture: QuerySubscriptionBridgePosture,
@@ -49,6 +52,10 @@ impl QuerySubscriptionFamilySelection {
 
     pub fn cost_posture(&self) -> &QuerySubscriptionCostPosture {
         &self.cost_posture
+    }
+
+    pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
+        &self.future_selection
     }
 
     pub fn basis_posture(&self) -> &QuerySubscriptionBasisPosture {
@@ -137,6 +144,7 @@ pub fn select_query_subscription_family(
     counters.view_family_registry_lookup_count = u64::from(live.view_family.is_some());
 
     let classification = classify_subscription_family(&live, &source_digest, &mut counters)?;
+    validate_future_selection(&live, &classification.family, &source_digest, &mut counters)?;
     validate_admission_dimensions(&live, &classification.family, &source_digest, &mut counters)?;
     let required_slice_count = required_slice_count(&live, &classification.family);
     let required_policy_width = live
@@ -191,6 +199,7 @@ pub fn select_query_subscription_family(
         family: classification.family,
         live_family: live.live_family,
         view_family: live.view_family,
+        future_selection: live.future_selection,
         cost_posture: classification.cost_posture,
         basis_posture: live.basis_posture,
         bridge_posture: classification.bridge_posture,

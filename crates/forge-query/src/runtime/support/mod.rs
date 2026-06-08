@@ -10,7 +10,7 @@ pub use authority_artifacts::{
 };
 pub use facade_families::{
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
-    ForgeQueryRuntimeFamilySupportStatus,
+    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeFamilyTeachingPosture,
 };
 pub(crate) use graph_composition::{
     default_graph_composition_capability_support_rows,

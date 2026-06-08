@@ -121,6 +121,9 @@ Good to know:
   boundary for the caller, feed that result into
   [Projection Consumption](../capabilities/projection-consumption.md) to extract typed facts
   with their own receipt and envelope
+- that fact lane now preserves temporal, async, mixed-cause, and remask-bound
+  materialized posture when the read materialization carried it, instead of
+  flattening the result into ordinary row folklore
 
 Some entrypoints now own traversal mechanically instead of asking the caller to
 declare it by convention:

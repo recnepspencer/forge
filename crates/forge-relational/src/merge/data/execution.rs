@@ -23,56 +23,15 @@ pub use materialized_aspect_values::{
     MergeValueSourceSide,
 };
 
-use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{CommitId, RelationalMergeBranchBasis};
 use crate::merge::data::{
     BranchTouchedRecordDelta, LoweredMergePlanRecord, LoweredRecordDecision,
-    LoweredRecordDecisionKind, MergePlanningArtifactCore, MergePlanningError, MergePlanningRequest,
-    MergeSchemaSnapshotDigestBasis, ResolvedMergeBase, VisibleMergeRecord,
+    LoweredRecordDecisionKind, MergePlanningArtifactCore, MergePlanningError,
+    MergeSchemaSnapshotDigestBasis, NormalizedRelationalMergeRequest, VisibleMergeRecord,
 };
 use crate::transactions::data::RecordRef;
 
 use super::plans::LoweredMergePlan;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MergeExecutionRequest {
-    pub target_branch: crate::history::data::BranchId,
-    pub source_branch: crate::history::data::BranchId,
-    pub merge_intent: crate::merge::data::MergeIntent,
-}
-
-impl MergeExecutionRequest {
-    pub fn target_branch(&self) -> &crate::history::data::BranchId {
-        &self.target_branch
-    }
-
-    pub fn source_branch(&self) -> &crate::history::data::BranchId {
-        &self.source_branch
-    }
-
-    pub fn merge_intent(&self) -> &crate::merge::data::MergeIntent {
-        &self.merge_intent
-    }
-}
-
-impl From<MergeExecutionRequest> for MergePlanningRequest {
-    fn from(value: MergeExecutionRequest) -> Self {
-        Self {
-            target_branch: value.target_branch,
-            source_branch: value.source_branch,
-            merge_intent: value.merge_intent,
-        }
-    }
-}
-
-impl From<MergePlanningRequest> for MergeExecutionRequest {
-    fn from(value: MergePlanningRequest) -> Self {
-        Self {
-            target_branch: value.target_branch,
-            source_branch: value.source_branch,
-            merge_intent: value.merge_intent,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MergeExecutionFreshnessPolicy {
@@ -84,9 +43,7 @@ pub struct RuntimeInstanceId(pub u64);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MergeExecutionAuthorityBinding {
-    pub target_branch: BranchId,
-    pub source_branch: BranchId,
-    pub merge_intent: crate::merge::data::MergeIntent,
+    pub request: NormalizedRelationalMergeRequest,
     pub runtime_instance_id: RuntimeInstanceId,
     pub target_head_commit_id: CommitId,
     pub source_head_commit_id: CommitId,
@@ -219,7 +176,7 @@ pub enum MergeExecutionMutationPlanError {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PreparedMergeExecution {
     artifact: MergePlanningArtifactCore,
-    request: MergeExecutionRequest,
+    request: NormalizedRelationalMergeRequest,
     execution_ready_plan: ExecutionReadyLoweredMergePlan,
     bound_executable_plan: BoundExecutableMergePlan,
     execution_token: PreparedMergeExecutionToken,
@@ -239,7 +196,7 @@ impl From<crate::transactions::data::TransactionCommitError> for MergeExecutionE
 
 impl PreparedMergeExecution {
     pub(crate) fn new(
-        request: MergeExecutionRequest,
+        request: NormalizedRelationalMergeRequest,
         artifact: MergePlanningArtifactCore,
         execution_ready_plan: ExecutionReadyLoweredMergePlan,
         bound_executable_plan: BoundExecutableMergePlan,
@@ -253,7 +210,7 @@ impl PreparedMergeExecution {
         }
     }
 
-    pub fn request(&self) -> &MergeExecutionRequest {
+    pub fn request(&self) -> &NormalizedRelationalMergeRequest {
         &self.request
     }
 
@@ -292,9 +249,8 @@ struct PreparedMergeExecutionToken;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ExecutionReadyLoweredMergePlan {
-    pub(crate) target_head: CommitReference,
-    pub(crate) source_head: CommitReference,
-    pub(crate) merge_base: ResolvedMergeBase,
+    pub(crate) request: NormalizedRelationalMergeRequest,
+    pub(crate) basis: RelationalMergeBranchBasis,
     pub(crate) schema_snapshot: MergeSchemaSnapshotDigestBasis,
     pub(crate) source_records: Arc<[VisibleMergeRecord]>,
     pub(crate) target_touched_records: Arc<[BranchTouchedRecordDelta]>,
@@ -323,9 +279,8 @@ impl ExecutionReadyLoweredMergePlan {
         }
 
         Ok(Self {
-            target_head: plan.target_head,
-            source_head: plan.source_head,
-            merge_base: plan.merge_base,
+            request: plan.request,
+            basis: plan.basis,
             schema_snapshot,
             source_records: plan.source_records,
             target_touched_records: plan.target_delta.touched_records,

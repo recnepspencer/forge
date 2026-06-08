@@ -567,12 +567,30 @@ where
         restored.explicit_fork_count = restored
             .explicit_fork_count
             .max(current.explicit_fork_count);
+        restored.explicit_snapshot_fork_count = restored
+            .explicit_snapshot_fork_count
+            .max(current.explicit_snapshot_fork_count);
+        restored.explicit_fork_denial_count = restored
+            .explicit_fork_denial_count
+            .max(current.explicit_fork_denial_count);
         restored.restore_transfer_count = restored
             .restore_transfer_count
             .max(current.restore_transfer_count);
         restored.heavy_capture_count = restored
             .heavy_capture_count
             .max(current.heavy_capture_count);
+        restored.branch_basis_production_count = restored
+            .branch_basis_production_count
+            .max(current.branch_basis_production_count);
+        restored.branch_basis_validation_count = restored
+            .branch_basis_validation_count
+            .max(current.branch_basis_validation_count);
+        restored.branch_basis_denial_count = restored
+            .branch_basis_denial_count
+            .max(current.branch_basis_denial_count);
+        restored.branch_basis_stale_count = restored
+            .branch_basis_stale_count
+            .max(current.branch_basis_stale_count);
         restored.decision_log_event_count = restored
             .decision_log_event_count
             .max(current.decision_log_event_count);

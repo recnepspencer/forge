@@ -37,8 +37,12 @@ fn prepare_merge_execution_admits_fully_ready_source_only_addition() {
         .merge()
         .prepare_merge_execution(request.clone())
         .expect("merge execution should prepare");
+    let normalized_request = runtime
+        .merge()
+        .normalize_merge_request(request.clone())
+        .expect("normalized request");
 
-    assert_eq!(prepared.request(), &request);
+    assert_eq!(prepared.request(), &normalized_request);
     assert!(prepared.artifact().lowered_plan.fully_execution_ready);
     assert_eq!(prepared.artifact().lowered_plan.blocked_count, 0);
     assert_eq!(prepared.artifact().lowered_plan.rejected_count, 0);
@@ -179,7 +183,11 @@ fn runtime_prepare_merge_execution_matches_merge_access_surface() {
         .merge()
         .prepare_merge_execution(request.clone())
         .expect("merge access prepare");
+    let normalized_request = runtime
+        .merge()
+        .normalize_merge_request(request)
+        .expect("normalized request");
 
-    assert_eq!(via_runtime.request(), &request);
+    assert_eq!(via_runtime.request(), &normalized_request);
     assert_eq!(via_runtime.artifact(), via_access.artifact());
 }

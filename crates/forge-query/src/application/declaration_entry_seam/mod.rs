@@ -1,3 +1,4 @@
+mod async_readiness;
 mod authority_support;
 mod classification;
 mod contribution;
@@ -5,8 +6,10 @@ mod digest;
 mod inspection;
 mod inventory;
 mod readiness_projection;
+mod retained_subject;
 mod row;
 mod support;
+mod temporal_readiness;
 
 pub use classification::{
     ForgeQueryDeclarationEntryLowerOwnerCrate, ForgeQueryDeclarationEntrySeamClassification,

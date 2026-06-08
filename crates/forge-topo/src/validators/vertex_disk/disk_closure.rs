@@ -10,14 +10,12 @@ use std::collections::BTreeSet;
 
 pub(crate) fn validate_disk_closure(arena: &TopologyArena) -> Result<(), KernelError> {
     let mut visited: BTreeSet<crate::handles::HalfEdgeId> = BTreeSet::new();
-    let bound = arena.half_edge_count().max(1);
 
-    for (start_id, start_data) in arena.iter_half_edges() {
+    for (start_id, _start_data) in arena.iter_half_edges() {
         if visited.contains(&start_id) {
             continue;
         }
 
-        let vertex = start_data.origin();
         let (disk, closed) = super::disk_walker::collect_disk(arena, start_id)?;
         visited.extend(disk);
 

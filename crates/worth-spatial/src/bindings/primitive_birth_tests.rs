@@ -19,7 +19,9 @@ fn primitive_birth_admits_closed_and_planar_phase_three_families() {
         "closed_simplex_body",
         "simplex".to_string(),
         tetrahedron([0.0, 0.0, 0.0], 1.0).expect("planes"),
-        canonical_simplex_vertices(1.0, 0.0).local_vertices().to_vec(),
+        canonical_simplex_vertices(1.0, 0.0)
+            .local_vertices()
+            .to_vec(),
         4,
         6,
         4,

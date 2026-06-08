@@ -69,7 +69,9 @@ where
 mod tests {
     use std::mem::size_of;
 
-    use crate::assumption::{AssumptionBasis, CurrentValidity, FreshnessScopedBasis, NoAssumptionBasis};
+    use crate::assumption::{
+        AssumptionBasis, CurrentValidity, FreshnessScopedBasis, NoAssumptionBasis,
+    };
 
     use super::{Admitted, Recipe, Resolved, Unresolved};
 
@@ -100,6 +102,9 @@ mod tests {
         let cloned = admitted.clone();
 
         assert_eq!(cloned.payload(), admitted.payload());
-        assert_eq!(cloned.basis().basis().value(), admitted.basis().basis().value());
+        assert_eq!(
+            cloned.basis().basis().value(),
+            admitted.basis().basis().value()
+        );
     }
 }

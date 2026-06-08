@@ -8,8 +8,9 @@ use crate::application::{
     ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
     ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
     ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationEnvelopeEvidenceOrigin,
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationReceiptDenialCause,
-    ForgeQueryDeclarationRoutePlanDenialCause, ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationFutureProjection, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationReceiptDenialCause, ForgeQueryDeclarationRoutePlanDenialCause,
+    ForgeQueryDomainEntryMarker,
 };
 
 use super::{
@@ -135,6 +136,8 @@ pub struct ForgeQueryDeclarationBridgeRouting<
     aspect_fit: ForgeQueryDeclarationAspectFit,
     mapped_aspects: ForgeQueryDeclarationAspectCoverage,
     mapping_fit: ForgeQueryDeclarationAspectFit,
+    future_projection: ForgeQueryDeclarationFutureProjection,
+    basis_lifecycle_support_digest: String,
     envelope: ForgeQueryDeclarationEnvelope<D, I>,
     bridge_routing_digest: String,
     explanation: ForgeQueryDeclarationBridgeRoutingExplanation,
@@ -154,6 +157,8 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         aspect_fit: ForgeQueryDeclarationAspectFit,
         mapped_aspects: ForgeQueryDeclarationAspectCoverage,
         mapping_fit: ForgeQueryDeclarationAspectFit,
+        future_projection: ForgeQueryDeclarationFutureProjection,
+        basis_lifecycle_support_digest: String,
         envelope: ForgeQueryDeclarationEnvelope<D, I>,
         bridge_routing_digest: String,
         explanation: ForgeQueryDeclarationBridgeRoutingExplanation,
@@ -169,6 +174,8 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             aspect_fit,
             mapped_aspects,
             mapping_fit,
+            future_projection,
+            basis_lifecycle_support_digest,
             envelope,
             bridge_routing_digest,
             explanation,
@@ -217,6 +224,14 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn mapping_fit(&self) -> ForgeQueryDeclarationAspectFit {
         self.mapping_fit
+    }
+
+    pub fn future_projection(&self) -> &ForgeQueryDeclarationFutureProjection {
+        &self.future_projection
+    }
+
+    pub fn basis_lifecycle_support_digest(&self) -> &str {
+        &self.basis_lifecycle_support_digest
     }
 
     pub fn declaration_family_key(&self) -> &'static str {

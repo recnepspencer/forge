@@ -3,15 +3,21 @@ use forge_foundational::facade::{
 };
 
 use crate::application::{
+    ForgeQueryAsyncDeclarationClause, ForgeQueryAsyncDeclarationSupport,
+    ForgeQueryAsyncFailurePosture, ForgeQueryAsyncLoadingPosture, ForgeQueryAsyncSourceFamily,
+    ForgeQueryDeclarationBridgeTruthContext, ForgeQueryDeclarationFamilyMarker,
     ForgeQueryDeclarationFamilySupportReport, ForgeQueryDeclarationInput,
-    ForgeQueryDomainEntryMarker,
+    ForgeQueryDomainEntryMarker, ForgeQueryTemporalDeclarationSupport,
 };
+use crate::basis_lifecycle::BasisFamily;
 use crate::identity::hash_parts;
+use crate::runtime::ForgeQueryRuntimeFamilySupportStatus;
 
 use super::{
-    ForgeQueryDeclarationLegalityChecked, ForgeQueryDeclarationLegalityClass,
-    ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationLegalityDenial,
-    ForgeQueryDeclarationLegalityEvidence, ForgeQueryDeclarationLegalityInput,
+    ForgeQueryAsyncLegalityDenialKind, ForgeQueryDeclarationLegalityChecked,
+    ForgeQueryDeclarationLegalityClass, ForgeQueryDeclarationLegalityContract,
+    ForgeQueryDeclarationLegalityDenial, ForgeQueryDeclarationLegalityEvidence,
+    ForgeQueryDeclarationLegalityInput, ForgeQueryTemporalLegalityDenialKind,
 };
 
 pub(crate) fn review_declaration_legality<D, I>(
@@ -24,7 +30,8 @@ where
 {
     let actual_handle_identity_digest = input.handle_identity_digest().to_string();
     if actual_handle_identity_digest != expected_handle_identity_digest {
-        let (declaration, support_report, legality_contract, world_basis) = input.into_parts();
+        let (declaration, support_report, legality_contract, world_basis, _, _) =
+            input.into_parts();
         return ForgeQueryDeclarationLegalityChecked::Illegal(
             ForgeQueryDeclarationLegalityDenial::WrongAdmittedWorld {
                 declaration,
@@ -39,7 +46,14 @@ where
         );
     }
 
-    let (declaration, support_report, legality_contract, world_basis) = input.into_parts();
+    let (
+        declaration,
+        support_report,
+        legality_contract,
+        world_basis,
+        temporal_runtime_support,
+        async_runtime_support,
+    ) = input.into_parts();
 
     match legality_contract.legality_class() {
         ForgeQueryDeclarationLegalityClass::DeferredBoundary => {
@@ -67,6 +81,36 @@ where
             );
         }
         _ => {}
+    }
+
+    if let Some(kind) =
+        temporal_legality_denial_kind::<D, I>(&declaration, temporal_runtime_support)
+    {
+        return ForgeQueryDeclarationLegalityChecked::Illegal(
+            ForgeQueryDeclarationLegalityDenial::TemporalProjectionUnsupported {
+                declaration,
+                kind,
+                operating_context_identity_digest: world_basis
+                    .operating_context_identity_digest()
+                    .to_string(),
+                support_report,
+                legality_contract,
+            },
+        );
+    }
+
+    if let Some(kind) = async_legality_denial_kind::<D, I>(&declaration, async_runtime_support) {
+        return ForgeQueryDeclarationLegalityChecked::Illegal(
+            ForgeQueryDeclarationLegalityDenial::AsyncProjectionUnsupported {
+                declaration,
+                kind,
+                operating_context_identity_digest: world_basis
+                    .operating_context_identity_digest()
+                    .to_string(),
+                support_report,
+                legality_contract,
+            },
+        );
     }
 
     if let Err(denial) = evaluate_boundary_role_claim_legality(
@@ -123,6 +167,168 @@ where
         surface_disposition,
         legality_digest,
     ))
+}
+
+fn async_legality_denial_kind<D, I>(
+    declaration: &crate::application::ForgeQueryCanonicalDeclarationArtifact<D, I>,
+    async_runtime_support: Option<ForgeQueryRuntimeFamilySupportStatus>,
+) -> Option<ForgeQueryAsyncLegalityDenialKind>
+where
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+{
+    let clauses = declaration.async_resource_clauses();
+    if clauses.is_empty() {
+        return None;
+    }
+
+    if I::Family::async_declaration_support() == ForgeQueryAsyncDeclarationSupport::Unsupported {
+        return Some(ForgeQueryAsyncLegalityDenialKind::RuntimeFacadeUnsupported);
+    }
+
+    if let Some(kind) = async_basis_legality_denial_kind::<D, I>() {
+        return Some(kind);
+    }
+
+    for clause in clauses {
+        if let Some(kind) = async_clause_legality_denial_kind(clause) {
+            return Some(kind);
+        }
+    }
+
+    match async_runtime_support {
+        Some(ForgeQueryRuntimeFamilySupportStatus::DeferredDebt) => {
+            Some(ForgeQueryAsyncLegalityDenialKind::RuntimeFacadeDeferred)
+        }
+        Some(ForgeQueryRuntimeFamilySupportStatus::Unsupported) | None => {
+            Some(ForgeQueryAsyncLegalityDenialKind::RuntimeFacadeUnsupported)
+        }
+        Some(ForgeQueryRuntimeFamilySupportStatus::Supported) => None,
+    }
+}
+
+fn async_basis_legality_denial_kind<D, I>() -> Option<ForgeQueryAsyncLegalityDenialKind>
+where
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+{
+    if let Some(contract) = I::Family::bridge_continuation_contract() {
+        match contract.request().truth_context() {
+            ForgeQueryDeclarationBridgeTruthContext::Historical => {
+                return Some(ForgeQueryAsyncLegalityDenialKind::HistoricalTruthBasisUnsupported);
+            }
+            ForgeQueryDeclarationBridgeTruthContext::Preview => {
+                return Some(ForgeQueryAsyncLegalityDenialKind::PreviewTruthBasisUnsupported);
+            }
+            ForgeQueryDeclarationBridgeTruthContext::Current => {}
+        }
+    }
+
+    if let Some(contract) = I::Family::signal_compatibility_contract() {
+        if contract
+            .required_basis_families()
+            .contains(&BasisFamily::HistoricalSnapshot)
+        {
+            return Some(ForgeQueryAsyncLegalityDenialKind::HistoricalSignalBasisUnsupported);
+        }
+        if contract
+            .required_basis_families()
+            .contains(&BasisFamily::PreviewDerived)
+        {
+            return Some(ForgeQueryAsyncLegalityDenialKind::PreviewSignalBasisUnsupported);
+        }
+    }
+
+    None
+}
+
+fn async_clause_legality_denial_kind(
+    clause: &ForgeQueryAsyncDeclarationClause,
+) -> Option<ForgeQueryAsyncLegalityDenialKind> {
+    match clause {
+        ForgeQueryAsyncDeclarationClause::ResourceRequest {
+            source_family,
+            loading_posture,
+            failure_posture,
+            ..
+        } => {
+            if *source_family != ForgeQueryAsyncSourceFamily::BridgeResource {
+                return Some(ForgeQueryAsyncLegalityDenialKind::UnsupportedSourceFamily(
+                    *source_family,
+                ));
+            }
+            if *loading_posture != ForgeQueryAsyncLoadingPosture::Blocking {
+                return Some(
+                    ForgeQueryAsyncLegalityDenialKind::UnsupportedLoadingPosture(*loading_posture),
+                );
+            }
+            if *failure_posture != ForgeQueryAsyncFailurePosture::FailClosed {
+                return Some(
+                    ForgeQueryAsyncLegalityDenialKind::UnsupportedFailurePosture(*failure_posture),
+                );
+            }
+            None
+        }
+        ForgeQueryAsyncDeclarationClause::CompletionRequest { .. } => {
+            Some(ForgeQueryAsyncLegalityDenialKind::CompletionLifecycleUnsupported)
+        }
+    }
+}
+
+fn temporal_legality_denial_kind<D, I>(
+    declaration: &crate::application::ForgeQueryCanonicalDeclarationArtifact<D, I>,
+    temporal_runtime_support: Option<ForgeQueryRuntimeFamilySupportStatus>,
+) -> Option<ForgeQueryTemporalLegalityDenialKind>
+where
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+{
+    if declaration.temporal_clauses().is_empty() {
+        return None;
+    }
+
+    if I::Family::temporal_declaration_support()
+        == ForgeQueryTemporalDeclarationSupport::Unsupported
+    {
+        return Some(ForgeQueryTemporalLegalityDenialKind::RuntimeFacadeUnsupported);
+    }
+
+    if let Some(contract) = I::Family::bridge_continuation_contract() {
+        match contract.request().truth_context() {
+            ForgeQueryDeclarationBridgeTruthContext::Historical => {
+                return Some(ForgeQueryTemporalLegalityDenialKind::HistoricalTruthBasisUnsupported);
+            }
+            ForgeQueryDeclarationBridgeTruthContext::Preview => {
+                return Some(ForgeQueryTemporalLegalityDenialKind::PreviewTruthBasisUnsupported);
+            }
+            ForgeQueryDeclarationBridgeTruthContext::Current => {}
+        }
+    }
+
+    if let Some(contract) = I::Family::signal_compatibility_contract() {
+        if contract
+            .required_basis_families()
+            .contains(&BasisFamily::HistoricalSnapshot)
+        {
+            return Some(ForgeQueryTemporalLegalityDenialKind::HistoricalSignalBasisUnsupported);
+        }
+        if contract
+            .required_basis_families()
+            .contains(&BasisFamily::PreviewDerived)
+        {
+            return Some(ForgeQueryTemporalLegalityDenialKind::PreviewSignalBasisUnsupported);
+        }
+    }
+
+    match temporal_runtime_support {
+        Some(ForgeQueryRuntimeFamilySupportStatus::DeferredDebt) => {
+            Some(ForgeQueryTemporalLegalityDenialKind::RuntimeFacadeDeferred)
+        }
+        Some(ForgeQueryRuntimeFamilySupportStatus::Unsupported) | None => {
+            Some(ForgeQueryTemporalLegalityDenialKind::RuntimeFacadeUnsupported)
+        }
+        Some(ForgeQueryRuntimeFamilySupportStatus::Supported) => None,
+    }
 }
 
 fn derive_legality_digest<D, I>(

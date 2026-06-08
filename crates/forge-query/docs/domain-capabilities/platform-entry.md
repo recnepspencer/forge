@@ -54,6 +54,10 @@ The returned value is an entry artifact, not a fully configured domain handle.
 Its job is to preserve domain identity plus current support posture so later
 authoring and routing stages can build on a Query-owned start.
 
+Platform entry does not carry temporal or async operating posture by itself.
+That next layer belongs to configured domain handles through
+`with_operating_context(...)`.
+
 ## How It Works
 
 1. define a downstream-owned marker type that implements
@@ -66,6 +70,8 @@ authoring and routing stages can build on a Query-owned start.
    support report
 6. the checked lane classifies the result as `Admitted`, `Deferred`, or
    `Unsupported`
+7. if admitted, move to `with_operating_context(...)` to add stable operating
+   regime, future runtime requirements, and continuation readmission posture
 
 The ordinary lane still matters even when checked entry would defer or deny,
 because it preserves the same domain identity and attaches the same support
@@ -188,6 +194,13 @@ up front:
 Use `domain_proof_root(...)` when you need the proof-oriented sibling of the
 same entry meaning and support posture.
 
+Use [Configured Domain Handles](./configured-domain-handles.md) immediately
+after platform entry when your domain needs:
+
+- stable operating regime such as access or invariant posture
+- explicit temporal or async runtime requirements
+- continuation readmission observation through the configured-handle lane
+
 ## Inspection And Debugging
 
 The main inspection surface is `domain_entry_support_snapshot()`, or the
@@ -205,11 +218,18 @@ Use it to inspect:
 When checked entry is not admitted, start with
 `blocking_capability_families()`.
 
+When checked entry is admitted but a later configured handle still defers, that
+usually means the marker was fine and the operating context asked for more than
+the current build admits. That is expected: marker admission and operating
+context admission are separate boundaries.
+
 ## Anti-Patterns
 
 - expecting Query to export your domain type for you
 - starting entry from raw strings like `"worth.spatial"`
 - treating the marker as a full domain configuration object
+- putting temporal, async, or continuation readmission semantics on the marker
+  instead of the operating context
 - treating platform entry as if it already performs declaration authoring,
   runtime routing, or continuation
 
@@ -219,6 +239,8 @@ Platform entry gives you a typed front door and support posture. It does not
 yet give you:
 
 - full domain configuration or validated domain handles
+- temporal or async operating requirements
+- continuation readmission observation customization
 - declaration canonicalization or legality
 - foundational declaration evidence
 - declaration route planning

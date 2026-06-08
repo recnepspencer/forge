@@ -11,9 +11,9 @@ fn runtime_public_handle_contract_freezes_inspection_sections_and_future_state_l
         contract.support_contract_digest(),
         support_contract.contract_digest()
     );
-    assert!(contract.inspectable_family_count() >= 13);
+    assert!(contract.inspectable_family_count() >= 15);
     assert!(contract.retained_artifact_family_count() >= 10);
-    assert_eq!(contract.deferred_future_family_count(), 1);
+    assert_eq!(contract.deferred_future_family_count(), 3);
 
     let live_row = contract
         .row(ForgeQueryHandleContractFamily::LiveView)
@@ -24,14 +24,20 @@ fn runtime_public_handle_contract_freezes_inspection_sections_and_future_state_l
         ForgeQueryRuntimeFamilySupportStatus::Supported
     );
 
-    let future_row = contract
-        .row(ForgeQueryHandleContractFamily::TemporalAsyncCapableHandle)
-        .expect("future temporal/async handle contract row should exist");
-    assert!(future_row.deferred_future_posture());
-    assert_eq!(
-        future_row.support_status(),
-        ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
-    );
+    for family in [
+        ForgeQueryHandleContractFamily::TemporalCapableHandle,
+        ForgeQueryHandleContractFamily::AsyncResourceCapableHandle,
+        ForgeQueryHandleContractFamily::MixedCauseDeliveryCapableHandle,
+    ] {
+        let future_row = contract
+            .row(family)
+            .expect("future-capable handle contract row should exist");
+        assert!(future_row.deferred_future_posture());
+        assert_eq!(
+            future_row.support_status(),
+            ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
+        );
+    }
 }
 
 #[test]
@@ -226,6 +232,101 @@ fn runtime_state_snapshot_is_digest_bound_to_basis_shape_lane_and_state() {
 
     assert_ne!(ready.state_digest(), pending.state_digest());
     assert!(pending.explanation().contains("deferred"));
+}
+
+#[test]
+fn runtime_workspace_states_basis_lifecycle_surfaces() {
+    let workspace = stateful_bridge_task_runtime()
+        .workspace("task.basis-state-workspace")
+        .expect("task runtime should open a named workspace");
+    let current = crate::query_basis_lifecycle::admit_observation_basis_intent(
+        crate::query_basis_lifecycle::RawBasisIntent::current_head(
+            crate::query_basis_lifecycle::BasisOperationLaneRequest::Observation,
+        ),
+    )
+    .expect("current-head observation should admit");
+    let preview = crate::query_basis_lifecycle::admit_observation_basis_intent(
+        crate::query_basis_lifecycle::RawBasisIntent::preview(
+            "preview:state-1",
+            crate::query_basis_lifecycle::BasisOperationLaneRequest::Observation,
+        ),
+    )
+    .expect("preview observation should admit as advisory");
+
+    let current_state = workspace
+        .state(&current)
+        .expect("basis capability should snapshot");
+    let preview_state = workspace
+        .state(&preview)
+        .expect("preview basis capability should snapshot");
+
+    assert_eq!(current_state.kind(), ForgeQueryRuntimeStateKind::Ready);
+    assert_eq!(preview_state.kind(), ForgeQueryRuntimeStateKind::Pending);
+}
+
+#[test]
+fn runtime_workspace_inspection_surfaces_basis_lifecycle_artifacts() {
+    let workspace = stateful_bridge_task_runtime()
+        .workspace("task.basis-inspection-workspace")
+        .expect("task runtime should open a named workspace");
+    let current = crate::query_basis_lifecycle::admit_observation_basis_intent(
+        crate::query_basis_lifecycle::RawBasisIntent::current_head(
+            crate::query_basis_lifecycle::BasisOperationLaneRequest::Observation,
+        ),
+    )
+    .expect("current-head observation should admit");
+    let world_basis = crate::application::ForgeQueryAdmittedWorldBasis::new(
+        "test.runtime.basis",
+        "TestRuntimeBasis",
+        "operating:runtime-basis".to_string(),
+        "handle:runtime-basis".to_string(),
+        "support:snapshot".to_string(),
+        crate::query_basis_lifecycle::query_basis_lifecycle_support_report()
+            .report_digest()
+            .to_string(),
+    );
+
+    let capability_inspection = workspace
+        .inspect(&current)
+        .expect("basis capability should inspect");
+    let world_inspection = workspace
+        .inspect(&world_basis)
+        .expect("retained world basis should inspect");
+
+    match capability_inspection {
+        ForgeQueryInspection::BasisLifecycle(inspection) => {
+            assert_eq!(inspection.subject_label(), "observation_basis_capability");
+            assert_eq!(inspection.state_kind(), ForgeQueryRuntimeStateKind::Ready);
+            assert_eq!(
+                inspection.authority_lane(),
+                ForgeQueryAuthorityLane::AuthoritativeTruth
+            );
+            assert_eq!(
+                inspection
+                    .family()
+                    .expect("family should be present")
+                    .as_str(),
+                "current_head"
+            );
+        }
+        other => panic!("expected basis lifecycle inspection, got {other:?}"),
+    }
+
+    match world_inspection {
+        ForgeQueryInspection::BasisLifecycle(inspection) => {
+            assert_eq!(inspection.subject_label(), "admitted_world_basis");
+            assert_eq!(inspection.state_kind(), ForgeQueryRuntimeStateKind::Ready);
+            assert_eq!(
+                inspection.support_digest(),
+                Some(world_basis.support_snapshot_digest())
+            );
+            assert_eq!(
+                inspection.shape_digest(),
+                world_basis.handle_identity_digest()
+            );
+        }
+        other => panic!("expected admitted world basis inspection, got {other:?}"),
+    }
 }
 
 #[test]

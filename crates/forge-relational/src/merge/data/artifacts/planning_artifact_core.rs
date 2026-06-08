@@ -1,10 +1,12 @@
 use serde::{Deserialize, Serialize};
 
+use crate::history::data::RelationalMergeBranchBasis;
 use crate::merge::data::{
     CausalAnnotationSummary, ConflictClassificationSummary, IdentityDiscoverySummary,
     LoweredMergePlanSummary, MergeAncestrySummary, MergePlanningDecisionLog,
-    MergePlanningDecisionLogDigestBasis, MergePlanningRequest, MergePolicyResolutionSummary,
-    ResolvedMergeBase,
+    MergePlanningDecisionLogDigestBasis, MergePolicyResolutionSummary,
+    NormalizedRelationalMergeRequest, RelationalMergeStrategyWitness,
+    RelationalSchemaReconciliationWitness,
 };
 
 use super::{
@@ -19,10 +21,12 @@ pub struct MergePlanningSummary {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MergePlanningArtifactCore {
-    pub request: MergePlanningRequest,
+    pub request: NormalizedRelationalMergeRequest,
+    pub branch_basis: RelationalMergeBranchBasis,
     pub schema_snapshot: MergeSchemaSnapshotDigestBasis,
+    pub schema_reconciliation_witness: RelationalSchemaReconciliationWitness,
+    pub strategy_witness: RelationalMergeStrategyWitness,
     pub execution_authority_contract: MergeExecutionAuthorityContract,
-    pub merge_base: ResolvedMergeBase,
     pub ancestry: MergeAncestrySummary,
     pub identity_discovery: IdentityDiscoverySummary,
     pub conflict_classification: ConflictClassificationSummary,
@@ -33,4 +37,10 @@ pub struct MergePlanningArtifactCore {
     pub digest_basis: MergeArtifactDigestBasis,
     pub decision_log_digest_basis: MergePlanningDecisionLogDigestBasis,
     pub summary: MergePlanningSummary,
+}
+
+impl MergePlanningArtifactCore {
+    pub fn merge_base(&self) -> &crate::history::data::ResolvedMergeBase {
+        self.branch_basis.merge_base()
+    }
 }

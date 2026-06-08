@@ -4,8 +4,11 @@ use crate::history::data::BranchId;
 use crate::merge::data::{
     DeletionExecutionClass, DeletionMergeClass, LoweredMergeBlockedReason,
     LoweredMergeRejectedReason, LoweredRecordDecisionKind, MergeConflictClass,
-    MergeExecutionReadiness, MergeExecutionRequest, MergeIntent, MergeResolutionClass,
-    RelationalMergeInspectionAdmission, RelationalMergeInspectionRow, TopologyExecutionClass,
+    MergeExecutionReadiness, MergeIntent, MergeResolutionClass, NormalizedRelationalMergeRequest,
+    RelationalMergeCorrespondencePosture, RelationalMergeInspectionAdmission,
+    RelationalMergeInspectionRow, RelationalMergeRequestFamily,
+    RelationalMergeSchemaReconciliationPosture, RelationalMergeTopologyIntent,
+    TopologyExecutionClass,
 };
 use crate::transactions::data::RecordRef;
 
@@ -34,14 +37,14 @@ pub(crate) fn merge_inspection_row_digest(
 }
 
 pub(crate) fn merge_inspection_lowered_plan_digest(
-    request: &MergeExecutionRequest,
+    request: &NormalizedRelationalMergeRequest,
     rows: &[RelationalMergeInspectionRow],
     record_count: usize,
     blocked_count: usize,
     rejected_count: usize,
 ) -> String {
     let mut bytes = DigestBytes::new("forge.relational.merge.inspection.lowered_plan.v1");
-    bytes.merge_execution_request(request);
+    bytes.normalized_merge_request(request);
     bytes.str_list(rows.iter().map(RelationalMergeInspectionRow::row_digest));
     bytes.usize(record_count);
     bytes.usize(blocked_count);
@@ -50,12 +53,12 @@ pub(crate) fn merge_inspection_lowered_plan_digest(
 }
 
 pub(crate) fn merge_inspection_artifact_digest(
-    request: &MergeExecutionRequest,
+    request: &NormalizedRelationalMergeRequest,
     lowered_plan_digest: &str,
     rows: &[RelationalMergeInspectionRow],
 ) -> String {
     let mut bytes = DigestBytes::new("forge.relational.merge.inspection.artifact.v1");
-    bytes.merge_execution_request(request);
+    bytes.normalized_merge_request(request);
     bytes.str(lowered_plan_digest);
     bytes.str_list(rows.iter().map(RelationalMergeInspectionRow::row_digest));
     bytes.finish()
@@ -137,15 +140,46 @@ impl DigestBytes {
         }
     }
 
-    fn merge_execution_request(&mut self, value: &MergeExecutionRequest) {
+    fn normalized_merge_request(&mut self, value: &NormalizedRelationalMergeRequest) {
         self.branch_id(value.target_branch());
         self.branch_id(value.source_branch());
-        self.merge_intent(value.merge_intent());
+        self.merge_intent(&value.merge_intent());
+        self.request_family(value.family());
+        self.correspondence_posture(value.correspondence_posture());
+        self.schema_posture(value.schema_reconciliation_posture());
+        self.topology_intent(value.topology_intent());
     }
 
     fn merge_intent(&mut self, value: &MergeIntent) {
         match value {
             MergeIntent::ReconcileIntoTarget => self.tag(1),
+        }
+    }
+
+    fn request_family(&mut self, value: RelationalMergeRequestFamily) {
+        match value {
+            RelationalMergeRequestFamily::FullBranchReconciliation => self.tag(1),
+        }
+    }
+
+    fn correspondence_posture(&mut self, value: RelationalMergeCorrespondencePosture) {
+        match value {
+            RelationalMergeCorrespondencePosture::Advisory => self.tag(1),
+            RelationalMergeCorrespondencePosture::Strict => self.tag(2),
+        }
+    }
+
+    fn schema_posture(&mut self, value: RelationalMergeSchemaReconciliationPosture) {
+        match value {
+            RelationalMergeSchemaReconciliationPosture::Participate => self.tag(1),
+            RelationalMergeSchemaReconciliationPosture::RequireCompatibility => self.tag(2),
+        }
+    }
+
+    fn topology_intent(&mut self, value: RelationalMergeTopologyIntent) {
+        match value {
+            RelationalMergeTopologyIntent::PreserveTopologySemantics => self.tag(1),
+            RelationalMergeTopologyIntent::RequireStrictTopologyStability => self.tag(2),
         }
     }
 

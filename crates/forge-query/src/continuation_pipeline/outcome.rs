@@ -73,7 +73,12 @@ pub enum ForgeQueryContinuationExecutionOutcome<
 > {
     Executed(ForgeQueryContinuationExecution<D, I>),
     WrongWorld(String),
+    AsyncRequestDrift(String),
+    ReplayDrift(String),
+    RemaskDrift(String),
+    PreviewCrossedResidue(String),
     Stale(String),
+    StaleCompletion(String),
     BasisMismatch(String),
     AuthorityMismatch(String),
     WrongHandle(String),
@@ -254,12 +259,52 @@ pub fn ordinary_outcome_from_execution_checked<
                 topology(ForgeQueryOrdinaryContinuationCheckedTopologyKind::WrongWorld),
             ))
         }
+        ForgeQueryContinuationExecutionOutcome::AsyncRequestDrift(reason) => {
+            ForgeQueryOrdinaryOutcome::RebindRequired(ForgeQueryOrdinaryPosture::new(
+                reason,
+                ForgeQueryOrdinaryPostureKind::RebindRequired,
+                ForgeQueryOrdinaryNextStep::RebindContext,
+                topology(ForgeQueryOrdinaryContinuationCheckedTopologyKind::AsyncRequestDrift),
+            ))
+        }
+        ForgeQueryContinuationExecutionOutcome::ReplayDrift(reason) => {
+            ForgeQueryOrdinaryOutcome::BasisMismatch(ForgeQueryOrdinaryPosture::new(
+                reason,
+                ForgeQueryOrdinaryPostureKind::BasisMismatch,
+                ForgeQueryOrdinaryNextStep::RefreshBasis,
+                topology(ForgeQueryOrdinaryContinuationCheckedTopologyKind::ReplayDrift),
+            ))
+        }
+        ForgeQueryContinuationExecutionOutcome::RemaskDrift(reason) => {
+            ForgeQueryOrdinaryOutcome::Unsupported(ForgeQueryOrdinaryPosture::new(
+                reason,
+                ForgeQueryOrdinaryPostureKind::Unsupported,
+                ForgeQueryOrdinaryNextStep::CheckSupport,
+                topology(ForgeQueryOrdinaryContinuationCheckedTopologyKind::RemaskDrift),
+            ))
+        }
+        ForgeQueryContinuationExecutionOutcome::PreviewCrossedResidue(reason) => {
+            ForgeQueryOrdinaryOutcome::RebindRequired(ForgeQueryOrdinaryPosture::new(
+                reason,
+                ForgeQueryOrdinaryPostureKind::RebindRequired,
+                ForgeQueryOrdinaryNextStep::UseExplicitHandoff,
+                topology(ForgeQueryOrdinaryContinuationCheckedTopologyKind::PreviewCrossedResidue),
+            ))
+        }
         ForgeQueryContinuationExecutionOutcome::Stale(reason) => {
             ForgeQueryOrdinaryOutcome::Stale(ForgeQueryOrdinaryPosture::new(
                 reason,
                 ForgeQueryOrdinaryPostureKind::Stale,
                 ForgeQueryOrdinaryNextStep::RefreshBasis,
                 topology(ForgeQueryOrdinaryContinuationCheckedTopologyKind::Stale),
+            ))
+        }
+        ForgeQueryContinuationExecutionOutcome::StaleCompletion(reason) => {
+            ForgeQueryOrdinaryOutcome::Stale(ForgeQueryOrdinaryPosture::new(
+                reason,
+                ForgeQueryOrdinaryPostureKind::Stale,
+                ForgeQueryOrdinaryNextStep::RefreshBasis,
+                topology(ForgeQueryOrdinaryContinuationCheckedTopologyKind::StaleCompletion),
             ))
         }
         ForgeQueryContinuationExecutionOutcome::BasisMismatch(reason) => {

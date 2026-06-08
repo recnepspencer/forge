@@ -16,10 +16,10 @@ impl ForgeQueryRuntime {
         &self,
         view: &ForgeQueryLiveView<T>,
     ) -> Result<ForgeQueryLiveViewInspection, ForgeQueryRuntimeError> {
-        match self.inspect(view)? {
-            ForgeQueryInspection::LiveView(inspection) => Ok(inspection),
-            other => panic!("expected live-view inspection, got {other:?}"),
-        }
+        let state = self.live_subscriptions.get(view.name()).ok_or_else(|| {
+            ForgeQueryRuntimeError::MissingLiveSubscription(view.name().to_string())
+        })?;
+        Ok(ForgeQueryLiveViewInspection::from_state(state))
     }
 
     pub fn inspect_receipt<'a>(
@@ -148,6 +148,56 @@ impl ForgeQueryRuntime {
     {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Inspect)?;
         match target.into() {
+            ForgeQueryInspectionTarget::AdmittedWorldBasis(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(
+                    ForgeQueryBasisLifecycleInspection::from_admitted_world_basis(basis),
+                ))
+            }
+            ForgeQueryInspectionTarget::ObservationBasisCapability(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(basis.into()))
+            }
+            ForgeQueryInspectionTarget::InspectionBasisCapability(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(basis.into()))
+            }
+            ForgeQueryInspectionTarget::SubscriptionDeclarationBasisCapability(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(basis.into()))
+            }
+            ForgeQueryInspectionTarget::SubscriptionActivationBasisCapability(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(basis.into()))
+            }
+            ForgeQueryInspectionTarget::ScopedObservationBasis(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(basis.into()))
+            }
+            ForgeQueryInspectionTarget::ScopedInspectionBasis(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(basis.into()))
+            }
+            ForgeQueryInspectionTarget::ScopedReplayBasis(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(basis.into()))
+            }
+            ForgeQueryInspectionTarget::ScopedSubscriptionDeclarationBasis(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(basis.into()))
+            }
+            ForgeQueryInspectionTarget::ScopedSubscriptionActivationBasis(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(basis.into()))
+            }
+            ForgeQueryInspectionTarget::LowerRuntimeBoundObservationBasis(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(basis.into()))
+            }
+            ForgeQueryInspectionTarget::LowerRuntimeBoundInspectionBasis(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(basis.into()))
+            }
+            ForgeQueryInspectionTarget::LowerRuntimeBoundSubscriptionDeclarationBasis(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(basis.into()))
+            }
+            ForgeQueryInspectionTarget::LowerRuntimeBoundSubscriptionActivationBasis(basis) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(basis.into()))
+            }
+            ForgeQueryInspectionTarget::DeniedBasisCapability(denial) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(denial.into()))
+            }
+            ForgeQueryInspectionTarget::BasisIntentDenial(denial) => {
+                Ok(ForgeQueryInspection::BasisLifecycle(denial.into()))
+            }
             ForgeQueryInspectionTarget::DerivedView { name } => {
                 let review = self.review_runtime_derived_inspection(name.to_string())?;
                 let handoff = self.resolve_reviewed_admitted_derived_inspection_handoff(review)?;

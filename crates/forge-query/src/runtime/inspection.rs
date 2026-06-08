@@ -1,11 +1,14 @@
+mod basis_lifecycle;
 mod causal;
 mod feedback;
 mod intent;
 mod intent_consumer;
 mod live;
+mod live_counters;
 mod preview;
 mod unified;
 
+pub use basis_lifecycle::ForgeQueryBasisLifecycleInspection;
 pub use causal::{
     admit_causal_inspection, anchor_causal_observation,
     build_causal_inspection_certification_scope, causal_evidence_inventory_rows,
@@ -48,7 +51,9 @@ pub use causal::{
     CausalObservationAnchorErrorKind, CausalObservationEvidenceIdentity,
     CausalObservationMissingReferencePosture, CausalObservationOutcome, DeniedCausalInspection,
     DeniedQueryCausalInspectionArtifact, QueryCausalEvidenceReferenceArtifact,
-    QueryCausalInspectionArtifact, QueryObservationReceipt, QueryObservationReceiptFamily,
+    QueryCausalInspectionArtifact, QueryCausalTemporalAsyncExplanation,
+    QueryCausalTemporalAsyncExplanationKind, QueryObservationReceipt,
+    QueryObservationReceiptFamily,
 };
 #[cfg(test)]
 pub(in crate::runtime) use causal::{
@@ -66,7 +71,8 @@ pub use intent::{
 pub use intent_consumer::{
     ForgeQueryIntentConsumerInspection, ForgeQueryIntentConsumerOutcomeClass,
 };
-pub use live::{ForgeQueryLiveSubscriptionInspectionCounters, ForgeQueryLiveViewInspection};
+pub use live::ForgeQueryLiveViewInspection;
+pub use live_counters::ForgeQueryLiveSubscriptionInspectionCounters;
 pub use preview::{
     ForgeQueryPreviewBindingInspection, ForgeQueryPreviewIntentReceiptInspection,
     ForgeQueryPreviewOutcomeInspection,

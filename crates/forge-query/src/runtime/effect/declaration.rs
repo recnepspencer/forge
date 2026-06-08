@@ -2,6 +2,9 @@ use super::super::{
     ForgeQueryAuthorityLane, ForgeQueryDerivedViewHandle, ForgeQueryEffectAction,
     ForgeQueryEffectPolicy, ForgeQueryLiveView,
 };
+use super::follow_on::{
+    ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryEffectWriteAdjacentTriggerClass,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryEffectTrigger {
@@ -164,6 +167,7 @@ pub struct ForgeQueryEffectDeclaration {
     target: String,
     effect_policy: ForgeQueryEffectPolicy,
     suppression_policy: ForgeQueryEffectSuppressionPolicy,
+    write_adjacent_trigger: ForgeQueryEffectWriteAdjacentTrigger,
 }
 impl ForgeQueryEffectDeclaration {
     pub fn deliver(
@@ -171,8 +175,10 @@ impl ForgeQueryEffectDeclaration {
         trigger: ForgeQueryEffectTrigger,
         target: impl Into<String>,
     ) -> Self {
+        let name = name.into();
         Self {
-            name: name.into(),
+            write_adjacent_trigger: ForgeQueryEffectWriteAdjacentTrigger::ordinary(&name),
+            name,
             trigger,
             condition: ForgeQueryEffectCondition::Always,
             action: ForgeQueryEffectAction::Deliver,
@@ -187,8 +193,10 @@ impl ForgeQueryEffectDeclaration {
         trigger: ForgeQueryEffectTrigger,
         intent: impl Into<String>,
     ) -> Self {
+        let name = name.into();
         Self {
-            name: name.into(),
+            write_adjacent_trigger: ForgeQueryEffectWriteAdjacentTrigger::ordinary(&name),
+            name,
             trigger,
             condition: ForgeQueryEffectCondition::Always,
             action: ForgeQueryEffectAction::WriteIntent,
@@ -222,6 +230,15 @@ impl ForgeQueryEffectDeclaration {
         self.suppression_policy = ForgeQueryEffectSuppressionPolicy::MeaningfulSemanticDelta;
         self
     }
+    pub fn with_write_adjacent_trigger(
+        mut self,
+        class: ForgeQueryEffectWriteAdjacentTriggerClass,
+        origin_identity: impl Into<String>,
+    ) -> Self {
+        self.write_adjacent_trigger =
+            ForgeQueryEffectWriteAdjacentTrigger::new(class, origin_identity);
+        self
+    }
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -245,5 +262,8 @@ impl ForgeQueryEffectDeclaration {
     }
     pub fn suppression_policy(&self) -> ForgeQueryEffectSuppressionPolicy {
         self.suppression_policy
+    }
+    pub fn write_adjacent_trigger(&self) -> &ForgeQueryEffectWriteAdjacentTrigger {
+        &self.write_adjacent_trigger
     }
 }

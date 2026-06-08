@@ -250,15 +250,15 @@ fn runtime_api_stabilization_closeout_answers_required_questions() {
     assert!(closeout
         .deferred_runtime_surfaces
         .iter()
-        .any(|row| row == "async-resource:Milestone 9.5"));
+        .any(|row| row == "async-resource:Milestone 9.4"));
     assert!(closeout
         .deferred_runtime_surfaces
         .iter()
-        .any(|row| row == "mixed-cause-delivery:Milestone 9.6"));
+        .any(|row| row == "mixed-cause-delivery:Milestone 9.4"));
     assert!(closeout
         .deferred_runtime_surfaces
         .iter()
-        .any(|row| row == "temporal-async-certification:Milestone 9.7"));
+        .any(|row| row == "temporal-async-certification:Milestone 9.4"));
     assert!(closeout
         .deferred_runtime_surfaces
         .iter()

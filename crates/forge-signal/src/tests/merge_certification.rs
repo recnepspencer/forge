@@ -534,6 +534,9 @@ fn replay_artifact_proof_report_surfaces_typed_mismatch_classes() {
         merge_plan_digest: Some("plan-a".to_owned()),
         merge_result_digest: Some("result-a".to_owned()),
         lineage_digest: Some("lineage-a".to_owned()),
+        strategy_witness: None,
+        compatibility_witness: None,
+        scoped_merge_proof: None,
         branch_state_digest: "state-a".to_owned(),
     };
     let replayed = ReplayArtifactProofInput {
@@ -543,6 +546,9 @@ fn replay_artifact_proof_report_surfaces_typed_mismatch_classes() {
         merge_plan_digest: Some("plan-b".to_owned()),
         merge_result_digest: Some("result-b".to_owned()),
         lineage_digest: Some("lineage-b".to_owned()),
+        strategy_witness: None,
+        compatibility_witness: None,
+        scoped_merge_proof: None,
         branch_state_digest: "state-b".to_owned(),
     };
 

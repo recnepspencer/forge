@@ -2,9 +2,9 @@ use crate::application::{
     ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
     ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
     ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationEnvelopeEvidenceOrigin,
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationPrimaryAuthorityFamily,
-    ForgeQueryDeclarationReceiptDenialCause, ForgeQueryDeclarationRoutePlanDenialCause,
-    ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationFutureProjection, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationPrimaryAuthorityFamily, ForgeQueryDeclarationReceiptDenialCause,
+    ForgeQueryDeclarationRoutePlanDenialCause, ForgeQueryDomainEntryMarker,
 };
 use crate::basis_lifecycle::BasisFamily;
 
@@ -35,6 +35,7 @@ pub struct ForgeQueryDeclarationSignalCompatibility<
     aspect_fit: ForgeQueryDeclarationAspectFit,
     dependency_aspects: ForgeQueryDeclarationAspectContract,
     produced_aspects: ForgeQueryDeclarationAspectContract,
+    future_projection: ForgeQueryDeclarationFutureProjection,
     envelope: ForgeQueryDeclarationEnvelope<D, I>,
     signal_compatibility_digest: String,
     explanation: ForgeQueryDeclarationSignalCompatibilityExplanation,
@@ -53,6 +54,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         aspect_fit: ForgeQueryDeclarationAspectFit,
         dependency_aspects: ForgeQueryDeclarationAspectContract,
         produced_aspects: ForgeQueryDeclarationAspectContract,
+        future_projection: ForgeQueryDeclarationFutureProjection,
         envelope: ForgeQueryDeclarationEnvelope<D, I>,
         signal_compatibility_digest: String,
         explanation: ForgeQueryDeclarationSignalCompatibilityExplanation,
@@ -68,6 +70,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             aspect_fit,
             dependency_aspects,
             produced_aspects,
+            future_projection,
             envelope,
             signal_compatibility_digest,
             explanation,
@@ -112,6 +115,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn produced_aspects(&self) -> &ForgeQueryDeclarationAspectContract {
         &self.produced_aspects
+    }
+
+    pub fn future_projection(&self) -> &ForgeQueryDeclarationFutureProjection {
+        &self.future_projection
     }
 
     pub fn declaration_family_key(&self) -> &'static str {

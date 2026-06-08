@@ -1,6 +1,10 @@
 mod commit;
 mod graph;
 mod historical;
+#[path = "merge_support/rows.rs"]
+mod merge_support_rows;
+#[path = "merge_support/witness.rs"]
+mod merge_support_witness;
 mod retention;
 mod structural_identity;
 mod taxonomy;
@@ -16,6 +20,16 @@ pub use historical::{
     HistoricalAspectObservation, HistoricalAvailabilityObservation, HistoricalInspectionMode,
     HistoricalOpenResult, HistoricalRecordInspection, HistoricalRecordObservation,
     HistoricalRecordValue, HistoricalSnapshotView,
+};
+pub use merge_support_rows::{
+    RelationalMergeSupportInspectionAbsenceKind,
+    RelationalMergeSupportInspectionCompatibilityPosture, RelationalMergeSupportInspectionRow,
+    RelationalMergeSupportInspectionRowKind,
+};
+pub(crate) use merge_support_witness::RelationalMergeSupportInspectionInput;
+pub use merge_support_witness::{
+    RelationalMergeSupportInspectionDenial, RelationalMergeSupportInspectionSurface,
+    RelationalMergeSupportInspectionWitness,
 };
 pub use retention::{
     PinStateObservation, ReclaimEligibility, RecordRetentionInspection,

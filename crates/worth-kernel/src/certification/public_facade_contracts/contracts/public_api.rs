@@ -1,3 +1,6 @@
+mod public_api_binding_anchoring;
+mod public_api_binding_authoring;
+mod public_api_binding_rebinding;
 mod public_api_construction;
 mod public_api_continuity;
 mod public_api_intent_arbitration;

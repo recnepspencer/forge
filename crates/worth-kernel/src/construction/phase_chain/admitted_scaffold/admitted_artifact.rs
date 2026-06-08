@@ -1,7 +1,7 @@
 use super::topology_ready_birth::PreparedPrimitiveConstructionTopologyReadyBirth;
 use topology::facade::TopologyPrimitiveConstructionQueryAdmittedHandoff;
 use worth_geom::facade::PrimitiveRealizationReport;
-use worth_spatial::facade::bindings::AdmittedPrimitiveConstructionBirthConsequence;
+use worth_spatial::facade::birth::AdmittedPrimitiveConstructionBirthConsequence;
 
 use crate::construction::request::PrimitiveConstructionFamily;
 

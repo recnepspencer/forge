@@ -4,6 +4,7 @@ use super::active_digest::ActiveSubscriptionLaneDigest;
 use super::active_posture::{
     ActiveLaneLookupClass, ActiveSubscriptionDeliveryPosture, ActiveSubscriptionLifecyclePosture,
 };
+use super::future_selection::QuerySubscriptionFutureSelection;
 use super::performance_receipt::SubscriptionPerformanceReceipt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -13,7 +14,9 @@ pub struct ActiveSubscriptionLaneAdmission {
     pub(super) admission_digest: String,
     pub(super) query_declaration_digest: String,
     pub(super) bridge_declaration_digest: String,
+    pub(super) future_selection: QuerySubscriptionFutureSelection,
     pub(super) basis_binding_digest: String,
+    pub(super) checkpoint_identity_digest: String,
     pub(super) signal_strategy_digest: String,
     pub(super) lifecycle_posture: ActiveSubscriptionLifecyclePosture,
     pub(super) delivery_posture: ActiveSubscriptionDeliveryPosture,
@@ -45,8 +48,16 @@ impl ActiveSubscriptionLaneAdmission {
         &self.bridge_declaration_digest
     }
 
+    pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
+        &self.future_selection
+    }
+
     pub fn basis_binding_digest(&self) -> &str {
         &self.basis_binding_digest
+    }
+
+    pub fn checkpoint_identity_digest(&self) -> &str {
+        &self.checkpoint_identity_digest
     }
 
     pub fn signal_strategy_digest(&self) -> &str {
@@ -93,7 +104,9 @@ pub struct ActiveSubscriptionLane {
     pub(super) admission_digest: String,
     pub(super) query_declaration_digest: String,
     pub(super) bridge_declaration_digest: String,
+    pub(super) future_selection: QuerySubscriptionFutureSelection,
     pub(super) basis_binding_digest: String,
+    pub(super) checkpoint_identity_digest: String,
     pub(super) signal_strategy_digest: String,
     pub(super) lifecycle_posture: ActiveSubscriptionLifecyclePosture,
     pub(super) delivery_posture: ActiveSubscriptionDeliveryPosture,
@@ -123,8 +136,16 @@ impl ActiveSubscriptionLane {
         &self.bridge_declaration_digest
     }
 
+    pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
+        &self.future_selection
+    }
+
     pub fn basis_binding_digest(&self) -> &str {
         &self.basis_binding_digest
+    }
+
+    pub fn checkpoint_identity_digest(&self) -> &str {
+        &self.checkpoint_identity_digest
     }
 
     pub fn signal_strategy_digest(&self) -> &str {

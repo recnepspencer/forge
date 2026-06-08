@@ -53,8 +53,15 @@ contexts over the same retained runtime surfaces.
 Preview:
 
 - binds existing handles into a preview lane
+- keeps preview-owned active subscriptions separate from authoritative active
+  subscriptions when their basis identity or checkpoint identity differs
+- keeps preview-owned temporal wakes, async result-state, mixed-cause residue,
+  and crossed preview or authoritative drift residue preview-local until
+  discard or authoritative re-admission resolves them
 - can stage preview-local writes
 - can discard or promote staged work
+- treats promotion as a rebinding boundary, not as structural reuse of the
+  preview-owned basis
 - defaults to `derive_only`
 
 Branch:
@@ -185,7 +192,11 @@ What gets retained:
 What closeout means:
 
 - `discard()` proves staged work did not leak into authoritative truth
-- `promote()` attempts an authoritative handoff and can fail typed and early
+- `discard()` also retains preview-owned temporal, async, and mixed-cause
+  residue counts so the runtime can prove what stayed preview-local
+- `promote()` attempts an authoritative handoff, records a rebinding digest,
+  and can fail typed and early when crossed preview residue requires
+  authoritative re-admission first
 
 ## How It Relates To Other Features
 
@@ -214,7 +225,13 @@ Look for:
 - effect policy
 - source lane versus target lane
 - residue class counts
-- basis snapshot tokens and denial digests on failed promotion
+- temporal wake, async result-state, mixed-cause, and crossed-authoritative
+  residue counts on preview closeout
+- active checkpoint identity and future-bearing lane posture when a preview is
+  bound to temporal or async live meaning
+- rebinding digests on successful promotion
+- basis snapshot tokens, rebinding digests, recovery posture, and denial
+  digests on failed promotion
 
 ## Anti-Patterns
 
@@ -229,6 +246,12 @@ Look for:
 - Preview and branch sessions are stable as runtime-backed isolation contexts.
 - Preview-local writes, binding, discard, and typed promotion denials are part
   of the current surface.
+- Temporal and async preview subscriptions are runtime-backed active objects,
+  not wrapper-only observers, and they do not share authoritative active state
+  when basis identity differs.
+- Preview closeout now preserves preview-owned temporal, async, and mixed-cause
+  residue explicitly, and promotion denies with typed rebinding recovery
+  posture when crossed preview residue cannot be promoted honestly.
 - Preview-local and branch-local intent work still depends on admitted intent
   support and the correct sandboxed policy.
 - Durable preview replay, store-backed branch semantics, and temporal/async

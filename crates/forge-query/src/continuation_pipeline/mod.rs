@@ -19,7 +19,8 @@ pub use outcome::{
 };
 pub use readmission::{
     ForgeQueryPreparedContinuationAuthorityWitness, ForgeQueryPreparedContinuationBasisKind,
-    ForgeQueryPreparedContinuationBasisWitness, ForgeQueryPreparedContinuationExecutionReadmission,
+    ForgeQueryPreparedContinuationBasisWitness, ForgeQueryPreparedContinuationDriftKind,
+    ForgeQueryPreparedContinuationExecutionReadmission,
     ForgeQueryPreparedContinuationFreshnessPosture,
 };
 pub use request::{
@@ -36,3 +37,6 @@ pub(crate) use execution::{
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+pub(crate) use tests::runtime_backed_continuation_closure_summary;

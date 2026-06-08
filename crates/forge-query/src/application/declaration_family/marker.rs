@@ -1,11 +1,12 @@
 use crate::application::{
-    ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
-    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationBridgeContinuationContract,
-    ForgeQueryDeclarationGroupedPostureTag, ForgeQueryDeclarationLegalityContract,
-    ForgeQueryDeclarationPrimaryAuthorityTag, ForgeQueryDeclarationProgressionContract,
-    ForgeQueryDeclarationRelationalTruthContract, ForgeQueryDeclarationRouteContract,
-    ForgeQueryDeclarationSignalCompatibilityContract, ForgeQueryDeclarationSignalCompatibilityTag,
-    ForgeQueryDomainEntryMarker,
+    ForgeQueryAsyncDeclarationSupport, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryDeclarationBridgeContinuationContract, ForgeQueryDeclarationGroupedPostureTag,
+    ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationPrimaryAuthorityTag,
+    ForgeQueryDeclarationProgressionContract, ForgeQueryDeclarationRelationalTruthContract,
+    ForgeQueryDeclarationRouteContract, ForgeQueryDeclarationSignalCompatibilityContract,
+    ForgeQueryDeclarationSignalCompatibilityTag, ForgeQueryDomainEntryMarker,
+    ForgeQueryTemporalDeclarationSupport,
 };
 
 use super::taxonomy::ForgeQueryDeclarationFamilyTaxonomy;
@@ -31,6 +32,14 @@ pub trait ForgeQueryDeclarationFamilyMarker<D: ForgeQueryDomainEntryMarker> {
 
     fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
         Self::aspect_contract().default_coverage()
+    }
+
+    fn temporal_declaration_support() -> ForgeQueryTemporalDeclarationSupport {
+        ForgeQueryTemporalDeclarationSupport::Unsupported
+    }
+
+    fn async_declaration_support() -> ForgeQueryAsyncDeclarationSupport {
+        ForgeQueryAsyncDeclarationSupport::Unsupported
     }
 
     fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {

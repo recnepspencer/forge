@@ -15,12 +15,16 @@ use super::attachment_error::{
 use super::attachment_request::SubscriptionConsumerAttachmentRequest;
 use super::delivery_density::ActiveDeliveryDensityPosture;
 use super::fanout::{SubscriptionFanoutPlan, SubscriptionFanoutReport};
+use super::future_selection::QuerySubscriptionFutureSelection;
 use super::performance_receipt::SubscriptionPerformanceReceipt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SubscriptionConsumerAttachment {
     attachment_digest: SubscriptionConsumerAttachmentDigest,
     lane_digest: ActiveSubscriptionLaneDigest,
+    future_selection: QuerySubscriptionFutureSelection,
+    basis_binding_digest: String,
+    checkpoint_identity_digest: String,
     consumer_digest: String,
     delivery_cursor_digest: String,
     attachment_index: u64,
@@ -130,6 +134,9 @@ impl SubscriptionConsumerAttachment {
             Self {
                 attachment_digest,
                 lane_digest,
+                future_selection: handle.future_selection().clone(),
+                basis_binding_digest: handle.basis_binding_digest().to_string(),
+                checkpoint_identity_digest: handle.checkpoint_identity_digest().to_string(),
                 consumer_digest: request.consumer_digest().to_string(),
                 delivery_cursor_digest,
                 attachment_index,
@@ -179,6 +186,18 @@ impl SubscriptionConsumerAttachment {
 
     pub fn lane_digest(&self) -> &ActiveSubscriptionLaneDigest {
         &self.lane_digest
+    }
+
+    pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
+        &self.future_selection
+    }
+
+    pub fn basis_binding_digest(&self) -> &str {
+        &self.basis_binding_digest
+    }
+
+    pub fn checkpoint_identity_digest(&self) -> &str {
+        &self.checkpoint_identity_digest
     }
 
     pub fn consumer_digest(&self) -> &str {

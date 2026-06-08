@@ -23,13 +23,18 @@ pub enum ForgeQueryOrdinaryBindingCheckedTopologyKind {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryOrdinaryContinuationCheckedTopologyKind {
     Ambiguous,
+    AsyncRequestDrift,
     AuthorityMismatch,
     BasisMismatch,
     Deferred,
     Denied,
     Failed,
+    PreviewCrossedResidue,
+    RemaskDrift,
     RebindRequired,
+    ReplayDrift,
     Stale,
+    StaleCompletion,
     Unavailable,
     Unsupported,
     WrongHandle,
@@ -97,7 +102,7 @@ pub struct ForgeQueryOrdinaryCheckedTopology {
 }
 
 impl ForgeQueryOrdinaryCheckedTopology {
-    pub(crate) fn orchestration(
+    pub fn orchestration(
         stop_stage: ForgeQueryDeclarationEntryOrchestrationStage,
         retained_digest: Option<String>,
         refusal_class: Option<ForgeQueryDeclarationEntryOrchestrationRefusalClass>,

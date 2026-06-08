@@ -9,7 +9,11 @@ use crate::data::aspects::{
 use crate::data::relations::{NamingRelationKind, RelationKind};
 
 pub fn relation_aspects(kind: RelationKind) -> KindAspectContractDeclarations {
-    let mut declarations = vec![lifecycle_aspect(), relation_source_aspect(), relation_target_aspect()];
+    let mut declarations = vec![
+        lifecycle_aspect(),
+        relation_source_aspect(),
+        relation_target_aspect(),
+    ];
     match kind {
         RelationKind::Naming(NamingRelationKind::PersistentNameTargetsEntity) => {
             declarations.push(naming_source_identity_aspect());

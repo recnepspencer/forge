@@ -17,6 +17,31 @@ This is not a generic `Result<T, String>`, and it is not a second checked or
 proof pipeline. It is a projection layer that gives ordinary callers one shared
 typed vocabulary while still linking back to the checked topology underneath.
 
+Time-only live delivery is part of that ordinary story now too. A delivery can
+be meaningful because truth changed, because time moved, or because both
+happened together. Query does not need to fabricate a relational patch to make
+time-only change visible.
+
+Async/resource-backed live state now has its own retained result-state
+vocabulary as well: `current`, `stale`, `cancelled`, `retried`,
+`revalidating`, `superseded`, and `denied`. That is a runtime state and
+inspection fact, not a second ordinary-outcome taxonomy. Ordinary outcomes
+still describe stop posture for orchestration, binding, and continuation
+surfaces. Runtime async result-state describes what the retained live async
+subscription currently means.
+
+That runtime-backed live meaning now also has one compact ordinary posture
+projection:
+
+- `ForgeQueryOrdinaryRuntimePosture`
+- `ForgeQueryOrdinaryRuntimePostureKind`
+- `ForgeQueryOrdinaryRuntimeCausePostureKind`
+- `ForgeQueryOrdinaryRuntimeAsyncPostureKind`
+
+Use that compact posture when you need the scalar "what kind of live runtime
+state is this now?" answer without dropping into rich mixed-cause or async
+forensics.
+
 ## Why You Use It
 
 - keep ordinary handle calls concise without flattening real stop posture
@@ -37,6 +62,10 @@ Core ordinary-outcome types:
 - `ForgeQueryOrdinaryOutcome<T>`
 - `ForgeQueryOrdinaryPosture`
 - `ForgeQueryOrdinaryPostureKind`
+- `ForgeQueryOrdinaryRuntimePosture`
+- `ForgeQueryOrdinaryRuntimePostureKind`
+- `ForgeQueryOrdinaryRuntimeCausePostureKind`
+- `ForgeQueryOrdinaryRuntimeAsyncPostureKind`
 - `ForgeQueryOrdinaryNextStep`
 - `ForgeQueryOrdinaryCheckedTopology`
 - `ForgeQueryOrdinaryBindingCheckedTopologyKind`
@@ -91,6 +120,15 @@ The checked and proof-visible lanes are still authoritative. Ordinary outcomes
 exist so callers can write compact code without giving up the distinctions that
 matter operationally.
 
+The same rule now applies to runtime-backed live state:
+
+- scalar posture is compact
+- compact posture is typed
+- compact posture is projected from retained runtime delivery and async
+  evidence
+- rich live inspection is still the deeper forensic surface when you need the
+  full retained artifact story
+
 The shape is:
 
 - `Bound(T)` when the operation succeeded
@@ -136,6 +174,11 @@ The checked-topology link stays typed:
 - contribution-composed orchestration outcomes expose contribution-composed
   checked-topology kind, linked retained artifacts, and optional contribution
   digest
+- continuation execution checked-topology now also preserves typed temporal
+  and async drift posture such as `AsyncRequestDrift`, `ReplayDrift`,
+  `RemaskDrift`, `PreviewCrossedResidue`, and `StaleCompletion` even when the
+  compact ordinary posture stays `RebindRequired`, `BasisMismatch`,
+  `Unsupported`, or `Stale`
 
 That checked-topology link is also what the recovery boundary compiles onto
 when you call `recover_from_outcome(...)`.
@@ -238,6 +281,20 @@ result maps back to:
 
 Use the recovery boundary when the next question is no longer "what kind of
 ordinary stop was this?" but "who owns the fix and what should we do next?".
+
+Use `ForgeQueryOrdinaryRuntimePosture` when the question is instead "what
+compact runtime-backed live posture is true right now?".
+
+That compact posture keeps these scalar facts separate:
+
+- overall runtime posture kind such as `current`, `stale`, or `denied`
+- delivery-cause posture such as `ordinary`, `time_only`, or `mixed_cause`
+- async posture when the live view is also carrying retained async/result-state
+  meaning
+- basis-sensitive scalar posture when retained async state is only valid because
+  Query preserved typed basis or generation drift instead of flattening it away
+- retained support evidence digest so scalar state and scalar inspection do not
+  lose the support-bound meaning that installed the live surface
 
 Binding linked artifacts can expose:
 

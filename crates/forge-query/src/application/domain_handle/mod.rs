@@ -19,6 +19,7 @@ pub use checked_outcome::{
 pub use draft::ForgeQueryConfiguredDomainHandleDraft;
 pub use operating_context::{
     ForgeQueryContinuationExecutionReadmissionObservation, ForgeQueryDomainOperatingContext,
+    ForgeQueryDomainOperatingRequirement,
 };
 pub use validated_handle::ForgeQueryValidatedConfiguredDomainHandle;
 

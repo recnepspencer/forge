@@ -63,7 +63,11 @@ pub use envelope::{
     ProjectionConsumptionEnvelopeSourceRefs, SelfDescribingProjectionConsumptionEnvelope,
 };
 pub use extraction::ProjectionFactExtractionError;
-pub use facts::{ProjectMaterializedFacts, ProjectionFactKind, ProjectionFactRequest};
+#[allow(unused_imports)]
+pub use facts::{
+    ProjectMaterializedFacts, ProjectionFactKind, ProjectionFactRequest,
+    ProjectionMaterializedFactPosture, ProjectionMaterializedFactPostureKind,
+};
 pub use receipt::ProjectionConsumptionReceipt;
 pub use receipt_transitions::{
     ProjectionConsumptionDeferredNeighborFamily, ProjectionConsumptionTransitionKind,

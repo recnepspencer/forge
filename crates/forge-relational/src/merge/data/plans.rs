@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
-use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{BranchId, CommitId, RelationalMergeBranchBasis};
 use crate::identity::data::{KindId, LineageId};
 use crate::merge::data::{
     CausalAnnotationSummary, IdentityBasisDeclaration, IdentityBasisKind, IdentityBasisScope,
     IdentityDiscoverySummary, IdentityMatchCandidate, LoweredMergePlanSummary,
     MergeAncestrySummary, MergePlanningDecisionLog, MergePlanningDecisionLogDigestBasis,
-    MergePlanningRequest, MergePolicyResolutionSummary, ResolvedMergeBase,
+    MergePolicyResolutionSummary, NormalizedRelationalMergeRequest,
+    RelationalMergeRequestNormalizationDenial,
 };
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 use crate::transactions::data::RecordRef;
@@ -26,10 +27,8 @@ pub(crate) struct BranchCommitDelta {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct HistoryScopedMergePlan {
-    pub(crate) request: MergePlanningRequest,
-    pub(crate) target_head: CommitReference,
-    pub(crate) source_head: CommitReference,
-    pub(crate) merge_base: ResolvedMergeBase,
+    pub(crate) request: NormalizedRelationalMergeRequest,
+    pub(crate) basis: RelationalMergeBranchBasis,
     pub(crate) target_delta: BranchCommitDelta,
     pub(crate) source_delta: BranchCommitDelta,
 }
@@ -58,10 +57,8 @@ pub(crate) struct VisibleMergeRecord {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct IdentityScopedMergePlan {
-    pub(crate) request: MergePlanningRequest,
-    pub(crate) target_head: CommitReference,
-    pub(crate) source_head: CommitReference,
-    pub(crate) merge_base: ResolvedMergeBase,
+    pub(crate) request: NormalizedRelationalMergeRequest,
+    pub(crate) basis: RelationalMergeBranchBasis,
     pub(crate) ancestry: MergeAncestrySummary,
     pub(crate) target_delta: BranchCommitDelta,
     pub(crate) source_delta: BranchCommitDelta,
@@ -74,10 +71,8 @@ pub(crate) struct IdentityScopedMergePlan {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ConflictClassifiedMergePlan {
-    pub(crate) request: MergePlanningRequest,
-    pub(crate) target_head: CommitReference,
-    pub(crate) source_head: CommitReference,
-    pub(crate) merge_base: ResolvedMergeBase,
+    pub(crate) request: NormalizedRelationalMergeRequest,
+    pub(crate) basis: RelationalMergeBranchBasis,
     pub(crate) ancestry: MergeAncestrySummary,
     pub(crate) target_delta: BranchCommitDelta,
     pub(crate) source_delta: BranchCommitDelta,
@@ -92,10 +87,8 @@ pub(crate) struct ConflictClassifiedMergePlan {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CausallyAnnotatedMergePlan {
-    pub(crate) request: MergePlanningRequest,
-    pub(crate) target_head: CommitReference,
-    pub(crate) source_head: CommitReference,
-    pub(crate) merge_base: ResolvedMergeBase,
+    pub(crate) request: NormalizedRelationalMergeRequest,
+    pub(crate) basis: RelationalMergeBranchBasis,
     pub(crate) ancestry: MergeAncestrySummary,
     pub(crate) target_delta: BranchCommitDelta,
     pub(crate) source_delta: BranchCommitDelta,
@@ -112,10 +105,8 @@ pub(crate) struct CausallyAnnotatedMergePlan {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct PolicyResolvedMergePlan {
-    pub(crate) request: MergePlanningRequest,
-    pub(crate) target_head: CommitReference,
-    pub(crate) source_head: CommitReference,
-    pub(crate) merge_base: ResolvedMergeBase,
+    pub(crate) request: NormalizedRelationalMergeRequest,
+    pub(crate) basis: RelationalMergeBranchBasis,
     pub(crate) ancestry: MergeAncestrySummary,
     pub(crate) target_delta: BranchCommitDelta,
     pub(crate) source_delta: BranchCommitDelta,
@@ -134,10 +125,8 @@ pub(crate) struct PolicyResolvedMergePlan {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LoweredMergePlan {
-    pub(crate) request: MergePlanningRequest,
-    pub(crate) target_head: CommitReference,
-    pub(crate) source_head: CommitReference,
-    pub(crate) merge_base: ResolvedMergeBase,
+    pub(crate) request: NormalizedRelationalMergeRequest,
+    pub(crate) basis: RelationalMergeBranchBasis,
     pub(crate) ancestry: MergeAncestrySummary,
     pub(crate) target_delta: BranchCommitDelta,
     pub(crate) source_delta: BranchCommitDelta,
@@ -170,6 +159,7 @@ pub(crate) struct ValidatedSchemaDeclaredCorrespondence {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MergePlanningError {
+    RequestNormalization(RelationalMergeRequestNormalizationDenial),
     MissingSourceHead {
         branch_id: BranchId,
     },
@@ -208,4 +198,33 @@ pub enum MergePlanningError {
         lowered_action: Option<crate::merge::data::LoweredMergeAction>,
     },
     MissingLoweredRecordDenialBundle,
+}
+
+impl From<RelationalMergeRequestNormalizationDenial> for MergePlanningError {
+    fn from(value: RelationalMergeRequestNormalizationDenial) -> Self {
+        Self::RequestNormalization(value)
+    }
+}
+
+impl From<crate::history::data::RelationalMergeBranchBasisDenial> for MergePlanningError {
+    fn from(value: crate::history::data::RelationalMergeBranchBasisDenial) -> Self {
+        match value {
+            crate::history::data::RelationalMergeBranchBasisDenial::MissingSourceHead {
+                branch_id,
+            } => Self::MissingSourceHead { branch_id },
+            crate::history::data::RelationalMergeBranchBasisDenial::MissingTargetHead {
+                branch_id,
+            } => Self::MissingTargetHead { branch_id },
+            crate::history::data::RelationalMergeBranchBasisDenial::MissingMergeBase {
+                source_branch,
+                target_branch,
+            } => Self::MissingMergeBase {
+                source_branch,
+                target_branch,
+            },
+            crate::history::data::RelationalMergeBranchBasisDenial::MissingMergeBaseEnvelope {
+                commit_id,
+            } => Self::MissingMergeBaseEnvelope { commit_id },
+        }
+    }
 }

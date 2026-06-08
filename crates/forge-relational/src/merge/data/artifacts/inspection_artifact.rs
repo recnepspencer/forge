@@ -4,7 +4,8 @@ use crate::merge::data::{
     merge_inspection_artifact_digest, merge_inspection_lowered_plan_digest,
     merge_inspection_row_digest, LoweredMergeBlockedReason, LoweredMergePlanSummary,
     LoweredMergeRejectedReason, LoweredRecordDecision, LoweredRecordDecisionKind,
-    MergeConflictClass, MergeExecutionReadiness, MergeExecutionRequest, MergeResolutionClass,
+    MergeConflictClass, MergeExecutionReadiness, MergeResolutionClass,
+    NormalizedRelationalMergeRequest,
 };
 use crate::transactions::data::RecordRef;
 
@@ -18,19 +19,19 @@ pub enum RelationalMergeInspectionAdmission {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelationalMergeInspectionInput {
-    request: MergeExecutionRequest,
+    request: NormalizedRelationalMergeRequest,
     lowered_plan: LoweredMergePlanSummary,
 }
 
 impl RelationalMergeInspectionInput {
     fn from_planning_artifact(artifact: &MergePlanningArtifactCore) -> Self {
         Self {
-            request: MergeExecutionRequest::from(artifact.request.clone()),
+            request: artifact.request.clone(),
             lowered_plan: artifact.lowered_plan.clone(),
         }
     }
 
-    pub fn request(&self) -> &MergeExecutionRequest {
+    pub fn request(&self) -> &NormalizedRelationalMergeRequest {
         &self.request
     }
 
@@ -97,7 +98,7 @@ impl RelationalMergeInspectionRow {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelationalMergeInspectionArtifact {
-    request: MergeExecutionRequest,
+    request: NormalizedRelationalMergeRequest,
     lowered_plan_digest: String,
     rows: std::sync::Arc<[RelationalMergeInspectionRow]>,
     artifact_digest: String,
@@ -132,7 +133,7 @@ impl RelationalMergeInspectionArtifact {
         }
     }
 
-    pub fn request(&self) -> &MergeExecutionRequest {
+    pub fn request(&self) -> &NormalizedRelationalMergeRequest {
         &self.request
     }
 

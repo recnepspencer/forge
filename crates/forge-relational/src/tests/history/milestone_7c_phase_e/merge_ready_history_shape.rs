@@ -5,8 +5,16 @@ use super::fixtures::execute_feature_into_main_merge;
 
 #[test]
 fn execute_prepared_merge_produces_merge_ready_history_shape() {
-    let (mut runtime, merge, _main_head_commit_id, feature_head_commit_id) =
+    let (mut runtime, merge, main_head_commit_id, feature_head_commit_id) =
         execute_feature_into_main_merge();
+    let envelope = runtime
+        .replay()
+        .canonical_commit_envelope(merge.commit.commit.commit_id)
+        .cloned()
+        .expect("canonical merge envelope");
+    let merge_authority = envelope
+        .merge_execution_authority
+        .expect("published merge execution authority");
 
     assert_eq!(
         runtime.history().latest_common_ancestor_between_branches(
@@ -36,5 +44,33 @@ fn execute_prepared_merge_produces_merge_ready_history_shape() {
             .ordered_parents()
             .clone_inner(),
         merge.commit.commit.parents
+    );
+    assert_eq!(
+        merge_authority.execution_summary.target_head_commit_id,
+        merge.commit.commit.parents[0]
+    );
+    assert_eq!(
+        merge_authority.execution_summary.source_head_commit_id,
+        merge.commit.commit.parents[1]
+    );
+    assert_eq!(
+        merge_authority
+            .execution_summary
+            .branch_basis
+            .target_head()
+            .commit_id,
+        merge.commit.commit.parents[0]
+    );
+    assert_eq!(
+        merge_authority
+            .execution_summary
+            .branch_basis
+            .source_head()
+            .commit_id,
+        merge.commit.commit.parents[1]
+    );
+    assert_eq!(
+        merge_authority.execution_summary.merge_base_commit_id,
+        main_head_commit_id
     );
 }

@@ -7,23 +7,21 @@ mod value_terms;
 use sha2::{Digest, Sha256};
 
 use crate::aspect_wire;
-use crate::history::data::{BranchId, CommitId};
+use crate::history::data::CommitId;
 use crate::merge::data::{
     BoundExecutableMergeRecordPlan, ExecutedMergeRecordDiagnosticRow,
-    MergeSchemaSnapshotDigestBasis, VisibleMergeRecord,
+    MergeSchemaSnapshotDigestBasis, NormalizedRelationalMergeRequest,
+    RelationalMergeCorrespondencePosture, RelationalMergeRequestFamily,
+    RelationalMergeSchemaReconciliationPosture, RelationalMergeTopologyIntent, VisibleMergeRecord,
 };
 
 pub(crate) fn compiled_executable_plan_digest(
-    target_branch: &BranchId,
-    source_branch: &BranchId,
-    merge_intent: crate::merge::data::MergeIntent,
+    request: &NormalizedRelationalMergeRequest,
     parent_order: &[CommitId],
     record_plans: &[BoundExecutableMergeRecordPlan],
 ) -> String {
     let mut bytes = CanonicalDigestBytes::new("merge.executable-plan.v1");
-    bytes.branch_id(target_branch);
-    bytes.branch_id(source_branch);
-    bytes.merge_intent(merge_intent);
+    bytes.normalized_merge_request(request);
     bytes.commit_ids(parent_order);
     bytes.executable_record_plans(record_plans);
     bytes.finish()
@@ -99,5 +97,42 @@ impl CanonicalDigestBytes {
     pub(super) fn extend_canonical_bytes(&mut self, value: &[u8]) {
         self.usize(value.len());
         self.bytes.extend_from_slice(value);
+    }
+
+    pub(super) fn normalized_merge_request(&mut self, request: &NormalizedRelationalMergeRequest) {
+        self.branch_id(request.target_branch());
+        self.branch_id(request.source_branch());
+        self.merge_intent(request.merge_intent());
+        self.request_family(request.family());
+        self.correspondence_posture(request.correspondence_posture());
+        self.schema_posture(request.schema_reconciliation_posture());
+        self.topology_intent(request.topology_intent());
+    }
+
+    pub(super) fn request_family(&mut self, value: RelationalMergeRequestFamily) {
+        match value {
+            RelationalMergeRequestFamily::FullBranchReconciliation => self.tag(1),
+        }
+    }
+
+    pub(super) fn correspondence_posture(&mut self, value: RelationalMergeCorrespondencePosture) {
+        match value {
+            RelationalMergeCorrespondencePosture::Advisory => self.tag(1),
+            RelationalMergeCorrespondencePosture::Strict => self.tag(2),
+        }
+    }
+
+    pub(super) fn schema_posture(&mut self, value: RelationalMergeSchemaReconciliationPosture) {
+        match value {
+            RelationalMergeSchemaReconciliationPosture::Participate => self.tag(1),
+            RelationalMergeSchemaReconciliationPosture::RequireCompatibility => self.tag(2),
+        }
+    }
+
+    pub(super) fn topology_intent(&mut self, value: RelationalMergeTopologyIntent) {
+        match value {
+            RelationalMergeTopologyIntent::PreserveTopologySemantics => self.tag(1),
+            RelationalMergeTopologyIntent::RequireStrictTopologyStability => self.tag(2),
+        }
     }
 }

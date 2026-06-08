@@ -1,4 +1,5 @@
 use crate::ordinary_outcome::{
+    ForgeQueryOrdinaryContinuationCheckedTopologyKind,
     ForgeQueryOrdinaryContributionComposedCheckedTopologyKind, ForgeQueryOrdinaryPosture,
     ForgeQueryOrdinaryPostureKind,
 };
@@ -114,6 +115,30 @@ fn source_family(stop_family: ForgeQueryRecoveryStopFamily) -> ForgeQueryRecover
 }
 
 fn stop_kind(posture: &ForgeQueryOrdinaryPosture) -> ForgeQueryRecoveryStopKind {
+    if let Some(kind) = posture.checked_topology().continuation_kind() {
+        return match kind {
+            ForgeQueryOrdinaryContinuationCheckedTopologyKind::AsyncRequestDrift => {
+                ForgeQueryRecoveryStopKind::AsyncRequestDrift
+            }
+            ForgeQueryOrdinaryContinuationCheckedTopologyKind::ReplayDrift => {
+                ForgeQueryRecoveryStopKind::ReplayDrift
+            }
+            ForgeQueryOrdinaryContinuationCheckedTopologyKind::RemaskDrift => {
+                ForgeQueryRecoveryStopKind::RemaskDrift
+            }
+            ForgeQueryOrdinaryContinuationCheckedTopologyKind::PreviewCrossedResidue => {
+                ForgeQueryRecoveryStopKind::PreviewCrossedResidue
+            }
+            ForgeQueryOrdinaryContinuationCheckedTopologyKind::StaleCompletion => {
+                ForgeQueryRecoveryStopKind::StaleCompletion
+            }
+            _ => stop_kind_from_posture(posture),
+        };
+    }
+    stop_kind_from_posture(posture)
+}
+
+fn stop_kind_from_posture(posture: &ForgeQueryOrdinaryPosture) -> ForgeQueryRecoveryStopKind {
     match posture.checked_topology().contribution_composed_kind() {
         Some(ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::DeclarationDenied) => {
             ForgeQueryRecoveryStopKind::DeclarationDenied
@@ -177,6 +202,9 @@ fn authority_surface(
         ForgeQueryRecoveryStopKind::AuthorityMismatch | ForgeQueryRecoveryStopKind::Refused => {
             ForgeQueryRecoveryAuthoritySurface::AutomationBoundary
         }
+        ForgeQueryRecoveryStopKind::AsyncRequestDrift => {
+            ForgeQueryRecoveryAuthoritySurface::BoundInputContext
+        }
         ForgeQueryRecoveryStopKind::BasisMismatch => {
             if posture
                 .checked_topology()
@@ -188,7 +216,15 @@ fn authority_surface(
                 ForgeQueryRecoveryAuthoritySurface::TruthContinuationContext
             }
         }
+        ForgeQueryRecoveryStopKind::PreviewCrossedResidue
+        | ForgeQueryRecoveryStopKind::ReplayDrift
+        | ForgeQueryRecoveryStopKind::StaleCompletion => {
+            ForgeQueryRecoveryAuthoritySurface::TruthContinuationContext
+        }
         ForgeQueryRecoveryStopKind::Deferred | ForgeQueryRecoveryStopKind::Unsupported => {
+            ForgeQueryRecoveryAuthoritySurface::SupportReadiness
+        }
+        ForgeQueryRecoveryStopKind::RemaskDrift => {
             ForgeQueryRecoveryAuthoritySurface::SupportReadiness
         }
         ForgeQueryRecoveryStopKind::Stale => {
@@ -209,6 +245,14 @@ fn recommended_action(
     stop_kind: ForgeQueryRecoveryStopKind,
 ) -> ForgeQueryRecoveryAction {
     match stop_kind {
+        ForgeQueryRecoveryStopKind::AsyncRequestDrift => ForgeQueryRecoveryAction::RebindContext,
+        ForgeQueryRecoveryStopKind::PreviewCrossedResidue => {
+            ForgeQueryRecoveryAction::UseExplicitHandoff
+        }
+        ForgeQueryRecoveryStopKind::RemaskDrift => ForgeQueryRecoveryAction::CheckSupport,
+        ForgeQueryRecoveryStopKind::ReplayDrift | ForgeQueryRecoveryStopKind::StaleCompletion => {
+            ForgeQueryRecoveryAction::RefreshBasis
+        }
         ForgeQueryRecoveryStopKind::DeclarationDenied => {
             ForgeQueryRecoveryAction::RepairDeclarationMeaning
         }

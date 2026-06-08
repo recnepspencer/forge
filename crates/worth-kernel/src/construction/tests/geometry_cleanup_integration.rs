@@ -1,17 +1,17 @@
 use crate::construction::result::prepare_primitive_construction_result;
-use crate::construction::PrimitiveConstructionIntent;
 use crate::construction::specs::{
     OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
     WireBodySpec,
 };
+use crate::construction::PrimitiveConstructionIntent;
 use topology::facade::TopologyConstructionQueryFactKind;
 use worth_geom::facade::{build_direct_realization_report, tetrahedron, Plane};
 use worth_primitives::{
-    canonical_simplex_vertices,
-    PrimitiveConstructionFamilyContractRegistry, PrimitiveGeometryIdentityBundle,
-    PrimitiveSupportPlaneIdentity, PrimitiveVertexIdentity, PrimitiveWitnessDescriptor,
+    canonical_simplex_vertices, PrimitiveConstructionFamilyContractRegistry,
+    PrimitiveGeometryIdentityBundle, PrimitiveSupportPlaneIdentity, PrimitiveVertexIdentity,
+    PrimitiveWitnessDescriptor,
 };
-use worth_spatial::facade::bindings::{
+use worth_spatial::facade::birth::{
     plan_primitive_construction_birth, PrimitiveConstructionBirthFamily,
     PrimitiveConstructionBirthScaffoldInput,
 };
@@ -20,11 +20,17 @@ use worth_spatial::facade::bindings::{
 fn geometry_digest_mutation_and_replay_parity_hostility_suite() {
     let shifted_plane =
         Plane::from_point_normal([0.0, 0.0, 1.0], [0.0, 0.0, 1.0]).expect("shifted plane");
-    let base_vertices = canonical_simplex_vertices(1.0, 0.0).local_vertices().to_vec();
+    let base_vertices = canonical_simplex_vertices(1.0, 0.0)
+        .local_vertices()
+        .to_vec();
     let shifted_vertices = vec![
         base_vertices[0],
         base_vertices[1],
-        [base_vertices[2][0] - 0.25, base_vertices[2][1], base_vertices[2][2]],
+        [
+            base_vertices[2][0] - 0.25,
+            base_vertices[2][1],
+            base_vertices[2][2],
+        ],
         base_vertices[3],
     ];
     let parity_planes = tetrahedron([0.0, 0.0, 0.0], 1.0).expect("tetrahedron planes");
@@ -198,10 +204,5 @@ fn geometry_bundle(
 
 fn plane_identity(plane: &Plane) -> PrimitiveSupportPlaneIdentity {
     let (a, b, c, d) = plane.exact_coefficients();
-    PrimitiveSupportPlaneIdentity::new(
-        a.to_string(),
-        b.to_string(),
-        c.to_string(),
-        d.to_string(),
-    )
+    PrimitiveSupportPlaneIdentity::new(a.to_string(), b.to_string(), c.to_string(), d.to_string())
 }

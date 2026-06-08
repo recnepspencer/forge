@@ -2,8 +2,13 @@
 fn spatial_bindings_boundary_no_longer_teaches_parallel_report_ecologies() {
     let bindings_mod = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/bindings/mod.rs"));
     let facade = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/facade/mod.rs"));
+    let facade_bindings = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/facade/bindings.rs"
+    ));
 
-    assert!(!bindings_mod.contains("mod authority;"));
+    assert!(bindings_mod.contains("mod authority;"));
+    assert!(bindings_mod.contains("mod identity;"));
     assert!(!bindings_mod.contains("mod primitive_birth_completeness;"));
     assert!(!bindings_mod.contains("mod primitive_birth_mapping;"));
     assert!(!bindings_mod.contains("mod primitive_birth_rejection;"));
@@ -17,4 +22,7 @@ fn spatial_bindings_boundary_no_longer_teaches_parallel_report_ecologies() {
     assert!(!facade.contains("SpatialConstructionBirthRejectionRow"));
     assert!(!facade.contains("PrimitiveConstructionBirthContractCounts"));
     assert!(facade.contains("pub mod bindings;"));
+    assert!(facade.contains("pub mod birth;"));
+    assert!(!facade_bindings.contains("plan_primitive_construction_birth"));
+    assert!(!facade_bindings.contains("PrimitiveConstructionBirthScaffoldInput"));
 }

@@ -99,7 +99,13 @@ fn tetrahedron_vertices(
     canonical_simplex_vertices(scale, auxiliary_altitude_component)
         .local_vertices()
         .iter()
-        .map(|vertex| [vertex[0] + center[0], vertex[1] + center[1], vertex[2] + center[2]])
+        .map(|vertex| {
+            [
+                vertex[0] + center[0],
+                vertex[1] + center[1],
+                vertex[2] + center[2],
+            ]
+        })
         .collect()
 }
 

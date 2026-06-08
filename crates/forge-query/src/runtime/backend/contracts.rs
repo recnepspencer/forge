@@ -17,6 +17,7 @@ use crate::program::ForgeQueryDerivedView;
 use crate::schema_view::QuerySchemaView;
 use crate::subscription::SubscriptionActivationInput;
 
+use crate::runtime::remask_posture::ForgeQueryRuntimeRemaskProjection;
 use crate::runtime::{
     ForgeQueryEffectPolicy, ForgeQueryExistingTruthAssertionDenial,
     ForgeQueryExistingTruthBindingDenial, ForgeQueryExistingTruthProbe,
@@ -259,6 +260,14 @@ pub trait ForgeQueryRuntimeSignalSinkAdapter {
 pub trait ForgeQueryRuntimeSubscriptionActivationAdapter {
     fn support_evidence(&self) -> String;
 
+    fn remask_projection(
+        &self,
+        _view_name: &str,
+        _activation: &SubscriptionActivationInput,
+    ) -> Option<ForgeQueryRuntimeRemaskProjection> {
+        None
+    }
+
     fn build_subscription_activation_receipt(
         &self,
         view_name: &str,
@@ -268,6 +277,7 @@ pub trait ForgeQueryRuntimeSubscriptionActivationAdapter {
             view_name,
             activation,
             self.support_evidence(),
+            self.remask_projection(view_name, activation),
         )
     }
 

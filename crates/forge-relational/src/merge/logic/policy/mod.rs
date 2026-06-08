@@ -7,16 +7,20 @@ mod value_strategy;
 
 use crate::logic::runtime::RelationalRuntime;
 use crate::merge::data::{
-    CausallyAnnotatedMergePlan, MergePlanningError, MergePlanningRequest, PolicyResolvedMergePlan,
+    CausallyAnnotatedMergePlan, MergePlanningError, NormalizedRelationalMergeRequest,
+    PolicyResolvedMergePlan,
 };
 use crate::merge::logic::MergeAccess;
 
-pub(crate) use decisions::current_topology_rewire_admission_policy;
+pub(crate) use decisions::{
+    aggregate_record_resolution, current_topology_rewire_admission_policy,
+    ownership_surface_for_policies,
+};
 
 impl<'runtime> MergeAccess<'runtime> {
     pub(crate) fn plan_policy_scope(
         &self,
-        request: MergePlanningRequest,
+        request: NormalizedRelationalMergeRequest,
     ) -> Result<PolicyResolvedMergePlan, MergePlanningError> {
         let causal_plan = self.plan_causal_scope(request)?;
         self.resolve_policy_scope(causal_plan)

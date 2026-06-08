@@ -21,14 +21,15 @@ mod orientation_consistency;
 mod shell_consistency;
 pub(crate) mod shell_data;
 
-use forge_core::KernelError;
-
 pub(crate) use broken_boundary::validate_no_broken_face_boundary;
 pub(crate) use face_adjacency::validate_face_adjacency_consistency;
 pub(crate) use laminar_edges::validate_boundary_edges_laminar_only;
 pub use manifold_edges::validate_manifold_edges;
+#[cfg(test)]
 pub(crate) use orientation_consistency::validate_orientation_consistency;
+#[cfg(test)]
 pub(crate) use shell_consistency::validate_shell_consistency;
+#[cfg(test)]
 pub(crate) use shell_data::collect_shell_data_for_face;
 
 pub(crate) use super::shared::vf;

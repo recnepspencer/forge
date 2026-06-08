@@ -5,7 +5,7 @@ use crate::identity_evolution::InspectorIdentityClassification;
 use crate::view_shape::{
     admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
     ViewShapeDescriptor, ViewShapeFailureClass, ViewShapeInvalidationPosture,
-    ViewShapePatchPosture,
+    ViewShapePatchPosture, ViewShapeTemporalAsyncSupportPosture,
 };
 
 mod grouped;
@@ -313,5 +313,34 @@ fn identity_consumption_is_rejected_for_non_inspector_views() {
     assert_eq!(
         error.failure_class(),
         &ViewShapeFailureClass::IncompatibleCanonicalFamily
+    );
+}
+
+#[test]
+fn runtime_backed_view_shape_future_support_profile_is_fail_closed_for_inspector_and_grouped() {
+    let profile = crate::view_shape::runtime_backed_view_shape_future_support_profile();
+
+    assert_eq!(
+        profile
+            .iter()
+            .find(|(family, _)| *family == crate::view_shape::ViewShapeFamily::Detail)
+            .map(|(_, posture)| *posture),
+        Some(ViewShapeTemporalAsyncSupportPosture::FuturePreserving)
+    );
+    assert_eq!(
+        profile
+            .iter()
+            .find(
+                |(family, _)| *family == crate::view_shape::ViewShapeFamily::InspectorDetailFocused
+            )
+            .map(|(_, posture)| *posture),
+        Some(ViewShapeTemporalAsyncSupportPosture::VisibleButDeferred)
+    );
+    assert_eq!(
+        profile
+            .iter()
+            .find(|(family, _)| *family == crate::view_shape::ViewShapeFamily::KanbanGrouped)
+            .map(|(_, posture)| *posture),
+        Some(ViewShapeTemporalAsyncSupportPosture::VisibleButDeferred)
     );
 }

@@ -11,6 +11,8 @@ use crate::merge::data::{
     MergeExecutableClass, MergeExecutionReadiness, MergeIntent,
     MergePlanningDecisionLogDigestBasis, MergePolicyProofBoundary, MergeRecordCausalDisposition,
     MergeResolutionClass, MergeVisibilityEvidence, RelationConflictEvidence,
+    RelationalMergeCorrespondencePosture, RelationalMergeRequestFamily,
+    RelationalMergeSchemaReconciliationPosture, RelationalMergeTopologyIntent,
     ResolvedAspectMergePolicy, StrategyConflictClass,
 };
 use crate::transactions::data::RecordRef;
@@ -25,6 +27,10 @@ pub struct MergeRequestDigestBasis {
     pub target_branch: BranchId,
     pub source_branch: BranchId,
     pub merge_intent: MergeIntent,
+    pub family: RelationalMergeRequestFamily,
+    pub correspondence_posture: RelationalMergeCorrespondencePosture,
+    pub schema_reconciliation_posture: RelationalMergeSchemaReconciliationPosture,
+    pub topology_intent: RelationalMergeTopologyIntent,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

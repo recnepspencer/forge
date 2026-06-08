@@ -79,6 +79,9 @@ mod view_shape;
 mod view_shape_live;
 mod workflow;
 
+#[cfg(test)]
+mod future_signal_test_support;
+
 pub use continuation_pipeline::{
     ForgeQueryContinuationBasisPosture, ForgeQueryContinuationExecution,
     ForgeQueryContinuationExecutionChecked, ForgeQueryContinuationExecutionOutcome,
@@ -152,6 +155,9 @@ pub use ordinary_outcome::{
     ForgeQueryOrdinaryContinuationCheckedTopologyKind,
     ForgeQueryOrdinaryContributionComposedCheckedTopologyKind, ForgeQueryOrdinaryNextStep,
     ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
+    ForgeQueryOrdinaryRuntimeAsyncPostureKind, ForgeQueryOrdinaryRuntimeBasisPostureKind,
+    ForgeQueryOrdinaryRuntimeCausePostureKind, ForgeQueryOrdinaryRuntimePosture,
+    ForgeQueryOrdinaryRuntimePostureKind,
     ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
 };
 pub use platform_entry_closeout::{

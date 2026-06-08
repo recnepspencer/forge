@@ -141,7 +141,7 @@ pub(crate) fn checked_route_plan_from_progressed_with_profile<
         || progressed.operating_context_identity_digest()
             != handle.operating_context_identity_digest()
     {
-        let world_basis = handle.retained_world_basis();
+        let world_basis = progressed.retained_world_basis().clone();
         let evidence = forge_query_declaration_foundational_evidence(
             &world_basis,
             ForgeQueryDeclarationFoundationalEvidenceInput::admitted_progression(
@@ -150,7 +150,9 @@ pub(crate) fn checked_route_plan_from_progressed_with_profile<
             profile,
         )
         .unwrap_or_else(|_| {
-            panic!("retained admitted progression should describe foundational evidence inside its own admitted world")
+            panic!(
+                "retained admitted progression should describe foundational evidence inside its own admitted world"
+            )
         });
         return ForgeQueryDeclarationRoutePlanChecked::Denied(
             ForgeQueryDeclarationRoutePlanDenied::new(

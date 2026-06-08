@@ -21,6 +21,7 @@ pub enum ForgeQueryRecoveryStopFamily {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryRecoveryStopKind {
     Ambiguous,
+    AsyncRequestDrift,
     AspectConflict,
     AuthorityMismatch,
     BasisMismatch,
@@ -29,9 +30,13 @@ pub enum ForgeQueryRecoveryStopKind {
     Deferred,
     Failed,
     MissingRequiredAspect,
+    PreviewCrossedResidue,
     RebindRequired,
+    RemaskDrift,
+    ReplayDrift,
     Refused,
     Stale,
+    StaleCompletion,
     Unavailable,
     Unsupported,
     WrongHandle,

@@ -1,0 +1,94 @@
+use serde::{Deserialize, Serialize};
+
+use crate::history::data::BranchId;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MergeIntent {
+    ReconcileIntoTarget,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MergePlanningRequest {
+    pub target_branch: BranchId,
+    pub source_branch: BranchId,
+    pub merge_intent: MergeIntent,
+}
+
+impl MergePlanningRequest {
+    pub fn new(
+        target_branch: BranchId,
+        source_branch: BranchId,
+        merge_intent: MergeIntent,
+    ) -> Self {
+        Self {
+            target_branch,
+            source_branch,
+            merge_intent,
+        }
+    }
+
+    pub fn target_branch(&self) -> &BranchId {
+        &self.target_branch
+    }
+
+    pub fn source_branch(&self) -> &BranchId {
+        &self.source_branch
+    }
+
+    pub fn merge_intent(&self) -> MergeIntent {
+        self.merge_intent
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MergeExecutionRequest {
+    pub target_branch: BranchId,
+    pub source_branch: BranchId,
+    pub merge_intent: MergeIntent,
+}
+
+impl MergeExecutionRequest {
+    pub fn new(
+        target_branch: BranchId,
+        source_branch: BranchId,
+        merge_intent: MergeIntent,
+    ) -> Self {
+        Self {
+            target_branch,
+            source_branch,
+            merge_intent,
+        }
+    }
+
+    pub fn target_branch(&self) -> &BranchId {
+        &self.target_branch
+    }
+
+    pub fn source_branch(&self) -> &BranchId {
+        &self.source_branch
+    }
+
+    pub fn merge_intent(&self) -> MergeIntent {
+        self.merge_intent
+    }
+}
+
+impl From<MergeExecutionRequest> for MergePlanningRequest {
+    fn from(value: MergeExecutionRequest) -> Self {
+        Self {
+            target_branch: value.target_branch,
+            source_branch: value.source_branch,
+            merge_intent: value.merge_intent,
+        }
+    }
+}
+
+impl From<MergePlanningRequest> for MergeExecutionRequest {
+    fn from(value: MergePlanningRequest) -> Self {
+        Self {
+            target_branch: value.target_branch,
+            source_branch: value.source_branch,
+            merge_intent: value.merge_intent,
+        }
+    }
+}

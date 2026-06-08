@@ -1,6 +1,9 @@
 mod public_api_anchor_lowering;
 mod public_api_arbitration;
 mod public_api_arbitration_boundary;
+mod public_api_binding_anchor_authority;
+mod public_api_binding_authority;
+mod public_api_binding_rebinding;
 mod public_api_bindings_boundary;
 mod public_api_birth_and_resolution;
 mod public_api_carrier_witnesses;

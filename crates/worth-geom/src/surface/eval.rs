@@ -64,6 +64,22 @@ impl SurfaceData {
                     center[2] + radius * sv,
                 ]
             }
+            SurfaceKind::TriaxialEllipsoid {
+                center,
+                axis_u,
+                axis_v,
+                axis_w,
+                radius_a,
+                radius_b,
+                radius_c,
+            } => {
+                let cv = v.cos();
+                let sv = v.sin();
+                let cu = u.cos();
+                let su = u.sin();
+                let local = [radius_a * cv * cu, radius_b * cv * su, radius_c * sv];
+                point_from_frame(center, axis_u, axis_v, axis_w, local)
+            }
             SurfaceKind::Torus {
                 center,
                 axis,
@@ -131,6 +147,26 @@ impl SurfaceData {
                 let cu = u.cos();
                 let su = u.sin();
                 [cv * cu, cv * su, sv]
+            }
+            SurfaceKind::TriaxialEllipsoid {
+                axis_u,
+                axis_v,
+                axis_w,
+                radius_a,
+                radius_b,
+                radius_c,
+                ..
+            } => {
+                let cv = v.cos();
+                let sv = v.sin();
+                let cu = u.cos();
+                let su = u.sin();
+                normalize(combine_frame(
+                    axis_u,
+                    axis_v,
+                    axis_w,
+                    [cv * cu / radius_a, cv * su / radius_b, sv / radius_c],
+                ))
             }
             SurfaceKind::Torus {
                 axis,
@@ -227,6 +263,44 @@ pub fn classify_surface_pair(
                 half_angle: ha2,
             },
         ) => classify_cone_cone(a1, ax1, *ha1, a2, ax2, *ha2, tol, ambiguity_factor),
+
+        (
+            SurfaceKind::TriaxialEllipsoid {
+                center: c1,
+                axis_u: u1,
+                axis_v: v1,
+                axis_w: w1,
+                radius_a: a1,
+                radius_b: b1,
+                radius_c: c_radius1,
+            },
+            SurfaceKind::TriaxialEllipsoid {
+                center: c2,
+                axis_u: u2,
+                axis_v: v2,
+                axis_w: w2,
+                radius_a: a2,
+                radius_b: b2,
+                radius_c: c_radius2,
+            },
+        ) => classify_triaxial_ellipsoid_triaxial_ellipsoid(
+            c1,
+            u1,
+            v1,
+            w1,
+            *a1,
+            *b1,
+            *c_radius1,
+            c2,
+            u2,
+            v2,
+            w2,
+            *a2,
+            *b2,
+            *c_radius2,
+            tol,
+            ambiguity_factor,
+        ),
 
         (
             SurfaceKind::Torus {
@@ -469,6 +543,41 @@ fn classify_torus_torus(
     }
 }
 
+fn classify_triaxial_ellipsoid_triaxial_ellipsoid(
+    c1: &[f64; 3],
+    u1: &[f64; 3],
+    v1: &[f64; 3],
+    w1: &[f64; 3],
+    a1: f64,
+    b1: f64,
+    c_radius1: f64,
+    c2: &[f64; 3],
+    u2: &[f64; 3],
+    v2: &[f64; 3],
+    w2: &[f64; 3],
+    a2: f64,
+    b2: f64,
+    c_radius2: f64,
+    tol: f64,
+    af: f64,
+) -> PolicyResult<SurfaceRelation> {
+    let center_delta = norm([c1[0] - c2[0], c1[1] - c2[1], c1[2] - c2[2]]);
+    let axis_delta = frame_max_delta(u1, v1, w1, u2, v2, w2);
+    let radius_delta = (a1 - a2)
+        .abs()
+        .max((b1 - b2).abs())
+        .max((c_radius1 - c_radius2).abs());
+    let max_delta = center_delta.max(axis_delta).max(radius_delta);
+
+    if max_delta < tol {
+        PolicyResult::Success(SurfaceRelation::Coincident)
+    } else if max_delta < tol * af {
+        ambiguous(SurfaceRelation::Coincident, max_delta)
+    } else {
+        PolicyResult::Success(SurfaceRelation::General)
+    }
+}
+
 /// Build an orthonormal tangent frame for a plane given its normal.
 fn plane_tangent_frame(normal: &[f64; 3]) -> ([f64; 3], [f64; 3]) {
     let seed = if normal[0].abs() < 0.9 {
@@ -484,6 +593,55 @@ fn plane_tangent_frame(normal: &[f64; 3]) -> ([f64; 3], [f64; 3]) {
 /// Build a local frame for a cylinder/cone/torus given its axis direction.
 fn cylinder_frame(axis: &[f64; 3]) -> ([f64; 3], [f64; 3]) {
     plane_tangent_frame(axis)
+}
+
+fn combine_frame(
+    axis_u: &[f64; 3],
+    axis_v: &[f64; 3],
+    axis_w: &[f64; 3],
+    local: [f64; 3],
+) -> [f64; 3] {
+    [
+        local[0] * axis_u[0] + local[1] * axis_v[0] + local[2] * axis_w[0],
+        local[0] * axis_u[1] + local[1] * axis_v[1] + local[2] * axis_w[1],
+        local[0] * axis_u[2] + local[1] * axis_v[2] + local[2] * axis_w[2],
+    ]
+}
+
+fn point_from_frame(
+    center: &[f64; 3],
+    axis_u: &[f64; 3],
+    axis_v: &[f64; 3],
+    axis_w: &[f64; 3],
+    local: [f64; 3],
+) -> [f64; 3] {
+    let offset = combine_frame(axis_u, axis_v, axis_w, local);
+    [
+        center[0] + offset[0],
+        center[1] + offset[1],
+        center[2] + offset[2],
+    ]
+}
+
+fn frame_max_delta(
+    u1: &[f64; 3],
+    v1: &[f64; 3],
+    w1: &[f64; 3],
+    u2: &[f64; 3],
+    v2: &[f64; 3],
+    w2: &[f64; 3],
+) -> f64 {
+    axis_delta(u1, u2)
+        .max(axis_delta(v1, v2))
+        .max(axis_delta(w1, w2))
+}
+
+fn axis_delta(a: &[f64; 3], b: &[f64; 3]) -> f64 {
+    norm([a[0] - b[0], a[1] - b[1], a[2] - b[2]])
+}
+
+fn norm(v: [f64; 3]) -> f64 {
+    (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt()
 }
 
 fn cross(a: &[f64; 3], b: &[f64; 3]) -> [f64; 3] {
@@ -566,6 +724,53 @@ mod tests {
         let dir = [p[0] - 1.0, p[1] - 2.0, p[2] - 3.0];
         let dot = dir[0] * n[0] + dir[1] * n[1] + dir[2] * n[2];
         assert!(dot > 0.0);
+    }
+
+    #[test]
+    fn triaxial_ellipsoid_point_respects_distinct_principal_radii() {
+        let s = SurfaceData::triaxial_ellipsoid(
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+            5.0,
+            3.0,
+            2.0,
+        )
+        .expect("triaxial ellipsoid");
+        assert_point_near(s.point_at(0.0, 0.0), [5.0, 0.0, 0.0]);
+        assert_point_near(s.point_at(FRAC_PI_2, 0.0), [0.0, 3.0, 0.0]);
+        assert_point_near(s.point_at(0.0, FRAC_PI_2), [0.0, 0.0, 2.0]);
+    }
+
+    #[test]
+    fn axis_swapped_triaxial_ellipsoids_are_general_not_coincident() {
+        let canonical = SurfaceData::triaxial_ellipsoid(
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+            5.0,
+            3.0,
+            2.0,
+        )
+        .expect("canonical");
+        let swapped = SurfaceData::triaxial_ellipsoid(
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [0.0, 1.0, 0.0],
+            5.0,
+            2.0,
+            3.0,
+        )
+        .expect("swapped");
+        assert_eq!(
+            classify_surface_pair(&canonical, &swapped, 1e-12, 10.0)
+                .into_result_strict()
+                .unwrap(),
+            SurfaceRelation::General
+        );
     }
 
     #[test]
@@ -877,6 +1082,48 @@ mod tests {
             return [0.0, 0.0, 0.0];
         }
         [raw[0] / len, raw[1] / len, raw[2] / len]
+    }
+
+    fn assert_point_near(actual: [f64; 3], expected: [f64; 3]) {
+        for i in 0..3 {
+            assert!(
+                (actual[i] - expected[i]).abs() < 1e-12,
+                "point mismatch at axis {}: actual={:?} expected={:?}",
+                i,
+                actual,
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn triaxial_ellipsoid_rejects_symmetric_or_non_orthonormal_definitions() {
+        assert_eq!(
+            SurfaceData::triaxial_ellipsoid(
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+                5.0,
+                5.0,
+                2.0,
+            )
+            .unwrap_err(),
+            crate::surface::schema::TriaxialEllipsoidDefinitionError::RadiiMustBeDistinct
+        );
+        assert_eq!(
+            SurfaceData::triaxial_ellipsoid(
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0],
+                5.0,
+                3.0,
+                2.0,
+            )
+            .unwrap_err(),
+            crate::surface::schema::TriaxialEllipsoidDefinitionError::AxisFrameMustBeUnitAndOrthonormal
+        );
     }
 
     #[test]

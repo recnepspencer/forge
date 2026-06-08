@@ -1,22 +1,7 @@
-use std::sync::Arc;
-
 use serde::{Deserialize, Serialize};
 
-use crate::history::data::{BranchId, CommitId};
+use crate::history::data::{BranchId, CommitId, MergeBaseSelectionRule};
 use crate::identity::data::VersionId;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MergeBaseSelectionRule {
-    MaxCommitIdCommonAncestor,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ResolvedMergeBase {
-    pub rule: MergeBaseSelectionRule,
-    pub commit_id: CommitId,
-    pub supporting_left_ancestors: Arc<[CommitId]>,
-    pub supporting_right_ancestors: Arc<[CommitId]>,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BranchDeltaSummary {

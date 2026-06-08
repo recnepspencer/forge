@@ -41,11 +41,15 @@ fn inspection_input_round_trips_deleted_vs_modified_without_host_projection() {
         .merge()
         .inspect_execution_surface(request.clone().into())
         .expect("execution surface");
+    let normalized_request = runtime
+        .merge()
+        .normalize_merge_request(request)
+        .expect("normalized request");
 
-    assert_eq!(input.request(), &request);
+    assert_eq!(input.request(), &normalized_request);
     assert_eq!(input.lowered_plan(), &planning.lowered_plan);
     assert_eq!(from_input, from_access);
-    assert_eq!(from_input.request(), &request);
+    assert_eq!(from_input.request(), &normalized_request);
     assert_eq!(from_input.rows().len(), planning.lowered_plan.records.len());
 
     let denied = from_input

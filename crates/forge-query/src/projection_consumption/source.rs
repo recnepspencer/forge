@@ -1,4 +1,5 @@
 use crate::canonicalization::CanonicalResultShapeArtifact;
+use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::query_context::{QueryContextExecutionArtifact, QueryContextExecutionFamily};
 use crate::runtime::{
     ForgeQueryMutationTargetClass, ForgeQueryReadExecutionEngine, ForgeQueryReadReceipt,
@@ -154,6 +155,7 @@ pub struct ProjectionConsumptionSource {
     result_shape_digest: Option<String>,
     source_identity: String,
     source_reference_identities: Vec<ProjectionSourceReferenceIdentity>,
+    materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
 }
 
 impl ProjectionConsumptionSource {
@@ -172,6 +174,7 @@ impl ProjectionConsumptionSource {
             result_digest: Some(receipt.result_digest().to_string()),
             result_shape_digest: Some(result_shape.digest().as_str().to_string()),
             source_identity: receipt.read_graph_digest().to_string(),
+            materialized_fact_posture: receipt.materialized_fact_posture().cloned(),
         }
     }
 
@@ -211,6 +214,7 @@ impl ProjectionConsumptionSource {
             result_shape_digest: None,
             source_identity: receipt.commit_identity().to_string(),
             source_reference_identities,
+            materialized_fact_posture: None,
         }
     }
 
@@ -242,6 +246,7 @@ impl ProjectionConsumptionSource {
                 .materialization_path_identity()
                 .unwrap_or_else(|| execution.family().as_str())
                 .to_string(),
+            materialized_fact_posture: execution.materialized_fact_posture().cloned(),
         }
     }
 
@@ -255,6 +260,7 @@ impl ProjectionConsumptionSource {
             result_digest: None,
             result_shape_digest: None,
             source_identity: row_set.digest().as_str().to_string(),
+            materialized_fact_posture: None,
         }
     }
 
@@ -270,6 +276,7 @@ impl ProjectionConsumptionSource {
             result_digest: None,
             result_shape_digest: None,
             source_identity: grouped_projection.digest().as_str().to_string(),
+            materialized_fact_posture: None,
         }
     }
 
@@ -283,6 +290,7 @@ impl ProjectionConsumptionSource {
             result_digest: None,
             result_shape_digest: None,
             source_identity: row_set.digest().as_str().to_string(),
+            materialized_fact_posture: None,
         }
     }
 
@@ -303,6 +311,7 @@ impl ProjectionConsumptionSource {
             result_digest: None,
             result_shape_digest: None,
             source_identity: grouped_truth_view.digest().as_str().to_string(),
+            materialized_fact_posture: None,
         }
     }
 
@@ -338,6 +347,10 @@ impl ProjectionConsumptionSource {
         &self.source_reference_identities
     }
 
+    pub fn materialized_fact_posture(&self) -> Option<&ProjectionMaterializedFactPosture> {
+        self.materialized_fact_posture.as_ref()
+    }
+
     pub(crate) fn synthetic_for_certification(
         family: ProjectionSourceFamily,
         capability_profile: ProjectionSourceCapabilityProfile,
@@ -353,6 +366,7 @@ impl ProjectionConsumptionSource {
             result_shape_digest: None,
             source_identity: source_identity.into(),
             source_reference_identities,
+            materialized_fact_posture: None,
         }
     }
 
@@ -375,6 +389,7 @@ impl ProjectionConsumptionSource {
             result_shape_digest,
             source_identity: source_identity.into(),
             source_reference_identities,
+            materialized_fact_posture: None,
         }
     }
 }

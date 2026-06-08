@@ -253,7 +253,7 @@ pub(super) fn blocked_reason_for_aspect(
     }
 }
 
-pub(super) fn blocked_reason_for_deletion_class(
+pub(crate) fn blocked_reason_for_deletion_class(
     class: crate::merge::data::DeletionMergeClass,
 ) -> LoweredMergeBlockedReason {
     match class {
@@ -275,7 +275,7 @@ pub(super) fn blocked_reason_for_deletion_class(
     }
 }
 
-pub(super) fn blocked_reason_for_topology_resolution_class(
+pub(crate) fn blocked_reason_for_topology_resolution_class(
     resolution_class: MergeResolutionClass,
 ) -> LoweredMergeBlockedReason {
     match resolution_class {

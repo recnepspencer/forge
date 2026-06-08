@@ -2,8 +2,13 @@ use crate::merge::data::LoweredMergePlan;
 
 pub(super) fn merge_request_summary(plan: &LoweredMergePlan) -> String {
     format!(
-        "{}:{}:{:?}",
-        plan.request.target_branch.0, plan.request.source_branch.0, plan.request.merge_intent
+        "{}:{}:{:?}:{:?}:{:?}:{:?}",
+        plan.request.target_branch().0,
+        plan.request.source_branch().0,
+        plan.request.merge_intent(),
+        plan.request.correspondence_posture(),
+        plan.request.schema_reconciliation_posture(),
+        plan.request.topology_intent()
     )
 }
 

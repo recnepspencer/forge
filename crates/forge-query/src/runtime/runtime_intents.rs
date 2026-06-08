@@ -161,7 +161,8 @@ impl ForgeQueryRuntime {
             input_contract,
             delivery.payload().clone(),
         )
-        .with_source_lane(ForgeQueryIntentSourceLane::EffectTriggered);
+        .with_source_lane(ForgeQueryIntentSourceLane::EffectTriggered)
+        .with_effect_trigger(delivery.write_adjacent_trigger().clone());
         let declaration_for_error = declaration.clone();
         ForgeQueryRawIntentAdmissionRequest::effect_runtime_entrypoint(declaration).map_err(
             |violation| {

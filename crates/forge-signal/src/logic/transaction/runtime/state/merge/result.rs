@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::handle::NodeId;
 use crate::diagnostics::lineage::LineageArtifactId;
 
+use super::compatibility::SignalMergeCompatibilityWitness;
 use super::conflict::{BranchConflictResolutionPlan, BranchMergeConflictKind};
 use super::conflict_isolation_registry::{
     ConflictIsolationPolicyName, ConflictIsolationSelectionBasis,
@@ -23,9 +24,11 @@ use super::plan::{
     LoweredMergeBasePlan, PlannedMergeCandidateSet, ProofMinimalOverlapBasis,
 };
 use super::policy::BranchMergeReconciliationPolicy;
+use super::scoped_proof::ScopedMergeProofPacket;
 use super::semantics::SelectedMergeSemanticsBundle;
 use super::source_only_policy_registry::{SourceOnlyPolicyName, SourceOnlyPolicySelectionBasis};
 use super::strategy_registry::{MergeStrategyName, MergeStrategySelectionBasis};
+use super::strategy_witness::SignalMergeStrategyWitness;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ArtifactMergeAction {
@@ -115,7 +118,7 @@ pub struct BranchMergeCounters {
     pub replay_event_count: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BranchMergeResult {
     pub source_branch: crate::state::SignalBranchId,
     pub target_branch: crate::state::SignalBranchId,
@@ -147,6 +150,8 @@ pub struct BranchMergeResult {
     pub selected_merge_base_digest: String,
     pub selected_merge_base_basis: MergeBaseSelectionBasis,
     pub selected_semantics: SelectedMergeSemanticsBundle,
+    pub strategy_witness: SignalMergeStrategyWitness,
+    pub compatibility_witness: SignalMergeCompatibilityWitness,
     pub reconciliation_policy: BranchMergeReconciliationPolicy,
     pub boundary_witness: MergeBoundaryWitness,
     pub identity_correspondence: LoweredIdentityCorrespondencePlan,
@@ -157,6 +162,7 @@ pub struct BranchMergeResult {
     pub proof_minimal_overlap: ProofMinimalOverlapBasis,
     pub conservative_overlap: ConservativeOverlapExpansion,
     pub planned_candidates: PlannedMergeCandidateSet,
+    pub scoped_merge_proof: ScopedMergeProofPacket,
     pub merged_snapshot_id: Option<crate::state::SignalSnapshotId>,
     pub lowered_merge_base: Option<LoweredMergeBasePlan>,
     pub target_snapshot_id_before: Option<crate::state::SignalSnapshotId>,
@@ -167,7 +173,7 @@ pub struct BranchMergeResult {
     pub counters: BranchMergeCounters,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BranchMergeExecutionSummary {
     pub source_branch_id: crate::state::SignalBranchId,
     pub target_branch_id: crate::state::SignalBranchId,
@@ -199,6 +205,8 @@ pub struct BranchMergeExecutionSummary {
     pub selected_merge_base_digest: String,
     pub selected_merge_base_basis: MergeBaseSelectionBasis,
     pub selected_semantics: SelectedMergeSemanticsBundle,
+    pub strategy_witness: SignalMergeStrategyWitness,
+    pub compatibility_witness: SignalMergeCompatibilityWitness,
     pub reconciliation_policy: BranchMergeReconciliationPolicy,
     pub boundary_witness: MergeBoundaryWitness,
     pub identity_correspondence: LoweredIdentityCorrespondencePlan,
@@ -209,6 +217,7 @@ pub struct BranchMergeExecutionSummary {
     pub proof_minimal_overlap: ProofMinimalOverlapBasis,
     pub conservative_overlap: ConservativeOverlapExpansion,
     pub planned_candidates: PlannedMergeCandidateSet,
+    pub scoped_merge_proof: ScopedMergeProofPacket,
     pub merge_base: Option<BranchMergeBase>,
     pub lowered_merge_base: Option<LoweredMergeBasePlan>,
     pub source_snapshot_id: Option<crate::state::SignalSnapshotId>,

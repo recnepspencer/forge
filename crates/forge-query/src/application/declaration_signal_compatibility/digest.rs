@@ -4,8 +4,8 @@ use crate::application::{
     ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
     ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
     ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationReceiptDenialCause, ForgeQueryDeclarationRoutePlanDenialCause,
-    ForgeQuerySignalCompatibilityPosture,
+    ForgeQueryDeclarationFutureProjection, ForgeQueryDeclarationReceiptDenialCause,
+    ForgeQueryDeclarationRoutePlanDenialCause, ForgeQuerySignalCompatibilityPosture,
 };
 use crate::basis_lifecycle::BasisFamily;
 use crate::identity::hash_parts;
@@ -26,6 +26,7 @@ pub(crate) fn derive_signal_compatibility_digest<
     aspect_fit: ForgeQueryDeclarationAspectFit,
     dependency_aspects: &ForgeQueryDeclarationAspectContract,
     produced_aspects: &ForgeQueryDeclarationAspectContract,
+    future_projection: &ForgeQueryDeclarationFutureProjection,
     route_cause: Option<ForgeQueryDeclarationRoutePlanDenialCause>,
     receipt_cause: Option<ForgeQueryDeclarationReceiptDenialCause>,
 ) -> String {
@@ -69,6 +70,10 @@ pub(crate) fn derive_signal_compatibility_digest<
         format!("aspect_fit:{aspect_fit:?}"),
         format!("dependency_aspects:{dependency_aspects:?}"),
         format!("produced_aspects:{produced_aspects:?}"),
+        format!(
+            "future_projection:{}",
+            future_projection.projection_digest()
+        ),
         format!(
             "primary_authority:{}",
             I::Family::taxonomy().primary_authority_family().as_str()

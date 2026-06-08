@@ -168,6 +168,14 @@ What still happens at authoring time rather than runtime execution:
   immediate closure form in [Live Views](../runtime-surfaces/live-views.md).
 - Use it before validation, canonicalization, planning, or saved-query style
   workflows.
+- Use [Canonical Domain Declarations](../domain-capabilities/canonical-domain-declarations.md)
+  when you need declaration-native temporal meaning such as freshness limits,
+  intervals, deadlines, or rolling/sliding windows, or declaration-native
+  async/resource meaning such as canonical source family, request identity,
+  loading posture, and failure posture.
+- Use [Async Resources And Result State](../capabilities/async-resources-and-result-state.md)
+  when you want the end-to-end async story instead of only the declaration-side
+  authoring boundary.
 - Use the runtime workspace closure builders when you just want ordinary live
   view DX inside a runtime-backed app surface.
 
@@ -199,11 +207,18 @@ Important things to watch:
   policy, history, or async scenario.
 - Reaching for typed authoring builders when a simple `workspace.live_view(...)`
   closure is enough.
+- Attaching temporal freshness or interval behavior here when the real intent
+  belongs to a domain declaration.
+- Attaching async source identity or resource loading semantics here when the
+  real intent belongs to a domain declaration.
 
 ## Current Limits
 
 - This feature stabilizes authoring contracts, not temporal or async runtime
   execution.
+- This feature is not the declaration-native temporal clause surface. Typed
+  query builders do not replace `ForgeQueryTemporalDeclarationClause` or
+  `ForgeQueryAsyncDeclarationClause`.
 - The typed builders help with schema-safe authoring, but they do not replace
   runtime support admission or runtime inspection.
 - This page is about query and result-shape authoring only, not the broader
@@ -213,6 +228,7 @@ Important things to watch:
 
 - [Live Views](../runtime-surfaces/live-views.md)
 - [Reads Observe And Materialize](../runtime-surfaces/reads-observe-materialize.md)
+- [Async Resources And Result State](../capabilities/async-resources-and-result-state.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
 
 

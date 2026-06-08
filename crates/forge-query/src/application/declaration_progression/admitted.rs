@@ -4,9 +4,10 @@ use forge_proof::{
 };
 
 use crate::application::{
-    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityContract,
-    ForgeQueryDeclarationLegalityEvidence, ForgeQueryDomainEntryMarker,
+    ForgeQueryAdmittedWorldBasis, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationLegalityEvidence,
+    ForgeQueryDomainEntryMarker,
 };
 use crate::target_binding::ForgeQueryAdmittedDeclarationProgressionBindingTarget;
 
@@ -103,6 +104,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub(crate) fn operating_context_identity_digest(&self) -> &str {
         self.recipe.payload().operating_context_identity_digest()
+    }
+
+    pub(crate) fn retained_world_basis(&self) -> &ForgeQueryAdmittedWorldBasis {
+        self.recipe.payload().world_basis()
     }
 }
 

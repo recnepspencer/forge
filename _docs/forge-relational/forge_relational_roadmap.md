@@ -840,6 +840,65 @@ Milestone 7D must not:
 7D is the point where deletion and topology become first-class merge truth, not
 special-case leftovers.
 
+### Milestone 7E: Collaboration Merge Hardening
+
+#### Goal
+
+Finish the retained collaboration substrate for branch and merge truth so
+published merge posture is reconstructable, replayable, support-inspectable,
+and readmission-preparable from retained artifacts alone rather than from live
+planner reconstruction, while lowering shared boundary meaning into
+`forge-foundational` native basis, canonical, locator, compatibility,
+readmission, and support surfaces.
+
+#### Must Ship
+
+- retained merge branch-basis artifacts
+- foundational-native basis/readmission lowering for retained branch basis
+- explicit merge request vocabulary beyond raw branch pairing
+- foundational-native merge vocabulary lowering where honest
+- retained merge proof packets rather than summary-only publication
+- foundational-native canonical basis and locator lowering
+- retained correspondence witnesses
+- retained schema reconciliation witnesses
+- retained strategy and policy witnesses
+- compatibility and readmission-preparation witnesses built on foundational
+  shared boundary grammar
+- support inspection witnesses built on foundational support posture grammar
+- replay and recovery parity for all new retained merge collaboration artifacts
+
+#### Must Preserve
+
+- single serialized authority for final truth commit
+- canonical observability and replay
+- explicit separation between relational domain truth and foundational shared
+  boundary grammar
+- no host-side heuristic correspondence, schema, or policy logic becoming
+  accidental authority
+- explicit typed denial rather than generic merge-failure flattening
+
+#### Acceptance Requirements
+
+This sub-milestone is complete only when:
+
+- retained merge collaboration witnesses round-trip through durable publication
+  and recovery canonically
+- foundational-lowered basis, canonical, locator, compatibility, readmission,
+  and support surfaces round-trip from retained relational truth without live
+  reconstruction
+- `Hostile commit/replay equivalence test` remains satisfied for histories
+  carrying retained collaboration witnesses
+- `Durable recovery and schema mismatch test` remains satisfied for histories
+  carrying retained collaboration witnesses
+- `Merge-ready history shape test` remains satisfied for histories carrying
+  retained collaboration witnesses
+- `Lineage/correspondence hardening test` is widened or paired with an explicit
+  merge-correspondence witness certification requirement
+- the roadmap is paired with an explicit retained collaboration merge
+  certification requirement if
+  [test-requirements.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/forge-relational/test-requirements.md)
+  does not already contain one
+
 ## Milestone 8: Parallel Read, Bulk Mutation, and Scale Query Completion
 
 ### Goal

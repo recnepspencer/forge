@@ -1,5 +1,5 @@
 use worth_spatial::facade::{
-    bindings::{
+    birth::{
         evaluate_primitive_construction_birth_consequence, plan_primitive_construction_birth,
         PrimitiveConstructionBirthFamily, PrimitiveConstructionBirthScaffoldInput,
         SpatialConstructionBirthConsequence, SpatialConstructionBirthMappingKind,
