@@ -1,4 +1,5 @@
 mod artifact_support;
+mod closure_support;
 mod matrix_support;
 mod proof_shape;
 mod row_digest;
@@ -11,6 +12,7 @@ use super::super::super::*;
 use artifact_support::{
     admitted_artifact, advisory_artifacts, denied_artifact_and_missing_evidence,
 };
+pub(in crate::runtime::tests) use closure_support::runtime_backed_causal_certification_bundle;
 use matrix_support::representative_matrix;
 
 #[test]

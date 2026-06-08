@@ -2,6 +2,7 @@ use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::identity::{hash_parts, SchemaBasisDigest};
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
 use crate::planning::ExecutionPlanBundle;
+use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::relationship_proof::{
     RelationshipProofAdmission, RelationshipProofSupportProfile, RelationshipProofSupportStatus,
 };
@@ -210,6 +211,7 @@ pub struct ForgeQueryReadReceipt {
     pub(super) relationship_proof_admission: Option<RelationshipProofAdmission>,
     pub(super) relationship_proof_support_profile: Option<RelationshipProofSupportProfile>,
     pub(super) breadth: ForgeQueryReadBreadth,
+    pub(super) materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
 }
@@ -315,6 +317,18 @@ impl ForgeQueryReadReceipt {
         &self.breadth
     }
 
+    pub fn materialized_fact_posture(&self) -> Option<&ProjectionMaterializedFactPosture> {
+        self.materialized_fact_posture.as_ref()
+    }
+
+    pub(in crate::runtime) fn with_materialized_fact_posture(
+        mut self,
+        posture: Option<ProjectionMaterializedFactPosture>,
+    ) -> Self {
+        self.materialized_fact_posture = posture;
+        self
+    }
+
     pub fn decision_trace_envelope(&self) -> Option<&ForgeQueryIntentDecisionTraceEnvelope> {
         self.decision_trace_envelope.as_ref()
     }
@@ -365,8 +379,18 @@ impl ForgeQueryReadReceipt {
                 execution_cursor_advance_count: 0,
                 execution_materialized_relation_count: 0,
             },
+            materialized_fact_posture: None,
             decision_trace_envelope: None,
             execution_provenance: None,
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_only_with_materialized_fact_posture(
+        mut self,
+        posture: ProjectionMaterializedFactPosture,
+    ) -> Self {
+        self.materialized_fact_posture = Some(posture);
+        self
     }
 }

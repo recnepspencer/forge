@@ -20,7 +20,9 @@ pub enum ForgeQueryHandleContractFamily {
     PreviewIntentReceipt,
     BranchBinding,
     BranchIntentReceipt,
-    TemporalAsyncCapableHandle,
+    TemporalCapableHandle,
+    AsyncResourceCapableHandle,
+    MixedCauseDeliveryCapableHandle,
 }
 
 impl ForgeQueryHandleContractFamily {
@@ -39,7 +41,9 @@ impl ForgeQueryHandleContractFamily {
             Self::PreviewIntentReceipt => "preview-intent-receipt",
             Self::BranchBinding => "branch-binding",
             Self::BranchIntentReceipt => "branch-intent-receipt",
-            Self::TemporalAsyncCapableHandle => "temporal-async-capable-handle",
+            Self::TemporalCapableHandle => "temporal-capable-handle",
+            Self::AsyncResourceCapableHandle => "async-resource-capable-handle",
+            Self::MixedCauseDeliveryCapableHandle => "mixed-cause-delivery-capable-handle",
         }
     }
 }
@@ -432,15 +436,32 @@ impl ForgeQueryHandleContract {
                 false,
             ),
             ForgeQueryHandleContractRow::new(
-                ForgeQueryHandleContractFamily::TemporalAsyncCapableHandle,
-                [
-                    ForgeQueryAuthorityLane::TemporalExecutionState,
-                    ForgeQueryAuthorityLane::AsyncResourceState,
-                    ForgeQueryAuthorityLane::BridgeExternalState,
-                ],
+                ForgeQueryHandleContractFamily::TemporalCapableHandle,
+                [ForgeQueryAuthorityLane::TemporalExecutionState],
                 [
                     ForgeQueryAuthorityLane::AuthoritativeTruth,
                     ForgeQueryAuthorityLane::TemporalExecutionState,
+                ],
+                ForgeQueryRuntimeFamilySupportStatus::DeferredDebt,
+                [
+                    "deferred-support-posture",
+                    "state-kind",
+                    "basis-identity",
+                    "temporal-readiness-neighbor",
+                    "authority-lane",
+                    "basis-lane",
+                    "support-posture",
+                    "future-inspection-digest",
+                    "inspection-digest",
+                ],
+                false,
+                true,
+            ),
+            ForgeQueryHandleContractRow::new(
+                ForgeQueryHandleContractFamily::AsyncResourceCapableHandle,
+                [ForgeQueryAuthorityLane::AsyncResourceState],
+                [
+                    ForgeQueryAuthorityLane::AuthoritativeTruth,
                     ForgeQueryAuthorityLane::AsyncResourceState,
                 ],
                 ForgeQueryRuntimeFamilySupportStatus::DeferredDebt,
@@ -448,6 +469,31 @@ impl ForgeQueryHandleContract {
                     "deferred-support-posture",
                     "state-kind",
                     "basis-identity",
+                    "async-request-identity",
+                    "authority-lane",
+                    "basis-lane",
+                    "support-posture",
+                    "future-inspection-digest",
+                    "inspection-digest",
+                ],
+                false,
+                true,
+            ),
+            ForgeQueryHandleContractRow::new(
+                ForgeQueryHandleContractFamily::MixedCauseDeliveryCapableHandle,
+                [ForgeQueryAuthorityLane::BridgeExternalState],
+                [
+                    ForgeQueryAuthorityLane::AuthoritativeTruth,
+                    ForgeQueryAuthorityLane::TemporalExecutionState,
+                    ForgeQueryAuthorityLane::AsyncResourceState,
+                    ForgeQueryAuthorityLane::BridgeExternalState,
+                ],
+                ForgeQueryRuntimeFamilySupportStatus::DeferredDebt,
+                [
+                    "deferred-support-posture",
+                    "state-kind",
+                    "basis-identity",
+                    "mixed-cause-ordering-neighbor",
                     "authority-lane",
                     "basis-lane",
                     "support-posture",

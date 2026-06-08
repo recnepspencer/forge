@@ -11,6 +11,7 @@ use super::admission_error::{
 use super::bridge_lowering::BridgeSubscriptionLoweringPlan;
 use super::counters::QuerySubscriptionDeclarationCounters;
 use super::diagnostic::{QuerySubscriptionDiagnosticEvidence, QuerySubscriptionDiagnosticStage};
+use super::future_selection::QuerySubscriptionFutureSelection;
 use super::support::QuerySubscriptionSupportProfile;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -18,6 +19,7 @@ pub struct QuerySubscriptionAdmissionArtifact {
     admission_digest: String,
     query_declaration_digest: String,
     bridge_declaration_digest: String,
+    future_selection: QuerySubscriptionFutureSelection,
     basis_binding_digest: String,
     signal_strategy_digest: String,
     admission_budget: QuerySubscriptionAdmissionBudget,
@@ -37,6 +39,10 @@ impl QuerySubscriptionAdmissionArtifact {
 
     pub fn bridge_declaration_digest(&self) -> &str {
         &self.bridge_declaration_digest
+    }
+
+    pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
+        &self.future_selection
     }
 
     pub fn basis_binding_digest(&self) -> &str {
@@ -158,6 +164,7 @@ pub fn admit_query_subscription(
         admission_digest,
         query_declaration_digest: lowering.query_declaration_digest().to_string(),
         bridge_declaration_digest: lowering.bridge_declaration_digest().to_string(),
+        future_selection: lowering.future_selection().clone(),
         basis_binding_digest: lowering.basis_request().digest().to_string(),
         signal_strategy_digest: lowering.signal_strategy_request().digest().to_string(),
         admission_budget,

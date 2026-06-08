@@ -12,6 +12,8 @@ pub enum QueryPatchGroupKind {
     BoundedMaterializationScopePatchGroup,
     ContinuationPatchGroup,
     DeliveryGapPatchGroup,
+    TimeOnlyDeliveryGroup,
+    MixedCauseDeliveryGroup,
 }
 
 impl QueryPatchGroupKind {
@@ -27,6 +29,8 @@ impl QueryPatchGroupKind {
             }
             Self::ContinuationPatchGroup => "continuation_patch_group",
             Self::DeliveryGapPatchGroup => "delivery_gap_patch_group",
+            Self::TimeOnlyDeliveryGroup => "time_only_delivery_group",
+            Self::MixedCauseDeliveryGroup => "mixed_cause_delivery_group",
         }
     }
 
@@ -64,7 +68,7 @@ pub struct QueryPatchGroup {
 }
 
 impl QueryPatchGroup {
-    pub(super) fn new(kind: QueryPatchGroupKind, source_digest: &str, width: u64) -> Self {
+    pub(crate) fn new(kind: QueryPatchGroupKind, source_digest: &str, width: u64) -> Self {
         let patch_group_digest = hash_parts(&[
             "query_patch_group_v1".to_string(),
             format!("kind:{}", kind.as_str()),

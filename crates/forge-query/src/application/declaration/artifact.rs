@@ -15,12 +15,14 @@ use crate::application::{
     ForgeQuerySignalCompatibilityPosture,
 };
 
+use super::async_resource::ForgeQueryAsyncDeclarationClause;
 use super::comparison::ForgeQueryCanonicalDeclarationComparison;
 use super::input::{
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationCanonicalEntryKind,
     ForgeQueryDeclarationCanonicalValue, ForgeQueryDeclarationInput,
 };
 use super::raw_input::ForgeQueryRawDeclarationInput;
+use super::temporal::ForgeQueryTemporalDeclarationClause;
 use super::version::ForgeQueryDeclarationCanonicalizationVersion;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -41,6 +43,8 @@ pub struct ForgeQueryCanonicalDeclarationArtifact<
     handle_identity_digest: String,
     declaration_family_key: &'static str,
     declaration_taxonomy: ForgeQueryDeclarationFamilyTaxonomy,
+    async_resource_clauses: Vec<ForgeQueryAsyncDeclarationClause>,
+    temporal_clauses: Vec<ForgeQueryTemporalDeclarationClause>,
     declaration_entry_loci: Vec<String>,
     canonical_entries: Vec<CanonicalBasisEntry>,
     canonical_basis_bundle: CanonicalBundleReadyArtifact,
@@ -59,6 +63,8 @@ where
             handle_identity_digest: self.handle_identity_digest.clone(),
             declaration_family_key: self.declaration_family_key,
             declaration_taxonomy: self.declaration_taxonomy,
+            async_resource_clauses: self.async_resource_clauses.clone(),
+            temporal_clauses: self.temporal_clauses.clone(),
             declaration_entry_loci: self.declaration_entry_loci.clone(),
             canonical_entries: self.canonical_entries.clone(),
             canonical_basis_bundle: self.canonical_basis_bundle.clone(),
@@ -78,6 +84,8 @@ where
         handle_identity_digest: String,
         declaration_family_key: &'static str,
         declaration_taxonomy: ForgeQueryDeclarationFamilyTaxonomy,
+        async_resource_clauses: Vec<ForgeQueryAsyncDeclarationClause>,
+        temporal_clauses: Vec<ForgeQueryTemporalDeclarationClause>,
         declaration_entry_loci: Vec<String>,
         canonical_entries: Vec<CanonicalBasisEntry>,
         canonical_basis_bundle: CanonicalBundleReadyArtifact,
@@ -88,6 +96,8 @@ where
             handle_identity_digest,
             declaration_family_key,
             declaration_taxonomy,
+            async_resource_clauses,
+            temporal_clauses,
             declaration_entry_loci,
             canonical_entries,
             canonical_basis_bundle,
@@ -107,6 +117,14 @@ where
 
     pub fn declaration_taxonomy(&self) -> ForgeQueryDeclarationFamilyTaxonomy {
         self.declaration_taxonomy
+    }
+
+    pub fn async_resource_clauses(&self) -> &[ForgeQueryAsyncDeclarationClause] {
+        &self.async_resource_clauses
+    }
+
+    pub fn temporal_clauses(&self) -> &[ForgeQueryTemporalDeclarationClause] {
+        &self.temporal_clauses
     }
 
     pub fn declaration_primary_authority_family(
@@ -216,6 +234,8 @@ where
         handle.handle_identity_digest().to_string(),
         raw.declaration_family_key(),
         raw.declaration_taxonomy(),
+        raw.async_resource_clauses().to_vec(),
+        raw.temporal_clauses().to_vec(),
         declaration_entry_loci,
         canonical_entries,
         canonical_basis_bundle,

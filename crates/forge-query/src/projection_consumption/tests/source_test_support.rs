@@ -64,6 +64,7 @@ impl ProjectionConsumptionSource {
             result_shape_digest: result_shape_digest.map(str::to_string),
             source_identity: source_identity.to_string(),
             source_reference_identities,
+            materialized_fact_posture: None,
         }
     }
 }

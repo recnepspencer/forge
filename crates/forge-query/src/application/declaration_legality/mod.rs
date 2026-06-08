@@ -8,7 +8,10 @@ mod outcome;
 
 pub use checked::ForgeQueryDeclarationLegalityChecked;
 pub use contract::{ForgeQueryDeclarationLegalityClass, ForgeQueryDeclarationLegalityContract};
-pub use denial::ForgeQueryDeclarationLegalityDenial;
+pub use denial::{
+    ForgeQueryAsyncLegalityDenialKind, ForgeQueryDeclarationLegalityDenial,
+    ForgeQueryTemporalLegalityDenialKind,
+};
 pub use evidence::ForgeQueryDeclarationLegalityEvidence;
 pub use input::ForgeQueryDeclarationLegalityInput;
 pub use outcome::ForgeQueryDeclarationAdmissionOrLegalityError;

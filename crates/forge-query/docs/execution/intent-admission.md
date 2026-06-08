@@ -111,6 +111,13 @@ Some covered families end in a runtime handoff:
 - existing-truth probe routing
 - effect-triggered pending write intent execution
 
+For that effect-triggered family, the admitted review, binding, and final
+effect-intent receipt can preserve one typed write-adjacent trigger class such
+as ordinary effect follow-on, time-only wake, async completion, mixed-cause,
+replay drift, remask drift, stale completion, or preview-crossed residue.
+That trigger posture stays on the same admitted lane. It is not a second local
+callback pipeline.
+
 Some covered families are still admitted, but do not cross a runtime execution
 seam:
 

@@ -8,6 +8,7 @@ use super::attachment::SubscriptionConsumerAttachment;
 use super::attachment_digest::SubscriptionConsumerAttachmentDigest;
 use super::continuation::SubscriptionContinuationReport;
 use super::delivery_budget::QueryDeliveryWindowBudget;
+use super::delivery_cause::{QuerySubscriptionDeliveryCause, QuerySubscriptionDeliveryCauseKind};
 use super::delivery_error::{QueryDeliveryDenialKind, QueryDeliveryError};
 use super::delivery_work_packet::ActiveDeliveryWorkPacket;
 use super::maintenance_delta::{
@@ -147,6 +148,8 @@ pub struct QueryDeliveryBatch {
     delivery_window_digest: String,
     attachment_digest: SubscriptionConsumerAttachmentDigest,
     sequence: QueryDeliverySequence,
+    delivery_cause: QuerySubscriptionDeliveryCause,
+    has_relational_patch: bool,
     patch_group: QueryPatchGroup,
     receipt: QueryDeliveryBatchReceipt,
     counters: ActiveSubscriptionCounters,
@@ -181,6 +184,9 @@ impl QueryDeliveryBatch {
             ));
         }
 
+        let delivery_cause = QuerySubscriptionDeliveryCause::relational_patch(
+            work_packet.maintenance_delta().maintenance_delta_digest(),
+        );
         let patch_group = QueryPatchGroup::new(
             QueryPatchGroupKind::from_delta_kind(work_packet.maintenance_delta().kind()),
             work_packet.maintenance_delta().maintenance_delta_digest(),
@@ -194,6 +200,8 @@ impl QueryDeliveryBatch {
             "query_delivery_batch_v1".to_string(),
             format!("window:{}", window.delivery_window_digest()),
             format!("work_packet:{}", work_packet.work_packet_digest()),
+            format!("cause:{}", delivery_cause.delivery_cause_digest()),
+            format!("relational_patch:{}", delivery_cause.has_relational_patch()),
             format!("patch_group:{}", patch_group.patch_group_digest()),
             format!("receipt:{}", receipt.receipt_digest()),
             format!(
@@ -237,6 +245,8 @@ impl QueryDeliveryBatch {
             QueryPatchGroupKind::DeliveryGapPatchGroup => {
                 counters.delivery_gap_notice_count = 1;
             }
+            QueryPatchGroupKind::TimeOnlyDeliveryGroup
+            | QueryPatchGroupKind::MixedCauseDeliveryGroup => {}
         }
 
         Ok(Self {
@@ -244,6 +254,90 @@ impl QueryDeliveryBatch {
             delivery_window_digest: window.delivery_window_digest,
             attachment_digest: window.attachment_digest,
             sequence: window.next_sequence,
+            delivery_cause,
+            has_relational_patch: true,
+            patch_group,
+            receipt,
+            counters,
+        })
+    }
+
+    #[allow(dead_code)]
+    pub(super) fn new_time_only(
+        window: QueryDeliveryWindow,
+        delivery_cause: QuerySubscriptionDeliveryCause,
+    ) -> Result<Self, QueryDeliveryError> {
+        assert!(
+            !delivery_cause.has_relational_patch(),
+            "time-only delivery constructor must not consume relational patch causes"
+        );
+        let patch_group = QueryPatchGroup::new(
+            QueryPatchGroupKind::TimeOnlyDeliveryGroup,
+            delivery_cause.delivery_cause_digest(),
+            0,
+        );
+        let receipt = QueryDeliveryBatchReceipt::new(
+            window.attachment_digest().clone(),
+            window.next_sequence(),
+        );
+        let delivery_batch_digest = hash_parts(&[
+            "query_delivery_batch_v1".to_string(),
+            format!("window:{}", window.delivery_window_digest()),
+            format!("cause:{}", delivery_cause.delivery_cause_digest()),
+            format!("relational_patch:false"),
+            format!("patch_group:{}", patch_group.patch_group_digest()),
+            format!("receipt:{}", receipt.receipt_digest()),
+        ]);
+        let mut counters = ActiveSubscriptionCounters::default();
+        counters.delivery_batch_count = 1;
+        counters.fanout_delivery_count = 1;
+        counters.patch_group_count = 1;
+
+        Ok(Self {
+            delivery_batch_digest,
+            delivery_window_digest: window.delivery_window_digest,
+            attachment_digest: window.attachment_digest,
+            sequence: window.next_sequence,
+            delivery_cause,
+            has_relational_patch: false,
+            patch_group,
+            receipt,
+            counters,
+        })
+    }
+
+    #[allow(dead_code)]
+    pub(super) fn new_mixed_cause(
+        window: QueryDeliveryWindow,
+        delivery_cause: QuerySubscriptionDeliveryCause,
+        has_relational_patch: bool,
+        patch_group: QueryPatchGroup,
+    ) -> Result<Self, QueryDeliveryError> {
+        let receipt = QueryDeliveryBatchReceipt::new(
+            window.attachment_digest().clone(),
+            window.next_sequence(),
+        );
+        let delivery_batch_digest = hash_parts(&[
+            "query_delivery_batch_v1".to_string(),
+            format!("window:{}", window.delivery_window_digest()),
+            format!("cause:{}", delivery_cause.delivery_cause_digest()),
+            format!("relational_patch:{has_relational_patch}"),
+            format!("patch_group:{}", patch_group.patch_group_digest()),
+            format!("receipt:{}", receipt.receipt_digest()),
+        ]);
+        let mut counters = ActiveSubscriptionCounters::default();
+        counters.delivery_batch_count = 1;
+        counters.fanout_delivery_count = 1;
+        counters.patch_group_count = 1;
+        counters.patch_group_width = patch_group.width();
+
+        Ok(Self {
+            delivery_batch_digest,
+            delivery_window_digest: window.delivery_window_digest,
+            attachment_digest: window.attachment_digest,
+            sequence: window.next_sequence,
+            delivery_cause,
+            has_relational_patch,
             patch_group,
             receipt,
             counters,
@@ -266,6 +360,18 @@ impl QueryDeliveryBatch {
         self.sequence
     }
 
+    pub fn delivery_cause(&self) -> &QuerySubscriptionDeliveryCause {
+        &self.delivery_cause
+    }
+
+    pub fn delivery_cause_kind(&self) -> QuerySubscriptionDeliveryCauseKind {
+        self.delivery_cause.kind()
+    }
+
+    pub fn has_relational_patch(&self) -> bool {
+        self.has_relational_patch
+    }
+
     pub fn patch_group(&self) -> &QueryPatchGroup {
         &self.patch_group
     }
@@ -279,45 +385,18 @@ impl QueryDeliveryBatch {
     }
 }
 
+type LoweredQuerySubscriptionMaintenanceDelta = (
+    QuerySubscriptionMaintenanceDelta,
+    QueryMaintenanceDeltaLoweringReport,
+    ActiveSubscriptionCounters,
+);
+
 pub fn lower_query_subscription_maintenance_delta(
     delta: QuerySubscriptionMaintenanceDelta,
-) -> Result<
-    (
-        QuerySubscriptionMaintenanceDelta,
-        QueryMaintenanceDeltaLoweringReport,
-        ActiveSubscriptionCounters,
-    ),
-    QueryDeliveryError,
-> {
+) -> Result<LoweredQuerySubscriptionMaintenanceDelta, QueryDeliveryError> {
     let mut counters = ActiveSubscriptionCounters::default();
     counters.maintenance_delta_lowering_count = 1;
     counters.maintenance_delta_width = delta.width();
     let report = QueryMaintenanceDeltaLoweringReport::new(&delta);
     Ok((delta, report, counters))
-}
-
-pub fn deny_raw_cdc_delivery_fallback(
-    source_digest: impl Into<String>,
-) -> Result<QuerySubscriptionMaintenanceDelta, QueryDeliveryError> {
-    let mut counters = ActiveSubscriptionCounters::default();
-    counters.raw_cdc_delivery_denial_count = 1;
-    Err(QueryDeliveryError::new(
-        QueryDeliveryDenialKind::RawCdcFallbackDenied,
-        "raw CDC cannot be consumed as active query delivery",
-        source_digest,
-        counters,
-    ))
-}
-
-pub fn deny_raw_bridge_invalidation_delivery(
-    source_digest: impl Into<String>,
-) -> Result<QuerySubscriptionMaintenanceDelta, QueryDeliveryError> {
-    let mut counters = ActiveSubscriptionCounters::default();
-    counters.raw_bridge_invalidation_denial_count = 1;
-    Err(QueryDeliveryError::new(
-        QueryDeliveryDenialKind::RawBridgeInvalidationDenied,
-        "raw bridge invalidation must lower into a query maintenance delta first",
-        source_digest,
-        counters,
-    ))
 }

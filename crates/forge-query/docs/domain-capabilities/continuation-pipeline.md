@@ -31,8 +31,9 @@ generic failure.
 - preserve stale, deferred, denied, unsupported, wrong-world, wrong-handle,
   authority-mismatch, and basis-mismatch posture on the prepared lane
 - preserve world-mismatch, support-mismatch, stale-basis, basis-mismatch,
-  authority-mismatch, and handle-mismatch posture on the explicit execution
-  lane
+  authority-mismatch, handle-mismatch, async-request drift, replay drift,
+  remask drift, stale completion, and preview-crossed residue posture on the
+  explicit execution lane
 - inspect which bridge continuation family, truth context, workspace contract,
   and runtime contract Query selected
 - keep concise `..._outcome(...)` calls on the same shared ordinary outcome
@@ -119,6 +120,18 @@ retained proof execution will later use to revalidate the concrete basis
 identity, lower-runtime authority, and required capability support before it
 admits execution.
 
+When preparation starts from an already active subscription, the retained proof
+also carries the active future-bearing lane posture and the active checkpoint
+identity. That keeps temporal or async continuation from silently collapsing
+ back into an ordinary lane later.
+
+The same rule now applies at preview closeout: preview-owned temporal wakes,
+async completion posture, and mixed-cause residue stay preview-local until
+discard or authoritative re-admission proves a clean rebinding boundary.
+Successful promotion records that rebinding digest explicitly, and rebinding
+required denials stay typed instead of being flattened into generic promotion
+failure.
+
 Execution is a separate step that consumes that proof-bearing prepared artifact
 and rechecks:
 
@@ -167,7 +180,8 @@ The execution path is:
 7. verify handle alignment
 8. derive one execution digest and execution artifact
 9. return executed, wrong-world, unsupported, stale, basis-mismatch,
-   authority-mismatch, or wrong-handle
+   authority-mismatch, async-request drift, replay drift, remask drift,
+   stale-completion, preview-crossed-residue, or wrong-handle
 
 Preparation does not build a second planning system. It reuses:
 
@@ -289,6 +303,10 @@ directly. Use the continuation pipeline when you want Query to turn that
 retained truth into one prepared continuation artifact and optional explicit
 execution step. Use signal-compatibility orchestration when the public question
 is still "compatible or prepared?" rather than "prepare or execute now."
+Use [Async Resources And Result State](../capabilities/async-resources-and-result-state.md)
+when you want the broader model for where async request identity, retained
+async result-state, and async drift posture come from before continuation
+classifies replay, remask, or stale-completion stops.
 
 ## Inspection And Debugging
 
@@ -306,6 +324,10 @@ execution:
 - `signal_posture()`
 - `signal_execution_family()`
 - `signal_compatibility_digest()`
+- `future_projection()`
+- `basis_lifecycle_support_digest()`
+- active future-bearing lane posture and active checkpoint identity when the
+  prepared continuation came from an already active subscription
 - `prepared_digest()`
 - `bridge_routing()`
 - `declaration_digest()`
@@ -322,9 +344,20 @@ execution stopped:
 
 The execution proof currently explains only alignment and explicit execution:
 
+Prepared continuation now carries the retained future-sensitive declaration
+posture forward instead of re-deriving it later from family contracts or raw
+declaration entries. If retained signal compatibility is `Deferred`, `Denied`,
+or `Failed`, Query stops on the prepared lane before bridge preparation
+materializes.
+
 - `Executed`
 - `WrongWorld`
 - `Stale`
+- `AsyncRequestDrift`
+- `ReplayDrift`
+- `RemaskDrift`
+- `PreviewCrossedResidue`
+- `StaleCompletion`
 - `BasisMismatch`
 - `AuthorityMismatch`
 - `Unsupported`
@@ -355,6 +388,20 @@ Use the recovery lane when you want Query to classify who owns the fix:
 - `recover_from_continuation_execution_checked(...)`
 - `recover_from_continuation_execution_proof(...)`
 
+Execution and recovery now keep the same typed continuation-drift vocabulary.
+Temporal/async continuation drift is not flattened into generic stale or
+unsupported posture:
+
+- async request drift stays rebind-owned
+- replay drift and stale completion stay basis-refresh owned
+- remask drift stays support-owned
+- preview-crossed residue stays explicit-handoff owned
+
+When those retained drift classes later feed write-adjacent follow-on work,
+Query routes them through the same effect-triggered intent lane used by other
+pending write intents. Continuation does not own a second callback-shaped
+mutation path.
+
 ## Anti-Patterns
 
 - treating preparation as if it already executed lower bridge or runtime work
@@ -376,6 +423,8 @@ Use the recovery lane when you want Query to classify who owns the fix:
 - signal posture is carried forward into the prepared artifact, but this
   feature
   does not execute Signal work
+- active future-bearing checkpoint identity is preserved on the prepared lane,
+  but durable replay and store-backed restart are still deferred
 - preparation does not create a broad ambient runtime or workspace session by
   itself
 - grouped or neighborhood continuation preparation is not part of this surface
@@ -390,6 +439,7 @@ Use the recovery lane when you want Query to classify who owns the fix:
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
+- [Async Resources And Result State](../capabilities/async-resources-and-result-state.md)
 - [Recovery Boundary](./recovery-boundary.md)
 - [Recovery Overview](./recovery/README.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)

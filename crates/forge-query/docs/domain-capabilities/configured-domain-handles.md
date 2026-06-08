@@ -47,6 +47,7 @@ Operating-context contract:
 
 - `required_capability_families() -> &'static [ForgeQueryCapabilityFamily]`
 - `required_config_sections() -> &'static [ForgeQueryConfigSectionFamily]`
+- `required_operating_requirements() -> &'static [ForgeQueryDomainOperatingRequirement]`
 - `context_identity_digest() -> String`
 - `continuation_execution_readmission_observation(retained, support_snapshot) -> ForgeQueryContinuationExecutionReadmissionObservation`
 
@@ -64,8 +65,10 @@ Validated and admitted handle inspection:
 - `support_snapshot() -> &ForgeQueryDomainEntrySupportSnapshot`
 - `required_capability_families() -> &[ForgeQueryCapabilityFamily]`
 - `required_config_sections() -> &[ForgeQueryConfigSectionFamily]`
+- `required_operating_requirements() -> &[ForgeQueryDomainOperatingRequirement]`
 - `operating_context_identity_digest() -> &str`
 - `handle_identity_digest() -> &str`
+- `retained_world_basis() -> ForgeQueryAdmittedWorldBasis`
 
 Admitted-handle declaration evidence entry points:
 
@@ -300,6 +303,7 @@ Checked denial inspection:
 
 - `blocking_capability_families() -> &[ForgeQueryCapabilityFamily]`
 - `blocking_config_sections() -> &[ForgeQueryConfigSectionFamily]`
+- `blocking_operating_requirements() -> &[ForgeQueryDomainOperatingRequirement]`
 - `reason() -> &str`
 
 ## Core Mental Model
@@ -339,10 +343,14 @@ for:
 - `operating_context_identity_digest()`
 - `handle_identity_digest()`
 - `support_snapshot_digest()`
+- `basis_lifecycle_support_digest()`
 
 That retained world basis is public to read, compare, and store, but Query owns
 construction. Downstream crates can bind to admitted-world truth without
-fabricating the witness from raw strings.
+fabricating the witness from raw strings. It also carries the basis-lifecycle
+support witness that later preview, historical, replay, temporal, or async
+basis-sensitive work should consume instead of reopening raw branch, snapshot,
+preview, or source identifiers locally.
 
 The admitted handle also owns one explicit prepared/executed continuation lane
 on top of binding and retained bridge or signal truth:
@@ -395,6 +403,8 @@ That means it should carry stable regime facts such as:
 - policy or access class
 - invariant regime
 - assumption or tolerance regime
+- future runtime posture that changes what this handle is allowed to ask Query
+  to do
 - collaborator or tenant-like operating class when it changes the admitted
   operating world
 
@@ -431,6 +441,8 @@ Admission checks current support posture:
 - deferred capability families
 - unsupported capability families
 - disabled required config sections
+- deferred or unsupported operating requirements such as temporal or
+  async-resource query posture
 
 ## Small Example
 
@@ -438,6 +450,7 @@ Admission checks current support posture:
 use forge_query::facade::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
     ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryDomainOperatingRequirement,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -475,6 +488,10 @@ impl ForgeQueryDomainOperatingContext<GeometryDomainEntry> for GeometryOperating
         ]
     }
 
+    fn required_operating_requirements(&self) -> &'static [ForgeQueryDomainOperatingRequirement] {
+        &[]
+    }
+
     fn context_identity_digest(&self) -> String {
         "access:collaborative|invariant:conservative|assumption:tight".to_string()
     }
@@ -494,7 +511,7 @@ let handle = query
 use forge_query::facade::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
     ForgeQueryConfiguredDomainHandleChecked, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext,
+    ForgeQueryDomainOperatingContext, ForgeQueryDomainOperatingRequirement,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -548,6 +565,10 @@ impl GeometryOperatingContext {
             assumption_regime: AssumptionRegime::TightTolerance,
         }
     }
+
+    fn temporal_editor() -> Self {
+        Self::collaborative()
+    }
 }
 
 impl ForgeQueryDomainOperatingContext<GeometryDomainEntry> for GeometryOperatingContext {
@@ -566,6 +587,10 @@ impl ForgeQueryDomainOperatingContext<GeometryDomainEntry> for GeometryOperating
         ]
     }
 
+    fn required_operating_requirements(&self) -> &'static [ForgeQueryDomainOperatingRequirement] {
+        &[ForgeQueryDomainOperatingRequirement::TemporalQuery]
+    }
+
     fn context_identity_digest(&self) -> String {
         format!(
             "access:{:?}|invariant:{:?}|assumption:{:?}",
@@ -578,18 +603,21 @@ let query = ForgeQueryApplicationFacade::runtime_backed_default();
 
 match query
     .domain_checked(GeometryDomainEntry)
-    .with_operating_context(GeometryOperatingContext::collaborative())
+    .with_operating_context(GeometryOperatingContext::temporal_editor())
 {
     ForgeQueryConfiguredDomainHandleChecked::Admitted(handle) => {
         let _ = handle.operating_context_identity_digest();
         let _ = handle.handle_identity_digest();
         let _ = handle.required_capability_families();
+        let _ = handle.required_operating_requirements();
     }
     ForgeQueryConfiguredDomainHandleChecked::Deferred(denial) => {
         let _ = denial.blocking_capability_families();
+        let _ = denial.blocking_operating_requirements();
     }
     ForgeQueryConfiguredDomainHandleChecked::Unsupported(denial) => {
         let _ = denial.blocking_capability_families();
+        let _ = denial.blocking_operating_requirements();
     }
     ForgeQueryConfiguredDomainHandleChecked::InvalidContext(denial) => {
         let _ = denial.blocking_config_sections();
@@ -607,6 +635,8 @@ Stable operating context belongs in the configured handle:
 - the general invariant regime
 - the general assumption or tolerance regime
 - other stable admitted-world posture
+- any future runtime family requirement that should deny before declaration
+  authoring starts
 
 Dynamic eligibility belongs later:
 
@@ -700,11 +730,19 @@ When a configured handle is denied:
 - `InvalidContext` means the operating context was structurally or
   configuration-wise incompatible with the current build
 
+If your context asks for future runtime posture with
+`required_operating_requirements()`, inspect
+`blocking_operating_requirements()` first. That is the explicit list of
+temporal, async-resource, or mixed-cause requirements that the current build
+cannot admit yet.
+
 ## Anti-Patterns
 
 - passing raw collaborator IDs or tenant IDs as Query authority
 - using bool shortcuts like `can_edit` or `preview`
 - hiding access or invariant logic behind callbacks
+- treating temporal or async posture as ambient session state instead of part
+  of the configured handle
 - smuggling declaration-specific operation details into operating-context
   identity
 - treating the configured handle as if it already proved dynamic eligibility

@@ -4,8 +4,9 @@
 
 Inspection is Forge Query's explanation surface. It lets you ask the runtime
 why a live view, computed view, effect, write receipt, batch write receipt,
-intent artifact, preview artifact, or branch artifact looks the way it does
-without reaching through private runtime plumbing.
+intent artifact, preview artifact, branch artifact, or typed basis lifecycle
+artifact looks the way it does without reaching through private runtime
+plumbing.
 
 This includes both:
 
@@ -36,6 +37,8 @@ This includes both:
   feedback phases
 - you need a trustworthy record for preview promotion, branch-local staging, or
   intent denial behavior
+- you need to confirm that a basis-sensitive path is bound to the admitted
+  branch, historical snapshot, preview, or lower-runtime witness you expected
 
 ## Stable Entry Points
 
@@ -44,6 +47,7 @@ This includes both:
 - `workspace.inspect_derived_intent(...)`
 - `ForgeQueryInspection`
 - `ForgeQueryInspectionTarget`
+- `ForgeQueryBasisLifecycleInspection`
 
 The inspection family is part of the stabilized public runtime facade. It is
 safe to build against now for synchronous runtime-backed surfaces.
@@ -60,9 +64,44 @@ What you are holding:
 - evidence that is lane-aware, digest-bound, and specific to one runtime
   artifact family
 
+Good to know:
+
+- basis artifacts now inspect through the same `workspace.inspect(...)` surface
+- the basis result family is `ForgeQueryInspection::BasisLifecycle(...)`
+- that result tells you whether the basis stayed ready, advisory, denied, or
+  unsupported without making you decode raw branch, snapshot, preview, or
+  lower-runtime binding identifiers yourself
+- live-view inspection now retains the last delivered live cause too, including
+  whether the delivery carried a relational patch or was time-only
+- time-only causes stay explicit as retained delivery evidence instead of
+  disappearing into patch absence or support diagnostics
+- mixed-cause delivery now stays one canonical retained delivery artifact with
+  ordered member kinds, coalescing posture, and preserved suppressed or denied
+  cause identities instead of exposing host callback order as product truth
+- async/resource-backed live inspection also retains the current async
+  result-state artifact, including the typed result-state kind plus causality,
+  basis, and generation digests
+- live-view inspection now also retains typed remask posture when policy,
+  tenant, relationship-proof, or schema context narrowed temporal/async
+  runtime meaning before public projection
+- ordinary live inspection now also exposes one compact runtime posture
+  projection, so callers can read first-order temporal/async state through the
+  same scalar surface before deciding whether they need the richer retained
+  delivery or async artifacts
+- temporal/async "why" questions still stay on the dedicated
+  `CausalInspection` lane rather than turning `workspace.inspect(...)` into a
+  partial causal-explanation clone
+- continuation repair questions still stay on the continuation/recovery lane;
+  inspection can support those artifacts, but typed async-request drift,
+  replay drift, remask drift, stale completion, and preview-crossed residue
+  are owned by continuation checked outcomes and recovery briefs
+
 What the runtime keeps track of automatically:
 
 - authority lane and basis posture
+- typed basis lifecycle posture when the inspected artifact came from admitted
+  Query basis capability rather than raw branch, snapshot, preview, or replay
+  identifiers
 - declaration digests
 - support/admission evidence
 - authored mutation metadata on write receipts when the write declared it
@@ -92,6 +131,9 @@ What the runtime keeps track of automatically:
 - aggregate batch mutation evidence on batch write receipts so session-wide
   target and authority breadth does not collapse into a final-component shadow
 - retained counters and residue counts
+- retained async result-state posture for live async/resource-backed
+  subscriptions, projected from completion causality rather than app-local
+  loading folklore
 - unified inspection digests for later auditing
 
 ## How It Executes
@@ -116,6 +158,10 @@ Good to know:
   `ProjectionConsumptionReceipt`, and the projection-consumption envelope
 - use [Projection Consumption](projection-consumption.md) when the feature
   you need to inspect is “typed facts consumed from this materialization”
+
+- when that materialization was temporal, async, mixed-cause, or remask-bound,
+  the receipt-first projection-consumption lane now retains that typed posture
+  directly instead of making callers rediscover it from lower runtime evidence
 
 ## Small Example
 
@@ -325,6 +371,9 @@ What gets inspected:
 - Pair it with [Projection Consumption](projection-consumption.md) when a
   read result, write receipt, or query-context execution needs receipt-first
   typed fact inspection rather than `workspace.inspect(...)`.
+- Pair it with [Async Resources And Result State](async-resources-and-result-state.md)
+  when the main question is how async declaration meaning, live async
+  result-state, materialized fact posture, and continuation drift fit together.
 
 Inspection is the trust surface that keeps the rest of the runtime usable.
 
@@ -337,6 +386,7 @@ Inspection is the trust surface that keeps the rest of the runtime usable.
 - `Effect`
 - `WriteReceipt`
 - `BatchWriteReceipt`
+- `BasisLifecycle`
 - `IntentReceipt`
 - `IntentDenial`
 - `EffectIntentReceipt`
@@ -350,12 +400,39 @@ Some especially important things to look for:
 
 - live view: subscription family, basis digest, active lane digest, consumer
   attachment digest, budget policies, counter digests
+- live view scalar posture: `ordinary_runtime_posture().kind()`,
+  `ordinary_runtime_posture().cause_posture()`, and
+  `ordinary_runtime_posture().async_posture()`
+- live view scalar qualifiers:
+  `ordinary_runtime_posture().basis_posture()` and
+  `ordinary_runtime_posture().support_evidence_digest()`
+- live view remask qualifiers:
+  `ordinary_runtime_posture().remask_posture()` plus
+  `LiveViewInspection::remask_posture()` when you need the retained narrowing
+  authority and basis/policy/proof/schema digests directly
+- cross-runtime temporal/async "why" questions:
+  use `CausalInspection` artifacts and their
+  `temporal_async_explanation()` surface instead of expecting
+  `workspace.inspect(...)` to materialize cross-runtime explanation envelopes
+- basis-sensitive artifacts: admitted basis digest, scoped digest, lower-runtime
+  binding digest, retained world-basis support digest, and whether the artifact
+  remained ready, advisory, stale, denied, or unsupported through the Query
+  basis lifecycle
 - computed: upstream live/computed dependencies, dependency aspects, produced
   aspects, incremental posture, pending patch counts
 - effect: trigger source, condition descriptor, target lane, effect policy,
   pending delivery counts, latest phase evidence, feedback graph
 - preview: effect policy, basis evidence, admitted side-effect posture, closeout
   kind, residue counts, promotion/discard posture
+- preview temporal/async closeout: temporal wake residue count, async
+  result-state residue count, mixed-cause residue count, crossed-authoritative
+  residue count, and promotion rebinding digest when promotion succeeded
+- preview promotion denials: stale-basis, atomic-batch, write-failed, and
+  rebinding-required posture, including typed recovery posture on the denial
+  evidence itself
+- saved-query reuse: frozen temporal/async surface posture, rebinding matrix
+  rows, and whether a mismatch is legal fresh-freeze-required reuse or hard
+  semantic drift denial
 - intent artifacts: source and target lanes, strategy identity/version, outcome
   digests, invariant evidence, denial stage
 
@@ -374,12 +451,30 @@ Some especially important things to look for:
   listed above.
 - Future temporal and async families must extend this explanation surface rather
   than creating a second debugging API.
+- Mixed-cause delivery explanation must also extend this same retained
+  inspection world rather than introducing a separate delivery-debug facade.
+- Preview discard and promotion now retain temporal/async closeout posture on
+  the preview inspection lane rather than expecting callers to reconstruct it
+  from live delivery artifacts after the fact.
+- Compact runtime posture is a projection of retained live evidence, not a
+  second live-state engine or a replacement for the richer `LiveView`
+  inspection fields.
+- Canonical mixed-cause ordering comes from Bridge law; inspection only reads
+  the retained ordered/coalesced result.
+- Canonical remask posture is resolved before public runtime projection.
+  Inspection reads that retained remask truth; it does not materialize first
+  and mask later.
+- Reuse surfaces do not get to silently flatten future-bearing declaration
+  meaning into ordinary-only saved-query or view-shape posture. Inspection can
+  read the retained freeze/reuse posture, but it does not retroactively repair
+  a surface that should have denied or deferred earlier.
 - Inspection explains runtime artifacts. It does not turn unsupported families
   into admitted ones.
 
 ## Related Docs
 
 - [Cross-runtime causal inspection](cross-runtime-causal-inspection.md)
+- [Async Resources And Result State](async-resources-and-result-state.md)
 - [Inspection vs cross-runtime explanation (chooser)](../domain-capabilities/choosing/inspection-vs-cross-runtime-explanation.md)
 - [Workspace Overview](../foundations/workspace-overview.md)
 - [Live Views](../runtime-surfaces/live-views.md)

@@ -72,3 +72,6 @@ mod validation_certification;
 mod validation_matrix;
 #[cfg(test)]
 mod workflow_certification;
+
+#[cfg(test)]
+pub(crate) use preview_certification::MilestoneFivePointTwoPreviewCertificationAdapter;

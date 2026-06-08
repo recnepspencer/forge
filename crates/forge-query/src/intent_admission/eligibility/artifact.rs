@@ -205,6 +205,9 @@ impl ForgeQueryIntentAdmissionEligibility {
             self.routing_support_posture,
             self.source_lane_posture,
             self.authority_lane_posture,
+            self.request
+                .runtime_declaration()
+                .and_then(|declaration| declaration.effect_trigger().cloned()),
             self.eligibility_digest.clone(),
         )
     }

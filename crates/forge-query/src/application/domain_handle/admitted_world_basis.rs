@@ -5,6 +5,7 @@ pub struct ForgeQueryAdmittedWorldBasis {
     operating_context_identity_digest: String,
     handle_identity_digest: String,
     support_snapshot_digest: String,
+    basis_lifecycle_support_digest: String,
 }
 
 impl ForgeQueryAdmittedWorldBasis {
@@ -14,6 +15,7 @@ impl ForgeQueryAdmittedWorldBasis {
         operating_context_identity_digest: String,
         handle_identity_digest: String,
         support_snapshot_digest: String,
+        basis_lifecycle_support_digest: String,
     ) -> Self {
         Self {
             domain_key,
@@ -21,6 +23,7 @@ impl ForgeQueryAdmittedWorldBasis {
             operating_context_identity_digest,
             handle_identity_digest,
             support_snapshot_digest,
+            basis_lifecycle_support_digest,
         }
     }
 
@@ -42,5 +45,9 @@ impl ForgeQueryAdmittedWorldBasis {
 
     pub fn support_snapshot_digest(&self) -> &str {
         &self.support_snapshot_digest
+    }
+
+    pub fn basis_lifecycle_support_digest(&self) -> &str {
+        &self.basis_lifecycle_support_digest
     }
 }

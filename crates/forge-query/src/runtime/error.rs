@@ -72,6 +72,7 @@ pub enum ForgeQueryRuntimeError {
     EffectPolicyDenied(ForgeQueryEffectPolicyDenial),
     PreviewPromotionStaleBasis(ForgeQueryPreviewPromotionDenialEvidence),
     PreviewPromotionAtomicBatchUnsupported(ForgeQueryPreviewPromotionDenialEvidence),
+    PreviewPromotionRebindingRequired(ForgeQueryPreviewPromotionDenialEvidence),
     PreviewPromotionWriteFailed {
         evidence: ForgeQueryPreviewPromotionDenialEvidence,
     },
@@ -230,6 +231,13 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 evidence.reason()
             ),
             Self::PreviewPromotionAtomicBatchUnsupported(evidence) => write!(
+                f,
+                "preview promotion `{}` failed during {}: {}",
+                evidence.label(),
+                evidence.kind().as_str(),
+                evidence.reason()
+            ),
+            Self::PreviewPromotionRebindingRequired(evidence) => write!(
                 f,
                 "preview promotion `{}` failed during {}: {}",
                 evidence.label(),

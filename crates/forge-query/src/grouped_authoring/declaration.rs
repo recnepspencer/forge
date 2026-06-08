@@ -181,6 +181,24 @@ fn grouped_admission_stop<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarati
                 denial.capability_status().as_str()
             ),
         ),
+        ForgeQueryDeclarationAdmissionError::AsyncDeferred(denial) => ForgeQueryGroupedDeclarationStop::new(
+            member_index,
+            I::Family::semantic_family_key(),
+            ForgeQueryGroupedDeclarationStopKind::Deferred,
+            format!(
+                "member {member_index} declaration deferred because async support is {}",
+                denial.async_support().as_str()
+            ),
+        ),
+        ForgeQueryDeclarationAdmissionError::TemporalDeferred(denial) => ForgeQueryGroupedDeclarationStop::new(
+            member_index,
+            I::Family::semantic_family_key(),
+            ForgeQueryGroupedDeclarationStopKind::Deferred,
+            format!(
+                "member {member_index} declaration deferred because temporal support is {}",
+                denial.temporal_support().as_str()
+            ),
+        ),
         ForgeQueryDeclarationAdmissionError::Unsupported(denial) => ForgeQueryGroupedDeclarationStop::new(
             member_index,
             I::Family::semantic_family_key(),
@@ -188,6 +206,24 @@ fn grouped_admission_stop<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarati
             format!(
                 "member {member_index} declaration unsupported with capability status {}",
                 denial.capability_status().as_str()
+            ),
+        ),
+        ForgeQueryDeclarationAdmissionError::AsyncUnsupported(denial) => ForgeQueryGroupedDeclarationStop::new(
+            member_index,
+            I::Family::semantic_family_key(),
+            ForgeQueryGroupedDeclarationStopKind::Unsupported,
+            format!(
+                "member {member_index} declaration unsupported because async support is {}",
+                denial.async_support().as_str()
+            ),
+        ),
+        ForgeQueryDeclarationAdmissionError::TemporalUnsupported(denial) => ForgeQueryGroupedDeclarationStop::new(
+            member_index,
+            I::Family::semantic_family_key(),
+            ForgeQueryGroupedDeclarationStopKind::Unsupported,
+            format!(
+                "member {member_index} declaration unsupported because temporal support is {}",
+                denial.temporal_support().as_str()
             ),
         ),
         ForgeQueryDeclarationAdmissionError::InvalidContext(denial) => ForgeQueryGroupedDeclarationStop::new(
@@ -229,9 +265,31 @@ fn grouped_legality_stop<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclaratio
                 format!("member {member_index} declaration uses an unsupported legality class"),
             )
         }
+        ForgeQueryDeclarationLegalityDenial::TemporalProjectionUnsupported { kind, .. }
+            if kind.is_deferred() =>
+        {
+            ForgeQueryGroupedDeclarationStop::new(
+                member_index,
+                I::Family::semantic_family_key(),
+                ForgeQueryGroupedDeclarationStopKind::Deferred,
+                format!("member {member_index} declaration deferred by temporal legality boundary"),
+            )
+        }
+        ForgeQueryDeclarationLegalityDenial::AsyncProjectionUnsupported { kind, .. }
+            if kind.is_deferred() =>
+        {
+            ForgeQueryGroupedDeclarationStop::new(
+                member_index,
+                I::Family::semantic_family_key(),
+                ForgeQueryGroupedDeclarationStopKind::Deferred,
+                format!("member {member_index} declaration deferred by async legality boundary"),
+            )
+        }
         ForgeQueryDeclarationLegalityDenial::WrongAdmittedWorld { .. }
         | ForgeQueryDeclarationLegalityDenial::IllegalRoleClaim { .. }
-        | ForgeQueryDeclarationLegalityDenial::IllegalSurfaceDisposition { .. } => {
+        | ForgeQueryDeclarationLegalityDenial::IllegalSurfaceDisposition { .. }
+        | ForgeQueryDeclarationLegalityDenial::TemporalProjectionUnsupported { .. }
+        | ForgeQueryDeclarationLegalityDenial::AsyncProjectionUnsupported { .. } => {
             ForgeQueryGroupedDeclarationStop::new(
                 member_index,
                 I::Family::semantic_family_key(),

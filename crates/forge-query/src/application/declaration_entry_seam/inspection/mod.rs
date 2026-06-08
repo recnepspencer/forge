@@ -21,6 +21,7 @@ pub(crate) use authority_posture::{
 };
 pub(crate) use subject::{normalize_retained_subject, normalized_subject};
 
+use super::retained_subject::ReadinessRetainedPosture;
 use super::{digest::derive_inspection_digest, row::ForgeQueryDeclarationEntryCrossingSurface};
 
 pub(crate) fn forge_query_declaration_entry_inspection_on_handle<
@@ -41,7 +42,28 @@ pub(crate) fn forge_query_declaration_entry_inspection_on_handle<
             contribution_evidence.as_ref(),
             Some(subject.envelope.declaration_digest()),
             subject.subject_strength,
-            Some(&super::support::ReadinessRetainedPosture {
+            Some(&ReadinessRetainedPosture {
+                temporal_declaration_active: !subject
+                    .envelope
+                    .foundational_evidence()
+                    .subject()
+                    .canonical_declaration()
+                    .temporal_clauses()
+                    .is_empty(),
+                async_declaration_active: !subject
+                    .envelope
+                    .foundational_evidence()
+                    .subject()
+                    .canonical_declaration()
+                    .async_resource_clauses()
+                    .is_empty(),
+                async_resource_clauses: subject
+                    .envelope
+                    .foundational_evidence()
+                    .subject()
+                    .canonical_declaration()
+                    .async_resource_clauses()
+                    .to_vec(),
                 envelope_aspect_publication: subject.envelope.aspect_publication().clone(),
                 relational_authority_summary: subject
                     .relational

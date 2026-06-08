@@ -9,9 +9,8 @@ use crate::grouped_authoring::{
     ForgeQueryGroupedDeclarationInput, ForgeQueryGroupedOrchestrationChecked,
 };
 use crate::ordinary_outcome::{
-    ForgeQueryOrdinaryCheckedTopology, ForgeQueryOrdinaryContinuationCheckedTopologyKind,
-    ForgeQueryOrdinaryNextStep, ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture,
-    ForgeQueryOrdinaryPostureKind,
+    ForgeQueryOrdinaryCheckedTopology, ForgeQueryOrdinaryNextStep, ForgeQueryOrdinaryOutcome,
+    ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
     ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
 };
 
@@ -104,36 +103,6 @@ fn ordinary_declaration_refusal_preserves_route_sensitive_refusal_context() {
         Some(
             crate::application::ForgeQueryDeclarationEntryOrchestrationRefusalClass::PreparedButNotExecutedContinuation,
         )
-    );
-}
-
-#[test]
-fn ordinary_continuation_wrong_world_maps_to_world_repair() {
-    let brief = forge_query_recovery_brief_from_ordinary_outcome(
-        &ForgeQueryOrdinaryOutcome::<()>::WrongWorld(ForgeQueryOrdinaryPosture::new(
-            "wrong world",
-            ForgeQueryOrdinaryPostureKind::WrongWorld,
-            ForgeQueryOrdinaryNextStep::CorrectWorld,
-            ForgeQueryOrdinaryCheckedTopology::continuation(
-                ForgeQueryOrdinaryContinuationCheckedTopologyKind::WrongWorld,
-                ForgeQueryBindingLinkedArtifacts::new().with_envelope_digest("env-1"),
-            ),
-        )),
-    )
-    .expect("wrong-world continuation should yield a recovery brief");
-
-    assert_eq!(
-        brief.stop_family(),
-        ForgeQueryRecoveryStopFamily::Continuation
-    );
-    assert_eq!(brief.stop_kind(), ForgeQueryRecoveryStopKind::WrongWorld);
-    assert_eq!(
-        brief.authority_surface(),
-        ForgeQueryRecoveryAuthoritySurface::AdmittedOperatingWorld
-    );
-    assert_eq!(
-        brief.recommended_action(),
-        ForgeQueryRecoveryAction::CorrectWorld
     );
 }
 

@@ -49,10 +49,12 @@ Stable runtime-backed entry points:
 - `workspace.state(...)`
 - `workspace.inspect(...)`
 - `workspace.public_api_contract()`
+- `workspace.public_downstream_delivery_contract()`
 - `workspace.public_handle_contract()`
 - `workspace.public_support_matrix()`
 - `workspace.public_mutation_surface_report()`
 - `workspace.admit_public_api_family(...)`
+- `workspace.downstream_delivery(...)`
 
 Alternate names may still exist as adapters, but the public support and
 mutation-surface contracts define the surviving runtime story.
@@ -83,6 +85,23 @@ Think of it this way:
 - handles returned by the workspace are retained runtime objects, not raw data
 - `read`, `observe`, `materialize`, `state`, and `inspect` let you ask
   different questions about those retained surfaces
+- `observe` can now surface time-only live delivery directly, so a freshness
+  shift, window crossing, or deadline does not need a fabricated relational
+  patch to become visible
+- `state` and `inspect` retain that last live delivery cause, which keeps
+  runtime snapshots and explanations aligned after patch batches have been
+  drained
+- `downstream_delivery(...)` projects that same retained last delivery into one
+  typed downstream envelope with explicit basis negotiation and durable-resume
+  debt instead of forcing another runtime to interpret drained delivery batches
+- `state` and ordinary `inspect` now also share one compact runtime posture
+  projection for live temporal/async handles, so product code can read
+  `current`, `time_only`, `mixed_cause`, `stale`, `cancelled`, `retried`,
+  `revalidating`, `superseded`, or `denied` posture from the same scalar
+  surfaces instead of reverse-engineering rich retained delivery artifacts
+- `state` and `inspect` also retain one Query-owned async result-state
+  vocabulary for async/resource-backed live subscriptions, so product code does
+  not need to invent its own `loading` / `cancelled` / `retrying` taxonomy
 - `compose_read` lets you execute one bounded graph-shaped read without
   installing a retained live view first
 - graph composition lets you execute one symbolic same-batch authoring program
@@ -353,6 +372,21 @@ The workspace gives you two main explanation paths:
 
 - `workspace.state(...)` for a typed readiness/supported/pending snapshot
 - `workspace.inspect(...)` for retained evidence about a handle or receipt
+- `workspace.downstream_delivery(...)` for the latest retained live delivery
+  when another runtime or server boundary needs one transport-safe Query-owned
+  contract instead of raw delivery batches
+
+For live temporal/async handles, both of those surfaces now expose the same
+compact runtime posture before you drop into the richer retained inspection
+artifact:
+
+- overall runtime posture kind
+- delivery-cause posture
+- async posture when retained async result-state is present
+- basis-drift posture when retained async meaning stayed typed across basis or
+  generation drift instead of collapsing into a generic denied note
+- retained support evidence digest so the scalar surface does not silently drop
+  the installed support context
 
 Use the public support and handle contracts when you need to understand whether
 a family is stable, deferred, or unsupported before exposing it in another
@@ -373,6 +407,8 @@ runtime.
   composition.
 - Temporal basis, async/resource execution, mixed-cause delivery, store-backed
   execution, and durable artifact reload remain deferred.
+- Those future families will extend the same `workspace` / handle / state /
+  inspection world rather than introducing a second temporal or async facade.
 - covered intent families are documented in
   [Intent Admission](../execution/intent-admission.md), but broader intent
   vocabulary is still not blanket stable facade-family support.
@@ -384,6 +420,7 @@ runtime.
 - [Effects](../execution/effects.md)
 - [Graph Composition Authoring](../authoring/graph-composition-authoring.md)
 - [Downstream Runtime Integration](downstream-runtime-integration.md)
+- [Async Resources And Result State](../capabilities/async-resources-and-result-state.md)
 - [Existing Truth](../capabilities/existing-truth.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)
 - [Intent Admission](../execution/intent-admission.md)

@@ -1,6 +1,7 @@
 use crate::application::{
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationSignalCompatibility,
-    ForgeQueryDeclarationSignalExecutionFamily, ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationFutureProjection, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationSignalCompatibility, ForgeQueryDeclarationSignalExecutionFamily,
+    ForgeQueryDomainEntryMarker,
 };
 use crate::basis_lifecycle::BasisFamily;
 use crate::continuation_pipeline::ForgeQueryPreparedContinuation;
@@ -40,6 +41,13 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         match self {
             Self::Compatible(compatibility) => compatibility.basis_families(),
             Self::Prepared(prepared) => prepared.required_basis_families(),
+        }
+    }
+
+    pub fn future_projection(&self) -> &ForgeQueryDeclarationFutureProjection {
+        match self {
+            Self::Compatible(compatibility) => compatibility.future_projection(),
+            Self::Prepared(prepared) => prepared.future_projection(),
         }
     }
 

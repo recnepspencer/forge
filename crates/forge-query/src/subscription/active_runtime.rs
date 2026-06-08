@@ -23,6 +23,7 @@ use super::continuation::{
 };
 use super::continuation_error::SubscriptionContinuationError;
 use super::delivery_budget::QueryDeliveryWindowBudget;
+use super::delivery_cause::QuerySubscriptionDeliveryCause;
 use super::delivery_density::ActiveDeliveryDensityPosture;
 use super::delivery_dimensions::{
     ActiveDeliveryAffectedAttachmentWidth, ActiveDeliveryAffectedLaneWidth,
@@ -173,6 +174,35 @@ pub fn emit_query_delivery_batch(
     work_packet: ActiveDeliveryWorkPacket,
 ) -> Result<QueryDeliveryBatch, QueryDeliveryError> {
     let batch = QueryDeliveryBatch::new(window, work_packet)?;
+    runtime.counters = batch.counters().clone();
+    Ok(batch)
+}
+
+#[allow(dead_code)]
+pub fn emit_query_time_only_delivery_batch(
+    runtime: &mut ActiveSubscriptionRuntime,
+    window: QueryDeliveryWindow,
+    delivery_cause: QuerySubscriptionDeliveryCause,
+) -> Result<QueryDeliveryBatch, QueryDeliveryError> {
+    let batch = QueryDeliveryBatch::new_time_only(window, delivery_cause)?;
+    runtime.counters = batch.counters().clone();
+    Ok(batch)
+}
+
+#[allow(dead_code)]
+pub fn emit_query_mixed_cause_delivery_batch(
+    runtime: &mut ActiveSubscriptionRuntime,
+    window: QueryDeliveryWindow,
+    delivery_cause: QuerySubscriptionDeliveryCause,
+    has_relational_patch: bool,
+    patch_group: super::patch_group::QueryPatchGroup,
+) -> Result<QueryDeliveryBatch, QueryDeliveryError> {
+    let batch = QueryDeliveryBatch::new_mixed_cause(
+        window,
+        delivery_cause,
+        has_relational_patch,
+        patch_group,
+    )?;
     runtime.counters = batch.counters().clone();
     Ok(batch)
 }

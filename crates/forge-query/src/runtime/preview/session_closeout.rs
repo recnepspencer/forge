@@ -1,4 +1,18 @@
+use super::super::async_result_state::ForgeQueryRuntimeAsyncResultState;
+use super::super::delivery::{
+    ForgeQueryRuntimeLiveSubscriptionState, ForgeQueryRuntimeRetainedDelivery,
+};
 use super::*;
+use crate::runtime::ForgeQueryRuntimeMixedCauseMemberKind;
+use crate::subscription::QuerySubscriptionDeliveryCauseKind;
+
+#[derive(Clone, Copy)]
+pub(super) struct PreviewLifecycleResidueSnapshot {
+    pub(super) temporal_wake_residue_count: usize,
+    pub(super) async_result_residue_count: usize,
+    pub(super) mixed_cause_residue_count: usize,
+    pub(super) crossed_authoritative_residue_count: usize,
+}
 
 impl<'a> ForgeQueryPreviewSession<'a> {
     pub(super) fn effect_binding_count(&self) -> usize {
@@ -25,7 +39,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
     }
 
     pub(super) fn authoritative_residue_count(&self) -> usize {
-        0
+        self.crossed_authoritative_residue_count()
     }
 
     pub(super) fn execution_kind_count(&self, kind: ForgeQueryPreviewExecutionKind) -> usize {
@@ -40,12 +54,17 @@ impl<'a> ForgeQueryPreviewSession<'a> {
         kind: ForgeQueryPreviewCloseoutKind,
         staged_preview_write_count: usize,
         promoted_write_count: usize,
+        residue_snapshot: PreviewLifecycleResidueSnapshot,
+        target_basis_snapshot_token: &str,
+        rebinding_digest: Option<String>,
     ) -> ForgeQueryPreviewCloseoutEvidence {
         ForgeQueryPreviewCloseoutEvidence::new(
             &self.label,
             kind,
             self.effect_policy,
             &self.basis_admission,
+            &self.basis_snapshot_token,
+            target_basis_snapshot_token,
             self.handle_bindings.len(),
             self.handle_binding_count(ForgeQueryPreviewHandleBindingFamily::LiveView),
             self.handle_binding_count(ForgeQueryPreviewHandleBindingFamily::ComputedView),
@@ -54,9 +73,14 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             self.derived_runtime_residue_count(),
             staged_preview_write_count,
             promoted_write_count,
+            residue_snapshot.temporal_wake_residue_count,
+            residue_snapshot.async_result_residue_count,
+            residue_snapshot.mixed_cause_residue_count,
+            residue_snapshot.crossed_authoritative_residue_count,
             self.effect_delivery_residue_count(),
             self.pending_write_intent_residue_count(),
-            self.authoritative_residue_count(),
+            residue_snapshot.crossed_authoritative_residue_count,
+            rebinding_digest,
         )
     }
 
@@ -69,4 +93,91 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             .filter(|binding| binding.family == family)
             .count()
     }
+
+    pub(super) fn temporal_wake_residue_count(&self) -> usize {
+        self.preview_bound_live_states()
+            .filter(|state| temporal_wake_residue(state))
+            .count()
+    }
+
+    pub(super) fn async_result_residue_count(&self) -> usize {
+        self.preview_bound_live_states()
+            .filter(|state| state.async_result_state.is_some())
+            .count()
+    }
+
+    pub(super) fn mixed_cause_residue_count(&self) -> usize {
+        self.preview_bound_live_states()
+            .filter(|state| mixed_cause_residue(state))
+            .count()
+    }
+
+    pub(super) fn crossed_authoritative_residue_count(&self) -> usize {
+        self.preview_bound_live_states()
+            .filter(|state| crossed_authoritative_residue(state))
+            .count()
+    }
+
+    fn preview_bound_live_states(
+        &self,
+    ) -> impl Iterator<Item = &ForgeQueryRuntimeLiveSubscriptionState> + '_ {
+        self.handle_bindings
+            .iter()
+            .filter(|binding| binding.family == ForgeQueryPreviewHandleBindingFamily::LiveView)
+            .filter_map(|binding| self.runtime.live_subscriptions.get(binding.handle_name()))
+    }
+
+    pub(super) fn residue_snapshot(&self) -> PreviewLifecycleResidueSnapshot {
+        PreviewLifecycleResidueSnapshot {
+            temporal_wake_residue_count: self.temporal_wake_residue_count(),
+            async_result_residue_count: self.async_result_residue_count(),
+            mixed_cause_residue_count: self.mixed_cause_residue_count(),
+            crossed_authoritative_residue_count: self.crossed_authoritative_residue_count(),
+        }
+    }
+}
+
+fn temporal_wake_residue(state: &ForgeQueryRuntimeLiveSubscriptionState) -> bool {
+    state
+        .last_delivery
+        .as_ref()
+        .map(|delivery: &ForgeQueryRuntimeRetainedDelivery| {
+            delivery.delivery_cause_kind() != QuerySubscriptionDeliveryCauseKind::MixedCause
+                && delivery.mixed_cause_delivery().ordered_member_kinds()
+                    == [ForgeQueryRuntimeMixedCauseMemberKind::TemporalTimeOnly]
+        })
+        .unwrap_or(false)
+}
+
+fn mixed_cause_residue(state: &ForgeQueryRuntimeLiveSubscriptionState) -> bool {
+    state
+        .last_delivery
+        .as_ref()
+        .map(|delivery: &ForgeQueryRuntimeRetainedDelivery| {
+            delivery.mixed_cause_delivery().ordered_member_kinds().len() > 1
+        })
+        .unwrap_or(false)
+}
+
+fn crossed_authoritative_residue(state: &ForgeQueryRuntimeLiveSubscriptionState) -> bool {
+    let delivery_crossed = state
+        .last_delivery
+        .as_ref()
+        .map(|delivery: &ForgeQueryRuntimeRetainedDelivery| {
+            !delivery
+                .mixed_cause_delivery()
+                .denied_cause_digests()
+                .is_empty()
+        })
+        .unwrap_or(false);
+    let async_crossed = state
+        .async_result_state
+        .as_ref()
+        .map(|async_state: &ForgeQueryRuntimeAsyncResultState| {
+            async_state.basis_digest() != state.installation.basis_binding_digest()
+                || async_state.generation_digest()
+                    != state.active_lane_handle.checkpoint_identity_digest()
+        })
+        .unwrap_or(false);
+    delivery_crossed || async_crossed
 }

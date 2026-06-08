@@ -103,6 +103,10 @@ The difference matters:
   families that execute through the shared intent lattice
 - `next_effect_write_intent(...)` consumes one staged pending write-intent unit
   from an effect, if the runtime admits that path
+- when the effect declaration carries write-adjacent trigger posture, the
+  resulting pending write-intent and effect-triggered receipt preserve that
+  trigger class and origin identity instead of flattening temporal or async
+  follow-on work into an ordinary callback-shaped write
 
 Do not blur those two models together.
 

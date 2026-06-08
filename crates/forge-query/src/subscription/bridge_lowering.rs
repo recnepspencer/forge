@@ -14,6 +14,7 @@ use super::bridge_slice::{BridgeSubscriptionSliceKind, QueryToBridgeSliceMap};
 use super::counters::QuerySubscriptionDeclarationCounters;
 use super::declaration::QuerySubscriptionDeclarationArtifact;
 use super::diagnostic::QuerySubscriptionDiagnosticStage;
+use super::future_selection::QuerySubscriptionFutureSelection;
 use super::posture::QuerySubscriptionBasisPosture;
 use super::posture::QuerySubscriptionBridgePosture;
 use super::signal_strategy::QuerySubscriptionSignalStrategyRequest;
@@ -24,6 +25,7 @@ pub struct BridgeSubscriptionLoweringPlan {
     bridge_declaration_digest: String,
     family_map: QueryToBridgeSubscriptionFamilyMap,
     slice_map: QueryToBridgeSliceMap,
+    future_selection: QuerySubscriptionFutureSelection,
     basis_request: QuerySubscriptionBasisBindingRequest,
     signal_strategy_request: QuerySubscriptionSignalStrategyRequest,
     lowering_budget: QuerySubscriptionBridgeLoweringBudget,
@@ -45,6 +47,10 @@ impl BridgeSubscriptionLoweringPlan {
 
     pub fn bridge_slices(&self) -> &[BridgeSubscriptionSliceKind] {
         self.slice_map.bridge_slices()
+    }
+
+    pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
+        &self.future_selection
     }
 
     pub fn basis_request(&self) -> &QuerySubscriptionBasisBindingRequest {
@@ -167,6 +173,7 @@ pub fn lower_query_subscription_to_bridge(
         bridge_declaration_digest,
         family_map,
         slice_map,
+        future_selection: declaration.future_selection().clone(),
         basis_request,
         signal_strategy_request,
         lowering_budget,
@@ -185,8 +192,8 @@ fn basis_denied(
         QuerySubscriptionBasisPosture::RuntimeHistoricalSnapshot => {
             !budget.historical_basis_support()
         }
-        QuerySubscriptionBasisPosture::PreviewScoped
-        | QuerySubscriptionBasisPosture::DeniedUnsupportedBasis => !budget.preview_basis_support(),
+        QuerySubscriptionBasisPosture::PreviewScoped => !budget.preview_basis_support(),
+        QuerySubscriptionBasisPosture::DeniedUnsupportedBasis => true,
     }
 }
 

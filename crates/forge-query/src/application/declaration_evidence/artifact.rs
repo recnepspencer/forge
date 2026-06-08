@@ -246,6 +246,9 @@ pub(crate) fn forge_query_declaration_foundational_evidence<
         subject.operating_context_identity_digest().to_string(),
         expected_world_basis.handle_identity_digest().to_string(),
         expected_world_basis.support_snapshot_digest().to_string(),
+        expected_world_basis
+            .basis_lifecycle_support_digest()
+            .to_string(),
     );
     let aspect_contract = subject.aspect_contract().clone();
     let aspect_coverage = subject.aspect_coverage();

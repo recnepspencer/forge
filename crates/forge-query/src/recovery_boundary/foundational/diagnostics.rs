@@ -23,8 +23,12 @@ pub(crate) fn diagnostic_context_for_stop_kind(
             )
         }
         ForgeQueryRecoveryStopKind::AspectConflict
+        | ForgeQueryRecoveryStopKind::AsyncRequestDrift
         | ForgeQueryRecoveryStopKind::AuthorityMismatch
         | ForgeQueryRecoveryStopKind::BasisMismatch
+        | ForgeQueryRecoveryStopKind::PreviewCrossedResidue
+        | ForgeQueryRecoveryStopKind::RemaskDrift
+        | ForgeQueryRecoveryStopKind::ReplayDrift
         | ForgeQueryRecoveryStopKind::WrongHandle
         | ForgeQueryRecoveryStopKind::WrongWorld => {
             ForgeQueryRecoveryFoundationalDiagnosticContext::new(
@@ -37,7 +41,8 @@ pub(crate) fn diagnostic_context_for_stop_kind(
         | ForgeQueryRecoveryStopKind::Failed
         | ForgeQueryRecoveryStopKind::RebindRequired
         | ForgeQueryRecoveryStopKind::Refused
-        | ForgeQueryRecoveryStopKind::Stale => {
+        | ForgeQueryRecoveryStopKind::Stale
+        | ForgeQueryRecoveryStopKind::StaleCompletion => {
             ForgeQueryRecoveryFoundationalDiagnosticContext::new(
                 FoundationalDiagnosticOutcomeKind::Partial,
                 None,

@@ -7,6 +7,7 @@ use super::super::closeout::SubscriptionLifecycleCloseout;
 use super::super::continuation::SubscriptionContinuationReport;
 use super::super::declaration::QuerySubscriptionDeclarationArtifact;
 use super::super::family::QuerySubscriptionFamily;
+use super::super::future_selection::QuerySubscriptionFutureSelection;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum QuerySubscriptionSupportClass {
@@ -95,6 +96,7 @@ impl SubscriptionFamilyCapabilityDigest {
 pub struct QuerySubscriptionSupportSubject {
     support_class: QuerySubscriptionSupportClass,
     family: QuerySubscriptionFamily,
+    future_selection: QuerySubscriptionFutureSelection,
     declaration_digest: String,
     admission_digest: Option<String>,
     source_digest: String,
@@ -106,6 +108,7 @@ impl QuerySubscriptionSupportSubject {
         Self::new(
             QuerySubscriptionSupportClass::Declaration,
             declaration.family().clone(),
+            declaration.future_selection().clone(),
             declaration.declaration_digest().as_str(),
             None,
             declaration.declaration_digest().as_str(),
@@ -119,6 +122,7 @@ impl QuerySubscriptionSupportSubject {
         Self::new(
             QuerySubscriptionSupportClass::Activation,
             declaration.family().clone(),
+            declaration.future_selection().clone(),
             declaration.declaration_digest().as_str(),
             Some(activation.admission_digest()),
             activation.activation_digest(),
@@ -132,6 +136,7 @@ impl QuerySubscriptionSupportSubject {
         Self::new(
             QuerySubscriptionSupportClass::ActiveLifecycle,
             declaration.family().clone(),
+            declaration.future_selection().clone(),
             declaration.declaration_digest().as_str(),
             Some(active_admission.admission_digest()),
             active_admission.lane_digest().as_str(),
@@ -146,6 +151,7 @@ impl QuerySubscriptionSupportSubject {
         Self::new(
             QuerySubscriptionSupportClass::Continuation,
             declaration.family().clone(),
+            declaration.future_selection().clone(),
             declaration.declaration_digest().as_str(),
             Some(admission.admission_digest()),
             continuation.report_digest(),
@@ -160,6 +166,7 @@ impl QuerySubscriptionSupportSubject {
         Self::new(
             QuerySubscriptionSupportClass::PreviewCloseout,
             declaration.family().clone(),
+            closeout.future_selection().clone(),
             declaration.declaration_digest().as_str(),
             Some(admission.admission_digest()),
             closeout.closeout_digest(),
@@ -170,6 +177,7 @@ impl QuerySubscriptionSupportSubject {
         Self::new(
             QuerySubscriptionSupportClass::DurableReplay,
             declaration.family().clone(),
+            declaration.future_selection().clone(),
             declaration.declaration_digest().as_str(),
             None,
             declaration.declaration_digest().as_str(),
@@ -180,6 +188,7 @@ impl QuerySubscriptionSupportSubject {
         Self::new(
             QuerySubscriptionSupportClass::StoreBackedRestart,
             declaration.family().clone(),
+            declaration.future_selection().clone(),
             declaration.declaration_digest().as_str(),
             None,
             declaration.declaration_digest().as_str(),
@@ -189,6 +198,7 @@ impl QuerySubscriptionSupportSubject {
     fn new(
         support_class: QuerySubscriptionSupportClass,
         family: QuerySubscriptionFamily,
+        future_selection: QuerySubscriptionFutureSelection,
         declaration_digest: &str,
         admission_digest: Option<&str>,
         source_digest: &str,
@@ -197,6 +207,7 @@ impl QuerySubscriptionSupportSubject {
             "query_subscription_support_subject_v1".to_string(),
             support_class.as_str().to_string(),
             family.as_str().to_string(),
+            format!("future_selection:{}", future_selection.projection_digest()),
             format!("declaration:{declaration_digest}"),
             format!("admission:{}", admission_digest.unwrap_or("none")),
             format!("source:{source_digest}"),
@@ -204,6 +215,7 @@ impl QuerySubscriptionSupportSubject {
         Self {
             support_class,
             family,
+            future_selection,
             declaration_digest: declaration_digest.to_string(),
             admission_digest: admission_digest.map(ToOwned::to_owned),
             source_digest: source_digest.to_string(),
@@ -221,6 +233,10 @@ impl QuerySubscriptionSupportSubject {
 
     pub fn declaration_digest(&self) -> &str {
         &self.declaration_digest
+    }
+
+    pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
+        &self.future_selection
     }
 
     pub fn admission_digest(&self) -> Option<&str> {

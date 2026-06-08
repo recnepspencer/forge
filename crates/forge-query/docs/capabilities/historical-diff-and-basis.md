@@ -44,6 +44,10 @@ Important public vocabulary:
 - `QueryDiffChangeSetArtifact`
 - `forge_query_basis_observation_intent(...)`
 - `RawBasisIntent`
+- `ObservationBasisCapability`
+- `ReplayBasisCapability`
+- `ScopedObservationBasis`
+- `ScopedReplayBasis`
 
 ## Core Mental Model
 
@@ -70,6 +74,21 @@ Good to know:
 - that admitted family is the public basis-observation entry point when you
   need one scoped basis artifact directly instead of a full basis-bound query
   execution
+- the query basis lifecycle is also the public place where preview,
+  historical replay, lower-runtime binding, and future temporal or async basis
+  posture get typed before execution starts
+- if you need to ask "is this basis artifact ready, advisory, stale, or denied"
+  without materializing the whole query, use the basis capability or scoped
+  basis artifact itself rather than carrying raw branch, snapshot, or preview
+  identifiers forward
+- subscription basis binding now also follows the same rule: temporal basis
+  posture belongs in the canonical subscription declaration before active
+  lifecycle begins, and bridge-facing basis requests are projections from that
+  declaration rather than a second identity authority
+- policy, tenant, relationship-proof, and schema-context drift now follow the
+  same basis-first rule for temporal/async retained meaning: Query remasks or
+  denies before public delivery, state, or inspection projection instead of
+  materializing first and filtering later
 - basis-aware runtimes may also attach historical-basis metadata to
   declaration-time whole-refresh computed initialization, so retained derived
   surfaces can seed honestly from one admitted historical basis without
@@ -179,6 +198,30 @@ let scoped_basis = forge_query_basis_observation_intent(
 .scope();
 ```
 
+You can also inspect the basis artifact's state directly:
+
+```rust
+let state = workspace.state(&scoped_basis)?;
+assert_eq!(state.kind().as_str(), "ready");
+```
+
+You can inspect that same artifact through the unified inspection surface:
+
+```rust
+let inspection = workspace.inspect(&scoped_basis)?;
+
+match inspection {
+    ForgeQueryInspection::BasisLifecycle(basis) => {
+        assert_eq!(basis.subject_label(), "scoped_observation_basis");
+        assert_eq!(basis.state_kind().as_str(), "ready");
+    }
+    other => panic!("expected basis lifecycle inspection, got {other:?}"),
+}
+```
+
+Both surfaces are digest-bound to the typed basis artifact. They are not a
+best-effort reconstruction from raw snapshot IDs.
+
 ## Real Example
 
 ```rust
@@ -255,6 +298,7 @@ Look at the basis and historical artifacts directly:
 - `HistoricalMaterializationPathMetadata`
 - `HistoricalCounterSnapshot`
 - `QueryDiffChangeSetArtifact`
+- `ForgeQueryInspection::BasisLifecycle`
 
 Important posture signals include:
 
@@ -273,6 +317,8 @@ shape that broadened beyond the admitted comparison contract.
 
 - Treating a basis handle as a loose timestamp instead of an authority-bound
   execution contract.
+- Passing raw branch, snapshot, preview, or restart identifiers around after
+  Query already admitted a typed basis artifact.
 - Comparing two different query digests and expecting a meaningful diff.
 - Using historical APIs to ask for raw storage deltas instead of query-shaped
   result changes.
@@ -287,6 +333,9 @@ shape that broadened beyond the admitted comparison contract.
 - Store-backed replay and reconstruction remain explicit deferred debt and deny
   typed and early where not yet supported.
 - Basis substitution that crosses the admitted authority contract is denied.
+- Temporal/async runtime-backed meaning that no longer matches the admitted
+  policy, tenant, relationship-proof, or schema context is remasked or denied
+  before public projection.
 
 ## Related Docs
 

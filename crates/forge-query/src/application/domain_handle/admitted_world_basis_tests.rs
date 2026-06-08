@@ -3,6 +3,8 @@ use crate::application::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfig,
     ForgeQueryConfigSectionFamily, ForgeQueryDomainEntryMarker, ForgeQuerySignalConfig,
 };
+use crate::runtime::tests::support::stateful_bridge_task_runtime;
+use crate::runtime::{ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateTarget};
 
 const ENTRY_CAPABILITIES: &[ForgeQueryCapabilityFamily] =
     &[ForgeQueryCapabilityFamily::QueryComposition];
@@ -87,6 +89,10 @@ fn retained_world_basis_matches_admitted_handle_identity_and_support() {
         basis.support_snapshot_digest(),
         handle.support_snapshot().snapshot_digest()
     );
+    assert_eq!(
+        basis.basis_lifecycle_support_digest(),
+        crate::query_basis_lifecycle::query_basis_lifecycle_support_report().report_digest()
+    );
 }
 
 #[test]
@@ -132,8 +138,28 @@ fn changing_support_snapshot_changes_support_snapshot_digest_without_rebinding_w
         default_basis.support_snapshot_digest(),
         signal_disabled_basis.support_snapshot_digest()
     );
+    assert_eq!(
+        default_basis.basis_lifecycle_support_digest(),
+        signal_disabled_basis.basis_lifecycle_support_digest()
+    );
     assert_ne!(
         default_basis.handle_identity_digest(),
         signal_disabled_basis.handle_identity_digest()
     );
+}
+
+#[test]
+fn retained_world_basis_projects_into_runtime_state_without_raw_world_reconstruction() {
+    let basis = admitted_world_basis(
+        &ForgeQueryApplicationFacade::runtime_backed_default(),
+        "collaborative",
+    );
+    let runtime = stateful_bridge_task_runtime();
+    let state = (&basis)
+        .into_state_snapshot(&runtime)
+        .expect("retained world basis should project into runtime state");
+
+    assert_eq!(state.kind(), ForgeQueryRuntimeStateKind::Ready);
+    assert_eq!(state.basis_digest(), basis.basis_lifecycle_support_digest());
+    assert_eq!(state.result_shape_digest(), basis.handle_identity_digest());
 }

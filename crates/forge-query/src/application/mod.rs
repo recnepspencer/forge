@@ -37,10 +37,15 @@ pub use config::{
     ValidatedForgeQueryConfig,
 };
 pub use declaration::{
+    ForgeQueryAsyncDeclarationClause, ForgeQueryAsyncDeclarationSupport,
+    ForgeQueryAsyncFailurePosture, ForgeQueryAsyncLoadingPosture,
+    ForgeQueryAsyncRequestIdentityPart, ForgeQueryAsyncSourceFamily,
     ForgeQueryCanonicalDeclarationArtifact, ForgeQueryCanonicalDeclarationComparison,
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationCanonicalEntryKind,
     ForgeQueryDeclarationCanonicalValue, ForgeQueryDeclarationCanonicalizationError,
-    ForgeQueryDeclarationCanonicalizationVersion, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationCanonicalizationVersion, ForgeQueryDeclarationFutureProjection,
+    ForgeQueryDeclarationInput, ForgeQueryTemporalDeclarationClause,
+    ForgeQueryTemporalDeclarationSupport, ForgeQueryTemporalDuration, ForgeQueryTemporalWindowKind,
 };
 pub use declaration_aspect::{
     ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
@@ -66,14 +71,15 @@ pub use declaration_bridge_routing::{
     ForgeQueryDeclarationEntryBridgeRoutingError,
 };
 pub use declaration_capability::{
-    ForgeQueryBatchCapableDeclaration, ForgeQueryBatchCapableGrouping,
-    ForgeQueryBridgeContinuationAuthority, ForgeQueryBridgeContinuationDeclaration,
-    ForgeQueryDeclarationAdmissionError, ForgeQueryDeclarationCapabilityDenial,
-    ForgeQueryDeclarationCapabilityStatus, ForgeQueryDeclarationCapabilityVerb,
-    ForgeQueryDeclarationFamilySupportChecked, ForgeQueryDeclarationFamilySupportReport,
-    ForgeQueryDeclarationFamilySupportRow, ForgeQueryDeclarationGroupedPostureTag,
-    ForgeQueryDeclarationPrimaryAuthorityTag, ForgeQueryDeclarationSignalCompatibilityTag,
-    ForgeQueryDeclarationSupportsBatchGrouping, ForgeQueryDeclarationSupportsBridgeContinuation,
+    ForgeQueryAsyncDeclarationDenial, ForgeQueryBatchCapableDeclaration,
+    ForgeQueryBatchCapableGrouping, ForgeQueryBridgeContinuationAuthority,
+    ForgeQueryBridgeContinuationDeclaration, ForgeQueryDeclarationAdmissionError,
+    ForgeQueryDeclarationCapabilityDenial, ForgeQueryDeclarationCapabilityStatus,
+    ForgeQueryDeclarationCapabilityVerb, ForgeQueryDeclarationFamilySupportChecked,
+    ForgeQueryDeclarationFamilySupportReport, ForgeQueryDeclarationFamilySupportRow,
+    ForgeQueryDeclarationGroupedPostureTag, ForgeQueryDeclarationPrimaryAuthorityTag,
+    ForgeQueryDeclarationSignalCompatibilityTag, ForgeQueryDeclarationSupportsBatchGrouping,
+    ForgeQueryDeclarationSupportsBridgeContinuation,
     ForgeQueryDeclarationSupportsNeighborhoodGrouping,
     ForgeQueryDeclarationSupportsRelationalTruth, ForgeQueryDeclarationSupportsSignalCompatibility,
     ForgeQueryDeclaredFamilyChecked, ForgeQueryDescriptiveOnlyAuthority, ForgeQueryMixedAuthority,
@@ -82,6 +88,7 @@ pub use declaration_capability::{
     ForgeQueryRelationalTruthDeclaration, ForgeQuerySignalCompatibleDeclaration,
     ForgeQuerySignalCompatiblePosture, ForgeQuerySignalDeferredPosture,
     ForgeQuerySignalNotCompatiblePosture, ForgeQuerySingleOnlyGrouping,
+    ForgeQueryTemporalDeclarationDenial,
 };
 pub use declaration_entry_orchestration::{
     ForgeQueryDeclarationEntryOrchestrationArtifactPolicy,
@@ -158,10 +165,11 @@ pub use declaration_family::{
     ForgeQuerySignalCompatibilityPosture,
 };
 pub use declaration_legality::{
-    ForgeQueryDeclarationAdmissionOrLegalityError, ForgeQueryDeclarationLegalityChecked,
-    ForgeQueryDeclarationLegalityClass, ForgeQueryDeclarationLegalityContract,
-    ForgeQueryDeclarationLegalityDenial, ForgeQueryDeclarationLegalityEvidence,
-    ForgeQueryDeclarationLegalityInput,
+    ForgeQueryAsyncLegalityDenialKind, ForgeQueryDeclarationAdmissionOrLegalityError,
+    ForgeQueryDeclarationLegalityChecked, ForgeQueryDeclarationLegalityClass,
+    ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationLegalityDenial,
+    ForgeQueryDeclarationLegalityEvidence, ForgeQueryDeclarationLegalityInput,
+    ForgeQueryTemporalLegalityDenialKind,
 };
 pub use declaration_progression::{
     ForgeQueryAdmittedDeclarationProgression, ForgeQueryDeclarationProgressionChecked,
@@ -233,7 +241,7 @@ pub use domain_handle::{
     ForgeQueryConfiguredDomainHandleInvalidContext, ForgeQueryConfiguredDomainHandleUnsupported,
     ForgeQueryContinuationExecutionReadmissionObservation,
     ForgeQueryDeclarationEntryProgressionError, ForgeQueryDomainOperatingContext,
-    ForgeQueryValidatedConfiguredDomainHandle,
+    ForgeQueryDomainOperatingRequirement, ForgeQueryValidatedConfiguredDomainHandle,
 };
 pub use support::{
     ForgeQueryCapabilityDescriptor, ForgeQueryCapabilityFamily, ForgeQueryCapabilityRegistry,

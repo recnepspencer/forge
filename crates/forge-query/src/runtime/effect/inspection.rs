@@ -7,6 +7,9 @@ use super::declaration::{
     ForgeQueryEffectSuppressionPolicy, ForgeQueryEffectTriggerSourceKind,
 };
 use super::delivery::{ForgeQueryEffectCounters, ForgeQueryEffectDeliveryFamily};
+use super::follow_on::{
+    ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryEffectWriteAdjacentTriggerClass,
+};
 use super::phase::ForgeQueryEffectPhaseEvidence;
 use super::registry::ForgeQueryEffectRuntime;
 
@@ -15,6 +18,7 @@ pub struct ForgeQueryEffectInspectionEvidence {
     name: String,
     trigger_source: String,
     trigger_source_kind: ForgeQueryEffectTriggerSourceKind,
+    write_adjacent_trigger: ForgeQueryEffectWriteAdjacentTrigger,
     trigger_aspects: Vec<String>,
     condition_descriptor: String,
     condition_inputs: Vec<String>,
@@ -98,6 +102,10 @@ impl ForgeQueryEffectInspectionEvidence {
                 effect.declaration.trigger().source_kind().as_str()
             ),
             format!("source:{}", effect.declaration.trigger().source_name()),
+            format!(
+                "write-adjacent-trigger:{}",
+                effect.declaration.write_adjacent_trigger().digest()
+            ),
             format!(
                 "aspects:{}",
                 effect.declaration.trigger().aspects().join("|")
@@ -222,6 +230,7 @@ impl ForgeQueryEffectInspectionEvidence {
             name: effect.declaration.name().to_string(),
             trigger_source: effect.declaration.trigger().source_name().to_string(),
             trigger_source_kind: effect.declaration.trigger().source_kind(),
+            write_adjacent_trigger: effect.declaration.write_adjacent_trigger().clone(),
             trigger_aspects: effect.declaration.trigger().aspects().to_vec(),
             condition_descriptor,
             condition_inputs,
@@ -260,6 +269,14 @@ impl ForgeQueryEffectInspectionEvidence {
 
     pub fn trigger_source_kind(&self) -> ForgeQueryEffectTriggerSourceKind {
         self.trigger_source_kind
+    }
+
+    pub fn write_adjacent_trigger(&self) -> &ForgeQueryEffectWriteAdjacentTrigger {
+        &self.write_adjacent_trigger
+    }
+
+    pub fn write_adjacent_trigger_class(&self) -> ForgeQueryEffectWriteAdjacentTriggerClass {
+        self.write_adjacent_trigger.class()
     }
 
     pub fn trigger_aspects(&self) -> &[String] {

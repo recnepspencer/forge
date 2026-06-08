@@ -1,4 +1,5 @@
 use super::*;
+use crate::runtime::ForgeQueryEffectWriteAdjacentTrigger;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryIntentSourceLane {
@@ -30,6 +31,7 @@ pub struct ForgeQueryIntentDeclaration {
     input: Value,
     source_lane: ForgeQueryIntentSourceLane,
     target_lane: ForgeQueryAuthorityLane,
+    effect_trigger: Option<ForgeQueryEffectWriteAdjacentTrigger>,
 }
 
 impl ForgeQueryIntentDeclaration {
@@ -48,6 +50,7 @@ impl ForgeQueryIntentDeclaration {
             input,
             source_lane: ForgeQueryIntentSourceLane::UserAuthored,
             target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+            effect_trigger: None,
         }
     }
 
@@ -64,6 +67,14 @@ impl ForgeQueryIntentDeclaration {
         target_lane: ForgeQueryAuthorityLane,
     ) -> Self {
         self.target_lane = target_lane;
+        self
+    }
+
+    pub(in crate::runtime) fn with_effect_trigger(
+        mut self,
+        effect_trigger: ForgeQueryEffectWriteAdjacentTrigger,
+    ) -> Self {
+        self.effect_trigger = Some(effect_trigger);
         self
     }
 
@@ -95,6 +106,10 @@ impl ForgeQueryIntentDeclaration {
         self.target_lane
     }
 
+    pub fn effect_trigger(&self) -> Option<&ForgeQueryEffectWriteAdjacentTrigger> {
+        self.effect_trigger.as_ref()
+    }
+
     pub fn input_digest(&self) -> String {
         let input = serde_json::to_string(&self.input)
             .unwrap_or_else(|error| format!("unserializable-intent-input:{error}"));
@@ -105,6 +120,13 @@ impl ForgeQueryIntentDeclaration {
             format!("version:{}", self.strategy_version),
             format!("contract:{}", self.input_contract),
             format!("input:{input}"),
+            format!(
+                "effect-trigger:{}",
+                self.effect_trigger
+                    .as_ref()
+                    .map(ForgeQueryEffectWriteAdjacentTrigger::digest)
+                    .unwrap_or("none")
+            ),
         ])
     }
 }

@@ -3,8 +3,8 @@ use forge_foundational::facade::CanonicalDerivedDigest;
 use crate::application::{
     ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
     ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
-    ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationReceiptDenialCause,
-    ForgeQueryDeclarationRoutePlanDenialCause,
+    ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationFutureProjection,
+    ForgeQueryDeclarationReceiptDenialCause, ForgeQueryDeclarationRoutePlanDenialCause,
 };
 use crate::identity::hash_parts;
 
@@ -31,6 +31,8 @@ pub(crate) fn derive_bridge_routing_digest<
     mapping_fit: ForgeQueryDeclarationAspectFit,
     route_cause: Option<ForgeQueryDeclarationRoutePlanDenialCause>,
     receipt_cause: Option<ForgeQueryDeclarationReceiptDenialCause>,
+    future_projection: &ForgeQueryDeclarationFutureProjection,
+    basis_lifecycle_support_digest: &str,
 ) -> String {
     hash_parts(&[
         format!("handle:{}", envelope.handle_identity_digest()),
@@ -70,6 +72,11 @@ pub(crate) fn derive_bridge_routing_digest<
         format!("aspect_fit:{aspect_fit:?}"),
         format!("mapped_aspects:{mapped_aspects:?}"),
         format!("mapping_fit:{mapping_fit:?}"),
+        format!(
+            "future_projection:{}",
+            future_projection.projection_digest()
+        ),
+        format!("basis_lifecycle_support:{basis_lifecycle_support_digest}"),
         format!("evidence_origin:{:?}", envelope.evidence_origin()),
         format!("route_cause:{route_cause:?}"),
         format!("receipt_cause:{receipt_cause:?}"),

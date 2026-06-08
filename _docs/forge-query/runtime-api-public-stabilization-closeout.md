@@ -44,9 +44,9 @@ remains a lower-level or expert seam rather than the preferred public story.
 These are explicit future gates, not implied support:
 
 - temporal basis and time-aware subscriptions: Milestone 9.4
-- async/resource query families: Milestone 9.5
-- mixed truth/time/async delivery: Milestone 9.6
-- temporal/async certification: Milestone 9.7
+- async/resource query families: Milestone 9.4
+- mixed truth/time/async delivery: Milestone 9.4
+- temporal/async certification: Milestone 9.4
 - store-backed parity: Milestone 10
 - durable restart and artifact reload: Milestone 11
 

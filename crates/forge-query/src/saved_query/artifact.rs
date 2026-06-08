@@ -4,6 +4,7 @@ use crate::identity_evolution::{InspectorIdentityClassification, InspectorIdenti
 use crate::query_context::QueryContextFamily;
 use crate::saved_query::digest::SavedQueryArtifactDigest;
 use crate::saved_query::error::SavedQueryError;
+use crate::saved_query::future_support::SavedQueryTemporalAsyncSurfacePosture;
 use crate::view_shape::{ViewShapeDigest, ViewShapeFamily, ViewShapeIdentityConsumption};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -54,6 +55,7 @@ pub struct SavedQueryMetadata {
     support_profile_digest: String,
     capability_family_identity: String,
     template_slot_count: usize,
+    temporal_async_surface_posture: SavedQueryTemporalAsyncSurfacePosture,
 }
 
 impl SavedQueryMetadata {
@@ -74,6 +76,7 @@ impl SavedQueryMetadata {
         support_profile_digest: String,
         capability_family_identity: String,
         template_slot_count: usize,
+        temporal_async_surface_posture: SavedQueryTemporalAsyncSurfacePosture,
     ) -> Self {
         Self {
             canonical_query_digest,
@@ -92,6 +95,7 @@ impl SavedQueryMetadata {
             support_profile_digest,
             capability_family_identity,
             template_slot_count,
+            temporal_async_surface_posture,
         }
     }
 
@@ -161,6 +165,10 @@ impl SavedQueryMetadata {
 
     pub fn template_slot_count(&self) -> usize {
         self.template_slot_count
+    }
+
+    pub fn temporal_async_surface_posture(&self) -> SavedQueryTemporalAsyncSurfacePosture {
+        self.temporal_async_surface_posture
     }
 }
 

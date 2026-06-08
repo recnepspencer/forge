@@ -1,5 +1,8 @@
 use crate::application::{ForgeQueryDeclarationFamilyMarker, ForgeQueryDomainEntryMarker};
 
+use super::async_resource::ForgeQueryAsyncDeclarationClause;
+use super::temporal::ForgeQueryTemporalDeclarationClause;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryDeclarationCanonicalEntryKind {
     Header,
@@ -64,4 +67,12 @@ pub trait ForgeQueryDeclarationInput<D: ForgeQueryDomainEntryMarker> {
     type Family: ForgeQueryDeclarationFamilyMarker<D>;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry>;
+
+    fn async_resource_declaration_clauses(&self) -> Vec<ForgeQueryAsyncDeclarationClause> {
+        Vec::new()
+    }
+
+    fn temporal_declaration_clauses(&self) -> Vec<ForgeQueryTemporalDeclarationClause> {
+        Vec::new()
+    }
 }

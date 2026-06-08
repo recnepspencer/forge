@@ -61,6 +61,10 @@ impl CompletedProjectionFactConsumption {
         self.receipt.support_posture()
     }
 
+    pub fn materialized_fact_posture(&self) -> Option<&super::ProjectionMaterializedFactPosture> {
+        self.receipt.materialized_fact_posture()
+    }
+
     pub fn warning_kinds(&self) -> &[super::eligibility::ProjectionConsumptionWarningKind] {
         self.receipt.warning_kinds()
     }

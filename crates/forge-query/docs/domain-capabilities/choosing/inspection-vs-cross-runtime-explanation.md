@@ -14,6 +14,8 @@ Use when you need **evidence or explanation** after a run and are mixing up `wor
 
 - **`CausalInspection` lane**: `admit_causal_inspection`, `request_causal_inspection`
 - `CrossRuntimeCausalExplanation` (reference-only supported; materialized detail advisory)
+- temporal wakes, async completions, mixed-cause suppressions, preview remasks,
+  replay drift, and resume mismatch
 - **Not** `workspace.inspect`—see [cross-runtime causal inspection](../../capabilities/cross-runtime-causal-inspection.md)
 
 ## When Explanation Contributions
@@ -27,6 +29,8 @@ Use when you need **evidence or explanation** after a run and are mixing up `wor
 - **Causal inspection** = cross-runtime explanation families + admission/materialization.
 - **Explanation contributions** = declare how domain attaches explanation posture.
 - Durable causal archive / store-backed replay = **deferred** on causal support table.
+- If the question starts with "why did this temporal/async runtime event happen
+  or get replayed/suppressed/remasked?", choose causal inspection.
 
 ## Related Docs
 

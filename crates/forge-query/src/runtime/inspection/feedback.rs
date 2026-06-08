@@ -3,7 +3,8 @@ use crate::identity::hash_parts;
 use super::super::{
     ForgeQueryAuthorityLane, ForgeQueryEffectDeliveryFamily, ForgeQueryEffectIdempotence,
     ForgeQueryEffectIntentReceipt, ForgeQueryEffectLoopPrevention, ForgeQueryEffectPolicy,
-    ForgeQueryEffectRuntime, ForgeQueryEffectTriggerSourceKind, ForgeQueryIntentExecutionKind,
+    ForgeQueryEffectRuntime, ForgeQueryEffectTriggerSourceKind,
+    ForgeQueryEffectWriteAdjacentTriggerClass, ForgeQueryIntentExecutionKind,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -62,6 +63,8 @@ impl ForgeQueryFeedbackTermination {
 pub struct ForgeQueryFeedbackPhaseGraphInspection {
     effect_name: String,
     trigger_source_kind: ForgeQueryEffectTriggerSourceKind,
+    write_adjacent_trigger_class: ForgeQueryEffectWriteAdjacentTriggerClass,
+    write_adjacent_trigger_origin_identity: String,
     trigger_commit_identity: String,
     source_lane: ForgeQueryAuthorityLane,
     terminal_lane: ForgeQueryAuthorityLane,
@@ -109,6 +112,8 @@ impl ForgeQueryFeedbackPhaseGraphInspection {
         Some(Self::new(
             runtime.name(),
             latest.trigger_source_kind(),
+            latest.write_adjacent_trigger().class(),
+            latest.write_adjacent_trigger().origin_identity(),
             latest.commit_identity(),
             ForgeQueryAuthorityLane::AuthoritativeTruth,
             latest.authority_lane(),
@@ -159,6 +164,8 @@ impl ForgeQueryFeedbackPhaseGraphInspection {
         Self::new(
             receipt.effect_name(),
             receipt.trigger_source_kind(),
+            receipt.write_adjacent_trigger_class(),
+            receipt.write_adjacent_trigger().origin_identity(),
             receipt.trigger_commit_identity(),
             ForgeQueryAuthorityLane::AuthoritativeTruth,
             receipt.target_lane(),
@@ -177,6 +184,8 @@ impl ForgeQueryFeedbackPhaseGraphInspection {
     fn new(
         effect_name: &str,
         trigger_source_kind: ForgeQueryEffectTriggerSourceKind,
+        write_adjacent_trigger_class: ForgeQueryEffectWriteAdjacentTriggerClass,
+        write_adjacent_trigger_origin_identity: &str,
         trigger_commit_identity: &str,
         source_lane: ForgeQueryAuthorityLane,
         terminal_lane: ForgeQueryAuthorityLane,
@@ -193,6 +202,11 @@ impl ForgeQueryFeedbackPhaseGraphInspection {
             "forge_query_feedback_phase_graph_v1".to_string(),
             format!("effect:{effect_name}"),
             format!("trigger-source-kind:{}", trigger_source_kind.as_str()),
+            format!(
+                "write-adjacent-trigger-class:{}",
+                write_adjacent_trigger_class.as_str()
+            ),
+            format!("write-adjacent-trigger-origin:{write_adjacent_trigger_origin_identity}"),
             format!("trigger-commit:{trigger_commit_identity}"),
             format!("source-lane:{source_lane}"),
             format!("terminal-lane:{terminal_lane}"),
@@ -224,6 +238,9 @@ impl ForgeQueryFeedbackPhaseGraphInspection {
         Self {
             effect_name: effect_name.to_string(),
             trigger_source_kind,
+            write_adjacent_trigger_class,
+            write_adjacent_trigger_origin_identity: write_adjacent_trigger_origin_identity
+                .to_string(),
             trigger_commit_identity: trigger_commit_identity.to_string(),
             source_lane,
             terminal_lane,
@@ -246,6 +263,14 @@ impl ForgeQueryFeedbackPhaseGraphInspection {
 
     pub fn trigger_source_kind(&self) -> ForgeQueryEffectTriggerSourceKind {
         self.trigger_source_kind
+    }
+
+    pub fn write_adjacent_trigger_class(&self) -> ForgeQueryEffectWriteAdjacentTriggerClass {
+        self.write_adjacent_trigger_class
+    }
+
+    pub fn write_adjacent_trigger_origin_identity(&self) -> &str {
+        &self.write_adjacent_trigger_origin_identity
     }
 
     pub fn trigger_commit_identity(&self) -> &str {

@@ -72,5 +72,6 @@ pub(super) fn inspection_result_digest(inspection: &ForgeQueryInspection) -> &st
         ForgeQueryInspection::PreviewOutcome(inspection) => inspection.inspection_digest(),
         ForgeQueryInspection::PreviewIntentReceipt(inspection) => inspection.inspection_digest(),
         ForgeQueryInspection::BranchIntentReceipt(inspection) => inspection.inspection_digest(),
+        ForgeQueryInspection::BasisLifecycle(inspection) => inspection.inspection_digest(),
     }
 }

@@ -1,13 +1,17 @@
 use std::marker::PhantomData;
 
 use crate::application::{
+    ForgeQueryAsyncDeclarationClause, ForgeQueryAsyncDeclarationSupport,
+    ForgeQueryAsyncFailurePosture, ForgeQueryAsyncLoadingPosture,
+    ForgeQueryAsyncRequestIdentityPart, ForgeQueryAsyncSourceFamily,
     ForgeQueryBridgeContinuationAuthority, ForgeQueryDeclarationAspectContract,
     ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationBridgeContinuationContract,
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
     ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityContract,
     ForgeQueryDeclarationRouteContract, ForgeQueryMixedAuthority,
     ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
-    ForgeQuerySignalCompatiblePosture,
+    ForgeQuerySignalCompatiblePosture, ForgeQueryTemporalDeclarationClause,
+    ForgeQueryTemporalDeclarationSupport, ForgeQueryTemporalDuration,
 };
 
 use super::runtime::{bridge_aspect_contract, bridge_aspect_coverage, GeometryDomain};
@@ -312,7 +316,7 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for ExpandedAspectFamily 
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub(crate) struct RoutingInput<F> {
     edge_ref: &'static str,
     _marker: PhantomData<F>,
@@ -356,3 +360,240 @@ impl_declaration_input!(
     ConflictingAspectFamily,
     ExpandedAspectFamily,
 );
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct TemporalRuntimeRouteFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for TemporalRuntimeRouteFamily {
+    type PrimaryAuthority = ForgeQueryBridgeContinuationAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "TemporalRuntimeRouteFamily"
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::bridge_only()
+    }
+
+    fn bridge_continuation_contract() -> Option<ForgeQueryDeclarationBridgeContinuationContract> {
+        Some(ForgeQueryDeclarationBridgeContinuationContract::runtime_route_current())
+    }
+
+    fn temporal_declaration_support() -> ForgeQueryTemporalDeclarationSupport {
+        ForgeQueryTemporalDeclarationSupport::CanonicalIdentityOnly
+    }
+
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        bridge_aspect_contract()
+    }
+
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        bridge_aspect_coverage()
+    }
+}
+
+impl<F> Clone for RoutingInput<F> {
+    fn clone(&self) -> Self {
+        Self {
+            edge_ref: self.edge_ref,
+            _marker: PhantomData,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct AsyncRuntimeRouteFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AsyncRuntimeRouteFamily {
+    type PrimaryAuthority = ForgeQueryBridgeContinuationAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "AsyncRuntimeRouteFamily"
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::bridge_only()
+    }
+
+    fn bridge_continuation_contract() -> Option<ForgeQueryDeclarationBridgeContinuationContract> {
+        Some(ForgeQueryDeclarationBridgeContinuationContract::runtime_route_current())
+    }
+
+    fn async_declaration_support() -> ForgeQueryAsyncDeclarationSupport {
+        ForgeQueryAsyncDeclarationSupport::CanonicalIdentityOnly
+    }
+
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        bridge_aspect_contract()
+    }
+
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        bridge_aspect_coverage()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct TemporalSignalOnlyFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for TemporalSignalOnlyFamily {
+    type PrimaryAuthority = ForgeQueryBridgeContinuationAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "TemporalSignalOnlyFamily"
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::signal_only()
+    }
+
+    fn bridge_continuation_contract() -> Option<ForgeQueryDeclarationBridgeContinuationContract> {
+        Some(ForgeQueryDeclarationBridgeContinuationContract::runtime_route_current())
+    }
+
+    fn temporal_declaration_support() -> ForgeQueryTemporalDeclarationSupport {
+        ForgeQueryTemporalDeclarationSupport::CanonicalIdentityOnly
+    }
+
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        bridge_aspect_contract()
+    }
+
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        bridge_aspect_coverage()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct AsyncSignalOnlyFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AsyncSignalOnlyFamily {
+    type PrimaryAuthority = ForgeQueryBridgeContinuationAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "AsyncSignalOnlyFamily"
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::signal_only()
+    }
+
+    fn bridge_continuation_contract() -> Option<ForgeQueryDeclarationBridgeContinuationContract> {
+        Some(ForgeQueryDeclarationBridgeContinuationContract::runtime_route_current())
+    }
+
+    fn async_declaration_support() -> ForgeQueryAsyncDeclarationSupport {
+        ForgeQueryAsyncDeclarationSupport::CanonicalIdentityOnly
+    }
+
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        bridge_aspect_contract()
+    }
+
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        bridge_aspect_coverage()
+    }
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for RoutingInput<TemporalRuntimeRouteFamily> {
+    type Family = TemporalRuntimeRouteFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![ForgeQueryDeclarationCanonicalEntry::text(
+            "edge_ref",
+            self.edge_ref,
+        )]
+    }
+
+    fn temporal_declaration_clauses(&self) -> Vec<ForgeQueryTemporalDeclarationClause> {
+        vec![ForgeQueryTemporalDeclarationClause::stale_after(
+            ForgeQueryTemporalDuration::seconds(30),
+        )]
+    }
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for RoutingInput<AsyncRuntimeRouteFamily> {
+    type Family = AsyncRuntimeRouteFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![ForgeQueryDeclarationCanonicalEntry::text(
+            "edge_ref",
+            self.edge_ref,
+        )]
+    }
+
+    fn async_resource_declaration_clauses(&self) -> Vec<ForgeQueryAsyncDeclarationClause> {
+        vec![ForgeQueryAsyncDeclarationClause::resource_request(
+            ForgeQueryAsyncSourceFamily::BridgeResource,
+            ForgeQueryAsyncLoadingPosture::Blocking,
+            ForgeQueryAsyncFailurePosture::FailClosed,
+            vec![ForgeQueryAsyncRequestIdentityPart::text(
+                "edge_ref",
+                self.edge_ref,
+            )],
+        )]
+    }
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for RoutingInput<TemporalSignalOnlyFamily> {
+    type Family = TemporalSignalOnlyFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![ForgeQueryDeclarationCanonicalEntry::text(
+            "edge_ref",
+            self.edge_ref,
+        )]
+    }
+
+    fn temporal_declaration_clauses(&self) -> Vec<ForgeQueryTemporalDeclarationClause> {
+        vec![ForgeQueryTemporalDeclarationClause::interval(
+            ForgeQueryTemporalDuration::seconds(15),
+        )]
+    }
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for RoutingInput<AsyncSignalOnlyFamily> {
+    type Family = AsyncSignalOnlyFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![ForgeQueryDeclarationCanonicalEntry::text(
+            "edge_ref",
+            self.edge_ref,
+        )]
+    }
+
+    fn async_resource_declaration_clauses(&self) -> Vec<ForgeQueryAsyncDeclarationClause> {
+        vec![ForgeQueryAsyncDeclarationClause::resource_request(
+            ForgeQueryAsyncSourceFamily::BridgeResource,
+            ForgeQueryAsyncLoadingPosture::Blocking,
+            ForgeQueryAsyncFailurePosture::FailClosed,
+            vec![ForgeQueryAsyncRequestIdentityPart::text(
+                "edge_ref",
+                self.edge_ref,
+            )],
+        )]
+    }
+}

@@ -5,28 +5,18 @@
 
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
-
 use crate::b_rep::TopologyArena;
-use crate::handles::{
-    BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
-};
+use crate::handles::HalfEdgeId;
 use crate::identity::{DraftId, OperationCount, OperationId};
-use crate::operations::operator::TopoOperator;
 use crate::provenance::LineageStore;
 use crate::provenance::ReidentificationLinkIndex;
-use crate::provenance::{Lineage, LineageEvent, OpSignature};
-use crate::provenance::{LineageMode, LineageRecorder, OperationLineageContext, FEATURE_ID_SYSTEM};
+use crate::provenance::{LineageEvent, OpSignature};
 use crate::provenance::{ReplayEntry, ReplayLog};
 use crate::transactions::compute_arena_topology_hash;
 use crate::transactions::data::mutation_journal::MutationJournal;
 use crate::transactions::data::operation_event::{TopoOperationEvent, TopoSubscriberDataId};
-use crate::validators::validate::ValidationLevel;
 
-use forge_core::{
-    ErrorContext, ErrorScope, KernelError, LineageDelta, OperationMetrics, OperationResult,
-    TopologyError,
-};
+use forge_core::KernelError;
 use forge_signal::facade::runtime::CheckpointBarrier;
 use forge_signal::facade::specialist::EventBus;
 

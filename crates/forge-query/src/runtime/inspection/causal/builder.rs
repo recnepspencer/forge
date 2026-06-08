@@ -127,6 +127,44 @@ impl CausalInspection {
         self.because(CausalInspectionReason::BranchPreviewResult)
     }
 
+    pub fn why_temporal_wake(self) -> Self {
+        self.because(CausalInspectionReason::ChangedResult)
+            .evidence_families([
+                CausalEvidenceFamily::QueryInspection,
+                CausalEvidenceFamily::BridgeRoute,
+                CausalEvidenceFamily::SignalInvalidation,
+            ])
+    }
+
+    pub fn why_async_completion(self) -> Self {
+        self.because(CausalInspectionReason::ChangedResult)
+            .evidence_families([
+                CausalEvidenceFamily::QueryInspection,
+                CausalEvidenceFamily::BridgeRoute,
+                CausalEvidenceFamily::SignalEvaluation,
+            ])
+    }
+
+    pub fn why_remasked(self) -> Self {
+        self.because(CausalInspectionReason::BranchPreviewResult)
+            .evidence_families([
+                CausalEvidenceFamily::QueryInspection,
+                CausalEvidenceFamily::BridgeRoute,
+                CausalEvidenceFamily::BridgePreview,
+            ])
+    }
+
+    pub fn why_resume_mismatch(self) -> Self {
+        self.because(CausalInspectionReason::HistoricalReplayResult)
+            .evidence_families([
+                CausalEvidenceFamily::QueryInspection,
+                CausalEvidenceFamily::BridgeRoute,
+                CausalEvidenceFamily::BridgeReplay,
+                CausalEvidenceFamily::SignalReplayCursor,
+                CausalEvidenceFamily::BridgeContinuity,
+            ])
+    }
+
     pub fn because(mut self, reason: CausalInspectionReason) -> Self {
         self.reason = Some(reason);
         self

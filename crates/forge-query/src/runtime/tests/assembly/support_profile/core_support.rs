@@ -88,11 +88,11 @@ fn runtime_public_api_contract_marks_future_async_surfaces_as_deferred() {
         (ForgeQueryRuntimeFacadeFamily::Temporal, "Milestone 9.4"),
         (
             ForgeQueryRuntimeFacadeFamily::AsyncResource,
-            "Milestone 9.5",
+            "Milestone 9.4",
         ),
         (
             ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
-            "Milestone 9.6",
+            "Milestone 9.4",
         ),
         (
             ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,
@@ -110,12 +110,53 @@ fn runtime_public_api_contract_marks_future_async_surfaces_as_deferred() {
             row.status(),
             ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
         );
+        assert_eq!(
+            row.teaching_posture(),
+            ForgeQueryRuntimeFamilyTeachingPosture::VisibleButDeferred
+        );
+        assert!(!row.ordinary_downstream_dx());
+        assert!(row.parallel_api_forbidden());
+        assert!(row.admission_fail_closed());
+        assert_eq!(row.owner_closure(), expected_reason);
+        assert_eq!(
+            row.extension_rule(),
+            "must-extend-stabilized-handle-state-lane-aspect-inspection-facade"
+        );
         assert!(row
             .reason()
             .is_some_and(|reason| reason.contains(expected_reason)));
         assert!(row.authority_lanes().is_empty());
         assert!(row.evidence().is_empty());
     }
+
+    let read = contract
+        .family(ForgeQueryRuntimeFacadeFamily::Read)
+        .expect("supported read family should exist");
+    assert_eq!(
+        read.teaching_posture(),
+        ForgeQueryRuntimeFamilyTeachingPosture::OrdinaryRuntimeDx
+    );
+    assert!(read.ordinary_downstream_dx());
+    assert!(!read.admission_fail_closed());
+
+    let intent = contract
+        .family(ForgeQueryRuntimeFacadeFamily::Intent)
+        .expect("intent family should remain visible in the public contract");
+    assert_eq!(
+        intent.status(),
+        ForgeQueryRuntimeFamilySupportStatus::Unsupported
+    );
+    assert_eq!(
+        intent.teaching_posture(),
+        ForgeQueryRuntimeFamilyTeachingPosture::VisibleVocabularyOnly
+    );
+    assert!(!intent.ordinary_downstream_dx());
+    assert!(intent.parallel_api_forbidden());
+    assert!(intent.admission_fail_closed());
+    assert_eq!(
+        intent.extension_rule(),
+        "must-admit-through-runtime-support-profile-before-public-use"
+    );
 }
 
 #[test]
@@ -132,7 +173,7 @@ fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() 
     );
     assert_eq!(
         matrix.stable_row_count(),
-        contract.stable_family_count() + 1
+        contract.stable_family_count() + 3
     );
     assert_eq!(
         matrix.deferred_row_count(),
@@ -148,7 +189,7 @@ fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() 
     );
     assert_eq!(
         matrix.fail_closed_row_count(),
-        matrix.deferred_row_count() + matrix.unsupported_row_count()
+        matrix.deferred_row_count() + matrix.unsupported_row_count() + 1
     );
 
     let certification = matrix
@@ -166,6 +207,82 @@ fn runtime_public_support_matrix_freezes_stable_deferred_and_unsupported_rows() 
     assert!(certification.parallel_api_forbidden());
     assert!(!certification.admission_fail_closed());
     assert!(certification.support_contract_digest().is_some());
+    assert_eq!(
+        certification.teaching_posture(),
+        ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly
+    );
+    assert!(!certification.ordinary_downstream_dx());
+    assert_eq!(
+        certification.extension_rule(),
+        "must-extend-target-binding-naming-continuity-causality-provenance-contract"
+    );
+
+    let temporal = matrix
+        .row_for_family(ForgeQueryRuntimeFacadeFamily::Temporal)
+        .expect("temporal support row must be explicit");
+    assert_eq!(
+        temporal.status(),
+        ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
+    );
+    assert_eq!(
+        temporal.teaching_posture(),
+        ForgeQueryRuntimeFamilyTeachingPosture::VisibleButDeferred
+    );
+    assert!(!temporal.ordinary_downstream_dx());
+    assert!(temporal.parallel_api_forbidden());
+    assert!(temporal.admission_fail_closed());
+    assert_eq!(temporal.owner_milestone(), "Milestone 9.4");
+
+    let intent = matrix
+        .row_for_family(ForgeQueryRuntimeFacadeFamily::Intent)
+        .expect("intent vocabulary row must stay visible");
+    assert_eq!(
+        intent.status(),
+        ForgeQueryRuntimeFamilySupportStatus::Unsupported
+    );
+    assert_eq!(
+        intent.teaching_posture(),
+        ForgeQueryRuntimeFamilyTeachingPosture::VisibleVocabularyOnly
+    );
+    assert!(!intent.ordinary_downstream_dx());
+    assert!(intent.parallel_api_forbidden());
+    assert!(intent.admission_fail_closed());
+    assert_eq!(
+        intent.extension_rule(),
+        "must-admit-through-runtime-support-profile-before-public-use"
+    );
+
+    let temporal_async_certification = matrix
+        .row("temporal-async-certification")
+        .expect("temporal async certification row must stay explicit");
+    assert_eq!(
+        temporal_async_certification.status(),
+        ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
+    );
+    assert_eq!(
+        temporal_async_certification.teaching_posture(),
+        ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly
+    );
+    assert!(!temporal_async_certification.ordinary_downstream_dx());
+    assert!(temporal_async_certification.admission_fail_closed());
+
+    let temporal_async_remask = matrix
+        .row("temporal-async-remask")
+        .expect("temporal async remask row must stay explicit");
+    assert_eq!(
+        temporal_async_remask.status(),
+        ForgeQueryRuntimeFamilySupportStatus::Supported
+    );
+    assert_eq!(
+        temporal_async_remask.teaching_posture(),
+        ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly
+    );
+    assert!(!temporal_async_remask.ordinary_downstream_dx());
+    assert!(temporal_async_remask.admission_fail_closed());
+    assert_eq!(
+        temporal_async_remask.extension_rule(),
+        "must-remask-before-runtime-delivery-state-and-inspection-projection"
+    );
 }
 
 #[test]
@@ -187,11 +304,11 @@ fn runtime_public_support_gate_denies_deferred_and_unsupported_families_before_u
         (ForgeQueryRuntimeFacadeFamily::Temporal, "Milestone 9.4"),
         (
             ForgeQueryRuntimeFacadeFamily::AsyncResource,
-            "Milestone 9.5",
+            "Milestone 9.4",
         ),
         (
             ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
-            "Milestone 9.6",
+            "Milestone 9.4",
         ),
         (
             ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,

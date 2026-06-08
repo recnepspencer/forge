@@ -1,6 +1,15 @@
 use super::{ForgeQueryBatchWriteReceiptInspection, ForgeQueryWriteReceiptInspection};
+use crate::application::ForgeQueryAdmittedWorldBasis;
+use crate::query_basis_lifecycle::{
+    BasisIntentDenial, DeniedBasisCapability, InspectionBasisCapability,
+    LowerRuntimeBoundInspectionBasis, LowerRuntimeBoundObservationBasis,
+    LowerRuntimeBoundSubscriptionActivationBasis, LowerRuntimeBoundSubscriptionDeclarationBasis,
+    ObservationBasisCapability, ScopedInspectionBasis, ScopedObservationBasis, ScopedReplayBasis,
+    ScopedSubscriptionActivationBasis, ScopedSubscriptionDeclarationBasis,
+    SubscriptionActivationBasisCapability, SubscriptionDeclarationBasisCapability,
+};
 use crate::runtime::{
-    ForgeQueryBatchWriteReceipt, ForgeQueryBranchIntentReceipt,
+    ForgeQueryBasisLifecycleInspection, ForgeQueryBatchWriteReceipt, ForgeQueryBranchIntentReceipt,
     ForgeQueryBranchIntentReceiptInspection, ForgeQueryComputedInspectionEvidence,
     ForgeQueryDerivedViewHandle, ForgeQueryEffectHandle, ForgeQueryEffectInspectionEvidence,
     ForgeQueryEffectIntentReceipt, ForgeQueryEffectIntentReceiptInspection,
@@ -12,9 +21,15 @@ use crate::runtime::{
 };
 
 pub enum ForgeQueryInspectionTarget<'a> {
-    LiveView { name: &'a str },
-    DerivedView { name: &'a str },
-    Effect { name: &'a str },
+    LiveView {
+        name: &'a str,
+    },
+    DerivedView {
+        name: &'a str,
+    },
+    Effect {
+        name: &'a str,
+    },
     WriteReceipt(&'a ForgeQueryWriteReceipt),
     BatchWriteReceipt(&'a ForgeQueryBatchWriteReceipt),
     IntentReceipt(&'a ForgeQueryIntentReceipt),
@@ -24,6 +39,24 @@ pub enum ForgeQueryInspectionTarget<'a> {
     PreviewOutcome(&'a ForgeQueryPreviewOutcome),
     PreviewIntentReceipt(&'a ForgeQueryPreviewIntentReceipt),
     BranchIntentReceipt(&'a ForgeQueryBranchIntentReceipt),
+    AdmittedWorldBasis(&'a ForgeQueryAdmittedWorldBasis),
+    ObservationBasisCapability(&'a ObservationBasisCapability),
+    InspectionBasisCapability(&'a InspectionBasisCapability),
+    SubscriptionDeclarationBasisCapability(&'a SubscriptionDeclarationBasisCapability),
+    SubscriptionActivationBasisCapability(&'a SubscriptionActivationBasisCapability),
+    ScopedObservationBasis(&'a ScopedObservationBasis),
+    ScopedInspectionBasis(&'a ScopedInspectionBasis),
+    ScopedReplayBasis(&'a ScopedReplayBasis),
+    ScopedSubscriptionDeclarationBasis(&'a ScopedSubscriptionDeclarationBasis),
+    ScopedSubscriptionActivationBasis(&'a ScopedSubscriptionActivationBasis),
+    LowerRuntimeBoundObservationBasis(&'a LowerRuntimeBoundObservationBasis),
+    LowerRuntimeBoundInspectionBasis(&'a LowerRuntimeBoundInspectionBasis),
+    LowerRuntimeBoundSubscriptionDeclarationBasis(
+        &'a LowerRuntimeBoundSubscriptionDeclarationBasis,
+    ),
+    LowerRuntimeBoundSubscriptionActivationBasis(&'a LowerRuntimeBoundSubscriptionActivationBasis),
+    DeniedBasisCapability(&'a DeniedBasisCapability),
+    BasisIntentDenial(&'a BasisIntentDenial),
 }
 
 impl<'a, T> From<&'a ForgeQueryLiveView<T>> for ForgeQueryInspectionTarget<'a> {
@@ -98,6 +131,57 @@ impl<'a> From<&'a ForgeQueryBranchIntentReceipt> for ForgeQueryInspectionTarget<
     }
 }
 
+macro_rules! impl_basis_target {
+    ($target:ty, $variant:ident) => {
+        impl<'a> From<&'a $target> for ForgeQueryInspectionTarget<'a> {
+            fn from(value: &'a $target) -> Self {
+                Self::$variant(value)
+            }
+        }
+    };
+}
+
+impl_basis_target!(ForgeQueryAdmittedWorldBasis, AdmittedWorldBasis);
+impl_basis_target!(ObservationBasisCapability, ObservationBasisCapability);
+impl_basis_target!(InspectionBasisCapability, InspectionBasisCapability);
+impl_basis_target!(
+    SubscriptionDeclarationBasisCapability,
+    SubscriptionDeclarationBasisCapability
+);
+impl_basis_target!(
+    SubscriptionActivationBasisCapability,
+    SubscriptionActivationBasisCapability
+);
+impl_basis_target!(ScopedObservationBasis, ScopedObservationBasis);
+impl_basis_target!(ScopedInspectionBasis, ScopedInspectionBasis);
+impl_basis_target!(ScopedReplayBasis, ScopedReplayBasis);
+impl_basis_target!(
+    ScopedSubscriptionDeclarationBasis,
+    ScopedSubscriptionDeclarationBasis
+);
+impl_basis_target!(
+    ScopedSubscriptionActivationBasis,
+    ScopedSubscriptionActivationBasis
+);
+impl_basis_target!(
+    LowerRuntimeBoundObservationBasis,
+    LowerRuntimeBoundObservationBasis
+);
+impl_basis_target!(
+    LowerRuntimeBoundInspectionBasis,
+    LowerRuntimeBoundInspectionBasis
+);
+impl_basis_target!(
+    LowerRuntimeBoundSubscriptionDeclarationBasis,
+    LowerRuntimeBoundSubscriptionDeclarationBasis
+);
+impl_basis_target!(
+    LowerRuntimeBoundSubscriptionActivationBasis,
+    LowerRuntimeBoundSubscriptionActivationBasis
+);
+impl_basis_target!(DeniedBasisCapability, DeniedBasisCapability);
+impl_basis_target!(BasisIntentDenial, BasisIntentDenial);
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryInspection {
     LiveView(ForgeQueryLiveViewInspection),
@@ -112,4 +196,5 @@ pub enum ForgeQueryInspection {
     PreviewOutcome(ForgeQueryPreviewOutcomeInspection),
     PreviewIntentReceipt(ForgeQueryPreviewIntentReceiptInspection),
     BranchIntentReceipt(ForgeQueryBranchIntentReceiptInspection),
+    BasisLifecycle(ForgeQueryBasisLifecycleInspection),
 }

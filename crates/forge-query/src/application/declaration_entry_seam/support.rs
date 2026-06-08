@@ -16,11 +16,9 @@ use super::{
         ForgeQueryDeclarationEntryRetainedSubjectStrength,
     },
     digest::derive_readiness_digest,
-    inspection::{
-        envelope_bridge_summary, envelope_relational_summary, envelope_signal_summary,
-        normalize_retained_subject, ForgeQueryDeclarationEntryRetainedSubjectInput,
-    },
+    inspection::ForgeQueryDeclarationEntryRetainedSubjectInput,
     readiness_projection::readiness_row_for_crossing,
+    retained_subject::{readiness_reconciliation_context, ReadinessRetainedPosture},
     row::{crossing_rows_for_family, ForgeQueryDeclarationEntryCrossingRow},
 };
 
@@ -330,70 +328,4 @@ pub(crate) fn forge_query_declaration_entry_readiness_report_with_context<
         contribution_composition,
         readiness_digest,
     ))
-}
-
-struct ReadinessReconciliation {
-    declaration_digest: Option<String>,
-    subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength,
-    retained_posture: Option<ReadinessRetainedPosture>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ReadinessRetainedPosture {
-    pub(crate) envelope_aspect_publication: ForgeQueryDeclarationAspectPublication,
-    pub(crate) relational_authority_summary: ForgeQueryDeclarationRelationalAuthorityAspectSummary,
-    pub(crate) bridge_authority_summary: ForgeQueryDeclarationBridgeAuthorityAspectSummary,
-    pub(crate) signal_authority_summary: ForgeQueryDeclarationSignalAuthorityAspectSummary,
-}
-
-fn readiness_reconciliation_context<
-    D: ForgeQueryDomainEntryMarker,
-    C: ForgeQueryDomainOperatingContext<D>,
-    I: ForgeQueryDeclarationInput<D>,
->(
-    handle: &ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
-    retained_subject: Option<ForgeQueryDeclarationEntryRetainedSubjectInput<D, I>>,
-) -> Result<ReadinessReconciliation, ForgeQueryDeclarationEntryContributionCompositionError<D, I>> {
-    let Some(retained_subject) = retained_subject else {
-        return Ok(ReadinessReconciliation {
-            declaration_digest: None,
-            subject_strength: ForgeQueryDeclarationEntryRetainedSubjectStrength::Envelope,
-            retained_posture: None,
-        });
-    };
-    let normalized = normalize_retained_subject(retained_subject);
-    if normalized.envelope.handle_identity_digest() != handle.handle_identity_digest()
-        || normalized.envelope.operating_context_identity_digest()
-            != handle.operating_context_identity_digest()
-    {
-        return Err(ForgeQueryDeclarationEntryContributionCompositionError::new(
-            normalized.envelope.declaration_family_key(),
-            crate::application::ForgeQueryDeclarationEntryContributionCompositionFailureClass::RetainedSubjectMismatch,
-            Vec::new(),
-            "declaration-entry readiness requires retained seam subjects from the same admitted handle and world",
-        ));
-    }
-    let retained_posture = ReadinessRetainedPosture {
-        envelope_aspect_publication: normalized.envelope.aspect_publication().clone(),
-        relational_authority_summary: normalized
-            .relational
-            .as_ref()
-            .map(|posture| posture.aspect_summary().clone())
-            .unwrap_or_else(|| envelope_relational_summary(&normalized.envelope)),
-        bridge_authority_summary: normalized
-            .bridge
-            .as_ref()
-            .map(|posture| posture.aspect_summary().clone())
-            .unwrap_or_else(|| envelope_bridge_summary(&normalized.envelope)),
-        signal_authority_summary: normalized
-            .signal
-            .as_ref()
-            .map(|posture| posture.aspect_summary().clone())
-            .unwrap_or_else(|| envelope_signal_summary(&normalized.envelope)),
-    };
-    Ok(ReadinessReconciliation {
-        declaration_digest: Some(normalized.envelope.declaration_digest().to_string()),
-        subject_strength: normalized.subject_strength,
-        retained_posture: Some(retained_posture),
-    })
 }

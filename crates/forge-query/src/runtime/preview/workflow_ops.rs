@@ -24,6 +24,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
     pub fn promote(mut self) -> Result<ForgeQueryPreviewOutcome, ForgeQueryRuntimeError> {
         let staged_preview_write_count = self.pending_commands.len();
         let promotion_snapshot_token = self.runtime.snapshot_token();
+        let residue_snapshot = self.residue_snapshot();
         if promotion_snapshot_token != self.basis_snapshot_token {
             return Err(ForgeQueryRuntimeError::PreviewPromotionStaleBasis(
                 ForgeQueryPreviewPromotionDenialEvidence::stale_basis(
@@ -51,6 +52,34 @@ impl<'a> ForgeQueryPreviewSession<'a> {
                     ),
                 ),
             );
+        }
+        let crossed_authoritative_residue_count =
+            residue_snapshot.crossed_authoritative_residue_count;
+        let promotion_rebinding_digest = hash_parts(&[
+            "forge_query_preview_promotion_rebinding_v1".to_string(),
+            format!("label:{}", self.label),
+            format!("basis_snapshot:{}", self.basis_snapshot_token),
+            format!("promotion_snapshot:{}", promotion_snapshot_token),
+            format!(
+                "crossed_authoritative_residue:{}",
+                crossed_authoritative_residue_count
+            ),
+            format!("preview_bindings:{}", self.handle_bindings.len()),
+        ]);
+        if crossed_authoritative_residue_count > 0 {
+            return Err(ForgeQueryRuntimeError::PreviewPromotionRebindingRequired(
+                ForgeQueryPreviewPromotionDenialEvidence::rebinding_required(
+                    &self.label,
+                    self.effect_policy,
+                    &self.basis_admission,
+                    &self.basis_snapshot_token,
+                    &promotion_snapshot_token,
+                    staged_preview_write_count,
+                    self.handle_bindings.len(),
+                    crossed_authoritative_residue_count,
+                    promotion_rebinding_digest,
+                ),
+            ));
         }
         let mut promoted_writes = 0;
         for (index, command) in std::mem::take(&mut self.pending_commands)
@@ -90,6 +119,9 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             ForgeQueryPreviewCloseoutKind::Promoted,
             staged_preview_write_count,
             promoted_writes,
+            residue_snapshot,
+            &promotion_snapshot_token,
+            Some(promotion_rebinding_digest),
         );
         Ok(ForgeQueryPreviewOutcome {
             label: self.label,
@@ -111,6 +143,7 @@ impl<'a> ForgeQueryPreviewSession<'a> {
     pub fn discard(mut self) -> ForgeQueryPreviewOutcome {
         self.discarded = true;
         let staged_preview_write_count = self.pending_commands.len();
+        let residue_snapshot = self.residue_snapshot();
         let preview_binding_count = self.handle_bindings.len();
         let effect_binding_count = self.effect_binding_count();
         let effect_delivery_residue_count = self.effect_delivery_residue_count();
@@ -120,6 +153,9 @@ impl<'a> ForgeQueryPreviewSession<'a> {
             ForgeQueryPreviewCloseoutKind::Discarded,
             staged_preview_write_count,
             0,
+            residue_snapshot,
+            &self.basis_snapshot_token,
+            None,
         );
         ForgeQueryPreviewOutcome {
             label: self.label,

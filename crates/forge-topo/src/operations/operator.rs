@@ -23,7 +23,7 @@
 //! ```
 
 use crate::transactions::MutableDraft;
-use crate::validators::invariant_id::{InvariantContract, InvariantId, InvariantRelation};
+use crate::validators::invariant_id::InvariantContract;
 use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 
 /// A topology mutation that can be applied to a `MutableDraft`.
@@ -214,6 +214,7 @@ pub(crate) fn validate_halfedge_reciprocity(
 mod tests {
     use super::*;
     use crate::transactions::TopologyState;
+    use crate::validators::invariant_id::InvariantRelation;
 
     /// A trivial operator for testing the runner
     #[derive(Debug)]

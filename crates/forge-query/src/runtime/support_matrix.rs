@@ -1,18 +1,18 @@
 use crate::identity::hash_parts;
 
 use super::{
-    ForgeQueryRuntime, ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimePublicApiContract,
+    ForgeQueryRuntime, ForgeQueryRuntimeBackendPosture,
+    ForgeQueryRuntimeDownstreamDeliveryContract, ForgeQueryRuntimeFacadeFamily,
+    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeFamilyTeachingPosture,
+    ForgeQueryRuntimePublicApiContract,
 };
-
-const STABILIZED_EXTENSION_RULE: &str =
-    "must-extend-stabilized-handle-state-lane-aspect-inspection-facade";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimePublicSupportMatrixRow {
     surface: String,
     facade_family: Option<ForgeQueryRuntimeFacadeFamily>,
     status: ForgeQueryRuntimeFamilySupportStatus,
+    teaching_posture: ForgeQueryRuntimeFamilyTeachingPosture,
     owner_milestone: String,
     extension_rule: String,
     parallel_api_forbidden: bool,
@@ -26,6 +26,7 @@ impl ForgeQueryRuntimePublicSupportMatrixRow {
         surface: impl Into<String>,
         facade_family: Option<ForgeQueryRuntimeFacadeFamily>,
         status: ForgeQueryRuntimeFamilySupportStatus,
+        teaching_posture: ForgeQueryRuntimeFamilyTeachingPosture,
         owner_milestone: impl Into<String>,
         extension_rule: impl Into<String>,
         parallel_api_forbidden: bool,
@@ -45,6 +46,7 @@ impl ForgeQueryRuntimePublicSupportMatrixRow {
                     .unwrap_or("matrix-only")
             ),
             format!("status:{}", status.as_str()),
+            format!("teaching:{}", teaching_posture.as_str()),
             format!("owner:{owner_milestone}"),
             format!("extension:{extension_rule}"),
             format!("parallel_forbidden:{parallel_api_forbidden}"),
@@ -58,6 +60,7 @@ impl ForgeQueryRuntimePublicSupportMatrixRow {
             surface,
             facade_family,
             status,
+            teaching_posture,
             owner_milestone,
             extension_rule,
             parallel_api_forbidden,
@@ -77,6 +80,14 @@ impl ForgeQueryRuntimePublicSupportMatrixRow {
 
     pub fn status(&self) -> ForgeQueryRuntimeFamilySupportStatus {
         self.status
+    }
+
+    pub fn teaching_posture(&self) -> ForgeQueryRuntimeFamilyTeachingPosture {
+        self.teaching_posture
+    }
+
+    pub fn ordinary_downstream_dx(&self) -> bool {
+        self.teaching_posture == ForgeQueryRuntimeFamilyTeachingPosture::OrdinaryRuntimeDx
     }
 
     pub fn owner_milestone(&self) -> &str {
@@ -128,10 +139,11 @@ impl ForgeQueryRuntimePublicSupportMatrix {
                     facade_family.as_str(),
                     Some(facade_family),
                     status,
-                    owner_milestone_for_family(facade_family, status),
-                    extension_rule_for_status(status),
-                    true,
-                    status != ForgeQueryRuntimeFamilySupportStatus::Supported,
+                    family.teaching_posture(),
+                    family.owner_closure(),
+                    family.extension_rule(),
+                    family.parallel_api_forbidden(),
+                    family.admission_fail_closed(),
                     Some(family.contract_digest().to_string()),
                 )
             })
@@ -141,6 +153,7 @@ impl ForgeQueryRuntimePublicSupportMatrix {
             "authoritative-mutation-evidence-certification",
             None,
             ForgeQueryRuntimeFamilySupportStatus::Supported,
+            ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
             "Runtime Authoritative Mutation Evidence Gate",
             "must-extend-target-binding-naming-continuity-causality-provenance-contract",
             true,
@@ -158,11 +171,42 @@ impl ForgeQueryRuntimePublicSupportMatrix {
             "temporal-async-certification",
             None,
             ForgeQueryRuntimeFamilySupportStatus::DeferredDebt,
-            "Milestone 9.7",
-            STABILIZED_EXTENSION_RULE,
+            ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
+            "Milestone 9.4",
+            "must-extend-stabilized-handle-state-lane-aspect-inspection-facade",
             true,
             true,
             None::<String>,
+        ));
+
+        rows.push(ForgeQueryRuntimePublicSupportMatrixRow::new(
+            "temporal-async-remask",
+            None,
+            ForgeQueryRuntimeFamilySupportStatus::Supported,
+            ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
+            "Milestone 9.4",
+            "must-remask-before-runtime-delivery-state-and-inspection-projection",
+            true,
+            true,
+            None::<String>,
+        ));
+
+        rows.push(ForgeQueryRuntimePublicSupportMatrixRow::new(
+            "downstream-delivery-contract",
+            None,
+            ForgeQueryRuntimeFamilySupportStatus::Supported,
+            ForgeQueryRuntimeFamilyTeachingPosture::SupportGateOnly,
+            "Milestone 9.4",
+            "must-project-runtime-backed-delivery-basis-resume-and-support-posture-through-one-query-owned-contract",
+            true,
+            false,
+            Some(
+                ForgeQueryRuntimeDownstreamDeliveryContract::from_backend_posture(
+                    contract.backend_posture(),
+                )
+                .contract_digest()
+                .to_string(),
+            ),
         ));
 
         let stable_row_count = rows
@@ -251,45 +295,5 @@ impl ForgeQueryRuntimePublicSupportMatrix {
         self.rows
             .iter()
             .find(|row| row.facade_family() == Some(family))
-    }
-}
-
-fn owner_milestone_for_family(
-    family: ForgeQueryRuntimeFacadeFamily,
-    status: ForgeQueryRuntimeFamilySupportStatus,
-) -> &'static str {
-    match (family, status) {
-        (
-            ForgeQueryRuntimeFacadeFamily::Read
-            | ForgeQueryRuntimeFacadeFamily::Live
-            | ForgeQueryRuntimeFacadeFamily::Computed
-            | ForgeQueryRuntimeFacadeFamily::Effect
-            | ForgeQueryRuntimeFacadeFamily::BranchPreview
-            | ForgeQueryRuntimeFacadeFamily::Write
-            | ForgeQueryRuntimeFacadeFamily::Inspect,
-            ForgeQueryRuntimeFamilySupportStatus::Supported,
-        ) => "Milestone 9.3",
-        (
-            ForgeQueryRuntimeFacadeFamily::Intent,
-            ForgeQueryRuntimeFamilySupportStatus::Unsupported,
-        ) => "Milestone 9.x intent-authority-adapter",
-        (ForgeQueryRuntimeFacadeFamily::Temporal, _) => "Milestone 9.4",
-        (ForgeQueryRuntimeFacadeFamily::AsyncResource, _) => "Milestone 9.5",
-        (ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery, _) => "Milestone 9.6",
-        (ForgeQueryRuntimeFacadeFamily::StoreBackedExecution, _) => "Milestone 10",
-        (ForgeQueryRuntimeFacadeFamily::DurableArtifacts, _) => "Milestone 11",
-        _ => "current-runtime-support-profile",
-    }
-}
-
-fn extension_rule_for_status(status: ForgeQueryRuntimeFamilySupportStatus) -> &'static str {
-    match status {
-        ForgeQueryRuntimeFamilySupportStatus::Supported => {
-            "stable-runtime-backed-handle-state-lane-aspect-inspection-facade"
-        }
-        ForgeQueryRuntimeFamilySupportStatus::DeferredDebt => STABILIZED_EXTENSION_RULE,
-        ForgeQueryRuntimeFamilySupportStatus::Unsupported => {
-            "must-admit-through-runtime-support-profile-before-public-use"
-        }
     }
 }

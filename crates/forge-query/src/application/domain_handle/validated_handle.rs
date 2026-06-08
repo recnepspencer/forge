@@ -1,6 +1,8 @@
 use super::admission::admit_configured_domain_handle;
 use super::checked_outcome::ForgeQueryConfiguredDomainHandleAdmissionError;
-use super::operating_context::ForgeQueryDomainOperatingContext;
+use super::operating_context::{
+    ForgeQueryDomainOperatingContext, ForgeQueryDomainOperatingRequirement,
+};
 use crate::application::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryCapabilityFamily,
     ForgeQueryConfigSectionFamily, ForgeQueryDomainEntryMarker,
@@ -17,6 +19,7 @@ pub struct ForgeQueryValidatedConfiguredDomainHandle<
     support_snapshot: ForgeQueryDomainEntrySupportSnapshot,
     required_capability_families: Vec<ForgeQueryCapabilityFamily>,
     required_config_sections: Vec<ForgeQueryConfigSectionFamily>,
+    required_operating_requirements: Vec<ForgeQueryDomainOperatingRequirement>,
     operating_context_identity_digest: String,
     handle_identity_digest: String,
 }
@@ -30,6 +33,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
         support_snapshot: ForgeQueryDomainEntrySupportSnapshot,
         required_capability_families: Vec<ForgeQueryCapabilityFamily>,
         required_config_sections: Vec<ForgeQueryConfigSectionFamily>,
+        required_operating_requirements: Vec<ForgeQueryDomainOperatingRequirement>,
         operating_context_identity_digest: String,
         handle_identity_digest: String,
     ) -> Self {
@@ -39,6 +43,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
             support_snapshot,
             required_capability_families,
             required_config_sections,
+            required_operating_requirements,
             operating_context_identity_digest,
             handle_identity_digest,
         }
@@ -72,6 +77,10 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
         &self.required_config_sections
     }
 
+    pub fn required_operating_requirements(&self) -> &[ForgeQueryDomainOperatingRequirement] {
+        &self.required_operating_requirements
+    }
+
     pub fn handle_identity_digest(&self) -> &str {
         &self.handle_identity_digest
     }
@@ -97,6 +106,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
         ForgeQueryDomainEntrySupportSnapshot,
         Vec<ForgeQueryCapabilityFamily>,
         Vec<ForgeQueryConfigSectionFamily>,
+        Vec<ForgeQueryDomainOperatingRequirement>,
         String,
         String,
     ) {
@@ -106,6 +116,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
             self.support_snapshot,
             self.required_capability_families,
             self.required_config_sections,
+            self.required_operating_requirements,
             self.operating_context_identity_digest,
             self.handle_identity_digest,
         )

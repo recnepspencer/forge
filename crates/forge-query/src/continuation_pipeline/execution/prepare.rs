@@ -1,7 +1,7 @@
 use crate::application::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDeclarationBridgeRoutingChecked,
-    ForgeQueryDeclarationBridgeRoutingDenialCause, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryDomainOperatingContext,
 };
 use crate::binding_pipeline::{
     ForgeQueryBindingNarrowingDecision, ForgeQueryBindingRequestDescriptor,
@@ -9,11 +9,15 @@ use crate::binding_pipeline::{
     ForgeQueryContinuationBindingRequest, ForgeQueryResolveContinuationFromTargetRequest,
 };
 
+use super::outcome::{
+    prepared_outcome_from_binding_outcome, prepared_outcome_from_bridge_denial_cause,
+    prepared_outcome_from_signal_truth, prepared_outcome_token,
+};
 use super::readmission::prepared_execution_readmission_from_routing;
 use super::support::{
     bridge_subject_and_signal_truth, linked_from_subject, prepared_digest,
-    required_capability_families_for_prepared, signal_basis_families_from_family,
-    signal_subject_from_bridge_subject, transcript_digest,
+    required_capability_families_for_prepared, signal_subject_from_bridge_subject,
+    transcript_digest,
 };
 use crate::continuation_pipeline::artifacts::{
     basis_posture_for_families, family_for_mode, runtime_contract_for_mode, truth_context_for_mode,
@@ -137,8 +141,24 @@ fn prepare_from_resolved_signal_truth<
         witness_checks[1] =
             ForgeQueryBindingWitnessCheck::failed("signal_compatibility", signal_truth.reason);
         narrowing.push(ForgeQueryBindingNarrowingDecision::new(
-            "prepared continuation carries forward target-specific signal compatibility posture",
+            "prepared continuation stops before bridge preparation when retained signal compatibility is not compatible",
         ));
+        let outcome = prepared_outcome_from_signal_truth(&signal_truth)
+            .expect("non-compatible signal posture must stop before preparation");
+        let digest = transcript_digest(
+            "prepared_continuation",
+            I::Family::semantic_family_key(),
+            &linked,
+            prepared_outcome_token(&outcome),
+        );
+        return ForgeQueryPreparedContinuationTranscript::new(
+            request_descriptor,
+            outcome,
+            witness_checks,
+            narrowing,
+            digest,
+            linked,
+        );
     }
     let bridge_checked = handle.route_bridge_continuation_checked(subject);
     let outcome = prepared_outcome_from_bridge_checked(
@@ -183,7 +203,6 @@ fn prepared_outcome_from_bridge_checked<
     match bridge_checked {
         ForgeQueryDeclarationBridgeRoutingChecked::Routed(routing) => {
             witness_checks.push(ForgeQueryBindingWitnessCheck::passed("bridge_routing"));
-            let basis_families = signal_basis_families_from_family::<D, I>();
             let required_capability_families = required_capability_families_for_prepared::<D, I>(
                 bridge_request,
                 signal_truth.execution_family,
@@ -193,26 +212,28 @@ fn prepared_outcome_from_bridge_checked<
                 &routing,
                 required_capability_families,
             );
+            let prepared_digest = prepared_digest::<D, C, I>(
+                handle,
+                bridge_request,
+                required_contract,
+                linked,
+                signal_truth,
+                &routing,
+            );
             let prepared = ForgeQueryPreparedContinuation::new(
                 family_for_mode(bridge_request.mode()),
                 truth_context_for_mode(routing.truth_context()),
-                basis_posture_for_families(&basis_families),
+                basis_posture_for_families(&signal_truth.basis_families),
                 workspace_contract_for_mode(bridge_request.mode()),
                 runtime_contract_for_mode(bridge_request.mode()),
                 ForgeQueryPreparedContinuationExecutionMode::ExplicitBridgeLowering,
-                basis_families,
+                signal_truth.basis_families.clone(),
                 execution_readmission,
                 routing,
                 signal_truth.posture,
                 signal_truth.execution_family,
                 signal_truth.digest.clone(),
-                prepared_digest::<D, C, I>(
-                    handle,
-                    bridge_request,
-                    required_contract,
-                    linked,
-                    signal_truth,
-                ),
+                prepared_digest,
             );
             ForgeQueryPreparedContinuationOutcome::Prepared(prepared)
         }
@@ -237,33 +258,6 @@ fn prepared_outcome_from_bridge_checked<
             ));
             ForgeQueryPreparedContinuationOutcome::Failed(failed.reason().to_string())
         }
-    }
-}
-
-fn prepared_outcome_from_bridge_denial_cause<
-    D: ForgeQueryDomainEntryMarker,
-    I: ForgeQueryDeclarationInput<D>,
->(
-    cause: ForgeQueryDeclarationBridgeRoutingDenialCause,
-    reason: &str,
-) -> ForgeQueryPreparedContinuationOutcome<D, I> {
-    match cause {
-        ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeEnvelopeMismatch => {
-            ForgeQueryPreparedContinuationOutcome::WrongHandle(reason.to_string())
-        }
-        ForgeQueryDeclarationBridgeRoutingDenialCause::BridgeAuthorityUnavailable
-        | ForgeQueryDeclarationBridgeRoutingDenialCause::AuthorityAspectGap
-        | ForgeQueryDeclarationBridgeRoutingDenialCause::AuthorityAspectAmbiguity => {
-            ForgeQueryPreparedContinuationOutcome::AuthorityMismatch(reason.to_string())
-        }
-        ForgeQueryDeclarationBridgeRoutingDenialCause::BasisLifecycleMismatch => {
-            ForgeQueryPreparedContinuationOutcome::BasisMismatch(reason.to_string())
-        }
-        ForgeQueryDeclarationBridgeRoutingDenialCause::UnsupportedContinuationMode
-        | ForgeQueryDeclarationBridgeRoutingDenialCause::UnsupportedTruthContext => {
-            ForgeQueryPreparedContinuationOutcome::Unsupported(reason.to_string())
-        }
-        _ => ForgeQueryPreparedContinuationOutcome::Denied(reason.to_string()),
     }
 }
 
@@ -307,104 +301,5 @@ fn prepare_from_binding_transcript<
                 linked,
             )
         }
-    }
-}
-
-fn prepared_outcome_from_binding_outcome<
-    D: ForgeQueryDomainEntryMarker,
-    I: ForgeQueryDeclarationInput<D>,
->(
-    outcome: crate::binding_pipeline::ForgeQueryBindingOutcome<
-        ForgeQueryContinuationBindingInput<D, I>,
-    >,
-) -> (
-    ForgeQueryPreparedContinuationOutcome<D, I>,
-    &'static str,
-    ForgeQueryBindingNarrowingDecision,
-) {
-    match outcome {
-        crate::binding_pipeline::ForgeQueryBindingOutcome::Ambiguous(reason) => (
-            ForgeQueryPreparedContinuationOutcome::Ambiguous(reason.reason().to_string()),
-            "continuation_binding",
-            ForgeQueryBindingNarrowingDecision::new(
-                "prepared continuation stopped because continuation binding remained ambiguous",
-            ),
-        ),
-        crate::binding_pipeline::ForgeQueryBindingOutcome::Unavailable(reason) => (
-            ForgeQueryPreparedContinuationOutcome::Unavailable(reason.reason().to_string()),
-            "continuation_binding",
-            ForgeQueryBindingNarrowingDecision::new(reason.reason()),
-        ),
-        crate::binding_pipeline::ForgeQueryBindingOutcome::WrongWorld(reason) => (
-            ForgeQueryPreparedContinuationOutcome::WrongWorld(reason.reason().to_string()),
-            "world_alignment",
-            ForgeQueryBindingNarrowingDecision::new(reason.reason()),
-        ),
-        crate::binding_pipeline::ForgeQueryBindingOutcome::WrongHandle(reason) => (
-            ForgeQueryPreparedContinuationOutcome::WrongHandle(reason.reason().to_string()),
-            "handle_alignment",
-            ForgeQueryBindingNarrowingDecision::new(reason.reason()),
-        ),
-        crate::binding_pipeline::ForgeQueryBindingOutcome::Stale(reason) => (
-            ForgeQueryPreparedContinuationOutcome::Stale(reason.reason().to_string()),
-            "basis_freshness",
-            ForgeQueryBindingNarrowingDecision::new(reason.reason()),
-        ),
-        crate::binding_pipeline::ForgeQueryBindingOutcome::RebindRequired(reason) => (
-            ForgeQueryPreparedContinuationOutcome::RebindRequired(reason.reason().to_string()),
-            "continuation_binding",
-            ForgeQueryBindingNarrowingDecision::new(reason.reason()),
-        ),
-        crate::binding_pipeline::ForgeQueryBindingOutcome::AuthorityMismatch(reason) => (
-            ForgeQueryPreparedContinuationOutcome::AuthorityMismatch(reason.reason().to_string()),
-            "authority_alignment",
-            ForgeQueryBindingNarrowingDecision::new(reason.reason()),
-        ),
-        crate::binding_pipeline::ForgeQueryBindingOutcome::BasisMismatch(reason) => (
-            ForgeQueryPreparedContinuationOutcome::BasisMismatch(reason.reason().to_string()),
-            "basis_alignment",
-            ForgeQueryBindingNarrowingDecision::new(reason.reason()),
-        ),
-        crate::binding_pipeline::ForgeQueryBindingOutcome::MissingRequiredAspect(reason) => (
-            ForgeQueryPreparedContinuationOutcome::Denied(reason.reason().to_string()),
-            "aspect_fit",
-            ForgeQueryBindingNarrowingDecision::new(reason.reason()),
-        ),
-        crate::binding_pipeline::ForgeQueryBindingOutcome::AspectConflict(reason) => (
-            ForgeQueryPreparedContinuationOutcome::Denied(reason.reason().to_string()),
-            "aspect_fit",
-            ForgeQueryBindingNarrowingDecision::new(reason.reason()),
-        ),
-        crate::binding_pipeline::ForgeQueryBindingOutcome::ExplicitNarrowingRequired(reason) => (
-            ForgeQueryPreparedContinuationOutcome::RebindRequired(reason.reason().to_string()),
-            "continuation_binding",
-            ForgeQueryBindingNarrowingDecision::new(reason.reason()),
-        ),
-        crate::binding_pipeline::ForgeQueryBindingOutcome::Unsupported(reason) => (
-            ForgeQueryPreparedContinuationOutcome::Unsupported(reason.reason().to_string()),
-            "continuation_binding",
-            ForgeQueryBindingNarrowingDecision::new(reason.reason()),
-        ),
-        crate::binding_pipeline::ForgeQueryBindingOutcome::Bound(_) => unreachable!(),
-    }
-}
-
-fn prepared_outcome_token<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
-    outcome: &ForgeQueryPreparedContinuationOutcome<D, I>,
-) -> &str {
-    match outcome {
-        ForgeQueryPreparedContinuationOutcome::Prepared(prepared) => prepared.prepared_digest(),
-        ForgeQueryPreparedContinuationOutcome::Ambiguous(_) => "ambiguous",
-        ForgeQueryPreparedContinuationOutcome::Unavailable(_) => "unavailable",
-        ForgeQueryPreparedContinuationOutcome::WrongWorld(_) => "wrong_world",
-        ForgeQueryPreparedContinuationOutcome::WrongHandle(_) => "wrong_handle",
-        ForgeQueryPreparedContinuationOutcome::Stale(_) => "stale",
-        ForgeQueryPreparedContinuationOutcome::RebindRequired(_) => "rebind_required",
-        ForgeQueryPreparedContinuationOutcome::AuthorityMismatch(_) => "authority_mismatch",
-        ForgeQueryPreparedContinuationOutcome::BasisMismatch(_) => "basis_mismatch",
-        ForgeQueryPreparedContinuationOutcome::Unsupported(_) => "unsupported",
-        ForgeQueryPreparedContinuationOutcome::Deferred(_) => "deferred",
-        ForgeQueryPreparedContinuationOutcome::Denied(_) => "denied",
-        ForgeQueryPreparedContinuationOutcome::Failed(_) => "failed",
     }
 }

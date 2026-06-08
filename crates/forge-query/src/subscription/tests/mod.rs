@@ -12,25 +12,16 @@ fn roomy_lowering_budget() -> QuerySubscriptionBridgeLoweringBudget {
     QuerySubscriptionBridgeLoweringBudget::admitted(1, 8, 8, 1, 1)
 }
 
-mod active_closeout;
-mod active_continuation;
+mod active;
 mod active_delivery;
-mod active_lifecycle;
-mod active_preview_isolation;
-mod active_sharing;
 mod admission;
-mod bridge_lowering;
-mod bridge_parity;
-mod budget_denial;
 mod certification;
-mod declaration_budget;
-mod declaration_parity;
-mod delivery_intent;
+mod declaration;
 mod diagnostic_bundles;
 mod diagnostics;
-mod dimension_denial;
-mod equivalence;
-mod family_selection;
 mod runtime_certification;
-mod slice_intent;
+mod runtime_certification_closure_support;
+mod selection;
 mod support;
+
+pub(crate) use runtime_certification_closure_support::runtime_backed_subscription_certification_summary;

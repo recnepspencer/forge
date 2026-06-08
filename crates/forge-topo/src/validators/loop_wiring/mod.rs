@@ -21,12 +21,11 @@ mod loop_closure;
 mod prev_consistency;
 mod vertex_continuity;
 
-use forge_core::KernelError;
-
 pub(crate) use duplicate_coedges::validate_no_duplicate_coedges_in_loop;
 pub(crate) use edge_endpoints::validate_edge_endpoints_match_loop_vertices;
 pub(crate) use face_membership::validate_face_loop_membership_complete;
 pub(crate) use loop_cardinality::validate_loop_minimum_cardinality;
+#[cfg(test)]
 pub(crate) use loop_closure::validate_loops;
 pub(crate) use prev_consistency::validate_prev_consistency;
 pub use vertex_continuity::validate_vertex_continuity;

@@ -1,6 +1,7 @@
 use crate::identity::hash_parts;
 
 use super::eligibility::{AdmittedProjectionConsumption, ProjectionConsumptionWarningKind};
+use super::facts::ProjectionMaterializedFactPosture;
 use super::facts::{ProjectionFactKind, ProjectionFactRequest};
 use super::source::{
     ProjectionConsumptionSource, ProjectionSourceFamily, ProjectionSourceReferenceIdentity,
@@ -85,6 +86,7 @@ pub struct MaterializedProjectionContract {
     source_posture: ProjectionContractSourcePosture,
     source_identity: String,
     source_reference_identities: Vec<ProjectionSourceReferenceIdentity>,
+    materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     fact_families: Vec<BoundProjectionFactFamily>,
     support_posture: ProjectionContractSupportPosture,
     contract_digest: String,
@@ -151,6 +153,10 @@ impl MaterializedProjectionContract {
         &self.fact_families
     }
 
+    pub fn materialized_fact_posture(&self) -> Option<&ProjectionMaterializedFactPosture> {
+        self.materialized_fact_posture.as_ref()
+    }
+
     pub fn support_posture(&self) -> &ProjectionContractSupportPosture {
         &self.support_posture
     }
@@ -210,6 +216,7 @@ pub(crate) fn bind_materialized_projection_contract(
         source_posture: contract_source_posture(source.family()),
         source_identity: source.source_identity().to_string(),
         source_reference_identities: source.source_reference_identities().to_vec(),
+        materialized_fact_posture: source.materialized_fact_posture().cloned(),
         fact_families,
         support_posture,
         contract_digest,
@@ -257,6 +264,12 @@ fn contract_digest_parts(
     }
     if let Some(result_digest) = source.result_digest() {
         parts.push(format!("result:{result_digest}"));
+    }
+    if let Some(posture) = source.materialized_fact_posture() {
+        parts.push(format!(
+            "materialized_fact_posture:{}",
+            posture.posture_digest()
+        ));
     }
     if !support_posture.warning_kinds().is_empty() {
         parts.push(format!(

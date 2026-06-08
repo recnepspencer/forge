@@ -64,6 +64,9 @@ Good to know:
 - the admitted handle stays the entry surface because retained admitted-world
   proof still matters
 - route planning exposes an explicit route set from day one
+- temporal and async declarations still lower through this same route-plan lane;
+  their future-sensitive posture is retained on the plan artifact instead of
+  creating a second planner
 - `primary_route()` is convenience only; the route set is authoritative
 
 ## API Reference
@@ -151,6 +154,7 @@ Route-plan inspection:
 - `declaration_digest() -> &str`
 - `progression_digest() -> &str`
 - `route_plan_digest() -> &str`
+- `future_projection() -> &ForgeQueryDeclarationFutureProjection`
 - `binding_target() -> ForgeQueryDeclarationRoutePlanBindingTarget`
 - `foundational_evidence() -> &ForgeQueryDeclarationFoundationalEvidence<D, I>`
 - `progressed_declaration() -> &ForgeQueryAdmittedDeclarationProgression<D, I>`
@@ -232,6 +236,13 @@ retained declaration proof:
 4. the family route contract says which lower-authority families are allowed
 5. Query materializes one explicit route set or one typed deferred/denied/failed
    outcome
+
+Temporal and async declaration meaning does not create new public
+lower-authority route families here. Query still routes through the ordinary
+`Relational`, `Bridge`, `Signal`, and `Mixed` family vocabulary. The
+future-sensitive difference is carried in `future_projection()` and in the
+route-plan digest/explanation, so later bridge and continuation surfaces can
+consume retained proof instead of rediscovering declaration posture.
 
 If two declarations retain the same proof and the same route intent, they
 should converge to the same route-plan digest. If admitted world, route
