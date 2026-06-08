@@ -6,13 +6,16 @@ use forge_foundational::facade::{
 };
 
 use crate::application::{
-    ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryApplicationFacade, ForgeQueryBridgeContinuationAuthority, ForgeQueryCapabilityFamily,
+    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationBridgeContinuationContract,
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
     ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityClass,
     ForgeQueryDeclarationLegalityContract, ForgeQueryDomainEntryMarker,
     ForgeQueryDomainOperatingContext, ForgeQueryNeighborhoodCapableGrouping,
     ForgeQueryRelationalTruthAuthority, ForgeQuerySignalCompatiblePosture,
+    ForgeQueryTemporalDeclarationClause, ForgeQueryTemporalDeclarationSupport,
+    ForgeQueryTemporalDuration,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -242,6 +245,122 @@ impl_declaration_input!(
     DeferredLegalityFamily,
     DurableAdmissionFamily,
     MaskedCoverageFamily,
+);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct TemporalCurrentFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for TemporalCurrentFamily {
+    type PrimaryAuthority = ForgeQueryBridgeContinuationAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "temporal-current"
+    }
+
+    fn temporal_declaration_support() -> ForgeQueryTemporalDeclarationSupport {
+        ForgeQueryTemporalDeclarationSupport::CanonicalIdentityOnly
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn bridge_continuation_contract() -> Option<ForgeQueryDeclarationBridgeContinuationContract> {
+        Some(ForgeQueryDeclarationBridgeContinuationContract::runtime_route_current())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct TemporalPreviewFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for TemporalPreviewFamily {
+    type PrimaryAuthority = ForgeQueryBridgeContinuationAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "temporal-preview"
+    }
+
+    fn temporal_declaration_support() -> ForgeQueryTemporalDeclarationSupport {
+        ForgeQueryTemporalDeclarationSupport::CanonicalIdentityOnly
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn bridge_continuation_contract() -> Option<ForgeQueryDeclarationBridgeContinuationContract> {
+        Some(ForgeQueryDeclarationBridgeContinuationContract::preview_session())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct TemporalHistoricalFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for TemporalHistoricalFamily {
+    type PrimaryAuthority = ForgeQueryBridgeContinuationAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "temporal-historical"
+    }
+
+    fn temporal_declaration_support() -> ForgeQueryTemporalDeclarationSupport {
+        ForgeQueryTemporalDeclarationSupport::CanonicalIdentityOnly
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn bridge_continuation_contract() -> Option<ForgeQueryDeclarationBridgeContinuationContract> {
+        Some(ForgeQueryDeclarationBridgeContinuationContract::truth_view_historical())
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct TemporalDeclaration<F> {
+    edge_ref: &'static str,
+    _family: PhantomData<F>,
+}
+
+impl<F> TemporalDeclaration<F> {
+    pub(super) fn new(edge_ref: &'static str) -> Self {
+        Self {
+            edge_ref,
+            _family: PhantomData,
+        }
+    }
+}
+
+macro_rules! impl_temporal_input {
+    ($($family:ty),+ $(,)?) => {
+        $(
+            impl ForgeQueryDeclarationInput<GeometryDomain> for TemporalDeclaration<$family> {
+                type Family = $family;
+
+                fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+                    vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref)]
+                }
+
+                fn temporal_declaration_clauses(&self) -> Vec<ForgeQueryTemporalDeclarationClause> {
+                    vec![ForgeQueryTemporalDeclarationClause::stale_after(
+                        ForgeQueryTemporalDuration::seconds(30),
+                    )]
+                }
+            }
+        )+
+    };
+}
+
+impl_temporal_input!(
+    TemporalCurrentFamily,
+    TemporalPreviewFamily,
+    TemporalHistoricalFamily,
 );
 
 pub(super) fn admitted_handle(

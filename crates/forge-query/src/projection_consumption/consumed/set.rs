@@ -6,6 +6,7 @@ use super::facts::{
     ConsumedTargetIdentityFact, ConsumedViewLocalIdentityFact,
 };
 use crate::projection_consumption::receipt::ProjectionConsumptionReceipt;
+use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::runtime::ForgeQueryMutationTargetClass;
 use serde_json::Value;
 
@@ -84,6 +85,7 @@ pub struct ConsumedProjectionFactSet {
     source_family: ProjectionSourceFamily,
     source_identity: String,
     support_posture: ProjectionContractSupportPosture,
+    materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     counters: ProjectionFactExtractionCounters,
     fact_set_digest: String,
     entity_identities: Vec<ConsumedEntityIdentityFact>,
@@ -120,6 +122,10 @@ impl ConsumedProjectionFactSet {
 
     pub fn counters(&self) -> &ProjectionFactExtractionCounters {
         &self.counters
+    }
+
+    pub fn materialized_fact_posture(&self) -> Option<&ProjectionMaterializedFactPosture> {
+        self.materialized_fact_posture.as_ref()
     }
 
     pub fn fact_set_digest(&self) -> &str {
@@ -172,6 +178,7 @@ impl ConsumedProjectionFactSet {
         source_family: ProjectionSourceFamily,
         source_identity: impl Into<String>,
         support_posture: ProjectionContractSupportPosture,
+        materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
         counters: ProjectionFactExtractionCounters,
         entity_identities: Vec<ConsumedEntityIdentityFact>,
         view_local_identities: Vec<ConsumedViewLocalIdentityFact>,
@@ -192,6 +199,7 @@ impl ConsumedProjectionFactSet {
             source_family,
             &source_identity,
             &support_posture,
+            materialized_fact_posture.as_ref(),
             &counters,
             &entity_identities,
             &view_local_identities,
@@ -209,6 +217,7 @@ impl ConsumedProjectionFactSet {
             source_family,
             source_identity,
             support_posture,
+            materialized_fact_posture,
             counters,
             fact_set_digest,
             entity_identities,
@@ -230,6 +239,7 @@ fn fact_set_digest(
     source_family: ProjectionSourceFamily,
     source_identity: &str,
     support_posture: &ProjectionContractSupportPosture,
+    materialized_fact_posture: Option<&ProjectionMaterializedFactPosture>,
     counters: &ProjectionFactExtractionCounters,
     entity_identities: &[ConsumedEntityIdentityFact],
     view_local_identities: &[ConsumedViewLocalIdentityFact],
@@ -255,6 +265,12 @@ fn fact_set_digest(
             .chain(std::iter::once(format!(
                 "support_posture:{}",
                 support_posture.as_str()
+            )))
+            .chain(std::iter::once(format!(
+                "materialized_fact_posture:{}",
+                materialized_fact_posture
+                    .map(ProjectionMaterializedFactPosture::posture_digest)
+                    .unwrap_or("none")
             )))
             .chain(
                 support_posture

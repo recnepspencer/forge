@@ -705,6 +705,7 @@ fn certified_lane_with_context(
             view_family,
             construction_source,
             crate::subscription::QuerySubscriptionBasisPosture::CurrentHead,
+            crate::subscription::QuerySubscriptionFutureSelection::ordinary(),
             Some(policy_digest.to_string()),
             Some(tenant_digest.to_string()),
             Some(relationship_proof_digest.to_string()),

@@ -6,6 +6,7 @@ use super::active_digest::ActiveSubscriptionLaneDigest;
 use super::attachment::SubscriptionConsumerAttachment;
 use super::attachment_digest::SubscriptionConsumerAttachmentDigest;
 use super::delivery_density::ActiveDeliveryDensityPosture;
+use super::future_selection::QuerySubscriptionFutureSelection;
 use super::performance_receipt::SubscriptionPerformanceReceipt;
 use super::preview_isolation::{
     PreviewSubscriptionDiscardCloseout, PreviewSubscriptionPromotionHandoff,
@@ -78,6 +79,36 @@ impl SubscriptionLifecycleCloseRequest {
             Self::PreviewPromotion(handoff) => handoff.handoff_digest(),
         }
     }
+
+    pub(super) fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
+        match self {
+            Self::DetachConsumer(attachment) | Self::TerminateConsumer(attachment) => {
+                attachment.future_selection()
+            }
+            Self::PreviewDiscard(closeout) => closeout.future_selection(),
+            Self::PreviewPromotion(handoff) => handoff.future_selection(),
+        }
+    }
+
+    pub(super) fn basis_binding_digest(&self) -> &str {
+        match self {
+            Self::DetachConsumer(attachment) | Self::TerminateConsumer(attachment) => {
+                attachment.basis_binding_digest()
+            }
+            Self::PreviewDiscard(closeout) => closeout.basis_binding_digest(),
+            Self::PreviewPromotion(handoff) => handoff.preview_basis_binding_digest(),
+        }
+    }
+
+    pub(super) fn checkpoint_identity_digest(&self) -> &str {
+        match self {
+            Self::DetachConsumer(attachment) | Self::TerminateConsumer(attachment) => {
+                attachment.checkpoint_identity_digest()
+            }
+            Self::PreviewDiscard(closeout) => closeout.checkpoint_identity_digest(),
+            Self::PreviewPromotion(handoff) => handoff.preview_checkpoint_identity_digest(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -141,6 +172,9 @@ impl SubscriptionLifecycleCloseError {
 pub struct SubscriptionLifecycleCloseout {
     active_lane_digest: ActiveSubscriptionLaneDigest,
     attachment_digest: SubscriptionConsumerAttachmentDigest,
+    future_selection: QuerySubscriptionFutureSelection,
+    basis_binding_digest: String,
+    checkpoint_identity_digest: String,
     closeout_kind: SubscriptionLifecycleCloseoutKind,
     lane_terminal: bool,
     source_digest: String,
@@ -175,10 +209,16 @@ impl SubscriptionLifecycleCloseout {
         counters.subscription_budget_remaining_width = performance_receipt.remaining_width();
         let active_lane_digest = request.lane_digest().clone();
         let attachment_digest = request.attachment_digest().clone();
+        let future_selection = request.future_selection().clone();
+        let basis_binding_digest = request.basis_binding_digest().to_string();
+        let checkpoint_identity_digest = request.checkpoint_identity_digest().to_string();
         let closeout_digest = hash_parts(&[
             "subscription_lifecycle_closeout_v1".to_string(),
             format!("lane:{}", active_lane_digest.as_str()),
             format!("attachment:{}", attachment_digest.as_str()),
+            format!("future_selection:{}", future_selection.projection_digest()),
+            format!("basis:{}", basis_binding_digest),
+            format!("checkpoint:{}", checkpoint_identity_digest),
             format!("kind:{}", closeout_kind.as_str()),
             format!("lane_terminal:{lane_terminal}"),
             format!("support:{}", support_profile.digest()),
@@ -192,6 +232,9 @@ impl SubscriptionLifecycleCloseout {
         Self {
             active_lane_digest,
             attachment_digest,
+            future_selection,
+            basis_binding_digest,
+            checkpoint_identity_digest,
             closeout_kind,
             lane_terminal,
             source_digest,
@@ -208,6 +251,18 @@ impl SubscriptionLifecycleCloseout {
 
     pub fn attachment_digest(&self) -> &SubscriptionConsumerAttachmentDigest {
         &self.attachment_digest
+    }
+
+    pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
+        &self.future_selection
+    }
+
+    pub fn basis_binding_digest(&self) -> &str {
+        &self.basis_binding_digest
+    }
+
+    pub fn checkpoint_identity_digest(&self) -> &str {
+        &self.checkpoint_identity_digest
     }
 
     pub fn closeout_kind(&self) -> &SubscriptionLifecycleCloseoutKind {

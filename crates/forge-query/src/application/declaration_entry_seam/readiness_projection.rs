@@ -8,11 +8,11 @@ use crate::application::{
 };
 
 use super::{
+    async_readiness::{async_bridge_readiness_override, async_signal_readiness_override},
+    retained_subject::ReadinessRetainedPosture,
     row::{ForgeQueryDeclarationEntryCrossingRow, ForgeQueryDeclarationEntryCrossingSurface},
-    support::{
-        ForgeQueryDeclarationEntryReadinessRow, ForgeQueryDeclarationEntryReadinessStatus,
-        ReadinessRetainedPosture,
-    },
+    support::{ForgeQueryDeclarationEntryReadinessRow, ForgeQueryDeclarationEntryReadinessStatus},
+    temporal_readiness::{temporal_bridge_readiness_override, temporal_signal_readiness_override},
 };
 
 pub(crate) fn readiness_row_for_crossing<
@@ -61,6 +61,12 @@ pub(crate) fn readiness_row_for_crossing<
         }
         ForgeQueryDeclarationEntryCrossingSurface::BridgeContinuationRouting => {
             let (status, reason) = bridge_status::<D, C, I>(handle);
+            let (status, reason) =
+                temporal_bridge_readiness_override::<D, C, I>(handle, retained_posture)
+                    .unwrap_or((status, reason));
+            let (status, reason) =
+                async_bridge_readiness_override::<D, C, I>(handle, retained_posture)
+                    .unwrap_or((status, reason));
             let bridge_summary = retained_posture
                 .map(|posture| posture.bridge_authority_summary.clone())
                 .unwrap_or_else(|| {
@@ -89,6 +95,12 @@ pub(crate) fn readiness_row_for_crossing<
         }
         ForgeQueryDeclarationEntryCrossingSurface::SignalCompatibility => {
             let (status, reason) = signal_status::<D, C, I>(handle);
+            let (status, reason) =
+                temporal_signal_readiness_override::<D, C, I>(handle, retained_posture)
+                    .unwrap_or((status, reason));
+            let (status, reason) =
+                async_signal_readiness_override::<D, C, I>(handle, retained_posture)
+                    .unwrap_or((status, reason));
             let signal_summary = retained_posture
                 .map(|posture| posture.signal_authority_summary.clone())
                 .unwrap_or_else(|| {

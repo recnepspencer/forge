@@ -104,11 +104,11 @@ impl ForgeQueryRuntimeSupportProfile {
             ),
             ForgeQueryRuntimeFamilySupport::deferred(
                 ForgeQueryRuntimeFacadeFamily::AsyncResource,
-                "async/resource query families are deferred to Milestone 9.5",
+                "async/resource query families are deferred to Milestone 9.4",
             ),
             ForgeQueryRuntimeFamilySupport::deferred(
                 ForgeQueryRuntimeFacadeFamily::MixedCauseDelivery,
-                "mixed truth/time/async delivery is deferred to Milestone 9.6",
+                "mixed truth/time/async delivery is deferred to Milestone 9.4",
             ),
             ForgeQueryRuntimeFamilySupport::deferred(
                 ForgeQueryRuntimeFacadeFamily::StoreBackedExecution,

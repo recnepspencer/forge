@@ -1,18 +1,19 @@
-mod artifact;
+mod artifacts;
 mod bridge_denial;
 mod contract;
-mod denied_artifact;
 mod exploration;
 mod performance;
 mod policy;
 mod proof;
 mod receipt;
-
+mod temporal_async;
 use super::admission::{
     AdmittedCausalInspection, AdvisoryCausalInspection, DeniedCausalInspection,
 };
 use crate::identity::hash_parts;
-pub use artifact::{
+use artifacts::BuiltBridgeBackedArtifact;
+pub use artifacts::DeniedQueryCausalInspectionArtifact;
+pub use artifacts::{
     AdmittedQueryCausalInspectionArtifact, AdvisoryQueryCausalInspectionArtifact,
     QueryCausalEvidenceReferenceArtifact, QueryCausalInspectionArtifact,
 };
@@ -21,7 +22,6 @@ pub(crate) use bridge_denial::{
     materialize_bridge_denied_advisory_causal_inspection,
 };
 use contract::validate_materialization_contract;
-pub use denied_artifact::DeniedQueryCausalInspectionArtifact;
 pub use exploration::{CausalInspectionArtifactDecisionTrace, CausalInspectionArtifactIntegrity};
 use forge_runtime_bridge::facade::{
     BridgeCausalEnvelopeDenial, BridgeCausalExplanationEnvelope,
@@ -35,6 +35,14 @@ pub use policy::{
 };
 pub use proof::CausalBridgeReadmissionProof;
 pub use receipt::CausalMaterializationReceipt;
+use temporal_async::{
+    project_admitted_temporal_async_explanation, project_advisory_temporal_async_explanation,
+    project_denied_temporal_async_explanation,
+};
+pub use temporal_async::{
+    QueryCausalTemporalAsyncExplanation, QueryCausalTemporalAsyncExplanationKind,
+};
+
 pub fn materialize_admitted_causal_inspection(
     inspection: &AdmittedCausalInspection,
     envelope: &BridgeCausalExplanationEnvelope,
@@ -63,12 +71,14 @@ pub fn materialize_admitted_causal_inspection(
         redaction_policy,
         materialization_policy,
     );
+    let temporal_async_explanation = project_admitted_temporal_async_explanation(inspection);
     Ok(QueryCausalInspectionArtifact::Admitted(
         AdmittedQueryCausalInspectionArtifact::from_parts(
             inspection.admitted_inspection_digest(),
             inspection.subject().query_observation_digest(),
             inspection.subject().result_shape_context_digest(),
             envelope,
+            temporal_async_explanation,
             built,
         ),
     ))
@@ -106,6 +116,7 @@ pub fn materialize_advisory_causal_inspection(
         redaction_policy,
         materialization_policy,
     );
+    let temporal_async_explanation = project_advisory_temporal_async_explanation(inspection);
     Ok(QueryCausalInspectionArtifact::Advisory(
         AdvisoryQueryCausalInspectionArtifact::from_parts(
             inspection.advisory_inspection_digest(),
@@ -113,6 +124,7 @@ pub fn materialize_advisory_causal_inspection(
             inspection.subject().result_shape_context_digest(),
             advisory_reason,
             envelope,
+            temporal_async_explanation,
             built,
         ),
     ))
@@ -180,6 +192,8 @@ pub fn materialize_denied_causal_inspection(
         None,
         &detail_digest,
     );
+    let temporal_async_explanation =
+        project_denied_temporal_async_explanation(inspection, bridge_denial_family.as_deref());
     QueryCausalInspectionArtifact::Denied(DeniedQueryCausalInspectionArtifact::from_parts(
         inspection.denied_inspection_digest(),
         denial_reason,
@@ -188,23 +202,13 @@ pub fn materialize_denied_causal_inspection(
         bridge_denial_digest,
         bridge_denial_kind,
         bridge_denial_family,
+        temporal_async_explanation,
         boundary_categories,
         performance,
         receipt,
         artifact_digest,
     ))
 }
-
-pub(super) struct BuiltBridgeBackedArtifact {
-    pub(super) boundary_categories: Vec<CausalInspectionBoundaryEnvelopeCategory>,
-    pub(super) evidence_references: Vec<QueryCausalEvidenceReferenceArtifact>,
-    pub(super) performance: CausalInspectionPerformanceEnvelope,
-    pub(super) receipt: CausalMaterializationReceipt,
-    pub(super) readmission_proof: CausalBridgeReadmissionProof,
-    pub(super) causal_identity_digest: String,
-    pub(super) artifact_digest: String,
-}
-
 fn validate_bridge_summary(
     query_admission_digest: &str,
     anchor_digest: &str,

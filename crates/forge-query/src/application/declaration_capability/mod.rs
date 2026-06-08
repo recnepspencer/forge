@@ -6,8 +6,9 @@ mod tags;
 mod witness;
 
 pub use declaration_outcome::{
-    ForgeQueryDeclarationAdmissionError, ForgeQueryDeclarationCapabilityDenial,
-    ForgeQueryDeclaredFamilyChecked,
+    ForgeQueryAsyncDeclarationDenial, ForgeQueryDeclarationAdmissionError,
+    ForgeQueryDeclarationCapabilityDenial, ForgeQueryDeclaredFamilyChecked,
+    ForgeQueryTemporalDeclarationDenial,
 };
 pub use support::{
     ForgeQueryDeclarationCapabilityStatus, ForgeQueryDeclarationCapabilityVerb,

@@ -197,6 +197,7 @@ use crate::subscription::{
 use crate::view_shape_live::LiveViewShapeFamily;
 
 mod aspect_api_closeout;
+mod async_result_state;
 mod authoritative_mutation_evidence_bridge_alignment;
 mod authoritative_mutation_evidence_closeout;
 mod authoritative_mutation_evidence_support;
@@ -208,14 +209,19 @@ mod bridge_mutation_lowering;
 mod builder;
 mod computed;
 mod delivery;
+mod downstream_delivery_contract;
+mod downstream_delivery_resume;
 mod effect;
 mod error;
 mod handle_contract;
 mod inspection;
 mod intent;
 mod live_subscription;
+mod mixed_cause_delivery;
+mod mixed_cause_emission;
 mod mutation;
 mod mutation_surface;
+mod ordinary_runtime_posture;
 mod preview;
 mod public_api;
 mod read_composition;
@@ -235,6 +241,7 @@ mod read_composition_shared;
 mod read_composition_successor;
 mod read_composition_support_report;
 mod read_composition_walks;
+mod remask_posture;
 mod retained_rows;
 mod runtime_api_contract;
 mod runtime_authoritative_mutation_routing;
@@ -257,10 +264,15 @@ mod runtime_unified_inspection_intents;
 mod runtime_write_intents;
 mod runtime_writes;
 mod state;
+mod state_basis;
+mod state_basis_classification;
+mod state_snapshot;
 mod support;
 mod support_matrix;
 mod surface;
+mod time_only_delivery;
 mod workspace;
+mod workspace_contracts;
 mod workspace_declaration;
 mod workspace_graph;
 mod workspace_queries;
@@ -280,6 +292,9 @@ const RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY: &str =
     "runtime-live-consumer-attachment:fanout=1:pacing=1:allocation=1:retain_within_window";
 
 pub use aspect_api_closeout::ForgeQueryAspectApiFinalizationCloseout;
+pub use async_result_state::{
+    ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeAsyncResultStateKind,
+};
 pub use authoritative_mutation_evidence_closeout::ForgeQueryAuthoritativeMutationEvidenceCloseout;
 #[allow(unused_imports)]
 pub use authoritative_mutation_evidence_support::{
@@ -323,6 +338,15 @@ use delivery::{
     register_live_subscription_index, route_live_subscription_delivery,
     ForgeQueryRuntimeLiveSubscriptionActivation, ForgeQueryRuntimeLiveSubscriptionState,
 };
+use downstream_delivery_contract::project_downstream_delivery;
+pub use downstream_delivery_contract::{
+    ForgeQueryRuntimeDownstreamDelivery, ForgeQueryRuntimeDownstreamDeliveryClass,
+    ForgeQueryRuntimeDownstreamDeliveryContract, ForgeQueryRuntimeDownstreamSupportPosture,
+};
+use downstream_delivery_resume::{aggregate_support_posture, support_gate_resume_kind};
+pub use downstream_delivery_resume::{
+    ForgeQueryRuntimeDownstreamResumePosture, ForgeQueryRuntimeDownstreamResumePostureKind,
+};
 use effect::{
     admit_effect_declaration, insert_effect_runtime, route_effect_deliveries,
     ForgeQueryEffectIndex, ForgeQueryEffectRuntime,
@@ -333,7 +357,8 @@ pub use effect::{
     ForgeQueryEffectExpressionFailurePosture, ForgeQueryEffectHandle, ForgeQueryEffectIdempotence,
     ForgeQueryEffectInspectionEvidence, ForgeQueryEffectLoopPrevention, ForgeQueryEffectPhase,
     ForgeQueryEffectPhaseEvidence, ForgeQueryEffectSuppressionPolicy, ForgeQueryEffectTrigger,
-    ForgeQueryEffectTriggerSourceKind,
+    ForgeQueryEffectTriggerSourceKind, ForgeQueryEffectWriteAdjacentTrigger,
+    ForgeQueryEffectWriteAdjacentTriggerClass,
 };
 pub use error::ForgeQueryRuntimeError;
 pub use handle_contract::{
@@ -380,17 +405,19 @@ pub use inspection::{
     CausalObservationAnchorCounters, CausalObservationAnchorDigest, CausalObservationAnchorError,
     CausalObservationAnchorErrorKind, CausalObservationEvidenceIdentity,
     CausalObservationMissingReferencePosture, CausalObservationOutcome, DeniedCausalInspection,
-    DeniedQueryCausalInspectionArtifact, ForgeQueryBatchWriteComponentInspection,
-    ForgeQueryBatchWriteReceiptInspection, ForgeQueryBranchIntentReceiptInspection,
-    ForgeQueryEffectIntentReceiptInspection, ForgeQueryFeedbackPhaseGraphInspection,
-    ForgeQueryFeedbackPhaseNode, ForgeQueryFeedbackTermination, ForgeQueryInspection,
-    ForgeQueryInspectionTarget, ForgeQueryIntentConsumerInspection,
-    ForgeQueryIntentConsumerOutcomeClass, ForgeQueryIntentDenialInspection,
-    ForgeQueryIntentInspectionDeliveryCounters, ForgeQueryIntentReceiptInspection,
-    ForgeQueryLiveSubscriptionInspectionCounters, ForgeQueryLiveViewInspection,
-    ForgeQueryPreviewBindingInspection, ForgeQueryPreviewIntentReceiptInspection,
-    ForgeQueryPreviewOutcomeInspection, ForgeQueryWriteReceiptInspection,
-    QueryCausalEvidenceReferenceArtifact, QueryCausalInspectionArtifact, QueryObservationReceipt,
+    DeniedQueryCausalInspectionArtifact, ForgeQueryBasisLifecycleInspection,
+    ForgeQueryBatchWriteComponentInspection, ForgeQueryBatchWriteReceiptInspection,
+    ForgeQueryBranchIntentReceiptInspection, ForgeQueryEffectIntentReceiptInspection,
+    ForgeQueryFeedbackPhaseGraphInspection, ForgeQueryFeedbackPhaseNode,
+    ForgeQueryFeedbackTermination, ForgeQueryInspection, ForgeQueryInspectionTarget,
+    ForgeQueryIntentConsumerInspection, ForgeQueryIntentConsumerOutcomeClass,
+    ForgeQueryIntentDenialInspection, ForgeQueryIntentInspectionDeliveryCounters,
+    ForgeQueryIntentReceiptInspection, ForgeQueryLiveSubscriptionInspectionCounters,
+    ForgeQueryLiveViewInspection, ForgeQueryPreviewBindingInspection,
+    ForgeQueryPreviewIntentReceiptInspection, ForgeQueryPreviewOutcomeInspection,
+    ForgeQueryWriteReceiptInspection, QueryCausalEvidenceReferenceArtifact,
+    QueryCausalInspectionArtifact, QueryCausalTemporalAsyncExplanation,
+    QueryCausalTemporalAsyncExplanationKind, QueryObservationReceipt,
     QueryObservationReceiptFamily,
 };
 pub(crate) use intent::{
@@ -405,6 +432,11 @@ pub use intent::{
     ForgeQueryPreviewIntentReceipt,
 };
 pub use live_subscription::ForgeQueryRuntimeLiveSubscriptionInstallation;
+#[allow(unused_imports)]
+pub use mixed_cause_delivery::{
+    ForgeQueryRuntimeDeliveryCoalescingKind, ForgeQueryRuntimeMixedCauseDelivery,
+    ForgeQueryRuntimeMixedCauseLaneKind, ForgeQueryRuntimeMixedCauseMemberKind,
+};
 pub(crate) use mutation::command_declared_aspect_value_digest;
 pub(crate) use mutation::ForgeQueryVerifiedExistingTruthAssertion;
 use mutation::{admit_continuity_intent, admit_naming_intent};
@@ -449,8 +481,7 @@ pub use preview::{
 pub use public_api::{
     ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimePublicApiFamilyContract,
     ForgeQueryRuntimePublicApiNamingContract, ForgeQueryRuntimePublicApiNamingRow,
-    ForgeQueryRuntimePublicApiTranscriptEvidence, ForgeQueryRuntimeStateKind,
-    ForgeQueryRuntimeStateSnapshot,
+    ForgeQueryRuntimePublicApiTranscriptEvidence,
 };
 pub use read_composition::ForgeQueryReadBuilder;
 pub use read_composition_hooks::{
@@ -468,6 +499,10 @@ pub use read_composition_support_report::{
     ForgeQueryReadCompositionSupportClass, ForgeQueryReadCompositionSupportReport,
     ForgeQueryReadCompositionSupportRow,
 };
+pub use remask_posture::{
+    ForgeQueryRuntimeRemaskDispositionKind, ForgeQueryRuntimeRemaskPosture,
+    ForgeQueryRuntimeRemaskReasonKind,
+};
 #[cfg(test)]
 use runtime_helpers::runtime_subscription_budget_digest;
 use runtime_helpers::{
@@ -482,6 +517,7 @@ use runtime_helpers::{
     synthetic_existing_assertion_receipt,
 };
 pub use state::ForgeQueryRuntimeStateTarget;
+pub use state_snapshot::{ForgeQueryRuntimeStateKind, ForgeQueryRuntimeStateSnapshot};
 pub use support::{
     ForgeQueryBranchBasisAdmission, ForgeQueryGraphCompositionCapabilityClass,
     ForgeQueryGraphCompositionCapabilitySupportRow,
@@ -489,8 +525,9 @@ pub use support::{
     ForgeQueryGraphCompositionExtensionHookSupportRow, ForgeQueryPreviewBasisAdmission,
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
-    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeInspectionEvidence,
-    ForgeQueryRuntimeSupportDenial, ForgeQueryRuntimeSupportProfile,
+    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeFamilyTeachingPosture,
+    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportDenial,
+    ForgeQueryRuntimeSupportProfile,
 };
 pub use support_matrix::{
     ForgeQueryRuntimePublicSupportMatrix, ForgeQueryRuntimePublicSupportMatrixRow,

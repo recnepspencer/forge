@@ -40,6 +40,10 @@ Each snapshot binds:
 - `result_shape_digest`
 - `authority_lane`
 - `explanation`
+- optional retained async result-state evidence
+- optional retained remask posture when policy, tenant, relationship-proof, or
+  schema context narrowed temporal/async runtime meaning before public
+  projection
 - `state_digest`
 
 The point is to make readiness and support posture explicit and inspectable,
@@ -128,6 +132,7 @@ What is ready:
 What is pending:
 
 - deferred temporal and async/resource public families
+- deferred mixed-cause delivery posture on the same facade
 
 What is unsupported:
 
@@ -139,6 +144,10 @@ What the snapshot tells you:
 - which authority lane the posture belongs to
 - which basis and result-shape identity it binds to
 - why the state is in that posture
+- for async/resource-backed live meaning, which retained result-state posture is
+  now true
+- whether retained temporal/async meaning is still publicly visible or has been
+  remasked or denied by policy, tenant, relationship-proof, or schema drift
 
 ## How It Relates To Other Features
 
@@ -176,8 +185,19 @@ snapshot in detail.
   families in the runtime-backed facade.
 - Deferred temporal and async/resource families return typed pending state
   rather than pretending to execute.
-- Future milestones may use additional non-ready kinds such as stale, failed,
-  cancelled, superseded, or denied as those execution families become real.
+- Mixed-cause delivery future posture is also represented through the same
+  typed pending state lane instead of a parallel state API.
+- Async/resource-backed live subscriptions now retain one Query-owned async
+  result-state vocabulary on the same state surface:
+  `pending`, `current`, `failed`, `stale`, `cancelled`, `retried`,
+  `revalidating`, `superseded`, and `denied`.
+- Delivery cause and async result-state stay separate. A time-only wake can
+  happen without changing async result-state, and async result-state can change
+  without pretending a relational patch existed.
+- Remask posture is also separate from async result-state. A live subscription
+  can retain an async `current` result-state while the public state snapshot is
+  `remasked` or `denied` because policy, tenant, relationship-proof, or schema
+  context drift narrowed visibility before projection.
 
 ## Related Docs
 

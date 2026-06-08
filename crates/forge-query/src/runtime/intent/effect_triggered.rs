@@ -5,6 +5,7 @@ use crate::runtime::ForgeQueryIntentConsumerInspection;
 use super::super::{
     ForgeQueryAuthorityLane, ForgeQueryEffectDelivery, ForgeQueryEffectPhaseEvidence,
     ForgeQueryEffectPolicy, ForgeQueryEffectTriggerSourceKind,
+    ForgeQueryEffectWriteAdjacentTrigger, ForgeQueryEffectWriteAdjacentTriggerClass,
 };
 use super::*;
 
@@ -13,6 +14,7 @@ pub struct ForgeQueryEffectIntentReceipt {
     effect_name: String,
     trigger_commit_identity: String,
     trigger_source_kind: ForgeQueryEffectTriggerSourceKind,
+    write_adjacent_trigger: ForgeQueryEffectWriteAdjacentTrigger,
     pending_intent_target: String,
     source_lane: ForgeQueryIntentSourceLane,
     target_lane: ForgeQueryAuthorityLane,
@@ -34,6 +36,10 @@ impl ForgeQueryEffectIntentReceipt {
             format!(
                 "trigger_source_kind:{}",
                 delivery.trigger_source_kind().as_str()
+            ),
+            format!(
+                "write_adjacent_trigger:{}",
+                delivery.write_adjacent_trigger().digest()
             ),
             format!("pending_target:{}", delivery.target()),
             format!(
@@ -62,6 +68,7 @@ impl ForgeQueryEffectIntentReceipt {
             effect_name: delivery.effect_name().to_string(),
             trigger_commit_identity: delivery.commit_identity().to_string(),
             trigger_source_kind: delivery.trigger_source_kind(),
+            write_adjacent_trigger: delivery.write_adjacent_trigger().clone(),
             pending_intent_target: delivery.target().to_string(),
             source_lane: ForgeQueryIntentSourceLane::EffectTriggered,
             target_lane: intent_receipt.target_lane(),
@@ -82,6 +89,14 @@ impl ForgeQueryEffectIntentReceipt {
 
     pub fn trigger_source_kind(&self) -> ForgeQueryEffectTriggerSourceKind {
         self.trigger_source_kind
+    }
+
+    pub fn write_adjacent_trigger(&self) -> &ForgeQueryEffectWriteAdjacentTrigger {
+        &self.write_adjacent_trigger
+    }
+
+    pub fn write_adjacent_trigger_class(&self) -> ForgeQueryEffectWriteAdjacentTriggerClass {
+        self.write_adjacent_trigger.class()
     }
 
     pub fn pending_intent_target(&self) -> &str {

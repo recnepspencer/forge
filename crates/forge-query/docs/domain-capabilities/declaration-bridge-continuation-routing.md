@@ -64,6 +64,9 @@ Good to know:
   families
 - mixed route plans still route here, but only the bridge slice is
   lowered now
+- temporal and async declarations still route through this same envelope-backed
+  lane; Query carries their retained future-sensitive posture forward instead
+  of introducing a side bridge planner
 - deferred, denied, and failed envelopes remain first-class typed outcomes
 
 ## API Reference
@@ -161,6 +164,12 @@ envelope's published bridge-relevant slice and then freezes what actually
 mapped into the continuation request. "Available on the envelope" and
 "successfully mapped into bridge continuation semantics" are no longer treated
 as the same fact.
+
+That retained routing truth now also carries the declaration's
+future-sensitive projection plus the admitted world's basis-lifecycle support
+digest. Later continuation preparation can consume those retained facts
+directly instead of re-parsing generic declaration entries or rediscovering
+basis posture from the workspace.
 
 ## How It Executes
 
@@ -327,9 +336,11 @@ Use these surfaces when inspecting a routed artifact:
 - `declaration_digest()`
 - `progression_digest()`
 - `route_plan_digest()`
+- `future_projection()`
 - `receipt_digest()`
 - `envelope_digest()`
 - `bridge_routing_digest()`
+- `basis_lifecycle_support_digest()`
 - `envelope()`
 - `route_denial_cause()`
 - `receipt_denial_cause()`

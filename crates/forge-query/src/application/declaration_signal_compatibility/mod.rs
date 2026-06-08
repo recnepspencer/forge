@@ -1,6 +1,7 @@
 mod artifact;
 mod aspect_gate;
 mod checked;
+mod checked_input;
 mod contract;
 mod denial;
 mod digest;

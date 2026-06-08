@@ -18,6 +18,12 @@ routing, bridge routing, and signal compatibility separately.
   family-level readiness report
 - fail closed when retained seam artifacts belong to the wrong admitted handle
   or operating world
+- keep temporal readiness posture honest by reflecting the same bridge and
+  signal row status that readiness already proved, instead of inventing
+  success-shaped preview or historical temporal posture
+- keep async readiness posture honest by reflecting the same bridge and signal
+  row status that readiness already proved, instead of inventing
+  success-shaped unsupported-source or preview/historical async posture
 
 ## Stable Entry Points
 
@@ -205,6 +211,12 @@ Use inspection when you need to answer:
 - whether a denied lower-authority artifact actually proved one concrete truth
   claim, continuation family, or signal execution family, or whether those
   details must remain absent
+- whether the retained seam still inherits a temporal readiness block from the
+  family-level bridge or signal row instead of a lower-authority execution
+  failure
+- whether the retained seam still inherits an async readiness block from the
+  family-level bridge or signal row because the retained async declaration used
+  an unsupported source/lifecycle regime or invalid preview/historical basis
 - which declaration-scoped domain contribution evidence was explicitly attached?
 - whether attached admitted-plan or lower-runtime proof actually justified the
   stronger contribution target families that were supplied

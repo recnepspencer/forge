@@ -2,15 +2,21 @@ use std::marker::PhantomData;
 
 use crate::application::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryApplicationFacade,
-    ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    ForgeQueryAsyncDeclarationClause, ForgeQueryAsyncDeclarationSupport,
+    ForgeQueryAsyncFailurePosture, ForgeQueryAsyncLoadingPosture,
+    ForgeQueryAsyncRequestIdentityPart, ForgeQueryAsyncSourceFamily, ForgeQueryCapabilityFamily,
+    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
     ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationCanonicalEntry,
     ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationFoundationalEvidenceInput,
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityContract,
+    ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityChecked,
+    ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationLegalityInput,
     ForgeQueryDeclarationRouteContract, ForgeQueryDeclarationRoutePlanInput,
     ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
     ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
-    ForgeQuerySignalCompatiblePosture,
+    ForgeQuerySignalCompatiblePosture, ForgeQueryTemporalDeclarationClause,
+    ForgeQueryTemporalDeclarationSupport, ForgeQueryTemporalDuration,
 };
+use crate::runtime::ForgeQueryRuntimeFamilySupportStatus;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct GeometryDomain;
@@ -109,6 +115,12 @@ define_family!(
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct AspectRichRouteFamily;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct TemporalBridgeRouteFamily;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct AsyncBridgeRouteFamily;
 
 impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AspectRichRouteFamily {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
@@ -233,7 +245,7 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for ConflictAspectRouteFa
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub(super) struct RouteInput<F> {
     edge_ref: &'static str,
     _marker: PhantomData<F>,
@@ -276,6 +288,99 @@ impl_declaration_input!(
     ConflictAspectRouteFamily,
 );
 
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for TemporalBridgeRouteFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "TemporalBridgeRouteFamily"
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::bridge_only()
+    }
+
+    fn temporal_declaration_support() -> ForgeQueryTemporalDeclarationSupport {
+        ForgeQueryTemporalDeclarationSupport::CanonicalIdentityOnly
+    }
+}
+
+impl<F> Clone for RouteInput<F> {
+    fn clone(&self) -> Self {
+        Self {
+            edge_ref: self.edge_ref,
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AsyncBridgeRouteFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "AsyncBridgeRouteFamily"
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::bridge_only()
+    }
+
+    fn async_declaration_support() -> ForgeQueryAsyncDeclarationSupport {
+        ForgeQueryAsyncDeclarationSupport::CanonicalIdentityOnly
+    }
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for RouteInput<TemporalBridgeRouteFamily> {
+    type Family = TemporalBridgeRouteFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![ForgeQueryDeclarationCanonicalEntry::text(
+            "edge_ref",
+            self.edge_ref,
+        )]
+    }
+
+    fn temporal_declaration_clauses(&self) -> Vec<ForgeQueryTemporalDeclarationClause> {
+        vec![ForgeQueryTemporalDeclarationClause::stale_after(
+            ForgeQueryTemporalDuration::seconds(30),
+        )]
+    }
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for RouteInput<AsyncBridgeRouteFamily> {
+    type Family = AsyncBridgeRouteFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![ForgeQueryDeclarationCanonicalEntry::text(
+            "edge_ref",
+            self.edge_ref,
+        )]
+    }
+
+    fn async_resource_declaration_clauses(&self) -> Vec<ForgeQueryAsyncDeclarationClause> {
+        vec![ForgeQueryAsyncDeclarationClause::resource_request(
+            ForgeQueryAsyncSourceFamily::BridgeResource,
+            ForgeQueryAsyncLoadingPosture::Blocking,
+            ForgeQueryAsyncFailurePosture::FailClosed,
+            vec![ForgeQueryAsyncRequestIdentityPart::text(
+                "edge_ref",
+                self.edge_ref,
+            )],
+        )]
+    }
+}
+
 pub(super) fn admitted_handle(
     regime: &'static str,
 ) -> ForgeQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld> {
@@ -317,5 +422,46 @@ where
             ),
         )
         .unwrap_or_else(|_| panic!("same-handle foundational evidence should materialize"));
+    ForgeQueryDeclarationRoutePlanInput::admitted(progressed, evidence)
+}
+
+pub(super) fn future_supported_route_input<F>(
+    handle: &ForgeQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryWorld>,
+    declaration: RouteInput<F>,
+) -> ForgeQueryDeclarationRoutePlanInput<GeometryDomain, RouteInput<F>>
+where
+    F: ForgeQueryDeclarationFamilyMarker<GeometryDomain>,
+    RouteInput<F>: ForgeQueryDeclarationInput<GeometryDomain, Family = F>,
+{
+    let canonical = handle
+        .declare(declaration.clone())
+        .unwrap_or_else(|_| panic!("future declaration should canonicalize"));
+    let support_report = handle.family_support::<F>();
+    let legal = match crate::application::review_declaration_legality(
+        handle.handle_identity_digest(),
+        ForgeQueryDeclarationLegalityInput::new(
+            canonical,
+            support_report,
+            F::legality_contract(),
+            handle.retained_world_basis(),
+            Some(ForgeQueryRuntimeFamilySupportStatus::Supported),
+            Some(ForgeQueryRuntimeFamilySupportStatus::Supported),
+        ),
+    ) {
+        ForgeQueryDeclarationLegalityChecked::Legal(legal) => legal,
+        ForgeQueryDeclarationLegalityChecked::Illegal(_) => {
+            panic!("future declaration should become legal under supported runtime test posture")
+        }
+    };
+    let progressed = handle
+        .progress_declaration(legal)
+        .unwrap_or_else(|_| panic!("future declaration progression should admit"));
+    let evidence = handle
+        .describe_foundational(
+            ForgeQueryDeclarationFoundationalEvidenceInput::admitted_progression(
+                progressed.clone(),
+            ),
+        )
+        .unwrap_or_else(|_| panic!("future foundational evidence should materialize"));
     ForgeQueryDeclarationRoutePlanInput::admitted(progressed, evidence)
 }

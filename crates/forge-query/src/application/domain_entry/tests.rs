@@ -4,6 +4,7 @@ use crate::application::{
     ForgeQueryConfigSectionFamily, ForgeQueryQueryConfig, ForgeQueryRelationalConfig,
     ForgeQueryRuntimeBridgeConfig, ForgeQuerySignalConfig,
 };
+use crate::runtime::{ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus};
 
 const ENTRY_CAPABILITIES: &[ForgeQueryCapabilityFamily] = &[
     ForgeQueryCapabilityFamily::QueryComposition,
@@ -84,10 +85,30 @@ fn domain_entry_support_snapshot_matches_support_report_truth() {
         report.unsupported_capability_families()
     );
     assert_eq!(snapshot.section_postures(), report.section_postures());
-    assert_eq!(snapshot.snapshot_digest(), report.report_digest());
     assert_eq!(
         snapshot.validated_config_digest(),
         report.validated_config_digest()
+    );
+    assert_ne!(snapshot.snapshot_digest(), report.report_digest());
+    assert_eq!(
+        snapshot.runtime_support_matrix().backend_posture().as_str(),
+        "primary"
+    );
+    assert_eq!(
+        snapshot
+            .runtime_support_matrix()
+            .row_for_family(ForgeQueryRuntimeFacadeFamily::Temporal)
+            .expect("temporal runtime row should exist")
+            .status(),
+        ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
+    );
+    assert_eq!(
+        snapshot
+            .runtime_support_matrix()
+            .row_for_family(ForgeQueryRuntimeFacadeFamily::AsyncResource)
+            .expect("async runtime row should exist")
+            .status(),
+        ForgeQueryRuntimeFamilySupportStatus::DeferredDebt
     );
 }
 

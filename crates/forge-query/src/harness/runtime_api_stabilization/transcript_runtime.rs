@@ -332,14 +332,16 @@ fn transcript_bridge() -> RuntimeBridge {
         .with_signal_sink(TranscriptBridgeSink)
         .register_mapping(BridgeMappingRegistration::new(
             BridgeMappingId::new("transcript-external"),
-            TruthPatchScope::new(
+            TruthPatchScope::for_entity_field(
                 MappingSelector::any(),
-                forge_runtime_bridge::facade::AspectKeySelector::any(),
-                forge_runtime_bridge::facade::TruthPatchTargetSelector::any(),
+                forge_foundational::facade::AspectKey::new("transcript-aspect")
+                    .expect("valid transcript bridge mapping aspect key"),
+                forge_foundational::facade::FieldKey::new("value".to_owned())
+                    .expect("valid transcript bridge mapping field key"),
             ),
             forge_runtime_bridge::facade::SnapshotReadContract::scalar(
-                forge_foundational::facade::AspectKey::new("aspect")
-                    .expect("valid bridge mapping aspect key"),
+                forge_foundational::facade::AspectKey::new("transcript-aspect")
+                    .expect("valid transcript bridge snapshot aspect key"),
                 forge_foundational::facade::ScalarAspectType::String,
             ),
             SignalInvalidationScope::new("transcript-external"),

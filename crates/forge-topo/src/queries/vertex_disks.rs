@@ -5,7 +5,7 @@
 
 use std::collections::{BTreeSet, VecDeque};
 
-use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
+use forge_core::{KernelError, TopologyError};
 use smallvec::SmallVec;
 
 use crate::b_rep::TopologyArena;

@@ -58,17 +58,9 @@ pub(super) fn required_capability_families_for_prepared<
 pub(super) struct ResolvedSignalContinuationTruth {
     pub(super) posture: ForgeQueryPreparedContinuationSignalPosture,
     pub(super) execution_family: Option<ForgeQueryDeclarationSignalExecutionFamily>,
+    pub(super) basis_families: Vec<BasisFamily>,
     pub(super) digest: Option<String>,
     pub(super) reason: &'static str,
-}
-
-pub(super) fn signal_basis_families_from_family<
-    D: ForgeQueryDomainEntryMarker,
-    I: ForgeQueryDeclarationInput<D>,
->() -> Vec<BasisFamily> {
-    I::Family::signal_compatibility_contract()
-        .map(|contract| contract.required_basis_families().to_vec())
-        .unwrap_or_default()
 }
 
 pub(super) fn linked_from_subject<
@@ -171,6 +163,7 @@ pub(super) fn bridge_subject_and_signal_truth<
             ResolvedSignalContinuationTruth {
                 posture: ForgeQueryPreparedContinuationSignalPosture::Compatible,
                 execution_family: Some(compatibility.execution_family()),
+                basis_families: compatibility.basis_families().to_vec(),
                 digest: Some(compatibility.signal_compatibility_digest().to_string()),
                 reason: "compatible",
             },
@@ -180,6 +173,9 @@ pub(super) fn bridge_subject_and_signal_truth<
             ResolvedSignalContinuationTruth {
                 posture: ForgeQueryPreparedContinuationSignalPosture::Deferred,
                 execution_family: None,
+                basis_families: I::Family::signal_compatibility_contract()
+                    .map(|contract| contract.required_basis_families().to_vec())
+                    .unwrap_or_default(),
                 digest: None,
                 reason: deferred.reason(),
             },
@@ -189,6 +185,7 @@ pub(super) fn bridge_subject_and_signal_truth<
             ResolvedSignalContinuationTruth {
                 posture: ForgeQueryPreparedContinuationSignalPosture::Denied,
                 execution_family: denied.execution_family(),
+                basis_families: denied.basis_families().to_vec(),
                 digest: None,
                 reason: denied.reason(),
             },
@@ -198,6 +195,9 @@ pub(super) fn bridge_subject_and_signal_truth<
             ResolvedSignalContinuationTruth {
                 posture: ForgeQueryPreparedContinuationSignalPosture::Failed,
                 execution_family: None,
+                basis_families: I::Family::signal_compatibility_contract()
+                    .map(|contract| contract.required_basis_families().to_vec())
+                    .unwrap_or_default(),
                 digest: None,
                 reason: failed.reason(),
             },
@@ -216,6 +216,7 @@ pub(super) fn prepared_digest<
     required_contract: &crate::application::ForgeQueryDeclarationAspectContract,
     linked: &ForgeQueryBindingLinkedArtifacts,
     signal_truth: &ResolvedSignalContinuationTruth,
+    bridge_routing: &crate::application::ForgeQueryDeclarationBridgeRouting<D, I>,
 ) -> String {
     hash_parts(&[
         "forge_query_prepared_continuation_v1".to_string(),
@@ -225,7 +226,25 @@ pub(super) fn prepared_digest<
         format!("truth_context:{}", bridge_request.truth_context().as_str()),
         format!("required_contract:{required_contract:?}"),
         format!("signal_posture:{:?}", signal_truth.posture),
+        format!(
+            "signal_basis_families:{}",
+            signal_truth
+                .basis_families
+                .iter()
+                .map(BasisFamily::as_str)
+                .collect::<Vec<_>>()
+                .join("|")
+        ),
         format!("signal_digest:{:?}", signal_truth.digest),
+        format!(
+            "future_projection:{}",
+            bridge_routing.future_projection().projection_digest()
+        ),
+        format!(
+            "basis_lifecycle_support:{}",
+            bridge_routing.basis_lifecycle_support_digest()
+        ),
+        format!("bridge_routing:{}", bridge_routing.bridge_routing_digest()),
         format!("linked:{linked:?}"),
     ])
 }

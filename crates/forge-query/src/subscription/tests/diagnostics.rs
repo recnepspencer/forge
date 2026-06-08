@@ -363,6 +363,7 @@ fn certified_subscription_identity(
         None,
         QuerySubscriptionConstructionSource::SavedExactReuse,
         QuerySubscriptionBasisPosture::CurrentHead,
+        QuerySubscriptionFutureSelection::ordinary(),
         Some(policy.to_string()),
         Some(tenant.to_string()),
         Some(proof.to_string()),

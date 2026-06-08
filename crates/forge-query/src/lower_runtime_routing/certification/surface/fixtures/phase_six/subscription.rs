@@ -60,6 +60,7 @@ pub(crate) fn representative_subscription_activation_row() -> RepresentativeArti
         "tasks.subscription",
         &activation,
         "certified-subscription-activation-support",
+        None,
     );
     let boundary = SubscriptionActivationBoundaryReceipt::from_activation(
         "tasks.subscription",

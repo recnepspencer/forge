@@ -10,12 +10,14 @@ use crate::subscription::{
     ActiveDeliveryPreviewResidueWidth, ActiveSubscriptionAllocationPosture,
     ActiveSubscriptionRuntime, DeliveryBackpressurePolicy, DeliveryWindowWidth,
     MaintenanceDeltaWidth, PatchGroupWidth, QueryDeliveryBatch, QueryDeliveryWindowBudget,
-    QueryPatchGroupKind, QuerySubscriptionMaintenanceDelta, QuerySubscriptionMaintenanceDeltaKind,
-    SubscriptionConsumerAttachment,
+    QueryPatchGroupKind, QuerySubscriptionDeliveryCauseKind, QuerySubscriptionMaintenanceDelta,
+    QuerySubscriptionMaintenanceDeltaKind, SubscriptionConsumerAttachment,
 };
 
 use super::{
-    ForgeQueryAuthorityLane, ForgeQueryRuntimeError, ForgeQueryRuntimeLiveSubscriptionInstallation,
+    ForgeQueryAuthorityLane, ForgeQueryRuntimeAsyncResultState, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeLiveSubscriptionInstallation, ForgeQueryRuntimeMixedCauseDelivery,
+    ForgeQueryRuntimeRemaskPosture,
 };
 
 pub(super) struct ForgeQueryRuntimeLiveSubscriptionActivation {
@@ -23,6 +25,7 @@ pub(super) struct ForgeQueryRuntimeLiveSubscriptionActivation {
     pub(super) active_lane_handle: crate::subscription::ActiveSubscriptionLaneHandle,
     pub(super) consumer_attachment: SubscriptionConsumerAttachment,
     pub(super) request: DeclarativeLiveQueryRequest,
+    pub(super) remask_posture: Option<ForgeQueryRuntimeRemaskPosture>,
 }
 
 pub(super) struct ForgeQueryRuntimeLiveSubscriptionState {
@@ -31,23 +34,40 @@ pub(super) struct ForgeQueryRuntimeLiveSubscriptionState {
     pub(super) consumer_attachment: SubscriptionConsumerAttachment,
     pub(super) request: DeclarativeLiveQueryRequest,
     pub(super) delivery_batches: Vec<ForgeQueryRuntimeDeliveryBatch>,
+    pub(super) last_delivery: Option<ForgeQueryRuntimeRetainedDelivery>,
+    pub(super) async_result_state: Option<ForgeQueryRuntimeAsyncResultState>,
+    pub(super) remask_posture: Option<ForgeQueryRuntimeRemaskPosture>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryRuntimeDeliveryBatch {
-    view_name: String,
-    authority_lane: ForgeQueryAuthorityLane,
+    pub(super) view_name: String,
+    pub(super) authority_lane: ForgeQueryAuthorityLane,
+    pub(super) delivery_batch_digest: String,
+    pub(super) delivery_window_digest: String,
+    pub(super) consumer_attachment_digest: String,
+    pub(super) sequence: u64,
+    pub(super) delivery_cause_kind: QuerySubscriptionDeliveryCauseKind,
+    pub(super) delivery_cause_digest: String,
+    pub(super) has_relational_patch: bool,
+    pub(super) patch_group_kind: QueryPatchGroupKind,
+    pub(super) patch_group_digest: String,
+    pub(super) patch_group_width: u64,
+    pub(super) mixed_cause_delivery: ForgeQueryRuntimeMixedCauseDelivery,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) struct ForgeQueryRuntimeRetainedDelivery {
     delivery_batch_digest: String,
-    delivery_window_digest: String,
-    consumer_attachment_digest: String,
+    delivery_cause_kind: QuerySubscriptionDeliveryCauseKind,
+    delivery_cause_digest: String,
+    has_relational_patch: bool,
     sequence: u64,
-    patch_group_kind: QueryPatchGroupKind,
-    patch_group_digest: String,
-    patch_group_width: u64,
+    mixed_cause_delivery: ForgeQueryRuntimeMixedCauseDelivery,
 }
 
 impl ForgeQueryRuntimeDeliveryBatch {
-    fn from_query_delivery(view_name: &str, batch: &QueryDeliveryBatch) -> Self {
+    pub(super) fn from_query_delivery(view_name: &str, batch: &QueryDeliveryBatch) -> Self {
         Self {
             view_name: view_name.to_string(),
             authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
@@ -55,9 +75,22 @@ impl ForgeQueryRuntimeDeliveryBatch {
             delivery_window_digest: batch.delivery_window_digest().to_string(),
             consumer_attachment_digest: batch.attachment_digest().as_str().to_string(),
             sequence: batch.sequence().get(),
+            delivery_cause_kind: batch.delivery_cause_kind(),
+            delivery_cause_digest: batch.delivery_cause().delivery_cause_digest().to_string(),
+            has_relational_patch: batch.has_relational_patch(),
             patch_group_kind: batch.patch_group().kind(),
             patch_group_digest: batch.patch_group().patch_group_digest().to_string(),
             patch_group_width: batch.patch_group().width(),
+            mixed_cause_delivery: if batch.has_relational_patch() {
+                ForgeQueryRuntimeMixedCauseDelivery::atomic_relational_patch(
+                    batch.delivery_cause().delivery_cause_digest(),
+                )
+            } else {
+                ForgeQueryRuntimeMixedCauseDelivery::atomic_time_only(
+                    batch.delivery_cause_kind(),
+                    batch.delivery_cause().delivery_cause_digest(),
+                )
+            },
         }
     }
 
@@ -85,6 +118,18 @@ impl ForgeQueryRuntimeDeliveryBatch {
         self.sequence
     }
 
+    pub fn delivery_cause_kind(&self) -> QuerySubscriptionDeliveryCauseKind {
+        self.delivery_cause_kind
+    }
+
+    pub fn delivery_cause_digest(&self) -> &str {
+        &self.delivery_cause_digest
+    }
+
+    pub fn has_relational_patch(&self) -> bool {
+        self.has_relational_patch
+    }
+
     pub fn patch_group_kind(&self) -> QueryPatchGroupKind {
         self.patch_group_kind
     }
@@ -95,6 +140,47 @@ impl ForgeQueryRuntimeDeliveryBatch {
 
     pub fn patch_group_width(&self) -> u64 {
         self.patch_group_width
+    }
+
+    pub fn mixed_cause_delivery(&self) -> &ForgeQueryRuntimeMixedCauseDelivery {
+        &self.mixed_cause_delivery
+    }
+}
+
+impl ForgeQueryRuntimeRetainedDelivery {
+    pub(super) fn from_batch(batch: &ForgeQueryRuntimeDeliveryBatch) -> Self {
+        Self {
+            delivery_batch_digest: batch.delivery_batch_digest().to_string(),
+            delivery_cause_kind: batch.delivery_cause_kind(),
+            delivery_cause_digest: batch.delivery_cause_digest().to_string(),
+            has_relational_patch: batch.has_relational_patch(),
+            sequence: batch.sequence(),
+            mixed_cause_delivery: batch.mixed_cause_delivery().clone(),
+        }
+    }
+
+    pub(super) fn delivery_batch_digest(&self) -> &str {
+        &self.delivery_batch_digest
+    }
+
+    pub(super) fn delivery_cause_kind(&self) -> QuerySubscriptionDeliveryCauseKind {
+        self.delivery_cause_kind
+    }
+
+    pub(super) fn delivery_cause_digest(&self) -> &str {
+        &self.delivery_cause_digest
+    }
+
+    pub(super) fn has_relational_patch(&self) -> bool {
+        self.has_relational_patch
+    }
+
+    pub(super) fn sequence(&self) -> u64 {
+        self.sequence
+    }
+
+    pub(super) fn mixed_cause_delivery(&self) -> &ForgeQueryRuntimeMixedCauseDelivery {
+        &self.mixed_cause_delivery
     }
 }
 
@@ -208,11 +294,12 @@ pub(super) fn route_live_subscription_delivery(
                     },
                 )?;
             let delivery_receipt = batch.receipt().clone();
-            state
-                .delivery_batches
-                .push(ForgeQueryRuntimeDeliveryBatch::from_query_delivery(
-                    view_name, &batch,
-                ));
+            let runtime_batch =
+                ForgeQueryRuntimeDeliveryBatch::from_query_delivery(view_name, &batch);
+            state.last_delivery = Some(ForgeQueryRuntimeRetainedDelivery::from_batch(
+                &runtime_batch,
+            ));
+            state.delivery_batches.push(runtime_batch);
             state.consumer_attachment = advance_subscription_acknowledgement(
                 active_subscriptions,
                 state.consumer_attachment.clone(),

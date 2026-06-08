@@ -2,7 +2,11 @@ use crate::basis::{
     preflight_execution_basis, resolve_snapshot_basis, BasisAuthorityFamily, BasisResolutionMode,
     ExecutionBasisIntent, SnapshotLineageClass,
 };
+use crate::declarative_live::canonicalize_declarative_request;
 use crate::execution::execute_preflight_bundle;
+use crate::projection_consumption::{
+    ProjectionMaterializedFactPosture, ProjectionMaterializedFactPostureKind,
+};
 use crate::query_context::{
     execute_query_basis_context, AdmittedQueryBasisContext, QueryContextFamily,
 };
@@ -107,7 +111,12 @@ pub(in crate::runtime) fn execute_runtime_current_read_graph(
         snapshot_token,
         &execution,
         &rows,
-    );
+    )
+    .with_materialized_fact_posture(materialized_fact_posture_for_read_graph(
+        runtime,
+        read_graph,
+        execution.report().basis_digest().as_str(),
+    ));
     Ok(ForgeQueryReadResult::new(rows, receipt))
 }
 
@@ -123,6 +132,9 @@ pub(in crate::runtime) fn execute_runtime_basis_context_read_graph(
             format!("{error:?}"),
         )
     })?;
+    let context_execution = context_execution.with_materialized_fact_posture(
+        materialized_fact_posture_for_read_graph(runtime, read_graph, context.basis_digest()),
+    );
     let snapshot_token = runtime.snapshot_token();
     let rows = if context_allows_runtime_materialization(snapshot_token.as_str(), context) {
         materialize_read_rows(runtime, read_graph)?
@@ -136,6 +148,70 @@ pub(in crate::runtime) fn execute_runtime_basis_context_read_graph(
         &rows,
     );
     Ok(ForgeQueryReadResult::new(rows, receipt))
+}
+
+fn materialized_fact_posture_for_read_graph(
+    runtime: &ForgeQueryRuntime,
+    read_graph: &ForgeQueryReadGraph,
+    basis_digest: &str,
+) -> Option<ProjectionMaterializedFactPosture> {
+    let lower_declaration_digest =
+        canonicalize_declarative_request(read_graph.declarative_request())
+            .ok()?
+            .query()
+            .digest()
+            .as_str()
+            .to_string();
+    let mut exact_request_matches = runtime
+        .live_subscriptions
+        .values()
+        .filter(|state| state.request == *read_graph.declarative_request());
+    let state = if let Some(state) = exact_request_matches.next() {
+        if exact_request_matches.next().is_some() {
+            return None;
+        }
+        state
+    } else {
+        let mut canonical_matches = runtime
+            .live_subscriptions
+            .values()
+            .filter(|state| state.installation.query_digest() == lower_declaration_digest);
+        let state = canonical_matches.next()?;
+        if canonical_matches.next().is_some() {
+            return None;
+        }
+        state
+    };
+    let kind =
+        if state.remask_posture.is_some() {
+            ProjectionMaterializedFactPostureKind::Remasked
+        } else if state.last_delivery.as_ref().is_some_and(|delivery| {
+            delivery.mixed_cause_delivery().ordered_member_kinds().len() > 1
+        }) {
+            ProjectionMaterializedFactPostureKind::MixedCause
+        } else if state.last_delivery.as_ref().is_some_and(|delivery| {
+            matches!(
+            delivery.delivery_cause_kind(),
+            crate::subscription::QuerySubscriptionDeliveryCauseKind::FreshnessOnly
+                | crate::subscription::QuerySubscriptionDeliveryCauseKind::WindowEntry
+                | crate::subscription::QuerySubscriptionDeliveryCauseKind::WindowExit
+                | crate::subscription::QuerySubscriptionDeliveryCauseKind::Deadline
+                | crate::subscription::QuerySubscriptionDeliveryCauseKind::PreviousValueTransition
+        )
+        }) {
+            ProjectionMaterializedFactPostureKind::TimeOnly
+        } else if state.async_result_state.is_some() {
+            ProjectionMaterializedFactPostureKind::AsyncBacked
+        } else {
+            ProjectionMaterializedFactPostureKind::Ordinary
+        };
+    Some(ProjectionMaterializedFactPosture::new(
+        kind,
+        state.installation.query_digest(),
+        basis_digest,
+        state.installation.support_evidence(),
+        Some(state.installation.installation_digest().to_string()),
+    ))
 }
 
 fn ensure_context_matches_read_graph(

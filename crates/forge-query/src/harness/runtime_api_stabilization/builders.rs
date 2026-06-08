@@ -3,7 +3,7 @@ use crate::harness::certification::{
     RejectionCertificationRow,
 };
 use crate::runtime::{
-    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus,
+    ForgeQueryHandleContract, ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus,
     ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimePublicApiNamingContract,
     ForgeQueryRuntimePublicSupportMatrix, ForgeQueryRuntimeSupportProfile,
 };
@@ -269,6 +269,7 @@ fn bundle(
     meaningful_assertion_count: usize,
 ) -> RuntimeApiStabilizationBundle {
     let contract = contract();
+    let handle_contract = ForgeQueryHandleContract::from_public_api_contract(&contract);
     let naming_contract = ForgeQueryRuntimePublicApiNamingContract::standard();
     let support_matrix = ForgeQueryRuntimePublicSupportMatrix::from_public_api_contract(&contract);
     let surface_list: Vec<_> = surfaces.into_iter().collect();
@@ -285,22 +286,8 @@ fn bundle(
         public_api_naming_contract_digest: naming_contract.contract_digest().to_string(),
         golden_transcript_digest,
         executable_transcript_digest: transcript_evidence.transcript_digest().to_string(),
-        handle_contract_digest: digest_parts(&[
-            "handle:named-durable-surface".to_string(),
-            "handle:dependency-digests".to_string(),
-            "handle:authority-lane".to_string(),
-            "handle:inspectable".to_string(),
-        ]),
-        state_contract_digest: digest_parts(&[
-            "state:ready".to_string(),
-            "state:pending".to_string(),
-            "state:stale".to_string(),
-            "state:failed".to_string(),
-            "state:cancelled".to_string(),
-            "state:superseded".to_string(),
-            "state:denied".to_string(),
-            "state:unsupported".to_string(),
-        ]),
+        handle_contract_digest: handle_contract.contract_digest().to_string(),
+        state_contract_digest: transcript_evidence.state_digest().to_string(),
         aspect_contract_digest: digest_parts(&[
             "aspect:reads".to_string(),
             "aspect:produces".to_string(),
@@ -318,14 +305,7 @@ fn bundle(
             "lane:temporal-execution-state".to_string(),
             "lane:async-resource-state".to_string(),
         ]),
-        inspection_contract_digest: digest_parts(&[
-            "inspection:declaration".to_string(),
-            "inspection:dependency".to_string(),
-            "inspection:authority-lane".to_string(),
-            "inspection:basis-lane".to_string(),
-            "inspection:feedback-phase-graph".to_string(),
-            "inspection:deferred-temporal-async".to_string(),
-        ]),
+        inspection_contract_digest: transcript_evidence.inspection_digest().to_string(),
         support_matrix_digest: support_matrix.matrix_digest().to_string(),
         deferred_temporal_async_gate_digest: deferred_gate_digest(&contract),
         failure_digest: "none".to_string(),

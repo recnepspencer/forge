@@ -4,6 +4,7 @@ use super::consumed::ConsumedProjectionFactSet;
 use super::contracts::ProjectionContractSupportPosture;
 use super::eligibility::ProjectionConsumptionWarningKind;
 use super::envelope::SelfDescribingProjectionConsumptionEnvelope;
+use super::facts::ProjectionMaterializedFactPosture;
 use super::receipt_transitions::ProjectionConsumptionDeferredNeighborFamily;
 use super::receipt_transitions::ProjectionConsumptionTransitionRules;
 use super::source::ProjectionSourceFamily;
@@ -16,6 +17,7 @@ pub struct ProjectionConsumptionReceipt {
     source_family: ProjectionSourceFamily,
     source_identity: String,
     support_posture: ProjectionContractSupportPosture,
+    materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     admitted_fact_family_count: usize,
     extracted_fact_count: usize,
     authority_reopen_count: usize,
@@ -39,6 +41,13 @@ impl ProjectionConsumptionReceipt {
             format!("fact_set:{}", fact_set.fact_set_digest()),
             format!("counters:{counter_snapshot_digest}"),
             format!("source_identity:{}", fact_set.source_identity()),
+            format!(
+                "materialized_fact_posture:{}",
+                fact_set
+                    .materialized_fact_posture()
+                    .map(ProjectionMaterializedFactPosture::posture_digest)
+                    .unwrap_or("none")
+            ),
         ]);
         let receipt_digest = hash_parts(&[
             "projection_consumption_receipt_v1".to_string(),
@@ -48,6 +57,13 @@ impl ProjectionConsumptionReceipt {
             format!("source_family:{}", fact_set.source_family().as_str()),
             format!("source_identity:{}", fact_set.source_identity()),
             format!("support_posture:{}", fact_set.support_posture().as_str()),
+            format!(
+                "materialized_fact_posture:{}",
+                fact_set
+                    .materialized_fact_posture()
+                    .map(ProjectionMaterializedFactPosture::posture_digest)
+                    .unwrap_or("none")
+            ),
             format!(
                 "warnings:{}",
                 fact_set
@@ -74,6 +90,7 @@ impl ProjectionConsumptionReceipt {
             source_family: fact_set.source_family(),
             source_identity: fact_set.source_identity().to_string(),
             support_posture: fact_set.support_posture().clone(),
+            materialized_fact_posture: fact_set.materialized_fact_posture().cloned(),
             admitted_fact_family_count: fact_set.counters().admitted_fact_family_count(),
             extracted_fact_count: fact_set.counters().extracted_fact_count(),
             authority_reopen_count: fact_set.counters().authority_reopen_count(),
@@ -106,6 +123,10 @@ impl ProjectionConsumptionReceipt {
 
     pub fn support_posture(&self) -> &ProjectionContractSupportPosture {
         &self.support_posture
+    }
+
+    pub fn materialized_fact_posture(&self) -> Option<&ProjectionMaterializedFactPosture> {
+        self.materialized_fact_posture.as_ref()
     }
 
     pub fn warning_kinds(&self) -> &[ProjectionConsumptionWarningKind] {

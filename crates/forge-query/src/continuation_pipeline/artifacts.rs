@@ -1,7 +1,8 @@
 use crate::application::{
     ForgeQueryCapabilityFamily, ForgeQueryDeclarationBridgeContinuationMode,
-    ForgeQueryDeclarationBridgeRouting, ForgeQueryDeclarationInput,
-    ForgeQueryDeclarationSignalExecutionFamily, ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationBridgeRouting, ForgeQueryDeclarationFutureProjection,
+    ForgeQueryDeclarationInput, ForgeQueryDeclarationSignalExecutionFamily,
+    ForgeQueryDomainEntryMarker,
 };
 use crate::basis_lifecycle::BasisFamily;
 
@@ -168,6 +169,14 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn signal_compatibility_digest(&self) -> Option<&str> {
         self.signal_compatibility_digest.as_deref()
+    }
+
+    pub fn future_projection(&self) -> &ForgeQueryDeclarationFutureProjection {
+        self.bridge_routing.future_projection()
+    }
+
+    pub fn basis_lifecycle_support_digest(&self) -> &str {
+        self.bridge_routing.basis_lifecycle_support_digest()
     }
 
     pub fn prepared_digest(&self) -> &str {

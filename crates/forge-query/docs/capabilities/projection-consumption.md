@@ -34,6 +34,9 @@ meaning from lower-runtime artifacts in caller code.
 - you want a receipt and envelope for consumed facts, not just a row vector
 - you want to keep Query-owned declaration and eligibility rules at the right
   boundary instead of rebuilding them in product code
+- you need temporal, async, mixed-cause, or remasked materialized facts to
+  stay basis-bound and receipt-bound instead of disappearing into plain row
+  folklore
 
 ## Stable Entry Points
 
@@ -306,6 +309,9 @@ Use the advanced path when:
 - Pair it with [Inspection](inspection.md) when you need explanation surfaces
   around the same read/write/query-context flow. Projection consumption uses
   receipt-first inspection rather than `workspace.inspect(...)`.
+- Pair it with [Async Resources And Result State](async-resources-and-result-state.md)
+  when the materialized source is async-backed and you want the broader
+  declaration/runtime/result-state model around the retained posture.
 - Pair it with [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
   when you need to explain why a family is deferred or unsupported at the
   runtime-facade level. Projection consumption also has its own source-local
@@ -320,6 +326,7 @@ Important things to inspect on `CompletedProjectionFactConsumption` or
 
 - `source_family()`
 - `source_identity()`
+- `materialized_fact_posture()`
 - `support_posture()`
 - `warning_kinds()`
 - `admitted_fact_family_count()`
@@ -368,6 +375,10 @@ Those are framework-level artifacts, not the normal app entry point.
   bound contract and typed extraction rather than runtime execution.
 - Query-context field facts may be admitted with warnings because they can be
   payload-bound instead of receipt-perfect.
+- When a materialized source carries temporal or async posture, that posture is
+  now retained on the bound contract, consumed fact set, and issued receipt so
+  callers do not need to reopen lower runtime artifacts just to keep basis,
+  policy, or support qualifiers attached.
 - Write-receipt fact families are limited to evidence actually carried by the
   receipt. Missing provenance or continuity evidence stays typed as deferred or
   mismatched instead of being guessed.
@@ -388,6 +399,7 @@ Those are framework-level artifacts, not the normal app entry point.
 - [Reads, Observation, and Materialization](../runtime-surfaces/reads-observe-materialize.md)
 - [Writes And Intents](../execution/writes-and-intents.md)
 - [Inspection](inspection.md)
+- [Async Resources And Result State](async-resources-and-result-state.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
 
 

@@ -64,7 +64,7 @@ impl ForgeQueryReadReceipt {
         context_execution: &QueryContextExecutionArtifact,
         rows: &[ForgeQueryEntity],
     ) -> Self {
-        Self::from_parts(
+        let mut receipt = Self::from_parts(
             read_graph,
             context_execution.query_digest(),
             context_execution.basis_digest(),
@@ -100,7 +100,9 @@ impl ForgeQueryReadReceipt {
                 execution_materialized_relation_count: rows.len(),
             },
             rows,
-        )
+        );
+        receipt.materialized_fact_posture = context_execution.materialized_fact_posture().cloned();
+        receipt
     }
 
     fn from_parts(
@@ -141,6 +143,7 @@ impl ForgeQueryReadReceipt {
             relationship_proof_admission,
             relationship_proof_support_profile,
             breadth,
+            materialized_fact_posture: None,
             decision_trace_envelope: None,
             execution_provenance: None,
         }

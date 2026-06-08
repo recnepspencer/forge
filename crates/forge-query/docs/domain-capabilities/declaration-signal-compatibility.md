@@ -103,6 +103,11 @@ Signal-compatibility classes:
 - `Denied`
 - `Failed`
 
+Future-bearing declarations use those same classes. Temporal and async
+declarations do not get a side compatibility API. Query classifies them on the
+same lane and now preserves their retained future posture directly on the
+compatibility artifact through `future_projection()`.
+
 Signal execution families:
 
 - `RuntimeDerivedExecution`

@@ -8,6 +8,7 @@ use super::declaration::{
     ForgeQueryEffectDeclaration, ForgeQueryEffectSuppressionPolicy,
     ForgeQueryEffectTriggerSourceKind,
 };
+use super::follow_on::ForgeQueryEffectWriteAdjacentTrigger;
 use super::phase::ForgeQueryEffectPhaseEvidence;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -60,6 +61,7 @@ pub struct ForgeQueryEffectDelivery {
     family: ForgeQueryEffectDeliveryFamily,
     suppression_policy: ForgeQueryEffectSuppressionPolicy,
     phase_evidence: ForgeQueryEffectPhaseEvidence,
+    write_adjacent_trigger: ForgeQueryEffectWriteAdjacentTrigger,
     payload: Value,
     reason: Option<String>,
 }
@@ -85,6 +87,7 @@ impl ForgeQueryEffectDelivery {
             family: ForgeQueryEffectDeliveryFamily::Delivered,
             suppression_policy: declaration.suppression_policy(),
             phase_evidence: ForgeQueryEffectPhaseEvidence::delivery(),
+            write_adjacent_trigger: declaration.write_adjacent_trigger().clone(),
             payload,
             reason: None,
         }
@@ -110,6 +113,7 @@ impl ForgeQueryEffectDelivery {
             family: ForgeQueryEffectDeliveryFamily::PendingWriteIntent,
             suppression_policy: declaration.suppression_policy(),
             phase_evidence: ForgeQueryEffectPhaseEvidence::pending_write_intent(),
+            write_adjacent_trigger: declaration.write_adjacent_trigger().clone(),
             payload,
             reason: Some(
                 "effect lowered to pending write intent; commit execution awaits intent authority"
@@ -137,6 +141,7 @@ impl ForgeQueryEffectDelivery {
             family: ForgeQueryEffectDeliveryFamily::Suppressed,
             suppression_policy: declaration.suppression_policy(),
             phase_evidence: ForgeQueryEffectPhaseEvidence::suppressed(),
+            write_adjacent_trigger: declaration.write_adjacent_trigger().clone(),
             payload: Value::Null,
             reason: Some(reason.into()),
         }
@@ -162,6 +167,7 @@ impl ForgeQueryEffectDelivery {
             family: ForgeQueryEffectDeliveryFamily::ExpressionFailed,
             suppression_policy: declaration.suppression_policy(),
             phase_evidence: ForgeQueryEffectPhaseEvidence::expression_failure(),
+            write_adjacent_trigger: declaration.write_adjacent_trigger().clone(),
             payload: Value::Null,
             reason: Some(reason.into()),
         }
@@ -201,6 +207,9 @@ impl ForgeQueryEffectDelivery {
     }
     pub fn phase_evidence(&self) -> &ForgeQueryEffectPhaseEvidence {
         &self.phase_evidence
+    }
+    pub fn write_adjacent_trigger(&self) -> &ForgeQueryEffectWriteAdjacentTrigger {
+        &self.write_adjacent_trigger
     }
     pub fn payload(&self) -> &Value {
         &self.payload

@@ -9,6 +9,14 @@ It turns one declaration family plus one admitted operating world into one
 readiness report that keeps envelope, relational, bridge, and signal seam
 rows aligned with the same retained seam inventory.
 
+For temporal-capable families, readiness now also projects whether later
+declaration-entry seams would require unsupported temporal runtime support or
+an invalid preview or historical truth basis before those seams are attempted.
+For async-capable families, readiness now also projects whether later
+declaration-entry seams would require unsupported async runtime support or an
+invalid source, lifecycle, or preview/historical basis posture before those
+seams are attempted.
+
 ## Why You Use It
 
 - inspect declaration-entry seam posture before doing more expensive work
@@ -116,6 +124,15 @@ That means:
 10. the narrower relational, bridge, and signal support helpers remain
    declaration-entry seam projections; declaration-entry readiness is the
    composed public support surface when contribution evidence matters
+11. temporal-capable families can now surface `Deferred` or `InvalidBasis`
+   bridge and signal rows before route planning when their later seam posture
+   would require unsupported temporal runtime support or an invalid preview or
+   historical truth basis
+12. async-capable families can now surface `Deferred`, `Unsupported`, or
+    `InvalidBasis` bridge and signal rows before route planning when their
+    later seam posture would require unsupported async runtime support, an
+    unsupported source/lifecycle regime, or an invalid preview or historical
+    basis
 
 Readiness is not a substitute for retained inspection of a concrete declaration
 artifact. It answers family-level seam posture, not concrete legality or
@@ -202,6 +219,13 @@ Use readiness when you need to know:
 - whether a bridge row became unsupported because the retained envelope slice
   existed broadly but did not map cleanly into the narrower continuation slice
 - whether the narrower support helpers still match the shared seam ledger
+- whether a temporal-capable family is blocked because the temporal runtime
+  facade is still deferred or because a preview or historical truth basis is
+  structurally invalid for that temporal seam
+- whether an async-capable family is blocked because the async-resource runtime
+  facade is still deferred, because the retained async declaration uses an
+  unsupported source or lifecycle regime, or because a preview or historical
+  basis is structurally invalid for that async seam
 - whether explicit declaration-scoped contribution evidence should travel with
   the family-level readiness answer
 - whether attached contribution evidence actually matches one retained
@@ -224,6 +248,10 @@ Use readiness when you need to know:
 ## Current Limits
 
 - readiness is family-level seam posture, not concrete declaration legality
+- temporal readiness is still a family-level seam projection; concrete
+  declaration-specific temporal legality remains a separate surface
+- async readiness is still a family-level seam projection; concrete
+  declaration-specific async legality remains a separate surface
 - composed contribution evidence is an overlay on the readiness report, not a
   rewrite of the crossing inventory or readiness rows
 - retained-subject-aware readiness strengthens contribution reconciliation, but

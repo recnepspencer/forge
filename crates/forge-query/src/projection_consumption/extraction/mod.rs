@@ -223,6 +223,7 @@ impl MaterializedProjectionContract {
             self.source_family(),
             self.source_identity(),
             self.support_posture().clone(),
+            self.materialized_fact_posture().cloned(),
             ProjectionFactExtractionCounters::new(
                 self.fact_families().len(),
                 self.fact_families().len(),

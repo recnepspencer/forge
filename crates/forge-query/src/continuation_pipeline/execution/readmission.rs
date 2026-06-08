@@ -10,7 +10,8 @@ use crate::identity::hash_parts;
 
 use crate::continuation_pipeline::readmission::{
     ForgeQueryPreparedContinuationAuthorityWitness, ForgeQueryPreparedContinuationBasisKind,
-    ForgeQueryPreparedContinuationBasisWitness, ForgeQueryPreparedContinuationExecutionReadmission,
+    ForgeQueryPreparedContinuationBasisWitness, ForgeQueryPreparedContinuationDriftKind,
+    ForgeQueryPreparedContinuationExecutionReadmission,
     ForgeQueryPreparedContinuationFreshnessPosture,
 };
 use crate::continuation_pipeline::ForgeQueryPreparedContinuation;
@@ -21,6 +22,7 @@ pub(crate) struct ForgeQueryPreparedContinuationCurrentReadmissionEvidence {
     basis_identity_digest: String,
     lower_runtime_binding_digest: Option<String>,
     freshness_posture: ForgeQueryPreparedContinuationFreshnessPosture,
+    drift_kind: Option<ForgeQueryPreparedContinuationDriftKind>,
     evidence_digest: String,
 }
 
@@ -30,6 +32,7 @@ impl ForgeQueryPreparedContinuationCurrentReadmissionEvidence {
         basis_identity_digest: String,
         lower_runtime_binding_digest: Option<String>,
         freshness_posture: ForgeQueryPreparedContinuationFreshnessPosture,
+        drift_kind: Option<ForgeQueryPreparedContinuationDriftKind>,
         evidence_digest: String,
     ) -> Self {
         Self {
@@ -37,6 +40,7 @@ impl ForgeQueryPreparedContinuationCurrentReadmissionEvidence {
             basis_identity_digest,
             lower_runtime_binding_digest,
             freshness_posture,
+            drift_kind,
             evidence_digest,
         }
     }
@@ -46,6 +50,11 @@ pub(crate) enum ForgeQueryPreparedContinuationExecutionReadmissionDenial {
     Stale(String),
     BasisMismatch(String),
     AuthorityMismatch(String),
+    AsyncRequestDrift(String),
+    ReplayDrift(String),
+    RemaskDrift(String),
+    PreviewCrossedResidue(String),
+    StaleCompletion(String),
 }
 
 pub(crate) fn prepared_execution_readmission_from_routing<
@@ -62,6 +71,7 @@ pub(crate) fn prepared_execution_readmission_from_routing<
         basis_witness,
         authority_witness,
         ForgeQueryPreparedContinuationFreshnessPosture::Stable,
+        None,
         required_capability_families,
     )
 }
@@ -85,11 +95,19 @@ pub(crate) fn current_readmission_evidence_from_handle<
             .lower_runtime_binding_digest()
             .map(str::to_string),
         observation.freshness_posture(),
+        observation.drift_kind(),
         hash_parts(&[
             "forge_query_continuation_execution_readmission_v1".to_string(),
             handle.handle_identity_digest().to_string(),
             handle.support_snapshot().snapshot_digest().to_string(),
             format!("basis:{}", observation.basis_identity_digest()),
+            format!(
+                "drift:{}",
+                observation
+                    .drift_kind()
+                    .map(|kind| kind.as_str())
+                    .unwrap_or("none")
+            ),
         ]),
     )
 }
@@ -107,6 +125,40 @@ pub(crate) fn validate_execution_readmission<
                 "the retained continuation basis evidence is stale at execution time".to_string(),
             ),
         );
+    }
+
+    if let Some(drift_kind) = current.drift_kind {
+        return Err(match drift_kind {
+            ForgeQueryPreparedContinuationDriftKind::AsyncRequest => {
+                ForgeQueryPreparedContinuationExecutionReadmissionDenial::AsyncRequestDrift(
+                    "the retained continuation async request identity drifted before execution"
+                        .to_string(),
+                )
+            }
+            ForgeQueryPreparedContinuationDriftKind::Replay => {
+                ForgeQueryPreparedContinuationExecutionReadmissionDenial::ReplayDrift(
+                    "the retained continuation replay identity drifted before execution"
+                        .to_string(),
+                )
+            }
+            ForgeQueryPreparedContinuationDriftKind::Remask => {
+                ForgeQueryPreparedContinuationExecutionReadmissionDenial::RemaskDrift(
+                    "the retained continuation was remasked before execution".to_string(),
+                )
+            }
+            ForgeQueryPreparedContinuationDriftKind::PreviewCrossedResidue => {
+                ForgeQueryPreparedContinuationExecutionReadmissionDenial::PreviewCrossedResidue(
+                    "the retained continuation crossed preview residue before execution"
+                        .to_string(),
+                )
+            }
+            ForgeQueryPreparedContinuationDriftKind::StaleCompletion => {
+                ForgeQueryPreparedContinuationExecutionReadmissionDenial::StaleCompletion(
+                    "the retained continuation completion state is stale at execution time"
+                        .to_string(),
+                )
+            }
+        });
     }
 
     let retained = prepared.execution_readmission();
@@ -291,6 +343,7 @@ pub(crate) fn drifted_observation_from_retained(
     freshness_posture: ForgeQueryPreparedContinuationFreshnessPosture,
     basis_identity_digest: Option<String>,
     authority: Option<LowerRuntimeEvidenceAuthority>,
+    drift_kind: Option<ForgeQueryPreparedContinuationDriftKind>,
 ) -> ForgeQueryContinuationExecutionReadmissionObservation {
     let witness = retained.basis_witness();
     ForgeQueryContinuationExecutionReadmissionObservation::new(
@@ -301,5 +354,6 @@ pub(crate) fn drifted_observation_from_retained(
             .expected_lower_runtime_binding_digest()
             .map(str::to_string),
         freshness_posture,
+        drift_kind,
     )
 }

@@ -12,6 +12,7 @@ use crate::application::{
 
 use super::ForgeQueryAdmittedConfiguredDomainHandle;
 use crate::application::ForgeQueryDomainOperatingContext;
+use crate::runtime::ForgeQueryRuntimeFacadeFamily;
 
 impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
     ForgeQueryAdmittedConfiguredDomainHandle<D, C>
@@ -50,9 +51,21 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
             ForgeQueryDeclaredFamilyChecked::Deferred(denial) => {
                 Err(ForgeQueryDeclarationAdmissionError::Deferred(denial))
             }
+            ForgeQueryDeclaredFamilyChecked::AsyncDeferred(denial) => {
+                Err(ForgeQueryDeclarationAdmissionError::AsyncDeferred(denial))
+            }
+            ForgeQueryDeclaredFamilyChecked::TemporalDeferred(denial) => Err(
+                ForgeQueryDeclarationAdmissionError::TemporalDeferred(denial),
+            ),
             ForgeQueryDeclaredFamilyChecked::Unsupported(denial) => {
                 Err(ForgeQueryDeclarationAdmissionError::Unsupported(denial))
             }
+            ForgeQueryDeclaredFamilyChecked::AsyncUnsupported(denial) => Err(
+                ForgeQueryDeclarationAdmissionError::AsyncUnsupported(denial),
+            ),
+            ForgeQueryDeclaredFamilyChecked::TemporalUnsupported(denial) => Err(
+                ForgeQueryDeclarationAdmissionError::TemporalUnsupported(denial),
+            ),
             ForgeQueryDeclaredFamilyChecked::InvalidContext(denial) => {
                 Err(ForgeQueryDeclarationAdmissionError::InvalidContext(denial))
             }
@@ -89,9 +102,21 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
             ForgeQueryDeclaredFamilyChecked::Deferred(denial) => {
                 Err(ForgeQueryDeclarationAdmissionError::Deferred(denial))
             }
+            ForgeQueryDeclaredFamilyChecked::AsyncDeferred(denial) => {
+                Err(ForgeQueryDeclarationAdmissionError::AsyncDeferred(denial))
+            }
+            ForgeQueryDeclaredFamilyChecked::TemporalDeferred(denial) => Err(
+                ForgeQueryDeclarationAdmissionError::TemporalDeferred(denial),
+            ),
             ForgeQueryDeclaredFamilyChecked::Unsupported(denial) => {
                 Err(ForgeQueryDeclarationAdmissionError::Unsupported(denial))
             }
+            ForgeQueryDeclaredFamilyChecked::AsyncUnsupported(denial) => Err(
+                ForgeQueryDeclarationAdmissionError::AsyncUnsupported(denial),
+            ),
+            ForgeQueryDeclaredFamilyChecked::TemporalUnsupported(denial) => Err(
+                ForgeQueryDeclarationAdmissionError::TemporalUnsupported(denial),
+            ),
             ForgeQueryDeclaredFamilyChecked::InvalidContext(denial) => {
                 Err(ForgeQueryDeclarationAdmissionError::InvalidContext(denial))
             }
@@ -126,11 +151,23 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
     {
         let support_report = self.family_support::<I::Family>();
         let legality_contract = I::Family::legality_contract();
+        let temporal_runtime_support_status = self
+            .support_snapshot()
+            .runtime_support_matrix()
+            .row_for_family(ForgeQueryRuntimeFacadeFamily::Temporal)
+            .map(|row| row.status());
+        let async_runtime_support_status = self
+            .support_snapshot()
+            .runtime_support_matrix()
+            .row_for_family(ForgeQueryRuntimeFacadeFamily::AsyncResource)
+            .map(|row| row.status());
         let input = ForgeQueryDeclarationLegalityInput::new(
             declaration,
             support_report,
             legality_contract,
             self.retained_world_basis(),
+            temporal_runtime_support_status,
+            async_runtime_support_status,
         );
         review_declaration_legality(self.handle_identity_digest(), input)
     }

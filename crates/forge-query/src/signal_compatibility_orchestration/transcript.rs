@@ -134,6 +134,20 @@ pub(crate) fn orchestrate_signal_compatibility_on_handle<
     )
 }
 
+#[cfg(test)]
+pub(crate) fn orchestrated_outcome_from_signal_checked_on_handle<
+    D: ForgeQueryDomainEntryMarker,
+    C: ForgeQueryDomainOperatingContext<D>,
+    I: ForgeQueryDeclarationInput<D>,
+>(
+    handle: &ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
+    required_contract: crate::application::ForgeQueryDeclarationAspectContract,
+    bridge_request: Option<ForgeQueryDeclarationBridgeContinuationRequest>,
+    checked: ForgeQueryDeclarationSignalCompatibilityChecked<D, I>,
+) -> ForgeQuerySignalCompatibilityOrchestrationOutcome<D, I> {
+    outcome_from_signal_checked(handle, required_contract, bridge_request, checked).0
+}
+
 fn outcome_from_signal_checked<
     D: ForgeQueryDomainEntryMarker,
     C: ForgeQueryDomainOperatingContext<D>,

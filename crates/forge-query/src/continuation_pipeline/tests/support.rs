@@ -1,24 +1,26 @@
 use std::marker::PhantomData;
 
+mod handles;
+
 use crate::application::{
-    ForgeQueryApplicationFacade, ForgeQueryBridgeContinuationAuthority, ForgeQueryCapabilityFamily,
-    ForgeQueryConfig, ForgeQueryConfigSectionFamily,
-    ForgeQueryContinuationExecutionReadmissionObservation, ForgeQueryDeclarationAspectContract,
-    ForgeQueryDeclarationBridgeContinuationMode, ForgeQueryDeclarationBridgeContinuationRequest,
-    ForgeQueryDeclarationBridgeTruthContext, ForgeQueryDeclarationCanonicalEntry,
+    ForgeQueryBridgeContinuationAuthority, ForgeQueryCapabilityFamily,
+    ForgeQueryConfigSectionFamily, ForgeQueryContinuationExecutionReadmissionObservation,
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationCanonicalEntry,
     ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationRouteContract,
     ForgeQueryDeclarationSignalCompatibilityContract, ForgeQueryDomainEntryMarker,
     ForgeQueryDomainOperatingContext, ForgeQueryNeighborhoodCapableGrouping,
-    ForgeQueryRelationalConfig, ForgeQueryRuntimeBridgeConfig, ForgeQuerySignalCompatiblePosture,
-};
-use crate::binding_pipeline::{
-    ForgeQueryBindingSourceKind, ForgeQueryBindingSpecificity,
-    ForgeQueryContinuationBindingRequest, ForgeQueryEnvelopeContextCandidate,
-    ForgeQueryResolveContinuationFromTargetRequest,
+    ForgeQuerySignalCompatiblePosture,
 };
 use crate::continuation_pipeline::execution::drifted_observation_from_retained;
-use crate::continuation_pipeline::ForgeQueryPreparedContinuationFreshnessPosture;
+use crate::continuation_pipeline::{
+    ForgeQueryPreparedContinuationDriftKind, ForgeQueryPreparedContinuationFreshnessPosture,
+};
+pub(crate) use handles::{
+    admitted_handle, context_request, drifted_readmission_handle, envelope,
+    historical_disabled_handle, historical_truth_view_request, preview_disabled_handle,
+    preview_session_request, runtime_route_request, target_request,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct ContinuationDomain;
@@ -42,7 +44,10 @@ pub(super) struct ContinuationWorld(pub(super) &'static str);
 
 impl ForgeQueryDomainOperatingContext<ContinuationDomain> for ContinuationWorld {
     fn required_capability_families(&self) -> &'static [ForgeQueryCapabilityFamily] {
-        &[ForgeQueryCapabilityFamily::PreviewSession]
+        &[
+            ForgeQueryCapabilityFamily::QueryComposition,
+            ForgeQueryCapabilityFamily::PreviewSession,
+        ]
     }
 
     fn required_config_sections(&self) -> &'static [ForgeQueryConfigSectionFamily] {
@@ -78,6 +83,11 @@ impl ForgeQueryDomainOperatingContext<ContinuationDomain> for LenientContinuatio
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum ReadmissionDrift {
     Stale,
+    AsyncRequest,
+    Replay,
+    Remask,
+    PreviewCrossedResidue,
+    StaleCompletion,
     BasisMismatch,
     AuthorityMismatch,
 }
@@ -90,7 +100,10 @@ pub(super) struct DriftedContinuationWorld {
 
 impl ForgeQueryDomainOperatingContext<ContinuationDomain> for DriftedContinuationWorld {
     fn required_capability_families(&self) -> &'static [ForgeQueryCapabilityFamily] {
-        &[ForgeQueryCapabilityFamily::PreviewSession]
+        &[
+            ForgeQueryCapabilityFamily::QueryComposition,
+            ForgeQueryCapabilityFamily::PreviewSession,
+        ]
     }
 
     fn required_config_sections(&self) -> &'static [ForgeQueryConfigSectionFamily] {
@@ -116,6 +129,42 @@ impl ForgeQueryDomainOperatingContext<ContinuationDomain> for DriftedContinuatio
                 ForgeQueryPreparedContinuationFreshnessPosture::Stale,
                 None,
                 None,
+                None,
+            ),
+            ReadmissionDrift::AsyncRequest => drifted_observation_from_retained(
+                retained,
+                ForgeQueryPreparedContinuationFreshnessPosture::Stable,
+                None,
+                None,
+                Some(ForgeQueryPreparedContinuationDriftKind::AsyncRequest),
+            ),
+            ReadmissionDrift::Replay => drifted_observation_from_retained(
+                retained,
+                ForgeQueryPreparedContinuationFreshnessPosture::Stable,
+                None,
+                None,
+                Some(ForgeQueryPreparedContinuationDriftKind::Replay),
+            ),
+            ReadmissionDrift::Remask => drifted_observation_from_retained(
+                retained,
+                ForgeQueryPreparedContinuationFreshnessPosture::Stable,
+                None,
+                None,
+                Some(ForgeQueryPreparedContinuationDriftKind::Remask),
+            ),
+            ReadmissionDrift::PreviewCrossedResidue => drifted_observation_from_retained(
+                retained,
+                ForgeQueryPreparedContinuationFreshnessPosture::Stable,
+                None,
+                None,
+                Some(ForgeQueryPreparedContinuationDriftKind::PreviewCrossedResidue),
+            ),
+            ReadmissionDrift::StaleCompletion => drifted_observation_from_retained(
+                retained,
+                ForgeQueryPreparedContinuationFreshnessPosture::Stable,
+                None,
+                None,
+                Some(ForgeQueryPreparedContinuationDriftKind::StaleCompletion),
             ),
             ReadmissionDrift::BasisMismatch => drifted_observation_from_retained(
                 retained,
@@ -125,12 +174,14 @@ impl ForgeQueryDomainOperatingContext<ContinuationDomain> for DriftedContinuatio
                     retained.basis_witness().basis_identity_digest()
                 )),
                 None,
+                None,
             ),
             ReadmissionDrift::AuthorityMismatch => drifted_observation_from_retained(
                 retained,
                 ForgeQueryPreparedContinuationFreshnessPosture::Stable,
                 None,
                 Some(crate::basis_lifecycle::LowerRuntimeEvidenceAuthority::RuntimeBridgeFacade),
+                None,
             ),
         }
     }
@@ -165,7 +216,7 @@ macro_rules! define_family {
             }
 
             fn route_contract() -> ForgeQueryDeclarationRouteContract {
-                ForgeQueryDeclarationRouteContract::relational_and_bridge()
+                ForgeQueryDeclarationRouteContract::bridge_only()
             }
 
             fn bridge_continuation_contract(
@@ -225,167 +276,3 @@ macro_rules! impl_input {
 }
 
 impl_input!(RuntimeFamily, HistoricalFamily, PreviewFamily);
-
-pub(super) fn admitted_handle(
-    world: &'static str,
-) -> crate::application::ForgeQueryAdmittedConfiguredDomainHandle<
-    ContinuationDomain,
-    ContinuationWorld,
-> {
-    configured_handle(world, ForgeQueryConfig::runtime_backed_default())
-}
-
-pub(super) fn configured_handle(
-    world: &'static str,
-    config: ForgeQueryConfig,
-) -> crate::application::ForgeQueryAdmittedConfiguredDomainHandle<
-    ContinuationDomain,
-    ContinuationWorld,
-> {
-    ForgeQueryApplicationFacade::new(config)
-        .expect("test continuation config should validate")
-        .domain(ContinuationDomain)
-        .with_operating_context(ContinuationWorld(world))
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap()
-}
-
-pub(super) fn preview_disabled_handle(
-    world: &'static str,
-) -> crate::application::ForgeQueryAdmittedConfiguredDomainHandle<
-    ContinuationDomain,
-    LenientContinuationWorld,
-> {
-    ForgeQueryApplicationFacade::new(
-        ForgeQueryConfig::runtime_backed_default()
-            .with_runtime_bridge(ForgeQueryRuntimeBridgeConfig::disabled()),
-    )
-    .expect("test continuation config should validate")
-    .domain(ContinuationDomain)
-    .with_operating_context(LenientContinuationWorld(world))
-    .validate()
-    .unwrap()
-    .admit()
-    .unwrap()
-}
-
-pub(super) fn historical_disabled_handle(
-    world: &'static str,
-) -> crate::application::ForgeQueryAdmittedConfiguredDomainHandle<
-    ContinuationDomain,
-    LenientContinuationWorld,
-> {
-    ForgeQueryApplicationFacade::new(
-        ForgeQueryConfig::runtime_backed_default().with_relational(
-            ForgeQueryRelationalConfig::enabled().with_historical_evaluation(false),
-        ),
-    )
-    .expect("test continuation config should validate")
-    .domain(ContinuationDomain)
-    .with_operating_context(LenientContinuationWorld(world))
-    .validate()
-    .unwrap()
-    .admit()
-    .unwrap()
-}
-
-pub(super) fn drifted_readmission_handle(
-    world: &'static str,
-    drift: ReadmissionDrift,
-) -> crate::application::ForgeQueryAdmittedConfiguredDomainHandle<
-    ContinuationDomain,
-    DriftedContinuationWorld,
-> {
-    ForgeQueryApplicationFacade::new(ForgeQueryConfig::runtime_backed_default())
-        .expect("test continuation config should validate")
-        .domain(ContinuationDomain)
-        .with_operating_context(DriftedContinuationWorld {
-            label: world,
-            drift,
-        })
-        .validate()
-        .unwrap()
-        .admit()
-        .unwrap()
-}
-
-pub(super) fn runtime_route_request() -> ForgeQueryDeclarationBridgeContinuationRequest {
-    ForgeQueryDeclarationBridgeContinuationRequest::new(
-        ForgeQueryDeclarationBridgeContinuationMode::RuntimeRoute,
-        ForgeQueryDeclarationBridgeTruthContext::Current,
-    )
-}
-
-pub(super) fn historical_truth_view_request() -> ForgeQueryDeclarationBridgeContinuationRequest {
-    ForgeQueryDeclarationBridgeContinuationRequest::new(
-        ForgeQueryDeclarationBridgeContinuationMode::TruthView,
-        ForgeQueryDeclarationBridgeTruthContext::Historical,
-    )
-}
-
-pub(super) fn preview_session_request() -> ForgeQueryDeclarationBridgeContinuationRequest {
-    ForgeQueryDeclarationBridgeContinuationRequest::new(
-        ForgeQueryDeclarationBridgeContinuationMode::PreviewSession,
-        ForgeQueryDeclarationBridgeTruthContext::Preview,
-    )
-}
-
-pub(super) fn envelope<I>(
-    handle: &crate::application::ForgeQueryAdmittedConfiguredDomainHandle<
-        ContinuationDomain,
-        ContinuationWorld,
-    >,
-    id: &'static str,
-) -> crate::application::ForgeQueryDeclarationEnvelope<ContinuationDomain, Input<I>>
-where
-    Input<I>: ForgeQueryDeclarationInput<ContinuationDomain, Family = I>,
-    I: ForgeQueryDeclarationFamilyMarker<ContinuationDomain>,
-{
-    let progressed = handle
-        .declare_review_and_progress(Input::<I>::new(id))
-        .unwrap_or_else(|_| panic!("expected progressed continuation declaration"));
-    handle
-        .envelope_routes_from_progressed(progressed)
-        .unwrap_or_else(|_| panic!("expected envelope"))
-}
-
-pub(super) fn target_request<I>(
-    handle: &crate::application::ForgeQueryAdmittedConfiguredDomainHandle<
-        ContinuationDomain,
-        ContinuationWorld,
-    >,
-    id: &'static str,
-    bridge_request: ForgeQueryDeclarationBridgeContinuationRequest,
-) -> ForgeQueryResolveContinuationFromTargetRequest<ContinuationDomain, Input<I>>
-where
-    Input<I>: ForgeQueryDeclarationInput<ContinuationDomain, Family = I>,
-    I: ForgeQueryDeclarationFamilyMarker<ContinuationDomain>,
-{
-    ForgeQueryResolveContinuationFromTargetRequest::new(
-        envelope::<I>(handle, id),
-        I::aspect_contract(),
-    )
-    .with_bridge_request(bridge_request)
-}
-
-pub(super) fn context_request(
-    handle: &crate::application::ForgeQueryAdmittedConfiguredDomainHandle<
-        ContinuationDomain,
-        ContinuationWorld,
-    >,
-    id: &'static str,
-) -> ForgeQueryContinuationBindingRequest<ContinuationDomain, Input<RuntimeFamily>> {
-    ForgeQueryContinuationBindingRequest::new(
-        vec![ForgeQueryEnvelopeContextCandidate::new(
-            "current envelope",
-            ForgeQueryBindingSourceKind::CurrentEnvelope,
-            ForgeQueryBindingSpecificity::TypedCurrentArtifact,
-            envelope::<RuntimeFamily>(handle, id),
-        )],
-        RuntimeFamily::aspect_contract(),
-        vec![ForgeQueryBindingSourceKind::CurrentEnvelope],
-    )
-    .with_bridge_request(runtime_route_request())
-}

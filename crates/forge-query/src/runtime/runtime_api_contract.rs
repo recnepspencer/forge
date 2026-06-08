@@ -70,6 +70,14 @@ impl ForgeQueryRuntime {
         ForgeQueryHandleContract::from_public_api_contract(&self.public_api_contract())
     }
 
+    pub fn public_downstream_delivery_contract(
+        &self,
+    ) -> ForgeQueryRuntimeDownstreamDeliveryContract {
+        ForgeQueryRuntimeDownstreamDeliveryContract::from_support_profile(
+            &self.backend.support_profile(),
+        )
+    }
+
     pub fn public_support_matrix(&self) -> ForgeQueryRuntimePublicSupportMatrix {
         ForgeQueryRuntimePublicSupportMatrix::from_public_api_contract(&self.public_api_contract())
     }
@@ -107,6 +115,19 @@ impl ForgeQueryRuntime {
         Self::public_authoritative_mutation_evidence_closeout_for_support_profile(
             &self.backend.support_profile(),
         )
+    }
+
+    pub fn downstream_delivery<T>(
+        &self,
+        view: &ForgeQueryLiveView<T>,
+    ) -> Result<Option<ForgeQueryRuntimeDownstreamDelivery>, ForgeQueryRuntimeError> {
+        let state = self.live_subscriptions.get(view.name()).ok_or_else(|| {
+            ForgeQueryRuntimeError::MissingLiveSubscription(view.name().to_string())
+        })?;
+        Ok(project_downstream_delivery(
+            &self.public_downstream_delivery_contract(),
+            state,
+        ))
     }
 
     pub fn admit_public_api_family(

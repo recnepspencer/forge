@@ -131,4 +131,10 @@ impl QuerySubscriptionBridgeLoweringBudget {
         self.historical_basis_support = false;
         self
     }
+
+    #[cfg(test)]
+    pub(crate) fn with_preview_basis_support(mut self) -> Self {
+        self.preview_basis_support = true;
+        self
+    }
 }

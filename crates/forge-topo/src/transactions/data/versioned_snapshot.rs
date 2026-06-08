@@ -8,16 +8,9 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use crate::b_rep::TopologyArena;
-use crate::handles::{
-    BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
-};
 use crate::provenance::LineageStore;
 use crate::provenance::ReidentificationLinkIndex;
-use crate::provenance::{Lineage, LineageEvent, OpSignature};
-use crate::provenance::{ReplayEntry, ReplayLog};
-use crate::transactions::compute_arena_topology_hash;
-use crate::validators::validate::ValidationLevel;
-use forge_core::KernelError;
+use crate::provenance::{LineageEvent, ReplayLog};
 
 use crate::transactions::data::draft_configuration::DraftConfig;
 use crate::transactions::logic::mutable_draft::MutableDraft;

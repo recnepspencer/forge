@@ -9,7 +9,7 @@
 use crate::b_rep::TopologyArena;
 use crate::handles::HalfEdgeId;
 use forge_core::KernelError;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 pub(crate) fn validate_no_cross_disk_coedges(arena: &TopologyArena) -> Result<(), KernelError> {
     let mut visited: BTreeSet<HalfEdgeId> = BTreeSet::new();

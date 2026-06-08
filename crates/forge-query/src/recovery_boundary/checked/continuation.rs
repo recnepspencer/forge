@@ -220,7 +220,22 @@ fn continuation_execution_explanation<
         ForgeQueryContinuationExecutionOutcome::WrongWorld(_) => {
             ForgeQueryRecoveryStopKind::WrongWorld
         }
+        ForgeQueryContinuationExecutionOutcome::AsyncRequestDrift(_) => {
+            ForgeQueryRecoveryStopKind::AsyncRequestDrift
+        }
+        ForgeQueryContinuationExecutionOutcome::ReplayDrift(_) => {
+            ForgeQueryRecoveryStopKind::ReplayDrift
+        }
+        ForgeQueryContinuationExecutionOutcome::RemaskDrift(_) => {
+            ForgeQueryRecoveryStopKind::RemaskDrift
+        }
+        ForgeQueryContinuationExecutionOutcome::PreviewCrossedResidue(_) => {
+            ForgeQueryRecoveryStopKind::PreviewCrossedResidue
+        }
         ForgeQueryContinuationExecutionOutcome::Stale(_) => ForgeQueryRecoveryStopKind::Stale,
+        ForgeQueryContinuationExecutionOutcome::StaleCompletion(_) => {
+            ForgeQueryRecoveryStopKind::StaleCompletion
+        }
         ForgeQueryContinuationExecutionOutcome::BasisMismatch(_) => {
             ForgeQueryRecoveryStopKind::BasisMismatch
         }
@@ -248,6 +263,13 @@ fn continuation_execution_explanation<
         base = base.with_profile(profile);
     }
     match outcome {
+        ForgeQueryContinuationExecutionOutcome::ReplayDrift(_)
+        | ForgeQueryContinuationExecutionOutcome::StaleCompletion(_) => base
+            .with_basis_posture(ForgeQueryRecoveryBasisPosture::StaleBasis)
+            .with_support_context(support_context_for_stale_basis()),
+        ForgeQueryContinuationExecutionOutcome::RemaskDrift(_) => {
+            base.with_basis_posture(ForgeQueryRecoveryBasisPosture::Unknown)
+        }
         ForgeQueryContinuationExecutionOutcome::Stale(_) => base
             .with_basis_posture(ForgeQueryRecoveryBasisPosture::StaleBasis)
             .with_support_context(support_context_for_stale_basis()),

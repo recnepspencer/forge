@@ -1,4 +1,5 @@
 mod execute;
+mod outcome;
 mod prepare;
 mod readmission;
 mod support;

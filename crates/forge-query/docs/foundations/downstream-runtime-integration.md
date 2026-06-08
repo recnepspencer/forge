@@ -37,6 +37,7 @@ The public contract is:
 ### Runtime front door
 
 - `runtime.workspace(...)`
+- `workspace.public_downstream_delivery_contract()`
 - `workspace.live_view(...)`
 - `workspace.computed(...)`
 - `workspace.effect(...)`
@@ -44,8 +45,33 @@ The public contract is:
 - `workspace.branch(...)`
 - `workspace.read(...)`
 - `workspace.observe(...)`
+- `workspace.downstream_delivery(...)`
 - `workspace.materialize(...)`
 - `workspace.inspect(...)`
+
+### Downstream delivery contract
+
+- `workspace.public_downstream_delivery_contract()`
+- `workspace.downstream_delivery(...)`
+
+Use these when another runtime, server layer, or transport boundary needs one
+Query-owned delivery envelope instead of reading raw live delivery batches and
+guessing what they mean.
+
+The contract tells downstream code:
+
+- whether runtime-backed resume is admitted now
+- that durable resume is still deferred debt
+- which lower-runtime support posture governs each resume lane
+- which support digest owns the current delivery/resume story
+
+The projected delivery tells downstream code:
+
+- whether the latest delivery is truth-patch, time-only, async-backed, or
+  mixed-cause
+- which basis digest the delivery is bound to
+- whether remask posture makes the delivery supported, remasked, or denied
+- whether a caller-supplied resume basis is admitted, missing, or stale
 
 ### Ordinary authoritative mutation
 
@@ -130,6 +156,8 @@ Downstream runtimes should not recreate:
   fact families
 - lower-runtime debugging folklore when `workspace.inspect(...)` already owns
   the public explanation surface
+- edge-side delivery folklore when Query already exposes
+  `workspace.downstream_delivery(...)`
 - "method exists, therefore supported" logic instead of using the support
   matrix and admission gate
 
@@ -149,8 +177,20 @@ This is especially important around:
 
 - intent-shaped families
 - temporal and async neighbors
+- downstream delivery and resume posture
 - preview or branch-local behavior
 - backend-verified existing-truth lanes
+
+In practice:
+
+- teach rows with `ordinary_downstream_dx() == true` as normal runtime entry
+  points
+- treat `visible-but-deferred` rows as published future vocabulary that must
+  still deny through admission today
+- treat `visible-vocabulary-only` rows as public language, not blanket runtime
+  support
+- treat `support-gate-only` rows as support or certification boundaries, not
+  ordinary runtime entry points
 
 ## Basis And Lane Rules
 
@@ -165,6 +205,59 @@ That means:
 - authoritative truth, branch-local truth, preview truth, derived runtime
   state, delivery state, and pending write intent remain Query-owned public
   lane vocabulary
+- downstream delivery resume negotiation is still basis-bound; missing or stale
+  basis must deny explicitly instead of silently becoming "best effort"
+
+## Downstream Delivery
+
+If you are publishing live updates to another process, this is the contract to
+use instead of opening retained runtime batches directly.
+
+Small example:
+
+```rust
+let workspace = runtime.workspace("server.push").unwrap();
+let contract = workspace.public_downstream_delivery_contract();
+
+assert!(contract.runtime_backed_resume_supported());
+assert!(contract.durable_resume_deferred());
+assert_eq!(
+    contract.runtime_resume_support_posture().as_str(),
+    "admitted"
+);
+assert_eq!(
+    contract.durable_resume_support_posture().as_str(),
+    "deferred"
+);
+```
+
+Real example:
+
+```rust
+let delivery = workspace
+    .downstream_delivery(&tasks)
+    .unwrap()
+    .expect("latest retained delivery should exist");
+
+match delivery.delivery_class().as_str() {
+    "time-only" | "async-backed" | "mixed-cause" | "truth-patch" => {}
+    other => panic!("unexpected delivery class: {other}"),
+}
+
+let resume = delivery.negotiate_runtime_resume(Some(delivery.basis_digest()));
+assert_eq!(resume.kind().as_str(), "runtime-backed-admitted");
+
+let durable = delivery.durable_resume_posture();
+assert_eq!(durable.kind().as_str(), "durable-deferred-debt");
+```
+
+Good to know:
+
+- `workspace.downstream_delivery(...)` projects the latest retained live
+  delivery, not the drained patch queue
+- runtime-backed resume is supported now only when the basis digest matches
+- durable replay/restart resume is still deferred debt and stays typed as debt
+- remasked or denied live meaning stays explicit on the projected delivery
 
 ## Recommended Reading Order
 
@@ -199,5 +292,6 @@ If you are onboarding a downstream runtime to Query, read in this order:
 - [Writes and Intent Boundaries](../execution/writes-and-intents.md)
 - [Graph Composition Authoring](../authoring/graph-composition-authoring.md)
 - [Existing Truth](../capabilities/existing-truth.md)
+- [Workspace Overview](workspace-overview.md)
 - [Inspection](../capabilities/inspection.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)

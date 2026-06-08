@@ -21,6 +21,7 @@ use super::operating_context::ForgeQueryDomainOperatingContext;
 use crate::application::{
     ForgeQueryAdmittedWorldBasis, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
     ForgeQueryDomainEntryMarker, ForgeQueryDomainEntrySupportSnapshot,
+    ForgeQueryDomainOperatingRequirement,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -33,6 +34,7 @@ pub struct ForgeQueryAdmittedConfiguredDomainHandle<
     support_snapshot: ForgeQueryDomainEntrySupportSnapshot,
     required_capability_families: Vec<ForgeQueryCapabilityFamily>,
     required_config_sections: Vec<ForgeQueryConfigSectionFamily>,
+    required_operating_requirements: Vec<ForgeQueryDomainOperatingRequirement>,
     operating_context_identity_digest: String,
     handle_identity_digest: String,
 }
@@ -46,6 +48,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
         support_snapshot: ForgeQueryDomainEntrySupportSnapshot,
         required_capability_families: Vec<ForgeQueryCapabilityFamily>,
         required_config_sections: Vec<ForgeQueryConfigSectionFamily>,
+        required_operating_requirements: Vec<ForgeQueryDomainOperatingRequirement>,
         operating_context_identity_digest: String,
         handle_identity_digest: String,
     ) -> Self {
@@ -55,6 +58,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
             support_snapshot,
             required_capability_families,
             required_config_sections,
+            required_operating_requirements,
             operating_context_identity_digest,
             handle_identity_digest,
         }
@@ -84,6 +88,10 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
         &self.required_config_sections
     }
 
+    pub fn required_operating_requirements(&self) -> &[ForgeQueryDomainOperatingRequirement] {
+        &self.required_operating_requirements
+    }
+
     pub fn handle_identity_digest(&self) -> &str {
         &self.handle_identity_digest
     }
@@ -93,12 +101,15 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
     }
 
     pub fn retained_world_basis(&self) -> ForgeQueryAdmittedWorldBasis {
+        let basis_lifecycle_support =
+            crate::query_basis_lifecycle::query_basis_lifecycle_support_report();
         ForgeQueryAdmittedWorldBasis::new(
             self.domain_key(),
             self.display_name(),
             self.operating_context_identity_digest.clone(),
             self.handle_identity_digest.clone(),
             self.support_snapshot.snapshot_digest().to_string(),
+            basis_lifecycle_support.report_digest().to_string(),
         )
     }
 }

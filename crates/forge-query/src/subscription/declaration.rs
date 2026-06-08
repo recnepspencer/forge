@@ -6,6 +6,7 @@ use super::declaration_error::{
 use super::delivery::QuerySubscriptionDeliveryIntent;
 use super::diagnostic::QuerySubscriptionDiagnosticStage;
 use super::family::QuerySubscriptionFamily;
+use super::future_selection::QuerySubscriptionFutureSelection;
 use super::posture::{
     QuerySubscriptionAllocationPosture, QuerySubscriptionBasisPosture,
     QuerySubscriptionBridgePosture, QuerySubscriptionCostPosture,
@@ -19,6 +20,7 @@ use super::slice_budget::QuerySubscriptionSliceBudget;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QuerySubscriptionDeclarationArtifact {
     family: QuerySubscriptionFamily,
+    future_selection: QuerySubscriptionFutureSelection,
     cost_posture: QuerySubscriptionCostPosture,
     basis_posture: QuerySubscriptionBasisPosture,
     bridge_posture: QuerySubscriptionBridgePosture,
@@ -37,6 +39,10 @@ impl QuerySubscriptionDeclarationArtifact {
 
     pub fn cost_posture(&self) -> &QuerySubscriptionCostPosture {
         &self.cost_posture
+    }
+
+    pub fn future_selection(&self) -> &QuerySubscriptionFutureSelection {
+        &self.future_selection
     }
 
     pub fn basis_posture(&self) -> &QuerySubscriptionBasisPosture {
@@ -196,6 +202,10 @@ pub fn declare_query_subscription(
         format!("basis:{}", selection.basis_posture().as_str()),
         format!("bridge:{}", selection.bridge_posture().as_str()),
         format!(
+            "future_selection:{}",
+            selection.future_selection().projection_digest()
+        ),
+        format!(
             "equivalence:{}",
             selection.equivalence_basis().digest().as_str()
         ),
@@ -232,6 +242,7 @@ pub fn declare_query_subscription(
 
     Ok(QuerySubscriptionDeclarationArtifact {
         family: selection.family().clone(),
+        future_selection: selection.future_selection().clone(),
         cost_posture: selection.cost_posture().clone(),
         basis_posture: selection.basis_posture().clone(),
         bridge_posture: selection.bridge_posture().clone(),

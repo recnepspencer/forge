@@ -235,10 +235,19 @@ pub(in crate::runtime) fn declarative_request_from_authored_shape(
     };
     let mut request = DeclarativeLiveQueryRequest::new(query.root().as_str(), view_shape);
     for field in query.projection() {
-        request = request.project_query_only(DeclarativeProjectionField::new(
-            field.aspect(),
-            field.field(),
-        ));
+        let delivered_name = result_shape
+            .fields()
+            .iter()
+            .find(|result_field| {
+                result_field.source_aspect() == field.aspect()
+                    && result_field.source_field() == field.field()
+            })
+            .map(|result_field| result_field.delivered_name())
+            .unwrap_or(field.field());
+        request = request.project_query_only(
+            DeclarativeProjectionField::new(field.aspect(), field.field())
+                .delivered_as(delivered_name),
+        );
     }
     for field in result_shape.fields() {
         request = request.result_field(

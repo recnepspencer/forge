@@ -67,6 +67,7 @@ pub use materialization::{
     CausalInspectionPerformanceEnvelope, CausalInspectionRedactionPolicy,
     CausalMaterializationReceipt, DeniedQueryCausalInspectionArtifact,
     QueryCausalEvidenceReferenceArtifact, QueryCausalInspectionArtifact,
+    QueryCausalTemporalAsyncExplanation, QueryCausalTemporalAsyncExplanationKind,
 };
 pub use receipt_types::{
     CausalInspectionReason, CausalObservationEvidenceIdentity, CausalObservationOutcome,

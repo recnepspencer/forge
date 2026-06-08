@@ -11,4 +11,4 @@ pub(crate) mod shell;
 pub(crate) use body::BodyData;
 pub(crate) use lump::LumpData;
 pub(crate) use region::RegionData;
-pub(crate) use shell::{ShellData, ShellKind, ShellOrientation};
+pub(crate) use shell::ShellData;
