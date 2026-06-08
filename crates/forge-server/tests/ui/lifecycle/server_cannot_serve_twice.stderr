@@ -1,5 +1,5 @@
 error[E0382]: use of moved value: `server`
-  --> tests/ui/server_cannot_serve_twice.rs:16:25
+  --> tests/ui/lifecycle/server_cannot_serve_twice.rs:16:25
    |
  4 |     let server = ForgeServer::builder()
    |         ------ move occurs because `server` has type `ForgeServer`, which does not implement the `Copy` trait

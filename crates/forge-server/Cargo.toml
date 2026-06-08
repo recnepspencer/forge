@@ -11,6 +11,9 @@ categories = ["network-programming", "web-programming"]
 [dependencies]
 axum = "0.8"
 tokio = { version = "1", features = ["net"] }
+forge-foundational.workspace = true
+forge-proof.workspace = true
+forge-query.workspace = true
 serde.workspace = true
 tracing.workspace = true
 

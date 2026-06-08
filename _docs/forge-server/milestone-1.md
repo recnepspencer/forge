@@ -43,6 +43,12 @@ ships.
 - `forge_server_roadmap.md`: Milestone 1 belongs first because every later
   server capability needs one forced path through auth, tenant, branch,
   diagnostics, and observability.
+- `forge-foundational`: use it only where the server is emitting or
+  classifying real boundary vocabulary that should remain shared with other
+  Forge crates.
+- `forge-proof`: use it only where the server is closing a real proof-bearing
+  progression or rejection boundary rather than merely naming ordinary local
+  states.
 - `AI_README.md`: Query is the ordinary domain-facing runtime, so the server
   must project Query-owned meaning instead of creating local runtime folklore
   above lower layers.
@@ -84,6 +90,86 @@ This milestone fails if any admitted server surface:
 - Regulated-industry posture starts here through typed evidence, denial, and
   routing artifacts, even though the larger regulated milestone lands later.
 
+## Shared Crate Adoption Plan
+
+This milestone must be explicit about where `forge-proof` and
+`forge-foundational` belong.
+
+If a phase is listed as `None`, that is intentional. Do not force either crate
+into that phase.
+
+- `Phase 1`
+  Use neither crate.
+  Reason: the facade/bootstrap boundary is still crate-local lifecycle
+  ownership, and privacy plus ownership is the correct first enforcement.
+
+- `Phase 2`
+  Use `forge-proof::facade::PreConstructionGate` for auth/tenant/workspace/
+  branch resolution before a `ForgeServerRequestContext` is constructed.
+  Use `forge-proof::facade::TransitionReadiness` for the fully classified
+  request-context resolution outcome once the phase needs ready/denied/
+  deferred/stale/rebind/failed distinction.
+  Use `forge-foundational::facade::DiagnosticRichnessProfile` for diagnostics
+  policy carried on the request context.
+  Do not invent server-local equivalents for those specific roles.
+
+- `Phase 3`
+  Use `forge-proof::facade::TransitionOutcome` as the canonical typed outcome
+  family for middleware step progression and denial ordering.
+  Use `forge-proof::facade::compose_transition_outcome` and
+  `compose_join_transition_outcome` when middleware progression composes
+  multiple proof-bearing step outcomes.
+  Do not flatten middleware progression into ad hoc result enums once this
+  phase lands.
+
+- `Phase 4`
+  Use neither crate.
+  Reason: surface-family segregation is a crate-local topology boundary, not a
+  shared vocabulary or proof kernel boundary.
+
+- `Phase 5`
+  Use neither crate in the initial handoff shape.
+  Reason: Query handoff artifacts in this phase remain server-local mechanism
+  over Query-owned semantics, not standalone shared foundational artifacts yet.
+
+- `Phase 6`
+  Use `forge-foundational::facade::claim_receipt_evidence_boundary_surface`
+  for provenance-bearing response-envelope surfaces.
+  Use `forge-foundational::facade::FoundationalBoundaryEvidenceReceiptFrontDoor`
+  and `FoundationalBoundaryEvidenceProvenanceFrontDoor` when response and
+  denial envelopes become first-class evidence-bearing boundary artifacts.
+  Use `forge-foundational::facade::DiagnosticRichnessProfile` to keep response
+  diagnostics posture in shared boundary vocabulary rather than server-local
+  strings.
+  Do not ship response/provenance envelopes in this phase as a parallel
+  vocabulary if these foundational evidence surfaces fit the artifact.
+
+- `Phase 7`
+  Use `forge-foundational::facade::FoundationalCounterBackedPerformanceReceipt`
+  for operator-facing counter receipts.
+  Use `forge-foundational::facade::FoundationalPerformanceCounterSpec` and
+  `FoundationalPerformanceBundle` for named counter contracts and grouped
+  performance evidence at the facade boundary.
+  Use `forge-foundational::facade::FoundationalBoundaryEvidenceAttachmentBundle`
+  and `FoundationalBoundaryEvidenceSupportFrontDoor` for operator evidence that
+  must survive beyond free-form logs.
+  Do not create a second server-local evidence ontology if these foundational
+  performance/evidence surfaces cover the artifact shape.
+
+- `Phase 8`
+  Use `forge-foundational::facade::FoundationalBoundaryArtifactCompileFailBoundary`,
+  `FoundationalBoundaryEvidenceCompileFailBoundary`, and
+  `FoundationalPerformanceCompileFailBoundary` to classify compile-fail
+  certification surfaces once hostile non-bypass and forbidden-surface tests
+  are emitted as real certification artifacts.
+  Use `forge-foundational::facade::FoundationalBoundaryArtifactProductionTestReadyArtifact`,
+  `FoundationalBoundaryEvidenceProductionTestReadyArtifact`, and
+  `FoundationalPerformanceProductionTestReadyArtifact` if this phase emits
+  production-readiness closeout artifacts rather than only local tests.
+  Use `forge-proof` only if the certification harness itself begins emitting
+  proof-bearing transition artifacts; otherwise keep the certification harness
+  local.
+
 ## Phase Plan
 
 ### Phase 1: Server Facade And Public Entry Boundary
@@ -107,6 +193,10 @@ framework-shaped directory tree.
 **Warnings**
 - Do not make `axum` routers the real public architecture.
 - Do not expose surface registration through unconstrained closure hooks.
+- Do not import `forge-foundational` just to rename bootstrap-local concepts
+  that are not yet real shared boundary vocabulary.
+- Do not import `forge-proof` unless the phase is actually closing a proof-
+  bearing lifecycle transition rather than merely decorating ordinary structs.
 
 **Test requirements**
 - Add a facade-entry parity test proving multiple surface families register
@@ -120,6 +210,14 @@ framework-shaped directory tree.
   export.
 - Surface families are named and registered explicitly so later milestones can
   stay structurally separate while still sharing one front door.
+- The initial Phase 1 implementation may enforce facade/bootstrap progression
+  with crate privacy and ownership first; if lifecycle states broaden or become
+  cross-subsystem proof artifacts, promote that progression into
+  `forge-proof`-backed types rather than ad hoc local witness drift.
+- Shared vocabulary should stay crate-local until a server artifact genuinely
+  becomes a shared boundary artifact. At that point, promote it into
+  `forge-foundational` instead of minting a second parallel ontology under
+  `forge-server`.
 
 **Open questions**
 - None.

@@ -1,4 +1,5 @@
 use super::ForgeServerSurfaceFamily;
+use crate::surfaces::ForgeServerSurfaceCapabilities;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeServerSurfaceRegistration {
@@ -23,6 +24,14 @@ impl ForgeServerSurfaceRegistration {
             self.implementation_state,
             ForgeServerSurfaceImplementationState::Disabled
         )
+    }
+
+    pub(crate) fn capabilities(&self) -> ForgeServerSurfaceCapabilities {
+        match self.implementation_state {
+            ForgeServerSurfaceImplementationState::Disabled => {
+                ForgeServerSurfaceCapabilities::disabled(self.family)
+            }
+        }
     }
 }
 

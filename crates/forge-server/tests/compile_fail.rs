@@ -1,7 +1,19 @@
 #[test]
-fn external_code_cannot_construct_surface_registrations_directly() {
+fn external_code_cannot_construct_or_reuse_sealed_phase_artifacts_directly() {
     let tests = trybuild::TestCases::new();
-    tests.compile_fail("tests/ui/private_surface_registration_constructor.rs");
-    tests.compile_fail("tests/ui/private_server_constructor.rs");
-    tests.compile_fail("tests/ui/server_cannot_serve_twice.rs");
+    tests.compile_fail("tests/ui/construction/private_middleware_admission_constructor.rs");
+    tests.compile_fail("tests/ui/construction/response/private_counter_receipt_constructor.rs");
+    tests.compile_fail("tests/ui/construction/response/private_denial_envelope_constructor.rs");
+    tests.compile_fail("tests/ui/construction/response/private_evidence_record_constructor.rs");
+    tests.compile_fail("tests/ui/construction/response/private_success_envelope_constructor.rs");
+    tests.compile_fail(
+        "tests/ui/construction/query_handoff/private_prepared_query_handoff_constructor.rs",
+    );
+    tests.compile_fail("tests/ui/construction/query_handoff/private_query_handoff_constructor.rs");
+    tests.compile_fail("tests/ui/construction/private_request_context_constructor.rs");
+    tests.compile_fail("tests/ui/construction/private_surface_registration_constructor.rs");
+    tests.compile_fail("tests/ui/construction/private_server_constructor.rs");
+    tests.compile_fail("tests/ui/cross_family/compat_http_cannot_import_forge_native_internal.rs");
+    tests.compile_fail("tests/ui/cross_family/forge_native_cannot_import_compat_http_internal.rs");
+    tests.compile_fail("tests/ui/lifecycle/server_cannot_serve_twice.rs");
 }

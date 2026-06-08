@@ -38,6 +38,16 @@ impl ForgeServerSurfaceRegistry {
             registered_families: self.registrations_by_family.keys().copied().collect(),
         }
     }
+
+    pub fn capabilities_for(
+        &self,
+        family: ForgeServerSurfaceFamily,
+    ) -> crate::surfaces::ForgeServerSurfaceCapabilities {
+        self.registrations_by_family
+            .get(&family)
+            .map(ForgeServerSurfaceRegistration::capabilities)
+            .unwrap_or_else(|| crate::surfaces::ForgeServerSurfaceCapabilities::absent(family))
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

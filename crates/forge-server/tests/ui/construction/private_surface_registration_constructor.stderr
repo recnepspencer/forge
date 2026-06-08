@@ -1,5 +1,5 @@
 error: cannot construct `ForgeServerSurfaceRegistration` with struct literal syntax due to private fields
- --> tests/ui/private_surface_registration_constructor.rs:4:25
+ --> tests/ui/construction/private_surface_registration_constructor.rs:4:25
   |
 4 |     let _registration = ForgeServerSurfaceRegistration {
   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
