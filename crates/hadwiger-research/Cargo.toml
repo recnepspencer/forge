@@ -11,6 +11,8 @@ forge-proof.workspace = true
 forge-query.workspace = true
 worth-math.workspace = true
 varisat.workspace = true
+good_lp.workspace = true
+clarabel.workspace = true
 
 [dev-dependencies]
 forge-relational.workspace = true

@@ -986,8 +986,20 @@ should remain Query-owned rather than host-local.
 Use this category when you are building read bundles or graph-shaped authoring
 that must lower through Query’s canonical artifacts.
 
+Graph-owned lookup is part of this authority boundary. If a Query-owned feature
+repeatedly needs to find nodes by canonical identity, resolve owner or placement
+kind, enumerate legal children or targets, check scope or boundary posture, or
+splice/move within a structured authoring graph, first establish one canonical
+Query-owned graph/index view and consume that view. Do not start with recursive
+tree walks, per-call registry scans, or surface-local lookup helpers and treat a
+later index as a mere performance cleanup. In Query, the graph/index is part of
+the proof boundary, not just an optimization.
+
 The mistake to avoid is duplicating query legality or planning in domain helpers
-when read composition or graph composition already owns the lane.
+when read composition or graph composition already owns the lane. A closely
+related mistake is host-local traversal folklore: helper loops that reconstruct
+graph meaning separately inside commands, scoped editing, legality, or
+UI-adjacent surfaces.
 
 Read next:
 

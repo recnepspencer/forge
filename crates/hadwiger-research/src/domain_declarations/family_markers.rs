@@ -78,6 +78,14 @@ relational_family!(
     "hadwiger.whole_plane_coloring_construction"
 );
 relational_family!(
+    FractionalChromaticScreeningDeclarationFamily,
+    "hadwiger.screening.fractional_chromatic"
+);
+relational_family!(
+    LovaszThetaScreeningDeclarationFamily,
+    "hadwiger.screening.lovasz_theta"
+);
+relational_family!(
     PlaneLowerBoundClaimDeclarationFamily,
     "hadwiger.plane_lower_bound_claim"
 );

@@ -1,7 +1,12 @@
 mod definitions;
 mod evaluation;
 mod finite_graph_view;
+mod fractional_chromatic_screening;
+mod invariants;
+mod lovasz_theta_screening;
 mod operations;
+mod optimization;
+mod optimization_certificate_screening;
 
 use crate::domain_artifacts::core_artifact::{
     impl_hadwiger_artifact, HadwigerArtifactAuthorityOwner, HadwigerArtifactCore,
@@ -12,14 +17,31 @@ use crate::domain_artifacts::digest_basis::{artifact_core, HadwigerArtifactPaylo
 use crate::domain_artifacts::HadwigerCanonicalArtifact;
 use crate::query_entry::HadwigerResearchHandle;
 
-use definitions::{invariant_definition, ALL_SCREENING_FAMILIES};
 pub use evaluation::{
     CandidateScreeningCertificate, CandidateScreeningEvaluation, CandidateScreeningEvaluationMode,
     CandidateScreeningEvaluationReport, CandidateScreeningVerdict,
 };
+pub use fractional_chromatic_screening::{
+    evaluate_fractional_chromatic_certificate_checked,
+    evaluate_fractional_chromatic_screening_checked,
+};
+use invariants::{invariant_definition, ALL_SCREENING_FAMILIES};
+pub use lovasz_theta_screening::{
+    evaluate_lovasz_theta_certificate_checked, evaluate_lovasz_theta_screening_checked,
+};
 pub use operations::{
     assemble_candidate_screening_report_checked, evaluate_certificate_screening_invariant_checked,
     evaluate_graph_screening_invariant_checked, CandidateScreeningError,
+};
+pub use optimization::{
+    AutocorrelationOverlapCertificate, DensityCapCertificate, FractionalChromaticCertificate,
+    LocalDensityWindowCertificate, LovaszThetaCertificate, PeriodicColorClassMeasureModel,
+    PeriodicMeasureCell, PeriodicMeasureWindow, ScreeningMatrixCertificate,
+    ScreeningPsdWitnessCertificate, ScreeningRational, ScreeningSolverTranscript,
+};
+pub use optimization_certificate_screening::{
+    evaluate_autocorrelation_zero_screening_checked, evaluate_density_cap_screening_checked,
+    evaluate_local_density_window_screening_checked,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]

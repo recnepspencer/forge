@@ -10,7 +10,8 @@ use super::proof_claim_request_types::{
 };
 use super::request_types::{
     AdvisoryNoteDeclaration, CandidateGraphDeclaration, ColorabilityDeclaration,
-    EmbeddingDeclaration, LowerBoundWitnessDeclaration, PartialAdmissionExplanationDeclaration,
+    EmbeddingDeclaration, FractionalChromaticScreeningDeclaration, LovaszThetaScreeningDeclaration,
+    LowerBoundWitnessDeclaration, PartialAdmissionExplanationDeclaration,
     RejectionExplanationDeclaration, UnitDistanceVerificationDeclaration,
     WholePlaneColoringConstructionDeclaration,
 };
@@ -40,6 +41,8 @@ hadwiger_request_input!(
     PartialAdmissionExplanationDeclaration,
     UnitDistanceVerificationDeclaration,
     WholePlaneColoringConstructionDeclaration,
+    FractionalChromaticScreeningDeclaration,
+    LovaszThetaScreeningDeclaration,
     PlaneLowerBoundClaimDeclaration,
     PlaneUpperBoundClaimDeclaration,
     PlaneExactValueClaimDeclaration,

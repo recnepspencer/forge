@@ -23,6 +23,14 @@ pub enum CandidateScreeningError {
         requested: CandidateScreeningInvariantFamily,
         certificate: CandidateScreeningInvariantFamily,
     },
+    CertificateReplayRejected {
+        family: CandidateScreeningInvariantFamily,
+        reason: &'static str,
+    },
+    SolverCandidateUnavailable {
+        family: CandidateScreeningInvariantFamily,
+        reason: &'static str,
+    },
 }
 
 impl From<HadwigerArtifactShapeError> for CandidateScreeningError {

@@ -6,6 +6,7 @@ use forge_query::facade::{
 use super::family_markers::{
     AdvisoryNoteDeclarationFamily, BackgroundTheoremDeclarationFamily,
     CandidateGraphDeclarationFamily, ColorabilityDeclarationFamily, EmbeddingDeclarationFamily,
+    FractionalChromaticScreeningDeclarationFamily, LovaszThetaScreeningDeclarationFamily,
     LowerBoundWitnessDeclarationFamily, PartialAdmissionExplanationDeclarationFamily,
     PlaneExactValueClaimDeclarationFamily, PlaneLowerBoundClaimDeclarationFamily,
     PlaneUpperBoundClaimDeclarationFamily, RejectionExplanationDeclarationFamily,
@@ -17,7 +18,8 @@ use super::proof_claim_request_types::{
 };
 use super::request_types::{
     AdvisoryNoteDeclaration, CandidateGraphDeclaration, ColorabilityDeclaration,
-    EmbeddingDeclaration, LowerBoundWitnessDeclaration, PartialAdmissionExplanationDeclaration,
+    EmbeddingDeclaration, FractionalChromaticScreeningDeclaration, LovaszThetaScreeningDeclaration,
+    LowerBoundWitnessDeclaration, PartialAdmissionExplanationDeclaration,
     RejectionExplanationDeclaration, UnitDistanceVerificationDeclaration,
     WholePlaneColoringConstructionDeclaration,
 };
@@ -157,6 +159,40 @@ impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
             kind_entry("whole_plane_coloring_construction"),
             ForgeQueryDeclarationCanonicalEntry::text("construction_id", self.construction_id()),
             unsigned_entry("color_count", self.color_count()),
+        ]
+    }
+}
+
+impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
+    for FractionalChromaticScreeningDeclaration
+{
+    type Family = FractionalChromaticScreeningDeclarationFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![
+            kind_entry("fractional_chromatic_screening"),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "graph_version_reference",
+                self.graph_version_reference(),
+            ),
+            unsigned_entry("color_limit", self.color_limit()),
+            ForgeQueryDeclarationCanonicalEntry::text("screening_basis", self.screening_basis()),
+        ]
+    }
+}
+
+impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for LovaszThetaScreeningDeclaration {
+    type Family = LovaszThetaScreeningDeclarationFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![
+            kind_entry("lovasz_theta_screening"),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "graph_version_reference",
+                self.graph_version_reference(),
+            ),
+            unsigned_entry("color_limit", self.color_limit()),
+            ForgeQueryDeclarationCanonicalEntry::text("screening_basis", self.screening_basis()),
         ]
     }
 }

@@ -7,6 +7,7 @@ mod request_types;
 pub use family_markers::{
     AdvisoryNoteDeclarationFamily, BackgroundTheoremDeclarationFamily,
     CandidateGraphDeclarationFamily, ColorabilityDeclarationFamily, EmbeddingDeclarationFamily,
+    FractionalChromaticScreeningDeclarationFamily, LovaszThetaScreeningDeclarationFamily,
     LowerBoundWitnessDeclarationFamily, PartialAdmissionExplanationDeclarationFamily,
     PlaneExactValueClaimDeclarationFamily, PlaneLowerBoundClaimDeclarationFamily,
     PlaneUpperBoundClaimDeclarationFamily, RejectionExplanationDeclarationFamily,
@@ -23,7 +24,9 @@ pub use query_operations::{
 };
 pub use request_types::{
     AdvisoryNoteDeclaration, CandidateGraphDeclaration, ColorabilityDeclaration,
-    EmbeddingDeclaration, HadwigerResearchDeclarationShapeError, LowerBoundWitnessDeclaration,
-    PartialAdmissionExplanationDeclaration, RejectionExplanationDeclaration,
-    UnitDistanceVerificationDeclaration, WholePlaneColoringConstructionDeclaration,
+    EmbeddingDeclaration, FractionalChromaticScreeningDeclaration,
+    HadwigerResearchDeclarationShapeError, LovaszThetaScreeningDeclaration,
+    LowerBoundWitnessDeclaration, PartialAdmissionExplanationDeclaration,
+    RejectionExplanationDeclaration, UnitDistanceVerificationDeclaration,
+    WholePlaneColoringConstructionDeclaration,
 };
