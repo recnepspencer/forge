@@ -1,0 +1,22 @@
+[package]
+name = "forge-server"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Typed server facade and transport boundary for Forge."
+repository = "https://github.com/recnepspencer/forge"
+keywords = ["server", "facade", "axum", "typed"]
+categories = ["network-programming", "web-programming"]
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["net"] }
+serde.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+trybuild.workspace = true
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

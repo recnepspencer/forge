@@ -20,6 +20,7 @@ members = [
     "crates/forge-schema",
     "crates/forge-spec",
     "crates/forge-runtime-bridge",
+    "crates/forge-server",
     "crates/forge-query",
     "crates/forge-foundational",
     "crates/forge-proof",
@@ -62,6 +63,7 @@ forge-repr = { path = "crates/forge-repr" }
 forge-schema = { path = "crates/forge-schema" }
 forge-spec = { path = "crates/forge-spec" }
 forge-runtime-bridge = { path = "crates/forge-runtime-bridge" }
+forge-server = { path = "crates/forge-server" }
 forge-query = { path = "crates/forge-query" }
 forge-foundational = { path = "crates/forge-foundational" }
 forge-proof = { path = "crates/forge-proof" }
