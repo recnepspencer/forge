@@ -50,6 +50,20 @@ impl ScreeningRational {
         })
     }
 
+    pub(crate) fn approximate_from_f64(
+        value: f64,
+        max_denominator: i128,
+    ) -> Result<Self, HadwigerArtifactShapeError> {
+        if !value.is_finite() || max_denominator <= 0 {
+            return Err(HadwigerArtifactShapeError::EmptyField {
+                field: "finite_rational_approximation",
+            });
+        }
+        let sign = if value < 0.0 { -1 } else { 1 };
+        let scaled = (value.abs() * max_denominator as f64).round() as i128;
+        Self::fraction(sign * scaled, max_denominator)
+    }
+
     pub(crate) fn add(&self, other: &Self) -> Self {
         Self::fraction(
             self.numerator * other.denominator + other.numerator * self.denominator,

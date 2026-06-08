@@ -10,9 +10,9 @@ use super::proof_claim_request_types::{
 };
 use super::request_types::{
     AdvisoryNoteDeclaration, CandidateGraphDeclaration, ColorabilityDeclaration,
-    EmbeddingDeclaration, LowerBoundWitnessDeclaration, PartialAdmissionExplanationDeclaration,
-    RejectionExplanationDeclaration, UnitDistanceVerificationDeclaration,
-    WholePlaneColoringConstructionDeclaration,
+    EmbeddingDeclaration, FractionalChromaticScreeningDeclaration, LowerBoundWitnessDeclaration,
+    PartialAdmissionExplanationDeclaration, RejectionExplanationDeclaration,
+    UnitDistanceVerificationDeclaration, WholePlaneColoringConstructionDeclaration,
 };
 use crate::query_entry::{HadwigerResearchDomainEntry, HadwigerResearchHandle};
 
@@ -40,6 +40,7 @@ hadwiger_request_input!(
     PartialAdmissionExplanationDeclaration,
     UnitDistanceVerificationDeclaration,
     WholePlaneColoringConstructionDeclaration,
+    FractionalChromaticScreeningDeclaration,
     PlaneLowerBoundClaimDeclaration,
     PlaneUpperBoundClaimDeclaration,
     PlaneExactValueClaimDeclaration,

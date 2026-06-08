@@ -15,6 +15,7 @@ fn fractional_chromatic_replay_rejects_k7_and_rejects_corrupt_dual() {
         checked.mode(),
         CandidateScreeningEvaluationMode::SolverBackedCertificate
     );
+    assert!(checked.evidence().contains("query_declaration_digest="));
     assert!(checked.evidence().contains("fractional_dual_certificate"));
 
     let corrupt = FractionalChromaticCertificate::new(
@@ -37,6 +38,49 @@ fn fractional_chromatic_replay_rejects_k7_and_rejects_corrupt_dual() {
 }
 
 #[test]
+fn fractional_chromatic_replay_rejects_duplicate_and_negative_weights() {
+    let catalog = draft_candidate_screening_invariant_catalog_checked(&handle()).unwrap();
+    let graph = complete_graph(3);
+
+    let duplicate = FractionalChromaticCertificate::new(
+        "duplicate-dual",
+        vec![
+            ("v0".to_string(), ScreeningRational::integer(1)),
+            ("v0".to_string(), ScreeningRational::integer(1)),
+        ],
+        ScreeningRational::integer(2),
+        transcript("duplicate"),
+    )
+    .unwrap();
+    let err = evaluate_fractional_chromatic_certificate_checked(&catalog, &graph, duplicate)
+        .expect_err("duplicate vertex weight should reject certificate");
+    assert_eq!(
+        err,
+        CandidateScreeningError::CertificateReplayRejected {
+            family: CandidateScreeningInvariantFamily::FractionalChromaticNumber,
+            reason: "duplicate_certificate_vertex"
+        }
+    );
+
+    let negative = FractionalChromaticCertificate::new(
+        "negative-dual",
+        vec![("v0".to_string(), ScreeningRational::integer(-1))],
+        ScreeningRational::integer(-1),
+        transcript("negative"),
+    )
+    .unwrap();
+    let err = evaluate_fractional_chromatic_certificate_checked(&catalog, &graph, negative)
+        .expect_err("negative dual weight should reject certificate");
+    assert_eq!(
+        err,
+        CandidateScreeningError::CertificateReplayRejected {
+            family: CandidateScreeningInvariantFamily::FractionalChromaticNumber,
+            reason: "negative_certificate_weight"
+        }
+    );
+}
+
+#[test]
 fn fractional_chromatic_replay_does_not_reject_six_colorable_path() {
     let handle = handle();
     let catalog = draft_candidate_screening_invariant_catalog_checked(&handle).unwrap();
@@ -45,6 +89,16 @@ fn fractional_chromatic_replay_does_not_reject_six_colorable_path() {
         evaluate_fractional_chromatic_screening_checked(&handle, &catalog, &graph).unwrap();
 
     assert_eq!(checked.verdict(), CandidateScreeningVerdict::Passed);
+}
+
+#[test]
+fn fractional_chromatic_screening_has_query_declaration_readiness() {
+    let handle = handle();
+
+    let readiness =
+        research_declaration_entry_readiness::<FractionalChromaticScreeningDeclaration>(&handle);
+
+    assert!(!readiness.rows().is_empty());
 }
 
 #[test]

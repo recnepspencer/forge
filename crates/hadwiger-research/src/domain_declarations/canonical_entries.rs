@@ -6,10 +6,11 @@ use forge_query::facade::{
 use super::family_markers::{
     AdvisoryNoteDeclarationFamily, BackgroundTheoremDeclarationFamily,
     CandidateGraphDeclarationFamily, ColorabilityDeclarationFamily, EmbeddingDeclarationFamily,
-    LowerBoundWitnessDeclarationFamily, PartialAdmissionExplanationDeclarationFamily,
-    PlaneExactValueClaimDeclarationFamily, PlaneLowerBoundClaimDeclarationFamily,
-    PlaneUpperBoundClaimDeclarationFamily, RejectionExplanationDeclarationFamily,
-    UnitDistanceVerificationDeclarationFamily, WholePlaneColoringConstructionDeclarationFamily,
+    FractionalChromaticScreeningDeclarationFamily, LowerBoundWitnessDeclarationFamily,
+    PartialAdmissionExplanationDeclarationFamily, PlaneExactValueClaimDeclarationFamily,
+    PlaneLowerBoundClaimDeclarationFamily, PlaneUpperBoundClaimDeclarationFamily,
+    RejectionExplanationDeclarationFamily, UnitDistanceVerificationDeclarationFamily,
+    WholePlaneColoringConstructionDeclarationFamily,
 };
 use super::proof_claim_request_types::{
     BackgroundTheoremDeclaration, PlaneExactValueClaimDeclaration, PlaneLowerBoundClaimDeclaration,
@@ -17,9 +18,9 @@ use super::proof_claim_request_types::{
 };
 use super::request_types::{
     AdvisoryNoteDeclaration, CandidateGraphDeclaration, ColorabilityDeclaration,
-    EmbeddingDeclaration, LowerBoundWitnessDeclaration, PartialAdmissionExplanationDeclaration,
-    RejectionExplanationDeclaration, UnitDistanceVerificationDeclaration,
-    WholePlaneColoringConstructionDeclaration,
+    EmbeddingDeclaration, FractionalChromaticScreeningDeclaration, LowerBoundWitnessDeclaration,
+    PartialAdmissionExplanationDeclaration, RejectionExplanationDeclaration,
+    UnitDistanceVerificationDeclaration, WholePlaneColoringConstructionDeclaration,
 };
 use crate::query_entry::HadwigerResearchDomainEntry;
 
@@ -157,6 +158,24 @@ impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
             kind_entry("whole_plane_coloring_construction"),
             ForgeQueryDeclarationCanonicalEntry::text("construction_id", self.construction_id()),
             unsigned_entry("color_count", self.color_count()),
+        ]
+    }
+}
+
+impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
+    for FractionalChromaticScreeningDeclaration
+{
+    type Family = FractionalChromaticScreeningDeclarationFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![
+            kind_entry("fractional_chromatic_screening"),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "graph_version_reference",
+                self.graph_version_reference(),
+            ),
+            unsigned_entry("color_limit", self.color_limit()),
+            ForgeQueryDeclarationCanonicalEntry::text("screening_basis", self.screening_basis()),
         ]
     }
 }

@@ -8,46 +8,12 @@ use super::evaluation::{
 };
 use super::finite_graph_view::FiniteGraphView;
 use super::optimization::{
-    AutocorrelationOverlapCertificate, DensityCapCertificate, FractionalChromaticCertificate,
-    LocalDensityWindowCertificate, LovaszThetaCertificate, PeriodicColorClassMeasureModel,
-    ScreeningMatrixCertificate, ScreeningRational, ScreeningSolverTranscript,
+    AutocorrelationOverlapCertificate, DensityCapCertificate, LocalDensityWindowCertificate,
+    LovaszThetaCertificate, PeriodicColorClassMeasureModel, ScreeningMatrixCertificate,
+    ScreeningRational, ScreeningSolverTranscript,
 };
 use super::{CandidateScreeningError, CandidateScreeningInvariantCatalog};
 use crate::candidate_screening::CandidateScreeningInvariantFamily;
-
-pub fn evaluate_fractional_chromatic_screening_checked(
-    _handle: &HadwigerResearchHandle,
-    catalog: &CandidateScreeningInvariantCatalog,
-    graph: &GraphVersion,
-) -> Result<CandidateScreeningEvaluation, CandidateScreeningError> {
-    let graph_view = FiniteGraphView::from_graph_version(graph);
-    graph_view.require_subset_budget(20)?;
-    let clique = graph_view.maximum_clique_witness();
-    let transcript = solver_transcript("good_lp", "fractional_chromatic_dual", graph)?;
-    let certificate = fractional_certificate_from_clique(&graph_view, clique, transcript)?;
-    evaluate_fractional_chromatic_certificate_checked(catalog, graph, certificate)
-}
-
-pub fn evaluate_fractional_chromatic_certificate_checked(
-    catalog: &CandidateScreeningInvariantCatalog,
-    graph: &GraphVersion,
-    certificate: FractionalChromaticCertificate,
-) -> Result<CandidateScreeningEvaluation, CandidateScreeningError> {
-    let family = CandidateScreeningInvariantFamily::FractionalChromaticNumber;
-    require_catalog_family(catalog, family)?;
-    let graph_view = FiniteGraphView::from_graph_version(graph);
-    graph_view.require_subset_budget(20)?;
-    replay_fractional_certificate(&graph_view, &certificate)?;
-    CandidateScreeningEvaluation::new(
-        catalog,
-        family,
-        graph.reference(),
-        verdict_bool(certificate.lower_bound().cmp_integer(6).is_gt()),
-        CandidateScreeningEvaluationMode::SolverBackedCertificate,
-        format!("fractional_dual_certificate={}", certificate.stable_token()),
-    )
-    .map_err(Into::into)
-}
 
 pub fn evaluate_lovasz_theta_screening_checked(
     _handle: &HadwigerResearchHandle,
@@ -171,83 +137,6 @@ fn solver_transcript(
         format!("{}:{}", lane, graph.reference().stable_token()),
         "certificate_candidate_generated",
     )
-}
-
-fn fractional_certificate_from_clique(
-    graph_view: &FiniteGraphView,
-    clique: Vec<usize>,
-    transcript: ScreeningSolverTranscript,
-) -> Result<FractionalChromaticCertificate, HadwigerArtifactShapeError> {
-    let vertex_weights = graph_view
-        .vertices()
-        .iter()
-        .enumerate()
-        .map(|(index, label)| {
-            let weight = if clique.contains(&index) {
-                ScreeningRational::integer(1)
-            } else {
-                ScreeningRational::integer(0)
-            };
-            (label.clone(), weight)
-        })
-        .collect::<Vec<_>>();
-    FractionalChromaticCertificate::new(
-        "clique-dual-bound",
-        vertex_weights,
-        ScreeningRational::integer(clique.len() as i128),
-        transcript,
-    )
-}
-
-fn replay_fractional_certificate(
-    graph_view: &FiniteGraphView,
-    certificate: &FractionalChromaticCertificate,
-) -> Result<(), CandidateScreeningError> {
-    let mut weights = std::collections::BTreeMap::new();
-    for (vertex, weight) in certificate.vertex_weights() {
-        if !graph_view.vertices().iter().any(|label| label == vertex) {
-            return Err(replay_error(
-                CandidateScreeningInvariantFamily::FractionalChromaticNumber,
-                "unknown_certificate_vertex",
-            ));
-        }
-        weights.insert(vertex.as_str(), weight.clone());
-    }
-    let total = graph_view
-        .vertices()
-        .iter()
-        .fold(ScreeningRational::integer(0), |sum, vertex| {
-            let weight = weights
-                .get(vertex.as_str())
-                .cloned()
-                .unwrap_or_else(|| ScreeningRational::integer(0));
-            sum.add(&weight)
-        });
-    if total != *certificate.lower_bound() {
-        return Err(replay_error(
-            CandidateScreeningInvariantFamily::FractionalChromaticNumber,
-            "lower_bound_does_not_match_weight_sum",
-        ));
-    }
-    for independent_set in graph_view.independent_sets() {
-        let set_sum = independent_set
-            .iter()
-            .fold(ScreeningRational::integer(0), |sum, index| {
-                let vertex = &graph_view.vertices()[*index];
-                let weight = weights
-                    .get(vertex.as_str())
-                    .cloned()
-                    .unwrap_or_else(|| ScreeningRational::integer(0));
-                sum.add(&weight)
-            });
-        if set_sum.cmp_integer(1).is_gt() {
-            return Err(replay_error(
-                CandidateScreeningInvariantFamily::FractionalChromaticNumber,
-                "independent_set_dual_constraint_violated",
-            ));
-        }
-    }
-    Ok(())
 }
 
 fn lovasz_certificate_for_complete_graph(
