@@ -29,6 +29,7 @@ impl CandidateScreeningVerdict {
 pub enum CandidateScreeningEvaluationMode {
     DirectGraphAlgorithm,
     CheckedCertificate,
+    SolverBackedCertificate,
 }
 
 impl CandidateScreeningEvaluationMode {
@@ -36,6 +37,7 @@ impl CandidateScreeningEvaluationMode {
         match self {
             Self::DirectGraphAlgorithm => "direct_graph_algorithm",
             Self::CheckedCertificate => "checked_certificate",
+            Self::SolverBackedCertificate => "solver_backed_certificate",
         }
     }
 }

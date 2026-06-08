@@ -25,8 +25,8 @@ Status meanings:
 | 7 | Independence-number lower bound | `src/candidate_screening/invariants/independence_number_lower_bound.rs` | `native_bounded` |
 | 8 | Weighted independence-number bound | `src/candidate_screening/invariants/weighted_independence_number_bound.rs` | `native_special_case` |
 | 9 | Hall-ratio / subpatch independence bound | `src/candidate_screening/invariants/hall_ratio_subpatch_independence_bound.rs` | `native_bounded` |
-| 10 | Fractional chromatic number | `src/candidate_screening/invariants/fractional_chromatic_number.rs` | `certificate_required` |
-| 11 | Lovasz theta bound | `src/candidate_screening/invariants/lovasz_theta_bound.rs` | `certificate_required` |
+| 10 | Fractional chromatic number | `src/candidate_screening/invariants/fractional_chromatic_number.rs` | `native_bounded` |
+| 11 | Lovasz theta bound | `src/candidate_screening/invariants/lovasz_theta_bound.rs` | `native_special_case` |
 | 12 | Spectral / Hoffman bound | `src/candidate_screening/invariants/spectral_hoffman_bound.rs` | `native_special_case` |
 | 13 | Degeneracy / k-core filter | `src/candidate_screening/invariants/degeneracy_k_core_filter.rs` | `native_exact` |
 | 14 | Maximum-degree sanity check | `src/candidate_screening/invariants/maximum_degree_sanity_check.rs` | `heuristic` |
@@ -36,9 +36,9 @@ Status meanings:
 | 18 | Periodic quotient graph test | `src/candidate_screening/invariants/periodic_quotient_graph.rs` | `certificate_required` |
 | 19 | Forbidden displacement set | `src/candidate_screening/invariants/forbidden_displacement_set.rs` | `certificate_required` |
 | 20 | Minkowski-difference geometry test | `src/candidate_screening/invariants/minkowski_difference_geometry.rs` | `certificate_required` |
-| 21 | Autocorrelation zero test | `src/candidate_screening/invariants/autocorrelation_zero.rs` | `certificate_required` |
-| 22 | Density cap for each color class | `src/candidate_screening/invariants/density_cap_each_color_class.rs` | `certificate_required` |
-| 23 | Local density-window test | `src/candidate_screening/invariants/local_density_window.rs` | `certificate_required` |
+| 21 | Autocorrelation zero test | `src/candidate_screening/invariants/autocorrelation_zero.rs` | `native_special_case` |
+| 22 | Density cap for each color class | `src/candidate_screening/invariants/density_cap_each_color_class.rs` | `native_special_case` |
+| 23 | Local density-window test | `src/candidate_screening/invariants/local_density_window.rs` | `native_special_case` |
 | 24 | Unit-distance embeddability test | `src/candidate_screening/invariants/unit_distance_embeddability.rs` | `certificate_required` |
 | 25 | Rigidity / realization consistency test | `src/candidate_screening/invariants/rigidity_realization_consistency.rs` | `certificate_required` |
 | 26 | Numerical margin test | `src/candidate_screening/invariants/numerical_margin.rs` | `certificate_required` |

@@ -84,6 +84,8 @@ criterion = { version = "0.5", features = ["html_reports"] }
 # Testing
 trybuild = "1.0"
 varisat = "0.2.1"
+good_lp = "1.15.2"
+clarabel = "0.11.1"
 
 # Observability
 tracing = "0.1"

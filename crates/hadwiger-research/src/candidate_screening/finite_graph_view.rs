@@ -44,6 +44,10 @@ impl FiniteGraphView {
         self.vertices.len()
     }
 
+    pub(crate) fn vertices(&self) -> &[String] {
+        &self.vertices
+    }
+
     pub(crate) fn edge_count(&self) -> usize {
         self.adjacency
             .iter()
@@ -84,6 +88,16 @@ impl FiniteGraphView {
 
     pub(crate) fn clique_number(&self) -> usize {
         self.maximum_subset_size(true)
+    }
+
+    pub(crate) fn maximum_clique_witness(&self) -> Vec<usize> {
+        let mut best = Vec::new();
+        for subset in self.subsets() {
+            if subset.len() > best.len() && self.subset_pair_relation_holds(&subset, true) {
+                best = subset;
+            }
+        }
+        best
     }
 
     pub(crate) fn independence_number(&self) -> usize {
@@ -161,6 +175,13 @@ impl FiniteGraphView {
 
     pub(crate) fn is_complete(&self) -> bool {
         self.edge_count() == self.vertex_count().saturating_sub(1) * self.vertex_count() / 2
+    }
+
+    pub(crate) fn independent_sets(&self) -> Vec<Vec<usize>> {
+        self.subsets()
+            .into_iter()
+            .filter(|subset| self.subset_pair_relation_holds(subset, false))
+            .collect()
     }
 
     pub(crate) fn has_smaller_non_k_colorable_subgraph(&self, color_count: usize) -> bool {
