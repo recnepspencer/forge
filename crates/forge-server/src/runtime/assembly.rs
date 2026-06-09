@@ -12,7 +12,10 @@ use crate::{
     registration::ForgeServerSurfaceRegistry,
     request_context::ForgeServerRequestContextFacade,
     response::ForgeServerResponseFacade,
-    surfaces::{compat_http::ForgeServerStoredCompatibilityMutation, ForgeServerSurfacesFacade},
+    surfaces::{
+        compat_http::{ForgeServerStoredBinaryIngress, ForgeServerStoredCompatibilityMutation},
+        ForgeServerSurfacesFacade,
+    },
 };
 
 #[derive(Debug)]
@@ -28,6 +31,7 @@ pub(crate) struct ForgeServerRuntimeAssembly {
     counters: Arc<ForgeServerCounters>,
     compat_http_mutation_replay_store:
         Arc<Mutex<HashMap<String, ForgeServerStoredCompatibilityMutation>>>,
+    compat_http_binary_ingress_store: Arc<Mutex<HashMap<String, ForgeServerStoredBinaryIngress>>>,
 }
 
 impl ForgeServerRuntimeAssembly {
@@ -56,6 +60,7 @@ impl ForgeServerRuntimeAssembly {
             request_context_facade,
             counters,
             compat_http_mutation_replay_store: Arc::new(Mutex::new(HashMap::new())),
+            compat_http_binary_ingress_store: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -99,5 +104,11 @@ impl ForgeServerRuntimeAssembly {
         &self,
     ) -> &Arc<Mutex<HashMap<String, ForgeServerStoredCompatibilityMutation>>> {
         &self.compat_http_mutation_replay_store
+    }
+
+    pub(crate) fn compat_http_binary_ingress_store(
+        &self,
+    ) -> &Arc<Mutex<HashMap<String, ForgeServerStoredBinaryIngress>>> {
+        &self.compat_http_binary_ingress_store
     }
 }

@@ -254,6 +254,11 @@ cross-feature proof gates before final certification:
   honestly-postured in-memory test runtime using only Query-shipped kit
   surfaces, with closure proven by reference-consumer adoption and deletion
   of the hand-rolled equivalents
+- `Milestone 9.9` must prove complete graph touch obligation authority: every
+  obligation kind executable, compose/batch/read lanes dispatching, policy-aware
+  mutation gates live, explicit relational graph-composition execution point,
+  exact-zero duplicate enforcement, and full reference adoption in `worth-topo`
+  and `worth-kernel` construction with architectural certification closure
 - `Milestone 10` must prove store-backed execution and historical parity for
   admitted shared capability families
 - `Milestone 11` must prove durable saved-query, cursor, and artifact reload
@@ -278,7 +283,8 @@ Critical path:
   `Milestone 9.3.8` -> `Runtime API Public Stabilization Gate` ->
   `Runtime Authoritative Mutation Evidence Gate` -> `Milestone 9.4` ->
   `Milestone 9.5` -> `Milestone 9.6` -> `Milestone 9.7` -> `Milestone 9.8` ->
-  `Milestone 10` -> `Milestone 11` -> `Milestone 12` -> `Milestone 13`
+  `Milestone 9.9` -> `Milestone 10` -> `Milestone 11` -> `Milestone 12` ->
+  `Milestone 13`
 
 Store-gated completion tracks:
 
@@ -378,6 +384,9 @@ Store-gated completion tracks:
   adoption first, but persisted support snapshots, durable audit archives, and
   store-backed kit artifacts remain explicit debt until `Milestone 10` and
   `Milestone 11` close
+- `Milestone 9.9` closes complete graph touch obligation authority including
+  policy-aware graph mutation execution, all obligation kind executors, and full
+  reference adoption in `worth-topo` and `worth-kernel` construction
 - `Milestone 10` is the first intentionally store-gated execution milestone
 - `Milestone 11` is the intentionally store-gated durable artifact milestone
 - `Milestone 12` is the intentionally store-gated blob/media milestone
@@ -3429,6 +3438,109 @@ This milestone is complete only when `forge-query` can prove:
   hand-fabricated receipts
 - covered `worth-kernel` surfaces carry zero remaining hand-rolled digest,
   audit, or gap-row folklore
+
+## Milestone 9.9: Graph Touch Obligation Authority
+
+### Goal
+
+Establish graph touch obligation dispatch as a complete Query authority
+boundary — typed obligation kinds, three-state verdicts, canonical dispatch
+artifacts, index-backed selection, relational execution bridge, duplicate-rule
+elimination, and mechanical consumer anti-folklore — certified
+architecturally and proven by reference-consumer deletion of parallel
+legality in `worth-topo` and `worth-kernel`.
+
+### Adversarial Constraint
+
+Obligation dispatch must be a pure function of touch descriptor, operating
+world, and assembly index — on every lane that reaches authoritative
+execution: write-batch intent admission, declaration-entry orchestration,
+read-family execution, and preview/branch mutation where applicable — with
+exact-zero false negatives, false positives, duplicate rule implementations,
+manual pre-check residue, and dispatch-plan drift on covered surfaces under
+property-test certification.
+
+### Why This Milestone Exists
+
+Query teaches register invariants and consume typed graph-composition
+denials, but the product surface still trains manual invariant-pack callbacks
+and duplicate enforcement across pre-checks, materialized-view validators,
+and commit-boundary invariants. `worth-topo` calls `compose_graph` yet
+enforces loop wiring in three places; `worth-kernel` carries host-local
+layout legality and motion sequencing guarded by `unreachable!`. This
+milestone ships obligation authority as foundation infrastructure before
+store-backed execution inherits another legality layer.
+
+### Must Ship
+
+- complete obligation authority model with multi-obligation dispatch envelopes
+- graph touch descriptors for mutation and read lanes
+- registration, auto-indexing, assembly index with complexity contracts
+- relational graph-composition execution point and rule migration
+- authoritative write-batch intent admission integration (canonical dispatch seam)
+- declaration-entry and contribution-orchestration dispatch
+- read-family and read-composition dispatch (all four entry points)
+- preview and branch mutation obligation parity
+- policy-aware graph mutation execution and operating-context gate dispatch
+- advisory, capability-gap, and preflight-sequencing executors
+- envelope attachment to receipts, decision traces, and mutation evidence
+- derived read validation re-homed; consumer obligation bypass audit
+- kernel construction operating context wiring
+- primitive construction birth compose execution (all covered families)
+- full reference adoption in `worth-topo` and `worth-kernel` construction
+- public docs and AI_README category
+- architectural hostile certification matrix closure
+
+### Must Preserve
+
+- relational invariant execution authority
+- typed graph-composition domain-invariant denial contracts on block paths
+- declaration legality and support admission as upstream lanes obligations consume
+
+### Complexity / Proof Obligations
+
+- every obligation kind × representative touch in certification matrix
+- false-fire/false-miss, replay equivalence, complexity contracts
+- exact-zero duplicate rule implementations and adoption manifest residue
+- policy-aware mutation gate parity with operating context changes
+
+### Allowed Debt
+
+- store-backed obligation envelope durability remains Milestone `10`/`11` scope
+- shipping authority surfaces without full reference adoption may not be claimed
+  as closure
+
+### Sequencing Notes
+
+The detailed execution plan lives in [milestone-9.9.md](./milestone-9.9.md).
+Twenty phases: vocabulary and relational execution point (1–5); intent
+admission integration before surface-specific wiring (6–9); remaining
+executors and envelope attachment (10–12); re-homing and bypass audit (13–14);
+kernel operating context before birth compose (15–16); adoption (17–18);
+docs then certification close (19–20).
+
+### Parallelization Notes
+
+Relational execution point and policy-aware mutation work may overlap where
+staffing allows; adoption and certification close strictly last.
+
+### Store Dependency
+
+- Runtime-backed obligation authority is not blocked on `forge-store`.
+- Durable obligation envelope persistence is Milestone `10`/`11` scope.
+
+### Acceptance Evidence
+
+- every obligation kind executes in certification matrix across representative
+  touches and lanes
+- write-batch intent admission carries obligation dispatch — manual
+  invariant-pack pre-hook eliminated on covered paths
+- primitive construction birth executes compose_graph with obligation routing
+- compose, batch, read-family, preview/branch, and declaration-entry lanes
+  dispatch with canonical envelopes on receipts and decision traces
+- policy-aware mutation gates and preflight sequencing certified
+- full topo milestone-one catalog and kernel phase-chain adoption residue
+- bypass audit and architectural certification matrix pass
 
 ## Milestone 10: Store-Backed Execution, Pushdown, And Historical Parity
 

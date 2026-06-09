@@ -46,6 +46,7 @@ pub enum ForgeServerQueryHandoffDenialCode {
     CompatibilityConditionalReadNotModified,
     CompatibilityConditionalReadPreconditionFailed,
     CompatibilityStreamingRequestInvalid,
+    CompatibilityUploadRequestInvalid,
     CompatibilityMutationRequestInvalid,
     CompatibilityMutationFamilyUnsupported,
     CompatibilityMutationFamilyForbidden,

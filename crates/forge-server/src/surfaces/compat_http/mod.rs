@@ -7,6 +7,7 @@ mod registration;
 mod request_contract;
 mod root;
 mod streaming_execution;
+mod upload_execution;
 
 pub use admission::{
     ForgeServerCompatibilityDeferred, ForgeServerCompatibilityDenial,
@@ -45,4 +46,14 @@ pub use streaming_execution::{
     ForgeServerStreamCancellationReceipt, ForgeServerStreamFinishError, ForgeServerStreamSelection,
     ForgeServerStreamingChunk, ForgeServerStreamingPerformanceReceipt,
     ForgeServerStreamingResponse,
+};
+pub(crate) use upload_execution::ForgeServerStoredBinaryIngress;
+pub use upload_execution::{
+    ForgeServerBinaryIngressSession, ForgeServerCompatibilityUpload,
+    ForgeServerCompatibilityUploadExecutionInput, ForgeServerCompatibilityUploadOutcome,
+    ForgeServerIngressIntegrityDigest, ForgeServerIngressPerformanceReceipt,
+    ForgeServerMultipartUpload, ForgeServerPreparedMultipartUpload, ForgeServerUploadChunk,
+    ForgeServerUploadCleanupReason, ForgeServerUploadCleanupReceipt,
+    ForgeServerUploadContentEncoding, ForgeServerUploadExpectation, ForgeServerUploadManifest,
+    ForgeServerUploadPart, ForgeServerUploadTransferMode, ForgeServerVerifiedBinaryIngress,
 };

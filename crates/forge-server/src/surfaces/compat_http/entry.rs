@@ -225,6 +225,9 @@ fn lower_pipeline_intent(
         ForgeServerCompatHttpRouteFamily::Mutation => {
             ForgeServerPipelineIntent::query_mutation("compat_http.request_contract")
         }
+        ForgeServerCompatHttpRouteFamily::Upload => {
+            ForgeServerPipelineIntent::query_mutation("compat_http.request_contract")
+        }
         _ => ForgeServerPipelineIntent::query_read("compat_http.request_contract"),
     }
 }

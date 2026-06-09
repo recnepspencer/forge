@@ -9,7 +9,10 @@ use crate::{
     ForgeServerResponseFacade,
 };
 
-use super::mutation_execution::ForgeServerStoredCompatibilityMutation;
+use super::{
+    mutation_execution::ForgeServerStoredCompatibilityMutation,
+    upload_execution::ForgeServerStoredBinaryIngress,
+};
 
 #[derive(Clone, Debug)]
 pub struct ForgeServerCompatibilityFacade {
@@ -21,6 +24,7 @@ pub struct ForgeServerCompatibilityFacade {
     pub(super) responses: ForgeServerResponseFacade,
     pub(super) idempotency_store:
         Arc<Mutex<HashMap<String, ForgeServerStoredCompatibilityMutation>>>,
+    pub(super) binary_ingress_store: Arc<Mutex<HashMap<String, ForgeServerStoredBinaryIngress>>>,
 }
 
 impl ForgeServerCompatibilityFacade {
@@ -32,6 +36,7 @@ impl ForgeServerCompatibilityFacade {
         query_handoff: ForgeServerQueryHandoffFacade,
         responses: ForgeServerResponseFacade,
         idempotency_store: Arc<Mutex<HashMap<String, ForgeServerStoredCompatibilityMutation>>>,
+        binary_ingress_store: Arc<Mutex<HashMap<String, ForgeServerStoredBinaryIngress>>>,
     ) -> Self {
         Self {
             root,
@@ -41,6 +46,7 @@ impl ForgeServerCompatibilityFacade {
             query_handoff,
             responses,
             idempotency_store,
+            binary_ingress_store,
         }
     }
 
