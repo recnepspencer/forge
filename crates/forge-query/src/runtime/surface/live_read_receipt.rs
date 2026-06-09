@@ -1,4 +1,5 @@
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
+use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::runtime::{
     ForgeQueryIntentConsumerInspection, ForgeQueryIntentExecutionProvenance,
     ForgeQueryRuntimeLiveSubscriptionInstallation,
@@ -16,6 +17,7 @@ pub struct ForgeQueryLiveReadReceipt {
     result_digest: String,
     snapshot_token: String,
     row_count: usize,
+    materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
     pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
 }
@@ -24,6 +26,7 @@ impl ForgeQueryLiveReadReceipt {
     pub(in crate::runtime) fn from_rows(
         installation: &ForgeQueryRuntimeLiveSubscriptionInstallation,
         snapshot_token: String,
+        materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
         rows: &[crate::memory_workspace::ForgeQueryEntity],
     ) -> Self {
         Self {
@@ -41,6 +44,7 @@ impl ForgeQueryLiveReadReceipt {
             .to_string(),
             snapshot_token,
             row_count: rows.len(),
+            materialized_fact_posture,
             decision_trace_envelope: None,
             execution_provenance: None,
         }
@@ -76,6 +80,10 @@ impl ForgeQueryLiveReadReceipt {
 
     pub fn row_count(&self) -> usize {
         self.row_count
+    }
+
+    pub fn materialized_fact_posture(&self) -> Option<&ProjectionMaterializedFactPosture> {
+        self.materialized_fact_posture.as_ref()
     }
 
     pub fn decision_trace_envelope(&self) -> Option<&ForgeQueryIntentDecisionTraceEnvelope> {

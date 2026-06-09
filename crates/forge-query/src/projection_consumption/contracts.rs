@@ -313,6 +313,7 @@ fn fact_family_digest_part(fact_family: &BoundProjectionFactFamily) -> String {
 fn contract_source_posture(family: ProjectionSourceFamily) -> ProjectionContractSourcePosture {
     match family {
         ProjectionSourceFamily::QueryReadReceipt
+        | ProjectionSourceFamily::QueryLiveReadReceipt
         | ProjectionSourceFamily::QueryWriteReceipt
         | ProjectionSourceFamily::QueryContextExecution => {
             ProjectionContractSourcePosture::QueryOwnedReceiptSource

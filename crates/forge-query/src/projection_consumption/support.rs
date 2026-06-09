@@ -118,6 +118,9 @@ pub(crate) fn support_for_kind(
         ProjectionSourceCapabilityProfile::QueryReadReceipt { execution_posture } => {
             query_read_support(*execution_posture, fact_kind)
         }
+        ProjectionSourceCapabilityProfile::QueryLiveReadReceipt { execution_posture } => {
+            query_read_support(*execution_posture, fact_kind)
+        }
         ProjectionSourceCapabilityProfile::QueryWriteReceipt { capabilities } => {
             query_write_support(capabilities, fact_kind)
         }

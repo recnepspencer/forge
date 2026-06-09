@@ -1,0 +1,15 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/construction/private_request_context_constructor.rs:8:47
+  |
+8 |       let _context = ForgeServerRequestContext::new(
+  |                                                 ^^^ private associated function
+  |
+ ::: src/request_context/context.rs
+  |
+  | /     pub(crate) fn new(
+  | |         authenticated_principal: ForgeServerAuthenticatedPrincipal,
+  | |         workspace_target: ForgeServerWorkspaceTarget,
+  | |         branch_target: ForgeServerBranchTarget,
+  | |         diagnostics_profile: DiagnosticRichnessProfile,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

@@ -1,6 +1,4 @@
-use super::birth_synopsis::{
-    TopologyPrimitiveConstructionQueryBirthSynopsis,
-};
+use super::birth_synopsis::TopologyPrimitiveConstructionQueryBirthSynopsis;
 
 use super::envelope::TopologyPrimitiveConstructionQueryEnvelope;
 use super::handoff::TopologyPrimitiveConstructionQueryHandoff;

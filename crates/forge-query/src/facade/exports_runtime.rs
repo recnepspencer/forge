@@ -154,6 +154,7 @@ pub use crate::intent_admission::{
     ForgeQueryIntentAdmissionWidthRunScale, ForgeQueryIntentDecisionTraceEvidence,
     ForgeQueryIntentDecisionTraceEvidenceOwner, ForgeQueryIntentEligibilityTraceEvidence,
 };
+pub use crate::projection_consumption::ProjectionMaterializedFactPosture;
 pub use crate::runtime::{
     admit_causal_inspection, admit_runtime_intent_request, anchor_causal_observation,
     build_causal_inspection_certification_scope, causal_evidence_inventory_rows,
@@ -474,6 +475,10 @@ pub use crate::runtime::{
     QueryObservationReceiptFamily, SignalInvalidationBoundaryReceipt,
     SignalInvalidationRoutingReceipt, SubscriptionActivationBoundaryReceipt,
     SubscriptionActivationReceipt, WriteAuthorityExecutionReceipt,
+};
+pub use crate::runtime::{
+    ForgeQueryRuntimeRemaskDispositionKind, ForgeQueryRuntimeRemaskPosture,
+    ForgeQueryRuntimeRemaskProjection, ForgeQueryRuntimeRemaskReasonKind,
 };
 pub use crate::saved_query::{
     evaluate_saved_query_reuse, freeze_composed_saved_query, freeze_direct_saved_query,

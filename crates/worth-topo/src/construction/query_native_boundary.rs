@@ -35,7 +35,10 @@ const REQUIRED_QUERY_FAMILIES: [forge_query::facade::ForgeQueryRuntimeFacadeFami
 ];
 
 fn digest_parts(parts: &[String]) -> String {
-    worth_primitives::truth_digest_parts(worth_primitives::TruthDigestScope::ArtifactIdentity, parts)
+    worth_primitives::truth_digest_parts(
+        worth_primitives::TruthDigestScope::ArtifactIdentity,
+        parts,
+    )
 }
 
 #[cfg(test)]

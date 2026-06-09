@@ -1,0 +1,38 @@
+warning: unreachable expression
+ --> tests/ui/construction/query_handoff/private_query_handoff_constructor.rs:6:20
+  |
+5 |         admission: loop {},
+  |                    ------- any code following this expression is unreachable
+6 |         operation: ForgeServerQueryHandoffOperation::query_read("users.profile"),
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unreachable expression
+  --> tests/ui/construction/query_handoff/private_query_handoff_constructor.rs:9:26
+   |
+ 9 |           support_posture: ForgeServerQuerySupportPosture::QueryReadSupported {
+   |  __________________________^
+10 | |             family_contract: loop {},
+   | |                              ------- any code following this expression is unreachable
+11 | |         },
+   | |_________^ unreachable expression
+
+error[E0451]: fields `admission`, `operation`, `workspace`, `downstream_delivery_contract`, `support_posture` and `canonical_digest` of struct `ForgeServerQueryHandoff` are private
+  --> tests/ui/construction/query_handoff/private_query_handoff_constructor.rs:5:9
+   |
+ 4 |     let _ = ForgeServerQueryHandoff {
+   |             ----------------------- in this type
+ 5 |         admission: loop {},
+   |         ^^^^^^^^^ private field
+ 6 |         operation: ForgeServerQueryHandoffOperation::query_read("users.profile"),
+   |         ^^^^^^^^^ private field
+ 7 |         workspace: loop {},
+   |         ^^^^^^^^^ private field
+ 8 |         downstream_delivery_contract: loop {},
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         support_posture: ForgeServerQuerySupportPosture::QueryReadSupported {
+   |         ^^^^^^^^^^^^^^^ private field
+...
+12 |         canonical_digest: "forged".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field

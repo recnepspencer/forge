@@ -378,27 +378,66 @@ will silently become O(n²) when someone adds a feature inside its loop.
 
 ---
 
-## 14. Debt Must Be Named, Tracked, and Intentional
+## 14. Debt Is a Blocker Record, Not a Design Strategy
 
-Architectural debt is acceptable. Accidental architectural debt is not.
+Architectural debt is sometimes unavoidable. Architectural escape hatches are
+not a normal design tool.
 
-When you introduce debt — a complexity contract marked `Debt`, a subsystem that
-does not yet have full enforcement, a module that uses raw vectors where it
-should use proof-bearing types — name it, mark it, and record why it exists.
+The default rule is:
+1. identify the missing capability or enforcement
+2. work backward to the blocker
+3. expand scope as far as necessary to remove the blocker, even across crate
+   boundaries
+4. build the blocker
+5. then build the feature on the real path
 
-A `ComplexityStatus::Debt` marker on a contract is honest. It says "this path
-has verified fast paths for current rules, but the subsystem remains debt
-because future rules could silently reintroduce full-state scans without
-updating the contract." That honesty prevents the next engineer from assuming
-the path is fully safe.
+Scope expansion is the norm here, not the exception. If the real fix lives in a
+different crate, then the work expands into that crate. If the real fix needs a
+new lower-authority seam, then the work expands until that seam exists. Do not
+protect the current milestone or current crate boundary at the expense of
+shipping an unfinished architecture.
 
-Unnamed debt is invisible debt. Invisible debt compounds without limit.
+Do **not** jump from "this is hard" to "mark it as debt" or "add an escape
+hatch." The presence of pressure, uncertainty, or implementation cost is not a
+reason to widen the API, add a compatibility shortcut, expose a raw seam, or
+document an unfinished public lane as acceptable.
+
+Debt is allowed only when all of the following are true:
+1. there is a specific blocker you can name precisely
+2. removing the blocker would require a genuinely major follow-on build rather
+   than an ordinary scope expansion
+3. the real blocker fix is large enough that it would exceed roughly 3000 lines
+   of code in the current change program, even if that work belongs in another
+   crate
+4. the incomplete path is mechanically contained so callers cannot mistake it
+   for the finished ordinary lane
+5. the debt is attached to an explicit owner and follow-on milestone
+6. the tests and support surfaces make the incompleteness obvious
+
+If those conditions are not true, the correct move is not to mark debt. The
+correct move is to expand scope and keep building until the blocker is gone.
+
+The 3000-line threshold is not a budgeting suggestion. It is the bar for what
+counts as "major enough to defer." Anything meaningfully smaller than that is
+ordinary completion work and should be built now.
+
+A `ComplexityStatus::Debt` marker on a contract is honest only when it records
+a real blocked edge after the team has already built the strongest complete path
+available in the current milestone. It is not permission to stop early, ship a
+half-product, or replace a missing foundation with a permanent-looking shortcut.
+
+Unnamed debt is invisible debt. Named-but-unnecessary debt is surrender dressed
+up as rigor. Avoid both.
 
 **AI deprogramming note:** Your default is to either over-engineer everything
-(which wastes time) or under-engineer and not track it (which creates invisible
-debt). The correct approach is in between: build what needs to be built now,
-explicitly mark what is not yet complete, and ensure the system will fail loudly
-if someone relies on the incomplete part.
+(which wastes time) or under-engineer and then "be honest about it." That is
+still wrong when the missing piece can be built now. The correct approach is:
+expand scope, even across crates, build the real blocker, and only mark debt
+when the blocker fix is so large that it crosses the major-work threshold of
+roughly 3000 lines of code. If you find yourself writing "for now,"
+"temporary," "fallback," "escape hatch," "explicit debt," or "deferred
+neighbor," stop and ask whether you should be widening the scope and building
+the missing foundation instead.
 
 ---
 
@@ -515,8 +554,9 @@ Instead:
    eager or lazy evaluation"
 2. **Identify what information would resolve it** — "If I knew the expected
    dataset size, I could decide"
-3. **Either get the information or design for both** — either ask, or build
-   an abstraction that defers the decision until the information is available
+3. **Either get the information or build the prerequisite** — either ask, or
+   build the missing measurement, proof surface, or lower-authority seam that
+   makes the decision decidable
 
 This applies to AI usage as well. When AI gives you an answer, ask yourself:
 "Do I have enough understanding to evaluate whether this is right?" If not, ask
@@ -527,10 +567,11 @@ The engineer's job is not to know everything. It is to know what they do not
 know, and to handle uncertainty structurally rather than optimistically.
 
 **AI deprogramming note:** Your default is to give confident answers even when
-the question is ambiguous. Stop doing this. If the requirement is unclear,
-say so. If there are meaningful tradeoffs, present them explicitly with the
-consequences of each choice. Do not make architectural decisions on the user's
-behalf unless the choice is obvious and unambiguous.
+the question is ambiguous, then compensate by adding flexibility or escape
+hatches. Stop doing both. If the requirement is unclear, say so. If the system
+is missing prerequisite information, measurements, or authority seams, build
+them or ask for what you cannot discover. Do not respond to uncertainty by
+making the architecture looser than it should be.
 
 ---
 

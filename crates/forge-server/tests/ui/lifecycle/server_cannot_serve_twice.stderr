@@ -1,0 +1,16 @@
+error[E0382]: use of moved value: `server`
+  --> tests/ui/lifecycle/server_cannot_serve_twice.rs:16:25
+   |
+ 4 |     let server = ForgeServer::builder()
+   |         ------ move occurs because `server` has type `ForgeServer`, which does not implement the `Copy` trait
+...
+15 |     let _first_serve = server.serve();
+   |                               ------- `server` moved due to this method call
+16 |     let _second_serve = server.serve();
+   |                         ^^^^^^ value used here after move
+   |
+note: `ForgeServer::serve` takes ownership of the receiver `self`, which moves `server`
+  --> src/facade/server.rs
+   |
+   |     pub async fn serve(self) -> io::Result<()> {
+   |                        ^^^^

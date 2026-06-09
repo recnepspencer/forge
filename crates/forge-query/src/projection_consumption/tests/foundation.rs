@@ -49,6 +49,14 @@ fn test_source(family: ProjectionSourceFamily) -> ProjectionConsumptionSource {
             Some("result-shape:test"),
             "read-graph:test",
         ),
+        ProjectionSourceFamily::QueryLiveReadReceipt => ProjectionConsumptionSource::test_only(
+            family,
+            Some("query:test"),
+            Some("snapshot:test"),
+            Some("result:test"),
+            Some("result-shape:test"),
+            "installation:test",
+        ),
         ProjectionSourceFamily::QueryWriteReceipt => ProjectionConsumptionSource::test_only(
             family,
             None,
@@ -102,9 +110,10 @@ fn test_source(family: ProjectionSourceFamily) -> ProjectionConsumptionSource {
     }
 }
 
-fn all_source_families() -> [ProjectionSourceFamily; 3] {
+fn all_source_families() -> [ProjectionSourceFamily; 4] {
     [
         ProjectionSourceFamily::QueryReadReceipt,
+        ProjectionSourceFamily::QueryLiveReadReceipt,
         ProjectionSourceFamily::QueryWriteReceipt,
         ProjectionSourceFamily::QueryContextExecution,
     ]

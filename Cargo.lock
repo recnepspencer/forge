@@ -1660,7 +1660,11 @@ name = "forge-server"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "forge-foundational",
+ "forge-proof",
+ "forge-query",
  "serde",
+ "serde_json",
  "tokio",
  "tracing",
  "trybuild",

@@ -1,7 +1,7 @@
 use crate::authorized_projection::AuthorizedProjectionArtifact;
 use crate::canonicalization::CanonicalResultShapeArtifact;
 use crate::query_context::QueryContextExecutionArtifact;
-use crate::runtime::{ForgeQueryReadResult, ForgeQueryWriteReceipt};
+use crate::runtime::{ForgeQueryLiveReadResult, ForgeQueryReadResult, ForgeQueryWriteReceipt};
 
 use super::contracts::MaterializedProjectionContract;
 use super::declaration::{ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError};
@@ -171,6 +171,24 @@ impl ForgeQueryReadResult {
             .map_err(ProjectionFactConsumptionPathError::Declaration)?;
         consume_attempt_from_declaration(declaration, |contract| {
             contract.extract_from_read_result(self)
+        })
+    }
+}
+
+impl ForgeQueryLiveReadResult {
+    pub fn consume_projection_facts_with_binding(
+        &self,
+        binding: super::declaration::ProjectionConsumptionBindingContext,
+        requested: ProjectMaterializedFacts,
+    ) -> Result<ProjectionFactConsumptionAttempt, ProjectionFactConsumptionPathError> {
+        let declaration = super::declare_projection_consumption(
+            ProjectionConsumptionSource::from_live_read_receipt(self.receipt()),
+            binding,
+            requested,
+        )
+        .map_err(ProjectionFactConsumptionPathError::Declaration)?;
+        consume_attempt_from_declaration(declaration, |contract| {
+            contract.extract_from_live_read_result(self)
         })
     }
 }
