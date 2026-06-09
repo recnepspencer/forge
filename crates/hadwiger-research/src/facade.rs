@@ -175,13 +175,27 @@ pub use crate::explanations::{
     HadwigerRejectionExplanation, HadwigerRepairObligation, HadwigerReusableNegativeEvidence,
     HadwigerSurvivingEvidenceReport,
 };
+pub use crate::frontier_exploration::{
+    mine_virtual_edge_motifs_checked, run_frontier_seed_exploration_iterations_checked,
+    BichromaticVirtualEdgeMotif, FrontierExplorationIterationReport, FrontierExplorationRunReport,
+    FrontierExplorationRunRequest, FrontierMotifMiningReport, FrontierMutationPolicy,
+    TerminalColorForcingMotif, VirtualEdgeMotif,
+};
+pub use crate::frontier_seeds::{
+    import_frontier_graph_seed_checked, FrontierGraphSeedArtifact, FrontierGraphSeedImport,
+    FrontierGraphSeedImportReport, FrontierSeedError, FrontierSeedFormat,
+};
 pub use crate::mathematical_verification::{
-    verify_hexagonal_seven_coloring_checked, verify_k_colorability_checked,
-    verify_unit_distance_embedding_checked, ExactGraphEmbedding, ExactGraphEmbeddingBuilder,
-    ExactPoint2, ExactRational, HadwigerColorabilityError, HadwigerExactGeometryError,
-    HadwigerPlaneColoringError, HexagonalSevenColoringConstruction,
+    verify_algebraic_unit_distance_embedding_checked, verify_hexagonal_seven_coloring_checked,
+    verify_k_colorability_checked, verify_k_colorability_with_certificate_checked,
+    verify_unit_distance_embedding_checked, AlgebraicGraphEmbedding,
+    AlgebraicGraphEmbeddingBuilder, AlgebraicPoint2, AlgebraicScalar,
+    AlgebraicUnitDistanceCertificate, ColoringProofCertificate, ColoringProofCertificateFormat,
+    ColoringRefutationReplayReport, ExactGraphEmbedding, ExactGraphEmbeddingBuilder, ExactPoint2,
+    ExactRational, HadwigerAlgebraicGeometryError, HadwigerColorabilityError,
+    HadwigerExactGeometryError, HadwigerPlaneColoringError, HexagonalSevenColoringConstruction,
     HexagonalSevenColoringVerificationChecked, KColorabilityVerificationChecked,
-    UnitDistanceVerificationChecked, WholePlaneColoringConstruction,
+    QuadraticFieldElement, UnitDistanceVerificationChecked, WholePlaneColoringConstruction,
     WholePlaneColoringVerification,
 };
 pub use crate::motif_language::{
@@ -238,10 +252,12 @@ pub use crate::research_graph_invariants::{
     ResearchGraphInvariantCompatibilitySurface, ResearchGraphInvariantCompatibilitySurfaces,
     ResearchGraphInvariantCounters, ResearchGraphInvariantDenial,
     ResearchGraphInvariantDenialRequest, ResearchGraphInvariantError, ResearchGraphInvariantFamily,
+    ResearchGraphInvariantObligation, ResearchGraphInvariantObligationSet,
     ResearchGraphInvariantRegistrationPlan, ResearchGraphInvariantRegistrationPosture,
     ResearchGraphInvariantRule, ResearchGraphInvariantRuntimeProjection,
     ResearchGraphInvariantScope, ResearchGraphInvariantViolation,
-    ResearchGraphInvariantViolationKind, ResearchGraphRuntimeEntityProjection,
+    ResearchGraphInvariantViolationKind, ResearchGraphLegalityPosture, ResearchGraphLegalityReport,
+    ResearchGraphLegalityViolation, ResearchGraphRuntimeEntityProjection,
     ResearchGraphRuntimeRelationProjection,
 };
 pub use crate::tiling_equivalence::{

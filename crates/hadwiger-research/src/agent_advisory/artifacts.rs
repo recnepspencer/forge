@@ -32,6 +32,8 @@ impl From<HadwigerArtifactShapeError> for AgentAdvisoryError {
 pub enum AgentGroupedContributionStopKind {
     DeclarationStopped,
     MemberStopped,
+    WrongWorld,
+    WrongHandle,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

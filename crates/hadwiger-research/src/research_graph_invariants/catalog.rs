@@ -7,6 +7,8 @@ use crate::domain_artifacts::core_artifact::{
 use crate::domain_artifacts::digest_basis::{artifact_core, HadwigerArtifactPayloadEntry};
 use crate::domain_artifacts::HadwigerCanonicalArtifact;
 
+use super::graph_legality::ResearchGraphLegalityReport;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ResearchGraphInvariantFamily {
     FailureResidency,
@@ -177,6 +179,7 @@ pub struct HadwigerResearchInvariantCatalog {
     core: HadwigerArtifactCore,
     rules: Vec<ResearchGraphInvariantRule>,
     counters: ResearchGraphInvariantCounters,
+    legality_report: ResearchGraphLegalityReport,
 }
 
 impl HadwigerResearchInvariantCatalog {
@@ -184,6 +187,7 @@ impl HadwigerResearchInvariantCatalog {
         corpus: &ResearchEvidenceCorpus,
         frontier: &DiscoveryFrontier,
         mut rules: Vec<ResearchGraphInvariantRule>,
+        legality_report: ResearchGraphLegalityReport,
     ) -> Result<Self, HadwigerArtifactShapeError> {
         rules.sort_by_key(|rule| (rule.family(), rule.reference().stable_token()));
         let counters = ResearchGraphInvariantCounters::new(
@@ -194,6 +198,7 @@ impl HadwigerResearchInvariantCatalog {
             corpus.evidence_references().len() + frontier.experiment_plans().len(),
         );
         let mut parents = vec![corpus.reference(), frontier.reference()];
+        parents.push(legality_report.reference());
         parents.extend(rules.iter().map(ResearchGraphInvariantRule::reference));
         let core = artifact_core(
             HadwigerArtifactKind::HadwigerResearchInvariantCatalog,
@@ -202,12 +207,13 @@ impl HadwigerResearchInvariantCatalog {
                 operation: "hadwiger_research_invariant_catalog".to_string(),
             },
             parents,
-            catalog_payload(&rules, &counters),
+            catalog_payload(&rules, &counters, &legality_report),
         )?;
         Ok(Self {
             core,
             rules,
             counters,
+            legality_report,
         })
     }
 
@@ -217,6 +223,10 @@ impl HadwigerResearchInvariantCatalog {
 
     pub fn counters(&self) -> &ResearchGraphInvariantCounters {
         &self.counters
+    }
+
+    pub fn legality_report(&self) -> &ResearchGraphLegalityReport {
+        &self.legality_report
     }
 
     pub fn has_rule_family(&self, family: ResearchGraphInvariantFamily) -> bool {
@@ -339,10 +349,19 @@ impl_hadwiger_artifact!(ResearchGraphInvariantRegistrationPlan, core);
 fn catalog_payload(
     rules: &[ResearchGraphInvariantRule],
     counters: &ResearchGraphInvariantCounters,
+    legality_report: &ResearchGraphLegalityReport,
 ) -> Vec<HadwigerArtifactPayloadEntry> {
     let mut payload = vec![
         HadwigerArtifactPayloadEntry::text("schema", "forge.hadwiger.research_graph.catalog.v1"),
         HadwigerArtifactPayloadEntry::text("counters", counters.stable_token()),
+        HadwigerArtifactPayloadEntry::text(
+            "legality_report",
+            legality_report.artifact_digest().stable_token(),
+        ),
+        HadwigerArtifactPayloadEntry::text(
+            "legality_obligations",
+            legality_report.obligations().stable_token(),
+        ),
     ];
     for rule in rules {
         payload.push(HadwigerArtifactPayloadEntry::text(

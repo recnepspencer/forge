@@ -6,6 +6,8 @@ use forge_query::facade::{
 };
 use hadwiger_research::facade::*;
 
+#[path = "research_graph_invariants/legality.rs"]
+mod legality;
 #[path = "research_graph_invariants/registration.rs"]
 mod registration;
 

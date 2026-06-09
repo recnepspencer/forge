@@ -1,0 +1,5 @@
+error[E0599]: no method named `apply_invariant_family_manually` found for reference `&hadwiger_research::facade::ResearchGraphInvariantRuntimeProjection` in the current scope
+ --> tests/ui/research_graph_invariants/boundaries/registration/manual_invariant_application_forbidden.rs:4:24
+  |
+4 |     let _ = projection.apply_invariant_family_manually("failure_residency");
+  |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&hadwiger_research::facade::ResearchGraphInvariantRuntimeProjection`

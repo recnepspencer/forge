@@ -1,0 +1,5 @@
+error[E0599]: no method named `obligations_mut` found for mutable reference `&mut hadwiger_research::facade::HadwigerResearchInvariantCatalog` in the current scope
+ --> tests/ui/research_graph_invariants/boundaries/immutability/catalog_obligations_mutation_forbidden.rs:4:21
+  |
+4 |     let _ = catalog.obligations_mut();
+  |                     ^^^^^^^^^^^^^^^ method not found in `&mut hadwiger_research::facade::HadwigerResearchInvariantCatalog`

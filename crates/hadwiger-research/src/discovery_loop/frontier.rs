@@ -4,6 +4,9 @@ use crate::domain_artifacts::core_artifact::{
 };
 use crate::domain_artifacts::digest_basis::{artifact_core, HadwigerArtifactPayloadEntry};
 use crate::domain_artifacts::{HadwigerArtifactDigest, HadwigerCanonicalArtifact};
+use crate::research_graph_invariants::{
+    legality_for_experiment_batch, ResearchGraphLegalityReport,
+};
 
 use super::corpus::ResearchEvidenceCorpus;
 use super::experiments::{ExperimentBatch, ExperimentPlan};
@@ -95,6 +98,7 @@ pub struct DiscoveryFrontier {
     core: HadwigerArtifactCore,
     scorecard: DiscoveryScorecard,
     experiment_batch: ExperimentBatch,
+    research_graph_legality: ResearchGraphLegalityReport,
 }
 
 impl DiscoveryFrontier {
@@ -104,6 +108,12 @@ impl DiscoveryFrontier {
         hypotheses: &[InvariantHypothesis],
         experiment_batch: ExperimentBatch,
     ) -> Result<Self, HadwigerArtifactShapeError> {
+        let research_graph_legality = legality_for_experiment_batch(corpus, &experiment_batch)?;
+        if !research_graph_legality.is_enforced() {
+            return Err(HadwigerArtifactShapeError::EmptyField {
+                field: "research_graph_legality",
+            });
+        }
         let counters = HadwigerDiscoveryCounters::new(
             hypotheses.len(),
             motif_observations.len(),
@@ -117,7 +127,11 @@ impl DiscoveryFrontier {
             HadwigerArtifactSourceReference::ArtifactConstruction {
                 operation: "discovery_frontier".to_string(),
             },
-            vec![corpus.reference(), experiment_batch.reference()],
+            vec![
+                corpus.reference(),
+                experiment_batch.reference(),
+                research_graph_legality.reference(),
+            ],
             vec![
                 HadwigerArtifactPayloadEntry::text(
                     "corpus_digest",
@@ -136,12 +150,17 @@ impl DiscoveryFrontier {
                     "query_readiness_checks",
                     scorecard.counters().query_readiness_checks() as u128,
                 ),
+                HadwigerArtifactPayloadEntry::text(
+                    "research_graph_legality",
+                    research_graph_legality.artifact_digest().stable_token(),
+                ),
             ],
         )?;
         Ok(Self {
             core,
             scorecard,
             experiment_batch,
+            research_graph_legality,
         })
     }
 
@@ -151,6 +170,14 @@ impl DiscoveryFrontier {
 
     pub fn experiment_plans(&self) -> &[ExperimentPlan] {
         self.experiment_batch.experiment_plans()
+    }
+
+    pub(crate) fn experiment_batch(&self) -> &ExperimentBatch {
+        &self.experiment_batch
+    }
+
+    pub fn research_graph_legality(&self) -> &ResearchGraphLegalityReport {
+        &self.research_graph_legality
     }
 
     pub fn admits_theorem_authority(&self) -> bool {

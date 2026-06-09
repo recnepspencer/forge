@@ -52,6 +52,7 @@ pub enum HadwigerArtifactKind {
     ResearchGraphInvariantViolation,
     ResearchGraphInvariantDenial,
     ResearchGraphInvariantRegistrationPlan,
+    ResearchGraphLegalityReport,
     ResearchGraphInvariantRuntimeProjection,
     ResearchGraphInvariantRegistrationChecked,
     ResearchCockpitSession,
@@ -82,6 +83,9 @@ pub enum HadwigerArtifactKind {
     TilingReactivationChecked,
     TilingIterationPacket,
     TilingIterationReplayReport,
+    FrontierGraphSeedArtifact,
+    FrontierMotifMiningReport,
+    FrontierExplorationRunReport,
 }
 
 impl HadwigerArtifactKind {
@@ -141,6 +145,7 @@ impl HadwigerArtifactKind {
             Self::ResearchGraphInvariantRegistrationPlan => {
                 "research_graph_invariant_registration_plan"
             }
+            Self::ResearchGraphLegalityReport => "research_graph_legality_report",
             Self::ResearchGraphInvariantRuntimeProjection => {
                 "research_graph_invariant_runtime_projection"
             }
@@ -177,6 +182,9 @@ impl HadwigerArtifactKind {
             Self::TilingReactivationChecked => "tiling_reactivation_checked",
             Self::TilingIterationPacket => "tiling_iteration_packet",
             Self::TilingIterationReplayReport => "tiling_iteration_replay_report",
+            Self::FrontierGraphSeedArtifact => "frontier_graph_seed_artifact",
+            Self::FrontierMotifMiningReport => "frontier_motif_mining_report",
+            Self::FrontierExplorationRunReport => "frontier_exploration_run_report",
         }
     }
 }

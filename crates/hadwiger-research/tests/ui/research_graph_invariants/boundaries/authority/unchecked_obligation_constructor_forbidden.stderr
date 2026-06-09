@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `unchecked` found for struct `ResearchGraphInvariantObligation` in the current scope
+ --> tests/ui/research_graph_invariants/boundaries/authority/unchecked_obligation_constructor_forbidden.rs:6:47
+  |
+6 |     let _ = ResearchGraphInvariantObligation::unchecked(
+  |                                               ^^^^^^^^^ function or associated item not found in `ResearchGraphInvariantObligation`

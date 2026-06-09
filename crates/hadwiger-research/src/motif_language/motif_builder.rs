@@ -75,6 +75,11 @@ impl MotifArtifactBuilder {
         self
     }
 
+    pub fn with_proof_support_posture(mut self, posture: MotifProofSupportPosture) -> Self {
+        self.proof_support_posture = posture;
+        self
+    }
+
     pub fn with_terminal(mut self, terminal: MotifTerminal) -> Result<Self, MotifLanguageError> {
         reject_duplicate(
             self.terminals.iter().map(MotifTerminal::label),

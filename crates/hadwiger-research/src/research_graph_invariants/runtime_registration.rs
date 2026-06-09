@@ -26,7 +26,10 @@ const FAILURE_RESIDENCY_RELATIONS: [u32; 4] = [
     vocab::FAILURE_HAS_SCOPE.id(),
     vocab::FAILURE_HAS_REACTIVATION_HINT.id(),
 ];
-const SUPPRESSION_RELATIONS: [u32; 1] = [vocab::PLAN_HAS_SUPPRESSION_PROOF.id()];
+const SUPPRESSION_RELATIONS: [u32; 2] = [
+    vocab::PLAN_HAS_SUPPRESSION_PROOF.id(),
+    vocab::PLAN_HAS_REACTIVATION_CONDITION.id(),
+];
 const HYPOTHESIS_RELATIONS: [u32; 1] = [vocab::HYPOTHESIS_HAS_STATUS.id()];
 const BRANCH_PROMOTION_RELATIONS: [u32; 1] = [vocab::FRONTIER_HAS_AUTHORITY_POSTURE.id()];
 const EXECUTABLE_EXPERIMENT_RELATIONS: [u32; 1] = [vocab::PLAN_HAS_QUERY_READINESS_COUNTER.id()];
@@ -224,9 +227,16 @@ impl ResearchGraphCustomInvariantRule {
             .filter_map(|relation_id| context.relations().relation(relation_id))
             .map(|relation| relation.kind_id.as_u32())
             .collect::<Vec<_>>();
-        required_relation_kinds(self.family)
-            .iter()
-            .all(|required| actual.contains(required))
+        match self.family {
+            ResearchGraphInvariantFamily::SuppressionRelation => {
+                required_relation_kinds(self.family)
+                    .iter()
+                    .any(|required| actual.contains(required))
+            }
+            _ => required_relation_kinds(self.family)
+                .iter()
+                .all(|required| actual.contains(required)),
+        }
     }
 }
 

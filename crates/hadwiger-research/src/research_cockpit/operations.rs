@@ -159,6 +159,8 @@ fn add_invariant_legality_action(
     if !ResearchGraphInvariantFamily::all()
         .into_iter()
         .all(|family| session.invariant_catalog().has_rule_family(family))
+        || !session.frontier().research_graph_legality().is_enforced()
+        || !session.invariant_catalog().legality_report().is_enforced()
     {
         actions.push(ResearchCockpitAction::new(
             "blocked:invariant_legality",

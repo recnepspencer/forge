@@ -143,6 +143,14 @@ impl GraphVersion {
     pub fn edges(&self) -> &[EdgeIdentity] {
         &self.edges
     }
+
+    pub fn vertex_count(&self) -> usize {
+        self.vertices.len()
+    }
+
+    pub fn edge_count(&self) -> usize {
+        self.edges.len()
+    }
 }
 
 impl_hadwiger_artifact!(GraphVersion, core);

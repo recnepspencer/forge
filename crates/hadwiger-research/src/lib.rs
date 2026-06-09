@@ -15,6 +15,8 @@ mod domain_artifacts;
 mod domain_declarations;
 mod explanations;
 pub mod facade;
+mod frontier_exploration;
+mod frontier_seeds;
 mod mathematical_verification;
 mod motif_language;
 mod periodic_patterns;

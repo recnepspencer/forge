@@ -17,6 +17,10 @@ fn invariant_catalog_dx(
     lower_runtime_source: &impl ForgeQueryLowerRuntimeBoundaryEnvelopeSource,
 ) -> Result<(), ResearchGraphInvariantError> {
     let catalog = draft_research_graph_invariant_catalog(handle, corpus, frontier)?;
+    assert!(catalog
+        .legality_report()
+        .obligations()
+        .contains_family(ResearchGraphInvariantFamily::FailureResidency));
     assert!(catalog.has_rule_family(ResearchGraphInvariantFamily::FailureResidency));
     assert!(!catalog.registers_query_invariant_authority());
 

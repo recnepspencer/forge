@@ -67,6 +67,16 @@ impl ResearchCockpitSession {
                 .ok_or(ResearchCockpitError::MissingInput {
                     field: "invariant_catalog",
                 })?;
+        if !frontier.research_graph_legality().is_enforced() {
+            return Err(ResearchCockpitError::ResearchGraphLegality {
+                violations: frontier.research_graph_legality().violations().to_vec(),
+            });
+        }
+        if !invariant_catalog.legality_report().is_enforced() {
+            return Err(ResearchCockpitError::ResearchGraphLegality {
+                violations: invariant_catalog.legality_report().violations().to_vec(),
+            });
+        }
         let agent_admission = builder.agent_admission;
         let derived_frontier_state = builder.derived_frontier_state;
         let input_digest = ResearchCockpitInputDigest::new(input_digest_token(

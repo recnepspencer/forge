@@ -1,5 +1,6 @@
 mod cnf_encoding;
 mod model_replay;
+mod proof_certificate;
 mod refutation_replay;
 mod varisat_execution;
 
@@ -25,6 +26,7 @@ pub enum HadwigerColorabilityError {
     Solver(String),
     CorruptModel,
     CorruptRefutationCertificate,
+    CertificateDigestMismatch,
     QueryDeclarationNotAdmitted,
     Artifact(HadwigerArtifactShapeError),
     Aspect(HadwigerAspectAuthorityError),
@@ -51,6 +53,20 @@ pub struct KColorabilityVerificationChecked {
 }
 
 impl KColorabilityVerificationChecked {
+    pub(crate) fn new(
+        encoding: ColorabilityEncoding,
+        solver_run: SolverRun,
+        colorability_verification: ColorabilityVerification,
+        not_k_colorable_aspect: ColorabilityAspectRecord,
+    ) -> Self {
+        Self {
+            encoding,
+            solver_run,
+            colorability_verification,
+            not_k_colorable_aspect,
+        }
+    }
+
     pub fn encoding(&self) -> &ColorabilityEncoding {
         &self.encoding
     }
@@ -162,3 +178,8 @@ pub fn verify_k_colorability_checked(
         not_k_colorable_aspect: aspect,
     })
 }
+
+pub use proof_certificate::{
+    verify_k_colorability_with_certificate_checked, ColoringProofCertificate,
+    ColoringProofCertificateFormat, ColoringRefutationReplayReport,
+};

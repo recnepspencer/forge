@@ -33,6 +33,7 @@ pub enum ResearchGraphInvariantError {
     MissingCorpus,
     MissingLowerRuntimeBoundaryEnvelope,
     NoViolationDetected,
+    GraphLegalityViolation,
     QueryInvariantContributionDenied(ForgeQueryDomainCapabilityProgressionDenial),
     QueryInvariantContributionStale(ForgeQueryDomainCapabilityStale),
     QueryInvariantContributionRebindRequired(ForgeQueryDomainCapabilityRebindRequired),
@@ -71,7 +72,13 @@ pub fn draft_research_graph_invariant_catalog(
             ResearchGraphInvariantRule::new(family, scope_for_family(family), parents.clone())
         })
         .collect::<Result<Vec<_>, _>>()?;
-    HadwigerResearchInvariantCatalog::new(corpus, frontier, rules).map_err(Into::into)
+    HadwigerResearchInvariantCatalog::new(
+        corpus,
+        frontier,
+        rules,
+        frontier.research_graph_legality().clone(),
+    )
+    .map_err(Into::into)
 }
 
 pub fn certify_research_graph_invariant_violation(
@@ -167,6 +174,9 @@ pub fn plan_research_graph_invariant_registration(
     _handle: &HadwigerResearchHandle,
     catalog: &HadwigerResearchInvariantCatalog,
 ) -> Result<ResearchGraphInvariantRegistrationPlan, ResearchGraphInvariantError> {
+    if !catalog.legality_report().is_enforced() {
+        return Err(ResearchGraphInvariantError::GraphLegalityViolation);
+    }
     ResearchGraphInvariantRegistrationPlan::custom_invariant_registrations_ready(catalog)
         .map_err(Into::into)
 }
@@ -184,6 +194,9 @@ pub fn register_research_graph_invariants_checked(
     _handle: &HadwigerResearchHandle,
     catalog: &HadwigerResearchInvariantCatalog,
 ) -> Result<HadwigerResearchInvariantRegistrationChecked, ResearchGraphInvariantError> {
+    if !catalog.legality_report().is_enforced() {
+        return Err(ResearchGraphInvariantError::GraphLegalityViolation);
+    }
     let registrations = registrations_for_catalog(catalog)?;
     HadwigerResearchInvariantRegistrationChecked::new(catalog, registrations).map_err(Into::into)
 }

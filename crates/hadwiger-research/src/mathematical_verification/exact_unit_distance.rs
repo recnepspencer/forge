@@ -106,6 +106,10 @@ impl ExactRational {
         .expect("normalized rational multiplication keeps non-zero denominator")
     }
 
+    pub(crate) fn is_zero(&self) -> bool {
+        self.numerator == 0
+    }
+
     pub(crate) fn div(&self, other: &Self) -> Option<Self> {
         if other.is_zero() {
             None
@@ -116,10 +120,6 @@ impl ExactRational {
             )
             .ok()
         }
-    }
-
-    pub(crate) fn is_zero(&self) -> bool {
-        self.numerator == 0
     }
 
     pub(crate) fn stable_token(&self) -> String {
@@ -160,16 +160,16 @@ impl ExactPoint2 {
             .add(&self.y.sub(&other.y).square())
     }
 
+    pub(crate) fn stable_token(&self) -> String {
+        format!("{},{}", self.x.stable_token(), self.y.stable_token())
+    }
+
     pub(crate) fn x(&self) -> &ExactRational {
         &self.x
     }
 
     pub(crate) fn y(&self) -> &ExactRational {
         &self.y
-    }
-
-    pub(crate) fn stable_token(&self) -> String {
-        format!("{},{}", self.x.stable_token(), self.y.stable_token())
     }
 }
 
@@ -256,6 +256,16 @@ pub struct UnitDistanceVerificationChecked {
 }
 
 impl UnitDistanceVerificationChecked {
+    pub(crate) fn new(
+        verification: UnitDistanceVerification,
+        unit_distance_aspect: UnitDistanceAspectRecord,
+    ) -> Self {
+        Self {
+            verification,
+            unit_distance_aspect,
+        }
+    }
+
     pub fn verification(&self) -> &UnitDistanceVerification {
         &self.verification
     }
@@ -323,10 +333,10 @@ pub fn verify_unit_distance_embedding_checked(
             "real exact unit-distance checker admitted all graph edges",
         )?
     };
-    Ok(UnitDistanceVerificationChecked {
+    Ok(UnitDistanceVerificationChecked::new(
         verification,
         unit_distance_aspect,
-    })
+    ))
 }
 
 pub(crate) fn checker_evidence(

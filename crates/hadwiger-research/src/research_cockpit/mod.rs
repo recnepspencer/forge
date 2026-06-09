@@ -6,6 +6,7 @@ mod session;
 mod tile_equivalence;
 
 use crate::domain_artifacts::HadwigerArtifactShapeError;
+use crate::research_graph_invariants::ResearchGraphLegalityViolation;
 
 pub use actions::{
     ResearchCockpitAction, ResearchCockpitActionBlocker, ResearchCockpitActionEligibility,
@@ -34,7 +35,12 @@ pub use tile_equivalence::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResearchCockpitError {
     Shape(HadwigerArtifactShapeError),
-    MissingInput { field: &'static str },
+    MissingInput {
+        field: &'static str,
+    },
+    ResearchGraphLegality {
+        violations: Vec<ResearchGraphLegalityViolation>,
+    },
 }
 
 impl From<HadwigerArtifactShapeError> for ResearchCockpitError {

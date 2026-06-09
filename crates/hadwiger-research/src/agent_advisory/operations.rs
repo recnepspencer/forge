@@ -138,6 +138,12 @@ where
         ForgeQueryGroupedContributionStop::MemberStopped(_, _) => {
             AgentGroupedContributionStopKind::MemberStopped
         }
+        ForgeQueryGroupedContributionStop::WrongWorld(_) => {
+            AgentGroupedContributionStopKind::WrongWorld
+        }
+        ForgeQueryGroupedContributionStop::WrongHandle(_) => {
+            AgentGroupedContributionStopKind::WrongHandle
+        }
     }
 }
 
