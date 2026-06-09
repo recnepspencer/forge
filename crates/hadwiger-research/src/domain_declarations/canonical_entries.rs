@@ -6,11 +6,11 @@ use forge_query::facade::{
 use super::family_markers::{
     AdvisoryNoteDeclarationFamily, BackgroundTheoremDeclarationFamily,
     CandidateGraphDeclarationFamily, ColorabilityDeclarationFamily, EmbeddingDeclarationFamily,
-    FractionalChromaticScreeningDeclarationFamily, LovaszThetaScreeningDeclarationFamily,
-    LowerBoundWitnessDeclarationFamily, PartialAdmissionExplanationDeclarationFamily,
-    PlaneExactValueClaimDeclarationFamily, PlaneLowerBoundClaimDeclarationFamily,
-    PlaneUpperBoundClaimDeclarationFamily, RejectionExplanationDeclarationFamily,
-    UnitDistanceVerificationDeclarationFamily, WholePlaneColoringConstructionDeclarationFamily,
+    LowerBoundTilingIterationDeclarationFamily, LowerBoundWitnessDeclarationFamily,
+    PartialAdmissionExplanationDeclarationFamily, PlaneExactValueClaimDeclarationFamily,
+    PlaneLowerBoundClaimDeclarationFamily, PlaneUpperBoundClaimDeclarationFamily,
+    RejectionExplanationDeclarationFamily, UnitDistanceVerificationDeclarationFamily,
+    UpperBoundTilingIterationDeclarationFamily, WholePlaneColoringConstructionDeclarationFamily,
 };
 use super::proof_claim_request_types::{
     BackgroundTheoremDeclaration, PlaneExactValueClaimDeclaration, PlaneLowerBoundClaimDeclaration,
@@ -18,10 +18,12 @@ use super::proof_claim_request_types::{
 };
 use super::request_types::{
     AdvisoryNoteDeclaration, CandidateGraphDeclaration, ColorabilityDeclaration,
-    EmbeddingDeclaration, FractionalChromaticScreeningDeclaration, LovaszThetaScreeningDeclaration,
-    LowerBoundWitnessDeclaration, PartialAdmissionExplanationDeclaration,
+    EmbeddingDeclaration, LowerBoundWitnessDeclaration, PartialAdmissionExplanationDeclaration,
     RejectionExplanationDeclaration, UnitDistanceVerificationDeclaration,
     WholePlaneColoringConstructionDeclaration,
+};
+use super::tiling_request_types::{
+    LowerBoundTilingIterationDeclaration, UpperBoundTilingIterationDeclaration,
 };
 use crate::query_entry::HadwigerResearchDomainEntry;
 
@@ -163,40 +165,6 @@ impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
     }
 }
 
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
-    for FractionalChromaticScreeningDeclaration
-{
-    type Family = FractionalChromaticScreeningDeclarationFamily;
-
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![
-            kind_entry("fractional_chromatic_screening"),
-            ForgeQueryDeclarationCanonicalEntry::text(
-                "graph_version_reference",
-                self.graph_version_reference(),
-            ),
-            unsigned_entry("color_limit", self.color_limit()),
-            ForgeQueryDeclarationCanonicalEntry::text("screening_basis", self.screening_basis()),
-        ]
-    }
-}
-
-impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for LovaszThetaScreeningDeclaration {
-    type Family = LovaszThetaScreeningDeclarationFamily;
-
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![
-            kind_entry("lovasz_theta_screening"),
-            ForgeQueryDeclarationCanonicalEntry::text(
-                "graph_version_reference",
-                self.graph_version_reference(),
-            ),
-            unsigned_entry("color_limit", self.color_limit()),
-            ForgeQueryDeclarationCanonicalEntry::text("screening_basis", self.screening_basis()),
-        ]
-    }
-}
-
 impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for PlaneLowerBoundClaimDeclaration {
     type Family = PlaneLowerBoundClaimDeclarationFamily;
 
@@ -263,5 +231,71 @@ impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry> for BackgroundTheor
                 self.provenance_digest(),
             ),
         ]
+    }
+}
+
+impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
+    for LowerBoundTilingIterationDeclaration
+{
+    type Family = LowerBoundTilingIterationDeclarationFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        let mut entries = vec![
+            kind_entry("lower_bound_tiling_iteration"),
+            ForgeQueryDeclarationCanonicalEntry::text("packet_id", self.packet_id()),
+            ForgeQueryDeclarationCanonicalEntry::text("session_digest", self.session_digest()),
+        ];
+        for (index, basis) in self.evidence_basis().iter().enumerate() {
+            entries.push(ForgeQueryDeclarationCanonicalEntry::text(
+                format!("evidence_basis_{index:04}"),
+                basis,
+            ));
+        }
+        for (index, lane) in self.required_checker_lanes().iter().enumerate() {
+            entries.push(ForgeQueryDeclarationCanonicalEntry::text(
+                format!("required_checker_lane_{index:04}"),
+                lane,
+            ));
+        }
+        for (index, obligation) in self.reactivation_obligations().iter().enumerate() {
+            entries.push(ForgeQueryDeclarationCanonicalEntry::text(
+                format!("reactivation_obligation_{index:04}"),
+                obligation,
+            ));
+        }
+        entries
+    }
+}
+
+impl ForgeQueryDeclarationInput<HadwigerResearchDomainEntry>
+    for UpperBoundTilingIterationDeclaration
+{
+    type Family = UpperBoundTilingIterationDeclarationFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        let mut entries = vec![
+            kind_entry("upper_bound_tiling_iteration"),
+            ForgeQueryDeclarationCanonicalEntry::text("packet_id", self.packet_id()),
+            ForgeQueryDeclarationCanonicalEntry::text("session_digest", self.session_digest()),
+        ];
+        for (index, basis) in self.evidence_basis().iter().enumerate() {
+            entries.push(ForgeQueryDeclarationCanonicalEntry::text(
+                format!("evidence_basis_{index:04}"),
+                basis,
+            ));
+        }
+        for (index, lane) in self.required_checker_lanes().iter().enumerate() {
+            entries.push(ForgeQueryDeclarationCanonicalEntry::text(
+                format!("required_checker_lane_{index:04}"),
+                lane,
+            ));
+        }
+        for (index, obligation) in self.reactivation_obligations().iter().enumerate() {
+            entries.push(ForgeQueryDeclarationCanonicalEntry::text(
+                format!("reactivation_obligation_{index:04}"),
+                obligation,
+            ));
+        }
+        entries
     }
 }

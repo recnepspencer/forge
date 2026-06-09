@@ -1,3 +1,4 @@
+mod canonical_artifact_impl;
 mod checked_declaration_ext;
 mod checker_artifacts;
 mod colorability_artifacts;
