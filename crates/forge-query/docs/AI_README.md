@@ -1021,6 +1021,19 @@ host-local legality graph and pre-validate commands against it; that is the
 same folklore mistake as host-local traversal, applied to constraints instead
 of lookup.
 
+Validator and invariant selection should be graph-shaped whenever possible.
+Downstream operations should not have to remember which validators apply to a
+node, edge, aspect, ownership relation, boundary posture, or structured
+authoring move. The graph vocabulary should declare those obligations, and the
+Query/Relational runtime should enforce the matching validators or custom
+invariants automatically from the touched graph shape. A domain operation
+should author the typed graph mutation or retained graph artifact; the
+applicable legality checks should follow mechanically from the entity kinds,
+relation kinds, aspects, and registered invariant descriptors. Manual
+"remember to run this invariant after this operation" code is a smell unless it
+is only a thin admission/projection helper around the canonical graph-owned
+contract.
+
 The mistake to avoid is duplicating query legality or planning in domain helpers
 when read composition or graph composition already owns the lane. A closely
 related mistake is host-local traversal folklore: helper loops that reconstruct
