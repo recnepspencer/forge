@@ -30,12 +30,14 @@ use crate::derived_topology::materialized_graph::relation_wiring::{
 use crate::derived_topology::materialized_graph::view_builder::{
     has_topology_content, push_entity_row,
 };
+#[cfg(test)]
 use forge_relational::facade::runtime::RelationalReadView;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct TopologyMaterializer;
 
 impl TopologyMaterializer {
+    #[cfg(test)]
     pub fn materialize_from_truth(
         read_view: &RelationalReadView,
     ) -> Result<MaterializedTopologyView, TopologyMaterializationError> {

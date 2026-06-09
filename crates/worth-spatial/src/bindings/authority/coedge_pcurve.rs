@@ -2,13 +2,6 @@ use worth_primitives::{
     PrimitiveConstructionBirthSynopsisContract, PrimitiveGeometryIdentityBundle,
 };
 
-use crate::bindings::identity::{coedge_pcurve_basis, SpatialBindingIdentity};
-
-use super::{
-    evaluate_coedge_pcurve_completeness, SpatialBindingAuthorityError, SpatialBindingCompleteness,
-    SpatialBindingIllegalityReason, SpatialBindingKind, SpatialBindingUnsupportedReason,
-};
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CoedgeBindingSite {
     topology_coedge_identity: String,
@@ -67,71 +60,5 @@ impl CoedgePCurveBindingSpec {
 
     pub fn geometry_identity(&self) -> &PrimitiveGeometryIdentityBundle {
         &self.geometry_identity
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AdmittedCoedgePCurveBinding {
-    spec: CoedgePCurveBindingSpec,
-    identity: SpatialBindingIdentity,
-    completeness: SpatialBindingCompleteness,
-}
-
-impl AdmittedCoedgePCurveBinding {
-    pub(crate) fn admit(
-        spec: CoedgePCurveBindingSpec,
-    ) -> Result<Self, SpatialBindingAuthorityError> {
-        if spec.site().topology_coedge_identity().is_empty() {
-            return Err(SpatialBindingAuthorityError::Illegal(
-                SpatialBindingIllegalityReason::MissingTopologyIdentity(
-                    SpatialBindingKind::CoedgePCurve,
-                ),
-            ));
-        }
-        if spec.birth_contract().topology_contract().loop_count() == 0 {
-            return Err(SpatialBindingAuthorityError::Unsupported(
-                SpatialBindingUnsupportedReason::TopologyBirthClassDoesNotAdmitBindingKind {
-                    binding_kind: SpatialBindingKind::CoedgePCurve,
-                    topology_birth_class: spec.birth_contract().topology_birth_class(),
-                },
-            ));
-        }
-
-        let completeness = evaluate_coedge_pcurve_completeness(spec.geometry_identity());
-        let identity = SpatialBindingIdentity::from_basis(coedge_pcurve_basis(
-            spec.site().topology_coedge_identity(),
-            spec.birth_contract(),
-            spec.geometry_identity(),
-        ));
-
-        Ok(Self {
-            spec,
-            identity,
-            completeness,
-        })
-    }
-
-    pub fn kind(&self) -> SpatialBindingKind {
-        SpatialBindingKind::CoedgePCurve
-    }
-
-    pub fn site(&self) -> &CoedgeBindingSite {
-        self.spec.site()
-    }
-
-    pub fn birth_contract(&self) -> PrimitiveConstructionBirthSynopsisContract {
-        self.spec.birth_contract()
-    }
-
-    pub fn geometry_identity(&self) -> &PrimitiveGeometryIdentityBundle {
-        self.spec.geometry_identity()
-    }
-
-    pub fn identity(&self) -> &SpatialBindingIdentity {
-        &self.identity
-    }
-
-    pub fn completeness(&self) -> &SpatialBindingCompleteness {
-        &self.completeness
     }
 }

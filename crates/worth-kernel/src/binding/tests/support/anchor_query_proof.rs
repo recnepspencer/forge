@@ -7,8 +7,9 @@ use forge_query::facade::{
     ForgeQueryDeclarationInput,
 };
 
-use crate::binding::workflow_boundary::KernelCanonicalQueryWorkflowArtifactSet;
-use crate::facade::authoring::anchoring::{
+use crate::binding::tests::support::workflow_boundary::canonical_query_workflow_artifacts;
+use crate::binding::tests::support::workflow_boundary::KernelCanonicalQueryWorkflowArtifactSet;
+use worth_spatial::facade::bindings::{
     PrimitiveAnchorBindingDeclarationEntry, PrimitiveAnchorBindingQueryDomain,
     PrimitiveAnchorBindingQueryWorld,
 };
@@ -38,8 +39,8 @@ pub(crate) fn progress_anchor_binding_entry(
     PrimitiveAnchorBindingQueryDomain,
     PrimitiveAnchorBindingDeclarationEntry,
 > {
-    entry
-        .progress_with_query(handle)
+    handle
+        .declare_review_and_progress(entry.clone())
         .unwrap_or_else(|_| panic!("anchor binding declaration progression"))
 }
 
@@ -73,8 +74,7 @@ pub(crate) fn anchor_binding_workflow_artifacts(
     PrimitiveAnchorBindingQueryDomain,
     PrimitiveAnchorBindingDeclarationEntry,
 > {
-    entry
-        .canonical_workflow_artifacts_with_query(handle)
+    canonical_query_workflow_artifacts(handle, entry.clone())
         .unwrap_or_else(|_| panic!("anchor binding workflow artifacts"))
 }
 

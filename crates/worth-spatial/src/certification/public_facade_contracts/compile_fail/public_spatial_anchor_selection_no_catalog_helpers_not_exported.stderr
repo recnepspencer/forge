@@ -1,0 +1,31 @@
+error[E0432]: unresolved imports `worth_spatial::facade::anchor_selection::AdmittedSpatialMove`, `worth_spatial::facade::anchor_selection::AdmittedSpatialPointsTowardConstraint`, `worth_spatial::facade::anchor_selection::AdmittedSpatialReorient`, `worth_spatial::facade::anchor_selection::AdmittedSpatialRotate`, `worth_spatial::facade::anchor_selection::admit_spatial_anchor_match_constraint`, `worth_spatial::facade::anchor_selection::admit_spatial_lies_on_constraint`, `worth_spatial::facade::anchor_selection::admit_spatial_move`, `worth_spatial::facade::anchor_selection::admit_spatial_move_with_catalog`, `worth_spatial::facade::anchor_selection::admit_spatial_offset`, `worth_spatial::facade::anchor_selection::admit_spatial_offset_with_catalog`, `worth_spatial::facade::anchor_selection::admit_spatial_points_toward_constraint`, `worth_spatial::facade::anchor_selection::admit_spatial_points_toward_constraint_with_catalog`, `worth_spatial::facade::anchor_selection::admit_spatial_reorient`, `worth_spatial::facade::anchor_selection::admit_spatial_reorient_with_catalog`, `worth_spatial::facade::anchor_selection::admit_spatial_rotate`, `worth_spatial::facade::anchor_selection::admit_spatial_rotate_with_catalog`, `worth_spatial::facade::anchor_selection::author_spatial_anchor_selection`, `worth_spatial::facade::anchor_selection::author_spatial_anchor_selection_with_catalog`, `worth_spatial::facade::anchor_selection::admit_spatial_lies_on_constraint_with_catalog`, `worth_spatial::facade::anchor_selection::admit_spatial_anchor_match_constraint_with_catalog`
+  --> src/certification/public_facade_contracts/compile_fail/public_spatial_anchor_selection_no_catalog_helpers_not_exported.rs:2:5
+   |
+ 2 |     AdmittedSpatialMove, AdmittedSpatialPointsTowardConstraint, AdmittedSpatialReorient,
+   |     ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^ no `AdmittedSpatialReorient` in `facade::anchor_selection`
+   |     |                    |
+   |     |                    no `AdmittedSpatialPointsTowardConstraint` in `facade::anchor_selection`
+   |     |                    help: a similar name exists in the module: `SpatialPointsTowardConstraintSpec`
+   |     no `AdmittedSpatialMove` in `facade::anchor_selection`
+ 3 |     AdmittedSpatialRotate,
+   |     ^^^^^^^^^^^^^^^^^^^^^ no `AdmittedSpatialRotate` in `facade::anchor_selection`
+ 4 |     admit_spatial_anchor_match_constraint, admit_spatial_lies_on_constraint, admit_spatial_move,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^ no `admit_spatial_move` in `facade::anchor_selection`
+   |     |                                      |
+   |     |                                      no `admit_spatial_lies_on_constraint` in `facade::anchor_selection`
+   |     no `admit_spatial_anchor_match_constraint` in `facade::anchor_selection`
+ 5 |     admit_spatial_move_with_catalog, admit_spatial_offset, admit_spatial_offset_with_catalog,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `admit_spatial_offset_with_catalog` in `facade::anchor_selection`
+   |     |                                |
+   |     |                                no `admit_spatial_offset` in `facade::anchor_selection`
+   |     no `admit_spatial_move_with_catalog` in `facade::anchor_selection`
+ 6 |     admit_spatial_points_toward_constraint, admit_spatial_points_toward_constraint_with_catalog,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 7 |     admit_spatial_reorient, admit_spatial_reorient_with_catalog, admit_spatial_rotate,
+   |     ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^
+ 8 |     admit_spatial_rotate_with_catalog, author_spatial_anchor_selection,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 9 |     author_spatial_anchor_selection_with_catalog, admit_spatial_lies_on_constraint_with_catalog,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+10 |     admit_spatial_anchor_match_constraint_with_catalog, AuthorSpatialAnchorSelectionIntent,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -106,6 +106,9 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_bridge_registration_entry_not_exported.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/public_runtime_builder_not_exported_from_facade.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/public_topology_read_workspace_methods_not_exported.rs"
     ));
     t.compile_fail(format!(

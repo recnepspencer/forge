@@ -12,18 +12,30 @@ It does not present itself as the final runtime operating surface.
 
 ## Public Surface
 
-Use the namespaced facade instead of a flat top-level API:
+Use the namespaced facade for public semantic vocabulary and family-owned
+Query-native entry surfaces:
 
 - `worth_spatial::facade::refs`
-- `worth_spatial::facade::witness_catalog`
-- `worth_spatial::facade::witness_resolution`
-- `worth_spatial::facade::frames`
+- `worth_spatial::facade::refs`
+- `worth_spatial::facade::anchor_binding`
+- `worth_spatial::facade::binding`
+- `worth_spatial::facade::rebinding`
 - `worth_spatial::facade::placement`
-- `worth_spatial::facade::motion`
-- `worth_spatial::facade::constraints`
-- `worth_spatial::facade::lowering`
-- `worth_spatial::facade::arbitration`
 - `worth_spatial::facade::bindings`
+  This now carries only shared binding-site and anchor-carrier vocabulary.
+- `worth_spatial::facade::neighborhood`
+- `worth_spatial::facade::continuation`
+- `worth_spatial::facade::inspection`
+- `worth_spatial::facade::projection`
+- `worth_spatial::facade::recovery`
+- `worth_spatial::facade::support`
+- `worth_spatial::facade::tolerance`
+
+- `facade::anchor_selection` admits motion and constraint semantics
+- `facade::placement` applies admitted motion or constraint semantics to
+  placement and exposes placement admission/application helpers
+- frame admission, witness resolution, birth scaffolding, arbitration, and
+  direct binding/rebinding helpers are no longer public support entrypoints
 
 ## Ownership Split
 
@@ -31,9 +43,11 @@ Use the namespaced facade instead of a flat top-level API:
 
 - authored reference vocabulary
 - witness and frame meaning
-- placement, motion, and constraint semantics
+- declarative placement vocabulary
+- placement semantics and family-owned application of admitted motion or
+  constraint semantics
 - spatial conflict and continuity meaning
-- primitive-birth planning and consequence meaning
+- primitive-birth assessment meaning
 
 `forge-query` owns:
 
@@ -45,32 +59,15 @@ Use the namespaced facade instead of a flat top-level API:
 ## Example
 
 ```rust
-use worth_spatial::facade::{arbitration, lowering, motion, placement};
+use worth_spatial::facade::placement;
 
-let admitted_move = motion::admit_spatial_move(
-    motion::SpatialMoveSpec::shape_origin().to([10.0, 0.0, 3.0]),
-)?;
+let placement_spec = placement::SpatialPlacementSpec::world().at([10.0, 0.0, 3.0]);
 
-let declaration = lowering::lower_admitted_move_intent(
-    placement::SpatialPlacementSpec::world(),
-    &admitted_move,
-)?;
-
-assert_eq!(declaration.name(), "worth.spatial.lowered.move");
-
-let analysis = arbitration::analyze_spatial_intent_conflict(
-    arbitration::SpatialAuthoredActKind::Move,
-    &[],
-);
-
-assert_eq!(
-    analysis.preview_commit_disposition(),
-    arbitration::SpatialIntentPreviewCommitDisposition::WouldAutoResolve(
-        arbitration::SpatialIntentCandidate::MoveOnly
-    )
-);
+assert_eq!(placement_spec.origin(), [10.0, 0.0, 3.0]);
 ```
 
-The important boundary is that lowering hands off to Query declarations and
-arbitration carries preview and continuity meaning without building a second
-runtime platform.
+The important boundary is that public facade modules expose semantic vocabulary
+and family-owned Query-native entry surfaces grouped by runtime responsibility.
+Direct arbitration internals and witness-resolution internals are not public
+runtime entry surfaces.
+

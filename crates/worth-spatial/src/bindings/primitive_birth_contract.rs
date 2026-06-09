@@ -1,6 +1,4 @@
-use super::primitive_birth::{
-    PrimitiveConstructionBirthScaffoldInput, SpatialConstructionBirthPlan,
-};
+use super::primitive_birth::PrimitiveConstructionBirthScaffoldInput;
 use worth_primitives::PrimitiveConstructionBirthSynopsisContract;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -24,19 +22,6 @@ impl PrimitiveConstructionBirthContractCounts {
             face_count: input.expected_face_count(),
             shell_count: input.expected_shell_count(),
             body_count: input.expected_body_count(),
-        }
-    }
-
-    pub(crate) fn from_plan(plan: &SpatialConstructionBirthPlan) -> Self {
-        let topology = plan.birth_contract().topology_contract();
-        Self {
-            vertex_count: topology.vertex_count(),
-            edge_count: topology.edge_count(),
-            loop_count: topology.loop_count(),
-            wire_count: topology.wire_count(),
-            face_count: topology.face_count(),
-            shell_count: topology.shell_count(),
-            body_count: topology.body_count(),
         }
     }
 }

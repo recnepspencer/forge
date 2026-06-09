@@ -1,9 +1,9 @@
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 use super::*;
+use crate::certification::certify_milestone_one_read_basis_traced;
 use crate::certification::support::historical_query_snapshot::historical_query_snapshot_for_read_basis;
 use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
-use crate::facade::certify_milestone_one_read_basis_traced;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
@@ -31,7 +31,7 @@ fn current_head_workspace(
 }
 
 fn sorted_naming_attachments(
-    report: &crate::facade::NamingAttachmentReport,
+    report: &crate::certification::NamingAttachmentReport,
 ) -> Vec<(String, String, Vec<String>)> {
     let mut rows = report
         .attachments

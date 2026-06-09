@@ -1,0 +1,9 @@
+error[E0432]: unresolved imports `worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldMaterializationInput`, `worth_spatial::facade::bindings::PrimitiveConstructionBirthScaffoldRealization`, `worth_spatial::facade::bindings::PrimitiveConstructionBirthTopologyCounts`
+ --> src/certification/public_facade_contracts/compile_fail/public_spatial_binding_birth_materialization_runtime_products_not_exported.rs:2:5
+  |
+2 |     PrimitiveConstructionBirthScaffoldMaterializationInput,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionBirthScaffoldMaterializationInput` in `facade::bindings`
+3 |     PrimitiveConstructionBirthScaffoldRealization, PrimitiveConstructionBirthTopologyCounts,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionBirthTopologyCounts` in `facade::bindings`
+  |     |
+  |     no `PrimitiveConstructionBirthScaffoldRealization` in `facade::bindings`

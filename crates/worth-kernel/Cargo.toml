@@ -25,6 +25,7 @@ sha2 = "0.10"
 
 [dev-dependencies]
 trybuild.workspace = true
+worth-spatial = { workspace = true, features = ["test-support-lowering"] }
 
 [lints]
 workspace = true

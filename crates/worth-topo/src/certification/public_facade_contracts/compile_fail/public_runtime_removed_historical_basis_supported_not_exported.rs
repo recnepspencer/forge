@@ -1,4 +1,4 @@
-use topology::facade::TopologyRuntimeSupport;
+use topology::runtime_support::TopologyRuntimeSupport;
 
 fn main() {
     let support = TopologyRuntimeSupport::snapshot_read_only();

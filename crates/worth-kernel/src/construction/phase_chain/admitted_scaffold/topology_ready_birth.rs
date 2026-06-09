@@ -1,145 +1,89 @@
-use crate::construction::digest::digest_owned_parts;
 use topology::facade::{
     prepare_primitive_construction_query_admitted_handoff_from_synopsis,
     TopologyConstructionQueryAdmittedHandoffError, TopologyPrimitiveConstructionBirthFamily,
     TopologyPrimitiveConstructionQueryAdmittedHandoff,
     TopologyPrimitiveConstructionQueryBirthSynopsis,
 };
-use worth_spatial::facade::birth::{
-    evaluate_primitive_construction_birth_consequence, plan_primitive_construction_birth,
-    AdmittedPrimitiveConstructionBirthConsequence, PrimitiveConstructionBirthFamily,
-    PrimitiveConstructionBirthScaffoldInput, SpatialConstructionBirthConsequence,
-    SpatialConstructionBirthMappingKind, SpatialConstructionBirthPlan,
-    SpatialConstructionBirthRejectionKind,
-};
+use worth_primitives::PrimitiveConstructionFamilyKey;
 
-pub(super) struct PreparedPrimitiveConstructionTopologyReadyBirth {
-    topology_query_admitted_handoff: TopologyPrimitiveConstructionQueryAdmittedHandoff,
-    birth_consequence: AdmittedPrimitiveConstructionBirthConsequence,
-}
+use super::PrimitiveConstructionAdmittedBirthTopologyTruth;
 
-impl PreparedPrimitiveConstructionTopologyReadyBirth {
-    pub(super) fn into_parts(
-        self,
-    ) -> (
-        TopologyPrimitiveConstructionQueryAdmittedHandoff,
-        AdmittedPrimitiveConstructionBirthConsequence,
-    ) {
-        (self.topology_query_admitted_handoff, self.birth_consequence)
-    }
-}
-
+#[cfg(test)]
 pub(super) fn prepare_primitive_construction_topology_ready_birth(
-    birth_input: &PrimitiveConstructionBirthScaffoldInput,
+    birth_topology_truth: &PrimitiveConstructionAdmittedBirthTopologyTruth,
 ) -> Result<
-    PreparedPrimitiveConstructionTopologyReadyBirth,
+    TopologyPrimitiveConstructionQueryAdmittedHandoff,
     TopologyConstructionQueryAdmittedHandoffError,
 > {
-    let birth_plan = plan_primitive_construction_birth(birth_input.clone()).map_err(|error| {
-        TopologyConstructionQueryAdmittedHandoffError::BirthCompleteness(error.to_string())
-    })?;
-    let topology_query_birth_synopsis = build_topology_query_birth_synopsis(&birth_plan);
-    let birth_consequence =
-        match evaluate_primitive_construction_birth_consequence(birth_input, &birth_plan) {
-            SpatialConstructionBirthConsequence::Admitted(admitted) => admitted,
-            SpatialConstructionBirthConsequence::Rejected(rejected) => {
-                let error = match rejected.kind() {
-                    SpatialConstructionBirthRejectionKind::FamilyMismatch
-                    | SpatialConstructionBirthRejectionKind::ScaffoldDigestMismatch
-                    | SpatialConstructionBirthRejectionKind::TopologyBirthClassMismatch => {
-                        TopologyConstructionQueryAdmittedHandoffError::ImpossibleBirthAttachment(
-                            rejected.reason().to_string(),
-                        )
-                    }
-                    SpatialConstructionBirthRejectionKind::ContractCountsOrSupportMismatch => {
-                        TopologyConstructionQueryAdmittedHandoffError::BirthCompleteness(
-                            rejected.reason().to_string(),
-                        )
-                    }
-                };
-                return Err(error);
-            }
-        };
-    let topology_query_admitted_handoff =
-        prepare_primitive_construction_query_admitted_handoff_from_synopsis(
-            &topology_query_birth_synopsis,
-            birth_consequence.consequence_digest(),
-            &birth_mapping_digest(&birth_consequence),
-            consequence_mapped_count(
-                &birth_consequence,
-                SpatialConstructionBirthMappingKind::Loop,
-            ),
-            consequence_mapped_count(
-                &birth_consequence,
-                SpatialConstructionBirthMappingKind::Body,
-            ),
-        )?;
-    Ok(PreparedPrimitiveConstructionTopologyReadyBirth {
-        topology_query_admitted_handoff,
-        birth_consequence,
-    })
+    build_topology_query_admitted_handoff(birth_topology_truth)
+}
+
+#[cfg(test)]
+pub(crate) fn prepare_primitive_construction_topology_query_admitted_handoff(
+    birth_topology_truth: &PrimitiveConstructionAdmittedBirthTopologyTruth,
+) -> Result<
+    TopologyPrimitiveConstructionQueryAdmittedHandoff,
+    TopologyConstructionQueryAdmittedHandoffError,
+> {
+    build_topology_query_admitted_handoff(birth_topology_truth)
+}
+
+fn build_topology_query_admitted_handoff(
+    birth_topology_truth: &PrimitiveConstructionAdmittedBirthTopologyTruth,
+) -> Result<
+    TopologyPrimitiveConstructionQueryAdmittedHandoff,
+    TopologyConstructionQueryAdmittedHandoffError,
+> {
+    let topology_query_birth_synopsis = build_topology_query_birth_synopsis(birth_topology_truth);
+    prepare_primitive_construction_query_admitted_handoff_from_synopsis(
+        &topology_query_birth_synopsis,
+        birth_topology_truth.consequence_digest(),
+        birth_topology_truth.birth_mapping_digest(),
+        birth_topology_truth.supported_loop_count(),
+        birth_topology_truth.supported_body_count(),
+    )
 }
 
 fn build_topology_query_birth_synopsis(
-    birth_plan: &SpatialConstructionBirthPlan,
+    birth_topology_truth: &PrimitiveConstructionAdmittedBirthTopologyTruth,
 ) -> TopologyPrimitiveConstructionQueryBirthSynopsis {
     TopologyPrimitiveConstructionQueryBirthSynopsis::new(
-        topology_family_from_spatial_family(birth_plan.family()),
-        birth_plan.birth_contract(),
-        birth_plan.scaffold_digest().to_string(),
-        birth_plan.birth_digest().to_string(),
-        birth_plan.topology_birth_class().to_string(),
-        birth_plan.supported_vertex_count(),
-        birth_plan.supported_edge_count(),
-        birth_plan.supported_loop_count(),
-        birth_plan.supported_wire_count(),
-        birth_plan.supported_face_count(),
-        birth_plan.supported_shell_count(),
-        birth_plan.supported_body_count(),
+        topology_family_from_spatial_family(birth_topology_truth.family()),
+        birth_topology_truth.birth_contract(),
+        birth_topology_truth.scaffold_digest().to_string(),
+        birth_topology_truth.birth_digest().to_string(),
+        birth_topology_truth.topology_birth_class().to_string(),
+        birth_topology_truth.supported_vertex_count(),
+        birth_topology_truth.supported_edge_count(),
+        birth_topology_truth.supported_loop_count(),
+        birth_topology_truth.supported_wire_count(),
+        birth_topology_truth.supported_face_count(),
+        birth_topology_truth.supported_shell_count(),
+        birth_topology_truth.supported_body_count(),
     )
 }
 
 fn topology_family_from_spatial_family(
-    family: PrimitiveConstructionBirthFamily,
+    family: PrimitiveConstructionFamilyKey,
 ) -> TopologyPrimitiveConstructionBirthFamily {
     match family {
-        PrimitiveConstructionBirthFamily::SimplexSolid => {
+        PrimitiveConstructionFamilyKey::SimplexSolid => {
             TopologyPrimitiveConstructionBirthFamily::SimplexSolid
         }
-        PrimitiveConstructionBirthFamily::Orthotope => {
+        PrimitiveConstructionFamilyKey::Orthotope => {
             TopologyPrimitiveConstructionBirthFamily::Orthotope
         }
-        PrimitiveConstructionBirthFamily::RegularPrism => {
+        PrimitiveConstructionFamilyKey::RegularPrism => {
             TopologyPrimitiveConstructionBirthFamily::RegularPrism
         }
-        PrimitiveConstructionBirthFamily::RegularPyramid => {
+        PrimitiveConstructionFamilyKey::RegularPyramid => {
             TopologyPrimitiveConstructionBirthFamily::RegularPyramid
         }
-        PrimitiveConstructionBirthFamily::WireBody => {
+        PrimitiveConstructionFamilyKey::WireBody => {
             TopologyPrimitiveConstructionBirthFamily::WireBody
         }
-        PrimitiveConstructionBirthFamily::ShellWithHole => {
+        PrimitiveConstructionFamilyKey::ShellWithHole => {
             TopologyPrimitiveConstructionBirthFamily::ShellWithHole
         }
     }
-}
-
-fn birth_mapping_digest(consequence: &AdmittedPrimitiveConstructionBirthConsequence) -> String {
-    digest_owned_parts(
-        &consequence
-            .rows()
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>(),
-    )
-}
-
-fn consequence_mapped_count(
-    consequence: &AdmittedPrimitiveConstructionBirthConsequence,
-    kind: SpatialConstructionBirthMappingKind,
-) -> usize {
-    consequence
-        .row_for(kind)
-        .expect("admitted primitive birth consequence should include every mapping row")
-        .mapped_count()
 }

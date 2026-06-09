@@ -1,0 +1,7 @@
+error[E0432]: unresolved imports `worth_spatial::facade::bindings::geometry_intent_entry`, `worth_spatial::facade::bindings::GeometryIntentDeclarationFamily`
+ --> src/certification/public_facade_contracts/compile_fail/public_spatial_geometry_intent_family_not_exported.rs:2:5
+  |
+2 |     geometry_intent_entry, GeometryIntentDeclarationFamily,
+  |     ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `GeometryIntentDeclarationFamily` in `facade::bindings`
+  |     |
+  |     no `geometry_intent_entry` in `facade::bindings`

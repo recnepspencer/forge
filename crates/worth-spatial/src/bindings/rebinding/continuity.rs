@@ -1,3 +1,4 @@
+#[cfg(test)]
 use super::{
     neighborhood::LocalTopologyReplacementNeighborhood,
     selection::{
@@ -28,14 +29,16 @@ impl BindingContinuityAssessment {
     }
 }
 
-pub fn evaluate_continuity(
-    prior_binding: &crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding,
+#[cfg(test)]
+pub(crate) fn evaluate_continuity(
+    prior_binding: &crate::bindings::query_native_rebinding_prior_fact::PrimitiveRebindingPriorBindingFact,
     neighborhood: &LocalTopologyReplacementNeighborhood,
 ) -> Result<BindingContinuityAssessment, SpatialRebindingAuthorityError> {
     let selection = select_local_rebinding_candidate(prior_binding, neighborhood)?;
     Ok(continuity_from_selection(&selection))
 }
 
+#[cfg(test)]
 pub(crate) fn continuity_from_selection(
     selection: &LocalNeighborhoodSelection,
 ) -> BindingContinuityAssessment {
@@ -43,6 +46,7 @@ pub(crate) fn continuity_from_selection(
     BindingContinuityAssessment { continuity_class }
 }
 
+#[cfg(test)]
 fn classify_continuity(selection: &LocalNeighborhoodSelection) -> BindingContinuityClass {
     if selection.is_ambiguous() {
         return BindingContinuityClass::Ambiguous;

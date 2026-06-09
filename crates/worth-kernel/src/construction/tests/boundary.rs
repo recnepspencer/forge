@@ -1,4 +1,4 @@
-const AUDITED_LOCAL_PHASE_FILES: [(&str, &str); 3] = [
+const AUDITED_LOCAL_PHASE_FILES: [(&str, &str); 2] = [
     (
         "worth-kernel.result-surface-result",
         include_str!(concat!(
@@ -7,17 +7,10 @@ const AUDITED_LOCAL_PHASE_FILES: [(&str, &str); 3] = [
         )),
     ),
     (
-        "worth-kernel.query-graph-composition-parity",
+        "worth-kernel.certification-runtime-truth",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/src/construction/runtime_proof/query/graph_composition_parity.rs"
-        )),
-    ),
-    (
-        "worth-kernel.corpus-row-support",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/construction/certification/corpus/row_support.rs"
+            "/src/construction/tests/support/runtime_truth.rs"
         )),
     ),
 ];
@@ -52,10 +45,10 @@ const AUDITED_ADMITTED_PROTOCOL_FILES: [(&str, &str); 5] = [
         )),
     ),
     (
-        "worth-kernel.phase-chain-admitted-scaffold-birth-input",
+        "worth-kernel.phase-chain-admitted-scaffold-family-birth-input",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/src/construction/phase_chain/admitted_scaffold/birth_input.rs"
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/mod.rs"
         )),
     ),
 ];
@@ -76,10 +69,10 @@ const AUDITED_ADMITTED_SUBTREE_BOUNDARY_FILES: [(&str, &str); 5] = [
         )),
     ),
     (
-        "worth-kernel.phase-chain-admitted-scaffold-birth-input",
+        "worth-kernel.phase-chain-admitted-scaffold-family-birth-input",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/src/construction/phase_chain/admitted_scaffold/birth_input.rs"
+            "/src/construction/phase_chain/admitted_scaffold/family_birth_input/mod.rs"
         )),
     ),
     (
@@ -100,19 +93,9 @@ const AUDITED_ADMITTED_SUBTREE_BOUNDARY_FILES: [(&str, &str); 5] = [
 
 const AUDITED_PUBLIC_CONSTRUCTION_ENTRY_FILES: [(&str, &str); 2] = [
     (
-        "worth-kernel.facade-root",
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/facade.rs")),
+        "worth-kernel.lib-root",
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/lib.rs")),
     ),
-    (
-        "worth-kernel.facade-outcome",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/facade/outcome.rs"
-        )),
-    ),
-];
-
-const AUDITED_PUBLIC_AUTHORING_CONTRACT_FILES: [(&str, &str); 3] = [
     (
         "worth-kernel.public-api-construction-contract",
         include_str!(concat!(
@@ -120,21 +103,15 @@ const AUDITED_PUBLIC_AUTHORING_CONTRACT_FILES: [(&str, &str); 3] = [
             "/src/certification/public_facade_contracts/contracts/public_api_construction.rs"
         )),
     ),
-    (
-        "worth-kernel.public-api-reports-contract",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/certification/public_facade_contracts/contracts/public_api_reports.rs"
-        )),
-    ),
-    (
-        "worth-kernel.public-api-spatial-intent-contract",
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/certification/public_facade_contracts/contracts/public_api_spatial_intent.rs"
-        )),
-    ),
 ];
+
+const AUDITED_PUBLIC_AUTHORING_CONTRACT_FILES: [(&str, &str); 1] = [(
+    "worth-kernel.public-api-construction-contract",
+    include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/certification/public_facade_contracts/contracts/public_api_construction.rs"
+    )),
+)];
 
 const FORBIDDEN_LOCAL_PHASE_PATTERNS: [&str; 3] = [
     ".build_scaffold(",
@@ -448,7 +425,7 @@ fn phase_five_public_authoring_session_no_longer_teaches_queryless_entry_bypass(
     assert_eq!(
         violations,
         Vec::<String>::new(),
-        "public construction contract surfaces still call direct local preparation helpers instead of proving the query-backed authoring-session entry lane: {violations:?}"
+        "public construction contract surfaces still call direct local preparation helpers instead of proving the query-backed declaration-authoring entry lane: {violations:?}"
     );
 }
 

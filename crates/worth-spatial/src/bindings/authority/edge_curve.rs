@@ -2,13 +2,6 @@ use worth_primitives::{
     PrimitiveConstructionBirthSynopsisContract, PrimitiveGeometryIdentityBundle,
 };
 
-use crate::bindings::identity::{edge_curve_basis, SpatialBindingIdentity};
-
-use super::{
-    evaluate_edge_curve_completeness, SpatialBindingAuthorityError, SpatialBindingCompleteness,
-    SpatialBindingIllegalityReason, SpatialBindingKind, SpatialBindingUnsupportedReason,
-};
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EdgeBindingSite {
     topology_edge_identity: String,
@@ -67,69 +60,5 @@ impl EdgeCurveBindingSpec {
 
     pub fn geometry_identity(&self) -> &PrimitiveGeometryIdentityBundle {
         &self.geometry_identity
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AdmittedEdgeCurveBinding {
-    spec: EdgeCurveBindingSpec,
-    identity: SpatialBindingIdentity,
-    completeness: SpatialBindingCompleteness,
-}
-
-impl AdmittedEdgeCurveBinding {
-    pub(crate) fn admit(spec: EdgeCurveBindingSpec) -> Result<Self, SpatialBindingAuthorityError> {
-        if spec.site().topology_edge_identity().is_empty() {
-            return Err(SpatialBindingAuthorityError::Illegal(
-                SpatialBindingIllegalityReason::MissingTopologyIdentity(
-                    SpatialBindingKind::EdgeCurve,
-                ),
-            ));
-        }
-        if spec.birth_contract().topology_contract().edge_count() == 0 {
-            return Err(SpatialBindingAuthorityError::Unsupported(
-                SpatialBindingUnsupportedReason::TopologyBirthClassDoesNotAdmitBindingKind {
-                    binding_kind: SpatialBindingKind::EdgeCurve,
-                    topology_birth_class: spec.birth_contract().topology_birth_class(),
-                },
-            ));
-        }
-
-        let completeness = evaluate_edge_curve_completeness(spec.geometry_identity());
-        let identity = SpatialBindingIdentity::from_basis(edge_curve_basis(
-            spec.site().topology_edge_identity(),
-            spec.birth_contract(),
-            spec.geometry_identity(),
-        ));
-
-        Ok(Self {
-            spec,
-            identity,
-            completeness,
-        })
-    }
-
-    pub fn kind(&self) -> SpatialBindingKind {
-        SpatialBindingKind::EdgeCurve
-    }
-
-    pub fn site(&self) -> &EdgeBindingSite {
-        self.spec.site()
-    }
-
-    pub fn birth_contract(&self) -> PrimitiveConstructionBirthSynopsisContract {
-        self.spec.birth_contract()
-    }
-
-    pub fn geometry_identity(&self) -> &PrimitiveGeometryIdentityBundle {
-        self.spec.geometry_identity()
-    }
-
-    pub fn identity(&self) -> &SpatialBindingIdentity {
-        &self.identity
-    }
-
-    pub fn completeness(&self) -> &SpatialBindingCompleteness {
-        &self.completeness
     }
 }

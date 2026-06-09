@@ -33,6 +33,7 @@ impl MaterializedTopologyView {
         Self { topology, report }
     }
 
+    #[cfg(test)]
     pub(crate) fn whole_view(topology: TopologyView) -> Self {
         let topology_entity_count = topology.models.len()
             + topology.bodies.len()

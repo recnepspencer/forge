@@ -8,7 +8,7 @@
 #![forbid(unsafe_code)]
 
 mod brep;
-mod certification;
+pub mod certification;
 mod construction;
 mod derived_topology;
 mod projection;

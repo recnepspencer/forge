@@ -27,6 +27,10 @@ mod tracing;
 mod tests;
 mod topology_operator_closeout;
 
+pub use crate::validation::reference_integrity::{
+    build_milestone_one_runtime, configure_milestone_one_runtime_builder,
+    milestone_one_runtime_builder, MilestoneOneRuntimeSetupError,
+};
 pub use authority_closeout::read_view::MilestoneOneCertificationHarness;
 pub use authority_closeout::read_view::TracedMilestoneOneCertificationReport;
 pub use bridge_registration_closeout::{
@@ -71,6 +75,12 @@ pub use requirements::{
     milestone_one_closeout_requirements, milestone_one_closeout_suite_definition,
     milestone_three_closeout_requirements, milestone_three_closeout_suite_definition,
     milestone_two_closeout_requirements, milestone_two_closeout_suite_definition,
+};
+pub use support::parity::{
+    build_derived_equivalence_contract, compare_derived_equivalence_contracts,
+    digest_derived_validation_report, digest_interpreted_topology_view,
+    digest_materialized_topology_view, DerivedEquivalenceContractReport,
+    DerivedParityComparisonReport,
 };
 pub use support::reporting::{
     AdmittedRangeSweepReport, AdmittedRangeSweepRow, BranchLocalTopologyReport,

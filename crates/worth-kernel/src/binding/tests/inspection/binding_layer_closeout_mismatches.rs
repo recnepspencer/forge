@@ -1,45 +1,48 @@
-use forge_query::facade::ForgeQueryDeclarationEntryInspectionInput;
-use worth_spatial::facade::bindings::{
-    NeighborhoodBindingFamily, ReplacementCandidate, SpatialAdmittedPrimitiveBinding,
-};
-
-use crate::{
-    binding::rebinding::{
-        primitive_rebinding_certification_bundle, BindingLayerCertificationBundleError,
-        PrimitiveRebindingBranchLocalInspection, PrimitiveRebindingDeclarationEntry,
-        PrimitiveRebindingHistoricalInspection, PrimitiveRebindingQueryDomain,
-        PrimitiveRebindingQueryWorld,
-    },
-    facade::authoring::binding::{
-        author_primitive_rebinding_declaration, AuthorPrimitiveRebindingIntent,
-    },
-};
-
 use super::super::support::{
-    admitted_rebinding_handle, anchored_surface, progress_rebinding_entry,
-    replacement_neighborhood, scoped_branch_head_inspection_basis,
+    admitted_rebinding_handle, anchored_surface_candidate_from_declaration,
+    anchored_surface_prior_fact_from_declaration, canonical_geometry, orthotope_contract,
+    primitive_rebinding_certification_bundle, progress_rebinding_entry, replacement_neighborhood,
+    scoped_branch_head_inspection_basis, BindingLayerCertificationBundleError,
+};
+use worth_spatial::facade::bindings::NeighborhoodBindingFamily;
+use worth_spatial::facade::bindings::{
+    author_primitive_anchor_binding_declaration, author_primitive_rebinding_declaration,
+    primitive_rebinding_retained_fact_source, AuthorPrimitiveAnchorBindingIntent,
+    PrimitiveRebindingDeclarationEntry, PrimitiveRebindingQueryDomain,
+    PrimitiveRebindingQueryWorld, PrimitiveRebindingRetainedFactSource,
+};
+use worth_spatial::facade::bindings::{
+    AnchorCarrierOwnership, CarrierOwnedParameterPointAnchorSpec, FaceBindingSite,
+    FaceSurfaceBindingSpec,
+};
+use worth_spatial::facade::inspection::{
+    branch_local_geometry_inspection_entry, historical_geometry_inspection_entry,
+    primitive_rebinding_retained_subject, PrimitiveRebindingBranchLocalInspection,
+    PrimitiveRebindingHistoricalInspection,
 };
 
 #[test]
 fn binding_layer_certification_bundle_rejects_retained_proofs_from_the_wrong_declaration() {
-    let prior = anchored_surface("face-old", "surface-alpha", [0.25, 0.5], 1.0);
-    let exact = anchored_surface("face-new-a", "surface-beta", [0.25, 0.5], 1.0);
-    let weaker = anchored_surface("face-new-b", "surface-gamma", [0.25, 0.5], 2.0);
+    let prior = anchored_surface_declaration("face-old", "surface-alpha", [0.25, 0.5], 1.0);
+    let exact = anchored_surface_declaration("face-new-a", "surface-beta", [0.25, 0.5], 1.0);
+    let weaker = anchored_surface_declaration("face-new-b", "surface-gamma", [0.25, 0.5], 2.0);
     let left_entry = author_primitive_rebinding_declaration(
-        AuthorPrimitiveRebindingIntent::replace_surface_binding(
-            SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(prior.clone()),
+        crate::binding::tests::support::replace_surface_binding(
+            anchored_surface_prior_fact_from_declaration(&prior, "closeout-mismatch-left-prior"),
             replacement_neighborhood(
                 NeighborhoodBindingFamily::FaceSurfacePointAnchor,
                 "face-old",
                 vec![
-                    ReplacementCandidate::new(
+                    anchored_surface_candidate_from_declaration(
                         "weaker",
-                        SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(weaker.clone()),
+                        &weaker,
+                        "closeout-mismatch-left-weaker",
                     )
                     .expect("weaker"),
-                    ReplacementCandidate::new(
+                    anchored_surface_candidate_from_declaration(
                         "exact",
-                        SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(exact.clone()),
+                        &exact,
+                        "closeout-mismatch-left-exact",
                     )
                     .expect("exact"),
                 ],
@@ -47,45 +50,45 @@ fn binding_layer_certification_bundle_rejects_retained_proofs_from_the_wrong_dec
         ),
     );
     let right_entry = author_primitive_rebinding_declaration(
-        AuthorPrimitiveRebindingIntent::replace_surface_binding(
-            SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(prior),
+        crate::binding::tests::support::replace_surface_binding(
+            anchored_surface_prior_fact_from_declaration(&prior, "closeout-mismatch-right-prior"),
             replacement_neighborhood(
                 NeighborhoodBindingFamily::FaceSurfacePointAnchor,
                 "face-old",
                 vec![
-                    ReplacementCandidate::new(
+                    anchored_surface_candidate_from_declaration(
                         "exact",
-                        SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(exact),
+                        &exact,
+                        "closeout-mismatch-right-exact",
                     )
                     .expect("exact"),
-                    ReplacementCandidate::new(
+                    anchored_surface_candidate_from_declaration(
                         "weaker",
-                        SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(weaker),
+                        &weaker,
+                        "closeout-mismatch-right-weaker",
                     )
                     .expect("weaker"),
                 ],
             ),
         ),
     );
+    let foreign_prior =
+        anchored_surface_declaration("face-foreign", "surface-foreign", [0.25, 0.5], 1.0);
+    let foreign_candidate =
+        anchored_surface_declaration("face-foreign-new", "surface-foreign-new", [0.25, 0.5], 1.0);
     let foreign_entry = author_primitive_rebinding_declaration(
-        AuthorPrimitiveRebindingIntent::replace_surface_binding(
-            SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(anchored_surface(
-                "face-foreign",
-                "surface-foreign",
-                [0.25, 0.5],
-                1.0,
-            )),
+        crate::binding::tests::support::replace_surface_binding(
+            anchored_surface_prior_fact_from_declaration(
+                &foreign_prior,
+                "closeout-mismatch-foreign-prior",
+            ),
             replacement_neighborhood(
                 NeighborhoodBindingFamily::FaceSurfacePointAnchor,
                 "face-foreign",
-                vec![ReplacementCandidate::new(
+                vec![anchored_surface_candidate_from_declaration(
                     "foreign",
-                    SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(anchored_surface(
-                        "face-foreign-new",
-                        "surface-foreign-new",
-                        [0.25, 0.5],
-                        1.0,
-                    )),
+                    &foreign_candidate,
+                    "closeout-mismatch-foreign-candidate",
                 )
                 .expect("foreign")],
             ),
@@ -96,8 +99,8 @@ fn binding_layer_certification_bundle_rejects_retained_proofs_from_the_wrong_dec
         scoped_branch_head_inspection_basis("branch:phase-sixteen-closeout-mismatch");
 
     let historical_mismatch = primitive_rebinding_certification_bundle(
-        &left_entry,
-        &right_entry,
+        retained_fact_source(&left_entry, &handle),
+        retained_fact_source(&right_entry, &handle),
         historical_inspection(&foreign_entry, &handle),
         historical_inspection(&right_entry, &handle),
         branch_local_inspection(&left_entry, &handle, &branch_basis, "left"),
@@ -110,8 +113,8 @@ fn binding_layer_certification_bundle_rejects_retained_proofs_from_the_wrong_dec
     ));
 
     let branch_local_mismatch = primitive_rebinding_certification_bundle(
-        &left_entry,
-        &right_entry,
+        retained_fact_source(&left_entry, &handle),
+        retained_fact_source(&right_entry, &handle),
         historical_inspection(&left_entry, &handle),
         historical_inspection(&right_entry, &handle),
         branch_local_inspection(&foreign_entry, &handle, &branch_basis, "foreign"),
@@ -131,16 +134,14 @@ fn historical_inspection(
         PrimitiveRebindingQueryWorld,
     >,
 ) -> PrimitiveRebindingHistoricalInspection {
-    entry
-        .historical_inspection_with_query(
-            handle,
-            ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
-                handle.orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(
-                    entry, handle,
-                )),
-            ),
-        )
-        .expect("historical inspection")
+    let subject = handle
+        .orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(entry, handle));
+    historical_geometry_inspection_entry(
+        retained_fact_source(entry, handle),
+        primitive_rebinding_retained_subject(entry.binding_kind(), &subject),
+    )
+    .inspect_checked(handle, subject)
+    .expect("historical inspection")
 }
 
 fn branch_local_inspection(
@@ -152,22 +153,56 @@ fn branch_local_inspection(
     branch_basis: &forge_query::facade::ScopedInspectionBasis,
     evidence: &str,
 ) -> PrimitiveRebindingBranchLocalInspection {
-    entry
-        .branch_local_inspection_with_query(
-            handle,
-            branch_basis,
-            forge_query::facade::LowerRuntimeBasisEvidence::from_relational_facade(
-                branch_basis
-                    .expected_lower_runtime_binding_digest()
-                    .expect("basis digest"),
-                evidence,
-                1,
+    let subject = handle
+        .orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(entry, handle));
+    branch_local_geometry_inspection_entry(
+        retained_fact_source(entry, handle),
+        branch_basis.clone(),
+        forge_query::facade::LowerRuntimeBasisEvidence::from_relational_facade(
+            branch_basis
+                .expected_lower_runtime_binding_digest()
+                .expect("basis digest"),
+            evidence,
+            1,
+        ),
+        primitive_rebinding_retained_subject(entry.binding_kind(), &subject),
+    )
+    .inspect_checked(handle, subject)
+    .expect("branch-local inspection")
+}
+
+fn retained_fact_source(
+    entry: &PrimitiveRebindingDeclarationEntry,
+    handle: &forge_query::facade::ForgeQueryAdmittedConfiguredDomainHandle<
+        PrimitiveRebindingQueryDomain,
+        PrimitiveRebindingQueryWorld,
+    >,
+) -> PrimitiveRebindingRetainedFactSource {
+    primitive_rebinding_retained_fact_source(entry, handle).expect("retained fact source")
+}
+
+fn anchored_surface_declaration(
+    face_identity: &str,
+    persistent_name: &str,
+    parameter: [f64; 2],
+    extent: f64,
+) -> worth_spatial::facade::bindings::PrimitiveAnchorBindingDeclarationEntry {
+    author_primitive_anchor_binding_declaration(
+        AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_point_to_face(
+            FaceSurfaceBindingSpec::new(
+                FaceBindingSite::new(face_identity).with_persistent_name(persistent_name),
+                orthotope_contract(),
+                canonical_geometry([[0.0, 0.0, 0.0], [extent, 0.0, 0.0]]),
             ),
-            ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
-                handle.orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(
-                    entry, handle,
-                )),
-            ),
-        )
-        .expect("branch-local inspection")
+            CarrierOwnedParameterPointAnchorSpec::new(
+                AnchorCarrierOwnership::for_face_surface(
+                    face_identity,
+                    worth_geom::facade::ParameterDomain::plane(),
+                )
+                .expect("ownership"),
+                worth_geom::facade::ParameterSpacePoint::try_new(parameter).expect("parameter"),
+            )
+            .expect("anchor spec"),
+        ),
+    )
 }

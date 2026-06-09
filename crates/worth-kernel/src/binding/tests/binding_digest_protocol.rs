@@ -2,18 +2,12 @@ use std::collections::BTreeSet;
 
 use worth_geom::facade::{ParameterDomain, ParameterSpacePoint};
 use worth_spatial::facade::bindings::{
-    attach_parameter_space_point_to_face, attach_surface_to_face, AnchorCarrierOwnership,
+    author_primitive_anchor_binding_declaration, author_primitive_binding_declaration,
+    author_primitive_rebinding_declaration, AnchorCarrierOwnership,
+    AuthorPrimitiveAnchorBindingIntent, AuthorPrimitiveBindingIntent,
     CarrierOwnedParameterPointAnchorSpec, FaceBindingSite, FaceSurfaceBindingSpec,
-    LocalTopologyReplacementNeighborhood, NeighborhoodBindingFamily, ReplacementCandidate,
-    ReplacementCandidateSet, SpatialAdmittedPrimitiveBinding,
-};
-
-use crate::facade::authoring::anchoring::{
-    author_primitive_anchor_binding_declaration, AuthorPrimitiveAnchorBindingIntent,
-};
-use crate::facade::authoring::binding::{
-    author_primitive_binding_declaration, author_primitive_rebinding_declaration,
-    AuthorPrimitiveBindingIntent, AuthorPrimitiveRebindingIntent,
+    LocalTopologyReplacementNeighborhood, NeighborhoodBindingFamily,
+    PrimitiveAnchorBindingDeclarationEntry, ReplacementCandidateSet,
 };
 
 use super::support::{
@@ -23,7 +17,8 @@ use super::support::{
     canonical_text_entries_for_anchor_binding, canonical_text_entries_for_rebinding,
     declaration_digest_string, inspect_progressed_binding_entry,
     inspect_progressed_rebinding_entry, orthotope_contract, progress_binding_entry,
-    progress_rebinding_entry, rebinding_declaration_digest_string,
+    progress_rebinding_entry, rebinding_candidate_from_anchor_declaration,
+    rebinding_declaration_digest_string, rebinding_prior_fact_from_anchor_declaration,
 };
 
 #[test]
@@ -83,10 +78,7 @@ fn canonical_binding_identity_digest_protocol_is_shared_across_kernel_spatial_an
     );
     let anchor_handle = admitted_anchor_binding_handle("phase5-anchor");
 
-    assert_eq!(
-        direct_first_anchor.identity(),
-        direct_second_anchor.identity()
-    );
+    assert_eq!(direct_first_anchor, direct_second_anchor);
     assert_eq!(
         canonical_text_entries_for_anchor_binding(&first_anchor),
         canonical_text_entries_for_anchor_binding(&second_anchor)
@@ -104,13 +96,13 @@ fn canonical_binding_identity_digest_protocol_is_shared_across_kernel_spatial_an
         anchor_inspection_digest_string(&second_anchor, &anchor_handle)
     );
 
-    let prior = direct_first_anchor.clone();
-    let exact = direct_anchor("face-new-a", "surface-gamma", [0.25, 3.0]);
-    let weaker = direct_anchor("face-new-b", "surface-delta", [0.5, 3.0]);
-    let neighborhood = replacement_neighborhood(prior.clone(), exact.clone(), weaker.clone());
+    let prior = anchor_entry("face-1", "surface-alpha", [0.25, 3.0]);
+    let exact = anchor_entry("face-new-a", "surface-gamma", [0.25, 3.0]);
+    let weaker = anchor_entry("face-new-b", "surface-delta", [0.5, 3.0]);
+    let neighborhood = replacement_neighborhood(&prior, &exact, &weaker);
     let rebinding = author_primitive_rebinding_declaration(
-        AuthorPrimitiveRebindingIntent::replace_surface_binding(
-            SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(prior.clone()),
+        crate::binding::tests::support::replace_surface_binding(
+            rebinding_prior_fact_from_anchor_declaration(&prior, "digest-protocol-prior"),
             neighborhood,
         ),
     );
@@ -121,8 +113,10 @@ fn canonical_binding_identity_digest_protocol_is_shared_across_kernel_spatial_an
     let rebinding_entries = canonical_text_entries_for_rebinding(&rebinding);
 
     assert_eq!(
-        rebinding_entries.get("prior_identity").map(String::as_str),
-        Some(direct_first_anchor.identity().as_str())
+        rebinding_entries
+            .get("rebinding.prior.binding_identity")
+            .map(String::as_str),
+        Some(direct_first_anchor.as_str())
     );
     assert_eq!(
         rebinding_entries
@@ -130,12 +124,14 @@ fn canonical_binding_identity_digest_protocol_is_shared_across_kernel_spatial_an
             .filter_map(|(key, value)| key.ends_with(".identity").then_some(value.clone()))
             .collect::<BTreeSet<_>>(),
         BTreeSet::from([
-            exact.identity().as_str().to_string(),
-            weaker.identity().as_str().to_string(),
+            direct_anchor("face-new-a", "surface-gamma", [0.25, 3.0]),
+            direct_anchor("face-new-b", "surface-delta", [0.5, 3.0]),
         ])
     );
     assert_eq!(
-        rebinding_entries.get("binding_kind").map(String::as_str),
+        rebinding_entries
+            .get("rebinding.kind.binding_kind")
+            .map(String::as_str),
         Some("face_surface")
     );
     assert_eq!(
@@ -245,7 +241,7 @@ fn binding_entry(
     face_identity: &str,
     persistent_name: &str,
     points: [[f64; 3]; 2],
-) -> crate::facade::authoring::binding::PrimitiveBindingDeclarationEntry {
+) -> worth_spatial::facade::bindings::PrimitiveBindingDeclarationEntry {
     author_primitive_binding_declaration(AuthorPrimitiveBindingIntent::attach_surface_to_face(
         face_binding_spec(face_identity, persistent_name, points),
     ))
@@ -256,18 +252,19 @@ fn direct_binding_identity(
     persistent_name: &str,
     points: [[f64; 3]; 2],
 ) -> String {
-    attach_surface_to_face(face_binding_spec(face_identity, persistent_name, points))
-        .expect("direct binding")
-        .identity()
-        .as_str()
-        .to_string()
+    crate::binding::tests::support::rebinding_prior_fact_from_binding_declaration(
+        &binding_entry(face_identity, persistent_name, points),
+        "binding-digest-protocol-direct-binding-identity",
+    )
+    .prior_binding_identity()
+    .to_string()
 }
 
 fn anchor_entry(
     face_identity: &str,
     persistent_name: &str,
     parameter: [f64; 2],
-) -> crate::facade::authoring::anchoring::PrimitiveAnchorBindingDeclarationEntry {
+) -> PrimitiveAnchorBindingDeclarationEntry {
     author_primitive_anchor_binding_declaration(
         AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_point_to_face(
             face_binding_spec(
@@ -280,20 +277,13 @@ fn anchor_entry(
     )
 }
 
-fn direct_anchor(
-    face_identity: &str,
-    persistent_name: &str,
-    parameter: [f64; 2],
-) -> worth_spatial::facade::bindings::AdmittedFaceSurfacePointAnchorBinding {
-    attach_parameter_space_point_to_face(
-        face_binding_spec(
-            face_identity,
-            persistent_name,
-            [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
-        ),
-        point_anchor_spec(face_identity, parameter),
+fn direct_anchor(face_identity: &str, persistent_name: &str, parameter: [f64; 2]) -> String {
+    crate::binding::tests::support::anchored_surface_prior_fact_from_declaration(
+        &anchor_entry(face_identity, persistent_name, parameter),
+        "binding-digest-protocol-direct-anchor-identity",
     )
-    .expect("direct anchor")
+    .prior_binding_identity()
+    .to_string()
 }
 
 fn face_binding_spec(
@@ -321,24 +311,18 @@ fn point_anchor_spec(
 }
 
 fn replacement_neighborhood(
-    prior: worth_spatial::facade::bindings::AdmittedFaceSurfacePointAnchorBinding,
-    first: worth_spatial::facade::bindings::AdmittedFaceSurfacePointAnchorBinding,
-    second: worth_spatial::facade::bindings::AdmittedFaceSurfacePointAnchorBinding,
+    _prior: &PrimitiveAnchorBindingDeclarationEntry,
+    first: &PrimitiveAnchorBindingDeclarationEntry,
+    second: &PrimitiveAnchorBindingDeclarationEntry,
 ) -> LocalTopologyReplacementNeighborhood {
     LocalTopologyReplacementNeighborhood::new(
         NeighborhoodBindingFamily::FaceSurfacePointAnchor,
-        prior.binding().site().topology_face_identity(),
+        "face-1",
         ReplacementCandidateSet::new(vec![
-            ReplacementCandidate::new(
-                "first",
-                SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(first),
-            )
-            .expect("first candidate"),
-            ReplacementCandidate::new(
-                "second",
-                SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(second),
-            )
-            .expect("second candidate"),
+            rebinding_candidate_from_anchor_declaration("first", first, "digest-protocol-first")
+                .expect("first candidate"),
+            rebinding_candidate_from_anchor_declaration("second", second, "digest-protocol-second")
+                .expect("second candidate"),
         ])
         .expect("candidate set"),
     )

@@ -6,18 +6,18 @@ use worth_primitives::{
     PrimitiveWitnessDescriptor,
 };
 
-use crate::facade::bindings::{
-    attach_curve_to_edge, attach_pcurve_to_coedge, attach_surface_to_face, attach_vertex_geometry,
-    evaluate_binding_motion_posture, rebind_surface_on_face, BindingMotionSemanticsInput,
+use crate::bindings::authority::{
     CoedgeBindingSite, CoedgePCurveBindingSpec, EdgeBindingSite, EdgeCurveBindingSpec,
-    FaceBindingSite, FaceSurfaceBindingSpec, LocalTopologyReplacementNeighborhood,
-    MotionAwareBindingPosture, NeighborhoodBindingFamily, ReplacementCandidate,
-    ReplacementCandidateSet, SpatialAdmittedPrimitiveBinding, VertexBindingSite,
-    VertexGeometryBindingSpec, VertexGeometryProvenanceKind, VertexToleranceRegime,
+    FaceBindingSite, FaceSurfaceBindingSpec, VertexBindingSite, VertexGeometryBindingSpec,
+    VertexGeometryProvenanceKind, VertexToleranceRegime,
 };
-use crate::facade::motion::{
-    admit_spatial_move, admit_spatial_reorient, admit_spatial_rotate, SpatialMoveSpec,
-    SpatialReorientSpec, SpatialRotateSpec,
+use crate::bindings::query_native_binding_authoring::{
+    author_primitive_binding_declaration, AuthorPrimitiveBindingIntent,
+};
+use crate::bindings::rebinding::{
+    evaluate_binding_motion_posture_internal as evaluate_binding_motion_posture,
+    BindingMotionSemanticsInput, LocalTopologyReplacementNeighborhood, MotionAwareBindingPosture,
+    NeighborhoodBindingFamily, ReplacementCandidateSet,
 };
 
 fn plane_geometry(vertices: [[f64; 3]; 2]) -> PrimitiveGeometryIdentityBundle {
@@ -35,44 +35,52 @@ fn plane_geometry(vertices: [[f64; 3]; 2]) -> PrimitiveGeometryIdentityBundle {
     )
 }
 
+fn surface_binding_declaration(
+    face_id: &str,
+    geometry: PrimitiveGeometryIdentityBundle,
+) -> crate::bindings::query_native_binding_authoring::PrimitiveBindingDeclarationEntry {
+    let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
+        &PrimitiveWitnessDescriptor::Orthotope,
+    );
+    author_primitive_binding_declaration(AuthorPrimitiveBindingIntent::attach_surface_to_face(
+        FaceSurfaceBindingSpec::new(FaceBindingSite::new(face_id), contract, geometry),
+    ))
+}
+
 fn all_phase_six_bindings(
     contract: PrimitiveConstructionBirthSynopsisContract,
-) -> [SpatialAdmittedPrimitiveBinding; 4] {
+) -> [crate::bindings::query_native_binding_authoring::PrimitiveBindingDeclarationEntry; 4] {
     [
-        SpatialAdmittedPrimitiveBinding::FaceSurface(
-            attach_surface_to_face(FaceSurfaceBindingSpec::new(
+        author_primitive_binding_declaration(AuthorPrimitiveBindingIntent::attach_surface_to_face(
+            FaceSurfaceBindingSpec::new(
                 FaceBindingSite::new("face-1"),
                 contract,
                 plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-            ))
-            .expect("face"),
-        ),
-        SpatialAdmittedPrimitiveBinding::EdgeCurve(
-            attach_curve_to_edge(EdgeCurveBindingSpec::new(
+            ),
+        )),
+        author_primitive_binding_declaration(AuthorPrimitiveBindingIntent::attach_curve_to_edge(
+            EdgeCurveBindingSpec::new(
                 EdgeBindingSite::new("edge-1"),
                 contract,
                 plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-            ))
-            .expect("edge"),
-        ),
-        SpatialAdmittedPrimitiveBinding::CoedgePCurve(
-            attach_pcurve_to_coedge(CoedgePCurveBindingSpec::new(
+            ),
+        )),
+        author_primitive_binding_declaration(
+            AuthorPrimitiveBindingIntent::attach_pcurve_to_coedge(CoedgePCurveBindingSpec::new(
                 CoedgeBindingSite::new("coedge-1"),
                 contract,
                 plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-            ))
-            .expect("coedge"),
+            )),
         ),
-        SpatialAdmittedPrimitiveBinding::VertexGeometry(
-            attach_vertex_geometry(VertexGeometryBindingSpec::new(
+        author_primitive_binding_declaration(AuthorPrimitiveBindingIntent::attach_vertex_geometry(
+            VertexGeometryBindingSpec::new(
                 VertexBindingSite::new("vertex-1"),
                 contract,
                 plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
                 VertexGeometryProvenanceKind::CanonicalWitness,
                 VertexToleranceRegime::ExactBits,
-            ))
-            .expect("vertex"),
-        ),
+            ),
+        )),
     ]
 }
 
@@ -81,43 +89,40 @@ fn motion_aware_binding_posture_distinguishes_preserved_transformed_invalidated_
     let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
         &PrimitiveWitnessDescriptor::Orthotope,
     );
-    let preserved_rotate =
-        admit_spatial_rotate(SpatialRotateSpec::shape_origin().by_radians(0.0)).expect("rotate");
-    let transformed_move =
-        admit_spatial_move(SpatialMoveSpec::shape_origin().to([5.0, 0.0, 0.0])).expect("move");
-    let unresolved_reorient =
-        admit_spatial_reorient(SpatialReorientSpec::shape_origin().toward([0.0, 1.0, 0.0]))
-            .expect("reorient");
     let bindings = all_phase_six_bindings(contract);
 
-    for binding in bindings {
+    for declaration in bindings {
+        let prior_fact = super::rebinding_prior_fact_from_binding_declaration(
+            &declaration,
+            "motion-posture-phase-six-prior",
+        );
         assert_eq!(
             evaluate_binding_motion_posture(
-                &binding,
-                BindingMotionSemanticsInput::for_rotate(&preserved_rotate),
+                &prior_fact,
+                BindingMotionSemanticsInput::rotated_with_carrier(0.0),
             )
             .expect("preserved"),
             MotionAwareBindingPosture::Preserved
         );
         assert_eq!(
             evaluate_binding_motion_posture(
-                &binding,
-                BindingMotionSemanticsInput::for_move(&transformed_move),
+                &prior_fact,
+                BindingMotionSemanticsInput::moved_with_carrier(),
             )
             .expect("transformed"),
             MotionAwareBindingPosture::TransformedWithCarrier
         );
         assert_eq!(
             evaluate_binding_motion_posture(
-                &binding,
-                BindingMotionSemanticsInput::for_reorient(&unresolved_reorient),
+                &prior_fact,
+                BindingMotionSemanticsInput::reoriented_with_carrier(),
             )
             .expect("unresolved"),
             MotionAwareBindingPosture::Unresolved
         );
         assert_eq!(
             evaluate_binding_motion_posture(
-                &binding,
+                &prior_fact,
                 BindingMotionSemanticsInput::invalidated_by_local_topology_replacement(),
             )
             .expect("invalidated"),
@@ -128,33 +133,25 @@ fn motion_aware_binding_posture_distinguishes_preserved_transformed_invalidated_
 
 #[test]
 fn motion_posture_is_not_rederived_from_rebinding_candidate_presence() {
-    let contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
-        &PrimitiveWitnessDescriptor::Orthotope,
+    let prior_declaration = surface_binding_declaration(
+        "face-old",
+        plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
     );
-    let prior = attach_surface_to_face(FaceSurfaceBindingSpec::new(
-        FaceBindingSite::new("face-old"),
-        contract,
+    let successor_declaration = surface_binding_declaration(
+        "face-new",
         plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-    ))
-    .expect("prior");
-    let successor = attach_surface_to_face(FaceSurfaceBindingSpec::new(
-        FaceBindingSite::new("face-new"),
-        contract,
-        plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-    ))
-    .expect("successor");
-    let alternate = attach_surface_to_face(FaceSurfaceBindingSpec::new(
-        FaceBindingSite::new("face-alt"),
-        contract,
+    );
+    let alternate_declaration = surface_binding_declaration(
+        "face-alt",
         plane_geometry([[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]]),
-    ))
-    .expect("alternate");
+    );
     let neighborhood = LocalTopologyReplacementNeighborhood::new(
         NeighborhoodBindingFamily::FaceSurface,
         "face-old",
-        ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+        ReplacementCandidateSet::new(vec![super::rebinding_candidate_from_binding_declaration(
             "successor",
-            SpatialAdmittedPrimitiveBinding::FaceSurface(successor),
+            &successor_declaration,
+            "motion-posture-successor-candidate",
         )
         .expect("candidate")])
         .expect("candidate set"),
@@ -164,56 +161,75 @@ fn motion_posture_is_not_rederived_from_rebinding_candidate_presence() {
         NeighborhoodBindingFamily::FaceSurface,
         "face-old",
         ReplacementCandidateSet::new(vec![
-            ReplacementCandidate::new(
+            super::rebinding_candidate_from_binding_declaration(
                 "successor",
-                SpatialAdmittedPrimitiveBinding::FaceSurface(
-                    attach_surface_to_face(FaceSurfaceBindingSpec::new(
-                        FaceBindingSite::new("face-new-rich"),
-                        contract,
-                        plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-                    ))
-                    .expect("successor-rich"),
+                &surface_binding_declaration(
+                    "face-new-rich",
+                    plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
                 ),
+                "motion-posture-successor-rich-candidate",
             )
             .expect("candidate"),
-            ReplacementCandidate::new(
+            super::rebinding_candidate_from_binding_declaration(
                 "alternate",
-                SpatialAdmittedPrimitiveBinding::FaceSurface(alternate),
+                &alternate_declaration,
+                "motion-posture-alternate-candidate",
             )
             .expect("alternate"),
         ])
         .expect("candidate set"),
     )
     .expect("richer neighborhood");
-    let prior_binding = SpatialAdmittedPrimitiveBinding::FaceSurface(prior.clone());
+    let alternate = super::rebinding_candidate_from_binding_declaration(
+        "alternate",
+        &alternate_declaration,
+        "motion-posture-alternate-identity",
+    )
+    .expect("alternate candidate");
+    let prior = super::rebinding_prior_fact_from_binding_declaration(
+        &prior_declaration,
+        "motion-posture-identity-prior",
+    );
+    let prior_fact = super::rebinding_prior_fact_from_binding_declaration(
+        &prior_declaration,
+        "motion-posture-invalidated-prior",
+    );
     let invalidated = evaluate_binding_motion_posture(
-        &prior_binding,
+        &prior_fact,
         BindingMotionSemanticsInput::invalidated_by_local_topology_replacement(),
     )
     .expect("invalidated");
-    let rebinding = rebind_surface_on_face(prior_binding, neighborhood).expect("rebinding");
-    let richer_rebinding = rebind_surface_on_face(
-        SpatialAdmittedPrimitiveBinding::FaceSurface(prior),
+    let rebinding = super::rebind_surface_on_face_from_fact(
+        super::rebinding_prior_fact_from_binding_declaration(
+            &prior_declaration,
+            "motion-posture-prior",
+        ),
+        neighborhood,
+    )
+    .expect("rebinding");
+    let richer_rebinding = super::rebind_surface_on_face_from_fact(
+        super::rebinding_prior_fact_from_binding_declaration(
+            &prior_declaration,
+            "motion-posture-prior-rich",
+        ),
         richer_neighborhood,
     )
     .expect("richer rebinding");
 
     assert_eq!(invalidated, MotionAwareBindingPosture::Invalidated);
     assert_eq!(
-        rebinding.explanation().motion_posture(),
-        &MotionAwareBindingPosture::Unresolved
+        rebinding.motion_posture(),
+        MotionAwareBindingPosture::Unresolved
     );
-    assert!(rebinding
-        .explanation()
-        .selected_candidate_identity()
-        .is_some());
+    assert!(rebinding.selected_candidate_identity().is_some());
     assert_eq!(
-        richer_rebinding.explanation().motion_posture(),
-        &MotionAwareBindingPosture::Unresolved
+        richer_rebinding.motion_posture(),
+        MotionAwareBindingPosture::Unresolved
     );
-    assert_ne!(rebinding.explanation().motion_posture(), &invalidated);
+    assert_ne!(rebinding.motion_posture(), invalidated);
     assert_eq!(
-        rebinding.explanation().motion_posture(),
-        richer_rebinding.explanation().motion_posture()
+        rebinding.motion_posture(),
+        richer_rebinding.motion_posture()
     );
+    assert_ne!(alternate.binding_identity(), prior.prior_binding_identity());
 }

@@ -1,10 +1,10 @@
 use crate::facade::{
+    anchor_selection::SpatialWitnessFailureClass,
     refs::{SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole},
-    witness_catalog::{
+    refs::{
         SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedGeometricTag,
         SpatialCatalogResolvedPointWitness, SpatialWitnessCatalog,
     },
-    witness_resolution::SpatialWitnessFailureClass,
 };
 use worth_geom::ParameterSpacePoint;
 

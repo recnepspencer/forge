@@ -1,4 +1,4 @@
-use topology::facade::{TopologyRuntimeAdapters, TopologyRuntimeSupport};
+use topology::{facade::TopologyRuntimeAdapters, runtime_support::TopologyRuntimeSupport};
 
 fn main() {
     let _ = TopologyRuntimeAdapters {

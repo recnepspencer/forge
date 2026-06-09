@@ -1,4 +1,4 @@
-use topology::facade::{
+use topology::certification::{
     BoundaryEnvelope, DecisionTrace, IntegrityMarkers, PerformanceAccounting,
 };
 

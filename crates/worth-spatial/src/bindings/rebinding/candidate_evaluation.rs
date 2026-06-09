@@ -1,4 +1,4 @@
-use crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding;
+use crate::bindings::query_native_rebinding_prior_fact::PrimitiveRebindingPriorBindingFact;
 
 use super::{
     continuity::{continuity_from_selection, BindingContinuityAssessment},
@@ -9,14 +9,14 @@ use super::{
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReplacementCandidateEvaluation {
-    prior_binding: SpatialAdmittedPrimitiveBinding,
+    prior_binding: PrimitiveRebindingPriorBindingFact,
     neighborhood: LocalTopologyReplacementNeighborhood,
     selection: LocalNeighborhoodSelection,
     continuity: BindingContinuityAssessment,
 }
 
 impl ReplacementCandidateEvaluation {
-    pub fn prior_binding(&self) -> &SpatialAdmittedPrimitiveBinding {
+    pub fn prior_binding(&self) -> &PrimitiveRebindingPriorBindingFact {
         &self.prior_binding
     }
 
@@ -33,8 +33,8 @@ impl ReplacementCandidateEvaluation {
     }
 }
 
-pub fn evaluate_replacement_candidates(
-    prior_binding: SpatialAdmittedPrimitiveBinding,
+pub(crate) fn evaluate_replacement_candidates(
+    prior_binding: PrimitiveRebindingPriorBindingFact,
     neighborhood: LocalTopologyReplacementNeighborhood,
 ) -> Result<ReplacementCandidateEvaluation, SpatialRebindingAuthorityError> {
     let selection = select_local_rebinding_candidate(&prior_binding, &neighborhood)?;

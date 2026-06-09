@@ -1,55 +1,55 @@
+use super::super::support::{
+    admitted_rebinding_handle, anchored_surface_candidate_from_declaration,
+    anchored_surface_declaration, anchored_surface_prior_fact_from_declaration,
+    progress_rebinding_entry, rebinding_receipt_for_entry, replacement_neighborhood,
+    retained_digest_for_receipt, PrimitiveRebindingKernelQueryExt,
+};
 use forge_query::facade::{
     admit_basis_capability, evaluate_basis_inspection_eligibility, normalize_raw_basis_intent,
-    scope_basis_for_inspection, DeniedBasisCapabilityKind,
-    ForgeQueryDeclarationEntryInspectionInput, LowerRuntimeBasisEvidence, RawBasisIntent,
-    ScopedInspectionBasis,
+    scope_basis_for_inspection, DeniedBasisCapabilityKind, LowerRuntimeBasisEvidence,
+    RawBasisIntent, ScopedInspectionBasis,
 };
 use worth_spatial::facade::bindings::{
-    BindingContinuityClass, NeighborhoodBindingFamily, ReplacementCandidate,
-    SpatialAdmittedPrimitiveBinding,
+    author_primitive_rebinding_declaration, BindingContinuityClass, NeighborhoodBindingFamily,
 };
-
-use crate::{
-    binding::rebinding::PrimitiveRebindingBranchLocalInspectionError,
-    facade::authoring::binding::{
-        author_primitive_rebinding_declaration, AuthorPrimitiveRebindingIntent,
-    },
-};
-
-use super::super::support::{
-    admitted_rebinding_handle, anchored_surface, progress_rebinding_entry,
-    replacement_neighborhood, retained_digest_for_decision,
-};
+use worth_spatial::facade::inspection::PrimitiveRebindingBranchLocalInspectionError;
 
 #[test]
 fn branch_local_binding_inspection_distinguishes_branch_state_from_authoritative_state() {
-    let prior = anchored_surface("face-old", "surface-alpha", [0.25, 0.5], 1.0);
-    let correspondence = anchored_surface("face-new-b", "surface-gamma", [0.25, 0.5], 2.0);
-    let authoritative = author_primitive_rebinding_declaration(
-        AuthorPrimitiveRebindingIntent::replace_surface_binding(
-            SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(prior.clone()),
+    let prior = anchored_surface_declaration("face-old", "surface-alpha", [0.25, 0.5], 1.0);
+    let correspondence =
+        anchored_surface_declaration("face-new-b", "surface-gamma", [0.25, 0.5], 2.0);
+    let authoritative_entry = author_primitive_rebinding_declaration(
+        crate::binding::tests::support::replace_surface_binding(
+            anchored_surface_prior_fact_from_declaration(
+                &prior,
+                "branch-state-authoritative-prior",
+            ),
             replacement_neighborhood(
                 NeighborhoodBindingFamily::FaceSurfacePointAnchor,
                 "face-old",
-                vec![ReplacementCandidate::new(
+                vec![anchored_surface_candidate_from_declaration(
                     "exact",
-                    SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(prior.clone()),
+                    &prior,
+                    "branch-state-authoritative-exact",
                 )
                 .expect("exact candidate")],
             ),
         ),
-    )
-    .admit()
-    .expect("authoritative decision");
+    );
+    let authoritative =
+        rebinding_receipt_for_entry(&authoritative_entry, "branch-local-authoritative")
+            .expect("authoritative receipt");
     let branch_entry = author_primitive_rebinding_declaration(
-        AuthorPrimitiveRebindingIntent::replace_surface_binding(
-            SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(prior),
+        crate::binding::tests::support::replace_surface_binding(
+            anchored_surface_prior_fact_from_declaration(&prior, "branch-state-branch-prior"),
             replacement_neighborhood(
                 NeighborhoodBindingFamily::FaceSurfacePointAnchor,
                 "face-old",
-                vec![ReplacementCandidate::new(
+                vec![anchored_surface_candidate_from_declaration(
                     "correspondence",
-                    SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(correspondence),
+                    &correspondence,
+                    "branch-state-branch-correspondence",
                 )
                 .expect("correspondence candidate")],
             ),
@@ -58,9 +58,7 @@ fn branch_local_binding_inspection_distinguishes_branch_state_from_authoritative
     let handle = admitted_rebinding_handle("phase-fourteen-branch-divergence");
     let branch_basis = scoped_branch_head_inspection_basis("branch:diverged");
     let branch_progression = progress_rebinding_entry(&branch_entry, &handle);
-    let branch_subject = ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
-        handle.orchestrate_envelope_from_progressed_checked(branch_progression),
-    );
+    let branch_subject = handle.orchestrate_envelope_from_progressed_checked(branch_progression);
     let branch_local = branch_entry
         .branch_local_inspection_with_query(
             &handle,
@@ -83,49 +81,55 @@ fn branch_local_binding_inspection_distinguishes_branch_state_from_authoritative
     );
     assert!(branch_local.inspection().progression_digest().is_some());
     assert_ne!(
-        branch_local.decision().explanation().continuity_class(),
-        authoritative.explanation().continuity_class()
+        branch_local.receipt().continuity_class(),
+        authoritative.continuity_class()
     );
     assert_ne!(
-        branch_local
-            .decision()
-            .explanation()
-            .selected_candidate_identity(),
-        authoritative.explanation().selected_candidate_identity()
+        branch_local.receipt().selected_candidate_identity(),
+        authoritative.selected_candidate_identity()
     );
     assert_ne!(
         branch_local.branch_local_digest(),
-        retained_digest_for_decision(&authoritative)
+        retained_digest_for_receipt(&authoritative)
     );
 }
 
 #[test]
 fn branch_local_correspondence_never_upgrades_to_authoritative_continuity_under_replay() {
-    let prior = anchored_surface("face-old", "surface-alpha", [0.25, 0.5], 1.0);
-    let correspondence = anchored_surface("face-new-b", "surface-gamma", [0.25, 0.5], 2.0);
+    let prior = anchored_surface_declaration("face-old", "surface-alpha", [0.25, 0.5], 1.0);
+    let correspondence =
+        anchored_surface_declaration("face-new-b", "surface-gamma", [0.25, 0.5], 2.0);
     let authoritative_entry = author_primitive_rebinding_declaration(
-        AuthorPrimitiveRebindingIntent::replace_surface_binding(
-            SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(prior.clone()),
+        crate::binding::tests::support::replace_surface_binding(
+            anchored_surface_prior_fact_from_declaration(
+                &prior,
+                "branch-correspondence-authoritative-prior",
+            ),
             replacement_neighborhood(
                 NeighborhoodBindingFamily::FaceSurfacePointAnchor,
                 "face-old",
-                vec![ReplacementCandidate::new(
+                vec![anchored_surface_candidate_from_declaration(
                     "exact",
-                    SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(prior.clone()),
+                    &prior,
+                    "branch-correspondence-authoritative-exact",
                 )
                 .expect("exact candidate")],
             ),
         ),
     );
     let branch_entry = author_primitive_rebinding_declaration(
-        AuthorPrimitiveRebindingIntent::replace_surface_binding(
-            SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(prior),
+        crate::binding::tests::support::replace_surface_binding(
+            anchored_surface_prior_fact_from_declaration(
+                &prior,
+                "branch-correspondence-branch-prior",
+            ),
             replacement_neighborhood(
                 NeighborhoodBindingFamily::FaceSurfacePointAnchor,
                 "face-old",
-                vec![ReplacementCandidate::new(
+                vec![anchored_surface_candidate_from_declaration(
                     "correspondence",
-                    SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(correspondence),
+                    &correspondence,
+                    "branch-correspondence-branch-candidate",
                 )
                 .expect("correspondence candidate")],
             ),
@@ -138,33 +142,29 @@ fn branch_local_correspondence_never_upgrades_to_authoritative_continuity_under_
             &handle,
             &branch_basis,
             branch_basis_evidence(&branch_basis, "branch-evidence:correspondence"),
-            ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
-                handle.orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(
-                    &branch_entry,
-                    &handle,
-                )),
-            ),
+            handle.orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(
+                &branch_entry,
+                &handle,
+            )),
         )
         .expect("branch-local inspection");
     let authoritative = authoritative_entry
         .historical_inspection_with_query(
             &handle,
-            ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
-                handle.orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(
-                    &authoritative_entry,
-                    &handle,
-                )),
-            ),
+            handle.orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(
+                &authoritative_entry,
+                &handle,
+            )),
         )
         .expect("authoritative historical inspection");
 
     assert_eq!(
-        branch_local.decision().explanation().continuity_class(),
+        branch_local.receipt().continuity_class(),
         BindingContinuityClass::CorrespondenceOnly
     );
     assert_ne!(
-        branch_local.decision().explanation().continuity_class(),
-        authoritative.decision().explanation().continuity_class()
+        branch_local.receipt().continuity_class(),
+        authoritative.receipt().continuity_class()
     );
     assert_ne!(
         branch_local.branch_local_digest(),
@@ -174,17 +174,18 @@ fn branch_local_correspondence_never_upgrades_to_authoritative_continuity_under_
 
 #[test]
 fn wrong_branch_binding_inspection_is_denied_before_cross_branch_reconstruction() {
-    let prior = anchored_surface("face-old", "surface-alpha", [0.25, 0.5], 1.0);
-    let exact = anchored_surface("face-new-a", "surface-beta", [0.25, 0.5], 1.0);
+    let prior = anchored_surface_declaration("face-old", "surface-alpha", [0.25, 0.5], 1.0);
+    let exact = anchored_surface_declaration("face-new-a", "surface-beta", [0.25, 0.5], 1.0);
     let entry = author_primitive_rebinding_declaration(
-        AuthorPrimitiveRebindingIntent::replace_surface_binding(
-            SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(prior),
+        crate::binding::tests::support::replace_surface_binding(
+            anchored_surface_prior_fact_from_declaration(&prior, "branch-wrong-branch-prior"),
             replacement_neighborhood(
                 NeighborhoodBindingFamily::FaceSurfacePointAnchor,
                 "face-old",
-                vec![ReplacementCandidate::new(
+                vec![anchored_surface_candidate_from_declaration(
                     "exact",
-                    SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(exact),
+                    &exact,
+                    "branch-wrong-branch-exact",
                 )
                 .expect("exact candidate")],
             ),
@@ -200,11 +201,9 @@ fn wrong_branch_binding_inspection_is_denied_before_cross_branch_reconstruction(
             "branch-evidence:other",
             1,
         ),
-        ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
-            handle.orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(
-                &entry, &handle,
-            )),
-        ),
+        handle.orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(
+            &entry, &handle,
+        )),
     );
 
     match result {

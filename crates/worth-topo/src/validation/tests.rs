@@ -7,10 +7,8 @@ mod validator_tests {
     use schema::facade::bootstrap_schema_registry;
 
     use crate::brep::topology_graph::{TopologyFace, TopologyLoop};
-    use crate::facade::{
-        validate_interpreted_topology, validate_named_topology_truth, validate_topology_view,
-        TopologyMaterializer,
-    };
+    use crate::derived_topology::materialized_graph::TopologyMaterializer;
+    use crate::derived_topology::traversal_views::interpret_topology_view;
     use crate::relational_aspect_boundary::topology_entity_create_fields;
     use crate::test_support::hostile_neighborhoods::validation_neighborhoods::{
         base_seeded_view, closed_shell_view, connected_wire_branch_view, edge, entity, half_edge,
@@ -21,6 +19,10 @@ mod validator_tests {
         commit_topology_mutation_set_through_schema_execution,
         seed_minimal_topology_through_schema_execution,
     };
+    use crate::validation::{
+        validate_interpreted_topology, validate_named_topology_truth, TopologyValidationPhase,
+    };
+    use crate::validation::facade::validate_topology_view;
     #[test]
     fn seeded_topology_view_passes_milestone_one_validators() {
         let mut runtime = RelationalRuntimeApi::builder()
@@ -37,22 +39,16 @@ mod validator_tests {
         let topology = TopologyMaterializer::materialize_from_truth(&read_view)
             .expect(" topology materialization");
 
-        let interpreted = crate::facade::interpret_topology_view(&topology);
+        let interpreted = interpret_topology_view(&topology);
         let report = validate_interpreted_topology(&topology, &interpreted)
             .expect("seeded topology should validate");
         assert!(report.rows.iter().any(|row| {
             row.validator == "ownership"
-                && matches!(
-                    row.phase,
-                    crate::facade::TopologyValidationPhase::DerivedMaterialization
-                )
+                && matches!(row.phase, TopologyValidationPhase::DerivedMaterialization)
         }));
         assert!(report.rows.iter().any(|row| {
             row.validator == "shell_closure"
-                && matches!(
-                    row.phase,
-                    crate::facade::TopologyValidationPhase::DerivedInterpretation
-                )
+                && matches!(row.phase, TopologyValidationPhase::DerivedInterpretation)
         }));
         validate_named_topology_truth(&read_view).expect("seeded topology should be fully named");
     }

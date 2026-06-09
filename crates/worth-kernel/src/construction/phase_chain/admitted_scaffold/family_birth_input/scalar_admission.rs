@@ -1,4 +1,4 @@
-use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
+use super::super::super::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
 
 pub(super) fn decode_positive_scalar(
     family: PrimitiveConstructionFamily,

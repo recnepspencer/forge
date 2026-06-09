@@ -5,9 +5,11 @@ mod tests {
         PrimitiveSupportPlaneIdentity, PrimitiveVertexIdentity, PrimitiveWitnessDescriptor,
     };
 
-    use crate::bindings::authority::{
-        attach_surface_to_face, FaceBindingSite, FaceSurfaceBindingSpec,
+    use crate::bindings::authority::{FaceBindingSite, FaceSurfaceBindingSpec};
+    use crate::bindings::query_native_binding_authoring::{
+        author_primitive_binding_declaration, AuthorPrimitiveBindingIntent,
     };
+    use crate::bindings::query_native_declared_target_identity_fact::binding_declaration_fact;
 
     #[test]
     fn binding_identity_diverges_from_topology_and_naming_when_geometry_changes() {
@@ -40,19 +42,29 @@ mod tests {
         );
         let site = FaceBindingSite::new("face-1").with_persistent_name("same-name");
 
-        let first = attach_surface_to_face(FaceSurfaceBindingSpec::new(
-            site.clone(),
-            contract,
-            first_geometry,
+        let first = binding_declaration_fact(&author_primitive_binding_declaration(
+            AuthorPrimitiveBindingIntent::attach_surface_to_face(FaceSurfaceBindingSpec::new(
+                site.clone(),
+                contract,
+                first_geometry,
+            )),
         ))
-        .expect("first binding");
-        let second =
-            attach_surface_to_face(FaceSurfaceBindingSpec::new(site, contract, second_geometry))
-                .expect("second binding");
+        .expect("first binding fact");
+        let second = binding_declaration_fact(&author_primitive_binding_declaration(
+            AuthorPrimitiveBindingIntent::attach_surface_to_face(FaceSurfaceBindingSpec::new(
+                site,
+                contract,
+                second_geometry,
+            )),
+        ))
+        .expect("second binding fact");
 
-        assert_ne!(first.identity().as_str(), second.identity().as_str());
-        assert_eq!(first.site().persistent_name(), Some("same-name"));
-        assert_eq!(second.site().persistent_name(), Some("same-name"));
+        assert_ne!(
+            first.binding_identity().as_str(),
+            second.binding_identity().as_str()
+        );
+        assert_eq!(first.site_identity(), "face-1");
+        assert_eq!(second.site_identity(), "face-1");
     }
 
     #[test]
@@ -73,20 +85,27 @@ mod tests {
             ],
         );
 
-        let first = attach_surface_to_face(FaceSurfaceBindingSpec::new(
-            FaceBindingSite::new("face-1").with_persistent_name("alpha"),
-            contract,
-            geometry.clone(),
+        let first = binding_declaration_fact(&author_primitive_binding_declaration(
+            AuthorPrimitiveBindingIntent::attach_surface_to_face(FaceSurfaceBindingSpec::new(
+                FaceBindingSite::new("face-1").with_persistent_name("alpha"),
+                contract,
+                geometry.clone(),
+            )),
         ))
-        .expect("first binding");
-        let second = attach_surface_to_face(FaceSurfaceBindingSpec::new(
-            FaceBindingSite::new("face-1").with_persistent_name("beta"),
-            contract,
-            geometry,
+        .expect("first binding fact");
+        let second = binding_declaration_fact(&author_primitive_binding_declaration(
+            AuthorPrimitiveBindingIntent::attach_surface_to_face(FaceSurfaceBindingSpec::new(
+                FaceBindingSite::new("face-1").with_persistent_name("beta"),
+                contract,
+                geometry,
+            )),
         ))
-        .expect("second binding");
+        .expect("second binding fact");
 
-        assert_eq!(first.identity().as_str(), second.identity().as_str());
+        assert_eq!(
+            first.binding_identity().as_str(),
+            second.binding_identity().as_str()
+        );
     }
 
     #[test]
@@ -104,29 +123,36 @@ mod tests {
             vec![PrimitiveVertexIdentity::from_position([0.0, 0.0, 0.0])],
         );
 
-        let canonical = crate::bindings::authority::attach_vertex_geometry(
-            crate::bindings::authority::VertexGeometryBindingSpec::new(
-                crate::bindings::authority::VertexBindingSite::new("vertex-1")
-                    .with_persistent_name("same-name"),
-                contract,
-                geometry.clone(),
-                crate::bindings::authority::VertexGeometryProvenanceKind::CanonicalWitness,
-                crate::bindings::authority::VertexToleranceRegime::ExactBits,
+        let canonical = binding_declaration_fact(&author_primitive_binding_declaration(
+            AuthorPrimitiveBindingIntent::attach_vertex_geometry(
+                crate::bindings::authority::VertexGeometryBindingSpec::new(
+                    crate::bindings::authority::VertexBindingSite::new("vertex-1")
+                        .with_persistent_name("same-name"),
+                    contract,
+                    geometry.clone(),
+                    crate::bindings::authority::VertexGeometryProvenanceKind::CanonicalWitness,
+                    crate::bindings::authority::VertexToleranceRegime::ExactBits,
+                ),
             ),
-        )
-        .expect("canonical vertex binding");
-        let realized = crate::bindings::authority::attach_vertex_geometry(
-            crate::bindings::authority::VertexGeometryBindingSpec::new(
-                crate::bindings::authority::VertexBindingSite::new("vertex-1")
-                    .with_persistent_name("same-name"),
-                contract,
-                geometry,
-                crate::bindings::authority::VertexGeometryProvenanceKind::RealizedVertex,
-                crate::bindings::authority::VertexToleranceRegime::AdmittedTolerance,
+        ))
+        .expect("canonical vertex binding fact");
+        let realized = binding_declaration_fact(&author_primitive_binding_declaration(
+            AuthorPrimitiveBindingIntent::attach_vertex_geometry(
+                crate::bindings::authority::VertexGeometryBindingSpec::new(
+                    crate::bindings::authority::VertexBindingSite::new("vertex-1")
+                        .with_persistent_name("same-name"),
+                    contract,
+                    geometry,
+                    crate::bindings::authority::VertexGeometryProvenanceKind::RealizedVertex,
+                    crate::bindings::authority::VertexToleranceRegime::AdmittedTolerance,
+                ),
             ),
-        )
-        .expect("realized vertex binding");
+        ))
+        .expect("realized vertex binding fact");
 
-        assert_ne!(canonical.identity().as_str(), realized.identity().as_str());
+        assert_ne!(
+            canonical.binding_identity().as_str(),
+            realized.binding_identity().as_str()
+        );
     }
 }

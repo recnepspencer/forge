@@ -1,23 +1,18 @@
-use super::{
-    prepare_primitive_construction_outcome, rejected_outcome, PrimitiveConstructionPreparedOutcome,
-    PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
-};
-use crate::construction::intent::PrimitiveConstructionIntent;
-use crate::construction::request::{
+use super::super::intent::PrimitiveConstructionIntent;
+use super::super::request::{
     PrimitiveConstructionFamily, PrimitiveConstructionGeometryError,
     PrimitiveConstructionPhaseError,
 };
-use crate::construction::result::PrimitiveConstructionResultError;
-use crate::construction::specs::{OrthotopeSpec, WireBodySpec};
+use super::super::result::PrimitiveConstructionResultError;
+use super::super::specs::{OrthotopeSpec, SimplexSolidSpec, WireBodySpec};
+use super::{
+    prepare_primitive_construction_outcome, rejected_outcome, PrimitiveConstructionPreparedOutcome,
+    PrimitiveConstructionRecoveryAction, PrimitiveConstructionRejectionClass,
+    PrimitiveConstructionRejectionLocality,
+};
 use topology::facade::{
     TopologyConstructionQueryAdmittedHandoffError, TopologyConstructionQueryEnvelopeError,
     TopologyConstructionQueryHandoffError, TopologyConstructionQueryReceiptError,
-};
-use worth_geom::facade::Plane;
-use worth_spatial::facade::birth::{
-    evaluate_primitive_construction_birth_consequence, plan_primitive_construction_birth,
-    PrimitiveConstructionBirthFamily, PrimitiveConstructionBirthScaffoldInput,
-    SpatialConstructionBirthConsequence,
 };
 
 #[test]
@@ -58,6 +53,10 @@ fn prepared_outcome_tracks_rejected_request_locality() {
             assert_eq!(
                 rejected.rejection_locality(),
                 PrimitiveConstructionRejectionLocality::Admission
+            );
+            assert_eq!(
+                rejected.recovery_actions(),
+                &[PrimitiveConstructionRecoveryAction::CorrectRequestFamilyOrCounts]
             );
             assert!(rejected.reason().contains("invalid wire_body request"));
             assert!(!rejected.failure_digest().is_empty());
@@ -103,55 +102,20 @@ fn rejected_outcome_maps_phase_and_runtime_failures_to_exact_localities() {
             PrimitiveConstructionRejectionLocality::Execution,
         )
     );
+    assert_eq!(
+        geometry.recovery_actions(),
+        &[PrimitiveConstructionRecoveryAction::ReviseGeometryScaffold]
+    );
+    assert_eq!(
+        execution.recovery_actions(),
+        &[PrimitiveConstructionRecoveryAction::RetryTopologyExecution]
+    );
 }
 
 #[test]
 fn rejected_outcome_maps_spatial_birth_and_impossible_attachment_distinctly() {
-    let input = PrimitiveConstructionBirthScaffoldInput::new(
-        PrimitiveConstructionBirthFamily::WireBody,
-        "planar_wire_body",
-        "wire-scaffold".to_string(),
-        vec![plane()],
-        vec![
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [-1.0, 0.0, 0.0],
-            [0.0, -1.0, 0.0],
-        ],
-        4,
-        4,
-        1,
-        1,
-        0,
-        0,
-        1,
-    );
-    let mismatched = PrimitiveConstructionBirthScaffoldInput::new(
-        PrimitiveConstructionBirthFamily::WireBody,
-        "wrong_class",
-        "wire-scaffold".to_string(),
-        vec![plane()],
-        vec![
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [-1.0, 0.0, 0.0],
-            [0.0, -1.0, 0.0],
-        ],
-        4,
-        4,
-        1,
-        1,
-        0,
-        0,
-        1,
-    );
-    let plan = plan_primitive_construction_birth(input).expect("birth plan");
-    let impossible = match evaluate_primitive_construction_birth_consequence(&mismatched, &plan) {
-        SpatialConstructionBirthConsequence::Admitted(_) => {
-            panic!("mismatched birth should be rejected")
-        }
-        SpatialConstructionBirthConsequence::Rejected(rejected) => rejected,
-    };
+    let impossible_reason =
+        "topology birth class mismatch: wrong_class cannot satisfy planar_wire_body".to_string();
     let completeness = rejected_outcome(
         PrimitiveConstructionFamily::WireBody,
         &PrimitiveConstructionResultError::Phase(
@@ -167,7 +131,7 @@ fn rejected_outcome_maps_spatial_birth_and_impossible_attachment_distinctly() {
         &PrimitiveConstructionResultError::Phase(
             PrimitiveConstructionPhaseError::TopologyQueryAdmittedHandoff(
                 TopologyConstructionQueryAdmittedHandoffError::ImpossibleBirthAttachment(
-                    impossible.reason().to_string(),
+                    impossible_reason,
                 ),
             ),
         ),
@@ -193,8 +157,115 @@ fn rejected_outcome_maps_spatial_birth_and_impossible_attachment_distinctly() {
             PrimitiveConstructionRejectionLocality::SpatialBirth,
         )
     );
+    assert_eq!(
+        completeness.recovery_actions(),
+        &[PrimitiveConstructionRecoveryAction::CorrectBirthAttachment]
+    );
+    assert_eq!(
+        impossible.recovery_actions(),
+        &[PrimitiveConstructionRecoveryAction::CorrectBirthAttachment]
+    );
 }
 
-fn plane() -> Plane {
-    Plane::from_point_normal([0.0, 0.0, 0.0], [0.0, 0.0, 1.0]).expect("plane")
+#[test]
+fn rejected_outcome_covers_every_major_failure_boundary_with_typed_locality() {
+    let admission = rejected_outcome(
+        PrimitiveConstructionFamily::WireBody,
+        &PrimitiveConstructionResultError::Phase(PrimitiveConstructionPhaseError::InvalidRequest {
+            family: PrimitiveConstructionFamily::WireBody,
+            reason: "polygonal construction families require at least three edges",
+        }),
+    );
+    let scaffold = rejected_outcome(
+        PrimitiveConstructionFamily::RegularPyramid,
+        &PrimitiveConstructionResultError::Phase(PrimitiveConstructionPhaseError::Geometry(
+            PrimitiveConstructionGeometryError::GeometryFailure("degenerate scaffold".to_string()),
+        )),
+    );
+    let spatial_birth = rejected_outcome(
+        PrimitiveConstructionFamily::ShellWithHole,
+        &PrimitiveConstructionResultError::Phase(
+            PrimitiveConstructionPhaseError::TopologyQueryAdmittedHandoff(
+                TopologyConstructionQueryAdmittedHandoffError::BirthCompleteness(
+                    "birth mismatch".to_string(),
+                ),
+            ),
+        ),
+    );
+    let topology = rejected_outcome(
+        PrimitiveConstructionFamily::RegularPrism,
+        &PrimitiveConstructionResultError::Phase(
+            PrimitiveConstructionPhaseError::TopologyQueryAdmittedHandoff(
+                TopologyConstructionQueryAdmittedHandoffError::Handoff(
+                    TopologyConstructionQueryHandoffError::Envelope(
+                        TopologyConstructionQueryEnvelopeError::Receipt(
+                            TopologyConstructionQueryReceiptError::UnsupportedBirthClass(
+                                "bad surface",
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    );
+
+    assert_eq!(
+        (admission.rejection_class(), admission.rejection_locality()),
+        (
+            PrimitiveConstructionRejectionClass::InvalidRequest,
+            PrimitiveConstructionRejectionLocality::Admission,
+        )
+    );
+    assert_eq!(
+        (scaffold.rejection_class(), scaffold.rejection_locality()),
+        (
+            PrimitiveConstructionRejectionClass::GeometryScaffold,
+            PrimitiveConstructionRejectionLocality::Scaffold,
+        )
+    );
+    assert_eq!(
+        (
+            spatial_birth.rejection_class(),
+            spatial_birth.rejection_locality()
+        ),
+        (
+            PrimitiveConstructionRejectionClass::SpatialBirth,
+            PrimitiveConstructionRejectionLocality::SpatialBirth,
+        )
+    );
+    assert_eq!(
+        (topology.rejection_class(), topology.rejection_locality()),
+        (
+            PrimitiveConstructionRejectionClass::TopologyExecution,
+            PrimitiveConstructionRejectionLocality::Execution,
+        )
+    );
+    assert_ne!(admission.failure_digest(), scaffold.failure_digest());
+    assert_ne!(spatial_birth.failure_digest(), topology.failure_digest());
+}
+
+#[test]
+fn rejected_outcome_maps_conditioning_exhaustion_to_typed_recovery_action() {
+    let outcome = prepare_primitive_construction_outcome(
+        PrimitiveConstructionIntent::simplex_solid(
+            SimplexSolidSpec::new(1.0e-240).with_auxiliary_altitude_component(1.0e-280),
+        )
+        .at([2f64.powi(548), -2f64.powi(548), 2f64.powi(548)]),
+    );
+
+    match outcome {
+        PrimitiveConstructionPreparedOutcome::Accepted(_) => {
+            panic!("degenerate orthotope should be rejected")
+        }
+        PrimitiveConstructionPreparedOutcome::Rejected(rejected) => {
+            assert_eq!(
+                rejected.rejection_class(),
+                PrimitiveConstructionRejectionClass::ConditioningExhaustion
+            );
+            assert_eq!(
+                rejected.recovery_actions(),
+                &[PrimitiveConstructionRecoveryAction::EscalateRealizationConditioning]
+            );
+        }
+    }
 }

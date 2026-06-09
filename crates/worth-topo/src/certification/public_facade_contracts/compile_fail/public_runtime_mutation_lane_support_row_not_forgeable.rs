@@ -1,4 +1,4 @@
-use topology::facade::{
+use topology::runtime_support::{
     TopologyQueryMutationLane, TopologyQueryMutationLaneExecutionShape,
     TopologyQueryMutationLaneSupportStatus, TopologyRuntimeMutationLaneSupportRow,
 };
