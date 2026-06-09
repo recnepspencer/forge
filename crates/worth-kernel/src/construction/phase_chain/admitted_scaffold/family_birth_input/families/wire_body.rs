@@ -1,3 +1,6 @@
+use super::super::super::super::request::{
+    PrimitiveConstructionFamily, PrimitiveConstructionPhaseError,
+};
 use super::super::birth_scaffold::{
     lower_family_birth_scaffold_plan, PrimitiveConstructionBirthScaffoldPlan,
 };
@@ -5,20 +8,19 @@ use super::super::error_mapping::map_support_plane;
 use super::super::geometry::{planar_support_plane, wire_body_vertices};
 use super::super::scalar_admission::admit_polygon_edge_count;
 use super::super::topology_counts::PrimitiveConstructionTopologyCounts;
-use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
+use super::super::PrimitiveConstructionAdmittedBirthInput;
 use worth_primitives::{PrimitiveConstructionFamilyContractRegistry, PrimitiveWitnessDescriptor};
-use worth_spatial::facade::birth::PrimitiveConstructionBirthScaffoldInput;
-use worth_spatial::facade::placement::AdmittedSpatialPlacement;
+use worth_spatial::facade::placement::SpatialPlacementSpec;
 
 struct AdmittedWireBodyBirthParameters {
     edge_count: u32,
 }
 
 pub(in super::super) fn build_wire_body_birth_input(
-    placement: &AdmittedSpatialPlacement,
+    placement_spec: SpatialPlacementSpec,
     intent_digest: &str,
     edge_count: u32,
-) -> Result<PrimitiveConstructionBirthScaffoldInput, PrimitiveConstructionPhaseError> {
+) -> Result<PrimitiveConstructionAdmittedBirthInput, PrimitiveConstructionPhaseError> {
     let admitted = admit_wire_body_birth_parameters(edge_count)?;
     let support_planes = vec![planar_support_plane().map_err(map_support_plane)?];
     let birth_contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
@@ -28,7 +30,7 @@ pub(in super::super) fn build_wire_body_birth_input(
     );
     lower_family_birth_scaffold_plan(
         intent_digest,
-        placement,
+        placement_spec,
         PrimitiveConstructionBirthScaffoldPlan::from_direct_planar_support(
             PrimitiveConstructionFamily::WireBody,
             birth_contract,

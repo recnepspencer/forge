@@ -10,13 +10,19 @@ mod tests {
 
     use crate::{
         bindings::anchors::{
-            attach_parameter_space_direction_to_face, attach_parameter_space_point_to_edge,
-            attach_parameter_space_point_to_face, AnchorCarrierOwnership, AnchorDirectionRole,
-            CarrierOwnedParameterDirectionAnchorSpec, CarrierOwnedParameterPointAnchorSpec,
-            SpatialAnchorAuthorityError,
+            AnchorCarrierOwnership, AnchorDirectionRole, CarrierOwnedParameterDirectionAnchorSpec,
+            CarrierOwnedParameterPointAnchorSpec, SpatialAnchorAuthorityError,
         },
         bindings::authority::{
             EdgeBindingSite, EdgeCurveBindingSpec, FaceBindingSite, FaceSurfaceBindingSpec,
+        },
+        bindings::query_native_anchor_binding_authoring::{
+            author_primitive_anchor_binding_declaration, AuthorPrimitiveAnchorBindingIntent,
+            PrimitiveAnchorBindingAuthoringError,
+        },
+        bindings::query_native_declared_target_identity_fact::anchor_binding_declaration_fact,
+        bindings::query_native_target_identity::{
+            GeometryTargetIdentityFactError, GeometryTargetKind,
         },
     };
 
@@ -32,12 +38,21 @@ mod tests {
         )
         .expect("point anchor spec");
 
-        let error = attach_parameter_space_point_to_face(binding_spec, anchor_spec)
-            .expect_err("carrier mismatch");
+        let error = anchor_binding_declaration_fact(&author_primitive_anchor_binding_declaration(
+            AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_point_to_face(
+                binding_spec,
+                anchor_spec,
+            ),
+        ))
+        .expect_err("carrier mismatch");
 
         assert!(matches!(
             error,
-            SpatialAnchorAuthorityError::CarrierIdentityMismatch { .. }
+            GeometryTargetIdentityFactError::AnchorBindingDeclarationDenied(
+                PrimitiveAnchorBindingAuthoringError::Anchor(
+                    SpatialAnchorAuthorityError::CarrierIdentityMismatch { .. }
+                )
+            )
         ));
     }
 
@@ -79,31 +94,47 @@ mod tests {
             AnchorDirectionRole::Tangent,
         )
         .expect_err("unsupported direction role");
-        let point = attach_parameter_space_point_to_face(
-            face_binding_spec("face-1"),
-            CarrierOwnedParameterPointAnchorSpec::new(
-                ownership.clone(),
-                ParameterSpacePoint::try_new([0.25, 0.75]).expect("point parameter"),
-            )
-            .expect("point spec"),
-        )
-        .expect("point anchor");
-        let direction = attach_parameter_space_direction_to_face(
-            face_binding_spec("face-1"),
-            CarrierOwnedParameterDirectionAnchorSpec::new(
-                ownership,
-                ParameterSpacePoint::try_new([0.25, 0.75]).expect("direction parameter"),
-                AnchorDirectionRole::Normal,
-            )
-            .expect("direction spec"),
-        )
-        .expect("direction anchor");
+        let point = anchor_binding_declaration_fact(&author_primitive_anchor_binding_declaration(
+            AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_point_to_face(
+                face_binding_spec("face-1"),
+                CarrierOwnedParameterPointAnchorSpec::new(
+                    ownership.clone(),
+                    ParameterSpacePoint::try_new([0.25, 0.75]).expect("point parameter"),
+                )
+                .expect("point spec"),
+            ),
+        ))
+        .expect("point fact");
+        let direction =
+            anchor_binding_declaration_fact(&author_primitive_anchor_binding_declaration(
+                AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_direction_to_face(
+                    face_binding_spec("face-1"),
+                    CarrierOwnedParameterDirectionAnchorSpec::new(
+                        ownership,
+                        ParameterSpacePoint::try_new([0.25, 0.75]).expect("direction parameter"),
+                        AnchorDirectionRole::Normal,
+                    )
+                    .expect("direction spec"),
+                ),
+            ))
+            .expect("direction fact");
 
         assert!(matches!(
             unsupported,
             SpatialAnchorAuthorityError::UnsupportedDirectionRole { .. }
         ));
-        assert_ne!(point.identity(), direction.identity());
+        assert_ne!(
+            point.binding_identity().as_str(),
+            direction.binding_identity().as_str()
+        );
+        assert_eq!(
+            point.target_kind(),
+            GeometryTargetKind::FaceSurfacePointAnchor
+        );
+        assert_eq!(
+            direction.target_kind(),
+            GeometryTargetKind::FaceSurfaceDirectionAnchor
+        );
     }
 
     fn face_binding_spec(face_identity: &str) -> FaceSurfaceBindingSpec {
@@ -151,12 +182,21 @@ mod tests {
         )
         .expect("point anchor spec");
 
-        let error = attach_parameter_space_point_to_edge(binding_spec, anchor_spec)
-            .expect_err("carrier family mismatch");
+        let error = anchor_binding_declaration_fact(&author_primitive_anchor_binding_declaration(
+            AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_point_to_edge(
+                binding_spec,
+                anchor_spec,
+            ),
+        ))
+        .expect_err("carrier family mismatch");
 
         assert!(matches!(
             error,
-            SpatialAnchorAuthorityError::CarrierFamilyMismatch { .. }
+            GeometryTargetIdentityFactError::AnchorBindingDeclarationDenied(
+                PrimitiveAnchorBindingAuthoringError::Anchor(
+                    SpatialAnchorAuthorityError::CarrierFamilyMismatch { .. }
+                )
+            )
         ));
     }
 }

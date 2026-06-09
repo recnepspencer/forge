@@ -42,7 +42,7 @@ pub(super) const FORBIDDEN_DUPLICATED_PLACEMENT_ADMISSION_PATTERNS: [&str; 2] = 
 
 pub(super) const FORBIDDEN_DUPLICATED_REALIZED_BIRTH_BRIDGE_PATTERNS: [&str; 2] = [
     "fn build_birth_input(",
-    "PrimitiveConstructionBirthScaffoldInput::new_with_realization(",
+    "PrimitiveConstructionBirthScaffoldInput::new_with_realization_facts(",
 ];
 
 pub(super) const FORBIDDEN_OLD_BIRTH_SCAFFOLD_BRIDGE_ENTRY_PATTERNS: [&str; 2] = [

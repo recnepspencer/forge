@@ -1,3 +1,6 @@
+use super::super::super::super::request::{
+    PrimitiveConstructionFamily, PrimitiveConstructionPhaseError,
+};
 use super::super::birth_scaffold::{
     lower_family_birth_scaffold_plan, PrimitiveConstructionBirthScaffoldPlan,
 };
@@ -5,11 +8,10 @@ use super::super::error_mapping::map_realization_geometry;
 use super::super::geometry::simplex_vertices;
 use super::super::scalar_admission::{decode_non_negative_scalar, decode_positive_scalar};
 use super::super::topology_counts::PrimitiveConstructionTopologyCounts;
-use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
+use super::super::PrimitiveConstructionAdmittedBirthInput;
 use worth_geom::facade::realize_tetrahedron_support_with_altitude_component;
 use worth_primitives::{PrimitiveConstructionFamilyContractRegistry, PrimitiveWitnessDescriptor};
-use worth_spatial::facade::birth::PrimitiveConstructionBirthScaffoldInput;
-use worth_spatial::facade::placement::AdmittedSpatialPlacement;
+use worth_spatial::facade::placement::SpatialPlacementSpec;
 
 struct AdmittedSimplexSolidBirthParameters {
     scale: f64,
@@ -17,11 +19,11 @@ struct AdmittedSimplexSolidBirthParameters {
 }
 
 pub(in super::super) fn build_simplex_solid_birth_input(
-    placement: &AdmittedSpatialPlacement,
+    placement_spec: SpatialPlacementSpec,
     intent_digest: &str,
     scale_bits: u64,
     auxiliary_altitude_component_bits: u64,
-) -> Result<PrimitiveConstructionBirthScaffoldInput, PrimitiveConstructionPhaseError> {
+) -> Result<PrimitiveConstructionAdmittedBirthInput, PrimitiveConstructionPhaseError> {
     let admitted =
         admit_simplex_solid_birth_parameters(scale_bits, auxiliary_altitude_component_bits)?;
     let realization = realize_tetrahedron_support_with_altitude_component(
@@ -35,8 +37,8 @@ pub(in super::super) fn build_simplex_solid_birth_input(
     );
     lower_family_birth_scaffold_plan(
         intent_digest,
-        placement,
-        PrimitiveConstructionBirthScaffoldPlan::from_realized_support(
+        placement_spec,
+        PrimitiveConstructionBirthScaffoldPlan::from_realized_support_facts(
             PrimitiveConstructionFamily::SimplexSolid,
             birth_contract,
             realization.planes().to_vec(),

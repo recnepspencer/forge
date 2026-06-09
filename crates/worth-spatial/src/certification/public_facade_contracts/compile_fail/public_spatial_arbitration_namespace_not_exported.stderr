@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_spatial::facade::arbitration`
+ --> src/certification/public_facade_contracts/compile_fail/public_spatial_arbitration_namespace_not_exported.rs:1:28
+  |
+1 | use worth_spatial::facade::arbitration::{
+  |                            ^^^^^^^^^^^ could not find `arbitration` in `facade`

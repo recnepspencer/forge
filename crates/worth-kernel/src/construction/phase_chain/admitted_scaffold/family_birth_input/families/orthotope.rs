@@ -1,3 +1,6 @@
+use super::super::super::super::request::{
+    PrimitiveConstructionFamily, PrimitiveConstructionPhaseError,
+};
 use super::super::birth_scaffold::{
     lower_family_birth_scaffold_plan, PrimitiveConstructionBirthScaffoldPlan,
 };
@@ -5,21 +8,20 @@ use super::super::error_mapping::map_geometry;
 use super::super::geometry::orthotope_vertices;
 use super::super::scalar_admission::decode_positive_triplet;
 use super::super::topology_counts::PrimitiveConstructionTopologyCounts;
-use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
+use super::super::PrimitiveConstructionAdmittedBirthInput;
 use worth_geom::facade::realize_block_support;
 use worth_primitives::{PrimitiveConstructionFamilyContractRegistry, PrimitiveWitnessDescriptor};
-use worth_spatial::facade::birth::PrimitiveConstructionBirthScaffoldInput;
-use worth_spatial::facade::placement::AdmittedSpatialPlacement;
+use worth_spatial::facade::placement::SpatialPlacementSpec;
 
 struct AdmittedOrthotopeBirthParameters {
     half_extents: [f64; 3],
 }
 
 pub(in super::super) fn build_orthotope_birth_input(
-    placement: &AdmittedSpatialPlacement,
+    placement_spec: SpatialPlacementSpec,
     intent_digest: &str,
     half_extents_bits: [u64; 3],
-) -> Result<PrimitiveConstructionBirthScaffoldInput, PrimitiveConstructionPhaseError> {
+) -> Result<PrimitiveConstructionAdmittedBirthInput, PrimitiveConstructionPhaseError> {
     let admitted = admit_orthotope_birth_parameters(half_extents_bits)?;
     let realization =
         realize_block_support([0.0, 0.0, 0.0], admitted.half_extents).map_err(map_geometry)?;
@@ -28,8 +30,8 @@ pub(in super::super) fn build_orthotope_birth_input(
     );
     lower_family_birth_scaffold_plan(
         intent_digest,
-        placement,
-        PrimitiveConstructionBirthScaffoldPlan::from_realized_support(
+        placement_spec,
+        PrimitiveConstructionBirthScaffoldPlan::from_realized_support_facts(
             PrimitiveConstructionFamily::Orthotope,
             birth_contract,
             realization.planes().to_vec(),

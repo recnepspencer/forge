@@ -33,8 +33,12 @@ The operating rule is:
   topology, validation, topology operators, projection, certification, and test
   support
 - `Milestone 3`: Complete
-- `Milestone 4`: Active
-- Milestones `5+`: Planned
+- `Milestone 4`: Implemented in the current Worth kernel/spatial direction;
+  final roadmap bookkeeping may still lag closeout evidence
+- `Milestone 5`: Binding/rebinding authority and Query-native geometry
+  hard-break work are the current predecessor for Milestone 6; do not treat
+  Milestone 6 as starting from the older pre-Query-native geometry shape
+- Milestones `6+`: Planned
 
 Milestone 1 closeout record:
 - [milestone-1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1-closeout.md)
@@ -1057,35 +1061,51 @@ stable identity separation, and clean failure where continuity is unjustified.
 This belongs before exact planar contracts and before booleans because both
 EMBER and B-rep boolean pipelines need an honest topology-to-spatial boundary.
 
-## Milestone 6: Spatially Exact Planar Contracts And Structural Identity
+## Milestone 6: Exact Planar Contracts, Structural Identity, And Boolean-Readiness
 
 ### Goal
 
-Make the planar and identity substrate exact enough, and explicit enough, that
-both boolean pipelines inherit a trustworthy spatial contract instead of a pile
-of heuristics.
+Make the exact planar, structural-identity, and planar clean-fail substrate
+honest enough that both boolean pipelines inherit a trustworthy spatial contract
+instead of a pile of heuristics.
+
+Milestone 6 must consume the Milestone 5 binding/rebinding and Query-native
+geometry substrate rather than restating it. Its job is to prove that exact
+planar meaning, structural identity, retained history, topology-to-spatial
+contract completeness, projection consumption, and clean-fail behavior cohere
+through the same authority boundaries established by Milestone 5.
 
 ### Adversarial Constraint
 
-Coplanar storms, high-valence degeneracy, thin-feature pressure, and long
-planar histories must not drift, shred topology, or silently corrupt binding,
-naming, replay, or structural-identity conclusions.
+Coplanar storms, high-valence degeneracy, thin-feature pressure, local planar
+rebuilds, topology replacement, retained-history replay, and long planar
+histories must not drift, shred topology, or silently corrupt binding, naming,
+projection-consumed facts, clean-fail outcomes, or structural-identity
+conclusions.
 
 ### Admitted Surface
 
 - exact-planar decision surfaces for topology-critical classifications
-- structural identity and fingerprint surfaces for Worth topology
+- structural identity and fingerprint surfaces for planar topology/geometry
+  meaning
 - explicit clean-fail surfaces for impossible or policy-gated planar cases
+- topology-to-spatial contract completeness for admitted planar workflows
+- Query-native retained, projected, recovered, and replayed planar facts where
+  those surfaces are relevant
 - spatially exact topology/geometry decisions required by later boolean work
 
 This milestone should be driven primarily by `worth-spatial`, with `worth-topo`
-consuming the resulting contracts rather than reimplementing geometric logic.
+consuming the resulting contracts rather than reimplementing geometric logic,
+and `worth-kernel` assembling boolean-readiness proof without becoming a second
+planar predicate or identity runtime.
 
 ### Excluded Surface
 
 - full hostile boolean certification
 - curved approximation and tangent-heavy geometry programs
 - freeform surface classes
+- new non-Query geometry workflow transports or local kernel substitutes for
+  retained planar truth
 
 ### Workflow Surface
 
@@ -1100,40 +1120,58 @@ generically over:
 - arbitrary admitted planar edit histories and local planar rebuilds
 - arbitrary admitted coplanar and thin-feature cases within the milestone's
   exact-planar class
+- arbitrary admitted retained/replayed planar histories within the milestone's
+  exact-planar class
 
 ### Operator Closure
 
 - exact-planar classification operators for admitted cases
 - planar structural-identity and fingerprint lookup operators
 - typed clean-fail outcomes for impossible or policy-gated planar cases
+- Query-native retained/projection/recovery operators for admitted planar facts
+  where those surfaces are relevant
+- boolean-readiness certification operators that prove M7 can consume the
+  planar substrate without inventing identity or predicate shortcuts
 
 ### Validator Closure
 
 - predicate-pipeline validators for admitted planar cases
 - degeneracy classification consistency for admitted planar cases
-- structural identity separation from naming and lineage
+- topology-to-spatial contract completeness validators
+- structural identity separation from naming, lineage, topology identity, and
+  binding identity
 
 ### Replay Closure
 
 - identical planar histories must replay to identical classification outcomes
 - identical planar histories must replay to identical structural identity
   digests
+- retained planar facts and projection-consumed planar facts must replay to the
+  same truth as live admitted planar workflows
 
 ### Diagnostics Closure
 
 - exact-planar decisions and clean-fail outcomes must be localizable
 - structural identity conclusions must be inspectable independently from naming
   and lineage
+- failures must distinguish predicate uncertainty, topology contract failure,
+  binding/rebinding failure, unsupported planar class, and policy denial
 
 ### Determinism Closure
 
 - planar classifications must be deterministic under replay
 - structural fingerprint computation must be invariant to legal ordering noise
+- retained, projected, recovered, and replayed planar facts must preserve the
+  same deterministic outcome class for equivalent semantic inputs
 
 ### Complexity / Proof Closure
 
 - name planar classification and structural identity contracts
-- expose exact counters for precision escalation and identity lookup breadth
+- name retained planar fact, projection consumption, recovery, and
+  boolean-readiness contracts where those surfaces are admitted
+- expose exact counters for precision escalation, identity lookup breadth,
+  retained basis breadth, projection-consumption breadth, and clean-fail
+  localization breadth
 
 ### Allowed Debt
 
@@ -1142,15 +1180,19 @@ generically over:
 
 ### Milestone Done When
 
-Milestone 6 is done only when exact-planar classification and structural
-identity hold generically over the admitted planar workflow surface, with
-clean-fail behavior outside the admitted class and without collapsing identity
-into naming or lineage.
+Milestone 6 is done only when exact-planar classification, structural identity,
+retained/projection-consumed planar facts, and boolean-readiness certification
+hold generically over the admitted planar workflow surface, with clean-fail
+behavior outside the admitted class and without collapsing identity into naming,
+lineage, topology identity, binding identity, or kernel-local workflow summaries.
 
 ### Sequencing Notes
 
-This belongs after spatial binding and before boolean pipelines because booleans
-need an honest exact-planar and identity substrate first.
+This belongs after spatial binding/rebinding and the Query-native geometry hard
+break, and before boolean pipelines, because booleans need exact planar
+predicate authority, structural identity, retained planar truth, and
+projection-consumable planar facts before split/classify/assemble work can be
+trusted.
 
 ## Milestone 7: Boolean Foundation With EMBER And B-Rep Pipelines
 

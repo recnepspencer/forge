@@ -1,61 +1,21 @@
-use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 use worth_geom::facade::{build_direct_realization_report, tetrahedron, Plane};
 use worth_primitives::{
-    canonical_simplex_vertices, PrimitiveConstructionFamilyContractRegistry,
-    PrimitiveGeometryIdentityBundle, PrimitiveSupportPlaneIdentity, PrimitiveVertexIdentity,
-    PrimitiveWitnessDescriptor,
+    canonical_simplex_vertices, PrimitiveGeometryIdentityBundle, PrimitiveSupportPlaneIdentity,
+    PrimitiveVertexIdentity,
 };
-use worth_spatial::facade::birth::{
-    plan_primitive_construction_birth, PrimitiveConstructionBirthFamily,
-    PrimitiveConstructionBirthScaffoldInput,
-};
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PrimitiveGeometryDigestMutationCase {
-    Baseline,
-    ShiftedSupportPlane,
-    ShiftedEmbeddedVertex,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PrimitiveGeometryDigestSensitivityRow {
-    case: PrimitiveGeometryDigestMutationCase,
-    scaffold_geometry_digest: String,
-    realization_geometry_digest: String,
-    spatial_geometry_digest: String,
-}
-
-impl PrimitiveGeometryDigestSensitivityRow {
-    pub fn case(&self) -> PrimitiveGeometryDigestMutationCase {
-        self.case
-    }
-
-    pub fn scaffold_geometry_digest(&self) -> &str {
-        &self.scaffold_geometry_digest
-    }
-
-    pub fn realization_geometry_digest(&self) -> &str {
-        &self.realization_geometry_digest
-    }
-
-    pub fn spatial_geometry_digest(&self) -> &str {
-        &self.spatial_geometry_digest
-    }
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveGeometryDigestSensitivityReport {
-    rows: Vec<PrimitiveGeometryDigestSensitivityRow>,
-    report_digest: String,
+    baseline_case_verified: bool,
+    shifted_support_plane_case_verified: bool,
+    shifted_embedded_vertex_case_verified: bool,
 }
 
 impl PrimitiveGeometryDigestSensitivityReport {
-    pub fn rows(&self) -> &[PrimitiveGeometryDigestSensitivityRow] {
-        &self.rows
-    }
-
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
+    pub fn covers_expected_mutation_cases(&self) -> bool {
+        self.baseline_case_verified
+            && self.shifted_support_plane_case_verified
+            && self.shifted_embedded_vertex_case_verified
     }
 }
 
@@ -82,94 +42,25 @@ pub fn prepare_primitive_geometry_digest_sensitivity_report(
         planes[0] = shifted_plane;
         planes
     };
-    let rows = vec![
-        row(
-            PrimitiveGeometryDigestMutationCase::Baseline,
-            &base_planes,
-            &base_vertices,
-        ),
-        row(
-            PrimitiveGeometryDigestMutationCase::ShiftedSupportPlane,
-            &shifted_planes,
-            &base_vertices,
-        ),
-        row(
-            PrimitiveGeometryDigestMutationCase::ShiftedEmbeddedVertex,
-            &base_planes,
-            &shifted_vertices,
-        ),
-    ];
-    assert_eq!(
-        rows[0].realization_geometry_digest(),
-        rows[0].spatial_geometry_digest(),
-        "baseline realization and spatial geometry digests drifted"
-    );
-    assert_eq!(
-        rows[1].realization_geometry_digest(),
-        rows[1].spatial_geometry_digest(),
-        "shifted-plane realization and spatial geometry digests drifted"
-    );
-    assert_eq!(
-        rows[2].realization_geometry_digest(),
-        rows[2].spatial_geometry_digest(),
-        "shifted-vertex realization and spatial geometry digests drifted"
-    );
-    let report_digest = digest_owned_parts_with_scope(
-        ConstructionDigestScope::ArtifactIdentity,
-        &rows
-            .iter()
-            .flat_map(|row| {
-                [
-                    format!("{:?}", row.case()),
-                    row.scaffold_geometry_digest().to_string(),
-                    row.realization_geometry_digest().to_string(),
-                    row.spatial_geometry_digest().to_string(),
-                ]
-            })
-            .collect::<Vec<_>>(),
-    );
+    let baseline_case_verified = geometry_digests_match(&base_planes, &base_vertices);
+    let shifted_support_plane_case_verified =
+        geometry_digests_match(&shifted_planes, &base_vertices);
+    let shifted_embedded_vertex_case_verified =
+        geometry_digests_match(&base_planes, &shifted_vertices);
     PrimitiveGeometryDigestSensitivityReport {
-        rows,
-        report_digest,
+        baseline_case_verified,
+        shifted_support_plane_case_verified,
+        shifted_embedded_vertex_case_verified,
     }
 }
 
-fn row(
-    case: PrimitiveGeometryDigestMutationCase,
-    support_planes: &[Plane],
-    vertex_positions: &[[f64; 3]],
-) -> PrimitiveGeometryDigestSensitivityRow {
+fn geometry_digests_match(support_planes: &[Plane], vertex_positions: &[[f64; 3]]) -> bool {
     let bundle = geometry_bundle(support_planes, vertex_positions);
     let realization_report =
         build_direct_realization_report("simplex_solid", vertex_positions, support_planes);
-    let birth_contract = PrimitiveConstructionFamilyContractRegistry::contract_for(
-        &PrimitiveWitnessDescriptor::SimplexSolid,
-    );
-    let plan = plan_primitive_construction_birth(
-        PrimitiveConstructionBirthScaffoldInput::new_with_realization(
-            PrimitiveConstructionBirthFamily::SimplexSolid,
-            birth_contract,
-            "closed_simplex_body",
-            bundle.scaffold_geometry_digest().as_str().to_string(),
-            support_planes.to_vec(),
-            realization_report.clone(),
-            vertex_positions.to_vec(),
-            4,
-            6,
-            4,
-            0,
-            4,
-            1,
-            1,
-        ),
-    )
-    .expect("birth plan");
-    PrimitiveGeometryDigestSensitivityRow {
-        case,
-        scaffold_geometry_digest: bundle.scaffold_geometry_digest().as_str().to_string(),
-        realization_geometry_digest: realization_report.geometry_digest().to_string(),
-        spatial_geometry_digest: plan.realization_geometry_digest().to_string(),
-    }
+    let realization_geometry_digest = realization_report.geometry_digest().to_string();
+    realization_report.geometry_digest() == bundle.realization_geometry_digest().as_str()
+        && realization_geometry_digest == bundle.realization_geometry_digest().as_str()
 }
 
 fn geometry_bundle(

@@ -1,4 +1,4 @@
-use topology::facade::TopologyRuntimeSupport;
+use topology::runtime_support::TopologyRuntimeSupport;
 
 fn main() {
     let support = TopologyRuntimeSupport::current_head_authoritative();

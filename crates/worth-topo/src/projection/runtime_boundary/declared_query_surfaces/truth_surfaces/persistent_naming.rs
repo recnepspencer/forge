@@ -10,13 +10,28 @@ use forge_query::facade::{
     ForgeQueryEntity, ForgeQueryLiveView, ForgeQueryLiveViewBuilder, ForgeQueryRuntimeError,
     ForgeQueryWorkspace, ForgeQueryWorkspaceLiveViewDeclaration,
 };
+use forge_relational::facade::identity::EntityId;
 use schema::facade::platform::entities::{EntityKind, NamingEntityKind, TopologyEntityKind};
 use schema::facade::{QueryAspectPath, QueryCollection, QueryLiveField, QuerySchemaBasis};
+use serde::{Deserialize, Serialize};
 
-use crate::facade::{NamingAttachmentReport, NamingAttachmentRow};
 use crate::projection::{parse_entity_identity, required_text};
 
 use super::TopologyQuerySurfaceError;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NamingAttachmentRow {
+    pub topology_entity_id: EntityId,
+    pub topology_kind_name: String,
+    pub attached_persistent_name_ids: Vec<EntityId>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NamingAttachmentReport {
+    pub fully_named: bool,
+    pub orphan_persistent_name_ids: Vec<EntityId>,
+    pub attachments: Vec<NamingAttachmentRow>,
+}
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct TopologyNamingAttachmentInput<'a> {

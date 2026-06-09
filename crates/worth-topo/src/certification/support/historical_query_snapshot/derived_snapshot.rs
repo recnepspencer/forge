@@ -1,11 +1,12 @@
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
 use crate::certification::support::read_basis_query_runtime::HistoricalReadBasisQueryRuntime;
-use crate::facade::{
-    DerivedEquivalenceContractReport, DerivedReadDiagnostics, DerivedTopologyValidationReport,
-    InterpretedTopologyView, MaterializedTopologyView,
-};
+use crate::certification::DerivedEquivalenceContractReport;
+use crate::derived_topology::materialized_graph::MaterializedTopologyView;
+use crate::derived_topology::traversal_views::InterpretedTopologyView;
+use crate::projection::diagnostic_surfaces::DerivedReadDiagnostics;
 use crate::projection::runtime_boundary::declared_query_surfaces::TopologyQuerySurfaceError;
+use crate::validation::DerivedTopologyValidationReport;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct HistoricalDerivedSurfaceSnapshot {

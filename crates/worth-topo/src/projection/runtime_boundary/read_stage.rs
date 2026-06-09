@@ -3,14 +3,18 @@ use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 #[cfg(test)]
 use schema::facade::topology_authoring::DerivedTopologyReadBasis;
 
-#[cfg(test)]
-use crate::facade::{
-    interpret_topology_view, validate_interpreted_topology, InterpretedTopologyView,
-    MaterializedTopologyView, TopologyMaterializationError, TopologyMaterializer,
-    TopologyValidationError,
-};
 #[cfg(not(test))]
-use crate::facade::{TopologyMaterializationError, TopologyValidationError};
+use crate::derived_topology::materialized_graph::TopologyMaterializationError;
+#[cfg(test)]
+use crate::derived_topology::materialized_graph::{
+    MaterializedTopologyView, TopologyMaterializationError, TopologyMaterializer,
+};
+#[cfg(test)]
+use crate::derived_topology::traversal_views::{interpret_topology_view, InterpretedTopologyView};
+#[cfg(not(test))]
+use crate::validation::TopologyValidationError;
+#[cfg(test)]
+use crate::validation::{validate_interpreted_topology, TopologyValidationError};
 
 #[derive(Debug)]
 pub(crate) enum TopologyReadStageError {

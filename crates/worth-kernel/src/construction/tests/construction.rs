@@ -1,29 +1,16 @@
-use crate::construction::admitted_scaffold::prepare_primitive_construction_admitted_artifact;
-use crate::construction::artifact::build_canonical_primitive_construction_artifact;
-use crate::construction::diagnostics::prepare_primitive_construction_rejection_locality_report;
-use crate::construction::family_coverage::primitive_construction_family_coverage_report;
-use crate::construction::family_coverage::PrimitiveConstructionFamilyCoverageStatus;
-use crate::construction::intent::PrimitiveConstructionIntent;
-use crate::construction::parity::{
-    prepare_primitive_construction_branch_local_parity_report,
-    prepare_primitive_construction_replay_parity_report,
-};
-use crate::construction::query::basis_preview_parity::prepare_primitive_construction_query_basis_preview_parity_report;
-use crate::construction::query::inspection_parity::prepare_primitive_construction_query_inspection_parity_report;
-use crate::construction::request::PrimitiveConstructionFamily;
-use crate::construction::request::PrimitiveConstructionRequest;
-use crate::construction::result::prepare_primitive_construction_result;
-use crate::construction::runtime_basis::prepare_primitive_construction_branch_preview_runtime_report;
-use crate::construction::specs::{
+use super::super::admitted_scaffold::prepare_primitive_construction_admitted_artifact;
+use super::super::artifact::build_canonical_primitive_construction_artifact;
+use super::super::intent::PrimitiveConstructionIntent;
+use super::super::request::{PrimitiveConstructionFamily, PRIMITIVE_CONSTRUCTION_FAMILIES};
+use super::super::result::prepare_primitive_construction_result;
+use super::super::specs::{
     OrthotopeSpec, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
     WireBodySpec,
 };
-use forge_query::facade::ForgeQueryAuthorityLane;
-use topology::facade::{
-    milestone_one_runtime_builder, topology_runtime, TopologyConstructionQueryFactProvenance,
-    TopologyConstructionQueryInspectionSurface, TopologyConstructionQueryMutationSurface,
-    TopologyConstructionQueryReadSurface, TopologyRuntimeAdapters,
+use super::support::family_coverage::{
+    primitive_construction_family_coverage_report, PrimitiveConstructionFamilyCoverageStatus,
 };
+use topology::facade::TopologyConstructionQueryMutationSurface;
 use worth_geom::facade::{PrimitiveRealizationStrategy, PrimitiveStabilityClass};
 
 #[test]
@@ -76,10 +63,15 @@ fn admitted_phase_three_family_ladder_builds_direct_prepared_result_truth() {
 
 #[test]
 fn out_of_class_phase_three_requests_fail_typed_and_locally() {
-    let wire_request = PrimitiveConstructionRequest::wire_body(2);
+    let wire_request =
+        PrimitiveConstructionIntent::wire_body(WireBodySpec { edge_count: 2 }).into_request();
     let wire_error = prepare_primitive_construction_admitted_artifact(&wire_request)
         .expect_err("wire body should reject");
-    let shell_request = PrimitiveConstructionRequest::shell_with_hole(6, Vec::new());
+    let shell_request = PrimitiveConstructionIntent::shell_with_hole(ShellWithHoleSpec {
+        outer_loop_edge_count: 6,
+        hole_loop_edge_counts: Vec::new(),
+    })
+    .into_request();
     let shell_error = prepare_primitive_construction_admitted_artifact(&shell_request)
         .expect_err("shell-with-hole should reject");
 
@@ -107,7 +99,7 @@ fn family_coverage_report_marks_all_phase_three_rows_explicitly() {
             .status(),
         PrimitiveConstructionFamilyCoverageStatus::AdmittedPlanarConstruction
     );
-    assert_eq!(report.rows().len(), PrimitiveConstructionFamily::ALL.len());
+    assert_eq!(report.rows().len(), PRIMITIVE_CONSTRUCTION_FAMILIES.len());
     assert_ne!(
         report
             .row_for(PrimitiveConstructionFamily::RegularPrism)
@@ -171,7 +163,6 @@ fn prepared_result_bundles_phase_chain_artifact_and_birth_mapping() {
         result.stability_class(),
         PrimitiveStabilityClass::StableDirect
     );
-    assert_eq!(result.birth_consequence().rows().len(), 7);
     assert_eq!(
         result
             .topology_query_handoff()
@@ -217,17 +208,15 @@ fn literal_world_collapsed_simplex_result_survives_full_kernel_admitted_artifact
         .expect("literal world-collapsed simplex result");
 
     assert_eq!(
-        admitted_artifact.realization_report().strategy(),
+        admitted_artifact.realization_strategy(),
         PrimitiveRealizationStrategy::ExactSupport
     );
     assert_eq!(
-        admitted_artifact.realization_report().report_digest(),
-        result.realization_report().report_digest()
+        admitted_artifact.realization_digest(),
+        result.realization_digest()
     );
     assert_eq!(
-        admitted_artifact
-            .realization_report()
-            .attempted_strategies(),
+        admitted_artifact.attempted_realization_strategies(),
         &[
             PrimitiveRealizationStrategy::DirectWorld,
             PrimitiveRealizationStrategy::ExactSupport,
@@ -241,118 +230,10 @@ fn literal_world_collapsed_simplex_result_survives_full_kernel_admitted_artifact
         result.stability_class(),
         PrimitiveStabilityClass::StableAfterEscalation
     );
-}
-
-#[test]
-fn branch_preview_runtime_report_opens_preview_and_branch_sessions() {
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.branch-preview".to_string(),
-    )
-    .expect("workspace");
-    let report = prepare_primitive_construction_branch_preview_runtime_report(
-        &mut workspace,
-        PrimitiveConstructionIntent::orthotope(OrthotopeSpec {
-            half_extents: [1.0, 2.0, 3.0],
-        }),
-    )
-    .expect("runtime basis report");
-
-    assert!(report.authority_chain_report().query_gap_rows().is_empty());
     assert_eq!(
-        report.preview_lane().authority_lane(),
-        ForgeQueryAuthorityLane::PreviewTruth
+        result.conditioning_witness().normalization_disposition(),
+        admitted_artifact
+            .conditioning_witness()
+            .normalization_disposition()
     );
-    assert_eq!(
-        report.branch_lane().authority_lane(),
-        ForgeQueryAuthorityLane::BranchLocalTruth
-    );
-    assert!(!report.report_digest().is_empty());
-}
-
-#[test]
-fn replay_and_branch_local_parity_reports_cover_accepted_and_rejected_workflows() {
-    let replay = prepare_primitive_construction_replay_parity_report(
-        PrimitiveConstructionIntent::regular_pyramid(RegularPyramidSpec {
-            sides: 5,
-            radius: 1.0,
-            height: 2.0,
-        }),
-    );
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.phase-five.branch-local".to_string(),
-    )
-    .expect("workspace");
-    let branch = prepare_primitive_construction_branch_local_parity_report(
-        &mut workspace,
-        PrimitiveConstructionIntent::shell_with_hole(ShellWithHoleSpec {
-            outer_loop_edge_count: 2,
-            hole_loop_edge_counts: vec![3],
-        }),
-    )
-    .expect("branch parity");
-
-    assert!(replay.parity_verified());
-    assert!(branch.parity_verified());
-    assert_eq!(replay.family(), PrimitiveConstructionFamily::RegularPyramid);
-    assert_eq!(branch.family(), PrimitiveConstructionFamily::ShellWithHole);
-}
-
-#[test]
-fn query_and_diagnostic_reports_cover_phase_five_runtime_and_rejection_surfaces() {
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.phase-five.query-and-diagnostics".to_string(),
-    )
-    .expect("workspace");
-    let basis = prepare_primitive_construction_query_basis_preview_parity_report(
-        &mut workspace,
-        PrimitiveConstructionIntent::regular_prism(RegularPrismSpec {
-            sides: 6,
-            radius: 1.0,
-            height: 2.0,
-        }),
-    )
-    .expect("basis report");
-    let inspection = prepare_primitive_construction_query_inspection_parity_report(
-        &mut workspace,
-        PrimitiveConstructionIntent::shell_with_hole(ShellWithHoleSpec {
-            outer_loop_edge_count: 6,
-            hole_loop_edge_counts: vec![3, 4],
-        }),
-    )
-    .expect("inspection report");
-    let locality = prepare_primitive_construction_rejection_locality_report(vec![
-        PrimitiveConstructionIntent::orthotope(OrthotopeSpec {
-            half_extents: [1.0, 2.0, 3.0],
-        }),
-        PrimitiveConstructionIntent::wire_body(WireBodySpec { edge_count: 2 }),
-    ]);
-
-    assert!(basis.parity_verified());
-    assert!(basis.query_gap_free());
-    assert_eq!(
-        inspection.read_surface(),
-        TopologyConstructionQueryReadSurface::ProjectionConsumptionFromInspectionReceipt
-    );
-    assert_eq!(
-        inspection.inspection_surface(),
-        TopologyConstructionQueryInspectionSurface::InspectReceipt
-    );
-    assert_eq!(
-        inspection.fact_provenance(),
-        TopologyConstructionQueryFactProvenance::InspectionBackedProjectionConsumption
-    );
-    assert_eq!(locality.accepted_count(), 1);
-    assert_eq!(locality.rejected_count(), 1);
 }

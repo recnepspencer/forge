@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_spatial::facade::birth`
+ --> src/certification/public_facade_contracts/compile_fail/public_spatial_birth_namespace_not_exported.rs:1:5
+  |
+1 | use worth_spatial::facade::birth;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `birth` in `facade`

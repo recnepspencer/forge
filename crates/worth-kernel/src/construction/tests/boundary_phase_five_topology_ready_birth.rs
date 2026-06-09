@@ -21,7 +21,6 @@ fn phase_five_topology_ready_birth_boundary_localizes_post_birth_query_bridge() 
         );
     }
     for required in [
-        "plan_primitive_construction_birth(",
         "TopologyPrimitiveConstructionQueryBirthSynopsis::new(",
         "topology_family_from_spatial_family(",
         "prepare_primitive_construction_query_admitted_handoff_from_synopsis(",

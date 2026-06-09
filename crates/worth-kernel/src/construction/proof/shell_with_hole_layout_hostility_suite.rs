@@ -1,4 +1,3 @@
-use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 use worth_primitives::{
     derive_shell_with_hole_layout, ShellWithHoleWitnessLayoutError,
     ShellWithHoleWitnessLayoutPolicy,
@@ -33,7 +32,6 @@ pub struct ShellWithHoleLayoutHostilitySuite {
     containment: PlanarWitnessContainmentReport,
     non_overlap: PlanarWitnessNonOverlapReport,
     rejected_missing_hole_loop: bool,
-    report_digest: String,
 }
 
 impl ShellWithHoleLayoutHostilitySuite {
@@ -44,11 +42,6 @@ impl ShellWithHoleLayoutHostilitySuite {
     pub fn non_overlap(&self) -> PlanarWitnessNonOverlapReport {
         self.non_overlap
     }
-
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
-    }
-
     pub fn rejected_missing_hole_loop(&self) -> bool {
         self.rejected_missing_hole_loop
     }
@@ -90,20 +83,9 @@ pub fn prepare_shell_with_hole_layout_hostility_suite() -> ShellWithHoleLayoutHo
         derive_shell_with_hole_layout(12, &[], ShellWithHoleWitnessLayoutPolicy::default()),
         Err(ShellWithHoleWitnessLayoutError::MissingHoleLoop)
     );
-    let report_digest = digest_owned_parts_with_scope(
-        ConstructionDigestScope::ArtifactIdentity,
-        &[
-            containment.maximum_center_radius.to_bits().to_string(),
-            containment.farthest_center_radius.to_bits().to_string(),
-            non_overlap.minimum_center_spacing.to_bits().to_string(),
-            non_overlap.nearest_center_spacing.to_bits().to_string(),
-            rejected_missing_hole_loop.to_string(),
-        ],
-    );
     ShellWithHoleLayoutHostilitySuite {
         containment,
         non_overlap,
         rejected_missing_hole_loop,
-        report_digest,
     }
 }

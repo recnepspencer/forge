@@ -13,6 +13,9 @@ path = "src/certification/public_facade_contracts/contracts/public_api.rs"
 name = "ui"
 path = "src/certification/public_facade_contracts/compile_fail_contracts.rs"
 
+[features]
+test-support-lowering = []
+
 [dependencies]
 forge-foundational.workspace = true
 forge-proof.workspace = true

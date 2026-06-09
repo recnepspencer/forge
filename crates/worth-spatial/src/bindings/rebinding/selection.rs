@@ -1,5 +1,5 @@
-use crate::bindings::admitted_binding::SpatialAdmittedPrimitiveBinding;
 use crate::bindings::authority::SpatialBindingCompleteness;
+use crate::bindings::query_native_rebinding_prior_fact::PrimitiveRebindingPriorBindingFact;
 
 use super::{
     binding_snapshot::{AnchorSnapshot, BindingSnapshot},
@@ -44,14 +44,14 @@ impl LocalNeighborhoodSelection {
 }
 
 pub(crate) fn select_local_rebinding_candidate(
-    prior_binding: &SpatialAdmittedPrimitiveBinding,
+    prior_binding: &PrimitiveRebindingPriorBindingFact,
     neighborhood: &LocalTopologyReplacementNeighborhood,
 ) -> Result<LocalNeighborhoodSelection, SpatialRebindingAuthorityError> {
-    let prior = BindingSnapshot::from_binding(prior_binding)?;
+    let prior = prior_binding.snapshot();
     let mut best_rank = CandidateContinuityRank::None;
     let mut best_candidates: Vec<&ReplacementCandidate> = Vec::new();
     for candidate in neighborhood.candidates() {
-        let rank = rebinding_rank(&prior, &BindingSnapshot::from_binding(candidate.binding())?);
+        let rank = rebinding_rank(prior, candidate.snapshot());
         if rank > best_rank {
             best_rank = rank;
             best_candidates.clear();
@@ -68,7 +68,7 @@ pub(crate) fn select_local_rebinding_candidate(
         continuity_rank: best_rank,
         selected_candidate_label: selected.map(|candidate| candidate.label().to_string()),
         selected_candidate_identity: selected
-            .map(|candidate| candidate.binding().identity().to_string()),
+            .map(|candidate| candidate.binding_identity().to_string()),
         ambiguous,
     })
 }

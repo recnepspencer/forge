@@ -11,7 +11,7 @@ use super::super::super::scenario_programs::{
 };
 use super::accepted_branch_local::certify_accepted_branch_local_mutation_parity_rows;
 use crate::certification::error::TopologyCertificationError;
-use crate::certification::TopologyBranchAuthoringBoundary;
+use crate::certification::{MilestoneThreeHostileScenario, TopologyBranchAuthoringBoundary};
 use crate::test_support::schema_topology_authoring_boundary::{
     seed_milestone_one_primitive_through_schema_execution,
     witness_rejected_branch_local_intent_through_schema_execution,
@@ -64,13 +64,13 @@ where
     F: FnMut() -> RelationalRuntime,
 {
     let declaration = match report.scenario {
-        crate::facade::MilestoneThreeHostileScenario::BowtieAdjacentRewire => {
+        MilestoneThreeHostileScenario::BowtieAdjacentRewire => {
             rejected_branch_local_bowtie_adjacent_declaration(
                 runtime_factory,
                 &format!("{stem}.branch_local_rejected.{}", report.scenario.as_str()),
             )?
         }
-        crate::facade::MilestoneThreeHostileScenario::BrokenRadialLocalization => {
+        MilestoneThreeHostileScenario::BrokenRadialLocalization => {
             rejected_branch_local_broken_radial_declaration(
                 runtime_factory,
                 &format!("{stem}.branch_local_rejected.{}", report.scenario.as_str()),

@@ -43,26 +43,6 @@ pub(crate) fn canonicalize_parameter_point(
     Ok(canonical)
 }
 
-pub(crate) fn validate_carrier_match(
-    ownership: &AnchorCarrierOwnership,
-    expected_kind: AnchorCarrierKind,
-    expected_identity: &str,
-) -> Result<(), SpatialAnchorAuthorityError> {
-    if ownership.carrier_kind() != expected_kind {
-        return Err(SpatialAnchorAuthorityError::CarrierFamilyMismatch {
-            expected: expected_kind,
-            found: ownership.carrier_kind(),
-        });
-    }
-    if ownership.carrier_identity() != expected_identity {
-        return Err(SpatialAnchorAuthorityError::CarrierIdentityMismatch {
-            expected: expected_identity.to_string(),
-            found: ownership.carrier_identity().to_string(),
-        });
-    }
-    Ok(())
-}
-
 pub(crate) fn validate_direction_role(
     carrier_kind: AnchorCarrierKind,
     requested_role: AnchorDirectionRole,

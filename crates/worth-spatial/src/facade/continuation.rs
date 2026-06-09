@@ -1,0 +1,11 @@
+pub use crate::bindings::query_native_rebinding_signal_and_continuation::{
+    primitive_rebinding_continuation_target, primitive_rebinding_signal_workflow,
+    PrimitiveRebindingContinuationExecution, PrimitiveRebindingContinuationExecutionChecked,
+    PrimitiveRebindingContinuationExecutionOutcome, PrimitiveRebindingContinuationExecutionProof,
+    PrimitiveRebindingContinuationTarget, PrimitiveRebindingPreparedContinuation,
+    PrimitiveRebindingPreparedContinuationChecked, PrimitiveRebindingPreparedContinuationOutcome,
+    PrimitiveRebindingPreparedContinuationProof, PrimitiveRebindingSignalCompatibilityArtifact,
+    PrimitiveRebindingSignalCompatibilityChecked, PrimitiveRebindingSignalCompatibilityInput,
+    PrimitiveRebindingSignalCompatibilityOutcome, PrimitiveRebindingSignalCompatibilityProof,
+    PrimitiveRebindingSignalCompatibilitySubject,
+};

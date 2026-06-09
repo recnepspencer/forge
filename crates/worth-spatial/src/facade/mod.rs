@@ -1,13 +1,16 @@
 //! Public API boundary for worth-spatial.
 
-pub mod arbitration;
+pub mod anchor_binding;
+pub mod anchor_selection;
+pub mod binding;
 pub mod bindings;
-pub mod birth;
-pub mod constraints;
-pub mod frames;
-pub mod lowering;
-pub mod motion;
+pub mod continuation;
+pub mod inspection;
+pub mod neighborhood;
 pub mod placement;
+pub mod projection;
+pub mod rebinding;
+pub mod recovery;
 pub mod refs;
-pub mod witness_catalog;
-pub mod witness_resolution;
+pub mod support;
+pub mod tolerance;

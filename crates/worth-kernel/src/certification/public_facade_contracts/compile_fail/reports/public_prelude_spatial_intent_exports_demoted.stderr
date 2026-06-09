@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_kernel::facade::prelude`
- --> src/certification/public_facade_contracts/compile_fail/reports/public_prelude_spatial_intent_exports_demoted.rs:1:27
-  |
-1 | use worth_kernel::facade::prelude::*;
-  |                           ^^^^^^^ could not find `prelude` in `facade`

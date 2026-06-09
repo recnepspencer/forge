@@ -19,8 +19,8 @@ error[E0432]: unresolved imports `worth_spatial::facade::admit_spatial_move`, `w
   |     ^^^^^^^^^^^^^^^^^^^^ no `SpatialPlacementSpec` in `facade`
   |
   = help: consider importing this enum instead:
-          worth_spatial::facade::arbitration::SpatialAuthoredActKind
+          worth_spatial::certification::policy_support::SpatialAuthoredActKind
   = help: consider importing this struct instead:
-          worth_spatial::facade::motion::SpatialMoveSpec
+          worth_spatial::facade::anchor_selection::SpatialMoveSpec
   = help: consider importing this struct instead:
           worth_spatial::facade::placement::SpatialPlacementSpec

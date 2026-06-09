@@ -2,13 +2,20 @@
 
 use worth_geom::facade::{ParameterDomain, ParameterSpacePoint};
 
-use crate::bindings::rebinding::rebind_surface_on_face;
-use crate::facade::bindings::{
-    attach_parameter_space_point_to_face, attach_surface_to_face, AnchorCarrierOwnership,
-    CarrierOwnedParameterPointAnchorSpec, FaceBindingSite, FaceSurfaceBindingSpec,
+use crate::bindings::anchors::{AnchorCarrierOwnership, CarrierOwnedParameterPointAnchorSpec};
+use crate::bindings::authority::{
+    FaceBindingSite, FaceSurfaceBindingSpec, VertexBindingSite, VertexGeometryBindingSpec,
+    VertexGeometryProvenanceKind, VertexToleranceRegime,
+};
+use crate::bindings::query_native_anchor_binding_authoring::{
+    author_primitive_anchor_binding_declaration, AuthorPrimitiveAnchorBindingIntent,
+};
+use crate::bindings::query_native_binding_authoring::{
+    author_primitive_binding_declaration, AuthorPrimitiveBindingIntent,
+};
+use crate::bindings::rebinding::{
     LocalTopologyReplacementNeighborhood, NeighborhoodBindingFamily, RebindingOutcomeClass,
-    ReplacementCandidate, ReplacementCandidateSet, SpatialAdmittedPrimitiveBinding,
-    UnsupportedRebindingReason,
+    ReplacementCandidateSet, UnsupportedRebindingReason,
 };
 use worth_primitives::{
     PrimitiveConstructionFamilyContractRegistry, PrimitiveGeometryIdentityBundle,
@@ -30,13 +37,38 @@ fn plane_geometry(vertices: [[f64; 3]; 2]) -> PrimitiveGeometryIdentityBundle {
     )
 }
 
-fn point_binding(
+fn point_binding_declaration(
     face_id: &str,
     persistent_name: &str,
     vertices: [[f64; 3]; 2],
     point: [f64; 2],
-) -> crate::facade::bindings::AdmittedFaceSurfacePointAnchorBinding {
-    attach_parameter_space_point_to_face(
+) -> crate::bindings::query_native_anchor_binding_authoring::PrimitiveAnchorBindingDeclarationEntry
+{
+    author_primitive_anchor_binding_declaration(
+        AuthorPrimitiveAnchorBindingIntent::attach_parameter_space_point_to_face(
+            FaceSurfaceBindingSpec::new(
+                FaceBindingSite::new(face_id).with_persistent_name(persistent_name),
+                PrimitiveConstructionFamilyContractRegistry::contract_for(
+                    &PrimitiveWitnessDescriptor::Orthotope,
+                ),
+                plane_geometry(vertices),
+            ),
+            CarrierOwnedParameterPointAnchorSpec::new(
+                AnchorCarrierOwnership::for_face_surface(face_id, ParameterDomain::plane())
+                    .expect("ownership"),
+                ParameterSpacePoint::try_new(point).expect("parameter"),
+            )
+            .expect("anchor spec"),
+        ),
+    )
+}
+
+fn surface_binding_declaration(
+    face_id: &str,
+    persistent_name: &str,
+    vertices: [[f64; 3]; 2],
+) -> crate::bindings::query_native_binding_authoring::PrimitiveBindingDeclarationEntry {
+    author_primitive_binding_declaration(AuthorPrimitiveBindingIntent::attach_surface_to_face(
         FaceSurfaceBindingSpec::new(
             FaceBindingSite::new(face_id).with_persistent_name(persistent_name),
             PrimitiveConstructionFamilyContractRegistry::contract_for(
@@ -44,114 +76,105 @@ fn point_binding(
             ),
             plane_geometry(vertices),
         ),
-        CarrierOwnedParameterPointAnchorSpec::new(
-            AnchorCarrierOwnership::for_face_surface(face_id, ParameterDomain::plane())
-                .expect("ownership"),
-            ParameterSpacePoint::try_new(point).expect("parameter"),
-        )
-        .expect("anchor spec"),
-    )
-    .expect("binding")
-}
-
-fn surface_binding(
-    face_id: &str,
-    persistent_name: &str,
-    vertices: [[f64; 3]; 2],
-) -> crate::bindings::authority::AdmittedFaceSurfaceBinding {
-    attach_surface_to_face(FaceSurfaceBindingSpec::new(
-        FaceBindingSite::new(face_id).with_persistent_name(persistent_name),
-        PrimitiveConstructionFamilyContractRegistry::contract_for(
-            &PrimitiveWitnessDescriptor::Orthotope,
-        ),
-        plane_geometry(vertices),
     ))
-    .expect("binding")
 }
 
 #[test]
 fn rebinding_outcome_classes_keep_success_and_unsupported_posture_distinct() {
-    let prior = surface_binding(
+    let prior = surface_binding_declaration(
         "face-old",
         "surface-alpha",
         [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
     );
-    let exact = surface_binding(
+    let exact = surface_binding_declaration(
         "face-new",
         "surface-beta",
         [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
     );
-    let successor = surface_binding(
+    let successor = surface_binding_declaration(
         "face-successor",
         "surface-gamma",
         [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]],
     );
-    let prior_point = point_binding(
+    let prior_point = point_binding_declaration(
         "face-anchor-old",
         "surface-anchor-alpha",
         [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
         [0.25, 0.5],
     );
-    let correspondence = point_binding(
+    let correspondence = point_binding_declaration(
         "face-correspondence",
         "surface-delta",
         [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]],
         [0.5, 0.5],
     );
 
-    let preserved = rebind_surface_on_face(
-        SpatialAdmittedPrimitiveBinding::FaceSurface(prior.clone()),
+    let preserved = super::rebind_surface_on_face_from_fact(
+        super::rebinding_prior_fact_from_binding_declaration(&prior, "outcomes-preserved-prior"),
         LocalTopologyReplacementNeighborhood::new(
             NeighborhoodBindingFamily::FaceSurface,
             "face-old",
-            ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
-                "preserved",
-                SpatialAdmittedPrimitiveBinding::FaceSurface(prior.clone()),
-            )
-            .expect("candidate")])
+            ReplacementCandidateSet::new(vec![
+                super::rebinding_candidate_from_binding_declaration(
+                    "preserved",
+                    &prior,
+                    "outcomes-preserved-candidate",
+                )
+                .expect("candidate"),
+            ])
             .expect("candidate set"),
         )
         .expect("neighborhood"),
     )
     .expect("preserved");
-    let exact = rebind_surface_on_face(
-        SpatialAdmittedPrimitiveBinding::FaceSurface(prior.clone()),
+    let exact = super::rebind_surface_on_face_from_fact(
+        super::rebinding_prior_fact_from_binding_declaration(&prior, "outcomes-exact-prior"),
         LocalTopologyReplacementNeighborhood::new(
             NeighborhoodBindingFamily::FaceSurface,
             "face-old",
-            ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
-                "exact",
-                SpatialAdmittedPrimitiveBinding::FaceSurface(exact),
-            )
-            .expect("candidate")])
+            ReplacementCandidateSet::new(vec![
+                super::rebinding_candidate_from_binding_declaration(
+                    "exact",
+                    &exact,
+                    "outcomes-exact-candidate",
+                )
+                .expect("candidate"),
+            ])
             .expect("candidate set"),
         )
         .expect("neighborhood"),
     )
     .expect("exact");
-    let successor = rebind_surface_on_face(
-        SpatialAdmittedPrimitiveBinding::FaceSurface(prior.clone()),
+    let successor = super::rebind_surface_on_face_from_fact(
+        super::rebinding_prior_fact_from_binding_declaration(&prior, "outcomes-successor-prior"),
         LocalTopologyReplacementNeighborhood::new(
             NeighborhoodBindingFamily::FaceSurface,
             "face-old",
-            ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
-                "successor",
-                SpatialAdmittedPrimitiveBinding::FaceSurface(successor),
-            )
-            .expect("candidate")])
+            ReplacementCandidateSet::new(vec![
+                super::rebinding_candidate_from_binding_declaration(
+                    "successor",
+                    &successor,
+                    "outcomes-successor-candidate",
+                )
+                .expect("candidate"),
+            ])
             .expect("candidate set"),
         )
         .expect("neighborhood"),
     )
     .expect("successor");
-    let correspondence = rebind_surface_on_face(
-        SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(prior_point),
+    let correspondence = super::rebind_surface_on_face_from_fact(
+        super::rebinding_prior_fact_from_anchor_declaration(
+            &prior_point,
+            "outcomes-correspondence-prior",
+        ),
         LocalTopologyReplacementNeighborhood::new(
             NeighborhoodBindingFamily::FaceSurfacePointAnchor,
             "face-anchor-old",
-            ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
+            ReplacementCandidateSet::new(vec![super::rebinding_candidate_from_anchor_declaration(
                 "correspondence",
-                SpatialAdmittedPrimitiveBinding::FaceSurfacePointAnchor(correspondence),
+                &correspondence,
+                "outcomes-correspondence-candidate",
             )
             .expect("candidate")])
             .expect("candidate set"),
@@ -177,28 +200,33 @@ fn rebinding_outcome_classes_keep_success_and_unsupported_posture_distinct() {
 
 #[test]
 fn rebinding_unsupported_is_typed_outcome_not_error_fallback() {
-    let vertex_prior = crate::facade::bindings::attach_vertex_geometry(
-        crate::facade::bindings::VertexGeometryBindingSpec::new(
-            crate::facade::bindings::VertexBindingSite::new("vertex-old"),
+    let vertex_prior = author_primitive_binding_declaration(
+        AuthorPrimitiveBindingIntent::attach_vertex_geometry(VertexGeometryBindingSpec::new(
+            VertexBindingSite::new("vertex-old"),
             PrimitiveConstructionFamilyContractRegistry::contract_for(
                 &PrimitiveWitnessDescriptor::Orthotope,
             ),
             plane_geometry([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
-            crate::facade::bindings::VertexGeometryProvenanceKind::CanonicalWitness,
-            crate::facade::bindings::VertexToleranceRegime::ExactBits,
+            VertexGeometryProvenanceKind::CanonicalWitness,
+            VertexToleranceRegime::ExactBits,
+        )),
+    );
+    let decision = super::rebind_surface_on_face_from_fact(
+        super::rebinding_prior_fact_from_binding_declaration(
+            &vertex_prior,
+            "outcomes-unsupported-prior",
         ),
-    )
-    .expect("vertex prior");
-    let decision = rebind_surface_on_face(
-        SpatialAdmittedPrimitiveBinding::VertexGeometry(vertex_prior.clone()),
         LocalTopologyReplacementNeighborhood::new(
             NeighborhoodBindingFamily::VertexGeometry,
             "vertex-old",
-            ReplacementCandidateSet::new(vec![ReplacementCandidate::new(
-                "vertex-successor",
-                SpatialAdmittedPrimitiveBinding::VertexGeometry(vertex_prior),
-            )
-            .expect("candidate")])
+            ReplacementCandidateSet::new(vec![
+                super::rebinding_candidate_from_binding_declaration(
+                    "vertex-successor",
+                    &vertex_prior,
+                    "outcomes-unsupported-candidate",
+                )
+                .expect("candidate"),
+            ])
             .expect("candidate set"),
         )
         .expect("neighborhood"),
@@ -207,7 +235,7 @@ fn rebinding_unsupported_is_typed_outcome_not_error_fallback() {
 
     assert_eq!(decision.outcome_class(), RebindingOutcomeClass::Unsupported);
     assert_eq!(
-        decision.explanation().unsupported_reason(),
+        decision.unsupported_reason(),
         Some(
             UnsupportedRebindingReason::RequestedRebindingFamilyDoesNotAdmitBindingFamily {
                 requested: NeighborhoodBindingFamily::FaceSurface,

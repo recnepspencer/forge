@@ -44,6 +44,7 @@ pub enum SpatialBindingIllegalityReason {
     MissingTopologyIdentity(SpatialBindingKind),
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn evaluate_face_surface_completeness(
     geometry_identity: &PrimitiveGeometryIdentityBundle,
 ) -> SpatialBindingCompleteness {
@@ -60,6 +61,7 @@ pub(crate) fn evaluate_face_surface_completeness(
     }
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn evaluate_edge_curve_completeness(
     geometry_identity: &PrimitiveGeometryIdentityBundle,
 ) -> SpatialBindingCompleteness {
@@ -74,6 +76,7 @@ pub(crate) fn evaluate_edge_curve_completeness(
     }
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn evaluate_coedge_pcurve_completeness(
     geometry_identity: &PrimitiveGeometryIdentityBundle,
 ) -> SpatialBindingCompleteness {
@@ -94,6 +97,7 @@ pub(crate) fn evaluate_coedge_pcurve_completeness(
     }
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn evaluate_vertex_geometry_completeness(
     geometry_identity: &PrimitiveGeometryIdentityBundle,
 ) -> SpatialBindingCompleteness {

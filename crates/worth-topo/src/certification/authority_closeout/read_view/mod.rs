@@ -16,13 +16,13 @@ use crate::certification::support::reporting::{
     TopologyLocalizationEntityRow, TopologyLocalizationRelationRow, TopologyLocalizationReport,
 };
 use crate::certification::{
+    build_derived_equivalence_contract, compare_derived_equivalence_contracts,
     AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure, DecisionTrace,
     DerivedTraceAnchor, DerivedTraceEvidence, IntegrityMarkers, NamedCounter,
     PerformanceAccounting,
 };
-use crate::facade::{
-    build_derived_equivalence_contract, build_topology_read_artifact, certify_topology_view,
-    compare_derived_equivalence_contracts,
+use crate::derived_topology::traversal_views::{
+    build_topology_read_artifact, certify_topology_view,
 };
 
 pub type TracedMilestoneOneCertificationReport = BoundaryEnvelope<MilestoneOneCertificationReport>;

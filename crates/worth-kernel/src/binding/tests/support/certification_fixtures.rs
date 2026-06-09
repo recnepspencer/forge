@@ -1,18 +1,21 @@
 use forge_query::facade::{
     admit_basis_capability, evaluate_basis_inspection_eligibility, normalize_raw_basis_intent,
     scope_basis_for_inspection, ForgeQueryAdmittedConfiguredDomainHandle,
-    ForgeQueryDeclarationEntryInspectionInput, LowerRuntimeBasisEvidence, RawBasisIntent,
-    ScopedInspectionBasis,
+    LowerRuntimeBasisEvidence, RawBasisIntent, ScopedInspectionBasis,
+};
+use worth_spatial::facade::bindings::{
+    primitive_rebinding_retained_fact_source, PrimitiveRebindingDeclarationEntry,
+    PrimitiveRebindingQueryDomain, PrimitiveRebindingQueryWorld,
+    PrimitiveRebindingRetainedFactSource,
+};
+use worth_spatial::facade::inspection::{
+    branch_local_geometry_inspection_entry, historical_geometry_inspection_entry,
+    primitive_rebinding_retained_subject, PrimitiveRebindingBranchLocalInspection,
+    PrimitiveRebindingHistoricalInspection,
 };
 
-use crate::binding::rebinding::{
-    primitive_rebinding_certification_bundle, BindingLayerCertificationBundle,
-    PrimitiveRebindingBranchLocalInspection, PrimitiveRebindingDeclarationEntry,
-    PrimitiveRebindingHistoricalInspection, PrimitiveRebindingQueryDomain,
-    PrimitiveRebindingQueryWorld,
-};
-
-use super::progress_rebinding_entry;
+use super::{primitive_rebinding_certification_bundle, BindingLayerCertificationBundle};
+use crate::binding::tests::support::progress_rebinding_entry;
 
 pub(crate) fn certification_bundle_for_pair(
     handle: ForgeQueryAdmittedConfiguredDomainHandle<
@@ -26,8 +29,8 @@ pub(crate) fn certification_bundle_for_pair(
     right_evidence: &str,
 ) -> BindingLayerCertificationBundle {
     primitive_rebinding_certification_bundle(
-        &left_entry,
-        &right_entry,
+        retained_fact_source(&left_entry, &handle),
+        retained_fact_source(&right_entry, &handle),
         historical_inspection(&left_entry, &handle),
         historical_inspection(&right_entry, &handle),
         branch_local_inspection(&left_entry, &handle, &branch_basis, left_evidence),
@@ -79,16 +82,14 @@ fn historical_inspection(
         PrimitiveRebindingQueryWorld,
     >,
 ) -> PrimitiveRebindingHistoricalInspection {
-    entry
-        .historical_inspection_with_query(
-            handle,
-            ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
-                handle.orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(
-                    entry, handle,
-                )),
-            ),
-        )
-        .expect("historical inspection")
+    let subject = handle
+        .orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(entry, handle));
+    historical_geometry_inspection_entry(
+        retained_fact_source(entry, handle),
+        primitive_rebinding_retained_subject(entry.binding_kind(), &subject),
+    )
+    .inspect_checked(handle, subject)
+    .expect("historical inspection")
 }
 
 fn branch_local_inspection(
@@ -100,18 +101,16 @@ fn branch_local_inspection(
     branch_basis: &ScopedInspectionBasis,
     evidence_digest: &str,
 ) -> PrimitiveRebindingBranchLocalInspection {
-    entry
-        .branch_local_inspection_with_query(
-            handle,
-            branch_basis,
-            branch_basis_evidence(branch_basis, evidence_digest),
-            ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
-                handle.orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(
-                    entry, handle,
-                )),
-            ),
-        )
-        .expect("branch-local inspection")
+    let subject = handle
+        .orchestrate_envelope_from_progressed_checked(progress_rebinding_entry(entry, handle));
+    branch_local_geometry_inspection_entry(
+        retained_fact_source(entry, handle),
+        branch_basis.clone(),
+        branch_basis_evidence(branch_basis, evidence_digest),
+        primitive_rebinding_retained_subject(entry.binding_kind(), &subject),
+    )
+    .inspect_checked(handle, subject)
+    .expect("branch-local inspection")
 }
 
 fn branch_basis_evidence(
@@ -125,4 +124,14 @@ fn branch_basis_evidence(
         evidence_digest,
         1,
     )
+}
+
+fn retained_fact_source(
+    entry: &PrimitiveRebindingDeclarationEntry,
+    handle: &ForgeQueryAdmittedConfiguredDomainHandle<
+        PrimitiveRebindingQueryDomain,
+        PrimitiveRebindingQueryWorld,
+    >,
+) -> PrimitiveRebindingRetainedFactSource {
+    primitive_rebinding_retained_fact_source(entry, handle).expect("retained fact source")
 }

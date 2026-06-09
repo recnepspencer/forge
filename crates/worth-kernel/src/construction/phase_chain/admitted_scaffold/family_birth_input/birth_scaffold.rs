@@ -1,15 +1,24 @@
-use super::error_mapping::map_placement_geometry;
-use super::spatial_family_bridge::to_spatial_family;
-use super::topology_counts::PrimitiveConstructionTopologyCounts;
-use crate::construction::digest::digest_owned_parts;
-use crate::construction::request::{PrimitiveConstructionFamily, PrimitiveConstructionPhaseError};
-use worth_geom::facade::{build_direct_realization_report, Plane, PrimitiveRealizationReport};
-use worth_primitives::{
-    PrimitiveConstructionBirthSynopsisContract, PrimitiveGeometryIdentityBundle,
-    PrimitiveSupportPlaneIdentity, PrimitiveVertexIdentity,
+use super::super::super::request::{
+    primitive_construction_topology_birth_class, PrimitiveConstructionFamily,
+    PrimitiveConstructionPhaseError,
 };
-use worth_spatial::facade::birth::PrimitiveConstructionBirthScaffoldInput;
-use worth_spatial::facade::placement::{apply_spatial_placement, AdmittedSpatialPlacement};
+#[cfg(test)]
+use super::super::birth_proof_support::{
+    materialize_primitive_construction_birth_proof_support,
+    PrimitiveConstructionAdmittedBirthProofSupport,
+};
+#[cfg(test)]
+use super::super::PrimitiveConstructionAdmittedBirthTopologyTruth;
+use super::super::PrimitiveConstructionAdmittedRealizationPosture;
+#[cfg(test)]
+use super::error_mapping::map_placement_geometry;
+#[cfg(test)]
+use super::lower_layer_family_translation::to_lower_layer_birth_family;
+use super::topology_counts::PrimitiveConstructionTopologyCounts;
+use super::PrimitiveConstructionAdmittedBirthInput;
+use worth_geom::facade::{Plane, PrimitiveRealizationReport};
+use worth_primitives::PrimitiveConstructionBirthSynopsisContract;
+use worth_spatial::facade::placement::SpatialPlacementSpec;
 
 pub(super) struct PrimitiveConstructionBirthScaffoldPlan {
     family: PrimitiveConstructionFamily,
@@ -26,12 +35,12 @@ pub(super) enum PrimitiveConstructionBirthScaffoldRealizationPlan {
 }
 
 impl PrimitiveConstructionBirthScaffoldPlan {
-    pub(super) fn from_realized_support(
+    pub(super) fn from_realized_support_facts(
         family: PrimitiveConstructionFamily,
         birth_contract: PrimitiveConstructionBirthSynopsisContract,
         support_planes: Vec<Plane>,
         local_vertices: Vec<[f64; 3]>,
-        realization_report: PrimitiveRealizationReport,
+        realization: PrimitiveRealizationReport,
         topology_counts: PrimitiveConstructionTopologyCounts,
     ) -> Self {
         Self {
@@ -40,7 +49,7 @@ impl PrimitiveConstructionBirthScaffoldPlan {
             support_planes,
             local_vertices,
             realization: PrimitiveConstructionBirthScaffoldRealizationPlan::SupportReport(
-                realization_report,
+                realization,
             ),
             topology_counts,
         }
@@ -67,9 +76,9 @@ impl PrimitiveConstructionBirthScaffoldPlan {
 
 pub(super) fn lower_family_birth_scaffold_plan(
     intent_digest: &str,
-    placement: &AdmittedSpatialPlacement,
+    placement_spec: SpatialPlacementSpec,
     scaffold_plan: PrimitiveConstructionBirthScaffoldPlan,
-) -> Result<PrimitiveConstructionBirthScaffoldInput, PrimitiveConstructionPhaseError> {
+) -> Result<PrimitiveConstructionAdmittedBirthInput, PrimitiveConstructionPhaseError> {
     let PrimitiveConstructionBirthScaffoldPlan {
         family,
         birth_contract,
@@ -78,121 +87,153 @@ pub(super) fn lower_family_birth_scaffold_plan(
         realization,
         topology_counts,
     } = scaffold_plan;
-    let (planes, vertices) = apply_spatial_placement(placement, &support_planes, &local_vertices)
-        .map_err(map_placement_geometry)?
-        .into_parts();
-    let realization_report =
-        materialize_birth_scaffold_realization_report(realization, &vertices, &planes);
-    Ok(build_birth_scaffold_input(
-        family,
-        birth_contract,
-        intent_digest,
-        planes,
-        realization_report,
-        vertices,
-        topology_counts,
-    ))
+    #[cfg(not(test))]
+    let _ = (
+        &intent_digest,
+        &placement_spec,
+        &family,
+        &birth_contract,
+        &topology_counts,
+    );
+    #[cfg(test)]
+    let birth_proof_support = match &realization {
+        PrimitiveConstructionBirthScaffoldRealizationPlan::SupportReport(report) => {
+            materialize_primitive_construction_birth_proof_support(
+                family,
+                primitive_construction_topology_birth_class(family),
+                intent_digest,
+                placement_spec.clone(),
+                &support_planes,
+                &local_vertices,
+                report.clone(),
+                topology_counts.vertex_count(),
+                topology_counts.edge_count(),
+                topology_counts.loop_count(),
+                topology_counts.wire_count(),
+                topology_counts.face_count(),
+                topology_counts.shell_count(),
+                topology_counts.body_count(),
+            )
+        }
+        PrimitiveConstructionBirthScaffoldRealizationPlan::DirectPlanar { label } => {
+            materialize_primitive_construction_birth_proof_support(
+                family,
+                primitive_construction_topology_birth_class(family),
+                intent_digest,
+                placement_spec.clone(),
+                &support_planes,
+                &local_vertices,
+                worth_geom::facade::build_direct_realization_report(
+                    label,
+                    &local_vertices,
+                    &support_planes,
+                ),
+                topology_counts.vertex_count(),
+                topology_counts.edge_count(),
+                topology_counts.loop_count(),
+                topology_counts.wire_count(),
+                topology_counts.face_count(),
+                topology_counts.shell_count(),
+                topology_counts.body_count(),
+            )
+        }
+    }
+    .map_err(map_placement_geometry)?;
+    Ok(PrimitiveConstructionAdmittedBirthInput {
+        #[cfg(test)]
+        birth_topology_truth: birth_topology_truth_from_proof_support(
+            family,
+            birth_contract,
+            topology_counts,
+            &birth_proof_support,
+        ),
+        realization_posture: realization_posture_from_plan(
+            &realization,
+            &local_vertices,
+            &support_planes,
+            #[cfg(test)]
+            birth_proof_support.realization_fact_digest().to_string(),
+            #[cfg(test)]
+            birth_proof_support
+                .realization_geometry_digest()
+                .to_string(),
+        ),
+        #[cfg(test)]
+        placement_facts: birth_proof_support.placement_facts(),
+    })
 }
 
-fn materialize_birth_scaffold_realization_report(
-    realization: PrimitiveConstructionBirthScaffoldRealizationPlan,
-    vertex_positions: &[[f64; 3]],
+fn realization_posture_from_plan(
+    realization: &PrimitiveConstructionBirthScaffoldRealizationPlan,
+    local_vertices: &[[f64; 3]],
     support_planes: &[Plane],
-) -> PrimitiveRealizationReport {
+    #[cfg(test)] realization_digest: String,
+    #[cfg(test)] realization_geometry_digest: String,
+) -> PrimitiveConstructionAdmittedRealizationPosture {
     match realization {
-        PrimitiveConstructionBirthScaffoldRealizationPlan::SupportReport(report) => report,
+        PrimitiveConstructionBirthScaffoldRealizationPlan::SupportReport(report) => {
+            realization_posture_from_report(
+                report.clone(),
+                #[cfg(test)]
+                realization_digest,
+                #[cfg(test)]
+                realization_geometry_digest,
+            )
+        }
         PrimitiveConstructionBirthScaffoldRealizationPlan::DirectPlanar { label } => {
-            build_direct_realization_report(label, vertex_positions, support_planes)
+            realization_posture_from_report(
+                worth_geom::facade::build_direct_realization_report(
+                    label,
+                    local_vertices,
+                    support_planes,
+                ),
+                #[cfg(test)]
+                realization_digest,
+                #[cfg(test)]
+                realization_geometry_digest,
+            )
         }
     }
 }
 
-fn build_birth_scaffold_input(
+#[cfg(test)]
+fn birth_topology_truth_from_proof_support(
     family: PrimitiveConstructionFamily,
     birth_contract: PrimitiveConstructionBirthSynopsisContract,
-    intent_digest: &str,
-    support_planes: Vec<Plane>,
-    realization_report: PrimitiveRealizationReport,
-    vertex_positions: Vec<[f64; 3]>,
     topology_counts: PrimitiveConstructionTopologyCounts,
-) -> PrimitiveConstructionBirthScaffoldInput {
-    let geometry_identity = scaffold_geometry_identity(&support_planes, &vertex_positions);
-    let scaffold_digest = digest_owned_parts(&[
-        intent_digest.to_string(),
-        format!("family:{}", family.as_str()),
-        format!("planes:{}", support_planes.len()),
-        format!("vertices:{}", vertex_positions.len()),
-        format!("edges:{}", topology_counts.edge_count()),
-        format!("loops:{}", topology_counts.loop_count()),
-        format!("wires:{}", topology_counts.wire_count()),
-        format!("faces:{}", topology_counts.face_count()),
-        format!("shells:{}", topology_counts.shell_count()),
-        format!("bodies:{}", topology_counts.body_count()),
-        format!(
-            "scaffold-geometry:{}",
-            geometry_identity.scaffold_geometry_digest().as_str()
-        ),
-        format!("realization:{}", realization_report.report_digest()),
-    ]);
-    PrimitiveConstructionBirthScaffoldInput::new_with_realization_and_contract(
-        to_spatial_family(family),
+    birth_proof_support: &PrimitiveConstructionAdmittedBirthProofSupport,
+) -> PrimitiveConstructionAdmittedBirthTopologyTruth {
+    PrimitiveConstructionAdmittedBirthTopologyTruth {
+        family: to_lower_layer_birth_family(family),
         birth_contract,
-        family.topology_birth_class(),
-        scaffold_digest,
-        support_planes,
-        realization_report,
-        vertex_positions,
-        topology_counts.vertex_count(),
-        topology_counts.edge_count(),
-        topology_counts.loop_count(),
-        topology_counts.wire_count(),
-        topology_counts.face_count(),
-        topology_counts.shell_count(),
-        topology_counts.body_count(),
-    )
+        scaffold_digest: birth_proof_support.scaffold_digest().to_string(),
+        birth_digest: birth_proof_support.birth_digest().to_string(),
+        topology_birth_class: primitive_construction_topology_birth_class(family).to_string(),
+        supported_vertex_count: topology_counts.vertex_count(),
+        supported_edge_count: topology_counts.edge_count(),
+        supported_loop_count: topology_counts.loop_count(),
+        supported_wire_count: topology_counts.wire_count(),
+        supported_face_count: topology_counts.face_count(),
+        supported_shell_count: topology_counts.shell_count(),
+        supported_body_count: topology_counts.body_count(),
+        consequence_digest: birth_proof_support.birth_completeness_digest().to_string(),
+        birth_mapping_digest: birth_proof_support.birth_mapping_digest().to_string(),
+    }
 }
 
-fn scaffold_geometry_identity(
-    support_planes: &[Plane],
-    vertex_positions: &[[f64; 3]],
-) -> PrimitiveGeometryIdentityBundle {
-    PrimitiveGeometryIdentityBundle::new(
-        support_planes.iter().map(plane_identity).collect(),
-        vertex_positions
-            .iter()
-            .copied()
-            .map(PrimitiveVertexIdentity::from_position)
-            .collect(),
-    )
-}
-
-fn plane_identity(plane: &Plane) -> PrimitiveSupportPlaneIdentity {
-    let (a, b, c, d) = plane.exact_coefficients();
-    PrimitiveSupportPlaneIdentity::new(a.to_string(), b.to_string(), c.to_string(), d.to_string())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::scaffold_geometry_identity;
-    use worth_geom::facade::Plane;
-
-    #[test]
-    fn scaffold_geometry_digest_changes_when_plane_or_vertex_identity_changes() {
-        let base_plane =
-            Plane::from_point_normal([0.0, 0.0, 0.0], [0.0, 0.0, 1.0]).expect("base plane");
-        let shifted_plane =
-            Plane::from_point_normal([0.0, 0.0, 1.0], [0.0, 0.0, 1.0]).expect("shifted plane");
-        let base_vertices = vec![[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]];
-        let shifted_vertices = vec![[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 1.0, 0.0]];
-
-        let base = scaffold_geometry_identity(&[base_plane.clone()], &base_vertices)
-            .scaffold_geometry_digest();
-        let plane_shifted =
-            scaffold_geometry_identity(&[shifted_plane], &base_vertices).scaffold_geometry_digest();
-        let vertex_shifted =
-            scaffold_geometry_identity(&[base_plane], &shifted_vertices).scaffold_geometry_digest();
-
-        assert_ne!(base.as_str(), plane_shifted.as_str());
-        assert_ne!(base.as_str(), vertex_shifted.as_str());
+fn realization_posture_from_report(
+    realization_posture: PrimitiveRealizationReport,
+    #[cfg(test)] realization_digest: String,
+    #[cfg(test)] realization_geometry_digest: String,
+) -> PrimitiveConstructionAdmittedRealizationPosture {
+    PrimitiveConstructionAdmittedRealizationPosture {
+        selected_strategy: realization_posture.strategy(),
+        attempted_strategies: realization_posture.attempted_strategies().to_vec(),
+        conditioning_witness: realization_posture.conditioning_witness().clone(),
+        stability_class: realization_posture.stability_class(),
+        #[cfg(test)]
+        realization_digest,
+        #[cfg(test)]
+        realization_geometry_digest,
     }
 }
