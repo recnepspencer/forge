@@ -85,6 +85,10 @@ impl ForgeServer {
                 .assembly()
                 .compat_http_mutation_replay_store()
                 .clone(),
+            self.runtime
+                .assembly()
+                .compat_http_binary_ingress_store()
+                .clone(),
         )
     }
 

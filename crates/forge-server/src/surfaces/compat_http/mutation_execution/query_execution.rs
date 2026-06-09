@@ -1,3 +1,8 @@
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
+
 use forge_proof::TransitionOutcome;
 use forge_query::facade::{
     ForgeQueryInspection, ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily,
@@ -41,201 +46,224 @@ impl ForgeServerCompatibilityFacade {
                 Ok(value) => value,
                 Err(denial) => return TransitionOutcome::Denied(denial),
             };
-        let operation =
-            match lower_query_operation(&operation_name, &mutation_request, diagnostics_profile) {
-                Ok(value) => value,
-                Err(denial) => return TransitionOutcome::Denied(denial),
-            };
-        let admission = match self.middleware.admit(ForgeServerPipelineInput::new(
-            prepared_request
-                .admission()
-                .resolved_request_context()
-                .clone(),
-            ForgeServerPipelineIntent::query_mutation(&operation_name),
-        )) {
-            TransitionOutcome::Success(value) => value,
-            TransitionOutcome::Denied(value) => {
-                return TransitionOutcome::Denied(ForgeServerQueryHandoffDenial::new(
-                    ForgeServerQueryHandoffDenialCode::PreparedIntentMismatch,
-                    diagnostics_profile,
-                    value.detail(),
-                ));
-            }
-            TransitionOutcome::Deferred(_)
-            | TransitionOutcome::Stale(_)
-            | TransitionOutcome::RebindRequired(_)
-            | TransitionOutcome::Failed(_) => {
-                return TransitionOutcome::Failed(ForgeServerQueryHandoffFailure::new(
-                    "compatibility_mutation_middleware_readmission_failed",
-                ));
-            }
-        };
-        let mut handoff = match self
-            .query_handoff
-            .prepare(ForgeServerQueryHandoffInput::new(
-                admission,
-                ForgeServerQueryHandoffOperation::query_mutation(&operation_name),
-            )) {
-            TransitionOutcome::Success(value) => value,
-            TransitionOutcome::Denied(value) => return TransitionOutcome::Denied(value),
-            TransitionOutcome::Deferred(value) => return TransitionOutcome::Deferred(value),
-            TransitionOutcome::Stale(value) => return TransitionOutcome::Stale(value),
-            TransitionOutcome::RebindRequired(value) => {
-                return TransitionOutcome::RebindRequired(value);
-            }
-            TransitionOutcome::Failed(value) => return TransitionOutcome::Failed(value),
-        };
-        if let Err(error) = handoff
-            .workspace()
-            .admit_public_api_family(ForgeQueryRuntimeFacadeFamily::Inspect)
-        {
-            return TransitionOutcome::Denied(ForgeServerQueryHandoffDenial::new(
-                ForgeServerQueryHandoffDenialCode::UnsupportedQueryFacadeFamily,
-                diagnostics_profile,
-                format!("query workspace does not admit `inspect` facade family: {error}"),
-            ));
-        }
-        let observed_basis_digest = handoff.workspace().snapshot_token();
-        let precondition = match ForgeServerMutationPrecondition::from_prepared_request(
-            &prepared_request,
-            &operation_name,
-            mutation_request.canonical_digest(),
-            &observed_basis_digest,
-        ) {
-            Ok(value) => value,
-            Err(denial) => return TransitionOutcome::Denied(denial),
-        };
-        if let Err(denial) = precondition.enforce(&prepared_request) {
-            return TransitionOutcome::Denied(denial);
-        }
-        let idempotency_key =
-            match ForgeServerIdempotencyKey::from_prepared_request(&prepared_request) {
-                Ok(value) => value,
-                Err(denial) => return TransitionOutcome::Denied(denial),
-            };
-        let request_digest = canonical_mutation_request_digest(
-            &prepared_request,
-            &operation_name,
-            &mutation_request,
-            &precondition,
-        );
-        match self.try_replay(&prepared_request, &idempotency_key, &request_digest) {
-            Ok(Some(replayed)) => return TransitionOutcome::Success(replayed),
-            Ok(None) => {}
-            Err(denial) => return TransitionOutcome::Denied(denial),
-        }
-
-        let mutation_result = match execute_query_mutation_operation(
-            &operation,
-            &prepared_request,
-            handoff.workspace_mut(),
-        ) {
-            Ok(value) => value,
-            Err(outcome) => return outcome,
-        };
-        let support_posture = handoff.support_posture().clone();
-        let workspace_name = handoff.workspace().name().to_string();
-        let handoff_digest = handoff.canonical_digest().to_string();
-        let response_envelope = self
-            .responses
-            .shape_with_defaults(ForgeServerResponseInput::query_handoff_success(handoff));
-        let direct_context = ForgeServerDirectContextArtifact::new(
-            prepared_request.admission().request_context(),
-            &support_posture,
-            &response_envelope,
-            Some(&observed_basis_digest),
-            ForgeServerDirectRemaskPosture::visible(),
-        );
-        let replay_receipt = idempotency_key
-            .as_ref()
-            .map(|key| ForgeServerIdempotentReplayReceipt::authoritative(key, &request_digest))
-            .unwrap_or_else(|| ForgeServerIdempotentReplayReceipt::Authoritative {
-                idempotency_key: "none".to_string(),
-                request_digest: request_digest.clone(),
-                canonical_digest: format!(
-                    "compat-http-idempotent-replay-v1|class=authoritative|key:none|request:{}",
-                    request_digest
-                ),
-            });
-        let envelope = ForgeServerCompatibilityMutationEnvelope::new(
-            support_posture,
-            workspace_name,
-            handoff_digest,
-            direct_context,
-            response_envelope,
-            replay_receipt,
-        );
-        let mutation = ForgeServerCompatibilityMutation::new(
+        execute_compatibility_mutation_request(
+            self,
+            prepared_request,
+            operation_name,
             mutation_request,
-            precondition,
-            mutation_result,
-            envelope,
-        );
-        self.record_replay(
-            &prepared_request,
-            idempotency_key,
-            request_digest,
-            mutation.clone(),
-        );
-        TransitionOutcome::Success(mutation)
+        )
     }
+}
 
-    fn try_replay(
-        &self,
-        prepared_request: &crate::ForgeServerCompatibilityPreparedRequest,
-        idempotency_key: &Option<ForgeServerIdempotencyKey>,
-        request_digest: &str,
-    ) -> Result<Option<ForgeServerCompatibilityMutation>, ForgeServerQueryHandoffDenial> {
-        let Some(key) = idempotency_key.as_ref() else {
-            return Ok(None);
+pub(crate) fn execute_compatibility_mutation_request(
+    facade: &ForgeServerCompatibilityFacade,
+    prepared_request: crate::ForgeServerCompatibilityPreparedRequest,
+    operation_name: String,
+    mutation_request: ForgeServerCompatibilityMutationRequest,
+) -> ForgeServerCompatibilityMutationOutcome<ForgeServerCompatibilityMutation> {
+    let diagnostics_profile = prepared_request
+        .admission()
+        .request_context()
+        .diagnostics_profile();
+    let operation =
+        match lower_query_operation(&operation_name, &mutation_request, diagnostics_profile) {
+            Ok(value) => value,
+            Err(denial) => return TransitionOutcome::Denied(denial),
         };
-        let store = self
-            .idempotency_store
-            .lock()
-            .expect("compatibility idempotency store mutex should not be poisoned");
-        let storage_key = key.scoped_storage_key(prepared_request);
-        let Some(stored) = store.get(&storage_key) else {
-            return Ok(None);
-        };
-        if stored.request_digest() != request_digest {
-            return Err(ForgeServerQueryHandoffDenial::new(
-                ForgeServerQueryHandoffDenialCode::CompatibilityIdempotencyConflict,
-                prepared_request.admission().request_context().diagnostics_profile(),
-                format!(
-                    "compatibility mutation idempotency key `{}` was already bound to request digest `{}` and cannot be reused for `{request_digest}`",
-                    key.value(),
-                    stored.request_digest(),
-                ),
+    let admission = match facade.middleware.admit(ForgeServerPipelineInput::new(
+        prepared_request
+            .admission()
+            .resolved_request_context()
+            .clone(),
+        ForgeServerPipelineIntent::query_mutation(&operation_name),
+    )) {
+        TransitionOutcome::Success(value) => value,
+        TransitionOutcome::Denied(value) => {
+            return TransitionOutcome::Denied(ForgeServerQueryHandoffDenial::new(
+                ForgeServerQueryHandoffDenialCode::PreparedIntentMismatch,
+                diagnostics_profile,
+                value.detail(),
             ));
         }
-        Ok(Some(stored.mutation().to_replayed(
-            ForgeServerIdempotentReplayReceipt::replayed(
-                key,
-                request_digest,
-                stored.mutation().canonical_digest(),
-            ),
-        )))
+        TransitionOutcome::Deferred(_)
+        | TransitionOutcome::Stale(_)
+        | TransitionOutcome::RebindRequired(_)
+        | TransitionOutcome::Failed(_) => {
+            return TransitionOutcome::Failed(ForgeServerQueryHandoffFailure::new(
+                "compatibility_mutation_middleware_readmission_failed",
+            ));
+        }
+    };
+    let mut handoff = match facade
+        .query_handoff
+        .prepare(ForgeServerQueryHandoffInput::new(
+            admission,
+            ForgeServerQueryHandoffOperation::query_mutation(&operation_name),
+        )) {
+        TransitionOutcome::Success(value) => value,
+        TransitionOutcome::Denied(value) => return TransitionOutcome::Denied(value),
+        TransitionOutcome::Deferred(value) => return TransitionOutcome::Deferred(value),
+        TransitionOutcome::Stale(value) => return TransitionOutcome::Stale(value),
+        TransitionOutcome::RebindRequired(value) => {
+            return TransitionOutcome::RebindRequired(value)
+        }
+        TransitionOutcome::Failed(value) => return TransitionOutcome::Failed(value),
+    };
+    if let Err(error) = handoff
+        .workspace()
+        .admit_public_api_family(ForgeQueryRuntimeFacadeFamily::Inspect)
+    {
+        return TransitionOutcome::Denied(ForgeServerQueryHandoffDenial::new(
+            ForgeServerQueryHandoffDenialCode::UnsupportedQueryFacadeFamily,
+            diagnostics_profile,
+            format!("query workspace does not admit `inspect` facade family: {error}"),
+        ));
+    }
+    let observed_basis_digest = handoff.workspace().snapshot_token();
+    let precondition = match ForgeServerMutationPrecondition::from_prepared_request(
+        &prepared_request,
+        &operation_name,
+        mutation_request.canonical_digest(),
+        &observed_basis_digest,
+    ) {
+        Ok(value) => value,
+        Err(denial) => return TransitionOutcome::Denied(denial),
+    };
+    if let Err(denial) = precondition.enforce(&prepared_request) {
+        return TransitionOutcome::Denied(denial);
+    }
+    let idempotency_key = match ForgeServerIdempotencyKey::from_prepared_request(&prepared_request)
+    {
+        Ok(value) => value,
+        Err(denial) => return TransitionOutcome::Denied(denial),
+    };
+    let request_digest = canonical_mutation_request_digest(
+        &prepared_request,
+        &operation_name,
+        &mutation_request,
+        &precondition,
+    );
+    match try_replay(
+        &facade.idempotency_store,
+        &prepared_request,
+        &idempotency_key,
+        &request_digest,
+    ) {
+        Ok(Some(replayed)) => return TransitionOutcome::Success(replayed),
+        Ok(None) => {}
+        Err(denial) => return TransitionOutcome::Denied(denial),
     }
 
-    fn record_replay(
-        &self,
-        prepared_request: &crate::ForgeServerCompatibilityPreparedRequest,
-        idempotency_key: Option<ForgeServerIdempotencyKey>,
-        request_digest: String,
-        mutation: ForgeServerCompatibilityMutation,
+    let mutation_result = match execute_query_mutation_operation(
+        &operation,
+        &prepared_request,
+        handoff.workspace_mut(),
     ) {
-        let Some(key) = idempotency_key else {
-            return;
-        };
-        let storage_key = key.scoped_storage_key(prepared_request);
-        self.idempotency_store
-            .lock()
-            .expect("compatibility idempotency store mutex should not be poisoned")
-            .insert(
-                storage_key,
-                ForgeServerStoredCompatibilityMutation::new(request_digest, mutation),
-            );
+        Ok(value) => value,
+        Err(outcome) => return outcome,
+    };
+    let support_posture = handoff.support_posture().clone();
+    let workspace_name = handoff.workspace().name().to_string();
+    let handoff_digest = handoff.canonical_digest().to_string();
+    let response_envelope = facade
+        .responses
+        .shape_with_defaults(ForgeServerResponseInput::query_handoff_success(handoff));
+    let direct_context = ForgeServerDirectContextArtifact::new(
+        prepared_request.admission().request_context(),
+        &support_posture,
+        &response_envelope,
+        Some(&observed_basis_digest),
+        ForgeServerDirectRemaskPosture::visible(),
+    );
+    let replay_receipt = idempotency_key
+        .as_ref()
+        .map(|key| ForgeServerIdempotentReplayReceipt::authoritative(key, &request_digest))
+        .unwrap_or_else(|| ForgeServerIdempotentReplayReceipt::Authoritative {
+            idempotency_key: "none".to_string(),
+            request_digest: request_digest.clone(),
+            canonical_digest: format!(
+                "compat-http-idempotent-replay-v1|class=authoritative|key:none|request:{}",
+                request_digest
+            ),
+        });
+    let envelope = ForgeServerCompatibilityMutationEnvelope::new(
+        support_posture,
+        workspace_name,
+        handoff_digest,
+        direct_context,
+        response_envelope,
+        replay_receipt,
+    );
+    let mutation = ForgeServerCompatibilityMutation::new(
+        mutation_request,
+        precondition,
+        mutation_result,
+        envelope,
+    );
+    record_replay(
+        &facade.idempotency_store,
+        &prepared_request,
+        idempotency_key,
+        request_digest,
+        mutation.clone(),
+    );
+    TransitionOutcome::Success(mutation)
+}
+
+fn try_replay(
+    idempotency_store: &Arc<Mutex<HashMap<String, ForgeServerStoredCompatibilityMutation>>>,
+    prepared_request: &crate::ForgeServerCompatibilityPreparedRequest,
+    idempotency_key: &Option<ForgeServerIdempotencyKey>,
+    request_digest: &str,
+) -> Result<Option<ForgeServerCompatibilityMutation>, ForgeServerQueryHandoffDenial> {
+    let Some(key) = idempotency_key.as_ref() else {
+        return Ok(None);
+    };
+    let store = idempotency_store
+        .lock()
+        .expect("compatibility idempotency store mutex should not be poisoned");
+    let storage_key = key.scoped_storage_key(prepared_request);
+    let Some(stored) = store.get(&storage_key) else {
+        return Ok(None);
+    };
+    if stored.request_digest() != request_digest {
+        return Err(ForgeServerQueryHandoffDenial::new(
+            ForgeServerQueryHandoffDenialCode::CompatibilityIdempotencyConflict,
+            prepared_request.admission().request_context().diagnostics_profile(),
+            format!(
+                "compatibility mutation idempotency key `{}` was already bound to request digest `{}` and cannot be reused for `{request_digest}`",
+                key.value(),
+                stored.request_digest(),
+            ),
+        ));
     }
+    Ok(Some(stored.mutation().to_replayed(
+        ForgeServerIdempotentReplayReceipt::replayed(
+            key,
+            request_digest,
+            stored.mutation().canonical_digest(),
+        ),
+    )))
+}
+
+fn record_replay(
+    idempotency_store: &Arc<Mutex<HashMap<String, ForgeServerStoredCompatibilityMutation>>>,
+    prepared_request: &crate::ForgeServerCompatibilityPreparedRequest,
+    idempotency_key: Option<ForgeServerIdempotencyKey>,
+    request_digest: String,
+    mutation: ForgeServerCompatibilityMutation,
+) {
+    let Some(key) = idempotency_key else {
+        return;
+    };
+    let storage_key = key.scoped_storage_key(prepared_request);
+    idempotency_store
+        .lock()
+        .expect("compatibility idempotency store mutex should not be poisoned")
+        .insert(
+            storage_key,
+            ForgeServerStoredCompatibilityMutation::new(request_digest, mutation),
+        );
 }
 
 fn canonical_mutation_request_digest(
